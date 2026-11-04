@@ -14,7 +14,7 @@ import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import { createInterface } from "node:readline";
 import { type WebSocket, WebSocketServer } from "ws";
-import { inbound } from "./filter.js";
+import { EFFORTS, inbound, modeAllowed } from "./filter.js";
 import { credentialBreach } from "./guard.js";
 import { type Credential, LaunchError, type LaunchOptions, launch, setupCwd } from "./launch.js";
 import { type Ledger, memoryLedger } from "./sessions.js";
@@ -27,13 +27,21 @@ export interface Asker {
   setup: Setup;
 }
 
-/** Who may open `setup`: an id for the ledger (an email, `local`), or null for no. */
-export type Authorize = (a: Asker) => Promise<string | null>;
+/** Who opened a setup: an id for the ledger (an email, `local`); `owner` is the Mac's owner. */
+export interface Person {
+  who: string;
+  owner: boolean;
+}
+
+/** Who may open `setup`, or null for no. */
+export type Authorize = (a: Asker) => Promise<Person | null>;
 
 /** A setup's past sessions, read from the CLI's own store (the SDK's session readers). */
 export interface History {
   info(session: string, cwd: string): Promise<{ title?: string; at?: string } | undefined>;
   messages(session: string, cwd: string): Promise<unknown[]>;
+  /** The person's own name for a chat; the CLI keeps it in the session file. */
+  rename(session: string, cwd: string, title: string): Promise<void>;
 }
 
 export interface RelayOptions {
@@ -127,6 +135,12 @@ export function relay(o: RelayOptions): {
     const model = url.searchParams.get("model") ?? undefined;
     if (model && model !== setup.model && !setup.models?.includes(model))
       return ws.close(CLOSE.setup, `setup ${setup.name} has no model ${model}`.slice(0, 120));
+    const effort = url.searchParams.get("effort") ?? undefined;
+    if (effort && !EFFORTS.includes(effort as (typeof EFFORTS)[number]))
+      return ws.close(CLOSE.setup, `no effort ${effort}`.slice(0, 120));
+    // checked once the person is known: bypass is the owner's only
+    const mode = url.searchParams.get("mode") ?? undefined;
+    let owner = false;
     let child: ChildProcess | undefined;
     let state: "auth" | "checking" | "open" | "closed" = "auth";
     // the SDK sends initialize and the first turn right after auth: held in order until let in
@@ -134,7 +148,7 @@ export function relay(o: RelayOptions): {
     const timer = setTimeout(() => ws.close(CLOSE.unauthorized, "no auth frame"), AUTH_MS);
 
     const forward = (line: string) => {
-      const r = inbound(line, setup);
+      const r = inbound(line, setup, owner);
       if (r.kind === "forward") child?.stdin?.write(`${r.line}\n`);
       else if (r.kind === "reply") ws.send(`${JSON.stringify(r.frame)}\n`);
       else if (!/keep_alive/.test(r.why)) log(`${setup.name}: dropped ${r.why}`);
@@ -154,11 +168,14 @@ export function relay(o: RelayOptions): {
               log(`${setup.name}: authorize failed: ${e instanceof Error ? e.message : e}`);
               return null;
             })
-            .then((who) => {
+            .then((p) => {
               clearTimeout(timer);
               if (state === "closed") return;
-              if (!who) return ws.close(CLOSE.unauthorized, "not allowed to open this setup");
-              child = start(ws, setup, who, resume, model);
+              if (!p) return ws.close(CLOSE.unauthorized, "not allowed to open this setup");
+              if (mode && !modeAllowed(setup, mode, p.owner))
+                return ws.close(CLOSE.setup, `permission mode ${mode} is not allowed here`);
+              owner = p.owner;
+              child = start(ws, setup, p, resume, { model, effort, mode });
               if (!child) return;
               state = "open";
               for (const l of held.splice(0)) forward(l);
@@ -180,9 +197,9 @@ export function relay(o: RelayOptions): {
   function start(
     ws: WebSocket,
     setup: Setup,
-    who: string,
+    { who, owner }: Person,
     resume: string | undefined,
-    model: string | undefined,
+    pick: { model?: string | undefined; effort?: string | undefined; mode?: string | undefined },
   ): ChildProcess | undefined {
     if (resume && !ledger.list(setup.name, who).some((r) => r.session === resume)) {
       ws.close(CLOSE.unauthorized, "not your session");
@@ -197,7 +214,8 @@ export function relay(o: RelayOptions): {
       l = launch(setup, o.credential, {
         ...o.launch,
         resume,
-        model,
+        ...pick,
+        owner,
         ...(binDirs ? { binDirs } : {}),
         ...(mine ? { addDirs: [mine] } : {}),
       });
@@ -266,7 +284,7 @@ export function relay(o: RelayOptions): {
       res.setHeader("vary", "origin");
     }
     if (req.method === "OPTIONS") {
-      res.setHeader("access-control-allow-methods", "GET, POST");
+      res.setHeader("access-control-allow-methods", "GET, POST, PATCH");
       res.setHeader("access-control-allow-headers", "authorization, content-type");
       // Chrome's local network access: a public origin asking 127.0.0.1
       res.setHeader("access-control-allow-private-network", "true");
@@ -275,6 +293,7 @@ export function relay(o: RelayOptions): {
     }
     const url = new URL(req.url ?? "/", "http://relay");
     if (req.method === "POST" && FILES_PATH.test(url.pathname)) return upload(req, res, url);
+    if (req.method === "PATCH") return rename(req, res, url);
     if (req.method !== "GET") return send(res, 405, { error: "GET only" });
     if (url.pathname === "/setups")
       return send(
@@ -288,6 +307,7 @@ export function relay(o: RelayOptions): {
           models: [s.model, ...(s.models ?? []).filter((m) => m !== s.model)],
           tools: s.tools,
           skills: s.skills,
+          ...(s.mode ? { mode: s.mode } : {}),
         })),
       );
     const m = SESSION_PATH.exec(url.pathname);
@@ -295,7 +315,7 @@ export function relay(o: RelayOptions): {
     if (!setup) return send(res, 404, { error: "not found" });
     const credential = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
     const who = credential
-      ? await o.authorize({ credential, origin, setup }).catch(() => null)
+      ? (await o.authorize({ credential, origin, setup }).catch(() => null))?.who
       : null;
     if (!who) return send(res, 401, { error: "not allowed to open this setup" });
     const mine = ledger.list(setup.name, who);
@@ -321,13 +341,49 @@ export function relay(o: RelayOptions): {
     }
   }
 
+  /** `{title}` for one of the person's own sessions; an empty title is refused. */
+  async function rename(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+    const m = SESSION_PATH.exec(url.pathname);
+    const setup = m?.[2] ? setupOf(m[1]) : undefined;
+    if (!setup || !m?.[2] || !o.history) return send(res, 404, { error: "not found" });
+    const credential = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
+    const who = credential
+      ? (await o.authorize({ credential, origin: req.headers.origin, setup }).catch(() => null))
+          ?.who
+      : null;
+    if (!who) return send(res, 401, { error: "not allowed to open this setup" });
+    const session = m[2];
+    if (!ledger.list(setup.name, who).some((r) => r.session === session))
+      return send(res, 404, { error: "no such session" });
+    let body = "";
+    for await (const chunk of req) {
+      body += chunk;
+      if (body.length > 2048) return send(res, 413, { error: "title too long" });
+    }
+    let title = "";
+    try {
+      const t = (JSON.parse(body) as { title?: unknown }).title;
+      title = typeof t === "string" ? t.replace(/\s+/g, " ").trim().slice(0, 200) : "";
+    } catch {}
+    if (!title) return send(res, 400, { error: "a title is needed" });
+    try {
+      await o.history.rename(session, setupCwd(setup, o.launch.root), title);
+      log(`${setup.name}: ${who} renamed ${session}`);
+      return send(res, 200, { session, title });
+    } catch (e) {
+      log(`${setup.name}: rename failed: ${e instanceof Error ? e.message : e}`);
+      return send(res, 500, { error: "could not rename the chat" });
+    }
+  }
+
   /** Raw body, `?name=`; streamed to disk under the person's folder; answers the path. */
   async function upload(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
     const setup = setupOf(FILES_PATH.exec(url.pathname)?.[1]);
     if (!setup || !o.uploads) return send(res, 404, { error: "not found" });
     const credential = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
     const who = credential
-      ? await o.authorize({ credential, origin: req.headers.origin, setup }).catch(() => null)
+      ? (await o.authorize({ credential, origin: req.headers.origin, setup }).catch(() => null))
+          ?.who
       : null;
     if (!who) return send(res, 401, { error: "not allowed to open this setup" });
     const name = fileName(url.searchParams.get("name") ?? "");

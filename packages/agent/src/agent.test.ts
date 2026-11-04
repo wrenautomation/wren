@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inbound } from "./filter.js";
+import { inbound, modeAllowed } from "./filter.js";
 import { credentialBreach } from "./guard.js";
 import { LaunchError, launch, TOKEN_VARS } from "./launch.js";
 import type { Setup } from "./setup.js";
@@ -80,6 +80,20 @@ describe("launch", () => {
     expect(
       flag(launch(setup, { kind: "plan" }, { ...opts, model: "sonnet" }).args, "--model"),
     ).toBe("sonnet");
+  });
+
+  it("effort and mode from the page; only the owner gets the bypass flag", () => {
+    const l = launch(setup, { kind: "plan" }, { ...opts, effort: "high", mode: "plan" });
+    expect(flag(l.args, "--effort")).toBe("high");
+    expect(flag(l.args, "--permission-mode")).toBe("plan");
+    expect(l.args).not.toContain("--allow-dangerously-skip-permissions");
+    const o = launch(setup, { kind: "plan" }, { ...opts, mode: "bypassPermissions", owner: true });
+    expect(flag(o.args, "--permission-mode")).toBe("bypassPermissions");
+    expect(o.args).toContain("--allow-dangerously-skip-permissions");
+    const fixed = { ...setup, mode: "dontAsk" as const };
+    const f = launch(fixed, { kind: "plan" }, { ...opts, mode: "bypassPermissions", owner: true });
+    expect(flag(f.args, "--permission-mode")).toBe("dontAsk");
+    expect(f.args).not.toContain("--allow-dangerously-skip-permissions");
   });
 
   it("terminal is a skeleton; a credential the setup does not take fails", () => {
@@ -166,6 +180,25 @@ describe("inbound", () => {
     expect(
       inbound(req({ subtype: "set_permission_mode", mode: "bypassPermissions" }), setup).kind,
     ).toBe("reply");
+  });
+
+  it("bypass is the owner's only", () => {
+    const bypass = req({ subtype: "set_permission_mode", mode: "bypassPermissions" });
+    expect(inbound(bypass, setup, true).kind).toBe("forward");
+    expect(inbound(bypass, { ...setup, mode: "dontAsk" }, true).kind).toBe("reply");
+    expect(modeAllowed(setup, "bypassPermissions", false)).toBe(false);
+    expect(modeAllowed(setup, "auto", true)).toBe(false);
+  });
+
+  it("flag settings pass the effort only", () => {
+    const flags = (settings: unknown) =>
+      inbound(req({ subtype: "apply_flag_settings", settings }), setup).kind;
+    expect(flags({ effortLevel: "high" })).toBe("forward");
+    expect(flags({ effortLevel: null })).toBe("forward");
+    expect(flags({ effortLevel: "huge" })).toBe("reply");
+    expect(flags({ effortLevel: "high", permissions: { allow: ["Bash(*)"] } })).toBe("reply");
+    expect(flags({ model: "opus" })).toBe("reply");
+    expect(flags(undefined)).toBe("reply");
   });
 
   it("refuses widening requests with an error answer", () => {

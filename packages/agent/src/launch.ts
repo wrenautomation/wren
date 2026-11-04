@@ -65,6 +65,12 @@ export interface LaunchOptions {
   resolvePlugin?: (name: string) => string;
   /** Dirs put before PATH (the setup's CLIs). */
   binDirs?: readonly string[];
+  /** low … max; default the CLI's own for the model. */
+  effort?: string | undefined;
+  /** A permission mode the relay checked (`modeAllowed`); a setup's own mode wins. */
+  mode?: string | undefined;
+  /** The Mac's owner: may switch to bypass mid-chat, which the CLI allows only with its flag. */
+  owner?: boolean | undefined;
   /** Dirs the child may read beyond its cwd (the person's uploads). */
   addDirs?: readonly string[];
   command?: string;
@@ -127,7 +133,10 @@ export function launch(setup: Setup, cred: Credential, o: LaunchOptions): Launch
     "--tools", setup.tools.join(","),
     "--model", o.model ?? setup.model,
   ];
-  if (setup.mode) args.push("--permission-mode", setup.mode);
+  const mode = setup.mode ?? o.mode;
+  if (mode) args.push("--permission-mode", mode);
+  if (o.owner && !setup.mode) args.push("--allow-dangerously-skip-permissions");
+  if (o.effort) args.push("--effort", o.effort);
   const plugin = o.resolvePlugin ?? pluginRoot;
   for (const p of setup.plugins)
     args.push(

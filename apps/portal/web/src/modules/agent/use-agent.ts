@@ -3,7 +3,7 @@
  * opens on the first send (a past chat opens with `resume`), so reading an old chat starts no
  * `claude`. Leaving the chat or the page closes the socket; the relay ends the child.
  */
-import { type AgentMessage, type AgentSent, useLoad } from "@wren/ui";
+import { type AgentMessage, type AgentSent, type AgentStatusInfo, useLoad } from "@wren/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { socketToken } from "../../api.js";
 import { openSetup, type Query, relayHistory, turns } from "./connect.js";
@@ -46,6 +46,8 @@ export interface AgentChat {
   session: string | undefined;
   /** From init: true on the Claude plan, false on an API key; unknown before the first turn. */
   plan: boolean | undefined;
+  /** The terminal's status line: from init, then context and plan limits after each turn. */
+  status: AgentStatusInfo;
   /** `page` names the page the turn is sent from; the thread shows it under the turn. */
   send: (text: string, files?: readonly AgentSent[], page?: string) => void;
   /** A picked file → what its turn carries (AgentThread `files.ready`). */
@@ -60,6 +62,10 @@ export function useAgent(o: {
   session: string | null;
   /** The model picked, when not the setup's own. */
   model?: string | undefined;
+  /** The effort picked; unset = the CLI's own for the model. */
+  effort?: string | undefined;
+  /** The permission mode picked; unset = the setup's. */
+  mode?: string | undefined;
   /** The CLI named the session: a new chat gets its id. */
   onSession?: (id: string) => void;
 }): AgentChat {
@@ -67,8 +73,11 @@ export function useAgent(o: {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<AgentChat["error"]>(null);
   const live = useRef<Live | null>(null);
+  const [status, setStatus] = useState<AgentStatusInfo>({});
   const model = useRef(o.model);
   model.current = o.model;
+  const picks = useRef({ effort: o.effort, mode: o.mode });
+  picks.current = { effort: o.effort, mode: o.mode };
   const onSession = useRef(o.onSession);
   onSession.current = o.onSession;
   // the id this hook is showing: a new chat's id arriving must not reload it
@@ -129,6 +138,18 @@ export function useAgent(o: {
   useEffect(() => {
     if (o.model) void live.current?.q.setModel(o.model).catch(() => {});
   }, [o.model]);
+  useEffect(() => {
+    const q = live.current?.q;
+    if (!q) return;
+    // unset: back to the model's own level
+    void q
+      .applyFlagSettings({ effortLevel: (o.effort ?? null) as "high" | null })
+      .then(() => setStatus((s) => ({ ...s, effort: o.effort })))
+      .catch(() => {});
+  }, [o.effort]);
+  useEffect(() => {
+    if (o.mode) void live.current?.q.setPermissionMode(o.mode as "default").catch(() => {});
+  }, [o.mode]);
 
   const open = useCallback(
     async (resume: string | undefined): Promise<Live> => {
@@ -141,6 +162,8 @@ export function useAgent(o: {
         prompt: t.stream,
         ...(resume ? { resume } : {}),
         ...(model.current ? { model: model.current } : {}),
+        ...(picks.current.effort ? { effort: picks.current.effort } : {}),
+        ...(picks.current.mode ? { mode: picks.current.mode } : {}),
         canUseTool: (name, input, { toolUseID, decisionReason, signal }) =>
           new Promise((res) => {
             const done = (allow: boolean, answers?: Record<string, string>) => {
@@ -170,11 +193,14 @@ export function useAgent(o: {
           for await (const m of q) {
             if (l.closing) break;
             if (m.type === "system" && m.subtype === "init") {
+              const effort = (m as { effort?: string | null }).effort;
+              setStatus((s) => ({ ...s, model: m.model, effort: effort ?? s.effort }));
               setStarting(false);
               shown.current = m.session_id;
               onSession.current?.(m.session_id);
             }
             setS((p) => fold(p, m as never));
+            if (m.type === "result") void measure(q, setStatus);
           }
           if (!l.closing) setS(cut);
         } catch (e) {
@@ -258,11 +284,30 @@ export function useAgent(o: {
       (stored.error && s.session !== o.session ? storedError(stored.error, stored.retry) : null),
     session: s.session ?? o.session ?? undefined,
     plan: s.plan,
+    status,
     send,
     ready,
     stop,
     answer,
   };
+}
+
+/** After a turn: the context in use and the plan's 5h and 7d use, as `/context` and `/usage` give them. */
+async function measure(q: Query, set: (f: (s: AgentStatusInfo) => AgentStatusInfo) => void) {
+  const [ctx, use] = await Promise.all([
+    q.getContextUsage({ detail: "summary" }).catch(() => null),
+    // `/usage` is still experimental in the SDK: a rename shows as a type error on the bump
+    q
+      .usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true })
+      .catch(() => null),
+  ]);
+  const limits = use?.rate_limits_available ? use.rate_limits : null;
+  set((s) => ({
+    ...s,
+    ...(ctx ? { context: { used: ctx.totalTokens, max: ctx.maxTokens } } : {}),
+    fiveHour: limits?.five_hour?.utilization ?? undefined,
+    sevenDay: limits?.seven_day?.utilization ?? undefined,
+  }));
 }
 
 const storedError = (e: unknown, retry: () => void) => {

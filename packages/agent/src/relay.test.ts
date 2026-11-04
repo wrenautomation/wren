@@ -58,7 +58,9 @@ afterEach(async () => {
 });
 
 const byToken: Authorize = async ({ credential }) =>
-  tokenMatches(credential, "tok") ? "local" : null;
+  tokenMatches(credential, "tok") ? { who: "local", owner: false } : null;
+
+const renamed: [string, string][] = [];
 
 function start(
   host: Record<string, string> = {},
@@ -74,6 +76,7 @@ function start(
     history: {
       info: async (id) => ({ title: `title ${id}` }),
       messages: async (id) => [{ type: "user", session_id: id }],
+      rename: async (id, _cwd, title) => void renamed.push([id, title]),
     },
     origins: ["https://app.wrenautomation.com"],
     setups: [setup],
@@ -176,9 +179,11 @@ describe("relay", () => {
     expect((await session("/s/demo?resume=s9", [auth()])).code).toBe(CLOSE.unauthorized);
   });
 
-  it("refuses a model the setup does not list", async () => {
+  it("refuses a model the setup does not list, a bad effort, and bypass for a non-owner", async () => {
     await start();
     expect((await session("/s/demo?model=opus", [auth()])).code).toBe(CLOSE.setup);
+    expect((await session("/s/demo?effort=huge", [auth()])).code).toBe(CLOSE.setup);
+    expect((await session("/s/demo?mode=bypassPermissions", [auth()])).code).toBe(CLOSE.setup);
   });
 
   it("lists setups, and only the asker's own sessions with their history", async () => {
@@ -200,6 +205,16 @@ describe("relay", () => {
       { type: "user", session_id: "s1" },
     ]);
     expect((await get("/s/demo/sessions/s-other", "tok")).status).toBe(404);
+    const patch = (path: string, body: unknown) =>
+      fetch(`http://127.0.0.1:${port}${path}`, {
+        method: "PATCH",
+        headers: { authorization: "Bearer tok" },
+        body: JSON.stringify(body),
+      });
+    expect((await patch("/s/demo/sessions/s-other", { title: "x" })).status).toBe(404);
+    expect((await patch("/s/demo/sessions/s1", { title: "  " })).status).toBe(400);
+    expect((await patch("/s/demo/sessions/s1", { title: " Coach  tools " })).status).toBe(200);
+    expect(renamed).toEqual([["s1", "Coach tools"]]);
     const pre = await fetch(`http://127.0.0.1:${port}/setups`, {
       method: "OPTIONS",
       headers: { origin: "https://app.wrenautomation.com" },

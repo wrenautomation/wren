@@ -31,6 +31,8 @@ export interface SetupInfo {
   models: string[];
   tools: string[];
   skills: string[];
+  /** A fixed permission mode: the page offers no other. */
+  mode?: string;
 }
 
 /** A past session of the asker's (`GET /s/<setup>/sessions`), newest first. */
@@ -69,6 +71,30 @@ export async function relayPost<T>(path: string, token: string, body: Blob): Pro
 }
 
 export const relaySetups = () => relayGet<SetupInfo[]>("/setups");
+/** The person's own name for one of their chats. */
+export async function relayRename(
+  setup: string,
+  session: string,
+  token: string,
+  title: string,
+): Promise<void> {
+  const res = await fetch(
+    `${HTTP}/s/${encodeURIComponent(setup)}/sessions/${encodeURIComponent(session)}`,
+    {
+      method: "PATCH",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ title }),
+    },
+  ).catch(() => {
+    throw new Error("The agent on this Mac didn't answer. Is it running?");
+  });
+  if (!res.ok) {
+    const why = ((await res.json().catch(() => ({}))) as { error?: string }).error;
+    throw new Error(
+      why ? why.charAt(0).toUpperCase() + why.slice(1) : `The agent answered ${res.status}`,
+    );
+  }
+}
 export const relaySessions = (setup: string, token: string) =>
   relayGet<SessionRow[]>(`/s/${encodeURIComponent(setup)}/sessions`, token);
 /** A stored session's frames, to fold with `history` (thread.ts). */
@@ -126,6 +152,10 @@ export interface OpenOptions {
   resume?: string;
   /** One of the setup's models; the relay starts the CLI on it. */
   model?: string;
+  /** low … max; the relay checks it. */
+  effort?: string;
+  /** A permission mode; bypass only for the Mac's owner (Decision 11). */
+  mode?: string;
   abortController?: AbortController;
 }
 
@@ -145,6 +175,8 @@ export async function openSetup(o: OpenOptions): Promise<Query> {
   const p = new URLSearchParams();
   if (o.resume) p.set("resume", o.resume);
   if (o.model) p.set("model", o.model);
+  if (o.effort) p.set("effort", o.effort);
+  if (o.mode) p.set("mode", o.mode);
   const q = p.size ? `?${p}` : "";
   return query({
     prompt: o.prompt,

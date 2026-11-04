@@ -56,11 +56,15 @@ function pageGrant(local: string): Authorize {
     return me;
   };
   return async ({ credential, origin, setup }) => {
-    if (!origin) return tokenMatches(credential, local) ? "local" : null;
+    if (!origin) return tokenMatches(credential, local) ? { who: "local", owner: true } : null;
     const me = await meOf(origin, credential);
     const who = me && whoFromMe(me, null);
     if (!who || !can(who, "run", { app: setup.app })) return null;
-    return emailOf(credential) ?? new URL(origin).host;
+    // owner: a Wren admin, the only role that may run this Mac's agent unprompted (Decision 11)
+    return {
+      who: emailOf(credential) ?? new URL(origin).host,
+      owner: me.team?.role === "admin",
+    };
   };
 }
 

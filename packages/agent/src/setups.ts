@@ -11,7 +11,7 @@ export const SETUPS: readonly Setup[] = [
     app: "research",
     cwd: "tasks/docs/research",
     model: "sonnet",
-    models: ["sonnet", "haiku", "opus"],
+    models: ["sonnet", "haiku", "opus", "fable"],
     // AskUserQuestion stays out of allow: it reaches the page as an ask
     tools: ["Bash", "Read", "Skill", "AskUserQuestion"],
     skills: ["birdwatch:birdwatch"],

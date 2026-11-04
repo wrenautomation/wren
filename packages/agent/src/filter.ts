@@ -27,8 +27,16 @@ const PASS = new Set([
   "get_task_output",
 ]);
 
-/** Never `bypassPermissions` or `auto`: a page may only tighten or keep the prompts. */
+/** Never `bypassPermissions` or `auto` for a page: it may only tighten or keep the prompts. */
 const MODES = new Set(["default", "acceptEdits", "plan", "dontAsk"]);
+/** The Mac's owner may also drop the prompts, as in their own terminal (Decision 11). */
+const OWNER_MODES = new Set([...MODES, "bypassPermissions"]);
+
+export const EFFORTS = ["low", "medium", "high", "xhigh", "max"] as const;
+
+/** A mode this person may run `setup` in; a setup with its own mode takes only that. */
+export const modeAllowed = (setup: Setup, mode: string, owner: boolean): boolean =>
+  setup.mode ? mode === setup.mode : (owner ? OWNER_MODES : MODES).has(mode);
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -38,7 +46,7 @@ const refuse = (id: unknown, error: string): Inbound => ({
   frame: { type: "control_response", response: { subtype: "error", request_id: id, error } },
 });
 
-export function inbound(line: string, setup: Setup): Inbound {
+export function inbound(line: string, setup: Setup, owner = false): Inbound {
   let m: unknown;
   try {
     m = JSON.parse(line);
@@ -55,13 +63,13 @@ export function inbound(line: string, setup: Setup): Inbound {
     case "control_response":
       return { kind: "forward", line: JSON.stringify(m) };
     case "control_request":
-      return control(m, setup);
+      return control(m, setup, owner);
     default:
       return { kind: "drop", why: `type ${String(m.type)}` };
   }
 }
 
-function control(m: Obj, setup: Setup): Inbound {
+function control(m: Obj, setup: Setup, owner: boolean): Inbound {
   const id = m.request_id;
   if (!isObj(m.request)) return refuse(id, "no request");
   const r = m.request;
@@ -80,9 +88,22 @@ function control(m: Obj, setup: Setup): Inbound {
       : refuse(id, `setup ${setup.name} does not offer model ${String(r.model)}`);
   }
   if (sub === "set_permission_mode")
-    return (setup.mode ? r.mode === setup.mode : MODES.has(String(r.mode)))
+    return modeAllowed(setup, String(r.mode), owner)
       ? { kind: "forward", line: JSON.stringify(m) }
       : refuse(id, `permission mode ${String(r.mode)} is not allowed here`);
+  if (sub === "apply_flag_settings") {
+    // effort only: the same request carries permissions, hooks and models, which widen a setup
+    const s = r.settings;
+    const keys = isObj(s) ? Object.keys(s) : [];
+    const level = isObj(s) ? s.effortLevel : undefined;
+    const ok =
+      keys.length === 1 &&
+      keys[0] === "effortLevel" &&
+      (level === null || EFFORTS.includes(level as (typeof EFFORTS)[number]));
+    return ok
+      ? { kind: "forward", line: JSON.stringify(m) }
+      : refuse(id, "only the effort may change here");
+  }
   if (PASS.has(sub)) return { kind: "forward", line: JSON.stringify(m) };
   return refuse(id, `${sub} is not allowed in setup ${setup.name}`);
 }

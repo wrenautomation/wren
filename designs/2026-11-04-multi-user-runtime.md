@@ -189,3 +189,25 @@ What the reel shows, now built:
 - A finished turn with steps ends on "Done · 24s" (or Stopped, Failed). The usage line then drops its time.
 - Options: full-width rows with a number key (1–9 picks), the label and its note, an arrow. The pick fills ink. One pick sends and gives the keys back to the message box.
 - Times come from each frame's own clock (`timestamp`), so a stored chat shows the same times on reload.
+
+## Decision 11: rename, effort, mode, Fable and the status line (agreed 11-04, WA-1070)
+William asked to rename chats, see and change the effort, set bypass as his default, use Fable, and see his terminal's status line in the chat.
+
+Who may drop the permission prompts:
+
+| Option | For | Against |
+|---|---|---|
+| A. The Mac's owner only (a Wren admin, or the local token) may pick bypass, at launch (`?mode=`) or mid-chat (`set_permission_mode`) | William gets his terminal's mode; every other person keeps the prompts | the owner check must come from the sign-in, never the address |
+| B. A fixed mode per setup (`mode: bypassPermissions` in setups.ts) | no new check | every person on that setup runs unprompted |
+| C. Widen each setup's allow list (`Bash(*)`) | no new mode | the same as B for everyone, and the asks for other tools go too |
+
+Ranked by risk, then result. Choice: A. Tested 11-04 with stream-json and `--permission-prompt-tool stdio`: under bypass, `touch` runs with no ask, and AskUserQuestion still reaches the page, so the choices card keeps working.
+
+- Owner: `pageGrant` returns `{who, owner}`. Owner is `local` (no Origin, the local token) or `delivery/me` with team role `admin`. The page shows the bypass option from the same role; the relay decides.
+- Launch: `--permission-mode <mode>`; the owner also gets `--allow-dangerously-skip-permissions`, which the CLI needs before a mid-chat switch to bypass. A setup's own `mode` wins and gets no flag.
+- Effort: `?effort=` (low, medium, high, xhigh, max) becomes `--effort`. Mid-chat, `apply_flag_settings` passes only when its settings hold exactly `effortLevel`, a level or null. The same request carries permissions, hooks and models, so any other key is refused (unit tested).
+- Picks: model, effort and mode are menus in the box's foot (`AgentPick`). Effort and mode stay on the device; the owner's mode starts on bypass.
+- Status line: model, effort, context used/window (%), 5h %, 7d %, as `~/.claude/statusline-command.sh` shows it. It comes from init, then `getContextUsage` and the SDK's `/usage` call after each turn. On an API key the 5h and 7d parts stay hidden. 80% reads amber, 95% red.
+- Rename: `PATCH /s/<setup>/sessions/<id>` with `{title}`, the asker's own sessions only, through the SDK's `renameSession`. The title in the chat's head is the edit field.
+- Fable: in the birdwatch setup's models (`claude --model fable` is valid).
+- Relay changes take effect after the relay restarts.

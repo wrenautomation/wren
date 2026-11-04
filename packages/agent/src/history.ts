@@ -1,5 +1,5 @@
 /** `History` from the CLI's own session store, through the Agent SDK's session readers. */
-import { getSessionInfo, getSessionMessages } from "@anthropic-ai/claude-agent-sdk";
+import { getSessionInfo, getSessionMessages, renameSession } from "@anthropic-ai/claude-agent-sdk";
 import type { History } from "./relay.js";
 
 export const sdkHistory: History = {
@@ -13,4 +13,5 @@ export const sdkHistory: History = {
     };
   },
   messages: (session, dir) => getSessionMessages(session, { dir }),
+  rename: (session, dir, title) => renameSession(session, title, { dir }),
 };

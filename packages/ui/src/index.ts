@@ -27,6 +27,7 @@ export {
   useHeld,
   useLastWrite,
 } from "./action.js";
+export { AgentPick, AgentStatus, type AgentStatusInfo, type PickOption } from "./agent-picks.js";
 export { toolLine } from "./agent-steps.js";
 export {
   type AgentFile,
@@ -39,6 +40,7 @@ export {
   type AgentThreadProps,
   fileKind,
   footLine,
+  modelName,
   threadMessage,
 } from "./agent-thread.js";
 export {

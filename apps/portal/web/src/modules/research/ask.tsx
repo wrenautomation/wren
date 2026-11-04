@@ -8,12 +8,12 @@ import { useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate, useRoute } from "../../route.js";
-import { AgentChat, ModelPick } from "../agent/chat.js";
+import { AgentChat, ChatTitle, ownerOf } from "../agent/chat.js";
 import { relaySessions, relaySetups, type SessionRow } from "../agent/connect.js";
 import { closeText } from "../agent/thread.js";
 import { pageToken } from "../agent/use-agent.js";
 
-export function AskPage({ params }: PageProps) {
+export function AskPage({ params, who }: PageProps) {
   const here = `/${useRoute().path.join("/")}`;
   const setups = useCall("agent:setups", () => relaySetups(), { kept: false });
   const mine = (setups.data ?? []).filter((s) => s.app === "research");
@@ -85,11 +85,16 @@ export function AskPage({ params }: PageProps) {
           setup={setup}
           chat={chat}
           model={model}
+          onModel={(v) => go({ model: v === setup.model ? null : v }, true)}
+          owner={ownerOf(who)}
           head={(first) => (
             <header className="flex min-h-9 flex-wrap items-center gap-3 border-(--ui-hair) border-b pb-3">
-              <h1 className="m-0 min-w-0 flex-1 text-[15px] font-semibold text-(--ui-ink) wrap-anywhere">
-                {stored ?? first ?? (chat ? "Chat" : "New chat")}
-              </h1>
+              <ChatTitle
+                setup={setup.name}
+                chat={chat}
+                title={stored ?? first ?? (chat ? "Chat" : "New chat")}
+                onRenamed={sessions.retry}
+              />
               {mine.length > 1 ? (
                 <Seg
                   label="Setup"
@@ -101,13 +106,6 @@ export function AskPage({ params }: PageProps) {
               ) : null}
             </header>
           )}
-          tools={
-            <ModelPick
-              setup={setup}
-              value={model}
-              onChange={(v) => go({ model: v === setup.model ? null : v }, true)}
-            />
-          }
           onSession={(id) => {
             if (id !== chat) go({ chat: id }, true);
             sessions.retry();

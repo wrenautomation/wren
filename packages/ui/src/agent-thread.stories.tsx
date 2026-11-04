@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import { AgentPick, AgentStatus } from "./agent-picks.js";
 import { type AgentMessage, AgentThread, type AgentThreadProps } from "./agent-thread.js";
 
 export default {
@@ -135,6 +136,77 @@ export const Answered: Story = {
     await expect(c.getByText("8.4s")).toBeTruthy();
     await userEvent.click(c.getByRole("button", { name: /Check past runs/ }));
     await expect(c.getByText(/"kept":9/)).toBeTruthy();
+  },
+};
+
+function Picks() {
+  const [model, setModel] = useState("sonnet");
+  const [effort, setEffort] = useState("");
+  const [mode, setMode] = useState("bypassPermissions");
+  return (
+    <>
+      <AgentPick
+        label="Model"
+        value={model}
+        options={[
+          { value: "sonnet", label: "Sonnet" },
+          { value: "opus", label: "Opus" },
+          { value: "fable", label: "Fable" },
+          { value: "haiku", label: "Haiku" },
+        ]}
+        onChange={setModel}
+      />
+      <AgentPick
+        label="Effort"
+        value={effort}
+        options={[
+          { value: "", label: "Auto effort", hint: "The model's own level" },
+          { value: "high", label: "High" },
+          { value: "max", label: "Max" },
+        ]}
+        onChange={setEffort}
+      />
+      <AgentPick
+        label="Permissions"
+        value={mode}
+        options={[
+          { value: "default", label: "Ask first" },
+          { value: "bypassPermissions", label: "Bypass", hint: "Runs every tool", warn: true },
+        ]}
+        onChange={setMode}
+      />
+    </>
+  );
+}
+
+/** The box's foot: model, effort and mode menus; under it, the terminal's status line. */
+export const Foot: Story = {
+  render: () => (
+    <Live
+      messages={DONE}
+      tools={<Picks />}
+      note={
+        <AgentStatus
+          info={{
+            model: "Sonnet",
+            effort: "high",
+            context: { used: 172_000, max: 200_000 },
+            fiveHour: 34,
+            sevenDay: 97,
+          }}
+        />
+      }
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await expect(c.getByText("172k/200k (86%)")).toBeTruthy();
+    await expect(c.getByText("7d 97%")).toBeTruthy();
+    await userEvent.click(c.getByRole("button", { name: "Effort: Auto effort" }));
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole("option", { name: /Max/ }));
+    await waitFor(() => expect(c.getByRole("button", { name: "Effort: Max" })).toBeTruthy());
+    await expect(c.getByRole("button", { name: "Permissions: Bypass" })).toBeTruthy();
   },
 };
 

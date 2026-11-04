@@ -611,8 +611,14 @@ const Thinking: ReasoningMessagePartComponent = ({ text, status }) => {
   );
 };
 
-const MODEL_NAME: Record<string, string> = { haiku: "Haiku", sonnet: "Sonnet", opus: "Opus" };
-const modelName = (m: string) =>
+const MODEL_NAME: Record<string, string> = {
+  haiku: "Haiku",
+  sonnet: "Sonnet",
+  opus: "Opus",
+  fable: "Fable",
+};
+/** A model's short name from its alias or id: "opus", "claude-opus-5-5" → "Opus". */
+export const modelName = (m: string) =>
   MODEL_NAME[m] ?? MODEL_NAME[/claude-(\w+)/.exec(m)?.[1] ?? ""] ?? m;
 
 const count = (n: number) =>
@@ -796,7 +802,7 @@ function Composer({
             <Icon name="attach" size={16} />
           </ComposerPrimitive.AddAttachment>
         ) : null}
-        <div className="flex min-w-0 flex-1 items-center gap-2">{tools}</div>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">{tools}</div>
         {running ? (
           <ComposerPrimitive.Cancel
             aria-label="Stop"
