@@ -108,9 +108,10 @@ function pageOf_(sites: SiteClient, o: MetaContentOptions) {
 
 /**
  * One DM to a comment's author through the Page (Private Replies, Instagram and Facebook alike):
- * Meta allows one per comment, within 7 days of it. With a button: a button template (Messenger's
- * private-reply example); a refused template (Graph code 100, Instagram unproven) retries once as
- * text with the label in it, since a refused call sent nothing (designs/2026-11-04-meta-push-flows.md).
+ * Meta allows one per comment, within 7 days of it. With a button: a button template with one
+ * postback (Messenger's private-reply example; Instagram shows it in the app, not on the web). A
+ * refused template (Graph code 100) retries once as a quick reply, which carries the same payload;
+ * a refused call sent nothing (designs/2026-11-04-meta-push-flows.md).
  */
 export async function privateReply(
   sites: SiteClient,
@@ -140,7 +141,10 @@ export async function privateReply(
     return { ref: r.message_id ?? null };
   } catch (err) {
     if (!isBadParam(err)) throw err;
-    const r = await send({ text: `${text}\n\nReply "${button.title}" and I'll send it.` });
+    const r = await send({
+      text,
+      quick_replies: [{ content_type: "text", title: button.title, payload: button.payload }],
+    });
     return { ref: r.message_id ?? null };
   }
 }

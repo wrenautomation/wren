@@ -88,6 +88,32 @@ export async function recentPosts(
   );
 }
 
+/** One published post of ours by its platform id, as a read takes it; null: not ours. */
+export async function publishedPost(
+  db: Queryable,
+  platform: Platform,
+  id: string,
+): Promise<RecentPost | null> {
+  const [r] = await db
+    .select({
+      url: contentDrafts.url,
+      title: contentDrafts.title,
+      text: contentDrafts.text,
+      publishedAt: contentDrafts.publishedAt,
+    })
+    .from(contentDrafts)
+    .where(and(eq(contentDrafts.platform, platform), eq(contentDrafts.publishedId, id)))
+    .limit(1);
+  if (!r) return null;
+  return {
+    platform,
+    id,
+    url: r.url,
+    title: (r.title ?? r.text.split("\n")[0] ?? "").slice(0, 200),
+    publishedAt: r.publishedAt?.toISOString() ?? "",
+  };
+}
+
 /**
  * How often a post's comments are read: young, then older. TikTok's come off its page in a
  * browser, 24 a day, so its posts are read every 6 hours while young and daily after. LinkedIn's

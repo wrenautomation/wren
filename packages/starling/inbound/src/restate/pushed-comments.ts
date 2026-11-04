@@ -10,7 +10,7 @@ import type { Db } from "@wren/db";
 import { COMMENTS_FLOW, COMMENTS_FROM, commentEvent } from "@wren/starling-conversations";
 import type { CommentRow } from "@wren/starling-core";
 import { z } from "zod";
-import { keepPostComments } from "../social/store.js";
+import { keepPostComments, publishedPost } from "../social/store.js";
 import { catchKeywordDms } from "./keyword-dm.js";
 
 const KEEP = z.object({
@@ -43,7 +43,8 @@ export function makePushedComments(deps: { db: Db; clientDb?: ((client: string) 
             if (!deps.clientDb) throw new restate.TerminalError("no client databases here");
             db = deps.clientDb(req.client);
           }
-          const post = {
+          // Its title and link from our published row, as the read keeps them.
+          const post = (await ctx.run("post", () => publishedPost(db, req.platform, req.post))) ?? {
             platform: req.platform,
             id: req.post,
             url: null,

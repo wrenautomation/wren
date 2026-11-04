@@ -12,8 +12,10 @@ A comment on our Instagram or Facebook post reaches us by webhook in seconds. We
 
 After Meta's Advanced Access (`instagram_manage_comments`, `instagram_business_manage_messages`):
 1. Subscribe the webhooks: `wren social push meta` (Instagram `comments`, `messages`, `messaging_postbacks`; Page `feed`, `messages`, `messaging_postbacks`). `--check` shows them first.
-2. Set `WREN_META_PUSH_EVENTS=1` in SSM `env-2`, then deploy.
-3. Nothing else changes. The paused loops stay paused (WA-1043).
+2. Set `META_GRANTS=messaging` in autobrowse's env store: without it the facade's `/{page}/messages` sends only to the app's testers. Restart the desk, so it runs the facade with the button and quick-reply shapes (autobrowse b5eb09d and later).
+3. Set `WREN_META_PUSH_EVENTS=1` in SSM `env-2`, then deploy.
+4. Send one test: comment a keyword with a button on our post from a tester account. Check the DM, the tap, the follow-up and `keyword_hits.followed_at`. The private reply's button is unproven on Instagram until then.
+5. Nothing else changes. The paused loops stay paused (WA-1043).
 
 Our own Facebook Page's `feed` webhook needs no review, so part 1 can run on Facebook first.
 
@@ -29,6 +31,8 @@ Our own Facebook Page's `feed` webhook needs no review, so part 1 can run on Fac
 
 Priorities, in order: (1) no reads to sync the portal (William, 11-03), (2) delay, since the reply rate falls with each minute, (3) the same truth as the read. C wins on 1 and 2. On 3: Meta's comment push carries the same id, text, author and time the read gives. An edit or a removal (Facebook `verb: edited|remove`) is not kept from the push; the net read keeps the edit. Instagram pushes new comments only.
 
+A kept comment takes its post's title and link from our published row (`publishedPost`), as the read does.
+
 Shape: `metaComments(body)` (pure) turns `instagram.comments` and `page.feed` (`item: comment`, `verb: add`) changes into `CommentRow`s per account and post. `SocialPush.meta`, switch on, sends each owner's rows to `SocialWatch.keepPushed`: `keepPostComments`, then `catchKeywordDms`, then the executor's `comment` events, as `readPost` does. Those posts no longer wake a read. DM pushes still wake `ReachWatch` and `SocialWatch`.
 
 ## 2. A button opens the window
@@ -36,8 +40,8 @@ Shape: `metaComments(body)` (pure) turns `instagram.comments` and `page.feed` (`
 Meta's private reply allows one message per comment, and more only after they answer. ManyChat's first DM carries a button; a tap is their answer, so the window opens.
 
 - `comment_keywords`: `button` (the label, 20 characters at most) and `followup` (what the tap sends). Both null = today.
-- The private reply goes out as a button template with one postback button, payload `kw:<hit id>`. Meta's Messenger page says every Send API type is allowed in a private reply, and its example is a button template. The Instagram page shows text only. So a refused template retries once as text alone, with the label in the words: a refused call sent nothing, so the retry is the one reply.
-- A tap comes back as a `messaging` push: `postback.payload` (button) or `message.quick_reply.payload`. `metaTaps(body)` (pure) reads `kw:<id>` and the sender. `KeywordDm.followup` sends the follow-up to that sender through `Content.followUp` (`/{page}/messages`, `messaging_type: RESPONSE`), on the send ledger as `followup:<hit>`. A second tap sends nothing. `keyword_hits.followed_at` keeps when.
+- The private reply goes out as a button template with one postback button, payload `kw:<hit id>`. Meta's Messenger page says every Send API type is allowed in a private reply, and its example is a button template. Instagram supports the button template in the app, not on the web; its private-reply page shows text only. So a refused template (Graph code 100) retries once as a quick reply with the same payload: a refused call sent nothing, so the retry is the one reply, and the tap still comes back.
+- A tap comes back as a `messaging` push: `postback.payload` (button) or `message.quick_reply.payload`. `metaTaps(body)` (pure) reads `kw:<id>` and the sender. The webhooks need `messaging_postbacks` (in `wren social push meta`). `KeywordDm.followup` sends the follow-up to that sender through `Content.followUp` (`/{page}/messages`, `messaging_type: RESPONSE`), on the send ledger as `followup:<hit>`. A second tap sends nothing. `keyword_hits.followed_at` keeps when.
 - Not built: a follow gate (`is_user_follow_business`). The agent's further turns stay with auto-reply (held).
 
 ## 3. Pace and reply versions
@@ -48,3 +52,7 @@ Meta's private reply allows one message per comment, and more only after they an
 ## Tests
 
 Pure parts only, synthetic ids: the push parse, the tap parse, the version pick, the pace window. Keep twice from one body = no new rows, no new hits (the existing keep tests cover the dedupe).
+
+## Built (11-04)
+
+wren bcb10eb6 and the follow-up commit; autobrowse b5eb09d and the follow-up commit. Unit tests on the parsers, the version pick, the pace and the facade's shapes. Not run against Meta: that is step 4 above.
