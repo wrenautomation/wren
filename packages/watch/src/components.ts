@@ -10,27 +10,18 @@ export const WATCH_COMPONENTS = [
     id: "watch.read",
     stage: "run",
     channels: ["email"],
-    name: "Mail and feed reader",
-    blurb:
-      "Reads new mail in each inbox every 15 minutes, skipping promotions and social, and each source Learn follows hourly.",
+    name: "Mail reader",
+    blurb: "Reads new mail in each inbox every 15 minutes, skipping promotions and social.",
     icon: "mail",
     for: "wren",
     ready: false,
     missing: [OWN],
     provides: { services: ["Watch"], loops: ["Watch"] },
-    out: [
-      { id: "mail", label: "new mail", kind: "mail" },
-      { id: "items", label: "new feed items", kind: "item" },
-    ],
+    out: [{ id: "mail", label: "new mail", kind: "mail" }],
     hypothesis: {
       from,
       guesses: [
         { is: "change", says: "Which inboxes.", built: "env WREN_WATCH_MAILBOXES" },
-        {
-          is: "change",
-          says: "Sources, RSS and Atom, followed in Learn.",
-          built: "learn.sources, from Learn → Sources",
-        },
         { is: "fixed", says: "Promotions and social mail are never read." },
       ],
     },
@@ -145,7 +136,7 @@ export const WATCH_WORKFLOWS = [
     id: "watch",
     stage: "run",
     name: "Monitor",
-    blurb: "Reads the inboxes and shows only the mail that needs you. Feed items go on to Learn.",
+    blurb: "Reads the inboxes and shows only the mail that needs you.",
     icon: "mail",
     for: "wren",
     out: [

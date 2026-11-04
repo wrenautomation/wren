@@ -1,6 +1,5 @@
 apps/cli/src/studio.ts
 apps/portal/web/src/modules/documents/documents.tsx
-apps/portal/web/src/modules/learn/drive.tsx
 apps/portal/web/src/modules/marketing/videos.tsx
 apps/portal/web/src/modules/people/segments.tsx
 packages/starling/inbound/src/analytics/catalog.ts

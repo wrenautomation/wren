@@ -139,7 +139,7 @@ const campaignsPlace: Module = {
       "Cold email",
     ),
     ...from(engage, ["engage", "invites", "threads", "places", "dm-copy"], "Engage"),
-    ...from(oldContent, ["feed", "explore"], "Engage"),
+    ...from(oldContent, ["explore"], "Engage"),
     ...from(engage, ["auto-reply", "keywords", "keyword-dms"], "Rules"),
     ...from(ads, [{ id: "sets", as: "ads" }, "formats"], "Ads"),
     ...from(

@@ -17,7 +17,7 @@ import type { LlmClient } from "@wren/llm";
 import type { Model } from "@wrenautomation/models";
 import type { Ear } from "@wrenautomation/models/hear";
 import type { Fetched, VideoRead, WatchOptions } from "@wrenautomation/read/video";
-import { readAudio, readVideo, readYoutube, readYoutubeByUrl } from "@wrenautomation/read/video";
+import { readAudio, readVideo, readYoutube } from "@wrenautomation/read/video";
 import { expandCites, numberCites } from "./cites.js";
 
 export { CACHE_PREFIX, s3MediaStore } from "./media-store.js";
@@ -79,22 +79,6 @@ export const youtubeSource = async (
     priority,
   );
 };
-
-/**
- * A YouTube video read from its URL alone, no download and no home IP
- * (`readYoutubeByUrl`): what the worker reads with, through the gateway (`geminiReader` over
- * `gatewayGemini` in `@wren/llm`); the Mac's `youtubeSource` uses the captions instead.
- */
-export const youtubeByUrl = async (
-  url: string,
-  opts: {
-    /** Takes a YouTube URL as video (`geminiVideo`, or `geminiReader` behind a proxy). */
-    model: Model;
-    fetchFn?: typeof fetch;
-    durationS?: number | null | undefined;
-    priority?: number;
-  },
-): Promise<Source> => toSource(await readYoutubeByUrl(url, opts), opts.priority);
 
 /**
  * Any other video (Instagram reel, TikTok, X), watched (`readVideo`): the caption, then its

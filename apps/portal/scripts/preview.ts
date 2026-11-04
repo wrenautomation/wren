@@ -68,8 +68,6 @@ import { smsConsoleApi } from "@wren/delivery/sms";
 import { webhooksApi } from "@wren/delivery/webhooks";
 import { documentsConsoleApi } from "@wren/documents/console";
 import { DOCUMENTS_CONSOLE_APPS, DOCUMENTS_CONSOLE_ROUTES } from "@wren/documents/console-routes";
-import { learnConsoleApi } from "@wren/learn/console";
-import { LEARN_CONSOLE_APPS, LEARN_CONSOLE_ROUTES } from "@wren/learn/console-routes";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { notesApi } from "@wren/notes/console";
 import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "@wren/notes/console-routes";
@@ -119,7 +117,6 @@ import { clientMarketing } from "../../worker/src/marketing.js";
 import { SETUPS } from "../../worker/src/setups.js";
 import { WORKFLOWS } from "../../worker/src/workflows.js";
 import { type DictateEnv, dictate } from "../src/dictate.js";
-import { grantFor, MEDIA_GRANT_PATH, MEDIA_PATH, mediaKey, mediaProxy } from "../src/media.js";
 import { PULSE_PATH, pulseCalls } from "../src/pulse.js";
 import { isSend, isWrite, WRITE_STATUS_PATH } from "../src/services.js";
 
@@ -247,12 +244,11 @@ const SERVICES: Record<
         setups: SETUPS,
         // Wren's console records, as the worker serves them (`consoleRecords`). Here: no roster
         // (replies, calls, companies, model usage only), videos and media from the in-memory file
-        // store, the SOP library from the local folders, and a stand-in for the lander's visit
+        // store, and a stand-in for the lander's visit
         // log: two lines for any visitor.
         records: consoleRecords({
           smsSenderName: settings.smsSenderName,
           media,
-          sopsDir: resolve(rootDir, settings.sopsDir),
           visits: async (v) =>
             v.length
               ? [
@@ -419,14 +415,6 @@ const SERVICES: Record<
       // Public links only: the service account's key stays on the Worker.
       drive: googleDrive({}),
     }),
-  },
-  // Learn: a save is kept here; its read and score run on the executor, which isn't here.
-  learn: {
-    routes: Object.keys(LEARN_CONSOLE_ROUTES),
-    guard: { needs: LEARN_CONSOLE_ROUTES, apps: LEARN_CONSOLE_APPS, unnamed: "wren" },
-    api: learnConsoleApi(main, fetch, (c) =>
-      cachedDb(clientUrl(settings.databaseUrl, { database: clientDatabaseName(c) })),
-    ),
   },
   // Sites, in Wren's own database. No model here: a new page takes the offer's own words.
   sites: {
@@ -699,8 +687,6 @@ const TYPES: Record<string, string> = {
   ".png": "image/png",
 };
 
-const previewMediaKey = mediaKey(crypto.randomUUID());
-
 /** Writes by request id, and how each went: preview's Restate idempotency. */
 type Ran = {
   out: { status: number; body: unknown } | null;
@@ -833,24 +819,6 @@ const server = createServer(async (req, res) => {
     });
     res.writeHead(out.status, { "content-type": "application/json" });
     return res.end(await out.text());
-  }
-  // Learn's pictures and audio, as the Worker serves them (src/media.ts), on a key of this run's.
-  if (path === MEDIA_GRANT_PATH || path === MEDIA_PATH) {
-    const key = await previewMediaKey;
-    if (path === MEDIA_GRANT_PATH)
-      return res
-        .writeHead(200, { "content-type": "application/json" })
-        .end(JSON.stringify(await grantFor(key)));
-    const range = req.headers.range;
-    const out = await mediaProxy(
-      new Request(`http://localhost${req.url ?? "/"}`, {
-        method: req.method ?? "GET",
-        headers: range ? { range } : {},
-      }),
-      key,
-    );
-    res.writeHead(out.status, Object.fromEntries(out.headers));
-    return res.end(Buffer.from(await out.arrayBuffer()));
   }
   const route = path.startsWith("/api/") ? path.slice(5) : null;
   if (route !== null) {

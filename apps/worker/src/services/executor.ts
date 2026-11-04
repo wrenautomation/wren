@@ -28,21 +28,10 @@ import {
   reviewStep,
   textBackStep,
 } from "@wren/delivery/sms";
-import {
-  clientAskedOnRead,
-  judges as learnJudges,
-  readStep as learnRead,
-  type Practice,
-  pageFetcher,
-  practiceOf,
-  scoreStep,
-  type VideoReader,
-} from "@wren/learn";
-import { gatewayGemini, llmForKey, withPart } from "@wren/llm";
+import { llmForKey, withPart } from "@wren/llm";
 import { collectSteps } from "@wren/pipeline/collect";
 import { shapeWorkflowsOf, soundShapes } from "@wren/pipeline/journeys";
 import { journeySteps } from "@wren/pipeline/steps";
-import { youtubeByUrl } from "@wren/research/sops";
 import { sortStep } from "@wren/starling-conversations";
 import { askFollowEmail } from "@wren/starling-conversations/inbox";
 import { isGoogleMailbox } from "@wren/starling-email/access/access";
@@ -63,33 +52,13 @@ import {
 import { SENDER_KEY } from "@wren/starling-sms/restate";
 import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { clientTriageStep, triageStep, mail as watchMail } from "@wren/watch";
-import { geminiReader } from "@wrenautomation/read/video";
 import { eq } from "drizzle-orm";
 import { stopCampaign } from "../campaign-stop.js";
 import { COMPONENTS } from "../components.js";
 import { journeyResearcher } from "../journey-research.js";
 import { SETUPS } from "../setups.js";
 import { WORKFLOWS } from "../workflows.js";
-import { type AnyService, type Deps, playbooksOf } from "./deps.js";
-
-/** Learn's YouTube reads on the worker: Gemini by URL through the gateway, up to 40 minutes. */
-function youtubeReader(env: NodeJS.ProcessEnv): VideoReader | null {
-  const gateway = env.WREN_LLM_GATEWAY_URL;
-  const token = env.WREN_LLM_GATEWAY_TOKEN;
-  if (!gateway || !token) return null;
-  // The gateway passes generate calls only, so the reader skips the key check.
-  const model = geminiReader(["gateway"], { fetch: gatewayGemini(gateway, token) });
-  return async ({ url, duration }) => {
-    // Longer reads outrun a step: the Mac reads those from the captions.
-    if (duration && duration > 2400) throw new Error("over 40 minutes: read on the Mac");
-    const s = await youtubeByUrl(url, { model, durationS: duration });
-    return { file: s.name, md: s.md };
-  };
-}
-
-/** Learn scores against each pushed SOP's newest text. */
-const practicesOf = async (db: Db): Promise<Practice[]> =>
-  (await playbooksOf(db)).map((r) => practiceOf(r.label, r.text));
+import type { AnyService, Deps } from "./deps.js";
 
 /** The executor domain's services, in the order they were served from `services.ts`. */
 export function executorServices(deps: Deps): AnyService[] {
@@ -311,20 +280,6 @@ export function executorServices(deps: Deps): AnyService[] {
             },
           };
         }),
-        // Learn: an article and a YouTube video read here, other videos marked for the Mac; then scored.
-        "learn.read": learnRead(db, pageFetcher(), youtubeReader(process.env)),
-        // Each item by its own workspace: a client's on its models allowance, against its own SOPs,
-        // and an SOP it asked for written into its Notes once read.
-        "learn.score": scoreStep(
-          db,
-          learnJudges({
-            db,
-            llm: watchLlm ? withPart(watchLlm, "learn") : null,
-            keys,
-            wrenPractices: () => practicesOf(db),
-          }),
-          clientAskedOnRead(db, clientDb),
-        ),
         // A bill in the Monitor's mail runs the books now; the books' pass is the box's.
         "books.bills": billsStep({
           mailOf: async (id) =>

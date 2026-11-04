@@ -76,16 +76,6 @@ export function kindOf(clean: string, audio?: string | null): ItemKind {
 export const needsMac = (kind: ItemKind, media?: string | null): boolean =>
   kind === "video" || kind === "reel" || kind === "film" || (kind === "episode" && !!media);
 
-/** The site a social profile is on, for a follow that isn't a creator Learn reads (`creatorOf`). */
-export function creatorSite(raw: string): string | null {
-  const host = new URL(raw).hostname.toLowerCase().replace(/^www\./, "");
-  if (/(^|\.)instagram\.com$/.test(host)) return "Instagram";
-  if (/(^|\.)tiktok\.com$/.test(host)) return "TikTok";
-  if (/(^|\.)(x|twitter)\.com$/.test(host)) return "X";
-  if (/(^|\.)threads\.net$/.test(host)) return "Threads";
-  return null;
-}
-
 const NEWSLETTER_HOST = /(^|\.)(substack\.com|beehiiv\.com|buttondown\.(email|com))$/i;
 
 /**

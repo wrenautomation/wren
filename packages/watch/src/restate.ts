@@ -1,37 +1,14 @@
 /**
- * `Watch/all`: every 15 minutes, read new mail in each inbox and each Learn source due a read.
- * Mail goes along the `watch` workflow, where triage settles it; new feed items along `learn`,
- * where they're read and scored. Then Learn's alerts and its 09:00 digest go out, and every
- * workspace's people get their portal bell (and their digest mail where it's on). Served on the
- * Postgres box, like the books: the personal inbox is read through the Mac's desk, and waiting
- * there costs nothing. Mail sends no notices: what needs William shows in the Inbox app, and an
- * inbox it couldn't read shows on the loop.
+ * `Watch/all`: every 15 minutes, read new mail in each inbox. Mail goes along the `watch`
+ * workflow, where triage settles it. Served on the Postgres box, like the books: the personal
+ * inbox is read through the Mac's desk, and waiting there costs nothing. Mail sends no notices:
+ * what needs William shows in the Inbox app, and an inbox it couldn't read shows on the loop.
  */
 import type * as restate from "@restatedev/restate-sdk";
-import type { SiteClient } from "@wren/core/autobrowse";
 import { executorEmit } from "@wren/core/executor";
 import type { Mailbox } from "@wren/core/mailbox";
-import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
-import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
-import {
-  alertLearn,
-  type DigestMail,
-  embedMissing,
-  type FetchFn,
-  itemEvent,
-  keepPictures,
-  mailLearnDigests,
-  type PictureStore,
-  type PullStats,
-  pullCreators,
-  pullFeeds,
-  sitesReader,
-  tellLearn,
-} from "@wren/learn";
-import { LEARN_FEEDS_FROM, LEARN_FLOW } from "@wren/learn/console";
-import type { Embed } from "@wren/llm";
 import { type ReadStats, readMail, relinkMail } from "./read.js";
 import { mailEvent } from "./triage.js";
 
@@ -49,28 +26,11 @@ const WATCH_FROM = "read.mail";
 export interface WatchDeps {
   db: Db;
   mailboxes: readonly Mailbox[];
-  fetch?: FetchFn;
-  /** Where Learn's alerts and digest go; absent, they wait. */
-  notifier?: Notifier;
-  /** William's wall clock, for the 09:00 digest. */
-  zone?: string;
-  /** The portal's address, linked from an alert. */
-  portal?: string | null;
-  /** Mails a person their Learn digest, in a workspace that turned it on; absent, none goes. */
-  send?: ((m: DigestMail) => Promise<void>) | null;
   /**
    * Renew an inbox's Gmail watch; when it lapses (ms), or null for one with no push
    * (designs/2026-10-06-mail-push.md). Absent: no push, the 15-minute poll.
    */
   watch?: (address: string) => Promise<number | null>;
-  /** Embeds Learn's read items for search by meaning; absent, search is by words alone. */
-  embed?: Embed | null;
-  /** Reads Learn's Instagram and X creators (autobrowse on the desk); absent, they wait. */
-  sites?: SiteClient | null;
-  /** Keeps Learn's thumbnails and avatars in our store; absent, the portal reads them at their host. */
-  pictures?: PictureStore | null;
-  /** Learn's reads, alerts and mail. Off: parked, birdwatch replaces it (WA-1015). */
-  learn?: boolean;
 }
 
 /** `InboxPush` (channel-email) as far as the Monitor calls it. */
@@ -117,8 +77,6 @@ async function keepWatches(
   return all;
 }
 
-type Stats = ReadStats & { feeds: PullStats };
-
 /** Mail kept before links were read goes back this far. */
 const RELINK_WINDOW_MS = 14 * 86_400_000;
 const RELINK_SINCE = "relink.since";
@@ -151,34 +109,18 @@ async function relinkOld(ctx: restate.ObjectContext, deps: WatchDeps, now: Date)
   ctx.set(RELINK_BEFORE, done.oldest ? new Date(done.oldest).getTime() : -1);
 }
 
-/** Learn's feeds, then its Instagram and X creators that are due. */
-async function pullAll(deps: WatchDeps, now: Date): Promise<PullStats> {
-  const feeds = await pullFeeds(deps.db, deps.fetch ?? fetch, now);
-  if (!deps.sites) return feeds;
-  const creators = await pullCreators(deps.db, sitesReader(deps.sites), now, {
-    kinds: ["instagram", "x"],
-  });
-  return {
-    added: [...feeds.added, ...creators.added],
-    failed: [...feeds.failed, ...creators.failed],
-  };
-}
-
 export function makeWatch(deps: WatchDeps) {
   return makeLoopObject("Watch", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const pushed = await keepWatches(ctx, deps, now.getTime());
-    const outcome = (await runPass<Stats>(ctx, deps.db, {
+    const outcome = (await runPass<ReadStats>(ctx, deps.db, {
       now,
       name: "read",
       ledger: { command: "watch read", argv: { daemon: true } },
-      body: async () => ({
-        ...(await readMail(deps.db, deps.mailboxes, now)),
-        feeds: deps.learn ? await pullAll(deps, now) : { added: [], failed: [] },
-      }),
+      body: () => readMail(deps.db, deps.mailboxes, now),
       delayAfter: () => (pushed ? WATCH_NET_MS : WATCH_EVERY_MS),
       retryMs: WATCH_EVERY_MS,
-    })) as PassOutcome<Stats>;
+    })) as PassOutcome<ReadStats>;
     const kept = outcome.stats?.kept ?? [];
     if (kept.length)
       executorEmit(ctx, {
@@ -188,51 +130,6 @@ export function makeWatch(deps: WatchDeps) {
         events: kept.map(mailEvent),
       });
     await relinkOld(ctx, deps, now);
-    const added = outcome.stats?.feeds?.added ?? [];
-    if (added.length)
-      executorEmit(ctx, {
-        client: null,
-        workflow: LEARN_FLOW,
-        from: LEARN_FEEDS_FROM,
-        events: added.map(itemEvent),
-      });
-    if (!deps.learn) return outcome;
-    const w = wallClock(deps.zone ?? "America/Chicago", now);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const today = `${w.year}-${pad(w.month)}-${pad(w.day)}`;
-    const failed = (e: unknown) => ({ error: e instanceof Error ? e.message : String(e) });
-    // Every workspace's bell; what the hour's limit holds back rolls into each person's Today.
-    await ctx.run("alert learn", () => alertLearn(deps.db, now).catch(failed));
-    const embed = deps.embed;
-    if (embed) await ctx.run("embed learn", () => embedMissing(deps.db, embed).catch(failed));
-    // Pictures copied here, so opening Learn never asks Instagram or YouTube for one.
-    const pictures = deps.pictures;
-    if (pictures)
-      await ctx.run("keep learn pictures", () =>
-        keepPictures(deps.db, pictures, deps.fetch ?? fetch).catch(failed),
-      );
-    const send = deps.send;
-    if (send)
-      await ctx.run("mail learn digests", () =>
-        mailLearnDigests(deps.db, send, {
-          now,
-          today,
-          hour: w.hour,
-          portal: deps.portal ?? null,
-        }).catch(failed),
-      );
-    const notifier = deps.notifier;
-    if (notifier) {
-      // A failed send is tried next pass; it never fails this one.
-      await ctx.run("tell learn", () =>
-        tellLearn(deps.db, notifier, {
-          today,
-          hour: w.hour,
-          now,
-          portal: deps.portal ?? null,
-        }).catch(failed),
-      );
-    }
     return outcome;
   });
 }

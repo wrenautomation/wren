@@ -9,7 +9,7 @@ entity: packages/learn/src/schema.ts:313
 
 # breakdown (Learn)
 
-How one item is made: its hook style from a fixed set (`HOOK_STYLES`, the same set for every kind), the hook line and why it works, topic, beats with times, the call to action, and in `facts` what its kind's rubric adds (a reel's `format`; a post's shape and counts; a film's shots). `kind` is the item's kind when it was broken down; `BROKEN_DOWN` (`breakdown.ts`) lists the kinds with a rubric. Table `learn.breakdowns`, one row an [[learn/item]]. Design: `designs/2026-10-25-competitor-analyzer.md`. Learn → Competitors reads it beside the post's numbers (`items.stats`).
+How one item is made: its hook style from a fixed set (`HOOK_STYLES`, the same set for every kind), the hook line and why it works, topic, beats with times, the call to action, and in `facts` what its kind's rubric adds (a reel's `format`; a post's shape and counts; a film's shots). `kind` is the item's kind when it was broken down; `BROKEN_DOWN` (`breakdown.ts`) lists the kinds with a rubric. Table `learn.breakdowns`, one row an [[learn/item]]. Design: `designs/2026-10-25-competitor-analyzer.md`.
 
 ## Why this shape
 
@@ -49,13 +49,8 @@ Citations: `packages/learn/src/breakdown.ts`, `packages/learn/src/calls.ts`, `pa
 | `scoreItem` (executor `learn.score`, `wren learn read`, `rescore`) | writes, once an item |
 | `wren learn breakdown [ids] [--limit n]` | writes: backfill |
 | `wren learn import-films <json>` | writes: the seed study as film items, read on the Mac, broken down with hand facts (`by = hand`) |
-| Learn → Competitors, Breakdowns (Kind facet; Films, Posts views), Hooks (`learn.breakdown`, `learn.hook`) | read |
-| Item page → How it's made (`item.tsx` `Facts`; console `call`) | read the facts and his calls; writes a call |
 | `wren learn call <id> <path> keep\|tune\|drop [words]` | writes a call (`show <id>` lists the paths) |
-| Learn → Competitors → To call (`learn.breakdown` view `to-call`) | read: broken-down pieces with no call yet, best reach first |
-| Learn → Competitors → Check this (view `check-this`) | read: kept patterns our numbers argue against, with why |
 | `wren sop sync <name>` (and `sop build`) | read: `learn.standards` and the calls into the SOP folder |
-| `wren sop hunt <name>` ([[sop-build]]) | write: candidates for the SOP saved and tagged with its name (`saveLink` with `creator`, `stats`, no worth call), the feed's `IN_FEED_BEFORE` items revived, then read and broken down |
 | `wren lake sql` | read: `learn.standards` as is |
 
 ## See

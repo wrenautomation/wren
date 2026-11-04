@@ -1,19 +1,17 @@
 /**
- * Decide's sources and his Learn calls against a real Postgres (designs/2026-10-16-decide.md):
- * marks, saves and SOP adds kept as calls in Wren's workspace only, history backfilled once, due
- * subjects shown without names, and `wren decide backfill --dry-run` writing nothing. Synthetic.
+ * Decide's sources against a real Postgres (designs/2026-10-16-decide.md): history backfilled
+ * once, due subjects shown without names, and `wren decide backfill --dry-run` writing nothing.
+ * Synthetic.
  */
 
 import { recordDraft } from "@wren/core/draft-record";
 import { resolveObjects } from "@wren/core/objects";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import { askSop, items, mark, saveLink } from "@wren/learn";
-import { learnDue, withLearnPicks } from "@wren/learn/decide";
 import { redditPlaces } from "@wren/starling-acts/schema";
 import { commentsDue } from "@wren/starling-outbound/decide";
 import { redditThreads } from "@wren/starling-outbound/schema";
 import { Command } from "commander";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { registerDecide } from "../../src/decide.js";
 
@@ -26,36 +24,10 @@ afterAll(async () => {
 });
 
 const NOW = new Date();
-const calls = async (subject?: string) =>
+const calls = async () =>
   (await pg.db.execute(
-    subject
-      ? sql`select subject, label, source, ref from decision_calls where subject = ${subject} order by id`
-      : sql`select subject, label, source, ref from decision_calls where kind = 'document' order by id`,
+    sql`select subject, label, source, ref from decision_calls order by id`,
   )) as unknown as Record<string, unknown>[];
-/** An item's call subject: its document. */
-const doc = async (id: number) => {
-  const [r] = await pg.db.select({ d: items.documentId }).from(items).where(eq(items.id, id));
-  return `doc:${r?.d}`;
-};
-
-async function item(client: string, n: number, extra: Partial<typeof items.$inferInsert> = {}) {
-  const [r] = await pg.db
-    .insert(items)
-    .values({
-      client,
-      url: `https://example.com/${client}/${n}`,
-      title: `Synthetic item ${n}`,
-      creator: "Some Creator",
-      text: "A synthetic summary.",
-      transcript: "Synthetic words about cold email reply rates.",
-      kind: "article",
-      scoredAt: NOW,
-      ...extra,
-    })
-    .returning({ id: items.id });
-  if (!r) throw new Error("no item");
-  return r.id;
-}
 
 async function wren(...argv: string[]): Promise<string> {
   const out: string[] = [];
@@ -71,65 +43,6 @@ async function wren(...argv: string[]): Promise<string> {
   }
   return out.join("\n");
 }
-
-describe("Learn calls", () => {
-  it("a star, a save and an SOP add are keeps; an archive alone is a drop; a client's are none", async () => {
-    const a = await item("wren", 1);
-    const b = await item("wren", 2);
-    const c = await item("client-x", 3);
-    await mark(pg.db, "wren", [a], "star", "owner@example.com");
-    await mark(pg.db, "wren", [a], "archive");
-    await mark(pg.db, "wren", [b], "archive");
-    await mark(pg.db, "wren", [b], "archive"); // already archived: nothing changed, no call
-    await mark(pg.db, "client-x", [c], "star");
-    const saved = await saveLink(pg.db, {
-      client: "wren",
-      url: "https://example.com/wren/saved",
-      by: "owner@example.com",
-      via: "portal",
-    });
-    await askSop(pg.db, { client: "wren", itemId: b, sop: "cold-email", by: "owner@example.com" });
-    expect(await calls()).toEqual([
-      { subject: await doc(a), label: "keep", source: "star", ref: null },
-      { subject: await doc(b), label: "drop", source: "archive", ref: null },
-      {
-        subject: await doc(saved.id),
-        label: "keep",
-        source: "save",
-        ref: `document:${saved.id}:save`,
-      },
-      { subject: await doc(b), label: "keep", source: "sop", ref: `document:${b}:sop` },
-    ]);
-  });
-
-  it("due items carry focus and words, never the creator; a decided one isn't due", async () => {
-    const due = await learnDue(pg.db, NOW, 10);
-    expect(due.length).toBeGreaterThanOrEqual(2);
-    const first = due[0];
-    expect(first?.state).toMatchObject({ item: { title: "Synthetic item 1", kind: "article" } });
-    expect((first?.state.focus as string[] | undefined)?.length).toBeGreaterThan(3);
-    expect(JSON.stringify(first?.state)).not.toContain("Some Creator");
-    expect(due.every((d) => !d.subject.includes("client"))).toBe(true);
-  });
-});
-
-describe("Learn picks", () => {
-  it("Wren's cards carry the newest pick; a client's carry none", async () => {
-    const a = await item("wren", 10);
-    const c = await item("client-x", 11);
-    for (const [id, label] of [
-      [a, "drop"],
-      [c, "keep"],
-    ] as const)
-      await pg.db.execute(sql`insert into decisions
-        (kind, subject, mode, backend, model, state, questions, label, ref)
-        values ('document', ${await doc(id)}, 'recommend', 'jev', 'jev-test', '{}', '{}', ${label}, ${`t:${id}`})`);
-    expect(
-      (await withLearnPicks(pg.db, "wren", [{ id: a }, { id: 999_999 }])).map((x) => x.pick),
-    ).toEqual(["drop", null]);
-    expect((await withLearnPicks(pg.db, "client-x", [{ id: c }]))[0]?.pick).toBeNull();
-  });
-});
 
 describe("comment source", () => {
   it("an open draft is due with the post it answers; a called one isn't", async () => {
@@ -186,11 +99,10 @@ describe("wren decide", () => {
     const before = (await calls()).length;
     const dry = JSON.parse(await wren("backfill", "--dry-run"));
     expect(dry.dryRun).toBe(true);
-    expect(dry.calls.learn.keep).toBeGreaterThanOrEqual(2);
+    expect(dry.calls.comments.items).toBeGreaterThanOrEqual(1);
     expect((await calls()).length).toBe(before);
     await wren("backfill");
     const once = (await calls()).length;
-    expect(once).toBeGreaterThan(before);
     await wren("backfill");
     expect((await calls()).length).toBe(once);
   });

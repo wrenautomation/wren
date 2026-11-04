@@ -16,7 +16,7 @@ export default meta;
 export const ContentPieces = pageAt("/content/pieces", { me: ADMIN });
 export const ContentContent = pageAt("/content/content", { me: ADMIN });
 export const ContentOverview = pageAt("/content/overview", { me: ADMIN });
-export const ContentFeed = pageAt("/campaigns/feed", { me: ADMIN });
+export const ContentExplore = pageAt("/campaigns/explore", { me: ADMIN });
 export const ContentTopics = pageAt("/content/topics", { me: ADMIN });
 export const ContentFacts = pageAt("/content/facts", { me: ADMIN });
 

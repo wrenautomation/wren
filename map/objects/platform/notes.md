@@ -28,7 +28,7 @@ Yjs is the source of truth (`notes.y_state`), so offline edits and two people's 
 - mentions: `person:<email>`, `note:<id>`, `console.client:<id>`, kept in `note_links` for backlinks; a person `@`ed in the body or a comment gets a `note_mentions` row, shown under Notes → Mentions only when they can open the note
 - Inbox → Mentions: `notes.mention` (`packages/notes/src/records.ts`, a `mine` record type over `mentionsOf`) lists the signed-in person's mentions in Wren's notes; the Inbox tile counts the unread ones. Open note links to `/notes/doc/<id>?comment=<id>` and marks it read; Mark read is `notes/mentionsRead`, its undo `notes/mentionsUnread` (`readMentions`, `store.ts`)
 - mention mail: `mailMentions` (`packages/notes/src/mention-mail.ts`) emails each unseen mention from the last day once (`note_mentions.mailed_at`, migration 0210), only once the person can open the note; NotesConsole runs it after a sync, comment, append, restore or share, the Inbox desk after an Inbox note. Sent through the booker mailer (`apps/worker/src/services.ts`)
-- turn rough into real: the selection, else the whole note. Make drafts (`notes/toDraft`) adds it to the workspace's ContentDesk as an idea (`source: "note"`, migration 0211), refused for a client without drafting; Add to an SOP (`notes/toSop`, `askNoteSop` in `packages/learn/src/sops.ts`) writes a `learn.sop_sources` row with `note_id`: Wren's waits for the Mac's `wren learn read`, a client's lands in its Notes under the SOP now. Wired as `NotesDeps.turns` in the worker; UI in `apps/portal/web/src/modules/notes/turn.tsx`
+- turn rough into real: the selection, else the whole note. Make drafts (`notes/toDraft`) adds it to the workspace's ContentDesk as an idea (`source: "note"`, migration 0211), refused for a client without drafting. Wired as `NotesDeps.turns` in the worker; UI in `apps/portal/web/src/modules/notes/turn.tsx`
 - cards: `notes.kind = 'task'` is a kanban card on a board, with its own tables and pages; see [[platform/boards]]. The Notes home hides cards unless searching
 - Inbox notes: `inbox_notes` (`packages/notes/src/schema.ts:286`, migration 0178) sit on an Inbox thread or a person, never sent; `addInboxNote` (`packages/notes/src/inbox.ts:34`) writes the note and a `note_mentions` row per teammate `@`ed (`note_mentions.inbox_note_id`; `note_id` is now nullable, one of the two set). `notes.mention` rows carry `place: "inbox"` and `thread`; Open thread goes to `/inbox/waiting/<thread>`. See [[content/inbox-thread]]
 - images: S3 under `notes/<client>/<id>/`, referenced as `wren-file:` and signed on read
@@ -52,7 +52,7 @@ Yjs is the source of truth (`notes.y_state`), so offline edits and two people's 
 - **Also hits:** the portal's `maxBody` for notes (5.6 MB) sits under Lambda's 6 MB; Drive files cap at 4 MB so their base64 fits
 - **Also hits:** the editor's node and mark names: `cleanBody` (`doc.ts`) and `toDocx` list them
 - **Also hits:** the portal Worker's `NOTE_ROOM` binding and its DO migration (`apps/portal/wrangler.toml`); the room's frame protocol is shared by `room.ts` and the page's `sync.ts`
-- **Also hits:** ContentDesk ideas and `learn.sop_sources` (turn rough into real), the booker mailer (mention mail)
+- **Also hits:** ContentDesk ideas (turn rough into real), the booker mailer (mention mail)
 - **Does not hit:** anything that posts or sends to a lead
 
 ## Surfaces

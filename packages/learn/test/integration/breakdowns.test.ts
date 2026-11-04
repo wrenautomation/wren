@@ -1,13 +1,10 @@
 /**
- * Competitor breakdowns on a real Postgres: a followed creator's posts carry their numbers, a
- * repeat pass moves the numbers and nothing else, a read reel is scored then broken down once,
- * and the Competitors views rank reels and hook styles. The model and Instagram are fakes; every
- * address is made up.
+ * Competitor breakdowns on a real Postgres: a read reel is broken down once, and the Competitors
+ * views rank reels and hook styles. The model is a fake; every address is made up.
  */
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { SiteClient } from "@wren/core/autobrowse";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { documents, findings } from "@wren/research/schema";
@@ -27,12 +24,9 @@ import {
   items,
   judges,
   ourPatterns,
-  pullCreators,
   recordFactCall,
   rulesOf,
   saveOurs,
-  scoreItem,
-  sitesReader,
   sopSources,
   sources,
   standards,
@@ -51,7 +45,6 @@ beforeEach(async () => {
   );
 });
 
-const SCORE = { score: 6, summary: "A reel.", changes: [], why: "Because." };
 const BREAKDOWN = {
   hook_style: "contrarian",
   hook: "Stop posting every day.",
@@ -67,20 +60,16 @@ const BREAKDOWN = {
   cta: "Comment PLAN for the template.",
 };
 
-/** Scores a score prompt, breaks down a breakdown prompt; counts each. */
+/** Breaks down every prompt; counts each. */
 function model(over: Partial<typeof BREAKDOWN> = {}) {
-  const asked = { score: 0, breakdown: 0 };
+  const asked = { breakdown: 0 };
   const llm = new FakeLlm({
-    respond: (p) => {
-      if (p.startsWith("Break down")) {
-        asked.breakdown++;
-        return JSON.stringify({ ...BREAKDOWN, ...over });
-      }
-      asked.score++;
-      return JSON.stringify(SCORE);
+    respond: () => {
+      asked.breakdown++;
+      return JSON.stringify({ ...BREAKDOWN, ...over });
     },
   });
-  return { llm, asked, judge: judges({ db: pg.db, llm, wrenPractices: async () => [] }) };
+  return { llm, asked, judge: judges({ db: pg.db, llm }) };
 }
 
 async function readReel(n: number, o: { kind?: "reel" | "article"; stats?: object } = {}) {
@@ -112,50 +101,11 @@ async function readReel(n: number, o: { kind?: "reel" | "article"; stats?: objec
 }
 
 describe("competitor breakdowns", () => {
-  it("keeps a followed post's numbers and moves only them on the next pass", async () => {
-    await pg.db.insert(sources).values({
-      client: "wren",
-      kind: "instagram",
-      url: "https://www.instagram.com/synth.creator/",
-      name: "@synth.creator",
-      fetchedAt: new Date("2026-10-01T00:00:00Z"),
-    });
-    let likes = 10;
-    const sites = {
-      via: async () => "api" as const,
-      call: async () => ({
-        found: true,
-        profile: { username: "synth.creator" },
-        media: [
-          {
-            caption: "A reel",
-            media_type: "VIDEO",
-            media_product_type: "REELS",
-            permalink: "https://www.instagram.com/p/Csynth0/",
-            timestamp: "2026-10-09T10:00:00+0000",
-            like_count: likes,
-            comments_count: 3,
-          },
-        ],
-      }),
-    } as unknown as SiteClient;
-    const t0 = new Date("2026-10-09T12:00:00Z");
-    const first = await pullCreators(pg.db, sitesReader(sites), t0, { kinds: ["instagram"] });
-    expect(first.added).toHaveLength(1);
-    await pg.db.update(items).set({ title: "Kept" });
-    likes = 250;
-    const t1 = new Date(t0.getTime() + 7 * 3_600_000);
-    const again = await pullCreators(pg.db, sitesReader(sites), t1, { kinds: ["instagram"] });
-    expect(again.added).toEqual([]);
-    const [row] = await pg.db.select().from(items);
-    expect(row).toMatchObject({ title: "Kept", stats: { likes: 250, comments: 3 }, statsAt: t1 });
-  });
-
-  it("breaks a read reel down once, after its score", async () => {
+  it("breaks a read reel down once", async () => {
     const id = await readReel(1, { stats: { likes: 900, comments: 40 } });
     const m = model();
-    expect(await scoreItem(pg.db, m.judge, id)).toBe("hold");
-    expect(m.asked).toEqual({ score: 1, breakdown: 1 });
+    expect(await breakdownItem(pg.db, m.judge, id)).toBe(true);
+    expect(m.asked).toEqual({ breakdown: 1 });
     const [b] = await pg.db.select().from(breakdowns).where(eq(breakdowns.itemId, id));
     expect(b).toMatchObject({
       hookStyle: "contrarian",
@@ -166,10 +116,9 @@ describe("competitor breakdowns", () => {
         { t: null, beat: "The ask" },
       ],
     });
-    // Done: neither a repeat score nor a direct ask asks again.
-    expect(await scoreItem(pg.db, m.judge, id)).toBe("hold");
+    // Done: a second ask asks nothing.
     expect(await breakdownItem(pg.db, m.judge, id)).toBe(false);
-    expect(m.asked).toEqual({ score: 1, breakdown: 1 });
+    expect(m.asked).toEqual({ breakdown: 1 });
 
     // Each fact is a finding on the reel's document, keyed by its path; a second write moves nothing.
     const [item] = await pg.db.select().from(items).where(eq(items.id, id));

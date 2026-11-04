@@ -460,18 +460,13 @@ describe("comments, suggestions and mentions", () => {
     );
   });
 
-  it("selected words to drafts and SOPs: the selection, else the note, in the viewer's workspace", async () => {
-    const asked: unknown[] = [];
+  it("selected words to drafts: the selection, else the note, in the viewer's workspace", async () => {
     const turning = () =>
       notesApi({
         main: pg.db,
         open: () => acme.db,
         turns: {
           draft: async () => {},
-          sop: async (o) => {
-            asked.push({ client: o.client, sop: o.sop, title: o.title, text: o.text });
-            return { sop: o.sop, state: "asked", note: null };
-          },
         },
       });
     const { id } = await turning().create({
@@ -485,15 +480,6 @@ describe("comments, suggestions and mentions", () => {
       by: "ada@example.test",
     });
     expect((await turning().drafting({ viewer: ADA, id })).text).toContain("First.");
-    await turning().toSop({ viewer: ADA, id, sop: "email-infra" });
-    expect(asked).toEqual([
-      {
-        client: "wren",
-        sop: "email-infra",
-        title: "Ideas",
-        text: expect.stringContaining("Second."),
-      },
-    ]);
     // Not open to them: no such note.
     await refused(turning().drafting({ viewer: OZ, id }), 404);
     const { id: plan } = await turning().create({

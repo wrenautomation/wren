@@ -3,12 +3,10 @@
  */
 
 import { type Action, said } from "@wren/ui";
-import { createElement } from "react";
 import type { ListPage } from "../../module.js";
 import { ONPOST_DRAFT, THREAD_DRAFT } from "./approval.js";
 import { type DraftOf, draftActions } from "./ask.js";
 import { PASS_ACTION, REJECT_FORM } from "./drafts.js";
-import { FeedTabs } from "./feed.js";
 import { only, own, threadWhen, WAITS } from "./inbox.js";
 import { ONPOST_ACTIONS, THREAD_ACTIONS } from "./threads.js";
 
@@ -86,13 +84,11 @@ const EXPLORE_ACTIONS: Action[] = [
   ),
   PASS_ACTION,
 ];
-/** Marketing → Feed's Explore (`marketing.explore`): found by topic, not followed or picked yet. */
+/** Campaigns → Explore (`marketing.explore`): found by topic, not followed or picked yet. */
 export const EXPLORE_PAGE: ListPage = {
   id: "explore",
-  label: "Feed",
+  label: "Explore",
   about: "New posts the topic searches found, to reply to or follow.",
-  hidden: true,
-  lights: "feed",
   template: "list",
   record: "marketing.explore",
   columns: ["who", "platform", "where", "fit", "at"],
@@ -103,5 +99,4 @@ export const EXPLORE_PAGE: ListPage = {
     new: "Nothing new was found.",
   },
   actions: EXPLORE_ACTIONS,
-  head: () => createElement(FeedTabs, { on: "explore" }),
 };

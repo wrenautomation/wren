@@ -58,7 +58,6 @@ export const content: Module = {
     P.pieces,
     P.content,
     P.overview,
-    P.feed,
     { ...P.topics, group: "Setup" },
     { ...P.facts, group: "Setup" },
     P.drafts,

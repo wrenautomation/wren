@@ -49,7 +49,6 @@ import { meterTokens } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
 import { s3Files } from "@wren/delivery/files";
 import { answerChecks, remindPass, smsChecks } from "@wren/delivery/sms";
-import { askNoteSop } from "@wren/learn";
 import {
   type LlmClient,
   llmForKey,
@@ -60,7 +59,6 @@ import {
   withPart,
 } from "@wren/llm";
 import { LANDERS_BY_NICHE, NICHES, SMS_SEQUENCES } from "@wren/niches";
-import type { NoteTurns } from "@wren/notes/console";
 import { DRIVE_READ_SCOPE, googleDrive } from "@wren/notes/drive";
 import { stripeChecks } from "@wren/payments/setups";
 import { liveCampaignsOf } from "@wren/pipeline/store";
@@ -534,7 +532,7 @@ export async function buildDeps(
           portal: settings.portalOrigin ?? "https://app.wrenautomation.com",
         }
       : undefined,
-    // Selected words to drafts (the workspace's ContentDesk) or into an SOP (Learn's asks).
+    // Selected words to drafts (the workspace's ContentDesk).
     turns: {
       draft: async (
         ctx: Context,
@@ -552,7 +550,6 @@ export async function buildDeps(
           )
           .add({ text: o.text, source: "note" });
       },
-      sop: (o: Parameters<NoteTurns["sop"]>[0]) => askNoteSop(db, o.db, o),
     },
     // Turn into cards: Claude proposes, the person picks. Only where a real model runs.
     write:
@@ -625,7 +622,7 @@ export async function buildDeps(
             }),
             m.address,
           );
-  // Learn's thumbnails and avatars, kept in the media bucket by the Monitor's pass.
+  // The media bucket: reach's pictures.
   const mediaBucket = settings.mediaBucket;
   // Site applicants: the lander's export, the countries their texts may go to, the email from William after.
   const formSetup = {

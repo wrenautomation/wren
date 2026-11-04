@@ -1,8 +1,7 @@
 /**
  * `wren decide …` (designs/2026-10-16-decide.md): the machine's calls beside William's. `stats`
  * shows agreement and spend per kind, `mode` sets a kind's mode, `export` writes the distill set
- * (`wren.decision/1` JSONL), `backfill` labels history from the draft record and Learn's marks
- * and can ask Jev about a capped sample of it, `pass` runs one pass here.
+ * (`wren.decision/1` JSONL), `backfill` labels history from the draft record and can ask Jev about a capped sample of it, `pass` runs one pass here.
  */
 import { writeFileSync } from "node:fs";
 import {
@@ -24,7 +23,6 @@ import {
 } from "@wren/core/decide";
 import { jsonl } from "@wren/core/train";
 import { atomic, type Db, type Queryable } from "@wren/db";
-import { backfillLearnCalls, learnCalled, learnSource } from "@wren/learn/decide";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { leadOffers } from "@wren/offers";
 import { commentSource, commentsCalled } from "@wren/starling-outbound/decide";
@@ -148,7 +146,7 @@ export function registerDecide(
   decide
     .command("backfill")
     .description(
-      "Label history as his calls (drafted comments sent or dropped; Learn stars, pins, saves, SOP adds, archives). --sample asks Jev about some of them",
+      "Label history as his calls (drafted comments sent or dropped). --sample asks Jev about some of them",
     )
     .option("--dry-run", "count, write nothing")
     .option("--sample <n>", "then ask about up to n called subjects with no decision", positive)
@@ -156,7 +154,6 @@ export function registerDecide(
     .action(async (o: { dryRun?: boolean; sample?: number; maxUsd: number }) => {
       const label = async (db: Queryable) => ({
         comments: await backfillCommentCalls(db),
-        learn: await backfillLearnCalls(db),
       });
       const labelled = await withDb(async (db) => {
         if (!o.dryRun) return label(db);
@@ -180,13 +177,9 @@ export function registerDecide(
         due: (db: Db, _now: Date, n: number) => pick(db, n),
       });
       const n = Math.floor(o.sample);
-      const half = Math.ceil(n / 2);
       const stats = await withDb((db) =>
         decidePass(db, {
-          sources: [
-            sample("comment_quality", (d, k) => commentsCalled(d, Math.min(k, half))),
-            sample("document", learnCalled),
-          ],
+          sources: [sample("comment_quality", commentsCalled)],
           backends: backends(),
           max: n,
           budgetMs: 30 * 60_000,
@@ -200,7 +193,7 @@ export function registerDecide(
   decide
     .command("pass")
     .description(
-      "One pass here: open comment drafts, fresh Learn items and people who wrote back, as Decide/wren runs it",
+      "One pass here: open comment drafts and people who wrote back, as Decide/wren runs it",
     )
     .option("--max <n>", "subjects at most", positive, 40)
     .option("--kind <kind>", `only this kind: ${DECISION_KINDS.join(", ")}`, kindArg)
@@ -208,7 +201,7 @@ export function registerDecide(
       json(
         await withDb((db) =>
           decidePass(db, {
-            sources: [commentSource, learnSource, leadFitSource(leadOffers())].filter(
+            sources: [commentSource, leadFitSource(leadOffers())].filter(
               (s) => !o.kind || s.kind === o.kind,
             ),
             backends: backends(),

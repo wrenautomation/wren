@@ -342,9 +342,6 @@ importers:
       '@wren/documents':
         specifier: workspace:*
         version: link:../../packages/documents
-      '@wren/learn':
-        specifier: workspace:*
-        version: link:../../packages/learn
       '@wren/notes':
         specifier: workspace:*
         version: link:../../packages/notes
@@ -571,9 +568,6 @@ importers:
       '@wren/documents':
         specifier: workspace:*
         version: link:../../packages/documents
-      '@wren/learn':
-        specifier: workspace:*
-        version: link:../../packages/learn
       '@wren/llm':
         specifier: workspace:*
         version: link:../../packages/llm
@@ -1081,9 +1075,6 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm
-      '@wren/notes':
-        specifier: workspace:*
-        version: link:../notes
       '@wren/research':
         specifier: workspace:*
         version: link:../research
@@ -2302,9 +2293,6 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../db
-      '@wren/learn':
-        specifier: workspace:*
-        version: link:../learn
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm

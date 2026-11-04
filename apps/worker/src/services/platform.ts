@@ -16,7 +16,6 @@ import { makeVaultKeys } from "@wren/core/vault-keys";
 import { makeWebhooks, turnedOffTeller } from "@wren/core/webhooks";
 import { engagementOf, postUpdate } from "@wren/delivery";
 import { s3Files } from "@wren/delivery/files";
-import { learnSource } from "@wren/learn/decide";
 import { makeLlm } from "@wren/llm";
 import { notesContext } from "@wren/notes/console";
 import { leadOffers } from "@wren/offers";
@@ -66,12 +65,12 @@ export function platformServices(deps: Deps): AnyService[] {
   // The audit log's seals in every database, every 15 minutes; off until `wren audit sealer start`.
   services.push(makeAuditSealer({ main: db, open: openClient, ...notify }));
   services.push(
-    // Decide (designs/2026-10-16-decide.md): drafted comments and Learn items judged by Jev every
+    // Decide (designs/2026-10-16-decide.md): drafted comments and lead fits judged by Jev every
     // 10 minutes, each answer logged beside his call; the gateway answers when Jev is down.
     makeDecide({
       main: db,
-      // Lead checks last: a drafted comment and a Learn item come first in a short pass.
-      sources: [commentSource, learnSource, leadFitSource(leadOffers())],
+      // Lead checks last: a drafted comment comes first in a short pass.
+      sources: [commentSource, leadFitSource(leadOffers())],
       backends: () => backendsFromEnv(process.env, (spec) => makeLlm(spec, process.env)),
     }),
     makeWebhooks({

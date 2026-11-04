@@ -1,7 +1,7 @@
 /**
  * The Monitor's tables (designs/2026-10-05-workflows.md, The Monitor): mail it read and the rules it
  * reads mail by. A mail row keeps sender, subject, a summary and the verdict, never a body: the
- * snippet stays only until triage reads it. Feeds and their items are Learn's (`@wren/learn`).
+ * snippet stays only until triage reads it.
  */
 import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";

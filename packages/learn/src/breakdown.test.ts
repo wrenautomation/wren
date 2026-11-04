@@ -9,7 +9,6 @@ import {
   HOOK_STYLE_ABOUT,
   postCounts,
 } from "./breakdown.js";
-import { statsOf } from "./creators.js";
 import { HOOK_STYLES } from "./schema.js";
 
 describe("breakdown", () => {
@@ -50,14 +49,6 @@ describe("breakdown", () => {
     };
     expect(breakdownSchema.safeParse(ok).success).toBe(true);
     expect(breakdownSchema.safeParse({ ...ok, hook_style: "vibes" }).success).toBe(false);
-  });
-
-  it("keeps only the numbers a platform gave", () => {
-    expect(statsOf({ likes: 12, comments: undefined, views: null })).toEqual({
-      likes: 12,
-    });
-    expect(statsOf({})).toBeNull();
-    expect(statsOf({ likes: -1, views: 10.4 })).toEqual({ views: 10 });
   });
 });
 

@@ -64,7 +64,6 @@ export async function saveOurs(
       via: "cli",
       title: p.title,
       kind: p.kind,
-      worth: false,
     });
     const now = new Date();
     await db

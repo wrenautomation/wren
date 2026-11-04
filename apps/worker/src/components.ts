@@ -9,7 +9,6 @@ import { FACTS_COMPONENTS } from "@wren/core/facts";
 import { FOLLOW_COMPONENTS } from "@wren/core/follow";
 import { DELIVERY_COMPONENTS } from "@wren/delivery/components";
 import { DOCUMENTS_COMPONENTS } from "@wren/documents/components";
-import { LEARN_COMPONENTS } from "@wren/learn/components";
 import { PAYMENTS_COMPONENTS } from "@wren/payments/components";
 import { PIPELINE_COMPONENTS } from "@wren/pipeline/components";
 import { REACTIVATION_COMPONENTS } from "@wren/reactivation/components";
@@ -39,7 +38,6 @@ export const COMPONENTS: readonly Component[] = [
   ...CALENDAR_COMPONENTS,
   ...WATCH_COMPONENTS,
   ...MAIL_COMPONENTS,
-  ...LEARN_COMPONENTS,
   ...VOICE_COMPONENTS,
   ...FOLLOW_COMPONENTS,
   ...FACTS_COMPONENTS,
@@ -81,7 +79,7 @@ export const PLATFORM = {
     PainFeed:
       "reach posts read for a pain the author states, proven by a quote; each opens the author's journey on the outreach line",
     Decide:
-      "every 10 minutes: drafted comments and Learn items judged by Jev, each answer logged beside his call",
+      "every 10 minutes: drafted comments and lead fits judged by Jev, each answer logged beside his call",
     ProfileResearch:
       "Research this person: Exa, Google and the account look for a profile's pages elsewhere, findings kept per profile",
     Broadcast: "one approved broadcast: started on its time, then a batch of its people per run",

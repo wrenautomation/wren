@@ -9,7 +9,7 @@ entity: apps/portal/web/src/player/store.ts:1
 
 # player
 
-The portal's one media player (Learn reels and videos, our finished videos, Library media). A page draws a slot; the shell's host plays over it, and docks it bottom-right when you leave. Also called the mini player.
+The portal's one media player (our finished videos, Library media, recorded calls). A page draws a slot; the shell's host plays over it, and docks it bottom-right when you leave. Also called the mini player.
 
 ## Why this shape
 
@@ -20,8 +20,8 @@ An iframe or video that moves in the DOM reloads and loses its place. So the pla
 - Store: `apps/portal/web/src/player/store.ts`: a tiny module store (no library), read by `usePlayer(selector)` (`use.tsx`, `useSyncExternalStore`). Item `{ id, kind: youtube | embed | media, src, title, media, startAt, ratio, back, onTime }`; mode `none | full | mini | pip`; commands `play`, `release`, `seek`, `dock`, `expand`, `close`, `report`, `attach`. The default store is `player` (`instance.ts`); Expand with no slot opens `item.back` through the router.
 - Slot: `PlayerSlot` (`slot.tsx`): `eager` plays when the page opens and the player is free, `replace` also takes it from another item. No flag: a Play button (the Shorts under a video).
 - Host: `host.tsx` (full over the slot, the dock with Expand, Picture-in-Picture, Close; region "Mini player"), `media.tsx` (`YouTube` by postMessage, `Embed`, `FileMedia`), `geometry.ts` (clip), `pip.ts` (Document Picture-in-Picture, Chromium only; the button is hidden where the API is not there).
-- Where "where you stopped" lives: `item.onTime`, kept by the store beyond the page. Learn's keeps it with `learn.progress`; Learn's moments and transcript read `usePlayer` time and call `store.seek`.
-- Users: Learn item (`modules/learn/item.tsx`: YouTube, episode, IG/TikTok/X embeds), Marketing videos (`modules/marketing/videos.tsx`: finished preview, Shorts, vertical cut), Library media (`modules/library/media.tsx`), a recorded call (`modules/calendar/recorder.tsx`). Left alone, as tools and not playback: the storyboard and finish previews, shape preview, slides, heat, session replay, sites detail, the TikTok composer preview, the Library srcDoc preview, the video-shelf posters (still frames).
+- Where "where you stopped" lives: `item.onTime`, kept by the store beyond the page.
+- Users: Marketing videos (`modules/marketing/videos.tsx`: finished preview, Shorts, vertical cut), Library media (`modules/library/media.tsx`), a recorded call (`modules/calendar/recorder.tsx`). Left alone, as tools and not playback: the storyboard and finish previews, shape preview, slides, heat, session replay, sites detail, the TikTok composer preview, the Library srcDoc preview, the video-shelf posters (still frames).
 - Stories: `pages-player.stories.tsx` (`Pages/Player`: `Expanded`, `MiniDocked`, `NavigationSurvives`); unit: `player/store.test.ts`, `geometry.test.ts`.
 
 Citations: `apps/portal/web/src/App.tsx` (the host), `apps/portal/web/src/player/host.tsx:36`
@@ -30,7 +30,7 @@ Citations: `apps/portal/web/src/App.tsx` (the host), `apps/portal/web/src/player
 
 - **owns:** `apps/portal/web/src/player/`
 - **owned-by:** [[platform/portal-shell]] (renders the host)
-- **joins:** the Learn, Marketing and Library apps (slots), `route.ts` `navigate` (Expand)
+- **joins:** the Marketing and Library apps (slots), `route.ts` `navigate` (Expand)
 - **looks-like-but-is-not:** an editing preview (a tool: it stays on its page)
 
 ## If you change this
@@ -42,7 +42,7 @@ Citations: `apps/portal/web/src/App.tsx` (the host), `apps/portal/web/src/player
 
 | Surface | Role |
 |---|---|
-| Learn item, Marketing videos, Library media | slot |
+| Marketing videos, Library media | slot |
 | Shell (`App.tsx`) | host |
 
 ## See

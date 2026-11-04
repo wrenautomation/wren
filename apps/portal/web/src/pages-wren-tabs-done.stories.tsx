@@ -100,8 +100,7 @@ export const SidebarItems = pageAt("/", {
       expect(links(nav, name), `${name} is in the sidebar`).toBeGreaterThan(0);
     for (const name of ["Pipelines", "Content", "Engage", "Outbound", "Ads", "Analytics"])
       expect(links(nav, name), `${name} is in the sidebar`).toBeGreaterThan(0);
-    for (const name of ["Notes", "Learn", "Voice"])
-      expect(links(nav, name), `${name} is parked`).toBe(0);
+    for (const name of ["Notes", "Voice"]) expect(links(nav, name), `${name} is parked`).toBe(0);
     await expect(within(page).getAllByRole("link", { name: named("Map") }).length).toBeGreaterThan(
       0,
     );

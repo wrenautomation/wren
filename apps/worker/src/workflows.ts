@@ -8,7 +8,6 @@ import { FOLLOW_WORKFLOWS } from "@wren/core/follow";
 import { setupWorkflow } from "@wren/core/setup";
 import { defineWorkflow, type Workflow } from "@wren/core/workflows";
 import { DELIVERY_WORKFLOWS } from "@wren/delivery/components";
-import { LEARN_WORKFLOWS } from "@wren/learn/components";
 import { NICHES, SMS_SEQUENCES } from "@wren/niches";
 import { MONEY_WORKFLOW } from "@wren/pipeline/collect";
 import { RESEARCH_WORKFLOWS } from "@wren/research/components";
@@ -274,7 +273,6 @@ export const WORKFLOWS: readonly Workflow[] = [
   ...DELIVERY_WORKFLOWS,
   ...CONTENT_WORKFLOWS,
   ...WATCH_WORKFLOWS,
-  ...LEARN_WORKFLOWS,
   ...OUTREACH_WORKFLOWS,
   // Follow-ups on the executor: each email and text sequence is its cadence; invite-only DMs have none.
   ...NICHES.flatMap((n) => [...n.sequences.values()].map((s) => emailCadence(n.name, s))),

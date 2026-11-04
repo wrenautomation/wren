@@ -17,7 +17,6 @@ import { SENT_RECORDS } from "@wren/core/sent/records";
 import { templateRecords } from "@wren/core/templates/records";
 import { BILLING_RECORDS } from "@wren/delivery/billing/records";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
-import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { NOTES_RECORDS } from "@wren/notes/records";
 import { PIPELINE_RECORDS } from "@wren/pipeline/records";
 import { RESEARCH_RECORDS } from "@wren/research/records";
@@ -46,8 +45,6 @@ interface ConsoleRecordsAt {
   reach?: Parameters<typeof marketingNumbers>[1];
   /** Signs a recorded call's mp4. */
   recordings?: Parameters<typeof recordingRecord>[0];
-  /** The SOP folders on this machine; absent: the library reads the database only. */
-  sopsDir?: string | null;
   /** The lander's recorded views: replays and survey answers. Absent: heatmaps keep their counts. */
   sessions?: Parameters<typeof sessionRecord>[0] | undefined;
   /** A profile's site visits. */
@@ -63,8 +60,6 @@ export function consoleRecords(at: ConsoleRecordsAt = {}): RecordType[] {
     callRecord,
     ...BOOKS_RECORDS,
     ...WATCH_RECORDS,
-    ...LEARN_RECORDS,
-    sopRecordFor(at.sopsDir ?? null),
     ...CALENDAR_RECORDS,
     recordingRecord(at.recordings),
     ...VOICE_RECORDS,

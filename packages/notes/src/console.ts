@@ -143,11 +143,6 @@ const INPUTS = {
     id: ID,
     text: z.string().max(20_000).optional().describe("The selection; none is the note"),
   },
-  toSop: {
-    id: ID,
-    text: z.string().max(200_000).optional().describe("The selection; none is the note"),
-    sop: z.string().max(64).describe("The SOP's name: lowercase letters, digits and dashes"),
-  },
   boards: {},
   needsYou: {},
   board: {
@@ -367,7 +362,6 @@ export function makeNotesConsole(deps: NotesDeps) {
             return { started: true };
           }),
       ),
-      toSop: write("toSop", "to sop"),
       boards: read("boards"),
       needsYou: read("needsYou"),
       board: read("board"),

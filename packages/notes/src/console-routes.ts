@@ -44,10 +44,8 @@ export const NOTES_CONSOLE_ROUTES = {
   train: "act",
   upload: "act",
   workspaceTrain: "manage",
-  // Selected words made real: drafts in the workspace's Marketing, words in one of its SOPs. Each
-  // also needs the note open to them.
+  // Selected words made real: drafts in the workspace's Marketing. Also needs the note open to them.
   toDraft: "act",
-  toSop: "act",
   // Boards and cards (designs/2026-10-14-boards.md). Each checks the role on the board or card.
   boards: "read",
   needsYou: "read",
@@ -80,7 +78,6 @@ export const NOTES_CONSOLE_ROUTES = {
 export const NOTES_CONSOLE_APPS = {
   "*": "notes",
   toDraft: "content",
-  toSop: "learn",
 } as const satisfies RouteApps<typeof NOTES_CONSOLE_ROUTES>;
 
 /** Refused on the demo and under View as. */
@@ -108,7 +105,6 @@ export const NOTES_CONSOLE_WRITES: readonly (keyof typeof NOTES_CONSOLE_ROUTES)[
   "upload",
   "workspaceTrain",
   "toDraft",
-  "toSop",
   "boardCreate",
   "boardSave",
   "boardShare",

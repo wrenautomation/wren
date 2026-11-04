@@ -4,13 +4,12 @@
  * is "1" and the host is this machine; prod's Worker never has WREN_DEV.
  *
  * Writes are off unless WREN_DEV_WRITES is "1". The guard lets through a known list only: a page,
- * a read route, a batch of reads, a media grant, a write's status. Anything else is refused.
+ * a read route, a batch of reads, a write's status. Anything else is refused.
  */
 import { LIVE_PREFIX } from "@wren/notes/room";
 import { AGENT_PATH } from "./agent.js";
 import { json } from "./edge.js";
 import type { Env } from "./env.js";
-import { MEDIA_GRANT_PATH } from "./media.js";
 import { PULSE_PATH } from "./pulse.js";
 import { SERVICES, WRITE_STATUS_PATH } from "./services.js";
 import { WRITES_LIVE_PATH } from "./watch.js";
@@ -28,7 +27,7 @@ export const devViewer = (env: Env) => ({
 });
 
 /** Reads that go by POST. A read route of a service is checked on its own. */
-const POST_READS = new Set([PULSE_PATH, MEDIA_GRANT_PATH, WRITE_STATUS_PATH]);
+const POST_READS = new Set([PULSE_PATH, WRITE_STATUS_PATH]);
 /**
  * Paths that change things, or reach out, by GET or a socket: off whatever their method. A Sites
  * page counts its visit (`/o/`).

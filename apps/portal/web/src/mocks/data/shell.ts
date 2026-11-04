@@ -4,7 +4,6 @@
 import type { accountsApi } from "@wren/core/accounts/console";
 import type { consoleApi } from "@wren/core/console";
 import type { DeliveryApi } from "@wren/delivery/restate";
-import type { learnConsoleApi } from "@wren/learn/console";
 import type { NotesApi } from "@wren/notes/console";
 import { serve } from "../api.js";
 import { CLIENT } from "./me.js";
@@ -68,25 +67,6 @@ export const SHELL = {
           why: "Google sent a code by post.",
           at: ago(1),
           open: true,
-        },
-      ],
-    },
-  }),
-  ...serve<ReturnType<typeof learnConsoleApi>>("learn", {
-    bell: {
-      unseen: 1,
-      alerts: [
-        {
-          id: 1,
-          itemId: 1,
-          title: "Five ways to win back old customers",
-          type: "youtube",
-          source: "Trades Growth",
-          score: 8,
-          line: "A clear script for a first text.",
-          why: "score",
-          at: ago(0.2),
-          seen: false,
         },
       ],
     },

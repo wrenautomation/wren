@@ -14,7 +14,7 @@ import {
   MEASURE_OF,
   type OurPiece,
   ourPatterns,
-  readQueued,
+  readVideo,
   rulesOf,
   type SopScope,
   saveOurs,
@@ -143,12 +143,14 @@ export async function learnBack(
   const { ids, saved } = await saveOurs(db, o.client, pieces);
   const known = await ourPatterns(db, [...ids.values()]);
   const unread = pieces.filter((p) => p.kind !== "post" && !known.has(ids.get(p.draftId) ?? -1));
-  if (unread.length)
-    await readQueued(
-      db,
-      unread.map((p) => ids.get(p.draftId) ?? -1),
-      { read: o.read, judge: o.judge },
-    );
+  for (const p of unread) {
+    const id = ids.get(p.draftId);
+    // A failed read is kept on the row; the next run tries again.
+    if (id !== undefined)
+      await readVideo(db, o.read, id).catch((err: unknown) =>
+        o.say?.(`${id}: ${err instanceof Error ? err.message : String(err)}`),
+      );
+  }
   for (const p of pieces) {
     const id = ids.get(p.draftId);
     if (id !== undefined && !known.has(id)) await breakdownItem(db, o.judge, id);

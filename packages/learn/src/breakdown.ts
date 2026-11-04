@@ -14,9 +14,10 @@ import { completeAndParse } from "@wren/llm";
 import { readWatchFacts } from "@wrenautomation/read/video";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { secondsOf } from "./feeds.js";
 import { type FilmFacts, filmFacts, filmFactsSchema } from "./film.js";
 import { factFindings } from "./findings.js";
+import type { JudgeFor } from "./judge.js";
+import { secondsOf } from "./read.js";
 import {
   type Beat,
   type BreakdownBy,
@@ -31,7 +32,6 @@ import {
   POST_MEDIA,
   POST_SHAPES,
 } from "./schema.js";
-import type { JudgeFor } from "./score.js";
 
 /** Text the model sees: a reel whole, a long video's opening (the hook and the first beats). */
 const PROMPT_TEXT = 6_000;

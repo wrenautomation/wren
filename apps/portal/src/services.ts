@@ -58,11 +58,6 @@ import {
   DOCUMENTS_CONSOLE_WRITES,
 } from "@wren/documents/console-routes";
 import {
-  LEARN_CONSOLE_APPS,
-  LEARN_CONSOLE_ROUTES,
-  LEARN_CONSOLE_WRITES,
-} from "@wren/learn/console-routes";
-import {
   NOTES_CONSOLE_APPS,
   NOTES_CONSOLE_ROUTES,
   NOTES_CONSOLE_WRITES,
@@ -183,8 +178,6 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   books: service("BooksConsole", BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_APPS, BOOKS_CONSOLE_WRITES),
   // The Monitor: William's mail and its rules.
   watch: service("WatchConsole", WATCH_CONSOLE_ROUTES, WATCH_CONSOLE_APPS, WATCH_CONSOLE_WRITES),
-  // Learn: save a link (the box, the phone's Shortcut), follow sources, search, ask for an SOP.
-  learn: service("LearnConsole", LEARN_CONSOLE_ROUTES, LEARN_CONSOLE_APPS, LEARN_CONSOLE_WRITES),
   // Clients' health and flags: Wren's rating, an override, a flag's owner and state.
   health: service(
     "HealthConsole",

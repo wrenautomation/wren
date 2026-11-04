@@ -10,8 +10,6 @@
  * - `/api/unfurl`: a link's preview (title, line, image, icon), for a signed-in person (./unfurl.ts).
  * - `/api/notes/live/<id>`: a note's live room, a WebSocket to its Durable Object (./live.ts).
  * - `/api/live/writes`: a person's sends as they go, a WebSocket to their `WriteWatch` (./watch.ts).
- * - `/api/media/grant` and `/media`: Learn's pictures and audio through our origin (./media.ts),
- *   for an operator, or for a client's login on its own items.
  * - `/api/agent`: Wren for AI tools (the CLI and skill under `/agent/`), by a `wren_` access
  *   token (./agent.ts).
  * - `/api/<service>/<route>`: forwarded to that portal service (`./services.ts`)
@@ -48,14 +46,6 @@ import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
 import { keyStage, rawKeyRefusal } from "./keys.js";
 import { publicLimit } from "./limit.js";
 import { liveRoute, NoteRoom } from "./live.js";
-import {
-  grantFor,
-  MEDIA_GRANT_PATH,
-  MEDIA_PATH,
-  mediaKey,
-  mediaProxy,
-  urlGrantsFor,
-} from "./media.js";
 import { oauthLanding } from "./oauth-landing.js";
 import { payRoute } from "./pay.js";
 import { PULSE_MAX, PULSE_PATH, type PulseAnswer, pulseCalls } from "./pulse.js";
@@ -291,62 +281,6 @@ async function replayPage(req: Request, env: Env): Promise<Response> {
   return out;
 }
 
-/** The media key, from the Restate token the Worker already holds; null when it holds none. */
-const keyOf = (env: Env) => (env.RESTATE_AUTH_TOKEN ? mediaKey(env.RESTATE_AUTH_TOKEN) : null);
-
-/** Items one grant ask may name. */
-const MEDIA_ITEMS = 200;
-
-/**
- * `POST /api/media/grant`: a grant to load Learn's pictures and audio. An operator asking for no
- * items gets the day's grant. Anyone else names the workspace and its items: Learn's service,
- * asked as them, answers with the media of the items that workspace owns, each granted alone.
- */
-async function mediaGrant(req: Request, env: Env, site: Site): Promise<Response> {
-  if (req.method !== "POST") return json({ error: "POST only" }, 405);
-  if (site.kind === "demo") return json({ error: "Sign in." }, 401);
-  const raw = await readBody(req, MAX_BODY);
-  if (raw === null) return json({ error: "too large" }, 413);
-  let input: { client?: unknown; items?: unknown } | null;
-  try {
-    input = raw ? JSON.parse(raw) : {};
-  } catch {
-    return json({ error: "not json" }, 400);
-  }
-  const viewer = await viewerOf(req, env);
-  if (viewer instanceof Response) return viewer;
-  if ("demo" in viewer) return json({ error: "Sign in." }, 401);
-  const items = Array.isArray(input?.items) ? input.items.map(String) : null;
-  if (!items && !viewer.operator) return json({ error: "Name the items." }, 403);
-  if (items && (!items.length || items.length > MEDIA_ITEMS))
-    return json({ error: `1 to ${MEDIA_ITEMS} items` }, 400);
-  const key = await keyOf(env);
-  if (!key) return json({ error: "Media isn't set up yet." }, 503);
-  let out: Response;
-  if (!items) out = json(await grantFor(key));
-  else {
-    // A client's host is that client; elsewhere the workspace asked for. The service checks both.
-    const named = input?.client;
-    const client =
-      site.kind === "client"
-        ? site.client
-        : typeof named === "string" && named.length <= 200
-          ? named
-          : undefined;
-    const asked = await forward(
-      env,
-      "LearnConsole/media",
-      JSON.stringify({ ...(client ? { client } : {}), ids: items, viewer }),
-    );
-    if (asked.status !== 200) return asked;
-    const { urls } = (await asked.json()) as { urls?: unknown };
-    const list = Array.isArray(urls) ? urls.filter((u): u is string => typeof u === "string") : [];
-    out = json(await urlGrantsFor(key, list));
-  }
-  out.headers.set("cache-control", "no-store");
-  return out;
-}
-
 export default {
   async fetch(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(req.url);
@@ -415,22 +349,7 @@ export default {
     if (pathname.startsWith(LIVE_PREFIX)) return liveRoute(req, env, site, (r) => viewerOf(r, env));
     if (pathname === WRITES_LIVE_PATH)
       return writesSocketRoute(req, env, site, (r) => viewerOf(r, env));
-    if (pathname === MEDIA_GRANT_PATH) return mediaGrant(req, env, site);
     if (pathname === KEY_STAGE_PATH) return keyStage(req, env, site, (r) => viewerOf(r, env));
-    if (pathname === MEDIA_PATH) {
-      const key = site.kind === "demo" ? null : await keyOf(env);
-      if (!key) return new Response(null, { status: 404 });
-      return mediaProxy(req, key, fetch, {
-        sign: async (ref) => {
-          const r = await forward(env, "LearnPictures/sign", JSON.stringify({ ref }));
-          if (r.status !== 200) return null;
-          const { url } = (await r.json()) as { url?: unknown };
-          return typeof url === "string" ? url : null;
-        },
-        cache: typeof caches === "undefined" ? null : caches.default,
-        ...(ctx ? { wait: (p: Promise<unknown>) => ctx.waitUntil(p) } : {}),
-      });
-    }
     if (pathname === AGENT_PATH || pathname.startsWith(`${AGENT_PATH}/`))
       return agentRoute(req, env, site);
     if (pathname === PULSE_PATH) return pulseRoute(req, env, site, ctx);

@@ -44,7 +44,7 @@ import { download, downloadDocx, fileName } from "./files.js";
 import { ProposeCards } from "./propose.js";
 import { ShareDialog } from "./share.js";
 import { NoteSync, type SyncState } from "./sync.js";
-import { makeDrafts, SopDialog, selectedWords } from "./turn.js";
+import { makeDrafts, selectedWords } from "./turn.js";
 import { VersionOpen, VersionsPanel } from "./versions.js";
 import "./notes.css";
 
@@ -216,8 +216,6 @@ function Doc({
   const [outline, setOutline] = useState(true);
   const [shown, setShown] = useState<number | null>(null);
   const [sharing, setSharing] = useState(false);
-  /** The words going to an SOP; null while its dialog is shut. */
-  const [sopFor, setSopFor] = useState<string | null>(null);
   const [proposing, setProposing] = useState(false);
   const [list, setList] = useState<NoteVersions | null>(null);
   const [listError, setListError] = useState<string | null>(null);
@@ -499,7 +497,6 @@ function Doc({
                       label: "Make drafts from it",
                       run: () => makeDrafts(client, note.id, selectedWords(editor)),
                     },
-                    { label: "Add to an SOP…", run: () => setSopFor(selectedWords(editor)) },
                   ]),
               ...(canEdit && editor
                 ? [
@@ -702,9 +699,6 @@ function Doc({
           editor={editor}
           onClose={() => setProposing(false)}
         />
-      ) : null}
-      {sopFor !== null ? (
-        <SopDialog client={client} id={note.id} text={sopFor} onClose={() => setSopFor(null)} />
       ) : null}
       {refused && !canEdit ? (
         <Alert onRetry={canSuggest ? () => location.reload() : reload}>{refused}</Alert>

@@ -20,7 +20,6 @@ import { AD_ACTIONS, DRAFT_ACTIONS, POST_ACTIONS, TEXT_ACTIONS } from "./drafts.
 import { EXPLORE_PAGE } from "./engage.js";
 import { EXPERIMENT_ACTIONS } from "./experiments.js";
 import { FactsPage } from "./facts.js";
-import { FeedPage } from "./feed.js";
 import { withShape } from "./fields.js";
 import { heatExtras } from "./heat.js";
 import { INBOX_ACTIONS } from "./inbox.js";
@@ -433,13 +432,6 @@ export const MARKETING_PAGES = {
     hidden: true,
     lights: "studio",
     Page: WritePage,
-  },
-  feed: {
-    id: "feed",
-    label: "Feed",
-    about: "Posts from the people and topics you follow.",
-    Page: FeedPage,
-    wide: true,
   },
   explore: EXPLORE_PAGE,
   // Every post draft, one row per platform: each draft's own page (Pieces links here). Off the

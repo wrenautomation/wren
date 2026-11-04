@@ -1,17 +1,9 @@
 /**
  * Turn rough into real (designs/2026-10-07-notes.md): the selected words, or the whole note, as
- * drafts in the workspace's Marketing or as a source of one of its SOPs. Tasks wait: there are none.
+ * drafts in the workspace's Marketing. Tasks wait: there are none.
  */
 import type { Editor } from "@tiptap/core";
-import { Button, Input, say, UnsavedMark, useEdit } from "@wren/ui";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@wren/ui/components/ui/dialog";
-import { type FormEvent, useState } from "react";
+import { say } from "@wren/ui";
 import { call } from "../../api.js";
 import { WREN } from "../../module.js";
 
@@ -36,86 +28,4 @@ export function makeDrafts(client: string, id: string, text: string): void {
       ),
     )
     .catch(say.failed);
-}
-
-/** Name the SOP; the words go in. */
-export function SopDialog({
-  client,
-  id,
-  text,
-  onClose,
-}: {
-  client: string;
-  id: string;
-  /** The selection; empty sends the whole note. */
-  text: string;
-  onClose: () => void;
-}) {
-  const wren = client === WREN.id;
-  // The name is kept as typed until the words are added.
-  const sopEdit = useEdit(`note:${id}:sop-name`, "");
-  const sop = sopEdit.value;
-  const [busy, setBusy] = useState(false);
-  const ok = /^[a-z0-9][a-z0-9-]*$/.test(sop.trim());
-  const save = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!ok) return;
-    setBusy(true);
-    try {
-      const sent = sop;
-      await call("notes/toSop", inWs(client, { id, sop: sent.trim(), ...(text ? { text } : {}) }));
-      sopEdit.saved(sent);
-      say.done(
-        wren
-          ? `Asked. The Mac adds it to ${sop.trim()} on its next read.`
-          : `Added to ${sop.trim()} in your Notes.`,
-      );
-      onClose();
-    } catch (err) {
-      say.failed(err);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <Dialog open onOpenChange={(o) => (o ? null : onClose())}>
-      <DialogContent className="gap-3 sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {text ? "Add the selection to an SOP" : "Add this note to an SOP"}
-          </DialogTitle>
-          <DialogDescription>
-            {wren
-              ? "The SOP's folder name, such as email-infra. The Mac writes it into the SOP's sources; build it from there."
-              : "The SOP's name, such as onboarding. It goes into your Notes under it."}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={save} className="flex flex-col gap-3">
-          <Input
-            autoFocus
-            {...sopEdit.field}
-            onChange={(e) => sopEdit.set(e.target.value.toLowerCase())}
-            placeholder={wren ? "email-infra" : "onboarding"}
-            aria-label="SOP name"
-          />
-          <UnsavedMark edit={sopEdit} />
-          <div className="flex justify-end gap-2">
-            <Button
-              size="dense"
-              tone="secondary"
-              onClick={() => {
-                sopEdit.discard();
-                onClose();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button tone="primary" size="dense" type="submit" busy={busy} disabled={!ok}>
-              Add to SOP
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
 }

@@ -62,7 +62,6 @@ import { type Module, type ModulePage, type PageProps, WREN } from "./module.js"
 import { ownerOf } from "./modules/agent/chat.js";
 import { AgentPanel, useAgentPanel } from "./modules/agent/panel.js";
 import { appsIn, MODULES } from "./modules/index.js";
-import { LearnBell } from "./modules/learn/bell.js";
 import { capture, makeCard, QuickNote, useQuickNoteKey } from "./modules/notes/capture.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { atWrenOf, MOVED_APPS, movedTo } from "./moved.js";
@@ -656,10 +655,6 @@ export function App() {
                   <Button tone="quiet" size="sm" onClick={() => openViewAs()}>
                     View as
                   </Button>
-                ) : null}
-                {/* The bell: Learn's alerts for you here. Real workspaces only, never the sample. */}
-                {current && onDemo === false && apps.some((m) => m.id === "learn" && !m.parked) ? (
-                  <LearnBell key={current.id} client={current.id} />
                 ) : null}
                 {account ? (
                   <ButtonLink href={firstOf(account)} tone="quiet" size="sm">

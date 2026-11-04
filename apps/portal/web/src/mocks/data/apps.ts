@@ -1,13 +1,12 @@
 /**
  * Each app's own first read, past the records pages: the reactivation run, the delivery home,
- * learn's shelves, notes, the calendar, deals' board. Typed by what the page reads, so a change
+ * notes, the calendar, deals' board. Typed by what the page reads, so a change
  * to the answer fails the typecheck here. Synthetic data only.
  */
 
 import type { TemplateListRow } from "@wren/core/templates/console";
 import type { NotesApi } from "@wren/notes/console";
 import type { DeliveryHome, Overview } from "../../api.js";
-import type { Browsed, Card, Home, Rail, SourceRow } from "../../modules/learn/api.js";
 import type { NotesHome } from "../../modules/notes/api.js";
 import { type Answers, serve } from "../api.js";
 import { CLIENT } from "./me.js";
@@ -184,109 +183,6 @@ const HOME: DeliveryHome = {
   ],
 };
 
-const card = (id: number, title: string, type: Card["type"], days: number): Card =>
-  ({
-    id,
-    title,
-    type,
-    url: `https://example.com/learn/${id}`,
-    thumbnail: null,
-    duration: type === "youtube" ? 840 : null,
-    chars: 4200,
-    source: { id: 1, name: "Trades Growth", kind: "youtube", avatar: null },
-    creator: "Trades Growth",
-    score: 8,
-    summary: "A clear script for a first text to an old customer.",
-    status: "unread",
-    state: "ready",
-    starred: false,
-    pinned: false,
-    later: false,
-    position: null,
-    collectionId: null,
-    tags: ["reactivation"],
-    saved: false,
-    at: ago(days),
-  }) satisfies Card;
-
-const CARDS = [
-  card(1, "Five ways to win back old customers", "youtube", 0.2),
-  card(2, "The follow-up most shops skip", "blog", 1),
-  card(3, "Pricing a service plan", "newsletter", 3),
-];
-
-const LEARN_HOME: Home = {
-  shelves: [
-    { type: "youtube", total: 1, items: CARDS.slice(0, 1) },
-    { type: "blog", total: 2, items: CARDS.slice(1) },
-  ],
-  continue: CARDS.slice(1, 2),
-  top: CARDS.slice(0, 2),
-  sops: [],
-};
-
-/** Feed's "Following" read: the newest posts of the sources followed. */
-const BROWSED: Browsed = {
-  place: "all",
-  sort: "newest",
-  items: CARDS,
-  more: false,
-  total: CARDS.length,
-  types: { youtube: 1, blog: 1, newsletter: 1 },
-  sources: [{ id: 1, name: "Trades Growth", kind: "youtube", avatar: null, n: 3 }],
-};
-
-const RAIL: Rail = {
-  places: { inbox: 3, all: 3, later: 0, starred: 0, saved: 0, archived: 0 },
-  collections: [{ id: 1, name: "Sales", parentId: null, n: 2 }],
-  sources: [
-    {
-      kind: "youtube",
-      sources: [
-        {
-          id: 1,
-          name: "Trades Growth",
-          kind: "youtube",
-          avatar: null,
-          stopped: false,
-          failure: null,
-          fresh: 1,
-        },
-      ],
-    },
-  ],
-  tags: [{ tag: "reactivation", n: 3 }],
-};
-
-/** Sources, the page's own read: one followed channel, nothing failing. */
-const SOURCES: { may: boolean; kinds: { kind: SourceRow["kind"]; sources: SourceRow[] }[] } = {
-  may: true,
-  kinds: [
-    {
-      kind: "youtube",
-      sources: [
-        {
-          id: 1,
-          name: "Trades Growth",
-          kind: "youtube",
-          avatar: null,
-          url: "https://video.example.com/@tradesgrowth",
-          page: null,
-          tell: "top",
-          alert: null,
-          failure: null,
-          stopped: false,
-          fetchedAt: ago(0.1),
-          items: 3,
-          fresh: 1,
-          top: 1,
-          last: ago(0.2),
-        },
-      ],
-    },
-  ],
-};
-
 const note = (id: string, title: string, kind: "note" | "task", days: number) => ({
   id,
   name: title,
@@ -404,13 +300,7 @@ const template = (
 export const APP_ANSWERS: Answers = {
   "reactivation/overview": OVERVIEW,
   "delivery/home": HOME,
-  "learn/home": LEARN_HOME,
-  "learn/rail": RAIL,
-  "learn/sources": SOURCES,
-  "learn/browse": BROWSED,
-  "learn/unseen": { n: 1 },
   // Thumbnails are null, so a grant is never used: Wren's one, or a client's per item.
-  "media/grant": (b) => (b.client ? { grants: {} } : { grant: "fake" }),
   "notes/home": NOTES,
   // A record's panel: no notes link to it, no issues raised on it.
   "notes/backlinks": { notes: [] },

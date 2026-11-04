@@ -58,16 +58,6 @@ export interface NoteTurns {
     ctx: restate.Context,
     o: { client: string | null; text: string; by: string },
   ): Promise<void>;
-  /** The words into an SOP: asked (Wren's, for the Mac) or added (a client's, into its Notes). */
-  sop(o: {
-    client: string;
-    db: Db;
-    noteId: string;
-    sop: string;
-    title: string;
-    text: string;
-    by: string;
-  }): Promise<{ sop: string; state: "asked" | "added"; note: string | null }>;
 }
 
 interface Place {

@@ -28,28 +28,6 @@ export function trainingHandlers(notes: NotesApiContext) {
       if (!text) throw new PortalRefusal("the note is empty", 400);
       return { client: place.client?.id ?? null, text, by };
     },
-    /** Words into an SOP: the selection, else the whole note. */
-    async toSop(req: Req<{ id?: unknown; text?: unknown; sop?: unknown }>) {
-      const { note, place } = await locate(req, req.id, "view");
-      const by = byOf(req);
-      if (!deps.turns) throw new PortalRefusal("SOPs aren't set up here", 503);
-      const text = str(req.text ?? "", 200_000, "the words").trim() || note.text.trim();
-      if (!text) throw new PortalRefusal("the note is empty", 400);
-      try {
-        return await deps.turns.sop({
-          client: place.ws,
-          db: place.db,
-          noteId: note.id,
-          sop: str(req.sop, 64, "the SOP"),
-          title: nameOf(note.title, note.text),
-          text,
-          by,
-        });
-      } catch (e) {
-        if (e instanceof PortalRefusal) throw e;
-        throw new PortalRefusal((e as Error).message, 400);
-      }
-    },
     /** Every note in this workspace in training exports, or only those opted in. */
     async workspaceTrain(req: Req<{ on?: unknown }>) {
       const by = byOf(req);

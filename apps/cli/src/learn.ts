@@ -1,12 +1,9 @@
 /**
- * `wren learn …` (designs/2026-10-07-learn.md): save a link, follow a source, list, show, move,
- * archive and search what Learn kept, and the Mac's reader. Every command works in one workspace:
- * Wren's own, or the client `--client` names; another's items are "no such item". `read` reads
- * videos and reels waiting for the Mac with the `sop add` readers (yt-dlp, the Gemini key fleet)
- * for every workspace (or the one named), a client's on its models allowance, scores them, then
- * writes items asked into an SOP: Wren's into its folder, a client's into its own Notes. `catalog`
- * reads a creator's back catalog a few reels a pass (Instagram through the desk, TikTok by yt-dlp).
- * Nothing here signs in to any social account.
+ * `wren learn …` (designs/2026-10-07-learn.md): save a link, list, show, call and break down what
+ * Learn kept, and the Mac's reader. Every command works in one workspace: Wren's own, or the client
+ * `--client` names; another's items are "no such item". `read` reads videos and reels waiting for
+ * the Mac with the `sop add` readers (yt-dlp, the Gemini key fleet), a client's on its models
+ * allowance, breaks each down, then writes Wren's items asked into SOP folders.
  */
 
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -16,46 +13,26 @@ import type { Settings } from "@wren/config";
 import { WREN } from "@wren/core/access";
 import type { Db } from "@wren/db";
 import {
-  addCollection,
   askSop,
   BROKEN_DOWN,
   breakdownItem,
   breakdowns,
-  catalogSummary,
-  creatorOf,
-  embedMissing,
   FACT_CALLS,
   factFindings,
-  follow,
   isFactCall,
-  itemPage,
+  itemOf,
   items,
   listItems,
-  mark,
-  moveItems,
   needsMac,
   pageFetcher,
-  pullCreators,
-  readCatalog,
   readItem,
-  readQueued,
   readVideo,
   recordFactCall,
   saveLink,
-  scoreItem,
-  searchItems,
   seedFilmFacts,
   seedStudySchema,
-  sourcesByKind,
-  TELLS,
-  type Tell,
-  tagItems,
-  tiktokReader,
-  unfollowSources,
-  unscore,
   waitingForMac,
   writeAsked,
-  writeClientAsked,
 } from "@wren/learn";
 import { ITEM_KINDS, type ItemKind, SHOT_INS, SHOT_MOVES, SHOT_TYPES } from "@wren/learn/schema";
 import { download, labelMatch, labelShots } from "@wrenautomation/read/video";
@@ -67,7 +44,7 @@ const itemKindOf = (raw: string): ItemKind => {
   throw new Error(`--kind is one of ${ITEM_KINDS.join(", ")}`);
 };
 
-import { gatewayEmbed, modelLlm } from "@wren/llm";
+import { modelLlm } from "@wren/llm";
 import { addSource, extractPoints } from "@wren/research/sops";
 import { claudeCode } from "@wrenautomation/models/command";
 import type { Command } from "commander";
@@ -79,8 +56,8 @@ type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 /** How the commands reach their databases: main, a client's own, and `--client`'s id. */
 interface LearnDbs {
   withMainDb: WithDb;
-  /** A client's own database (its Notes), opened for the call. */
-  withClientDb: <T>(client: string, fn: (db: Db) => Promise<T>) => Promise<T>;
+  /** Unused since the Notes cut; main.ts (a peer's file) still passes it. */
+  withClientDb?: <T>(client: string, fn: (db: Db) => Promise<T>) => Promise<T>;
   /** The workspace `--client` names, checked to exist; Wren's own when none. */
   workspace: () => Promise<string>;
   /** `--client` as given, unchecked: `read` narrows to it. */
@@ -98,29 +75,18 @@ const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
 const BY = "cli";
 /** Progress goes to stderr, a line each, so stdout stays the JSON answer. */
 const say = (line: string) => console.error(line);
-/** Seconds as `4m12s`. */
-const spent = (s: number) =>
-  s >= 60 ? `${Math.floor(s / 60)}m${String(s % 60).padStart(2, "0")}s` : `${s}s`;
-
-const tellOf = (v: string | undefined): Tell | null => {
-  if (!v) return null;
-  if (!(TELLS as readonly string[]).includes(v))
-    throw new Error(`--tell is one of ${TELLS.join(", ")}`);
-  return v as Tell;
-};
-
 export function registerLearn(
   program: Command,
   dbs: LearnDbs,
   settings: Settings,
   rootDir: string,
 ): void {
-  const { withMainDb: withDb, withClientDb } = dbs;
+  const { withMainDb: withDb } = dbs;
   /** Main, and the workspace the command works in. */
   const inWorkspace = <T>(fn: (db: Db, client: string) => Promise<T>) =>
     withDb(async (db) => fn(db, await dbs.workspace()));
   const sopsDir = resolve(rootDir, settings.sopsDir);
-  const { reader, judgeFor, catalogReader } = learnReaders(settings, rootDir);
+  const { reader, judgeFor } = learnReaders(settings, rootDir);
   const writer = (model: string) => {
     const llm = modelLlm(claudeCode(model, { timeoutMs: 1_800_000 }));
     return {
@@ -131,15 +97,9 @@ export function registerLearn(
     };
   };
 
-  /** After a read: a client's item's asked SOPs go into its Notes. */
-  const notesFor = async (db: Db, client: string, itemId: number) =>
-    client === WREN
-      ? []
-      : withClientDb(client, (notesDb) => writeClientAsked(db, client, notesDb, { itemId }));
-
   /**
-   * Read what waits for the Mac in every workspace (or `client`'s), score it, then write what was
-   * asked into SOPs: Wren's into folders, a client's into its Notes as each is read.
+   * Read what waits for the Mac in every workspace (or `client`'s), break each down, then write
+   * Wren's items asked into SOP folders.
    */
   const pass = async (
     db: Db,
@@ -154,17 +114,7 @@ export function registerLearn(
   ) => {
     const read = reader();
     const judge = judgeFor(db, o.model);
-    const out: Array<{
-      id: number;
-      read: string | null;
-      verdict: string | null;
-    }> = [];
-    // TikTok creators are listed here (yt-dlp, the home IP); their new videos read below.
-    const tiktok = await pullCreators(db, tiktokReader(settings.ytDlp), new Date(), {
-      kinds: ["tiktok"],
-      macReads: true,
-    });
-    for (const f of tiktok.failed) console.error(`tiktok ${f.source}: ${f.error}`);
+    const out: Array<{ id: number; read: string | null; broken: boolean }> = [];
     const waiting = await waitingForMac(db, {
       limit: o.limit,
       retry: o.retry ?? false,
@@ -172,10 +122,9 @@ export function registerLearn(
     });
     for (const w of waiting) {
       const r = await readVideo(db, read, w.id);
-      const verdict = r === "read" ? await scoreItem(db, judge, w.id) : null;
-      if (r === "read" && o.sops) await notesFor(db, w.client, w.id);
-      out.push({ id: w.id, read: r, verdict });
-      console.error(`${w.id} ${r}${verdict ? ` ${verdict}` : ""} ${w.url}`);
+      const broken = r === "read" && (await breakdownItem(db, judge, w.id));
+      out.push({ id: w.id, read: r, broken });
+      say(`${w.id} ${r}${broken ? " broken down" : ""} ${w.url}`);
     }
     const sops =
       o.sops && (!o.client || o.client === WREN)
@@ -184,99 +133,36 @@ export function registerLearn(
     return { read: out, sops };
   };
 
-  /**
-   * Queue a creator's next `reels` posts Learn has not taken, then read and score them here, one
-   * at a time. It says on stderr what it is doing (a page, a reel, the end); the JSON answer
-   * comes last.
-   */
-  const catalog = (
-    url: string,
-    o: { reels: number; allPosts?: boolean; read: boolean; model: string },
-  ) =>
-    inWorkspace(async (db, client) => {
-      const began = Date.now();
-      const took = () => Math.round((Date.now() - began) / 1000);
-      say(`catalog ${url}: walking for ${o.reels} ${o.allPosts ? "posts" : "reels"}`);
-      const pass = await readCatalog(db, catalogReader(), {
-        client,
-        url,
-        want: o.reels,
-        now: new Date(),
-        reelsOnly: !o.allPosts,
-        onPage: (p) =>
-          say(
-            `page ${p.pages}: ${p.queued.length + p.revived.length} to read, ${p.skipped} skipped`,
-          ),
-      });
-      const waiting = [...pass.revived, ...pass.queued];
-      say(
-        `${pass.creator}: ${pass.queued.length} queued, ${pass.revived.length} taken back, ${pass.skipped} skipped, ${pass.pages} pages${pass.end ? ", oldest post reached" : ""} (${spent(took())})`,
-      );
-      if (!o.read || !waiting.length) return pass;
-      const { reads, stopped } = await readQueued(db, waiting, {
-        read: reader(),
-        judge: judgeFor(db, o.model),
-        onRead: (r, n, of) =>
-          say(
-            `[${n}/${of}] ${r.id} ${r.read ?? "gone"}${r.verdict ? ` ${r.verdict}` : ""} ${spent(r.seconds)}${r.why ? `: ${r.why}` : ""}`,
-          ),
-      });
-      const summary = catalogSummary(reads, took(), stopped);
-      say(
-        `done in ${spent(summary.seconds)}: ${summary.read} read (${summary.show} show, ${summary.hold} hold, ${summary.drop} drop${summary.unscored ? `, ${summary.unscored} unscored` : ""}), ${summary.failed} failed${summary.waits ? `, ${summary.waits} waiting on models` : ""}${stopped ? `. Stopped: ${stopped}` : ""}`,
-      );
-      return { ...pass, read: reads, summary };
-    });
-
-  const learn = program
-    .command("learn")
-    .description("Learn: saved links and followed sources, read, scored and searchable");
+  const learn = program.command("learn").description("Learn: saved links, read and broken down");
 
   learn
     .command("add <url>")
-    .description("save a link (a reel, a video, a post), read it and score it now")
+    .description("save a link (a reel, a video, a post), read it and break it down now")
     .option("--title <title>", "blank takes the page's own")
-    .option("--model <name>", "the scoring model", "cohere")
+    .option("--model <name>", "the breakdown model", "cohere")
     .option("--no-read", "only save it: the Mac's next `learn read` takes it")
     .option("--kind <kind>", `what it is, when the link doesn't say: ${ITEM_KINDS.join(", ")}`)
     .action(
       async (url: string, o: { title?: string; model: string; read: boolean; kind?: string }) =>
         json(
-          // A profile is its newest reels: the catalog's first pass.
-          creatorOf(url)
-            ? await catalog(url, { reels: 12, read: o.read, model: o.model })
-            : await inWorkspace(async (db, client) => {
-                const saved = await saveLink(db, {
-                  client,
-                  url,
-                  by: BY,
-                  via: "cli",
-                  title: o.title ?? null,
-                  ...(o.kind ? { kind: itemKindOf(o.kind) } : {}),
-                });
-                if (!saved.unread || !o.read) return saved;
-                const r = needsMac(saved.kind)
-                  ? await readVideo(db, reader(), saved.id)
-                  : await readItem(db, pageFetcher(), saved.id);
-                const verdict =
-                  r === "read" ? await scoreItem(db, judgeFor(db, o.model), saved.id) : null;
-                return { ...saved, read: r, verdict };
-              }),
+          await inWorkspace(async (db, client) => {
+            const saved = await saveLink(db, {
+              client,
+              url,
+              by: BY,
+              via: "cli",
+              title: o.title ?? null,
+              ...(o.kind ? { kind: itemKindOf(o.kind) } : {}),
+            });
+            if (!saved.unread || !o.read) return saved;
+            const r = needsMac(saved.kind)
+              ? await readVideo(db, reader(), saved.id)
+              : await readItem(db, pageFetcher(), saved.id);
+            const broken =
+              r === "read" && (await breakdownItem(db, judgeFor(db, o.model), saved.id));
+            return { ...saved, read: r, broken };
+          }),
         ),
-    );
-
-  learn
-    .command("catalog <profile>")
-    .description(
-      "a creator's back catalog (Instagram, TikTok): a profile address or an Instagram handle (name or @name); the next reels Learn hasn't taken, newest first, read and scored one at a time with a line each on stderr; run it again for older ones",
-    )
-    .option("--reels <n>", "how many this pass", (v) => Number.parseInt(v, 10), 12)
-    .option("--all-posts", "photos too, read from their captions")
-    .option("--model <name>", "the scoring model", "cohere")
-    .option("--no-read", "only queue them: the Mac's next `learn read` takes them")
-    .action(
-      async (url: string, o: { reels: number; allPosts?: boolean; read: boolean; model: string }) =>
-        json(await catalog(url, o)),
     );
 
   learn
@@ -385,25 +271,6 @@ export function registerLearn(
     });
 
   learn
-    .command("follow <url>")
-    .description("follow a YouTube channel, a Substack, a blog or a podcast: its page or its feed")
-    .option("--name <name>", "blank takes the feed's own title")
-    .option("--tell <when>", `${TELLS.join(", ")}: every item, score 8 and up, or the digest`)
-    .action(async (url: string, o: { name?: string; tell?: string }) =>
-      json(
-        await inWorkspace((db, client) =>
-          follow(db, fetch, {
-            client,
-            url,
-            name: o.name ?? null,
-            tell: tellOf(o.tell),
-            by: BY,
-          }),
-        ),
-      ),
-    );
-
-  learn
     .command("list")
     .description("items, newest first")
     .option("--saved", "only what was saved")
@@ -423,12 +290,12 @@ export function registerLearn(
 
   learn
     .command("show <id>")
-    .description("one item whole: its summary, score, transcript and where it's kept")
+    .description("one item whole: its transcript and the SOPs it was asked into")
     .action(async (id: string) =>
       json(
         await inWorkspace(async (db, client) => {
           const [n] = idsOf([id]);
-          const got = n ? await itemPage(db, client, n) : null;
+          const got = n ? await itemOf(db, client, n) : null;
           if (!got) throw new Error(`No item ${id}`);
           return got;
         }),
@@ -455,77 +322,6 @@ export function registerLearn(
             by: BY,
             source: "cli",
           });
-        }),
-      ),
-    );
-
-  learn
-    .command("collection <name>")
-    .description("a new collection to move items into")
-    .option("--in <collection>", "inside this collection's id")
-    .action(async (name: string, o: { in?: string }) =>
-      json(
-        await inWorkspace((db, client) =>
-          addCollection(db, client, {
-            name,
-            parentId: o.in ? (idsOf([o.in])[0] ?? null) : null,
-            by: BY,
-          }),
-        ),
-      ),
-    );
-
-  learn
-    .command("move <ids...>")
-    .description("put items in a collection, or take them out of every one")
-    .option("--to <collection>", "the collection's id; leave it off for none")
-    .action(async (ids: string[], o: { to?: string }) =>
-      json(
-        await inWorkspace(async (db, client) => ({
-          done: await moveItems(db, client, idsOf(ids), o.to ? (idsOf([o.to])[0] ?? null) : null),
-        })),
-      ),
-    );
-
-  learn
-    .command("tag <ids...>")
-    .description("add or remove tags on items: a line's find takes items tagged with its SOP")
-    .option("--add <tag>", "a tag to add, repeatable", collect)
-    .option("--remove <tag>", "a tag to remove, repeatable", collect)
-    .action(async (ids: string[], o: { add?: string[]; remove?: string[] }) =>
-      json(
-        await inWorkspace(async (db, client) => ({
-          done: await tagItems(db, client, idsOf(ids), {
-            add: o.add ?? [],
-            remove: o.remove ?? [],
-          }),
-        })),
-      ),
-    );
-
-  learn
-    .command("archive <ids...>")
-    .description("archive items: out of the inbox, kept and searchable")
-    .action(async (ids: string[]) =>
-      json(
-        await inWorkspace(async (db, client) => ({
-          done: await mark(db, client, idsOf(ids), "archive"),
-        })),
-      ),
-    );
-
-  learn
-    .command("rescore <ids...>")
-    .description("score read items again, under today's rubric")
-    .option("--model <name>", "the scoring model", "cohere")
-    .action(async (ids: string[], o: { model: string }) =>
-      json(
-        await inWorkspace(async (db, client) => {
-          const judge = judgeFor(db, o.model);
-          const out: { id: number; verdict: string | null }[] = [];
-          for (const id of await unscore(db, client, idsOf(ids)))
-            out.push({ id, verdict: await scoreItem(db, judge, id) });
-          return out;
         }),
       ),
     );
@@ -587,65 +383,14 @@ export function registerLearn(
     );
 
   learn
-    .command("sources")
-    .description("followed sources, by kind")
-    .action(async () => json(await inWorkspace((db, client) => sourcesByKind(db, client))));
-
-  learn
-    .command("unfollow <ids...>")
-    .description("stop reading sources; their items stay")
-    .action(async (ids: string[]) =>
-      json(
-        await inWorkspace(async (db, client) => ({
-          done: await unfollowSources(db, client, idsOf(ids)),
-        })),
-      ),
-    );
-
-  learn
-    .command("embed")
-    .description(
-      "embed read items that have none yet, for search by meaning (the Monitor does this each pass)",
-    )
-    .option("--limit <n>", "how many", (v) => Number.parseInt(v, 10), 200)
-    .action(async (o: { limit: number }) => {
-      const embed = gatewayEmbed(process.env);
-      if (!embed) throw new Error("needs WREN_LLM_GATEWAY_URL and WREN_LLM_GATEWAY_TOKEN");
-      json(await withDb((db) => embedMissing(db, embed, o.limit)));
-    });
-
-  learn
-    .command("search <words...>")
-    .description(
-      'every transcript, best match first: words, "a phrase", -not; with the gateway set, by meaning too',
-    )
-    .option("--limit <n>", "how many", (v) => Number.parseInt(v, 10), 20)
-    .action(async (words: string[], o: { limit: number }) =>
-      json(
-        (
-          await inWorkspace((db, client) =>
-            searchItems(db, client, words.join(" "), o.limit, gatewayEmbed(process.env)),
-          )
-        ).map((h) => ({
-          id: h.id,
-          title: h.title,
-          source: h.source,
-          score: h.score,
-          url: h.url,
-          snippet: h.snippet,
-        })),
-      ),
-    );
-
-  learn
     .command("read")
     .description(
-      "the Mac's reader: videos and reels waiting in every workspace (or --client's), read with yt-dlp and Gemini and scored, then SOP asks written",
+      "the Mac's reader: videos and reels waiting in every workspace (or --client's), read with yt-dlp and Gemini and broken down, then Wren's SOP asks written",
     )
     .option("--limit <n>", "items a pass", (v) => Number.parseInt(v, 10), 20)
     .option("--retry", "take failed reads too")
     .option("--every <minutes>", "keep going, a pass this often", (v) => Number.parseInt(v, 10))
-    .option("--model <name>", "the scoring model", "cohere")
+    .option("--model <name>", "the breakdown model", "cohere")
     .option("--sop-model <name>", "Claude Code model for `sop extract`", "opus")
     .option("--no-sops", "skip writing items asked into SOPs")
     .action(
@@ -670,26 +415,16 @@ export function registerLearn(
 
   learn
     .command("to-sop <id> <sop>")
-    .description(
-      "add an item to an SOP: Wren's folder (sop add, then extract), or a client's own Notes",
-    )
+    .description("add one of Wren's items to an SOP folder (sop add, then extract)")
     .option("--sop-model <name>", "Claude Code model for `sop extract`", "opus")
     .option("--later", "only ask: the next `learn read` writes it")
     .action(async (id: string, sop: string, o: { sopModel: string; later?: boolean }) =>
       json(
         await inWorkspace(async (db, client) => {
+          if (client !== WREN) throw new Error("to-sop is Wren's own: SOP folders are Wren's");
           const itemId = Number(id);
           const ask = await askSop(db, { client, itemId, sop, by: BY });
           if (o.later) return ask;
-          if (client !== WREN) {
-            const [done] = await notesFor(db, client, itemId);
-            return (
-              done ?? {
-                asked: ask.sop,
-                note: "Not read yet: the next `learn read` writes it.",
-              }
-            );
-          }
           const done = await writeAsked(db, sopsDir, writer(o.sopModel), {
             itemId,
             sop: ask.sop,

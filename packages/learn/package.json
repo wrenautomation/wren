@@ -5,11 +5,6 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./components": "./src/components.ts",
-    "./console": "./src/console.ts",
-    "./console-routes": "./src/console-routes.ts",
-    "./decide": "./src/decide.ts",
-    "./records": "./src/records.ts",
     "./schema": "./src/schema.ts"
   },
   "scripts": {
@@ -22,7 +17,6 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
-    "@wren/notes": "workspace:*",
     "@wren/research": "workspace:*",
     "@wrenautomation/read": "0.36.0",
     "drizzle-orm": "0.45.2",

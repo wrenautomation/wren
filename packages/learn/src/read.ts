@@ -7,16 +7,55 @@
  * client's video is read on that client's own `models` allowance: gated before, metered after.
  */
 import { WREN } from "@wren/core/access";
-import type { Step } from "@wren/core/executor";
+import { decodeHtml as decode } from "@wren/core/html";
 import { gate, meter } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { type Fetcher, PoliteFetcher } from "@wrenautomation/read/fetch";
 import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
-import { decode, ogImageOf, plain, secondsOf } from "./feeds.js";
 import { needsMac, youtubeId } from "./links.js";
 import { type ItemKind, items } from "./schema.js";
-import { itemIdOf } from "./score.js";
+
+/** An element's text as plain words: CDATA unwrapped, escaped HTML read, tags dropped. */
+function plain(raw: string): string {
+  const cdata = /^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/.exec(raw);
+  const html = cdata ? (cdata[1] ?? "") : decode(raw);
+  return decode(html.replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " "))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const attr = (a: string, name: string) =>
+  new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, "i").exec(a)?.[1];
+
+/** An https address, or null: the app loads nothing over http. */
+const httpsOr = (url: string | undefined | null): string | null => {
+  const u = url?.trim();
+  if (!u) return null;
+  if (u.startsWith("https://")) return u;
+  return u.startsWith("http://") ? `https://${u.slice(7)}` : null;
+};
+
+/** A page's og:image, https only. */
+function ogImageOf(html: string): string | null {
+  for (const m of html.matchAll(/<meta\b([^>]*)>/gi)) {
+    const a = m[1] ?? "";
+    const key = attr(a, "property") ?? attr(a, "name");
+    if (key?.toLowerCase() !== "og:image") continue;
+    const content = attr(a, "content");
+    if (content) return httpsOr(decode(content));
+  }
+  return null;
+}
+
+/** Seconds from "90", "1:30" or "1:02:03"; null when it reads as none. */
+export function secondsOf(raw: string): number | null {
+  const s = raw.trim();
+  if (/^\d+(\.\d+)?$/.test(s)) return Math.round(Number(s)) || null;
+  const m = /^(?:(\d+):)?(\d{1,2}):(\d{2})$/.exec(s);
+  if (!m) return null;
+  return Number(m[1] ?? 0) * 3600 + Number(m[2]) * 60 + Number(m[3]) || null;
+}
 
 /** Feed text this long is the whole post: no page fetch. */
 const WHOLE_POST = 1_500;
@@ -187,12 +226,6 @@ export async function readItem(
     .where(and(eq(items.id, id), isNull(items.readAt)));
   return "read";
 }
-
-/** `learn.read` on the executor: a read item leaves by `read`; one for the Mac stops here. */
-export const readStep =
-  (db: Db, pages: Fetcher, video: VideoReader | null = null): Step =>
-  async (_port, e) =>
-    (await readItem(db, pages, itemIdOf(e), video)) === "read" ? [{ port: "read", event: e }] : [];
 
 /** A video or audio reader: a transcript as markdown and its SOP source file name. */
 export type VideoReader = (item: {
