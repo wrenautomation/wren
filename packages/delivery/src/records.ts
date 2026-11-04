@@ -29,7 +29,6 @@ import {
   invoicesOf,
   timeline,
   type UpdateView,
-  WORK_APP,
 } from "./index.js";
 import { capText } from "./messaging.js";
 
@@ -178,19 +177,16 @@ async function allUpdates(
 }
 
 /**
- * The types for one client as this viewer sees them, read once per request: the projects run
- * in `app`, or all of them in the work app. Invoices are every project's, read only when
+ * The types for one client as this viewer sees them, read once per request: every project
+ * (all plans live in Map). Invoices are every project's, read only when
  * `bills` says this viewer may: an owner or Wren. Changes likewise, when `manages` says so. The
  * message rules are the client's own database's: given `messaging` (never for the demo) and
  * `manages`, they show on Account.
- * ponytail: a client's projects share one list; split by project if one client ever runs two
- * in the same app at once.
  */
 export function deliveryRecords(
   db: Queryable,
   clientId: string,
   operator: boolean,
-  app = WORK_APP,
   bills: () => Promise<boolean> = async () => operator,
   manages: () => Promise<boolean> = async () => operator,
   /** `senderReads` false: the sender is connected to send only, so its bounces aren't read. */
@@ -201,8 +197,7 @@ export function deliveryRecords(
   let home: Promise<DeliveryHome> | undefined;
   const es = async () => {
     home ??= deliveryHome(db, clientId, { operator });
-    const all = (await home).engagements;
-    return app === WORK_APP ? all : all.filter((e) => e.offer.app === app);
+    return (await home).engagements;
   };
   let talk: Promise<(UpdateView & { stepName: string | null })[]> | undefined;
   const updates = () =>

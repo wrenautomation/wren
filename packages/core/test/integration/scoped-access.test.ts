@@ -24,7 +24,7 @@ const OWNER = "owen@acme.test";
 const neutral = (label: string) => ({ label, tone: "neutral" as const });
 const post = defineRecord({
   id: "test.post",
-  app: "campaigns",
+  app: "content",
   channel: { field: "platform" },
   name: { one: "post", many: "posts" },
   view: "sa_posts",
@@ -59,7 +59,7 @@ const post = defineRecord({
 });
 const clip = defineRecord({
   id: "test.clip",
-  app: "campaigns",
+  app: "content",
   channel: "youtube",
   name: { one: "clip", many: "clips" },
   rows: async () => [{ id: "c1", title: "A clip" }],
@@ -70,7 +70,7 @@ const clip = defineRecord({
 });
 const note = defineRecord({
   id: "test.note",
-  app: "campaigns",
+  app: "content",
   channel: null,
   name: { one: "note", many: "notes" },
   rows: async () => [{ id: "n1", title: "A note" }],
@@ -369,12 +369,12 @@ describe("access review", () => {
     const page = await api().recordsList({ ...req, record: "access.review" });
     const row = (email: string) => page.rows.find((r) => r.id === email);
     expect(String(row(EDITOR)?.can).split("\n")).toEqual([
-      "Marketing: Act on YouTube; raise issues on and see everything",
-      "Outbound: Raise issues on and see everything",
+      "Campaigns: Raise issues on and see everything",
+      "Content: Act on YouTube; raise issues on and see everything",
     ]);
     expect(row(ADMIN)?.can).toBe("Every app: Run, act on, raise issues on and see everything");
     expect(row(LI)?.soon).toBe("yes");
-    expect(String(row(LI)?.ending)).toContain("Can see everything in Outbound until");
+    expect(String(row(LI)?.ending)).toContain("Can see everything in Campaigns until");
     const ending = await api().recordsList({ ...req, record: "access.review", view: "ending" });
     expect(ids(ending.rows)).toEqual([LI]);
     // Only whoever manages access sees it.

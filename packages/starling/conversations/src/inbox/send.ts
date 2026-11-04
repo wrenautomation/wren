@@ -48,7 +48,7 @@ export interface Gate {
 }
 
 /** The app a thread sits in, for access checks: the Inbox is Marketing's record. */
-const INBOX_APP = "marketing";
+const INBOX_APP = "inbox";
 
 /**
  * The access channel (`ACCESS_CHANNELS`) a reply goes out on: texts are `sms`, email `email`, a
@@ -60,7 +60,7 @@ export function accessChannel(channel: InboxChannel, platform: string | null): s
   return isChannel(platform) ? platform : null;
 }
 
-/** Where this viewer's grants are checked for a reply: the client (or Wren), Marketing, the channel. */
+/** Where this viewer's grants are checked for a reply: the client (or Wren), Inbox, the channel. */
 const targetOf = (client: string, channel: string | null): Target => ({
   client,
   app: INBOX_APP,

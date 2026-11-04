@@ -22,12 +22,12 @@ beforeAll(async () => {
   await pg.db.execute(sql`
     INSERT INTO operators (email, role) VALUES ('admin@example.test', 'admin'),
       ('viewer@example.test', 'viewer'), ('mail@example.test', 'viewer')`);
-  // A viewer who may act on Outbound's email only.
+  // A viewer who may act on Campaigns' email only.
   await pg.db.insert(grants).values({
     email: "mail@example.test",
     client: "wren",
     verbs: ["act"],
-    apps: ["outbound"],
+    apps: ["campaigns"],
     channels: ["email"],
     by: "admin@example.test",
   });
@@ -137,7 +137,7 @@ describe("TemplatesConsole", () => {
     await expect(svc().save({ viewer: VIEWER, ref: REF, words: W2, expect: 1 })).rejects.toThrow(
       /can't do that/,
     );
-    // Act on Outbound's email covers email copy, and nothing else.
+    // Act on Campaigns' email covers email copy, and nothing else.
     expect(await svc().save({ viewer: MAIL, ref: REF, words: W2, expect: 1 })).toMatchObject({
       saved: { draft: { number: 2 } },
     });

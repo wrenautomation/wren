@@ -44,7 +44,6 @@ export function recordTypes(): RecordType[] {
       true,
       undefined,
       undefined,
-      undefined,
       async () => MESSAGE_DEFAULTS,
     ),
     ...REACTIVATION_RECORDS,

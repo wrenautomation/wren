@@ -8,7 +8,7 @@ import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { offerFor } from "@wren/offers";
 import { and, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
-import { addDays, pagePath } from "../index.js";
+import { addDays, planPath } from "../index.js";
 import { asks, deliverables, engagements, invoices, pulses, results } from "../schema.js";
 import type { FlagFind } from "./flags.js";
 import { healthDays, healthOverrides, healthRatings } from "./schema.js";
@@ -188,8 +188,7 @@ export async function readHealth(
   return ids.map((clientId): HealthRead => {
     const mine = live.map((l) => l.e).filter((e) => e.clientId === clientId);
     const mineIds = new Set(mine.map((e) => e.id));
-    const offers = mine.map((e) => e.offerId);
-    const work = (page: string) => at(pagePath(offers, page), clientId);
+    const work = (page: string) => at(planPath(page), clientId);
     const inputs: HealthInput[] = [];
 
     // Results against the plan: the target's measure on each started project that has one.
@@ -216,7 +215,7 @@ export async function readHealth(
         what: `${label ?? offer.target.measure}, ${offer.name}`,
         value: `${row?.value ?? 0} of ${Math.round(want * 10) / 10} expected by day ${day}`,
         at: iso(row?.updatedAt),
-        href: at(pagePath([e.offerId], "results"), clientId),
+        href: at(planPath("results"), clientId),
       });
     }
     const r = measured

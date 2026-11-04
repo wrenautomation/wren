@@ -57,7 +57,7 @@ import {
   momentLabel,
   momentsReached,
   nextOffers,
-  pagePath,
+  planPath,
   weekday,
 } from "./index.js";
 import { PULSE_WORDS, REVIEW_WORDS } from "./routes.js";
@@ -308,7 +308,7 @@ async function markMoments(
     );
     const label = momentLabel(offer, newest) ?? newest;
     const link = (q = "") =>
-      `${app}${pagePath([e.offerId], "overview")}?client=${e.clientId}&e=${e.id}${q && `&${q}`}`;
+      `${app}${planPath("overview")}?client=${e.clientId}&e=${e.id}${q && `&${q}`}`;
     const ups = newest === HALFWAY || newest === LAST_WEEK ? nextOffers(offer) : [];
     const text = [
       newest === HALFWAY
@@ -541,7 +541,7 @@ async function mailContracts(
     ].filter(Boolean);
     const at = a.signedAt?.toISOString().replace("T", " ").slice(0, 16);
     const text = [
-      `${clientName}'s contract with Wren is signed. Your copy is below. It's also in your portal: ${app}${pagePath([offerId], "contract")}?client=${clientId}`,
+      `${clientName}'s contract with Wren is signed. Your copy is below. It's also in your portal: ${app}${planPath("contract")}?client=${clientId}`,
       "",
       a.body,
       "",
@@ -605,8 +605,7 @@ async function mailPeople(
 
   for (const p of people) {
     const c = { id: p.m.clientId, name: p.clientName };
-    const theirs = live.filter((l) => l.e.clientId === c.id).map((l) => l.e.offerId);
-    const page = (name: string) => `${app}${pagePath(theirs, name)}?client=${c.id}`;
+    const page = (name: string) => `${app}${planPath(name)}?client=${c.id}`;
     if (!p.mail?.toldThrough) {
       const sent = await trySend({
         to: p.m.email,
@@ -847,7 +846,7 @@ async function digestOf(
     if (open.length > 0) {
       const late = open.filter((a) => a.dueOn && a.dueOn < today).length;
       out.push(
-        `We need ${open.length} thing${open.length === 1 ? "" : "s"} from you${late ? ` (${late} overdue)` : ""}: ${app}${pagePath([e.offerId], "needs-you")}?client=${clientId}`,
+        `We need ${open.length} thing${open.length === 1 ? "" : "s"} from you${late ? ` (${late} overdue)` : ""}: ${app}${planPath("needs-you")}?client=${clientId}`,
       );
     }
     const figures = offer.measures.flatMap((m) => {
@@ -860,17 +859,12 @@ async function digestOf(
       "How's it going? One tap:",
       ...[5, 4, 3, 2, 1].map(
         (n) =>
-          `${n} ${PULSE_WORDS[n]}: ${app}${pagePath([e.offerId], "overview")}?client=${clientId}&e=${e.id}&pulse=${n}`,
+          `${n} ${PULSE_WORDS[n]}: ${app}${planPath("overview")}?client=${clientId}&e=${e.id}&pulse=${n}`,
       ),
       "",
     );
   }
-  out.push(
-    `The full picture: ${app}${pagePath(
-      es.map((e) => e.offerId),
-      "overview",
-    )}?client=${clientId}`,
-  );
+  out.push(`The full picture: ${app}${planPath("overview")}?client=${clientId}`);
   return out.join("\n");
 }
 
@@ -1366,7 +1360,7 @@ export async function opsBoard(main: Db, zone: string, now: Date): Promise<Board
           ...base,
           engagementId: null,
           offer: null,
-          path: pagePath([], "overview"),
+          path: planPath("overview"),
           status: null,
           startsOn: null,
           phase: null,
@@ -1387,7 +1381,7 @@ export async function opsBoard(main: Db, zone: string, now: Date): Promise<Board
         ...base,
         engagementId: e.id,
         offer: offerFor(e.offerId).name,
-        path: pagePath([e.offerId], e.status === "onboarding" ? "paperwork" : "overview"),
+        path: planPath(e.status === "onboarding" ? "paperwork" : "overview"),
         status: e.status,
         startsOn: e.startsOn,
         phase: left[0]?.name ?? null,

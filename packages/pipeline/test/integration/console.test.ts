@@ -105,7 +105,7 @@ describe("routes", () => {
     // Every act is a write: never cached, never on the demo.
     const acts = names.filter((n) => PIPELINE_CONSOLE_ROUTES[n as never] === "act").sort();
     expect([...PIPELINE_CONSOLE_WRITES].sort()).toEqual(acts);
-    expect(PIPELINE_CONSOLE_APPS["*"]).toBe("deals");
+    expect(PIPELINE_CONSOLE_APPS["*"]).toBe("people");
   });
 });
 

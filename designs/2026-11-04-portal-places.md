@@ -312,3 +312,8 @@ None.
   - Flags: `wren features`, not `wren loops flag`. A flag is not a loop, and `wren flags` already
     holds client risk flags. Edits go through `editRecord` (History, Undo) and push the lander's edge.
   - The e2e scripts were moved to the new addresses without a run; CI does not run them.
+  - Plan pages have one address for every offer: `planPath(page)` in `@wren/delivery` (Map, with
+    needs-you, deliverables and welcome in Inbox, paperwork and contract in Back office). The
+    per-app project filter is gone: Map lists every project. Before this, a client's plan sent
+    `app: map` and matched no offer, so it showed empty; prod held 1 test engagement only.
+  - Inbox replies check grants at `inbox` (was `marketing`, a string the type sweep missed).

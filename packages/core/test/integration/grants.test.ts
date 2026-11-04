@@ -87,7 +87,7 @@ describe("a custom role at Wren: the YouTube editor", () => {
   it("is read fresh with the seat", async () => {
     const who = await whoIs(pg.db, { email: EDITOR });
     expect(who).toMatchObject({ team: role, clients: [WREN] });
-    const at = (channel: string | null) => ({ client: WREN, app: "campaigns", channel });
+    const at = (channel: string | null) => ({ client: WREN, app: "content", channel });
     expect(can(who, "act", at("youtube"))).toBe(true);
     expect(can(who, "act", at("linkedin"))).toBe(false);
     expect(can(who, "comment", at("linkedin"))).toBe(true);

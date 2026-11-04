@@ -15,21 +15,20 @@ import {
   reviews,
 } from "./schema.js";
 
-/** The generic app: every engagement's plan and paperwork, for offers with no app of their own (D14). */
-export const WORK_APP = "work";
+/** A project's home: every offer's plan is in Map (designs/2026-11-04-portal-places.md). */
+export const PLAN_HOME = "map";
 
-/** The portal app an offer runs in; its plan and paperwork live there too. */
-export const appOf = (offerId: string): string => offerFor(offerId).app ?? WORK_APP;
+/** Plan pages outside Map: what waits on the client is Inbox's, paperwork Back office's. */
+const PLAN_PLACE: Readonly<Record<string, string>> = {
+  "needs-you": "inbox",
+  deliverables: "inbox",
+  welcome: "inbox",
+  paperwork: "office",
+  contract: "office",
+};
 
-/**
- * A portal page for these offers' engagements: their app when they share one, else `work`,
- * which holds them all. Every app names the plan's pages alike ("overview", "needs-you").
- */
-export function pagePath(offerIds: readonly string[], page: string): string {
-  const apps = new Set(offerIds.map(appOf));
-  const [only] = apps;
-  return `/${apps.size === 1 && only ? only : WORK_APP}/${page}`;
-}
+/** A plan page's address, the same for every offer. */
+export const planPath = (page: string): string => `/${PLAN_PLACE[page] ?? PLAN_HOME}/${page}`;
 
 export const HALFWAY = "halfway";
 

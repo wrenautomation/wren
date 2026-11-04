@@ -20,6 +20,7 @@ import { comments } from "@wren/starling-conversations/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { type KeywordDm, makeKeywordDm } from "../../src/restate/keyword-dm.js";
+import { makeMetaPace } from "../../src/restate/meta-pace.js";
 import { keywordHits } from "../../src/schema.js";
 import {
   addKeyword,
@@ -93,7 +94,12 @@ let env: RestateTestEnvironment;
 beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
-    services: [makeKeywordDm({ db: pg.db }), fakeContent, watch],
+    services: [
+      makeKeywordDm({ db: pg.db }),
+      makeMetaPace({ perHour: 3_600_000 }),
+      fakeContent,
+      watch,
+    ],
     alwaysReplay: true,
   });
 });
@@ -224,6 +230,7 @@ describe("KeywordDm.send", () => {
         commentId: "yes1",
         client: null,
         text: "The guide: example.test/g",
+        button: null,
         sendKey: expect.stringMatching(/^private:\d+ /),
         recheck: false,
         verifyOnly: false,

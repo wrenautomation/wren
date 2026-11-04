@@ -3,7 +3,7 @@ import type { Queryable } from "@wren/db";
 import { offerFor } from "@wren/offers";
 import { and, asc, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { fileNameOf } from "./files.js";
-import { appOf, HALFWAY, LAST_WEEK, momentLabel, nextOffers } from "./moments.js";
+import { HALFWAY, LAST_WEEK, momentLabel, nextOffers, PLAN_HOME } from "./moments.js";
 import { setupHolds } from "./onboarding.js";
 import { mondayOf, ofClient, seenBy, todayUtc } from "./rows.js";
 import {
@@ -300,7 +300,7 @@ export async function deliveryHome(
         offer: {
           id: offer.id,
           name: offer.name,
-          app: appOf(offer.id),
+          app: PLAN_HOME,
           promise: offer.promise,
           guarantee: offer.guarantee,
           youGet: offer.youGet,
@@ -549,7 +549,7 @@ export async function boughtBy(
     id: e.id,
     offerId: e.offerId,
     offer: offerFor(e.offerId).name,
-    app: appOf(e.offerId),
+    app: PLAN_HOME,
     addOn: offerFor(e.offerId).addOn ?? null,
     startsOn: e.startsOn,
     status: e.status,

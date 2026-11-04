@@ -24,18 +24,17 @@ export {
   type UsageItem,
 } from "./invoices.js";
 export {
-  appOf,
   HALFWAY,
   LAST_WEEK,
   mailLevelOf,
   momentLabel,
   momentsReached,
   nextOffers,
-  pagePath,
+  PLAN_HOME,
+  planPath,
   recordInterest,
   recordReview,
   setMailLevel,
-  WORK_APP,
 } from "./moments.js";
 export {
   agreementOf,

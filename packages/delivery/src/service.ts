@@ -156,15 +156,13 @@ async function read<T>(
 const mayOn = async (main: Db, req: PortalRequest, p: Permission, client: string) =>
   !isDemo(req.viewer) && (await canAt(main, req, p, { client }));
 
-/** The projects in the asking app (`app`), as records this viewer may see: a client never reads a team note. */
-type RecordsReq = PortalRequest & { app?: string };
-const recordsOf = (deps: DeliveryDeps, c: Client, operator: boolean, req: RecordsReq) => {
+/** Every project, as records this viewer may see: a client never reads a team note. */
+const recordsOf = (deps: DeliveryDeps, c: Client, operator: boolean, req: PortalRequest) => {
   const opener = deps.open;
   return deliveryRecords(
     deps.main,
     c.id,
     operator,
-    typeof req.app === "string" ? req.app : undefined,
     () => mayOn(deps.main, req, "money", c.id),
     () => mayOn(deps.main, req, "manage", c.id),
     opener && !isDemo(req.viewer) ? () => messagingOf(deps, opener(c), c.id) : undefined,
@@ -179,7 +177,7 @@ const messagingOf = async (deps: DeliveryDeps, db: Db, client: string) => {
   const reads = (await deps.readers(client)).map((a) => a.toLowerCase());
   return { ...s, senderReads: reads.includes(s.sender.toLowerCase()) };
 };
-const records = <T>(deps: DeliveryDeps, req: RecordsReq, use: (api: RecordsApi) => Promise<T>) =>
+const records = <T>(deps: DeliveryDeps, req: PortalRequest, use: (api: RecordsApi) => Promise<T>) =>
   read(deps, req, (db, c, operator) =>
     use(
       serveRecords(
@@ -331,17 +329,17 @@ export function deliveryApi(deps: DeliveryDeps) {
         }),
       ),
     /** What each record type shows and lets this viewer filter, sort and search. */
-    recordsTypes: (req: RecordsReq): Promise<RecordMeta[]> =>
+    recordsTypes: (req: PortalRequest): Promise<RecordMeta[]> =>
       read(deps, req, async (_db, c, operator) =>
         recordsOf(deps, c, operator, req).map((t) => metaOf(t, false)),
       ),
-    recordsList: (req: RecordsReq & ListAsk): Promise<RecordsPage> =>
+    recordsList: (req: PortalRequest & ListAsk): Promise<RecordsPage> =>
       records(deps, req, (r) => r.list(req)),
-    recordsGet: (req: RecordsReq & GetAsk): Promise<RecordAnswer> =>
+    recordsGet: (req: PortalRequest & GetAsk): Promise<RecordAnswer> =>
       records(deps, req, (r) => r.get(req)),
-    recordsExport: (req: RecordsReq & ExportAsk): Promise<RecordsFile> =>
+    recordsExport: (req: PortalRequest & ExportAsk): Promise<RecordsFile> =>
       records(deps, req, (r) => r.export(req)),
-    recordsStats: (req: RecordsReq & StatsAsk): Promise<RecordsStat> =>
+    recordsStats: (req: PortalRequest & StatsAsk): Promise<RecordsStat> =>
       records(deps, req, (r) => r.stats(req)),
     updates: (
       req: EngagementReq & { before?: number },

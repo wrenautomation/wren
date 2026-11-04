@@ -63,7 +63,7 @@ afterAll(() => pg?.stop());
 const post = (id: string, channel: string) => ({
   client: WREN,
   record: `marketing.post:${id}`,
-  app: "campaigns",
+  app: "content",
   channel,
   title: `Post ${id}`,
 });
@@ -136,7 +136,7 @@ describe("ask for access", () => {
       decideAsk(tx, await who(ADMIN), ADMIN, WREN, id, true),
     );
     expect(done.grant).toEqual(expect.any(Number));
-    expect(can(await who(LI), "act", { client: WREN, app: "campaigns", channel: "linkedin" })).toBe(
+    expect(can(await who(LI), "act", { client: WREN, app: "content", channel: "linkedin" })).toBe(
       true,
     );
     expect((await asksBy(pg.db, LI, WREN))[0]).toMatchObject({

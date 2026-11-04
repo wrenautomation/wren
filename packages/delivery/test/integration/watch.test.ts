@@ -126,7 +126,7 @@ describe("client mail", () => {
     expect(rest).toEqual([]);
     expect(welcome?.to).toBe("amy@acme.example");
     expect(welcome?.subject).toBe("You're invited to Acme Staffing's project with Wren");
-    expect(welcome?.text).toContain("https://app.example/reactivation/overview?client=acme");
+    expect(welcome?.text).toContain("https://app.example/map/overview?client=acme");
     await pass("2026-10-05T10:30:00Z");
     expect(take(mail)).toEqual([]);
   });
@@ -176,11 +176,11 @@ describe("client mail", () => {
   });
 
   it("mails a setup step theirs to do once, only to people whose access reaches Accounts", async () => {
-    // A role that reaches Marketing only: never mailed about accounts.
+    // A role that reaches Content only: never mailed about accounts.
     await pg.db.insert(roles).values({ id: "acme.posts", client: "acme", name: "Posts" });
     await pg.db
       .insert(roleGrants)
-      .values({ role: "acme.posts", verbs: ["read"], apps: ["marketing"] });
+      .values({ role: "acme.posts", verbs: ["read"], apps: ["content"] });
     await addMember(pg.db, "acme", "pat@acme.example", { role: "acme.posts" });
     await pass("2026-10-06T09:30:00Z");
     take(mail);
@@ -202,7 +202,7 @@ describe("client mail", () => {
     });
     await pass("2026-10-06T10:00:00Z");
     const sent = take(mail);
-    // Amy is on the digest; Cal is on all and a member; Pat's role stops at Marketing.
+    // Amy is on the digest; Cal is on all and a member; Pat's role stops at Content.
     expect(sent.map((m) => m.to)).toEqual(["cal@acme.example"]);
     expect(sent[0]?.subject).toBe("Acme Staffing: an account needs you");
     expect(sent[0]?.text).toContain('- Sending domain: "Mail records" needs you: Add the records.');
@@ -247,7 +247,7 @@ describe("the Friday digest", () => {
     expect(text).toContain("- Delivered: Cleaned list");
     expect(text).toMatch(/We need \d+ things from you/);
     expect(text).toMatch(
-      /5 Great: https:\/\/app\.example\/reactivation\/overview\?client=acme&e=\d+&pulse=5/,
+      /5 Great: https:\/\/app\.example\/map\/overview\?client=acme&e=\d+&pulse=5/,
     );
     await pass("2026-10-09T17:00:00Z");
     expect(take(mail)).toEqual([]);
@@ -302,7 +302,7 @@ describe("flags", () => {
     expect(told?.to).toBe("cal@acme.example");
     expect(told?.subject).toBe("Acme Staffing: Wren replied");
     expect(told?.text).toContain('- On "List is clean.": 388 of them.');
-    expect(told?.text).toContain("https://app.example/reactivation/updates?client=acme");
+    expect(told?.text).toContain("https://app.example/map/updates?client=acme");
   });
 
   it("an invoice past its due day waits for the next digest, and clears when paid", async () => {
@@ -354,7 +354,7 @@ describe("moments, reviews and reminders (D13)", () => {
     const sent = titled("Acme Staffing: Your first meeting is booked");
     expect(sent.map((m) => m.to).sort()).toEqual(["amy@acme.example", "cal@acme.example"]);
     expect(sent[0]?.text).toContain(
-      "Excellent: https://app.example/reactivation/overview?client=acme&e=1&review=first%3Ameetings&score=5",
+      "Excellent: https://app.example/map/overview?client=acme&e=1&review=first%3Ameetings&score=5",
     );
     expect(sent[0]?.text).not.toContain("ready for more");
     await pass("2026-10-14T11:00:00Z");
