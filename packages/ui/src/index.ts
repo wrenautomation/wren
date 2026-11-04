@@ -27,6 +27,7 @@ export {
   useHeld,
   useLastWrite,
 } from "./action.js";
+export type { LinkPreview } from "./agent-cards.js";
 export { type AgentChatRow, AgentChats } from "./agent-chats.js";
 export {
   type AgentCommand,
