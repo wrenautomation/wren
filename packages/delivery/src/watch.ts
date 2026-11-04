@@ -531,7 +531,7 @@ async function mailContracts(
         has("delivery.contract"),
       ),
     );
-  for (const { a, clientId, offerId, clientName } of due) {
+  for (const { a, clientId, clientName } of due) {
     const owners = await main
       .select({ email: clientMembers.email })
       .from(clientMembers)
