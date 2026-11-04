@@ -38,8 +38,8 @@ Two shared parts sit over every place:
   starts Birdwatch sessions and brainstorms. Results land in Research or on the object. It takes
   over the Ask app and Research's Ask page. The `agent` CLI and the clients' agent setups stay.
 - **Campaign filter.** In the top bar. It scopes People, Content, Inbox and Calendar to one campaign.
-  The default campaign (computed, `campaignsOf`) means "all". Money joins when cost per campaign
-  exists (open pick).
+  The default campaign (computed, `campaignsOf`) means "all". Money joins with direct costs
+  per campaign.
 
 ## Rules
 
@@ -68,7 +68,7 @@ Team workspace, by app id and page:
 | map | all | Map |
 | offers | offers, terms | Map › Offers |
 | numbers | shape, offers, economics, months, channels, cohorts | Map › Numbers. Per-campaign numbers also in Campaign › Results |
-| library | templates, sequences, snippets, sections, SOPs | Map › Playbook (open pick) |
+| library | templates, sequences, snippets, sections, SOPs | Map › Playbook |
 | library | media | Content › Media |
 | library | workflows | CLI, with Workflows |
 | pipelines | board, journeys | People › Board |
@@ -123,7 +123,7 @@ Client workspace:
 | work | plan, results | Map › Your plan (what Wren delivers and its results) |
 | work | contract, paperwork | Back office › Documents |
 | work | welcome | Inbox (first-run asks) |
-| reactivation | all | Open pick: a campaign type, or a delivery product page |
+| reactivation | all | A campaign: audience the client's old leads, channels email and SMS |
 | texts | threads | Inbox; SMS is a campaign channel |
 | calls | all | Calendar and the person |
 | payments, documents (with templates) | all | Back office |
@@ -243,19 +243,9 @@ Experiments: its own design doc and phases, after phase 4.
 
 ## Open picks (William)
 
-1. **Playbook.** My pick: Map › Playbook, so Map holds the whole "what the business is". Other
-   choice: a ninth place.
-2. **Grants scope.** My pick: by place, plus channel (the YouTube-editor case still works). Other
-   choice: keep app ids under the places.
-3. **Reactivation.** My pick: a client's reactivation run is a campaign (audience: their old leads;
-   channels: email, SMS). This changes Starling's rule that client SMS products are delivery work.
-   Other choice: a delivery product page in Map › Your plan.
-4. **Cost per campaign.** Inboxes, seats and models are paid per month. Budget per campaign needs a
-   split rule (`2026-11-02-campaigns.md`: "William's call"). Options: by acts, by people reached,
-   or only direct costs (texts, ads).
-5. **SEO.** Search pages stay in Map › Numbers, and `search-week` stays, while SEO is a channel.
+1. **SEO.** Search pages stay in Map › Numbers, and `search-week` stays, while SEO is a channel.
    Confirm.
-6. **Self-install.** Clients lose the Shop's self-install until the Products redesign. Confirm.
+2. **Self-install.** Clients lose the Shop's self-install until the Products redesign. Confirm.
 
 ## Decision log
 
@@ -275,3 +265,10 @@ Experiments: its own design doc and phases, after phase 4.
   `email` review seat, the `video` editor, `books`, `sms reminders` and `sms forms`, and SetupWatch
   stay, because kept parts read them. Deletes wait for their replacements. Map, Inbox and Calendar
   got phases. Flags and loop settings get CLI verbs before the Loops app goes.
+- 2026-11-04, William's picks:
+  - Playbook is Map › Playbook. The sidebar stays at eight.
+  - Grants scope by place plus channel. `APPS` becomes the place ids.
+  - A client's reactivation run is a campaign: audience their old leads, channels email and SMS.
+    This replaces Starling's rule that client SMS products are delivery work, for reactivation only.
+  - Cost per campaign is direct costs only (texts, ads, paid data). Shared monthly costs stay in
+    Back office totals.
