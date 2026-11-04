@@ -1099,7 +1099,7 @@ html[data-morph="cards"]::view-transition-new(*) {
   display: inline-block;
   width: 2px;
   height: 1em;
-  background: var(--ui-accent);
+  background: var(--ui-live);
   vertical-align: -2px;
   margin-left: 2px;
   animation: ui-caret 0.8s steps(2) infinite;
@@ -1173,6 +1173,6 @@ html[data-morph="cards"]::view-transition-new(*) {
   color: var(--ui-ink-2);
 }
 .ui-agent-text a {
-  color: var(--ui-accent);
+  color: var(--ui-link);
   text-underline-offset: 2px;
 }

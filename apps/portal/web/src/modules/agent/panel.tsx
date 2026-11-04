@@ -79,22 +79,6 @@ const tabKeep = (t: Tab) => {
   } catch {}
 };
 
-/** The top bar's opener: quiet, one icon. */
-export function AgentOpener({ open, onToggle }: { open: boolean; onToggle: () => void }) {
-  return (
-    <Button
-      tone="quiet"
-      size="sm"
-      icon="chat"
-      aria-pressed={open}
-      onClick={onToggle}
-      {...tipProps(open ? "Close the agent" : "Ask the agent about this page", { keys: "⌘J" })}
-    >
-      Agent
-    </Button>
-  );
-}
-
 export function AgentPanel({
   open,
   width,
