@@ -131,12 +131,12 @@ const FRIDAY = "2026-10-09T17:00:00Z";
 const EDITOR_ROLE: Grant[] = [
   {
     verbs: ["read", "act", "comment"],
-    scope: { apps: ["marketing"], channels: ["youtube"] },
+    scope: { apps: ["content"], channels: ["youtube"] },
     role: "wren.youtube-editor",
   },
   {
     verbs: ["read", "comment"],
-    scope: { apps: ["marketing", "outbound"] },
+    scope: { apps: ["content", "campaigns"] },
     role: "wren.youtube-editor",
   },
 ];
@@ -159,35 +159,35 @@ const at = (app: string, channel: string | null, record: string | null = null) =
 describe("scoped grants: the YouTube editor", () => {
   const who = editor();
   it("edits YouTube work in Marketing", () => {
-    expect(can(who, "act", at("marketing", "youtube"), NOW)).toBe(true);
-    expect(can(who, "read", at("marketing", "youtube"), NOW)).toBe(true);
+    expect(can(who, "act", at("content", "youtube"), NOW)).toBe(true);
+    expect(can(who, "read", at("content", "youtube"), NOW)).toBe(true);
   });
 
   it("reads and comments on every other channel, never edits it", () => {
     for (const c of ACCESS_CHANNELS.filter((x) => x !== "youtube" && x !== "linkedin")) {
-      expect(can(who, "read", at("marketing", c), NOW)).toBe(true);
-      expect(can(who, "comment", at("outbound", c), NOW)).toBe(true);
-      expect(can(who, "act", at("marketing", c), NOW)).toBe(false);
+      expect(can(who, "read", at("content", c), NOW)).toBe(true);
+      expect(can(who, "comment", at("campaigns", c), NOW)).toBe(true);
+      expect(can(who, "act", at("content", c), NOW)).toBe(false);
     }
     // A record with no channel in his apps: read, never act.
-    expect(can(who, "read", at("marketing", null), NOW)).toBe(true);
-    expect(can(who, "act", at("marketing", null), NOW)).toBe(false);
+    expect(can(who, "read", at("content", null), NOW)).toBe(true);
+    expect(can(who, "act", at("content", null), NOW)).toBe(false);
   });
 
   it("holds nothing in apps the role leaves out", () => {
-    expect(can(who, "read", at("money", null), NOW)).toBe(false);
+    expect(can(who, "read", at("office", null), NOW)).toBe(false);
     expect(can(who, "read", at("pipeline", "email"), NOW)).toBe(false);
   });
 
   it("covers LinkedIn until Friday, then not", () => {
-    expect(can(who, "act", at("marketing", "linkedin"), NOW)).toBe(true);
-    expect(can(who, "act", at("marketing", "linkedin"), new Date("2026-10-09T17:00:01Z"))).toBe(
+    expect(can(who, "act", at("content", "linkedin"), NOW)).toBe(true);
+    expect(can(who, "act", at("content", "linkedin"), new Date("2026-10-09T17:00:01Z"))).toBe(
       false,
     );
   });
 
   it("may not publish one post: effect stays with admins on Wren's apps", () => {
-    expect(can(who, "effect", at("marketing", "youtube", "marketing.post:812"), NOW)).toBe(false);
+    expect(can(who, "effect", at("content", "youtube", "marketing.post:812"), NOW)).toBe(false);
   });
 
   it("holds a verb somewhere when the target is left open, never wholly", () => {
@@ -197,13 +197,13 @@ describe("scoped grants: the YouTube editor", () => {
   });
 
   it("never reaches past the seat's clients", () => {
-    expect(can(who, "read", { client: "acme", app: "marketing", channel: "youtube" }, NOW)).toBe(
+    expect(can(who, "read", { client: "acme", app: "campaigns", channel: "youtube" }, NOW)).toBe(
       false,
     );
   });
 
   it("says which grants match", () => {
-    const yes = why(who, "act", at("marketing", "linkedin"), NOW);
+    const yes = why(who, "act", at("content", "linkedin"), NOW);
     expect(yes.map((g) => g.id)).toEqual([1]);
     expect(granted(who, WREN)).toEqual(["read", "act", "comment"]);
   });
@@ -217,11 +217,11 @@ describe("one record, counted uses", () => {
     grants: [{ id: 9, verbs: ["act"], scope: { client: "acme", record: post }, usesLeft: 1 }],
   };
   it("opens that record only", () => {
-    expect(can(who, "act", { client: "acme", app: "work", record: post }, NOW)).toBe(true);
-    expect(can(who, "act", { client: "acme", app: "work", record: "delivery.update:813" })).toBe(
+    expect(can(who, "act", { client: "acme", app: "map", record: post }, NOW)).toBe(true);
+    expect(can(who, "act", { client: "acme", app: "map", record: "delivery.update:813" })).toBe(
       false,
     );
-    expect(can(who, "act", { client: "acme", app: "work", record: null })).toBe(false);
+    expect(can(who, "act", { client: "acme", app: "map", record: null })).toBe(false);
   });
   it("must be spent, and a spent one says no", () => {
     expect(toSpend(who, "act", { client: "acme", record: post }, NOW)?.map((g) => g.id)).toEqual([
@@ -277,7 +277,7 @@ describe("handing out a grant", () => {
       /stay with admins/,
     );
     expect(
-      refusal(team("admin"), { verbs: ["act"], scope: { client: WREN, apps: ["marketing"] } }),
+      refusal(team("admin"), { verbs: ["act"], scope: { client: WREN, apps: ["content"] } }),
     ).toBe(null);
   });
   it("checks names", () => {
@@ -297,7 +297,7 @@ describe("sentences", () => {
   it("says a grant the way a person would", () => {
     expect(sentence(EXTRAS[0] as Grant, NOW, "UTC")).toBe("Can act on LinkedIn until Fri 5:00 PM.");
     expect(sentence(EDITOR_ROLE[1] as Grant, NOW)).toBe(
-      "Can see and raise issues on everything in Marketing and Outbound.",
+      "Can see and raise issues on everything in Content and Campaigns.",
     );
     expect(sentence(EXTRAS[1] as Grant, NOW)).toBe(
       "Can send and spend on one record (marketing.post 812), once.",
@@ -335,14 +335,14 @@ describe("a token's cap", () => {
   const owner: Who = { member: "owner", client: "acme" };
   it("reads only: every other verb is no, even an admin's", () => {
     const t: Who = { ...admin, cap: { verbs: ["read"] } };
-    expect(can(t, "read", { client: "acme", app: "leads" })).toBe(true);
+    expect(can(t, "read", { client: "acme", app: "people" })).toBe(true);
     expect(granted(t, "acme")).toEqual(["read"]);
     expect(whole(t, "read", "acme")).toBe(true);
   });
   it("some apps: those, never the rest, never wholly", () => {
     const t: Who = { ...owner, cap: { verbs: ["read", "act"], apps: ["inbox"] } };
     expect(can(t, "act", { client: "acme", app: "inbox" })).toBe(true);
-    expect(can(t, "read", { client: "acme", app: "leads" })).toBe(false);
+    expect(can(t, "read", { client: "acme", app: "people" })).toBe(false);
     // The guard's first ask names no app yet: the cap lets it through to the handler's own check.
     expect(can(t, "read", "acme")).toBe(true);
     expect(whole(t, "read", "acme")).toBe(false);

@@ -85,40 +85,33 @@ export const BUILT_IN_ROLES: readonly {
 export const isBuiltIn = (role: string): role is TeamRole | MemberRole =>
   BUILT_IN_ROLES.some((r) => r.id === role);
 
-/** The apps a scope names: each app's id in the portal, and what a sentence calls it. */
-export const APPS: Readonly<Record<string, string>> = {
-  work: "Work",
-  research: "Research",
-  reactivation: "Reactivation",
-  leads: "Leads",
-  texts: "Texts",
-  marketplace: "Marketplace",
-  marketing: "Marketing",
-  workflows: "Workflows",
-  outbound: "Outbound",
+/**
+ * The apps a scope names: each place's id in the portal, and what a sentence calls it. A record
+ * type's, a route's and a check's `app` is one of these: the place that lists it.
+ */
+export const APPS = {
+  map: "Map",
+  campaigns: "Campaigns",
+  content: "Content",
+  people: "People",
   inbox: "Inbox",
+  calendar: "Calendar",
+  research: "Research",
+  office: "Back office",
+  // ponytail: parked apps, deleted in WA-1067.2
+  marketplace: "Marketplace",
+  workflows: "Workflows",
   loops: "Loops",
-  money: "Money",
-  pipeline: "Pipeline",
-  clients: "Clients",
-  team: "Team",
   handlers: "Handlers",
   review: "Review",
   ask: "Ask",
-  library: "Library",
   notes: "Notes",
   learn: "Learn",
-  sites: "Sites",
-  payments: "Payments",
-  documents: "Documents",
-  deals: "Journeys",
-  calendar: "Calendar",
-  calls: "Calls",
   voice: "Voice",
-  account: "Account",
-  people: "People",
-};
-export type App = keyof typeof APPS & string;
+} as const satisfies Record<string, string>;
+export type App = keyof typeof APPS;
+/** An app id's name for a sentence; an id no longer listed reads as itself. */
+export const appName = (a: string): string => (APPS as Record<string, string>)[a] ?? a;
 
 /** The channels a scope names: where a record's work goes out or comes in. */
 export const ACCESS_CHANNELS = [
@@ -371,7 +364,7 @@ export interface Reach {
 export function reach(
   who: Who,
   p: Permission,
-  at: { client?: string | undefined; app: string; type: string; channel: string | object | null },
+  at: { client?: string | undefined; app: App; type: string; channel: string | object | null },
   now = new Date(),
 ): Reach | null {
   const base = { client: at.client, app: at.app, record: null };
@@ -403,7 +396,7 @@ export function channelsIn(input: unknown): AccessChannel[] {
  * Where a route works: an app, an app on one channel (the email console is all email), or null,
  * "the handler checks" (records and calls, whose app comes from the record type).
  */
-type RouteAt = string | { app: string; channel: AccessChannel } | null;
+type RouteAt = App | { app: App; channel: AccessChannel } | null;
 /** Each route's place, from its service's routes map: `"*"` for the routes it doesn't name. */
 export type RouteApps<R> = { readonly "*": RouteAt } & { readonly [K in keyof R]?: RouteAt };
 /** A route's place as a check's target: its app and channel, each left out when it has none. */
@@ -490,7 +483,7 @@ export function sentence(g: Grant, now = new Date(), zone?: string): string {
   else if (g.scope.channels?.length)
     where.push(listed(g.scope.channels.map((c) => CHANNEL_NAMES[c as AccessChannel] ?? c)));
   else where.push("everything");
-  if (g.scope.apps?.length) where.push(`in ${listed(g.scope.apps.map((a) => APPS[a] ?? a))}`);
+  if (g.scope.apps?.length) where.push(`in ${listed(g.scope.apps.map(appName))}`);
   let s = `Can ${listed(verbs)} ${where.join(" ")}`;
   if (g.usesLeft != null) s += g.usesLeft === 1 ? ", once" : `, ${g.usesLeft} more times`;
   if (g.until) {

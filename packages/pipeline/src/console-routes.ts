@@ -41,7 +41,7 @@ export const PIPELINE_CONSOLE_ROUTES = {
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): records check each type; the rest are Opportunities. */
 export const PIPELINE_CONSOLE_APPS = {
-  "*": "deals",
+  "*": "people",
   recordsTypes: null,
   recordsList: null,
   recordsGet: null,

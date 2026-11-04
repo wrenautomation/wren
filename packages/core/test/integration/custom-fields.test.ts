@@ -43,7 +43,7 @@ beforeEach(async () => {
 const RECORD = "test.cfdeal";
 const deal = defineRecord({
   id: RECORD,
-  app: "deals",
+  app: "people",
   channel: null,
   name: { one: "deal", many: "deals" },
   rows: async (db) => (await db.execute(sql`select * from cf_fixture`)) as never,

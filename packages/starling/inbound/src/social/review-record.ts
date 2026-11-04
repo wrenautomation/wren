@@ -26,7 +26,7 @@ const rowsOf = async (db: Queryable) =>
 
 export const reviewRecord = defineRecord({
   id: "marketing.review",
-  app: "marketing",
+  app: "inbox",
   channel: { field: "platform" },
   name: { one: "review", many: "reviews" },
   rows: async (db) =>

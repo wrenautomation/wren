@@ -346,7 +346,7 @@ const EDITED = ["name", "family", "state", "what", "use", "notes"] as const;
 
 export const adFormatRecord = defineRecord({
   id: "ads.format",
-  app: "marketing",
+  app: "campaigns",
   channel: null,
   name: { one: "format", many: "formats" },
   view: "ad_format_records",

@@ -51,7 +51,7 @@ const NEXT = {
 
 export const person = defineRecord({
   id: "reactivation.person",
-  app: "reactivation",
+  app: "campaigns",
   channel: null,
   name: { one: "person", many: "people" },
   view: "reactivation_people",
@@ -120,7 +120,7 @@ const STOPPED = {
 
 export const email = defineRecord({
   id: "reactivation.email",
-  app: "reactivation",
+  app: "campaigns",
   channel: "email",
   name: { one: "email", many: "emails" },
   view: "reactivation_emails",
@@ -164,7 +164,7 @@ const KIND = {
 
 export const finding = defineRecord({
   id: "reactivation.finding",
-  app: "reactivation",
+  app: "campaigns",
   channel: null,
   name: { one: "finding", many: "findings" },
   view: "reactivation_findings",
@@ -204,7 +204,7 @@ const SAID = {
 
 export const reply = defineRecord({
   id: "reactivation.reply",
-  app: "reactivation",
+  app: "campaigns",
   channel: "email",
   name: { one: "reply", many: "replies" },
   view: "reactivation_replies",
@@ -310,7 +310,7 @@ async function settingRows(db: Queryable, client: Client) {
 export const settingOf = (client: Client) =>
   defineRecord({
     id: "reactivation.setting",
-    app: "reactivation",
+    app: "campaigns",
     channel: null,
     name: { one: "setting", many: "settings" },
     rows: (db) => settingRows(db, client),
@@ -339,7 +339,7 @@ const SIGNAL = {
 /** Keep: the accounts placed with lately, by the risk of losing them (designs/2026-10-07-health.md). */
 export const keep = defineRecord({
   id: "reactivation.keep",
-  app: "reactivation",
+  app: "campaigns",
   channel: null,
   name: { one: "account", many: "accounts" },
   view: "reactivation_keep",

@@ -127,7 +127,7 @@ async function filesOf(db: Queryable, only?: number): Promise<MediaFile[]> {
 export const mediaRecord = (signer?: VideoSigner) =>
   defineRecord({
     id: "library.media",
-    app: "library",
+    app: "content",
     channel: null,
     name: { one: "file", many: "media" },
     rows: async (db) =>
@@ -182,7 +182,7 @@ const PLATFORM: Record<string, State> = cued({
 /** SOPs: the newest text of each SOP the content loop follows, with how many times it changed. */
 export const sopRecord = defineRecord({
   id: "library.sop",
-  app: "library",
+  app: "map",
   channel: null,
   // Wren's own playbooks: the team reads them, a client login never does (wa-egn).
   needs: "team",

@@ -75,7 +75,7 @@ const HOME: DeliveryHome = {
       offer: {
         id: "reactivation",
         name: "Reactivation",
-        app: "reactivation",
+        app: "campaigns",
         promise: "Booked calls from past customers.",
         guarantee: "Ten calls or the next month is free.",
         youGet: ["A list of past customers worth a call", "Messages written and sent for you"],
@@ -383,7 +383,7 @@ const template = (
   status: TemplateListRow["status"],
 ): TemplateListRow => ({
   ref: `reactivation/${name.toLowerCase().replace(/\W+/g, "-")}`,
-  app: "reactivation",
+  app: "campaigns",
   at: ago(id),
   editable: true,
   id,

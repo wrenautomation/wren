@@ -20,8 +20,8 @@ export const ACCOUNTS_CONSOLE_ROUTES = {
 } as const satisfies Record<string, Need>;
 /** All of it is the client's Account app; Wren's usage across clients is the Clients app's. */
 export const ACCOUNTS_CONSOLE_APPS = {
-  "*": "account",
-  usage: "clients",
+  "*": "office",
+  usage: "people",
 } as const satisfies RouteApps<typeof ACCOUNTS_CONSOLE_ROUTES>;
 export const ACCOUNTS_CONSOLE_WRITES: readonly (keyof typeof ACCOUNTS_CONSOLE_ROUTES)[] = [
   "start",

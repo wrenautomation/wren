@@ -75,7 +75,7 @@ export function socialConsoleApi(deps: SocialConsoleDeps) {
   };
   const mayAct = async (req: PortalRequest, client: string) =>
     !isDemo(req.viewer) &&
-    (teamCan(req, "act", client) || (await canAt(main, req, "act", { client, app: "account" })));
+    (teamCan(req, "act", client) || (await canAt(main, req, "act", { client, app: "office" })));
   const writer = async (req: PortalRequest) => {
     if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
     const c = await owner(req);

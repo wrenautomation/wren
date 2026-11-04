@@ -9,6 +9,8 @@ import { desc, eq, sql } from "drizzle-orm";
 import {
   ACCESS_CHANNELS,
   APPS,
+  type App,
+  appName,
   CHANNEL_NAMES,
   can,
   type Grant,
@@ -33,8 +35,8 @@ export const ASK = "access.ask";
 export const REVIEW = "access.review";
 export const ACCESS_TYPES = [ROLE, GRANT, ISSUE, ASK, REVIEW] as const;
 
-/** Where access is managed: Team at Wren, Account at a client. */
-const accessApp = (client: string) => (client === WREN ? "team" : "account");
+/** Where access is managed: Back office, at Wren and at a client. */
+const ACCESS_APP: App = "office";
 
 const yes = {
   yes: { label: "Yours", tone: "good" as const },
@@ -137,7 +139,7 @@ async function people(db: Queryable, client: string) {
 function reviewType(o: AccessReader): RecordType {
   return defineRecord({
     id: REVIEW,
-    app: accessApp(o.client),
+    app: ACCESS_APP,
     channel: null,
     name: { one: "person", many: "people" },
     rows: async (db) => {
@@ -190,7 +192,7 @@ function reviewType(o: AccessReader): RecordType {
 
 /** Roles and grants, for whoever manages the workspace. */
 function managed(o: AccessReader): RecordType[] {
-  const app = accessApp(o.client);
+  const app = ACCESS_APP;
   const role = defineRecord({
     id: ROLE,
     app,
@@ -313,7 +315,7 @@ function managed(o: AccessReader): RecordType[] {
 function issueType(o: AccessReader): RecordType {
   return defineRecord({
     id: ISSUE,
-    app: accessApp(o.client),
+    app: ACCESS_APP,
     channel: null,
     name: { one: "issue", many: "issues" },
     rows: async (db) => {
@@ -332,7 +334,7 @@ function issueType(o: AccessReader): RecordType {
             title: r.title ?? r.record,
             body: r.body,
             record: r.record,
-            app: APPS[r.app] ?? r.app,
+            app: appName(r.app),
             channel: r.channel ?? "",
             state: r.resolvedAt ? "resolved" : "open",
             yours: can(o.who, "act", at) ? "yes" : "no",
@@ -386,7 +388,7 @@ function askType(o: AccessReader): RecordType {
   const me = normalEmail(o.email);
   return defineRecord({
     id: ASK,
-    app: accessApp(o.client),
+    app: ACCESS_APP,
     channel: null,
     name: { one: "ask", many: "asks" },
     rows: async (db) => {

@@ -770,7 +770,7 @@ describe("the project as records", () => {
   });
 
   it("only the asking app's projects, and never another client's row", async () => {
-    expect((await list(AMY, "delivery.step", { app: "reactivation" })).total).toBe(4);
+    expect((await list(AMY, "delivery.step", { app: "campaigns" })).total).toBe(4);
     expect((await list(AMY, "delivery.step", { app: "elsewhere" })).total).toBe(0);
     expect(
       await refused(

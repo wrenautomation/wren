@@ -253,7 +253,7 @@ export function accountsApi(deps: AccountsDeps) {
     const owner = await ownerOf(db, req);
     const team = teamAt(req, owner.id, "act");
     if (need === "team" && !team) throw new PortalRefusal("Wren's team does this", 403);
-    if (!team && !(await canAt(db, req, "act", { client: owner.id ?? WREN, app: "account" })))
+    if (!team && !(await canAt(db, req, "act", { client: owner.id ?? WREN, app: "office" })))
       throw new PortalRefusal("your role can't do that", 403);
     return { owner, team };
   };
@@ -295,7 +295,7 @@ export function accountsApi(deps: AccountsDeps) {
       return {
         owner,
         team,
-        mayAct: team || (await canAt(db, req, "act", { client: owner.id ?? WREN, app: "account" })),
+        mayAct: team || (await canAt(db, req, "act", { client: owner.id ?? WREN, app: "office" })),
         agent: team && !!deps.agent,
         accounts: list.map((a) =>
           accountView(a, deps.setups, {

@@ -15,7 +15,7 @@ const STATE = status({
 
 const reply = defineRecord({
   id: "test.reply",
-  app: "work",
+  app: "map",
   channel: null,
   name: { one: "reply", many: "replies" },
   rows: async () => [

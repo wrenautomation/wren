@@ -173,7 +173,7 @@ export const recordingRecord = (signGet?: (key: string) => Promise<string>) =>
  */
 export const callRecord = defineRecord({
   id: "email.call",
-  app: "calls",
+  app: "people",
   channel: "email",
   name: { one: "call", many: "calls" },
   rows: async (db) =>

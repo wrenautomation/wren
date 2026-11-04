@@ -228,7 +228,7 @@ const PLATFORM_LABELS = {
 
 export const keywordRecord = defineRecord({
   id: "marketing.comment_keyword",
-  app: "marketing",
+  app: "campaigns",
   channel: null,
   name: { one: "keyword", many: "keywords" },
   view: "comment_keyword_records",
@@ -291,7 +291,7 @@ export const keywordRecord = defineRecord({
 
 export const keywordHitRecord = defineRecord({
   id: "marketing.keyword_hit",
-  app: "marketing",
+  app: "campaigns",
   channel: { field: "platform" },
   name: { one: "keyword DM", many: "keyword DMs" },
   view: "keyword_hit_records",

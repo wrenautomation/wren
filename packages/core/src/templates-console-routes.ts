@@ -24,8 +24,8 @@ export const TEMPLATES_CONSOLE_ROUTES = {
  */
 export const TEMPLATES_CONSOLE_APPS = {
   "*": null,
-  move: "library",
-  renameFolder: "library",
+  move: "map",
+  renameFolder: "map",
 } as const satisfies RouteApps<typeof TEMPLATES_CONSOLE_ROUTES>;
 export const TEMPLATES_CONSOLE_WRITES: readonly (keyof typeof TEMPLATES_CONSOLE_ROUTES)[] = [
   "save",

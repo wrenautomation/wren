@@ -159,7 +159,7 @@ export function snippetRecord(seen: readonly string[] = []): RecordType {
   );
   return defineRecord({
     id: SNIPPET,
-    app: "library",
+    app: "map",
     channel: null,
     name: { one: "snippet", many: "snippets" },
     rows: async (db) => {
@@ -255,7 +255,7 @@ export function workflowRecord(
     );
   return defineRecord({
     id: "library.workflow",
-    app: "library",
+    app: "workflows",
     channel: null,
     name: { one: "workflow", many: "workflows" },
     // A setup runs from a client's Accounts page, not the Library.

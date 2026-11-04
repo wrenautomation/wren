@@ -11,7 +11,7 @@ import { LIST, QUIET } from "../work/bits.js";
 const RECORD = "console.component";
 
 async function installed(client: string) {
-  const ask = { client, app: "clients", asClient: false, record: RECORD };
+  const ask = { client, app: "people", asClient: false, record: RECORD };
   const page = await call<RecordsPage>("console/recordsList", { ...ask, view: "installed" });
   // A template has its own section: it's not a part with settings.
   return Promise.all(

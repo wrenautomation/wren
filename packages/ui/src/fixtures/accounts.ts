@@ -40,7 +40,7 @@ export const accountsMeta = (declared: boolean, accounts = ACCOUNTS): RecordMeta
   return metaOf(
     defineRecord({
       id: "t.sends",
-      app: "marketing",
+      app: "campaigns",
       channel: { field: "platform" },
       name: { one: "send", many: "sends" },
       rows: async () => [],

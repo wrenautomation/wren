@@ -71,7 +71,7 @@ export function dmCopyRecord(sender: string) {
   const sample: RenderFields = sampleFields(sender);
   return defineRecord({
     id: "marketing.dm_copy",
-    app: "marketing",
+    app: "campaigns",
     channel: { field: "platform" },
     name: { one: "DM template", many: "DM templates" },
     rows: async (db) =>
@@ -148,7 +148,7 @@ const yesNo = (b: unknown) => (b === true ? "yes" : b === false ? "no" : "?");
 /** Subreddits found for Reddit discovery, as judged, with what a post needs there. */
 export const placeRecord = defineRecord({
   id: "marketing.place",
-  app: "marketing",
+  app: "campaigns",
   channel: "reddit",
   name: { one: "place", many: "places" },
   rows: async (db) => {
@@ -274,7 +274,7 @@ export const placeRecord = defineRecord({
 /** New posts in watched places: ranked, the day's best queued with a draft. */
 export const threadRecord = defineRecord({
   id: "marketing.thread",
-  app: "marketing",
+  app: "campaigns",
   channel: "reddit",
   name: { one: "thread", many: "threads" },
   rows: async (db) => {
@@ -390,7 +390,7 @@ export const threadRecord = defineRecord({
  */
 export const inviteRecord = defineRecord({
   id: "marketing.invite",
-  app: "marketing",
+  app: "campaigns",
   channel: "linkedin",
   name: { one: "invite", many: "invites" },
   rows: async (db) =>
@@ -516,7 +516,7 @@ const PEOPLE_ROWS = 1000;
  */
 export const personRecord = defineRecord({
   id: "marketing.person",
-  app: "marketing",
+  app: "people",
   channel: { field: "platform" },
   name: { one: "person", many: "people" },
   rows: async (db) =>
@@ -699,7 +699,7 @@ const HEALTH_STATES = {
 export const accountRecordOf = (policy: ReachPolicy = DEFAULT_POLICY) =>
   defineRecord({
     id: "marketing.account",
-    app: "marketing",
+    app: "office",
     channel: { field: "platform" },
     name: { one: "account", many: "accounts" },
     rows: async (db) => {

@@ -139,7 +139,7 @@ const TOKENS = () => [
     prefix: "wrn_a1b2",
     client: "acme",
     verbs: ["read"],
-    apps: ["reactivation", "leads"],
+    apps: ["campaigns", "people"],
     createdAt: ago(60),
     lastUsedAt: ago(0.3),
     expiresAt: null,

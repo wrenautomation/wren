@@ -399,7 +399,7 @@ export async function touchMember(main: Db, email: string): Promise<void> {
 /** Wren's team as a console record: each seat, and when they last signed in. The Team page. */
 export const teamRecord = defineRecord({
   id: "console.team",
-  app: "team",
+  app: "office",
   channel: null,
   name: { one: "teammate", many: "team" },
   needs: "team",
@@ -489,7 +489,7 @@ export const CHANGE_VIEWS = [
  */
 export const changeRecord = defineRecord({
   id: "console.change",
-  app: "team",
+  app: "office",
   channel: null,
   name: { one: "change", many: "changes" },
   needs: "team",
@@ -504,7 +504,7 @@ export const changeRecord = defineRecord({
 /** Wren's clients as a console record, over `client_records`. */
 export const clientRecord = defineRecord({
   id: "console.client",
-  app: "clients",
+  app: "people",
   channel: null,
   name: { one: "client", many: "clients" },
   view: "client_records",

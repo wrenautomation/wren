@@ -5,7 +5,7 @@ description: Change how a portal screen or a @wren/ui part looks or lays out, an
 
 # Tuning the portal's UI
 
-The look's rules are `DESIGN.md` (repo root). The route from a screen to its part and story is the map's UI hub, `map/objects/ui/CONTEXT.md`. Where a page sits for William: the `portal` skill.
+Run the `ui-design` skill with this one: it sets which rules win (the artifact, then `DESIGN.md`, then stageshow craft, then the SOPs) and its proof step (shots, box-fit check, fresh-eye review) is required. This skill says where the parts, stories and servers are. The look's rules are `DESIGN.md` (repo root). The route from a screen to its part and story is the map's UI hub, `map/objects/ui/CONTEXT.md`. Where a page sits for William: the `portal` skill.
 
 Reuse the running Storybook and stop it when done. Run heavy checks only through `./scripts/gates.sh`.
 
@@ -66,6 +66,7 @@ Dev Storybook (both ports) draws Agentation at the bottom right and a session pi
 
 - **`/impeccable live`**: the look depends on real data, past what the page story's fake data shows. Start the portal on your machine (`pnpm --filter @wren/portal preview`) and pick the element there. The preview is a build, not hot reload: run it again to see an accepted change.
 - **An HTML playground**: a new direction before any build, to compare looks fast. Throw it away after. Never keep it beside a part: it copies the code and drifts.
+- **The live dev page** (`pnpm --filter @wren/portal dev`, :5173): `ui-design`'s `shoot.mjs` shows your own saved look, so both looks come out the same. Add `--light-js "document.documentElement.removeAttribute('style')"` for Wren's default light look.
 - **Never** shoot or scan prod (`app.wrenautomation.com`): it spends the portal Worker's free request cap.
 
 ## Done

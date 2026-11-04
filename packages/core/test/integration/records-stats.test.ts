@@ -23,7 +23,7 @@ const NOW = new Date("2026-03-10T15:00:00Z");
 
 const event = defineRecord({
   id: "test.event",
-  app: "work",
+  app: "map",
   channel: null,
   name: { one: "event", many: "events" },
   view: "st_events",
@@ -47,7 +47,7 @@ const event = defineRecord({
 let calls = 0;
 const tally = defineRecord({
   id: "test.tally",
-  app: "work",
+  app: "map",
   channel: null,
   name: { one: "tally", many: "tallies" },
   rows: async () => {
@@ -189,7 +189,7 @@ describe("recordsStats", () => {
   it("a bare day counts from midnight in the asker's zone", async () => {
     const day = defineRecord({
       id: "test.day",
-      app: "work",
+      app: "map",
       channel: null,
       name: { one: "day", many: "days" },
       rows: async () => [
@@ -218,7 +218,7 @@ describe("recordsStats", () => {
     }));
     const month = defineRecord({
       id: "test.month",
-      app: "work",
+      app: "map",
       channel: null,
       name: { one: "month", many: "months" },
       rows: async () => rows,
@@ -240,7 +240,7 @@ describe("recordsStats", () => {
   it("a median of durations, by day, with the newest row's beside it", async () => {
     const leads = defineRecord({
       id: "test.lead",
-      app: "work",
+      app: "map",
       channel: null,
       name: { one: "lead", many: "leads" },
       rows: async () => [

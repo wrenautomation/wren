@@ -47,7 +47,7 @@ const AGES = {
 const campaignRecord = (env: SendPolicy): RecordType =>
   defineRecord({
     id: "email.campaign",
-    app: "outbound",
+    app: "campaigns",
     channel: "email",
     name: { one: "campaign", many: "campaigns" },
     rows: async (db) => {
@@ -116,7 +116,7 @@ const campaignRecord = (env: SendPolicy): RecordType =>
 export const inboxRecord = (roster: readonly Sender[], env: SendPolicy): RecordType =>
   defineRecord({
     id: "email.inbox",
-    app: "outbound",
+    app: "office",
     channel: "email",
     name: { one: "inbox", many: "inboxes" },
     rows: async (db: Queryable) => {
@@ -179,7 +179,7 @@ export const inboxRecord = (roster: readonly Sender[], env: SendPolicy): RecordT
 
 export const replyRecord = defineRecord({
   id: "email.reply",
-  app: "outbound",
+  app: "inbox",
   channel: "email",
   name: { one: "reply", many: "replies" },
   view: "email_reply_records",
@@ -232,7 +232,7 @@ export const replyRecord = defineRecord({
 const IN_PLAY = { declined: { empty: true } } as const;
 export const firmRecord = defineRecord({
   id: "email.firm",
-  app: "pipeline",
+  app: "people",
   channel: null,
   name: { one: "company", many: "companies" },
   view: "email_firm_records",
@@ -295,7 +295,7 @@ export const firmRecord = defineRecord({
 
 export const modelRecord = defineRecord({
   id: "email.model",
-  app: "money",
+  app: "office",
   channel: null,
   needs: "money",
   name: { one: "model usage", many: "model usage" },
@@ -330,7 +330,7 @@ export const modelRecord = defineRecord({
  */
 export const stallRecord = defineRecord({
   id: "email.stall",
-  app: "pipeline",
+  app: "campaigns",
   channel: null,
   name: { one: "stall", many: "stalls" },
   rows: async (db) => {

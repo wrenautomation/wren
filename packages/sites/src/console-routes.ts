@@ -53,7 +53,7 @@ export const SITES_CONSOLE_ROUTES = {
   splitShip: "act",
 } as const satisfies Record<string, Need>;
 
-export const SITES_CONSOLE_APPS = { "*": "sites" } as const satisfies RouteApps<
+export const SITES_CONSOLE_APPS = { "*": "campaigns" } as const satisfies RouteApps<
   typeof SITES_CONSOLE_ROUTES
 >;
 

@@ -31,7 +31,7 @@ const MEMBER_VIEWER = as("vic@acme.test");
 /** A Money record: only `money` at Wren opens it. */
 const spend = defineRecord({
   id: "books.test_spend",
-  app: "work",
+  app: "map",
   channel: null,
   needs: "money",
   name: { one: "spend", many: "spend" },

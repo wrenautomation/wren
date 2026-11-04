@@ -22,7 +22,7 @@ const rec = (o: { quick?: string[]; site?: boolean }) =>
   metaOf(
     defineRecord({
       id: "t.rows",
-      app: "marketing",
+      app: "campaigns",
       channel: o.site ? { field: "platform" } : null,
       name: { one: "row", many: "rows" },
       rows: async () => [],
@@ -68,7 +68,7 @@ describe("groupFields and byField", () => {
     metaOf(
       defineRecord({
         id: "t.group",
-        app: "marketing",
+        app: "campaigns",
         channel: o.site ? { field: "platform" } : null,
         name: { one: "row", many: "rows" },
         rows: async () => [],

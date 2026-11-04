@@ -8,7 +8,7 @@
 import type * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
 import { z } from "zod";
-import { type Target, WREN } from "./access.js";
+import { type App, type Target, WREN } from "./access.js";
 import {
   answer,
   canAt,
@@ -45,27 +45,27 @@ import {
 import { TEMPLATES_CONSOLE_APPS, TEMPLATES_CONSOLE_ROUTES } from "./templates-console-routes.js";
 
 /** The app a prompt's words belong to, by the package that asks it. */
-const PROMPT_APPS: Readonly<Record<string, string>> = {
-  reactivation: "reactivation",
-  content: "marketing",
+const PROMPT_APPS: Readonly<Record<string, App>> = {
+  reactivation: "campaigns",
+  content: "content",
 };
 
 /**
- * Where a template's words work, for the access check: email to Outbound, texts to Texts, DMs
- * (LinkedIn reach) and posts to Marketing, a prompt to the app that asks it.
+ * Where a template's words work, for the access check: email to Campaigns, texts to Inbox, DMs
+ * (LinkedIn reach) to Campaigns, posts to Content, a prompt to the app that asks it.
  */
 export function templateAt(ref: Pick<TemplateRef, "kind" | "system">): Target {
   switch (ref.kind) {
     case "email":
-      return { client: WREN, app: "outbound", channel: "email" };
+      return { client: WREN, app: "campaigns", channel: "email" };
     case "sms":
-      return { client: WREN, app: "texts", channel: "sms" };
+      return { client: WREN, app: "inbox", channel: "sms" };
     case "dm":
-      return { client: WREN, app: "marketing", channel: "linkedin" };
+      return { client: WREN, app: "campaigns", channel: "linkedin" };
     case "post":
-      return { client: WREN, app: "marketing", channel: null };
+      return { client: WREN, app: "content", channel: null };
     case "prompt":
-      return { client: WREN, app: PROMPT_APPS[ref.system] ?? "library", channel: null };
+      return { client: WREN, app: PROMPT_APPS[ref.system] ?? "map", channel: null };
   }
 }
 

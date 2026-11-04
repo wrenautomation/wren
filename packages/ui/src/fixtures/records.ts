@@ -42,7 +42,7 @@ const TYPE = defineRecord({
   key: "id",
   title: "name",
   subtitle: "note",
-  app: "leads",
+  app: "people",
   channel: null,
   fields: {
     name: name("Name"),

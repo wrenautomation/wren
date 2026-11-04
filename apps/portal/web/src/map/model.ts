@@ -22,7 +22,7 @@ export function mayEditShape(p: Pick<PageProps, "team" | "demo" | "can" | "who" 
         ...(p.who ? { who: p.who } : {}),
       },
       "act",
-      { client: p.client, app: "deals" },
+      { client: p.client, app: "people" },
     )
   );
 }

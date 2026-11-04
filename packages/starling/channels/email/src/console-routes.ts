@@ -36,7 +36,7 @@ export const EMAIL_CONSOLE_ROUTES = {
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): Outbound's email; records check each type. */
 export const EMAIL_CONSOLE_APPS = {
-  "*": { app: "outbound", channel: "email" },
+  "*": { app: "campaigns", channel: "email" },
   answers: null,
   recordsTypes: null,
   recordsList: null,
@@ -44,12 +44,12 @@ export const EMAIL_CONSOLE_APPS = {
   recordsExport: null,
   recordsStats: null,
   dossier: null,
-  callWon: "calls",
-  callNotYet: "calls",
-  callNoShow: "calls",
-  callNotFit: "calls",
-  callClear: "calls",
-  callBrief: "calls",
+  callWon: "people",
+  callNotYet: "people",
+  callNoShow: "people",
+  callNotFit: "people",
+  callClear: "people",
+  callBrief: "people",
 } as const satisfies RouteApps<typeof EMAIL_CONSOLE_ROUTES>;
 type EmailConsoleRoute = keyof typeof EMAIL_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */

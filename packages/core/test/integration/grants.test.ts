@@ -73,8 +73,8 @@ describe("a custom role at Wren: the YouTube editor", () => {
         client: WREN,
         name: "YouTube editor",
         grants: [
-          { verbs: ["read", "act", "comment"], apps: ["marketing"], channels: ["youtube"] },
-          { verbs: ["read", "comment"], apps: ["marketing", "outbound"] },
+          { verbs: ["read", "act", "comment"], apps: ["content"], channels: ["youtube"] },
+          { verbs: ["read", "comment"], apps: ["content", "campaigns"] },
         ],
       }),
     ));
@@ -87,11 +87,11 @@ describe("a custom role at Wren: the YouTube editor", () => {
   it("is read fresh with the seat", async () => {
     const who = await whoIs(pg.db, { email: EDITOR });
     expect(who).toMatchObject({ team: role, clients: [WREN] });
-    const at = (channel: string | null) => ({ client: WREN, app: "marketing", channel });
+    const at = (channel: string | null) => ({ client: WREN, app: "campaigns", channel });
     expect(can(who, "act", at("youtube"))).toBe(true);
     expect(can(who, "act", at("linkedin"))).toBe(false);
     expect(can(who, "comment", at("linkedin"))).toBe(true);
-    expect(can(who, "read", { client: WREN, app: "money", channel: null })).toBe(false);
+    expect(can(who, "read", { client: WREN, app: "office", channel: null })).toBe(false);
   });
 
   it("covers LinkedIn until a time, then drops out by itself", async () => {
@@ -105,13 +105,13 @@ describe("a custom role at Wren: the YouTube editor", () => {
       reason: "covering this week",
     });
     const who = await whoIs(pg.db, { email: EDITOR });
-    expect(can(who, "act", { client: WREN, app: "marketing", channel: "linkedin" })).toBe(true);
+    expect(can(who, "act", { client: WREN, app: "campaigns", channel: "linkedin" })).toBe(true);
     await pg.db
       .update(grants)
       .set({ until: new Date(Date.now() - 1000) })
       .where(eq(grants.id, id));
     const later = await whoIs(pg.db, { email: EDITOR });
-    expect(can(later, "act", { client: WREN, app: "marketing", channel: "linkedin" })).toBe(false);
+    expect(can(later, "act", { client: WREN, app: "campaigns", channel: "linkedin" })).toBe(false);
   });
 
   it("can't be removed while held", async () => {
@@ -144,7 +144,7 @@ describe("one record, one use", () => {
       usesLeft: 1,
     });
     const lead = await whoIs(pg.db, { email: LEAD }, "acme");
-    const at = { client: "acme", app: "work", channel: null, record };
+    const at = { client: "acme", app: "map", channel: null, record };
     expect(can(lead, "act", at)).toBe(true);
     expect(can(lead, "act", { ...at, record: "delivery.update:813" })).toBe(false);
     // Both uses start from the same fresh read; the second finds nothing left.

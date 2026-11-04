@@ -73,7 +73,7 @@ export interface EngageDeps {
 export const engageRecordOf = (deps: EngageDeps) =>
   defineRecord({
     id: "marketing.engage",
-    app: "marketing",
+    app: "campaigns",
     channel: { field: "platform" },
     name: { one: "reply", many: "replies" },
     rows: async (db) => {
@@ -274,7 +274,7 @@ const exploreRows = async (db: Queryable, id?: string) => {
  */
 export const exploreRecord = defineRecord({
   id: "marketing.explore",
-  app: "marketing",
+  app: "campaigns",
   channel: { field: "platform" },
   name: { one: "find", many: "finds" },
   rows: (db) => exploreRows(db),

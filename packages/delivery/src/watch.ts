@@ -571,7 +571,7 @@ async function reachesAccounts(main: Db, p: Person): Promise<boolean> {
   const client = p.m.clientId;
   const grants = await grantsFor(main, p.m.email, p.m.role, client);
   const who = { member: p.m.role, client, ...(grants.length ? { grants } : {}) };
-  return why(who, "read", { client, app: "account" }).length > 0;
+  return why(who, "read", { client, app: "office" }).length > 0;
 }
 
 async function mailPeople(

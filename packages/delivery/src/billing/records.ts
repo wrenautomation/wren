@@ -27,7 +27,7 @@ const CREDIT_STATE = status(
 
 const creditRecord = defineRecord({
   id: "console.credit",
-  app: "money",
+  app: "office",
   channel: null,
   needs: "money",
   name: { one: "payment in", many: "payments in" },

@@ -63,15 +63,15 @@ const W2 = "Subject: Hey {first_name}\n\nHello again {first_name}.";
 describe("TemplatesConsole", () => {
   it("maps each kind to its app and channel", () => {
     expect(templateAt({ kind: "email", system: "x" })).toMatchObject({
-      app: "outbound",
+      app: "campaigns",
       channel: "email",
     });
     expect(templateAt({ kind: "sms", system: "texts" })).toMatchObject({
-      app: "texts",
+      app: "inbox",
       channel: "sms",
     });
     expect(templateAt({ kind: "prompt", system: "reactivation" })).toMatchObject({
-      app: "reactivation",
+      app: "campaigns",
     });
   });
 

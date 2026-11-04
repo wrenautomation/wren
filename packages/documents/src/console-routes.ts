@@ -27,7 +27,7 @@ export const DOCUMENTS_CONSOLE_ROUTES = {
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): records check each type; the rest are Documents. */
 export const DOCUMENTS_CONSOLE_APPS = {
-  "*": "documents",
+  "*": "office",
   recordsTypes: null,
   recordsList: null,
   recordsGet: null,

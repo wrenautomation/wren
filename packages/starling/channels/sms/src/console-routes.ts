@@ -21,9 +21,9 @@ export const SMS_CONSOLE_ROUTES = {
 /** Where each route works (`RouteAt`): records check each type; a reply is Texts. */
 export const SMS_CONSOLE_APPS = {
   "*": null,
-  reply: { app: "texts", channel: "sms" },
-  callDone: { app: "texts", channel: "sms" },
-  askReview: { app: "texts", channel: "sms" },
+  reply: { app: "inbox", channel: "sms" },
+  callDone: { app: "inbox", channel: "sms" },
+  askReview: { app: "inbox", channel: "sms" },
 } as const satisfies RouteApps<typeof SMS_CONSOLE_ROUTES>;
 type SmsConsoleRoute = keyof typeof SMS_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */

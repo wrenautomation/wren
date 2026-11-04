@@ -29,7 +29,7 @@ const THREAD_ROWS = 500;
 
 export const threadRecord = defineRecord({
   id: "sms.thread",
-  app: "texts",
+  app: "inbox",
   channel: "sms",
   name: { one: "thread", many: "threads" },
   rows: async (db) =>
@@ -134,7 +134,7 @@ const callState = (r: Pick<SpeedRun, "call" | "callDoneAt" | "bookedAt">) =>
  */
 const speedRecord = defineRecord({
   id: "sms.speed",
-  app: "texts",
+  app: "inbox",
   channel: "sms",
   name: { one: "lead", many: "leads" },
   rows: async (db) =>
@@ -273,7 +273,7 @@ const TEXT_BACK = {
  */
 const missedCallRecord = defineRecord({
   id: "sms.call",
-  app: "texts",
+  app: "inbox",
   channel: "sms",
   name: { one: "call", many: "calls" },
   rows: async (db) =>
@@ -392,7 +392,7 @@ const asks = (db: Queryable, id?: number) =>
  */
 export const reviewRecord = defineRecord({
   id: "sms.review",
-  app: "texts",
+  app: "inbox",
   channel: "sms",
   name: { one: "review ask", many: "review asks" },
   rows: async (db) =>
@@ -494,7 +494,7 @@ const neutral = (label: string) => ({ label, tone: "neutral" as const });
 
 export const textContactRecord = defineRecord({
   id: "marketing.text_contact",
-  app: "marketing",
+  app: "inbox",
   channel: "sms",
   name: { one: "texted contact", many: "texted contacts" },
   view: "marketing_text_contact_records",
@@ -559,7 +559,7 @@ export function textCopyRecord(sequences: Iterable<SmsSequence>, sender: string)
   const sample = sampleFields(sender);
   return defineRecord({
     id: "marketing.text_copy",
-    app: "marketing",
+    app: "campaigns",
     channel: "sms",
     name: { one: "text template", many: "text templates" },
     rows: async (db) =>

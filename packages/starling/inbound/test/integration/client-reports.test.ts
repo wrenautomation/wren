@@ -12,7 +12,7 @@ import { type ReportMail, runReport, saveReport } from "../../src/client-reports
 
 const siteDay = defineRecord({
   id: "marketing.site_day",
-  app: "marketing",
+  app: "campaigns",
   channel: null,
   name: { one: "day", many: "days" },
   // The week read (Oct 5 to 11), the week before (Sep 28 to Oct 4), and this week (not read).

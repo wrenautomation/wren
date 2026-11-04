@@ -330,7 +330,7 @@ function setOf(
 export function surveyRecord(push?: EdgePush): RecordType {
   return defineRecord({
     id: SURVEY,
-    app: "marketing",
+    app: "campaigns",
     channel: null,
     name: { one: "survey", many: "surveys" },
     rows: async (db) => {

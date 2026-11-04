@@ -154,7 +154,7 @@ export { DRAFT_CALLS };
 export const draftRecordOf = (signer?: VideoSigner) =>
   defineRecord({
     id: "marketing.draft",
-    app: "marketing",
+    app: "content",
     channel: { field: "platform" },
     name: { one: "draft", many: "drafts" },
     view: "marketing_draft_records",
@@ -269,7 +269,7 @@ export const draftRecordOf = (signer?: VideoSigner) =>
 const postRecordOf = (signer?: VideoSigner) =>
   defineRecord({
     id: "marketing.post",
-    app: "marketing",
+    app: "content",
     channel: { field: "platform" },
     name: { one: "post", many: "posts" },
     view: "marketing_post_records",

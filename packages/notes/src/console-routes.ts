@@ -79,7 +79,7 @@ export const NOTES_CONSOLE_ROUTES = {
 
 export const NOTES_CONSOLE_APPS = {
   "*": "notes",
-  toDraft: "marketing",
+  toDraft: "content",
   toSop: "learn",
 } as const satisfies RouteApps<typeof NOTES_CONSOLE_ROUTES>;
 

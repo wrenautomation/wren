@@ -46,14 +46,14 @@ beforeAll(async () => {
     client: WREN,
     name: "YouTube editor",
     grants: [
-      { verbs: ["read", "act", "comment"], apps: ["marketing"], channels: ["youtube"] },
-      { verbs: ["read", "comment"], apps: ["marketing", "outbound"] },
+      { verbs: ["read", "act", "comment"], apps: ["content"], channels: ["youtube"] },
+      { verbs: ["read", "comment"], apps: ["content", "campaigns"] },
     ],
   });
   const view = await saveRole(pg.db, admin, ADMIN, {
     client: WREN,
     name: "LinkedIn view",
-    grants: [{ verbs: ["read"], apps: ["marketing"], channels: ["linkedin"] }],
+    grants: [{ verbs: ["read"], apps: ["content"], channels: ["linkedin"] }],
   });
   await setTeamSeat(pg.db, EDITOR, { role: editor.id, clients: [WREN] });
   await setTeamSeat(pg.db, LI, { role: view.id, clients: [WREN] });
@@ -63,7 +63,7 @@ afterAll(() => pg?.stop());
 const post = (id: string, channel: string) => ({
   client: WREN,
   record: `marketing.post:${id}`,
-  app: "marketing",
+  app: "campaigns",
   channel,
   title: `Post ${id}`,
 });
@@ -117,7 +117,7 @@ describe("ask for access", () => {
     const { id } = await as(LI, async (tx) =>
       askAccess(tx, await who(LI), LI, WREN, {
         verbs: ["act"],
-        apps: ["marketing"],
+        apps: ["content"],
         channels: ["linkedin"],
         until,
         reason: "covering Friday",
@@ -127,7 +127,7 @@ describe("ask for access", () => {
     expect(await asksFor(pg.db, await who(EDITOR), EDITOR, WREN)).toEqual([]);
     const [ask] = await asksFor(pg.db, await who(ADMIN), ADMIN, WREN);
     expect(ask).toMatchObject({ id, email: LI, state: "open" });
-    expect(ask?.what).toMatch(/^Can act on LinkedIn in Marketing until /);
+    expect(ask?.what).toMatch(/^Can act on LinkedIn in Content until /);
     await refused(
       as(EDITOR, async (tx) => decideAsk(tx, await who(EDITOR), EDITOR, WREN, id, true)),
       403,
@@ -136,7 +136,7 @@ describe("ask for access", () => {
       decideAsk(tx, await who(ADMIN), ADMIN, WREN, id, true),
     );
     expect(done.grant).toEqual(expect.any(Number));
-    expect(can(await who(LI), "act", { client: WREN, app: "marketing", channel: "linkedin" })).toBe(
+    expect(can(await who(LI), "act", { client: WREN, app: "campaigns", channel: "linkedin" })).toBe(
       true,
     );
     expect((await asksBy(pg.db, LI, WREN))[0]).toMatchObject({
@@ -164,7 +164,7 @@ describe("ask for access", () => {
       as(LI, async (tx) =>
         askAccess(tx, lin, LI, WREN, {
           verbs: ["read"],
-          apps: ["marketing"],
+          apps: ["content"],
           channels: ["linkedin"],
           reason: "x",
         }),
@@ -178,7 +178,7 @@ describe("ask for access", () => {
       "stay with admins",
     );
     await refused(
-      as(LI, async (tx) => askAccess(tx, lin, LI, WREN, { verbs: ["act"], apps: ["outbound"] })),
+      as(LI, async (tx) => askAccess(tx, lin, LI, WREN, { verbs: ["act"], apps: ["campaigns"] })),
       400,
       "say why",
     );

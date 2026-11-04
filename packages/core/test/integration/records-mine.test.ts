@@ -20,7 +20,7 @@ const STATE = status({
 /** Shared rows with an owner: everyone sees them all, "Mine" is each person's own. */
 const task = defineRecord({
   id: "test.task",
-  app: "work",
+  app: "map",
   channel: null,
   name: { one: "task", many: "tasks" },
   view: "mine_tasks",
@@ -37,7 +37,7 @@ let asked: (Me | null | undefined)[] = [];
 /** One person's rows only: the type is `mine`, and `rows` hears who reads. */
 const ping = defineRecord({
   id: "test.ping",
-  app: "work",
+  app: "map",
   channel: null,
   name: { one: "ping", many: "pings" },
   rows: async (_db, me) => {
@@ -141,7 +141,7 @@ describe("declaring mine", () => {
     expect(() =>
       defineRecord({
         id: "test.bad",
-        app: "work",
+        app: "map",
         channel: null,
         name: { one: "bad", many: "bads" },
         view: "x",

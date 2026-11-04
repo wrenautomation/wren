@@ -18,7 +18,7 @@ import { UNKNOWN_CHANNEL } from "./economics.js";
 
 const spendRecord = defineRecord({
   id: "books.spend",
-  app: "money",
+  app: "office",
   channel: null,
   needs: "money",
   name: { one: "spend line", many: "spend" },
@@ -56,7 +56,7 @@ const spendRecord = defineRecord({
 
 const subscriptionRecord = defineRecord({
   id: "books.subscription",
-  app: "money",
+  app: "office",
   channel: null,
   needs: "money",
   name: { one: "subscription", many: "subscriptions" },
@@ -94,7 +94,7 @@ const subscriptionRecord = defineRecord({
 /** The card's lines (`books.card_records`): whose each is and the bill it paid. */
 const cardRecord = defineRecord({
   id: "books.card",
-  app: "money",
+  app: "office",
   channel: null,
   needs: "money",
   name: { one: "card line", many: "card lines" },
@@ -152,7 +152,7 @@ const cad = (label: string, from?: string) => money(`${label} (CAD)`, from ? { f
 /** Every unit economics figure per month (`books.econ_months`): one row a month, newest first. */
 const monthRecord = defineRecord({
   id: "books.month",
-  app: "money",
+  app: "map",
   channel: null,
   needs: "money",
   name: { one: "month", many: "months" },
@@ -191,7 +191,7 @@ const monthRecord = defineRecord({
 /** Per channel and month (`books.econ_channels`): spend, each funnel stage and its cost, CAC. */
 const channelRecord = defineRecord({
   id: "books.channel",
-  app: "money",
+  app: "map",
   channel: null,
   needs: "money",
   name: { one: "channel month", many: "channel months" },
@@ -232,7 +232,7 @@ const channelRecord = defineRecord({
 /** Clients by the month they first paid, per month since (`books.econ_cohorts`). */
 const cohortRecord = defineRecord({
   id: "books.cohort",
-  app: "money",
+  app: "map",
   channel: null,
   needs: "money",
   name: { one: "cohort month", many: "cohort months" },
@@ -255,7 +255,7 @@ const cohortRecord = defineRecord({
 /** The chart of accounts: an expense's bucket and channel set where its spend counts. */
 export const accountRecord = defineRecord({
   id: "books.account",
-  app: "money",
+  app: "office",
   channel: null,
   needs: "money",
   name: { one: "account", many: "accounts" },
@@ -293,7 +293,7 @@ export const accountRecord = defineRecord({
  */
 const inHouseRecord = defineRecord({
   id: "books.in_house",
-  app: "money",
+  app: "office",
   channel: null,
   needs: "money",
   name: { one: "in-house tool", many: "in-house tools" },

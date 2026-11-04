@@ -24,7 +24,7 @@ const OWNER = "owen@acme.test";
 const neutral = (label: string) => ({ label, tone: "neutral" as const });
 const post = defineRecord({
   id: "test.post",
-  app: "marketing",
+  app: "campaigns",
   channel: { field: "platform" },
   name: { one: "post", many: "posts" },
   view: "sa_posts",
@@ -59,7 +59,7 @@ const post = defineRecord({
 });
 const clip = defineRecord({
   id: "test.clip",
-  app: "marketing",
+  app: "campaigns",
   channel: "youtube",
   name: { one: "clip", many: "clips" },
   rows: async () => [{ id: "c1", title: "A clip" }],
@@ -70,7 +70,7 @@ const clip = defineRecord({
 });
 const note = defineRecord({
   id: "test.note",
-  app: "marketing",
+  app: "campaigns",
   channel: null,
   name: { one: "note", many: "notes" },
   rows: async () => [{ id: "n1", title: "A note" }],
@@ -115,14 +115,14 @@ beforeAll(async () => {
     client: WREN,
     name: "YouTube editor",
     grants: [
-      { verbs: ["read", "act", "comment"], apps: ["marketing"], channels: ["youtube"] },
-      { verbs: ["read", "comment"], apps: ["marketing", "outbound"] },
+      { verbs: ["read", "act", "comment"], apps: ["content"], channels: ["youtube"] },
+      { verbs: ["read", "comment"], apps: ["content", "campaigns"] },
     ],
   });
   const viewer = await saveRole(pg.db, admin, ADMIN, {
     client: WREN,
     name: "LinkedIn view",
-    grants: [{ verbs: ["read"], apps: ["marketing"], channels: ["linkedin"] }],
+    grants: [{ verbs: ["read"], apps: ["content"], channels: ["linkedin"] }],
   });
   await setTeamSeat(pg.db, EDITOR, { role: editor.id, clients: [WREN] });
   await setTeamSeat(pg.db, LI, { role: viewer.id, clients: [WREN] });
@@ -130,7 +130,7 @@ beforeAll(async () => {
 afterAll(() => pg?.stop());
 
 describe("the YouTube editor", () => {
-  it("reads every channel's rows in Marketing", async () => {
+  it("reads every channel's rows in Content", async () => {
     const req = await as(EDITOR);
     const page = await api().recordsList({ ...req, record: "test.post" });
     expect(ids(page.rows)).toEqual(["l1", "x1", "y1", "y2"]);
@@ -172,8 +172,8 @@ describe("the YouTube editor", () => {
     await refused(as(EDITOR, "wren:act", { platforms: ["youtube", "x"] }), 403);
     const at = (place: Target) =>
       guard(pg.db, "wren:read", { viewer: { email: EDITOR } }, "wren", place);
-    await expect(at({ app: "outbound" })).resolves.toBeTruthy();
-    await refused(at({ app: "money" }), 403, "no access");
+    await expect(at({ app: "campaigns" })).resolves.toBeTruthy();
+    await refused(at({ app: "office" }), 403, "no access");
   });
 });
 
@@ -211,7 +211,7 @@ describe("a grant that ends", () => {
       email: LI,
       client: WREN,
       verbs: ["read"],
-      apps: ["marketing"],
+      apps: ["content"],
       channels: ["youtube"],
       until: new Date(Date.now() + 60_000).toISOString(),
       reason: "covering this week",
@@ -234,7 +234,7 @@ describe("a one-use grant", () => {
       email: LI,
       client: WREN,
       verbs: ["act"],
-      apps: ["marketing"],
+      apps: ["content"],
       record: "test.post:l1",
       usesLeft: 1,
     });
@@ -266,7 +266,7 @@ describe("handing out", () => {
         email: LI,
         client: WREN,
         verbs: ["read"],
-        apps: ["marketing"],
+        apps: ["content"],
       }),
       403,
       "you don't manage that",
@@ -323,7 +323,7 @@ describe("issues and asks through the console", () => {
     const { id } = await api().accessAsk({
       ...(await as(LI)),
       verbs: ["act"],
-      apps: ["marketing"],
+      apps: ["content"],
       record: "test.post:l1",
       reason: "fixing the typo",
     });
@@ -361,7 +361,7 @@ describe("access review", () => {
       email: LI,
       client: WREN,
       verbs: ["read"],
-      apps: ["outbound"],
+      apps: ["campaigns"],
       until: new Date(Date.now() + 2 * 864e5).toISOString(),
       reason: "a short cover",
     });

@@ -26,7 +26,7 @@ export const SHELL = {
           id: 1,
           offerId: "reactivation",
           offer: "Reactivation",
-          app: "reactivation",
+          app: "campaigns",
           addOn: null,
           startsOn: ago(90).slice(0, 10),
           status: "active",

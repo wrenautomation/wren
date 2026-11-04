@@ -76,7 +76,7 @@ const TOTALS = sql`
 
 const templateRecord = defineRecord({
   id: "templates.template",
-  app: "library",
+  app: "map",
   channel: null,
   name: { one: "template", many: "templates" },
   rows: (db) =>
@@ -137,7 +137,7 @@ const templateRecord = defineRecord({
 
 const versionRecord = defineRecord({
   id: "templates.version",
-  app: "library",
+  app: "map",
   channel: null,
   name: { one: "version", many: "versions" },
   rows: (db) =>
@@ -179,7 +179,7 @@ const versionRecord = defineRecord({
 
 const variantRecord = defineRecord({
   id: "templates.variant",
-  app: "library",
+  app: "map",
   channel: null,
   name: { one: "variant", many: "variants" },
   rows: (db) =>
@@ -244,7 +244,7 @@ function sequenceRecords(workflows: readonly Workflow[]): RecordType[] {
   const steps = stepsOf(workflows);
   const sequence = defineRecord({
     id: "templates.sequence",
-    app: "library",
+    app: "map",
     channel: null,
     name: { one: "sequence", many: "sequences" },
     rows: async () =>
@@ -324,7 +324,7 @@ function sequenceRecords(workflows: readonly Workflow[]): RecordType[] {
   });
   const step = defineRecord({
     id: "templates.step",
-    app: "library",
+    app: "map",
     channel: null,
     name: { one: "step", many: "steps" },
     rows: async (db) => {

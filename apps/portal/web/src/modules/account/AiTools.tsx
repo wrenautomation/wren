@@ -4,7 +4,7 @@
  * it is pinned to that client; made on the team's page, it reaches what its operator does. Its
  * access and apps cap it lower: read only by default.
  */
-import { APPS } from "@wren/core/access";
+import { APPS, appName } from "@wren/core/access";
 import {
   ACTIONS,
   Button,
@@ -173,7 +173,7 @@ export function AiTools(props: PageProps) {
                 icon: "apps",
                 min: 150,
                 className: "max-[1100px]:hidden",
-                cell: (t) => (t.apps ? t.apps.map((a) => APPS[a] ?? a).join(", ") : "Every app"),
+                cell: (t) => (t.apps ? t.apps.map(appName).join(", ") : "Every app"),
               },
               {
                 key: "used",

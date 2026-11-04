@@ -161,7 +161,7 @@ const PAGE_VIEWS = [
 
 export const pageRecord: RecordType = defineRecord({
   id: PAGE_RECORD,
-  app: "sites",
+  app: "campaigns",
   channel: null,
   name: { one: "page", many: "pages" },
   view: "site_page_records",
@@ -196,7 +196,7 @@ export const pageRecord: RecordType = defineRecord({
 export function pageRecordFor(client: string): RecordType {
   return defineRecord({
     id: PAGE_RECORD,
-    app: "sites",
+    app: "campaigns",
     channel: null,
     name: { one: "page", many: "pages" },
     rows: async (db) => [
@@ -228,7 +228,7 @@ export function pageRecordFor(client: string): RecordType {
 
 export const funnelRecord: RecordType = defineRecord({
   id: FUNNEL_RECORD,
-  app: "sites",
+  app: "campaigns",
   channel: null,
   name: { one: "source", many: "sources" },
   view: "site_funnel_records",
@@ -266,7 +266,7 @@ export const funnelRecord: RecordType = defineRecord({
 
 const FORM_BASE = {
   id: FORM_RECORD,
-  app: "sites",
+  app: "campaigns",
   channel: null,
   name: { one: "form", many: "forms" },
   key: "id",
@@ -342,7 +342,7 @@ export function formRecordFor(client: string): RecordType {
 
 const ENTRY_BASE = {
   id: ENTRY_RECORD,
-  app: "sites",
+  app: "people",
   channel: null,
   name: { one: "submission", many: "submissions" },
   key: "id",
@@ -441,7 +441,7 @@ const LINK_VIEWS = [
 ];
 const LINK_BASE = {
   id: LINK_RECORD,
-  app: "sites",
+  app: "campaigns",
   channel: null,
   name: { one: "link", many: "links" },
   key: "id",

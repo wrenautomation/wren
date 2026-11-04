@@ -13,10 +13,10 @@ export const MAIL_ACCESS_ROUTES = {
   check: "act",
   done: "act",
 } as const satisfies Record<string, Need>;
-/** Account → Mail; Done on an email is Marketing → Inbox's. */
+/** Account → Mail; Done on an email is Inbox's. */
 export const MAIL_ACCESS_APPS = {
-  "*": "account",
-  done: "marketing",
+  "*": "office",
+  done: "inbox",
 } as const satisfies RouteApps<typeof MAIL_ACCESS_ROUTES>;
 export const MAIL_ACCESS_WRITES: readonly (keyof typeof MAIL_ACCESS_ROUTES)[] = [
   "addMailbox",

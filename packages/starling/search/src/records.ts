@@ -42,7 +42,7 @@ const WEEK = {
 
 export const searchPageRecord = defineRecord({
   id: "marketing.search_page",
-  app: "marketing",
+  app: "campaigns",
   channel: null,
   name: { one: "page", many: "pages" },
   view: "marketing_search_page_records",
@@ -74,7 +74,7 @@ export const searchPageRecord = defineRecord({
 
 export const keywordRecord = defineRecord({
   id: "marketing.keyword",
-  app: "marketing",
+  app: "campaigns",
   channel: null,
   name: { one: "keyword", many: "keywords" },
   view: "marketing_keyword_records",
@@ -97,7 +97,7 @@ export const keywordRecord = defineRecord({
 
 export const searchDayRecord = defineRecord({
   id: "marketing.search_day",
-  app: "marketing",
+  app: "campaigns",
   channel: null,
   name: { one: "day in Google", many: "days in Google" },
   view: "marketing_search_day_records",
@@ -115,7 +115,7 @@ export const searchDayRecord = defineRecord({
 
 const answerRecord = defineRecord({
   id: "marketing.answer",
-  app: "marketing",
+  app: "campaigns",
   channel: null,
   name: { one: "answer", many: "answers" },
   view: "marketing_answer_records",
@@ -149,7 +149,7 @@ const answerRecord = defineRecord({
 
 const siteDayRecord = defineRecord({
   id: "marketing.site_day",
-  app: "marketing",
+  app: "campaigns",
   channel: null,
   name: { one: "site day", many: "site days" },
   view: "marketing_site_day_records",
@@ -183,7 +183,7 @@ const siteDayRecord = defineRecord({
 /** Each channel's funnel by first touch (designs/2026-10-06-signals.md). */
 export const funnelRecord = defineRecord({
   id: "marketing.funnel",
-  app: "marketing",
+  app: "campaigns",
   channel: null,
   name: { one: "funnel", many: "funnels" },
   view: "marketing_funnel_records",
@@ -213,7 +213,7 @@ export const funnelRecord = defineRecord({
 /** Each `/go/` link's day: who came by it and what they did after, first and last touch. */
 const linkDayRecord = defineRecord({
   id: "marketing.link_day",
-  app: "marketing",
+  app: "campaigns",
   channel: null,
   name: { one: "link day", many: "link days" },
   view: "marketing_link_day_records",
@@ -291,7 +291,7 @@ const parsed = (json: string | null | undefined): Record<string, unknown> | null
 export const sessionRecord = (src: SessionSource) =>
   defineRecord({
     id: "marketing.session",
-    app: "marketing",
+    app: "campaigns",
     channel: null,
     name: { one: "session", many: "sessions" },
     rows: async () => {
@@ -355,7 +355,7 @@ export const sessionRecord = (src: SessionSource) =>
 export const surveyAnswerRecord = (site: SessionSource["site"]) =>
   defineRecord({
     id: "marketing.survey_answer",
-    app: "marketing",
+    app: "campaigns",
     channel: null,
     name: { one: "answer", many: "survey answers" },
     rows: async () => {
@@ -442,7 +442,7 @@ async function heatOf(
 export const heatRecord = (src?: SessionSource) =>
   defineRecord({
     id: "marketing.heat",
-    app: "marketing",
+    app: "campaigns",
     channel: null,
     name: { one: "heatmap", many: "heatmaps" },
     view: "marketing_heat_records",

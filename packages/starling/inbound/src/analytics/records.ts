@@ -66,7 +66,7 @@ const SPANS = {
  */
 export const conversationRecord = defineRecord({
   id: "marketing.conversation",
-  app: "marketing",
+  app: "campaigns",
   channel: null,
   name: { one: "conversation", many: "conversations" },
   view: "marketing_conversation",
@@ -105,7 +105,7 @@ const postHref = (id: string) => `/content/content/${encodeURIComponent(id)}`;
 /** The latest week's digest lines, every platform's and the whole's, in their order. */
 export const digestRecord = defineRecord({
   id: "marketing.digest",
-  app: "marketing",
+  app: "content",
   channel: null,
   name: { one: "line", many: "lines" },
   rows: async (db) =>
@@ -168,7 +168,7 @@ const GOAL_PLACES = cued({
  */
 export const cadenceRecord = defineRecord({
   id: "marketing.cadence",
-  app: "marketing",
+  app: "content",
   channel: null,
   name: { one: "goal", many: "goals" },
   rows: async (db) => {
@@ -406,7 +406,7 @@ const SURFACES = { long: neutral("Long-form"), short: neutral("Shorts"), post: n
 /** Every number the catalog names, with its state and the one step that would make it live. */
 export const metricRecord = defineRecord({
   id: "marketing.metric",
-  app: "marketing",
+  app: "content",
   channel: null,
   name: { one: "metric", many: "metrics" },
   rows: async (db) => {

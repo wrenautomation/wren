@@ -113,7 +113,7 @@ export const FACTS_ID = "wren";
  */
 export const factsRecord = defineRecord({
   id: FACTS_RECORD,
-  app: "marketing",
+  app: "office",
   channel: null,
   name: { one: "facts list", many: "facts lists" },
   rows: async (db) => {

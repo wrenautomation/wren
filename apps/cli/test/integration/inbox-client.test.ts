@@ -152,7 +152,7 @@ beforeAll(async () => {
     email: CY,
     client: "kappa",
     verbs: ["act"],
-    apps: ["marketing"],
+    apps: ["content"],
     channels: ["sms"],
   });
   await setManaged(pg.db, {

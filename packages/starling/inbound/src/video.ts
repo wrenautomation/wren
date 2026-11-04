@@ -931,7 +931,7 @@ export const videoRecord = (signer?: VideoSigner) => {
       : signer.host.host(key.startsWith("s3://") ? key : `s3://${signer.bucket}/${key}`);
   return defineRecord({
     id: "marketing.video",
-    app: "marketing",
+    app: "content",
     channel: "youtube",
     name: { one: "video", many: "videos" },
     rows: async (db) => {

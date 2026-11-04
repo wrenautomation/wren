@@ -9,7 +9,7 @@ const neutral = (label: string) => ({ label, tone: "neutral" as const });
 
 export const doneRecord = defineRecord({
   id: "marketing.done",
-  app: "marketing",
+  app: "inbox",
   channel: { field: "platform" },
   name: { one: "step", many: "steps" },
   view: "done_records",

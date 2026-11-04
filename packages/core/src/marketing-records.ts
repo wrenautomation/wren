@@ -11,7 +11,7 @@ const CHANNELS = cued({
 
 const subscriberRecord = defineRecord({
   id: "marketing.subscriber",
-  app: "marketing",
+  app: "people",
   channel: "email",
   name: { one: "subscriber", many: "subscribers" },
   view: "marketing_subscriber_records",
@@ -73,7 +73,7 @@ const subscriberRecord = defineRecord({
 
 const topicRecord = defineRecord({
   id: "marketing.topic",
-  app: "marketing",
+  app: "content",
   channel: "email",
   name: { one: "topic", many: "topics" },
   view: "marketing_topic_records",

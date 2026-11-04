@@ -23,14 +23,14 @@ export const PAYMENTS_CONSOLE_ROUTES = {
 /** Where each route works (`RouteAt`): records check each type; the rest are Payments. */
 export const PAYMENTS_CONSOLE_APPS = {
   "*": null,
-  status: "payments",
-  create: "payments",
+  status: "office",
+  create: "office",
   // From a texting thread: the act is in Texts, where the thread is.
-  fromThread: { app: "texts", channel: "sms" },
-  approve: "payments",
-  decline: "payments",
-  again: "payments",
-  connect: "payments",
+  fromThread: { app: "inbox", channel: "sms" },
+  approve: "office",
+  decline: "office",
+  again: "office",
+  connect: "office",
 } as const satisfies RouteApps<typeof PAYMENTS_CONSOLE_ROUTES>;
 type PaymentsConsoleRoute = keyof typeof PAYMENTS_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */

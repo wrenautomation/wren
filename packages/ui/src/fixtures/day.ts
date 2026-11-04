@@ -18,7 +18,7 @@ const type = (id: string, one: string, many: string, stamp: string, actions: str
   metaOf(
     defineRecord({
       id,
-      app: "marketing",
+      app: "campaigns",
       channel: { field: "platform" },
       name: { one, many },
       rows: async () => [],

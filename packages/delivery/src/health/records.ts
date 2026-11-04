@@ -37,7 +37,7 @@ const OF_100 = { max: 100 } as const;
 
 const healthRecord = defineRecord({
   id: "console.health",
-  app: "clients",
+  app: "people",
   channel: null,
   name: { one: "client", many: "clients" },
   view: "delivery.console_health",
@@ -92,7 +92,7 @@ const healthRecord = defineRecord({
 
 const healthDayRecord = defineRecord({
   id: "console.health_day",
-  app: "clients",
+  app: "people",
   channel: null,
   name: { one: "day", many: "days" },
   view: "delivery.console_health_days",
@@ -122,7 +122,7 @@ const healthDayRecord = defineRecord({
 
 const healthInputRecord = defineRecord({
   id: "console.health_input",
-  app: "clients",
+  app: "people",
   channel: null,
   name: { one: "input", many: "inputs" },
   view: "delivery.console_health_inputs",
@@ -170,7 +170,7 @@ const STATE = status(
 
 export const flagRecord = defineRecord({
   id: "console.flag",
-  app: "clients",
+  app: "people",
   channel: null,
   name: { one: "flag", many: "flags" },
   view: "delivery.console_flags",

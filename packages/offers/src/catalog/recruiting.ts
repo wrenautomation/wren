@@ -142,7 +142,7 @@ export const recruitingReactivation = defineOffer({
     { measure: "meetings", moment: "Your first meeting is booked" },
     { measure: "job_orders", moment: "Your first job order came in" },
   ],
-  app: "reactivation",
+  app: "campaigns",
   // Booked calls are the product; a reminder the day before keeps them.
   addOn: "sms.reminders",
   page: "/recruiting/lead-reactivation",
@@ -234,7 +234,7 @@ export const recruitingReactivationPilot = defineOffer({
     { key: "fees_usd", label: "Placement fees", unit: "usd" },
   ],
   next: ["recruiting-candidate-reactivation", "ops-automation-build"],
-  app: "reactivation",
+  app: "campaigns",
   // Booked calls are the product; a reminder the day before keeps them.
   addOn: "sms.reminders",
   page: "/recruiting/lead-reactivation",

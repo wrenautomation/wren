@@ -26,7 +26,7 @@ afterEach(() => {
 const rec = (account: "on" | "words" | undefined) =>
   defineRecord({
     id: "t.sends",
-    app: "marketing",
+    app: "campaigns",
     channel: null,
     name: { one: "send", many: "sends" },
     rows: async () => [],
@@ -91,7 +91,7 @@ describe("declaring a record's account", () => {
     setRecordAccounts(SYNTH);
     const t = defineRecord({
       id: "t.threads",
-      app: "marketing",
+      app: "campaigns",
       channel: null,
       name: { one: "thread", many: "threads" },
       rows: async () => [],

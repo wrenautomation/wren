@@ -70,7 +70,7 @@ export function mailConsoleApi(deps: MailConsoleDeps) {
     const c = await owner(req);
     if (
       !teamCan(req, "act", c.id) &&
-      !(await canAt(main, req, "act", { client: c.id, app: "account" }))
+      !(await canAt(main, req, "act", { client: c.id, app: "office" }))
     )
       throw new PortalRefusal("your role can't do that", 403);
     return c;
@@ -103,7 +103,7 @@ export function mailConsoleApi(deps: MailConsoleDeps) {
       const mayAct =
         !isDemo(req.viewer) &&
         (teamCan(req, "act", c.id) ||
-          (await canAt(main, req, "act", { client: c.id, app: "account" })));
+          (await canAt(main, req, "act", { client: c.id, app: "office" })));
       return {
         owner: { id: c.id, name: c.name },
         wren: false as const,

@@ -5,7 +5,7 @@ describe("choice fields", () => {
   const labels: Record<string, string> = { north: "North" };
   const type = defineRecord({
     id: "test.choice",
-    app: "outbound",
+    app: "campaigns",
     channel: null,
     name: { one: "row", many: "rows" },
     view: "test_rows",

@@ -87,7 +87,7 @@ export function turnOf(
 export const dmRecordOf = (deps: Pick<TurnDeps, "kinds" | "about">) =>
   defineRecord({
     id: "marketing.dm",
-    app: "marketing",
+    app: "inbox",
     channel: { field: "platform" },
     name: { one: "DM thread", many: "DM threads" },
     rows: async (db) => {
@@ -244,7 +244,7 @@ export const dmRecordOf = (deps: Pick<TurnDeps, "kinds" | "about">) =>
 export const commentRecordOf = (deps: Pick<TurnDeps, "kinds" | "about">) =>
   defineRecord({
     id: "marketing.comment",
-    app: "marketing",
+    app: "inbox",
     channel: { field: "platform" },
     name: { one: "comment", many: "comments" },
     rows: async (db) => {

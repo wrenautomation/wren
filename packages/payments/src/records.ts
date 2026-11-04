@@ -90,7 +90,7 @@ const rowsOf = async (db: Queryable, client: string, id?: string) =>
 export function linkRecordFor(client: string): RecordType {
   return defineRecord({
     id: LINK_RECORD,
-    app: "payments",
+    app: "office",
     channel: null,
     name: { one: "pay link", many: "pay links" },
     rows: (db) => rowsOf(db, client),

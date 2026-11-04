@@ -11,7 +11,7 @@ export const CONNECTORS_ROUTES = {
   disconnect: "act",
 } as const satisfies Record<string, Need>;
 export const CONNECTORS_APPS = {
-  "*": "account",
+  "*": "office",
 } as const satisfies RouteApps<typeof CONNECTORS_ROUTES>;
 export const CONNECTORS_WRITES: readonly (keyof typeof CONNECTORS_ROUTES)[] = [
   "connect",

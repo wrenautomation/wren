@@ -10,7 +10,7 @@ export const BILLING_CONSOLE_ROUTES = {
   dismiss: "wren:money",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): Money, wherever the credit is answered from. */
-export const BILLING_CONSOLE_APPS = { "*": "money" } as const satisfies RouteApps<
+export const BILLING_CONSOLE_APPS = { "*": "office" } as const satisfies RouteApps<
   typeof BILLING_CONSOLE_ROUTES
 >;
 export const BILLING_CONSOLE_WRITES: readonly (keyof typeof BILLING_CONSOLE_ROUTES)[] = [

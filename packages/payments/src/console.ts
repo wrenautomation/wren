@@ -155,7 +155,7 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
     return mayApprove(who, client.id, client.approver);
   };
   const may = async (req: PortalRequest, client: Client) => {
-    if (!(await canAt(main, req, "act", { client: client.id, app: "payments" })))
+    if (!(await canAt(main, req, "act", { client: client.id, app: "office" })))
       throw new PortalRefusal("your role can't do that here", 403);
   };
 

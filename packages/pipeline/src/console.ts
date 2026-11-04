@@ -256,7 +256,7 @@ export function pipelineConsoleApi({
       : p === "act"
         ? (await pickForWrite(db, req)).client
         : await pickClient(db, req);
-    if (!(await canAt(db, req, p, { client: client?.id ?? WREN, app: "deals", channel: null })))
+    if (!(await canAt(db, req, p, { client: client?.id ?? WREN, app: "people", channel: null })))
       throw new PortalRefusal(p === "read" ? "no access" : "your role can't do that here", 403);
     return client ? { client: client.id, db: open(client) } : { client: null, db };
   };

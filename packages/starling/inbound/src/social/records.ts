@@ -117,7 +117,7 @@ export interface ConsoleDeps {
 
 export const activityRecord = defineRecord({
   id: "marketing.activity",
-  app: "marketing",
+  app: "campaigns",
   channel: { field: "platform" },
   name: { one: "activity", many: "activity" },
   rows: (db) =>
@@ -328,7 +328,7 @@ export const ourPostOf = (db: Queryable) => async (platform: string, post: strin
 export const inboxRecordOf = (deps: ConsoleDeps) =>
   defineRecord({
     id: "marketing.inbox",
-    app: "marketing",
+    app: "inbox",
     channel: { field: "platform" },
     // Table | By Type: comment, DM, email, mail, text, chat, activity.
     by: "type",
@@ -676,7 +676,7 @@ function outreachOf(id: string): string | null {
 export const approvalRecordOf = (deps: ConsoleDeps) =>
   defineRecord({
     id: "marketing.approval",
-    app: "marketing",
+    app: "inbox",
     channel: { field: "platform" },
     name: { one: "item to approve", many: "items to approve" },
     rows: async (db) => {
@@ -1133,7 +1133,7 @@ function broadcastItem(b: Awaited<ReturnType<typeof waitingBroadcasts>>[number])
 
 export const askedReplyRecord = defineRecord({
   id: "marketing.asked_reply",
-  app: "marketing",
+  app: "inbox",
   channel: { field: "platform" },
   name: { one: "reply to approve", many: "replies to approve" },
   rows: async (db) => [
@@ -1227,7 +1227,7 @@ export const askedReplyRecord = defineRecord({
 /** Followers per platform: the newest day kept, and the change from a week before it. */
 export const audienceRecord = defineRecord({
   id: "marketing.audience",
-  app: "marketing",
+  app: "people",
   channel: null,
   name: { one: "platform", many: "platforms" },
   // Followers from social_days; the account's own last 7 days from account_metric_days.

@@ -197,7 +197,7 @@ const clientRecords = (client: string) => [
 
 export function sitesApi(deps: { db: Db; write?: Write | null; shareKey?: string | null }) {
   const { db } = deps;
-  const at = (owner: string | null) => ({ client: owner ?? WREN, app: "sites", channel: null });
+  const at = (owner: string | null) => ({ client: owner ?? WREN, app: "campaigns", channel: null });
   const may = async (req: PortalRequest, owner: string | null, p: "read" | "act") => {
     if (!(await canAt(db, req, p, at(owner))))
       throw new PortalRefusal(p === "read" ? "no access" : "your role can't do that here", 403);

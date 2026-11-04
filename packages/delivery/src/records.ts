@@ -269,7 +269,7 @@ export function deliveryRecords(
 
   const step = defineRecord({
     id: "delivery.step",
-    app: "work",
+    app: "map",
     channel: null,
     name: { one: "step", many: "steps" },
     rows: steps,
@@ -298,7 +298,7 @@ export function deliveryRecords(
 
   const update = defineRecord({
     id: "delivery.update",
-    app: "work",
+    app: "map",
     channel: null,
     name: { one: "update", many: "updates" },
     rows: async () =>
@@ -328,7 +328,7 @@ export function deliveryRecords(
 
   const ask = defineRecord({
     id: "delivery.ask",
-    app: "work",
+    app: "inbox",
     channel: null,
     name: { one: "ask", many: "asks" },
     rows: asks,
@@ -355,7 +355,7 @@ export function deliveryRecords(
 
   const deliverable = defineRecord({
     id: "delivery.deliverable",
-    app: "work",
+    app: "inbox",
     channel: null,
     name: { one: "deliverable", many: "deliverables" },
     rows: pieces,
@@ -384,7 +384,7 @@ export function deliveryRecords(
 
   const paperwork = defineRecord({
     id: "delivery.paperwork",
-    app: "work",
+    app: "office",
     channel: null,
     name: { one: "item", many: "paperwork" },
     rows: async () =>
@@ -450,7 +450,7 @@ export function deliveryRecords(
 
   const result = defineRecord({
     id: "delivery.result",
-    app: "work",
+    app: "map",
     channel: null,
     name: { one: "result", many: "results" },
     rows: async () =>
@@ -477,7 +477,7 @@ export function deliveryRecords(
 
   const invoice = defineRecord({
     id: "delivery.invoice",
-    app: "work",
+    app: "office",
     channel: null,
     name: { one: "invoice", many: "invoices" },
     rows: async () => {
@@ -535,7 +535,7 @@ export function deliveryRecords(
 
   const change = defineRecord({
     id: "delivery.change",
-    app: "work",
+    app: "office",
     channel: null,
     name: { one: "change", many: "changes" },
     rows: async () => {
@@ -552,7 +552,7 @@ export function deliveryRecords(
   const rules = messaging
     ? defineRecord({
         id: "delivery.messaging",
-        app: "work",
+        app: "office",
         channel: null,
         name: { one: "message rule", many: "message rules" },
         rows: async () => {

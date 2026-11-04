@@ -15,7 +15,7 @@ export const HEALTH_CONSOLE_ROUTES = {
   flagClear: "wren:run",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): the Clients app. */
-export const HEALTH_CONSOLE_APPS = { "*": "clients" } as const satisfies RouteApps<
+export const HEALTH_CONSOLE_APPS = { "*": "people" } as const satisfies RouteApps<
   typeof HEALTH_CONSOLE_ROUTES
 >;
 export const HEALTH_CONSOLE_WRITES: readonly (keyof typeof HEALTH_CONSOLE_ROUTES)[] = [

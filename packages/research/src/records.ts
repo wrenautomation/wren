@@ -16,7 +16,7 @@ const KIND_LABELS: Record<(typeof SIGNAL_KINDS)[number], string> = {
 
 const signalRecord = defineRecord({
   id: "research.signal",
-  app: "outbound",
+  app: "campaigns",
   channel: null,
   name: { one: "signal", many: "signals" },
   view: "research_signals",

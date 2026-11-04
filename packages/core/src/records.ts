@@ -8,7 +8,7 @@
  */
 import type { Queryable } from "@wren/db";
 import type { ZodType } from "zod";
-import { APPS, isChannel, type Permission } from "./access.js";
+import { APPS, type App, isChannel, type Permission } from "./access.js";
 import { type Words, wordsOf } from "./model-labels.js";
 import { accountChoices, recordAccount } from "./record-accounts.js";
 import { codeLabel } from "./template-labels.js";
@@ -655,7 +655,7 @@ interface RecordDecl<F extends Record<string, Draft>> {
   /** What a person or Claude may change on it; absent, it's read only. */
   edits?: RecordEdits;
   /** The app it belongs to (`APPS` in `./access.ts`): what a grant's `apps` names. */
-  app: string;
+  app: App;
   /**
    * Its channel (`ACCESS_CHANNELS`): one for every row, a field holding it per row, or null when
    * it has none. A login limited to channels sees only rows on theirs.

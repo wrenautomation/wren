@@ -31,12 +31,12 @@ export const PORTAL_ROUTES = {
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): Reactivation's emails; records check each type. */
 export const PORTAL_APPS = {
-  "*": { app: "reactivation", channel: "email" },
-  overview: "reactivation",
-  person: "reactivation",
+  "*": { app: "campaigns", channel: "email" },
+  overview: "campaigns",
+  person: "campaigns",
   importPreview: "people",
   importRun: "people",
-  run: "reactivation",
+  run: "campaigns",
   work: null,
   recordsTypes: null,
   recordsList: null,

@@ -169,7 +169,7 @@ export async function offerRows(db: Queryable, o: { now?: Date } = {}) {
 const offerRecord = (): RecordType =>
   defineRecord({
     id: OFFER_RECORD,
-    app: "deals",
+    app: "map",
     channel: null,
     name: { one: "offer", many: "offers" },
     rows: (db) => offerRows(db),
@@ -277,7 +277,7 @@ async function termsRows(db: Queryable, o: { now?: Date } = {}) {
 const termsRecord = (): RecordType =>
   defineRecord({
     id: TERMS_RECORD,
-    app: "deals",
+    app: "map",
     channel: null,
     name: { one: "terms version", many: "terms versions" },
     rows: (db) => termsRows(db),
@@ -351,7 +351,7 @@ export async function shapeRows(db: Queryable) {
 export const shapeRecord = (): RecordType =>
   defineRecord({
     id: SHAPE_RECORD,
-    app: "deals",
+    app: "map",
     channel: null,
     name: { one: "shape", many: "shapes" },
     rows: (db) => shapeRows(db),
@@ -412,7 +412,7 @@ export async function draftRows(db: Queryable) {
 const shapeDraftRecord = (): RecordType =>
   defineRecord({
     id: SHAPE_DRAFT_RECORD,
-    app: "deals",
+    app: "map",
     channel: null,
     name: { one: "shape draft", many: "shape drafts" },
     rows: (db) => draftRows(db),
@@ -618,7 +618,7 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
 export const journeyRecord = (): RecordType =>
   defineRecord({
     id: JOURNEY_RECORD,
-    app: "deals",
+    app: "people",
     channel: null,
     name: { one: "journey", many: "journeys" },
     rows: (db) => journeyRows(db),
@@ -764,7 +764,7 @@ export async function dealRows(db: Queryable, o: { id?: string } = {}) {
 const dealRecord = (): RecordType =>
   defineRecord({
     id: DEAL_RECORD,
-    app: "deals",
+    app: "people",
     channel: null,
     name: { one: "deal", many: "deals" },
     rows: (db) => dealRows(db),
@@ -856,7 +856,7 @@ export async function entryRows(db: Queryable) {
 export const entryRecord = (): RecordType =>
   defineRecord({
     id: ENTRY_RECORD,
-    app: "deals",
+    app: "people",
     channel: null,
     name: { one: "source", many: "sources" },
     rows: (db) => entryRows(db),
@@ -915,7 +915,7 @@ const numberOf = (n: NumberRow, window: (typeof NUMBER_WINDOWS)[number] = "all")
 const numberRecord = (): RecordType =>
   defineRecord({
     id: NUMBER_RECORD,
-    app: "deals",
+    app: "map",
     channel: null,
     name: { one: "number", many: "numbers" },
     // One set of rows per window; the Map page reads the window it shows, the Numbers pages `all`.
