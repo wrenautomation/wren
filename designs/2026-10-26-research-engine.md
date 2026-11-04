@@ -1292,4 +1292,4 @@ autobrowse now takes one preset grammar on every search route (WA-1031): `latest
 - `youtube` maps it on its own Data API client to `order` and `publishedAfter`, as autobrowse's youtube facet does. That client is not on the desk.
 - Options for a source that can't honor a preset: (a) ignore it silently; (b) warn and search without it; (c) send the query only to sources that take presets, and refuse the write when none in the run does. Took (c): a dropped window would pass off old hits as recent.
 - Dropped birdwatch's own LinkedIn `past-month`. No preset now means the platform's default; the agent picks a window.
-- Reddit's site-wide search (`reddit-public /search`) has no presets yet. Asked autobrowse for them.
+- Reddit: `reddit-public /search` took presets all along; only the catalog hid them. birdwatch reddit takes them in 0.35.1, its own `sort: relevance` dropped.
