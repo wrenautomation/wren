@@ -1274,3 +1274,13 @@ William: browser and scraping only as a fallback, nothing that trips a rate limi
 - Order in `download`: the store, the direct link, yt-dlp; a fresh file goes into the store.
 - `open --see`: 6 videos a run at most (about $1.80), counted from the run's spends. The agent can't raise it; William can.
 - Release: `pnpm release [patch|minor|<floor>]` takes the next free version past every tag, one release at a time, and retries a lost race; it no longer fails on peers' dirty files.
+
+## 11-03: a caption 429 hears the audio; Cohere paced; open reads only the named (engine 0.34.0, WA-1029)
+
+The content run lost 16 videos to caption 429s, at 3.5 to 11 min each.
+- The caption URLs 429 per IP, but stream downloads still work. Options: (a) wait longer; (b) Gemini by URL (William said no earlier); (c) download the audio and Cohere hears it; (d) a proxy IP (a new vendor, more bot risk). Took (c). William: the Cohere key is prod with near-unlimited credit, so use it.
+- With an ear, `readYoutube` tries one caption round with no waits. On a 429, captions rest 30 min in that process, and every video goes straight to the audio.
+- yt-dlp picks the uploader's `original` track. Plain `wa` got a German auto-dub (A8PxRHQrLJ8).
+- Cohere's transcript loops on a 23-min file, so read cuts 60 s clips. The key takes 20 calls a minute (measured), and `cohereEar` paces to it. A 16-min video takes 70 s.
+- `open <run> <hit>` reads only the named hits, so a retry costs one read. With no names, it reads every kept hit that has no page.
+- The gate names the number a quote lacks. `add pattern` prints `sources` and `classes`.
