@@ -95,7 +95,7 @@ describe("connectUrl: all eight platforms", () => {
           "prompt": "consent",
           "redirect_uri": "https://app.test/cb",
           "response_type": "code",
-          "scope": "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.readonly",
+          "scope": "https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.readonly",
           "state": "st",
         },
         "url": "https://accounts.google.com/o/oauth2/v2/auth",

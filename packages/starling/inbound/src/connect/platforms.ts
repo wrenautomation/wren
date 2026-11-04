@@ -159,8 +159,8 @@ export const SOCIAL: Record<SocialPlatform, SocialSpec> = {
     channel: "youtube",
     authorize: GOOGLE_AUTH,
     token: GOOGLE_TOKEN,
+    // No youtube.upload until client posting returns with the redesign (WA-1030): a new scope, a new verification.
     scopes: [
-      "https://www.googleapis.com/auth/youtube.upload",
       "https://www.googleapis.com/auth/youtube.force-ssl",
       "https://www.googleapis.com/auth/youtube.readonly",
     ],
@@ -168,7 +168,7 @@ export const SOCIAL: Record<SocialPlatform, SocialSpec> = {
     dms: false,
     comments: true,
     review: "Google is verifying Wren's app.",
-    before: "Google warns that it hasn't verified Wren yet; uploads stay private until it does.",
+    before: "Google warns that it hasn't verified Wren yet.",
     selfServe: "Press Connect and sign in with the Google account that owns the channel.",
     forYou: "Wren's team adds you as a test user first, then you Connect.",
   },
