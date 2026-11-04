@@ -4,15 +4,14 @@
  *
  * - `/webhooks/telnyx`: signature checked here, then handed to Restate
  *   (`SmsEvents/ingest/send`) with the event id as the idempotency key, so a
- *   webhook Telnyx sends twice is applied once. Restate down = 502, and Telnyx
- *   retries.
+ *   webhook Telnyx sends twice is applied once. Restate down = held (below).
  * - `/webhooks/calcom`: cal.com's booking webhook, HMAC checked against
  *   `CALCOM_WEBHOOK_SECRET`, then `CallBookings/ingest/send` keyed by trigger + uid +
- *   start. Unsigned = 401, PING = 200 and goes no further, Restate down = 502.
+ *   start. Unsigned = 401, PING = 200 and goes no further, Restate down = held.
  * - `/webhooks/documenso`: Documenso's e-signature events (designs/2026-10-21-esign-and-newsletter.md).
  *   The `X-Documenso-Secret` header is checked against `DOCUMENSO_WEBHOOK_SECRET`, then
  *   `Documents/signed/send` keyed by envelope + event + time, so a repeat is applied once.
- *   Unset secret = 503, wrong = 401, Restate down = 502.
+ *   Unset secret = 503, wrong = 401, Restate down = held.
  * - `/webhooks/telnyx/<client>`, `/webhooks/calcom/<client>`: the same for a client's
  *   messaging profile and cal.com, into its database (`SmsEvents/ingestFor`,
  *   `CallBookings/ingestFor`). A client's cal.com signs with its own secret, from
@@ -32,7 +31,11 @@
  * - `/webhooks/site`: the lander's push of one site application (`{application, at}`), hex HMAC
  *   of the body in `x-wren-signature-256` against `SITE_EXPORT_TOKEN` (the lander's
  *   `EXPORT_TOKEN`), `at` within 5 minutes, then `SmsForms/applied/send` keyed by the
- *   application: its first text runs now, not on the 30-minute pass. Restate down = 502.
+ *   application: its first text runs now, not on the 30-minute pass. Restate down = held.
+ * - Held (WA-1061): Telnyx, Linq, cal.com, Documenso and the lander retry for minutes only. With
+ *   Restate down, the event goes to KV under its idempotency key and the sender gets 200; the
+ *   cron (`replayHeld`, every 2 min) sends it on under the same key. Gmail, Business Profile
+ *   and Meta retry for days: Restate down = 502.
  * - `/webhooks/gbp`: Business Profile's review notices through Pub/Sub, `?token=` checked against
  *   `GBP_PUSH_TOKEN`, then `SocialPush/gbp/send` keyed by Pub/Sub's message id.
  * - `/api/<handler>`: Wren's operators only, by the token from Wren's sign-in
@@ -185,9 +188,28 @@ async function signerOf(
 async function telnyxWebhook(req: Request, env: Env, path: string | null): Promise<Response> {
   const raw = await readBody(req, MAX_BODY);
   if (raw === null) return json({ error: "too large" }, 413);
-  const signature = req.headers.get(SIGNATURE_HEADER);
-  const timestamp = req.headers.get(TIMESTAMP_HEADER);
-  const fresh = signedFresh({ signature, timestamp });
+  return telnyxEvent(env, {
+    kind: "telnyx",
+    raw,
+    signature: req.headers.get(SIGNATURE_HEADER),
+    timestamp: req.headers.get(TIMESTAMP_HEADER),
+    path,
+    at: Date.now(),
+  });
+}
+
+/**
+ * One Telnyx event, live or held. Restate down at the signer: held whole, checked on replay
+ * against its own receive time (`at`). A replay answers 503 while Restate is still down.
+ */
+async function telnyxEvent(
+  env: Env,
+  e: Extract<Held, { kind: "telnyx" }>,
+  replay = false,
+): Promise<Response> {
+  const { raw, signature, timestamp, path } = e;
+  const nowSeconds = Math.floor(e.at / 1000);
+  const fresh = signedFresh({ signature, timestamp, nowSeconds });
   if (!fresh.ok) return json({ error: fresh.reason }, 401);
   let body: { data?: { id?: unknown } };
   try {
@@ -195,32 +217,31 @@ async function telnyxWebhook(req: Request, env: Env, path: string | null): Promi
   } catch {
     return json({ error: "not json" }, 400);
   }
+  const id = body.data?.id;
   const number = ourNumber(body);
   const who: Signer | null =
     number === null && path === null
       ? { ok: true, client: null, publicKey: null }
       : await signerOf(env, number, path);
-  if (!who) return json({ error: "signer unreachable" }, 502);
+  if (!who) {
+    if (replay) return json({ error: "signer unreachable" }, 503);
+    if (typeof id !== "string" || id === "") return json({ error: "signer unreachable" }, 502);
+    return hold(env, `telnyx-${id}`, e);
+  }
   if (!who.ok) return json({ error: who.why }, 401);
   const publicKey = who.publicKey ?? env.TELNYX_PUBLIC_KEY;
   if (!publicKey) return json({ error: "webhooks off: no TELNYX_PUBLIC_KEY" }, 503);
-  const verdict = await verifyTelnyx({ publicKey, signature, timestamp, rawBody: raw });
+  const verdict = await verifyTelnyx({ publicKey, signature, timestamp, rawBody: raw, nowSeconds });
   if (!verdict.ok) return json({ error: verdict.reason }, 401);
-  const id = body.data?.id;
   if (typeof id !== "string" || id === "") return json({ error: "no event id" }, 400);
   const client = who.client;
-  let res: Response;
-  try {
-    res = await fetch(ingress(env, `SmsEvents/${client ? "ingestFor" : "ingest"}/send`), {
-      method: "POST",
-      headers: restateHeaders(env, { "idempotency-key": `telnyx-${id}` }),
-      body: forwarded(raw, client),
-    });
-  } catch {
-    return json({ error: "restate unreachable" }, 502);
-  }
-  if (!res.ok) return json({ error: `restate ${res.status}` }, 502);
-  return json({ ok: true });
+  return forward(
+    env,
+    `SmsEvents/${client ? "ingestFor" : "ingest"}/send`,
+    `telnyx-${id}`,
+    forwarded(raw, client),
+    replay,
+  );
 }
 
 /**
@@ -241,18 +262,7 @@ async function linqWebhook(req: Request, env: Env): Promise<Response> {
     rawBody: raw,
   });
   if (!verdict.ok) return json({ error: verdict.reason }, 401);
-  let res: Response;
-  try {
-    res = await fetch(ingress(env, "SmsEvents/ingest/send"), {
-      method: "POST",
-      headers: restateHeaders(env, { "idempotency-key": `linq-${id}` }),
-      body: raw,
-    });
-  } catch {
-    return json({ error: "restate unreachable" }, 502);
-  }
-  if (!res.ok) return json({ error: `restate ${res.status}` }, 502);
-  return json({ ok: true });
+  return forward(env, "SmsEvents/ingest/send", `linq-${id}`, raw);
 }
 
 /** Hex HMAC-SHA256 of the raw body, as cal.com signs it; `crypto.subtle.verify` compares in constant time. */
@@ -304,20 +314,12 @@ async function calcomWebhook(req: Request, env: Env, client: string | null): Pro
   if (trigger === "PING") return json({ ok: true });
   const uid = body.payload?.uid;
   if (typeof uid !== "string" || uid === "") return json({ error: "no booking uid" }, 400);
-  let res: Response;
-  try {
-    res = await fetch(ingress(env, `CallBookings/${client ? "ingestFor" : "ingest"}/send`), {
-      method: "POST",
-      headers: restateHeaders(env, {
-        "idempotency-key": `calcom-${client ? `${client}-` : ""}${trigger}-${uid}-${String(body.payload?.startTime ?? "")}`,
-      }),
-      body: forwarded(raw, client),
-    });
-  } catch {
-    return json({ error: "restate unreachable" }, 502);
-  }
-  if (!res.ok) return json({ error: `restate ${res.status}` }, 502);
-  return json({ ok: true });
+  return forward(
+    env,
+    `CallBookings/${client ? "ingestFor" : "ingest"}/send`,
+    `calcom-${client ? `${client}-` : ""}${trigger}-${uid}-${String(body.payload?.startTime ?? "")}`,
+    forwarded(raw, client),
+  );
 }
 
 /**
@@ -345,20 +347,12 @@ async function documensoWebhook(req: Request, env: Env): Promise<Response> {
   if (typeof body.event !== "string" || typeof envelope !== "string" || envelope === "") {
     return json({ error: "no event or envelope" }, 400);
   }
-  let res: Response;
-  try {
-    res = await fetch(ingress(env, "Documents/signed/send"), {
-      method: "POST",
-      headers: restateHeaders(env, {
-        "idempotency-key": `documenso-${envelope}-${body.event}-${String(body.createdAt ?? "")}`,
-      }),
-      body: raw,
-    });
-  } catch {
-    return json({ error: "restate unreachable" }, 502);
-  }
-  if (!res.ok) return json({ error: `restate ${res.status}` }, 502);
-  return json({ ok: true });
+  return forward(
+    env,
+    "Documents/signed/send",
+    `documenso-${envelope}-${body.event}-${String(body.createdAt ?? "")}`,
+    raw,
+  );
 }
 
 /** Constant time: both sides hashed first, so length leaks nothing either. */
@@ -494,12 +488,112 @@ async function siteWebhook(req: Request, env: Env): Promise<Response> {
   if (typeof body.at !== "number" || Math.abs(Date.now() - body.at) > SITE_FRESH_MS) {
     return json({ error: "stale" }, 401);
   }
-  return toRestate(
+  return forward(
     env,
     "SmsForms/applied/send",
     `site-application-${id}`,
     JSON.stringify({ application: id }),
   );
+}
+
+/**
+ * A webhook held in KV while Restate is down (WA-1061, designs/2026-11-04-at-least-once.md), for
+ * senders that retry for minutes only (Telnyx, Linq, cal.com, Documenso, the lander). Pub/Sub and
+ * Meta retry for days: they keep the 502. `forward`: checked, sent on as is. `telnyx`: Restate
+ * was down at the signer, so the whole request waits and is checked on replay.
+ */
+type Held =
+  | { kind: "forward"; path: string; key: string; body: string; at: number }
+  | {
+      kind: "telnyx";
+      raw: string;
+      signature: string | null;
+      timestamp: string | null;
+      path: string | null;
+      at: number;
+    };
+
+const HELD = "held:";
+/** Restate keeps an idempotency key 7 days (WA-1060): a replay inside it is applied once. */
+const HELD_TTL_S = 7 * 24 * 60 * 60;
+
+/** Kept under its idempotency key: a vendor's retry while down writes nothing new. KV fails: 502. */
+async function hold(env: Env, key: string, held: Held): Promise<Response> {
+  try {
+    if ((await env.CRED_LINKS.get(HELD + key)) === null)
+      await env.CRED_LINKS.put(HELD + key, JSON.stringify(held), { expirationTtl: HELD_TTL_S });
+  } catch {
+    return json({ error: "restate unreachable" }, 502);
+  }
+  return json({ ok: true, held: true });
+}
+
+/**
+ * One send into Restate under `key`. Down (no answer, or 5xx): held, 200. Restate's 4xx: 502, the
+ * vendor retries. On replay nothing is held: 503 down, 422 refused.
+ */
+async function forward(
+  env: Env,
+  path: string,
+  key: string,
+  body: string,
+  replay = false,
+): Promise<Response> {
+  let status: number;
+  try {
+    const res = await fetch(ingress(env, path), {
+      method: "POST",
+      headers: restateHeaders(env, { "idempotency-key": key }),
+      body,
+    });
+    status = res.status;
+  } catch {
+    status = 0;
+  }
+  if (status >= 200 && status < 300) return json({ ok: true });
+  const down = status === 0 || status >= 500;
+  if (replay) return json({ error: `restate ${status || "unreachable"}` }, down ? 503 : 422);
+  if (down) return hold(env, key, { kind: "forward", path, key, body, at: Date.now() });
+  return json({ error: `restate ${status}` }, 502);
+}
+
+/**
+ * The cron (every 2 minutes; KV's free tier lists 1,000 times a day): each held webhook, oldest
+ * first, under its own key, so a repeat at Restate is applied once. Sent or refused for good:
+ * deleted. Restate still down: kept until its TTL.
+ */
+export async function replayHeld(
+  env: Env,
+): Promise<{ sent: number; kept: number; dropped: number }> {
+  const held: { name: string; h: Held }[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await env.CRED_LINKS.list({ prefix: HELD, ...(cursor ? { cursor } : {}) });
+    for (const k of page.keys) {
+      const raw = await env.CRED_LINKS.get(k.name);
+      if (raw !== null) held.push({ name: k.name, h: JSON.parse(raw) as Held });
+    }
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor);
+  held.sort((a, b) => a.h.at - b.h.at);
+  const out = { sent: 0, kept: 0, dropped: 0 };
+  for (const { name, h } of held) {
+    const res =
+      h.kind === "telnyx"
+        ? await telnyxEvent(env, h, true)
+        : await forward(env, h.path, h.key, h.body, true);
+    if (res.status === 503) {
+      out.kept += 1;
+      continue;
+    }
+    if (res.ok) out.sent += 1;
+    else {
+      out.dropped += 1;
+      console.error(`held ${name} dropped: ${res.status} ${await res.text()}`);
+    }
+    await env.CRED_LINKS.delete(name);
+  }
+  return out;
 }
 
 /** One send into Restate; 502 when it fails, so the vendor retries. */
@@ -924,6 +1018,9 @@ async function review(req: Request, bindings: Env, path: RegExpExecArray): Promi
 }
 
 export default {
+  async scheduled(_c: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(replayHeld(env));
+  },
   async fetch(req: Request, env: Env): Promise<Response> {
     const { pathname } = new URL(req.url);
     for (const [site, hook] of [

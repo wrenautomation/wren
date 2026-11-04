@@ -22,3 +22,7 @@ AUTH_ORIGIN = "https://auth.wrenautomation.com"
 [[kv_namespaces]]
 binding = "CRED_LINKS"
 id = "02727d50e8914f7595d17a8207d0ea7b"
+
+# Webhooks held while Restate is down go on from KV (WA-1061). Every 2 min: KV's free tier lists 1,000 times a day.
+[triggers]
+crons = ["*/2 * * * *"]

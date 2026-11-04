@@ -7,7 +7,7 @@
 import { forgetKeys } from "@wren/auth/verify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Env } from "../src/env.js";
-import worker, { DESK_HANDLERS, forgetSigners, LINK_SIGNATURE } from "../src/worker.js";
+import worker, { DESK_HANDLERS, forgetSigners, LINK_SIGNATURE, replayHeld } from "../src/worker.js";
 
 const HOST = "https://phone.test";
 const AUTH = "https://auth.test";
@@ -72,6 +72,10 @@ beforeEach(async () => {
       delete: async (k: string) => {
         kv.delete(k);
       },
+      list: async ({ prefix }: { prefix: string }) => ({
+        keys: [...kv.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })),
+        list_complete: true,
+      }),
     } as unknown as KVNamespace,
     CRED_LINK_SECRET: "link-secret",
     ASSETS: { fetch: async () => new Response("<html>app</html>") } as unknown as Fetcher,
@@ -250,7 +254,7 @@ describe("telnyx webhook", () => {
       expect(restateCalls).toHaveLength(0);
     });
 
-    it("asks whose key once per number, and 502 when it can't ask", async () => {
+    it("asks whose key once per number; held when it can't ask, checked on replay", async () => {
       await signedWebhook(to(ACME), undefined, "/webhooks/telnyx", acme.privateKey);
       await signedWebhook(to(ACME), undefined, "/webhooks/telnyx", acme.privateKey);
       expect(signerCalls).toBe(1);
@@ -258,18 +262,62 @@ describe("telnyx webhook", () => {
       await call("/webhooks/telnyx", { method: "POST", body: to(BETA) });
       expect(signerCalls).toBe(1);
       forgetSigners();
+      const up = signer;
       signer = () => {
         throw new Error("down");
       };
       expect(
         (await signedWebhook(to(ACME), undefined, "/webhooks/telnyx", acme.privateKey)).status,
-      ).toBe(502);
+      ).toBe(200);
+      expect(JSON.parse(kv.get("held:telnyx-evt-2")?.value ?? "{}")).toMatchObject({
+        kind: "telnyx",
+        path: null,
+      });
+      expect(kv.get("held:telnyx-evt-2")?.ttl).toBe(7 * 24 * 60 * 60);
+      expect(restateCalls).toHaveLength(2);
+      // Still down: kept.
+      expect(await replayHeld(env)).toEqual({ sent: 0, kept: 1, dropped: 0 });
+      // Up, minutes later: checked against its receive time, sent under the event's key.
+      forgetSigners();
+      signer = up;
+      vi.useFakeTimers({ now: Date.now() + 20 * 60_000, toFake: ["Date"] });
+      try {
+        expect(await replayHeld(env)).toEqual({ sent: 1, kept: 0, dropped: 0 });
+      } finally {
+        vi.useRealTimers();
+      }
+      expect(restateCalls[2]?.url).toBe("https://restate.test/SmsEvents/ingestFor/send");
+      expect(restateCalls[2]?.headers.get("idempotency-key")).toBe("telnyx-evt-2");
+      expect(kv.has("held:telnyx-evt-2")).toBe(false);
+    });
+
+    it("a held event whose key does not check is dropped on replay", async () => {
+      const up = signer;
+      signer = () => {
+        throw new Error("down");
+      };
+      expect((await signedWebhook(to(ACME))).status).toBe(200);
+      signer = up;
+      expect(await replayHeld(env)).toEqual({ sent: 0, kept: 0, dropped: 1 });
+      expect(restateCalls).toHaveLength(0);
+      expect(kv.size).toBe(0);
     });
   });
 
-  it("answers 502 when Restate fails, so Telnyx retries; 503 with no key configured", async () => {
-    restateStatus = 500;
+  it("holds the event when Restate is down and sends it on by the cron; 502 on Restate's 4xx", async () => {
+    restateStatus = 503;
+    expect((await signedWebhook(body)).status).toBe(200);
+    expect((await signedWebhook(body)).status).toBe(200);
+    expect([...kv.keys()]).toEqual(["held:telnyx-evt-1"]);
+    expect(await replayHeld(env)).toEqual({ sent: 0, kept: 1, dropped: 0 });
+    restateStatus = 200;
+    expect(await replayHeld(env)).toEqual({ sent: 1, kept: 0, dropped: 0 });
+    expect(restateCalls.at(-1)?.headers.get("idempotency-key")).toBe("telnyx-evt-1");
+    expect(restateCalls.at(-1)?.body).toBe(body);
+    expect(kv.size).toBe(0);
+    restateStatus = 400;
     expect((await signedWebhook(body)).status).toBe(502);
+    expect(kv.size).toBe(0);
     delete env.TELNYX_PUBLIC_KEY;
     expect((await signedWebhook(body)).status).toBe(503);
   });
@@ -330,9 +378,12 @@ describe("cal.com webhook", () => {
     expect(restateCalls).toHaveLength(0);
   });
 
-  it("answers 502 when Restate fails; 503 with no secret configured", async () => {
+  it("held when Restate is down; 503 with no secret configured", async () => {
     restateStatus = 500;
-    expect((await send(booking, await sign(booking))).status).toBe(502);
+    expect((await send(booking, await sign(booking))).status).toBe(200);
+    expect([...kv.keys()]).toEqual([expect.stringMatching(/^held:calcom-BOOKING_CREATED-/)]);
+    restateStatus = 404;
+    expect(await replayHeld(env)).toEqual({ sent: 0, kept: 0, dropped: 1 });
     delete env.CALCOM_WEBHOOK_SECRET;
     expect((await send(booking, await sign(booking))).status).toBe(503);
   });
@@ -404,9 +455,10 @@ describe("Documenso webhook", () => {
     expect(restateCalls).toHaveLength(0);
   });
 
-  it("answers 502 when Restate fails; 503 with no secret configured; 405 for a GET", async () => {
+  it("held when Restate is down; 503 with no secret configured; 405 for a GET", async () => {
     restateStatus = 500;
-    expect((await send(hook)).status).toBe(502);
+    expect((await send(hook)).status).toBe(200);
+    expect(kv.size).toBe(1);
     delete env.DOCUMENSO_WEBHOOK_SECRET;
     expect((await send(hook)).status).toBe(503);
     expect((await call("/webhooks/documenso", { method: "GET" })).status).toBe(405);
@@ -457,10 +509,13 @@ describe("site application push", () => {
     expect(restateCalls).toHaveLength(0);
   });
 
-  it("answers 502 when Restate fails and 503 with no token set", async () => {
+  it("held when Restate is down, sent on fresh or stale; 503 with no token set", async () => {
     const body = JSON.stringify({ application: 8, at: Date.now() });
     restateStatus = 500;
-    expect((await push(body, await sign(body))).status).toBe(502);
+    expect((await push(body, await sign(body))).status).toBe(200);
+    restateStatus = 200;
+    expect(await replayHeld(env)).toEqual({ sent: 1, kept: 0, dropped: 0 });
+    expect(restateCalls.at(-1)?.headers.get("idempotency-key")).toBe("site-application-8");
     delete env.SITE_EXPORT_TOKEN;
     expect((await push(body, await sign(body))).status).toBe(503);
   });

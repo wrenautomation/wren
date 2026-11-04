@@ -30,7 +30,7 @@ Each resend:
 | DMs, comments, posts | `unsure` after the rechecks → To approve | → sent again under a new key, once, through the item's own queue. To approve gets only a second unsure |
 | Restate retries | server defaults, not written down | the same values in `config.toml` (`[invocation.default-retry-policy]`): 50 ms, x2, 60 s max, 70 tries, then pause |
 | Webhook dedupe | 24 h (Restate default) | 7 days on the services webhooks call (`idempotencyRetention`) |
-| Webhooks while Restate is down | 502; the sender retries | short-retry senders: kept in KV, answered 200, replayed each minute under the same key |
+| Webhooks while Restate is down | 502; the sender retries | short-retry senders: kept in KV, answered 200, replayed every 2 min under the same key |
 | TouchFeed | id cursor plus a 30 s wait: a late commit can be skipped | `touches.fired_at`, claimed with `SKIP LOCKED`; old rows backfilled |
 
 ## Webhooks while Restate is down
@@ -68,6 +68,8 @@ Restate runs as one node on the Postgres box. A lost volume lost every queued ca
 - A not-sent try on a comment or post deletes its row (`releaseSend`), so that try is not counted.
   The send never left, so no duplicate can come of it.
 - Auto resends record `by: wren` on the settle; the draft record's `by` reads "console".
+- The door (`/hooks/<token>`, `Executor/hook`) keeps the 502: its sender and its retries are
+  unknown, and it answers the Executor's status, which a hold cannot.
 
 ## Decision log
 
@@ -78,3 +80,7 @@ Restate runs as one node on the Postgres box. A lost volume lost every queued ca
   `tries >= 2`: they stay a person's. A post of ours on Send again keeps its ledger row
   (`markResend`), so the scheduler's claim counts the try; deleting it reset the count and could
   resend without end.
+- 2026-11-04 (WA-1061): the replay cron runs every 2 min, not each minute: KV's free tier lists
+  1,000 times a day. A Telnyx event whose signer Restate could not name is held whole (raw body,
+  signature, timestamp, receive time) and checked on replay; its signature stays valid against
+  the receive time. A held key is written once: a vendor retry while down costs a read only.
