@@ -29,6 +29,7 @@ import {
   runPass,
   sharedHandler,
   unitOfKey,
+  WEBHOOK_SERVICE,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { DAY_MS, type SyncStats, syncInbox } from "@wren/starling-conversations/email";
@@ -172,6 +173,7 @@ const LISTENER = z.object({
  */
 export const inboxPush = restate.object({
   name: "InboxPush",
+  options: WEBHOOK_SERVICE,
   handlers: {
     /** Set by that loop each time it renews the watch. */
     claim: exclusiveHandler(

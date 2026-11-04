@@ -19,7 +19,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { type Client, clientMembers, findClient, sendsOn } from "@wren/core/clients";
 import { customFacts } from "@wren/core/custom-fields";
 import type { Fired, FireTriggers } from "@wren/core/executor";
-import { serviceHandler } from "@wren/core/restate";
+import { serviceHandler, WEBHOOK_SERVICE } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { payLinks } from "@wren/payments/schema";
 import type { PaymentsDeps } from "@wren/payments/service";
@@ -391,6 +391,7 @@ export function makeDocuments(deps: DocumentsDeps) {
 
   return restate.service({
     name: DOCUMENTS_SERVICE.name,
+    options: WEBHOOK_SERVICE,
     handlers: {
       /** Out with a fresh link; `remind` again with a new one. Anything else is left. */
       send: serviceHandler(

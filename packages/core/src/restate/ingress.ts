@@ -31,3 +31,9 @@ export async function ingressSend(
   if (!res.ok)
     throw new Error(`ingress ${path}: ${res.status} ${(await res.text()).slice(0, 300)}`);
 }
+
+/**
+ * Options for a service webhooks call by idempotency key (WA-1060): Restate keeps a key 7 days, not
+ * its 24 h default, so a vendor's late retry or the phone Worker's held replay is applied once.
+ */
+export const WEBHOOK_SERVICE = { idempotencyRetention: { days: 7 } } as const;

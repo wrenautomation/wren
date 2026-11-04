@@ -35,6 +35,15 @@ request-identity-private-key-pem-file = "/restate/identity.pem"
 bind-address = "127.0.0.1:5122"
 advertised-address = "http://127.0.0.1:5122/"
 
+# WA-1060: pinned to 1.7's defaults (--dump-config), so an upgrade cannot change them. About
+# 1 h of retries, then pause: a failing call waits in the dead-letter queue, never dropped.
+[default-retry-policy]
+initial-interval = "500ms"
+exponentiation-factor = 2.0
+max-interval = "1m"
+max-attempts = 70
+on-max-attempts = "pause"
+
 [admin]
 bind-address = "127.0.0.1:9070"
 

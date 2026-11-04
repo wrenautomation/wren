@@ -9,6 +9,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { findClient } from "@wren/core/clients";
 import { executorEmit, type FireTriggers } from "@wren/core/executor";
+import { WEBHOOK_SERVICE } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import {
   applyBooking,
@@ -43,6 +44,7 @@ export function makeCallBookings(deps: {
   };
   return restate.service({
     name: "CallBookings",
+    options: WEBHOOK_SERVICE,
     handlers: {
       ingest: (ctx: restate.Context, body: unknown): Promise<BookingOutcome | null> =>
         apply(ctx, deps.db, body, null),

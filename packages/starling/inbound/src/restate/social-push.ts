@@ -17,7 +17,13 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Platform } from "@wren/core/autobrowse";
-import { clientKey, exclusiveHandler, NO_INPUT, serviceHandler } from "@wren/core/restate";
+import {
+  clientKey,
+  exclusiveHandler,
+  NO_INPUT,
+  serviceHandler,
+  WEBHOOK_SERVICE,
+} from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { CommentRow } from "@wren/starling-core";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
@@ -388,6 +394,7 @@ export function makeSocialPush(deps: SocialPushDeps) {
   }
   return restate.service({
     name: "SocialPush",
+    options: WEBHOOK_SERVICE,
     handlers: {
       /** A Meta webhook body, signature checked by the phone Worker. */
       meta: serviceHandler(

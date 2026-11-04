@@ -11,7 +11,7 @@
  * minutes, not the applicant.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { serviceHandler } from "@wren/core/restate";
+import { serviceHandler, WEBHOOK_SERVICE } from "@wren/core/restate";
 import type { FormPasses, SmsDeps } from "@wren/starling-sms/restate";
 import { FORM_WORKFLOW, speedRuns } from "@wren/starling-sms/schema";
 import { and, eq } from "drizzle-orm";
@@ -190,6 +190,7 @@ export function makeSmsForms(deps: FormDeps) {
 
   return restate.service({
     name: FORMS_SERVICE.name,
+    options: WEBHOOK_SERVICE,
     handlers: {
       /** The lander's push: one application by id, read from the site's export and stepped now. */
       applied: serviceHandler(

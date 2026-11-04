@@ -120,7 +120,8 @@ Admin queries go to `$U/admin/query` with the same bearer (SQL over `sys_invocat
 ### Dead letters
 
 A call whose retries ran out is paused: its object stays locked and nothing moves until
-someone acts. The `DeadLetters/all` loop files each one every 10 minutes and tells Discord
+someone acts. Retries: `[default-retry-policy]` in `deploy/scripts/box-restate.sh` (500 ms, x2, 1 min
+max, 70 tries, about 1 h). Webhook services keep an idempotency key 7 days (`WEBHOOK_SERVICE`). The `DeadLetters/all` loop files each one every 10 minutes and tells Discord
 once (designs/2026-10-11-dead-letters.md).
 
 ```sh

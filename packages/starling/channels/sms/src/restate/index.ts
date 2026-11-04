@@ -40,6 +40,7 @@ import {
   serviceHandler,
   setLastPass,
   stoppedPass,
+  WEBHOOK_SERVICE,
 } from "@wren/core/restate";
 import { cadenceId } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
@@ -277,6 +278,7 @@ export function makeSmsEvents(
 ) {
   return restate.service({
     name: "SmsEvents",
+    options: WEBHOOK_SERVICE,
     handlers: {
       /**
        * Whose account signed a webhook about `number` sent to `client`'s path (null: Wren's),

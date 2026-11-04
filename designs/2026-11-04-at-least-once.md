@@ -28,8 +28,8 @@ Each resend:
 | SMS (Linq) | same | same resend, no key: at least once |
 | Email | not in Sent after the grace → `failed`; a person re-arms | → `approved` again with the same Message-ID, once. `TransportRefused` stays `failed` |
 | DMs, comments, posts | `unsure` after the rechecks → To approve | → sent again under a new key, once, through the item's own queue. To approve gets only a second unsure |
-| Restate retries | server defaults, not written down | the same values in `config.toml` (`[invocation.default-retry-policy]`): 50 ms, x2, 60 s max, 70 tries, then pause |
-| Webhook dedupe | 24 h (Restate default) | 7 days on the services webhooks call (`idempotencyRetention`) |
+| Restate retries | server defaults, not written down | the same values in `config.toml` (`[default-retry-policy]`): 500 ms, x2, 1 min max, 70 tries, then pause |
+| Webhook dedupe | 24 h (Restate default) | 7 days (`WEBHOOK_SERVICE` in `@wren/core/restate`) on SmsEvents, CallBookings, Documents, SmsForms, SocialPush, InboxPush |
 | Webhooks while Restate is down | 502; the sender retries | short-retry senders: kept in KV, answered 200, replayed every 2 min under the same key |
 | TouchFeed | id cursor plus a 30 s wait: a late commit can be skipped | `touches.fired_at`, claimed with `SKIP LOCKED`; old rows backfilled |
 
@@ -84,3 +84,7 @@ Restate runs as one node on the Postgres box. A lost volume lost every queued ca
   1,000 times a day. A Telnyx event whose signer Restate could not name is held whole (raw body,
   signature, timestamp, receive time) and checked on replay; its signature stays valid against
   the receive time. A held key is written once: a vendor retry while down costs a read only.
+- 2026-11-04 (WA-1060): Restate 1.7 reads the retry policy at the top level
+  (`[default-retry-policy]`); `[invocation.default-retry-policy]` is ignored without an error.
+  `--dump-config` gave the defaults (500 ms first, not 50 ms); the pin copies them, so no behavior
+  changes now. The 7-day key covers the KV hold's TTL: a replay inside it is applied once.
