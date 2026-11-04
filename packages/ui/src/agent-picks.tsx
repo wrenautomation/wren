@@ -1,9 +1,11 @@
 /**
- * The composer's picks (model, effort, mode) and the status line under it, as the terminal shows
- * them (designs/2026-11-04-multi-user-runtime.md, Decision 11).
+ * What sits around the composer, as the terminal shows it: the picks (model, effort, mode), the
+ * status line, and the background tasks (designs/2026-11-04-multi-user-runtime.md, Decision 11).
  */
 import { cn } from "cn";
+import { took, useElapsed } from "./agent-steps.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
+import { tipProps } from "./hint.js";
 import { useHoverPop } from "./hover-pop.js";
 import { Icon } from "./icons.js";
 
@@ -129,5 +131,76 @@ export function AgentStatus({ info }: { info: AgentStatusInfo }) {
         </span>
       ))}
     </span>
+  );
+}
+
+/** A background task of the session: a shell, a Monitor, a subagent or a workflow. */
+export interface AgentTask {
+  id: string;
+  /** The CLI's `task_type`: local_bash, monitor, local_agent, local_workflow, … */
+  type: string;
+  description: string;
+  /** Epoch ms it began; 0 when it began before this page saw it. */
+  started: number;
+  /** The last progress line, when the task sends one. */
+  summary?: string | undefined;
+}
+
+const KIND: Record<
+  string,
+  { icon: "terminal" | "eye" | "bot" | "pulse"; name: string; cls: string }
+> = {
+  local_bash: { icon: "terminal", name: "Shell", cls: "text-(--ui-warn-ink)" },
+  monitor: { icon: "eye", name: "Monitor", cls: "text-(--ui-good-ink)" },
+  local_agent: { icon: "bot", name: "Agent", cls: "text-(--ui-ink-2)" },
+};
+const kindOf = (t: string) =>
+  KIND[t] ?? { icon: "pulse" as const, name: "Task", cls: "text-(--ui-ink-2)" };
+
+function TaskChip({ task, onStop }: { task: AgentTask; onStop: (id: string) => void }) {
+  const ms = useElapsed(true, task.started);
+  const k = kindOf(task.type);
+  return (
+    <li className="flex min-h-8 max-w-full items-center gap-2 rounded-[10px] bg-(--ui-paper) py-1 pr-1 pl-2.5 text-[12.5px] shadow-[inset_0_0_0_1px_var(--ui-hair)] [animation:ui-fade_.2s_both]">
+      <span className="relative grid size-4 flex-none place-items-center">
+        <Icon name={k.icon} size={14} className={k.cls} aria-label={k.name} />
+      </span>
+      <span className="min-w-0 wrap-anywhere text-(--ui-ink)">
+        {task.description}
+        {task.summary ? <span className="text-(--ui-ink-3)"> · {task.summary}</span> : null}
+      </span>
+      {task.started ? (
+        <span className="flex-none font-mono text-[11.5px] text-(--ui-ink-3) tabular-nums">
+          {took(ms)}
+        </span>
+      ) : null}
+      <button
+        type="button"
+        aria-label={`Stop ${task.description}`}
+        {...tipProps("Stop")}
+        onClick={() => onStop(task.id)}
+        className="grid size-6 flex-none place-items-center rounded-full text-(--ui-ink-3) hover:bg-(--ui-fill) hover:text-(--ui-ink)"
+      >
+        <span className="size-2 rounded-[1.5px] bg-current" />
+      </button>
+    </li>
+  );
+}
+
+/** The live background tasks, over the box: what `/tasks` lists in the terminal. */
+export function AgentTasks({
+  tasks,
+  onStop,
+}: {
+  tasks: readonly AgentTask[];
+  onStop: (id: string) => void;
+}) {
+  if (!tasks.length) return null;
+  return (
+    <ul aria-label="Background tasks" className="m-0 mb-2 flex list-none flex-wrap gap-1.5 p-0">
+      {tasks.map((t) => (
+        <TaskChip key={t.id} task={t} onStop={onStop} />
+      ))}
+    </ul>
   );
 }

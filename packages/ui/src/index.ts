@@ -27,7 +27,14 @@ export {
   useHeld,
   useLastWrite,
 } from "./action.js";
-export { AgentPick, AgentStatus, type AgentStatusInfo, type PickOption } from "./agent-picks.js";
+export {
+  AgentPick,
+  AgentStatus,
+  type AgentStatusInfo,
+  type AgentTask,
+  AgentTasks,
+  type PickOption,
+} from "./agent-picks.js";
 export { toolLine } from "./agent-steps.js";
 export {
   type AgentFile,

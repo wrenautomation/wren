@@ -148,6 +148,8 @@ export interface AgentThreadProps {
   tools?: ReactNode;
   /** Under the box: what it runs on. */
   note?: ReactNode;
+  /** Over the box: the live background tasks (`AgentTasks`). */
+  above?: ReactNode;
   className?: string | undefined;
 }
 
@@ -392,6 +394,7 @@ export function AgentThread(p: AgentThreadProps) {
                 >
                   <Icon name="down" size={15} />
                 </ThreadPrimitive.ScrollToBottom>
+                {p.above}
                 <Composer
                   closed={p.closed}
                   placeholder={p.placeholder}

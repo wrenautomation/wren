@@ -6,6 +6,7 @@ import type { Who } from "@wren/core/access";
 import {
   AgentPick,
   AgentStatus,
+  AgentTasks,
   AgentThread,
   cx,
   Icon,
@@ -128,6 +129,7 @@ export function ChatTitle({
   if (typed !== null)
     return (
       <div className="grid min-w-0 flex-1 gap-1">
+        {/* edit-ok: a chat name, saved on Enter and on blur */}
         <Input
           autoFocus
           aria-label="Chat name"
@@ -275,6 +277,7 @@ export function AgentChat({
           </>
         }
         welcome={w ?? { title: `Ask ${setup.title}` }}
+        above={<AgentTasks tasks={a.tasks} onStop={a.stopTask} />}
         note={
           a.status.model ? (
             <AgentStatus info={{ ...a.status, model: modelName(a.status.model) }} />

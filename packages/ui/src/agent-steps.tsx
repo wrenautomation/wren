@@ -84,7 +84,7 @@ export function took(ms: number): string {
 }
 
 /** Milliseconds since `from` (else since it began), ticking while `on`. */
-function useElapsed(on: boolean, from: number): number {
+export function useElapsed(on: boolean, from: number): number {
   const start = useRef(from || Date.now());
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {

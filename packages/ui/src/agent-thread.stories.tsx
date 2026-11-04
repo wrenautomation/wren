@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { AgentPick, AgentStatus } from "./agent-picks.js";
+import { AgentPick, AgentStatus, type AgentTask, AgentTasks } from "./agent-picks.js";
 import { type AgentMessage, AgentThread, type AgentThreadProps } from "./agent-thread.js";
 
 export default {
@@ -179,11 +179,34 @@ function Picks() {
   );
 }
 
-/** The box's foot: model, effort and mode menus; under it, the terminal's status line. */
+const TASKS: AgentTask[] = [
+  { id: "b1", type: "local_bash", description: "pnpm dev", started: Date.now() - 74_000 },
+  {
+    id: "b2",
+    type: "monitor",
+    description: "Watch the deploy",
+    started: Date.now() - 9_000,
+    summary: "CI gates green",
+  },
+  {
+    id: "b3",
+    type: "local_agent",
+    description: "Read 9 coach sites",
+    started: Date.now() - 31_000,
+  },
+];
+
+function Tasks() {
+  const [t, setT] = useState(TASKS);
+  return <AgentTasks tasks={t} onStop={(id) => setT((x) => x.filter((o) => o.id !== id))} />;
+}
+
+/** The box: background tasks over it, model, effort and mode in its foot, the status line under. */
 export const Foot: Story = {
   render: () => (
     <Live
       messages={DONE}
+      above={<Tasks />}
       tools={<Picks />}
       note={
         <AgentStatus
@@ -207,6 +230,9 @@ export const Foot: Story = {
     await userEvent.click(await page.findByRole("option", { name: /Max/ }));
     await waitFor(() => expect(c.getByRole("button", { name: "Effort: Max" })).toBeTruthy());
     await expect(c.getByRole("button", { name: "Permissions: Bypass" })).toBeTruthy();
+    await expect(c.getByText("1m 14s")).toBeTruthy();
+    await userEvent.click(c.getByRole("button", { name: "Stop pnpm dev" }));
+    await waitFor(() => expect(c.queryByText("pnpm dev")).toBeNull());
   },
 };
 

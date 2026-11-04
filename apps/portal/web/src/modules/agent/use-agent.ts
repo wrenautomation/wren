@@ -3,7 +3,13 @@
  * opens on the first send (a past chat opens with `resume`), so reading an old chat starts no
  * `claude`. Leaving the chat or the page closes the socket; the relay ends the child.
  */
-import { type AgentMessage, type AgentSent, type AgentStatusInfo, useLoad } from "@wren/ui";
+import {
+  type AgentMessage,
+  type AgentSent,
+  type AgentStatusInfo,
+  type AgentTask,
+  useLoad,
+} from "@wren/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { socketToken } from "../../api.js";
 import { openSetup, type Query, relayHistory, turns } from "./connect.js";
@@ -48,6 +54,9 @@ export interface AgentChat {
   plan: boolean | undefined;
   /** The terminal's status line: from init, then context and plan limits after each turn. */
   status: AgentStatusInfo;
+  /** Live background shells, Monitors and subagents; empty once the socket closes. */
+  tasks: readonly AgentTask[];
+  stopTask: (id: string) => void;
   /** `page` names the page the turn is sent from; the thread shows it under the turn. */
   send: (text: string, files?: readonly AgentSent[], page?: string) => void;
   /** A picked file → what its turn carries (AgentThread `files.ready`). */
@@ -74,6 +83,7 @@ export function useAgent(o: {
   const [error, setError] = useState<AgentChat["error"]>(null);
   const live = useRef<Live | null>(null);
   const [status, setStatus] = useState<AgentStatusInfo>({});
+  const [tasks, setTasks] = useState<readonly AgentTask[]>([]);
   const model = useRef(o.model);
   model.current = o.model;
   const picks = useRef({ effort: o.effort, mode: o.mode });
@@ -102,6 +112,8 @@ export function useAgent(o: {
     live.current = null;
     if (!l) return;
     l.closing = true;
+    // the level is per CLI process: a new socket starts with none
+    setTasks([]);
     for (const a of l.asks.values()) a(false);
     l.end();
     l.q.close();
@@ -201,6 +213,7 @@ export function useAgent(o: {
             }
             setS((p) => fold(p, m as never));
             if (m.type === "result") void measure(q, setStatus);
+            if (m.type === "system") setTasks((t) => taskFold(t, m));
           }
           if (!l.closing) setS(cut);
         } catch (e) {
@@ -285,11 +298,43 @@ export function useAgent(o: {
     session: s.session ?? o.session ?? undefined,
     plan: s.plan,
     status,
+    tasks,
+    stopTask: (id: string) => void live.current?.q.stopTask(id).catch(() => {}),
     send,
     ready,
     stop,
     answer,
   };
+}
+
+/**
+ * `background_tasks_changed` is the live set (replace it); `task_started` gives a start time and
+ * `task_progress` a line. Ambient tasks are housekeeping: hidden, as the CLI asks.
+ */
+function taskFold(t: readonly AgentTask[], m: { subtype: string } & Record<string, unknown>) {
+  if (m.subtype === "background_tasks_changed") {
+    const live = m.tasks as {
+      task_id: string;
+      task_type: string;
+      description: string;
+      ambient?: boolean;
+    }[];
+    return live
+      .filter((x) => !x.ambient)
+      .map((x) => {
+        const had = t.find((o) => o.id === x.task_id);
+        return {
+          id: x.task_id,
+          type: x.task_type,
+          description: x.description,
+          started: had?.started ?? Date.now(),
+          summary: had?.summary,
+        };
+      });
+  }
+  if (m.subtype === "task_progress" && typeof m.summary === "string")
+    return t.map((o) => (o.id === m.task_id ? { ...o, summary: m.summary as string } : o));
+  return t;
 }
 
 /** After a turn: the context in use and the plan's 5h and 7d use, as `/context` and `/usage` give them. */
