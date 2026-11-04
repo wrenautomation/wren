@@ -129,9 +129,12 @@ export const touches = pgTable(
     /** Unique key from the source row (`rm:12`, `ca:7`): a writer and the backfill agree. */
     ref: varchar("ref", { length: 200 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    /** Told to the executor by `TouchFeed` (WA-1062); null: not yet, the feed picks it up. */
+    firedAt: timestamp("fired_at", { withTimezone: true }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_touches" }),
+    index("ix_touches_unfired").on(t.id).where(sql`fired_at IS NULL`),
     unique("uq_touches_ref").on(t.ref),
     index("ix_touches_handle_id_at").on(t.handleId, t.at),
     index("ix_touches_answers").on(t.answers),

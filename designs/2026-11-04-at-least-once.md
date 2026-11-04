@@ -31,7 +31,7 @@ Each resend:
 | Restate retries | server defaults, not written down | the same values in `config.toml` (`[default-retry-policy]`): 500 ms, x2, 1 min max, 70 tries, then pause |
 | Webhook dedupe | 24 h (Restate default) | 7 days (`WEBHOOK_SERVICE` in `@wren/core/restate`) on SmsEvents, CallBookings, Documents, SmsForms, SocialPush, InboxPush |
 | Webhooks while Restate is down | 502; the sender retries | short-retry senders: kept in KV, answered 200, replayed every 2 min under the same key |
-| TouchFeed | id cursor plus a 30 s wait: a late commit can be skipped | `touches.fired_at`, claimed with `SKIP LOCKED`; old rows backfilled |
+| TouchFeed | id cursor plus a 30 s wait: a late commit can be skipped | `touches.fired_at`, marked after the fires are journaled; rows older than an hour backfilled |
 
 ## Webhooks while Restate is down
 
@@ -88,3 +88,8 @@ Restate runs as one node on the Postgres box. A lost volume lost every queued ca
   (`[default-retry-policy]`); `[invocation.default-retry-policy]` is ignored without an error.
   `--dump-config` gave the defaults (500 ms first, not 50 ms); the pin copies them, so no behavior
   changes now. The 7-day key covers the KV hold's TTL: a replay inside it is applied once.
+- 2026-11-04 (WA-1062): TouchFeed marks `fired_at` after the executor sends, not before. A claim
+  first (`SKIP LOCKED`) loses a touch when the step commits and the Lambda dies before Restate
+  journals it: the retry finds the rows claimed. One key (`TouchFeed/all`) runs one pass at a
+  time, so no lock is needed. The settle wait and the cursor in loop state are gone. Backfill
+  leaves the last hour untold: told again at most, never skipped.

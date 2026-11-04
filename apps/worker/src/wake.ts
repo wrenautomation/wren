@@ -11,7 +11,6 @@
 
 import { clientUrl, listClients } from "@wren/core/clients";
 import { clientKey } from "@wren/core/restate";
-import { SETTLE_MS as TOUCH_SETTLE_MS } from "@wren/core/touch-feed";
 import { createDb, type Listening, listen } from "@wren/db";
 import type { Logger } from "pino";
 
@@ -25,8 +24,6 @@ const CLIENTS_EVERY_MS = 10 * 60_000;
 
 /** Unit of a loop over every workspace (`TouchFeed/all`): never keyed to the owner. */
 const EVERY_WORKSPACE = "all";
-/** Waits longer than `SETTLE_MS` for a loop that reads only settled rows. */
-const SETTLE_BY_SERVICE: Readonly<Record<string, number>> = { TouchFeed: TOUCH_SETTLE_MS + 2000 };
 
 /** `Service/unit` from a notice, keyed to its database's owner; null when malformed. */
 export function wakeTarget(
@@ -57,12 +54,10 @@ export function pacedWakes(
     settleMs = SETTLE_MS,
     spaceMs = SPACE_MS,
     now = Date.now,
-    settleBy = SETTLE_BY_SERVICE,
   }: {
     settleMs?: number;
     spaceMs?: number;
     now?: () => number;
-    settleBy?: Readonly<Record<string, number>>;
   } = {},
 ): { wake(service: string, key: string): void; close(): void } {
   const due = new Map<string, ReturnType<typeof setTimeout>>();
@@ -71,8 +66,7 @@ export function pacedWakes(
     wake(service, key) {
       const id = `${service}/${key}`;
       if (due.has(id)) return;
-      const settle = settleBy[service] ?? settleMs;
-      const wait = Math.max(settle, (last.get(id) ?? 0) + spaceMs - now());
+      const wait = Math.max(settleMs, (last.get(id) ?? 0) + spaceMs - now());
       due.set(
         id,
         setTimeout(() => {

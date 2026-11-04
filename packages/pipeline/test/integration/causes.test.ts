@@ -15,7 +15,7 @@ import {
 } from "@wren/core/executor";
 import { mergeProfiles, resolveProfile } from "@wren/core/profiles";
 import { profileEvents } from "@wren/core/profiles-schema";
-import { touchFired, touchPass, touchRows } from "@wren/core/touch-feed";
+import { markTouchesFired, touchFired, touchRows, untoldTouches } from "@wren/core/touch-feed";
 import { recordTouch } from "@wren/core/touches";
 import type { Workflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
@@ -152,32 +152,25 @@ describe("a touch", () => {
     ...over,
   });
 
-  it("is read past the cursor once it has settled, and opens a journey on the shape", async () => {
+  it("is read until marked told, and opens a journey on the shape", async () => {
     const flows = await flowsOf();
     const r = rig();
 
-    // The first pass starts at the newest touch and tells none.
-    const first = await touchPass(pg.db, undefined, new Date());
-    expect(first).toEqual({ ids: [], next: 0, settling: false });
-
+    expect(await untoldTouches(pg.db)).toEqual([]);
     const mine = await recordTouch(pg.db, dm("t:1"));
     const ours = await recordTouch(pg.db, dm("t:2", { direction: "ours", at: new Date() }));
     if (!mine || !ours) throw new Error("no touch");
 
-    // Just written: not settled, so not read yet, and the feed comes back soon.
-    expect(await touchPass(pg.db, 0, new Date())).toEqual({ ids: [], next: 0, settling: true });
+    // Read at once, oldest first; read again until marked (a crash before the mark tells twice).
+    const got = await untoldTouches(pg.db);
+    expect(got).toEqual([mine.id, ours.id]);
+    expect(await untoldTouches(pg.db)).toEqual(got);
+    await markTouchesFired(pg.db, [mine.id]);
+    expect(await untoldTouches(pg.db)).toEqual([ours.id]);
+    await markTouchesFired(pg.db, [mine.id, ours.id]);
+    expect(await untoldTouches(pg.db)).toEqual([]);
 
-    const later = new Date(Date.now() + 120_000);
-    const got = await touchPass(pg.db, 0, later);
-    expect(got).toEqual({ ids: [mine.id, ours.id], next: ours.id, settling: false });
-    // Told: the cursor past them reads nothing again.
-    expect(await touchPass(pg.db, got?.next, later)).toEqual({
-      ids: [],
-      next: ours.id,
-      settling: false,
-    });
-
-    const rows = await touchRows(pg.db, got?.ids ?? []);
+    const rows = await touchRows(pg.db, got ?? []);
     expect(rows.map((t) => [t.id, t.platform, t.handle, t.direction])).toEqual([
       [mine.id, "x", "sam_synth", "theirs"],
       [ours.id, "x", "sam_synth", "ours"],

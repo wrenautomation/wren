@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { triggerHears } from "./logic.js";
-import { nextCursor, type TouchRow, touchFired } from "./touch-feed.js";
+import { type TouchRow, touchFired } from "./touch-feed.js";
 
 const row: TouchRow = {
   id: 41,
@@ -15,22 +15,6 @@ const row: TouchRow = {
   source: "reach_messages",
   profile: null,
 };
-
-describe("nextCursor", () => {
-  it("starts a new workspace at its newest touch", () => {
-    expect(nextCursor(undefined, [], 90)).toBe(90);
-    expect(nextCursor(undefined, [1, 2], 90)).toBe(90);
-  });
-  it("moves to the last id read", () => {
-    expect(nextCursor(10, [11, 12, 15], 99)).toBe(15);
-  });
-  it("stays when nothing new came", () => {
-    expect(nextCursor(10, [], 99)).toBe(10);
-  });
-  it("never moves back", () => {
-    expect(nextCursor(10, [4], 99)).toBe(10);
-  });
-});
 
 describe("touchFired", () => {
   it("tells the touch by its id, on the person kind", () => {

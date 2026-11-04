@@ -1,13 +1,12 @@
 /**
  * The touch feed (designs/2026-10-18-journeys.md, "Causes"): `recordTouch` has many writers
  * outside Restate, so the executor hears a touch from this tail loop, not from them. `TouchFeed/all`
- * reads each workspace's `touches` past its cursor and tells the executor once per new touch
- * (`trigger.touch`, subject `touch:<id>`, event kind `person`). A new touch wakes it at commit
- * (`wren_wake`, migration 0353; the box waits out `SETTLE_MS` first); the net runs every 15
- * minutes (designs/2026-11-01-loop-calls.md). A missed wake is caught up by the next pass. The
- * cursors live in loop state. A workspace's first pass starts at its newest touch: history is
- * never told. Only rows older than `SETTLE_MS` are read, so a slow writer's lower id that commits
- * late is not skipped.
+ * reads each workspace's untold touches (`fired_at` null), tells the executor once per touch
+ * (`trigger.touch`, subject `touch:<id>`, event kind `person`), then marks them told. At least
+ * once (WA-1062, designs/2026-11-04-at-least-once.md): a crash between the send and the mark tells
+ * a touch again, and the executor enters a subject once. A late commit is read on the next pass,
+ * so nothing waits to settle. A new touch wakes it at commit (`wren_wake`, migration 0353); the
+ * net runs every 15 minutes (designs/2026-11-01-loop-calls.md).
  */
 import type * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
@@ -17,32 +16,21 @@ import { makeLoopObject, runPass } from "./restate/loop.js";
 
 /** The most touches told per workspace in one pass; the rest go on the next. */
 const TOUCH_BATCH = 200;
-/** A touch is read this long after it was written. */
-export const SETTLE_MS = 30_000;
 /** The net's beat: a new touch wakes the feed at commit. */
 const TOUCH_FEED_MS = 15 * 60_000;
-/** Back this soon while a read touch has not settled. */
-const UNSETTLED_MS = SETTLE_MS + 5_000;
-/** The key of Wren's own workspace in the cursors; a client's is its id. */
-const WREN_CURSOR = "wren";
 const TOUCH_FEED = "TouchFeed";
-const CURSORS = "cursors";
-
-/** Where each workspace's feed got to: the last touch id told. */
-export type Cursors = Record<string, number>;
-
-/**
- * A workspace's next cursor. None yet: start at its newest touch, telling none. Else the last id
- * read, or where it was when nothing new came.
- */
-export function nextCursor(cursor: number | undefined, read: readonly number[], newest: number) {
-  if (cursor === undefined) return newest;
-  return read.length ? Math.max(cursor, read[read.length - 1] as number) : cursor;
-}
+/** The id cursors before WA-1062: cleared on the first pass. */
+const OLD_CURSORS = "cursors";
 
 type Row = Record<string, unknown>;
 const rows = async (db: Queryable, q: ReturnType<typeof sql>) =>
   (await db.execute(q)) as unknown as Row[];
+
+const idList = (ids: readonly number[]) =>
+  sql.join(
+    ids.map((id) => sql`${id}`),
+    sql`, `,
+  );
 
 /** Whether the workspace keeps touches at all. */
 async function hasTouches(db: Queryable): Promise<boolean> {
@@ -50,48 +38,22 @@ async function hasTouches(db: Queryable): Promise<boolean> {
   return r?.yes === true;
 }
 
-/** The newest touch id, 0 when none. */
-async function newestTouch(db: Queryable): Promise<number> {
-  const [r] = await rows(db, sql`select coalesce(max(id), 0) id from touches`);
-  return Number(r?.id ?? 0);
-}
-
-/** The ids past `after` that have settled (written before `now` less `SETTLE_MS`), oldest first. */
-async function settledAfter(
-  db: Queryable,
-  after: number,
-  now: Date,
-  limit = TOUCH_BATCH,
-): Promise<number[]> {
+/** One workspace's untold touch ids, oldest first; null when it keeps no touches. Pure of Restate. */
+export async function untoldTouches(db: Queryable, limit = TOUCH_BATCH): Promise<number[] | null> {
+  if (!(await hasTouches(db))) return null;
   const got = await rows(
     db,
-    sql`select id from touches
-      where id > ${after} and created_at < ${new Date(now.getTime() - SETTLE_MS).toISOString()}::timestamptz
-      order by id limit ${limit}`,
+    sql`select id from touches where fired_at is null order by id limit ${limit}`,
   );
   return got.map((r) => Number(r.id));
 }
 
-/** Whether a touch past `after` is still settling. */
-async function unsettledAfter(db: Queryable, after: number): Promise<boolean> {
-  const [r] = await rows(db, sql`select exists (select 1 from touches where id > ${after}) yes`);
-  return r?.yes === true;
-}
-
-/**
- * One workspace's pass: the ids to tell, where the cursor goes, and whether a touch past it is
- * still settling. Pure of Restate.
- */
-export async function touchPass(
-  db: Queryable,
-  cursor: number | undefined,
-  now: Date,
-): Promise<{ ids: number[]; next: number; settling: boolean } | null> {
-  if (!(await hasTouches(db))) return null;
-  if (cursor === undefined) return { ids: [], next: await newestTouch(db), settling: false };
-  const ids = await settledAfter(db, cursor, now);
-  const next = nextCursor(cursor, ids, 0);
-  return { ids, next, settling: ids.length < TOUCH_BATCH && (await unsettledAfter(db, next)) };
+/** Marks `ids` told, after their fires are journaled. */
+export async function markTouchesFired(db: Queryable, ids: readonly number[]): Promise<void> {
+  if (!ids.length) return;
+  await db.execute(
+    sql`update touches set fired_at = now() where id in (${idList(ids)}) and fired_at is null`,
+  );
 }
 
 /** The executor's fire for one touch: the facts it is heard by and the event it enters with. */
@@ -142,10 +104,7 @@ export async function touchRows(db: Queryable, ids: readonly number[]): Promise<
         (select k.profile_id from profile_keys k
           where k.kind = 'handle:' || h.platform and k.value = h.handle limit 1) profile
       from touches t join social_handles h on h.id = t.handle_id
-      where t.id in (${sql.join(
-        ids.map((id) => sql`${id}`),
-        sql`, `,
-      )}) order by t.id`,
+      where t.id in (${idList(ids)}) order by t.id`,
   );
   return got.map((r) => ({
     id: Number(r.id),
@@ -172,80 +131,61 @@ interface TouchFeedDeps {
 interface TouchFeedStats {
   /** Touches told this pass. */
   told: number;
-  /** Where each workspace's cursor goes. */
-  cursors: Cursors;
   /** What each workspace read, for the events step. */
   batches: { client: string | null; ids: number[] }[];
   /** Client workspaces that failed to read; Wren's own failing fails the pass. */
   errors: string[];
-  /** A touch past a cursor has not settled: pass again soon. */
-  settling: boolean;
 }
 
-/** `TouchFeed/all`: each workspace's new touches told to the executor, on a new touch or the net. */
+/** `TouchFeed/all`: each workspace's untold touches told to the executor, on a new touch or the net. */
 export function makeTouchFeed(d: TouchFeedDeps) {
+  const dbOf = (client: string | null) => (client ? d.clientDb(client) : d.main);
   return makeLoopObject(TOUCH_FEED, async (ctx: restate.ObjectContext) => {
-    const cursors = (await ctx.get<Cursors>(CURSORS)) ?? {};
+    ctx.clear(OLD_CURSORS);
     const outcome = await runPass<TouchFeedStats>(ctx, d.main, {
       name: "touch feed",
       ledger: { command: "touch feed", argv: { daemon: true } },
-      body: async (_runId, now) => {
-        const next: Cursors = { ...cursors };
+      body: async () => {
         const batches: TouchFeedStats["batches"] = [];
         const errors: string[] = [];
-        let settling = false;
-        const work: { key: string; client: string | null }[] = [
-          { key: WREN_CURSOR, client: null },
-          ...(await d.clients()).map((c) => ({ key: c, client: c })),
-        ];
-        for (const w of work) {
+        const work = [null, ...(await d.clients())];
+        for (const client of work) {
           try {
-            const got = await touchPass(
-              w.client ? d.clientDb(w.client) : d.main,
-              cursors[w.key],
-              now,
-            );
-            if (!got) continue;
-            next[w.key] = got.next;
-            if (got.settling) settling = true;
-            if (got.ids.length) batches.push({ client: w.client, ids: got.ids });
+            const ids = await untoldTouches(dbOf(client));
+            if (ids?.length) batches.push({ client, ids });
           } catch (err) {
             // Wren's own workspace failing fails the pass; a client's is said and skipped.
-            if (!w.client) throw err;
-            errors.push(`${w.client}: ${String(err).slice(0, 2000)}`);
+            if (!client) throw err;
+            errors.push(`${client}: ${String(err).slice(0, 2000)}`);
           }
         }
-        return {
-          told: batches.reduce((n, b) => n + b.ids.length, 0),
-          cursors: next,
-          batches,
-          errors,
-          settling,
-        };
+        return { told: batches.reduce((n, b) => n + b.ids.length, 0), batches, errors };
       },
       delayAfter: (s) =>
-        s.batches.some((b) => b.ids.length >= TOUCH_BATCH)
-          ? 5_000
-          : s.settling
-            ? UNSETTLED_MS
-            : TOUCH_FEED_MS,
+        s.batches.some((b) => b.ids.length >= TOUCH_BATCH) ? 5_000 : TOUCH_FEED_MS,
       retryMs: TOUCH_FEED_MS,
     });
-    if (!outcome.stats) return outcome;
-    if (!outcome.stats.batches.length) {
-      ctx.set(CURSORS, outcome.stats.cursors);
-      return outcome;
-    }
+    const batches = outcome.stats?.batches ?? [];
+    if (!batches.length) return outcome;
     // Built in their own step, so the pass's record keeps ids only.
     const fires = await ctx.run("touch events", async () => {
       const out: Fired[] = [];
-      for (const b of outcome.stats?.batches ?? [])
-        for (const t of await touchRows(b.client ? d.clientDb(b.client) : d.main, b.ids))
-          out.push(touchFired(b.client, t));
+      for (const b of batches)
+        for (const t of await touchRows(dbOf(b.client), b.ids)) out.push(touchFired(b.client, t));
       return out;
     });
     for (const f of fires) executorFire(ctx, f);
-    ctx.set(CURSORS, outcome.stats.cursors);
+    // After the sends are journaled: a crash before this tells them again, never skips them.
+    await ctx.run("touches told", async () => {
+      for (const b of batches)
+        try {
+          await markTouchesFired(dbOf(b.client), b.ids);
+        } catch (err) {
+          // A client's failing: told again next pass. Wren's own retries the step.
+          if (!b.client) throw err;
+          console.warn(`touch feed: ${b.client} not marked: ${String(err).slice(0, 500)}`);
+        }
+    });
     return outcome;
   });
 }
