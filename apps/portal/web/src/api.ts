@@ -6,7 +6,15 @@
  * need none.
  */
 import { FILE_TYPES, MAX_FILE_BYTES, typeOfName } from "@wren/delivery/routes";
-import { dropLocalCopy, readTogether, say, startLocalCopy, type WireState, WRITES } from "@wren/ui";
+import {
+  dropLocalCopy,
+  type LinkPreview,
+  readTogether,
+  say,
+  startLocalCopy,
+  type WireState,
+  WRITES,
+} from "@wren/ui";
 import { BUILD_HEADER, BUILD_META, STALE_CODE } from "../../src/build.js";
 import { isWrite } from "../../src/services.js";
 import { tellAutotrack } from "./autotrack.js";
@@ -240,6 +248,14 @@ export const socketToken = (): Promise<string | null> => token();
 export async function authHeaders(): Promise<Record<string, string>> {
   const t = await token();
   return t ? { authorization: `Bearer ${t}` } : {};
+}
+
+/** A sent link's preview (src/unfurl.ts); a refusal (demo, dev, cap) = none. */
+export async function linkPreview(href: string): Promise<LinkPreview> {
+  const res = await fetch(`/api/unfurl?url=${encodeURIComponent(href)}`, {
+    headers: await authHeaders(),
+  });
+  return res.ok ? ((await res.json()) as LinkPreview) : {};
 }
 
 async function fresh(url: string): Promise<string | null> {

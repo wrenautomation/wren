@@ -669,6 +669,42 @@ export const Previews: Story = {
   },
 };
 
+const SHOT = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600"><rect width="960" height="600" fill="#f4f1ea"/><rect x="40" y="40" width="880" height="64" rx="10" fill="#e4dfd3"/><rect x="40" y="136" width="560" height="424" rx="14" fill="#2f6f5e"/><rect x="632" y="136" width="288" height="200" rx="14" fill="#d9b46a"/><rect x="632" y="360" width="288" height="200" rx="14" fill="#b4532a"/></svg>`;
+
+/** Paths the agent names to an image or video show it under the path; a refused one shows nothing. */
+export const Paths: Story = {
+  render: () => (
+    <Live
+      readFile={async (path) => {
+        if (path.endsWith("shot-1280.png")) return new Blob([SHOT], { type: "image/svg+xml" });
+        throw new Error("relay 403");
+      }}
+      messages={[
+        you("u1", "Shoot the pricing page at 1280."),
+        {
+          id: "a1",
+          role: "assistant",
+          state: "done",
+          parts: [
+            {
+              type: "text",
+              text: "Saved the shot to `~/Documents/shots/pricing/shot-1280.png`. The other one, /etc/far-away.png, is outside this chat's folders.",
+            },
+          ],
+        },
+      ]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await expect(await c.findByRole("img", { name: "shot-1280.png" })).toBeTruthy();
+    await expect(
+      c.getByText("~/Documents/shots/pricing/shot-1280.png", { selector: "figcaption" }),
+    ).toBeTruthy();
+    await expect(c.queryByText("/etc/far-away.png", { selector: "figcaption" })).toBeNull();
+  },
+};
+
 /** One question, one pick: the click sends; "Something else…" opens a line for the person's own words. */
 export const Choice: Story = {
   render: () => (

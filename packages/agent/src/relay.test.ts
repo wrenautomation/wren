@@ -1,7 +1,15 @@
 /** The relay against a fake CLI child: synthetic frames, no `claude`, no model call. */
 // biome-ignore-all lint/suspicious/noExplicitAny: wire frames, read loosely
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -260,6 +268,36 @@ describe("relay", () => {
     const args = spawned.at(-1) ?? [];
     expect(args[args.indexOf("--add-dir") + 1]).toBe(mine);
     expect(existsSync(mine)).toBe(true);
+  });
+
+  it("shows an image or video by path: the owner any, anyone else their folders", async () => {
+    const uploads = mkdtempSync(join(tmpdir(), "wren-up-"));
+    const away = mkdtempSync(join(tmpdir(), "wren-away-"));
+    const mine = uploadDir(uploads, "local");
+    mkdirSync(mine, { recursive: true });
+    writeFileSync(join(mine, "shot.png"), "png");
+    writeFileSync(join(away, "far.png"), "far");
+    writeFileSync(join(away, "key"), "secret");
+    symlinkSync(join(away, "key"), join(mine, "key.png"));
+    let owner = false;
+    await start({}, async (a) => ((await byToken(a)) ? { who: "local", owner } : null), {
+      uploads,
+    });
+    const get = (path: string, token: string | null = "tok") =>
+      fetch(`http://127.0.0.1:${port}/s/demo/file?path=${encodeURIComponent(path)}`, {
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+      });
+    expect((await get(join(mine, "shot.png"), null)).status).toBe(401);
+    const ok = await get(join(mine, "shot.png"));
+    expect(ok.headers.get("content-type")).toBe("image/png");
+    expect(await ok.text()).toBe("png");
+    expect((await get(join(away, "far.png"))).status).toBe(403);
+    expect((await get(join(mine, "key.png"))).status).toBe(415);
+    expect((await get("shot.png")).status).toBe(400);
+    expect((await get(join(mine, "none.png"))).status).toBe(404);
+    owner = true;
+    expect(await (await get(join(away, "far.png"))).text()).toBe("far");
+    expect((await get(join(away, "key"))).status).toBe(415);
   });
 
   it("file names keep one path segment", () => {

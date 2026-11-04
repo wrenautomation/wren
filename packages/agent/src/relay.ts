@@ -3,15 +3,16 @@
  * `claude` child per socket. Frames are the CLI's own stream-json (NDJSON), which the Agent SDK's
  * `./browser` `query({websocket})` speaks, so the page holds the whole SDK and the relay parses
  * only to filter (filter.ts), to guard the credential (guard.ts) and to note the session id.
- * HTTP on the same port: `GET /setups`, and a person's own sessions (designs/2026-11-04-multi-user-runtime.md,
- * Decisions 4 and 5). `authorize` decides who may open which setup; the relay holds no access model.
+ * HTTP on the same port: `GET /setups`, a person's own sessions (designs/2026-11-04-multi-user-runtime.md,
+ * Decisions 4 and 5), and an image or video by path for its preview (`GET /s/<setup>/file`). `authorize` decides who may open which setup; the relay holds no access model.
  */
 import { type ChildProcess, spawn as nodeSpawn, type SpawnOptions } from "node:child_process";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
-import { createWriteStream, mkdirSync, rmSync } from "node:fs";
+import { createReadStream, createWriteStream, mkdirSync, rmSync } from "node:fs";
+import { realpath, stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, extname, isAbsolute, join, sep } from "node:path";
 import { createInterface } from "node:readline";
 import { type WebSocket, WebSocketServer } from "ws";
 import { EFFORTS, inbound, modeAllowed } from "./filter.js";
@@ -80,6 +81,22 @@ const AUTH_MS = 5000;
 const SESSION_PATH = /^\/s\/([\w-]+)(?:\/sessions(?:\/([\w-]+))?)?$/;
 const FILES_PATH = /^\/s\/([\w-]+)\/files$/;
 const UPLOAD_CAP = 500 * 1024 * 1024;
+const FILE_PATH = /^\/s\/([\w-]+)\/file$/;
+const SHOW_CAP = 50 * 1024 * 1024;
+/** What a preview may show; the type is the real file's, after links. */
+const SHOWN: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  avif: "image/avif",
+  svg: "image/svg+xml",
+  mp4: "video/mp4",
+  m4v: "video/mp4",
+  mov: "video/quicktime",
+  webm: "video/webm",
+};
 
 /** Chat files on this Mac, never inside a repo folder. */
 export const UPLOADS_DIR = join(homedir(), ".config", "wren", "agent-uploads");
@@ -295,6 +312,7 @@ export function relay(o: RelayOptions): {
     if (req.method === "POST" && FILES_PATH.test(url.pathname)) return upload(req, res, url);
     if (req.method === "PATCH") return rename(req, res, url);
     if (req.method !== "GET") return send(res, 405, { error: "GET only" });
+    if (FILE_PATH.test(url.pathname)) return show(req, res, url);
     if (url.pathname === "/setups")
       return send(
         res,
@@ -374,6 +392,50 @@ export function relay(o: RelayOptions): {
       log(`${setup.name}: rename failed: ${e instanceof Error ? e.message : e}`);
       return send(res, 500, { error: "could not rename the chat" });
     }
+  }
+
+  /** `?path=` (absolute or `~/`): an image or video for its preview. The owner, any file of theirs;
+   * anyone else, their own uploads and the setup's folder. */
+  async function show(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+    const setup = setupOf(FILE_PATH.exec(url.pathname)?.[1]);
+    if (!setup) return send(res, 404, { error: "not found" });
+    const credential = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
+    const person = credential
+      ? await o.authorize({ credential, origin: req.headers.origin, setup }).catch(() => null)
+      : null;
+    if (!person) return send(res, 401, { error: "not allowed to open this setup" });
+    const raw = url.searchParams.get("path") ?? "";
+    const path = raw.startsWith("~/") ? join(homedir(), raw.slice(2)) : raw;
+    if (!isAbsolute(path)) return send(res, 400, { error: "a full path is needed" });
+    let real: string;
+    try {
+      real = await realpath(path);
+    } catch {
+      return send(res, 404, { error: "no such file" });
+    }
+    const type = SHOWN[extname(real).slice(1).toLowerCase()];
+    if (!type) return send(res, 415, { error: "images and videos only" });
+    if (!person.owner) {
+      const roots = [
+        setupCwd(setup, o.launch.root),
+        ...(o.uploads ? [uploadDir(o.uploads, person.who)] : []),
+      ];
+      const realRoots = await Promise.all(roots.map((r) => realpath(r).catch(() => null)));
+      if (!realRoots.some((r) => r && (real === r || real.startsWith(r + sep))))
+        return send(res, 403, { error: "that file is outside this chat's folders" });
+    }
+    const st = await stat(real).catch(() => null);
+    if (!st?.isFile()) return send(res, 404, { error: "no such file" });
+    if (st.size > SHOW_CAP) return send(res, 413, { error: "too big to preview" });
+    res.writeHead(200, {
+      "content-type": type,
+      "content-length": String(st.size),
+      "cache-control": "private, max-age=60",
+      "x-content-type-options": "nosniff",
+    });
+    createReadStream(real)
+      .on("error", () => res.destroy())
+      .pipe(res);
   }
 
   /** Raw body, `?name=`; streamed to disk under the person's folder; answers the path. */

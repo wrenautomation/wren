@@ -71,6 +71,15 @@ export async function relayPost<T>(path: string, token: string, body: Blob): Pro
 }
 
 export const relaySetups = () => relayGet<SetupInfo[]>("/setups");
+/** An image or video on the relay's Mac, by the path the chat names; the relay checks the folder. */
+export async function relayFile(setup: string, token: string, path: string): Promise<Blob> {
+  const res = await fetch(
+    `${HTTP}/s/${encodeURIComponent(setup)}/file?path=${encodeURIComponent(path)}`,
+    { headers: { authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) throw new Error(`relay ${res.status}`);
+  return res.blob();
+}
 /** The person's own name for one of their chats. */
 export async function relayRename(
   setup: string,

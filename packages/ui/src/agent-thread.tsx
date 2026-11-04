@@ -27,6 +27,8 @@ import {
   Answer,
   answersOf,
   Choices,
+  FilePreviews,
+  FileRead,
   LinkCard,
   type LinkPreview,
   linksIn,
@@ -163,6 +165,8 @@ export interface AgentThreadProps {
   commands?: readonly AgentCommand[] | undefined;
   /** A sent link's preview (the portal's `/api/unfurl`); none = bare link cards. */
   preview?: ((href: string) => Promise<LinkPreview>) | undefined;
+  /** An image or video the chat names by path, read from the agent's machine; none = no previews. */
+  readFile?: ((path: string) => Promise<Blob>) | undefined;
   className?: string | undefined;
 }
 
@@ -411,60 +415,62 @@ export function AgentThread(p: AgentThreadProps) {
     <AssistantRuntimeProvider runtime={runtime}>
       <Answer.Provider value={p.onAnswer}>
         <Preview.Provider value={p.preview}>
-          <ThreadPrimitive.Root
-            data-agent-thread=""
-            className={cx("flex h-full min-h-0 flex-col", p.className)}
-          >
-            <ThreadPrimitive.Viewport
-              aria-busy={p.stale || undefined}
-              className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
+          <FileRead.Provider value={p.readFile}>
+            <ThreadPrimitive.Root
+              data-agent-thread=""
+              className={cx("flex h-full min-h-0 flex-col", p.className)}
             >
-              <div
-                className={cx(
-                  COLUMN,
-                  "grid gap-8 pt-6 pb-6 transition-opacity duration-200",
-                  p.stale && "opacity-50",
-                )}
+              <ThreadPrimitive.Viewport
+                aria-busy={p.stale || undefined}
+                className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
               >
-                <ThreadPrimitive.Messages>
-                  {({ message }) => (message.role === "user" ? <UserTurn /> : <ReplyTurn />)}
-                </ThreadPrimitive.Messages>
-                {p.starting ? <Starting /> : null}
-                {p.error ? (
-                  <Alert onRetry={p.error.retry} className="ui-rise mb-0">
-                    {p.error.text}
-                  </Alert>
-                ) : null}
-              </div>
-              <ThreadPrimitive.Empty>
-                {p.welcome ? <Welcome {...p.welcome} /> : null}
-              </ThreadPrimitive.Empty>
-              <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-[linear-gradient(transparent,var(--ui-paper)_28px)] pt-7 pb-1">
-                <div className={cx(COLUMN, "relative")}>
-                  <ThreadPrimitive.ScrollToBottom
-                    className="absolute -top-11 left-1/2 grid size-8 -translate-x-1/2 place-items-center rounded-full bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-opacity duration-200 hover:text-(--ui-ink) disabled:pointer-events-none disabled:opacity-0"
-                    aria-label="Scroll to the newest"
-                  >
-                    <Icon name="down" size={15} />
-                  </ThreadPrimitive.ScrollToBottom>
-                  {p.above}
-                  <Composer
-                    closed={p.closed}
-                    placeholder={p.placeholder}
-                    tools={p.tools}
-                    files={!!p.files}
-                    context={p.context}
-                    commands={p.commands}
-                  />
-                  {p.note ? (
-                    <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">
-                      {p.note}
-                    </p>
+                <div
+                  className={cx(
+                    COLUMN,
+                    "grid gap-8 pt-6 pb-6 transition-opacity duration-200",
+                    p.stale && "opacity-50",
+                  )}
+                >
+                  <ThreadPrimitive.Messages>
+                    {({ message }) => (message.role === "user" ? <UserTurn /> : <ReplyTurn />)}
+                  </ThreadPrimitive.Messages>
+                  {p.starting ? <Starting /> : null}
+                  {p.error ? (
+                    <Alert onRetry={p.error.retry} className="ui-rise mb-0">
+                      {p.error.text}
+                    </Alert>
                   ) : null}
                 </div>
-              </ThreadPrimitive.ViewportFooter>
-            </ThreadPrimitive.Viewport>
-          </ThreadPrimitive.Root>
+                <ThreadPrimitive.Empty>
+                  {p.welcome ? <Welcome {...p.welcome} /> : null}
+                </ThreadPrimitive.Empty>
+                <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-[linear-gradient(transparent,var(--ui-paper)_28px)] pt-7 pb-1">
+                  <div className={cx(COLUMN, "relative")}>
+                    <ThreadPrimitive.ScrollToBottom
+                      className="absolute -top-11 left-1/2 grid size-8 -translate-x-1/2 place-items-center rounded-full bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-opacity duration-200 hover:text-(--ui-ink) disabled:pointer-events-none disabled:opacity-0"
+                      aria-label="Scroll to the newest"
+                    >
+                      <Icon name="down" size={15} />
+                    </ThreadPrimitive.ScrollToBottom>
+                    {p.above}
+                    <Composer
+                      closed={p.closed}
+                      placeholder={p.placeholder}
+                      tools={p.tools}
+                      files={!!p.files}
+                      context={p.context}
+                      commands={p.commands}
+                    />
+                    {p.note ? (
+                      <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">
+                        {p.note}
+                      </p>
+                    ) : null}
+                  </div>
+                </ThreadPrimitive.ViewportFooter>
+              </ThreadPrimitive.Viewport>
+            </ThreadPrimitive.Root>
+          </FileRead.Provider>
         </Preview.Provider>
       </Answer.Provider>
     </AssistantRuntimeProvider>
@@ -532,6 +538,7 @@ function UserTurn() {
       {urls.map((u) => (
         <LinkCard key={u.href} url={u} />
       ))}
+      <FilePreviews text={said} end />
       {page ? (
         <span className="inline-flex max-w-[85%] items-center gap-1 text-[12px] text-(--ui-ink-3)">
           <Icon name="page" size={12} className="flex-none" />
@@ -639,18 +646,21 @@ function ReplyTurn() {
 
 /** Artifact 14 "Stream": words as they come, a lavender caret while live. */
 const Reply: TextMessagePartComponent = ({ text, status }) => (
-  <div
-    data-live={status.type === "running" ? "" : undefined}
-    className="ui-agent-text min-w-0 text-[14.5px]/[1.6] text-(--ui-ink) [overflow-wrap:anywhere]"
-  >
-    <Streamdown
-      mode={status.type === "running" ? "streaming" : "static"}
-      isAnimating={status.type === "running"}
-      controls={{ code: true, table: false, mermaid: false }}
+  <>
+    <div
+      data-live={status.type === "running" ? "" : undefined}
+      className="ui-agent-text min-w-0 text-[14.5px]/[1.6] text-(--ui-ink) [overflow-wrap:anywhere]"
     >
-      {text}
-    </Streamdown>
-  </div>
+      <Streamdown
+        mode={status.type === "running" ? "streaming" : "static"}
+        isAnimating={status.type === "running"}
+        controls={{ code: true, table: false, mermaid: false }}
+      >
+        {text}
+      </Streamdown>
+    </div>
+    {status.type === "running" ? null : <FilePreviews text={text} />}
+  </>
 );
 
 /** Thinking folds away; a signed-only block (no words) shows only while it runs. */

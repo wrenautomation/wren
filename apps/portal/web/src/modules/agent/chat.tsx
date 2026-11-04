@@ -16,10 +16,10 @@ import {
   type PickOption,
 } from "@wren/ui";
 import { useEffect, useRef, useState } from "react";
+import { linkPreview } from "../../api.js";
 import { keep, recall } from "../../local.js";
-import { relayRename, type SetupInfo } from "./connect.js";
+import { relayFile, relayRename, type SetupInfo } from "./connect.js";
 import { ACCEPT } from "./files.js";
-import { unfurl } from "./unfurl.js";
 import { pageToken, useAgent } from "./use-agent.js";
 
 const WELCOME: Record<string, { title: string; text: string; suggestions: readonly string[] }> = {
@@ -252,7 +252,8 @@ export function AgentChat({
         context={sendPage ? { label: sendPage, onDrop: () => setDropped(sendPage) } : null}
         onStop={a.stop}
         onAnswer={a.answer}
-        preview={unfurl}
+        preview={linkPreview}
+        readFile={async (path) => relayFile(setup.name, await pageToken(), path)}
         placeholder={setup.name === "birdwatch" ? "Ask a research question" : "Ask the agent"}
         tools={
           <>

@@ -3,7 +3,7 @@
  * as buttons (AskUserQuestion) and the web addresses a person sent.
  */
 import type { DataMessagePartProps } from "@assistant-ui/react";
-import { createContext, useContext, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentQuestion, AgentThreadProps, ChoicesData } from "./agent-thread.js";
 import { Button, Tag } from "./controls.js";
 import { useLoad } from "./data/query.js";
@@ -134,6 +134,76 @@ export function LinkCard({ url, preview }: { url: URL; preview?: LinkPreview | u
       </span>
       {out}
     </a>
+  );
+}
+
+// an absolute or ~/ path to an image or video, as a turn names it (bare, quoted or in backticks)
+const MEDIA_PATH =
+  /(?:^|[\s`'"([])((?:~\/|\/)[^\s`'"()<>[\]]*\.(?:png|jpe?g|gif|webp|avif|svg|mp4|m4v|mov|webm))(?=$|[\s`'"),.;:!?\]])/gi;
+
+/** The image and video paths in a turn, once each (a guard cap only). */
+function pathsIn(text: string): string[] {
+  const out = new Set<string>();
+  for (const m of text.matchAll(MEDIA_PATH)) {
+    if (m[1]) out.add(m[1]);
+    if (out.size >= 8) break;
+  }
+  return [...out];
+}
+
+/** The host app's file read by path (the relay's Mac); none = no file previews. */
+export const FileRead = createContext<((path: string) => Promise<Blob>) | undefined>(undefined);
+const FILES = {};
+
+/** The images and videos a turn names by path, each under its path; one the host refuses shows
+ * nothing. */
+export function FilePreviews({ text, end }: { text: string; end?: boolean | undefined }) {
+  const read = useContext(FileRead);
+  const paths = useMemo(() => (read ? pathsIn(text) : []), [read, text]);
+  if (!read || !paths.length) return null;
+  return (
+    <div className={cx("flex max-w-full flex-wrap gap-2 empty:hidden", end && "justify-end")}>
+      {paths.map((p) => (
+        <FilePreview key={p} path={p} read={read} />
+      ))}
+    </div>
+  );
+}
+
+function FilePreview({ path, read }: { path: string; read: (path: string) => Promise<Blob> }) {
+  const load = useLoad<Blob>(path, () => read(path), FILES, { freshMs: 60_000 });
+  const blob = load.data;
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    if (!blob) return;
+    const u = URL.createObjectURL(blob);
+    setSrc(u);
+    return () => {
+      URL.revokeObjectURL(u);
+      setSrc(null);
+    };
+  }, [blob]);
+  if (!src || !blob) return null;
+  const name = path.split("/").pop() ?? path;
+  const media = "block max-h-80 max-w-full rounded-[10px] bg-(--ui-fill)";
+  return (
+    <figure className="ui-rise m-0 grid max-w-[min(100%,28rem)] justify-items-start gap-1.5">
+      {blob.type.startsWith("video/") ? (
+        // biome-ignore lint/a11y/useMediaCaption: the agent's own clip, no track to give
+        <video src={src} controls preload="metadata" className={cx(media, "bg-black")} />
+      ) : (
+        <a href={src} target="_blank" rel="noreferrer noopener" className="block">
+          <img
+            src={src}
+            alt={name}
+            className={cx(media, "shadow-[inset_0_0_0_1px_var(--ui-hair)]")}
+          />
+        </a>
+      )}
+      <figcaption className="font-mono text-[11.5px] text-(--ui-ink-3) wrap-anywhere">
+        {path}
+      </figcaption>
+    </figure>
   );
 }
 
