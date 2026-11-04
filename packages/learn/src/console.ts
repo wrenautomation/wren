@@ -224,7 +224,7 @@ async function learnPlace(main: Db, req: PortalRequest, need: "read" | "act"): P
  * May this viewer change the workspace's own Learn settings? Wren's: a team seat with manage at
  * Wren (an admin). A client's: manage there (an owner, or a grant).
  */
-export async function mayManage(main: Db, req: PortalRequest, client: string): Promise<boolean> {
+async function mayManage(main: Db, req: PortalRequest, client: string): Promise<boolean> {
   if (client === WREN) return teamCan(req, "manage", WREN);
   return canAt(main, req, "manage", { client, app: "learn" });
 }

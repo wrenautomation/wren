@@ -389,7 +389,7 @@ export const UNTIL_LABELS: Record<Until, string> = {
   cancelled: "A cancelled call",
 };
 /** "a reply": what a Wait waits until, in a sentence. */
-export const UNTIL_WORDS: Record<Until, string> = {
+const UNTIL_WORDS: Record<Until, string> = {
   reply: "a reply",
   booking: "a booking",
   answer: "an answer",
@@ -404,8 +404,7 @@ const UNTIL_PORT: Record<Until, string> = {
 /** The waits a fired event lets go: its own, and "a reply or a booking" for either of those. */
 export const untilsFreedBy = (fired: Until): Until[] =>
   fired === "reply" || fired === "booking" ? [fired, "answer"] : [fired];
-export const isUntil = (v: unknown): v is Until =>
-  (UNTILS as readonly string[]).includes(String(v));
+const isUntil = (v: unknown): v is Until => (UNTILS as readonly string[]).includes(String(v));
 /** A Wait's until, when its mode is until; null for a timed one. */
 const untilSet = (w: Readonly<Record<string, string | number>>): Until | null =>
   text(w.mode) === "until" ? (isUntil(w.until) ? w.until : "reply") : null;
@@ -1318,9 +1317,6 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
 export const TRIGGER_IDS: ReadonlySet<string> = new Set(
   LOGIC.filter((l) => l.group === "trigger").map((l) => l.id),
 );
-
-/** Triggers that enter by a door URL: Publish makes each one's hook. */
-export const DOOR_TRIGGERS: ReadonlySet<string> = new Set(["trigger.hook", "trigger.form"]);
 
 /** A node's door: the payload field it's about and its field map; null when it has none. */
 export function doorOf(n: WorkflowNode): { subject: string; fields: FieldMap } | null {

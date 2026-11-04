@@ -34,9 +34,6 @@ export interface DoorLead {
   niche: string | null;
 }
 
-/** Where every hook is posted: the phone Worker's door, then the token. */
-export const DOOR_URL = "https://phone.wrenautomation.com/hooks/";
-
 /** The names each fact goes by when the map doesn't say, most specific first. */
 export const COMMON: Record<Exclude<LeadField, "name">, readonly string[]> = {
   phone: ["phone", "phone_number", "phoneNumber", "mobile", "cell", "tel"],
