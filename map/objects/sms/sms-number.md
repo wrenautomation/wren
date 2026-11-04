@@ -38,8 +38,8 @@ Citations: `packages/starling/channels/sms/src/schema.ts:110`
 | Surface | Role |
 |---|---|
 | `SmsDesk.syncNumbers` | writes from the provider |
-| `SmsWatch/daily` | pauses |
-| `SmsSender/fleet` | reads |
+| `SmsUpkeep/daily` | pauses |
+| `SmsSend/fleet` | reads |
 
 ## See
 

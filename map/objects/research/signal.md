@@ -24,7 +24,7 @@ Findings already dedupe on `fact_key`, keep the raw in `documents`, and feed bri
 
 ## Collectors
 
-A collector is one file: `name`, `subject` (company, person or post), its own zod `settings`, a `bucket` (per day, burst), `everyDays`, `metered`, an optional `subjects`, and `collect`, which only reads; the runner writes (`index.ts:100`, `defineCollector` `:117`). The registry `COLLECTORS` lists all eight once (`collectors.ts:20`). Their settings join the component `research.signals` under each name, plus `on` (default: built). LinkedIn reads as the client's `WREN_POOL_LINKEDIN`, by name: `linkedin` (William's main, since 2026-10-06; the alt is restricted) reads as itself, any other set value as `linkedin@alt`, `linkedin@wren` never (`readAccount`, `index.ts`). Free collectors batch 20 units a step; metered ones run one a step. LinkedIn reads are search first, the account 20 a day across kinds (vendor `linkedin`, `linkedinRoom`); a collector's `spent` names the vendor that served the read, metered whether or not the collector is (`packages/research/src/linkedin-reads.ts`, designs/2026-10-07-linkedin-search-first.md). A client's pass (`PoolScheduler/<c>/all` with `research.signals` installed) runs on `queuedFirms` (`index.ts:209`) from its own database, with `free` (metered collectors planned empty) and no LinkedIn; its buckets also count main's reads (`also`).
+A collector is one file: `name`, `subject` (company, person or post), its own zod `settings`, a `bucket` (per day, burst), `everyDays`, `metered`, an optional `subjects`, and `collect`, which only reads; the runner writes (`index.ts:100`, `defineCollector` `:117`). The registry `COLLECTORS` lists all eight once (`collectors.ts:20`). Their settings join the component `research.signals` under each name, plus `on` (default: built). LinkedIn reads as the client's `WREN_POOL_LINKEDIN`, by name: `linkedin` (William's main, since 2026-10-06; the alt is restricted) reads as itself, any other set value as `linkedin@alt`, `linkedin@wren` never (`readAccount`, `index.ts`). Free collectors batch 20 units a step; metered ones run one a step. LinkedIn reads are search first, the account 20 a day across kinds (vendor `linkedin`, `linkedinRoom`); a collector's `spent` names the vendor that served the read, metered whether or not the collector is (`packages/research/src/linkedin-reads.ts`, designs/2026-10-07-linkedin-search-first.md). A client's pass (`LeadPoolFill/<c>/all` with `research.signals` installed) runs on `queuedFirms` (`index.ts:209`) from its own database, with `free` (metered collectors planned empty) and no LinkedIn; its buckets also count main's reads (`also`).
 
 | Collector | Kind | Subject | Source, in order | Every | Bucket a day (burst) | Cost | Settings |
 |---|---|---|---|---|---|---|---|
@@ -54,7 +54,7 @@ Citations: `packages/research/src/schema.ts:228`, `packages/research/src/signals
 
 | Surface | Role |
 |---|---|
-| `PoolScheduler/{niche}` stage `signals` | writes, each collector that is `on` |
+| `LeadPoolFill/{niche}` stage `signals` | writes, each collector that is `on` |
 | `Enrichment/<niche>/signals {"personIds":[...],"timezone":"..."}` | by hand (`packages/research/src/restate/enrichment-people.ts:228`) |
 | `wren enrich signals --niche <n> [--collector] [--company] [--person] [--dry]` | from a laptop |
 | Console Outbound, Signals (`research.signal`) | reads |

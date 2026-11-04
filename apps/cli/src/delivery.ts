@@ -50,8 +50,8 @@ import {
 import {
   BILLING_KEY,
   BILLING_WATCH,
-  type BillingWatch,
   billToOf,
+  type ClientInvoicing,
   CREDIT_STATUSES_SHOWN,
   type CreditView,
   creditsList,
@@ -60,7 +60,7 @@ import {
   setBillTo,
 } from "@wren/delivery/billing";
 import { MAX_FILE_BYTES, newFileKey, s3Files, typeOfName } from "@wren/delivery/files";
-import { type DeliveryWatch, WATCH, WATCH_KEY } from "@wren/delivery/restate";
+import { type ClientUpdateMail, WATCH, WATCH_KEY } from "@wren/delivery/restate";
 import { seedSample } from "@wren/delivery/sample";
 import { siteExport } from "@wren/starling-email";
 import type { Command } from "commander";
@@ -273,7 +273,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
               flat: opts.flat === true,
               by: author,
             });
-            // The setup fee's invoice, at once: BillingWatch mails it on its next pass.
+            // The setup fee's invoice, at once: ClientInvoicing mails it on its next pass.
             const setup = await setupInvoice(tx, made.engagement, made.agreement.terms, author);
             return { ...made, setup };
           });
@@ -284,7 +284,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
             `onboarding #${e.id}: ${offerId}, aiming to start ${e.startsOn}`,
             `contract ${a.version} issued; an owner signs it in the portal`,
             setup
-              ? `setup ${money(t.setupCents, t.currency)}: invoice ${setup.number}, due ${setup.dueOn}; BillingWatch mails it on its next pass`
+              ? `setup ${money(t.setupCents, t.currency)}: invoice ${setup.number}, due ${setup.dueOn}; ClientInvoicing mails it on its next pass`
               : "no setup fee: signing starts the plan",
           ].join("\n"),
         );
@@ -522,7 +522,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
 
   onEngagement(cmd.command("invoice <amount>"))
     .description(
-      "An invoice, numbered WREN-n: BillingWatch mails its PDF with our bank details to the client's owners, matches the transfer, pings when it's late",
+      "An invoice, numbered WREN-n: ClientInvoicing mails its PDF with our bank details to the client's owners, matches the transfer, pings when it's late",
     )
     .requiredOption("--for <text>", "what it's for, as the client reads it")
     .option("--due <date>", "YYYY-MM-DD (default: the day it's issued, as paid in full is)")
@@ -558,7 +558,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
           }),
         );
         console.log(
-          `invoice ${i.number} open, due ${i.dueOn}${i.setup ? " (setup fee)" : ""}; BillingWatch mails it on its next pass (delivery billing sync)`,
+          `invoice ${i.number} open, due ${i.dueOn}${i.setup ? " (setup fee)" : ""}; ClientInvoicing mails it on its next pass (delivery billing sync)`,
         );
       },
     );
@@ -661,7 +661,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
 
   cmd
     .command("sample")
-    .description("Reseed the demo's sample project from today (DeliveryWatch does it weekly)")
+    .description("Reseed the demo's sample project from today (ClientUpdateMail does it weekly)")
     .action(async () => {
       const id = await withMainDb((main) =>
         atomic(main, (tx) => seedSample(tx, clientId(), todayUtc())),
@@ -673,11 +673,11 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
   const watch = () =>
     restateClients
       .connect(ingressOf(settings))
-      .objectClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY);
+      .objectClient<ClientUpdateMail>({ name: WATCH }, WATCH_KEY);
   const print = (v: unknown) => console.log(JSON.stringify(v, null, 2));
   const w = cmd
     .command("watch")
-    .description("DeliveryWatch: client mail, health and flags, hourly; off until started");
+    .description("ClientUpdateMail: client mail, health and flags, hourly; off until started");
   w.command("status").action(async () => print(await watch().status()));
   w.command("start").action(async () => print(await watch().start()));
   w.command("stop").action(async () => print(await watch().stop()));
@@ -689,11 +689,11 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
   const billing = () =>
     restateClients
       .connect(ingressOf(settings))
-      .objectClient<BillingWatch>({ name: BILLING_WATCH }, BILLING_KEY);
+      .objectClient<ClientInvoicing>({ name: BILLING_WATCH }, BILLING_KEY);
   const b = cmd
     .command("billing")
     .description(
-      "BillingWatch: the 1st's bills, invoice mail, money in from Wise, every 15 min; off until started",
+      "ClientInvoicing: the 1st's bills, invoice mail, money in from Wise, every 15 min; off until started",
     );
   b.command("status").action(async () => print(await billing().status()));
   b.command("start").action(async () => print(await billing().start()));

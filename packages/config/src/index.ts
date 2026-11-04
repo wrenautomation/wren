@@ -210,7 +210,7 @@ export const settingsSchema = z.object({
   pixelExportToken: z.string().min(1).optional(),
   /** Instantly's API key: reads the inboxes the roster marks `transport = "instantly"`. A secret: never logged. */
   instantlyApiKey: z.string().min(1).optional(),
-  /** The lander, where email sign-off links point; `ClicksScheduler` pulls its /api/export hourly into `email_clicks`. */
+  /** The lander, where email sign-off links point; `EmailClickPull` pulls its /api/export hourly into `email_clicks`. */
   siteBaseUrl: z.string().url().default("https://wrenautomation.com"),
   /** The lander's /api/export bearer (its EXPORT_TOKEN secret). A secret: never logged, never in argv. */
   siteExportToken: z.string().min(1).optional(),
@@ -235,7 +235,7 @@ export const settingsSchema = z.object({
   searchSite: z.string().min(1).optional(),
   /** The site it answers for (`https://example.com`): sitemap, pages, `/llms.txt`. */
   searchOrigin: z.string().url().optional(),
-  /** Where the Friday report goes; unset = no ReportScheduler. */
+  /** Where the Friday report goes (`wren report weekly`). */
   reportTo: z.string().email().optional(),
   /** The mailbox it is sent from (must be one the service account may impersonate); default = the first fleet sender. */
   reportFrom: z.string().email().optional(),
@@ -283,7 +283,7 @@ export const settingsSchema = z.object({
   filesBucket: z.string().min(1).optional(),
   /** The private S3 bucket archived page HTML moves to (`pages/<id>.html.gz`); unset = pages stay in Postgres. */
   pagesBucket: z.string().min(1).optional(),
-  /** The client portal (`https://app.<domain>`); unset = no DeliveryWatch. */
+  /** The client portal (`https://app.<domain>`); unset = no ClientUpdateMail. */
   portalOrigin: z.string().url().optional(),
   /** Client mail comes from this address, sent through `portalMailbox`; either unset = pings only. */
   /** The postal address every marketing email carries (CAN-SPAM, CASL). Unset = no newsletter. */
@@ -306,7 +306,7 @@ export const settingsSchema = z.object({
   /**
    * Wise, where clients wire Wren's invoices (designs/2026-10-15-wise-billing.md): a READ-ONLY
    * personal token, the business profile and the receive details per currency as JSON
-   * (`{"USD":{"name":..,"account":..}}`). Unset = no BillingWatch reads and no bank details printed.
+   * (`{"USD":{"name":..,"account":..}}`). Unset = no ClientInvoicing reads and no bank details printed.
    */
   wiseApiToken: z.string().min(1).optional(),
   wiseProfileId: z.string().regex(/^\d+$/).optional(),
@@ -388,7 +388,7 @@ export const settingsSchema = z.object({
     .string()
     .regex(/^(act_)?[0-9]+$/)
     .optional(),
-  /** `AdsWatch`: 7-day spend that, with no clicks and no results, pauses a launch (default $50). */
+  /** `AdSpendGuard`: 7-day spend that, with no clicks and no results, pauses a launch (default $50). */
   adsPauseAfterUsd: z.coerce.number().positive().default(50),
   /**
    * Reddit's API, called straight from wren (no autobrowse on the path): an
@@ -412,7 +412,7 @@ export const settingsSchema = z.object({
   linqApiKey: z.string().min(1).optional(),
   telnyxApiKey: z.string().min(1).optional(),
   telnyxMessagingProfileId: z.string().min(1).optional(),
-  /** The 10DLC campaign US numbers go on; SmsWatch attaches them once carriers approve it. */
+  /** The 10DLC campaign US numbers go on; SmsUpkeep attaches them once carriers approve it. */
   telnyxCampaignId: z.string().min(1).optional(),
   /** Telnyx's webhook public key (portal: Keys & Credentials → Public Key), for the phone Worker. */
   telnyxPublicKey: z.string().min(1).optional(),

@@ -11,8 +11,8 @@ import { discoverySettingsSchema, WREN_AUDIENCE } from "@wren/starling-outbound"
 import {
   makeCommentProofs,
   makeReachDesk,
-  makeReachSender,
-  makeReachWatch,
+  makeReachInboxRead,
+  makeReachSend,
   makeRedditReads,
 } from "@wren/starling-outbound/restate";
 import { type AnyService, type Deps, playbooksOf } from "./deps.js";
@@ -27,8 +27,8 @@ export function reachServices(deps: Deps): AnyService[] {
   // until WREN_REACH_LIVE says so.
   if (!settings.reachLive) log.info("WREN_REACH_LIVE off: reach plans and holds, nothing is sent");
   services.push(
-    makeReachSender(reach),
-    makeReachWatch(reach),
+    makeReachSend(reach),
+    makeReachInboxRead(reach),
     makeReachDesk(reach),
     // Each sent comment's proof (designs/2026-10-14-comment-proof.md): read through the desk,
     // its shot in the media bucket, the hour's hidden or missing on the reach lane.

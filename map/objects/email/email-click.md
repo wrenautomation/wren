@@ -13,7 +13,7 @@ One email's link, followed, counted per landing page. Tables `email_clicks` and 
 
 ## Why this shape
 
-The lander is the source of truth: each email's sign-off link carries `?r=<messages.link_code>` and the lander records it on the view it lands on (`hits.r`). `ClicksScheduler` reads `hits` forward from a stored cursor, hourly, and counts the coded ones. Counts are increments, so the cursor moves in the same transaction as the rows it covers (`inbox/click-sync.ts:1`). Without that a run that died half way would count a view twice. The sent log needs clicks in SQL to set "clicked", which a live read of the export could not give it.
+The lander is the source of truth: each email's sign-off link carries `?r=<messages.link_code>` and the lander records it on the view it lands on (`hits.r`). `EmailClickPull` reads `hits` forward from a stored cursor, hourly, and counts the coded ones. Counts are increments, so the cursor moves in the same transaction as the rows it covers (`inbox/click-sync.ts:1`). Without that a run that died half way would count a view twice. The sent log needs clicks in SQL to set "clicked", which a live read of the export could not give it.
 
 A code no message holds is stored with `message_id` null (typed by hand, or the message since deleted). Text and DM `/go/` links would land here the same way if they carried a code, but neither has a code column and `/go/` drops `?r=` on the redirect, so only email arrives today. A click is interest, not consent: nothing sends or stops on these rows.
 
@@ -23,7 +23,7 @@ A code no message holds is stored with `message_id` null (typed by hand, or the 
 - `click_syncs`: `base_url`, `cursor_id` (the lander's view id), `synced_at`, `stats` (`schema.ts:661`)
 - `clickedEmails`: one row per email (its pages, clicks added), with message, company and niche; behind `wren email clicks` (`inbox/clicks.ts:212`)
 - `clickFollowUps`: what each code's visitors did after (visitors, views, secs, form, applied). Read live from the export's `hits` and `applications` by `wren email clicks`, never stored; with no token or the lander down the command prints counts only (`inbox/clicks.ts:283`)
-- The first run reads all of the lander's `hits` history; start `ClicksScheduler/fleet` in prod once
+- The first run reads all of the lander's `hits` history; start `EmailClickPull/fleet` in prod once
 
 Citations: `packages/starling/channels/email/src/schema.ts:632`, `packages/starling/channels/email/src/inbox/click-sync.ts:45`
 
@@ -42,7 +42,7 @@ Citations: `packages/starling/channels/email/src/schema.ts:632`, `packages/starl
 
 | Surface | Role |
 |---|---|
-| `ClicksScheduler` (when `WREN_SITE_EXPORT_TOKEN` is set) | writes |
+| `EmailClickPull` (when `WREN_SITE_EXPORT_TOKEN` is set) | writes |
 | `sent_records`, `sent_activity` | reads |
 | `wren email clicks` | reads (the table, and the lander's export live for the follow-up) |
 

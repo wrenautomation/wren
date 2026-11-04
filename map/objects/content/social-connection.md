@@ -24,7 +24,7 @@ GHL's Social Planner, on official APIs only. One app per platform, one sign-in p
 - Access (`access.ts`): `socialAccess` (`:179`) connect, land, check, disconnect, `tokenOf` (memory cache, key store rotate), `broke`; `platformStates` (`:123`): not_connected, waiting_review, connected, broken; `liveConnections` (`:484`); `ConnectionView` carries `avatarUrl`
 - Calls (`sites.ts`): `socialSites` is a `SiteClient` per platform on the client's token; 401 or Meta code 190 marks it broken. An X video uploads in 4 MB chunks (initialize, append, finalize, STATUS until processed); TikTok's `scope_not_authorized` is a 403 that leaves the connection up; a client's TikTok asks `user.info.stats` for followers; a Business Profile reaches only its own location's `/v4` paths
 - Business Profile (`business.ts`): `businessProfileContent` posts local posts, reads reviews as comments on the location (`ContentChannel.reviews`), answers a review
-- `clientContent` gives each channel's `connected` account (a company page ahead of a profile), and which channels read `comments` and `reviews`; SocialWatch reads only those, and connected accounts don't wait on `WREN_CONTENT_CHANNELS`
+- `clientContent` gives each channel's `connected` account (a company page ahead of a profile), and which channels read `comments` and `reviews`; SocialActivityRead reads only those, and connected accounts don't wait on `WREN_CONTENT_CHANNELS`
 - DMs (`dms.ts`): Facebook, Instagram, X. `readDms` + `keepDms` into the client's `reach_contacts`/`reach_messages` (a `theirs` touch each); `planDm` (Meta's 24 h window, opt-outs), `sendDm`, `sentDm` (an `ours` touch, draft log)
 - Wren's own channels (`own.ts`): in Wren's workspace, for the team only, `SocialAccess.social` returns `own`, one row per `WREN_CONTENT_CHANNELS` channel: account, how it posts (setting names only, never values), token lapse and last renewal from `sites renew` runs, last post (`content_drafts`) and last failure (`draft_events`). `ownCheck` runs autobrowse's site check (`sites/status`, then one GET of its probe) on the box or desk; read only
 - TikTok numbers (`tiktok-numbers.ts`): `tiktokNumbers` reads followers, likes and video count (`user.info.stats`) and the 5 newest videos with views (`video.list`) on `social:<id>`, only for granted scopes, each part capped at 4 s; a refusal or a missing scope is a `gaps` line. `SocialAccess.social` adds it to each connected TikTok when `SocialConsoleDeps.sites` is set (the Worker passes `socialApi`)
@@ -42,7 +42,7 @@ Citations: `packages/starling/inbound/src/connect/schema.ts:30`, `:73`; `package
 
 ## If you change this
 
-- **Hits:** `REVIEWS` (a new scope needs its reason there, or the test fails), Account → Social (`apps/portal/web/src/modules/account/Social.tsx`), `clientContent`, SocialWatch's client pass, InboxDesk's client DM and comment paths (`inbox/routes.ts`), migrations 0190 and 0197
+- **Hits:** `REVIEWS` (a new scope needs its reason there, or the test fails), Account → Social (`apps/portal/web/src/modules/account/Social.tsx`), `clientContent`, SocialActivityRead's client pass, InboxDesk's client DM and comment paths (`inbox/routes.ts`), migrations 0190 and 0197
 - **Does not hit:** Wren's own posting, reach
 
 ## Surfaces
@@ -52,8 +52,8 @@ Citations: `packages/starling/inbound/src/connect/schema.ts:30`, `:73`; `package
 | Account → Social (client owners and admins; Wren's team for any client) | reads (each account's avatar; a TikTok's numbers and newest videos, live from TikTok), writes (connect, check, turn off) |
 | Account → Social in Wren's workspace (team only) | reads Wren's own channels; Check probes one through autobrowse |
 | `/oauth/social/<platform>` (portal Worker) | writes (lands a grant) |
-| SetupWatch, `social.token` hourly | checks, marks broken |
-| SocialWatch client pass | reads comments, Business Profile reviews, and DMs through `SocialInbox.read` |
+| SetupRecheck, `social.token` hourly | checks, marks broken |
+| SocialActivityRead client pass | reads comments, Business Profile reviews, and DMs through `SocialInbox.read` |
 | Inbox reply on a client's DM or comment | sends, behind `reach.outreach` sends and To approve |
 | `wren app-reviews` (list, packet, check) | reads `REVIEWS`, checks the live pages, callbacks and prod key names |
 

@@ -7,7 +7,7 @@
  * a country form texts skip, a landline), `email` goes two minutes after they applied. `check`
  * looks 10 minutes after the text was due and sends the one notice if none went (form-after.ts).
  *
- * SmsWatch's 30-minute pass does the same for anything a push missed, so a lost push costs
+ * SmsUpkeep's 30-minute pass does the same for anything a push missed, so a lost push costs
  * minutes, not the applicant.
  */
 import * as restate from "@restatedev/restate-sdk";
@@ -55,7 +55,7 @@ export interface FormSetup {
 }
 export type FormDeps = SmsDeps & FormSetup;
 
-/** The adapter's form hook (`SmsDeps.forms`): SmsWatch's pass and `SmsDesk/forms` run it. */
+/** The adapter's form hook (`SmsDeps.forms`): SmsUpkeep's pass and `SmsDesk/forms` run it. */
 export function formPasses(f: FormSetup & { site: SiteSource }): FormPasses {
   return {
     follow: (d, now, runId) =>

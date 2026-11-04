@@ -1,7 +1,7 @@
 /**
  * The ads ledger and the guard against Postgres and a Restate test
  * environment: `Ads.launch/start/stop` write `ad_launches` (the Graph calls
- * go to a fake site), and one `AdsWatch` pass stops the launch that spent
+ * go to a fake site), and one `AdSpendGuard` pass stops the launch that spent
  * the guard with nothing to show, through `Ads.stop`, with one message. A hung
  * insights read is cut at the watch's wait and the pass ends without a verdict.
  */
@@ -20,7 +20,12 @@ import { listLaunches } from "../../src/launches.js";
 import { adDayRecord } from "../../src/records.js";
 import { type AdsService, makeAds } from "../../src/restate.js";
 import { adDays } from "../../src/schema.js";
-import { type AdsWatch, makeAdsWatch, WATCH_KEY, type WatchStats } from "../../src/watch.js";
+import {
+  type AdSpendGuard,
+  makeAdSpendGuard,
+  WATCH_KEY,
+  type WatchStats,
+} from "../../src/watch.js";
 
 const writes: { path: string; input: Record<string, unknown> }[] = [];
 let insights: InsightRow[] = [];
@@ -54,7 +59,7 @@ const journaled = (ctx: restate.Context): SiteClient => ({
   via: sites.via,
 });
 
-/** A stand-in content desk: keeps what AdsWatch hands it. */
+/** A stand-in content desk: keeps what AdSpendGuard hands it. */
 const ideas: { text: string; draft?: boolean; source?: string }[] = [];
 const fakeDesk = restate.object({
   name: "ContentDesk",
@@ -77,7 +82,7 @@ beforeAll(async () => {
     services: [
       fakeDesk,
       makeAds({ sitesFor: journaled, adAccountId: "act_1", pageId: "p", db: pg.db }),
-      makeAdsWatch({
+      makeAdSpendGuard({
         db: pg.db,
         pauseAfterUsd: 50,
         limitMs: 1_500,
@@ -114,7 +119,7 @@ const ads = () =>
 const pass = () =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<AdsWatch>({ name: "AdsWatch" }, WATCH_KEY)
+    .objectClient<AdSpendGuard>({ name: "AdSpendGuard" }, WATCH_KEY)
     .sync() as Promise<PassOutcome<WatchStats>>;
 
 const spec: LaunchSpec = {

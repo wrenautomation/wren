@@ -37,7 +37,6 @@ Citations: `packages/starling/channels/email/src/schema.ts:369`, `packages/starl
 
 | Surface | Role |
 |---|---|
-| `OpensScheduler` (when `WREN_OPEN_TRACKING` and `WREN_PIXEL_*` set) | writes |
 | `open_outcomes` | reads |
 
 ## See

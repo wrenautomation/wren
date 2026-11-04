@@ -1,5 +1,5 @@
 /**
- * `MailReader/all` (designs/2026-10-07-mail-access.md): the Monitor's reader made per client.
+ * `ClientMailTriage/all` (designs/2026-10-07-mail-access.md): the Monitor's reader made per client.
  * Every 15 minutes, each client with a mailbox connected to read: new inbox mail since the newest
  * kept, into the client's own `watch.mail`, then onto its `mail` workflow, where triage settles it
  * by the client's rules and what shows lands in Marketing → Inbox. Headers and the preview only.
@@ -17,7 +17,7 @@ const MAIL_READER_EVERY_MS = 15 * 60_000;
 export const MAIL_FLOW = "mail";
 export const MAIL_FROM = "read.mail";
 
-interface MailReaderDeps {
+interface ClientMailTriageDeps {
   /** Main: the pass's ledger. */
   db: Db;
   clientDb: (client: string) => Db;
@@ -36,7 +36,7 @@ interface ClientReadStats {
 }
 
 /** One pass over every client: no client's failure stops another's read. */
-export async function readClients(d: MailReaderDeps, now: Date): Promise<ClientReadStats> {
+export async function readClients(d: ClientMailTriageDeps, now: Date): Promise<ClientReadStats> {
   const out: ClientReadStats = { kept: {}, failed: [] };
   await d.sweep?.(now);
   for (const client of await d.clients()) {
@@ -51,8 +51,8 @@ export async function readClients(d: MailReaderDeps, now: Date): Promise<ClientR
   return out;
 }
 
-export function makeMailReader(deps: MailReaderDeps) {
-  return makeLoopObject("MailReader", async (ctx: restate.ObjectContext) => {
+export function makeClientMailTriage(deps: ClientMailTriageDeps) {
+  return makeLoopObject("ClientMailTriage", async (ctx: restate.ObjectContext) => {
     const outcome = (await runPass<ClientReadStats>(ctx, deps.db, {
       name: "read",
       ledger: { command: "mail read", argv: { daemon: true } },

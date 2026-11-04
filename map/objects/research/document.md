@@ -9,7 +9,7 @@ entity: packages/research/src/schema.ts:41
 
 # document
 
-One fetched page or PDF of a company's site, stored with its text and html. Table `documents`. HTML a day old moves to the pages bucket (`PageArchive`); the row keeps `html_key` and its `tel:` targets.
+One fetched page or PDF of a company's site, stored with its text and html. Table `documents`. HTML a day old moves to the pages bucket (`PageHtmlArchive`); the row keeps `html_key` and its `tel:` targets.
 
 ## Why this shape
 
@@ -50,7 +50,7 @@ Citations: `packages/research/src/schema.ts:41`, `packages/research/src/enrichme
 | `Enrichment.crawl` | write; reads the memory, skips `dead` and remembered domains |
 | `Enrichment.render` | write; shells through the box browser, blocked companies through `web GET /fetch` (`ladder` dep, `ladderLimit`) |
 | `Enrichment.scan/contacts/extract` | read |
-| `PageArchive.loop` (box), `wren pages archive` | moves html to S3 |
+| `PageHtmlArchive.loop` (box), `wren pages archive` | moves html to S3 |
 
 ## See
 

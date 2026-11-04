@@ -3,7 +3,7 @@
  * slots on the fleet's clock. A platform may have several a day; LinkedIn
  * and Reddit, the organic channels, get two on weekdays (William, 09-27:
  * "multiple posts a day"), hours apart so the second doesn't split the
- * first's reach. ContentPlanner's `slots` setting overrides. A draft takes the
+ * first's reach. PostPlan's `slots` setting overrides. A draft takes the
  * first free slot after its approval, so a batch approved at once spreads
  * over the days instead of piling onto one hour. `--at` still wins, and
  * `--now` posts on the next pass.
@@ -48,7 +48,7 @@ export const DEFAULT_SLOTS: Slots = {
 };
 
 /**
- * The defaults with some platforms' slots replaced (ContentPlanner's `slots` setting); a slot with
+ * The defaults with some platforms' slots replaced (PostPlan's `slots` setting); a slot with
  * a bad hour, minute or weekday is dropped.
  */
 export function slotsOf(

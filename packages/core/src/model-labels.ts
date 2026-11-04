@@ -90,7 +90,7 @@ export function modelVia(id: string): string | null {
 }
 
 /**
- * How a field names something from code: `true` as words ("AdsWatch" to "Ads watch"), a model,
+ * How a field names something from code: `true` as words ("AdSpendGuard" to "Ads watch"), a model,
  * or a failure's reason ("web GET /exa/companies: 502" to "Exa search failed (502)").
  */
 export type Words = true | "model" | "reason";

@@ -47,10 +47,10 @@ describe("boxPort", () => {
 
 describe("isCurrent and pinnedTo", () => {
   it("is current while the service is on this deployment", async () => {
-    const a = admin({ SocialWatch: "dp_old" }, { dp_old: 2 });
-    expect(await isCurrent(a.query, "dp_old", "SocialWatch")).toBe(true);
-    a.serves.SocialWatch = "dp_new";
-    expect(await isCurrent(a.query, "dp_old", "SocialWatch")).toBe(false);
+    const a = admin({ SocialActivityRead: "dp_old" }, { dp_old: 2 });
+    expect(await isCurrent(a.query, "dp_old", "SocialActivityRead")).toBe(true);
+    a.serves.SocialActivityRead = "dp_new";
+    expect(await isCurrent(a.query, "dp_old", "SocialActivityRead")).toBe(false);
     expect(await pinnedTo(a.query, "dp_old")).toBe(2);
   });
 
@@ -65,19 +65,19 @@ describe("isCurrent and pinnedTo", () => {
 describe("watchSuperseded", () => {
   it("stays quiet while current, then calls once when a later build takes over", async () => {
     vi.useFakeTimers();
-    const a = admin({ PoolScheduler: "dp_old" }, { dp_old: 1 });
+    const a = admin({ LeadPoolFill: "dp_old" }, { dp_old: 1 });
     const onSuperseded = vi.fn();
     const w = watchSuperseded({
       query: a.query,
       deployment: "dp_old",
-      service: "PoolScheduler",
+      service: "LeadPoolFill",
       everyMs: 1000,
       onSuperseded,
     });
     await vi.advanceTimersByTimeAsync(3000);
     expect(onSuperseded).not.toHaveBeenCalled();
 
-    a.serves.PoolScheduler = "dp_new";
+    a.serves.LeadPoolFill = "dp_new";
     await vi.advanceTimersByTimeAsync(1000);
     expect(onSuperseded).toHaveBeenCalledTimes(1);
     expect(onSuperseded).toHaveBeenCalledWith(1);
@@ -103,7 +103,7 @@ describe("watchSuperseded", () => {
     watchSuperseded({
       query,
       deployment: "dp_old",
-      service: "Books",
+      service: "BooksDaily",
       everyMs: 1000,
       onSuperseded,
       onError,
@@ -122,7 +122,7 @@ describe("watchSuperseded", () => {
     const w = watchSuperseded({
       query: a.query,
       deployment: "dp_a",
-      service: "Watch",
+      service: "MyMailTriage",
       everyMs: 1000,
       onSuperseded: vi.fn(),
     });

@@ -1,5 +1,5 @@
 /**
- * `AuditSealer/all`: every 15 minutes, seals the audit log in main and in each
+ * `AuditSeal/all`: every 15 minutes, seals the audit log in main and in each
  * client's database (through the client's own login). Each seal's hash also
  * goes to the worker's log, a copy outside Postgres: a log rewritten by someone
  * who could also rewrite the seals still no longer matches it.
@@ -24,7 +24,7 @@ interface SealerStats {
   databases: number;
 }
 
-interface AuditSealerDeps {
+interface AuditSealDeps {
   main: Db;
   /** A client's database through its own login. */
   open: (client: { database: string }) => Db;
@@ -44,7 +44,7 @@ function reason(err: unknown): string {
  * another's lock only so long (`sealAudit`). One database failing does not stop
  * the rest; the pass then fails naming each, so the loop retries and says so once.
  */
-export async function sealEverywhere(deps: AuditSealerDeps): Promise<SealerStats> {
+export async function sealEverywhere(deps: AuditSealDeps): Promise<SealerStats> {
   const log = deps.log ?? ((line: string) => console.log(line));
   const targets: Array<[string, () => Db]> = [["main", () => deps.main]];
   for (const database of await clientDatabases(deps.main))
@@ -75,8 +75,8 @@ export async function sealEverywhere(deps: AuditSealerDeps): Promise<SealerStats
   return stats;
 }
 
-export function makeAuditSealer(deps: AuditSealerDeps) {
-  return makeLoopObject("AuditSealer", async (ctx: restate.ObjectContext) => {
+export function makeAuditSeal(deps: AuditSealDeps) {
+  return makeLoopObject("AuditSeal", async (ctx: restate.ObjectContext) => {
     return runPass<SealerStats>(ctx, deps.main, {
       name: "seal",
       ledger: { command: SEALER_COMMAND, argv: { daemon: true } },
@@ -88,4 +88,4 @@ export function makeAuditSealer(deps: AuditSealerDeps) {
   });
 }
 
-export type AuditSealer = ReturnType<typeof makeAuditSealer>;
+export type AuditSeal = ReturnType<typeof makeAuditSeal>;

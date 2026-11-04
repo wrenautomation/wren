@@ -19,15 +19,15 @@ The Accounts page makes no vendor call on load, so the vault's list is copied ho
 
 - `vault_keys` (`packages/core/src/keys-schema.ts:126`): `address` pk (`site@account`), site, account, owner, `key_id` (12 hex), `purposes text[]`, status `live|spent|revoked`, `spent_until`, made_at, revoked_at, via, vendor_id, uses, last_used_at, `read_at`. Exempt from the audit log (`packages/db/src/audit/index.ts`): rewritten hourly, the vault is the log
 - `client_secrets.key_id`: set by stage, rotate, bind and put, so a client key's spend joins on `vendor_usage.key_id`; rows older than the column have null (their spend shows only when the client holds one live key of the vendor)
-- `syncVaultKeys` (`packages/core/src/vault-keys.ts:110`): upsert every row, delete addresses no longer listed, stamp `read_at`; a row with `secret` or a bad shape is refused (counted, logged)
-- `VaultKeys/box` (`:204`, loop object, hourly `sync`; start it once after deploy: `docs/restate-operations.md`): `rotate` (`desk/keyRotate`, no sync; the run's own gate asks in To approve), `revoke` (`sites/keyRevoke`) and `spend` (`sites/keySpend`), the last two then mirror again. A key not in the mirror is refused 404 before autobrowse hears of it. Registered in `apps/worker/src/services.ts`
+- `syncVaultKeyMirror` (`packages/core/src/vault-keys.ts:110`): upsert every row, delete addresses no longer listed, stamp `read_at`; a row with `secret` or a bad shape is refused (counted, logged)
+- `VaultKeyMirror/box` (`:204`, loop object, hourly `sync`; start it once after deploy: `docs/restate-operations.md`): `rotate` (`desk/keyRotate`, no sync; the run's own gate asks in To approve), `revoke` (`sites/keyRevoke`) and `spend` (`sites/keySpend`), the last two then mirror again. A key not in the mirror is refused 404 before autobrowse hears of it. Registered in `apps/worker/src/services.ts`
 - `keyAccounts` (`:371`): both kinds as one list. Operator keys from the mirror (a spent key past its date reads live). Client keys: live `client_secrets` whose name is a vendor's key name (`vendorOfKeyName`: `EXA_API_KEY` is `exa`); purposes from the client's own `vendor_modes` rows whose `key_name` is the ref; spend this month by `usageByKey` on `key_id`; last used is the last `read` event
-- Rows: `keyRow` (`packages/starling/outbound/src/records.ts:974`) joins `marketing.account` with `platform: "api"` (view "API keys"), columns owner, purposes, out of credit until, spend (USD), last used. Row actions on operator keys only: `ACCOUNT_ACTIONS` (`apps/portal/web/src/modules/marketing/social.ts:12`), run through `console/call` to `VaultKeys/box`
+- Rows: `keyRow` (`packages/starling/outbound/src/records.ts:974`) joins `marketing.account` with `platform: "api"` (view "API keys"), columns owner, purposes, out of credit until, spend (USD), last used. Row actions on operator keys only: `ACCOUNT_ACTIONS` (`apps/portal/web/src/modules/marketing/social.ts:12`), run through `console/call` to `VaultKeyMirror/box`
 - CLI: `wren accounts keys [--vendor] [--client]`, `wren accounts key rotate|revoke|spend <address>` (`apps/cli/src/accounts.ts`)
 
 ## Connected to
 
-- **owns:** `vault_keys`, `VaultKeys`
+- **owns:** `vault_keys`, `VaultKeyMirror`
 - **owned-by:** autobrowse `sites` / `desk` `keys` handlers (the vault is the source); credvault `KeyInfo`
 - **joins:** [[platform/vendors]] (`usageByKey`, `client_secrets.label`, `vendor_modes.purpose`); [[platform/loop-object]]; [[platform/records]] (the Accounts record)
 - **looks-like-but-is-not:** `client_secrets` (sealed client keys, with values), autobrowse's own login accounts (`reach_accounts`)
@@ -43,7 +43,7 @@ The Accounts page makes no vendor call on load, so the vault's list is copied ho
 |---|---|
 | Marketing → Accounts (Wren's team) | reads rows; rotate, revoke, mark spent on operator keys |
 | `wren accounts keys`, `key rotate/revoke/spend` | the same functions |
-| Hourly `VaultKeys/box` | writes the mirror |
+| Hourly `VaultKeyMirror/box` | writes the mirror |
 
 ## See
 

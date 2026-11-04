@@ -1,5 +1,5 @@
 /**
- * `TokenRenewal/box`: keeps autobrowse's tokens alive. A LinkedIn access token
+ * `SiteTokenRenew/box`: keeps autobrowse's tokens alive. A LinkedIn access token
  * lives 60 days with no refresh token; an npm token 90; any token can be
  * revoked or refused before then. `sites/renew` probes each site's token,
  * then makes again every refused one and every one lapsing within 14 days (a
@@ -41,7 +41,7 @@ interface RenewalStats {
   next: string | null;
 }
 
-interface TokenRenewalDeps {
+interface SiteTokenRenewDeps {
   db: Db;
   /** Where `sites/renew` runs (`sitesHost`); the box by default. */
   host?: SitesHost;
@@ -50,8 +50,8 @@ interface TokenRenewalDeps {
   limitMs?: number;
 }
 
-export function makeTokenRenewal(deps: TokenRenewalDeps) {
-  return makeLoopObject("TokenRenewal", async (ctx: restate.ObjectContext) => {
+export function makeSiteTokenRenew(deps: SiteTokenRenewDeps) {
+  return makeLoopObject("SiteTokenRenew", async (ctx: restate.ObjectContext) => {
     const { service, wake } = deps.host ?? { service: SITES };
     if (wake) await ctx.run("wake autobrowse", wake);
     // A durable call: while the host is down it waits, then answers once the worker is back.
@@ -96,4 +96,4 @@ export function makeTokenRenewal(deps: TokenRenewalDeps) {
   });
 }
 
-export type TokenRenewal = ReturnType<typeof makeTokenRenewal>;
+export type SiteTokenRenew = ReturnType<typeof makeSiteTokenRenew>;

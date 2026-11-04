@@ -54,11 +54,11 @@ import { DESK_KEY, makeContentDesk, SCHEDULER_KEY } from "../../src/restate/inde
 import {
   METRICS_KEY,
   type MetricsStats,
-  makeContentMetrics,
+  makePostMetrics,
   missWaitMs,
 } from "../../src/restate/metrics.js";
-import { makeContentPlanner, PLANNER_KEY, type PlannerStats } from "../../src/restate/planner.js";
-import { makeContentScheduler, type PublishStats } from "../../src/restate/scheduler.js";
+import { makePostPlan, PLANNER_KEY, type PlannerStats } from "../../src/restate/planner.js";
+import { makePostPublish, type PublishStats } from "../../src/restate/scheduler.js";
 
 // The slot wiring on bare times; the epsilon has its own tests in core.
 vi.mock("@wren/core/epsilon", async (real) => ({
@@ -425,7 +425,7 @@ beforeAll(async () => {
           hooks.add(`${platform}:${client ?? ""}`);
         },
       }),
-      makeContentScheduler({
+      makePostPublish({
         db: pg.db,
         idleMs: 60_000,
         publishWaitMs: 3_000,
@@ -436,8 +436,8 @@ beforeAll(async () => {
           hooks.add(`${platform}:${client ?? ""}`);
         },
       }),
-      makeContentMetrics({ db: pg.db, notifier, limits: { read: 1_500, batch: 1_500 } }),
-      makeContentPlanner({
+      makePostMetrics({ db: pg.db, notifier, limits: { read: 1_500, batch: 1_500 } }),
+      makePostPlan({
         db: pg.db,
         zone: "UTC",
         notifier,
@@ -498,7 +498,7 @@ beforeEach(async () => {
 });
 
 type Desk = ReturnType<typeof makeContentDesk>;
-type Sched = ReturnType<typeof makeContentScheduler>;
+type Sched = ReturnType<typeof makePostPublish>;
 const desk = () =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
@@ -506,13 +506,13 @@ const desk = () =>
 const sched = () =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<Sched>({ name: "ContentScheduler" }, SCHEDULER_KEY);
+    .objectClient<Sched>({ name: "PostPublish" }, SCHEDULER_KEY);
 const sync = () => sched().sync() as Promise<PassOutcome<PublishStats>>;
-type Met = ReturnType<typeof makeContentMetrics>;
+type Met = ReturnType<typeof makePostMetrics>;
 const look = () =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<Met>({ name: "ContentMetrics" }, METRICS_KEY)
+    .objectClient<Met>({ name: "PostMetrics" }, METRICS_KEY)
     .sync() as Promise<PassOutcome<MetricsStats>>;
 
 /** X's single-post cap: Wren's account fact decides it (Premium posts one long post). */
@@ -1288,8 +1288,8 @@ describe("content loop", () => {
     ]);
     const met = clients
       .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-      .objectClient<Met>({ name: "ContentMetrics" }, METRICS_KEY);
-    // LoopWatch reads it off the loop's state: the call, and the post it was for.
+      .objectClient<Met>({ name: "PostMetrics" }, METRICS_KEY);
+    // LoopRevive reads it off the loop's state: the call, and the post it was for.
     expect((await met.status()).last).toMatchObject({
       timeouts: [{ call: "Content/metrics", unit: "metrics x:x-1", ms: 1_500 }],
     });
@@ -1520,12 +1520,12 @@ describe("content loop", () => {
   });
 });
 
-describe("daily drafts (ContentPlanner with draft on)", () => {
-  type Plan = ReturnType<typeof makeContentPlanner>;
+describe("daily drafts (PostPlan with draft on)", () => {
+  type Plan = ReturnType<typeof makePostPlan>;
   const planner = () =>
     clients
       .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-      .objectClient<Plan>({ name: "ContentPlanner" }, PLANNER_KEY);
+      .objectClient<Plan>({ name: "PostPlan" }, PLANNER_KEY);
   const settings = {
     platforms: ["linkedin", "reddit"],
     draft: true,
@@ -1636,7 +1636,7 @@ describe("daily drafts (ContentPlanner with draft on)", () => {
     // Its draft posts as its account; the default's has no pick.
     const picks = await pg.db.execute(sql`select item, account, by from draft_accounts`);
     expect([...picks]).toEqual([
-      { item: `draft:${bySlot.get(at(8, 30))?.id}`, account: "li@test", by: "ContentPlanner" },
+      { item: `draft:${bySlot.get(at(8, 30))?.id}`, account: "li@test", by: "PostPlan" },
     ]);
     // Over its cap, a not-live campaign and one off the platform: their ideas wait, the slot too.
     const open = await pg.db

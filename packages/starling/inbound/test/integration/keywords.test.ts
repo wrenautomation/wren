@@ -80,7 +80,7 @@ const fakeContent = restate.service({
   },
 });
 
-/** `KeywordDm.send` is ingress-private: SocialWatch calls it, so the test calls it from inside. */
+/** `KeywordDm.send` is ingress-private: SocialActivityRead calls it, so the test calls it from inside. */
 const watch = restate.service({
   name: "Watch",
   handlers: {

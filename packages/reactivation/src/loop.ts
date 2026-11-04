@@ -34,7 +34,7 @@ import {
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import type { Transport } from "@wren/starling-email";
-import type { InboxScheduler, SendScheduler } from "@wren/starling-outbound/email";
+import type { EmailInboxRead, EmailSend } from "@wren/starling-outbound/email";
 import { type FeedStats, feedDelivery } from "./delivery.js";
 import { type ForwardStats, forwardHandoffs } from "./forward.js";
 import { readVisits, type VisitStats } from "./keep.js";
@@ -289,10 +289,9 @@ async function tellHandoffs(
 /** Stop every mailbox loop this key started, and forget them: the next start starts them all. */
 async function stopLoops(ctx: restate.ObjectContext): Promise<void> {
   const had = (await ctx.get<MailboxLoops>(STARTED)) ?? NO_LOOPS;
-  for (const key of had.send)
-    ctx.objectSendClient<SendScheduler>({ name: "SendScheduler" }, key).stop();
+  for (const key of had.send) ctx.objectSendClient<EmailSend>({ name: "EmailSend" }, key).stop();
   for (const key of had.inbox)
-    ctx.objectSendClient<InboxScheduler>({ name: "InboxScheduler" }, key).stop();
+    ctx.objectSendClient<EmailInboxRead>({ name: "EmailInboxRead" }, key).stop();
   ctx.clear(STARTED);
   ctx.clear(ASSERTED);
 }
@@ -312,9 +311,9 @@ async function pointLoops(
   const had = (await ctx.get<MailboxLoops>(STARTED)) ?? NO_LOOPS;
   const asserted = (await ctx.get<string>(ASSERTED)) ?? null;
   const all = resumed || asserted === null || now.getTime() - Date.parse(asserted) >= REASSERT_MS;
-  const send = (key: string) => ctx.objectSendClient<SendScheduler>({ name: "SendScheduler" }, key);
+  const send = (key: string) => ctx.objectSendClient<EmailSend>({ name: "EmailSend" }, key);
   const inbox = (key: string) =>
-    ctx.objectSendClient<InboxScheduler>({ name: "InboxScheduler" }, key);
+    ctx.objectSendClient<EmailInboxRead>({ name: "EmailInboxRead" }, key);
   for (const key of want.send) if (all || !had.send.includes(key)) send(key).start();
   for (const key of had.send) if (!want.send.includes(key)) send(key).stop();
   for (const key of want.inbox) if (all || !had.inbox.includes(key)) inbox(key).start();

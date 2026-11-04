@@ -20,7 +20,7 @@ import type { MediaStoreOptions } from "../media.js";
 import { approveDrafts } from "../review.js";
 import { slotsOf } from "../slots.js";
 import { type Brand, DEFAULT_BRAND } from "../voice.js";
-import { type ContentPlanner, PLANNER_KEY, type PlannerSettings } from "./planner.js";
+import { PLANNER_KEY, type PlannerSettings, type PostPlan } from "./planner.js";
 
 /**
  * May this client's desk draft now, and on which platforms? Its plan installed with an About, a
@@ -243,8 +243,7 @@ export function contentDeskContext(deps: ContentDeskDeps) {
   async function slotsHere(ctx: restate.ObjectContext) {
     const planned = clientOfKey(ctx.key)
       ? null
-      : (await ctx.objectClient<ContentPlanner>({ name: "ContentPlanner" }, PLANNER_KEY).status())
-          .settings;
+      : (await ctx.objectClient<PostPlan>({ name: "PostPlan" }, PLANNER_KEY).status()).settings;
     return slotsOf((planned as PlannerSettings | null)?.slots);
   }
   async function draft(ctx: restate.ObjectContext, req: DraftRequest): Promise<DraftReport> {

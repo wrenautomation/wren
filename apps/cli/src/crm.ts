@@ -47,7 +47,7 @@ import {
 } from "@wren/reactivation";
 import { type CrmRunObject, MAX_LIMIT, type Reactivation } from "@wren/reactivation/restate";
 import { defaultLocalChecker, makeVerifier } from "@wren/starling-email";
-import type { InboxScheduler, SendScheduler } from "@wren/starling-outbound/email";
+import type { EmailInboxRead, EmailSend } from "@wren/starling-outbound/email";
 import { PoliteFetcher, userAgent } from "@wrenautomation/read/fetch";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";
@@ -275,12 +275,12 @@ export function registerCrm(
       const mailboxes = {
         send: await Promise.all(
           loops.send.map((k) =>
-            ingress().objectClient<SendScheduler>({ name: "SendScheduler" }, k).status(),
+            ingress().objectClient<EmailSend>({ name: "EmailSend" }, k).status(),
           ),
         ),
         inbox: await Promise.all(
           loops.inbox.map((k) =>
-            ingress().objectClient<InboxScheduler>({ name: "InboxScheduler" }, k).status(),
+            ingress().objectClient<EmailInboxRead>({ name: "EmailInboxRead" }, k).status(),
           ),
         ),
       };

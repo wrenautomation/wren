@@ -41,7 +41,7 @@ export const CAMPAIGN_CHANNELS: readonly string[] = [
  * listed takes any slug until its loop reads campaigns (designs/2026-11-02-campaigns.md, phase 3).
  */
 const REACH_ACTS: Readonly<Record<string, readonly string[]>> = {
-  // Cold email: openers queued a day (`ComposeScheduler`).
+  // Cold email: openers queued a day (`EmailOpenerFill`).
   email: ["opener"],
   // Invites proposed a day (`topUp`); comments queued in 24h (`postsPass`). Follows and DMs inherit.
   linkedin: ["invite", "comment"],
@@ -54,7 +54,7 @@ const REACH_ACTS: Readonly<Record<string, readonly string[]>> = {
   // Contacts enrolled a fleet day (`wren sms enroll --campaign`).
   sms: ["opener"],
 };
-// Posts holding a slot tomorrow (`ContentPlanner`), on every content platform.
+// Posts holding a slot tomorrow (`PostPlan`), on every content platform.
 const CAMPAIGN_ACTS: Readonly<Record<string, readonly string[]>> = {
   ...REACH_ACTS,
   ...Object.fromEntries(

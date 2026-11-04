@@ -13,14 +13,11 @@ import { transitionMessage } from "@wren/starling-email";
 import {
   CLICKS_KEY,
   CLICKS_SYNC_COMMAND,
-  type ClicksScheduler,
-  makeClicksScheduler,
-  makeOpensScheduler,
-  makePostmasterScheduler,
-  OPENS_KEY,
-  type OpensScheduler,
+  type EmailClickPull,
+  type EmailPostmasterPull,
+  makeEmailClickPull,
+  makeEmailPostmasterPull,
   POSTMASTER_KEY,
-  type PostmasterScheduler,
   untilNextLocalDay,
 } from "@wren/starling-email/restate";
 import {
@@ -43,17 +40,17 @@ import {
   makeDisposition,
 } from "../../../src/email/restate/disposition.js";
 import {
+  type EmailInboxRead,
   INBOX_SYNC_COMMAND,
   type InboxPush,
-  type InboxScheduler,
   inboxPush,
-  makeInboxScheduler,
+  makeEmailInboxRead,
 } from "../../../src/email/restate/inbox-scheduler.js";
 import {
   CHECK_AFTER_MS,
-  makePlacementScheduler,
+  type EmailPlacementTest,
+  makeEmailPlacementTest,
   PLACEMENT_KEY,
-  type PlacementScheduler,
 } from "../../../src/email/restate/placement-scheduler.js";
 import {
   makeCompany,
@@ -129,8 +126,6 @@ const postmaster: PostmasterClient = {
   token: async () => "t",
   sleep: async () => {},
 };
-/** A pixel host that refuses every credential: the pass that throws. */
-const refusingHost = async () => new Response("no", { status: 401 });
 /** The lander's export: refuses the credential until a test gives it views to serve. */
 const CLICKS_TOKEN = "lander-token-4f2a";
 let landerViews: { id: number; ts: string; page: string; r: string }[] | null = null;
@@ -172,7 +167,7 @@ beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
     services: [
-      makeInboxScheduler({
+      makeEmailInboxRead({
         reader,
         scopeOf: () => ({ db: pg.db, disposition: DISPOSITION_KEY }),
         syncMs: SYNC_MS,
@@ -185,21 +180,13 @@ beforeAll(async () => {
       inboxPush,
       listener,
       makeDisposition({ dbOf: () => pg.db, llm }),
-      makePostmasterScheduler({
+      makeEmailPostmasterPull({
         db: pg.db,
         client: postmaster,
         domains: ["wren-automation.test"],
         policy: POLICY,
       }),
-      makeOpensScheduler({
-        db: pg.db,
-        baseUrl: "https://t.example",
-        exportToken: "wrong",
-        fetch: refusingHost,
-        syncMs: SYNC_MS,
-        tickMs: TICK_MS,
-      }),
-      makeClicksScheduler({
+      makeEmailClickPull({
         db: pg.db,
         baseUrl: "https://site.example",
         exportToken: CLICKS_TOKEN,
@@ -208,7 +195,7 @@ beforeAll(async () => {
         tickMs: TICK_MS,
       }),
       // No ramps: a pass only reads back copies already sent.
-      makePlacementScheduler({
+      makeEmailPlacementTest({
         db: pg.db,
         policy: POLICY,
         transport: new ConsoleTransport({ write: () => {} }),
@@ -241,16 +228,14 @@ beforeEach(async () => {
 const db = () => pg.db;
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const inbox = (sender: string) =>
-  ingress().objectClient<InboxScheduler>({ name: "InboxScheduler" }, sender);
+  ingress().objectClient<EmailInboxRead>({ name: "EmailInboxRead" }, sender);
 const disposition = () =>
   ingress().objectClient<Disposition>({ name: "Disposition" }, DISPOSITION_KEY);
 const postmasterClient = () =>
-  ingress().objectClient<PostmasterScheduler>({ name: "PostmasterScheduler" }, POSTMASTER_KEY);
-const opens = () => ingress().objectClient<OpensScheduler>({ name: "OpensScheduler" }, OPENS_KEY);
-const clicks = () =>
-  ingress().objectClient<ClicksScheduler>({ name: "ClicksScheduler" }, CLICKS_KEY);
+  ingress().objectClient<EmailPostmasterPull>({ name: "EmailPostmasterPull" }, POSTMASTER_KEY);
+const clicks = () => ingress().objectClient<EmailClickPull>({ name: "EmailClickPull" }, CLICKS_KEY);
 const placement = () =>
-  ingress().objectClient<PlacementScheduler>({ name: "PlacementScheduler" }, PLACEMENT_KEY);
+  ingress().objectClient<EmailPlacementTest>({ name: "EmailPlacementTest" }, PLACEMENT_KEY);
 
 async function enrollSent(domain: string, email: string): Promise<Enrollment> {
   const company = await makeCompany(db(), { domain });
@@ -289,7 +274,7 @@ async function waitFor<T>(read: () => PromiseLike<T>, ok: (value: T) => boolean)
 
 const runsFor = (command: string) => db().select().from(runs).where(eq(runs.command, command));
 
-describe("InboxScheduler", () => {
+describe("EmailInboxRead", () => {
   it("a sync reads its own inbox, records a run, and hands replies to Disposition", async () => {
     const enrollment = await enrollSent("reply.example", "jordan@example.com");
     reader.add(SENDER, "g-reply", load("human_reply"), {
@@ -398,7 +383,7 @@ describe("InboxScheduler", () => {
   });
 });
 
-describe("PostmasterScheduler", () => {
+describe("EmailPostmasterPull", () => {
   it("a sync stores the day and sleeps until the next local midnight", async () => {
     const outcome = await postmasterClient().sync();
 
@@ -419,22 +404,7 @@ describe("PostmasterScheduler", () => {
   });
 });
 
-describe("OpensScheduler", () => {
-  it("a pass that throws records the error, names no secret, and retries after a tick", async () => {
-    const outcome = await opens().sync();
-
-    expect(outcome.stats).toBeNull();
-    expect(outcome.error).toContain("WREN_PIXEL_EXPORT_TOKEN");
-    expect(outcome.error).not.toContain("wrong");
-    expect(outcome.delayMs).toBe(TICK_MS);
-    const [run] = await runsFor("outreach opens sync");
-    expect(run?.argv).toEqual({ daemon: true, base_url: "https://t.example" });
-    expect(JSON.stringify(run?.stats)).toContain("OpenSyncError");
-    expect(JSON.stringify(run)).not.toContain("wrong");
-  });
-});
-
-describe("ClicksScheduler", () => {
+describe("EmailClickPull", () => {
   it("a refused credential is recorded without naming it, and asked again after a tick", async () => {
     const outcome = await clicks().sync();
 
@@ -472,7 +442,7 @@ describe("ClicksScheduler", () => {
   });
 });
 
-describe("PlacementScheduler", () => {
+describe("EmailPlacementTest", () => {
   it("reads back each due copy: a landing, a refusal recorded once, an outage asked again", async () => {
     const sentAt = new Date(Date.now() - CHECK_AFTER_MS - 3_600_000);
     const row = (seed: string) => ({

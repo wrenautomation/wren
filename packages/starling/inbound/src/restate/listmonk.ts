@@ -6,7 +6,7 @@
  * `ListmonkMail`: keyed `<campaign>:<recipient>`, so a repeat of one message is the same call. It
  * delivers through `deliverIssue`, the gate and mail the direct loop uses: `mayMarket`, the
  * footer with the one-click unsubscribe, portal@, a Message-ID the bounce reader matches.
- * `ListmonkSync`: hourly, Wren's consents to Listmonk's lists and back (`../listmonk/sync.ts`).
+ * `NewsletterSync`: hourly, Wren's consents to Listmonk's lists and back (`../listmonk/sync.ts`).
  */
 import * as restate from "@restatedev/restate-sdk";
 import { consentIdOf, emailTopics, topicConsents, withdrawConsent } from "@wren/core/marketing";
@@ -179,9 +179,9 @@ export async function syncAllTopics(d: SyncDeps): Promise<SyncStats> {
   return { topics };
 }
 
-export function makeListmonkSync(deps: { db: Db; lm: Listmonk | null; everyMs?: number }) {
+export function makeNewsletterSync(deps: { db: Db; lm: Listmonk | null; everyMs?: number }) {
   const every = deps.everyMs ?? SYNC_EVERY_MS;
-  return makeLoopObject("ListmonkSync", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("NewsletterSync", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const { db, lm } = deps;
     // Without Listmonk's settings the loop waits and looks again: it resumes once they are set.
@@ -197,4 +197,4 @@ export function makeListmonkSync(deps: { db: Db; lm: Listmonk | null; everyMs?: 
     });
   });
 }
-export type ListmonkSync = ReturnType<typeof makeListmonkSync>;
+export type NewsletterSync = ReturnType<typeof makeNewsletterSync>;

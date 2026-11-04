@@ -22,7 +22,7 @@ const SPACE_MS = 15_000;
 /** New clients' databases are picked up this often. */
 const CLIENTS_EVERY_MS = 10 * 60_000;
 
-/** Unit of a loop over every workspace (`TouchFeed/all`): never keyed to the owner. */
+/** Unit of a loop over every workspace (`TouchToJourney/all`): never keyed to the owner. */
 const EVERY_WORKSPACE = "all";
 
 /** `Service/unit` from a notice, keyed to its database's owner; null when malformed. */

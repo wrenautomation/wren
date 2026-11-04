@@ -6,7 +6,7 @@
 import { clients } from "@wren/core/clients";
 import { keyId } from "@wren/core/key-id";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
-import { syncVaultKeys } from "@wren/core/vault-keys";
+import { syncVaultKeyMirror } from "@wren/core/vault-keys";
 import { meter, setOwnKey } from "@wren/core/vendors";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { addAccount } from "@wren/starling-acts";
@@ -52,7 +52,7 @@ const rowsOf = async () =>
 describe("marketing.account rows", () => {
   it("lists a login, an operator key and a client key, each with its own columns", async () => {
     await addAccount(pg.db, { platform: "reddit", account: "reddit@wren", now: NOW });
-    await syncVaultKeys(
+    await syncVaultKeyMirror(
       pg.db,
       sites([
         {

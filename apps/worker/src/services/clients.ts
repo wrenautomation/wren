@@ -9,11 +9,15 @@ import { CustomHostnames } from "@wren/core/clients";
 import { failedRuns } from "@wren/core/executor";
 import { namedFor } from "@wren/core/notify";
 import { makeTokens } from "@wren/core/tokens";
-import { makeBillingWatch, parseReceive, wiseReader } from "@wren/delivery/billing";
+import { makeClientInvoicing, parseReceive, wiseReader } from "@wren/delivery/billing";
 import { makeBillingConsole } from "@wren/delivery/billing/console";
 import { s3Files } from "@wren/delivery/files";
 import { makeHealthConsole } from "@wren/delivery/health/console";
-import { makeDeliveryPortal, makeDeliveryWatch, makeDomainsResolver } from "@wren/delivery/restate";
+import {
+  makeClientUpdateMail,
+  makeDeliveryPortal,
+  makeDomainsResolver,
+} from "@wren/delivery/restate";
 import { DEMO_NAME } from "@wren/reactivation/restate";
 import { plainMailer } from "@wren/starling-email";
 import { WORKFLOWS } from "../workflows.js";
@@ -55,10 +59,10 @@ export function clientsServices(deps: Deps): AnyService[] {
   const portal = settings.portalOrigin ?? null;
   // The client portal (apps/portal): delivery for every client, each product's
   // own pages, and one reactivation loop per client.
-  // DeliveryWatch mails clients from portal@ and pings us when one could feel forgotten.
+  // ClientUpdateMail mails clients from portal@ and pings us when one could feel forgotten.
   if (portal)
     services.push(
-      makeDeliveryWatch({
+      makeClientUpdateMail({
         main: db,
         send:
           settings.portalFrom && settings.portalMailbox
@@ -81,12 +85,12 @@ export function clientsServices(deps: Deps): AnyService[] {
         ...(settings.notify === "none" ? {} : { ops: notifier }),
       }),
     );
-  else log.info("WREN_PORTAL_ORIGIN unset: no DeliveryWatch");
+  else log.info("WREN_PORTAL_ORIGIN unset: no ClientUpdateMail");
   // Wren's own billing by bank transfer (designs/2026-10-15-wise-billing.md): bills, mails and
   // reads money in from our Wise account. The token is read only; it never moves money.
   if (portal)
     services.push(
-      makeBillingWatch({
+      makeClientInvoicing({
         main: db,
         wise:
           settings.wiseApiToken && settings.wiseProfileId

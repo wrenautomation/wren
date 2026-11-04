@@ -13,7 +13,7 @@ One ad set's numbers for one day, as Meta's insights gave them. Table `ad_days`;
 
 ## Why this shape
 
-Meta's insights are read every pass and were thrown away. A row per ad set and day, upserted, keeps them: a re-read or a revised day overwrites, never adds (`packages/starling/channels/meta/src/days.ts:23`). Written only by the step `AdsWatch` already runs, so no new loop (`packages/starling/channels/meta/src/watch.ts:84`). Days exist only while a launch is active.
+Meta's insights are read every pass and were thrown away. A row per ad set and day, upserted, keeps them: a re-read or a revised day overwrites, never adds (`packages/starling/channels/meta/src/days.ts:23`). Written only by the step `AdSpendGuard` already runs, so no new loop (`packages/starling/channels/meta/src/watch.ts:84`). Days exist only while a launch is active.
 
 ## Shape
 
@@ -30,13 +30,13 @@ Citations: `packages/starling/channels/meta/src/days.ts:23`, `packages/starling/
 ## If you change this
 
 - **Hits:** `watch.ts` (the step), the view (migration), `records.ts`, the Marketing app's Ads page and spend tile
-- **Does not hit:** `AdsWatch`'s verdicts, which read the insights, not this table
+- **Does not hit:** `AdSpendGuard`'s verdicts, which read the insights, not this table
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `AdsWatch/default` | writes |
+| `AdSpendGuard/default` | writes |
 | Marketing app (`/marketing/ads`) | reads |
 
 ## See

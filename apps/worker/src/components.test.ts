@@ -111,7 +111,7 @@ describe("the component inventory", () => {
   it("every provided service is bound, but Postmaster, which needs its own login", async () => {
     const services = await bound();
     const unbound = COMPONENTS.flatMap((c) => c.provides.services).filter((s) => !services.has(s));
-    expect(unbound).toEqual(["PostmasterScheduler"]);
+    expect(unbound).toEqual(["EmailPostmasterPull"]);
   });
 
   it("a loop is one of its component's services, and has a `loop` handler", async () => {

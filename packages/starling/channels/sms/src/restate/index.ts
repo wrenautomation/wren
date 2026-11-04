@@ -1,13 +1,13 @@
 /**
  * The SMS channel on Restate:
  *
- * - `SmsSender/fleet`: the send loop. One pass = one tick (reconcile, then at
+ * - `SmsSend/fleet`: the send loop. One pass = one tick (reconcile, then at
  *   most one text per ready number). Next pass after the gap when it sent,
  *   five minutes when nothing could go. Off until `wren sms queue start`.
  * - `SmsEvents.ingest`: every webhook, forwarded by the phone Worker with the
  *   provider's event id as the idempotency key. Applying is idempotent anyway.
  * - `SmsDesk`: the operator's reads and writes, for the phone app and the CLI.
- * - `SmsWatch/daily`: every 30 minutes, attaches waiting US numbers to the
+ * - `SmsUpkeep/daily`: every 30 minutes, attaches waiting US numbers to the
  *   10DLC campaign once carriers approve it, steps site applicants the push
  *   missed and sends their emails and no-text notices (form.ts, form-after.ts),
  *   queues day-before reminders for booked
@@ -16,8 +16,8 @@
  * - `SmsForms`: the lander's push of one site application (forms.ts): its first text
  *   now or when due, then the email and the 10-minute check.
  *
- * A client's texts (`sms.texts`) run as `SmsSender/<client>/fleet` and
- * `SmsWatch/<client>/daily` on its database and numbers; its webhooks come in
+ * A client's texts (`sms.texts`) run as `SmsSend/<client>/fleet` and
+ * `SmsUpkeep/<client>/daily` on its database and numbers; its webhooks come in
  * through `SmsEvents.ingestFor`. Every desk handler on a client's data takes `client`:
  * its database and numbers, refused unless `sms.texts` is installed. Wren's own numbers,
  * forms and the phone app's push stay Wren's.
@@ -210,14 +210,14 @@ function clockOf(clock?: () => Date): { now?: Date } {
 function wakeSender(ctx: restate.Context) {
   ctx
     .objectSendClient<{ wake: (c: restate.ObjectContext) => Promise<boolean> }>(
-      { name: "SmsSender" },
+      { name: "SmsSend" },
       SENDER_KEY,
     )
     .wake();
 }
 
-export function makeSmsSender(wren: SmsDeps) {
-  return makeLoopObject<TickStats>("SmsSender", async (ctx) => {
+export function makeSmsSend(wren: SmsDeps) {
+  return makeLoopObject<TickStats>("SmsSend", async (ctx) => {
     const client = clientOfKey(ctx.key)?.client ?? null;
     const deps = await depsOf(ctx, wren, client);
     if (typeof deps === "string")
@@ -568,7 +568,7 @@ export function makeSmsDesk(
             await ctx.run("mark read", () => markRead(d.db, req.contactId, now));
           ctx
             .objectSendClient<{ sync: (c: restate.ObjectContext) => Promise<unknown> }>(
-              { name: "SmsSender" },
+              { name: "SmsSend" },
               req.client ? clientKey(req.client, SENDER_KEY) : SENDER_KEY,
             )
             .sync();
@@ -588,7 +588,7 @@ export function makeSmsDesk(
           );
           ctx
             .objectSendClient<{ sync: (c: restate.ObjectContext) => Promise<unknown> }>(
-              { name: "SmsSender" },
+              { name: "SmsSend" },
               SENDER_KEY,
             )
             .sync();
@@ -715,7 +715,7 @@ export function makeSmsDesk(
           );
         },
       ),
-      /** The registration pass now (SmsWatch runs it every 30 minutes). */
+      /** The registration pass now (SmsUpkeep runs it every 30 minutes). */
       register: serviceHandler(
         { input: NO_INPUT },
         async (ctx: restate.Context): Promise<RegistrationStats> => {
@@ -792,7 +792,7 @@ export function makeSmsDesk(
           });
         },
       ),
-      /** The form follow-up now (SmsWatch runs it every 30 minutes). */
+      /** The form follow-up now (SmsUpkeep runs it every 30 minutes). */
       forms: serviceHandler(
         { input: NO_INPUT, effect: "sends" },
         async (ctx: restate.Context): Promise<object> => {
@@ -810,7 +810,7 @@ export function makeSmsDesk(
           });
         },
       ),
-      /** The reminder pass now (SmsWatch runs it every 30 minutes). */
+      /** The reminder pass now (SmsUpkeep runs it every 30 minutes). */
       reminders: serviceHandler(
         { input: CLIENT, effect: "sends" },
         async (ctx: restate.Context, req?: { client?: string | null }): Promise<object> => {
@@ -921,8 +921,8 @@ export interface WatchStats {
 const SUMMARIZED = "summarized";
 const CAMPAIGN = "campaign";
 
-export function makeSmsWatch(wren: SmsDeps) {
-  return makeLoopObject<WatchStats>("SmsWatch", async (ctx) => {
+export function makeSmsUpkeep(wren: SmsDeps) {
+  return makeLoopObject<WatchStats>("SmsUpkeep", async (ctx) => {
     const deps = await depsOf(ctx, wren, clientOfKey(ctx.key)?.client ?? null);
     if (typeof deps === "string")
       return stoppedPass<WatchStats>(ctx, await nowFor(ctx, wren.clock), deps);
@@ -1036,7 +1036,7 @@ export function makeSmsWatch(wren: SmsDeps) {
   });
 }
 
-export type SmsSender = ReturnType<typeof makeSmsSender>;
+export type SmsSend = ReturnType<typeof makeSmsSend>;
 export type SmsEventsService = ReturnType<typeof makeSmsEvents>;
 export type SmsDeskService = ReturnType<typeof makeSmsDesk>;
-export type SmsWatchObject = ReturnType<typeof makeSmsWatch>;
+export type SmsUpkeepObject = ReturnType<typeof makeSmsUpkeep>;

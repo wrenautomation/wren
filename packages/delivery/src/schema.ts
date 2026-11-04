@@ -372,7 +372,7 @@ export const invoiceNumbers = delivery.sequence("invoice_number", { startWith: 1
 /**
  * An invoice Wren makes for an engagement (designs/2026-10-15-wise-billing.md): we number it,
  * draw its PDF, mail it, and the client pays by bank transfer into our Wise account with the
- * number as the memo. BillingWatch reads the credits and marks it paid. Overdue is an open one
+ * number as the memo. ClientInvoicing reads the credits and marks it paid. Overdue is an open one
  * past `due_on`.
  */
 export const invoices = delivery.table(
@@ -445,7 +445,7 @@ export const CREDIT_STATUSES = ["matched", "review", "ignored", "dismissed"] as 
 export type CreditStatus = (typeof CREDIT_STATUSES)[number];
 
 /**
- * Money that came into a Wise balance, read from its statement by BillingWatch. One row per Wise
+ * Money that came into a Wise balance, read from its statement by ClientInvoicing. One row per Wise
  * transaction (`wise_id`, its reference number), so a pass read twice adds nothing.
  */
 export const wiseCredits = delivery.table(

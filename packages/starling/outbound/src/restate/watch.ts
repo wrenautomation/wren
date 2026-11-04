@@ -1,5 +1,5 @@
 /**
- * `ReachWatch/daily`: reads each account's inbox on the warm cadence (`@wren/core/warm`): every
+ * `ReachInboxRead/daily`: reads each account's inbox on the warm cadence (`@wren/core/warm`): every
  * 2 minutes right after a touch, easing to 30. DMs become replies, comments on our posts and
  * under our comments become `comments` rows and events on the `reach.comments` workflow. Then
  * each account's health (the warmup ladder runs on it). A send, an answer or a post wakes it, so
@@ -86,7 +86,7 @@ import { fireSlots } from "./schedule.js";
 /** The soonest the watch comes back, whatever is due. */
 const WATCH_FLOOR_MS = 60 * 1000;
 
-/** Restate state on `ReachWatch/daily`: each account's last read, epoch ms by account id. */
+/** Restate state on `ReachInboxRead/daily`: each account's last read, epoch ms by account id. */
 const READS = "reads";
 
 /**
@@ -333,8 +333,8 @@ interface WatchScope {
   followUpDays: () => Promise<number>;
 }
 
-export function makeReachWatch(deps: ReachDeps) {
-  return makeLoopObject<WatchStats>("ReachWatch", async (ctx) => {
+export function makeReachInboxRead(deps: ReachDeps) {
+  return makeLoopObject<WatchStats>("ReachInboxRead", async (ctx) => {
     const now = await nowFor(ctx, deps.clock);
     const owner = clientOfKey(ctx.key);
     if (!owner)
@@ -521,7 +521,7 @@ async function watchPass(
   const channelFor = channelsFor(deps, ctx);
   // Every desk read waits at most `LIMITS.desk` (`sitesFor`); a read that times out pass after
   // pass is held, and a platform whose reads time out twice is left for the next pass.
-  const limits = await unitLimits(ctx, deps.db, "ReachWatch", { oneHost: true });
+  const limits = await unitLimits(ctx, deps.db, "ReachInboxRead", { oneHost: true });
   let skipped = 0;
   const go = (unit: string, group: string) => {
     if (!limits.skip(unit, group)) return true;
@@ -755,4 +755,4 @@ async function watchPass(
   return outcome;
 }
 
-export type ReachWatchObject = ReturnType<typeof makeReachWatch>;
+export type ReachInboxReadObject = ReturnType<typeof makeReachInboxRead>;

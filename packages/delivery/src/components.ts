@@ -13,8 +13,8 @@ export const DELIVERY_COMPONENTS = [
     for: "client",
     ready: true,
     provides: {
-      services: ["DeliveryPortal", "DeliveryWatch", "Domains"],
-      loops: ["DeliveryWatch"],
+      services: ["DeliveryPortal", "ClientUpdateMail", "Domains"],
+      loops: ["ClientUpdateMail"],
       records: [
         "delivery.step",
         "delivery.update",

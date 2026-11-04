@@ -2,7 +2,7 @@
  * The lander's export, and who clicked what in which email.
  *
  * Each message's sign-off link carries `?r=<messages.link_code>`; the lander records the code on
- * the view the link lands on (`hits.r`). `ClicksScheduler` pulls those views hourly into
+ * the view the link lands on (`hits.r`). `EmailClickPull` pulls those views hourly into
  * `email_clicks` (`./click-sync.ts`): one row per code and page, with the first and last click and
  * a count. The sent log (`core/sent-views.ts`) reads that table to set "clicked", and
  * `wren email clicks` lists it (`clickedEmails`) with what each clicker did after (`clickFollowUps`, live). Stored since 2026-10-14 (B7): until then this

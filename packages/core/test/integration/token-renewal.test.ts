@@ -1,5 +1,5 @@
 /**
- * TokenRenewal's limit (designs/2026-10-16-loop-watchdog.md), on a real Restate and Postgres: a
+ * SiteTokenRenew's limit (designs/2026-10-16-loop-watchdog.md), on a real Restate and Postgres: a
  * `sites/renew` that answers is a pass with its counts; one that never answers is cut at the
  * limit, left running (it writes tokens), kept in `last.timeouts`, and the loop goes on to ask
  * again. Synthetic site names only.
@@ -12,7 +12,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  makeTokenRenewal,
+  makeSiteTokenRenew,
   RENEWAL_COMMAND,
   type RenewReport,
 } from "../../src/autobrowse/renewal.js";
@@ -46,7 +46,7 @@ let env: RestateTestEnvironment;
 beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
-    services: [sites, makeTokenRenewal({ db: pg.db, limitMs: LIMIT_MS })],
+    services: [sites, makeSiteTokenRenew({ db: pg.db, limitMs: LIMIT_MS })],
     alwaysReplay: true,
   });
 }, 180_000);
@@ -58,13 +58,13 @@ afterAll(async () => {
 const renewal = () =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<ReturnType<typeof makeTokenRenewal>>({ name: "TokenRenewal" }, "box");
+    .objectClient<ReturnType<typeof makeSiteTokenRenew>>({ name: "SiteTokenRenew" }, "box");
 const open = () =>
   restateAdmin(env.adminAPIBaseUrl())(
     `SELECT id FROM sys_invocation WHERE target_service_name = 'sites' AND status <> 'completed'`,
   );
 
-describe("TokenRenewal's limit", () => {
+describe("SiteTokenRenew's limit", () => {
   it("an answer is a pass with its counts, and the next one a day on", async () => {
     const out = await renewal().sync();
     expect(out).toMatchObject({ error: null, failures: 0, delayMs: DAY_MS });

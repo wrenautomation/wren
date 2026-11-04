@@ -1,5 +1,5 @@
 /**
- * Inbox placement: `PlacementScheduler/fleet` mails two copies from each ramped
+ * Inbox placement: `EmailPlacementTest/fleet` mails two copies from each ramped
  * inbox to every seed Gmail (`WREN_PLACEMENT_SEEDS`) once a send day, at the
  * window's open, through the inbox's own transport: a short personal note
  * (`plain`, tests the domain) and the newest opener (`real`, tests the copy).
@@ -89,7 +89,7 @@ export function plainNote(day: string): { subject: string; body: string } {
   };
 }
 
-interface PlacementSchedulerDeps {
+interface EmailPlacementTestDeps {
   db: Db;
   policy: SendPolicy;
   transport: Transport;
@@ -203,7 +203,7 @@ async function newestOpener(
  * still sends its plain note.
  */
 export async function sendPlacements(
-  deps: Omit<PlacementSchedulerDeps, "sitesFor">,
+  deps: Omit<EmailPlacementTestDeps, "sitesFor">,
   now: Date,
 ): Promise<Pick<PlacementStats, "sent" | "noDraft" | "failed">> {
   const day = deps.policy.localDay(now).toString();
@@ -310,13 +310,13 @@ export async function placementLines(
   };
 }
 
-export function makePlacementScheduler(deps: PlacementSchedulerDeps) {
-  return makeLoopObject("PlacementScheduler", async (ctx: restate.ObjectContext) => {
+export function makeEmailPlacementTest(deps: EmailPlacementTestDeps) {
+  return makeLoopObject("EmailPlacementTest", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     // The checks call `sites` from the handler, outside any step; each answer is journaled.
     const sites = deps.sitesFor(ctx);
     const due = await ctx.run("due checks", () => dueChecks(deps.db, now));
-    const limits = await unitLimits(ctx, deps.db, "PlacementScheduler");
+    const limits = await unitLimits(ctx, deps.db, "EmailPlacementTest");
     let checked = 0;
     let retrying = 0;
     const refused: string[] = [];
@@ -427,4 +427,4 @@ export function makePlacementScheduler(deps: PlacementSchedulerDeps) {
   });
 }
 
-export type PlacementScheduler = ReturnType<typeof makePlacementScheduler>;
+export type EmailPlacementTest = ReturnType<typeof makeEmailPlacementTest>;

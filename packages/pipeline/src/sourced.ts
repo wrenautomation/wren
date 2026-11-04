@@ -5,7 +5,7 @@
  * reads the new members instead. A cursor per list (the last `people.id` seen) keeps it one pass
  * per member. The first pass of a list new to the shape reads all its members.
  *
- * Pure of Restate: the worker's `SourcedFeed` loop keeps the cursors and sends the fires.
+ * Pure of Restate: the worker's `ListToJourney` loop keeps the cursors and sends the fires.
  */
 
 import type { Fired } from "@wren/core/executor";

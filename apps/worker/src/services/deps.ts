@@ -496,14 +496,6 @@ export async function buildDeps(
       }
     : null;
   if (!postmaster) log.info("WREN_POSTMASTER_USER unset: no daily Postmaster pull");
-  // The open-pixel pull needs both the host and its export bearer; the bearer
-  // stays in settings and the request header, never in a log line or a ledger row.
-  const opens =
-    settings.pixelBaseUrl && settings.pixelExportToken
-      ? { baseUrl: settings.pixelBaseUrl, exportToken: settings.pixelExportToken }
-      : null;
-  if (settings.pixelBaseUrl && !opens)
-    log.warn("WREN_PIXEL_BASE_URL set without WREN_PIXEL_EXPORT_TOKEN: opens are not pulled");
   // Our own booking calendar: Google as the account the settings name, by delegation on the
   // calendar scope, minted on first use; mail from portal@.
   const calendarKey = () => googleKey(keyPath);
@@ -568,12 +560,6 @@ export async function buildDeps(
   const edge = settings.siteEdgeToken
     ? siteEdge(settings.siteBaseUrl, settings.siteEdgeToken)
     : undefined;
-  // The Friday report mails from a fleet inbox by default: the one mailbox the
-  // service account is known to be able to impersonate.
-  const reportFrom = settings.reportFrom ?? fleet.senders[0] ?? null;
-  const report =
-    settings.reportTo && reportFrom ? { to: settings.reportTo, from: reportFrom } : null;
-  if (settings.reportTo && !report) log.warn("WREN_REPORT_TO set but no sender to mail from");
   const voice = settings.contentVoicePath ? readFileSync(settings.contentVoicePath, "utf8") : null;
   // A draft's stored files (thumbnail, cover, the video) signed for its field editor.
   const mediaSigner = settings.mediaBucket
@@ -950,7 +936,6 @@ export async function buildDeps(
     notifier,
     notify,
     openClient,
-    opens,
     operatorText,
     policy,
     portalMail,
@@ -958,7 +943,6 @@ export async function buildDeps(
     reach,
     reachNotify,
     renderer,
-    report,
     rootDir,
     roster,
     setupChecks,

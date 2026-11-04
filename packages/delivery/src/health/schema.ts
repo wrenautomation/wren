@@ -118,7 +118,7 @@ export const healthOverrides = delivery.table(
 
 export const FLAG_SIDES = ["risk", "opportunity"] as const;
 export type FlagSide = (typeof FLAG_SIDES)[number];
-/** Who raised it: DeliveryWatch's problems, health, failed workflow runs, or a person. */
+/** Who raised it: ClientUpdateMail's problems, health, failed workflow runs, or a person. */
 export const FLAG_SOURCES = ["delivery", "health", "workflows", "person"] as const;
 export type FlagSource = (typeof FLAG_SOURCES)[number];
 

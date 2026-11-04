@@ -1,5 +1,5 @@
 /**
- * VaultKeys on a real Restate and Postgres, with a fake `sites` and `desk` (nothing calls a real
+ * VaultKeyMirror on a real Restate and Postgres, with a fake `sites` and `desk` (nothing calls a real
  * autobrowse): the hourly `sync` mirrors the list, `revoke` and `spend` call `sites` then mirror
  * again, `rotate` goes to `desk` and answers its run, and a key the mirror doesn't hold is
  * refused before autobrowse hears of it. Synthetic keys only.
@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { keyId } from "../../src/key-id.js";
 import { vaultKeys } from "../../src/keys-schema.js";
 import { startTestRestate } from "../../src/testing.js";
-import { type KeyRow, makeVaultKeys } from "../../src/vault-keys.js";
+import { type KeyRow, makeVaultKeyMirror } from "../../src/vault-keys.js";
 
 const calls: string[] = [];
 const state = new Map<string, KeyRow>();
@@ -79,7 +79,7 @@ let env: RestateTestEnvironment;
 beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
-    services: [sites, desk, makeVaultKeys({ db: pg.db, limitMs: 5_000 })],
+    services: [sites, desk, makeVaultKeyMirror({ db: pg.db, limitMs: 5_000 })],
     alwaysReplay: true,
   });
 }, 180_000);
@@ -91,14 +91,14 @@ afterAll(async () => {
 const vault = () =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<ReturnType<typeof makeVaultKeys>>({ name: "VaultKeys" }, "box");
+    .objectClient<ReturnType<typeof makeVaultKeyMirror>>({ name: "VaultKeyMirror" }, "box");
 const mirrored = async () =>
   (await pg.db.select().from(vaultKeys).orderBy(vaultKeys.address)).map((r) => [
     r.address,
     r.status,
   ]);
 
-describe("VaultKeys", () => {
+describe("VaultKeyMirror", () => {
   it("sync mirrors what sites lists, and the next one an hour on", async () => {
     state.set("exa@env-0", key("env-0"));
     state.set("exa@env-1", key("env-1"));

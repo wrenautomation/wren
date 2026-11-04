@@ -12,7 +12,7 @@ Each hour, every live project's people get the mail they asked for, each client 
 
 ## Input → Movement → Output
 
-Onboarding and active engagements of non-demo clients with `delivery.portal` installed (review asks need `delivery.reviews`, due-invoice mail `delivery.invoices`, the signed copy `delivery.contract`; a project's start installs all four) (activity flags and the digest: active only) and their members; the demo's sample. `DeliveryWatch/fleet` (`packages/delivery/src/watch.ts:1409`) runs one pass an hour in a `runs` row: welcomes, "needs you" mail, the Friday digest from `portal@`, then health and flags: urgent flags at once, the rest in one digest a day. Off until `wren delivery watch start`; runs only when `WREN_PORTAL_ORIGIN` is set, mails only when `WREN_PORTAL_FROM` and `WREN_PORTAL_MAILBOX` are too.
+Onboarding and active engagements of non-demo clients with `delivery.portal` installed (review asks need `delivery.reviews`, due-invoice mail `delivery.invoices`, the signed copy `delivery.contract`; a project's start installs all four) (activity flags and the digest: active only) and their members; the demo's sample. `ClientUpdateMail/fleet` (`packages/delivery/src/watch.ts:1409`) runs one pass an hour in a `runs` row: welcomes, "needs you" mail, the Friday digest from `portal@`, then health and flags: urgent flags at once, the rest in one digest a day. Off until `wren delivery watch start`; runs only when `WREN_PORTAL_ORIGIN` is set, mails only when `WREN_PORTAL_FROM` and `WREN_PORTAL_MAILBOX` are too.
 
 ## Why this shape
 

@@ -1,9 +1,9 @@
 /**
- * `LineFeed/all`: Wren's content lines fed to the executor (designs/2026-10-25-ingestion-engine.md).
+ * `MapLineFeed/all`: Wren's content lines fed to the executor (designs/2026-10-25-ingestion-engine.md).
  * A document a line's find takes is told as a `trigger.found` fire and opens an instance; a job
  * that ends at a station is told as a `trigger.station` fire and moves it on. A tail loop (like
- * `SourcedFeed`), with no cursor: each pass reads what has not been told (`linePass`). Start it with
- * `POST LineFeed/all/start`.
+ * `ListToJourney`), with no cursor: each pass reads what has not been told (`linePass`). Start it with
+ * `POST MapLineFeed/all/start`.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { executorFire, type Fired } from "@wren/core/executor";
@@ -11,14 +11,14 @@ import { makeLoopObject, type PassOutcome, runPass, setLastPass } from "@wren/co
 import type { Db } from "@wren/db";
 import { linePass } from "@wren/pipeline/lines";
 
-const LINE_FEED = { name: "LineFeed" } as const;
+const LINE_FEED = { name: "MapLineFeed" } as const;
 /** Between two passes when a find has more documents to tell. */
 const MORE_MS = 5_000;
 /** Between two passes when caught up (designs/2026-11-01-loop-calls.md). */
 const IDLE_MS = 15 * 60_000;
 const PER_FIND = 200;
 
-interface LineFeedDeps {
+interface MapLineFeedDeps {
   main: Db;
 }
 
@@ -29,7 +29,7 @@ interface LineStats {
   more: boolean;
 }
 
-export function makeLineFeed(d: LineFeedDeps) {
+export function makeMapLineFeed(d: MapLineFeedDeps) {
   return makeLoopObject(LINE_FEED.name, async (ctx: restate.ObjectContext) => {
     const outcome = (await runPass<LineStats & { fires: Fired[] }>(ctx, d.main, {
       name: "line feed",

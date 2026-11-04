@@ -1,5 +1,5 @@
 /**
- * `ReachSender/fleet`: the send loop. One pass = one tick (tick.ts) over the journal: database
+ * `ReachSend/fleet`: the send loop. One pass = one tick (tick.ts) over the journal: database
  * steps in `ctx.run`, platform calls as journaled calls to the Mac's desk. Next pass after the
  * gap when it sent, five minutes when nothing could go. Off until `wren reach queue start`.
  */
@@ -43,8 +43,8 @@ export function reachDelayMs(
   return Math.min(Math.max(wait, 1000), NET_MS);
 }
 
-export function makeReachSender(deps: ReachDeps) {
-  return makeLoopObject<TickStats>("ReachSender", async (ctx) => {
+export function makeReachSend(deps: ReachDeps) {
+  return makeLoopObject<TickStats>("ReachSend", async (ctx) => {
     const now = await nowFor(ctx, deps.clock);
     const owner = clientOfKey(ctx.key);
     if (!owner) return senderPass(deps, ctx, now, { client: null });
@@ -160,4 +160,4 @@ async function senderPass(
   return outcome;
 }
 
-export type ReachSender = ReturnType<typeof makeReachSender>;
+export type ReachSend = ReturnType<typeof makeReachSend>;

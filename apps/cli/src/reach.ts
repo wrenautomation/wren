@@ -1,9 +1,9 @@
 /**
  * `wren reach …`: cold outreach on Reddit and LinkedIn, and comments on others' posts, from the keyboard.
  * Reads that need no platform (templates, threads, stats) go straight to
- * Postgres; everything else goes through the ReachDesk / ReachSender /
- * ReachWatch Restate services, so every platform call is journaled and runs
- * on the Mac's desk. Nothing here sends by itself: the ReachSender loop does,
+ * Postgres; everything else goes through the ReachDesk / ReachSend /
+ * ReachInboxRead Restate services, so every platform call is journaled and runs
+ * on the Mac's desk. Nothing here sends by itself: the ReachSend loop does,
  * and only when WREN_REACH_LIVE lets it.
  */
 import { readFile } from "node:fs/promises";
@@ -48,8 +48,8 @@ import {
   type CommentProofsService,
   READS_KEY,
   type ReachDeskService,
-  type ReachSender,
-  type ReachWatchObject,
+  type ReachInboxReadObject,
+  type ReachSend,
   type RedditReadsObject,
   SENDER_KEY,
   WATCH_KEY,
@@ -90,8 +90,9 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
       log: (l) => console.error(l),
     });
   };
-  const sender = () => ingress().objectClient<ReachSender>({ name: "ReachSender" }, SENDER_KEY);
-  const watch = () => ingress().objectClient<ReachWatchObject>({ name: "ReachWatch" }, WATCH_KEY);
+  const sender = () => ingress().objectClient<ReachSend>({ name: "ReachSend" }, SENDER_KEY);
+  const watch = () =>
+    ingress().objectClient<ReachInboxReadObject>({ name: "ReachInboxRead" }, WATCH_KEY);
 
   const cmd = program
     .command("reach")
@@ -306,7 +307,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
         ),
     );
 
-  const queue = cmd.command("queue").description("ReachSender: the send loop (off until started)");
+  const queue = cmd.command("queue").description("ReachSend: the send loop (off until started)");
   queue.command("status").action(async () => json(await sender().status()));
   queue
     .command("start")
@@ -321,7 +322,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
   const w = cmd
     .command("watch")
     .description(
-      "ReachWatch: replies and comments on the warm cadence, account health every 30 min",
+      "ReachInboxRead: replies and comments on the warm cadence, account health every 30 min",
     );
   w.command("status").action(async () => json(await watch().status()));
   w.command("start").action(async () => json(await watch().start()));

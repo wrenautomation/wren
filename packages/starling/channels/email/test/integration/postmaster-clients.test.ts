@@ -17,8 +17,8 @@ import type { PostmasterClient, PostmasterStats } from "../../src/inbox/postmast
 import {
   clientPostmaster,
   domainsOf,
-  makePostmasterScheduler,
-  type PostmasterScheduler,
+  type EmailPostmasterPull,
+  makeEmailPostmasterPull,
 } from "../../src/restate/postmaster-scheduler.js";
 import { postmasterDays } from "../../src/schema.js";
 import { SendPolicy } from "../../src/send/policy.js";
@@ -84,7 +84,7 @@ beforeAll(async () => {
   await domain("nu", "nu-mail.test", false);
   env = await startTestRestate({
     services: [
-      makePostmasterScheduler({
+      makeEmailPostmasterPull({
         db: pg.db,
         client: postmaster,
         domains: ["wren-mail.test"],
@@ -104,7 +104,7 @@ type Out = PassOutcome<PostmasterStats & { not_verified: string[] }>;
 const pull = (key: string) =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<PostmasterScheduler>({ name: "PostmasterScheduler" }, key)
+    .objectClient<EmailPostmasterPull>({ name: "EmailPostmasterPull" }, key)
     .sync() as Promise<Out>;
 const days = (id: string) =>
   open(id).select({ domain: postmasterDays.domain }).from(postmasterDays);

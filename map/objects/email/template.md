@@ -45,7 +45,7 @@ Citations: `packages/starling/outbound/src/email/outreach/templates.ts:47`, `aut
 |---|---|
 | `wren templates get\|set\|diff\|history` | reads and writes; `set --publish` waits in To approve |
 | `wren email preview` | renders one |
-| `ComposeScheduler` | renders all |
+| `EmailOpenerFill` | renders all |
 
 ## See
 

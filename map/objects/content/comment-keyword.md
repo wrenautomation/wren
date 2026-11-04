@@ -30,14 +30,14 @@ Citations: `packages/starling/inbound/src/social/keywords.ts`, `packages/starlin
 
 ## If you change this
 
-- **Hits:** `SocialWatch` (catches after it keeps comments; `stats.keywordDms`), `KeywordDm.send/add/remove`, records `marketing.comment_keyword` (edits: state, dm, reply) and `marketing.keyword_hit`, the portal's `FORM` and `ONE` maps in `apps/portal/web/src/records.tsx`, `keywords.test.ts` (unit and integration)
+- **Hits:** `SocialActivityRead` (catches after it keeps comments; `stats.keywordDms`), `KeywordDm.send/add/remove`, records `marketing.comment_keyword` (edits: state, dm, reply) and `marketing.keyword_hit`, the portal's `FORM` and `ONE` maps in `apps/portal/web/src/records.tsx`, `keywords.test.ts` (unit and integration)
 - **Does not hit:** reach accounts' comments (`account_id` set): those DM through the sender
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `SocialWatch` pass | catches, sends each hit to `KeywordDm.send` |
+| `SocialActivityRead` pass | catches, sends each hit to `KeywordDm.send` |
 | `KeywordDm.send` (ingress-private) | DM via `Content.privateReply` as `private:<comment id>`, then `Content.reply` if set as `comment:<comment id>`, each through `sendAtMostOnce` ([[content/send-attempt]]). Sent: hit `sent`. Unsure, not sent or Meta's no: hit `failed` with why; no reply after a DM that may not have gone |
 | Marketing → Comment keywords | New keyword, Delete, edit DM, reply, on/off |
 | Marketing → Keyword DMs | the log, Failed view |

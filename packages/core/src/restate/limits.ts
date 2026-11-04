@@ -5,7 +5,7 @@
  *
  * - `within` waits on a Restate call (a `Content` read, a desk or `sites` call). Past the limit
  *   it cancels the call (`keep` leaves a write running, since it may land), counts it on this
- *   pass (`last.timeouts`, which LoopWatch shows), and throws `CallTimeout`. That is a terminal
+ *   pass (`last.timeouts`, which LoopRevive shows), and throws `CallTimeout`. That is a terminal
  *   error, so the pass's usual catch for a refused unit skips the unit and goes on.
  * - `limitedRun` is a `ctx.run` for outbound I/O (HTTP): each try ends at its limit, and after
  *   its tries the step fails terminally instead of retrying until Restate pauses the pass.
@@ -200,7 +200,7 @@ interface UnitWithinOpts extends Omit<WithinOpts, "unit"> {
   group?: string;
 }
 
-/** `ContentMetrics` → `content-metrics`. */
+/** `PostMetrics` → `content-metrics`. */
 const kebab = (s: string) => s.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
 
 /** The stage a loop's held units go under: `loop.content-metrics/default`. */

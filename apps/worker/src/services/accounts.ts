@@ -18,7 +18,7 @@ import { delegatedMailbox } from "@wren/core/mailbox";
 import { meteredSites } from "@wren/core/metered";
 import { dbSendJournal } from "@wren/core/send-journal";
 import { makeSetupAgent } from "@wren/core/setup-agent";
-import { makeSetupWatch } from "@wren/core/setup-watch";
+import { makeSetupRecheck } from "@wren/core/setup-watch";
 import { findPlace, PLACE_FINDER } from "@wren/delivery/sms";
 import { crmLanding } from "@wren/reactivation";
 import { makeMailReply } from "@wren/starling-conversations/restate";
@@ -29,10 +29,10 @@ import {
   makeSocialCallback,
   ownSwitchesOf,
 } from "@wren/starling-inbound/connect";
-import { makeBounceScheduler, makeSocialInbox } from "@wren/starling-inbound/restate";
+import { makeEmailBounceRead, makeSocialInbox } from "@wren/starling-inbound/restate";
 import { reachTurns } from "@wren/starling-outbound";
 import { WREN_LIMITS } from "@wren/starling-outbound/limits";
-import { makeMailReader } from "@wren/watch/clients";
+import { makeClientMailTriage } from "@wren/watch/clients";
 import { SETUPS } from "../setups.js";
 import type { AnyService, Deps } from "./deps.js";
 
@@ -64,7 +64,7 @@ export function accountsServices(deps: Deps): AnyService[] {
   const services: AnyService[] = [];
   services.push(
     // Rechecks done setups on their repeat; off until started by hand.
-    makeSetupWatch({
+    makeSetupRecheck({
       main: db,
       setups: SETUPS,
       checks: setupChecks,
@@ -143,7 +143,7 @@ export function accountsServices(deps: Deps): AnyService[] {
           store: keys,
         }),
     }),
-    makeMailReader({
+    makeClientMailTriage({
       db,
       clientDb,
       clients: () => clientMail.readingClients(),
@@ -151,8 +151,8 @@ export function accountsServices(deps: Deps): AnyService[] {
       sweep: (at) => sweepGrants(db, at),
     }),
     // Marketing email bounces, hourly: portal@'s mailbox into main, each client's sender into its
-    // own database; off until `BounceScheduler/all/start`.
-    makeBounceScheduler({
+    // own database; off until `EmailBounceRead/all/start`.
+    makeEmailBounceRead({
       db,
       wren: settings.portalMailbox ? delegatedMailbox(gmail, settings.portalMailbox) : null,
       clientDb,

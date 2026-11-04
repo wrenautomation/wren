@@ -24,7 +24,6 @@ export * from "./restate/inbox-scheduler.js";
 export * from "./restate/placement-scheduler.js";
 export * from "./restate/pool-scheduler.js";
 export * from "./restate/queue-refresh.js";
-export * from "./restate/report-scheduler.js";
 export * from "./restate/resolution.js";
 export * from "./restate/send-scheduler.js";
 export * from "./send/deliver.js";

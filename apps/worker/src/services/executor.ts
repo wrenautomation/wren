@@ -96,7 +96,7 @@ export function executorServices(deps: Deps): AnyService[] {
     ingressSend(
       ingressOf(settings),
       {
-        service: "SmsSender",
+        service: "SmsSend",
         key: client ? clientKey(client, SENDER_KEY) : SENDER_KEY,
         handler: "sync",
       },
@@ -177,7 +177,7 @@ export function executorServices(deps: Deps): AnyService[] {
               ingressSend(
                 ingressOf(settings),
                 {
-                  service: "SmsSender",
+                  service: "SmsSend",
                   key: client ? clientKey(client, SENDER_KEY) : SENDER_KEY,
                   handler: "sync",
                 },
@@ -291,7 +291,7 @@ export function executorServices(deps: Deps): AnyService[] {
           runBooks: (key) =>
             ingressSend(
               ingressOf(settings),
-              { service: "Books", key: BOOKS_KEY, handler: "sync" },
+              { service: "BooksDaily", key: BOOKS_KEY, handler: "sync" },
               key,
             ),
         }),

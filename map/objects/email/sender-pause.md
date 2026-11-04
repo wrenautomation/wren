@@ -36,8 +36,8 @@ Citations: `packages/starling/channels/email/src/inbox/health.ts:180`
 
 | Surface | Role |
 |---|---|
-| `SendScheduler` (kill switch) | writes |
-| `PlacementScheduler` (`evaluatePlacement`) | writes, lifts its own |
+| `EmailSend` (kill switch) | writes |
+| `EmailPlacementTest` (`evaluatePlacement`) | writes, lifts its own |
 | `wren email senders pause/resume` | writes |
 | `EmailConsole/pause`, `/resume` (console; one transaction as the operator, `detail.by` = `console:<email>`) | writes |
 

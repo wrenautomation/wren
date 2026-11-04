@@ -19,7 +19,7 @@
  *   measure  never yet
  *
  * Wren's workspace only: Learn items, studies, their documents and his calls are Wren's for now.
- * Pure of Restate: the worker's `LineFeed` loop sends the fires.
+ * Pure of Restate: the worker's `MapLineFeed` loop sends the fires.
  */
 
 import { WREN } from "@wren/core/access";

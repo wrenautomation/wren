@@ -24,7 +24,7 @@ import type { Fetcher } from "@wrenautomation/read/fetch";
 import { isNull } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { emailConsoleApi } from "../../../src/email/restate/console.js";
-import { type FeedStats, makePoolScheduler } from "../../../src/email/restate/pool-scheduler.js";
+import { type FeedStats, makeLeadPoolFill } from "../../../src/email/restate/pool-scheduler.js";
 import { makeCompany } from "./compose-fixtures.js";
 
 const POLICY = SendPolicy.fromSettings(
@@ -86,7 +86,7 @@ beforeAll(async () => {
   env = await startTestRestate({
     services: [
       ...fakes,
-      makePoolScheduler({
+      makeLeadPoolFill({
         db: pg.db,
         clientDb: (id) => open({ database: `wren_client_${id}` }),
         policy: POLICY,
@@ -107,10 +107,10 @@ afterAll(async () => {
 const sync = (key: string) =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<ReturnType<typeof makePoolScheduler>>({ name: "PoolScheduler" }, key)
+    .objectClient<ReturnType<typeof makeLeadPoolFill>>({ name: "LeadPoolFill" }, key)
     .sync() as Promise<PassOutcome<FeedStats>>;
 
-describe("PoolScheduler per client", () => {
+describe("LeadPoolFill per client", () => {
   it("walks the client's chain on its own keys, with its block, and keeps its ledger", async () => {
     calls.length = 0;
     const out = await sync("acme/all");

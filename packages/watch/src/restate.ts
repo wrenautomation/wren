@@ -1,5 +1,5 @@
 /**
- * `Watch/all`: every 15 minutes, read new mail in each inbox. Mail goes along the `watch`
+ * `MyMailTriage/all`: every 15 minutes, read new mail in each inbox. Mail goes along the `watch`
  * workflow, where triage settles it. Served on the Postgres box, like the books: the personal
  * inbox is read through the Mac's desk, and waiting there costs nothing. Mail sends no notices:
  * what needs William shows in the Inbox app, and an inbox it couldn't read shows on the loop.
@@ -72,7 +72,7 @@ async function keepWatches(
     ctx.set(untilKey(box.address), renewed.next);
     ctx
       .objectSendClient<InboxPush>({ name: "InboxPush" }, box.address.toLowerCase())
-      .listen({ service: "Watch", key: ctx.key, until: renewed.next });
+      .listen({ service: "MyMailTriage", key: ctx.key, until: renewed.next });
   }
   return all;
 }
@@ -110,7 +110,7 @@ async function relinkOld(ctx: restate.ObjectContext, deps: WatchDeps, now: Date)
 }
 
 export function makeWatch(deps: WatchDeps) {
-  return makeLoopObject("Watch", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("MyMailTriage", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const pushed = await keepWatches(ctx, deps, now.getTime());
     const outcome = (await runPass<ReadStats>(ctx, deps.db, {

@@ -1,5 +1,5 @@
 /**
- * Reminders for booked calls (cal.com's and our own calendar's). Each SmsWatch
+ * Reminders for booked calls (cal.com's and our own calendar's). Each SmsUpkeep
  * pass lists the calls in the next two days. A call gets one text,
  * `reminder.day-before` in William's words, on the day before it on the
  * person's own clock, and one `reminder.hour-before` when a pass finds it 30
@@ -47,7 +47,7 @@ import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 
 /** Past tomorrow on any clock. */
 const LOOK_AHEAD_MS = 48 * 3_600_000;
-/** An SmsWatch pass every 30 minutes finds each call once in this stretch before it. */
+/** An SmsUpkeep pass every 30 minutes finds each call once in this stretch before it. */
 const HOUR_FROM_MS = 30 * 60_000;
 const HOUR_TO_MS = 90 * 60_000;
 /** Booked this close to the call: no hour text. */
@@ -275,6 +275,6 @@ export async function remindBookings(db: Queryable, opts: ReminderOptions): Prom
   return stats;
 }
 
-/** The adapter's reminder hook (`SmsDeps.remind`): SmsWatch's pass and `SmsDesk/reminders` run it. */
+/** The adapter's reminder hook (`SmsDeps.remind`): SmsUpkeep's pass and `SmsDesk/reminders` run it. */
 export const remindPass: RemindPass = (d, bookings, now, runId) =>
   remindBookings(d.db, { bookings, policy: d.policy, senderName: d.senderName, now, runId });

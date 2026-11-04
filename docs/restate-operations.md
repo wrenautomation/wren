@@ -9,7 +9,7 @@ Checked 2026-10-03. Companion to `restate-durability.md` (why it survives crashe
 |---|---|---|---|
 | Restate server on `wren-prod-pg` (`restate:1.7` in Docker, since 2026-10-06) | every loop's journal, timers, object state; the ingress `https://restate.wrenautomation.com` (Caddy checks the bearer; admin under `/admin`) | `deploy/scripts/box-restate.sh` (not run by CI: by hand over SSM); backup to S3 hourly at :30 (a ring of 24, plus the 08:30 one by date) | this file, `designs/2026-10-05-restate-self-host.md` |
 | Lambda `wren-prod-worker` (us-east-1, Node 22 arm64, 1 GB, 15 min max) | every service except the box's; one version per push | CI `deploy.yml` | `deploy/README.md` |
-| EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17, PgBouncer (6432, transaction mode), Redis (6380, cache), browserless Chromium and the Restate server in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books, Watch, SocialWatch) on 127.0.0.1:9080 or :9081, one slot per deploy so pinned calls finish on their build (`apps/worker/src/box-slot.ts`; `WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
+| EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17, PgBouncer (6432, transaction mode), Redis (6380, cache), browserless Chromium and the Restate server in Docker; the **box worker**: `BOX_SERVICES` (LeadPoolFill, Discovery, Enrichment, Resolution, PageHtmlArchive, Books, Watch, SocialActivityRead) on 127.0.0.1:9080 or :9081, one slot per deploy so pinned calls finish on their build (`apps/worker/src/box-slot.ts`; `WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
 | RackNerd VPS (192.255.226.241, Buffalo) | mailifier SMTP prober (`probe.wrenautomation.com`) and SearXNG for the research engine (`search.wrenautomation.com`, bearer SSM `/wren/prod/searxng_token`), both behind Caddy | `deploy/scripts/deploy-vps.sh` | "Verifying addresses" and "Search" below |
 | RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`); in `WREN_SMTP_PROBE_URL`, probes once its PTR resolves | `PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-vps.sh` | "Verifying addresses" below |
 | William's Mac | autobrowse desk worker under launchd: every `sites` call (browser, logins, Chrome profiles, home IP) | `../autobrowse/deploy/desk/install.sh` | `../autobrowse/deploy/README.md` |
@@ -26,7 +26,7 @@ Prod from this laptop, from the repo root (nothing secret is printed):
 
 ```sh
 node scripts/prod-sql.mjs "SELECT ..."                 # read-only query (READ ONLY transaction)
-node scripts/ingress.mjs PoolScheduler/recruiting/status   # any handler; writes too, so read it first
+node scripts/ingress.mjs LeadPoolFill/recruiting/status   # any handler; writes too, so read it first
 node scripts/prod-wren.mjs <cmd>                        # the wren CLI against the prod database
 restate invocations list --service Enrichment --key recruiting   # stuck work; cancel with `restate invocations cancel --yes <id>`
 ```
@@ -74,32 +74,28 @@ No input: send no body and no content type. A body: `content-type: application/j
 H="Authorization: Bearer $RESTATE_AUTH_TOKEN"     # in wren/.env
 U=https://restate.wrenautomation.com
 
-curl -X POST -H "$H" $U/SendScheduler/alice@example.com/status
-curl -X POST -H "$H" $U/SendScheduler/alice@example.com/start
-curl -X POST -H "$H" $U/SendScheduler/alice@example.com/stop
-curl -X POST -H "$H" $U/InboxScheduler/alice@example.com/sync
-curl -X POST -H "$H" $U/PostmasterScheduler/fleet/start
-curl -X POST -H "$H" $U/OpensScheduler/fleet/start
-curl -X POST -H "$H" $U/ClicksScheduler/fleet/start     # hourly: the lander's email-link views into email_clicks (the sent log's "clicked"); the first pass reads all history
-curl -X POST -H "$H" $U/BounceScheduler/all/start      # hourly: marketing email bounces from portal@ and each client's sender; hard ones go on do-not-contact
-curl -X POST -H "$H" $U/ReportScheduler/weekly/start   # Friday 19:00 report; /sync mails one now
-curl -X POST -H "$H" $U/ComposeScheduler/agencies/start # keep 3 send days of approved openers queued; /sync tops up now
-curl -X POST -H "$H" $U/DigestScheduler/fleet/start     # 07:00 fleet-clock digest to Discord; /sync posts one now
-curl -X POST -H "$H" $U/PlacementScheduler/fleet/start  # each ramped inbox's newest opener to WREN_PLACEMENT_SEEDS at the window's open; labels read 2 h on
-curl -X POST -H "$H" $U/ContentScheduler/default/start  # post approved content drafts as they come due (`wren content queue start`)
-curl -X POST -H "$H" $U/ContentMetrics/default/start    # daily metrics snapshots of young posts; Monday what-worked (`wren content metrics start`)
-curl -X POST -H "$H" $U/AdsWatch/default/start          # daily ads guard: pauses a launch over WREN_ADS_PAUSE_AFTER_USD with no clicks/results (`wren ads watch start`)
+curl -X POST -H "$H" $U/EmailSend/alice@example.com/status
+curl -X POST -H "$H" $U/EmailSend/alice@example.com/start
+curl -X POST -H "$H" $U/EmailSend/alice@example.com/stop
+curl -X POST -H "$H" $U/EmailInboxRead/alice@example.com/sync
+curl -X POST -H "$H" $U/EmailPostmasterPull/fleet/start
+curl -X POST -H "$H" $U/EmailClickPull/fleet/start     # hourly: the lander's email-link views into email_clicks (the sent log's "clicked"); the first pass reads all history
+curl -X POST -H "$H" $U/EmailBounceRead/all/start      # hourly: marketing email bounces from portal@ and each client's sender; hard ones go on do-not-contact
+curl -X POST -H "$H" $U/EmailOpenerFill/agencies/start # keep 3 send days of approved openers queued; /sync tops up now
+curl -X POST -H "$H" $U/EmailFleetDigest/fleet/start     # 07:00 fleet-clock digest to Discord; /sync posts one now
+curl -X POST -H "$H" $U/EmailPlacementTest/fleet/start  # each ramped inbox's newest opener to WREN_PLACEMENT_SEEDS at the window's open; labels read 2 h on
+curl -X POST -H "$H" $U/PostPublish/default/start  # post approved content drafts as they come due (`wren content queue start`)
+curl -X POST -H "$H" $U/PostMetrics/default/start    # daily metrics snapshots of young posts; Monday what-worked (`wren content metrics start`)
+curl -X POST -H "$H" $U/AdSpendGuard/default/start          # daily ads guard: pauses a launch over WREN_ADS_PAUSE_AFTER_USD with no clicks/results (`wren ads watch start`)
 curl -X POST -H "$H" $U/RedditReads/wren/start           # Reddit discovery, signed out: places monthly, watched places every 2 h, drafts to Marketing → Threads; posts nothing (`wren reach discovery start`)
-curl -X POST -H "$H" $U/BillingWatch/fleet/start        # every 15 min: Wren's own invoices made on the 1st, mailed with their PDF, money in read from Wise (GET only) and matched; the first pass bills every signed client (`wren delivery billing start`)
-curl -X POST -H "$H" $U/PayReconcile/all/start          # daily: each Stripe-connected client's links of 120 days held against Stripe; heals missed webhooks, flags drift; reads Stripe only
-curl -X POST -H "$H" $U/SegmentsNet/all/start           # every hour: wakes Segments/fleet and each non-demo <client>/fleet (People → Groups kept true, segment/trait/date triggers fired); row triggers wake it at commit too; Segments/<key>/status shows the cursor
-curl -X POST -H "$H" $U/PeopleMapNet/all/start          # every 30 min: wakes PeopleMap/fleet and each non-demo <client>/fleet (People: stage, warmth, persona rebuilt; loose handles keyed; Wren's site counts); PeopleMap/<key>/status shows the last pass
-curl -X POST -H "$H" $U/TouchFeed/all/start             # on a new touch and every 15 min: each non-demo workspace's untold touches (follows, comments, DMs...; `fired_at` null) told to the executor for `trigger.touch`, then marked; at least once; TouchFeed/all/status shows the last pass
-curl -X POST -H "$H" $U/SourcedFeed/all/start            # every 15 min (5 s while a list has more): people added to an import batch that a live funnel's `sourced` entry names open journeys there; SourcedFeed/all/status shows the last pass
-curl -X POST -H "$H" $U/LineFeed/all/start               # every 15 min (5 s while a find has more): Wren's content lines; a document a find's SOP takes opens an instance, a job that ends moves it on; LineFeed/all/status shows the last pass
-curl -X POST -H "$H" $U/PainFeed/all/start               # every 15 min (5 s while there are more posts): reach posts at or over minFit read once for a pain the author states; a pain with its quote in the post is a finding on the post and opens the author's journey at the pain line's list (`import:<batch>`); PainFeed/all/status shows the last pass (waiting = no live sourced source names the list yet)
+curl -X POST -H "$H" $U/ClientInvoicing/fleet/start        # every 15 min: Wren's own invoices made on the 1st, mailed with their PDF, money in read from Wise (GET only) and matched; the first pass bills every signed client (`wren delivery billing start`)
+curl -X POST -H "$H" $U/StripeReconcile/all/start          # daily: each Stripe-connected client's links of 120 days held against Stripe; heals missed webhooks, flags drift; reads Stripe only
+curl -X POST -H "$H" $U/SegmentsHourly/all/start           # every hour: wakes Segments/fleet and each non-demo <client>/fleet (People → Groups kept true, segment/trait/date triggers fired); row triggers wake it at commit too; Segments/<key>/status shows the cursor
+curl -X POST -H "$H" $U/TouchToJourney/all/start             # on a new touch and every 15 min: each non-demo workspace's untold touches (follows, comments, DMs...; `fired_at` null) told to the executor for `trigger.touch`, then marked; at least once; TouchToJourney/all/status shows the last pass
+curl -X POST -H "$H" $U/ListToJourney/all/start            # every 15 min (5 s while a list has more): people added to an import batch that a live funnel's `sourced` entry names open journeys there; ListToJourney/all/status shows the last pass
+curl -X POST -H "$H" $U/MapLineFeed/all/start               # every 15 min (5 s while a find has more): Wren's content lines; a document a find's SOP takes opens an instance, a job that ends moves it on; MapLineFeed/all/status shows the last pass
 curl -X POST -H "$H" $U/Decide/wren/start                # every 10 min: open comment drafts and fresh Learn items judged by Jev (gateway when Jev is down), logged in `decisions`; WREN_DECIDE=off stops it, $1/day cap (`decide.dailyUsd`); /sync runs one pass
-curl -X POST -H "$H" $U/VaultKeys/box/start             # hourly: the operator's API keys mirrored from autobrowse's vault (`sites/keys`) into `vault_keys`; /sync mirrors now; rotate, revoke and spend (`wren accounts key ...`) act on a key and mirror again
+curl -X POST -H "$H" $U/VaultKeyMirror/box/start             # hourly: the operator's API keys mirrored from autobrowse's vault (`sites/keys`) into `vault_keys`; /sync mirrors now; rotate, revoke and spend (`wren accounts key ...`) act on a key and mirror again
 # `Ads` is a plain service (no scheduler): `wren ads launch|start|stop|insights` call it through the ingress; it writes `ad_launches`.
 ```
 
@@ -109,7 +105,7 @@ curl -X POST -H "$H" $U/VaultKeys/box/start             # hourly: the operator's
 restate services list                 # the 13 services and revisions
 restate invocations list              # running and sleeping loops, with wake times
 restate invocations describe <id>     # one invocation's journal
-restate services status SendScheduler # per-key state
+restate services status EmailSend # per-key state
 restate deployments list
 ```
 
@@ -121,7 +117,7 @@ Admin queries go to `$U/admin/query` with the same bearer (SQL over `sys_invocat
 
 A call whose retries ran out is paused: its object stays locked and nothing moves until
 someone acts. Retries: `[default-retry-policy]` in `deploy/scripts/box-restate.sh` (500 ms, x2, 1 min
-max, 70 tries, about 1 h). Webhook services keep an idempotency key 7 days (`WEBHOOK_SERVICE`). The `DeadLetters/all` loop files each one every 10 minutes and tells Discord
+max, 70 tries, about 1 h). Webhook services keep an idempotency key 7 days (`WEBHOOK_SERVICE`). The `FailedCallAlert/all` loop files each one every 10 minutes and tells Discord
 once (designs/2026-10-11-dead-letters.md).
 
 ```sh
@@ -136,10 +132,10 @@ wren dlq sweep start|status|sync # the loop
 ### Loop health
 
 A loop is dead when its chain ended (running, no next call) and stuck when its pass waits on
-a call that won't answer. `LoopWatch/all` checks every loop every 10 minutes, wakes a dead one
+a call that won't answer. `LoopRevive/all` checks every loop every 10 minutes, wakes a dead one
 and names a stuck one with its blocker, once per incident. It never ends a blocker: that's
 `wren dlq` (designs/2026-10-16-loop-watchdog.md). `scripts/restate-lag.mjs` says when
-LoopWatch itself has no next check.
+LoopRevive itself has no next check.
 
 Every call a pass waits on has a time limit, so stuck should be rare now. A call past its limit
 is cancelled (a write is left running) and its unit skipped; `wren loops` prints it under the
@@ -225,14 +221,14 @@ description does not recycle a published version's instances; Restate invokes
 
 ## The campaign, end to end
 
-Nothing is by hand once a niche has leads. `ComposeScheduler/{niche}` runs once a day
+Nothing is by hand once a niche has leads. `EmailOpenerFill/{niche}` runs once a day
 (local midnight): capacity = active inboxes × today's per-inbox cap; it keeps
 `WREN_COMPOSE_DAYS_AHEAD` (3) days of approved openers queued, composing the shortfall
 through the niche's enrollment plan (`packages/niches/src/<niche>.ts` `plan`: agencies
 route by `agency_facts.segment`, marketing → `marketing-days-0-5`, build →
 `build-days-0-5`, unsegmented → marketing). Every draft is auto-approved and pins the
 sign-off with the niche's page (`/agencies`, `/ria`), so the copy and the site agree.
-`SendScheduler/{inbox}` sends them inside the window at the ramp; `InboxScheduler`
+`EmailSend/{inbox}` sends them inside the window at the ramp; `EmailInboxRead`
 reads replies and bounces; kill switches pause a domain at 2% bounces. `status` on the
 compose object shows the last pass: `queued`, `target`, `enrolled`, `exhausted` (pool
 empty: import more leads or verify more addresses).
@@ -240,7 +236,7 @@ empty: import more leads or verify more addresses).
 ## Feeding the pool
 
 `exhausted: true` on the compose object means every company with a sendable
-address is enrolled. Growth is the research chain. `PoolScheduler/{niche}` walks
+address is enrolled. Growth is the research chain. `LeadPoolFill/{niche}` walks
 it: one bounded call per stage per pass, another pass a minute later while any
 stage still finds work, then sleep until the next local day. What may call the
 model is `WREN_POOL_MODEL_STAGES`: `none` (default — discover, crawl, render, scan
@@ -257,10 +253,10 @@ it lifts; the stage keeps going. `wren enrich profiles --niche <n>` runs it by h
 on or off in the `research.signals` component). `wren enrich signals --niche <n> --dry` previews it.
 
 ```sh
-curl -X POST -H "$H" $U/PoolScheduler/sec_ria/start    # /status shows per-stage progress and errors
-curl -X POST -H "$H" $U/PoolScheduler/agencies/start
+curl -X POST -H "$H" $U/LeadPoolFill/sec_ria/start    # /status shows per-stage progress and errors
+curl -X POST -H "$H" $U/LeadPoolFill/agencies/start
 # Only some stages for a niche (applies from the next pass; kept until changed):
-curl -X POST -H "$H" -H 'content-type: application/json' $U/PoolScheduler/sec_ria/start \
+curl -X POST -H "$H" -H 'content-type: application/json' $U/LeadPoolFill/sec_ria/start \
   -d '{"stages":["resolveMailboxes","verifyMailboxes"]}'
 # ...and back to every enabled stage: -d '{}' 
 ```
@@ -474,13 +470,13 @@ complaint / bounce also write the suppression). Answering a reply is done from t
 ## The open pixel
 
 `t.wrenautomation.com` is a Cloudflare Worker + D1, source and deploy steps in
-`deploy/pixel/`. Tracking is off (`WREN_OPEN_TRACKING`); `OpensScheduler/fleet` pulls
-hits whenever `WREN_PIXEL_BASE_URL` and `WREN_PIXEL_EXPORT_TOKEN` are set.
+`deploy/pixel/`. Tracking is off (`WREN_OPEN_TRACKING`), and nothing pulls hits: the opens loop
+was deleted 11-04 (designs/2026-11-04-loops.md).
 
 ## Email link clicks
 
 Each email's sign-off link carries `?r=<code>`; the lander records it on the landing view.
-`ClicksScheduler/fleet` reads those views hourly into `email_clicks` whenever
+`EmailClickPull/fleet` reads those views hourly into `email_clicks` whenever
 `WREN_SITE_EXPORT_TOKEN` is set, and `wren email clicks` lists them, with what each clicker did
 on the site afterwards read live from the export (never stored). The loop is started by
 hand like the others (the first pass reads the lander's whole history). Text and DM `/go/`
@@ -501,10 +497,10 @@ the digest and system pings (token renewal, audit seals):
 | email | `WREN_DISCORD_EMAIL_WEBHOOK_URL` | send, inbox, compose, warm replies |
 | sms | `WREN_DISCORD_SMS_WEBHOOK_URL` | SMS sender, events, desk, watch |
 | reach | `WREN_DISCORD_REACH_WEBHOOK_URL` | Reddit/LinkedIn DMs |
-| ads | `WREN_DISCORD_ADS_WEBHOOK_URL` | AdsWatch |
+| ads | `WREN_DISCORD_ADS_WEBHOOK_URL` | AdSpendGuard |
 | content | `WREN_DISCORD_CONTENT_WEBHOOK_URL` | content scheduler, metrics, planner |
 | search | `WREN_DISCORD_SEARCH_WEBHOOK_URL` | SearchWatch, SearchWeek |
-| clients | `WREN_DISCORD_CLIENTS_WEBHOOK_URL` | DeliveryWatch, reactivation |
+| clients | `WREN_DISCORD_CLIENTS_WEBHOOK_URL` | ClientUpdateMail, reactivation |
 
 Lander intake has its own channel too: the lander's `DISCORD_WEBHOOK`. autobrowse
 `discord-layout` makes the server's categories, channels and these webhooks.
@@ -530,7 +526,7 @@ Lander leads always @mention him (`DISCORD_PING_USER_ID` Pages secret).
 - `digest for YYYY-MM-DD` at 07:00 fleet clock: per domain sent / hard bounces / replies /
   unsubscribes / newest Postmaster spam rate, then the queue.
 
-`WREN_NOTIFY=none` (the default) binds no `DigestScheduler` and every loop stays silent.
+`WREN_NOTIFY=none` (the default) binds no `EmailFleetDigest` and every loop stays silent.
 
 ## Things to watch
 

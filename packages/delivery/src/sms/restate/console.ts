@@ -2,7 +2,7 @@
  * SmsConsole: a client's texting desk in the portal (O4). The `records*` reads are its threads,
  * from its own database, for anyone who may open that client, once `sms.texts` is installed.
  * `reply` is Wren's team only and goes through `SmsDesk.reply` with `client`, so the text is
- * journaled and leaves from the client's `SmsSender/<client>/fleet`. The Worker keeps the write
+ * journaled and leaves from the client's `SmsSend/<client>/fleet`. The Worker keeps the write
  * off the demo (`../console-routes.ts`). `askReview` puts one customer into the client's live
  * review requests by hand.
  */

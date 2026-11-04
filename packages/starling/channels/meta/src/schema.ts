@@ -1,6 +1,6 @@
 /**
  * What `wren ads` launched, as rows: the spec, the four ids, the budget and
- * when it was started and stopped. `AdsWatch` reads the started ones; a
+ * when it was started and stopped. `AdSpendGuard` reads the started ones; a
  * person reads the rest back without Ads Manager.
  */
 import { baseColumns, oneOf } from "@wren/db/columns";
@@ -39,7 +39,7 @@ export const adLaunches = pgTable(
     dailyBudgetUsd: real("daily_budget_usd").notNull(),
     startedAt: timestamp("started_at", { withTimezone: true }),
     stoppedAt: timestamp("stopped_at", { withTimezone: true }),
-    /** Why AdsWatch stopped it, when it did. */
+    /** Why AdSpendGuard stopped it, when it did. */
     stopReason: varchar("stop_reason", { length: 3000 }),
   },
   (t) => [
@@ -54,7 +54,7 @@ export type AdLaunch = typeof adLaunches.$inferSelect;
 
 /**
  * What each ad set did each day, as Meta's insights said it on the last read. Meta forgets
- * nothing, but a read is a call: `AdsWatch` keeps the 7 days it reads, so the Marketing app
+ * nothing, but a read is a call: `AdSpendGuard` keeps the 7 days it reads, so the Marketing app
  * reads rows. Upserted per ad set and day, so a re-read overwrites and never adds.
  */
 export const adDays = pgTable(
@@ -73,7 +73,7 @@ export const adDays = pgTable(
     clicks: integer("clicks").notNull(),
     /** Lead actions: instant forms and pixel leads. */
     leads: integer("leads").notNull(),
-    /** Every counted action, as `AdsWatch` judges. */
+    /** Every counted action, as `AdSpendGuard` judges. */
     results: integer("results").notNull(),
     syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
   },

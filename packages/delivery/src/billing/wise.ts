@@ -4,7 +4,7 @@
  * official Wise SDK for Node exists, and three GETs don't need one: plain fetch.
  */
 
-/** Money that came into one of our balances, as BillingWatch stores it. */
+/** Money that came into one of our balances, as ClientInvoicing stores it. */
 export interface CreditIn {
   /** Wise's reference number for it, unique: `DEPOSIT-123`. */
   wiseId: string;
@@ -23,7 +23,7 @@ export interface CreditIn {
   raw: Record<string, unknown>;
 }
 
-/** What BillingWatch reads; tests hand it a fake. */
+/** What ClientInvoicing reads; tests hand it a fake. */
 export interface WiseReader {
   /** Every credit to every balance between two moments, oldest first. */
   credits(from: Date, to: Date): Promise<CreditIn[]>;

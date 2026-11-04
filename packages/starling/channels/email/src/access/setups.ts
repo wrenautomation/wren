@@ -2,7 +2,7 @@
  * Mail access as setups (designs/2026-10-07-mail-access.md). An org's admin step once per domain
  * (Google Workspace trust, Microsoft 365 consent), then each mailbox's own sign-in. Every one
  * repeats, so a token taken back or an app un-trusted shows within the hour or day, and
- * SetupWatch starts it over.
+ * SetupRecheck starts it over.
  */
 import { defineSetup, type SetupCheck } from "@wren/core/setup";
 import { clientAccounts } from "@wren/core/setup-schema";

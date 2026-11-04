@@ -271,7 +271,7 @@ export function approvalsHandlers(desk: ContentDeskContext) {
         });
         ctx
           .objectSendClient<SchedulerWake>(
-            { name: "ContentScheduler" },
+            { name: "PostPublish" },
             client ? clientKey(client, POSTS_UNIT) : "default",
           )
           .wake();

@@ -306,7 +306,7 @@ describe("US and Canada", () => {
       for (let i = 0; i < 60 && heard.length === 0; i++)
         await new Promise((r) => setTimeout(r, 50));
       expect(heard.length).toBeGreaterThan(0);
-      expect(new Set(heard)).toEqual(new Set(["SmsSender/fleet"]));
+      expect(new Set(heard)).toEqual(new Set(["SmsSend/fleet"]));
       // The first tick sends step 1; the executor queues step 2 days on.
       expect((await tickAt(OPEN)).nextDue).toBeNull();
       const next = (await tickAt(OPEN)).nextDue;

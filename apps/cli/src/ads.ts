@@ -12,7 +12,7 @@ import { isStoredMedia, isUrl } from "@wren/starling-core";
 import { adFormats, getDraft, uploadMedia } from "@wren/starling-inbound";
 import type { LaunchSpec, MetaObjective } from "@wren/starling-meta";
 import { formatLaunches, listLaunches, META_OBJECTIVES, specFromPost } from "@wren/starling-meta";
-import { type AdsService, type AdsWatch, WATCH_KEY } from "@wren/starling-meta/restate";
+import { type AdSpendGuard, type AdsService, WATCH_KEY } from "@wren/starling-meta/restate";
 import type { Command } from "commander";
 import { eq } from "drizzle-orm";
 
@@ -63,7 +63,7 @@ const usd = (minor: string | number | undefined) =>
 export function registerAds(program: Command, withDb: WithDb, settings: Settings): Command {
   const ingress = () => clients.connect(ingressOf(settings));
   const ads = () => ingress().serviceClient<AdsService>({ name: "Ads" });
-  const watch = () => ingress().objectClient<AdsWatch>({ name: "AdsWatch" }, WATCH_KEY);
+  const watch = () => ingress().objectClient<AdSpendGuard>({ name: "AdSpendGuard" }, WATCH_KEY);
 
   const cmd = program
     .command("ads")
@@ -280,7 +280,7 @@ export function registerAds(program: Command, withDb: WithDb, settings: Settings
   const w = cmd
     .command("watch")
     .description(
-      `the daily guard (AdsWatch): pauses a launch that spent WREN_ADS_PAUSE_AFTER_USD ($${settings.adsPauseAfterUsd}) in 7 days with no clicks or results`,
+      `the daily guard (AdSpendGuard): pauses a launch that spent WREN_ADS_PAUSE_AFTER_USD ($${settings.adsPauseAfterUsd}) in 7 days with no clicks or results`,
     );
   w.command("status").action(async () =>
     console.log(JSON.stringify(await watch().status(), null, 2)),

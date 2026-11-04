@@ -1,5 +1,5 @@
 /**
- * The morning email digest: `DigestScheduler/fleet` posts to the email lane once a day
+ * The morning email digest: `EmailFleetDigest/fleet` posts to the email lane once a day
  * at `DIGEST_HOUR` on the fleet's clock. Yesterday's sends in one line (a domain gets its
  * own line only when it bounced, lost an unsubscribe or nears Google's spam line), the
  * queue, then the fleet's health as counts: inboxes on ramp, seed placement, probers
@@ -31,7 +31,7 @@ export const DIGEST_HOUR = 7;
 /** Google's guidance keeps spam under 0.1%; a domain at or past it gets its own line. */
 const SPAM_WATCH = 0.001;
 
-interface DigestSchedulerDeps {
+interface EmailFleetDigestDeps {
   db: Db;
   notifier: Notifier;
   policy: SendPolicy;
@@ -133,8 +133,8 @@ export function rampSummary(policy: SendPolicy, ramps: RampMap, now: Date): stri
 const okCount = (label: string, total: number, bad: number) =>
   `${label}: ${total - bad} of ${total} ok`;
 
-export function makeDigestScheduler(deps: DigestSchedulerDeps) {
-  return makeLoopObject("DigestScheduler", async (ctx: restate.ObjectContext) => {
+export function makeEmailFleetDigest(deps: EmailFleetDigestDeps) {
+  return makeLoopObject("EmailFleetDigest", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const delay = nextDigestAt(deps.policy, now).getTime() - now.getTime();
     const yesterday = new Date(now.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10);
@@ -178,4 +178,4 @@ export function makeDigestScheduler(deps: DigestSchedulerDeps) {
   });
 }
 
-export type DigestScheduler = ReturnType<typeof makeDigestScheduler>;
+export type EmailFleetDigest = ReturnType<typeof makeEmailFleetDigest>;

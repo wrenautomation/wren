@@ -16,7 +16,7 @@ export const WATCH_COMPONENTS = [
     for: "wren",
     ready: false,
     missing: [OWN],
-    provides: { services: ["Watch"], loops: ["Watch"] },
+    provides: { services: ["MyMailTriage"], loops: ["MyMailTriage"] },
     out: [{ id: "mail", label: "new mail", kind: "mail" }],
     hypothesis: {
       from,
@@ -87,7 +87,7 @@ export const MAIL_COMPONENTS = [
     for: "client",
     ready: false,
     missing: MAIL_MISSING,
-    provides: { services: ["MailReader"], loops: ["MailReader"] },
+    provides: { services: ["ClientMailTriage"], loops: ["ClientMailTriage"] },
     out: [{ id: "mail", label: "new mail", kind: "mail" }],
     hypothesis: {
       from: mailFrom,

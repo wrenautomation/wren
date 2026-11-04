@@ -6,7 +6,7 @@
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
-import { dollars, keyAccounts, VAULT_KEYS_KEY, type VaultKeys } from "@wren/core/vault-keys";
+import { dollars, keyAccounts, VAULT_KEYS_KEY, type VaultKeyMirror } from "@wren/core/vault-keys";
 import type { Db } from "@wren/db";
 import { pickAccount } from "@wren/starling-acts";
 import { movePlace, policyFrom } from "@wren/starling-outbound";
@@ -126,7 +126,7 @@ export function registerAccounts(program: Command, withDb: WithDb, settings: Set
   const vault = () =>
     clients
       .connect(ingressOf(settings))
-      .objectClient<VaultKeys>({ name: "VaultKeys" }, VAULT_KEYS_KEY);
+      .objectClient<VaultKeyMirror>({ name: "VaultKeyMirror" }, VAULT_KEYS_KEY);
   const key = cmd
     .command("key")
     .description("Act on an operator API key (a client's is rotated in Account → Vendors)");

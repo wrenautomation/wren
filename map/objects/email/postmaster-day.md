@@ -21,7 +21,7 @@ The complaint rate is the one number that can end a domain and the only one we c
 
 Citations: `packages/starling/channels/email/src/schema.ts:442`, `packages/starling/channels/email/src/inbox/postmaster.ts:364`
 
-Per client (Inbox health installed): `PostmasterScheduler/<c>/daily` reads its `accounts.postmaster` domains into its own database, only those whose `domain` account holds `postmaster.verified` (`clientPostmaster`, `restate/postmaster-scheduler.ts`); the rest are `not_verified` on the pass. Wren's Postmaster login reads them.
+Per client (Inbox health installed): `EmailPostmasterPull/<c>/daily` reads its `accounts.postmaster` domains into its own database, only those whose `domain` account holds `postmaster.verified` (`clientPostmaster`, `restate/postmaster-scheduler.ts`); the rest are `not_verified` on the pass. Wren's Postmaster login reads them.
 
 ## Connected to
 
@@ -29,16 +29,16 @@ Per client (Inbox health installed): `PostmasterScheduler/<c>/daily` reads its `
 
 ## If you change this
 
-- **Hits:** `syncPostmaster` (`postmaster.ts:364`), `PostmasterScheduler`, the digest's complaint line
+- **Hits:** `syncPostmaster` (`postmaster.ts:364`), `EmailPostmasterPull`, the digest's complaint line
 - **Does not hit:** `sender_pauses`, the send tick
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `PostmasterScheduler` (when `WREN_POSTMASTER_USER` set) | writes |
-| `PostmasterScheduler/<c>/daily` | writes the client's database |
-| `DigestScheduler`, weekly report | read |
+| `EmailPostmasterPull` (when `WREN_POSTMASTER_USER` set) | writes |
+| `EmailPostmasterPull/<c>/daily` | writes the client's database |
+| `EmailFleetDigest`, weekly report | read |
 
 ## See
 

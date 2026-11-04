@@ -1,5 +1,5 @@
 /**
- * SocialWatch against Postgres and a Restate test environment, through the real `Content` service
+ * SocialActivityRead against Postgres and a Restate test environment, through the real `Content` service
  * over fake channels: comments on recent posts kept once as content rows (ours closed), each new
  * one on the executor, activity since the newest kept row, one follower count a day, one ping per
  * pass that kept something (a text only when a comment asks). Then the Inbox records, mark seen,
@@ -43,9 +43,9 @@ import {
 } from "@wren/starling-inbound/records";
 import type { SocialStats } from "@wren/starling-inbound/restate";
 import {
+  makeSocialActivityRead,
   makeSocialDesk,
   makeSocialPush,
-  makeSocialWatch,
   SOCIAL_KEY,
   socialPushed,
 } from "@wren/starling-inbound/restate";
@@ -74,17 +74,17 @@ const fakeExecutor = restate.service({
     },
   },
 });
-/** ReachWatch stands in: a DM push wakes it. */
+/** ReachInboxRead stands in: a DM push wakes it. */
 const reachWakes: number[] = [];
-const fakeReachWatch = restate.object({
-  name: "ReachWatch",
+const fakeReachInboxRead = restate.object({
+  name: "ReachInboxRead",
   handlers: {
     wake: async () => {
       reachWakes.push(Date.now());
     },
   },
 });
-/** `reach` is ingress private: ask it the way ReachWatch does, from a handler. */
+/** `reach` is ingress private: ask it the way ReachInboxRead does, from a handler. */
 const askReach = restate.service({
   name: "AskReach",
   handlers: {
@@ -116,10 +116,10 @@ beforeAll(async () => {
       fakeExecutor,
       makeContent(() => channels),
       socialPushed,
-      fakeReachWatch,
+      fakeReachInboxRead,
       askReach,
       makeSocialPush({ db: pg.db, ours: {} }),
-      makeSocialWatch({
+      makeSocialActivityRead({
         db: pg.db,
         platforms: ["linkedin", "youtube"],
         zone: "America/New_York",
@@ -174,7 +174,10 @@ beforeEach(async () => {
 
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const watch = () =>
-  ingress().objectClient<ReturnType<typeof makeSocialWatch>>({ name: "SocialWatch" }, SOCIAL_KEY);
+  ingress().objectClient<ReturnType<typeof makeSocialActivityRead>>(
+    { name: "SocialActivityRead" },
+    SOCIAL_KEY,
+  );
 const sync = () => watch().sync() as Promise<PassOutcome<SocialStats>>;
 
 /** A published draft of `platform` post `id`, `days` old. */
@@ -205,7 +208,7 @@ const follow = (id: string, msAgo: number | null): ActivityRow => ({
   raw: { id },
 });
 
-describe("SocialWatch", () => {
+describe("SocialActivityRead", () => {
   it("keeps comments, activity and followers once; pings once; texts only when one asks", async () => {
     const desk = ingress().serviceClient<ReturnType<typeof makeSocialDesk>>({ name: "SocialDesk" });
     await published("linkedin", "urn:li:share:1", 1);
@@ -630,8 +633,8 @@ describe("comment guide", () => {
   });
 });
 
-// Last in the file: a watcher's activity push wakes a SocialWatch pass.
-describe("SocialPushed for ReachWatch", () => {
+// Last in the file: a watcher's activity push wakes a SocialActivityRead pass.
+describe("SocialPushed for ReachInboxRead", () => {
   type Reach = { pushed: string[]; watched: string[] };
   const push = () =>
     ingress().serviceClient<ReturnType<typeof makeSocialPush>>({ name: "SocialPush" });

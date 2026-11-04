@@ -1,5 +1,5 @@
 /**
- * BillingWatch/fleet (designs/2026-10-15-wise-billing.md): every 15 minutes it makes the month's
+ * ClientInvoicing/fleet (designs/2026-10-15-wise-billing.md): every 15 minutes it makes the month's
  * bills from the 1st, mails each new invoice with its PDF, and reads our Wise balances for money
  * in. A credit naming its invoice, or paying one exactly from a payer named like the client, marks
  * it paid; the rest wait in To approve. Wise's `balances#credit` webhook needs a token that can
@@ -20,7 +20,7 @@ import type { ReceiveDetails } from "./receive.js";
 import { claimInvoiceChanges } from "./tell.js";
 import type { WiseReader } from "./wise.js";
 
-export const BILLING_WATCH = "BillingWatch";
+export const BILLING_WATCH = "ClientInvoicing";
 export const BILLING_KEY = "fleet";
 const BILLING_COMMAND = "delivery billing watch";
 
@@ -121,7 +121,7 @@ export async function billingPass(deps: BillingDeps, now: Date): Promise<Billing
   return stats;
 }
 
-export function makeBillingWatch(deps: BillingDeps) {
+export function makeClientInvoicing(deps: BillingDeps) {
   return makeLoopObject(BILLING_WATCH, async (ctx: restate.ObjectContext) => {
     const outcome = await runPass<BillingStats>(ctx, deps.main, {
       name: "billing watch",
@@ -147,4 +147,4 @@ export function makeBillingWatch(deps: BillingDeps) {
   });
 }
 
-export type BillingWatch = ReturnType<typeof makeBillingWatch>;
+export type ClientInvoicing = ReturnType<typeof makeClientInvoicing>;

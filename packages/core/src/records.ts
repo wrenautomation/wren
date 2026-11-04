@@ -243,7 +243,7 @@ export const KINDS = {
   /**
    * One of a set that can grow (a niche): the cell keeps its key ("sec_ria"), so filters and
    * sorts compare keys, and shows its label ("SEC RIA") from the field's `choices`, else the
-   * key as words ("ComposeScheduler" reads "Compose scheduler").
+   * key as words ("EmailOpenerFill" reads "Compose scheduler").
    */
   choice: {
     sql: "text",
@@ -475,7 +475,7 @@ export const accountField = (label = "Account", opts: Opts = {}) =>
   choice(accountChoices, label, opts);
 /**
  * Text that names something in code (a service, a stage, a niche key): shown and exported as
- * words ("ComposeScheduler" reads "Compose scheduler"), searched and filtered as stored.
+ * words ("EmailOpenerFill" reads "Compose scheduler"), searched and filtered as stored.
  */
 export const named = (label?: string, opts: Opts = {}) => text(label, { words: true, ...opts });
 /** A model's id ("cohere:command-a-03-2025"), shown as its label ("Command A"), the id on hover. */

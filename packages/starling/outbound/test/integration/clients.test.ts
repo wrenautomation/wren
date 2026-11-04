@@ -36,8 +36,8 @@ import type { DiscoveryStats } from "../../src/restate/discovery.js";
 import { makeRedditReads } from "../../src/restate/discovery.js";
 import {
   makeReachDesk,
-  makeReachSender,
-  makeReachWatch,
+  makeReachInboxRead,
+  makeReachSend,
   type ReachDeps,
   type WatchStats,
 } from "../../src/restate/index.js";
@@ -196,10 +196,10 @@ beforeAll(async () => {
   env = await startTestRestate({
     services: [
       executor.service,
-      makeReachWatch(deps),
+      makeReachInboxRead(deps),
       makeReachDesk(deps),
       // Live globally: only the client's own flag holds its DMs.
-      makeReachSender({ ...deps, live: true, clock: () => new Date(NOW_S * 1000) }),
+      makeReachSend({ ...deps, live: true, clock: () => new Date(NOW_S * 1000) }),
       makeRedditReads({
         ...deps,
         discovery: {
@@ -224,7 +224,7 @@ afterAll(async () => {
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const watch = (key: string) =>
   ingress()
-    .objectClient<ReturnType<typeof makeReachWatch>>({ name: "ReachWatch" }, key)
+    .objectClient<ReturnType<typeof makeReachInboxRead>>({ name: "ReachInboxRead" }, key)
     .sync() as Promise<PassOutcome<WatchStats>>;
 const reads = (key: string) =>
   ingress()
@@ -319,7 +319,10 @@ describe("a desk read that never answers", () => {
       ]);
       const last = (
         await ingress()
-          .objectClient<ReturnType<typeof makeReachWatch>>({ name: "ReachWatch" }, "rho/daily")
+          .objectClient<ReturnType<typeof makeReachInboxRead>>(
+            { name: "ReachInboxRead" },
+            "rho/daily",
+          )
           .status()
       ).last;
       expect(last?.timeouts?.[0]).toMatchObject({
@@ -445,7 +448,7 @@ describe("the DM step per client", () => {
 describe("the DM sender per client", () => {
   const tick = (key: string) =>
     ingress()
-      .objectClient<ReturnType<typeof makeReachSender>>({ name: "ReachSender" }, key)
+      .objectClient<ReturnType<typeof makeReachSend>>({ name: "ReachSend" }, key)
       .sync() as Promise<PassOutcome<TickStats>>;
 
   it("missing: a client without Social outreach or a login stops", async () => {

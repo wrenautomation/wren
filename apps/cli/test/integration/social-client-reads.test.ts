@@ -1,7 +1,7 @@
 /**
  * Comments and reviews on a client's own connected accounts (designs/2026-10-07-client-social.md):
  * a LinkedIn company page and a Business Profile connect with a fake LinkedIn and a fake Google,
- * SocialWatch reads the page's post comments and the Profile's reviews into the client's own
+ * SocialActivityRead reads the page's post comments and the Profile's reviews into the client's own
  * `comments` while Wren runs no channel of its own, and an answer to a review goes out through
  * the client's Profile. Synthetic clients and ids only; no network.
  */
@@ -32,8 +32,8 @@ import {
   socialSites,
 } from "@wren/starling-inbound/connect";
 import {
+  makeSocialActivityRead,
   makeSocialInbox,
-  makeSocialWatch,
   type SocialStats,
   socialPushed,
 } from "@wren/starling-inbound/restate";
@@ -149,7 +149,7 @@ beforeAll(async () => {
       }),
       // Wren runs no channel of its own: a connected account doesn't wait on that.
       socialPushed,
-      makeSocialWatch({ db: pg.db, platforms: [], zone: "UTC", clientDb: open }),
+      makeSocialActivityRead({ db: pg.db, platforms: [], zone: "UTC", clientDb: open }),
       makeSocialInbox({
         main: pg.db,
         clientDb: open,
@@ -171,7 +171,10 @@ afterAll(async () => {
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const watch = () =>
   ingress()
-    .objectClient<{ sync: () => Promise<unknown> }>({ name: "SocialWatch" }, "omicron/social")
+    .objectClient<{ sync: () => Promise<unknown> }>(
+      { name: "SocialActivityRead" },
+      "omicron/social",
+    )
     .sync() as Promise<PassOutcome<SocialStats>>;
 const as = { viewer: { email: AMY } as Viewer, client: "omicron" };
 const connect = async (platform: "linkedin_page" | "google_business") => {
@@ -199,7 +202,7 @@ describe("a client's company page and Business Profile", () => {
     });
   });
 
-  it("SocialWatch reads the page's comments and the Profile's reviews into its comments", async () => {
+  it("SocialActivityRead reads the page's comments and the Profile's reviews into its comments", async () => {
     await seedObjects(omicron, [{ platform: "linkedin", ref: POST, kind: "post" }]);
     await omicron.insert(contentDrafts).values({
       ideaId: (await addIdea(omicron, "roof tips", "cli")).id,

@@ -42,7 +42,7 @@ Citations: `packages/starling/channels/email/src/schema.ts:85`
 | `Resolution.build/queue/resolve` | write |
 | `wren email contacts` (listed contacts) | write |
 | `runVerification` (lead verdict) | settles linked candidates |
-| `PoolScheduler` (free verifier only) | drives |
+| `LeadPoolFill` (free verifier only) | drives |
 
 ## See
 

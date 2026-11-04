@@ -61,6 +61,6 @@ describe("wake triggers", () => {
         ref: "wake:1",
       }),
     );
-    expect(heard).toContain("TouchFeed/all");
+    expect(heard).toContain("TouchToJourney/all");
   });
 });

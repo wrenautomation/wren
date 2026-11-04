@@ -31,9 +31,9 @@ wren content edit <draftId> fixed.md
 wren content approve <draftId>...   # each posts at its platform's next slot (LinkedIn 08:30 + 12:30 weekdays, X noon, IG 18:00 … on WREN_SEND_TIMEZONE)
 wren content approve <draftId> --at 2026-09-23T14:00:00Z
 wren content approve <draftId> --now  # on the queue's next pass
-wren content queue start            # ContentScheduler/default: posts approved drafts as they come due
-wren content metrics start          # ContentMetrics/default: one look per young post per day; Monday = what-worked to the channel
-wren content planner start --draft  # ContentPlanner/default, 17:00: drafts tomorrow's open slots (ideas, build log, a reader's question); approve keeps the slot
+wren content queue start            # PostPublish/default: posts approved drafts as they come due
+wren content metrics start          # PostMetrics/default: one look per young post per day; Monday = what-worked to the channel
+wren content planner start --draft  # PostPlan/default, 17:00: drafts tomorrow's open slots (ideas, build log, a reader's question); approve keeps the slot
 wren content planner slots linkedin 08:30 --days 1-5  # one platform's post times (1 = Monday); keeps the rest, starts the planner
 wren content results --days 7       # published posts, engagement per 100 views, best first
 wren content costs --days 30        # drafting calls and tokens by platform and model
@@ -62,7 +62,7 @@ wren ads stop <campaignId>
 wren ads lead-form founders https://wrenautomation.com/privacy   # an instant form; id → creative.leadForm
 wren ads leads <formId>              # what the form collected (needs leads_retrieval from app review)
 wren ads launches                    # the ad_launches ledger: ids, budget, started/stopped, why
-wren ads watch start                 # AdsWatch: daily guard, pauses a launch that spent $50 with nothing to show
+wren ads watch start                 # AdSpendGuard: daily guard, pauses a launch that spent $50 with nothing to show
 wren ads spec-from <draftId> --out ads/post.json   # a post that worked → a PAUSED launch spec (same words, same media)
 ```
 
@@ -74,7 +74,7 @@ LEAD_GENERATION`) the CTA opens the instant form on Facebook instead of the link
 `wren ads leads <formId>` reads the answers. A local media file lands in
 `WREN_MEDIA_BUCKET` first. Every ACTIVE write is a spend on the box: it asks (or auto-yes
 under its small cap) and writes the ledger. `WREN_META_AD_ACCOUNT_ID` picks the account;
-unset = the first one. Every launch/start/stop lands in `ad_launches`; `AdsWatch/default`
+unset = the first one. Every launch/start/stop lands in `ad_launches`; `AdSpendGuard/default`
 reads adset insights once a day and stops any active launch whose 7-day spend reached
 `WREN_ADS_PAUSE_AFTER_USD` (default 50) with zero clicks and zero results — it only ever
 stops spend, and each pass is one message to the channel. A launch that wins (a result,
@@ -109,7 +109,7 @@ runs it live. Design: `designs/2026-10-07-template-install.md`.
 
 ## The Monitor
 
-`wren monitor start|stop|status|sync`: `Watch/all` on the box reads new mail in William's inboxes
+`wren monitor start|stop|status|sync`: `MyMailTriage/all` on the box reads new mail in William's inboxes
 every 15 minutes (`WREN_WATCH_MAILBOXES`, else the books' own), skipping promotions and social.
 Each email goes along the `watch` workflow to triage: a rule with a sender and a verdict settles it
 for $0, the model in `WREN_WATCH_LLM` (Cohere, set in `lambda.tf`) reads the rest. What needs him
@@ -122,7 +122,7 @@ reading, 4 to 6 holds. Follow a feed from Inbox → Feeds.
 
 ## Social inbox
 
-`wren social start|stop|status|sync`: `SocialWatch/wren` on the box, every 30 minutes 07:00-23:00
+`wren social start|stop|status|sync`: `SocialActivityRead/wren` on the box, every 30 minutes 07:00-23:00
 New York. It reads comments on our posts of the last 14 days (older than 3 days every 2 hours),
 activity since the newest kept row (LinkedIn every 2 hours), and the follower count once a day.
 LinkedIn's count only on demand: `wren social audience linkedin` or Followers → Read now.

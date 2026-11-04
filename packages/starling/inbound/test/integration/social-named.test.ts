@@ -1,5 +1,5 @@
 /**
- * SocialWatch with a live tab watcher on LinkedIn (designs/2026-10-12-push-everywhere.md, 10-31):
+ * SocialActivityRead with a live tab watcher on LinkedIn (designs/2026-10-12-push-everywhere.md, 10-31):
  * posts are read when a notification names them, else on the net, one a pass. Without a beat the
  * clock reads them as before.
  */
@@ -15,14 +15,14 @@ import { makeContent } from "@wren/starling-core/service";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { addIdea, contentDrafts } from "../../src/index.js";
 import type { SocialStats } from "../../src/restate/social.js";
-import { makeSocialWatch, SOCIAL_KEY } from "../../src/restate/social.js";
+import { makeSocialActivityRead, SOCIAL_KEY } from "../../src/restate/social.js";
 import { makeSocialPush, socialPushed } from "../../src/restate/social-push.js";
 
 const DAY = 86_400_000;
 const A = "urn:li:ugcPost:7000000000000000001";
 const B = "urn:li:ugcPost:7000000000000000002";
 const C = "urn:li:ugcPost:7000000000000000003";
-// The second test's posts: SocialWatch's state outlives a test.
+// The second test's posts: SocialActivityRead's state outlives a test.
 const D = "urn:li:ugcPost:7000000000000000004";
 const E = "urn:li:ugcPost:7000000000000000005";
 const F = "urn:li:ugcPost:7000000000000000006";
@@ -37,9 +37,9 @@ const fakeExecutor = restate.service({
   name: "Executor",
   handlers: { emit: async () => ({}) },
 });
-/** A DM push wakes ReachWatch: it stands in. */
-const fakeReachWatch = restate.object({
-  name: "ReachWatch",
+/** A DM push wakes ReachInboxRead: it stands in. */
+const fakeReachInboxRead = restate.object({
+  name: "ReachInboxRead",
   handlers: { wake: async () => {} },
 });
 const fakeDesk = restate.service({
@@ -60,11 +60,11 @@ beforeAll(async () => {
     services: [
       fakeExecutor,
       fakeDesk,
-      fakeReachWatch,
+      fakeReachInboxRead,
       makeContent(() => channels),
       socialPushed,
       makeSocialPush({ db: pg.db, ours: {} }),
-      makeSocialWatch({
+      makeSocialActivityRead({
         db: pg.db,
         platforms: ["linkedin"],
         zone: "America/New_York",
@@ -105,7 +105,10 @@ beforeEach(async () => {
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const sync = () =>
   ingress()
-    .objectClient<ReturnType<typeof makeSocialWatch>>({ name: "SocialWatch" }, SOCIAL_KEY)
+    .objectClient<ReturnType<typeof makeSocialActivityRead>>(
+      { name: "SocialActivityRead" },
+      SOCIAL_KEY,
+    )
     .sync() as Promise<PassOutcome<SocialStats>>;
 const push = () =>
   ingress().serviceClient<ReturnType<typeof makeSocialPush>>({ name: "SocialPush" });
@@ -125,7 +128,7 @@ async function published(id: string, days: number) {
   });
 }
 
-describe("SocialWatch, LinkedIn watched", () => {
+describe("SocialActivityRead, LinkedIn watched", () => {
   it("no beat: the clock reads every due post; a beat: only the post a notification names", async () => {
     await published(A, 1);
     await published(B, 1);

@@ -1,10 +1,10 @@
 /**
  * `wren sms …`: cold SMS from the keyboard. Reads (threads, stats, numbers) go
- * straight to Postgres; writes go through the SmsDesk / SmsSender / SmsWatch
+ * straight to Postgres; writes go through the SmsDesk / SmsSend / SmsUpkeep
  * Restate services, so every one is journaled. Nothing here sends by itself:
- * the SmsSender loop does, and only when WREN_SMS_LIVE lets a real provider.
+ * the SmsSend loop does, and only when WREN_SMS_LIVE lets a real provider.
  * With `--client`, a client's texts: its database, its desk calls, its
- * `SmsSender/<client>/fleet` and `SmsWatch/<client>/daily` (`sms.texts` installed).
+ * `SmsSend/<client>/fleet` and `SmsUpkeep/<client>/daily` (`sms.texts` installed).
  */
 import { readFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
@@ -31,8 +31,8 @@ import {
 import {
   SENDER_KEY,
   type SmsDeskService,
-  type SmsSender,
-  type SmsWatchObject,
+  type SmsSend,
+  type SmsUpkeepObject,
   WATCH_KEY,
 } from "@wren/starling-sms/restate";
 import type { Command } from "commander";
@@ -67,9 +67,9 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
     const id = client();
     return id ? clientKey(id, unit) : unit;
   };
-  const sender = () => ingress().objectClient<SmsSender>({ name: "SmsSender" }, keyOf(SENDER_KEY));
+  const sender = () => ingress().objectClient<SmsSend>({ name: "SmsSend" }, keyOf(SENDER_KEY));
   const watch = () =>
-    ingress().objectClient<SmsWatchObject>({ name: "SmsWatch" }, keyOf(WATCH_KEY));
+    ingress().objectClient<SmsUpkeepObject>({ name: "SmsUpkeep" }, keyOf(WATCH_KEY));
 
   const cmd = program
     .command("sms")
@@ -105,7 +105,7 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
   nums
     .command("register")
     .description(
-      "Attach waiting US numbers to the 10DLC campaign once carriers approve it (SmsWatch does this every 30 min)",
+      "Attach waiting US numbers to the 10DLC campaign once carriers approve it (SmsUpkeep does this every 30 min)",
     )
     .action(async () => json(await desk().register()));
   nums
@@ -176,14 +176,14 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
   cmd
     .command("forms")
     .description(
-      "Text site applicants who ticked the texts box, now (SmsWatch does this every 30 min)",
+      "Text site applicants who ticked the texts box, now (SmsUpkeep does this every 30 min)",
     )
     .action(async () => json(await desk().forms()));
 
   cmd
     .command("reminders")
     .description(
-      "Queue day-before texts for calls booked on cal.com, now (SmsWatch does this every 30 min)",
+      "Queue day-before texts for calls booked on cal.com, now (SmsUpkeep does this every 30 min)",
     )
     .action(async () => json(await desk().reminders(scope())));
 
@@ -245,7 +245,7 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
       );
     });
 
-  const queue = cmd.command("queue").description("SmsSender: the send loop (off until started)");
+  const queue = cmd.command("queue").description("SmsSend: the send loop (off until started)");
   queue.command("status").action(async () => json(await sender().status()));
   queue
     .command("start")
@@ -257,7 +257,9 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
     .description("One pass now")
     .action(async () => json(await sender().sync()));
 
-  const w = cmd.command("watch").description("SmsWatch: reply labels + health checks every 30 min");
+  const w = cmd
+    .command("watch")
+    .description("SmsUpkeep: reply labels + health checks every 30 min");
   w.command("status").action(async () => json(await watch().status()));
   w.command("start").action(async () => json(await watch().start()));
   w.command("stop").action(async () => json(await watch().stop()));

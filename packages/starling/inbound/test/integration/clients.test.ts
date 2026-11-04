@@ -24,10 +24,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clientContent, clientPlan } from "../../src/clients.js";
 import { addIdea, contentDrafts, contentMetrics } from "../../src/index.js";
 import { makeContentDesk } from "../../src/restate/desk.js";
-import { type MetricsStats, makeContentMetrics } from "../../src/restate/metrics.js";
-import { makeContentPlanner, type PlannerStats } from "../../src/restate/planner.js";
-import { makeContentScheduler, type PublishStats } from "../../src/restate/scheduler.js";
-import { makeSocialWatch, type SocialStats } from "../../src/restate/social.js";
+import { type MetricsStats, makePostMetrics } from "../../src/restate/metrics.js";
+import { makePostPlan, type PlannerStats } from "../../src/restate/planner.js";
+import { makePostPublish, type PublishStats } from "../../src/restate/scheduler.js";
+import { makeSocialActivityRead, type SocialStats } from "../../src/restate/social.js";
 import { socialPushed } from "../../src/restate/social-push.js";
 
 const prompts: string[] = [];
@@ -119,7 +119,7 @@ beforeAll(async () => {
         clients: { clientDb: open, llm: clientLlm },
       }),
       // Every day has slots: the default LinkedIn and Reddit slots skip weekends, so a Friday run planned none.
-      makeContentPlanner({
+      makePostPlan({
         db: pg.db,
         zone: "UTC",
         clientDb: open,
@@ -133,10 +133,10 @@ beforeAll(async () => {
           return [];
         },
       }),
-      makeContentScheduler({ db: pg.db, idleMs: 60_000, clientDb: open }),
-      makeContentMetrics({ db: pg.db, clientDb: open }),
+      makePostPublish({ db: pg.db, idleMs: 60_000, clientDb: open }),
+      makePostMetrics({ db: pg.db, clientDb: open }),
       socialPushed,
-      makeSocialWatch({
+      makeSocialActivityRead({
         db: pg.db,
         platforms: ["linkedin", "reddit"],
         zone: "UTC",
@@ -156,8 +156,8 @@ const loop = <S>(name: string, key: string) =>
   ingress().objectClient<{ sync: () => Promise<unknown> }>({ name }, key).sync() as Promise<
     PassOutcome<S>
   >;
-const plan = (c: string) => loop<PlannerStats>("ContentPlanner", `${c}/daily`);
-const post = (c: string) => loop<PublishStats>("ContentScheduler", `${c}/posts`);
+const plan = (c: string) => loop<PlannerStats>("PostPlan", `${c}/daily`);
+const post = (c: string) => loop<PublishStats>("PostPublish", `${c}/posts`);
 const drafts = (db: Db) =>
   db
     .select({
@@ -176,7 +176,7 @@ describe("a client's content plan", () => {
     });
     expect((await plan("mu")).stopped).toBe("no social account connected");
     expect((await post("mu")).stopped).toBe("no social account connected");
-    expect((await loop<SocialStats>("SocialWatch", "mu/social")).stopped).toBe(
+    expect((await loop<SocialStats>("SocialActivityRead", "mu/social")).stopped).toBe(
       "no social account connected",
     );
   });
@@ -286,13 +286,13 @@ describe("metrics and social reads per client", () => {
       text: "How long did that take?",
       at: new Date().toISOString(),
     });
-    const m = await loop<MetricsStats>("ContentMetrics", "kappa/posts");
+    const m = await loop<MetricsStats>("PostMetrics", "kappa/posts");
     expect(m.stopped).toBeUndefined();
     expect((await kappa.select().from(contentMetrics)).map((r) => r.views)).toEqual([40]);
     expect(await pg.db.select().from(contentMetrics)).toEqual([]);
 
     executor.emitted.length = 0;
-    const s = await loop<SocialStats>("SocialWatch", "kappa/social");
+    const s = await loop<SocialStats>("SocialActivityRead", "kappa/social");
     expect(s.stopped).toBeUndefined();
     expect(s.stats).toMatchObject({ posts: 1, comments: 1 });
     expect(executor.emitted).toEqual([expect.objectContaining({ client: "kappa" })]);

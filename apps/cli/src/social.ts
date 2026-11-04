@@ -1,10 +1,14 @@
 /**
- * `wren social`: SocialWatch's loop on the box (designs/2026-10-06-social-inbox.md). It reads
+ * `wren social`: SocialActivityRead's loop on the box (designs/2026-10-06-social-inbox.md). It reads
  * comments, activity and followers on our own accounts; Marketing → Inbox is where they're worked.
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
-import { SOCIAL_KEY, type SocialDesk, type SocialWatch } from "@wren/starling-inbound/restate";
+import {
+  SOCIAL_KEY,
+  type SocialActivityRead,
+  type SocialDesk,
+} from "@wren/starling-inbound/restate";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";
 
@@ -25,11 +29,11 @@ export function registerSocial(program: Command, settings: Settings): void {
   const loop = () =>
     clients
       .connect(ingressOf(settings))
-      .objectClient<SocialWatch>({ name: "SocialWatch" }, SOCIAL_KEY);
+      .objectClient<SocialActivityRead>({ name: "SocialActivityRead" }, SOCIAL_KEY);
   const social = program
     .command("social")
     .description(
-      "SocialWatch/wren: comments, activity and followers on our posts every 30 minutes, 07:00-23:00 New York",
+      "SocialActivityRead/wren: comments, activity and followers on our posts every 30 minutes, 07:00-23:00 New York",
     );
   social.command("status").action(async () => json(await loop().status()));
   social
@@ -41,7 +45,9 @@ export function registerSocial(program: Command, settings: Settings): void {
     .command("sync")
     .description("One pass now")
     .action(async () => json(await loop().sync()));
-  const push = social.command("push").description("Webhooks into SocialWatch instead of the clock");
+  const push = social
+    .command("push")
+    .description("Webhooks into SocialActivityRead instead of the clock");
   push
     .command("meta")
     .description(

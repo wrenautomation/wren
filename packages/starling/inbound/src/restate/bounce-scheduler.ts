@@ -1,5 +1,5 @@
 /**
- * `BounceScheduler/all`: marketing email bounces, read hourly from every sending mailbox
+ * `EmailBounceRead/all`: marketing email bounces, read hourly from every sending mailbox
  * (`../inbox/marketing-bounces.ts`). Wren's own (portal@'s mailbox) into main; each client's,
  * the one it picked in Account → Messaging, into the client's own database, and the ones it
  * picked before, for as long as late bounces can come. A client's mailbox connected to send only
@@ -17,7 +17,7 @@ import { type BounceReadStats, readBounces } from "../inbox/marketing-bounces.js
 const BOUNCES_COMMAND = "marketing bounces read";
 const BOUNCES_EVERY_MS = 3_600_000;
 
-interface BounceSchedulerDeps {
+interface EmailBounceReadDeps {
   /** Main: Wren's own records and the pass's ledger. */
   db: Db;
   /** Wren's sending mailbox, read through the service account; null: Wren has none. */
@@ -51,7 +51,7 @@ export const GONE = "not connected to read: its late bounces can't be read";
  * picked within `BOUNCE_LATE_MS` before (a bounce can come back long after the send, to the
  * mailbox that sent it).
  */
-export async function readAllBounces(d: BounceSchedulerDeps, now: Date): Promise<BouncePassStats> {
+export async function readAllBounces(d: EmailBounceReadDeps, now: Date): Promise<BouncePassStats> {
   const out: BouncePassStats = { read: {}, earlier: [], skipped: [], failed: [] };
   const fail = (client: string, mailbox: string, err: unknown) =>
     out.failed.push({ client, mailbox, error: String(err).slice(0, 3000) });
@@ -101,9 +101,9 @@ export async function readAllBounces(d: BounceSchedulerDeps, now: Date): Promise
   return out;
 }
 
-export function makeBounceScheduler(deps: BounceSchedulerDeps) {
+export function makeEmailBounceRead(deps: EmailBounceReadDeps) {
   const every = deps.everyMs ?? BOUNCES_EVERY_MS;
-  return makeLoopObject("BounceScheduler", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("EmailBounceRead", async (ctx: restate.ObjectContext) => {
     return runPass<BouncePassStats>(ctx, deps.db, {
       name: "bounces read",
       ledger: { command: BOUNCES_COMMAND, argv: { daemon: true } },
@@ -114,4 +114,4 @@ export function makeBounceScheduler(deps: BounceSchedulerDeps) {
   });
 }
 
-export type BounceScheduler = ReturnType<typeof makeBounceScheduler>;
+export type EmailBounceRead = ReturnType<typeof makeEmailBounceRead>;

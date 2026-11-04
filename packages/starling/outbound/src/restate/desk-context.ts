@@ -88,7 +88,7 @@ export function deskContext(deps: ReachDeps) {
   const nudge = (ctx: restate.Context) =>
     ctx
       .objectSendClient<{ sync: (c: restate.ObjectContext) => Promise<unknown> }>(
-        { name: "ReachSender" },
+        { name: "ReachSend" },
         SENDER_KEY,
       )
       .sync();

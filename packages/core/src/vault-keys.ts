@@ -3,9 +3,9 @@
  * sit on the Accounts page: the operator's, kept in autobrowse's vault and mirrored here into
  * `vault_keys`, and each client's own, kept sealed in `client_secrets`. This module holds:
  *
- * - `syncVaultKeys`: autobrowse's `sites/keys` into `vault_keys` (no secret ever; a row that
+ * - `syncVaultKeyMirror`: autobrowse's `sites/keys` into `vault_keys` (no secret ever; a row that
  *   carries one is dropped and logged);
- * - `VaultKeys/box`: the hourly sync, and the three actions (rotate, revoke, mark spent);
+ * - `VaultKeyMirror/box`: the hourly sync, and the three actions (rotate, revoke, mark spent);
  * - `keyAccounts`: both kinds as one list, for the Accounts record and the CLI.
  *
  * The shapes copied from autobrowse (`src/sites/keys.ts`) are by hand: wren imports nothing from it.
@@ -65,7 +65,7 @@ interface KeyRotateAnswer {
   workflow: string;
 }
 
-/** What `syncVaultKeys` reads: `sites/keys`, or a fake. */
+/** What `syncVaultKeyMirror` reads: `sites/keys`, or a fake. */
 interface KeysSource {
   keys(req: KeysRequest): Promise<{ keys: unknown[] }>;
 }
@@ -107,7 +107,7 @@ const date = (s: string | null | undefined) => (s ? new Date(s) : null);
  * `read_at`. A row that carries a `secret` field is dropped and logged by address (never the
  * value): the source has none, so one that does is a bug on the other side.
  */
-export async function syncVaultKeys(
+export async function syncVaultKeyMirror(
   db: Db,
   sites: KeysSource,
   o: { now?: Date; warn?: (line: string) => void } = {},
@@ -178,7 +178,7 @@ type SitesKeys = {
   keyRotate: (ctx: restate.Context, req: { address: string }) => Promise<KeyRotateAnswer>;
 };
 
-interface VaultKeysDeps {
+interface VaultKeyMirrorDeps {
   db: Db;
   /** Where `sites/keys`, `keyRevoke` and `keySpend` run (`sitesHost`); the box by default. */
   host?: SitesHost;
@@ -198,10 +198,10 @@ const spendInput = z.looseObject({
 const addressInput = z.looseObject({ address: ADDRESS });
 
 /**
- * `VaultKeys/box`: mirrors the operator's keys hourly, and carries the three actions on them.
+ * `VaultKeyMirror/box`: mirrors the operator's keys hourly, and carries the three actions on them.
  * A key that isn't in the mirror is refused before autobrowse hears of it.
  */
-export function makeVaultKeys(deps: VaultKeysDeps) {
+export function makeVaultKeyMirror(deps: VaultKeyMirrorDeps) {
   const limit = deps.limitMs ?? LIMITS.quick;
   const sites = (ctx: restate.Context, host: SitesHost = deps.host ?? { service: SITES }) =>
     ctx.serviceClient<SitesKeys>(host.service);
@@ -216,7 +216,7 @@ export function makeVaultKeys(deps: VaultKeysDeps) {
       call: `${h.service.name}/keys`,
     });
     return ctx.run("mirror vault keys", () =>
-      syncVaultKeys(deps.db, { keys: async () => answer }, { now: new Date() }),
+      syncVaultKeyMirror(deps.db, { keys: async () => answer }, { now: new Date() }),
     );
   };
   const known = async (ctx: restate.Context, address: string) => {
@@ -231,7 +231,7 @@ export function makeVaultKeys(deps: VaultKeysDeps) {
   };
 
   return makeLoopObject(
-    "VaultKeys",
+    "VaultKeyMirror",
     async (ctx: restate.ObjectContext) => {
       const host = deps.host ?? { service: SITES };
       await wake(ctx, host);
@@ -253,7 +253,7 @@ export function makeVaultKeys(deps: VaultKeysDeps) {
         ledger: { command: VAULT_KEYS_COMMAND, argv: { daemon: true } },
         body: async (_runId, now) => {
           if (!got) throw new Error(`sites keys refused: ${refused}`);
-          return syncVaultKeys(deps.db, { keys: async () => got }, { now });
+          return syncVaultKeyMirror(deps.db, { keys: async () => got }, { now });
         },
         delayAfter: () => HOUR_MS,
         retryMs: HOUR_MS,
@@ -330,7 +330,7 @@ export function makeVaultKeys(deps: VaultKeysDeps) {
   );
 }
 
-export type VaultKeys = ReturnType<typeof makeVaultKeys>;
+export type VaultKeyMirror = ReturnType<typeof makeVaultKeyMirror>;
 
 // ---- both kinds as one list ----
 

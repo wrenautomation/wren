@@ -1,7 +1,7 @@
 /**
  * US numbers onto the registered 10DLC campaign, by themselves. Carriers
  * review a campaign for days; until they approve it, no US number may be
- * attached and none texts anyone (`cannotReach`). This pass, run by SmsWatch,
+ * attached and none texts anyone (`cannotReach`). This pass, run by SmsUpkeep,
  * reads the campaign, asks to attach each waiting US number once it is
  * approved, and marks a number registered when the attachment lands. The
  * ramp starts that day: the days it sat waiting sent nothing.

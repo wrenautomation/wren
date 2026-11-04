@@ -1,7 +1,7 @@
 /**
- * `SourcedFeed/all`: a person added to a list that a live sourced source of the shape takes
+ * `ListToJourney/all`: a person added to a list that a live sourced source of the shape takes
  * people from is told to the executor as a `trigger.source` fire, and the shape opens a journey. A tail loop (like `Segments`): a cursor per workspace and list keeps it one fire per
- * member. Start it with `POST SourcedFeed/all/start`.
+ * member. Start it with `POST ListToJourney/all/start`.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { executorFire, type Fired } from "@wren/core/executor";
@@ -15,7 +15,7 @@ import {
 import type { Db } from "@wren/db";
 import { type SourceCursors, sourcedPass } from "@wren/pipeline/sourced";
 
-const SOURCED_FEED = { name: "SourcedFeed" } as const;
+const SOURCED_FEED = { name: "ListToJourney" } as const;
 const CURSORS = "cursors";
 /** Between two passes when a list has more members to read. */
 const MORE_MS = 5_000;
@@ -23,7 +23,7 @@ const MORE_MS = 5_000;
 const IDLE_MS = 15 * 60_000;
 const PER_LIST = 200;
 
-interface SourcedFeedDeps {
+interface ListToJourneyDeps {
   main: Db;
   clientDb(id: string): Db;
   clients(): Promise<string[]>;
@@ -40,7 +40,7 @@ export interface FeedStats {
 type Cursors = Record<string, SourceCursors>;
 const WREN = "wren";
 
-export function makeSourcedFeed(d: SourcedFeedDeps) {
+export function makeListToJourney(d: ListToJourneyDeps) {
   return makeLoopObject(SOURCED_FEED.name, async (ctx: restate.ObjectContext) => {
     const had = (await ctx.get<Cursors>(CURSORS)) ?? {};
     const outcome = (await runPass<FeedStats & { fires: Fired[]; cursors: Cursors }>(ctx, d.main, {
@@ -81,4 +81,4 @@ export function makeSourcedFeed(d: SourcedFeedDeps) {
   });
 }
 
-export type SourcedFeed = ReturnType<typeof makeSourcedFeed>;
+export type ListToJourney = ReturnType<typeof makeListToJourney>;

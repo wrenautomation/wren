@@ -4,7 +4,7 @@
  * every new call. A call already pinned to the old deployment finishes on the code it began on.
  *
  * One URL for every build made each deploy a change in place: a call that was suspended across
- * the deploy replayed on the new code. On 2026-10-16 `SocialWatch/wren/loop` began on one build,
+ * the deploy replayed on the new code. On 2026-10-16 `SocialActivityRead/wren/loop` began on one build,
  * waited 30 min on a `Content/comments` read, and resumed on the next. The new build waits on
  * `SocialPushed/take` with a timer, which the journal did not have: journal mismatch (570) on
  * every retry, then a pause, holding the key's lock.

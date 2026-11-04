@@ -40,7 +40,7 @@ import { COMMENTS_COMPONENTS, COMMENTS_SETTINGS, MIN_FIT } from "../../src/reach
 import {
   makeCommentProofs,
   makeReachDesk,
-  makeReachWatch,
+  makeReachInboxRead,
   type ReachDeps,
   type ReachDeskService,
   WATCH_KEY,
@@ -184,7 +184,7 @@ beforeAll(async () => {
     // A sent comment schedules its proof checks (2 minutes on: none fire in a test).
     services: [
       fakeContent,
-      makeReachWatch(deps),
+      makeReachInboxRead(deps),
       makeReachDesk(deps),
       makeCommentProofs({ db: pg.db, sitesFor: deps.sitesFor }),
     ],
@@ -230,8 +230,8 @@ beforeEach(async () => {
 
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const sync = async () => {
-  const w = ingress().objectClient<ReturnType<typeof makeReachWatch>>(
-    { name: "ReachWatch" },
+  const w = ingress().objectClient<ReturnType<typeof makeReachInboxRead>>(
+    { name: "ReachInboxRead" },
     WATCH_KEY,
   );
   return (await w.sync()) as PassOutcome<WatchStats>;

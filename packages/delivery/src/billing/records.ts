@@ -1,6 +1,6 @@
 /**
  * Money in, as a console record in Money (designs/2026-10-15-wise-billing.md): every credit
- * BillingWatch read from Wise, what it paid or why it waits. Team only; amounts in their currency.
+ * ClientInvoicing read from Wise, what it paid or why it waits. Team only; amounts in their currency.
  */
 import {
   actor,

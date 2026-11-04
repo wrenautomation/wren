@@ -40,12 +40,18 @@ export interface Services {
  * `WREN_POOL_CHAIN_HOST=box` the Postgres box serves it (`box.ts`), next to the data.
  * Restate keeps each service on one deployment: whichever side serves it, the other skips it.
  */
-export const POOL_CHAIN = ["PoolScheduler", "Discovery", "Enrichment", "Resolution"];
+export const POOL_CHAIN = ["LeadPoolFill", "Discovery", "Enrichment", "Resolution"];
 /**
  * Everything the box serves: the chain; the page archive, which moves rows out of
  * its own disk; and the books' day, which waits on the model and the Mac's desk.
  */
-export const BOX_SERVICES = [...POOL_CHAIN, "PageArchive", "Books", "Watch", "SocialWatch"];
+export const BOX_SERVICES = [
+  ...POOL_CHAIN,
+  "PageHtmlArchive",
+  "BooksDaily",
+  "MyMailTriage",
+  "SocialActivityRead",
+];
 
 export function servicesFor(
   all: AnyService[],
@@ -93,10 +99,8 @@ export async function buildServices(
     handle,
     llm,
     notifier,
-    opens,
     postmaster,
     renderer,
-    report,
     smsProvider,
     transport,
     verifier,
@@ -117,9 +121,7 @@ export async function buildServices(
       pool_profiles: settings.poolProfiles,
       notify: notifier.name,
       postmaster: postmaster !== null,
-      opens: opens !== null,
       placement_seeds: settings.placementSeeds.length,
-      report: report !== null,
       content: settings.contentChannels.join(",") || "none",
       ads: settings.metaAdAccountId ?? "first account",
       content_voice: voice !== null ? "file" : "default",

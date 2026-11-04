@@ -1,6 +1,6 @@
 /**
  * Each running client's health, read from what delivery already keeps, written as today's row
- * (designs/2026-10-07-health.md, "Scoring"). Runs on DeliveryWatch's hourly pass: the last pass
+ * (designs/2026-10-07-health.md, "Scoring"). Runs on ClientUpdateMail's hourly pass: the last pass
  * of the day stands, and every day's row is kept. Health's own flags come back for `syncFlags`.
  */
 import { clientMembers, clients } from "@wren/core/clients";

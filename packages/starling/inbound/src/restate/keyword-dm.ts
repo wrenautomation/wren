@@ -1,6 +1,6 @@
 /**
  * KeywordDm (designs/2026-10-11-comment-keywords.md): a comment that says a keyword gets the
- * keyword's DM through Meta's private reply, then its public reply when it has one. `SocialWatch`
+ * keyword's DM through Meta's private reply, then its public reply when it has one. `SocialActivityRead`
  * (or `PushedComments`) catches the comments and sends each hit here; the portal adds and removes
  * keywords. 11-04 (designs/2026-11-04-meta-push-flows.md): each DM waits its `MetaPace` slot; a
  * keyword with a button sends it on the DM, and `tap` sends the follow-up.

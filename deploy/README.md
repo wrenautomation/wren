@@ -51,10 +51,10 @@ ROLE=$(cd deploy/terraform && tofu output -raw restate_invoker_role_arn)
 restate deployments register "$ARN:1" --assume-role-arn "$ROLE"
 ```
 
-Smoke: `restate services list` shows Enrichment, Resolution, SendScheduler,
-InboxScheduler, Disposition (+ PostmasterScheduler / OpensScheduler when configured). Then
+Smoke: `restate services list` shows Enrichment, Resolution, EmailSend,
+EmailInboxRead, Disposition (+ EmailPostmasterPull / OpensScheduler when configured). Then
 `pnpm wren db check` with `WREN_DATABASE_URL` pointed at the box, and one invocation:
-`curl -H "Authorization: Bearer $RESTATE_AUTH_TOKEN" https://<env>.env.us.restate.cloud:8080/SendScheduler/<sender>/status`.
+`curl -H "Authorization: Bearer $RESTATE_AUTH_TOKEN" https://<env>.env.us.restate.cloud:8080/EmailSend/<sender>/status`.
 
 ## CI (GitHub → Lambda)
 
@@ -100,7 +100,7 @@ later release) so the version still serving does not break.
   CI builds (which have no roster) deploy the same fleet.
 - Add a sending domain: autobrowse's `domain` workflow (buy, DNS, Workspace, inboxes with
   password + TOTP, Instantly warmup, roster, loops); see `autobrowse/designs/2026-09-19-domain-flow.md`.
-  It writes the roster here and starts `SendScheduler`/`InboxScheduler` for each inbox.
+  It writes the roster here and starts `EmailSend`/`EmailInboxRead` for each inbox.
 - Shell on the box: `aws ssm start-session --target $(cd deploy/terraform && tofu output -raw pg_instance_id)`.
   Postgres is `docker exec -it wren-pg psql -U wren`. First-boot log: `/var/log/wren-user-data.log`.
 - Backups: nightly `pg_dump -Fc` to the `backups_bucket`, 30-day expiry. Restore:

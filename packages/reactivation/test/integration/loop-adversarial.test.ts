@@ -109,8 +109,8 @@ beforeAll(async () => {
         transport: new ConsoleTransport({ write: () => {} }),
         notifier,
       }),
-      standIn("SendScheduler"),
-      standIn("InboxScheduler"),
+      standIn("EmailSend"),
+      standIn("EmailInboxRead"),
       paced,
     ],
     alwaysReplay: true,
@@ -151,16 +151,16 @@ const settle = (expected: Record<string, boolean | null>) =>
     expect(seen).toEqual(expected);
   }, UNTIL);
 const ALL_RUNNING = {
-  [`SendScheduler ${ANN}`]: true,
-  [`SendScheduler ${BO}`]: true,
-  [`InboxScheduler ${ANN}`]: true,
-  [`InboxScheduler ${BO}`]: true,
+  [`EmailSend ${ANN}`]: true,
+  [`EmailSend ${BO}`]: true,
+  [`EmailInboxRead ${ANN}`]: true,
+  [`EmailInboxRead ${BO}`]: true,
 };
 const ALL_STOPPED = {
-  [`SendScheduler ${ANN}`]: false,
-  [`SendScheduler ${BO}`]: false,
-  [`InboxScheduler ${ANN}`]: false,
-  [`InboxScheduler ${BO}`]: false,
+  [`EmailSend ${ANN}`]: false,
+  [`EmailSend ${BO}`]: false,
+  [`EmailInboxRead ${ANN}`]: false,
+  [`EmailInboxRead ${BO}`]: false,
 };
 
 const SENDING = { on: true, stages: { send: true }, senders: SENDERS };
@@ -201,10 +201,10 @@ describe("the client changes under a running loop", () => {
     await setBlock({ ...SENDING, senders: [SENDERS[0]] });
     await loop().sync();
     await settle({
-      [`SendScheduler ${ANN}`]: true,
-      [`InboxScheduler ${ANN}`]: true,
-      [`SendScheduler ${BO}`]: false,
-      [`InboxScheduler ${BO}`]: false,
+      [`EmailSend ${ANN}`]: true,
+      [`EmailInboxRead ${ANN}`]: true,
+      [`EmailSend ${BO}`]: false,
+      [`EmailInboxRead ${BO}`]: false,
     });
   });
 
@@ -269,8 +269,8 @@ describe("crm loop stop, then start", () => {
     // What `crm loop stop` does.
     await loop().stop();
     const last = (await loop().status()).last?.stats?.loops;
-    for (const key of last?.send ?? []) await mailbox("SendScheduler", key).stop();
-    for (const key of last?.inbox ?? []) await mailbox("InboxScheduler", key).stop();
+    for (const key of last?.send ?? []) await mailbox("EmailSend", key).stop();
+    for (const key of last?.inbox ?? []) await mailbox("EmailInboxRead", key).stop();
     await settle(ALL_STOPPED);
 
     await loop().start();
@@ -286,7 +286,7 @@ describe("crm loop stop, then start", () => {
   // a fresh one. If the start lands before the old call fires, both see
   // running = true and each schedules its own next pass: two chains, twice
   // the passes. Every loop built on makeLoopObject has it (Reactivation,
-  // InboxScheduler), and SendScheduler copies the same start/stop.
+  // EmailInboxRead), and EmailSend copies the same start/stop.
   it("stop then start keeps one chain of passes, not two", async () => {
     passTimes.length = 0;
     const paced = connect().objectClient<Paced>({ name: "Paced" }, "one");

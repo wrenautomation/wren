@@ -21,13 +21,13 @@ import { FakeProvider, type SmsEvent } from "../../src/provider.js";
 import {
   makeSmsDesk,
   makeSmsEvents,
-  makeSmsSender,
-  makeSmsWatch,
+  makeSmsSend,
+  makeSmsUpkeep,
   SENDER_KEY,
   type SmsDeskService,
   type SmsEventsService,
-  type SmsSender,
-  type SmsWatchObject,
+  type SmsSend,
+  type SmsUpkeepObject,
   WATCH_KEY,
   type WatchStats,
 } from "../../src/restate/index.js";
@@ -73,10 +73,10 @@ beforeAll(async () => {
   };
   env = await startTestRestate({
     services: [
-      makeSmsSender(deps),
+      makeSmsSend(deps),
       makeSmsEvents(deps),
       makeSmsDesk(deps, async () => [{ id: "spring", accounts: {}, caps: { "sms.opener": 1 } }]),
-      makeSmsWatch(deps),
+      makeSmsUpkeep(deps),
       makeExecutor({
         main: pg.db,
         clientDb: () => pg.db,
@@ -142,7 +142,7 @@ describe("sms on restate", () => {
     const [stamped] = await pg.db.select().from(smsContacts);
     expect(stamped?.campaign).toBe("spring");
     await expect(desk.enroll({ sequence: "nope", limit: 1 })).rejects.toThrow(/no sms sequence/);
-    const sender = ingress().objectClient<SmsSender>({ name: "SmsSender" }, SENDER_KEY);
+    const sender = ingress().objectClient<SmsSend>({ name: "SmsSend" }, SENDER_KEY);
     const pass = (await sender.sync()) as PassOutcome<TickStats>;
     expect(pass.stats).toMatchObject({ sent: 1 });
     // The sent opener leaves s1 on the executor and waits 3 days at step 2.
@@ -247,7 +247,7 @@ describe("sms on restate", () => {
   });
 
   it("the watch pass reports health", async () => {
-    const watch = ingress().objectClient<SmsWatchObject>({ name: "SmsWatch" }, WATCH_KEY);
+    const watch = ingress().objectClient<SmsUpkeepObject>({ name: "SmsUpkeep" }, WATCH_KEY);
     const out = (await watch.sync()) as PassOutcome<WatchStats>;
     expect(out.error).toBeNull();
     expect(out.stats?.health).toMatchObject({ paused: [], balanceUsd: 25 });
@@ -255,7 +255,7 @@ describe("sms on restate", () => {
 
   it("the watch attaches a US number once carriers approve, and says each step once", async () => {
     await numbers(pg.db, provider, ["+13125550100"], "2026-09-01", { registered: false });
-    const watch = ingress().objectClient<SmsWatchObject>({ name: "SmsWatch" }, WATCH_KEY);
+    const watch = ingress().objectClient<SmsUpkeepObject>({ name: "SmsUpkeep" }, WATCH_KEY);
     const said = () => n.seen.map((s) => s.title).filter((t) => t.startsWith("SMS"));
     await watch.sync();
     await watch.sync();

@@ -40,8 +40,8 @@ Citations: `packages/starling/channels/email/src/schema.ts:172`
 
 | Surface | Role |
 |---|---|
-| `ComposeScheduler/{niche}` | writes |
-| `SendScheduler/{sender}`, `InboxScheduler/{sender}` | move state |
+| `EmailOpenerFill/{niche}` | writes |
+| `EmailSend/{sender}`, `EmailInboxRead/{sender}` | move state |
 | `wren email drafts/stop` | reads, stops |
 
 ## See

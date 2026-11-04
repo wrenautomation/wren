@@ -1,11 +1,11 @@
 /**
- * The pool-feeder: `PoolScheduler/{niche}` walks the research chain once per
+ * The pool-feeder: `LeadPoolFill/{niche}` walks the research chain once per
  * pass — discover, verify, crawl, render, scan, extract, pick, applyPicks,
  * resolveMailboxes, verifyMailboxes, profiles — each stage one bounded call to its own object, journaled by
  * Restate. While any stage still finds work the next pass follows in a minute;
  * when every stage reports nothing the loop sleeps until the next local day and
  * looks again (new imports, new domains). Role inboxes it proves become leads,
- * which the queue-keeper (`ComposeScheduler`) enrolls on its next pass.
+ * which the queue-keeper (`EmailOpenerFill`) enrolls on its next pass.
  *
  * Spend is opt-in by stage. `modelStages` names what may call the model:
  * "none" (default: free groundwork only; the pick reads addresses by rules, so a
@@ -36,7 +36,7 @@
  * `start({stages: [...]})` narrows one niche's loop to those stages (e.g. only the
  * two mailbox stages while the crawl stays off); `start({})` goes back to all.
  *
- * `PoolScheduler/<client>/<niche|all>` is a client's pool (designs/2026-10-04-outbound-per-client.md,
+ * `LeadPoolFill/<client>/<niche|all>` is a client's pool (designs/2026-10-04-outbound-per-client.md,
  * O1): the same chain on `Discovery`/`Enrichment` keyed alike, in the client's database,
  * sized by its `research.lead_sheet` block. Each pass reads the block from main; a client
  * gone, the demo, or the component uninstalled stops the loop. No profiles, no re-checks.
@@ -214,7 +214,7 @@ export const PROBE_WIDTH = 32;
  */
 const FREE_DOMAIN_BUDGET = 8;
 
-/** What `PoolScheduler/{niche}/start` may be given. */
+/** What `LeadPoolFill/{niche}/start` may be given. */
 interface PoolSettings {
   /** Only these stages run for this niche; absent = every enabled stage. */
   stages?: Stage[];
@@ -264,7 +264,7 @@ interface ProfilesStage {
   horizonDays: number;
 }
 
-interface PoolSchedulerDeps {
+interface LeadPoolFillDeps {
   db: Db;
   policy: SendPolicy;
   modelStages: ModelStages;
@@ -454,12 +454,12 @@ export function stageEnabled(
   return true;
 }
 
-export function makePoolScheduler(deps: PoolSchedulerDeps) {
+export function makeLeadPoolFill(deps: LeadPoolFillDeps) {
   const base: StageLimits = { ...DEFAULT_LIMITS, ...deps.limits };
   const busyMs = deps.busyMs ?? DEFAULT_BUSY_MS;
   const retryMs = deps.retryMs ?? DEFAULT_RETRY_MS;
 
-  return makeLoopObject("PoolScheduler", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("LeadPoolFill", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const owner = clientOfKey(ctx.key);
     const client = owner?.client ?? null;
@@ -524,7 +524,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
     const discovery = ctx.objectClient<Discovery>({ name: "Discovery" }, ctx.key);
     const enrichment = ctx.objectClient<Enrichment>({ name: "Enrichment" }, ctx.key);
     const resolution = ctx.objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY);
-    const waits = await unitLimits(ctx, deps.db, "PoolScheduler");
+    const waits = await unitLimits(ctx, deps.db, "LeadPoolFill");
     const stageWaitMs = deps.stageWaitMs ?? STAGE_WAIT_MS;
     const limited = <T extends object>(stage: Stage, p: restate.InvocationPromise<T>) => {
       const c = callOf(stage);

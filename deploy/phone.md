@@ -138,7 +138,7 @@ back), and a push subscription to the Worker:
       --ack-deadline 30 --message-retention-duration 1d --expiration-period never
 
 Rotate: the same two steps, `subscriptions update ... --push-endpoint`. Each
-`InboxScheduler` renews its own watch (designs/2026-10-04-webhooks-serverless-round-2.md).
+`EmailInboxRead` renews its own watch (designs/2026-10-04-webhooks-serverless-round-2.md).
 
 ## Check
 

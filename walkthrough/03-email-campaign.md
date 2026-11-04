@@ -4,12 +4,12 @@
 and feed it when it runs dry. It has run unattended since 2026-09-14.
 
 ```
-import / fetch ──► companies ──► PoolScheduler/{niche}: discover → crawl → render → scan → extract → pick ──► leads
+import / fetch ──► companies ──► LeadPoolFill/{niche}: discover → crawl → render → scan → extract → pick ──► leads
                                                                                                      │
-ComposeScheduler/{niche} (daily): keeps 3 send days of approved openers queued ◄──────────────────────┘
-SendScheduler/{inbox}: sends inside the window at the ramp (5 → 25 per inbox per day)
-InboxScheduler/{inbox}: replies, bounces; kill switch pauses a domain at 2% bounces
-PostmasterScheduler/fleet, OpensScheduler/fleet, DigestScheduler/fleet (07:00 Discord), PlacementScheduler/fleet, ReportScheduler/weekly
+EmailOpenerFill/{niche} (daily): keeps 3 send days of approved openers queued ◄──────────────────────┘
+EmailSend/{inbox}: sends inside the window at the ramp (5 → 25 per inbox per day)
+EmailInboxRead/{inbox}: replies, bounces; kill switch pauses a domain at 2% bounces
+EmailPostmasterPull/fleet, EmailFleetDigest/fleet (07:00 Discord), EmailPlacementTest/fleet
 ```
 
 ## Every morning
@@ -34,7 +34,7 @@ inside a 13:00–19:00 America/New_York fleet window. `WREN_SEND_*`,
 
 ## When the pool runs dry
 
-`ComposeScheduler/{niche}` status `exhausted: true` = every company with a
+`EmailOpenerFill/{niche}` status `exhausted: true` = every company with a
 sendable address is enrolled. Three feeds:
 
 ```sh
@@ -44,7 +44,7 @@ pnpm wren email import data/agencies/clutch/design_agencies --format clutch-page
 pnpm wren fetch get firm-feed && pnpm wren email import <file> --format sec-firm-feed
 ```
 
-then the research chain (`PoolScheduler/{niche}/start`; `WREN_POOL_MODEL_STAGES`
+then the research chain (`LeadPoolFill/{niche}/start`; `WREN_POOL_MODEL_STAGES`
 is the spend knob: `none` | `pick` | `all`). Verification (MillionVerifier)
 stays by hand: it spends credits. `../docs/restate-operations.md` "Feeding
 the pool" has every stage as a curl.
@@ -67,5 +67,5 @@ pnpm wren email suppress add someone@x.com
 |---|---|
 | a domain paused | bounces hit 2%: fix the list (`suppress`), then `email senders resume <domain>` |
 | `senders check` exit 1 | the inbox's delegation token failed: Workspace user or DWD scope; autobrowse guide 9 |
-| sent today 0 on a weekday | outside the window, or the loop stopped: `SendScheduler/<inbox>/status` |
+| sent today 0 on a weekday | outside the window, or the loop stopped: `EmailSend/<inbox>/status` |
 | `exhausted: true` | feed the pool (above) |

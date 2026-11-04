@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // One call to a prod Restate handler through the ingress, with the API key from .env.
-// Usage, from the repo root: node scripts/ingress.mjs PoolScheduler/recruiting/status ['{"json":1}']
+// Usage, from the repo root: node scripts/ingress.mjs LeadPoolFill/recruiting/status ['{"json":1}']
 // Writes too (start, stop, queue): read the handler first.
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

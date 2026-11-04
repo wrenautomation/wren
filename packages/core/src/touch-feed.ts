@@ -1,6 +1,6 @@
 /**
  * The touch feed (designs/2026-10-18-journeys.md, "Causes"): `recordTouch` has many writers
- * outside Restate, so the executor hears a touch from this tail loop, not from them. `TouchFeed/all`
+ * outside Restate, so the executor hears a touch from this tail loop, not from them. `TouchToJourney/all`
  * reads each workspace's untold touches (`fired_at` null), tells the executor once per touch
  * (`trigger.touch`, subject `touch:<id>`, event kind `person`), then marks them told. At least
  * once (WA-1062, designs/2026-11-04-at-least-once.md): a crash between the send and the mark tells
@@ -18,7 +18,7 @@ import { makeLoopObject, runPass } from "./restate/loop.js";
 const TOUCH_BATCH = 200;
 /** The net's beat: a new touch wakes the feed at commit. */
 const TOUCH_FEED_MS = 15 * 60_000;
-const TOUCH_FEED = "TouchFeed";
+const TOUCH_FEED = "TouchToJourney";
 /** The id cursors before WA-1062: cleared on the first pass. */
 const OLD_CURSORS = "cursors";
 
@@ -121,14 +121,14 @@ export async function touchRows(db: Queryable, ids: readonly number[]): Promise<
   }));
 }
 
-interface TouchFeedDeps {
+interface TouchToJourneyDeps {
   main: Db;
   clientDb(id: string): Db;
   /** Every client with a database. */
   clients(): Promise<string[]>;
 }
 
-interface TouchFeedStats {
+interface TouchToJourneyStats {
   /** Touches told this pass. */
   told: number;
   /** What each workspace read, for the events step. */
@@ -137,16 +137,16 @@ interface TouchFeedStats {
   errors: string[];
 }
 
-/** `TouchFeed/all`: each workspace's untold touches told to the executor, on a new touch or the net. */
-export function makeTouchFeed(d: TouchFeedDeps) {
+/** `TouchToJourney/all`: each workspace's untold touches told to the executor, on a new touch or the net. */
+export function makeTouchToJourney(d: TouchToJourneyDeps) {
   const dbOf = (client: string | null) => (client ? d.clientDb(client) : d.main);
   return makeLoopObject(TOUCH_FEED, async (ctx: restate.ObjectContext) => {
     ctx.clear(OLD_CURSORS);
-    const outcome = await runPass<TouchFeedStats>(ctx, d.main, {
+    const outcome = await runPass<TouchToJourneyStats>(ctx, d.main, {
       name: "touch feed",
       ledger: { command: "touch feed", argv: { daemon: true } },
       body: async () => {
-        const batches: TouchFeedStats["batches"] = [];
+        const batches: TouchToJourneyStats["batches"] = [];
         const errors: string[] = [];
         const work = [null, ...(await d.clients())];
         for (const client of work) {

@@ -97,7 +97,7 @@ export function makeDisposition(deps: DispositionDeps) {
   return restate.object({
     name: "Disposition",
     handlers: {
-      /** Only InboxScheduler fires it, when a pass finds human replies. */
+      /** Only EmailInboxRead fires it, when a pass finds human replies. */
       classify: exclusiveHandler(
         { ingressPrivate: true },
         async (ctx: restate.ObjectContext): Promise<ClassifyOutcome> => {

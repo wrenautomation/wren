@@ -37,7 +37,7 @@ Citations: `packages/core/src/suppress.ts:72`, `packages/core/src/schema.ts:261`
 
 | Surface | Role |
 |---|---|
-| `InboxScheduler`, `SmsEvents`, `SmsWatch` | write |
+| `EmailInboxRead`, `SmsEvents`, `SmsUpkeep` | write |
 | `wren email suppress add/lift` | writes |
 | compose, resolution, both send ticks | read |
 

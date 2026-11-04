@@ -32,7 +32,7 @@ interface AdsDeps {
   adAccountId?: string;
   pageId?: string;
   host?: MediaHost;
-  /** With a db, every launch/start/stop lands in `ad_launches` (what `AdsWatch` reads). */
+  /** With a db, every launch/start/stop lands in `ad_launches` (what `AdSpendGuard` reads). */
   db?: Db;
 }
 

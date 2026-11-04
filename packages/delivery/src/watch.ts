@@ -1,5 +1,5 @@
 /**
- * DeliveryWatch/fleet (D8–D10): one pass an hour over every client's work. It
+ * ClientUpdateMail/fleet (D8–D10): one pass an hour over every client's work. It
  * mails each client person (D9): a welcome when they're invited, new asks and
  * deliverables, and the Friday digest with the weekly pulse (D10). What could
  * leave a client feeling forgotten (D8) goes on the flags list, beside each
@@ -82,7 +82,7 @@ import {
   updates,
 } from "./schema.js";
 
-export const WATCH = "DeliveryWatch";
+export const WATCH = "ClientUpdateMail";
 export const WATCH_KEY = "fleet";
 const WATCH_COMMAND = "delivery watch";
 
@@ -1133,8 +1133,8 @@ async function problems(
 }
 
 /**
- * The 1st's bills (D15): a heads-up two days before. BillingWatch makes and mails them from
- * the 1st; one still unmade (BillingWatch off) pings each day of the first week, weekly after.
+ * The 1st's bills (D15): a heads-up two days before. ClientInvoicing makes and mails them from
+ * the 1st; one still unmade (ClientInvoicing off) pings each day of the first week, weekly after.
  */
 async function billing(main: Db, today: string): Promise<Found[]> {
   const period = today.slice(0, 7);
@@ -1153,7 +1153,7 @@ async function billing(main: Db, today: string): Promise<Found[]> {
       about: `bill:${period}`,
       everyDays: day <= 7 ? 1 : REPING_DAYS,
       what: `bill ${period}: ${said(b)} = ${amount(billCents(b), b.currency)}`,
-      how: "BillingWatch makes and mails it: `wren delivery billing sync`",
+      how: "ClientInvoicing makes and mails it: `wren delivery billing sync`",
     }),
   );
   const ahead = soon
@@ -1210,7 +1210,7 @@ async function failingRuns(deps: WatchDeps): Promise<{ flags: FlagFind[]; wren: 
 const URGENT = /^reply:/;
 
 /**
- * DeliveryWatch's problems and the new reviews and interests onto the flags list, health's
+ * ClientUpdateMail's problems and the new reviews and interests onto the flags list, health's
  * day and its flags, then the alerts and the executor's outbox (designs/2026-10-07-health.md).
  */
 async function flagClients(
@@ -1400,7 +1400,7 @@ export async function opsBoard(main: Db, zone: string, now: Date): Promise<Board
 
 // --- the loop --------------------------------------------------------------------
 
-export function makeDeliveryWatch(deps: WatchDeps) {
+export function makeClientUpdateMail(deps: WatchDeps) {
   return makeLoopObject(WATCH, async (ctx: restate.ObjectContext) => {
     return runPass<WatchStats>(ctx, deps.main, {
       name: "delivery watch",
@@ -1417,4 +1417,4 @@ export function makeDeliveryWatch(deps: WatchDeps) {
   });
 }
 
-export type DeliveryWatch = ReturnType<typeof makeDeliveryWatch>;
+export type ClientUpdateMail = ReturnType<typeof makeClientUpdateMail>;

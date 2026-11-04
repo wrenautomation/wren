@@ -4,15 +4,15 @@
  */
 import { BOOKS_CONSOLE_VIEWS } from "@wren/books";
 import { landerVisitLines } from "@wren/calendar/calls";
-import { makeAuditSealer } from "@wren/core/audit";
+import { makeAuditSeal } from "@wren/core/audit";
 import { sitesHost } from "@wren/core/autobrowse/box";
-import { makeTokenRenewal } from "@wren/core/autobrowse/renewal";
+import { makeSiteTokenRenew } from "@wren/core/autobrowse/renewal";
 import { cacheFrom } from "@wren/core/cache";
 import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
-import { makeDeadLetters, restateAdminPatch } from "@wren/core/dead-letters";
+import { makeFailedCallAlert, restateAdminPatch } from "@wren/core/dead-letters";
 import { backendsFromEnv, leadFitSource, makeDecide } from "@wren/core/decide";
-import { makeLoopWatch } from "@wren/core/loop-watch";
-import { makeVaultKeys } from "@wren/core/vault-keys";
+import { makeLoopRevive } from "@wren/core/loop-watch";
+import { makeVaultKeyMirror } from "@wren/core/vault-keys";
 import { makeWebhooks, turnedOffTeller } from "@wren/core/webhooks";
 import { engagementOf, postUpdate } from "@wren/delivery";
 import { s3Files } from "@wren/delivery/files";
@@ -58,12 +58,14 @@ export function platformServices(deps: Deps): AnyService[] {
   const services: AnyService[] = [];
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90).
   services.push(
-    makeTokenRenewal({ db, host: sitesHost(settings.autobrowseInstanceId), ...notify }),
+    makeSiteTokenRenew({ db, host: sitesHost(settings.autobrowseInstanceId), ...notify }),
   );
   // The operator's API keys, mirrored from autobrowse's vault each hour; the Accounts page's actions.
-  services.push(makeVaultKeys({ db, host: sitesHost(settings.autobrowseInstanceId), ...notify }));
+  services.push(
+    makeVaultKeyMirror({ db, host: sitesHost(settings.autobrowseInstanceId), ...notify }),
+  );
   // The audit log's seals in every database, every 15 minutes; off until `wren audit sealer start`.
-  services.push(makeAuditSealer({ main: db, open: openClient, ...notify }));
+  services.push(makeAuditSeal({ main: db, open: openClient, ...notify }));
   services.push(
     // Decide (designs/2026-10-16-decide.md): drafted comments and lead fits judged by Jev every
     // 10 minutes, each answer logged beside his call; the gateway answers when Jev is down.
@@ -83,14 +85,14 @@ export function platformServices(deps: Deps): AnyService[] {
     // Files every invocation Restate paused after its retries as a dead letter; Discord hears once.
     ...(settings.restateAdminUrl
       ? [
-          makeDeadLetters({
+          makeFailedCallAlert({
             main: db,
             admin: restateAdmin(settings.restateAdminUrl, settings.restateAuthToken),
             patch: restateAdminPatch(settings.restateAdminUrl, settings.restateAuthToken),
             ...notify,
           }),
           // Wakes a loop whose chain ended; names one stuck behind a call (designs/2026-10-16-loop-watchdog.md).
-          makeLoopWatch({
+          makeLoopRevive({
             main: db,
             admin: restateAdmin(settings.restateAdminUrl, settings.restateAuthToken),
             ...notify,

@@ -17,7 +17,7 @@ export const META_COMPONENTS = [
     // The audit reads Wren's block: saved in Wren's workspace.
     wrenSettings: true,
     requires: { accounts: ["meta"] },
-    provides: { services: ["Ads", "AdsWatch"], loops: ["AdsWatch"] },
+    provides: { services: ["Ads", "AdSpendGuard"], loops: ["AdSpendGuard"] },
     effects: ["spends", "posts"],
     out: [{ id: "forms", label: "lead forms filled", kind: "form" }],
     hypothesis: {

@@ -15,7 +15,7 @@ import { untilNextLocalDay } from "@wren/starling-email/restate";
 import { SendPolicy } from "@wren/starling-email/send/policy";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { type FeedStats, makePoolScheduler } from "../../../src/email/restate/pool-scheduler.js";
+import { type FeedStats, makeLeadPoolFill } from "../../../src/email/restate/pool-scheduler.js";
 import { makeCompany, makePerson, TABLES } from "./compose-fixtures.js";
 
 const POLICY = SendPolicy.fromSettings(
@@ -104,7 +104,7 @@ beforeAll(async () => {
       fakeDiscovery,
       fakeEnrichment,
       fakeResolution,
-      makePoolScheduler({
+      makeLeadPoolFill({
         db: pg.db,
         policy: POLICY,
         modelStages: "none",
@@ -134,14 +134,14 @@ beforeEach(async () => {
   answers.crawlHangs = false;
 });
 
-type Pool = ReturnType<typeof makePoolScheduler>;
+type Pool = ReturnType<typeof makeLeadPoolFill>;
 const client = (key = "sec_ria") =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<Pool>({ name: "PoolScheduler" }, key);
+    .objectClient<Pool>({ name: "LeadPoolFill" }, key);
 const sync = (key?: string) => client(key).sync() as Promise<PassOutcome<FeedStats>>;
 
-describe("PoolScheduler", () => {
+describe("LeadPoolFill", () => {
   it("walks the free stages in order (the pick by rules), skips extraction, and sleeps a day when idle", async () => {
     const out = await sync();
     expect(called).toEqual([

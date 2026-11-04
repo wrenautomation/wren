@@ -1,5 +1,5 @@
 /**
- * `ContentPlanner/default`: once a day, at `hour` on the fleet's clock, reads
+ * `PostPlan/default`: once a day, at `hour` on the fleet's clock, reads
  * tomorrow's plan (slots vs drafts per platform) and says it on Discord. With
  * `draft: true` it first fills each open slot with a draft (O5): ideas in order
  * from `nextIdea` (undrafted ideas, a reader's question, a video chapter),
@@ -19,7 +19,7 @@
  * body order, then the default. A campaign takes only its own ideas, on the platforms it names an
  * account for, under its `<platform>.post` cap; its drafts post as that account.
  *
- * `ContentPlanner/<client>/daily`: the same for a client with Content plan installed, on its own
+ * `PostPlan/<client>/daily`: the same for a client with Content plan installed, on its own
  * logins' platforms, into its own database, drafted by `ContentDesk/<client>/desk` as the client.
  * Its block (`content.planner`) is the settings; its ideas are its own and its readers'
  * questions, never Wren's video chapters. Drafts wait in its To approve.
@@ -69,7 +69,7 @@ const MAX_IDEAS = 6;
 /** The longest a pass waits on one idea's drafts: a model call per platform, a minute or two each. */
 const DRAFT_WAIT_MS = 15 * 60_000;
 
-interface ContentPlannerDeps {
+interface PostPlanDeps {
   db: Db;
   /** The fleet's clock: slots and the daily hour read on it. */
   zone: string;
@@ -127,9 +127,9 @@ export function plannerTitle(plan: DayPlan, drafted: readonly Drafted[]): string
     : `content ${plan.day}: every slot filled`;
 }
 
-export function makeContentPlanner(deps: ContentPlannerDeps) {
+export function makePostPlan(deps: PostPlanDeps) {
   const hour = deps.hour ?? DEFAULT_HOUR;
-  return makeLoopObject("ContentPlanner", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("PostPlan", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const client = clientOfKey(ctx.key)?.client ?? null;
     let db = deps.db;
@@ -214,7 +214,7 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
       const used = live.length ? await ctx.run("campaign slots", () => campaignSlots(db, day)) : {};
       const sweeps = [...live, null];
       const tried: string[] = [];
-      const limits = await unitLimits(ctx, deps.db, "ContentPlanner");
+      const limits = await unitLimits(ctx, deps.db, "PostPlan");
       const desk = ctx.objectClient<ContentDesk>(
         { name: "ContentDesk" },
         client ? clientKey(client, DESK_UNIT) : DESK_KEY,
@@ -295,7 +295,7 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
                   : await ctx.run(`account ${r.draft.id}`, () =>
                       pickAccount(
                         db,
-                        { item: `draft:${r.draft.id}`, account, by: "ContentPlanner" },
+                        { item: `draft:${r.draft.id}`, account, by: "PostPlan" },
                         contentKinds,
                       ).then(
                         () => null,
@@ -312,7 +312,7 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
               approveDrafts(db, [r.draft.id], {
                 now,
                 at: new Date(slot),
-                by: "ContentPlanner",
+                by: "PostPlan",
               }).then(
                 () => null,
                 (err: unknown) => (err instanceof Error ? err.message : String(err)),
@@ -331,4 +331,4 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
   });
 }
 
-export type ContentPlanner = ReturnType<typeof makeContentPlanner>;
+export type PostPlan = ReturnType<typeof makePostPlan>;

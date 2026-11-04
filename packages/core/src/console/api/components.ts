@@ -100,7 +100,7 @@ export function componentsHandlers(ctx: ConsoleContext) {
     };
     const id = (l: LoopKey) => `${l.service} ${l.key}`;
     const start = loopsOf(block).filter((l) => bound(l.service));
-    // A loop two parts share (ReachWatch for comments and invites) stops with the last of them.
+    // A loop two parts share (ReachInboxRead for comments and invites) stops with the last of them.
     const others = components
       .filter((x) => x.id !== c.id && x.id in client.products)
       .flatMap((x) => {

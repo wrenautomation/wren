@@ -264,7 +264,7 @@ export function registerEmail(
     .action(async (opts: { limit: string }) => {
       const clicks = await withDb((db) => clickedEmails(db, { limit: Number(opts.limit) }));
       if (clicks.length === 0) {
-        console.log("no email link clicks yet (ClicksScheduler/fleet pulls them hourly)");
+        console.log("no email link clicks yet (EmailClickPull/fleet pulls them hourly)");
         return;
       }
       // What they did after is the lander's, so it is read now and never stored. Counts need no
@@ -371,7 +371,7 @@ export function registerEmail(
           .where(gte(postmasterDays.day, since))
           .orderBy(desc(postmasterDays.day), postmasterDays.domain);
         if (rows.length === 0) {
-          console.log(`no Postmaster rows since ${since} (PostmasterScheduler/fleet running?)`);
+          console.log(`no Postmaster rows since ${since} (EmailPostmasterPull/fleet running?)`);
           return;
         }
         console.log("day · domain: spam% · spf dkim dmarc · reputation");

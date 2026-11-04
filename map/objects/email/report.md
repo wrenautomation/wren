@@ -29,14 +29,13 @@ Citations: `packages/starling/channels/email/src/schema.ts:476`
 
 ## If you change this
 
-- **Hits:** `report/weekly.ts`, `report/send.ts:52`, `ReportScheduler`, `wren report weekly`
+- **Hits:** `report/weekly.ts`, `report/send.ts:52`, `wren report weekly`
 - **Does not hit:** the digest (a different, daily surface: `restate/digest-scheduler.ts`)
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `ReportScheduler/fleet` (when `WREN_REPORT_TO` set) | writes |
 | `wren report weekly` | writes |
 
 ## See

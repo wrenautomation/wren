@@ -10,16 +10,15 @@ import { editsOf, savedWorkflows } from "@wren/core/executor";
 import { meteredModel } from "@wren/core/metered";
 import { makePeopleConsole, PEOPLE_RECORDS } from "@wren/core/people/console";
 import { siteCountReader } from "@wren/core/people-map";
-import { makePeopleMap, makePeopleMapNet } from "@wren/core/people-map-pass";
+import { makePeopleMap } from "@wren/core/people-map-pass";
 import { profileRecords } from "@wren/core/profile-records";
-import { makeSegments, makeSegmentsNet } from "@wren/core/segments-pass";
-import { makeTouchFeed } from "@wren/core/touch-feed";
+import { makeSegments, makeSegmentsHourly } from "@wren/core/segments-pass";
+import { makeTouchToJourney } from "@wren/core/touch-feed";
 import { flowsWith } from "@wren/core/workflows";
 import { llmForKey } from "@wren/llm";
 import { COMPONENTS } from "../components.js";
-import { makeLineFeed } from "../line-feed.js";
-import { makePainFeed } from "../pain-feed.js";
-import { makeSourcedFeed } from "../sourced-feed.js";
+import { makeMapLineFeed } from "../line-feed.js";
+import { makeListToJourney } from "../sourced-feed.js";
 import { WORKFLOWS } from "../workflows.js";
 import type { AnyService, Deps } from "./deps.js";
 
@@ -60,7 +59,7 @@ export function peopleServices(deps: Deps): AnyService[] {
           flowsWith(WORKFLOWS, editsOf(await savedWorkflows(db, client)), COMPONENTS).flows,
         clients: () => loopClients(db),
       };
-      return [makeSegments(segments), makeSegmentsNet(segments)];
+      return [makeSegments(segments), makeSegmentsHourly(segments)];
     })(),
     // People map: each profile's stage, warmth and persona rebuilt; the net every 30 minutes.
     // Wren's site counts come from the lander's log, 200 visitors a pass.
@@ -75,26 +74,24 @@ export function peopleServices(deps: Deps): AnyService[] {
             )
           : null,
       };
-      return [makePeopleMap(map), makePeopleMapNet(map)];
+      return [makePeopleMap(map)];
     })(),
     // Touch feed (designs/2026-10-18-journeys.md): each workspace's new touches told to the executor
     // once each, for `trigger.touch`: woken by a new touch, the net every 15 minutes. Started by
     // hand, never on its own.
-    makeTouchFeed({
+    makeTouchToJourney({
       main: db,
       clientDb,
       clients: () => loopClients(db),
     }),
     // Sourced entries: people added to a list a live source takes entries from open journeys.
-    makeSourcedFeed({
+    makeListToJourney({
       main: db,
       clientDb,
       clients: () => loopClients(db),
     }),
     // Content lines: documents a find takes, and jobs that end at a station, told to the executor.
-    makeLineFeed({ main: db }),
-    // Pain points line: a pain a reach post states, proven by its quote, opens the author's journey.
-    makePainFeed({ main: db, llm }),
+    makeMapLineFeed({ main: db }),
     // Broadcasts (B6): each approved one started on its time and sent a batch per run.
     makeBroadcast({ main: db, clientDb, mail: (client, cdb) => mailOf(client, cdb) }),
   );

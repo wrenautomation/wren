@@ -2,7 +2,7 @@
  * The dead-letter queue (designs/2026-10-11-dead-letters.md). Restate retries a failing
  * handler, and when the retries run out it pauses the invocation: the work is neither done
  * nor dropped, its object's lock is held, and nothing moves until someone acts. Each such
- * invocation is a dead letter. The `DeadLetters` loop files every one as a row, tells the
+ * invocation is a dead letter. The `FailedCallAlert` loop files every one as a row, tells the
  * Discord channel once per new letter, and closes a row whose invocation left the paused
  * state by other means. `wren dlq` lists, shows, retries (resume where it stopped), kills
  * (give up, its caller is told) or drops (handled elsewhere) them.
@@ -346,9 +346,9 @@ export async function endDeadLetter(
   return ended;
 }
 
-/** `DeadLetters/all`: one sweep every ten minutes. */
-export function makeDeadLetters(deps: DeadLetterDeps) {
-  return makeLoopObject("DeadLetters", async (ctx: restate.ObjectContext) => {
+/** `FailedCallAlert/all`: one sweep every ten minutes. */
+export function makeFailedCallAlert(deps: DeadLetterDeps) {
+  return makeLoopObject("FailedCallAlert", async (ctx: restate.ObjectContext) => {
     return (await runPass<DeadLetterPass>(ctx, deps.main, {
       name: "sweep",
       ledger: { command: "dlq sweep", argv: { daemon: true } },
@@ -360,4 +360,4 @@ export function makeDeadLetters(deps: DeadLetterDeps) {
   });
 }
 
-export type DeadLetters = ReturnType<typeof makeDeadLetters>;
+export type FailedCallAlert = ReturnType<typeof makeFailedCallAlert>;

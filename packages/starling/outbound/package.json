@@ -9,7 +9,6 @@
     "./decide": "./src/decide.ts",
     "./email": "./src/email/index.ts",
     "./limits": "./src/limits.ts",
-    "./pain": "./src/pain.ts",
     "./records": "./src/records.ts",
     "./restate": "./src/restate/index.ts",
     "./schema": "./src/schema.ts",

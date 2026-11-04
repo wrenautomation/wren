@@ -12,9 +12,9 @@ The research chain, one bounded stage per pass, until every stage reports nothin
 
 ## Input → Movement → Output
 
-Companies of one niche with a domain or a guessable name. `PoolScheduler/{niche}` calls, in order, `adLibrary, exaSearch, youtubeSearch, triggers, fbGroups, discover, verify, crawl, render, scan, contacts, extract, pick, applyPicks, resolveMailboxes, verifyMailboxes, team, youtube, instagram, profiles, signals`, each one call to its own Restate object, journaled. Output is leads with `status = verified` (role inboxes and picked people) and the evidence rows beneath them.
+Companies of one niche with a domain or a guessable name. `LeadPoolFill/{niche}` calls, in order, `adLibrary, exaSearch, youtubeSearch, triggers, fbGroups, discover, verify, crawl, render, scan, contacts, extract, pick, applyPicks, resolveMailboxes, verifyMailboxes, team, youtube, instagram, profiles, signals`, each one call to its own Restate object, journaled. Output is leads with `status = verified` (role inboxes and picked people) and the evidence rows beneath them.
 
-A client's pool is `PoolScheduler/<client>/all` (or `<client>/<niche>`), started by hand like Wren's (`node scripts/ingress.mjs PoolScheduler/<client>/all/start`). It calls `Discovery`/`Enrichment` on the same key, which work in `wren_client_<id>`, and `Resolution/default` with `client`. Each pass reads the client's `research.lead_sheet` block from main (words, crawl hints, per-pass sizes, `verificationsPerDay`); a client gone, the demo, or the component uninstalled stops the loop. No `profiles`, no re-checks for clients (`pool-scheduler.ts`, `clientPlan`). Its runs rows land in the client's database.
+A client's pool is `LeadPoolFill/<client>/all` (or `<client>/<niche>`), started by hand like Wren's (`node scripts/ingress.mjs LeadPoolFill/<client>/all/start`). It calls `Discovery`/`Enrichment` on the same key, which work in `wren_client_<id>`, and `Resolution/default` with `client`. Each pass reads the client's `research.lead_sheet` block from main (words, crawl hints, per-pass sizes, `verificationsPerDay`); a client gone, the demo, or the component uninstalled stops the loop. No `profiles`, no re-checks for clients (`pool-scheduler.ts`, `clientPlan`). Its runs rows land in the client's database.
 
 ## Why this shape
 
@@ -50,8 +50,8 @@ Spend is opt-in by stage (`WREN_POOL_MODEL_STAGES`: none | pick | all) and the t
 
 | Surface | Role |
 |---|---|
-| `PoolScheduler/{niche}` | runs daily, then hourly while work remains |
-| `PoolScheduler/<client>/all` | a client's pool, sized by its lead sheet block |
+| `LeadPoolFill/{niche}` | runs daily, then hourly while work remains |
+| `LeadPoolFill/<client>/all` | a client's pool, sized by its lead sheet block |
 | Portal app `leads` (client workspace) | reads the client's `email.firm`/`email.stall` through `EmailConsole.records*` |
 | `wren email status` | reads |
 | `wren enrich profiles --niche <n>` | the `profiles` stage by hand |

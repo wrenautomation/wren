@@ -1,5 +1,5 @@
 /**
- * `PageArchive/all`: moves page HTML older than a day out of Postgres to the
+ * `PageHtmlArchive/all`: moves page HTML older than a day out of Postgres to the
  * pages bucket (`archivePages`). While a backlog remains it runs pass after
  * pass; caught up, it looks again hourly. Served on the Postgres box next to
  * the data, so no page crosses the network twice.
@@ -17,22 +17,22 @@ const ARCHIVE_AFTER_MS = 24 * 3_600_000;
 const CAUGHT_UP_EVERY_MS = 3_600_000;
 const BACKLOG_EVERY_MS = 5_000;
 
-interface PageArchiveSettings {
+interface PageHtmlArchiveSettings {
   /** Pages per pass. */
   limit?: number;
 }
 
-interface PageArchiveDeps {
+interface PageHtmlArchiveDeps {
   db: Db;
   /** null when WREN_PAGES_BUCKET is unset: every pass then fails, saying so. */
   pages: PageStore | null;
   notifier?: Notifier;
 }
 
-export function makePageArchive(deps: PageArchiveDeps) {
-  return makeLoopObject("PageArchive", async (ctx: restate.ObjectContext) => {
+export function makePageHtmlArchive(deps: PageHtmlArchiveDeps) {
+  return makeLoopObject("PageHtmlArchive", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
-    const settings = await loopSettings<PageArchiveSettings>(ctx);
+    const settings = await loopSettings<PageHtmlArchiveSettings>(ctx);
     return runPass<ArchiveStats>(ctx, deps.db, {
       now,
       name: "archive",
@@ -51,4 +51,4 @@ export function makePageArchive(deps: PageArchiveDeps) {
   });
 }
 
-export type PageArchive = ReturnType<typeof makePageArchive>;
+export type PageHtmlArchive = ReturnType<typeof makePageHtmlArchive>;

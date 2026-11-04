@@ -71,13 +71,13 @@ export const SMS_COMPONENTS = [
     settings: textsSettingsSchema,
     requires: { accounts: ["telnyx"] },
     provides: {
-      services: ["SmsSender", "SmsEvents", "SmsDesk", "SmsWatch", "SmsForms", "SmsConsole"],
-      loops: ["SmsSender", "SmsWatch"],
+      services: ["SmsSend", "SmsEvents", "SmsDesk", "SmsUpkeep", "SmsForms", "SmsConsole"],
+      loops: ["SmsSend", "SmsUpkeep"],
     },
     effects: ["sends", "spends"],
     clientLoops: (client) => [
-      { service: "SmsSender", key: clientKey(client, "fleet") },
-      { service: "SmsWatch", key: clientKey(client, "daily") },
+      { service: "SmsSend", key: clientKey(client, "fleet") },
+      { service: "SmsUpkeep", key: clientKey(client, "daily") },
     ],
     in: [{ id: "leads", label: "leads", kind: "lead" }],
     out: [

@@ -25,13 +25,13 @@ import { s3PageStore } from "@wren/research/pages";
 import {
   makeDiscovery,
   makeEnrichment,
-  makePageArchive,
+  makePageHtmlArchive,
   makeProfileResearch,
 } from "@wren/research/restate";
 import { campaignPolicy, recheckLeads } from "@wren/starling-email";
 import {
   dailyOpenerCapacity,
-  makePoolScheduler,
+  makeLeadPoolFill,
   makeResolution,
 } from "@wren/starling-outbound/email";
 import { serviceAccountToken } from "@wrenautomation/autobrowse/google";
@@ -180,7 +180,7 @@ export function researchServices(deps: Deps): AnyService[] {
     horizonDays: settings.verificationHorizonDays,
   };
   services.push(
-    makePoolScheduler({
+    makeLeadPoolFill({
       db,
       clientDb,
       policy,
@@ -205,6 +205,6 @@ export function researchServices(deps: Deps): AnyService[] {
     }),
   );
   // Page HTML a day old moves to the pages bucket; off until `wren pages archive start`.
-  services.push(makePageArchive({ db, pages, ...notify }));
+  services.push(makePageHtmlArchive({ db, pages, ...notify }));
   return services;
 }

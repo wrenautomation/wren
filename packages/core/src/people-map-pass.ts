@@ -2,8 +2,8 @@
  * The people map's pass (designs/2026-10-15-people-map.md), one per workspace: loose handles
  * keyed, site counts read (Wren's, when the lander's export is set), then the hot profiles' rows
  * rebuilt (`hotProfiles`; every profile once a day) and `stage` / `warmth` mirrored as traits. `PeopleMap/fleet` (Wren's) and
- * `PeopleMap/<client>/fleet` run it on `wake`; `PeopleMapNet/all` wakes every workspace each
- * 30 minutes (designs/2026-11-01-loop-calls.md). The warm gate never waits on it: it reads live.
+ * `PeopleMap/<client>/fleet` run it on `wake`; row triggers wake it at commit. The warm gate never
+ * waits on it: it reads live.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
@@ -17,11 +17,9 @@ import {
   type SiteCountReader,
 } from "./people-map.js";
 import { exclusiveHandler, NO_INPUT, sharedHandler } from "./restate/form.js";
-import { clientKey, clientOfKey } from "./restate/keys.js";
-import { makeLoopObject, type PassOutcome, runPass } from "./restate/loop.js";
+import { clientOfKey } from "./restate/keys.js";
 
 /** The net's beat. */
-const PEOPLE_MAP_NET_MS = 30 * 60_000;
 /** The least time between two passes of one workspace. */
 const PEOPLE_MAP_GAP_MS = 60_000;
 /** Every profile rebuilt this often: title, niche and headcount edits, and lines deleted. */
@@ -76,8 +74,6 @@ const LAST = "last";
 /** Where the last good pass left off, and when the last full one ran. */
 const MARK = "mark";
 
-type Self = { wake: (ctx: restate.ObjectContext) => Promise<unknown> };
-
 /** A workspace's pass on `wake`, and its last outcome on `status`. */
 export function makePeopleMap(d: PeopleMapDeps) {
   return restate.object({
@@ -114,26 +110,5 @@ export function makePeopleMap(d: PeopleMapDeps) {
         last: (await ctx.get(LAST)) ?? null,
       })),
     },
-  });
-}
-
-/** `PeopleMapNet/all`: every 30 minutes, a wake to Wren's people map and every client's. */
-export function makePeopleMapNet(d: Pick<PeopleMapDeps, "main" | "clients">) {
-  return makeLoopObject("PeopleMapNet", async (ctx: restate.ObjectContext) => {
-    const outcome = (await runPass<{ woken: number; keys: string[] }>(ctx, d.main, {
-      name: "people map net",
-      ledger: { command: "people map net", argv: { daemon: true } },
-      body: async () => {
-        const keys = [
-          PEOPLE_MAP_KEY,
-          ...(await d.clients()).map((c) => clientKey(c, PEOPLE_MAP_KEY)),
-        ];
-        return { woken: keys.length, keys };
-      },
-      delayAfter: () => PEOPLE_MAP_NET_MS,
-      retryMs: PEOPLE_MAP_NET_MS,
-    })) as PassOutcome<{ woken: number; keys: string[] }>;
-    for (const key of outcome.stats?.keys ?? []) ctx.objectSendClient<Self>(PEOPLE_MAP, key).wake();
-    return outcome;
   });
 }

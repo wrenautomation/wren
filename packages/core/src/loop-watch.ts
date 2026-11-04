@@ -3,7 +3,7 @@
  * (`makeLoopObject`) keeps its chain alive by sending itself the next `loop` call. Two things
  * end a chain without a word: the call is lost (killed, cancelled, a pass that threw past its
  * retries), or a pass waits on a call that never answers (paused after its retries), holding the
- * key's lock. `LoopWatch/all` reads Restate's admin SQL every 10 minutes, sorts each running loop
+ * key's lock. `LoopRevive/all` reads Restate's admin SQL every 10 minutes, sorts each running loop
  * into alive, dead or stuck, wakes a dead one, and tells each incident once.
  *
  * The loops come from Restate's `state`, the same read as Console → Loops: a loop added later is
@@ -33,7 +33,7 @@ const DEFAULT_EXPECT: LoopExpect = { stallMs: 45 * MIN, graceMs: 10 * MIN };
 /** The exceptions, by service. Everything else is `DEFAULT_EXPECT`. */
 const LOOP_EXPECT: Readonly<Record<string, Partial<LoopExpect>>> = {
   // A pass reads every watched person through the desk, one call after another: 70 min seen.
-  ReachWatch: { stallMs: 90 * MIN },
+  ReachInboxRead: { stallMs: 90 * MIN },
 };
 export const expectOf = (service: string): LoopExpect => ({
   ...DEFAULT_EXPECT,
@@ -337,13 +337,13 @@ export async function loopHealth(admin: RestateAdmin, now: Date): Promise<LoopHe
     .sort((a, b) => rank[a.health] - rank[b.health] || a.id.localeCompare(b.id));
 }
 
-interface LoopWatchDeps {
+interface LoopReviveDeps {
   main: Db;
   admin: RestateAdmin;
   notifier?: Notifier;
 }
 
-export interface LoopWatchPass {
+export interface LoopRevivePass {
   loops: number;
   alive: number;
   stopped: number;
@@ -360,8 +360,8 @@ export interface LoopWatchPass {
 const INCIDENTS = "incidents";
 
 /** Each loop whose last pass gave up on a call, with the count and the units it held. */
-function timedOutOf(health: readonly LoopHealth[]): LoopWatchPass["timedOut"] {
-  const out: LoopWatchPass["timedOut"] = {};
+function timedOutOf(health: readonly LoopHealth[]): LoopRevivePass["timedOut"] {
+  const out: LoopRevivePass["timedOut"] = {};
   for (const h of health)
     if (h.timeouts.length)
       out[h.id] = { calls: h.timeouts.length, held: h.timeouts.filter((t) => t.held).length };
@@ -370,10 +370,10 @@ function timedOutOf(health: readonly LoopHealth[]): LoopWatchPass["timedOut"] {
 
 /** One check: read, sort, plan; the letters of new stuck loops looked up. No Restate calls. */
 async function loopWatchCheck(
-  deps: Pick<LoopWatchDeps, "main" | "admin">,
+  deps: Pick<LoopReviveDeps, "main" | "admin">,
   before: Readonly<Record<string, Incident>>,
   now: Date,
-): Promise<LoopWatchPass> {
+): Promise<LoopRevivePass> {
   const health = await loopHealth(deps.admin, now);
   const plan = planWatch(health, before, now);
   const blocked = plan.opened.flatMap((i) => (i.blocker ? [i.blocker.id] : []));
@@ -401,18 +401,18 @@ async function loopWatchCheck(
 
 type Wake = { wake: (ctx: restate.ObjectContext) => Promise<boolean> };
 
-/** `LoopWatch/all`: a check every ten minutes; dead loops woken, each incident told once. */
-export function makeLoopWatch(deps: LoopWatchDeps) {
-  return makeLoopObject("LoopWatch", async (ctx: restate.ObjectContext) => {
+/** `LoopRevive/all`: a check every ten minutes; dead loops woken, each incident told once. */
+export function makeLoopRevive(deps: LoopReviveDeps) {
+  return makeLoopObject("LoopRevive", async (ctx: restate.ObjectContext) => {
     const before = (await ctx.get<Record<string, Incident>>(INCIDENTS)) ?? {};
-    const outcome = (await runPass<LoopWatchPass>(ctx, deps.main, {
+    const outcome = (await runPass<LoopRevivePass>(ctx, deps.main, {
       name: "check",
       ledger: { command: "loops watch", argv: { daemon: true } },
       body: (_runId, now) => loopWatchCheck(deps, before, now),
       delayAfter: () => LOOP_WATCH_EVERY_MS,
       retryMs: LOOP_WATCH_EVERY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
-    })) as PassOutcome<LoopWatchPass>;
+    })) as PassOutcome<LoopRevivePass>;
     const stats = outcome.stats;
     if (!stats) return outcome;
     // `wake` bumps the generation and sends a fresh `loop` call; a late old one drops out.
@@ -426,4 +426,4 @@ export function makeLoopWatch(deps: LoopWatchDeps) {
   });
 }
 
-export type LoopWatch = ReturnType<typeof makeLoopWatch>;
+export type LoopRevive = ReturnType<typeof makeLoopRevive>;

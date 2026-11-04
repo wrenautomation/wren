@@ -8,11 +8,11 @@
  * `SocialPush` (service) takes what the phone Worker checked: `meta` (a Meta webhook body, its
  * entries batched), `gbp` (a Business Profile review notice), `watch` (an autobrowse tab watcher saw
  * a badge change, or says it is alive). Each entry finds its owner, `wren` or a client, and lands
- * on that owner's `SocialPushed` object, which wakes `SocialWatch` (and `ReachWatch` for our own DMs).
+ * on that owner's `SocialPushed` object, which wakes `SocialActivityRead` (and `ReachInboxRead` for our own DMs).
  *
  * `SocialPushed/<owner>` keeps what was pushed until the pass `take`s it: posts to read now, due or
  * not, and platforms whose activity or inbox to read now. A burst is one pass. It also keeps when
- * each platform's watcher last said it was alive: `ReachWatch` reads a watched account cold
+ * each platform's watcher last said it was alive: `ReachInboxRead` reads a watched account cold
  * (`reach`), since the tab will say when something comes in.
  */
 import * as restate from "@restatedev/restate-sdk";
@@ -288,12 +288,12 @@ export const socialPushed = restate.object({
         const pending = (await ctx.get<Record<string, Pushed>>(PENDING)) ?? {};
         for (const p of pushes) pending[pushKey(p)] = p;
         ctx.set(PENDING, pending);
-        wake(ctx, "SocialWatch", socialWatchKey(ctx.key));
+        wake(ctx, "SocialActivityRead", socialWatchKey(ctx.key));
         const dms = pushes.filter((p) => p.kind === "dm").map((p) => p.platform);
         if (ctx.key === SOCIAL_KEY && dms.length) {
           const reach = (await ctx.get<string[]>(REACH)) ?? [];
           ctx.set(REACH, [...new Set([...reach, ...dms])]);
-          wake(ctx, "ReachWatch", "daily");
+          wake(ctx, "ReachInboxRead", "daily");
         }
         return Object.keys(pending).length;
       },
@@ -316,7 +316,7 @@ export const socialPushed = restate.object({
       },
     ),
     /**
-     * `ReachWatch`'s view: platforms a DM was pushed for since it last asked (read now), and
+     * `ReachInboxRead`'s view: platforms a DM was pushed for since it last asked (read now), and
      * platforms a watcher is alive on (read cold). The pushed set is empty after.
      */
     reach: exclusiveHandler(
@@ -328,7 +328,7 @@ export const socialPushed = restate.object({
         return { pushed, watched };
       },
     ),
-    /** `SocialWatch`'s view: platforms a watcher is alive on (their posts read when named). */
+    /** `SocialActivityRead`'s view: platforms a watcher is alive on (their posts read when named). */
     watching: exclusiveHandler(
       { ingressPrivate: true, input: NO_INPUT },
       async (ctx: restate.ObjectContext): Promise<string[]> => watching(ctx),

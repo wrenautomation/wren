@@ -36,7 +36,7 @@ import {
 import { postUpdate } from "./work.js";
 
 /**
- * A new invoice on the engagement's record, numbered by us (`WREN-1001`). BillingWatch mails its
+ * A new invoice on the engagement's record, numbered by us (`WREN-1001`). ClientInvoicing mails its
  * PDF to the client's billing people on its next pass (designs/2026-10-15-wise-billing.md).
  */
 export async function addInvoice(
@@ -308,7 +308,7 @@ export async function billsDue(db: Queryable, period: string): Promise<Bill[]> {
 }
 
 /**
- * The month's bills as invoices (D15), made by BillingWatch from the 1st: each signed contract's
+ * The month's bills as invoices (D15), made by ClientInvoicing from the 1st: each signed contract's
  * bill for `period`, due its pay days after `today`. A month with an invoice already is skipped,
  * so a pass run twice bills once.
  */

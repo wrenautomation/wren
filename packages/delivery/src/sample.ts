@@ -2,7 +2,7 @@
  * The demo's sample project (D12): a lead reactivation a few weeks in, so a
  * visitor sees what a client's Home, plan, timeline, deliverables, asks and
  * results look like. Every word and number is made up, and the portal labels
- * it a sample. Dated from today and reseeded weekly by DeliveryWatch, so
+ * it a sample. Dated from today and reseeded weekly by ClientUpdateMail, so
  * nothing on it ever runs late.
  */
 import { clients } from "@wren/core/clients";

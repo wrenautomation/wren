@@ -14,7 +14,7 @@ const CHANNEL_ACCOUNTS = ["linkedin", "reddit"] as const;
 const CONNECTED_ACCOUNTS = ["youtube", "linkedin_page", "x", "tiktok", "instagram"] as const;
 const POSTING_ACCOUNTS = [...CHANNEL_ACCOUNTS, ...CONNECTED_ACCOUNTS] as const;
 
-/** A client's posts and reads: `ContentScheduler/<c>/posts`, `ContentMetrics/<c>/posts`, `SocialWatch/<c>/social`. */
+/** A client's posts and reads: `PostPublish/<c>/posts`, `PostMetrics/<c>/posts`, `SocialActivityRead/<c>/social`. */
 export const POSTS_UNIT = "posts";
 const PLAN_UNIT = "daily";
 export const SOCIAL_UNIT = "social";
@@ -51,19 +51,19 @@ export const CONTENT_COMPONENTS = [
       services: [
         "Content",
         "ContentDesk",
-        "ContentScheduler",
-        "ContentMetrics",
+        "PostPublish",
+        "PostMetrics",
         "DraftAsk",
         "Blog",
         "Pieces",
       ],
-      loops: ["ContentScheduler", "ContentMetrics"],
+      loops: ["PostPublish", "PostMetrics"],
       templates: ["prompt:content/draft-ask"],
     },
     // A client's approved drafts post on its own login, once an admin turns its posting on.
     clientLoops: (client) => [
-      { service: "ContentScheduler", key: clientKey(client, POSTS_UNIT) },
-      { service: "ContentMetrics", key: clientKey(client, POSTS_UNIT) },
+      { service: "PostPublish", key: clientKey(client, POSTS_UNIT) },
+      { service: "PostMetrics", key: clientKey(client, POSTS_UNIT) },
     ],
     liveSwitch: true,
     effects: ["posts", "sends"],
@@ -93,9 +93,9 @@ export const CONTENT_COMPONENTS = [
     settings: clientPlannerSchema,
     requires: { components: ["content.posting"], anyAccount: [...CHANNEL_ACCOUNTS] },
     // The SOPs it drafts from (`wren sop push`) are its playbooks.
-    provides: { services: ["ContentPlanner"], loops: ["ContentPlanner"], records: ["library.sop"] },
+    provides: { services: ["PostPlan"], loops: ["PostPlan"], records: ["library.sop"] },
     // Drafts tomorrow's posts into the client's To approve, as it (its About), on its own models.
-    clientLoops: (client) => [{ service: "ContentPlanner", key: clientKey(client, PLAN_UNIT) }],
+    clientLoops: (client) => [{ service: "PostPlan", key: clientKey(client, PLAN_UNIT) }],
     effects: ["spends"],
     out: [{ id: "drafts", label: "drafts", kind: "post" }],
     hypothesis: {
@@ -122,10 +122,12 @@ export const CONTENT_COMPONENTS = [
     // A connected account counts: `clientContent` reads its comments too.
     requires: { components: ["content.posting"], anyAccount: [...POSTING_ACCOUNTS] },
     // Comments on its posts, its activity and followers, on its own logins, into its database.
-    clientLoops: (client) => [{ service: "SocialWatch", key: clientKey(client, SOCIAL_UNIT) }],
+    clientLoops: (client) => [
+      { service: "SocialActivityRead", key: clientKey(client, SOCIAL_UNIT) },
+    ],
     provides: {
       services: [
-        "SocialWatch",
+        "SocialActivityRead",
         "SocialDesk",
         "SocialPush",
         "SocialPushed",
@@ -135,7 +137,7 @@ export const CONTENT_COMPONENTS = [
         "PushedComments",
         "MetaPace",
       ],
-      loops: ["SocialWatch"],
+      loops: ["SocialActivityRead"],
       records: [
         "marketing.inbox",
         "marketing.approval",

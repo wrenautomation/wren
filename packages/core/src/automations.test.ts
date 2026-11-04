@@ -13,7 +13,7 @@ const part = defineComponent({
   stage: "reach",
   ready: true,
   hypothesis,
-  provides: { loops: ["SmsSender"] },
+  provides: { loops: ["SmsSend"] },
 });
 const mine = defineWorkflow({
   id: "triage",
@@ -98,7 +98,7 @@ describe("automationRows", () => {
       workflows: [],
       loops: [
         {
-          service: "SmsSender",
+          service: "SmsSend",
           key: "a",
           running: true,
           lastAt: at(1),
@@ -109,7 +109,7 @@ describe("automationRows", () => {
           timeouts: [],
         },
         {
-          service: "SmsSender",
+          service: "SmsSend",
           key: "b",
           running: true,
           lastAt: at(3),
@@ -134,7 +134,7 @@ describe("automationRows", () => {
     });
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
-      id: "loop:SmsSender",
+      id: "loop:SmsSend",
       name: "Texts: SMS sender",
       state: "on",
       health: "failing",

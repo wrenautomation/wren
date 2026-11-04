@@ -1,4 +1,4 @@
-/** The SendScheduler virtual object: one tick per key, durable loop, status. */
+/** The EmailSend virtual object: one tick per key, durable loop, status. */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
@@ -14,10 +14,10 @@ import { ConsoleTransport } from "@wren/starling-email/send/transport";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
-  makeSendScheduler,
+  type EmailSend,
+  makeEmailSend,
   nextDelay,
   oneScope,
-  type SendScheduler,
 } from "../../../src/email/restate/send-scheduler.js";
 import { emptySendStats } from "../../../src/email/send/deliver.js";
 import type { Fleet } from "../../../src/email/send/tick.js";
@@ -25,7 +25,7 @@ import { makeCompany, makePerson, messagesOf, runCompose, TABLES } from "./compo
 
 const SENDER_A = "ada@wren-automation.test";
 const SENDER_B = "bo@wren-automation.test";
-/** Its state was written by the SendScheduler before it moved onto `makeLoopObject`. */
+/** Its state was written by the EmailSend before it moved onto `makeLoopObject`. */
 const SENDER_OLD = "di@wren-automation.test";
 /** Its scope read always throws: the database is down for it. */
 const BROKEN = "cy@wren-automation.test";
@@ -54,19 +54,19 @@ let pg: TestPostgres;
 let env: RestateTestEnvironment;
 const transport = new ConsoleTransport({ write: () => {} });
 const executor = executorRecorder();
-let scheduler: SendScheduler;
+let scheduler: EmailSend;
 /** The old code's delayed self-call, as it sits queued on prod: `loop(generation)`. */
 const queued = restate.service({
   name: "QueuedLoop",
   handlers: {
     send: async (ctx: restate.Context, req: { key: string; generation: number }) => {
-      ctx.objectSendClient<SendScheduler>({ name: "SendScheduler" }, req.key).loop(req.generation);
+      ctx.objectSendClient<EmailSend>({ name: "EmailSend" }, req.key).loop(req.generation);
     },
   },
 });
 beforeAll(async () => {
   pg = await startTestPostgres();
-  scheduler = makeSendScheduler({
+  scheduler = makeEmailSend({
     transport,
     scopeOf: (key) =>
       key === BROKEN
@@ -91,7 +91,7 @@ const db = () => pg.db;
 const client = (sender: string) =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<SendScheduler>({ name: "SendScheduler" }, sender);
+    .objectClient<EmailSend>({ name: "EmailSend" }, sender);
 
 async function enrollOne(domain: string, email: string, sender: string) {
   const company = await makeCompany(db(), { domain });
@@ -106,7 +106,7 @@ async function enrollOne(domain: string, email: string, sender: string) {
   return row;
 }
 
-describe("SendScheduler", () => {
+describe("EmailSend", () => {
   it("a tick sends only its own inbox and records a run", async () => {
     const mine = await enrollOne("mine.example", "a@mine.example", SENDER_A);
     const theirs = await enrollOne("theirs.example", "b@theirs.example", SENDER_B);
@@ -177,7 +177,7 @@ describe("SendScheduler", () => {
     expect(status.last?.error).toContain("database is down");
     expect(status.last?.failures).toBe(1);
     expect(status.last?.delayMs).toBe(15_000);
-    // LoopWatch restarts a dead chain with `wake`: a send loop has one too.
+    // LoopRevive restarts a dead chain with `wake`: a send loop has one too.
     expect(await client(BROKEN).wake()).toBe(true);
     await client(BROKEN).stop();
     expect(await client(BROKEN).wake()).toBe(false);
@@ -212,7 +212,7 @@ describe("SendScheduler", () => {
     expect((await messagesOf(db(), mine))[0]?.state).toBe("sent");
     // The chain goes on: its next `loop` waits on a timer.
     const next = await restateAdmin(env.adminAPIBaseUrl())(
-      `SELECT id FROM sys_invocation WHERE target_service_name = 'SendScheduler' AND target_service_key = '${SENDER_OLD}' AND target_handler_name = 'loop' AND status = 'scheduled'`,
+      `SELECT id FROM sys_invocation WHERE target_service_name = 'EmailSend' AND target_service_key = '${SENDER_OLD}' AND target_handler_name = 'loop' AND status = 'scheduled'`,
     );
     expect(next).toHaveLength(1);
 

@@ -1,7 +1,7 @@
 /**
  * `wren health …` and `wren flags …` (designs/2026-10-07-health.md): each client's score, its
  * parts and inputs, its days; Wren's rating and an override; and the one list of flags. The same
- * domain calls as the Clients app, on the main database. Alerts go out on DeliveryWatch's pass.
+ * domain calls as the Clients app, on the main database. Alerts go out on ClientUpdateMail's pass.
  */
 import type { Settings } from "@wren/config";
 import { atomic, type Db, type Tx } from "@wren/db";

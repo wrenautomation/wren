@@ -60,7 +60,7 @@ export function labelOf(part: string): string {
 }
 
 /**
- * A name from code as words: a service ("AdsWatch" to "Ads watch"), a stage
+ * A name from code as words: a service ("AdSpendGuard" to "Ads watch"), a stage
  * ("research.exa-search" to "Research: Exa search") or a key ("sec_ria" to "SEC RIA").
  * Its parts read as `labelOf` reads them.
  */

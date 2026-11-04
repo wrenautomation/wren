@@ -70,8 +70,8 @@ beforeAll(async () => {
         freeVerify: false,
         transport: new ConsoleTransport({ write: () => {} }),
       }),
-      standIn("SendScheduler"),
-      standIn("InboxScheduler"),
+      standIn("EmailSend"),
+      standIn("EmailInboxRead"),
     ],
     alwaysReplay: true,
   });
@@ -136,10 +136,10 @@ describe("Reactivation loop", () => {
     expect(on.stats?.handoff).toMatchObject({ opened: 0, forwarded: 0, failed: 0 });
     expect(on.stats?.loops).toEqual({ send: [], inbox: [`${id}/${ANN}`, `${id}/${BO}`] });
     await settle({
-      [`InboxScheduler ${ANN}`]: true,
-      [`InboxScheduler ${BO}`]: true,
-      [`SendScheduler ${ANN}`]: null,
-      [`SendScheduler ${BO}`]: null,
+      [`EmailInboxRead ${ANN}`]: true,
+      [`EmailInboxRead ${BO}`]: true,
+      [`EmailSend ${ANN}`]: null,
+      [`EmailSend ${BO}`]: null,
     });
 
     // Sending on: only the mailbox that isn't suspended sends. Handoff off: nothing forwarded.
@@ -147,7 +147,7 @@ describe("Reactivation loop", () => {
     const sending = await loop().sync();
     expect(sending.stats?.loops.send).toEqual([`${id}/${ANN}`]);
     expect(sending.stats?.handoff).toBeNull();
-    await settle({ [`SendScheduler ${ANN}`]: true, [`SendScheduler ${BO}`]: null });
+    await settle({ [`EmailSend ${ANN}`]: true, [`EmailSend ${BO}`]: null });
 
     // Ann suspended: her send loop stops, her inbox keeps syncing.
     await setProducts(
@@ -158,16 +158,16 @@ describe("Reactivation loop", () => {
       }),
     );
     await loop().sync();
-    await settle({ [`SendScheduler ${ANN}`]: false, [`InboxScheduler ${ANN}`]: true });
+    await settle({ [`EmailSend ${ANN}`]: false, [`EmailInboxRead ${ANN}`]: true });
 
     // Off: everything stops.
     await setProducts(block({ on: false, stages: { send: true } }));
     const off = await loop().sync();
     expect(off.stats?.off).toBe("reactivation is off");
     await settle({
-      [`SendScheduler ${ANN}`]: false,
-      [`InboxScheduler ${ANN}`]: false,
-      [`InboxScheduler ${BO}`]: false,
+      [`EmailSend ${ANN}`]: false,
+      [`EmailInboxRead ${ANN}`]: false,
+      [`EmailInboxRead ${BO}`]: false,
     });
   });
 

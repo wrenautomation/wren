@@ -35,7 +35,7 @@ Citations: `packages/research/src/schema.ts:128`
 
 | Surface | Role |
 |---|---|
-| `Discovery.discover/verify` (driven by `PoolScheduler`) | write |
+| `Discovery.discover/verify` (driven by `LeadPoolFill`) | write |
 
 ## See
 

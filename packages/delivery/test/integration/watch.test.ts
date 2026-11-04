@@ -1,5 +1,5 @@
 /**
- * DeliveryWatch on a fixed clock: a welcome once per person, new asks and
+ * ClientUpdateMail on a fixed clock: a welcome once per person, new asks and
  * deliverables in one message, the Friday digest by level, the weekly pulse,
  * flags that raise once and clear themselves, told urgently or in the morning
  * digest, and the ops board. The demo is never mailed and never on the board.
@@ -479,7 +479,7 @@ describe("the 1st's bills (D15)", () => {
     expect(rest).toEqual([]);
     expect(bill).toContain("Bill 2026-12:");
     expect(bill).toContain("= USD 1,800");
-    expect(bill).toContain("BillingWatch makes and mails it");
+    expect(bill).toContain("ClientInvoicing makes and mails it");
     await pass("2026-12-01T12:00:00Z");
     expect(bills()).toEqual([]);
     await pass("2026-12-02T10:00:00Z");

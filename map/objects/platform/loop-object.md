@@ -17,14 +17,14 @@ Restate owns the timer, so a worker dying or a laptop closing loses nothing; the
 
 ## Shape
 
-- `makeLoopObject(name, pass, hooks)` (`loop.ts:366`); `hooks.effect` marks `sync` (`sends` on `SendScheduler`); `passOrFailed` (`:343`): a pass that throws a terminal or replayed error is kept as a failed `last` with backoff, the next queued, never parked; `failuresInARow` (`:34`); state keys for `last` and the `start` input (`:20`, `:22`)
-- keys: `SendScheduler/{sender}`, `InboxScheduler/{sender}`, `ComposeScheduler/{niche}`, `PoolScheduler/{niche}`, `DigestScheduler/fleet`, `ReportScheduler/fleet`, `PostmasterScheduler/fleet`, `OpensScheduler/fleet`, `ClicksScheduler/fleet`, `BounceScheduler/all`, `PlacementScheduler/fleet`, `ContentScheduler/default`, `ContentPlanner/default`, `ContentMetrics/default`, `AdsWatch/default`, `TokenRenewal/box`, `VaultKeys/box`, `SmsSender/fleet`, `SmsWatch/daily`, `SearchWatch/default`, `SocialWatch/wren`, `PayReconcile/all`, `TouchFeed/all`
+- `makeLoopObject(name, pass, hooks)` (`loop.ts:366`); `hooks.effect` marks `sync` (`sends` on `EmailSend`); `passOrFailed` (`:343`): a pass that throws a terminal or replayed error is kept as a failed `last` with backoff, the next queued, never parked; `failuresInARow` (`:34`); state keys for `last` and the `start` input (`:20`, `:22`)
+- keys: `EmailSend/{sender}`, `EmailInboxRead/{sender}`, `EmailOpenerFill/{niche}`, `LeadPoolFill/{niche}`, `EmailFleetDigest/fleet`, `EmailPostmasterPull/fleet`, `EmailClickPull/fleet`, `EmailBounceRead/all`, `EmailPlacementTest/fleet`, `PostPublish/default`, `PostPlan/default`, `PostMetrics/default`, `AdSpendGuard/default`, `SiteTokenRenew/box`, `VaultKeyMirror/box`, `SmsSend/fleet`, `SmsUpkeep/daily`, `SearchWatch/default`, `SocialActivityRead/wren`, `StripeReconcile/all`, `TouchToJourney/all`
 
 - time limits (`packages/core/src/restate/limits.ts`): `within` on each Restate call, `limitedRun` on HTTP steps, `unitLimits` strikes a unit three passes in a row into [[platform/checks]] (stage `loop.<service>/<key>`); the pass keeps them as `last.timeouts`
 
-- `SendScheduler` is one too since 2026-10-16 (wa-jsi): its tick step has 3 tries, then `passOrFailed` keeps it as a failed pass; `sync` replaced `tick`; a gone scope is a `stopped` pass. `hooks.syncAliases` keeps old names of `sync` for calls queued before a move (`tick` on `SendScheduler`, until 2026-10-30). The state key is the same `loop`, so a running key stays running with no `start`
+- `EmailSend` is one too since 2026-10-16 (wa-jsi): its tick step has 3 tries, then `passOrFailed` keeps it as a failed pass; `sync` replaced `tick`; a gone scope is a `stopped` pass. `hooks.syncAliases` keeps old names of `sync` for calls queued before a move (`tick` on `EmailSend`, until 2026-10-30). The state key is the same `loop`, so a running key stays running with no `start`
 
-- `TouchFeed/all` (`packages/core/src/touch-feed.ts`): woken 1 s after a new touch (`touches_feed_wake`, migration 0353), back in 5 s after a full batch, else every 15 minutes; per workspace (Wren main, then non-demo clients whose DB holds touches), reads untold touches (`fired_at` null, 200 a pass, oldest first), fires `trigger.touch` per touch, then marks them `fired_at` in a later step: at least once, a crash before the mark tells again and the executor enters a subject once (WA-1062). A late commit is read on the next pass. Rows from before 0366 were marked told. Off until started (`TouchFeed/all/start`).
+- `TouchToJourney/all` (`packages/core/src/touch-feed.ts`): woken 1 s after a new touch (`touches_feed_wake`, migration 0353), back in 5 s after a full batch, else every 15 minutes; per workspace (Wren main, then non-demo clients whose DB holds touches), reads untold touches (`fired_at` null, 200 a pass, oldest first), fires `trigger.touch` per touch, then marks them `fired_at` in a later step: at least once, a crash before the mark tells again and the executor enters a subject once (WA-1062). A late commit is read on the next pass. Rows from before 0366 were marked told. Off until started (`TouchToJourney/all/start`).
 
 Citations: `packages/core/src/restate/loop.ts:366`, `packages/starling/outbound/src/email/restate/send-scheduler.ts:80`
 
@@ -45,7 +45,7 @@ Citations: `packages/core/src/restate/loop.ts:366`, `packages/starling/outbound/
 |---|---|
 | `wren content|ads|sms|social ... start/stop/status` (CLI over ingress); email loops by ingress only (`docs/restate-operations.md`) | drives |
 | Restate (box) | schedules |
-| `wren loops` + `LoopWatch/all` ([[platform/loop-watch]]): health per loop, dead ones woken | reads, drives |
+| `wren loops` + `LoopRevive/all` ([[platform/loop-watch]]): health per loop, dead ones woken | reads, drives |
 | `ConsolePortal/loops` (admin SQL over `state` + `sys_invocation`; needs `WREN_RESTATE_ADMIN_URL`), `/setLoop` (`stop`, or `start` with no body so stored settings stay) | reads, drives |
 | `ConsolePortal/agents` + portal `/loops/agents` (each part that runs for Wren as a card by stage; state read off these loops, `agent-model.ts`; designs/2026-10-11-agents.md) | reads |
 | `console.loop` record (`packages/core/src/console/loops.ts:115`): the same rows as records, id `Service/key`, views all/failing/stopped, actions `console.startLoop`/`console.stopLoop` → `setLoop` | reads, drives |

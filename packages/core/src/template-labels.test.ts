@@ -24,8 +24,8 @@ describe("template labels", () => {
   });
 
   it("reads names from code as words", () => {
-    expect(codeLabel("AdsWatch")).toBe("Ads watch");
-    expect(codeLabel("ComposeScheduler")).toBe("Compose scheduler");
+    expect(codeLabel("AdSpendGuard")).toBe("Ads watch");
+    expect(codeLabel("EmailOpenerFill")).toBe("Compose scheduler");
     expect(codeLabel("research.exa-search")).toBe("Research: Exa search");
     expect(codeLabel("research.fb-groups")).toBe("Research: FB groups");
     expect(codeLabel("book-first/opener")).toBe("Book first: Opener");

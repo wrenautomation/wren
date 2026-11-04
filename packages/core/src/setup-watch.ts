@@ -1,5 +1,5 @@
 /**
- * `SetupWatch/all`: once an hour, done setups whose repeat is due get every check again
+ * `SetupRecheck/all`: once an hour, done setups whose repeat is due get every check again
  * (`recheck`). A fact that fails starts its setup over on the executor and pauses the parts that
  * need it. A run past its step's `within` that no round will catch turns stuck (`sweepStuck`).
  * Then the team hears each new alert once (`tellAlerts`) and, once a day, what's still open
@@ -18,7 +18,7 @@ import { type AlertPart, digestAlerts, tellAlerts } from "./setup-alerts.js";
 
 const SETUP_WATCH_EVERY_MS = 3_600_000;
 
-interface SetupWatchPass {
+interface SetupRecheckPass {
   checked: number;
   lost: number;
   stuck: number;
@@ -27,7 +27,7 @@ interface SetupWatchPass {
   emits: SetupEmit[];
 }
 
-interface SetupWatchDeps {
+interface SetupRecheckDeps {
   main: Db;
   setups: readonly Setup[];
   checks: Readonly<Record<string, SetupCheck>>;
@@ -40,7 +40,7 @@ interface SetupWatchDeps {
 }
 
 /** One pass: recheck, sweep, tell, digest. Exported for tests and the CLI. */
-export async function setupWatchPass(deps: SetupWatchDeps, now: Date): Promise<SetupWatchPass> {
+export async function setupWatchPass(deps: SetupRecheckDeps, now: Date): Promise<SetupRecheckPass> {
   const r = await recheck(deps.main, deps.setups, deps.checks, {
     now,
     ...(deps.parts ? { parts: deps.parts } : {}),
@@ -51,19 +51,19 @@ export async function setupWatchPass(deps: SetupWatchDeps, now: Date): Promise<S
   return { ...r, stuck, told, digests };
 }
 
-export function makeSetupWatch(deps: SetupWatchDeps) {
-  return makeLoopObject("SetupWatch", async (ctx: restate.ObjectContext) => {
-    const outcome = (await runPass<SetupWatchPass>(ctx, deps.main, {
+export function makeSetupRecheck(deps: SetupRecheckDeps) {
+  return makeLoopObject("SetupRecheck", async (ctx: restate.ObjectContext) => {
+    const outcome = (await runPass<SetupRecheckPass>(ctx, deps.main, {
       name: "recheck",
       ledger: { command: "setup watch", argv: { daemon: true } },
       body: (_runId, now) => setupWatchPass(deps, now),
       delayAfter: () => SETUP_WATCH_EVERY_MS,
       retryMs: SETUP_WATCH_EVERY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
-    })) as PassOutcome<SetupWatchPass>;
+    })) as PassOutcome<SetupRecheckPass>;
     for (const e of outcome.stats?.emits ?? []) executorEmit(ctx, e);
     return outcome;
   });
 }
 
-export type SetupWatch = ReturnType<typeof makeSetupWatch>;
+export type SetupRecheck = ReturnType<typeof makeSetupRecheck>;

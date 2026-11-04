@@ -23,7 +23,7 @@ Two people must never get one slot, so the slot is a partial unique index on `(c
 - settings: Wren's `calendar.booking` block in `wren_settings` (`rules.ts`), set from the Shop part's Configure or `wren calendar settings`; owner account william@ by delegation on the full calendar scope (`google.ts:58`). A client's block is in `clients.products`, edited on the part's page in the portal, even while it waits on its account. `account` is `wrenOnly` (never on a client's form); `contact` (email, phone, Instagram, X, LinkedIn; `contact.ts`) is `clientOnly`, its links under the times as "Or message me directly", the main block when no time is open. Wren's own links are the lander's `site.yaml` `contact`
 - services: `Calendar{slots,book,booking,reschedule,cancel}` + private `remind` (`restate.ts:567`), `CalendarConsole{range,won,notYet,noShow,notFit,clear,cancel}` (`console.ts`; `range` feeds the portal Schedule); bound at `apps/worker/src/services/calendar.ts:41`
 - per client: `ClientCalendar{slots,book,booking,reschedule,cancel}` + private `remind` (`restate.ts:714`) runs the same flows on the client's database and its connected `accounts.google_calendar`; `calendarOwner` (`restate.ts:656`) refuses a client without the part; `ownerDeps` (`restate.ts:675`) gates the invite and mails on the client's `sends` flag (off: no guest, `sendUpdates=none`, no mail); manage tokens scoped `manage:<client>:<id>` (`links.ts`). The page is the portal Worker's `bookRoute` (`apps/portal/src/book.ts`) serving `web/book.html` (`web/src/book.tsx`, the client's name on top), on the client's live domain or `/c/<client>/book` on the app host. `CalendarConsole` takes `client` (`console.ts:181`); its `range` also says the page's address, whether sends are on and whether Google is connected, shown above the client's Schedule
-- SMS: `CalendarBookings` (`sms.ts:11`) feeds SmsWatch's reminder pass beside cal.com's (`AllBookings`); the hour-before template is empty until written
+- SMS: `CalendarBookings` (`sms.ts:11`) feeds SmsUpkeep's reminder pass beside cal.com's (`AllBookings`); the hour-before template is empty until written
 
 Citations: `packages/calendar/src/schema.ts:75`, `packages/calendar/src/book.ts:103`, `packages/calendar/src/restate.ts:567`
 
@@ -35,7 +35,7 @@ Citations: `packages/calendar/src/schema.ts:75`, `packages/calendar/src/book.ts:
 
 ## If you change this
 
-- **Hits:** client booking pages (`apps/portal/src/book.ts`, `web/book.html`, `web/src/book.tsx`), the preview's in-process page (`apps/portal/scripts/preview.ts`), the client login's grants (`CLIENT_SCHEMAS`), the lander (`../lander/functions/api/{slots,book,booking}.ts`, `functions/_shared/calendar.ts` signs `bookSig` the same way), the phone Worker's handler list, `call_bookings` via the mirror, SmsWatch reminders, `apps/portal/web/src/modules/calendar`
+- **Hits:** client booking pages (`apps/portal/src/book.ts`, `web/book.html`, `web/src/book.tsx`), the preview's in-process page (`apps/portal/scripts/preview.ts`), the client login's grants (`CLIENT_SCHEMAS`), the lander (`../lander/functions/api/{slots,book,booking}.ts`, `functions/_shared/calendar.ts` signs `bookSig` the same way), the phone Worker's handler list, `call_bookings` via the mirror, SmsUpkeep reminders, `apps/portal/web/src/modules/calendar`
 - **Does not hit:** cal.com's webhook path (`CallBookings/ingest`); the lander's `/api/calcom` Discord ping
 
 ## Surfaces

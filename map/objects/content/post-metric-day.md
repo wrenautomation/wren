@@ -42,7 +42,7 @@ Citations: `packages/starling/inbound/src/schema.ts:276`, `packages/starling/inb
 
 | Surface | Role |
 |---|---|
-| `ContentMetrics/default` | writes, through `Content.insights`, `Content.accountInsights` and `Content.reportDays` |
+| `PostMetrics/default` | writes, through `Content.insights`, `Content.accountInsights` and `Content.reportDays` |
 | Marketing → Posts and a post's page, Overview tops, Inbox overview | read |
 | drafting prompt | reads the latest digest |
 

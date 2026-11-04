@@ -12,8 +12,8 @@ export const BOOKS_COMPONENTS = [
     ready: false,
     missing: ["Wren's own books; never a client's"],
     provides: {
-      services: ["Books", "BooksConsole"],
-      loops: ["Books"],
+      services: ["BooksDaily", "BooksConsole"],
+      loops: ["BooksDaily"],
       records: [
         "books.spend",
         "books.subscription",

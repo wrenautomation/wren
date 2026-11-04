@@ -1,11 +1,11 @@
 /**
- * `SocialWatch/wren` (designs/2026-10-06-social-inbox.md): every 30 minutes, 07:00-23:00 on the
+ * `SocialActivityRead/wren` (designs/2026-10-06-social-inbox.md): every 30 minutes, 07:00-23:00 on the
  * fleet's clock, reads comments on our posts of the last 14 days, activity since the newest kept
  * row, and the follower count once a day, through the `Content` service. New comments go on the
  * executor (`reach.comments`) like reach's; one ping per pass that kept something. It reads only:
  * every answer waits on William's click.
  *
- * `SocialWatch/<client>/social`: the same for a client, on its own logins (`Content` with
+ * `SocialActivityRead/<client>/social`: the same for a client, on its own logins (`Content` with
  * `client`, reads through its vendor gate) into its own database; its comments go on the executor
  * with its id. No ping: its Inbox is its own.
  *
@@ -221,7 +221,7 @@ type SocialInboxRead = {
   ) => Promise<{ messages: number; errors: string[] }>;
 };
 
-interface SocialWatchDeps {
+interface SocialActivityReadDeps {
   db: Db;
   /** The configured content channels (`WREN_CONTENT_CHANNELS`). */
   platforms: readonly Platform[];
@@ -315,9 +315,9 @@ const postTail = (id: string) => id.slice(id.indexOf("_") + 1);
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
-export function makeSocialWatch(deps: SocialWatchDeps) {
+export function makeSocialActivityRead(deps: SocialActivityReadDeps) {
   const L = limitsWith(deps.limits);
-  return makeLoopObject("SocialWatch", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("SocialActivityRead", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const content = ctx.serviceClient<ContentReads>({ name: "Content" });
     const client = clientOfKey(ctx.key)?.client ?? null;
@@ -355,7 +355,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       ctx.objectClient<SocialPushed>({ name: "SocialPushed" }, client ?? SOCIAL_KEY).take(),
       { ms: L.quick, call: "SocialPushed/take" },
     ).catch(() => []);
-    const limits = await unitLimits(ctx, deps.db, "SocialWatch", { oneHost: true });
+    const limits = await unitLimits(ctx, deps.db, "SocialActivityRead", { oneHost: true });
     const pushedPosts = new Set(
       pushed.flatMap((p) =>
         p.post ? [`${p.platform}:${p.post}`, `${p.platform}:${postTail(p.post)}`] : [],
@@ -765,7 +765,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
   });
 }
 
-export type SocialWatch = ReturnType<typeof makeSocialWatch>;
+export type SocialActivityRead = ReturnType<typeof makeSocialActivityRead>;
 
 const IDS = z.looseObject({ ids: z.array(z.number().int()).describe("Activity row ids") });
 const ONE_COMMENT = z.looseObject({ id: z.number().int().describe("A comment on our post") });

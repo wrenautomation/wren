@@ -63,7 +63,7 @@ gate's amount), then the campaign, then the ad. Local media uploads to
 ```sh
 pnpm wren ads launches                    # the ad_launches ledger
 pnpm wren ads insights --preset last_7d [--level adset]
-pnpm wren ads watch start|status|sync     # AdsWatch/default (running on prod)
+pnpm wren ads watch start|status|sync     # AdSpendGuard/default (running on prod)
 ```
 
 The guard: once a day, adset-level insights for the last 7 days; an active

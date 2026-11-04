@@ -12,7 +12,7 @@ Every 15 minutes Wren's own billing moves: the month's invoices are made from th
 
 ## Input → Movement → Output
 
-Signed, running agreements (`billsDue`), open unmailed invoices of non-demo clients with `delivery.invoices`, and our Wise balance statements. `BillingWatch/fleet` (`packages/delivery/src/billing/watch.ts:118`) runs `billingPass` (`:71`) in a `runs` row. Out: invoices, `mailed_at`, `wise_credits` rows, paid invoices, notices. Off until `wren delivery billing start`; registered only when `WREN_PORTAL_ORIGIN` is set; mails only with `WREN_PORTAL_FROM` and `WREN_PORTAL_MAILBOX`; reads Wise only with `WISE_API_TOKEN` and `WISE_PROFILE_ID` (`apps/worker/src/services.ts`).
+Signed, running agreements (`billsDue`), open unmailed invoices of non-demo clients with `delivery.invoices`, and our Wise balance statements. `ClientInvoicing/fleet` (`packages/delivery/src/billing/watch.ts:118`) runs `billingPass` (`:71`) in a `runs` row. Out: invoices, `mailed_at`, `wise_credits` rows, paid invoices, notices. Off until `wren delivery billing start`; registered only when `WREN_PORTAL_ORIGIN` is set; mails only with `WREN_PORTAL_FROM` and `WREN_PORTAL_MAILBOX`; reads Wise only with `WISE_API_TOKEN` and `WISE_PROFILE_ID` (`apps/worker/src/services.ts`).
 
 ## Why this shape
 

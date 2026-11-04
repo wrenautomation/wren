@@ -1,5 +1,5 @@
 /**
- * Our calls as SmsWatch reads bookings, so its reminder pass texts them with the consent,
+ * Our calls as SmsUpkeep reads bookings, so its reminder pass texts them with the consent,
  * number and cap checks it already has. The uid carries the start, so a moved call gets its own
  * texts. `AllBookings` reads ours next to cal.com's while both take bookings.
  */

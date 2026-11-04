@@ -205,24 +205,24 @@ describe("contentFor: reddit", () => {
 
 describe("servicesFor: which side serves the pool chain", () => {
   const all = [
-    "SendScheduler",
+    "EmailSend",
     ...POOL_CHAIN,
-    "PageArchive",
-    "Books",
-    "Watch",
-    "SocialWatch",
+    "PageHtmlArchive",
+    "BooksDaily",
+    "MyMailTriage",
+    "SocialActivityRead",
     "Content",
   ].map((name) => ({
     name,
   })) as never[];
   const names = (s: { name: string }[]) => s.map((x) => x.name);
 
-  it("the box serves the chain, the page archive, the books, the Monitor and SocialWatch", () => {
+  it("the box serves the chain, the page archive, the books, the Monitor and SocialActivityRead", () => {
     expect(names(servicesFor(all, "box"))).toEqual(BOX_SERVICES);
   });
 
   it("Lambda drops the chain once the box hosts it", () => {
-    expect(names(servicesFor(all, "lambda", "box"))).toEqual(["SendScheduler", "Content"]);
+    expect(names(servicesFor(all, "lambda", "box"))).toEqual(["EmailSend", "Content"]);
   });
 
   it("Lambda serves everything until then", () => {

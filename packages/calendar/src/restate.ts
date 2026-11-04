@@ -20,7 +20,7 @@
  * guest, and the booker gets the page's answer and nothing else.
  *
  * Google and mail are capped at three tries each and never undo a booking: the row is the call.
- * Texts go through SmsWatch's reminder pass, which reads these calls next to cal.com's.
+ * Texts go through SmsUpkeep's reminder pass, which reads these calls next to cal.com's.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { type Client, findClient, isLive, listDomains, sendsOn } from "@wren/core/clients";

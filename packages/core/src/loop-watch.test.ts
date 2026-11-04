@@ -73,7 +73,7 @@ describe("healthOf", () => {
     // Under the limit, or a loop with a longer one: alive.
     expect(healthOf(view({ open: [call("suspended", -40)] }), at(0)).health).toBe("alive");
     expect(
-      healthOf(view({ service: "ReachWatch", open: [call("suspended", -70)] }), at(0)).health,
+      healthOf(view({ service: "ReachInboxRead", open: [call("suspended", -70)] }), at(0)).health,
     ).toBe("alive");
   });
 });

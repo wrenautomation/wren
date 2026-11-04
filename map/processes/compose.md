@@ -12,7 +12,7 @@ The queue-keeper: keep enough approved openers ahead of what the fleet may send,
 
 ## Input → Movement → Output
 
-Verified leads of a niche, for companies never enrolled (first contact) and then for companies that came back (returning: rested, under the yearly cap, new sequence+offer), the niche's templates and plan, the roster's active senders. `ComposeScheduler/{niche}` fills company time zones, measures tomorrow's capacity, counts approved openers not yet sent, and composes the shortfall rule by rule, first contact first, then returning, one company per transaction, auto-approved. Output: enrollments with every step rendered as `messages`.
+Verified leads of a niche, for companies never enrolled (first contact) and then for companies that came back (returning: rested, under the yearly cap, new sequence+offer), the niche's templates and plan, the roster's active senders. `EmailOpenerFill/{niche}` fills company time zones, measures tomorrow's capacity, counts approved openers not yet sent, and composes the shortfall rule by rule, first contact first, then returning, one company per transaction, auto-approved. Output: enrollments with every step rendered as `messages`.
 
 ## Why this shape
 
@@ -36,7 +36,7 @@ The whole sequence renders before anything can send; a missing fact refuses the 
 
 | Surface | Role |
 |---|---|
-| `ComposeScheduler/{niche}` | runs nightly |
+| `EmailOpenerFill/{niche}` | runs nightly |
 | `wren email preview` | renders one without writing |
 
 ## See

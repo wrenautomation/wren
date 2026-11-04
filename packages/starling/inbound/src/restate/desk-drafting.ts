@@ -108,7 +108,7 @@ export function draftingHandlers(desk: ContentDeskContext) {
           media?: Media | null;
           draft?: boolean;
           platforms?: Platform[];
-          /** Who wrote it: the person (`cli`, default), the API, or `AdsWatch` (`ads`). */
+          /** Who wrote it: the person (`cli`, default), the API, or `AdSpendGuard` (`ads`). */
           source?: IdeaSource;
           campaign?: string | null;
         },

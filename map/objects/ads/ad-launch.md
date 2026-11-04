@@ -13,7 +13,7 @@ One Meta ad ladder we made (campaign → ad set → creative → ad) and whether
 
 ## Why this shape
 
-A launch is PAUSED; `start` is the one command that spends and must name the daily budget; the box's spend gate still asks a person for every ACTIVE write (`restate.ts:1`, `ads.ts:1`). `AdsWatch` only ever stops spend: guard amount spent with nothing to show → paused, one line to Discord (`launches.ts:1`, `watch.ts:1`). A winner becomes a content idea, never a draft (`bridge.ts:1`).
+A launch is PAUSED; `start` is the one command that spends and must name the daily budget; the box's spend gate still asks a person for every ACTIVE write (`restate.ts:1`, `ads.ts:1`). `AdSpendGuard` only ever stops spend: guard amount spent with nothing to show → paused, one line to Discord (`launches.ts:1`, `watch.ts:1`). A winner becomes a content idea, never a draft (`bridge.ts:1`).
 
 ## Shape
 
@@ -24,7 +24,7 @@ Citations: `packages/starling/channels/meta/src/schema.ts:13`
 
 ## Connected to
 
-- **produces:** [[content/idea]] (source ads), [[ads/ad-day]] (via `AdsWatch`)
+- **produces:** [[content/idea]] (source ads), [[ads/ad-day]] (via `AdSpendGuard`)
 - **joins:** [[platform/settings]] (`WREN_META_*`), autobrowse's `meta` site
 
 ## If you change this
@@ -38,7 +38,7 @@ Citations: `packages/starling/channels/meta/src/schema.ts:13`
 |---|---|
 | `Ads.launch/start/stop/resume` | writes; `resume` restarts a stopped launch at its budget (`restate.ts:142`) |
 | Marketing app (`/marketing/ads`) | pause and resume per ad day |
-| `AdsWatch/default` | pauses |
+| `AdSpendGuard/default` | pauses |
 | `wren ads launches/insights/leads` | read |
 
 ## See

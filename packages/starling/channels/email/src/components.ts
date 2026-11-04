@@ -10,7 +10,7 @@ import {
 } from "./sequences-settings.js";
 
 export const INBOX_HEALTH = "email.inbox_health";
-/** A client's Postmaster pull is `PostmasterScheduler/<client>/daily`. */
+/** A client's Postmaster pull is `EmailPostmasterPull/<client>/daily`. */
 const CLIENT_POSTMASTER_UNIT = "daily";
 
 /** One email step of a follow-up cadence on the executor (follow.ts). */
@@ -23,10 +23,10 @@ export const EMAIL_TOUCH = "email.touch";
 function sequencesLoops(client: string, s: SequencesSettings): LoopKey[] {
   const active = s.senders.filter((x) => !x.suspended);
   return [
-    ...(s.niche ? [{ service: "ComposeScheduler", key: clientKey(client, s.niche) }] : []),
+    ...(s.niche ? [{ service: "EmailOpenerFill", key: clientKey(client, s.niche) }] : []),
     ...active.flatMap((x) => [
-      { service: "SendScheduler", key: clientKey(client, x.address) },
-      { service: "InboxScheduler", key: clientKey(client, x.address) },
+      { service: "EmailSend", key: clientKey(client, x.address) },
+      { service: "EmailInboxRead", key: clientKey(client, x.address) },
     ]),
   ];
 }
@@ -45,22 +45,8 @@ export const EMAIL_COMPONENTS = [
     settings: sequencesSettingsSchema,
     requires: { components: ["research.lead_sheet"], accounts: ["gmail"] },
     provides: {
-      services: [
-        "ComposeScheduler",
-        "SendScheduler",
-        "QueueRefresh",
-        "OpensScheduler",
-        "ClicksScheduler",
-        "ReportScheduler",
-        "EmailConsole",
-      ],
-      loops: [
-        "ComposeScheduler",
-        "SendScheduler",
-        "OpensScheduler",
-        "ClicksScheduler",
-        "ReportScheduler",
-      ],
+      services: ["EmailOpenerFill", "EmailSend", "QueueRefresh", "EmailClickPull", "EmailConsole"],
+      loops: ["EmailOpenerFill", "EmailSend", "EmailClickPull"],
       records: ["email.campaign", "email.firm", "email.stall", "email.model"],
     },
     effects: ["sends", "spends"],
@@ -157,8 +143,8 @@ export const EMAIL_COMPONENTS = [
     settings: repliesSettingsSchema,
     requires: { components: [SEQUENCES] },
     provides: {
-      services: ["InboxScheduler", "InboxPush", "Disposition", "CallBookings"],
-      loops: ["InboxScheduler"],
+      services: ["EmailInboxRead", "InboxPush", "Disposition", "CallBookings"],
+      loops: ["EmailInboxRead"],
       records: ["email.reply", "email.call"],
     },
     effects: ["sends"],
@@ -201,14 +187,14 @@ export const EMAIL_COMPONENTS = [
       facts: ["postmaster.verified"],
     },
     provides: {
-      services: ["PlacementScheduler", "PostmasterScheduler", "DigestScheduler"],
-      loops: ["PlacementScheduler", "PostmasterScheduler", "DigestScheduler"],
+      services: ["EmailPlacementTest", "EmailPostmasterPull", "EmailFleetDigest"],
+      loops: ["EmailPlacementTest", "EmailPostmasterPull", "EmailFleetDigest"],
       records: ["email.inbox"],
     },
     // Per client: Google's daily numbers for its verified sending domains, into its database.
     // Placement seeds and the digest are Wren's own until seed inboxes exist per client.
     clientLoops: (client) => [
-      { service: "PostmasterScheduler", key: clientKey(client, CLIENT_POSTMASTER_UNIT) },
+      { service: "EmailPostmasterPull", key: clientKey(client, CLIENT_POSTMASTER_UNIT) },
     ],
     effects: ["sends"],
     hypothesis: {
@@ -239,12 +225,12 @@ export const EMAIL_COMPONENTS = [
       services: [
         "Marketing",
         "Newsletter",
-        "BounceScheduler",
+        "EmailBounceRead",
         "ListmonkIntake",
         "ListmonkMail",
-        "ListmonkSync",
+        "NewsletterSync",
       ],
-      loops: ["BounceScheduler", "ListmonkSync"],
+      loops: ["EmailBounceRead", "NewsletterSync"],
       records: ["marketing.subscriber", "marketing.topic"],
     },
     effects: ["sends"],
@@ -262,7 +248,7 @@ export const EMAIL_COMPONENTS = [
           is: "needs",
           says: "Lists, subscribers and campaigns in Listmonk; the mail still goes from portal@.",
           built:
-            "ListmonkIntake, ListmonkMail, ListmonkSync, set by WREN_LISTMONK_URL, _USER, _TOKEN",
+            "ListmonkIntake, ListmonkMail, NewsletterSync, set by WREN_LISTMONK_URL, _USER, _TOKEN",
         },
         { is: "fixed", says: "One rule decides who may get mail, and a signup keeps its proof." },
       ],

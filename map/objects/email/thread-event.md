@@ -25,7 +25,7 @@ Citations: `packages/starling/channels/email/src/schema.ts:306`
 
 - **owned-by:** [[email/enrollment]]
 - **joins:** [[email/message]], [[leads/suppression]] (the evidence a stop cites), [[email/sender-pause]] (hard bounces trip the switch)
-- **produces:** each human reply's enrollment in `SyncStats.replied`, which `InboxScheduler` fires at the executor's Reply triggers (its `fire` dep; [[platform/executor]])
+- **produces:** each human reply's enrollment in `SyncStats.replied`, which `EmailInboxRead` fires at the executor's Reply triggers (its `fire` dep; [[platform/executor]])
 
 ## If you change this
 
@@ -36,7 +36,7 @@ Citations: `packages/starling/channels/email/src/schema.ts:306`
 
 | Surface | Role |
 |---|---|
-| `InboxScheduler/{sender}` | writes |
+| `EmailInboxRead/{sender}` | writes |
 | `Disposition/fleet` | writes `disposition` (source llm) |
 | `EmailConsole/answers`, `/approve`, `/drop` (console; approve and drop go through `Disposition/fleet`) | reads, drives |
 | `wren email reply/event` | writes operator labels |

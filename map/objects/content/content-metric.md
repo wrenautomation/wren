@@ -35,7 +35,7 @@ Citations: `packages/starling/inbound/src/schema.ts:127`
 
 | Surface | Role |
 |---|---|
-| `ContentMetrics/default` | writes |
+| `PostMetrics/default` | writes |
 | `wren content results`, drafting prompt | read |
 
 ## See

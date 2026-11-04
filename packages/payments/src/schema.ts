@@ -73,7 +73,7 @@ export const payLinks = pgTable(
     dispute: varchar("dispute", { length: 8 }),
     /** When Stripe made the dispute event we hold (unix seconds): an older one changes nothing. */
     disputeAt: bigint("dispute_at", { mode: "number" }),
-    /** When reconcile last held it against Stripe (`PayReconcile`). */
+    /** When reconcile last held it against Stripe (`StripeReconcile`). */
     checkedAt: timestamp("checked_at", { withTimezone: true }),
     /** Changes a workflow has heard, each once ever: change to the claim that told it. */
     told: jsonb("told").$type<Partial<Record<PayChange, string>>>().notNull().default({}),

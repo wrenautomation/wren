@@ -31,7 +31,7 @@ Citations: `packages/starling/channels/meta/src/restate.ts:207`, `apps/cli/src/a
 ## If you change this
 
 - **Hits:** `audit.test.ts`, the CLI print, the `ads.meta` settings form in the console
-- **Does not hit:** `AdsWatch`, `ad_launches`, any spend gate (no writes)
+- **Does not hit:** `AdSpendGuard`, `ad_launches`, any spend gate (no writes)
 
 ## Surfaces
 

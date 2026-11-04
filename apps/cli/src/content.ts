@@ -1,7 +1,7 @@
 /**
  * `wren content …`: the content loop from the keyboard. Ideas and drafts go
  * through `ContentDesk` (the paid step is journaled); approve/reject/edit are
- * rows a person writes straight to Postgres; the queue is `ContentScheduler`.
+ * rows a person writes straight to Postgres; the queue is `PostPublish`.
  */
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
@@ -57,11 +57,11 @@ import {
 } from "@wren/starling-inbound";
 import type {
   ContentDesk,
-  ContentMetrics,
-  ContentPlanner,
-  ContentScheduler,
   DraftReport,
   PlannerSettings,
+  PostMetrics,
+  PostPlan,
+  PostPublish,
 } from "@wren/starling-inbound/restate";
 import {
   DEFAULT_PLAN_PLATFORMS,
@@ -153,10 +153,8 @@ export async function readText(file: string | undefined): Promise<string> {
 export function registerContent(program: Command, withDb: WithDb, settings: Settings): Command {
   const ingress = () => clients.connect(ingressOf(settings));
   const desk = () => ingress().objectClient<ContentDesk>({ name: "ContentDesk" }, DESK_KEY);
-  const queue = () =>
-    ingress().objectClient<ContentScheduler>({ name: "ContentScheduler" }, SCHEDULER_KEY);
-  const planner = () =>
-    ingress().objectClient<ContentPlanner>({ name: "ContentPlanner" }, PLANNER_KEY);
+  const queue = () => ingress().objectClient<PostPublish>({ name: "PostPublish" }, SCHEDULER_KEY);
+  const planner = () => ingress().objectClient<PostPlan>({ name: "PostPlan" }, PLANNER_KEY);
   /** The planner's stored settings; none (or Restate down) = the defaults. */
   const plannerSettings = async (): Promise<PlannerSettings> => {
     try {
@@ -165,8 +163,7 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
       return {};
     }
   };
-  const metrics = () =>
-    ingress().objectClient<ContentMetrics>({ name: "ContentMetrics" }, METRICS_KEY);
+  const metrics = () => ingress().objectClient<PostMetrics>({ name: "PostMetrics" }, METRICS_KEY);
 
   const content = program
     .command("content")
@@ -536,7 +533,7 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
       },
     );
 
-  const q = content.command("queue").description("the publish loop (ContentScheduler)");
+  const q = content.command("queue").description("the publish loop (PostPublish)");
   q.command("status").action(async () =>
     console.log(JSON.stringify(await queue().status(), null, 2)),
   );
@@ -566,7 +563,7 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
   const pl = content
     .command("planner")
     .description(
-      "the daily plan on Discord at 17:00, and with --draft tomorrow's drafts (ContentPlanner); off until started",
+      "the daily plan on Discord at 17:00, and with --draft tomorrow's drafts (PostPlan); off until started",
     );
   pl.command("status").action(async () =>
     console.log(JSON.stringify(await planner().status(), null, 2)),
@@ -659,7 +656,7 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
 
   const m = content
     .command("metrics")
-    .description("the daily metrics look (ContentMetrics); Monday = what-worked to the channel");
+    .description("the daily metrics look (PostMetrics); Monday = what-worked to the channel");
   m.command("status").action(async () =>
     console.log(JSON.stringify(await metrics().status(), null, 2)),
   );

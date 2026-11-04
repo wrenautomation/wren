@@ -56,28 +56,25 @@ export const PLATFORM = {
     Tokens: "who an AI tool's access token acts as, for the portal's agent door",
     Executor: "events along every workflow's routed wires, and the door's webhooks",
     ExecutorClock: "a Schedule trigger node's clock: ticks each slot into its workflow",
-    AuditSealer: "seals the audit log every write lands in",
-    TokenRenewal: "renews every site's tokens, for content and ads alike",
-    VaultKeys:
+    AuditSeal: "seals the audit log every write lands in",
+    SiteTokenRenew: "renews every site's tokens, for content and ads alike",
+    VaultKeyMirror:
       "mirrors the operator's API keys from autobrowse's vault; rotate, revoke, mark spent",
     TemplatesConsole: "the Library's templates: save, publish, approve, restore, reset",
-    SetupWatch: "checks every set-up account again on its repeat, and starts a lost one over",
-    DeadLetters: "files every call Restate gave up on as a dead letter and tells Discord once",
-    LoopWatch: "wakes a loop that stopped on its own and names one stuck behind a call, once each",
+    SetupRecheck: "checks every set-up account again on its repeat, and starts a lost one over",
+    FailedCallAlert: "files every call Restate gave up on as a dead letter and tells Discord once",
+    LoopRevive: "wakes a loop that stopped on its own and names one stuck behind a call, once each",
     SetupAgent: "a done-for-you setup step, run by autobrowse do in the account owner's autobrowse",
     AccountsConsole: "a client's accounts, setups and vendor modes",
     PeopleConsole: "People in every workspace: records, groups, Describe group, broadcasts",
     Segments:
       "a workspace's groups kept true; entries, exits, traits and dates told to the executor",
-    SegmentsNet: "wakes every workspace's groups pass every 15 minutes",
+    SegmentsHourly: "wakes every workspace's groups pass every 15 minutes",
     PeopleMap: "a workspace's people map: each person's stage, warmth and persona rebuilt",
-    PeopleMapNet: "wakes every workspace's people map every 30 minutes",
-    TouchFeed:
+    TouchToJourney:
       "on a new touch, net every 15 min: each workspace's untold social touches told to the executor",
-    SourcedFeed: "people added to a list a sourced source takes people from open journeys there",
-    LineFeed: "documents a content line finds open instances; a job that ends moves each on",
-    PainFeed:
-      "reach posts read for a pain the author states, proven by a quote; each opens the author's journey on the outreach line",
+    ListToJourney: "people added to a list a sourced source takes people from open journeys there",
+    MapLineFeed: "documents a content line finds open instances; a job that ends moves each on",
     Decide:
       "every 10 minutes: drafted comments and lead fits judged by Jev, each answer logged beside his call",
     ProfileResearch:
@@ -94,7 +91,7 @@ export const PLATFORM = {
     SocialInbox: "a client's DMs in, and its DM and comment answers out, on its own accounts",
     NotesConsole: "notes: docs with versions, sharing and links, in every workspace",
     HealthConsole: "each client's health and the flags about it: rate, override, raise, clear",
-    BillingWatch:
+    ClientInvoicing:
       "Wren's own billing: the month's invoices made and mailed, money in read from Wise and matched",
     BillingConsole: "money in by bank transfer: put a credit on an invoice, or set it aside",
     Webhooks:

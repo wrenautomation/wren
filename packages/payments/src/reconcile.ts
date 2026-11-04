@@ -1,5 +1,5 @@
 /**
- * `PayReconcile/all`: once a day, every connected client's recent links held against Stripe
+ * `StripeReconcile/all`: once a day, every connected client's recent links held against Stripe
  * (designs/2026-10-07-forms-and-pay.md, "Durable payments"). Webhooks are the fast path; this
  * is the floor under them. A missed or dropped event heals as reconcile's own event (a
  * deterministic `recon:` id, applied by the same steps); what no event explains is kept as
@@ -33,7 +33,7 @@ import {
   stripeApi,
 } from "./stripe.js";
 
-const PAY_RECONCILE = "PayReconcile";
+const PAY_RECONCILE = "StripeReconcile";
 const PAY_RECONCILE_COMMAND = "payments reconcile";
 const DAY_MS = 86_400_000;
 /** Links checked per client per pass: three reads each, well under Stripe's rate limit. */
@@ -248,11 +248,11 @@ export async function reconcileAll(
   return stats;
 }
 
-interface PayReconcileDeps extends PaymentsDeps {
+interface StripeReconcileDeps extends PaymentsDeps {
   notifier?: Notifier;
 }
 
-export function makePayReconcile(deps: PayReconcileDeps) {
+export function makeStripeReconcile(deps: StripeReconcileDeps) {
   return makeLoopObject(PAY_RECONCILE, async (ctx: restate.ObjectContext) => {
     const out = (await runPass<ReconcileStats>(ctx, deps.main, {
       name: "reconcile",
@@ -266,4 +266,4 @@ export function makePayReconcile(deps: PayReconcileDeps) {
     return out;
   });
 }
-export type PayReconcile = ReturnType<typeof makePayReconcile>;
+export type StripeReconcile = ReturnType<typeof makeStripeReconcile>;

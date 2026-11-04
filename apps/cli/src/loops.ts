@@ -1,6 +1,6 @@
 /**
  * `wren loops …`: every self-rescheduling loop's health (designs/2026-10-16-loop-watchdog.md),
- * read from Restate's admin SQL (`WREN_RESTATE_ADMIN_URL`), and the `LoopWatch` loop that wakes a
+ * read from Restate's admin SQL (`WREN_RESTATE_ADMIN_URL`), and the `LoopRevive` loop that wakes a
  * dead one and names a stuck one; the units its passes hold (Checks' `unit_holds`). `--json`, so
  * an agent reads what a person does.
  */
@@ -8,7 +8,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { release } from "@wren/core/checks";
 import { restateAdmin } from "@wren/core/console";
-import { LOOP_WATCH_KEY, type LoopWatch, loopHealth } from "@wren/core/loop-watch";
+import { LOOP_WATCH_KEY, type LoopRevive, loopHealth } from "@wren/core/loop-watch";
 import { type Db, serializable, setAuditActor } from "@wren/db";
 import type { Command } from "commander";
 import { sql } from "drizzle-orm";
@@ -21,7 +21,7 @@ export function registerLoops(program: Command, withMainDb: WithDb, settings: Se
   const watch = () =>
     clients
       .connect(ingressOf(settings))
-      .objectClient<LoopWatch>({ name: "LoopWatch" }, LOOP_WATCH_KEY);
+      .objectClient<LoopRevive>({ name: "LoopRevive" }, LOOP_WATCH_KEY);
 
   const cmd = program
     .command("loops")
@@ -87,7 +87,7 @@ export function registerLoops(program: Command, withMainDb: WithDb, settings: Se
 
   const w = cmd
     .command("watch")
-    .description("The LoopWatch loop: a check every 10 minutes, dead loops woken");
+    .description("The LoopRevive loop: a check every 10 minutes, dead loops woken");
   for (const [name, text] of [
     ["status", "Its last check and open incidents"],
     ["start", "Loop: check, then again in 10 minutes"],

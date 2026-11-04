@@ -1,7 +1,7 @@
 /**
  * Booking on Postgres, synthetic calendars only: one call per slot under a race, the buffer
  * between neighbours, the mirror into `call_bookings` (a booking from an email's link stops its
- * firm and counts), a move and a cancel, and the calls SmsWatch's reminder pass reads.
+ * firm and counts), a move and a cancel, and the calls SmsUpkeep's reminder pass reads.
  */
 
 import { setCallOutcome } from "@wren/calendar/calls";

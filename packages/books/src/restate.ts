@@ -1,5 +1,5 @@
 /**
- * `Books/all`: the books' day (`booksDay`) once a day, unattended. A pass that
+ * `BooksDaily/all`: the books' day (`booksDay`) once a day, unattended. A pass that
  * raised alerts sends one notice listing them; a failing pass is told once by
  * the loop itself. Served on the Postgres box: the reads wait on the model and
  * on the Mac's desk, and waiting there costs nothing.
@@ -31,7 +31,7 @@ interface BooksDeps extends Omit<BooksDayDeps, "log"> {
 }
 
 export function makeBooks(deps: BooksDeps) {
-  return makeLoopObject("Books", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("BooksDaily", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const settings = await loopSettings<BooksSettings>(ctx);
     const awsDue = now.getTime() - ((await ctx.get<number>(AWS_AT)) ?? 0) >= BOOKS_AWS_EVERY_MS;

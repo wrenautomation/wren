@@ -34,11 +34,11 @@ Every loop is a Restate Virtual Object with `start | stop | status | sync`
 ```sh
 H="Authorization: Bearer $RESTATE_AUTH_TOKEN"     # in .env
 U=https://201m2vp6sq3x11xdaatsmjej302.env.us.restate.cloud:8080
-curl -X POST -H "$H" $U/ContentScheduler/default/status
-curl -X POST -H "$H" $U/AdsWatch/default/sync
-curl -X POST -H "$H" $U/SendScheduler/<inbox>/status
-curl -X POST -H "$H" $U/ComposeScheduler/agencies/status
-curl -X POST -H "$H" $U/PoolScheduler/agencies/start
+curl -X POST -H "$H" $U/PostPublish/default/status
+curl -X POST -H "$H" $U/AdSpendGuard/default/sync
+curl -X POST -H "$H" $U/EmailSend/<inbox>/status
+curl -X POST -H "$H" $U/EmailOpenerFill/agencies/status
+curl -X POST -H "$H" $U/LeadPoolFill/agencies/start
 ```
 
 `walkthrough/demos/01-loops.sh` prints every loop's running flag and last
@@ -49,15 +49,14 @@ pass. `restate invocations list` shows what is sleeping and until when;
 
 | Object | Key | Cadence |
 |---|---|---|
-| SendScheduler | one per inbox | inside the send window, at the ramp |
-| InboxScheduler | one per inbox | replies + bounces every few minutes |
-| ComposeScheduler | per niche | daily, local midnight |
-| PoolScheduler | per niche | a minute apart while any stage finds work, then daily |
-| PostmasterScheduler, OpensScheduler, DigestScheduler, PlacementScheduler | fleet | daily |
-| ReportScheduler | weekly | Friday 19:00 |
-| ContentScheduler | default | a minute while due drafts remain, else until the next slot |
-| ContentMetrics | default | every 6 h (one look per post per day); Monday report |
-| AdsWatch | default | daily |
+| EmailSend | one per inbox | inside the send window, at the ramp |
+| EmailInboxRead | one per inbox | replies + bounces every few minutes |
+| EmailOpenerFill | per niche | daily, local midnight |
+| LeadPoolFill | per niche | a minute apart while any stage finds work, then daily |
+| EmailPostmasterPull, EmailFleetDigest, EmailPlacementTest | fleet | daily |
+| PostPublish | default | a minute while due drafts remain, else until the next slot |
+| PostMetrics | default | every 6 h (one look per post per day); Monday report |
+| AdSpendGuard | default | daily |
 
 ## Durability
 

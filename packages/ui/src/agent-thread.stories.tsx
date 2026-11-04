@@ -140,7 +140,7 @@ export const Answered: Story = {
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
     await expect(c.getByText(/Sonnet · 12k tokens · \$0.03/)).toBeTruthy();
-    await expect(c.getByText("8.4s")).toBeTruthy();
+    await expect(c.getByText("Worked for 8.4s")).toBeTruthy();
     await userEvent.click(c.getByRole("button", { name: /Check past runs/ }));
     await expect(c.getByText(/"kept":9/)).toBeTruthy();
   },

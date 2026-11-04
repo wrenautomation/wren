@@ -1,6 +1,6 @@
 /**
  * Wren's own channels on Account → Social, for the team only: each platform Wren posts to, its
- * handle, how it posts (from config), its token's lapse and last renewal (TokenRenewal's `runs`
+ * handle, how it posts (from config), its token's lapse and last renewal (SiteTokenRenew's `runs`
  * rows), its last post and last failure (`content_drafts`, `draft_events`), and a Check that runs
  * autobrowse's site check through the same `sites`/`desk` service the channels use: `status` for
  * the site's probe, then that one who-am-I read, then `renew {dry}` for the lapse date.
@@ -253,7 +253,7 @@ export interface OwnRows {
   posts: Array<{ platform: string; at: Date | null; url: string | null }>;
   failures: Array<{ platform: string | null; at: Date; kind: string; note: string | null }>;
   days: Array<{ platform: string; raw: unknown }>;
-  /** TokenRenewal's passes, newest first. */
+  /** SiteTokenRenew's passes, newest first. */
   renewals: Array<{ at: Date; finishedAt: Date | null; stats: unknown }>;
 }
 
@@ -340,7 +340,7 @@ export interface OwnView {
   channels: OwnChannelView[];
   /** Platforms Wren could post to that config leaves off, by name. */
   off: string[];
-  /** TokenRenewal's newest pass: when, whether it ran, and the soonest lapse after it. */
+  /** SiteTokenRenew's newest pass: when, whether it ran, and the soonest lapse after it. */
   renewal: { at: string; ok: boolean; why: string | null; next: string | null } | null;
 }
 

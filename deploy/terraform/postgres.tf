@@ -279,7 +279,7 @@ data "aws_iam_policy_document" "pg" {
     actions   = ["lambda:InvokeFunction"]
     resources = [aws_lambda_function.worker.arn, "${aws_lambda_function.worker.arn}:*"]
   }
-  # The books' day (Books/all) reads kept bills back from `books/`.
+  # The books' day (BooksDaily/all) reads kept bills back from `books/`.
   statement {
     sid       = "ReadBooks"
     actions   = ["s3:GetObject"]

@@ -22,7 +22,7 @@ One person and agents need drift to show at hand-off, not a portal. The map is t
 - Checks (`·` = does not apply):
   - card: a package holds some card's `entity:`; a service is named in backticks by a card other than [[platform/restate-services]]
   - unit / int: a package has the `test:unit` / `test:integration` script and a file for it (`test/integration/` = int); a service has a test that says `"X"`, or one in its package that imports its declaring file
-  - health: a loop service (component `loops`, or `makeLoopObject`; `isLoop` `:118`) is watched by [[platform/loop-watch]]; a deployed app (wrangler or `build:lambda`) has a `/health` route or binds LoopWatch; a package owns a loop
+  - health: a loop service (component `loops`, or `makeLoopObject`; `isLoop` `:118`) is watched by [[platform/loop-watch]]; a deployed app (wrangler or `build:lambda`) has a `/health` route or binds LoopRevive; a package owns a loop
   - owner: [[platform/restate-services]] names the service; `map/effects/CONTEXT.md` routes a change to the package
 - Grade by misses (`:178`): 0 A, 1 B, 2 C, 3 D, 4+ F. Flags: `--top=N`, `--min=<grade>` (exit 1 below it, `:192`), `--json`.
 - Skipped, said in the output: deploy current (Restate registers a Lambda version, not a commit; its admin API is on the box) and last green gate (no local record).

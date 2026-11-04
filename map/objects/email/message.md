@@ -38,9 +38,9 @@ Citations: `packages/starling/channels/email/src/schema.ts:236`, `packages/starl
 
 | Surface | Role |
 |---|---|
-| `ComposeScheduler` | writes drafts |
+| `EmailOpenerFill` | writes drafts |
 | `wren email approve/reject/edit` | writes one-row facts |
-| `SendScheduler/{sender}` | moves `approved → sending → sent/failed/unknown` |
+| `EmailSend/{sender}` | moves `approved → sending → sent/failed/unknown` |
 | views, weekly report | read |
 
 ## See

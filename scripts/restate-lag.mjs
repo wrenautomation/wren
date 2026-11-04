@@ -7,7 +7,7 @@
 // CI runs it hourly (.github/workflows/restate-lag.yml). Env: RESTATE_HOST (default prod's, as
 // scripts/ingress.mjs), RESTATE_AUTH_TOKEN, WREN_DISCORD_WEBHOOK_URL (unset: print only),
 // LAG_MINUTES (default 15).
-// It also watches the watchdog: `LoopWatch/all` wakes every other dead loop
+// It also watches the watchdog: `LoopRevive/all` wakes every other dead loop
 // (designs/2026-10-16-loop-watchdog.md), so its own lost chain is told here.
 const host = process.env.RESTATE_HOST ?? "restate.wrenautomation.com";
 // Cloud's admin API is public on :9070; the box's Caddy serves its query under /admin.
@@ -18,12 +18,12 @@ const hook = process.env.WREN_DISCORD_WEBHOOK_URL;
 // `scheduled_at` rides along: without it Restate leaves `scheduled_start_at` out (console.ts).
 const SQL = `SELECT target_service_name, target_service_key, scheduled_at, scheduled_start_at
 FROM sys_invocation WHERE target_handler_name = 'loop' AND status = 'scheduled'`;
-// Paused calls are the DeadLetters loop's (`wren dlq`): told there once, not here hourly.
+// Paused calls are the FailedCallAlert loop's (`wren dlq`): told there once, not here hourly.
 const STUCK = `SELECT id, target, status, modified_at FROM sys_invocation
 WHERE status IN ('ready', 'running', 'backing-off')`;
 const WATCH = `SELECT s.value_utf8, (SELECT count(*) FROM sys_invocation i
-  WHERE i.target_service_name = 'LoopWatch' AND i.target_service_key = 'all' AND i.status <> 'completed') AS calls
-FROM state s WHERE s.service_name = 'LoopWatch' AND s.service_key = 'all' AND s.key = 'loop'`;
+  WHERE i.target_service_name = 'LoopRevive' AND i.target_service_key = 'all' AND i.status <> 'completed') AS calls
+FROM state s WHERE s.service_name = 'LoopRevive' AND s.service_key = 'all' AND s.key = 'loop'`;
 
 async function say(text) {
   console.log(text);
@@ -71,7 +71,7 @@ const late = rows
   });
 if (late.length)
   await say(
-    `Restate is late: ${late.length} loop timers past due by over ${slackMs / 60_000} min.\n${late.slice(0, 20).join("\n")}\nTime to move to the box: \`node scripts/restate-move.mjs\` (designs/2026-10-05-restate-self-host.md).`,
+    `Restate is late: ${late.length} loop timers past due by over ${slackMs / 60_000} min.\n${late.slice(0, 20).join("\n")}`,
   );
 else console.log(`${rows.length} loop timers, none late`);
 
@@ -90,6 +90,6 @@ else console.log(`${open.length} open calls, none stuck`);
 const watchdog = watch[0];
 if (watchdog && JSON.parse(watchdog.value_utf8).running && Number(watchdog.calls) === 0)
   await say(
-    "LoopWatch/all is running but has no next check: no dead loop gets woken. `wren loops watch stop`, then `start`.",
+    "LoopRevive/all is running but has no next check: no dead loop gets woken. `wren loops watch stop`, then `start`.",
   );
-else console.log(watchdog ? "LoopWatch has its next check" : "LoopWatch not started");
+else console.log(watchdog ? "LoopRevive has its next check" : "LoopRevive not started");

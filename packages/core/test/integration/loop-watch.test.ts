@@ -1,5 +1,5 @@
 /**
- * `LoopWatch` against a real Restate: a loop whose next call was killed is dead, woken once and
+ * `LoopRevive` against a real Restate: a loop whose next call was killed is dead, woken once and
  * told once; a loop whose pass waits on a call Restate paused is stuck, told once and left alone.
  */
 import * as restate from "@restatedev/restate-sdk";
@@ -14,9 +14,9 @@ import {
   type Incident,
   LOOP_WATCH_KEY,
   type LoopHealth,
-  type LoopWatchPass,
+  type LoopRevivePass,
   loopHealth,
-  makeLoopWatch,
+  makeLoopRevive,
 } from "../../src/loop-watch.js";
 import { makeLoopObject, type PassOutcome, setLastPass } from "../../src/restate/loop.js";
 import { startTestRestate } from "../../src/testing.js";
@@ -67,9 +67,9 @@ let env: RestateTestEnvironment;
 let pg: TestPostgres;
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const admin = () => restateAdmin(env.adminAPIBaseUrl());
-type Watch = ReturnType<typeof makeLoopWatch>;
-const watch = () => ingress().objectClient<Watch>({ name: "LoopWatch" }, LOOP_WATCH_KEY);
-const check = () => watch().sync() as Promise<PassOutcome<LoopWatchPass>>;
+type Watch = ReturnType<typeof makeLoopRevive>;
+const watch = () => ingress().objectClient<Watch>({ name: "LoopRevive" }, LOOP_WATCH_KEY);
+const check = () => watch().sync() as Promise<PassOutcome<LoopRevivePass>>;
 
 beforeAll(async () => {
   pg = await startTestPostgres();
@@ -78,7 +78,7 @@ beforeAll(async () => {
       tick,
       flaky,
       blocked,
-      makeLoopWatch({ main: pg.db, admin: async (q) => admin()(q), notifier }),
+      makeLoopRevive({ main: pg.db, admin: async (q) => admin()(q), notifier }),
     ],
   });
 });
@@ -99,7 +99,7 @@ const healthOf = (id: string) => async () =>
   (await loopHealth(admin(), new Date())).find((h) => h.id === id);
 const is = (health: LoopHealth["health"]) => (h: LoopHealth | undefined) => h?.health === health;
 
-describe("LoopWatch", () => {
+describe("LoopRevive", () => {
   it("wakes a loop whose next call was killed, and tells it once", async () => {
     const t = ingress().objectClient<typeof tick>({ name: "Tick" }, "a");
     await t.start();

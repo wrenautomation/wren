@@ -1,7 +1,7 @@
 /**
  * Cold email: the send and inbox schedulers, disposition, call bookings, marketing mail and
- * the newsletter, compose and the queue, placement, Postmaster, opens and clicks, the Friday
- * report, and the Email console.
+ * the newsletter, compose and the queue, placement, Postmaster, clicks, and the Email
+ * console.
  */
 
 import { makeCallBookings } from "@wren/calendar/calls";
@@ -20,33 +20,28 @@ import {
   proberHosts,
   senderDomain,
 } from "@wren/starling-email";
-import {
-  makeClicksScheduler,
-  makeOpensScheduler,
-  makePostmasterScheduler,
-} from "@wren/starling-email/restate";
+import { makeEmailClickPull, makeEmailPostmasterPull } from "@wren/starling-email/restate";
 import { type Listmonk, listmonk } from "@wren/starling-inbound/listmonk";
 import {
   makeListmonkIntake,
   makeListmonkMail,
-  makeListmonkSync,
   makeMarketing,
   makeNewsletter,
+  makeNewsletterSync,
   syncTopicByName,
 } from "@wren/starling-inbound/restate";
 import {
   clientReplies,
   DISPOSITION_KEY,
   inboxPush,
-  makeComposeScheduler,
-  makeDigestScheduler,
   makeDisposition,
   makeEmailConsole,
-  makeInboxScheduler,
-  makePlacementScheduler,
+  makeEmailFleetDigest,
+  makeEmailInboxRead,
+  makeEmailOpenerFill,
+  makeEmailPlacementTest,
+  makeEmailSend,
   makeQueueRefresh,
-  makeReportScheduler,
-  makeSendScheduler,
   type SendScope,
   senderFleet,
   sequencesSendScope,
@@ -79,12 +74,10 @@ export function emailServices(deps: Deps): AnyService[] {
     mailboxes,
     noPush,
     openClient,
-    opens,
     operatorText,
     policy,
     portalMail,
     postmaster,
-    report,
     roster,
     settings,
     smtpInboxes,
@@ -139,7 +132,7 @@ export function emailServices(deps: Deps): AnyService[] {
   const services: AnyService[] = [
     // A plain key is one of Wren's inboxes; `<client>/<mailbox>` is a client's (R4, R12:
     // its mailboxes are in Wren's Workspace, so the same transport and reader serve them).
-    makeSendScheduler({
+    makeEmailSend({
       transport,
       // Email sequences first (its caps), else reactivation's; neither = the loop stops.
       scopeOf: async (key) =>
@@ -149,7 +142,7 @@ export function emailServices(deps: Deps): AnyService[] {
       tickMs,
       ...emailNotify,
     }),
-    makeInboxScheduler({
+    makeEmailInboxRead({
       reader,
       scopeOf: (key) => {
         const owner = clientOfKey(key);
@@ -254,12 +247,12 @@ export function emailServices(deps: Deps): AnyService[] {
       postal: settings.marketingPostal ?? null,
       send: portalMail,
     }),
-    makeListmonkSync({ db, lm }),
+    makeNewsletterSync({ db, lm }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {
     services.push(
-      makeComposeScheduler({
+      makeEmailOpenerFill({
         db,
         policy,
         campaigns,
@@ -279,7 +272,7 @@ export function emailServices(deps: Deps): AnyService[] {
   const mailDomains = mailDomainTargets(roster, mailboxes, settings.siteBaseUrl);
   if (settings.notify !== "none")
     services.push(
-      makeDigestScheduler({
+      makeEmailFleetDigest({
         db,
         notifier: laneNotifier(settings.discordEmailWebhookUrl),
         policy,
@@ -291,9 +284,9 @@ export function emailServices(deps: Deps): AnyService[] {
     );
   // A plain note and the newest opener from each ramped inbox to the seed Gmails once a send
   // day, read back from their labels; a failing plain test pauses the domain.
-  // Off until `PlacementScheduler/fleet/start`, idle with no seeds.
+  // Off until `EmailPlacementTest/fleet/start`, idle with no seeds.
   services.push(
-    makePlacementScheduler({
+    makeEmailPlacementTest({
       db,
       policy,
       transport,
@@ -312,8 +305,8 @@ export function emailServices(deps: Deps): AnyService[] {
   // Bound only when configured: an object with nothing to pull is better absent than failing every pass.
   if (postmaster) {
     services.push(
-      // A client's `PostmasterScheduler/<client>/daily` reads its verified domains into its database.
-      makePostmasterScheduler({
+      // A client's `EmailPostmasterPull/<client>/daily` reads its verified domains into its database.
+      makeEmailPostmasterPull({
         db,
         client: postmaster,
         domains: sendingDomains,
@@ -322,19 +315,15 @@ export function emailServices(deps: Deps): AnyService[] {
       }),
     );
   }
-  // Tracking off: only mail sent while it was on can still open, so hourly is enough.
-  const opensMs = settings.openTracking ? syncMs : 3_600_000;
-  if (opens) services.push(makeOpensScheduler({ db, ...opens, syncMs: opensMs, tickMs }));
   // Email link clicks, counted hourly from the lander's views into `email_clicks` (the sent log's "clicked").
   if (settings.siteExportToken)
     services.push(
-      makeClicksScheduler({
+      makeEmailClickPull({
         db,
         baseUrl: settings.siteBaseUrl,
         exportToken: settings.siteExportToken,
       }),
     );
-  if (report) services.push(makeReportScheduler({ db, transport, mail: report, policy }));
   services.push(
     makeEmailConsole({
       db,

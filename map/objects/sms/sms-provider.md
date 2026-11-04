@@ -35,8 +35,8 @@ Citations: `packages/starling/channels/sms/src/provider.ts:74`
 
 | Surface | Role |
 |---|---|
-| `SmsSender/fleet` | calls send |
-| `SmsDesk.syncNumbers`, `SmsWatch` | call lookups, balance |
+| `SmsSend/fleet` | calls send |
+| `SmsDesk.syncNumbers`, `SmsUpkeep` | call lookups, balance |
 
 ## See
 

@@ -11,7 +11,7 @@ import type { Db } from "@wren/db";
 import type { FetchLike } from "../fetch-like.js";
 import { type ClickSyncStats, syncClicks } from "../inbox/click-sync.js";
 
-interface ClicksSchedulerDeps {
+interface EmailClickPullDeps {
   db: Db;
   baseUrl: string;
   exportToken: string;
@@ -25,10 +25,10 @@ interface ClicksSchedulerDeps {
 export const CLICKS_KEY = "fleet";
 export const CLICKS_SYNC_COMMAND = "outreach clicks sync";
 
-export function makeClicksScheduler(deps: ClicksSchedulerDeps) {
+export function makeEmailClickPull(deps: EmailClickPullDeps) {
   const syncMs = deps.syncMs ?? 3_600_000;
   const tickMs = deps.tickMs ?? 600_000;
-  return makeLoopObject("ClicksScheduler", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("EmailClickPull", async (ctx: restate.ObjectContext) => {
     return runPass<ClickSyncStats>(ctx, deps.db, {
       name: "clicks sync",
       ledger: { command: CLICKS_SYNC_COMMAND, argv: { daemon: true, base_url: deps.baseUrl } },
@@ -44,4 +44,4 @@ export function makeClicksScheduler(deps: ClicksSchedulerDeps) {
   });
 }
 
-export type ClicksScheduler = ReturnType<typeof makeClicksScheduler>;
+export type EmailClickPull = ReturnType<typeof makeEmailClickPull>;

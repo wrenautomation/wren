@@ -114,7 +114,7 @@ export const RESEARCH_COMPONENTS = [
     for: "client",
     ready: true,
     missing: [],
-    provides: { services: ["PageArchive"], loops: ["PageArchive"] },
+    provides: { services: ["PageHtmlArchive"], loops: ["PageHtmlArchive"] },
     in: [{ id: "firms", label: "companies", kind: "firm" }],
     out: [
       {
@@ -222,10 +222,10 @@ export const RESEARCH_COMPONENTS = [
     settings: leadSheetSettingsSchema,
     requires: { components: ["research.discovery", "research.people", "research.verify"] },
     provides: {
-      services: ["PoolScheduler"],
-      loops: ["PoolScheduler"],
+      services: ["LeadPoolFill"],
+      loops: ["LeadPoolFill"],
     },
-    clientLoops: (client) => [{ service: "PoolScheduler", key: clientKey(client, "all") }],
+    clientLoops: (client) => [{ service: "LeadPoolFill", key: clientKey(client, "all") }],
     inside: "research.leads",
     out: [LEADS, PEOPLE],
     hypothesis: {
@@ -259,7 +259,7 @@ export const RESEARCH_COMPONENTS = [
     ready: true,
     missing: [],
     settings: socialSettingsSchema,
-    // Rides the lead sheet's pool (`PoolScheduler/<client>/all`), which reads this block each
+    // Rides the lead sheet's pool (`LeadPoolFill/<client>/all`), which reads this block each
     // pass: no loop of its own, so uninstalling never stops the pool.
     requires: { components: [LEAD_SHEET] },
     in: [{ id: "firms", label: "companies with a channel link", kind: "firm" }],
@@ -272,7 +272,7 @@ export const RESEARCH_COMPONENTS = [
           says: "Which networks, per niche: YouTube first, Instagram and the Ad Library next.",
           built: "settings: youtube, instagram",
         },
-        { is: "change", says: "Firms read a day.", built: "PoolScheduler limits.youtube" },
+        { is: "change", says: "Firms read a day.", built: "LeadPoolFill limits.youtube" },
         {
           is: "change",
           says: "How fresh a post must be to open an email.",

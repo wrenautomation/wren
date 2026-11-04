@@ -10,8 +10,8 @@
  * - unit / int: tests exist. Package: a `test:unit` / `test:integration` script and a test file
  *   for it (`test/integration/` is integration, every other `*.test.ts` is unit). Service: a test
  *   file says its name, or one in its package imports the file that declares it.
- * - health: a running thing reports its health. A loop service: LoopWatch watches it. A deployed
- *   app (wrangler or `build:lambda`): a `/health` route, or it binds LoopWatch. A package: one of
+ * - health: a running thing reports its health. A loop service: LoopRevive watches it. A deployed
+ *   app (wrangler or `build:lambda`): a `/health` route, or it binds LoopRevive. A package: one of
  *   its services is a loop. Plain services and libraries: ·.
  * - owner: the owning card lists it. Package: `map/effects/CONTEXT.md` routes a change to it.
  *   Service: [[platform/restate-services]] names it.
@@ -160,7 +160,7 @@ for (const dir of dirs) {
   const deployed =
     dir.startsWith("apps/") &&
     (files.some((f) => f.startsWith(`${dir}/wrangler.`)) || Boolean(pkg.scripts?.["build:lambda"]));
-  const served = mine.some((f) => /["'`]\/health(z)?["'`]|makeLoopWatch\(/.test(text(f)));
+  const served = mine.some((f) => /["'`]\/health(z)?["'`]|makeLoopRevive\(/.test(text(f)));
   rows.push({
     kind: "package",
     name: dir,

@@ -12,7 +12,7 @@ An idea in William's words becomes one draft per platform, a person approves, th
 
 ## Input → Movement → Output
 
-An idea (CLI, or minted by AdsWatch). `ContentDesk.draft` pays once per platform, journaled; the review seat approves, rejects or edits (rows, straight to Postgres); `ContentScheduler` claims due drafts and publishes through the `Content` service, which speaks each platform's API through autobrowse's `sites` (Reddit direct); `ContentMetrics` snapshots posts on a tier (every 6 h at first, then daily, then weekly to day 30) and says what worked on Mondays; `ContentPlanner` says tomorrow's shortfall and, with `draft` on, fills each open slot first: ideas from `nextIdea` (undrafted ideas, a reader's question, a video chapter; the build log retired 10-14), drafted through `ContentDesk.draft`, each new row given its slot (O5).
+An idea (CLI, or minted by AdSpendGuard). `ContentDesk.draft` pays once per platform, journaled; the review seat approves, rejects or edits (rows, straight to Postgres); `PostPublish` claims due drafts and publishes through the `Content` service, which speaks each platform's API through autobrowse's `sites` (Reddit direct); `PostMetrics` snapshots posts on a tier (every 6 h at first, then daily, then weekly to day 30) and says what worked on Mondays; `PostPlan` says tomorrow's shortfall and, with `draft` on, fills each open slot first: ideas from `nextIdea` (undrafted ideas, a reader's question, a video chapter; the build log retired 10-14), drafted through `ContentDesk.draft`, each new row given its slot (O5).
 
 ## Why this shape
 
@@ -25,7 +25,7 @@ Approving is publishing, so it stays a person's call; the loops only move approv
 3. Review (`review.ts:70`, `:165`, `:170`); slots (`slots.ts`).
 4. Publish (`restate/scheduler.ts`; `queue.ts:37`; `packages/starling/core/src/service.ts`; adapters `packages/starling/channels/*/src/content.ts`).
 5. Metrics and plan (`metrics.ts:50`, `:97`; `restate/metrics.ts`; `plan.ts`; `restate/planner.ts`).
-6. Daily drafts: open slots (`plan.ts:96`), next idea (`plan.ts:135`; `ideas/questions.ts`, `ideas/chapters.ts`), fill (`restate/planner.ts:148`). A draft waits at most `DRAFT_WAIT_MS` (15 min); past it the desk's call runs on (`keep`) and the pass drafts no more, since the desk's one lock is that call's. Three in a row and the idea is held (`unit_holds`, stage `loop.content-planner/<key>`) and passed over. Settings: `platforms`, `draft`, `slots` (`slotsOf`, `slots.ts:45`: a slot with a bad hour, minute or weekday is dropped). The plan's `waiting` counts only drafts holding a slot inside the day (`plan.ts:42`): older unapproved drafts wait in To approve and never block tomorrow. Campaigns: the pass walks the live campaigns in body order (`liveCampaigns` dep, the worker's `liveCampaignsOf`), then the default. A campaign drafts only its own ideas, on platforms where it names an account, under its `<platform>.post` cap (`campaignSlots` + `capLeft`); its drafts get its account as their `draft_accounts` pick (Wren only; a client posts as its own login). Approve without a slot takes the planner's slots, not the defaults (`ContentDesk.approve` reads `ContentPlanner/default` status; the CLI the same through ingress); a client's desk keeps the defaults.
+6. Daily drafts: open slots (`plan.ts:96`), next idea (`plan.ts:135`; `ideas/questions.ts`, `ideas/chapters.ts`), fill (`restate/planner.ts:148`). A draft waits at most `DRAFT_WAIT_MS` (15 min); past it the desk's call runs on (`keep`) and the pass drafts no more, since the desk's one lock is that call's. Three in a row and the idea is held (`unit_holds`, stage `loop.content-planner/<key>`) and passed over. Settings: `platforms`, `draft`, `slots` (`slotsOf`, `slots.ts:45`: a slot with a bad hour, minute or weekday is dropped). The plan's `waiting` counts only drafts holding a slot inside the day (`plan.ts:42`): older unapproved drafts wait in To approve and never block tomorrow. Campaigns: the pass walks the live campaigns in body order (`liveCampaigns` dep, the worker's `liveCampaignsOf`), then the default. A campaign drafts only its own ideas, on platforms where it names an account, under its `<platform>.post` cap (`campaignSlots` + `capLeft`); its drafts get its account as their `draft_accounts` pick (Wren only; a client posts as its own login). Approve without a slot takes the planner's slots, not the defaults (`ContentDesk.approve` reads `PostPlan/default` status; the CLI the same through ingress); a client's desk keeps the defaults.
 
 ## If you change this
 
@@ -39,8 +39,8 @@ Approving is publishing, so it stays a person's call; the loops only move approv
 | `wren content add/draft/approve/reject/edit/results/costs` | drives |
 | `wren content planner start --draft [--slots <json>]` | turns daily drafts on |
 | `wren content planner slots <platform> <HH:MM...> [--days 1-5\|2] [--clear]` | sets one platform's slots, keeps the rest, starts the planner |
-| `ContentDesk`, `ContentScheduler`, `ContentMetrics`, `ContentPlanner`, `Content` | run |
-| `TokenRenewal/box` | keeps platform tokens valid; each `renew` waits at most `RENEW_WAIT_MS` (30 min), then runs on alone and counts as refused (`renewal.ts`; `packages/core/test/integration/token-renewal.test.ts`) |
+| `ContentDesk`, `PostPublish`, `PostMetrics`, `PostPlan`, `Content` | run |
+| `SiteTokenRenew/box` | keeps platform tokens valid; each `renew` waits at most `RENEW_WAIT_MS` (30 min), then runs on alone and counts as refused (`renewal.ts`; `packages/core/test/integration/token-renewal.test.ts`) |
 
 ## See
 

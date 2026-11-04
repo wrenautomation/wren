@@ -32,7 +32,7 @@ import {
 import { SendPolicy } from "@wren/starling-email/send/policy";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { emailConsoleApi } from "../../../src/email/restate/console.js";
-import { type FeedStats, makePoolScheduler } from "../../../src/email/restate/pool-scheduler.js";
+import { type FeedStats, makeLeadPoolFill } from "../../../src/email/restate/pool-scheduler.js";
 import { makeCompany, makeRoleLead } from "./compose-fixtures.js";
 
 const POLICY = SendPolicy.fromSettings(
@@ -98,7 +98,7 @@ beforeAll(async () => {
   env = await startTestRestate({
     services: [
       ...fakes,
-      makePoolScheduler({
+      makeLeadPoolFill({
         db: pg.db,
         clientDb: (id) => open({ database: `wren_client_${id}` }),
         policy: POLICY,
@@ -121,7 +121,7 @@ afterAll(async () => {
 const sync = (key: string) =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<ReturnType<typeof makePoolScheduler>>({ name: "PoolScheduler" }, key)
+    .objectClient<ReturnType<typeof makeLeadPoolFill>>({ name: "LeadPoolFill" }, key)
     .sync() as Promise<PassOutcome<FeedStats>>;
 
 describe("a client's pool with social reads and signals", () => {

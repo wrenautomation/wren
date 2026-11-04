@@ -12,7 +12,7 @@ One paced walk of the outbox for one inbox: kill switches, reconcile, then send 
 
 ## Input → Movement → Output
 
-Approved messages, the clock, the policy, this sender's pauses. `SendScheduler/{sender}` runs `sendTick`: evaluate kill switches, reconcile in-flight rows, then `sendDue` commits `sending` with our Message-ID, calls the transport, records `sent`, `failed` or `unknown`. Then it schedules its next `loop` with a durable delay. A tick that throws 3 times is a failed pass with a backoff, never a parked key (`passOrFailed`).
+Approved messages, the clock, the policy, this sender's pauses. `EmailSend/{sender}` runs `sendTick`: evaluate kill switches, reconcile in-flight rows, then `sendDue` commits `sending` with our Message-ID, calls the transport, records `sent`, `failed` or `unknown`. Then it schedules its next `loop` with a durable delay. A tick that throws 3 times is a failed pass with a backoff, never a parked key (`passOrFailed`).
 
 ## Why this shape
 
@@ -36,7 +36,7 @@ Intent before act, so a crash costs at most one message. At least once (2026-11-
 
 | Surface | Role |
 |---|---|
-| `SendScheduler/{sender}` | runs |
+| `EmailSend/{sender}` | runs |
 | Restate ingress (`docs/restate-operations.md`), `walkthrough/demos/01-loops.sh` | drives |
 
 ## See

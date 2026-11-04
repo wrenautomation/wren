@@ -25,7 +25,7 @@ Citations: `packages/starling/channels/email/src/send/roster.ts:301`
 
 ## Connected to
 
-- **owns:** the set of keys for `SendScheduler/{sender}` and `InboxScheduler/{sender}`
+- **owns:** the set of keys for `EmailSend/{sender}` and `EmailInboxRead/{sender}`
 - **joins:** [[email/send-policy]] (caps are per inbox), [[email/sender-pause]] (keyed by sender), [[email/transport]] (which carrier)
 - **looks-like-but-is-not:** [[sms/sms-number]] (the SMS fleet lives in a table)
 

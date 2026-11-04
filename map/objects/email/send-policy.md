@@ -30,7 +30,7 @@ Citations: `packages/starling/channels/email/src/send/policy.ts:79`
 
 ## If you change this
 
-- **Hits:** `sendDue` pacing and windows; `ComposeScheduler`'s shortfall; digest hour and its one fleet ramp line (`rampSummary`); a new per-campaign reader must take the merged policy from `campaignPolicy`, or it ignores the console
+- **Hits:** `sendDue` pacing and windows; `EmailOpenerFill`'s shortfall; digest hour and its one fleet ramp line (`rampSummary`); a new per-campaign reader must take the merged policy from `campaignPolicy`, or it ignores the console
 - **Does not hit:** which message goes (the walk decides), the SMS window
 
 ## Surfaces
@@ -39,7 +39,7 @@ Citations: `packages/starling/channels/email/src/send/policy.ts:79`
 |---|---|
 | env (`WREN_SEND_*`) | writes |
 | `EmailConsole{setCampaign,killSwitchOn,killSwitchOff,stopOpeners,resumeOpeners}` | writes `campaign_controls` |
-| `SendScheduler`, `ComposeScheduler`, `DigestScheduler` | read |
+| `EmailSend`, `EmailOpenerFill`, `EmailFleetDigest` | read |
 
 ## See
 

@@ -83,7 +83,7 @@ const throws = makeLoopObject("Throws", async (ctx: restate.ObjectContext) => {
 let env: RestateTestEnvironment;
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const admin = () => restateAdmin(env.adminAPIBaseUrl());
-/** One pass now, as its loop state keeps it (`timeouts` rides there, for LoopWatch). */
+/** One pass now, as its loop state keeps it (`timeouts` rides there, for LoopRevive). */
 const sync = async (key: string): Promise<PassOutcome<Stats>> => {
   const o = ingress().objectClient<typeof limited>({ name: "Limited" }, key);
   await o.sync();

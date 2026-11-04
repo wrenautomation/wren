@@ -7,7 +7,7 @@ import { discoverySettingsSchema } from "./discovery/places.js";
 import { invitesSettingsSchema } from "./invites.js";
 import { COMMENTS_SETTINGS } from "./reach-posts/settings.js";
 
-/** A client's loop units: `ReachWatch/<client>/daily`, `ReachSender/<client>/fleet`, `RedditReads/<client>/daily`. */
+/** A client's loop units: `ReachInboxRead/<client>/daily`, `ReachSend/<client>/fleet`, `RedditReads/<client>/daily`. */
 const WATCH_UNIT = "daily";
 const SENDER_UNIT = "fleet";
 const READS_UNIT = "daily";
@@ -25,13 +25,13 @@ export const OUTREACH_COMPONENTS = [
     requires: { anyAccount: ["linkedin", "reddit"] },
     soon: ["x"],
     provides: {
-      services: ["ReachSender", "ReachWatch", "ReachDesk", "CommentProofs"],
-      loops: ["ReachSender", "ReachWatch"],
+      services: ["ReachSend", "ReachInboxRead", "ReachDesk", "CommentProofs"],
+      loops: ["ReachSend", "ReachInboxRead"],
       records: ["marketing.person", "marketing.account"],
     },
     clientLoops: (client) => [
-      { service: "ReachSender", key: clientKey(client, SENDER_UNIT) },
-      { service: "ReachWatch", key: clientKey(client, WATCH_UNIT) },
+      { service: "ReachSend", key: clientKey(client, SENDER_UNIT) },
+      { service: "ReachInboxRead", key: clientKey(client, WATCH_UNIT) },
     ],
     // DMs are planned and held in its own database; none leaves until an admin turns sends on.
     liveSwitch: true,
@@ -95,10 +95,10 @@ export const OUTREACH_COMPONENTS = [
     ready: true,
     settings: commentsReadSettingsSchema,
     wrenSettings: true,
-    // ReachWatch is Social outreach's loop; this part is its inbox read, on the client's logins.
+    // ReachInboxRead is Social outreach's loop; this part is its inbox read, on the client's logins.
     requires: { accounts: ["reddit"] },
     provides: { records: ["marketing.comment"] },
-    clientLoops: (client) => [{ service: "ReachWatch", key: clientKey(client, WATCH_UNIT) }],
+    clientLoops: (client) => [{ service: "ReachInboxRead", key: clientKey(client, WATCH_UNIT) }],
     out: [{ id: "comment", label: "new comments", kind: "comment" }],
     hypothesis: {
       from: "Wren's Reddit posts, 2026-10",
@@ -227,8 +227,8 @@ export const OUTREACH_COMPONENTS = [
     // The watch sweeps and queues, the sender invites: both only once an admin armed it
     // (`--live linkedin.invites`) and activated the client's login (`reach accounts activate`).
     clientLoops: (client) => [
-      { service: "ReachWatch", key: clientKey(client, WATCH_UNIT) },
-      { service: "ReachSender", key: clientKey(client, SENDER_UNIT) },
+      { service: "ReachInboxRead", key: clientKey(client, WATCH_UNIT) },
+      { service: "ReachSend", key: clientKey(client, SENDER_UNIT) },
     ],
     liveSwitch: true,
     provides: { records: ["marketing.invite"] },

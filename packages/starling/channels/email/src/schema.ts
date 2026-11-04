@@ -788,7 +788,7 @@ export interface AuthResults {
 }
 
 /**
- * One seed copy per sender, seed, send day and kind (`PlacementScheduler`).
+ * One seed copy per sender, seed, send day and kind (`EmailPlacementTest`).
  * The key is the idempotency: a retried pass finds its row and never sends twice.
  * `detail` says why a day has no landing (`no draft yet`, a refusal).
  */

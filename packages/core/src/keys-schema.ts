@@ -121,7 +121,7 @@ export type VaultKeyState = (typeof VAULT_KEY_STATES)[number];
 /**
  * The operator's API keys, mirrored from autobrowse's vault (`sites/keys`) hourly and after each
  * action, so the Accounts page makes no vendor call on load. Never a secret: the source has none,
- * and `syncVaultKeys` drops a row that carries one.
+ * and `syncVaultKeyMirror` drops a row that carries one.
  */
 export const vaultKeys = pgTable(
   "vault_keys",

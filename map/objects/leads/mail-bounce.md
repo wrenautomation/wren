@@ -26,7 +26,7 @@ A late bounce comes back to the mailbox that sent, not the one picked now. `last
 - `mail_bounces` (`packages/core/src/bounces-schema.ts:35`): `mailbox`, `provider_id`, `message_id`, `address`, `class` hard|soft, `matched_by` message_id|address, `status`, `diagnostic`, `recipient_id` or `consent_event_id`, `suppression_id`, `received_at`. Migration 0258.
 - `mail_bounce_reads` (`:92`): `mailbox`, `read_at` (null before the first check), `stats`, `last_sender_at`. Migrations 0258, 0260.
 - Reader: `readBounces` (`packages/starling/inbound/src/inbox/marketing-bounces.ts:63`): Gmail search for reports (Spam and Trash too), Graph's inbox by time; `mayBeBounce` on sender and subject, then `classify` (`inbox/inbound.ts`). First check looks back 7 days, later ones overlap 15 minutes.
-- Loop: `BounceScheduler/all`, hourly (`packages/starling/inbound/src/restate/bounce-scheduler.ts:75`). Wren's portal@ mailbox into main; each client's picked sender, and any it picked in the last 14 days, into its own database. A sender with no read connection is skipped (`SEND_ONLY`, `:41`); an earlier sender no longer connected too (`GONE`).
+- Loop: `EmailBounceRead/all`, hourly (`packages/starling/inbound/src/restate/bounce-scheduler.ts:75`). Wren's portal@ mailbox into main; each client's picked sender, and any it picked in the last 14 days, into its own database. A sender with no read connection is skipped (`SEND_ONLY`, `:41`); an earlier sender no longer connected too (`GONE`).
 
 Citations: `packages/core/src/bounces.ts:157`, `packages/starling/inbound/src/restate/bounce-scheduler.ts:44`
 
@@ -46,7 +46,7 @@ Citations: `packages/core/src/bounces.ts:157`, `packages/starling/inbound/src/re
 
 | Surface | Role |
 |---|---|
-| `BounceScheduler/all` | writes |
+| `EmailBounceRead/all` | writes |
 | People → Sent | reads |
 | Account → Messaging (portal) | says when the sender is send only |
 

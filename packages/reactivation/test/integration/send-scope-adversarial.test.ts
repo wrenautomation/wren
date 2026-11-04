@@ -1,5 +1,5 @@
 /**
- * The real SendScheduler under a client's send scope, routed the way the
+ * The real EmailSend under a client's send scope, routed the way the
  * worker routes it: `<client>/<mailbox>` to the client's own database, a bare
  * address to Wren's. Whose mail goes out, from which database, and does the
  * loop stop the moment the client can't send.
@@ -13,12 +13,7 @@ import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { ConsoleTransport, SendPolicy } from "@wren/starling-email";
-import {
-  makeSendScheduler,
-  NO_SCOPE,
-  oneScope,
-  type SendScheduler,
-} from "@wren/starling-outbound/email";
+import { type EmailSend, makeEmailSend, NO_SCOPE, oneScope } from "@wren/starling-outbound/email";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { clientSendScope } from "../../src/sending.js";
@@ -65,7 +60,7 @@ beforeAll(async () => {
   });
   env = await startTestRestate({
     services: [
-      makeSendScheduler({
+      makeEmailSend({
         transport,
         scopeOf: (key) => (clientOfKey(key) ? clientSendScope(clients, key) : wren(key)),
         tickMs: 60_000,
@@ -112,7 +107,7 @@ const stateOf = async (db: Db, enrollment: number) =>
 const scheduler = (key: string) =>
   ingress
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<SendScheduler>({ name: "SendScheduler" }, key);
+    .objectClient<EmailSend>({ name: "EmailSend" }, key);
 
 describe("a client mailbox's send loop", () => {
   it("sends the client's mail from the client's database, and a bare key never does", async () => {

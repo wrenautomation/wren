@@ -1,5 +1,5 @@
 /**
- * `ContentMetrics/default`: looks at each young published post on its tier (`LOOK_TIERS`:
+ * `PostMetrics/default`: looks at each young published post on its tier (`LOOK_TIERS`:
  * every 6 hours at first, then daily, then weekly) through the `Content` service and writes a
  * snapshot row. On the first pass of a Monday it sends "what worked" for the week. Cheap and
  * read-only on the platforms, so a miss just waits for the next pass.
@@ -7,7 +7,7 @@
  * A pass reads each platform's due posts in one `metricsMany` where the channel has one (a
  * timeline, a listing or a batch query holds many posts), and a post it left out alone.
  *
- * `ContentMetrics/<client>/posts`: the same for a client's posts, read on its own logins into its
+ * `PostMetrics/<client>/posts`: the same for a client's posts, read on its own logins into its
  * own database. No Monday report: that goes to Wren's lane.
  *
  * Each look also reads the post's insights (designs/2026-10-07-content-analytics.md) into
@@ -149,7 +149,7 @@ export function withCounts(m: Metrics, i: Insights | null): Insights {
   };
 }
 
-interface ContentMetricsDeps {
+interface PostMetricsDeps {
   db: Db;
   /** Sleep between passes (default 1 h; a post's tier decides which are looked at). */
   everyMs?: number;
@@ -189,10 +189,10 @@ type Misses = Record<string, { n: number; until: number }>;
 /** The wait after `n` failed looks in a row: 2 h, doubled each time, at most a day. */
 export const missWaitMs = (n: number) => Math.min(MISS_FIRST_MS * 2 ** (n - 1), MISS_MAX_MS);
 
-export function makeContentMetrics(deps: ContentMetricsDeps) {
+export function makePostMetrics(deps: PostMetricsDeps) {
   const everyMs = deps.everyMs ?? DEFAULT_EVERY_MS;
   const L = limitsWith(deps.limits);
-  return makeLoopObject("ContentMetrics", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("PostMetrics", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const content = ctx.serviceClient<ContentService>({ name: "Content" });
     const owner = clientOfKey(ctx.key);
@@ -203,7 +203,7 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
       if (plan.kind === "gone") return stoppedPass<MetricsStats>(ctx, now, plan.why);
     }
     const db = client && deps.clientDb ? deps.clientDb(client) : deps.db;
-    const limits = await unitLimits(ctx, deps.db, "ContentMetrics", { oneHost: true });
+    const limits = await unitLimits(ctx, deps.db, "PostMetrics", { oneHost: true });
     const due = await ctx.run("metrics due", () => metricsDue(db, now));
     const stats: MetricsStats = { looked: [], failed: [], reported: false };
     const holds = liveHolds((await ctx.get<CapHolds>(CAP_HOLDS)) ?? {}, now.getTime());
@@ -424,4 +424,4 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
   });
 }
 
-export type ContentMetrics = ReturnType<typeof makeContentMetrics>;
+export type PostMetrics = ReturnType<typeof makePostMetrics>;

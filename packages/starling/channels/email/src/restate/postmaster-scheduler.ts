@@ -5,7 +5,7 @@
  * whether or not it worked. A Postmaster outage must not become a call per
  * minute, and tomorrow's pull re-reads today's window anyway.
  *
- * `PostmasterScheduler/<client>/daily`: the same pull for a client with Inbox health installed,
+ * `EmailPostmasterPull/<client>/daily`: the same pull for a client with Inbox health installed,
  * on its own sending domains (`accounts.postmaster`), into its own database. Only a domain its
  * setup verified in Postmaster (`postmaster.verified` on its `domain` account) is read; the rest
  * are named in the pass. Wren's Postmaster login reads them: the domain is added to it.
@@ -24,7 +24,7 @@ import {
 } from "../inbox/postmaster.js";
 import type { SendPolicy } from "../send/policy.js";
 
-interface PostmasterSchedulerDeps {
+interface EmailPostmasterPullDeps {
   db: Db;
   client: PostmasterClient;
   /** The distinct domains the roster sends from, in roster order. */
@@ -86,7 +86,7 @@ export function untilNextLocalDay(policy: SendPolicy, now: Date): number {
   return nextMidnight.getTime() - now.getTime();
 }
 
-export function makePostmasterScheduler(deps: PostmasterSchedulerDeps) {
+export function makeEmailPostmasterPull(deps: EmailPostmasterPullDeps) {
   const days = deps.days ?? 7;
   /** A client's pass: its verified domains into its own database. */
   const clientPass = async (ctx: restate.ObjectContext, id: string, now: Date, delay: number) => {
@@ -119,7 +119,7 @@ export function makePostmasterScheduler(deps: PostmasterSchedulerDeps) {
       retryMs: delay,
     });
   };
-  return makeLoopObject("PostmasterScheduler", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("EmailPostmasterPull", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const delay = untilNextLocalDay(deps.policy, now);
     const client = clientOfKey(ctx.key);
@@ -147,4 +147,4 @@ export function makePostmasterScheduler(deps: PostmasterSchedulerDeps) {
 
 type ClientStats = PostmasterStats & { not_verified: string[] };
 
-export type PostmasterScheduler = ReturnType<typeof makePostmasterScheduler>;
+export type EmailPostmasterPull = ReturnType<typeof makeEmailPostmasterPull>;

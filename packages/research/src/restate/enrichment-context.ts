@@ -47,7 +47,7 @@ export interface EnrichmentDeps {
    * names none of its own. The niche registry owns the lists.
    */
   crawlHintsFor?: (niche: string | null) => ReadonlySet<string>;
-  /** Where archived page HTML is; the scan reads it back for pages `PageArchive` moved. */
+  /** Where archived page HTML is; the scan reads it back for pages `PageHtmlArchive` moved. */
   pages?: PageStore | null;
   /** autobrowse's sites, for `profiles` (Exa's cache, Google); null = that stage refuses. */
   sites?: SiteClient | null;

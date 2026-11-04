@@ -43,7 +43,7 @@ Citations: `packages/core/src/schema.ts:219`
 |---|---|
 | `wren email import` | writes |
 | `Discovery.verify`, `Resolution.verifyLeads` | move status |
-| `PoolScheduler` | drives the above |
+| `LeadPoolFill` | drives the above |
 | compose | reads `verified` |
 | `wren email sheet --niche <n> [--csv]` | reads `lead_sheet` |
 

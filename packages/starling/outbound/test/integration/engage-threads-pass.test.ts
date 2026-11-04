@@ -1,5 +1,5 @@
 /**
- * Engage threads, one whole `ReachWatch` pass at a time on a real Restate and Postgres
+ * Engage threads, one whole `ReachInboxRead` pass at a time on a real Restate and Postgres
  * (designs/2026-10-15-engage-threads.md): the inbox shows one reply under our comment; the same
  * pass watches the thread, probes its count, reads it in full and keeps the follow-ups the inbox
  * never lists (the replier's self-reply, a third person's deep reply), never the stranger and
@@ -22,7 +22,7 @@ import { COMMENT_FOLD } from "@wren/starling-conversations/records";
 import { comments } from "@wren/starling-conversations/schema";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { commentRecord } from "../../src/records.js";
-import { makeReachWatch, type WatchStats } from "../../src/restate/index.js";
+import { makeReachInboxRead, type WatchStats } from "../../src/restate/index.js";
 import { REACH_SEQUENCES } from "../../src/sequences.js";
 
 const HOUR = 3_600_000;
@@ -148,7 +148,7 @@ beforeAll(async () => {
   env = await startTestRestate({
     services: [
       executor.service,
-      makeReachWatch({
+      makeReachInboxRead({
         db: pg.db,
         policy: DEFAULT_POLICY,
         sequences: REACH_SEQUENCES,
@@ -171,7 +171,7 @@ afterAll(async () => {
 const pass = () =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<ReturnType<typeof makeReachWatch>>({ name: "ReachWatch" }, "wren")
+    .objectClient<ReturnType<typeof makeReachInboxRead>>({ name: "ReachInboxRead" }, "wren")
     .sync() as Promise<PassOutcome<WatchStats>>;
 const rows = async () =>
   (await pg.db.select().from(comments)).map((c) => [c.ref, c.kind, c.author]).sort();
@@ -184,7 +184,7 @@ const reads = () => paths.filter((p) => p === "/comments/p1").length;
 const emitted = () =>
   executor.emitted.filter((e) => e.workflow === COMMENTS_FLOW).flatMap((e) => e.events);
 
-describe("a whole ReachWatch pass over a thread", () => {
+describe("a whole ReachInboxRead pass over a thread", () => {
   it("with the desk off: no reads, none marked read, asked again in 10 minutes", async () => {
     deskUp = false;
     const out = await pass();

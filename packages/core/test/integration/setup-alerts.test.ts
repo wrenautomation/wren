@@ -1,7 +1,7 @@
 /**
  * Setup alerts on Postgres: each state change alerts once, routed to whoever acts; a lost fact
  * pauses the installed parts that need it and its return resumes them; a run past its limit turns
- * stuck once; the team hears each alert once and a daily digest of what's still open. SetupWatch
+ * stuck once; the team hears each alert once and a daily digest of what's still open. SetupRecheck
  * writes only its own three tables.
  */
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
@@ -267,7 +267,7 @@ describe("setup alerts", () => {
     expect(await setupWatchPass(deps, now)).toMatchObject({ digests: 1 });
   });
 
-  it("SetupWatch writes only setup runs, facts and alerts, and checks read nothing else", async () => {
+  it("SetupRecheck writes only setup runs, facts and alerts, and checks read nothing else", async () => {
     // Every other table logs any write to it. The audit log's own rows record those three.
     await pg.db.execute(sql`create table write_log (t text)`);
     await pg.db.execute(sql`

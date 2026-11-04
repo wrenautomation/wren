@@ -19,12 +19,12 @@ export function registerWatch(
   rootDir: string,
 ): void {
   const loop = () =>
-    clients.connect(ingressOf(settings)).objectClient<Watch>({ name: "Watch" }, WATCH_KEY);
+    clients.connect(ingressOf(settings)).objectClient<Watch>({ name: "MyMailTriage" }, WATCH_KEY);
   const watch = program
     .command("monitor")
     .alias("watch")
     .description(
-      "Monitor (Watch/all) on the Postgres box: new mail every 15 minutes, sorted on the executor; Learn's feeds hourly",
+      "Monitor (MyMailTriage/all) on the Postgres box: new mail every 15 minutes, sorted on the executor; Learn's feeds hourly",
     );
   watch.command("status").action(async () => json(await loop().status()));
   watch

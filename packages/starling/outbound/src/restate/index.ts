@@ -1,11 +1,11 @@
 /**
  * Cold outreach on Restate:
  *
- * - `ReachSender/fleet`: the send loop. One pass = one tick (tick.ts) over
+ * - `ReachSend/fleet`: the send loop. One pass = one tick (tick.ts) over
  *   the journal: database steps in `ctx.run`, platform calls as journaled
  *   calls to the Mac's desk. Next pass after the gap when it sent, five
  *   minutes when nothing could go. Off until `wren reach queue start`.
- * - `ReachWatch/daily`: reads each account's inbox on the warm cadence
+ * - `ReachInboxRead/daily`: reads each account's inbox on the warm cadence
  *   (`@wren/core/warm`): every 2 minutes right after a touch, easing to 30.
  *   DMs become replies, comments on our posts and under our comments become
  *   `comments` rows and events on the `reach.comments` workflow. Then each
@@ -55,11 +55,11 @@ export {
   type ProofsDeps,
   scheduleProofs,
 } from "./proofs.js";
-export { makeReachSender, type ReachSender, reachDelayMs } from "./sender.js";
+export { makeReachSend, type ReachSend, reachDelayMs } from "./sender.js";
 export {
   type InvitesPass,
-  makeReachWatch,
-  type ReachWatchObject,
+  makeReachInboxRead,
+  type ReachInboxReadObject,
   type ThreadsStats,
   type WatchStats,
 } from "./watch.js";

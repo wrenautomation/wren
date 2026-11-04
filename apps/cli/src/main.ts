@@ -7,8 +7,8 @@ import { userInfo } from "node:os";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, loadEnvFile, loadSettings } from "@wren/config";
 import { WREN } from "@wren/core/access";
-import { type AuditSealer, SEALER_KEY } from "@wren/core/audit";
-import { RENEWAL_KEY, type TokenRenewal } from "@wren/core/autobrowse/renewal";
+import { type AuditSeal, SEALER_KEY } from "@wren/core/audit";
+import { RENEWAL_KEY, type SiteTokenRenew } from "@wren/core/autobrowse/renewal";
 import { type Client, clientUrl, getClient, listClients } from "@wren/core/clients";
 import { githubRepo } from "@wren/core/github";
 import { linkPeople } from "@wren/core/leads";
@@ -217,12 +217,10 @@ audit
     if (Object.values(checks).some((c) => c.broken)) process.exitCode = 1;
   });
 const sealer = () =>
-  clients
-    .connect(ingressOf(settings))
-    .objectClient<AuditSealer>({ name: "AuditSealer" }, SEALER_KEY);
+  clients.connect(ingressOf(settings)).objectClient<AuditSeal>({ name: "AuditSeal" }, SEALER_KEY);
 const sealing = audit
   .command("sealer")
-  .description("AuditSealer: seals main and every client database every 15 minutes");
+  .description("AuditSeal: seals main and every client database every 15 minutes");
 sealing
   .command("status")
   .action(async () => console.log(JSON.stringify(await sealer().status(), null, 2)));
@@ -386,10 +384,10 @@ registerTemplates(program, {
 const renewal = () =>
   clients
     .connect(ingressOf(settings))
-    .objectClient<TokenRenewal>({ name: "TokenRenewal" }, RENEWAL_KEY);
+    .objectClient<SiteTokenRenew>({ name: "SiteTokenRenew" }, RENEWAL_KEY);
 const tokens = program
   .command("tokens")
-  .description("TokenRenewal: autobrowse makes again what lapses within 14 days");
+  .description("SiteTokenRenew: autobrowse makes again what lapses within 14 days");
 tokens
   .command("status")
   .action(async () => console.log(JSON.stringify(await renewal().status(), null, 2)));

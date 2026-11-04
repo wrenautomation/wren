@@ -12,7 +12,7 @@ Phones lifted from crawled pages become contacts with a basis; enrolled contacts
 
 ## Input → Movement → Output
 
-Stored documents and the niche's SMS sequence. `SmsDesk.lift` writes contacts with `published` basis; `SmsDesk.enroll` confirms mobiles and queues step 1; `SmsSender/fleet` runs one tick per pass (reconcile, then at most one text per ready number, under every cap, only when `WREN_SMS_LIVE` allows a real provider), woken at commit by any queued text (`wren_wake`, the box's listener `apps/worker/src/wake.ts`) and otherwise asleep until the next due, 15 min at most; `SmsEvents.ingest` applies receipts and inbound texts once each; `SmsWatch/daily` follows up site applicants, queues day-before reminders for cal.com calls, labels replies and runs health every 30 minutes.
+Stored documents and the niche's SMS sequence. `SmsDesk.lift` writes contacts with `published` basis; `SmsDesk.enroll` confirms mobiles and queues step 1; `SmsSend/fleet` runs one tick per pass (reconcile, then at most one text per ready number, under every cap, only when `WREN_SMS_LIVE` allows a real provider), woken at commit by any queued text (`wren_wake`, the box's listener `apps/worker/src/wake.ts`) and otherwise asleep until the next due, 15 min at most; `SmsEvents.ingest` applies receipts and inbound texts once each; `SmsUpkeep/daily` follows up site applicants, queues day-before reminders for cal.com calls, labels replies and runs health every 30 minutes.
 
 ## Why this shape
 
@@ -37,7 +37,7 @@ At least once (2026-11-04): intent before act, a lost answer sent once more unde
 | Surface | Role |
 |---|---|
 | `wren sms lift/enroll/queue/threads/numbers` | drives |
-| `SmsSender`, `SmsEvents`, `SmsDesk`, `SmsWatch` | run |
+| `SmsSend`, `SmsEvents`, `SmsDesk`, `SmsUpkeep` | run |
 | phone PWA | reads, replies |
 
 ## See

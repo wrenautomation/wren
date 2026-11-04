@@ -1,7 +1,7 @@
 /**
  * SocialInbox (designs/2026-10-07-client-social.md): a client's DMs and comment answers through
  * its own connected accounts. `read` brings its Facebook Page's, Instagram's and X's DMs into its
- * Inbox (SocialWatch calls it each pass). `send` answers a DM and `answer` a comment, each after
+ * Inbox (SocialActivityRead calls it each pass). `send` answers a DM and `answer` a comment, each after
  * InboxDesk's gate said yes, and each refused again here while the client's sends are off.
  */
 import * as restate from "@restatedev/restate-sdk";

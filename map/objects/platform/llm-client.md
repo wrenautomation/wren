@@ -38,7 +38,7 @@ Citations: `packages/llm/src/client.ts:30`, `packages/llm/src/stage.ts:62`
 
 | Surface | Role |
 |---|---|
-| `Enrichment`, `Disposition`, `SmsWatch`, `ContentDesk` | call |
+| `Enrichment`, `Disposition`, `SmsUpkeep`, `ContentDesk` | call |
 
 ## See
 

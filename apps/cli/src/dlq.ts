@@ -1,6 +1,6 @@
 /**
  * `wren dlq …`: the dead-letter queue (designs/2026-10-11-dead-letters.md). Every Restate
- * invocation that used up its retries and paused, filed by the `DeadLetters` loop. Reads go to
+ * invocation that used up its retries and paused, filed by the `FailedCallAlert` loop. Reads go to
  * the database; `retry` and `kill` go to Restate's admin API (`WREN_RESTATE_ADMIN_URL`).
  * `--json` everywhere, so an agent reads the same rows a person does.
  */
@@ -11,10 +11,10 @@ import { type RestateAdmin, restateAdmin } from "@wren/core/console";
 import {
   DEAD_LETTERS_KEY,
   type DeadLetterAct,
-  type DeadLetters,
   deadLetter,
   deadLetterList,
   endDeadLetter,
+  type FailedCallAlert,
   journalOf,
   letterLine,
   restateAdminPatch,
@@ -40,7 +40,7 @@ export function registerDlq(program: Command, withMainDb: WithDb, settings: Sett
   const loop = () =>
     clients
       .connect(ingressOf(settings))
-      .objectClient<DeadLetters>({ name: "DeadLetters" }, DEAD_LETTERS_KEY);
+      .objectClient<FailedCallAlert>({ name: "FailedCallAlert" }, DEAD_LETTERS_KEY);
 
   const cmd = program
     .command("dlq")
@@ -108,7 +108,9 @@ export function registerDlq(program: Command, withMainDb: WithDb, settings: Sett
   act("kill", "Give up on it: Restate ends it with an error its caller sees");
   act("drop", "Close the letter only (handled some other way); Restate is left alone");
 
-  const sweep = cmd.command("sweep").description("The DeadLetters loop: a sweep every 10 minutes");
+  const sweep = cmd
+    .command("sweep")
+    .description("The FailedCallAlert loop: a sweep every 10 minutes");
   for (const [name, what] of [
     ["status", "Its last sweep"],
     ["start", "Loop: sweep, then again in 10 minutes"],

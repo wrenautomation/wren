@@ -1,5 +1,5 @@
 /**
- * The queue-keeper: `ComposeScheduler/{niche}` keeps the approved opener queue a few
+ * The queue-keeper: `EmailOpenerFill/{niche}` keeps the approved opener queue a few
  * send days ahead of what the fleet may send, so the send loops never starve and nobody
  * composes by hand. A pass measures tomorrow's capacity (today's caps summed over this niche's
  * active inboxes, each on its own ramp if it has one, under the fleet and niche opener brakes), counts approved openers not
@@ -70,7 +70,7 @@ export interface Campaign {
   readonly fill?: Filler;
 }
 
-interface ComposeSchedulerDeps {
+interface EmailOpenerFillDeps {
   db: Db;
   policy: SendPolicy;
   campaigns: ReadonlyMap<string, Campaign>;
@@ -331,10 +331,10 @@ export async function topUp(
   return stats;
 }
 
-export function makeComposeScheduler(deps: ComposeSchedulerDeps) {
+export function makeEmailOpenerFill(deps: EmailOpenerFillDeps) {
   const retryMs = deps.retryMs ?? DEFAULT_RETRY_MS;
   const trackOpens = deps.trackOpens ?? false;
-  return makeLoopObject("ComposeScheduler", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("EmailOpenerFill", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     // Wren's key is its niche; a client's is `<client>/<niche>`, on its database under its caps.
     const owner = clientOfKey(ctx.key);
@@ -425,4 +425,4 @@ export function makeComposeScheduler(deps: ComposeSchedulerDeps) {
   });
 }
 
-export type ComposeScheduler = ReturnType<typeof makeComposeScheduler>;
+export type EmailOpenerFill = ReturnType<typeof makeEmailOpenerFill>;

@@ -1,5 +1,5 @@
 /**
- * What SocialWatch keeps (designs/2026-10-06-social-inbox.md): comments on our recent posts as
+ * What SocialActivityRead keeps (designs/2026-10-06-social-inbox.md): comments on our recent posts as
  * `comments` rows (`channel = content`), activity as `social_activity`, and one follower count per
  * platform per day in `social_days`. Every write is idempotent on the platform's id.
  */

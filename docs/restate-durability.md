@@ -44,7 +44,7 @@ A Virtual Object with five handlers:
 The pass is one `ctx.run`. It catches its own error and returns
 `{stats, error}` instead of throwing, so a failing stage retries on *our*
 schedule, not Restate's, and the loop never dies. Failures in a row back off
-15s, 30s, 1m, ... up to the loop's `retryMs` cap (8 min for PoolScheduler);
+15s, 30s, 1m, ... up to the loop's `retryMs` cap (8 min for LeadPoolFill);
 one clean pass resets it (`failures` in `last`). The delay is computed from the journaled result, so a replay
 picks the same delay.
 
@@ -61,13 +61,11 @@ Restate ──loop, 9h12m later──▶ Lambda (cold start if needed)
 
 | Service | Key | Sleeps for | Notes |
 |---|---|---|---|
-| `SendScheduler` | sender address | gap after a send (policy-drawn, seeded from the journal); 60 s tick while the window is open and nothing went; **until the next window opens** when closed | Daily cap, ramp and window are policy, per inbox. Kill switches run first every tick and pause a domain whose trailing bounces cross the line. |
-| `InboxScheduler` | sender address | 2 min after a pass; 1 min after a failure | Reads the mailbox from its cursor. Human replies found → fires `Disposition/fleet/classify`, so replies are labelled within minutes. |
+| `EmailSend` | sender address | gap after a send (policy-drawn, seeded from the journal); 60 s tick while the window is open and nothing went; **until the next window opens** when closed | Daily cap, ramp and window are policy, per inbox. Kill switches run first every tick and pause a domain whose trailing bounces cross the line. |
+| `EmailInboxRead` | sender address | 2 min after a pass; 1 min after a failure | Reads the mailbox from its cursor. Human replies found → fires `Disposition/fleet/classify`, so replies are labelled within minutes. |
 | `Disposition` | `fleet` | on demand | One classify at a time: two inboxes finding replies in the same minute queue instead of paying the LLM twice. |
-| `PostmasterScheduler` | `fleet` | **until next local midnight**, success or failure | Re-reads the last 7 days per sending domain (Google revises late). Bound because `WREN_POSTMASTER_USER` is set. |
-| `OpensScheduler` | `fleet` | 2 min / 1 min | Pulls the pixel host's export from the last row id. Bound because the pixel host + export token are set. |
-| `ClicksScheduler` | `fleet` | 1 hour / 10 min | Pulls the lander's `hits` from the last view id and counts the ones that came from an email link. The cursor moves in the same transaction as the counts. Bound because the export token is set. |
-| `ReportScheduler` | `weekly` | **until next Friday 19:00** on the fleet's clock, success or failure | The weekly report (E8): counts from the same tables the views read, stored in `reports`, mailed through the send transport. No LLM. Bound because `WREN_REPORT_TO` is set. |
+| `EmailPostmasterPull` | `fleet` | **until next local midnight**, success or failure | Re-reads the last 7 days per sending domain (Google revises late). Bound because `WREN_POSTMASTER_USER` is set. |
+| `EmailClickPull` | `fleet` | 1 hour / 10 min | Pulls the lander's `hits` from the last view id and counts the ones that came from an email link. The cursor moves in the same transaction as the counts. Bound because the export token is set. |
 | `Resolution` | `default` | on demand | One key because verifier credits are one global budget. Each domain's walk is one journaled step; a crash loses at most one domain's spend. |
 | `Enrichment` | population (`all` or a niche) | on demand | crawl / render / scan / extract / pick / apply. Every unit (one company, one document) is its own journaled step: replay resumes after the last finished unit, never buys a completion twice. |
 

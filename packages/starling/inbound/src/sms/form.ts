@@ -9,7 +9,7 @@
  *
  * Two ways in, one step (`formStep`). The lander pushes each application through the phone
  * Worker (`SmsForms/applied`), which runs the step at once and again when the text is due. The
- * SmsWatch pass (`followUpForms`) reads the lander's export every 30 minutes as the net under
+ * SmsUpkeep pass (`followUpForms`) reads the lander's export every 30 minutes as the net under
  * the push. A booking under their email ends the thread before anything is sent; fits and the
  * rest get different texts (`form-fit`, `form-not-fit`), and an empty one sends nothing. The
  * phone may be in any country `WREN_SMS_FORM_COUNTRIES` lists (unset = US and Canada); any other

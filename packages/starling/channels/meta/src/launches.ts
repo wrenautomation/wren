@@ -1,5 +1,5 @@
 /**
- * The `ad_launches` ledger and the one judgement `AdsWatch` makes over it:
+ * The `ad_launches` ledger and the one judgement `AdSpendGuard` makes over it:
  * an ad set that has spent the guard amount with nothing to show (no clicks,
  * no results) gets paused. Conservative on purpose — it only ever stops
  * spend, never starts it, and one pause is one line to the channel.

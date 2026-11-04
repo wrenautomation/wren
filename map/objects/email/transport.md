@@ -38,8 +38,7 @@ Citations: `packages/starling/channels/email/src/send/transport.ts:82`
 
 | Surface | Role |
 |---|---|
-| `SendScheduler/{sender}` | calls |
-| `ReportScheduler/fleet` | calls |
+| `EmailSend/{sender}` | calls |
 
 ## See
 

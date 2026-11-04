@@ -24,21 +24,21 @@ import {
   makeBlog,
   makeClientReport,
   makeContentDesk,
-  makeContentMetrics,
-  makeContentPlanner,
-  makeContentScheduler,
   makeKeywordDm,
   makeMarketingConsole,
   makeMetaPace,
   makePieces,
+  makePostMetrics,
+  makePostPlan,
+  makePostPublish,
   makePushedComments,
+  makeSocialActivityRead,
   makeSocialDesk,
   makeSocialPush,
-  makeSocialWatch,
   makeVideoDesk,
   socialPushed,
 } from "@wren/starling-inbound/restate";
-import { makeAds, makeAdsWatch } from "@wren/starling-meta/restate";
+import { makeAdSpendGuard, makeAds } from "@wren/starling-meta/restate";
 import { draftDm } from "@wren/starling-outbound";
 import { wakeWatch } from "@wren/starling-outbound/restate";
 import { tiktokCreator } from "@wren/starling-tiktok";
@@ -47,7 +47,7 @@ import { clientMarketing } from "../marketing.js";
 import { adsFor, contentClientsFor, contentFor } from "./content-channels.js";
 import type { AnyService, Deps } from "./deps.js";
 
-/** SocialWatch's clock: 07:00-23:00 New York (designs/2026-10-06-social-inbox.md). */
+/** SocialActivityRead's clock: 07:00-23:00 New York (designs/2026-10-06-social-inbox.md). */
 const SOCIAL_ZONE = "America/New_York";
 
 /** The content domain's services, in the order they were served from `services.ts`. */
@@ -99,7 +99,7 @@ export function contentServices(deps: Deps): AnyService[] {
   // the meta site fails on its own invocation, and nothing spends until `start`.
   services.push(
     makeAds({ ...adsFor(settings), db }),
-    makeAdsWatch({ db, pauseAfterUsd: settings.adsPauseAfterUsd, ...adsNotify }),
+    makeAdSpendGuard({ db, pauseAfterUsd: settings.adsPauseAfterUsd, ...adsNotify }),
   );
   // Client reports: kept every run; mailed from portal@ only once WREN_CLIENT_REPORTS_MAIL=on.
   const clientReportDeps = {
@@ -117,7 +117,7 @@ export function contentServices(deps: Deps): AnyService[] {
   const postedWarm = (ctx: ObjectContext, p: Platform, client: string | null) => {
     if (p === "reddit" || p === "linkedin") wakeWatch(ctx, client);
   };
-  // The content loop: ideas → drafts (ContentDesk, paid) → approved drafts posted (ContentScheduler).
+  // The content loop: ideas → drafts (ContentDesk, paid) → approved drafts posted (PostPublish).
   // Always bound: drafting needs no channel; a publish with none configured fails on its row.
   services.push(
     makeContentDesk({
@@ -160,7 +160,7 @@ export function contentServices(deps: Deps): AnyService[] {
       records: clientReportDeps.records,
       mail: clientReportDeps.reportMail,
     }),
-    makeContentScheduler({
+    makePostPublish({
       db,
       posted: postedWarm,
       clientDb,
@@ -170,9 +170,9 @@ export function contentServices(deps: Deps): AnyService[] {
         : null,
       ...contentNotify,
     }),
-    makeContentMetrics({ db, clientDb, ...contentNotify }),
+    makePostMetrics({ db, clientDb, ...contentNotify }),
     // Tomorrow's slots vs scheduled drafts, said once a day; off until `wren content planner start`.
-    makeContentPlanner({
+    makePostPlan({
       db,
       clientDb,
       zone: settings.sendTimezone,
@@ -180,7 +180,7 @@ export function contentServices(deps: Deps): AnyService[] {
       ...contentNotify,
     }),
     // Comments, activity and followers on our own accounts. Reads only; off until `wren social start`.
-    makeSocialWatch({
+    makeSocialActivityRead({
       db,
       clientDb,
       platforms: settings.contentChannels,

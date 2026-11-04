@@ -1,6 +1,6 @@
 /**
  * Posts made on the site by hand, read back as published drafts (designs/2026-10-22-drift-reconcile.md),
- * so `ContentMetrics` reads their numbers like any other post. A listed post whose ref no draft
+ * so `PostMetrics` reads their numbers like any other post. A listed post whose ref no draft
  * has is first matched by its words to a draft whose send was lost (`publishing`, `failed`, or
  * marked posted with no id): that draft is stamped. The rest become a `site` idea and its draft.
  */

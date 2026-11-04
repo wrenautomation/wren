@@ -349,7 +349,7 @@ const THROWN_RETRY_MS = 60 * 60_000;
 /**
  * An error the loop takes as a failed pass. A terminal error, or a plain one thrown from replayed
  * results (a journaled 429 rethrown as a site error), would fail the same way on every retry:
- * Restate retries it until it pauses the pass, and the key stays locked (SocialWatch/wren,
+ * Restate retries it until it pauses the pass, and the key stays locked (SocialActivityRead/wren,
  * 2026-10-15). A cancel, and the SDK's own signals (suspended, closed), go through.
  */
 export function failsThePass(err: unknown): boolean {

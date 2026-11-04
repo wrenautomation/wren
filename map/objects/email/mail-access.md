@@ -34,7 +34,7 @@ Citations: `packages/starling/channels/email/src/access/schema.ts:37`, `:71`, `:
 
 - **owns:** its grants and consents
 - **owned-by:** [[platform/account-setup]] (`client_accounts` rows of site `mailbox`, `google_workspace`, `microsoft_365`)
-- **joins:** [[watch/mail]] (the `MailReader` reads connected read mailboxes into the client's `watch.mail`, `reader = 'mail'`)
+- **joins:** [[watch/mail]] (the `ClientMailTriage` reads connected read mailboxes into the client's `watch.mail`, `reader = 'mail'`)
 - **looks-like-but-is-not:** [[email/transport]] (Wren's own cold-email senders); the Monitor's mailboxes (William's, from `mailboxes` in SSM)
 
 ## If you change this
@@ -48,8 +48,8 @@ Citations: `packages/starling/channels/email/src/access/schema.ts:37`, `:71`, `:
 |---|---|
 | Account → Mail (client owners and admins; Wren's team for any client) | reads, writes (add, connect, consent link, check) |
 | `/oauth/mail/google`, `/oauth/mail/microsoft` (portal Worker) | writes (lands a grant) |
-| SetupWatch and the executor's `setup.step` | checks facts |
-| `MailReader/all`, every 15 min | reads tokens, marks broken |
+| SetupRecheck and the executor's `setup.step` | checks facts |
+| `ClientMailTriage/all`, every 15 min | reads tokens, marks broken |
 
 ## See
 

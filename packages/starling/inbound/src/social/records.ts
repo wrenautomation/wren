@@ -853,7 +853,7 @@ export const approvalRecordOf = (deps: ConsoleDeps) =>
           due: d.at,
           url: `/office/documents/${d.id}?client=${encodeURIComponent(d.client)}`,
         })),
-        // Money in by bank transfer that BillingWatch wouldn't put on an invoice by itself.
+        // Money in by bank transfer that ClientInvoicing wouldn't put on an invoice by itself.
         ...crs.map((c) => ({
           id: creditApprovalId(c.id),
           type: "credit",

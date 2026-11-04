@@ -87,8 +87,8 @@ beforeAll(async () => {
         transport,
         notifier,
       }),
-      standIn("SendScheduler"),
-      standIn("InboxScheduler"),
+      standIn("EmailSend"),
+      standIn("EmailInboxRead"),
     ],
     alwaysReplay: true,
   });

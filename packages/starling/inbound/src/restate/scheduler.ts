@@ -1,5 +1,5 @@
 /**
- * `ContentScheduler/default`: publishes approved drafts when they are due.
+ * `PostPublish/default`: publishes approved drafts when they are due.
  * Each publish is one call to the `Content` service (itself journaled down to
  * autobrowse's `sites`), bracketed by two journaled row moves: approved →
  * publishing before, published or failed after. A crash between them leaves a
@@ -9,7 +9,7 @@
  * until the next scheduled draft, or `idleMs` when nothing is scheduled (a
  * fresh approval with no time also gets picked up then, or on `sync`).
  *
- * `ContentScheduler/<client>/posts`: the same over the client's own database, posting on its own
+ * `PostPublish/<client>/posts`: the same over the client's own database, posting on its own
  * login (`Content` with `client`). Until an admin turns its posting on, approved drafts wait:
  * nothing is claimed, the pass says how many are held. Posts carry no link to Wren's lander.
  *
@@ -150,7 +150,7 @@ type ContentService = {
   ) => Promise<void | Delivery<void>>;
 };
 
-interface ContentSchedulerDeps {
+interface PostPublishDeps {
   db: Db;
   /** Sleep between passes when nothing is scheduled (default 15 min). */
   idleMs?: number;
@@ -182,11 +182,11 @@ export interface PublishStats {
   unsure?: { id: string; platform: Platform; why: string }[];
 }
 
-export function makeContentScheduler(deps: ContentSchedulerDeps) {
+export function makePostPublish(deps: PostPublishDeps) {
   const idleMs = deps.idleMs ?? DEFAULT_IDLE_MS;
   const publishWaitMs = deps.publishWaitMs ?? PUBLISH_WAIT_MS;
   const parkAfterMs = deps.parkAfterMs ?? PARK_AFTER_MS;
-  return makeLoopObject("ContentScheduler", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("PostPublish", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const owner = clientOfKey(ctx.key);
     if (!owner)
@@ -665,4 +665,4 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
   }
 }
 
-export type ContentScheduler = ReturnType<typeof makeContentScheduler>;
+export type PostPublish = ReturnType<typeof makePostPublish>;

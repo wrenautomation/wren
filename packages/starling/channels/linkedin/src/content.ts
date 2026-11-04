@@ -3,7 +3,7 @@
  * own shape (Posts API, Social Actions). Whether a call is answered by the
  * API or a browser flow is the worker's business; rows say which.
  * Activity reads the notifications page (a browser read, capped per day). Audience reads Wren's
- * own profile and Page (4 a day), on demand only: SocialWatch never asks for it. Insights read a
+ * own profile and Page (4 a day), on demand only: SocialActivityRead never asks for it. Insights read a
  * post's analytics page as Wren's account on a few days after it went up; account insights read
  * its dashboard (profile visits, search appearances) once a day, under the same cap.
  *

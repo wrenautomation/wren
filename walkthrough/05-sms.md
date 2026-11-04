@@ -9,7 +9,7 @@ synced. Telnyx is settings. Why and what is owed: `designs/2026-09-27-phone-chan
 
     export WREN_SMS_PROVIDER=fake           # local only; refused on Lambda
     pnpm db:migrate                         # adds the sms tables (0013)
-    pnpm worker && pnpm register            # SmsSender, SmsEvents, SmsDesk, SmsWatch bound
+    pnpm worker && pnpm register            # SmsSend, SmsEvents, SmsDesk, SmsUpkeep bound
     wren sms numbers sync                   # the fake's one number, (201) 555-0100
     wren sms templates                      # the empty slots; fill them first
     wren sms templates set recruiting-sms#1 "…"   # your words, STOP line included
@@ -77,8 +77,8 @@ it on, and a tap opens the thread. Needs `WREN_SMS_PUSH_PUBLIC_KEY` and
 ## A client's texts
 
 `wren --client <id> sms ...` runs templates, add, lift, enroll, threads, thread, reply,
-stats, queue and watch on that client's database. Its loops are `SmsSender/<id>/fleet`
-and `SmsWatch/<id>/daily`. Each is refused until `sms.texts` is installed. Numbers,
+stats, queue and watch on that client's database. Its loops are `SmsSend/<id>/fleet`
+and `SmsUpkeep/<id>/daily`. Each is refused until `sms.texts` is installed. Numbers,
 forms and push stay Wren's. In the portal, the client's Texts app lists its threads;
 only Wren's team texts back.
 

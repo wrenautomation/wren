@@ -36,7 +36,7 @@ import { IDEA_ANGLES } from "./write.js";
 export const IDEA_STATUSES = ["open", "drafted", "archived"] as const;
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
 /**
- * Who wrote it: a person, the API, `AdsWatch`, the planner (a day's commits, a reader's question),
+ * Who wrote it: a person, the API, `AdSpendGuard`, the planner (a day's commits, a reader's question),
  * a video's promo (`promo:<youtube draft>`), or the site: a post made there by hand, read back
  * (`site:<platform>:<post ref>`).
  */
@@ -248,7 +248,7 @@ export const ACTIVITY_STATES = ["new", "seen"] as const;
 export type ActivityState = (typeof ACTIVITY_STATES)[number];
 
 /**
- * Follows, subscribes, mentions, reactions and notices on our accounts, as SocialWatch read them
+ * Follows, subscribes, mentions, reactions and notices on our accounts, as SocialActivityRead read them
  * (designs/2026-10-06-social-inbox.md). One row per platform id. A row with no time takes the read time.
  */
 export const socialActivity = pgTable(

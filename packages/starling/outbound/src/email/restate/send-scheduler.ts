@@ -53,7 +53,7 @@ export interface SendScope {
   shared?: SharedSuppressions | null;
 }
 
-interface SendSchedulerDeps {
+interface EmailSendDeps {
   transport: Transport;
   /** This key's scope; null = nothing to send as any more, and the loop stops. */
   scopeOf: (key: string) => Promise<SendScope | null>;
@@ -80,7 +80,7 @@ const TICK_TRIES = 3;
 const SEND_TICK_COMMAND = "send tick";
 export const NO_SCOPE = "no send scope for this key: sending is off or the mailbox is gone";
 
-export function makeSendScheduler(deps: SendSchedulerDeps) {
+export function makeEmailSend(deps: EmailSendDeps) {
   const tickMs = deps.tickMs ?? 60_000;
 
   /** One tick for this key's inbox, journaled as a single step; a key whose scope is gone stops. */
@@ -159,7 +159,7 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
     return outcome;
   };
 
-  return makeLoopObject("SendScheduler", pass, {
+  return makeLoopObject("EmailSend", pass, {
     effect: "sends",
     // `tick` is the old name of `sync`, kept for calls queued before this change. Remove after 2026-10-30.
     syncAliases: ["tick"],
@@ -195,4 +195,4 @@ export function nextDelay(
   return Math.max(tickMs, MIN_DELAY_MS);
 }
 
-export type SendScheduler = ReturnType<typeof makeSendScheduler>;
+export type EmailSend = ReturnType<typeof makeEmailSend>;

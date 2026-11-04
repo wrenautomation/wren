@@ -23,12 +23,12 @@ import { clientSms, DEFAULT_HEALTH, FakeBookings, FakeProvider } from "@wren/sta
 import {
   makeSmsDesk,
   makeSmsEvents,
-  makeSmsSender,
-  makeSmsWatch,
+  makeSmsSend,
+  makeSmsUpkeep,
   type SmsDeps,
   type SmsDeskService,
   type SmsEventsService,
-  type SmsWatchObject,
+  type SmsUpkeepObject,
   type WatchStats,
 } from "@wren/starling-sms/restate";
 import { smsContacts, smsEvents, smsMessages, speedRuns } from "@wren/starling-sms/schema";
@@ -99,8 +99,8 @@ beforeAll(async () => {
     services: [
       makeSmsEvents(deps),
       makeSmsDesk(deps),
-      makeSmsSender(deps),
-      makeSmsWatch(deps),
+      makeSmsSend(deps),
+      makeSmsUpkeep(deps),
       makeSmsConsole({ db: pg.db, open: (c) => open(c.id) }),
     ],
     alwaysReplay: true,
@@ -112,7 +112,7 @@ afterAll(async () => {
 });
 
 const watch = (key: string) =>
-  ingress().objectClient<SmsWatchObject>({ name: "SmsWatch" }, key).sync() as Promise<
+  ingress().objectClient<SmsUpkeepObject>({ name: "SmsUpkeep" }, key).sync() as Promise<
     PassOutcome<WatchStats>
   >;
 

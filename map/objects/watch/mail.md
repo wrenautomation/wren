@@ -13,7 +13,7 @@ One email the Monitor read in William's inboxes (`reader = 'monitor'`), or in a 
 
 ## Why this shape
 
-The Monitor is Wren's first routed workflow: `Watch/all` reads, the executor carries each row to `watch.triage`, and the verdict picks the port. A row keeps sender, subject, a summary and the verdict, never a body. The snippet stays only until triage reads it. A rule with a sender and a verdict settles in code for $0; the model reads the rest with every rule's words in its prompt. Whatever can't be settled shows: no model, an answer that doesn't parse, or triage still failing.
+The Monitor is Wren's first routed workflow: `MyMailTriage/all` reads, the executor carries each row to `watch.triage`, and the verdict picks the port. A row keeps sender, subject, a summary and the verdict, never a body. The snippet stays only until triage reads it. A rule with a sender and a verdict settles in code for $0; the model reads the rest with every rule's words in its prompt. Whatever can't be settled shows: no model, an answer that doesn't parse, or triage still failing.
 
 ## Shape
 
@@ -23,7 +23,7 @@ The Monitor is Wren's first routed workflow: `Watch/all` reads, the executor car
 - Read: `readMail` (`packages/watch/src/read.ts:25`) searches `in:inbox` minus promotions and social, from an hour before the newest kept
 - Triage: `settle` (`packages/watch/src/triage.ts:26`), `triage` (`:68`), `sortAgain` (`:110`), step `triageStep` (`:129`); events are `mail:<row id>`
 - Mailbox access is core's (`packages/core/src/mailbox.ts`), shared with the books; `MailMeta.link` is the provider's own link (Outlook), else the view builds Gmail's
-- Clients: `MailReader/all` (`packages/watch/src/clients.ts:54`, every 15 min) reads each client with the `mail.triage` part into its own `watch.mail`, then emits to that client's `mail` workflow; `clientTriageStep` (`triage.ts`) names the client in the prompt. A Google mailbox's mail goes only to `WREN_GOOGLE_LLM` (a model that doesn't train on it; unset, the rules alone and the rest shows), by `isGoogleMailbox` (`packages/starling/channels/email/src/access/access.ts`). Marketing → Inbox shows those rows as type Mail (`packages/starling/inbound/src/social/records.ts:145`)
+- Clients: `ClientMailTriage/all` (`packages/watch/src/clients.ts:54`, every 15 min) reads each client with the `mail.triage` part into its own `watch.mail`, then emits to that client's `mail` workflow; `clientTriageStep` (`triage.ts`) names the client in the prompt. A Google mailbox's mail goes only to `WREN_GOOGLE_LLM` (a model that doesn't train on it; unset, the rules alone and the rest shows), by `isGoogleMailbox` (`packages/starling/channels/email/src/access/access.ts`). Marketing → Inbox shows those rows as type Mail (`packages/starling/inbound/src/social/records.ts:145`)
 
 Citations: `packages/watch/src/schema.ts:30`, `:50`, `:106`, `:148`; `packages/watch/src/restate.ts:28`
 
@@ -42,7 +42,7 @@ Citations: `packages/watch/src/schema.ts:30`, `:50`, `:106`, `:148`; `packages/w
 
 | Surface | Role |
 |---|---|
-| `Watch/all` on the box, every 15 min (`wren monitor start`) | writes rows, emits to Executor |
+| `MyMailTriage/all` on the box, every 15 min (`wren monitor start`) | writes rows, emits to Executor |
 | Executor `watch.triage` (Lambda, `WREN_WATCH_LLM`) | writes verdicts |
 | WatchConsole (Inbox app: Done, Hide like this, Show like this, Sort again, rules) | writes |
 | Inbox app, admins only (`needs: team`) | reads |

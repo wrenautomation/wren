@@ -9,7 +9,7 @@ entity: packages/starling/channels/email/src/schema.ts:918
 
 # placement-check
 
-Where one seed Gmail's copy from a ramped inbox landed, and what the receiver said about its SPF, DKIM and DMARC. Two copies per inbox, seed and send day: `plain` (a personal note: the domain) and `real` (the newest opener: the copy). Table `placement_checks`; the loop is `PlacementScheduler/fleet`; the verdict and its pause are `inbox/placement.ts` (designs/2026-10-05-deliverability-tests.md).
+Where one seed Gmail's copy from a ramped inbox landed, and what the receiver said about its SPF, DKIM and DMARC. Two copies per inbox, seed and send day: `plain` (a personal note: the domain) and `real` (the newest opener: the copy). Table `placement_checks`; the loop is `EmailPlacementTest/fleet`; the verdict and its pause are `inbox/placement.ts` (designs/2026-10-05-deliverability-tests.md).
 
 ## Why this shape
 
@@ -31,16 +31,16 @@ Citations: `packages/starling/channels/email/src/schema.ts:918`, `packages/starl
 
 ## If you change this
 
-- **Hits:** `PlacementScheduler`, its email-lane warnings, the digest's per-domain placement lines, `wren email deliverability`, `sender_pauses` (placement pauses and lifts), `mintMessageId` (`send/deliver.ts:133`, shared with the send path)
+- **Hits:** `EmailPlacementTest`, its email-lane warnings, the digest's per-domain placement lines, `wren email deliverability`, `sender_pauses` (placement pauses and lifts), `mintMessageId` (`send/deliver.ts:133`, shared with the send path)
 - **Does not hit:** `messages`, `enrollments`, `send_health`, the caps, kill-switch or operator pauses
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `PlacementScheduler` (`apps/worker/src/services/email.ts:288`) | writes; pauses and lifts |
+| `EmailPlacementTest` (`apps/worker/src/services/email.ts:288`) | writes; pauses and lifts |
 | `wren email deliverability` | read |
-| `DigestScheduler` (when seeds set) | read |
+| `EmailFleetDigest` (when seeds set) | read |
 | autobrowse `sites` (`gmail`, account = seed) | read by the loop |
 
 ## See

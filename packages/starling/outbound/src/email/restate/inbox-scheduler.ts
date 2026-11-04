@@ -48,7 +48,7 @@ interface InboxScope {
   client?: string | null;
 }
 
-interface InboxSchedulerDeps {
+interface EmailInboxReadDeps {
   reader: InboxReader;
   /** From the key alone, so it needs no step: `acme/a@x.com` is acme's. */
   scopeOf: (key: string) => InboxScope;
@@ -81,13 +81,13 @@ interface InboxSchedulerDeps {
 
 export const INBOX_SYNC_COMMAND = "outreach inbox sync";
 
-export function makeInboxScheduler(deps: InboxSchedulerDeps) {
+export function makeEmailInboxRead(deps: EmailInboxReadDeps) {
   const syncMs = deps.syncMs ?? 120_000;
   const tickMs = deps.tickMs ?? 60_000;
   const lookbackMs = deps.firstSyncLookbackMs ?? 30 * DAY_MS;
   const netMs = deps.netMs ?? 30 * 60_000;
 
-  return makeLoopObject("InboxScheduler", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("EmailInboxRead", async (ctx: restate.ObjectContext) => {
     const sender = unitOfKey(ctx.key);
     const scope = deps.scopeOf(ctx.key);
     const renew = deps.watch?.(sender) ?? null;
@@ -168,7 +168,7 @@ const LISTENER = z.object({
 
 /**
  * Gmail's push by address: Pub/Sub names the mailbox only, so its state holds the
- * `InboxScheduler` key that watches it (a client's is `<client>/<address>`), and any other
+ * `EmailInboxRead` key that watches it (a client's is `<client>/<address>`), and any other
  * loop that listens (the Monitor). Each is woken; a listener whose watch lapsed is skipped.
  */
 export const inboxPush = restate.object({
@@ -204,7 +204,7 @@ export const inboxPush = restate.object({
           (l) => l.until > now,
         );
         if (loop || !live.length)
-          ctx.objectSendClient<InboxScheduler>({ name: "InboxScheduler" }, loop ?? ctx.key).sync();
+          ctx.objectSendClient<EmailInboxRead>({ name: "EmailInboxRead" }, loop ?? ctx.key).sync();
         for (const l of live)
           ctx.genericSend({
             service: l.service,
@@ -247,4 +247,4 @@ async function tell(
   }
 }
 
-export type InboxScheduler = ReturnType<typeof makeInboxScheduler>;
+export type EmailInboxRead = ReturnType<typeof makeEmailInboxRead>;

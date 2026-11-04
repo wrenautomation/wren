@@ -101,7 +101,7 @@ export interface ReachDeps {
     /** What we've posted: what comments on others' posts draw on. */
     ours?: () => Promise<readonly OurPost[]>;
   };
-  /** Runs per client (`ReachWatch/<client>/daily`): none, and a client's key stops. */
+  /** Runs per client (`ReachInboxRead/<client>/daily`): none, and a client's key stops. */
   clients?: ReachClients;
   /**
    * The live metro campaigns in `db` (the shape sits above this layer). Invites and comments walk
@@ -166,7 +166,7 @@ export function clientDeps(
 export const wakeWatch = (ctx: restate.Context, client: string | null = null) =>
   ctx
     .objectSendClient<{ wake: (c: restate.ObjectContext) => Promise<unknown> }>(
-      { name: "ReachWatch" },
+      { name: "ReachInboxRead" },
       client ? clientKey(client, WATCH_KEY) : WATCH_KEY,
     )
     .wake();

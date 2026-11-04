@@ -93,7 +93,14 @@ import { messagingApi } from "./messaging.js";
 import { deliveryRecords } from "./records.js";
 import { DELIVERY_APPS, DELIVERY_ROUTES, FILE_TYPES, MAX_FILE_BYTES } from "./routes.js";
 import { DELIVERABLE_KINDS, type DeliverableKind, type MailLevel, type Terms } from "./schema.js";
-import { type BoardRow, type DeliveryWatch, opsBoard, recapOf, WATCH, WATCH_KEY } from "./watch.js";
+import {
+  type BoardRow,
+  type ClientUpdateMail,
+  opsBoard,
+  recapOf,
+  WATCH,
+  WATCH_KEY,
+} from "./watch.js";
 import { webhooksApi } from "./webhooks.js";
 
 interface DeliveryDeps {
@@ -103,7 +110,7 @@ interface DeliveryDeps {
   demoName: string;
   /** The private bucket for client files; without it, uploads are refused. */
   files?: FileStore | undefined;
-  /** DeliveryWatch runs here: an invite asks it for a pass, so the welcome goes now. */
+  /** ClientUpdateMail runs here: an invite asks it for a pass, so the welcome goes now. */
   watched?: boolean;
   /** The fleet's clock, for the ops board's business days; UTC when unset. */
   zone?: string;
@@ -772,8 +779,8 @@ export { DELIVERY_ROUTES, DELIVERY_WRITES } from "./routes.js";
 export type { MailLevel } from "./schema.js";
 export {
   type BoardRow,
-  type DeliveryWatch,
-  makeDeliveryWatch,
+  type ClientUpdateMail,
+  makeClientUpdateMail,
   type PortalMail,
   WATCH,
   WATCH_KEY,
@@ -831,13 +838,13 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
       sign: async (ctx: restate.Context, req: Req<"sign">) => {
         const out = await answer(() => api.sign(req));
         // The signed copy goes out by mail on the next pass: ask for it now.
-        if (deps.watched) ctx.objectSendClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY).sync();
+        if (deps.watched) ctx.objectSendClient<ClientUpdateMail>({ name: WATCH }, WATCH_KEY).sync();
         return out;
       },
       access: (_: restate.Context, req: Req<"access">) => answer(() => api.access(req)),
       invite: async (ctx: restate.Context, req: Req<"invite">) => {
         const out = await answer(() => api.invite(req));
-        if (deps.watched) ctx.objectSendClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY).sync();
+        if (deps.watched) ctx.objectSendClient<ClientUpdateMail>({ name: WATCH }, WATCH_KEY).sync();
         return out;
       },
       remove: (_: restate.Context, req: Req<"remove">) => answer(() => api.remove(req)),
@@ -849,7 +856,7 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
       // Wren hears about a review or an interest on the next pass: ask for it now.
       review: async (ctx: restate.Context, req: Req<"review">) => {
         const out = await answer(() => api.review(req));
-        if (deps.watched) ctx.objectSendClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY).sync();
+        if (deps.watched) ctx.objectSendClient<ClientUpdateMail>({ name: WATCH }, WATCH_KEY).sync();
         return out;
       },
       domains: (_: restate.Context, req: PortalRequest) => answer(() => hosts.domains(req)),
@@ -889,7 +896,7 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
         answer(() => rules.messagingLinksOff(req)),
       interest: async (ctx: restate.Context, req: Req<"interest">) => {
         const out = await answer(() => api.interest(req));
-        if (deps.watched) ctx.objectSendClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY).sync();
+        if (deps.watched) ctx.objectSendClient<ClientUpdateMail>({ name: WATCH }, WATCH_KEY).sync();
         return out;
       },
     },

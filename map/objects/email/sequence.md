@@ -39,7 +39,7 @@ Citations: `packages/starling/channels/email/src/outreach/sequences.ts:23`, `pla
 | Surface | Role |
 |---|---|
 | niche definitions (`packages/niches/src/<niche>/`) | write |
-| `ComposeScheduler` | reads |
+| `EmailOpenerFill` | reads |
 
 ## See
 

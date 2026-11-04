@@ -1,5 +1,5 @@
 /**
- * `AdsWatch/default`: once a day, adset-level insights for the last 7 days
+ * `AdSpendGuard/default`: once a day, adset-level insights for the last 7 days
  * against `ad_launches`. An active launch that spent the guard amount with
  * no clicks and no results is stopped through `Ads.stop` (journaled, so a
  * retry never stops twice), and every pass with active launches is one
@@ -50,7 +50,7 @@ type ContentDesk = {
   ) => Promise<{ idea: { id: string } }>;
 };
 
-interface AdsWatchDeps {
+interface AdSpendGuardDeps {
   db: Db;
   everyMs?: number;
   /** Spend in the 7-day window that, with nothing to show, pauses the launch (default $50). */
@@ -79,11 +79,11 @@ export interface WatchStats {
   insightsError?: string;
 }
 
-export function makeAdsWatch(deps: AdsWatchDeps) {
+export function makeAdSpendGuard(deps: AdSpendGuardDeps) {
   const everyMs = deps.everyMs ?? DEFAULT_EVERY_MS;
   const pauseAfterUsd = deps.pauseAfterUsd ?? DEFAULT_PAUSE_AFTER_USD;
   const limitMs = deps.limitMs ?? LIMITS.read;
-  return makeLoopObject("AdsWatch", async (ctx: restate.ObjectContext) => {
+  return makeLoopObject("AdSpendGuard", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const ads = ctx.serviceClient<AdsService>({ name: "Ads" });
     const launches = await ctx.run("active launches", () => activeLaunches(deps.db));
@@ -178,4 +178,4 @@ export function makeAdsWatch(deps: AdsWatchDeps) {
   });
 }
 
-export type AdsWatch = ReturnType<typeof makeAdsWatch>;
+export type AdSpendGuard = ReturnType<typeof makeAdSpendGuard>;

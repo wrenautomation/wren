@@ -1,7 +1,7 @@
 /**
  * A connected social account as a setup (designs/2026-10-07-client-social.md): one step, its
  * token, checked every hour. A refresh or a who-am-I read that fails marks it Broken, and
- * SetupWatch starts it over once lost.
+ * SetupRecheck starts it over once lost.
  */
 import { defineSetup, type SetupCheck } from "@wren/core/setup";
 import type { Queryable } from "@wren/db";

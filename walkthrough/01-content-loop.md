@@ -9,8 +9,8 @@ wren content add ──► content_ideas ──► ContentDesk.draft ──► c
                                         per platform         ▼  wren content approve [--at|--now]
                                                        content_drafts (approved, scheduled_for = next slot)
                                                              │
-                     ContentScheduler/default ◄──────────────┘  posts when due through autobrowse `sites`
-                     ContentMetrics/default   ◄── looks at each young post daily; Monday: what worked
+                     PostPublish/default ◄──────────────┘  posts when due through autobrowse `sites`
+                     PostMetrics/default   ◄── looks at each young post daily; Monday: what worked
 ```
 
 ## An idea
@@ -22,7 +22,7 @@ pnpm wren content add idea.md --platforms linkedin,x
 pnpm wren content add idea.md --no-draft                                # store only; `content draft <ideaId>` later
 ```
 
-Ideas also arrive from ads: `AdsWatch` adds one open idea per winning launch
+Ideas also arrive from ads: `AdSpendGuard` adds one open idea per winning launch
 (`wren content ideas`, source `ads`); `content draft <ideaId>` when you want it.
 
 One paid call per platform in `WREN_CONTENT_CHANNELS` that fits (YouTube
@@ -58,8 +58,8 @@ TikTok 19:00 daily. `packages/starling/inbound/src/slots.ts`.
 ## The loops
 
 ```sh
-pnpm wren content queue start|status|stop|sync      # ContentScheduler/default: posts due drafts
-pnpm wren content metrics start|status|stop|sync    # ContentMetrics/default: one look per young post per day
+pnpm wren content queue start|status|stop|sync      # PostPublish/default: posts due drafts
+pnpm wren content metrics start|status|stop|sync    # PostMetrics/default: one look per young post per day
 ```
 
 Both run on prod already. Posting goes through autobrowse's `sites`

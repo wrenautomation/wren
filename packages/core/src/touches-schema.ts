@@ -129,7 +129,7 @@ export const touches = pgTable(
     /** Unique key from the source row (`rm:12`, `ca:7`): a writer and the backfill agree. */
     ref: varchar("ref", { length: 200 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    /** Told to the executor by `TouchFeed` (WA-1062); null: not yet, the feed picks it up. */
+    /** Told to the executor by `TouchToJourney` (WA-1062); null: not yet, the feed picks it up. */
     firedAt: timestamp("fired_at", { withTimezone: true }),
   },
   (t) => [

@@ -228,7 +228,7 @@ export const REVIEWS: readonly Review[] = [
     ],
     open: [
       "Upload the video unlisted on YouTube; the form takes its link.",
-      "Install Social inbox on wren_test before the take. After Connect, run `SocialWatch/wren_test%2Fsocial/sync` twice off film: the first pass keeps the site posts, the second reads their comments. The comment comes from a second channel of the same Google account.",
+      "Install Social inbox on wren_test before the take. After Connect, run `SocialActivityRead/wren_test%2Fsocial/sync` twice off film: the first pass keeps the site posts, the second reads their comments. The comment comes from a second channel of the same Google account.",
       "Turn off asks by window.confirm, which Playwright dismisses: stub `window.confirm = () => true` in the explore session first.",
       "Data Access holds force-ssl and readonly only. youtube.upload waits on client posting (the redesign); adding it is a new verification.",
       "Limited Use: a client's Google data (YouTube comments, Business Profile reviews, Gmail) reaches only WREN_GOOGLE_LLM, and nothing while it's unset. Prod sets it to an Anthropic model (2026-10-23): Anthropic's API doesn't train on input.",

@@ -71,7 +71,7 @@ const call = (document: number, source: "console" | "star" = "console") =>
     source,
   });
 
-/** What `LineFeed` does: one pass, then each fire walked as `Executor/fire` would. */
+/** What `MapLineFeed` does: one pass, then each fire walked as `Executor/fire` would. */
 async function feed() {
   const flows: Workflow[] = await shapeWorkflowsOf(pg.db, "wren");
   const pass = await linePass(pg.db, NOW);

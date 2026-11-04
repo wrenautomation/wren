@@ -32,7 +32,7 @@ Citations: `packages/starling/channels/email/src/schema.ts:120`
 
 ## If you change this
 
-- **Hits:** `verification/service.ts:140`, `:170`; `resolution/service.ts:518`, `:566`; the vendor adapter `verification/mailifier.ts`; `PoolScheduler`'s `verifyMailboxes` stage
+- **Hits:** `verification/service.ts:140`, `:170`; `resolution/service.ts:518`, `:566`; the vendor adapter `verification/mailifier.ts`; `LeadPoolFill`'s `verifyMailboxes` stage
 - **Does not hit:** `discovery_attempts`
 
 ## Surfaces

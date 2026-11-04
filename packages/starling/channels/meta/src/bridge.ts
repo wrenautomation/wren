@@ -1,6 +1,6 @@
 /**
  * The two ways ads and organic content feed each other, as pure functions:
- * a winning ad becomes an idea for a post (AdsWatch adds it, nobody drafts
+ * a winning ad becomes an idea for a post (AdSpendGuard adds it, nobody drafts
  * it until the person says), and a published post becomes a launch spec
  * (PAUSED, printed, nothing spends).
  */

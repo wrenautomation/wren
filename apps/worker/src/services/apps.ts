@@ -10,7 +10,7 @@ import { documenso } from "@wren/documents/documenso";
 import { makeDocuments } from "@wren/documents/service";
 import { makeNotesConsole } from "@wren/notes/console";
 import { makePaymentsConsole } from "@wren/payments/console";
-import { makePayReconcile } from "@wren/payments/reconcile";
+import { makeStripeReconcile } from "@wren/payments/reconcile";
 import { makePayments } from "@wren/payments/service";
 import { makePipelineConsole } from "@wren/pipeline/console";
 import { makeJourneys } from "@wren/pipeline/restate";
@@ -65,7 +65,7 @@ export function appsServices(deps: Deps): AnyService[] {
     // daily reconcile against Stripe, which tells the executor what a dropped webhook missed.
     makePayments({ ...payDeps, mailer: bookerMailer, fire: fireAll }),
     makePaymentsConsole(payDeps),
-    makePayReconcile({ ...payDeps, mailer: bookerMailer, fire: fireAll, ...notify }),
+    makeStripeReconcile({ ...payDeps, mailer: bookerMailer, fire: fireAll, ...notify }),
     // Contracts, proposals and estimates to sign; a deposit on the same Stripe key
     // (designs/2026-10-09-documents.md).
     makeDocuments({

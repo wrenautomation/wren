@@ -1,5 +1,5 @@
 /**
- * The operator's keys, mirrored (designs/2026-10-19-api-keys-as-accounts.md): `syncVaultKeys` from
+ * The operator's keys, mirrored (designs/2026-10-19-api-keys-as-accounts.md): `syncVaultKeyMirror` from
  * a fake `sites` client (upsert, delete what the vault no longer lists, drop a row that carries a
  * secret), and `keyAccounts`, both kinds as one list: the vault's and each client's own, with
  * spend by key id, purposes, last use, and a client that sees only its own. Synthetic keys only.
@@ -11,7 +11,7 @@ import { clients } from "../../src/clients/schema.js";
 import { keyId } from "../../src/key-id.js";
 import { type KeyStore, pgKeyStore, throwawayRing } from "../../src/keys.js";
 import { clientSecrets, vaultKeys } from "../../src/keys-schema.js";
-import { type KeyRow, keyAccounts, syncVaultKeys } from "../../src/vault-keys.js";
+import { type KeyRow, keyAccounts, syncVaultKeyMirror } from "../../src/vault-keys.js";
 import { meter, setOwnKey, setPurposeKey } from "../../src/vendors.js";
 
 let pg: TestPostgres;
@@ -47,12 +47,15 @@ beforeAll(async () => {
 afterAll(() => pg.stop());
 beforeEach(() => truncate(pg.db, ["vault_keys", "vendor_usage"]));
 
-describe("syncVaultKeys", () => {
+describe("syncVaultKeyMirror", () => {
   it("upserts every row and stamps read_at", async () => {
     const warn: string[] = [];
     const a = row({ site: "anthropic", account: "autobrowse-prod", via: "anthropic@william" });
     const b = row({ site: "exa", account: "env-0", uses: 7, lastUsedAt: "2026-10-18T09:00:00Z" });
-    const out = await syncVaultKeys(pg.db, source([a, b]), { now: NOW, warn: (l) => warn.push(l) });
+    const out = await syncVaultKeyMirror(pg.db, source([a, b]), {
+      now: NOW,
+      warn: (l) => warn.push(l),
+    });
     expect(out).toEqual({ keys: 2, removed: 0, refused: 0 });
     const rows = await pg.db.select().from(vaultKeys).orderBy(vaultKeys.address);
     expect(rows.map((r) => [r.address, r.site, r.account, r.owner, r.keyId])).toEqual([
@@ -66,7 +69,7 @@ describe("syncVaultKeys", () => {
 
     // Again: the same rows update, none doubles; a status change and a spent date land.
     const later = new Date("2026-10-19T13:00:00Z");
-    await syncVaultKeys(
+    await syncVaultKeyMirror(
       pg.db,
       source([a, { ...b, status: "spent", spentUntil: "2026-11-01T00:00:00.000Z" }]),
       { now: later },
@@ -83,11 +86,11 @@ describe("syncVaultKeys", () => {
   it("deletes the addresses the vault no longer lists", async () => {
     const a = row({ site: "exa", account: "env-0" });
     const b = row({ site: "exa", account: "env-1" });
-    await syncVaultKeys(pg.db, source([a, b]), { now: NOW });
-    const out = await syncVaultKeys(pg.db, source([a]), { now: NOW });
+    await syncVaultKeyMirror(pg.db, source([a, b]), { now: NOW });
+    const out = await syncVaultKeyMirror(pg.db, source([a]), { now: NOW });
     expect(out).toMatchObject({ keys: 1, removed: 1 });
     expect((await pg.db.select().from(vaultKeys)).map((r) => r.address)).toEqual(["exa@env-0"]);
-    expect(await syncVaultKeys(pg.db, source([]), { now: NOW })).toMatchObject({ removed: 1 });
+    expect(await syncVaultKeyMirror(pg.db, source([]), { now: NOW })).toMatchObject({ removed: 1 });
     expect(await pg.db.select().from(vaultKeys)).toEqual([]);
   });
 
@@ -98,7 +101,7 @@ describe("syncVaultKeys", () => {
       ...row({ site: "exa", account: "env-1" }),
       secret: "leaked-synthetic-value-9999",
     };
-    const out = await syncVaultKeys(pg.db, source([good, leaky]), {
+    const out = await syncVaultKeyMirror(pg.db, source([good, leaky]), {
       now: NOW,
       warn: (l) => warn.push(l),
     });
@@ -108,14 +111,17 @@ describe("syncVaultKeys", () => {
     expect(warn[0]).toContain("exa@env-1");
     expect(warn.join()).not.toContain("leaked-synthetic-value-9999");
     // A row already mirrored that now carries a secret goes too: it is not shown.
-    await syncVaultKeys(pg.db, source([good]), { now: NOW });
-    await syncVaultKeys(pg.db, source([{ ...good, secret: "x" }]), { now: NOW, warn: () => {} });
+    await syncVaultKeyMirror(pg.db, source([good]), { now: NOW });
+    await syncVaultKeyMirror(pg.db, source([{ ...good, secret: "x" }]), {
+      now: NOW,
+      warn: () => {},
+    });
     expect(await pg.db.select().from(vaultKeys)).toHaveLength(0);
   });
 
   it("drops a row that doesn't fit the shape", async () => {
     const warn: string[] = [];
-    const out = await syncVaultKeys(
+    const out = await syncVaultKeyMirror(
       pg.db,
       source([row({ site: "exa", account: "env-0" }), { address: "exa@bad", id: "not-hex" }, null]),
       { now: NOW, warn: (l) => warn.push(l) },
@@ -143,7 +149,7 @@ describe("keyAccounts", () => {
       purposes: ["default", "bulk"],
       lastUsedAt: "2026-10-18T09:00:00.000Z",
     });
-    await syncVaultKeys(pg.db, source([anth, exa]), { now: NOW });
+    await syncVaultKeyMirror(pg.db, source([anth, exa]), { now: NOW });
     const acmeDefault = await own("acme", "EXA_API_KEY", "default", ACME_EXA);
     const acmeBulk = await own("acme", "EXA_API_KEY", "bulk-2", ACME_EXA_BULK);
     await own("beta", "EXA_API_KEY", "default", BETA_EXA);
@@ -248,7 +254,7 @@ describe("keyAccounts", () => {
   });
 
   it("filters by vendor, and a spent key past its date reads live", async () => {
-    await syncVaultKeys(
+    await syncVaultKeyMirror(
       pg.db,
       source([
         row({

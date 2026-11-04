@@ -13,7 +13,7 @@ describe("CallTimeout", () => {
 
 describe("limits", () => {
   it("a loop's stage, and its own limits over the usual", () => {
-    expect(limitStage("ContentMetrics", "default")).toBe("loop.content-metrics/default");
+    expect(limitStage("PostMetrics", "default")).toBe("loop.content-metrics/default");
     expect(limitsWith({ read: 1_000 })).toEqual({ ...LIMITS, read: 1_000 });
   });
 });
