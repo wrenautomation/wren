@@ -31,3 +31,10 @@ ALTER SYSTEM SET jit = off;
 -- connection can't carry createDb's per-connection setting. Live on reload, no restart:
 ALTER SYSTEM SET idle_in_transaction_session_timeout = '10min';
 SELECT pg_reload_conf();
+
+-- 2026-11-04 (WA-1045): time spent on disk reads, per query in pg_stat_statements
+-- (blk_read_time). Tells a cold-cache read from a slow plan. Live on reload:
+ALTER SYSTEM SET track_io_timing = on;
+SELECT pg_reload_conf();
+-- shared_buffers stays 256MB (user-data.sh -c flag, which beats ALTER SYSTEM): the box is a
+-- t4g.small with 1.8 GB, about 300 MB free and swap in use. More needs a bigger box first.
