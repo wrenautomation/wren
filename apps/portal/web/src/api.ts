@@ -263,11 +263,13 @@ async function fresh(url: string): Promise<string | null> {
   const { token: t } = (await res.json()) as { token: string };
   const claims = JSON.parse(atob(t.split(".")[1]?.replace(/-/g, "+").replace(/_/g, "/") ?? ""));
   held = { token: t, until: Number(claims.exp) * 1000 - 60_000 };
-  // Someone else signed in here: the last login's local copy isn't theirs.
+  // First login on this device: nothing to drop (sign-out wiped it), and a wipe now would orphan
+  // the reads in flight, `delivery/me` among them: a blank page. Someone else: wipe, load again.
   const who = String(claims.email ?? "").toLowerCase() || null;
   const was = stored(OWNER_KEY);
   store(OWNER_KEY, who);
-  if (who !== was) void dropLocalCopy().then(openLocalCopy);
+  if (!was) void openLocalCopy();
+  else if (who !== was) void dropLocalCopy().then(() => location.reload());
   store(HELD_KEY, JSON.stringify(held));
   return t;
 }
