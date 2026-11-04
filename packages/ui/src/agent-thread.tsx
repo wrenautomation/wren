@@ -537,7 +537,7 @@ export function footLine(foot: AgentFoot | null, state: string): string | null {
 }
 
 /** The foot's detail, on hover: where the tokens went, and who pays. */
-export function footDetail(foot: AgentFoot | null): string | null {
+function footDetail(foot: AgentFoot | null): string | null {
   if (!foot || !totalOf(foot)) return null;
   const parts = [
     `${count(foot.input ?? 0)} in`,
