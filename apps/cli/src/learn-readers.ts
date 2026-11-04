@@ -17,9 +17,10 @@ import {
   type VideoReader,
 } from "@wren/learn";
 import { type LlmClient, loadLlmEnv, makeLlm } from "@wren/llm";
-import { audioSource, videoSource, youtubeSource } from "@wren/research/sops";
+import { audioSource, s3MediaStore, videoSource, youtubeSource } from "@wren/research/sops";
 import { contentPlaybooks } from "@wren/starling-inbound/schema";
 import type { Model } from "@wrenautomation/models";
+import type { VideoMeta } from "@wrenautomation/read/video";
 import { desc } from "drizzle-orm";
 import { ingressSites } from "./sites.js";
 import { geminiModel, needGemini, watchEyes } from "./video-watch.js";
@@ -39,6 +40,21 @@ export async function practicesOf(db: Db): Promise<Practice[]> {
   return rows.map((r) => practiceOf(r.sop, r.text));
 }
 
+/** What the feed said, as yt-dlp's fields: `upload_date` is YYYYMMDD. */
+export function metaOf(i: {
+  text: string | null;
+  creator: string | null;
+  publishedAt: Date | null;
+}): Partial<VideoMeta> {
+  return {
+    ...(i.text?.trim() ? { description: i.text.trim() } : {}),
+    ...(i.creator ? { uploader: i.creator.replace(/^@/, "") } : {}),
+    ...(i.publishedAt
+      ? { upload_date: i.publishedAt.toISOString().slice(0, 10).replaceAll("-", "") }
+      : {}),
+  };
+}
+
 export function learnReaders(settings: Settings, rootDir: string) {
   /** The video reader: YouTube by captions plus the screen, other video by Cohere, audio cut by ffmpeg. */
   const reader = (): VideoReader => {
@@ -49,7 +65,9 @@ export function learnReaders(settings: Settings, rootDir: string) {
       return probe;
     };
     const watching = async () => ({ ...watchEyes(settings, rootDir), video: await gemini() });
-    return async ({ url, kind, title, creator, mediaUrl }) => {
+    // A video downloads once (WA-1029): the media bucket's cache/, on the Mac's AWS chain.
+    const store = settings.mediaBucket ? s3MediaStore(settings.mediaBucket) : undefined;
+    return async ({ url, kind, title, creator, mediaUrl, text, publishedAt }) => {
       const youtube = /^https:\/\/youtube\.com\//.test(url);
       // A film is watched, never read from its captions: its cuts are the point (`filmFacts`).
       const s =
@@ -66,12 +84,19 @@ export function learnReaders(settings: Settings, rootDir: string) {
             ? await videoSource(url, settings.ytDlp, undefined, {
                 ...(await watching()),
                 sceneDetect: settings.sceneDetect,
+                ...(store ? { store } : {}),
               })
             : youtube
               ? await youtubeSource(url, settings.ytDlp, undefined, {
                   video: await gemini(),
                 })
-              : await videoSource(url, settings.ytDlp, undefined, await watching());
+              : await videoSource(url, settings.ytDlp, undefined, {
+                  ...(await watching()),
+                  ...(store ? { store } : {}),
+                  // Graph's mp4 before yt-dlp, and its caption, author and date over yt-dlp's.
+                  ...(mediaUrl ? { mediaUrl } : {}),
+                  meta: metaOf({ text, creator, publishedAt }),
+                });
       return { file: s.name, md: s.md };
     };
   };

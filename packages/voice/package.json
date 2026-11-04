@@ -27,7 +27,7 @@
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/starling-sms": "workspace:*",
-    "@wrenautomation/models": "0.29.0",
+    "@wrenautomation/models": "0.33.1",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"
   },

@@ -15,9 +15,11 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type { LlmClient } from "@wren/llm";
 import type { Model } from "@wrenautomation/models";
-import type { VideoRead, WatchOptions } from "@wrenautomation/read/video";
+import type { Fetched, VideoRead, WatchOptions } from "@wrenautomation/read/video";
 import { readAudio, readVideo, readYoutube, readYoutubeByUrl } from "@wrenautomation/read/video";
 import { expandCites, numberCites } from "./cites.js";
+
+export { CACHE_PREFIX, s3MediaStore } from "./media-store.js";
 
 export { expandCites, numberCites };
 
@@ -83,14 +85,14 @@ export const youtubeByUrl = async (
 ): Promise<Source> => toSource(await readYoutubeByUrl(url, opts), opts.priority);
 
 /**
- * Any other video `yt-dlp` fetches (Instagram reel, TikTok, X), watched (`readVideo`):
- * the caption, then its Speech, On screen and Cuts.
+ * Any other video (Instagram reel, TikTok, X), watched (`readVideo`): the caption, then its
+ * Speech, On screen and Cuts. The file: the store's copy, else `mediaUrl`, else yt-dlp.
  */
 export const videoSource = async (
   url: string,
   ytDlp: string,
   priority = DEFAULT_PRIORITY,
-  opts: Omit<WatchOptions, "ytDlp">,
+  opts: Omit<WatchOptions, "ytDlp"> & Fetched,
 ): Promise<Source> => toSource(await readVideo(url, { ...opts, ytDlp }), priority);
 
 /**

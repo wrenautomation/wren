@@ -204,6 +204,9 @@ export type VideoReader = (item: {
   duration: number | null;
   /** An episode's audio file; a reel's video file (signed, expires). */
   mediaUrl: string | null;
+  /** What the feed said: a reel's whole caption. */
+  text: string | null;
+  publishedAt: Date | null;
 }) => Promise<{ file: string; md: string }>;
 
 const youtubeOf = (raw: string): string | null => {
