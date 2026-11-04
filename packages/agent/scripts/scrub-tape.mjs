@@ -27,10 +27,13 @@ const DROP = new Set([
   "mcp_servers",
   "plugins",
   "additional_directories",
+  // the terminal's /context grid, ~24 KB a reply; no page reads it
+  "gridRows",
 ]);
 const ids = new Map();
 const fake = (id) => {
-  if (!ids.has(id)) ids.set(id, `00000000-0000-4000-8000-${String(ids.size + 1).padStart(12, "0")}`);
+  if (!ids.has(id))
+    ids.set(id, `00000000-0000-4000-8000-${String(ids.size + 1).padStart(12, "0")}`);
   return ids.get(id);
 };
 
@@ -39,7 +42,8 @@ const stored = raw.startsWith("[");
 const lines = stored
   ? JSON.parse(raw).map((frame) => ({ at: 0, from: "cli", frame }))
   : raw.split("\n").map((l) => JSON.parse(l));
-for (const { frame } of lines) if (typeof frame.session_id === "string" && frame.session_id) fake(frame.session_id);
+for (const { frame } of lines)
+  if (typeof frame.session_id === "string" && frame.session_id) fake(frame.session_id);
 
 const text = (s) => {
   let out = s.split(`${HOME}/Documents/wren_automation`).join("/Users/you/work");
@@ -71,4 +75,6 @@ if (left.length) {
   process.exit(1);
 }
 writeFileSync(output, `${out}\n`);
-console.log(`${tape.length} frames, ${Math.round(out.length / 1024)} KB, ${ids.size} sessions -> ${output}`);
+console.log(
+  `${tape.length} frames, ${Math.round(out.length / 1024)} KB, ${ids.size} sessions -> ${output}`,
+);
