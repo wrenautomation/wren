@@ -11,7 +11,7 @@
  */
 import { createReadStream, existsSync } from "node:fs";
 import { createServer } from "node:http";
-import { extname, join, normalize, resolve } from "node:path";
+import { extname, join, normalize } from "node:path";
 import { calendarRecordsApi } from "@wren/calendar/console";
 import { CALENDAR_CONSOLE_APPS, CALENDAR_CONSOLE_ROUTES } from "@wren/calendar/console-routes";
 import {

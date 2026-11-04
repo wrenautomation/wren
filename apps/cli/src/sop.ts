@@ -15,7 +15,7 @@ import { WREN } from "@wren/core/access";
 import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
 import type { Db } from "@wren/db";
 import { scopeOf, writeSopFiles } from "@wren/learn";
-import { loadLlmEnv, modelLlm } from "@wren/llm";
+import { modelLlm } from "@wren/llm";
 import {
   addSource,
   buildSop,

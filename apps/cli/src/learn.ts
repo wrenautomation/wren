@@ -36,7 +36,6 @@ import {
 } from "@wren/learn";
 import { ITEM_KINDS, type ItemKind, SHOT_INS, SHOT_MOVES, SHOT_TYPES } from "@wren/learn/schema";
 import { download, labelMatch, labelShots } from "@wrenautomation/read/video";
-import { collect } from "./args.js";
 import { watchEyes } from "./video-watch.js";
 
 const itemKindOf = (raw: string): ItemKind => {

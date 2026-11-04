@@ -744,5 +744,3 @@ describe("the demo cache", () => {
     expect(restate).toHaveLength(2);
   });
 });
-
-const KEPT = `s3://media-bucket/media/${"a".repeat(32)}.jpg`;

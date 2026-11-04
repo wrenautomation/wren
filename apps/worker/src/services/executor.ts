@@ -20,7 +20,6 @@ import { SETUP_STEP, setupStep } from "@wren/core/setup";
 import { SETUP_AGENT } from "@wren/core/setup-agent";
 import { gate } from "@wren/core/vendors";
 import { webhookStep, webhooksPublish } from "@wren/core/webhooks";
-import type { Db } from "@wren/db";
 import {
   firstTextStep,
   LINK_ORIGIN,

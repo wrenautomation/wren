@@ -1,11 +1,10 @@
-/** Notes handlers that mark notes as training for the drafting model, and turn text into an SOP. */
+/** Notes handlers: training marks for the drafting model, and words to draft from. */
 import { PortalRefusal } from "@wren/core/portal";
 import { type NotesApiContext, type Req, str } from "./console-context.js";
-import { nameOf } from "./doc.js";
 import { setTrain, setWorkspaceTrain } from "./store.js";
 
 export function trainingHandlers(notes: NotesApiContext) {
-  const { deps, placeOf, byOf, locate } = notes;
+  const { placeOf, byOf, locate } = notes;
   return {
     /** In training exports or not (`wren train export --notes`); off by default. */
     async train(req: Req<{ id?: unknown; on?: unknown }>) {
