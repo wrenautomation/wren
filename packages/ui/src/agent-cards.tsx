@@ -3,7 +3,7 @@
  * as buttons (AskUserQuestion) and the web addresses a person sent.
  */
 import type { DataMessagePartProps } from "@assistant-ui/react";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 import type { AgentQuestion, AgentThreadProps, ChoicesData } from "./agent-thread.js";
 import { Button, Tag } from "./controls.js";
 import { cx } from "./format.js";
@@ -75,6 +75,7 @@ export function Choices(props: DataMessagePartProps<ChoicesData>) {
   const answer = useContext(Answer);
   const [picks, setPicks] = useState<Record<string, string[]>>({});
   const [other, setOther] = useState<Record<string, string | undefined>>({});
+  const card = useRef<HTMLDivElement>(null);
   // input still streaming or malformed: nothing to pick yet
   if (!data.questions.length) return null;
   const one = data.questions.length === 1 && !data.questions[0]?.multiSelect;
@@ -103,10 +104,14 @@ export function Choices(props: DataMessagePartProps<ChoicesData>) {
     const o = q.multiSelect ? other : { ...other, [q.question]: undefined };
     setPicks(next);
     setOther(o);
-    if (one) send(next, o);
+    if (one) {
+      send(next, o);
+      // the box takes the keys again, where the next words go
+      card.current?.closest("[data-agent-thread]")?.querySelector("textarea")?.focus();
+    }
   };
   return (
-    <div className="ui-rise grid gap-5 rounded-(--ui-leaf-box) bg-(--ui-paper) p-4 shadow-[inset_0_0_0_1px_var(--ui-hair)]">
+    <div ref={card} className="ui-rise grid gap-5">
       {data.questions.map((q) => {
         const final = data.answers?.[q.question];
         const chosen = (label: string) =>
@@ -125,7 +130,18 @@ export function Choices(props: DataMessagePartProps<ChoicesData>) {
               ).join(", ") || undefined;
         const typing = other[q.question] !== undefined;
         return (
-          <fieldset key={q.question} disabled={!data.open} className="m-0 grid gap-2 border-0 p-0">
+          <fieldset
+            key={q.question}
+            disabled={!data.open}
+            className="m-0 grid gap-2 border-0 p-0"
+            onKeyDown={(e) => {
+              // 1-9 picks, as in the terminal
+              const o = q.options[Number(e.key) - 1];
+              if (!o || e.target instanceof HTMLInputElement) return;
+              e.preventDefault();
+              pick(q, o.label);
+            }}
+          >
             <legend className="mb-2 grid gap-0.5 p-0">
               {q.header ? (
                 <span className="text-[12px] font-semibold text-(--ui-ink-3)">{q.header}</span>
@@ -134,33 +150,56 @@ export function Choices(props: DataMessagePartProps<ChoicesData>) {
                 {q.question}
               </span>
             </legend>
-            {q.options.map((o) => (
-              <button
-                key={o.label}
-                type="button"
-                aria-pressed={chosen(o.label)}
-                onClick={() => pick(q, o.label)}
-                className={cx(
-                  "grid gap-0.5 rounded-[10px] px-3 py-2.5 text-left shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-[background-color,box-shadow] duration-150 enabled:hover:bg-(--ui-hover) aria-pressed:bg-(--ui-wash) aria-pressed:shadow-[inset_0_0_0_1.5px_var(--ui-active)]",
-                )}
-              >
-                <span
+            {q.options.map((o, k) => {
+              const on = chosen(o.label);
+              return (
+                <button
+                  key={o.label}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => pick(q, o.label)}
                   className={cx(
-                    "flex items-center gap-2 text-[14px] font-medium",
-                    // answered: the pick in ink, the rest a step back
-                    !data.open && !chosen(o.label) ? "text-(--ui-ink-2)" : "text-(--ui-ink)",
+                    "group/opt flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-left transition-[background-color,color,box-shadow,transform] duration-150 enabled:active:scale-[.99]",
+                    on
+                      ? "bg-(--ui-ink) text-(--ui-paper) shadow-[0_1px_2px_rgb(0_0_0/.12)]"
+                      : "bg-(--ui-paper) text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair),0_1px_2px_rgb(0_0_0/.04)] enabled:hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),0_1px_2px_rgb(0_0_0/.06)]",
+                    !data.open && !on && "text-(--ui-ink-2)",
                   )}
                 >
-                  <span className="min-w-0 flex-1 wrap-anywhere">{o.label}</span>
-                  {chosen(o.label) ? (
-                    <Icon name="check" size={15} className="flex-none text-(--ui-active)" />
+                  <span
+                    aria-hidden="true"
+                    className={cx(
+                      "grid size-5.5 flex-none place-items-center rounded-[6px] font-mono text-[11.5px] tabular-nums",
+                      on
+                        ? "bg-(--ui-paper)/15 text-(--ui-paper)"
+                        : "bg-(--ui-fill) text-(--ui-ink-2)",
+                    )}
+                  >
+                    {on && !data.open ? <Icon name="check" size={12} /> : k + 1}
+                  </span>
+                  <span className="grid min-w-0 flex-1 gap-0.5">
+                    <span className="text-[14px] font-medium wrap-anywhere">{o.label}</span>
+                    {o.description ? (
+                      <span
+                        className={cx(
+                          "text-[12.5px]/[1.45]",
+                          on ? "text-(--ui-paper)/70" : "text-(--ui-ink-3)",
+                        )}
+                      >
+                        {o.description}
+                      </span>
+                    ) : null}
+                  </span>
+                  {data.open ? (
+                    <Icon
+                      name="arrow"
+                      size={15}
+                      className="flex-none transition-transform duration-150 group-enabled/opt:group-hover/opt:translate-x-0.5"
+                    />
                   ) : null}
-                </span>
-                {o.description ? (
-                  <span className="text-[13px]/[1.45] text-(--ui-ink-3)">{o.description}</span>
-                ) : null}
-              </button>
-            ))}
+                </button>
+              );
+            })}
             {own !== undefined ? (
               <p className="m-0 flex items-start gap-2 rounded-[10px] bg-(--ui-wash) px-3 py-2.5 text-[14px] text-(--ui-ink) shadow-[inset_0_0_0_1.5px_var(--ui-active)]">
                 <span className="min-w-0 flex-1 wrap-anywhere">{own}</span>
@@ -200,11 +239,11 @@ export function Choices(props: DataMessagePartProps<ChoicesData>) {
       })}
       {data.open ? (
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button tone="quiet" size="sm" onClick={() => answer(data.id, false)}>
+          <Button tone="quiet" size="dense" onClick={() => answer(data.id, false)}>
             Skip
           </Button>
           {one && !Object.values(other).some((v) => v !== undefined) ? null : (
-            <Button size="sm" disabled={!ready} onClick={() => send()}>
+            <Button size="dense" disabled={!ready} onClick={() => send()}>
               Send
             </Button>
           )}

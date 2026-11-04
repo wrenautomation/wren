@@ -119,6 +119,12 @@
   --ui-good-tint: color-mix(in srgb, var(--ui-good) 10%, transparent);
   --ui-bad-tint: color-mix(in srgb, var(--ui-bad) 6%, transparent);
   --ui-warn-tint: color-mix(in srgb, var(--ui-warn) 9%, transparent); /* under what waits on you */
+  /* A terminal block: dark in both looks, so commands read apart from words */
+  --ui-term: #17161b;
+  --ui-term-ink: #ecebe6;
+  --ui-term-dim: #a3a199; /* 7:1 on --ui-term */
+  --ui-term-prompt: #f0a074; /* the $ */
+  --ui-term-bad: #ff8f86;
   --ui-scrim: color-mix(in srgb, var(--ui-shade) 16%, transparent);
   /* Under a graph's dot grid: paper with a little lavender, light or night alike. */
   --ui-graph: color-mix(in srgb, var(--ui-accent) 11%, var(--ui-paper));
@@ -1103,6 +1109,50 @@ html[data-morph="cards"]::view-transition-new(*) {
   vertical-align: -2px;
   margin-left: 2px;
   animation: ui-caret 0.8s steps(2) infinite;
+}
+/* The working line: a light sweeps across its words while the turn runs. */
+.ui-shimmer {
+  background:
+    linear-gradient(
+      90deg,
+      var(--ui-ink-2) 0%,
+      var(--ui-ink-2) 40%,
+      var(--ui-ink) 50%,
+      var(--ui-ink-2) 60%,
+      var(--ui-ink-2) 100%
+    )
+    0 0 / 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: ui-shimmer 2.2s linear infinite;
+}
+@keyframes ui-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+/* The live command's block caret. */
+.ui-term-caret {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: var(--ui-term-ink);
+  animation: ui-caret 0.9s steps(2) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-shimmer {
+    animation: none;
+    color: var(--ui-ink-2);
+  }
+  .ui-term-caret {
+    animation: none;
+  }
 }
 @keyframes ui-caret {
   50% {

@@ -131,7 +131,8 @@ export const Answered: Story = {
   render: () => <Live messages={DONE} />,
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
-    await expect(c.getByText(/Sonnet · 8.4 s · 12k tokens · \$0.03/)).toBeTruthy();
+    await expect(c.getByText(/Sonnet · 12k tokens · \$0.03/)).toBeTruthy();
+    await expect(c.getByText("8.4s")).toBeTruthy();
     await userEvent.click(c.getByRole("button", { name: /Check past runs/ }));
     await expect(c.getByText(/"kept":9/)).toBeTruthy();
   },
@@ -145,7 +146,7 @@ const STEP = (id: string, command: string, description: string, result?: string)
   ...(result !== undefined ? { result } : {}),
 });
 
-/** Many steps fold to one line once done; the plan's turn shows no price. */
+/** Steps append in order: named calls as rows, plain commands as one terminal block, then Done. */
 export const Steps: Story = {
   render: () => (
     <Live
@@ -157,13 +158,15 @@ export const Steps: Story = {
           state: "done",
           parts: [
             STEP("s1", "birdwatch recall 'coach booking'", "Check past runs", "{}"),
-            STEP("s2", "birdwatch plan 'coach booking tools'", "Plan the run", "{}"),
-            STEP("s3", "birdwatch search r-42", "Search the web", "{}"),
+            STEP("s2", "curl -sI https://northwind.example", "Read the site", "HTTP/2 200"),
+            STEP("s3", "wc -w page.md", "Count words", "2140 page.md"),
+            STEP("s4", "rg -c calendly pages/", "Find booking links", "6"),
+            STEP("s5", "birdwatch search r-42", "Search the web", '{"kept":9,"pages":[1,2,3]}'),
             { type: "text", text: ANSWER },
           ],
           foot: {
             model: "claude-haiku-5-5",
-            ms: 12500,
+            ms: 24_000,
             input: 900,
             output: 700,
             cacheRead: 33900,
@@ -176,14 +179,16 @@ export const Steps: Story = {
   ),
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
-    await expect(c.getByText("Ran 3 steps")).toBeTruthy();
-    await expect(c.getByText("Haiku · 12.5 s · 36k tokens")).toBeTruthy();
-    await userEvent.click(c.getByRole("button", { name: /Ran 3 steps/ }));
+    await expect(c.getByText("Check past runs")).toBeTruthy();
+    await expect(c.getByText("Ran 3 commands")).toBeTruthy();
     await expect(c.getByText("Search the web")).toBeTruthy();
+    await expect(c.getByText("Done")).toBeTruthy();
+    await userEvent.click(c.getByRole("button", { name: /Ran 3 commands/ }));
+    await expect(c.getByText("wc -w page.md")).toBeTruthy();
   },
 };
 
-/** Steps still running: one line, folded, with the live step and the time. */
+/** Steps still running: done rows stay, the live one shimmers, the turn line counts up. */
 export const Running: Story = {
   render: () => (
     <Live
@@ -196,7 +201,8 @@ export const Running: Story = {
           state: "live",
           parts: [
             STEP("s1", "birdwatch recall 'coach booking'", "Check past runs", "{}"),
-            STEP("s2", "birdwatch plan 'coach booking tools'", "Plan the run"),
+            STEP("s2", "curl -sI https://northwind.example", "Read the site", "HTTP/2 200"),
+            STEP("s3", "wc -w page.md", "Count words"),
           ],
         },
       ]}
@@ -204,8 +210,9 @@ export const Running: Story = {
   ),
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
-    await expect(c.getByText(/^Plan the run · \d+s$/)).toBeTruthy();
-    await expect(c.queryByText("Check past runs")).toBeNull();
+    await expect(c.getByText("Check past runs")).toBeTruthy();
+    await expect(c.getByText("Running 2 commands")).toBeTruthy();
+    await expect(c.getByRole("status")).toBeTruthy();
   },
 };
 
@@ -264,9 +271,9 @@ export const Asks: Story = {
   ),
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
-    await expect(c.getByText("Waiting on you")).toBeTruthy();
+    await expect(c.getByRole("status").textContent).toMatch(/Waiting on you/);
     await userEvent.click(c.getByRole("button", { name: "Deny" }));
-    await waitFor(() => expect(c.getByText("Denied")).toBeTruthy());
+    await waitFor(() => expect(c.getByText("denied")).toBeTruthy());
   },
 };
 

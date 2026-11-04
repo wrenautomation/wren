@@ -18,22 +18,15 @@ import {
   type TextMessagePartComponent,
   type ThreadMessageLike,
   ThreadPrimitive,
-  type ToolCallMessagePartComponent,
   useAuiState,
   useExternalStoreRuntime,
 } from "@assistant-ui/react";
-import {
-  type PropsWithChildren,
-  type ReactNode,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, useMemo, useRef } from "react";
 import { Streamdown } from "streamdown";
 import { Answer, answersOf, Choices, LinkCard, linksIn } from "./agent-cards.js";
+import { partsOf, spanOf, ToolPart, took, Working } from "./agent-steps.js";
 import { Ring } from "./busy.js";
-import { Button, Tag } from "./controls.js";
+import { Tag } from "./controls.js";
 import { Alert } from "./feedback.js";
 import { cx } from "./format.js";
 import { tipProps } from "./hint.js";
@@ -65,6 +58,9 @@ export type AgentPart =
       ask?: { why?: string | undefined; allowed?: boolean | undefined } | undefined;
       /** AskUserQuestion: the picks, by question. */
       answers?: Record<string, string> | undefined;
+      /** Epoch ms: the call began, its result landed. */
+      startedAt?: number | undefined;
+      completedAt?: number | undefined;
     };
 
 /** One of AskUserQuestion's questions: 2-4 options; "Something else" is always offered. */
@@ -189,6 +185,14 @@ export function threadMessage(m: AgentMessage): ThreadMessageLike {
                   toolName: p.name,
                   args: p.input as never,
                   argsText: p.inputText ?? JSON.stringify(p.input),
+                  ...(p.startedAt
+                    ? {
+                        timing: {
+                          startedAt: p.startedAt,
+                          ...(p.completedAt ? { completedAt: p.completedAt } : {}),
+                        },
+                      }
+                    : {}),
                   ...(p.result !== undefined ? { result: p.result, isError: !!p.failed } : {}),
                   ...(p.ask
                     ? {
@@ -352,7 +356,10 @@ export function AgentThread(p: AgentThreadProps) {
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <Answer.Provider value={p.onAnswer}>
-        <ThreadPrimitive.Root className={cx("flex h-full min-h-0 flex-col", p.className)}>
+        <ThreadPrimitive.Root
+          data-agent-thread=""
+          className={cx("flex h-full min-h-0 flex-col", p.className)}
+        >
           <ThreadPrimitive.Viewport
             aria-busy={p.stale || undefined}
             className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
@@ -554,12 +561,12 @@ function ReplyTurn() {
         components={{
           Text: Reply,
           Reasoning: Thinking,
-          tools: { Fallback: ToolRow },
+          tools: { Fallback: ToolPart },
           data: { by_name: { choices: Choices } },
-          ToolGroup: Steps,
         }}
       />
-      <Pending />
+      <Working />
+      <Ended />
       <Foot />
     </MessagePrimitive.Root>
   );
@@ -604,228 +611,6 @@ const Thinking: ReasoningMessagePartComponent = ({ text, status }) => {
   );
 };
 
-const TOOL_ICON: Record<string, IconName> = { Bash: "code", Read: "read", Skill: "book" };
-
-/** The one line that says what a call does: Bash's command, Read's file, Skill's name. */
-export function toolLine(name: string, input: Record<string, unknown>): string {
-  const s = (k: string) => (typeof input[k] === "string" ? (input[k] as string) : "");
-  if (name === "Bash") return s("command");
-  if (name === "Read") return s("file_path");
-  if (name === "Skill") return s("skill");
-  return Object.values(input)
-    .filter((v) => typeof v === "string")
-    .join(" · ");
-}
-
-/** A call's name for a person: its description, else what it does in a few words. */
-function toolTitle(name: string, input: Record<string, unknown>): string {
-  if (typeof input.description === "string" && input.description) return input.description;
-  const line = toolLine(name, input);
-  if (name === "Read") return `Read ${line.split("/").pop() || "a file"}`;
-  if (name === "Skill") return `Load the ${line || "a"} skill`;
-  if (name === "Bash") return "Run a command";
-  return name;
-}
-
-/** Seconds since `from` (else since it began), ticking while `on`. */
-function useElapsed(on: boolean, from: number): string {
-  const start = useRef(from || Date.now());
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!on) return;
-    setNow(Date.now());
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, [on]);
-  const s = Math.max(0, Math.round((now - (from || start.current)) / 1000));
-  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
-}
-
-/** Runs of tool calls, one line: folded, it names the live step and the time; opens on a click or an ask. */
-function Steps({
-  startIndex,
-  endIndex,
-  children,
-}: PropsWithChildren<{ startIndex: number; endIndex: number }>) {
-  // one string, so the selector's answer is stable between renders
-  const sum = useAuiState((s) => {
-    const ps = s.message.parts.slice(startIndex, endIndex + 1);
-    let live = 0;
-    let asks = 0;
-    let bad = 0;
-    for (const x of ps) {
-      if (x.type !== "tool-call") continue;
-      const a = x.approval;
-      if (a && a.approved === undefined && !a.resolution) asks++;
-      else if (x.result === undefined && a?.approved !== false) live++;
-      if (x.isError) bad++;
-    }
-    return `${ps.length}|${live}|${asks}|${bad}|${s.message.status?.type === "running" ? 1 : 0}`;
-  });
-  const [n, live, asks, bad, running] = sum.split("|").map(Number) as [
-    number,
-    number,
-    number,
-    number,
-    number,
-  ];
-  // the live step's own name: the one line shown while the steps work, folded
-  const now = useAuiState((s) => {
-    for (const x of s.message.parts.slice(startIndex, endIndex + 1))
-      if (x.type === "tool-call" && x.result === undefined && x.approval?.approved !== false)
-        return toolTitle(x.toolName, (x.args ?? {}) as Record<string, unknown>);
-    return "";
-  });
-  const from = useAuiState((s) => s.message.createdAt?.getTime() ?? 0);
-  const [mine, setMine] = useState<boolean | null>(null);
-  const busy = asks > 0 || (live > 0 && running > 0);
-  const took = useElapsed(busy && !asks, from);
-  if (n < 2) return <>{children}</>;
-  const open = asks > 0 || (mine ?? false);
-  const label =
-    asks > 0
-      ? "Waiting on you"
-      : busy
-        ? `${now || "Working"} · ${took}`
-        : `Ran ${n} steps${bad ? `, ${bad} failed` : ""}`;
-  return (
-    <div className="grid gap-1.5">
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setMine(!open)}
-        className="inline-flex items-center gap-2 justify-self-start text-[13px] font-semibold text-(--ui-ink-3) hover:text-(--ui-ink-2)"
-      >
-        {busy && !asks ? <Ring /> : <Icon name="list" size={14} />}
-        <span key={busy ? now : label} className="[animation:ui-fade_.2s_both] tabular-nums">
-          {label}
-        </span>
-        <Icon
-          name="down"
-          size={12}
-          className={cx("transition-transform duration-200", open && "rotate-180")}
-        />
-      </button>
-      {open ? (
-        <div className="ui-rise ml-[6px] grid gap-0.5 border-(--ui-hair) border-l pl-3">
-          {children}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-/** A tool call: one line that opens to its command and output; the ask in place when it asks. */
-const ToolRow: ToolCallMessagePartComponent = (t) => {
-  const input = (t.args ?? {}) as Record<string, unknown>;
-  const line = toolLine(t.toolName, input) || t.argsText;
-  const ask = t.approval;
-  const asking = !!ask && ask.approved === undefined && !ask.resolution;
-  const done = t.result !== undefined;
-  const out = done && typeof t.result === "string" ? t.result.trim() : "";
-  const [mine, setMine] = useState(false);
-  const open = asking || mine;
-  return (
-    <div
-      className={cx(
-        "grid rounded-(--ui-leaf-box) transition-colors duration-200",
-        asking && "bg-(--ui-wash) px-3 py-2.5",
-      )}
-    >
-      <button
-        type="button"
-        aria-expanded={open}
-        disabled={asking}
-        onClick={() => setMine(!mine)}
-        className="group/row flex min-w-0 items-center gap-2 py-1 text-left text-[13.5px] text-(--ui-ink-2) hover:text-(--ui-ink) disabled:cursor-default"
-      >
-        <Icon
-          name={TOOL_ICON[t.toolName] ?? "bolt"}
-          size={14}
-          className="flex-none text-(--ui-ink-3)"
-        />
-        <span className="min-w-0 wrap-anywhere">{toolTitle(t.toolName, input)}</span>
-        <span key={statusOf(t, asking, done)} className="flex-none [animation:ui-fade_.2s_both]">
-          {asking ? (
-            <Tag tone="warn">Waiting on you</Tag>
-          ) : ask?.approved === false ? (
-            <Tag>Denied</Tag>
-          ) : t.isError ? (
-            <Tag tone="bad">Failed</Tag>
-          ) : done ? (
-            <Icon name="check" size={14} className="text-(--ui-good)" />
-          ) : t.status.type === "running" || t.status.type === "requires-action" ? (
-            <Ring />
-          ) : null}
-        </span>
-        {asking ? null : (
-          <Icon
-            name="down"
-            size={12}
-            className={cx(
-              "flex-none text-(--ui-ink-3) opacity-0 transition-[opacity,rotate] duration-200 group-hover/row:opacity-100",
-              open && "rotate-180 opacity-100",
-            )}
-          />
-        )}
-      </button>
-      {open ? (
-        <div className="ui-rise grid gap-2 pt-1 pb-2">
-          <pre className="m-0 overflow-x-auto whitespace-pre-wrap rounded-[4px_10px_4px_10px] bg-(--ui-canvas) px-3 py-2 font-mono text-[12.5px] text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)] [overflow-wrap:anywhere]">
-            {t.toolName === "Bash" ? `$ ${line}` : line}
-          </pre>
-          {asking ? (
-            <div className="grid gap-2">
-              <span className="text-[13.5px] text-(--ui-ink-2)">
-                Claude agent asks to run this{ask?.prompt ? `: ${ask.prompt.toLowerCase()}` : "."}
-              </span>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={() => void t.respondToApproval?.({ approved: true })}>
-                  Allow once
-                </Button>
-                <Button
-                  size="sm"
-                  tone="secondary"
-                  onClick={() => void t.respondToApproval?.({ approved: false })}
-                >
-                  Deny
-                </Button>
-              </div>
-            </div>
-          ) : null}
-          {out ? (
-            <pre className="m-0 max-h-72 overflow-auto whitespace-pre-wrap px-3 font-mono text-[12px] text-(--ui-ink-2) [overflow-wrap:anywhere]">
-              {out}
-            </pre>
-          ) : done ? (
-            <span className="px-3 text-[12.5px] text-(--ui-ink-3)">No output.</span>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
-};
-
-/** The row's state, for the cross-fade when it changes. */
-const statusOf = (
-  t: {
-    isError?: boolean | undefined;
-    approval?: { approved?: boolean } | undefined;
-    status: { type: string };
-  },
-  asking: boolean,
-  done: boolean,
-) =>
-  asking
-    ? "ask"
-    : t.approval?.approved === false
-      ? "denied"
-      : t.isError
-        ? "failed"
-        : done
-          ? "done"
-          : t.status.type;
-
 const MODEL_NAME: Record<string, string> = { haiku: "Haiku", sonnet: "Sonnet", opus: "Opus" };
 const modelName = (m: string) =>
   MODEL_NAME[m] ?? MODEL_NAME[/claude-(\w+)/.exec(m)?.[1] ?? ""] ?? m;
@@ -839,12 +624,12 @@ const totalOf = (f: AgentFoot) =>
   (f.input ?? 0) + (f.output ?? 0) + (f.cacheRead ?? 0) + (f.cacheWrite ?? 0);
 
 /** The turn's foot: model, time, tokens; the price only where a key pays it. */
-export function footLine(foot: AgentFoot | null, state: string): string | null {
+export function footLine(foot: AgentFoot | null, state: string, time = true): string | null {
   const total = foot ? totalOf(foot) : 0;
   const bits = [
     state === "stopped" ? "Stopped" : state === "failed" ? "Failed" : null,
     foot?.model ? modelName(foot.model) : null,
-    foot?.ms ? `${(foot.ms / 1000).toFixed(1)} s` : null,
+    time && foot?.ms ? `${(foot.ms / 1000).toFixed(1)} s` : null,
     total ? `${count(total)} tokens` : null,
     foot?.cost && foot.plan === false ? usd(foot.cost) : null,
   ].filter(Boolean);
@@ -871,24 +656,35 @@ function footDetail(foot: AgentFoot | null): string | null {
   return `${parts}. ${pay}`.trim();
 }
 
-/** Nothing new on screen while the turn runs: no parts yet, or the last step just ended. */
-function Pending() {
-  const wait = useAuiState((s) => {
-    if (s.message.status?.type !== "running") return false;
-    const last = s.message.parts.at(-1);
-    return !last || (last.type === "tool-call" && last.result !== undefined);
-  });
-  return wait ? (
-    <span className="[animation:ui-fade_.2s_.3s_both]">
-      <Tag tone="accent" busy>
-        Thinking
-      </Tag>
-    </span>
-  ) : null;
-}
-
 const ICON_BUTTON =
   "grid size-7 place-items-center rounded-(--ui-radius) text-(--ui-ink-3) transition-colors duration-150 hover:bg-(--ui-fill) hover:text-(--ui-ink)";
+
+/** A turn that ran steps ends on one line: done, stopped or failed, and its time. */
+function Ended() {
+  const custom = useAuiState((s) => s.message.metadata.custom) as
+    | { foot: AgentFoot | null; state: string }
+    | undefined;
+  const live = useAuiState((s) => s.message.status?.type === "running");
+  const parts = useAuiState(partsOf);
+  const from = useAuiState((s) => s.message.createdAt?.getTime() ?? 0);
+  if (live || !custom || !parts.some((x) => x.type === "tool-call")) return null;
+  const ms = custom.foot?.ms || spanOf(parts, from);
+  const [icon, tone, word] =
+    custom.state === "stopped"
+      ? (["stop", "text-(--ui-ink-3)", "Stopped"] as const)
+      : custom.state === "failed"
+        ? (["xCircle", "text-(--ui-bad)", "Failed"] as const)
+        : (["checkCircle", "text-(--ui-good)", "Done"] as const);
+  return (
+    <div className="flex min-h-7 items-center gap-2.5 text-[13.5px] text-(--ui-ink) [animation:ui-fade_.25s_both]">
+      <Icon name={icon} size={15} className={cx("flex-none", tone)} />
+      <span className="font-medium">{word}</span>
+      {ms ? (
+        <span className="font-mono text-[11.5px] text-(--ui-ink-3) tabular-nums">{took(ms)}</span>
+      ) : null}
+    </div>
+  );
+}
 
 /** Copy, then the usage line; on older replies both wait for the pointer. */
 function Foot() {
@@ -896,8 +692,9 @@ function Foot() {
     | { foot: AgentFoot | null; state: string }
     | undefined;
   const live = useAuiState((s) => s.message.status?.type === "running");
+  const steps = useAuiState((s) => s.message.parts.some((x) => x.type === "tool-call"));
   if (live || !custom) return null;
-  const line = footLine(custom.foot, custom.state);
+  const line = footLine(custom.foot, custom.state, !steps);
   const detail = footDetail(custom.foot);
   return (
     <ActionBarPrimitive.Root

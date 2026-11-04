@@ -108,8 +108,10 @@ function parsed(text: string | undefined): Record<string, unknown> | null {
   }
 }
 
-/** One frame in. Unknown frames (status, rate limits, hooks) change nothing. */
-export function fold(s: ThreadState, f: Frame): ThreadState {
+/** One frame in. Unknown frames (status, rate limits, hooks) change nothing. `now` times a live
+ * frame; a stored one carries its own `timestamp`. */
+export function fold(s: ThreadState, f: Frame, now = Date.now()): ThreadState {
+  const t = typeof f.timestamp === "string" ? Date.parse(f.timestamp) || now : now;
   switch (f.type) {
     case "system":
       return f.subtype === "init"
@@ -121,11 +123,11 @@ export function fold(s: ThreadState, f: Frame): ThreadState {
           }
         : s;
     case "stream_event":
-      return partial(s, f.event as Frame);
+      return partial(s, f.event as Frame, t);
     case "assistant":
-      return whole(s, (f.message ?? {}) as Parameters<typeof whole>[1]);
+      return whole(s, (f.message ?? {}) as Parameters<typeof whole>[1], t);
     case "user":
-      return userFrame(s, f);
+      return userFrame(s, f, t);
     case "result":
       return ended(s, f);
     default:
@@ -133,7 +135,7 @@ export function fold(s: ThreadState, f: Frame): ThreadState {
   }
 }
 
-function partial(s0: ThreadState, e: Frame): ThreadState {
+function partial(s0: ThreadState, e: Frame, t: number): ThreadState {
   if (e.type === "message_start") {
     const id = String((e.message as { id?: string })?.id ?? "");
     return { ...s0, streamed: [...s0.streamed.slice(-20), id], blocks: {} };
@@ -143,7 +145,10 @@ function partial(s0: ThreadState, e: Frame): ThreadState {
     const p = partOf(e.content_block as Block);
     if (!p) return s0;
     const { s, m } = reply(s0);
-    if (p.type === "tool") p.inputText = "";
+    if (p.type === "tool") {
+      p.inputText = "";
+      p.startedAt = t;
+    }
     m.parts.push(p);
     m.state = "live";
     return { ...s, running: true, blocks: { ...s.blocks, [index]: m.parts.length - 1 } };
@@ -174,6 +179,7 @@ function partial(s0: ThreadState, e: Frame): ThreadState {
 function whole(
   s0: ThreadState,
   msg: { id?: string; model?: string; content?: Block[]; usage?: Record<string, unknown> },
+  t: number,
 ): ThreadState {
   // the CLI's own line after a stop ("No response requested."), not the model's
   if (msg.model === "<synthetic>") return s0;
@@ -192,6 +198,7 @@ function whole(
   }
   for (const b of blocks) {
     const p = partOf(b);
+    if (p?.type === "tool") p.startedAt = t;
     if (p && !(p.type === "thinking" && !p.text)) m.parts.push(p);
   }
   return s;
@@ -200,7 +207,7 @@ function whole(
 /** The CLI's own command echo (`setModel` → `/model`): not a person's turn. */
 const ECHO = /^<(local-command-(stdout|stderr)|command-(name|message|args))>/;
 
-function userFrame(s0: ThreadState, f: Frame): ThreadState {
+function userFrame(s0: ThreadState, f: Frame, t: number): ThreadState {
   const content = (f.message as { content?: unknown })?.content;
   if (f.isMeta || f.isSynthetic) return s0;
   if (Array.isArray(content) && content.some((b: Block) => b.type === "tool_result")) {
@@ -210,7 +217,12 @@ function userFrame(s0: ThreadState, f: Frame): ThreadState {
       const at = toolAt(m, String(b.tool_use_id));
       const p = m.parts[at];
       if (p?.type === "tool")
-        setPart(m, at, { ...p, result: resultText(b.content), failed: !!b.is_error });
+        setPart(m, at, {
+          ...p,
+          result: resultText(b.content),
+          failed: !!b.is_error,
+          completedAt: t,
+        });
     }
     return s;
   }
@@ -347,7 +359,8 @@ function ended(s0: ThreadState, f: Frame): ThreadState {
 }
 
 /** A stored session (the relay's `/s/<setup>/sessions/<id>`) as a thread. */
-export const history = (frames: readonly Frame[]): ThreadState => frames.reduce(fold, EMPTY);
+export const history = (frames: readonly Frame[]): ThreadState =>
+  frames.reduce((s, f) => fold(s, f), EMPTY);
 
 /** The agent asks before a tool runs (`canUseTool`): the ask goes on that tool's card. */
 export function asked(

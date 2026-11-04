@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { answersOf, linksIn } from "./agent-cards.js";
+import { isCommand, stat, took, toolTitle } from "./agent-steps.js";
 
 describe("answersOf", () => {
   it("reads the picks out of AskUserQuestion's result", () => {
@@ -33,5 +34,31 @@ describe("linksIn, brackets", () => {
     expect(
       linksIn("See (https://en.wikipedia.example/wiki/Foo_(bar)).").map((u) => u.href),
     ).toEqual(["https://en.wikipedia.example/wiki/Foo_(bar)"]);
+  });
+});
+
+describe("steps", () => {
+  it("folds plain commands, names birdwatch", () => {
+    expect(isCommand("Bash", { command: "ls -la" })).toBe(true);
+    expect(isCommand("Bash", { command: "birdwatch plan x" })).toBe(false);
+    expect(isCommand("Read", { file_path: "/a" })).toBe(false);
+  });
+  it("says a result in a few words", () => {
+    expect(stat("Error: Exit code 2\nboom", true)).toBe("exit 2");
+    expect(stat('{"sources":[1,2,3],"pages":6,"run":"x"}')).toBe("3 sources · 6 pages");
+    expect(stat("[1,2]")).toBe("2 items");
+    expect(stat("a\nb\nc")).toBe("3 lines");
+    expect(stat("ok")).toBe("ok");
+    expect(stat("  ")).toBe("no output");
+    expect(stat("{}")).toBe("");
+  });
+  it("says a time", () => {
+    expect(took(3100)).toBe("3.1s");
+    expect(took(24_000)).toBe("24s");
+    expect(took(64_000)).toBe("1m 4s");
+  });
+  it("names a call", () => {
+    expect(toolTitle("Bash", { command: "ls", description: "List files" })).toBe("List files");
+    expect(toolTitle("Read", { file_path: "/x/notes.md" })).toBe("Read notes.md");
   });
 });

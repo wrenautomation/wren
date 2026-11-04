@@ -178,3 +178,14 @@ Choice: A. Proven 11-04 on a Haiku turn: card, click, `"Q"="A"` in the result, t
 - The card: one question with one pick sends on the click. Otherwise the person picks, then Send. "Something else…" takes their own words. Skip denies.
 - Links: each http(s) address in a turn shows as a card (site, path, new tab). Titles and images (an unfurl) wait: they need a relay endpoint that fetches only public addresses (a private-address guard such as `request-filtering-agent`).
 - Steps: a run of tool calls is one folded line. It names the live step and its time ("Plan the run · 12s"). A click opens it; an ask opens it.
+
+## Decision 10: steps append, as in the reel (agreed 11-04, WA-1069)
+William: steps must append, not overwrite; the reel's chat is the bar. Decision 9's one folded line hid each step behind the next. The reel was watched frame by frame this time (the 11-04 build used its speech and text only).
+
+What the reel shows, now built:
+- Each named call is its own row, in order: a ring while live, then a green check. The title shimmers while live. A mono stat and the time sit on the right. A click opens the call and its output.
+- Plain shell commands in a row fold into one "Ran 3 commands" block, closed by default, with the summed time. Open, it is a dark terminal: `$` in orange, the command, a dim stat on the right ("200", "2.1k words"), a block caret on the live line.
+- While the turn runs, its foot shows a ring, what it does now ("Plan the run", "Thinking", "Waiting on you") and the turn time.
+- A finished turn with steps ends on "Done · 24s" (or Stopped, Failed). The usage line then drops its time.
+- Options: full-width rows with a number key (1–9 picks), the label and its note, an arrow. The pick fills ink. One pick sends and gives the keys back to the message box.
+- Times come from each frame's own clock (`timestamp`), so a stored chat shows the same times on reload.

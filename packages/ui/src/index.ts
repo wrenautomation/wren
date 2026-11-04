@@ -27,6 +27,7 @@ export {
   useHeld,
   useLastWrite,
 } from "./action.js";
+export { toolLine } from "./agent-steps.js";
 export {
   type AgentFile,
   type AgentFiles,
@@ -39,7 +40,6 @@ export {
   fileKind,
   footLine,
   threadMessage,
-  toolLine,
 } from "./agent-thread.js";
 export {
   Browser,
