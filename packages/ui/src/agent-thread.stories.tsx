@@ -293,7 +293,7 @@ export const Failed: Story = {
   render: () => (
     <Live
       error={{
-        text: "The agent isn't running on this Mac. Start it with wren agent serve, then retry.",
+        text: "The agent isn't running on this Mac. Start its relay, then retry.",
         retry: () => {},
       }}
       messages={[

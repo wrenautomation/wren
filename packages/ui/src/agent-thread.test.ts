@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { answersOf, linksIn } from "./agent-thread.js";
+import { answersOf, linksIn } from "./agent-cards.js";
 
 describe("answersOf", () => {
   it("reads the picks out of AskUserQuestion's result", () => {
@@ -25,5 +25,13 @@ describe("linksIn", () => {
   });
   it("skips what is not an address", () => {
     expect(linksIn("ftp://x.example and mailto:a@b.example and http://")).toEqual([]);
+  });
+});
+
+describe("linksIn, brackets", () => {
+  it("keeps a matched ) and drops an unmatched one", () => {
+    expect(
+      linksIn("See (https://en.wikipedia.example/wiki/Foo_(bar)).").map((u) => u.href),
+    ).toEqual(["https://en.wikipedia.example/wiki/Foo_(bar)"]);
   });
 });

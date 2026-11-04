@@ -394,7 +394,7 @@ export function closeText(e: unknown): { text: string; retry: boolean } {
   const why = m?.[2]?.trim() ?? "";
   if (code === null && /connection error|ECONNREFUSED|failed to connect/i.test(msg))
     return {
-      text: "The agent isn't running on this Mac. Start it with wren agent serve, then retry.",
+      text: "The agent isn't running on this Mac. Start its relay, then retry.",
       retry: true,
     };
   switch (code) {
