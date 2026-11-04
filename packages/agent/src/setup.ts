@@ -31,6 +31,8 @@ export interface Setup {
   mcpServers?: Readonly<Record<string, unknown>>;
   /** `permissions.allow` rules: calls that skip the prompt. */
   allow: readonly string[];
+  /** Fixed permission mode the page may not change. `dontAsk`: anything not in `allow` is denied, never asked. */
+  mode?: "dontAsk";
   /** Host env names passed to the child, beyond the base. */
   passEnv: readonly string[];
   /** Fixed vars the child always gets (never a secret: records are public code). */

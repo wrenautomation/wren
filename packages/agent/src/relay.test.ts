@@ -6,7 +6,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
-import { CLOSE, relay } from "./relay.js";
+import { type Authorize, CLOSE, relay, tokenMatches } from "./relay.js";
+import { memoryLedger } from "./sessions.js";
 import type { Setup } from "./setup.js";
 
 const dir = mkdtempSync(join(tmpdir(), "wren-agent-"));
@@ -47,11 +48,20 @@ afterEach(async () => {
   closeRelay = undefined;
 });
 
-function start(host: Record<string, string> = {}) {
+const byToken: Authorize = async ({ credential }) =>
+  tokenMatches(credential, "tok") ? "local" : null;
+
+function start(host: Record<string, string> = {}, authorize: Authorize = byToken) {
   port += 1;
+  const ledger = memoryLedger();
   const r = relay({
     port,
-    token: "tok",
+    authorize,
+    ledger,
+    history: {
+      info: async (id) => ({ title: `title ${id}` }),
+      messages: async (id) => [{ type: "user", session_id: id }],
+    },
     origins: ["https://app.wrenautomation.com"],
     setups: [setup],
     credential: { kind: "plan" },
@@ -62,7 +72,7 @@ function start(host: Record<string, string> = {}) {
     spawn: (_cmd, _args, o) => spawn(process.execPath, [fake], o),
   });
   closeRelay = r.close;
-  return new Promise<void>((res) => r.server.on("listening", () => res()));
+  return new Promise<typeof ledger>((res) => r.server.on("listening", () => res(ledger)));
 }
 
 /** Opens a socket, sends frames, gathers frames until close or `until` matches. */
@@ -124,6 +134,55 @@ describe("relay", () => {
     expect((await session("/s/demo", [auth("nope")])).code).toBe(CLOSE.unauthorized);
     expect((await session("/s/other", [auth()])).code).toBe(CLOSE.unknownSetup);
     expect((await session("/s/demo", [auth()], undefined, "https://evil.example")).code).toBe(-1);
+  });
+
+  it("holds frames sent while a slow authorize runs, then sends them in order", async () => {
+    await start({}, async (a) => {
+      await new Promise((r) => setTimeout(r, 300));
+      return byToken(a);
+    });
+    const init = {
+      type: "control_request",
+      request_id: "i1",
+      request: { subtype: "initialize" },
+    };
+    const { frames } = await session("/s/demo", [auth(), init, user("held")], isResult);
+    expect(frames[0].type).toBe("control_response");
+    expect(frames.find(isResult)).toMatchObject({ result: "held" });
+  });
+
+  it("refuses when authorize says no, and a resume of a session not in the ledger", async () => {
+    await start({}, async () => null);
+    expect((await session("/s/demo", [auth()])).code).toBe(CLOSE.unauthorized);
+    await closeRelay?.();
+    await start();
+    expect((await session("/s/demo?resume=s9", [auth()])).code).toBe(CLOSE.unauthorized);
+  });
+
+  it("lists setups, and only the asker's own sessions with their history", async () => {
+    const ledger = await start();
+    await session("/s/demo", [auth(), user("one")], isResult);
+    ledger.add({ setup: "demo", session: "s-other", who: "sam@x.example", at: "2026-01-01" });
+    const get = (path: string, token?: string) =>
+      fetch(`http://127.0.0.1:${port}${path}`, {
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+      });
+    expect(await (await get("/setups")).json()).toMatchObject([
+      { name: "demo", models: ["haiku"], tools: ["Read"] },
+    ]);
+    expect((await get("/s/demo/sessions")).status).toBe(401);
+    expect(await (await get("/s/demo/sessions", "tok")).json()).toEqual([
+      expect.objectContaining({ session: "s1", title: "title s1" }),
+    ]);
+    expect(await (await get("/s/demo/sessions/s1", "tok")).json()).toEqual([
+      { type: "user", session_id: "s1" },
+    ]);
+    expect((await get("/s/demo/sessions/s-other", "tok")).status).toBe(404);
+    const pre = await fetch(`http://127.0.0.1:${port}/setups`, {
+      method: "OPTIONS",
+      headers: { origin: "https://app.wrenautomation.com" },
+    });
+    expect(pre.headers.get("access-control-allow-private-network")).toBe("true");
   });
 
   it("answers a widening control request with an error", async () => {

@@ -139,6 +139,20 @@ describe("inbound", () => {
   it("models and modes stay inside the setup", () => {
     expect(inbound(req({ subtype: "set_model", model: "sonnet" }), setup).kind).toBe("forward");
     expect(inbound(req({ subtype: "set_model", model: "opus" }), setup).kind).toBe("reply");
+    expect(inbound(req({ subtype: "set_model", model: "claude-sonnet-5-5" }), setup).kind).toBe(
+      "forward",
+    );
+    expect(inbound(req({ subtype: "set_model", model: "claude-opus-5-5" }), setup).kind).toBe(
+      "reply",
+    );
+    const fixed = { ...setup, mode: "dontAsk" as const };
+    const mode = (m: string) =>
+      inbound(req({ subtype: "set_permission_mode", mode: m }), fixed).kind;
+    expect(mode("dontAsk")).toBe("forward");
+    expect(mode("default")).toBe("reply");
+    expect(launch(fixed, { kind: "plan" }, opts).args.join(" ")).toContain(
+      "--permission-mode dontAsk",
+    );
     expect(inbound(req({ subtype: "set_permission_mode", mode: "plan" }), setup).kind).toBe(
       "forward",
     );

@@ -123,6 +123,7 @@ export function launch(setup: Setup, cred: Credential, o: LaunchOptions): Launch
     "--tools", setup.tools.join(","),
     "--model", setup.model,
   ];
+  if (setup.mode) args.push("--permission-mode", setup.mode);
   const plugin = o.resolvePlugin ?? pluginRoot;
   for (const p of setup.plugins)
     args.push(
@@ -132,6 +133,9 @@ export function launch(setup: Setup, cred: Credential, o: LaunchOptions): Launch
   if (setup.append) args.push("--append-system-prompt", setup.append);
   if (o.resume) args.push("--resume", o.resume);
 
-  const cwd = isAbsolute(setup.cwd) ? setup.cwd : resolve(o.root, setup.cwd);
-  return { command: o.command ?? "claude", args, env, cwd };
+  return { command: o.command ?? "claude", args, env, cwd: setupCwd(setup, o.root) };
 }
+
+/** A setup's working dir: relative paths resolve from the workspace root. */
+export const setupCwd = (setup: Setup, root: string): string =>
+  isAbsolute(setup.cwd) ? setup.cwd : resolve(root, setup.cwd);

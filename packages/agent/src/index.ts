@@ -2,6 +2,7 @@ export { binDir, setupBins } from "./bins.js";
 export { type CheckReport, checkSession, type TurnReport } from "./check.js";
 export { type Inbound, inbound } from "./filter.js";
 export { credentialBreach } from "./guard.js";
+export { sdkHistory } from "./history.js";
 export {
   BASE_ENV,
   type Credential,
@@ -11,9 +12,19 @@ export {
   LEAN_ENV,
   launch,
   pluginRoot,
+  setupCwd,
   TOKEN_VARS,
 } from "./launch.js";
-export { CLOSE, type RelayOptions, relay } from "./relay.js";
+export {
+  type Asker,
+  type Authorize,
+  CLOSE,
+  type History,
+  type RelayOptions,
+  relay,
+  tokenMatches,
+} from "./relay.js";
+export { fileLedger, LEDGER_FILE, type Ledger, type SessionRecord } from "./sessions.js";
 export type { Connection, CredentialKind, Setup } from "./setup.js";
 export { SETUPS, setupNamed } from "./setups.js";
 export { localToken, TOKEN_FILE } from "./token.js";

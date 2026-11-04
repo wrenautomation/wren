@@ -80,3 +80,36 @@ William: a menu, upsell and prescription framework sells utility products, so to
 | C. Per-user skill filters inside a setup | fine grain | prompt and cache vary per user; tests multiply |
 
 Choice: A. Grants are RBAC with scoped attributes. A purchase is a grant on the app, an upsell is another grant, a trial is a grant with `until` or `usesLeft`. A prescription names setups and grants nothing. A setup's record fixes its skills, tools, MCP, env and model, never per user. A smaller offer is a smaller setup (`birdwatch-read` beside `birdwatch`). The catalog waits for the product-lines redesign (WA-1033).
+
+## Decision 4: the chat UI in a page (agreed 11-04, WA-1053)
+William: use a vetted chat UI library for the thread, its states and the stream, then style it to wren.
+
+No library reads the Agent SDK's message stream. Every option keeps one adapter from SDK messages to the library's message shape. A library removes the UI work: scroll anchoring, streaming markdown, the composer, Stop, tool cards, approval cards, running and error states.
+
+| Option | Holds the state | We write | Against |
+|---|---|---|---|
+| A. assistant-ui (MIT, 0.15, ~2.9M/week), `ExternalStoreRuntime` | running, cancel, composer, thread viewport, tool UI by name, approval controls | SDK → `ThreadMessageLike` adapter; tool and approval parts in wren CSS | 0.x: pin exact; its own primitives beside our shadcn parts |
+| B. AI SDK `useChat` + a custom `ChatTransport` + shadcn AI patterns | messages, status, stop, tool part states | SDK → `UIMessageChunk` transport | its turn model ends a turn at an approval; Claude Code waits inside the turn (`canUseTool`), so every approval bridges two turns |
+| C. shadcn AI patterns only (copy-in, `base`, the portal's `base-nova`) | none: Message Scroller, Tool, Confirmation, Reasoning are visuals | SDK → messages reducer, status, Stop, composer | the state the ask wants gone stays ours |
+| D. CopilotKit + AG-UI `@ag-ui/claude-agent-sdk` | all, through its runtime | little | runs the node SDK on a server: replaces Decision 2's relay; heavier; its look |
+
+Ranked by result (states we never write), then risk, then $ (all free). Choice: A, with Streamdown (Apache-2.0, ~10.8M/week) for markdown that streams. The approval card is assistant-ui's tool UI with status `requires-action`, so `canUseTool` stays one turn.
+
+Plan (WA-1053):
+- Relay: `GET /setups` (title, models, tools; CORS for the origins). `GET /s/<setup>/sessions` and `/s/<setup>/sessions/<id>`: only sessions the relay started, per person (its own ledger), bodies from the SDK's `getSessionMessages`. `listSessions(dir)` alone would show every Claude session in that folder, William's and the runs session's too. `set_model` takes an alias or its full id. CSP: `http://127.0.0.1:4748`.
+- `@wren/ui` `AgentThread`: assistant-ui primitives in design-language CSS (Parts, 14 Loading, 15 Inbox); `DraftTurns` sets the thread look. Parts: user turn, reply (Streamdown), thinking (folded), tool card (input, running, output, error), approval card (Allow once, Deny), turn foot (tokens, cost, time), error line per close code. Story per state, axe.
+- Portal `modules/agent`: the adapter (SDK messages → thread messages; unit tests on fixture streams), the runtime hook (`openSetup`, interrupt, model, resume). No token entry (Decision 5).
+- Page: Research → Ask birdwatch: past chats on the left, the thread on the right, model pick, New, Stop.
+- Check: one live pass (serve, dev, two turns, a prompt, resume with history) from localhost:5173 and once from app.wrenautomation.com (Chrome's local network access rules may block a public origin), then the gate, push.
+
+## Decision 5: who may open a setup (agreed 11-04, WA-1053)
+Decision 3 says a grant decides. The relay must check it, not trust the page.
+
+| Option | For | Against |
+|---|---|---|
+| A. The page sends its sign-in token; the relay asks the page's origin `POST /api/delivery/me` with it and checks `can(who, "run", {app})` | no new secret; one access model; grants read fresh; nothing to paste | one portal call per session (~150 ms); needs the portal up |
+| B. The portal mints a short Ed25519 ticket after `can`; the relay checks it offline | no call per session | a new key in prod; a second token kind |
+| C. Local token only (built 11-04) | no network | no person and no grant: anyone with the token opens every setup |
+| D. The relay reads grants from Postgres | exact | database credentials on every relay host |
+
+Choice: A. The relay asks only an origin on its allow list, so a page cannot point it elsewhere. On app.wrenautomation.com the token is the sign-in's (15 min); on localhost:5173 the dev Worker answers as `WREN_DEV_EMAIL`, on this Mac only. A client with no Origin (`wren agent check`) uses the local token. The target is `{app}` only: Wren's own workspace. A client setup adds `client` when one exists. `research` joins `APPS` so a grant can name it. B is the path for a relay with no route to the portal.

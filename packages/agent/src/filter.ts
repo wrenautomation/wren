@@ -74,18 +74,22 @@ function control(m: Obj, setup: Setup): Inbound {
     return { kind: "forward", line: JSON.stringify({ ...m, request }) };
   }
   if (sub === "set_model") {
-    const ok =
-      r.model == null ||
-      r.model === "default" ||
-      [setup.model, ...(setup.models ?? [])].includes(String(r.model));
+    const ok = r.model == null || r.model === "default" || offers(setup, String(r.model));
     return ok
       ? { kind: "forward", line: JSON.stringify(m) }
       : refuse(id, `setup ${setup.name} does not offer model ${String(r.model)}`);
   }
   if (sub === "set_permission_mode")
-    return MODES.has(String(r.mode))
+    return (setup.mode ? r.mode === setup.mode : MODES.has(String(r.mode)))
       ? { kind: "forward", line: JSON.stringify(m) }
       : refuse(id, `permission mode ${String(r.mode)} is not allowed here`);
   if (PASS.has(sub)) return { kind: "forward", line: JSON.stringify(m) };
   return refuse(id, `${sub} is not allowed in setup ${setup.name}`);
+}
+
+/** An alias the setup lists (`sonnet`), or that alias's full id (`claude-sonnet-5-5`, as the CLI's model list gives it). */
+function offers(setup: Setup, model: string): boolean {
+  return [setup.model, ...(setup.models ?? [])].some(
+    (a) => model === a || model.startsWith(`claude-${a}-`),
+  );
 }

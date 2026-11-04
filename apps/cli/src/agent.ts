@@ -8,14 +8,19 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
+  type Authorize,
   binDir,
   type Credential,
   checkSession,
+  fileLedger,
   localToken,
   relay,
   SETUPS,
+  sdkHistory,
   setupNamed,
+  tokenMatches,
 } from "@wren/agent";
+import { can, type MeAccess, whoFromMe } from "@wren/core/access";
 import type { Command } from "commander";
 
 const AGENT_PORT = 4748;
@@ -25,6 +30,48 @@ const ORIGINS = [
   "http://127.0.0.1:5173",
 ];
 const SECRET_HOOK = join(homedir(), ".claude", "hooks", "no-secret-print.py");
+
+/** A page's answer is kept this long per token: the socket and the sessions list ask together. */
+const ASKED_MS = 60_000;
+
+/**
+ * Decision 5: no Origin is a local process, which shows the local token. A page sends its
+ * sign-in token; its own origin (on the allow list) says who that is (`delivery/me`), and the
+ * grant decides: `can(who, "run", {app})` in Wren's own workspace.
+ */
+function pageGrant(local: string): Authorize {
+  const asked = new Map<string, { at: number; me: MeAccess | null }>();
+  const meOf = async (origin: string, token: string) => {
+    const key = `${origin} ${token}`;
+    const hit = asked.get(key);
+    if (hit && Date.now() - hit.at < ASKED_MS) return hit.me;
+    const res = await fetch(`${origin}/api/delivery/me`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: "{}",
+    });
+    const me = res.ok ? ((await res.json()) as MeAccess) : null;
+    asked.set(key, { at: Date.now(), me });
+    return me;
+  };
+  return async ({ credential, origin, setup }) => {
+    if (!origin) return tokenMatches(credential, local) ? "local" : null;
+    const me = await meOf(origin, credential);
+    const who = me && whoFromMe(me, null);
+    if (!who || !can(who, "run", { app: setup.app })) return null;
+    return emailOf(credential) ?? new URL(origin).host;
+  };
+}
+
+/** The sign-in token's email, read after the portal accepted the token; a dev page sends none. */
+function emailOf(token: string): string | null {
+  try {
+    const claims = JSON.parse(Buffer.from(token.split(".")[1] ?? "", "base64url").toString());
+    return typeof claims.email === "string" ? claims.email.toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}
 
 /** The folder that holds wren, engine and tasks: a setup's relative cwd resolves here. */
 const workspaceRoot = () => resolve(process.env.WREN_ROOT ?? process.cwd(), "..");
@@ -64,7 +111,9 @@ export function registerAgent(program: Command): void {
       const bins = new Map<string, string>();
       const r = relay({
         port: Number(o.port),
-        token: localToken(),
+        authorize: pageGrant(localToken()),
+        ledger: fileLedger(),
+        history: sdkHistory,
         origins: ORIGINS,
         setups: SETUPS,
         credential,

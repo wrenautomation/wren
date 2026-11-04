@@ -88,6 +88,7 @@ export const isBuiltIn = (role: string): role is TeamRole | MemberRole =>
 /** The apps a scope names: each app's id in the portal, and what a sentence calls it. */
 export const APPS: Readonly<Record<string, string>> = {
   work: "Work",
+  research: "Research",
   reactivation: "Reactivation",
   leads: "Leads",
   texts: "Texts",
@@ -283,6 +284,28 @@ export function why(who: Who, p: Permission, at?: string | Target, now = new Dat
 }
 
 /** May `who` do `p` at `at`? See `why`, which lists the grants that say yes. */
+/** What `delivery/me` (`Me` in ./portal.ts) carries that `whoFromMe` reads. */
+export interface MeAccess {
+  demo: boolean;
+  team?: { role: RoleId; grants?: readonly Grant[] };
+  clients: readonly { id: string; role?: RoleId; grants?: readonly Grant[] }[];
+}
+
+/**
+ * A login's `Who` in one workspace (null: Wren's own), from what `delivery/me` sent: the same
+ * `Who` the server's guard reads, so the web, the agent relay and the guard answer alike.
+ * Undefined on the demo and where the login holds no role.
+ */
+export function whoFromMe(me: MeAccess, client: string | null): Who | undefined {
+  if (me.demo) return undefined;
+  if (me.team)
+    return { team: me.team.role, clients: null, ...(me.team.grants ? { grants: me.team.grants } : {}) };
+  if (client === null) return undefined;
+  const c = me.clients.find((x) => x.id === client);
+  if (!c?.role) return undefined;
+  return { member: c.role, client, ...(c.grants ? { grants: c.grants } : {}) };
+}
+
 export const can = (who: Who, p: Permission, at?: string | Target, now?: Date): boolean =>
   why(who, p, at, now).length > 0;
 
