@@ -372,9 +372,7 @@ describe("the console", () => {
       where: { client: "acme" },
     });
     expect(inputs.rows.map((r) => [r.part, r.age])).toContainEqual(["results", "fresh"]);
-    expect(inputs.rows.find((r) => r.part === "results")?.rows).toBe(
-      "/map/results?client=acme",
-    );
+    expect(inputs.rows.find((r) => r.part === "results")?.rows).toBe("/map/results?client=acme");
     const days = await api.list({ record: "console.health_day", view: "all" });
     expect(days.rows.map((r) => r.id)).toContain("acme:2026-11-02");
     const flags = await api.list({ record: "console.flag", view: "open" });
