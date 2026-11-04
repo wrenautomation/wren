@@ -11,23 +11,27 @@ import { fleetKeys, loadLlmEnv } from "@wren/llm";
 import type { Model } from "@wrenautomation/models";
 import {
   cohereEye,
-  cohereSpeech,
   frameCounts,
   geminiVideo,
   renderWatched,
+  speechHere,
   type WatchOptions,
   watch,
 } from "@wrenautomation/read/video";
 import type { Command } from "commander";
 
-/** Cohere's eye and ear on llm.env's keys (never logged), and the ffmpeg path. */
+/**
+ * Cohere's eye on llm.env's keys (never logged), the ffmpeg path, and the ear: local whisper when
+ * its model is on this machine, else Cohere (`speechHere`).
+ */
 export function watchEyes(
   settings: Settings,
   rootDir: string,
 ): Pick<WatchOptions, "eye" | "ear" | "ffmpeg"> {
   loadLlmEnv(settings.llmEnvPath, rootDir);
   const keys = fleetKeys(process.env, "cohere");
-  return { eye: cohereEye(keys), ear: cohereSpeech(keys), ffmpeg: settings.ffmpeg };
+  const ear = speechHere(keys);
+  return { eye: cohereEye(keys), ...(ear ? { ear } : {}), ffmpeg: settings.ffmpeg };
 }
 
 /** A Gemini model that reads video on llm.env's keys; null when no key works. */
