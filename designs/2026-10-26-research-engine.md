@@ -1284,3 +1284,12 @@ The content run lost 16 videos to caption 429s, at 3.5 to 11 min each.
 - Cohere's transcript loops on a 23-min file, so read cuts 60 s clips. The key takes 20 calls a minute (measured), and `cohereEar` paces to it. A 16-min video takes 70 s.
 - `open <run> <hit>` reads only the named hits, so a retry costs one read. With no names, it reads every kept hit that has no page.
 - The gate names the number a quote lacks. `add pattern` prints `sources` and `classes`.
+
+## 11-03: presets pass through to the platform (engine 0.35.0, WA-1034)
+
+autobrowse now takes one preset grammar on every search route (WA-1031): `latest`/`top`, `day`/`week`/`month`/`year`, or paired.
+- `Query.preset` (and tree leaves) carry it. `linkedin` and `google` send it to the desk route as is. autobrowse maps it and refuses one the surface lacks.
+- `youtube` maps it on its own Data API client to `order` and `publishedAfter`, as autobrowse's youtube facet does. That client is not on the desk.
+- Options for a source that can't honor a preset: (a) ignore it silently; (b) warn and search without it; (c) send the query only to sources that take presets, and refuse the write when none in the run does. Took (c): a dropped window would pass off old hits as recent.
+- Dropped birdwatch's own LinkedIn `past-month`. No preset now means the platform's default; the agent picks a window.
+- Reddit's site-wide search (`reddit-public /search`) has no presets yet. Asked autobrowse for them.
