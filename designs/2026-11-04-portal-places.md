@@ -17,7 +17,51 @@ portal about 6 times. His console calls in the last 14 days: approve invites 60,
 content waiting 22, mark read 17, the rest under 10. The agent and the loops do the work through
 the CLI. So the portal is where a person sees, approves and annotates.
 
-## Target
+## Ground-up cut (supersedes Target, 11-04 evening)
+
+William, 11-04: "we need to be even more aggressive with pruning and only keep essentials (and
+things we know for a fact we'll need like contracts) ... hyperaggressive so we can tune this from
+the beginning from the ground up". He picked option C: delete the UI and the idle backends.
+
+Keep rule: a page or package stays only if it runs today (content, engage, infra loops) or is a
+known need (contracts, money, client access). All else goes. Git keeps the code; the lake keeps
+the data.
+
+Team portal, 6 places, the chat panel on every page:
+
+| Place | Pages |
+|---|---|
+| Inbox | Messages (every channel, one list), Approve (drafts and invites that wait for a yes) |
+| Content | Plan (posts by date), Drafts, Posted (with metrics) |
+| People | Contacts (one list; the person page shows touches and bookings), Deals (one list with a stage) |
+| Clients | Clients (the client page: contract, invoices, deliverables) |
+| Research | Birdwatch |
+| Back office | Contracts (documents, e-sign), Money (invoices in, spend), Accounts (channel connections, email inboxes), Team and access |
+
+Client portal: Home (updates, needs-you, deliverables), Content (approve, posted), Messages,
+Account (invoices, contract).
+
+Calendar is not a place: posts show in Content › Plan, bookings on the person.
+
+Backends:
+
+| Goes | Stays |
+|---|---|
+| SMS: the channel, SmsSend, SmsUpkeep, client SMS products | Reach and engage: LinkedIn invites, comments, DMs (the judge reads them) |
+| Ads: Meta ads, AdSpendGuard, ad pages | Meta posting for content |
+| Site analytics: visits, sessions, heatmaps, surveys, experiments rollups, SearchWatch | Lander forms into People (bookings, applications) |
+| Cold email sending: EmailSend, EmailOpenerFill, LeadPoolFill, EmailClickPull, opens, sequences, enrolment, reports | Email deliverability (William: keep "the email domain warmup deliverability code"): inboxes and roster, domains, Instantly warm-up, ramp, EmailPlacementTest, EmailPostmasterPull, EmailBounceRead, spam score, sender pause, EmailFleetDigest, SetupRecheck |
+| RedditReads | Autobrowse Reddit flows |
+| Map (offers, terms, numbers, reports, playbook pages), Campaigns place, pipeline board, journeys pages | `@wren/offers` registry (lander export), Learn's SOP half, the executor (CLI) |
+
+Open: `@wren/reactivation` is the sold offer's engine and sends through cold email. It stays until
+William picks (see Decision log).
+
+Steps, each one commit that builds, tables to the lake before a drop:
+1. UI: the six places for team and client; every other page and module deleted.
+2. SMS. 3. Ads. 4. Site analytics. 5. RedditReads. 6. Cold email sending (deliverability stays).
+
+## Target (superseded by the ground-up cut)
 
 The sidebar:
 
@@ -328,3 +372,12 @@ None.
     loop, left stopped until the experiments phase. The SEO half goes.
   - Stopped loops no place names (Decide, LineFeed, PainFeed, SourcedFeed, TouchFeed, PeopleMapNet,
     SegmentsNet) stay in this pass: traced, then listed to William.
+- 2026-11-04 evening, William: the ground-up cut, option C (delete UI and idle backends), over
+  A (hide) and B (UI only). Keep the email warm-up and deliverability code. Reach stays: the judge
+  (designs/2026-11-04-loops.md) grades its comments.
+- 2026-11-04 evening, William on the evidence pass (audit log, 35 days: 25 portal writes by a
+  person): most pages go. Backends stay: outreach, content, cold email, reactivation, SMS (for
+  newsletters), site analytics with heatmaps (UI off, wired in later). Calendar stays a place. The
+  Deals page goes. RedditReads goes; the autobrowse Reddit code stays. Ads go (0 rows). He will
+  rebuild the system from the ground up and reorganise outreach and content later. So the cut is
+  the UI plus Ads and RedditReads; the Backends table above is superseded.
