@@ -188,6 +188,7 @@ export async function resolveProfile(
         .insert(profileKeys)
         .values(fresh.map((k) => ({ profileId: id, ...k, source, firstSeen: at })))
         .onConflictDoNothing();
+    // Only when a column moves: a re-resolve of an old key writes nothing.
     if (!created)
       await tx
         .update(profiles)
@@ -196,7 +197,11 @@ export async function resolveProfile(
           firstSeen: sql`least(${profiles.firstSeen}, ${at.toISOString()}::timestamptz)`,
           lastSeen: sql`greatest(${profiles.lastSeen}, ${at.toISOString()}::timestamptz)`,
         })
-        .where(eq(profiles.id, id));
+        .where(
+          sql`${profiles.id} = ${id} and (${profiles.firstSeen} > ${at.toISOString()}::timestamptz
+            or ${profiles.lastSeen} < ${at.toISOString()}::timestamptz
+            or (${profiles.name} is null and ${name}::text is not null))`,
+        );
     if (o.traits) await setTraits(tx, id, o.traits, source, at);
     return { id, created, added: fresh.length, merged };
   });

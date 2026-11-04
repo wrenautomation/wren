@@ -1,0 +1,2 @@
+CREATE INDEX "ix_leads_social_url_id" ON "leads" USING btree ("id" DESC NULLS LAST) WHERE social_url is not null;--> statement-breakpoint
+CREATE INDEX "ix_verifications_risky_checked_at" ON "verifications" USING btree ("checked_at") WHERE result = 'risky';

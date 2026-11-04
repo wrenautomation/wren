@@ -83,6 +83,21 @@ describe("resolveProfile", () => {
     expect((await one(sql`select count(*)::int n from profiles`)).n).toBe(0);
   });
 
+  it("writes the profile row only when a column moves", async () => {
+    const key = [{ kind: "email", value: "w@example.test" }];
+    const id = (await resolveProfile(pg.db, key, "t", { at: T(5) }))?.id as number;
+    const xmin = async () => (await one(sql`select xmin::text x from profiles where id = ${id}`)).x;
+    const before = await xmin();
+    await resolveProfile(pg.db, key, "t", { at: T(5) });
+    expect(await xmin()).toBe(before);
+    await resolveProfile(pg.db, key, "t", { at: T(7), name: "Wes" });
+    expect(
+      await one(
+        sql`select name, last_seen = ${S(7)}::timestamptz moved from profiles where id = ${id}`,
+      ),
+    ).toEqual({ name: "Wes", moved: true });
+  });
+
   it("merges two into the oldest, moves keys, takes newer traits, deletes nothing", async () => {
     const old = await resolveProfile(pg.db, [{ kind: "email", value: "bo@example.test" }], "t", {
       at: T(1),

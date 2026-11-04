@@ -97,6 +97,9 @@ const idList = (ids: readonly number[]) =>
   `{${ids.filter((n) => Number.isSafeInteger(n) && n > 0).join(",")}}`;
 const inScope = (col: SQL, scope: Scope) =>
   scope ? sql`${col} = any(${idList(scope)}::int[])` : sql`true`;
+/** In scope and not merged: a row lookup each, never a hash of every profile. */
+const live = (col: SQL, scope: Scope) =>
+  sql`${inScope(col, scope)} and exists (select 1 from profiles p where p.id = ${col} and p.merged_into is null)`;
 
 /** A count's three columns, aggregated from the `ev` lines. */
 const countCols = (r: RollupCount) =>
@@ -109,27 +112,14 @@ const countCols = (r: RollupCount) =>
 const day = (col: string) => `to_char(${col} at time zone 'UTC', 'Mon FMDD')`;
 
 /**
- * One row per live profile in scope, every `profile_rollups` column but `refreshed_at`.
- *
- * `ev` is every line that counts, as (profile, reason, channel, at, n, what): what they did toward
- * us (a reason in `WARM_REASONS`) and what we sent them (`contacted`). A site read is two lines,
- * its first (n = the count) and its last (n = 0), so sum, min and max come out right.
+ * The lines every map column reads, as CTEs for a `with`: `k` (live keys in scope), `ids`, `social`,
+ * `ev` (every line that counts, as (profile, reason, channel, at, n, what): what they did toward
+ * us (a reason in `WARM_REASONS`) and what we sent them (`contacted`); a site read is two lines,
+ * its first (n = the count) and its last (n = 0), so sum, min and max come out right), `subs` and
+ * `client`.
  */
-function rollupRows(scope: Scope): SQL {
-  const counts = sql.join(
-    ROLLUP_COUNTS.map((r) => countCols(r)),
-    sql`, `,
-  );
-  const anyWarm = WARM_REASONS.map((r) => `a.${r}_n > 0`).join(" or ");
-  const why = WARM_REASONS.map((r) => `case when a.${r}_n > 0 then '${r}' end`).join(", ");
-  const line = WARM_REASONS.map(
-    (r) =>
-      `case when a.${r}_n > 0 then '${REASON_WORDS[r]}' || case when a.${r}_n > 1 then ' ' || a.${r}_n || 'x' else '' end || ', last ' || ${day(`a.${r}_last`)} end`,
-  ).join(", ");
-  const since = WARM_REASONS.map((r) => `a.${r}_first`).join(", ");
-  const [ownerRe, execRe, managerRe] = ROLE_PATTERNS.map(([, p]) => p);
-  return sql`
-  with k as (
+const sourceLines = (scope: Scope) => sql`
+  k as (
     select k.profile_id, k.kind, k.value, k.source, k.id, k.first_seen
     from profile_keys k
     join profiles p on p.id = k.profile_id and p.merged_into is null
@@ -205,7 +195,7 @@ function rollupRows(scope: Scope): SQL {
       case pe.kind when 'form' then 'form' else 'contacted' end,
       pe.channel, pe.at, 1, pe.summary
     from profile_events pe
-    where pe.profile_id in (select profile_id from ids)
+    where ${live(sql`pe.profile_id`, scope)}
       and (pe.kind = 'form' or (pe.kind = 'payment' and pe.summary not like 'Paid %'))
     union all
     select k.profile_id, 'booked', 'calendar', b.created_at, 1, 'Booked a call'
@@ -273,16 +263,7 @@ function rollupRows(scope: Scope): SQL {
       ('visited', s.visit_last, 0, 'Visited the site'),
       ('watched', s.watch_first, s.watches, 'Watched a video'),
       ('watched', s.watch_last, 0, 'Watched a video')) x(r, at, n, what)
-    where s.profile_id in (select profile_id from ids) and x.at is not null),
-  a as (
-    select profile_id, ${counts},
-      string_agg(distinct ch, ', ') filter (where r = 'replied') replied_channels,
-      (array_agg(ch order by at desc) filter (where r = 'replied'))[1] replied_last_channel,
-      min(at) first_touch_at, (array_agg(ch order by at))[1] first_channel,
-      (array_agg(what order by at))[1] first_touch,
-      max(at) last_touch_at, (array_agg(ch order by at desc))[1] last_channel,
-      (array_agg(what order by at desc))[1] last_touch
-    from ev where at is not null group by profile_id),
+    where ${live(sql`s.profile_id`, scope)} and x.at is not null),
   subs as (
     select k.profile_id,
       string_agg(distinct tp.public_name || ' (' || c.channel || ', ' || c.state || ')', ', ')
@@ -295,7 +276,7 @@ function rollupRows(scope: Scope): SQL {
     group by k.profile_id),
   client as (
     select pe.profile_id, min(pe.at) at from profile_events pe
-    where pe.profile_id in (select profile_id from ids)
+    where ${live(sql`pe.profile_id`, scope)}
       and pe.kind = 'payment' and pe.summary like 'Paid %'
     group by pe.profile_id
     union all
@@ -303,7 +284,33 @@ function rollupRows(scope: Scope): SQL {
     join client_members m on lower(m.email) = k.value
     join clients c on c.id = m.client_id and not c.demo and not c.sandbox
     where k.kind = 'email'
-    group by k.profile_id),
+    group by k.profile_id)`;
+
+/** One row per live profile in scope, every `profile_rollups` column but `refreshed_at`. */
+function rollupRows(scope: Scope): SQL {
+  const counts = sql.join(
+    ROLLUP_COUNTS.map((r) => countCols(r)),
+    sql`, `,
+  );
+  const anyWarm = WARM_REASONS.map((r) => `a.${r}_n > 0`).join(" or ");
+  const why = WARM_REASONS.map((r) => `case when a.${r}_n > 0 then '${r}' end`).join(", ");
+  const line = WARM_REASONS.map(
+    (r) =>
+      `case when a.${r}_n > 0 then '${REASON_WORDS[r]}' || case when a.${r}_n > 1 then ' ' || a.${r}_n || 'x' else '' end || ', last ' || ${day(`a.${r}_last`)} end`,
+  ).join(", ");
+  const since = WARM_REASONS.map((r) => `a.${r}_first`).join(", ");
+  const [ownerRe, execRe, managerRe] = ROLE_PATTERNS.map(([, p]) => p);
+  return sql`
+  with ${sourceLines(scope)},
+  a as (
+    select profile_id, ${counts},
+      string_agg(distinct ch, ', ') filter (where r = 'replied') replied_channels,
+      (array_agg(ch order by at desc) filter (where r = 'replied'))[1] replied_last_channel,
+      min(at) first_touch_at, (array_agg(ch order by at))[1] first_channel,
+      (array_agg(what order by at))[1] first_touch,
+      max(at) last_touch_at, (array_agg(ch order by at desc))[1] last_channel,
+      (array_agg(what order by at desc))[1] last_touch
+    from ev where at is not null group by profile_id),
   came as (
     select distinct on (k.profile_id) k.profile_id, k.source
     from k order by k.profile_id, k.first_seen, k.id),
@@ -441,6 +448,8 @@ export async function refreshPeople(
   const old = ROLLUP_COLUMNS.map((c) => `profile_rollups.${c}`).join(", ");
   const neu = ROLLUP_COLUMNS.map((c) => `excluded.${c}`).join(", ");
   return atomic(db, async (tx) => {
+    // A full pass sorts and hashes every profile: in memory, not on disk.
+    if (!scope) await tx.execute(sql`set local work_mem = '64MB'`);
     const [w] = (await tx.execute(sql`
       with up as (
         insert into profile_rollups (${sql.raw(cols)})
@@ -468,6 +477,47 @@ export async function refreshPeople(
     );
     return { written: Number(w?.n ?? 0), dropped: Number(d?.n ?? 0), traits };
   });
+}
+
+/** Where a hot pass left off: keys after `keyAfter`, traits set after `since`. */
+export interface HotMark {
+  keyAfter: number;
+  since: string;
+}
+
+/**
+ * The profiles whose row can have moved since `mark`: any source line (every engaged profile,
+ * never the imported many), a new key, a trait set, no row yet, or a merged profile's row. A
+ * title, niche or headcount edit waits for the next full pass. `mark` is the next pass's.
+ */
+export async function hotProfiles(
+  db: Queryable,
+  mark: HotMark,
+): Promise<{ ids: number[]; mark: HotMark }> {
+  const next = await hotMark(db);
+  const rows = (await db.execute(sql`
+    with ${sourceLines(null)}
+    select profile_id from ev
+    union select profile_id from subs
+    union select profile_id from client
+    union select profile_id from profile_keys where id > ${mark.keyAfter}
+    union select profile_id from profile_traits where at > ${mark.since}::timestamptz
+    union select p.id from profiles p
+      where p.merged_into is null
+        and not exists (select 1 from profile_rollups r where r.profile_id = p.id)
+    union select r.profile_id from profile_rollups r
+      join profiles p on p.id = r.profile_id and p.merged_into is not null`)) as unknown as {
+    profile_id: number;
+  }[];
+  return { ids: rows.map((r) => Number(r.profile_id)), mark: next };
+}
+
+/** The mark as of now. Read before a pass's scan: a key or trait added during it is the next pass's. */
+export async function hotMark(db: Queryable): Promise<HotMark> {
+  const [m] = (await db.execute(
+    sql`select coalesce(max(id), 0)::int k, now() at from profile_keys`,
+  )) as unknown as { k: number; at: Date | string }[];
+  return { keyAfter: Number(m?.k ?? 0), since: new Date(m?.at ?? 0).toISOString() };
 }
 
 /** One profile's map, as `rollupRows` returns it. */

@@ -1338,6 +1338,8 @@ export const leads = pgTable(
     index("ix_leads_company_verified")
       .on(t.companyId, t.createdAt)
       .where(sql`status = 'verified' and first_name is not null`),
+    // The few leads with a profile URL (touches.ts handle match): never a scan of every lead.
+    index("ix_leads_social_url_id").on(t.id.desc()).where(sql`social_url is not null`),
     foreignKey({
       columns: [t.companyId],
       foreignColumns: [companies.id],

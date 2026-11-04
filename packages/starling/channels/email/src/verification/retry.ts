@@ -93,8 +93,14 @@ export function waitingDomains(): SQL {
     sql`, `,
   );
   const wait = riskyWait(sql`${verifications.raw}`, sql`interval '0'`);
+  // The longest wait as a constant: a range on ix_verifications_risky_checked_at, not every row.
+  const longest = sql.join(
+    Object.values(RISKY_WAIT_BY_REASON).map((w) => sql`${w}::interval`),
+    sql`, `,
+  );
   return sql`(select split_part(${verifications.email}, '@', 2) from ${verifications}
     where ${verifications.result} = 'risky' and ${verifications.email} is not null
+      and ${verifications.checkedAt} > now() - greatest(${longest})
       and ${verifications.raw}->>'reason' in (${reasons})
       and ${verifications.checkedAt} > now() - ${wait})`;
 }

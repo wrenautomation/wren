@@ -176,6 +176,8 @@ export const verifications = pgTable(
     index("ix_verifications_email_checked_at_id").on(t.email, t.checkedAt.desc(), t.id.desc()),
     // Matches the resolution walk's per-domain reads (resolution/service.ts, verification/retry.ts).
     index("ix_verifications_email_domain").on(sql`split_part(${t.email}, '@', 2)`),
+    // Risky verdicts still inside a wait (verification/retry.ts): a recent range, never the table.
+    index("ix_verifications_risky_checked_at").on(t.checkedAt).where(sql`result = 'risky'`),
     foreignKey({
       columns: [t.contactCandidateId],
       foreignColumns: [contactCandidates.id],

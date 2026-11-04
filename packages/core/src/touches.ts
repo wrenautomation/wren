@@ -301,7 +301,8 @@ async function findLinks(db: Queryable, ref: HandleRef): Promise<Links> {
     const found = await rowsOf(
       db,
       sql`select id, person_id, social_url from leads
-        where social_url ilike ${`%${likeSafe(bare)}%`} order by id desc limit 20`,
+        where social_url is not null and social_url ilike ${`%${likeSafe(bare)}%`}
+        order by id desc limit 20`,
     );
     const hit = found.find(
       (r) => normalizeHandle(ref.platform, String(r.social_url))?.handle === h,

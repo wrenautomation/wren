@@ -43,6 +43,10 @@ Read `profile_rollups` by `profile_id`. Every column above is plain: text keys, 
 - `refreshPeople(db, {ids?})`: one set-based statement upserts every changed row; unchanged rows aren't written. Merged profiles lose their row.
 - `PeopleMap/fleet` and `PeopleMap/<client>/fleet` (Restate objects, Segments' pattern): one pass on `wake`. `PeopleMapNet/all` wakes every workspace every 15 minutes. A pass: key loose handles, read site summaries (Wren's only), refresh, mirror traits.
 - `wren people refresh` runs one pass by hand.
+- Hot scope (2026-11-03, WA-1045): a pass rebuilds only `hotProfiles`: any source line, a key after the mark, a trait set after it, no row yet, or a merged profile's row. Every profile once a day (`PEOPLE_MAP_FULL_MS`), with `work_mem` 64 MB for that pass. The mark lives in the object's state; a failed pass keeps the old one. Prod: 1,235 hot of 158,921; a hot pass about 1.1 s, a full one 6.7 s.
+  - Why: the full pass cost scales with imported people (107k now), not with what changed. It ran about 35 times a day.
+  - Rejected: dirty-row triggers on about 18 source tables (too many writers to touch). Rejected: tuning the full statement alone (it still scans every import each pass).
+  - Trade: a title, niche or headcount edit, or a deleted source line, shows up to a day late. The warm gate reads live, so sends never wait on this.
 
 ## Gap: handles with no key
 
@@ -77,4 +81,4 @@ People → People: columns name, stage, warmth, what they did (the warmth line),
 - Past client has no source yet; it's a mark (`lifecycle` trait) until CRM import can say it.
 - Visit and watch counts are stored as counts only; the lines stay live reads (B7).
 - Persona traits aren't mirrored: 106k trait rows for something segments can read from the table.
-- The rollup runs every 15 minutes (about 9 s over 158k profiles on prod, read only); the warm gate never waits for it (about 13 ms a profile).
+- The rollup runs every 30 minutes, hot profiles only (see Refresh); the warm gate never waits for it (about 13 ms a profile).

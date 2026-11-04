@@ -73,7 +73,7 @@ export const PLATFORM = {
       "a workspace's groups kept true; entries, exits, traits and dates told to the executor",
     SegmentsNet: "wakes every workspace's groups pass every 15 minutes",
     PeopleMap: "a workspace's people map: each person's stage, warmth and persona rebuilt",
-    PeopleMapNet: "wakes every workspace's people map every 15 minutes",
+    PeopleMapNet: "wakes every workspace's people map every 30 minutes",
     TouchFeed: "every minute: each workspace's new social touches told to the executor, once each",
     SourcedFeed: "people added to a list a sourced source takes people from open journeys there",
     LineFeed: "documents a content line finds open instances; a job that ends moves each on",

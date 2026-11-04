@@ -18,6 +18,7 @@ import {
   storedRollup,
   warmthOf,
 } from "../../src/people-map.js";
+import { peopleMapPass } from "../../src/people-map-pass.js";
 import { mergeProfiles, resolveProfile, setTraits } from "../../src/profiles.js";
 
 let pg: TestPostgres;
@@ -246,6 +247,23 @@ describe("refresh", () => {
     const b = await profile("j@example.test");
     expect(await refreshPeople(pg.db, { ids: [a] })).toMatchObject({ written: 1 });
     expect(await storedRollup(pg.db, b)).toBeNull();
+  });
+
+  it("a hot pass rebuilds who moved, new keys and merges; never the untouched", async () => {
+    const a = await profile("p@example.test");
+    const b = await profile("q@example.test");
+    const full = await peopleMapPass(pg.db);
+    expect(full.hot).toBeNull();
+    await emailed("q@example.test", 3);
+    const hot = await peopleMapPass(pg.db, { mark: full.mark });
+    expect(hot).toMatchObject({ hot: 1, written: 1 });
+    expect((await storedRollup(pg.db, b))?.stage).toBe("lead");
+    const c = await profile("r@example.test");
+    await mergeProfiles(pg.db, b, a, "email:p@example.test", "test", T(4));
+    const next = await peopleMapPass(pg.db, { mark: hot.mark });
+    expect(next.dropped).toBe(1);
+    expect(await storedRollup(pg.db, a)).toBeNull();
+    expect(await storedRollup(pg.db, c)).toMatchObject({ stage: "stranger" });
   });
 });
 
