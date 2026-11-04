@@ -877,6 +877,7 @@ function Choices(props: DataMessagePartProps<ChoicesData>) {
             ) : data.open ? (
               typing ? (
                 <input
+                  // edit-ok: one answer, sent at once to a live ask
                   // biome-ignore lint/a11y/noAutofocus: opened by its own click
                   autoFocus
                   aria-label={`Your own answer: ${q.question}`}
