@@ -1,6 +1,6 @@
 # At least once: every send and every inbound event
 
-2026-11-04. Tasks WA-1057 to WA-1063. Status: agreed (William, 11-04). SMS, email, DMs, comments and posts built; WA-1060 to WA-1063 open.
+2026-11-04. Tasks WA-1057 to WA-1063. Status: agreed (William, 11-04). All built and deployed (WA-1057 to WA-1063).
 
 ## Goal
 
