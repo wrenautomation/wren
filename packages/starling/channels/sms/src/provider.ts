@@ -8,7 +8,7 @@
  * `send` answers three ways and throws for a fourth: accepted (an id we can
  * match webhooks to), rejected for good (a 4xx: never retried), try later
  * (429/5xx: nothing was sent). A thrown error means we cannot know whether it
- * went out; the caller marks the message `unknown` and never resends it.
+ * went out; the caller sends it once more under the same `key`, then marks it `unknown`.
  */
 import { SmsRefusal } from "./refusal.js";
 import type { LineType, Service } from "./schema.js";
@@ -26,6 +26,7 @@ export async function callJson(
   path: string,
   body: unknown,
   unparsed: (text: string) => unknown,
+  headers: Record<string, string> = {},
 ): Promise<{ status: number; json: unknown }> {
   const res = await fetchImpl(`${base}${path}`, {
     method,
@@ -33,6 +34,7 @@ export async function callJson(
       authorization: `Bearer ${opts.apiKey}`,
       "content-type": "application/json",
       accept: "application/json",
+      ...headers,
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     signal: AbortSignal.timeout(opts.timeoutMs ?? 20_000),
@@ -49,6 +51,8 @@ export interface SendRequest {
   from: string;
   to: string;
   text: string;
+  /** Same key, same send: a provider that takes one drops the repeat (Telnyx, 24 h). */
+  key?: string;
 }
 
 export type SendResult =

@@ -13,7 +13,7 @@ One text, out or in, on one contact's thread. Table `sms_messages`. Not the emai
 
 ## Why this shape
 
-Intent before act, same as email: `sending` is written before the provider is called, a crash leaves a row that reconcile turns `unknown`, and nothing ever resends (`deliver.ts:1`). One row per contact per step (`uq_sms_messages_contact_step`), one per provider id, and one reminder per template and booking (`uq_sms_messages_reminder_ref`) make webhooks, retries and reminder passes idempotent. A reply's label is proposed by the LLM and gated; a grounded `opt_out` suppresses (`classify.ts:1`).
+Intent before act, same as email: `sending` is written before the provider is called, a lost answer (a throw, or a crash that leaves `sending`) queues it once more with the same body under the key `sms-<id>`, which Telnyx dedupes for 24 h; past `MAX_TRIES` (2, column `tries`) it is `unknown` (`deliver.ts:1`, designs/2026-11-04-at-least-once.md). One row per contact per step (`uq_sms_messages_contact_step`), one per provider id, and one reminder per template and booking (`uq_sms_messages_reminder_ref`) make webhooks, retries and reminder passes idempotent. A reply's label is proposed by the LLM and gated; a grounded `opt_out` suppresses (`classify.ts:1`).
 
 ## Shape
 

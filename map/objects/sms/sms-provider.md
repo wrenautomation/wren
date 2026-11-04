@@ -13,7 +13,7 @@ The carrier port: `SmsProvider`, with `telnyx.ts` and `linq.ts` (iMessage, then 
 
 ## Why this shape
 
-`send` answers accepted, rejected for good, or try later, and throws for "cannot know", which the caller marks `unknown` and never resends (`provider.ts:1`). On Lambda the fake is refused, so prod cannot pretend to send; that is the intended state until Telnyx is set up (`apps/worker/src/services/deps.ts:329`). Even with a real provider nothing leaves until `WREN_SMS_LIVE` says the 10DLC campaign is approved (`deliver.ts:1`).
+`send` answers accepted, rejected for good, or try later, and throws for "cannot know", which the caller sends once more under the same `key` (Telnyx: `Idempotency-Key`, so the repeat is dropped; 409 = the key is in flight, try later) (`provider.ts:1`). On Lambda the fake is refused, so prod cannot pretend to send; that is the intended state until Telnyx is set up (`apps/worker/src/services/deps.ts:329`). Even with a real provider nothing leaves until `WREN_SMS_LIVE` says the 10DLC campaign is approved (`deliver.ts:1`).
 
 ## Shape
 

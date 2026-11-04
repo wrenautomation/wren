@@ -75,6 +75,25 @@ describe("TelnyxProvider.send", () => {
       retry: true,
     });
   });
+  it("sends the key as Idempotency-Key; the key still in flight is try-later", async () => {
+    const seen: { url: string; init: RequestInit | undefined }[] = [];
+    const t = new TelnyxProvider({
+      apiKey: "k",
+      fetch: fakeFetch(200, { data: { id: "m1" } }, seen),
+    });
+    await t.send({ from: "a", to: "b", text: "c", key: "sms-7" });
+    expect(seen[0]?.init?.headers).toHaveProperty("idempotency-key", "sms-7");
+    await t.send({ from: "a", to: "b", text: "c" });
+    expect(seen[1]?.init?.headers).not.toHaveProperty("idempotency-key");
+    const racing = new TelnyxProvider({
+      apiKey: "k",
+      fetch: fakeFetch(409, { errors: [{ code: "10036", title: "Request in progress" }] }),
+    });
+    expect(await racing.send({ from: "a", to: "b", text: "c", key: "sms-7" })).toMatchObject({
+      ok: false,
+      retry: true,
+    });
+  });
   it("needs a key", () => {
     expect(() => new TelnyxProvider({ apiKey: "" })).toThrow(/API key/);
   });

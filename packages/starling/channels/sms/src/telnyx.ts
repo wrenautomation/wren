@@ -139,10 +139,17 @@ export class TelnyxProvider implements SmsProvider {
     this.fetchImpl = opts.fetch ?? fetch;
   }
 
-  private call(method: string, path: string, body?: unknown) {
-    return callJson(this.fetchImpl, BASE, this.opts, method, path, body, (text) => ({
-      errors: [{ detail: text }],
-    }));
+  private call(method: string, path: string, body?: unknown, headers?: Record<string, string>) {
+    return callJson(
+      this.fetchImpl,
+      BASE,
+      this.opts,
+      method,
+      path,
+      body,
+      (text) => ({ errors: [{ detail: text }] }),
+      headers,
+    );
   }
 
   private async read(path: string): Promise<unknown> {
@@ -168,15 +175,21 @@ export class TelnyxProvider implements SmsProvider {
   }
 
   async send(req: SendRequest): Promise<SendResult> {
-    const { status, json } = await this.call("POST", "/messages", {
-      from: req.from,
-      to: req.to,
-      text: req.text,
-      ...(this.opts.messagingProfileId
-        ? { messaging_profile_id: this.opts.messagingProfileId }
-        : {}),
-    });
-    if (status === 429 || status >= 500) {
+    const { status, json } = await this.call(
+      "POST",
+      "/messages",
+      {
+        from: req.from,
+        to: req.to,
+        text: req.text,
+        ...(this.opts.messagingProfileId
+          ? { messaging_profile_id: this.opts.messagingProfileId }
+          : {}),
+      },
+      req.key ? { "idempotency-key": req.key } : undefined,
+    );
+    // 409: the same key is still in flight at Telnyx; ask again later.
+    if (status === 409 || status === 429 || status >= 500) {
       const e = firstError(json);
       return {
         ok: false,

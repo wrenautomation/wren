@@ -16,7 +16,7 @@ Stored documents and the niche's SMS sequence. `SmsDesk.lift` writes contacts wi
 
 ## Why this shape
 
-Texting a stranger twice is worse than missing one, so intent-before-act and idempotent webhooks. A STOP is a phone suppression on every channel, forever. Health pauses and never resumes.
+At least once (2026-11-04): intent before act, a lost answer sent once more under Telnyx's idempotency key, and idempotent webhooks. A STOP is a phone suppression on every channel, forever. Health pauses and never resumes.
 
 ## Steps
 

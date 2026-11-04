@@ -17,7 +17,7 @@ import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { classifyReplies } from "../../src/classify.js";
 import { addContact, startThread } from "../../src/contacts.js";
-import { queueManual, reconcile, tick } from "../../src/deliver.js";
+import { queueManual, reconcile, sendKeyOf, tick } from "../../src/deliver.js";
 import { enroll } from "../../src/enroll.js";
 import { applyEvent } from "../../src/events.js";
 import { touch } from "../../src/follow.js";
@@ -808,17 +808,35 @@ describe("failure paths", () => {
     await enrollAt(OPEN);
   });
 
-  it("a crash mid-send leaves unknown, never a resend", async () => {
+  it("a lost answer sends once more under the same key and body, then is unknown", async () => {
     provider.explode.add("+12125550187");
-    expect(await tickAt(OPEN)).toMatchObject({ unknown: 1, sent: 0 });
+    expect(await tickAt(OPEN)).toMatchObject({ retried: 1, sent: 0 });
+    const [first] = await messages();
+    expect(first).toMatchObject({ state: "queued", tries: 1 });
+    // The second try also loses its answer: past MAX_TRIES it is unknown, never a third call.
+    const later = new Date(OPEN.getTime() + 6 * 60_000);
+    expect(await tickAt(later)).toMatchObject({ unknown: 1, sent: 0 });
+    expect((await messages())[0]).toMatchObject({ state: "unknown", tries: 2, body: first?.body });
     provider.explode.clear();
-    expect((await tickAt(OPEN)).sent).toBe(0);
-    expect((await messages())[0]?.state).toBe("unknown");
-    // A row left `sending` by a dead process turns unknown after the stale mark.
+    expect((await tickAt(later)).sent).toBe(0);
+  });
+
+  it("a resend carries the first try's key; a stale sending row is queued again once", async () => {
     await db()
       .update(smsMessages)
-      .set({ state: "sending", attemptedAt: new Date(OPEN.getTime() - 20 * 60_000) });
+      .set({ state: "sending", tries: 1, attemptedAt: new Date(OPEN.getTime() - 20 * 60_000) });
     expect(await reconcile(db(), OPEN)).toBe(1);
+    const [row] = await messages();
+    expect(row).toMatchObject({ state: "queued", tries: 1 });
+    expect((await tickAt(OPEN)).sent).toBe(1);
+    expect(provider.sent.at(-1)?.key).toBe(sendKeyOf(row?.id as number));
+    // At the cap, a stale row is unknown.
+    await db()
+      .update(smsMessages)
+      .set({ state: "sending", tries: 2, attemptedAt: new Date(OPEN.getTime() - 20 * 60_000) })
+      .where(eq(smsMessages.id, row?.id as number));
+    expect(await reconcile(db(), OPEN)).toBe(1);
+    expect((await messages())[0]?.state).toBe("unknown");
   });
 
   it("try-later requeues; a carrier STOP block suppresses; a refusal ends the thread", async () => {

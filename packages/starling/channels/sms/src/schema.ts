@@ -140,7 +140,7 @@ export type MessageKind = (typeof MESSAGE_KINDS)[number];
 
 /**
  * Outbound: queued → sending → sent → delivered | failed. `unknown` = the
- * provider call's fate is lost (crash or network); never resent. `skipped` =
+ * provider call's fate was lost on every try (`MAX_TRIES`). `skipped` =
  * the contact ended before this step was due. Inbound rows are `received`.
  */
 export const MESSAGE_STATES = [
@@ -324,6 +324,8 @@ export const smsMessages = pgTable(
     detail: text("detail"),
     dueAt: timestamp("due_at", { withTimezone: true }),
     attemptedAt: timestamp("attempted_at", { withTimezone: true }),
+    /** Provider calls made for it; a lost answer sends again while under `MAX_TRIES` (2026-11-04). */
+    tries: smallint("tries").notNull().default(0),
     sentAt: timestamp("sent_at", { withTimezone: true }),
     deliveredAt: timestamp("delivered_at", { withTimezone: true }),
     receivedAt: timestamp("received_at", { withTimezone: true }),

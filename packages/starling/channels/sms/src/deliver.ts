@@ -1,9 +1,10 @@
 /**
  * The send tick: due messages out, at most one per number per tick, inside
  * the lead's window, under every cap. Intent before act: a message is marked
- * `sending` in its own write before the provider is called, so a crash leaves
- * a `sending` row, which `reconcile` turns into `unknown` and nothing ever
- * resends. Texting a stranger twice is worse than missing one.
+ * `sending` in its own write before the provider is called. At least once
+ * (designs/2026-11-04-at-least-once.md): a lost answer (a throw, or a crash that
+ * leaves `sending`) queues it again, under `MAX_TRIES`, with the same body and the
+ * key `sms-<id>`, so Telnyx drops the repeat. Past the cap it is `unknown`.
  *
  * A sent sequence step is listed in `stepped`: the sender hands it to the executor,
  * whose wire waits `afterDays` and queues the next (follow.ts). After the last,
@@ -49,6 +50,10 @@ import { render, type SmsSequence, segments, textSeed } from "./templates.js";
 /** A `sending` row older than this lost its provider call to a crash. */
 export const STALE_SENDING_MS = 10 * 60 * 1000;
 const RETRY_AFTER_MS = 5 * 60 * 1000;
+/** Provider calls per text when the answer is lost: the first and one resend. */
+export const MAX_TRIES = 2;
+/** The provider's dedupe key for one text: every try sends the same. */
+export const sendKeyOf = (id: number | string) => `sms-${id}`;
 /** Most due rows read per tick; enough to fill every number past a few out-of-window leads. */
 const SCAN = 200;
 /** A reminder unsent this long after it was queued is dropped (reminders.ts queues it early enough). */
@@ -97,19 +102,28 @@ export interface TickStats {
   nextDue: string | null;
 }
 
-/** `sending` rows past the stale mark → `unknown`. Never resent. */
+/** `sending` rows past the stale mark: queued again under `MAX_TRIES`, else `unknown`. */
 export async function reconcile(db: Queryable, now: Date): Promise<number> {
-  const rows = await db
+  const stale = and(
+    eq(smsMessages.state, "sending"),
+    lt(smsMessages.attemptedAt, new Date(now.getTime() - STALE_SENDING_MS)),
+  );
+  const again = await db
     .update(smsMessages)
-    .set({ state: "unknown", detail: "provider call lost (crash or timeout); never resent" })
-    .where(
-      and(
-        eq(smsMessages.state, "sending"),
-        lt(smsMessages.attemptedAt, new Date(now.getTime() - STALE_SENDING_MS)),
-      ),
-    )
+    .set({
+      state: "queued",
+      attemptedAt: null,
+      dueAt: now,
+      detail: "provider call lost (crash or timeout); sent again under its key",
+    })
+    .where(and(stale, lt(smsMessages.tries, MAX_TRIES)))
     .returning({ id: smsMessages.id });
-  return rows.length;
+  const lost = await db
+    .update(smsMessages)
+    .set({ state: "unknown", detail: `provider call lost ${MAX_TRIES} times; not sent again` })
+    .where(stale)
+    .returning({ id: smsMessages.id });
+  return again.length + lost.length;
 }
 
 /** Contact states a queued follow-up text never goes to. */
@@ -466,7 +480,9 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     // texts already queued, and an emptied template sends nothing.
     let body = msg.body;
     let rendered: Partial<Pick<SmsMessage, "templateVersion" | "provenance">> = {};
-    if (msg.kind === "sequence" && msg.template) {
+    // A resend keeps the words of the first try: the key only matches the same body.
+    const fresh = msg.tries === 0;
+    if (fresh && msg.kind === "sequence" && msg.template) {
       const words = (await liveTexts(db, [msg.template])).get(msg.template);
       if (words === undefined) {
         await endContact(db, contact.id, "finished", `template ${msg.template} is empty`, now);
@@ -489,7 +505,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
           )
         : text.body;
       rendered = { templateVersion: text.provenance.version, provenance: text.provenance };
-    } else if ((msg.kind === "follow_up" || CONSENTED_KINDS.has(msg.kind)) && tagFor) {
+    } else if (fresh && (msg.kind === "follow_up" || CONSENTED_KINDS.has(msg.kind)) && tagFor) {
       // A follow-up or a broadcast is written when it is queued; its links are tagged as it goes.
       body = withinParts(
         msg.body,
@@ -518,7 +534,14 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     }
     const claimed = await db
       .update(smsMessages)
-      .set({ state: "sending", attemptedAt: now, fromE164: from, body, ...rendered })
+      .set({
+        state: "sending",
+        attemptedAt: now,
+        tries: sql`${smsMessages.tries} + 1`,
+        fromE164: from,
+        body,
+        ...rendered,
+      })
       .where(and(eq(smsMessages.id, msg.id), eq(smsMessages.state, "queued")))
       .returning({ id: smsMessages.id });
     if (claimed.length === 0) continue;
@@ -526,20 +549,30 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     if (cold) remaining -= 1;
     let result: Awaited<ReturnType<SmsProvider["send"]>>;
     try {
-      result = await opts.provider.send({ from, to: contact.e164, text: body });
+      result = await opts.provider.send({
+        from,
+        to: contact.e164,
+        text: body,
+        key: sendKeyOf(msg.id),
+      });
     } catch (err) {
+      const why = `provider call failed mid-flight: ${err instanceof Error ? err.message : String(err)}`;
+      const again = msg.tries + 1 < MAX_TRIES;
       await db
         .update(smsMessages)
-        .set({
-          state: "unknown",
-          detail:
-            `provider call failed mid-flight: ${err instanceof Error ? err.message : String(err)}`.slice(
-              0,
-              500,
-            ),
-        })
+        .set(
+          again
+            ? {
+                state: "queued",
+                attemptedAt: null,
+                dueAt: new Date(now.getTime() + RETRY_AFTER_MS),
+                detail: `${why}; sent again under its key`.slice(0, 500),
+              }
+            : { state: "unknown", detail: why.slice(0, 500) },
+        )
         .where(eq(smsMessages.id, msg.id));
-      stats.unknown += 1;
+      if (again) stats.retried += 1;
+      else stats.unknown += 1;
       continue;
     }
     if (result.ok) {
@@ -569,6 +602,8 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
         .set({
           state: "queued",
           attemptedAt: null,
+          // A refused try sent nothing: it does not count toward `MAX_TRIES`.
+          tries: sql`${smsMessages.tries} - 1`,
           dueAt: new Date(now.getTime() + RETRY_AFTER_MS),
           detail: result.detail,
         })
