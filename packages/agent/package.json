@@ -1,0 +1,24 @@
+{
+  "name": "@wren/agent",
+  "description": "Claude setups in wren UIs: a local relay runs the unmodified claude CLI per setup on a plan or a client's key.",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./setups": "./src/setups.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run src"
+  },
+  "dependencies": {
+    "@wrenautomation/birdwatch": "0.36.1",
+    "ws": "8.21.0"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.2",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

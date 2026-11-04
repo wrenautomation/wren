@@ -33,6 +33,7 @@ import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { registerAccounts } from "./accounts.js";
 import { registerAds } from "./ads.js";
+import { registerAgent } from "./agent.js";
 import { registerAppReviews } from "./app-reviews.js";
 import { registerBooks } from "./books.js";
 import { registerCalendar } from "./calendar.js";
@@ -422,6 +423,8 @@ report
     process.stdout.write(out.body);
     console.error(`stored report ${out.reportId}`);
   });
+
+registerAgent(program);
 
 program.parseAsync().catch((err: unknown) => {
   console.error(err instanceof Error ? err.message : String(err));

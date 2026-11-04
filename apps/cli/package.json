@@ -16,6 +16,7 @@
   "dependencies": {
     "@duckdb/node-api": "1.5.6-r.1",
     "@restatedev/restate-sdk-clients": "1.17.1",
+    "@wren/agent": "workspace:*",
     "@wren/books": "workspace:*",
     "@wren/calendar": "workspace:*",
     "@wren/config": "workspace:*",
@@ -46,7 +47,7 @@
     "@wren/watch": "workspace:*",
     "@wren/worker": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
-    "@wrenautomation/birdwatch": "0.36.0",
+    "@wrenautomation/birdwatch": "0.36.1",
     "@wrenautomation/models": "0.36.0",
     "@wrenautomation/read": "0.36.0",
     "commander": "15.0.0",

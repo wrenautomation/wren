@@ -235,6 +235,16 @@ Iterate: edit notes.md, call on pieces (the item page, `wren learn call`), build
 `sop build` also writes `SKILL.md`; `wren sop link <name>` symlinks the folder into `~/.claude/skills/sop-<name>`
 so Claude Code can follow the SOP as a skill. A non-text source (PDF, image) lands in `refs/`.
 
+## Claude setups in a page
+
+`wren agent serve` runs the relay on `ws://127.0.0.1:4748`. Each session opens one unmodified `claude` on this
+Mac's Claude plan. A portal page drives it with `modules/agent/connect.ts` (designs/2026-11-04-multi-user-runtime.md).
+A setup (`packages/agent/src/setups.ts`) is one record: app, tools, skill plugin, allow rules, model.
+`wren agent setups` lists them. `wren agent token` prints the token a page sends first.
+`wren agent check [setup] --say "<turn>"...` opens one session and prints the credential source, what loaded and
+each turn's tokens. `--resume <id>` continues a session.
+The relay ends any plan session whose init reports an API key.
+
 ## Gates
 
 `./scripts/gates.sh` runs lint + typecheck, unit tests, the schema checks and integration tests (Docker). CI deploys on lint, unit and schema; integration runs in its own workflow and only reports.
