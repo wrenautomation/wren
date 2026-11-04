@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import type { LinkPreview } from "./agent-cards.js";
 import {
   type AgentCommand,
   AgentPick,
@@ -622,6 +623,49 @@ export const Links: Story = {
     const card = c.getByRole("link", { name: /northwind\.example/ });
     await expect(card).toHaveAttribute("target", "_blank");
     await expect(c.getByRole("link", { name: /^acme\.example/ })).toBeTruthy();
+  },
+};
+
+const svg = (body: string, w: number, h: number) =>
+  `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">${body}</svg>`)}`;
+const CARD_ART = svg(
+  '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f6f5e"/><stop offset="1" stop-color="#d9b46a"/></linearGradient></defs><rect width="1200" height="630" fill="url(#g)"/><circle cx="900" cy="200" r="140" fill="#fff" opacity=".18"/>',
+  1200,
+  630,
+);
+const MARK = (fill: string) => svg(`<rect width="32" height="32" rx="7" fill="${fill}"/>`, 32, 32);
+const PREVIEWS: Record<string, LinkPreview> = {
+  "https://www.northwind.example/pricing": {
+    title:
+      "Northwind pricing: Teams, Business and Enterprise plans compared for growing sales teams",
+    line: "Per-seat plans from $12 a month. Annual billing saves two months. Every plan has the API.",
+    image: CARD_ART,
+    icon: MARK("#2f6f5e"),
+  },
+  "https://acme.example/": { title: "Acme: runs, not seats", icon: MARK("#b4532a") },
+};
+
+/** A sent link reads its page's head: an image card, a titled row, or the bare site when the page
+ * gives nothing. */
+export const Previews: Story = {
+  render: () => (
+    <Live
+      preview={async (href) => PREVIEWS[href] ?? {}}
+      messages={[
+        you(
+          "u1",
+          "Compare https://www.northwind.example/pricing with https://acme.example/ and https://plain.example/docs/start.",
+        ),
+      ]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await expect(
+      await c.findByRole("link", { name: /Teams, Business and Enterprise/ }),
+    ).toBeTruthy();
+    await expect(await c.findByRole("link", { name: /Acme: runs, not seats/ })).toBeTruthy();
+    await expect(c.getByRole("link", { name: /^plain\.example/ })).toBeTruthy();
   },
 };
 

@@ -33,7 +33,15 @@ const POST_READS = new Set([PULSE_PATH, MEDIA_GRANT_PATH, WRITE_STATUS_PATH]);
  * Paths that change things, or reach out, by GET or a socket: off whatever their method. A Sites
  * page counts its visit (`/o/`).
  */
-const NEVER = [LIVE_PREFIX, AGENT_PATH, "/oauth/", "/o/", "/api/keys/", "/api/dictate"];
+const NEVER = [
+  LIVE_PREFIX,
+  AGENT_PATH,
+  "/oauth/",
+  "/o/",
+  "/api/keys/",
+  "/api/dictate",
+  "/api/unfurl",
+];
 
 /** The refusal of a write in dev with writes off; null lets the request through. */
 export function devRefusal(req: Request, env: Env): Response | null {

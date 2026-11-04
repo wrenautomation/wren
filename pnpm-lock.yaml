@@ -378,6 +378,9 @@ importers:
       '@wren/watch':
         specifier: workspace:*
         version: link:../../packages/watch
+      htmlparser2:
+        specifier: 12.0.0
+        version: 12.0.0
       mammoth:
         specifier: 1.13.0
         version: 1.13.0

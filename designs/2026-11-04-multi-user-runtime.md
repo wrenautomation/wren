@@ -211,3 +211,14 @@ Ranked by risk, then result. Choice: A. Tested 11-04 with stream-json and `--per
 - Rename: `PATCH /s/<setup>/sessions/<id>` with `{title}`, the asker's own sessions only, through the SDK's `renameSession`. The title in the chat's head is the edit field.
 - Fable: in the birdwatch setup's models (`claude --model fable` is valid).
 - Relay changes take effect after the relay restarts.
+
+## Decision 12: link previews (agreed 11-04, WA-1071)
+A web address a person sends shows its image, icon, site, title and one line, as in Claude and ChatGPT.
+
+| Option | Private-address guard | Ships | Against |
+|---|---|---|---|
+| A. Portal Worker `GET /api/unfurl` | Cloudflare refuses private addresses; we refuse IP literals and odd ports | on push | any signed-in person can call it: per-person cap |
+| B. Relay on the Mac | ours: resolve, check, pin the IP (DNS rebinding) | after the relay restarts | the Mac's network is one bug away |
+| C. Browser fetch | none needed | on push | CORS blocks most pages; CSP blocks their images |
+
+Chosen: A. The guard comes free and it ships without a relay restart. The page's head is parsed with htmlparser2 (already locked at 12.0.0). HTML is capped at 512 KB, the image at 300 KB, the icon at 50 KB, 5 s in all. Images come back as `data:` URLs, so the portal CSP stays as it is and the viewer's browser never calls the site. Cached 1 h per address. The preview is display only: never in the turn the agent reads. Dev with writes off refuses it (it reaches out).

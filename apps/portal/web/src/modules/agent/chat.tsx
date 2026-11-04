@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import { keep, recall } from "../../local.js";
 import { relayRename, type SetupInfo } from "./connect.js";
 import { ACCEPT } from "./files.js";
+import { unfurl } from "./unfurl.js";
 import { pageToken, useAgent } from "./use-agent.js";
 
 const WELCOME: Record<string, { title: string; text: string; suggestions: readonly string[] }> = {
@@ -251,6 +252,7 @@ export function AgentChat({
         context={sendPage ? { label: sendPage, onDrop: () => setDropped(sendPage) } : null}
         onStop={a.stop}
         onAnswer={a.answer}
+        preview={unfurl}
         placeholder={setup.name === "birdwatch" ? "Ask a research question" : "Ask the agent"}
         tools={
           <>

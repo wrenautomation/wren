@@ -7,6 +7,7 @@
  *   sends its short-lived token as a bearer, the Worker checks it and passes
  *   the email. The token marks Wren's operators: they see every client.
  * - `/api/dictate`: dictation's speech server, for a signed-in person (./dictate.ts).
+ * - `/api/unfurl`: a link's preview (title, line, image, icon), for a signed-in person (./unfurl.ts).
  * - `/api/notes/live/<id>`: a note's live room, a WebSocket to its Durable Object (./live.ts).
  * - `/api/live/writes`: a person's sends as they go, a WebSocket to their `WriteWatch` (./watch.ts).
  * - `/api/media/grant` and `/media`: Learn's pictures and audio through our origin (./media.ts),
@@ -60,6 +61,7 @@ import { payRoute } from "./pay.js";
 import { PULSE_MAX, PULSE_PATH, type PulseAnswer, pulseCalls } from "./pulse.js";
 import { bodyLimit, isSend, SERVICES } from "./services.js";
 import { goRoute, sitesRoute } from "./sites.js";
+import { UNFURL_PATH, unfurl } from "./unfurl.js";
 import { WRITES_LIVE_PATH, WriteWatch, watchWrite, writesSocketRoute } from "./watch.js";
 import { REQUEST_ID, WRITE_STATUS_PATH, writeKey, writeStatus } from "./writes.js";
 
@@ -393,6 +395,22 @@ export default {
           const v = await viewerOf(req, env);
           return v instanceof Response ? v : "demo" in v ? json({ error: "Sign in." }, 401) : null;
         },
+      });
+    if (pathname === UNFURL_PATH)
+      return unfurl(req, {
+        signedIn: async () => {
+          if (site.kind === "demo") return json({ error: "Sign in." }, 401);
+          const v = await viewerOf(req, env);
+          return v instanceof Response
+            ? v
+            : "demo" in v
+              ? json({ error: "Sign in." }, 401)
+              : v.email;
+        },
+        capped: async (who) =>
+          env.PUBLIC_LIMIT
+            ? !(await env.PUBLIC_LIMIT.limit({ key: `unfurl:${who}` })).success
+            : false,
       });
     if (pathname.startsWith(LIVE_PREFIX)) return liveRoute(req, env, site, (r) => viewerOf(r, env));
     if (pathname === WRITES_LIVE_PATH)

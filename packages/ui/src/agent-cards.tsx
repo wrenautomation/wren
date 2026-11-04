@@ -6,10 +6,26 @@ import type { DataMessagePartProps } from "@assistant-ui/react";
 import { createContext, useContext, useRef, useState } from "react";
 import type { AgentQuestion, AgentThreadProps, ChoicesData } from "./agent-thread.js";
 import { Button, Tag } from "./controls.js";
+import { useLoad } from "./data/query.js";
 import { cx } from "./format.js";
 import { Icon } from "./icons.js";
 
 export const Answer = createContext<AgentThreadProps["onAnswer"]>(() => {});
+
+/** A page's head as the portal reads it (`/api/unfurl`); images are `data:` URLs. */
+export interface LinkPreview {
+  title?: string | undefined;
+  line?: string | undefined;
+  image?: string | undefined;
+  icon?: string | undefined;
+}
+
+/** The host app's preview read; none = bare cards. */
+export const Preview = createContext<((href: string) => Promise<LinkPreview>) | undefined>(
+  undefined,
+);
+const PREVIEWS = {};
+const HOUR = 3_600_000;
 
 /** The CLI's result line: `"<question>"="<answer>"` per question. */
 const PICKED = /"((?:[^"\\]|\\.)*)"="((?:[^"\\]|\\.)*)"/g;
@@ -40,29 +56,83 @@ export function linksIn(text: string): URL[] {
   return [...out.values()];
 }
 
-/** A web address in a turn: its site, then its path; opens in a new tab. */
-export function LinkCard({ url }: { url: URL }) {
+/** A web address in a turn: its page's image, title and line when read, else its site and path;
+ * opens in a new tab. */
+export function LinkCard({ url, preview }: { url: URL; preview?: LinkPreview | undefined }) {
+  const read = useContext(Preview);
+  const load = useLoad<LinkPreview>(
+    read && !preview ? url.href : null,
+    () => (read ? read(url.href) : Promise.resolve({})),
+    PREVIEWS,
+    { freshMs: HOUR },
+  );
+  const p: LinkPreview = preview ?? load.data ?? {};
+  const host = url.host.replace(/^www\./, "");
   const path = `${url.pathname === "/" ? "" : url.pathname}${url.search}`;
+  const mark = p.icon ? (
+    <img src={p.icon} alt="" className="size-4 flex-none rounded-[3px] object-contain" />
+  ) : (
+    <Icon name="globe" size={p.title ? 14 : 16} />
+  );
+  const out = (
+    <>
+      <Icon name="external" size={13} className="flex-none text-(--ui-ink-3)" />
+      <span className="sr-only">, opens in a new tab</span>
+    </>
+  );
+  const link =
+    "group max-w-[85%] rounded-[12px] bg-(--ui-paper) no-underline shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-colors duration-150 hover:bg-(--ui-hover)";
+  if (p.image)
+    return (
+      <a
+        href={url.href}
+        target="_blank"
+        rel="noreferrer noopener"
+        className={cx(link, "grid w-[min(22rem,85%)] overflow-hidden")}
+      >
+        <img
+          src={p.image}
+          alt=""
+          className="aspect-[1.91] w-full bg-(--ui-fill) object-cover [animation:ui-fade_.3s_both]"
+        />
+        <span className="grid gap-1 px-3.5 pt-2.5 pb-3 leading-tight">
+          <span className="flex items-center gap-1.5 text-[12px] text-(--ui-ink-3)">
+            {mark}
+            <span className="min-w-0 flex-1 wrap-anywhere">{host}</span>
+            {out}
+          </span>
+          {p.title ? (
+            <span className="text-[14px]/[1.35] font-medium text-(--ui-ink) wrap-anywhere">
+              {p.title}
+            </span>
+          ) : null}
+          {p.line ? (
+            <span className="text-[12.5px]/[1.45] text-(--ui-ink-2) wrap-anywhere">{p.line}</span>
+          ) : null}
+        </span>
+      </a>
+    );
   return (
     <a
       href={url.href}
       target="_blank"
       rel="noreferrer noopener"
-      className="flex max-w-[85%] items-center gap-3 rounded-[12px] bg-(--ui-paper) py-2 pr-3.5 pl-2 no-underline shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-colors duration-150 hover:bg-(--ui-hover)"
+      className={cx(link, "flex items-center gap-3 py-2 pr-3.5 pl-2")}
     >
       <span className="grid size-9 flex-none place-items-center rounded-[8px] bg-(--ui-fill) text-(--ui-ink-2)">
-        <Icon name="globe" size={16} />
+        {mark}
       </span>
       <span className="grid min-w-0 leading-tight">
         <span className="text-[13.5px] font-medium text-(--ui-ink) wrap-anywhere">
-          {url.host.replace(/^www\./, "")}
+          {p.title ?? host}
         </span>
-        {path ? (
-          <span className="text-[12.5px] text-(--ui-ink-3) wrap-anywhere">{path}</span>
+        {p.title || path ? (
+          <span className="text-[12.5px] text-(--ui-ink-3) wrap-anywhere">
+            {p.title ? `${host}${path}` : path}
+          </span>
         ) : null}
       </span>
-      <Icon name="external" size={13} className="flex-none text-(--ui-ink-3)" />
-      <span className="sr-only">, opens in a new tab</span>
+      {out}
     </a>
   );
 }

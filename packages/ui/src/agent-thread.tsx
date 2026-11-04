@@ -23,7 +23,15 @@ import {
 } from "@assistant-ui/react";
 import { type ReactNode, useMemo, useRef } from "react";
 import { Streamdown } from "streamdown";
-import { Answer, answersOf, Choices, LinkCard, linksIn } from "./agent-cards.js";
+import {
+  Answer,
+  answersOf,
+  Choices,
+  LinkCard,
+  type LinkPreview,
+  linksIn,
+  Preview,
+} from "./agent-cards.js";
 import { type AgentCommand, SlashMenu } from "./agent-picks.js";
 import { partsOf, spanOf, ToolPart, took, Working } from "./agent-steps.js";
 import { Ring } from "./busy.js";
@@ -153,6 +161,8 @@ export interface AgentThreadProps {
   above?: ReactNode;
   /** `/` at the start of the box lists these. */
   commands?: readonly AgentCommand[] | undefined;
+  /** A sent link's preview (the portal's `/api/unfurl`); none = bare link cards. */
+  preview?: ((href: string) => Promise<LinkPreview>) | undefined;
   className?: string | undefined;
 }
 
@@ -400,60 +410,62 @@ export function AgentThread(p: AgentThreadProps) {
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <Answer.Provider value={p.onAnswer}>
-        <ThreadPrimitive.Root
-          data-agent-thread=""
-          className={cx("flex h-full min-h-0 flex-col", p.className)}
-        >
-          <ThreadPrimitive.Viewport
-            aria-busy={p.stale || undefined}
-            className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
+        <Preview.Provider value={p.preview}>
+          <ThreadPrimitive.Root
+            data-agent-thread=""
+            className={cx("flex h-full min-h-0 flex-col", p.className)}
           >
-            <div
-              className={cx(
-                COLUMN,
-                "grid gap-8 pt-6 pb-6 transition-opacity duration-200",
-                p.stale && "opacity-50",
-              )}
+            <ThreadPrimitive.Viewport
+              aria-busy={p.stale || undefined}
+              className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
             >
-              <ThreadPrimitive.Messages>
-                {({ message }) => (message.role === "user" ? <UserTurn /> : <ReplyTurn />)}
-              </ThreadPrimitive.Messages>
-              {p.starting ? <Starting /> : null}
-              {p.error ? (
-                <Alert onRetry={p.error.retry} className="ui-rise mb-0">
-                  {p.error.text}
-                </Alert>
-              ) : null}
-            </div>
-            <ThreadPrimitive.Empty>
-              {p.welcome ? <Welcome {...p.welcome} /> : null}
-            </ThreadPrimitive.Empty>
-            <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-[linear-gradient(transparent,var(--ui-paper)_28px)] pt-7 pb-1">
-              <div className={cx(COLUMN, "relative")}>
-                <ThreadPrimitive.ScrollToBottom
-                  className="absolute -top-11 left-1/2 grid size-8 -translate-x-1/2 place-items-center rounded-full bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-opacity duration-200 hover:text-(--ui-ink) disabled:pointer-events-none disabled:opacity-0"
-                  aria-label="Scroll to the newest"
-                >
-                  <Icon name="down" size={15} />
-                </ThreadPrimitive.ScrollToBottom>
-                {p.above}
-                <Composer
-                  closed={p.closed}
-                  placeholder={p.placeholder}
-                  tools={p.tools}
-                  files={!!p.files}
-                  context={p.context}
-                  commands={p.commands}
-                />
-                {p.note ? (
-                  <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">
-                    {p.note}
-                  </p>
+              <div
+                className={cx(
+                  COLUMN,
+                  "grid gap-8 pt-6 pb-6 transition-opacity duration-200",
+                  p.stale && "opacity-50",
+                )}
+              >
+                <ThreadPrimitive.Messages>
+                  {({ message }) => (message.role === "user" ? <UserTurn /> : <ReplyTurn />)}
+                </ThreadPrimitive.Messages>
+                {p.starting ? <Starting /> : null}
+                {p.error ? (
+                  <Alert onRetry={p.error.retry} className="ui-rise mb-0">
+                    {p.error.text}
+                  </Alert>
                 ) : null}
               </div>
-            </ThreadPrimitive.ViewportFooter>
-          </ThreadPrimitive.Viewport>
-        </ThreadPrimitive.Root>
+              <ThreadPrimitive.Empty>
+                {p.welcome ? <Welcome {...p.welcome} /> : null}
+              </ThreadPrimitive.Empty>
+              <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-[linear-gradient(transparent,var(--ui-paper)_28px)] pt-7 pb-1">
+                <div className={cx(COLUMN, "relative")}>
+                  <ThreadPrimitive.ScrollToBottom
+                    className="absolute -top-11 left-1/2 grid size-8 -translate-x-1/2 place-items-center rounded-full bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-opacity duration-200 hover:text-(--ui-ink) disabled:pointer-events-none disabled:opacity-0"
+                    aria-label="Scroll to the newest"
+                  >
+                    <Icon name="down" size={15} />
+                  </ThreadPrimitive.ScrollToBottom>
+                  {p.above}
+                  <Composer
+                    closed={p.closed}
+                    placeholder={p.placeholder}
+                    tools={p.tools}
+                    files={!!p.files}
+                    context={p.context}
+                    commands={p.commands}
+                  />
+                  {p.note ? (
+                    <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">
+                      {p.note}
+                    </p>
+                  ) : null}
+                </div>
+              </ThreadPrimitive.ViewportFooter>
+            </ThreadPrimitive.Viewport>
+          </ThreadPrimitive.Root>
+        </Preview.Provider>
       </Answer.Provider>
     </AssistantRuntimeProvider>
   );
