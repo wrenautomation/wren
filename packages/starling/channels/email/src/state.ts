@@ -14,11 +14,11 @@ export const MESSAGE_TRANSITIONS: TransitionTable<MessageState> = {
   approved: set("draft", "sending", "skipped", "failed", "rejected"),
   // The transport has our message: landed (sent), refused before the request left
   // (failed, re-armable by approve), or answered nothing we can trust (unknown).
-  // A sending row is an attempt on the record; it never goes back to approved.
-  sending: set("sent", "unknown", "failed"),
+  // Back to approved only by reconcile: not in the mailbox after the grace, under the cap.
+  sending: set("sent", "unknown", "failed", "approved"),
   // Only reconcile may move these: it asks the mailbox for our Message-ID.
-  // A human re-arming an unknown row is exactly the double send this prevents.
-  unknown: set("sent", "failed"),
+  // At least once (designs/2026-11-04-at-least-once.md): a lost send goes again once.
+  unknown: set("sent", "failed", "approved"),
   // failed -> approved is the manual retry; failed -> skipped is stop cleanup.
   failed: set("approved", "skipped"),
   // Sent is irrevocable; what happened next lives in enrollment stops and suppressions.

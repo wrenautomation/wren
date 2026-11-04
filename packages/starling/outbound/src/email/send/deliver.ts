@@ -11,9 +11,10 @@
  * `attemptedAt`, in its own transaction — and only then the send. A process
  * that dies mid-call leaves a SENDING row reconcile can resolve.
  *
- * Ambiguity is a state, not a retry: a refusal means nothing left (FAILED,
- * re-armable); anything else means the bytes MAY have arrived (UNKNOWN, only
- * reconcile may move it). An unexpected exception is classed as ambiguous.
+ * Ambiguity is a state: a refusal means nothing left (FAILED, re-armable);
+ * anything else means the bytes MAY have arrived (UNKNOWN, only reconcile may
+ * move it: found → SENT, lost → sent again once). An unexpected exception is
+ * classed as ambiguous.
  *
  * Follow-ups before openers, always. One send per enrollment per tick.
  *
@@ -104,6 +105,7 @@ const STAT_KEYS = [
   "sender_errors",
   "reconciled_sent",
   "reconciled_failed",
+  "reconciled_resent",
   "reconcile_pending",
   "reconcile_errors",
   "reconcile_transport_mismatch",
@@ -212,6 +214,7 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
     });
     stats.reconciled_sent = counts.reconciled_sent;
     stats.reconciled_failed = counts.reconciled_failed;
+    stats.reconciled_resent = counts.reconciled_resent;
     stats.reconcile_pending = counts.pending;
     stats.reconcile_errors = counts.errors;
     stats.reconcile_transport_mismatch = counts.transport_mismatch;
@@ -824,7 +827,8 @@ async function sendOne(
     if (!(await pacedUnderLock(tx, freshEnrollment, freshMessage, ctx))) return { kind: "paced" };
 
     const sender = freshEnrollment.sender;
-    const messageId = mintMessageId(sender);
+    // A resend (reconcile.ts) keeps the first Message-ID.
+    const messageId = freshMessage.messageId ?? mintMessageId(sender);
     // The row keeps the words that went out, times said, and the times it offered.
     const timed = fillCallTimes(freshMessage.body, open, zone, ctx.now);
     const [sending] = await tx
@@ -839,6 +843,7 @@ async function sendOne(
         messageId,
         state: transitionMessage(freshMessage.state, "sending"),
         attemptedAt: ctx.now,
+        tries: sql`${messages.tries} + 1`,
         transport: carrierOf(ctx.transport, sender).name,
         sentRunId: ctx.runId,
       })

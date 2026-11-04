@@ -15,6 +15,7 @@ import {
   pgTable,
   primaryKey,
   serial,
+  smallint,
   text,
   timestamp,
   unique,
@@ -317,6 +318,8 @@ export const messages = pgTable(
     held: boolean("held").default(false).notNull(),
     /** When the touch let it go; with `held`, marks a thread whose sends go out on the executor. */
     releasedAt: timestamp("released_at", { withTimezone: true }),
+    /** Sends claimed; reconcile sends a lost one again while under `MAX_TRIES` (reconcile.ts). */
+    tries: smallint("tries").default(0).notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_messages" }),

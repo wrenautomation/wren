@@ -6,7 +6,9 @@
  * recording the outcome. In both cases the only authority is the sending
  * mailbox and the only key that survives is the Message-ID we minted before the
  * send. Found → SENT with the provider's handles. Not found and older than the
- * grace → FAILED, re-armable. Not found inside the grace → left alone: the
+ * grace → APPROVED again under the same Message-ID while `tries < MAX_TRIES`
+ * (at least once: designs/2026-11-04-at-least-once.md), else FAILED,
+ * re-armable. Not found inside the grace → left alone: the
  * mailbox's own index takes a moment. A `find()` that throws is never a
  * verdict: the row is untouched and the tick reports an error.
  *
@@ -21,10 +23,13 @@ import { carrierOf, type Transport } from "@wren/starling-email/send/transport";
 import { and, asc, eq, inArray } from "drizzle-orm";
 
 export const IN_FLIGHT = ["sending", "unknown"] as const;
+/** Claims per message: the first send and one resend of a lost one. */
+export const MAX_TRIES = 2;
 
 export interface ReconcileStats {
   reconciled_sent: number;
   reconciled_failed: number;
+  reconciled_resent: number;
   pending: number;
   errors: number;
   transport_mismatch: number;
@@ -52,6 +57,7 @@ export async function reconcile(
   const stats: ReconcileStats = {
     reconciled_sent: 0,
     reconciled_failed: 0,
+    reconciled_resent: 0,
     pending: 0,
     errors: 0,
     transport_mismatch: 0,
@@ -95,11 +101,21 @@ export async function reconcile(
       now.getTime() - attempted.getTime() > policy.reconcileGraceMs
     ) {
       const minutes = Math.floor((now.getTime() - attempted.getTime()) / 60_000);
-      patch = {
-        state: transitionMessage(message.state, "failed"),
-        detail: `not found in mailbox ${minutes} min after the attempt (reconcile)`,
-      };
-      stats.reconciled_failed += 1;
+      const lost = `not found in mailbox ${minutes} min after the attempt`;
+      // Resend keeps messageId: receivers that dedupe on it drop the copy.
+      if (message.tries < MAX_TRIES) {
+        patch = {
+          state: transitionMessage(message.state, "approved"),
+          detail: `${lost}; sent again (reconcile)`,
+        };
+        stats.reconciled_resent += 1;
+      } else {
+        patch = {
+          state: transitionMessage(message.state, "failed"),
+          detail: `${lost} (reconcile)`,
+        };
+        stats.reconciled_failed += 1;
+      }
     } else {
       stats.pending += 1;
       continue;

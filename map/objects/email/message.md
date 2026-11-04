@@ -13,7 +13,7 @@ One rendered email of one enrollment step, with its exact text and where its add
 
 ## Why this shape
 
-Text is pinned at compose, so what a reviewer approves is the bytes that go out. `state` is a strict machine (`MESSAGE_TRANSITIONS`, `packages/starling/channels/email/src/state.ts:6`): there is no `approved → sent` edge, `approved → draft` is the portal's undo (it locks first, so a send in flight wins), every send commits `sending` with our own `message_id` first, and `unknown` can only be moved by reconcile. `provenance` pins template@version, every variant pick, and the address record (`packages/starling/outbound/src/email/outreach/provenance.ts:31`).
+Text is pinned at compose, so what a reviewer approves is the bytes that go out. `state` is a strict machine (`MESSAGE_TRANSITIONS`, `packages/starling/channels/email/src/state.ts:6`): there is no `approved → sent` edge, `approved → draft` is the portal's undo (it locks first, so a send in flight wins), every send commits `sending` with our own `message_id` first, and `unknown` can only be moved by reconcile, which sends a lost one again once under the same Message-ID (`tries`, `reconcile.ts`; `designs/2026-11-04-at-least-once.md`). `provenance` pins template@version, every variant pick, and the address record (`packages/starling/outbound/src/email/outreach/provenance.ts:31`).
 
 ## Shape
 

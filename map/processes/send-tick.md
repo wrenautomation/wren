@@ -1,7 +1,7 @@
 ---
 type: process
 status: verified
-verified: 2026-10-20 @ b1df347e
+verified: 2026-11-04 + WA-1058 (resend once)
 consumes: ["[[email/message]]", "[[email/send-policy]]", "[[email/roster]]", "[[email/sender-pause]]", "[[leads/suppression]]", "[[email/transport]]"]
 produces: ["[[email/message]]", "[[email/sender-pause]]", "[[ledger/run]]"]
 ---
@@ -16,7 +16,7 @@ Approved messages, the clock, the policy, this sender's pauses. `SendScheduler/{
 
 ## Why this shape
 
-Intent before act, so a crash costs at most one message and never a double send. Ambiguity is a state, not a retry. Follow-ups before openers, one send per enrollment per tick, inside the lead's own window when known.
+Intent before act, so a crash costs at most one message. At least once (2026-11-04, `designs/2026-11-04-at-least-once.md`): a send not in the mailbox after the grace goes back to `approved` once, under the same Message-ID (`tries`, cap 2); a refused send stays `failed`. Follow-ups before openers, one send per enrollment per tick, inside the lead's own window when known.
 
 ## Steps
 

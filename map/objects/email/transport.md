@@ -13,7 +13,7 @@ The way an email actually leaves: the `Transport` contract, `GmailTransport` ove
 
 ## Why this shape
 
-Sending is the one irreversible act, so the contract answers two questions after a failure: did the request leave (`TransportRefused` = no, re-armable; `TransportAmbiguous` = maybe, only reconcile moves it), and can we find it again (`find()` by our own Message-ID, minted before the send) (`transport.ts:1`). `GmailClient` is dumb bytes; only `GmailTransport` decides what a failure means (`gmail.ts:1`).
+Sending is the one irreversible act, so the contract answers two questions after a failure: did the request leave (`TransportRefused` = no, re-armable; `TransportAmbiguous` = maybe, only reconcile moves it: found = sent, lost = sent again once), and can we find it again (`find()` by our own Message-ID, minted before the send) (`transport.ts:1`). `GmailClient` is dumb bytes; only `GmailTransport` decides what a failure means (`gmail.ts:1`).
 
 ## Shape
 

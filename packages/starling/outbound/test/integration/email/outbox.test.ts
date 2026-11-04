@@ -201,7 +201,7 @@ async function addSentMessage(
 async function putInFlight(
   message: Message,
   attemptedAt: Date,
-  opts: { state?: "sending" | "unknown"; transport?: string } = {},
+  opts: { state?: "sending" | "unknown"; transport?: string; tries?: number } = {},
 ): Promise<void> {
   let state = transitionMessage(message.state, "sending");
   if (opts.state === "unknown") state = transitionMessage(state, "unknown");
@@ -210,6 +210,7 @@ async function putInFlight(
     state,
     attemptedAt,
     transport: opts.transport ?? "console",
+    tries: opts.tries ?? 1,
   });
 }
 
@@ -290,6 +291,7 @@ describe("ambiguity and reconcile", () => {
     expect(counts).toEqual({
       reconciled_sent: 1,
       reconciled_failed: 0,
+      reconciled_resent: 0,
       pending: 0,
       errors: 0,
       transport_mismatch: 0,
@@ -362,21 +364,46 @@ describe("ambiguity and reconcile", () => {
     expect(opener.detail).toBe("unexpected RangeError: transport bug");
   });
 
-  it("reconcile fails a stale attempt and leaves a fresh one alone", async () => {
+  it("reconcile re-arms a lost first try under its Message-ID and leaves a fresh one alone", async () => {
     const stale = await enrollOne("stale.example", "jane@stale.example");
     const fresh = await enrollOne("fresh.example", "jane@fresh.example");
-    await putInFlight(await step(stale, 0), plus(NOW, -20 * MIN));
-    await putInFlight(await step(fresh, 0), plus(NOW, -2 * MIN));
+    await putInFlight(await step(stale, 0), plus(NOW, -20 * MIN), { tries: 1 });
+    await putInFlight(await step(fresh, 0), plus(NOW, -2 * MIN), { tries: 1 });
+    const key = (await step(stale, 0)).messageId;
+
+    const counts = await reconcile(db(), { transport: console_(), policy: OPEN, now: NOW });
+    expect(counts.reconciled_resent).toBe(1);
+    expect(counts.reconciled_failed).toBe(0);
+    expect(counts.pending).toBe(1);
+    const rearmed = await step(stale, 0);
+    expect(rearmed.state).toBe("approved");
+    expect(rearmed.messageId).toBe(key);
+    expect(rearmed.detail).toBe(
+      "not found in mailbox 20 min after the attempt; sent again (reconcile)",
+    );
+    expect((await step(fresh, 0)).state).toBe("sending");
+    expect((await step(fresh, 0)).detail).toBeNull();
+
+    // The resend goes out through the walk with the first Message-ID and counts a try.
+    const transport = console_();
+    await tick(transport);
+    const resent = await step(stale, 0);
+    expect(resent.state).toBe("sent");
+    expect(resent.messageId).toBe(key);
+    expect(resent.tries).toBe(2);
+  });
+
+  it("reconcile fails a lost resend: one resend, then a person decides", async () => {
+    const stale = await enrollOne("lost-twice.example", "jane@lost-twice.example");
+    await putInFlight(await step(stale, 0), plus(NOW, -20 * MIN), { tries: 2 });
 
     const counts = await reconcile(db(), { transport: console_(), policy: OPEN, now: NOW });
     expect(counts.reconciled_failed).toBe(1);
-    expect(counts.pending).toBe(1);
+    expect(counts.reconciled_resent).toBe(0);
     expect((await step(stale, 0)).state).toBe("failed");
     expect((await step(stale, 0)).detail).toBe(
       "not found in mailbox 20 min after the attempt (reconcile)",
     );
-    expect((await step(fresh, 0)).state).toBe("sending");
-    expect((await step(fresh, 0)).detail).toBeNull();
   });
 
   it("a mailbox that does not answer is never a verdict", async () => {

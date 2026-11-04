@@ -1,0 +1,1 @@
+ALTER TABLE "messages" ADD COLUMN "tries" smallint DEFAULT 0 NOT NULL;

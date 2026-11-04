@@ -59,14 +59,14 @@ describe("message rules", () => {
     for (const s of ["draft", "approved", "failed"] as const) msg(s, "skipped");
     expect(() => msg("unknown", "skipped")).toThrow(IllegalTransition);
   });
-  it("outbox: sending commits intent; it lands, fails or goes unknown; never back to approved", () => {
+  it("outbox: sending commits intent; it lands, fails, goes unknown or back to approved (resend)", () => {
     msg("approved", "sending");
-    for (const o of ["sent", "unknown", "failed"] as const) msg("sending", o);
-    expect(() => msg("sending", "approved")).toThrow(IllegalTransition);
+    for (const o of ["sent", "unknown", "failed", "approved"] as const) msg("sending", o);
+    expect(() => msg("sending", "draft")).toThrow(IllegalTransition);
   });
-  it("unknown moves only to sent or failed, never re-armed by hand", () => {
-    expect([...MESSAGE_TRANSITIONS.unknown].sort()).toEqual(["failed", "sent"]);
-    expect(() => msg("unknown", "approved")).toThrow(IllegalTransition);
+  it("unknown moves to sent, failed or approved (reconcile's resend)", () => {
+    expect([...MESSAGE_TRANSITIONS.unknown].sort()).toEqual(["approved", "failed", "sent"]);
+    expect(() => msg("unknown", "draft")).toThrow(IllegalTransition);
   });
   it("names machine and states", () => {
     expect(() => msg("sent", "draft")).toThrow(/message.*sent.*draft/);
