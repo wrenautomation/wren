@@ -199,18 +199,25 @@ for (const o of Object.values(before))
 if (mode === "dry") {
   console.log("dry run. --stop before the push, --go after the deploy.");
 } else if (mode === "stop") {
-  const restart = Object.values(before)
+  // a rerun keeps the list an earlier --stop saved: those loops show stopped now
+  const saved = existsSync(STOPPED) ? JSON.parse(readFileSync(STOPPED, "utf8")) : [];
+  const running = Object.values(before)
     .filter((o) => RENAMES[o.service] && isRunning(o.state))
     .map(({ service, key }) => ({ service, key }));
+  const restart = [
+    ...saved,
+    ...running.filter((o) => !saved.some((s) => s.service === o.service && s.key === o.key)),
+  ];
   mkdirSync(dirname(STOPPED), { recursive: true });
   writeFileSync(STOPPED, JSON.stringify(restart, null, 1));
   for (const o of restart) {
-    const res = await fetch(`${ingress}/${o.service}/${encodeURIComponent(o.key)}/stop`, {
+    // send: a loop mid-run holds the object; the drain below waits for it
+    const res = await fetch(`${ingress}/${o.service}/${encodeURIComponent(o.key)}/stop/send`, {
       method: "POST",
       headers: auth,
     });
     if (!res.ok) throw new Error(`stop ${o.service}/${o.key}: ${res.status}`);
-    console.log(`stopped ${o.service}/${o.key}`);
+    console.log(`stop sent ${o.service}/${o.key}`);
   }
   for (let i = 0; ; i++) {
     const left = (await open()).filter((r) => !isTimer(r));
