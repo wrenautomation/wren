@@ -224,3 +224,18 @@ A web address a person sends shows its image, icon, site, title and one line, as
 Chosen: A. The guard comes free and it ships without a relay restart. The page's head is parsed with htmlparser2 (already locked at 12.0.0). HTML is capped at 512 KB, the image at 300 KB, the icon at 50 KB, 5 s in all. Images come back as `data:` URLs, so the portal CSP stays as it is and the viewer's browser never calls the site. Cached 1 h per address. The preview is display only: never in the turn the agent reads. Dev with writes off refuses it (it reaches out).
 
 Files by path (same task). An image or video a turn names by path (absolute or `~/`) shows under it. Only the relay can read the Mac, so it answers `GET /s/<setup>/file?path=`: images and videos by the real file's extension (after links), 50 MB at most. The owner may preview any file of theirs; anyone else only their own uploads and the setup's folder (realpath inside one). The page reads the bytes over connect-src and shows a `blob:` URL; img-src and media-src now take `blob:`, which the video chip's first frame also needs. Needs the relay restarted.
+
+## Decision 13: typed slash commands (11-04, WA-1076)
+William asked for every slash command. The headless CLI already runs about 30, `/model`, `/effort`, `/clear`, `/context`, `/usage` and `/config` among them, and answers each as markdown. A typed command is a user turn, so it went around the relay's control checks: `/model` skipped the setup's model list, `/config` changed settings, and `/usage` showed the whole Mac's use.
+
+| Option | Gate | Keeps | Against |
+|---|---|---|---|
+| A. The relay reads a user turn's leading `/name` | the relay, as for control requests | every CLI command, its own output | one more parse in the filter |
+| B. The page maps commands to its pickers | none: a crafted client skips it | page look | not a gate |
+| C. `--disable-slash-commands`, the page rebuilds each one | the relay | nothing native | `/compact` and `/context` rebuilt by hand |
+
+Chosen: A. The owner runs every command, as in their terminal. Anyone else runs `compact`, `context`, `clear`, `rename`, `model`, `effort`, `recap` and the setup's skills. `/model` and `/effort` arguments get the same checks as the pickers, for the owner too. A refusal comes back as a turn, so the SDK's turn ends and the page shows why. The `/` menu (initialize's and `commands_changed`'s lists) carries only what that person may run.
+- `get_settings` now passes, and its answer is cut to `applied`: the full answer holds env and hooks. Before this, the page's effort default never loaded.
+- `/clear` starts a new session in the same child. The ledger records each session id, so a cleared chat stays the person's and can be resumed.
+- The page follows: after `/model` or `/effort` the pickers show what the CLI applies; after `/clear` the thread empties and the chat id moves. A stored chat shows a command as typed (`/model sonnet`), never its tags.
+- `wren agent serve --tape <dir>` writes each session's frames, both ways, for story fixtures. The auth frame is never taped.
