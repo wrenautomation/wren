@@ -1,8 +1,11 @@
 /**
  * What sits around the composer, as the terminal shows it: the picks (model, effort, mode), the
- * status line, and the background tasks (designs/2026-11-04-multi-user-runtime.md, Decision 11).
+ * status line, the background tasks and the `/` menu (designs/2026-11-04-multi-user-runtime.md,
+ * Decision 11).
  */
+import { ComposerPrimitive, type TriggerAdapter, type TriggerMatcher } from "@assistant-ui/react";
 import { cn } from "cn";
+import { useMemo } from "react";
 import { took, useElapsed } from "./agent-steps.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { tipProps } from "./hint.js";
@@ -202,5 +205,94 @@ export function AgentTasks({
         <TaskChip key={t.id} task={t} onStop={onStop} />
       ))}
     </ul>
+  );
+}
+
+/** A slash command or skill the session offers (the CLI's init list). */
+export interface AgentCommand {
+  name: string;
+  description?: string | undefined;
+  /** The arguments it takes, as `/help` shows them. */
+  hint?: string | undefined;
+}
+
+// the CLI runs a command only at the start of a turn
+const atStart: TriggerMatcher = (text, _char, cursor) => {
+  const m = /^\s*\//.exec(text);
+  if (!m) return null;
+  const offset = m[0].length - 1;
+  const query = text.slice(offset + 1, cursor);
+  return cursor > offset && !/\s/.test(query) ? { query, offset, endOffset: cursor } : null;
+};
+
+// plain text in a textarea: the turn carries `/name args` as typed
+const PLAIN = {
+  serialize: (i: { id: string }) => `/${i.id}`,
+  parse: (text: string) => [{ kind: "text" as const, text }],
+};
+
+/** `/` at the start of the box lists the commands; a pick writes `/name ` for the arguments. */
+export function SlashMenu({ commands }: { commands: readonly AgentCommand[] }) {
+  const adapter = useMemo<TriggerAdapter>(
+    () => ({
+      categories: () => [],
+      categoryItems: () => [],
+      search: (q) => {
+        const l = q.toLowerCase();
+        return commands
+          .filter((c) => c.name.toLowerCase().includes(l))
+          .sort(
+            (a, b) =>
+              Number(!a.name.toLowerCase().startsWith(l)) -
+                Number(!b.name.toLowerCase().startsWith(l)) || a.name.localeCompare(b.name),
+          )
+          .map((c) => ({
+            id: c.name,
+            type: "command",
+            label: `/${c.name}`,
+            description: c.description,
+            ...(c.hint ? { metadata: { hint: c.hint } } : {}),
+          }));
+      },
+    }),
+    [commands],
+  );
+  if (!commands.length) return null;
+  return (
+    <ComposerPrimitive.TriggerPopover
+      char="/"
+      matcher={atStart}
+      adapter={adapter}
+      aria-label="Commands"
+      className="absolute inset-x-0 bottom-full z-20 mb-2 max-h-72 overflow-y-auto rounded-[12px] bg-(--ui-paper) py-1 shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] [animation:ui-fade_.12s_both]"
+    >
+      <ComposerPrimitive.TriggerPopover.Directive formatter={PLAIN} />
+      <ComposerPrimitive.TriggerPopoverItems>
+        {(items) =>
+          items.length ? (
+            items.map((it, i) => (
+              <ComposerPrimitive.TriggerPopoverItem
+                key={it.id}
+                item={it}
+                index={i}
+                className="flex w-full cursor-pointer items-baseline gap-3 border-0 bg-transparent px-3 py-1.5 text-left hover:bg-(--ui-hover) data-highlighted:bg-(--ui-hover)"
+              >
+                <span className="flex-none font-mono text-[12.5px] text-(--ui-ink)">
+                  {it.label}
+                  {typeof it.metadata?.hint === "string" ? (
+                    <span className="text-(--ui-ink-3)"> {it.metadata.hint}</span>
+                  ) : null}
+                </span>
+                {it.description ? (
+                  <span className="min-w-0 text-[12.5px] text-(--ui-ink-3)">{it.description}</span>
+                ) : null}
+              </ComposerPrimitive.TriggerPopoverItem>
+            ))
+          ) : (
+            <p className="m-0 px-3 py-1.5 text-[12.5px] text-(--ui-ink-3)">No such command.</p>
+          )
+        }
+      </ComposerPrimitive.TriggerPopoverItems>
+    </ComposerPrimitive.TriggerPopover>
   );
 }

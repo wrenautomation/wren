@@ -28,6 +28,7 @@ export {
   useLastWrite,
 } from "./action.js";
 export {
+  type AgentCommand,
   AgentPick,
   AgentStatus,
   type AgentStatusInfo,

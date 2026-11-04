@@ -278,6 +278,7 @@ export function AgentChat({
         }
         welcome={w ?? { title: `Ask ${setup.title}` }}
         above={<AgentTasks tasks={a.tasks} onStop={a.stopTask} />}
+        commands={a.commands}
         note={
           a.status.model ? (
             <AgentStatus info={{ ...a.status, model: modelName(a.status.model) }} />

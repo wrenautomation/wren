@@ -24,6 +24,7 @@ import {
 import { type ReactNode, useMemo, useRef } from "react";
 import { Streamdown } from "streamdown";
 import { Answer, answersOf, Choices, LinkCard, linksIn } from "./agent-cards.js";
+import { type AgentCommand, SlashMenu } from "./agent-picks.js";
 import { partsOf, spanOf, ToolPart, took, Working } from "./agent-steps.js";
 import { Ring } from "./busy.js";
 import { Tag } from "./controls.js";
@@ -150,6 +151,8 @@ export interface AgentThreadProps {
   note?: ReactNode;
   /** Over the box: the live background tasks (`AgentTasks`). */
   above?: ReactNode;
+  /** `/` at the start of the box lists these. */
+  commands?: readonly AgentCommand[] | undefined;
   className?: string | undefined;
 }
 
@@ -401,6 +404,7 @@ export function AgentThread(p: AgentThreadProps) {
                   tools={p.tools}
                   files={!!p.files}
                   context={p.context}
+                  commands={p.commands}
                 />
                 {p.note ? (
                   <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">
@@ -752,77 +756,82 @@ function Composer({
   tools,
   files,
   context,
+  commands,
 }: {
   closed?: string | null | undefined;
   placeholder?: string | undefined;
   tools?: ReactNode;
   files: boolean;
   context?: AgentThreadProps["context"];
+  commands?: readonly AgentCommand[] | undefined;
 }) {
   const running = useAuiState((s) => s.thread.isRunning);
   const box = (
-    <ComposerPrimitive.Root className="grid rounded-[16px] bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-shadow duration-150 focus-within:shadow-[inset_0_0_0_1px_var(--ui-focus),var(--ui-raise)] in-data-dragging:shadow-[inset_0_0_0_2px_var(--ui-active),var(--ui-raise)]">
-      {context || files ? (
-        <div className="flex flex-wrap items-center gap-2 px-3 pt-3 empty:hidden">
-          {context ? (
-            <span className="inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-[14px] py-1 bg-(--ui-fill) pr-1 pl-2.5 text-[12.5px] text-(--ui-ink-2) [animation:ui-fade_.15s_both]">
-              <Icon name="page" size={13} className="flex-none" />
-              <span className="min-w-0 wrap-anywhere">{context.label}</span>
-              <button
-                type="button"
-                aria-label="Don't send this page"
-                {...tipProps("Don't send this page")}
-                onClick={context.onDrop}
-                className="grid size-5 flex-none place-items-center rounded-full text-(--ui-ink-3) hover:bg-(--ui-wash) hover:text-(--ui-ink)"
-              >
-                <Icon name="close" size={11} />
-              </button>
-            </span>
-          ) : null}
-          {files ? (
-            <ComposerPrimitive.Attachments>
-              {() => <FileChip remove />}
-            </ComposerPrimitive.Attachments>
-          ) : null}
-        </div>
-      ) : null}
-      <ComposerPrimitive.Input
-        rows={1}
-        maxRows={12}
-        disabled={!!closed}
-        placeholder={closed ?? placeholder ?? "Ask the agent"}
-        aria-label="Message"
-        className="w-full resize-none border-0 bg-transparent px-4 pt-3.5 pb-1.5 text-[14.5px]/[1.5] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) disabled:cursor-not-allowed"
-      />
-      <div className="flex min-h-11 items-center gap-2 px-2.5 pb-2.5">
-        {files ? (
-          <ComposerPrimitive.AddAttachment
-            multiple
-            aria-label="Add files"
-            {...tipProps("Add files: or drop or paste them")}
-            className="grid size-8 flex-none place-items-center rounded-full text-(--ui-ink-2) transition-colors duration-150 hover:bg-(--ui-fill) hover:text-(--ui-ink) disabled:opacity-50"
-          >
-            <Icon name="attach" size={16} />
-          </ComposerPrimitive.AddAttachment>
+    <ComposerPrimitive.Root className="relative grid rounded-[16px] bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-shadow duration-150 focus-within:shadow-[inset_0_0_0_1px_var(--ui-focus),var(--ui-raise)] in-data-dragging:shadow-[inset_0_0_0_2px_var(--ui-active),var(--ui-raise)]">
+      <ComposerPrimitive.TriggerPopoverRoot>
+        {commands?.length ? <SlashMenu commands={commands} /> : null}
+        {context || files ? (
+          <div className="flex flex-wrap items-center gap-2 px-3 pt-3 empty:hidden">
+            {context ? (
+              <span className="inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-[14px] py-1 bg-(--ui-fill) pr-1 pl-2.5 text-[12.5px] text-(--ui-ink-2) [animation:ui-fade_.15s_both]">
+                <Icon name="page" size={13} className="flex-none" />
+                <span className="min-w-0 wrap-anywhere">{context.label}</span>
+                <button
+                  type="button"
+                  aria-label="Don't send this page"
+                  {...tipProps("Don't send this page")}
+                  onClick={context.onDrop}
+                  className="grid size-5 flex-none place-items-center rounded-full text-(--ui-ink-3) hover:bg-(--ui-wash) hover:text-(--ui-ink)"
+                >
+                  <Icon name="close" size={11} />
+                </button>
+              </span>
+            ) : null}
+            {files ? (
+              <ComposerPrimitive.Attachments>
+                {() => <FileChip remove />}
+              </ComposerPrimitive.Attachments>
+            ) : null}
+          </div>
         ) : null}
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">{tools}</div>
-        {running ? (
-          <ComposerPrimitive.Cancel
-            aria-label="Stop"
-            {...tipProps("Stop", { keys: "Esc" })}
-            className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-ink) text-(--ui-canvas) [animation:ui-fade_.15s_both] hover:opacity-85"
-          >
-            <span className="size-2.5 rounded-[2px] bg-current" />
-          </ComposerPrimitive.Cancel>
-        ) : (
-          <ComposerPrimitive.Send
-            aria-label="Send"
-            className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-primary) text-(--ui-on-accent) [animation:ui-fade_.15s_both] hover:opacity-90 disabled:bg-(--ui-fill) disabled:text-(--ui-ink-3)"
-          >
-            <Icon name="arrowUp" size={16} />
-          </ComposerPrimitive.Send>
-        )}
-      </div>
+        <ComposerPrimitive.Input
+          rows={1}
+          maxRows={12}
+          disabled={!!closed}
+          placeholder={closed ?? placeholder ?? "Ask the agent"}
+          aria-label="Message"
+          className="w-full resize-none border-0 bg-transparent px-4 pt-3.5 pb-1.5 text-[14.5px]/[1.5] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) disabled:cursor-not-allowed"
+        />
+        <div className="flex min-h-11 items-center gap-2 px-2.5 pb-2.5">
+          {files ? (
+            <ComposerPrimitive.AddAttachment
+              multiple
+              aria-label="Add files"
+              {...tipProps("Add files: or drop or paste them")}
+              className="grid size-8 flex-none place-items-center rounded-full text-(--ui-ink-2) transition-colors duration-150 hover:bg-(--ui-fill) hover:text-(--ui-ink) disabled:opacity-50"
+            >
+              <Icon name="attach" size={16} />
+            </ComposerPrimitive.AddAttachment>
+          ) : null}
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">{tools}</div>
+          {running ? (
+            <ComposerPrimitive.Cancel
+              aria-label="Stop"
+              {...tipProps("Stop", { keys: "Esc" })}
+              className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-ink) text-(--ui-canvas) [animation:ui-fade_.15s_both] hover:opacity-85"
+            >
+              <span className="size-2.5 rounded-[2px] bg-current" />
+            </ComposerPrimitive.Cancel>
+          ) : (
+            <ComposerPrimitive.Send
+              aria-label="Send"
+              className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-primary) text-(--ui-on-accent) [animation:ui-fade_.15s_both] hover:opacity-90 disabled:bg-(--ui-fill) disabled:text-(--ui-ink-3)"
+            >
+              <Icon name="arrowUp" size={16} />
+            </ComposerPrimitive.Send>
+          )}
+        </div>
+      </ComposerPrimitive.TriggerPopoverRoot>
     </ComposerPrimitive.Root>
   );
   return files ? (

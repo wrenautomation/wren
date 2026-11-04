@@ -1,7 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { AgentPick, AgentStatus, type AgentTask, AgentTasks } from "./agent-picks.js";
+import {
+  type AgentCommand,
+  AgentPick,
+  AgentStatus,
+  type AgentTask,
+  AgentTasks,
+} from "./agent-picks.js";
 import { type AgentMessage, AgentThread, type AgentThreadProps } from "./agent-thread.js";
 
 export default {
@@ -233,6 +239,27 @@ export const Foot: Story = {
     await expect(c.getByText("1m 14s")).toBeTruthy();
     await userEvent.click(c.getByRole("button", { name: "Stop pnpm dev" }));
     await waitFor(() => expect(c.queryByText("pnpm dev")).toBeNull());
+  },
+};
+
+const COMMANDS: AgentCommand[] = [
+  { name: "compact", description: "Clear history but keep a summary in context", hint: "<focus>" },
+  { name: "context", description: "Show context usage" },
+  { name: "review", description: "Review a pull request" },
+];
+
+/** `/` at the start of the box lists the session's commands; a pick fills the box. */
+export const Slash: Story = {
+  render: () => <Live messages={DONE} commands={COMMANDS} />,
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    const box = c.getByRole("textbox");
+    await userEvent.type(box, "/co");
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(await page.findByText("/compact")).toBeTruthy();
+    await expect(page.queryByText("/review")).toBeNull();
+    await userEvent.click(page.getByText("/context"));
+    await waitFor(() => expect((box as HTMLTextAreaElement).value).toBe("/context "));
   },
 };
 

@@ -4,6 +4,7 @@
  * `claude`. Leaving the chat or the page closes the socket; the relay ends the child.
  */
 import {
+  type AgentCommand,
   type AgentMessage,
   type AgentSent,
   type AgentStatusInfo,
@@ -32,6 +33,17 @@ export const pageToken = async () => (await socketToken()) ?? "dev";
 /** Chats read this tab: a return to one shows it at once while it reads again; never on the device. */
 const CHATS = {};
 
+/** A setup's commands, as its last session listed them: a new chat has the `/` menu before it opens. */
+const COMMANDS = new Map<string, readonly AgentCommand[]>();
+const commandsOf = (
+  list: readonly { name: string; description: string; argumentHint: string }[],
+): AgentCommand[] =>
+  list.map((c) => ({
+    name: c.name,
+    description: c.description,
+    hint: c.argumentHint || undefined,
+  }));
+
 interface Live {
   q: Query;
   end: () => void;
@@ -57,6 +69,8 @@ export interface AgentChat {
   /** Live background shells, Monitors and subagents; empty once the socket closes. */
   tasks: readonly AgentTask[];
   stopTask: (id: string) => void;
+  /** What `/` lists: the session's commands and skills. */
+  commands: readonly AgentCommand[];
   /** `page` names the page the turn is sent from; the thread shows it under the turn. */
   send: (text: string, files?: readonly AgentSent[], page?: string) => void;
   /** A picked file → what its turn carries (AgentThread `files.ready`). */
@@ -84,6 +98,14 @@ export function useAgent(o: {
   const live = useRef<Live | null>(null);
   const [status, setStatus] = useState<AgentStatusInfo>({});
   const [tasks, setTasks] = useState<readonly AgentTask[]>([]);
+  const [commands, setCommands] = useState(() => COMMANDS.get(o.setup) ?? []);
+  const learned = useCallback(
+    (list: readonly AgentCommand[]) => {
+      COMMANDS.set(o.setup, list);
+      setCommands(list);
+    },
+    [o.setup],
+  );
   const model = useRef(o.model);
   model.current = o.model;
   const picks = useRef({ effort: o.effort, mode: o.mode });
@@ -151,6 +173,7 @@ export function useAgent(o: {
     if (o.model) void live.current?.q.setModel(o.model).catch(() => {});
   }, [o.model]);
   useEffect(() => {
+    // read-ok: a control call to the open session, not a data read
     const q = live.current?.q;
     if (!q) return;
     // unset: back to the model's own level
@@ -207,6 +230,10 @@ export function useAgent(o: {
             if (m.type === "system" && m.subtype === "init") {
               const effort = (m as { effort?: string | null }).effort;
               setStatus((s) => ({ ...s, model: m.model, effort: effort ?? s.effort }));
+              void q
+                .supportedCommands()
+                .then((c) => learned(commandsOf(c)))
+                .catch(() => {});
               setStarting(false);
               shown.current = m.session_id;
               onSession.current?.(m.session_id);
@@ -214,6 +241,8 @@ export function useAgent(o: {
             setS((p) => fold(p, m as never));
             if (m.type === "result") void measure(q, setStatus);
             if (m.type === "system") setTasks((t) => taskFold(t, m));
+            if (m.type === "system" && m.subtype === "commands_changed")
+              learned(commandsOf(m.commands));
           }
           if (!l.closing) setS(cut);
         } catch (e) {
@@ -227,7 +256,7 @@ export function useAgent(o: {
       })();
       return l;
     },
-    [o.setup, failed],
+    [o.setup, failed, learned],
   );
 
   const send = useCallback(
@@ -300,6 +329,7 @@ export function useAgent(o: {
     status,
     tasks,
     stopTask: (id: string) => void live.current?.q.stopTask(id).catch(() => {}),
+    commands,
     send,
     ready,
     stop,
