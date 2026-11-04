@@ -9,7 +9,7 @@ Checked 2026-10-03. Companion to `restate-durability.md` (why it survives crashe
 |---|---|---|---|
 | Restate server on `wren-prod-pg` (`restate:1.7` in Docker, since 2026-10-06) | every loop's journal, timers, object state; the ingress `https://restate.wrenautomation.com` (Caddy checks the bearer; admin under `/admin`) | `deploy/scripts/box-restate.sh`; nightly backup to S3 08:30 | this file, `designs/2026-10-05-restate-self-host.md` |
 | Lambda `wren-prod-worker` (us-east-1, Node 22 arm64, 1 GB, 15 min max) | every service except the box's; one version per push | CI `deploy.yml` | `deploy/README.md` |
-| EC2 `wren-prod-pg` (`t4g.medium`) | Postgres 17, PgBouncer (6432, transaction mode), Redis (6380, cache), browserless Chromium and the Restate server in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books, Watch, SocialWatch) on 127.0.0.1:9080 or :9081, one slot per deploy so pinned calls finish on their build (`apps/worker/src/box-slot.ts`; `WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
+| EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17, PgBouncer (6432, transaction mode), Redis (6380, cache), browserless Chromium and the Restate server in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books, Watch, SocialWatch) on 127.0.0.1:9080 or :9081, one slot per deploy so pinned calls finish on their build (`apps/worker/src/box-slot.ts`; `WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
 | RackNerd VPS (192.255.226.241, Buffalo) | mailifier SMTP prober (`probe.wrenautomation.com`) and SearXNG for the research engine (`search.wrenautomation.com`, bearer SSM `/wren/prod/searxng_token`), both behind Caddy | `deploy/scripts/deploy-vps.sh` | "Verifying addresses" and "Search" below |
 | RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`); in `WREN_SMTP_PROBE_URL`, probes once its PTR resolves | `PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-vps.sh` | "Verifying addresses" below |
 | William's Mac | autobrowse desk worker under launchd: every `sites` call (browser, logins, Chrome profiles, home IP) | `../autobrowse/deploy/desk/install.sh` | `../autobrowse/deploy/README.md` |
@@ -52,7 +52,7 @@ costs nothing and has no process to crash.
 
 | Resource | Job | ≈ cost/mo |
 |---|---|---|
-| EC2 `t4g.medium` (AL2023 ARM) | Postgres, browserless and Restate in Docker | $24 |
+| EC2 `t4g.small` (AL2023 ARM) | Postgres, browserless and Restate in Docker | $12 (free trial to 2026-12-31) |
 | EBS gp3 20 GB | DB data, survives instance rebuild | $2 |
 | Elastic IP | fixed DB address | $0 while attached |
 | Security group | 5432 (TLS Postgres), 6432 (TLS PgBouncer), 6380 (TLS Redis), 80/443 (Caddy: Restate ingress, browser at `/cdp`) only | $0 |

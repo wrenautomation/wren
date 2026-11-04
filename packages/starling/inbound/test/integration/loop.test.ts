@@ -22,7 +22,7 @@ import {
   truncate,
 } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
-import { sendAttempt } from "@wren/starling-acts";
+import { RESEND_MARK, sendAttempt, sendsToResend } from "@wren/starling-acts";
 import type { Post, Published } from "@wren/starling-core";
 import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { eq, sql } from "drizzle-orm";
@@ -923,12 +923,32 @@ describe("content loop", () => {
       client: null,
     });
     expect(writes).toHaveLength(1);
-    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toBeNull();
+    // The row stays, handed to the resend: the next claim counts the try.
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toMatchObject({
+      state: "unsure",
+      invocation: RESEND_MARK,
+      tries: 1,
+    });
     expect((await getDraft(pg.db, x.id)).status).toBe("approved");
     await sync();
     expect(writes).toHaveLength(2);
     expect(writes[1]?.sendKey).not.toBe(first);
     expect(await getDraft(pg.db, x.id)).toMatchObject({ status: "published", publishedId: "x-1" });
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toMatchObject({ state: "sent", tries: 2 });
+  });
+
+  it("a send again that is unsure too parks at tries 2: past the resend cap", async () => {
+    const x = await parked("a post unsure twice");
+    fates.set("x", ["unknown"]);
+    await settle(x.id, "again");
+    expect((await sync()).stats?.unsure).toHaveLength(1);
+    expect(writes).toHaveLength(2);
+    expect(await sendAttempt(pg.db, `draft:${x.id}`)).toMatchObject({
+      state: "unsure",
+      invocation: null,
+      tries: 2,
+    });
+    expect(await sendsToResend(pg.db, "all")).toEqual([]);
   });
 
   it("Send again when autobrowse's recheck finds it: published with its id, not sent twice", async () => {

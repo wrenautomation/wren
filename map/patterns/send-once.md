@@ -8,7 +8,7 @@ rule:
 
 # send-once (a claim, a key, a verdict)
 
-Every send of ours that must go out at most once: claim a row, send under a key, read the verdict.
+Every send of ours that must go out at least once: claim a row, send under a key, read the verdict. An unsure one is sent once more under a new key (`designs/2026-11-04-at-least-once.md`).
 
 ## Why
 
@@ -20,7 +20,7 @@ Every send of ours that must go out at most once: claim a row, send under a key,
 - Key: `withSendKey(key, fn)`; each site write in it carries `writeKey`.
 - Verdict: `sent`, `not_sent` or `unknown` (`SendVerdict`), as a value, never as words. `sendOnce` maps it to an outcome.
 - Across a service: the callee answers a `Delivery` (`deliveryOf`, `delivered`), as a thrown error loses its type.
-- Settle: `markPosted`, `unsureItem`, `dropItem` (`settle-send.ts`). Unknown waits in To approve ("May have gone out").
+- Settle: `markPosted`, `unsureItem`, `dropItem` (`settle-send.ts`). Unknown is sent once more (`sendsToResend`); a second unknown waits in To approve ("May have gone out").
 
 ## Uses
 

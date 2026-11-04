@@ -39,6 +39,7 @@ import {
   parkUnsure,
   RECHECK_FOR_MS,
   RECHECK_QUIET_MS,
+  RESEND_MARK,
   type ReachAccount,
   refreshHealth,
   SETTLE_OUTCOMES,
@@ -750,7 +751,7 @@ describe("the sender's DMs", () => {
     expect(m?.state).toBe("sent");
   });
 
-  it("unknown: the message is unknown, unsure in To approve with its key; Mark posted moves it on", async () => {
+  it("unknown: unsure with its key, sent once more under a new key; a second unsure waits for Mark posted", async () => {
     ch.faults.push({ err: new SendUnknown("the page did not confirm", AT), landed: true });
     const stats = await tickNow();
     expect(stats.failed).toBe(1);
@@ -761,9 +762,23 @@ describe("the sender's DMs", () => {
     expect(row).toMatchObject({ state: "unsure", target: "dana_test" });
     expect(row?.sendKey).toBe(keys[0]);
     expect(row?.sendKey?.startsWith(`${item} `)).toBe(true);
-    // Nothing resends it.
-    await tickNow();
-    expect(ch.sent).toHaveLength(1);
+    expect(row?.tries).toBe(1);
+    // The next pass hands it back to the queue; the one after sends it under a new key.
+    ch.faults.push({ err: new SendUnknown("the page did not confirm", AT), landed: true });
+    await tickAt(new Date(NOW.getTime() + 60_000));
+    expect(await sendAttempt(db(), item)).toBeNull();
+    await tickAt(new Date(NOW.getTime() + 20 * 60_000));
+    expect(ch.sent).toHaveLength(2);
+    expect(keys[1]).not.toBe(keys[0]);
+    expect(await sendAttempt(db(), item)).toMatchObject({
+      state: "unsure",
+      tries: 2,
+      sendKey: keys[1],
+    });
+    // Past the cap nothing resends it.
+    await tickAt(new Date(NOW.getTime() + 40 * 60_000));
+    await tickAt(new Date(NOW.getTime() + 60 * 60_000));
+    expect(ch.sent).toHaveLength(2);
     const after = await markDmPosted(db(), item, {
       sequences: REACH_SEQUENCES,
       sender: "William",
@@ -782,16 +797,20 @@ describe("the sender's DMs", () => {
     });
   });
 
-  it("proved absent: the row goes back to a person's yes, never a resend on its own", async () => {
+  it("proved absent: goes once more (the try counts), then back to a person's yes", async () => {
     ch.faults.push({ err: new NotSent("verified_absent", "not on the sent list"), landed: false });
     const stats = await tickNow();
     expect(stats.held["not-sent"]).toBe(1);
     expect(stats.failed).toBe(0);
-    const [m] = await db().select().from(reachMessages);
-    expect(m).toMatchObject({ state: "proposed" });
+    let [m] = await db().select().from(reachMessages);
+    expect(m).toMatchObject({ state: "queued", tries: 1 });
+    ch.faults.push({ err: new NotSent("verified_absent", "not on the sent list"), landed: false });
+    expect((await tickAt(new Date(NOW.getTime() + 6 * 60_000))).held["not-sent"]).toBe(1);
+    [m] = await db().select().from(reachMessages);
+    expect(m).toMatchObject({ state: "proposed", tries: 2 });
     expect(m?.stateReason).toContain("approve to send again");
     expect((await tickAt(new Date(NOW.getTime() + 60 * 60_000))).sent).toBe(0);
-    expect(keys).toHaveLength(1);
+    expect(keys).toHaveLength(2);
   });
 
   it("not sent: the row waits five minutes and goes again under a new key", async () => {
@@ -880,17 +899,17 @@ describe("the sender's DMs", () => {
       expect(keys[0]).not.toBe(keys[1]);
     });
 
-    it("no read can tell: it waits on a person, with that reason", async () => {
+    it("no read can tell: sent once more under a new key, out of To approve", async () => {
       const { item } = await late();
       verdict = new SendUnknown("this route has no verify read", AT, { next: null, ask: ASK });
       await tickAt(LATER);
-      expect(await sendAttempt(db(), item)).toMatchObject({
-        state: "unsure",
-        why: "this route has no verify read",
-        recheckAt: null,
-      });
-      expect((await unsureSends(db(), LATER)).map((u) => u.item)).toEqual([item]);
-      expect(await nextDue(db(), LATER)).toBeNull();
+      expect(await sendAttempt(db(), item)).toBeNull();
+      expect(await unsureSends(db(), LATER)).toEqual([]);
+      const [m] = await db().select().from(reachMessages);
+      expect(m).toMatchObject({ state: "queued", tries: 1 });
+      expect((await tickAt(new Date(LATER.getTime() + 20 * 60_000))).sent).toBe(1);
+      expect(keys).toHaveLength(2);
+      expect(keys[0]).not.toBe(keys[1]);
     });
 
     it("the ask failed: asked again in ten minutes, and shown after the quiet window", async () => {
@@ -941,6 +960,7 @@ describe("the sender's DMs", () => {
     const run = (v: SendVerdict | Error, now = NOW) => {
       const asked: unknown[] = [];
       const posted: string[] = [];
+      const again: string[] = [];
       const t = tick(db(), {
         channelFor,
         policy: { ...DEFAULT_POLICY, gapSeconds: 0 },
@@ -957,9 +977,12 @@ describe("the sender's DMs", () => {
           posted: (item) => {
             posted.push(item);
           },
+          again: (item) => {
+            again.push(item);
+          },
         },
       });
-      return t.then(() => ({ asked, posted }));
+      return t.then(() => ({ asked, posted, again }));
     };
 
     it("sent: the ref goes on the row and it settles as Mark posted", async () => {
@@ -970,13 +993,22 @@ describe("the sender's DMs", () => {
       expect(await sendAttempt(db(), ITEM)).toMatchObject({ state: "unsure", ref: "c_1" });
     });
 
-    it("not sent: it waits on a person, marked checked, never sent again", async () => {
+    it("not sent: handed to Send again once, marked so no later pass sends it twice", async () => {
       await park();
-      const { posted } = await run(notSentV("verified_absent", "not on the page"));
+      const { posted, again } = await run(notSentV("verified_absent", "not on the page"));
       expect(posted).toEqual([]);
+      expect(again).toEqual([ITEM]);
       const a = await sendAttempt(db(), ITEM);
-      expect(a).toMatchObject({ state: "unsure", recheckAt: null });
+      expect(a).toMatchObject({ state: "unsure", recheckAt: null, invocation: RESEND_MARK });
       expect(a?.why).toMatch(/^checked: it did not go out/);
+      expect((await run(notSentV("verified_absent", "not on the page"))).again).toEqual([]);
+    });
+
+    it("an unsure resend waits on a person: one resend in all", async () => {
+      await park();
+      await db().update(sendAttempts).set({ tries: 2 }).where(eq(sendAttempts.item, ITEM));
+      const { again } = await run(notSentV("verified_absent", "not on the page"));
+      expect(again).toEqual([]);
       expect((await unsureSends(db(), NOW)).map((u) => u.item)).toEqual([ITEM]);
     });
 

@@ -60,6 +60,7 @@ import {
   NO_RECHECK,
   parkUnsure,
   pickedAccount,
+  RESEND_MARK,
   ReachRefusal,
   recheckOf,
   releaseSend,
@@ -549,8 +550,8 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
       // retry of this pass: the same publish asks autobrowse for the same verdict.
       const invocation = ctx.request().id;
       const taken = await ctx.run(`send claim ${draft.id}`, async () => {
-        try {
-          return await claimSend(o.db, {
+        const claim = (again: boolean) =>
+          claimSend(o.db, {
             item: `draft:${draft.id}`,
             platform: draft.platform,
             account,
@@ -559,10 +560,15 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
             url: null,
             invocation,
             now,
+            again,
           });
+        try {
+          return await claim(false);
         } catch (err) {
           if (!(err instanceof ReachRefusal)) throw err;
           const row = await sendAttempt(o.db, `draft:${draft.id}`);
+          // A send again (settlePost): the kept row counts this try.
+          if (row?.state === "unsure" && row.invocation === RESEND_MARK) return await claim(true);
           return {
             go: "taken" as const,
             why: err.message,
@@ -610,7 +616,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
           since: taken.since,
           text: post.text,
           target,
-          tries: taken.tried ? 2 : 1,
+          tries: taken.tries,
           sendKey: taken.sendKey,
           ...(taken.tried ? { recheck: true } : {}),
         },

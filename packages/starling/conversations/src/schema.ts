@@ -343,6 +343,8 @@ export const reachMessages = pgTable(
     ref: varchar("ref", { length: 200 }),
     runId: uuid("run_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Sends that may have left (tick.ts `markSending`; a not-sent try gives its one back). */
+    tries: smallint("tries").default(0).notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_reach_messages" }),

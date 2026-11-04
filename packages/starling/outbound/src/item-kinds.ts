@@ -8,7 +8,6 @@ import { keepSentEdit } from "@wren/core/ask";
 import { atomic, type Queryable } from "@wren/db";
 import {
   effectiveNeed,
-  forgetUnsure,
   type ItemKind,
   type ItemKinds,
   type ReachAccount,
@@ -22,7 +21,7 @@ import {
 } from "@wren/starling-acts";
 import { turnKinds } from "@wren/starling-conversations";
 import { reachContacts, reachMessages } from "@wren/starling-conversations/schema";
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { markCommented, skipThread } from "./discovery/threads.js";
 import { markPostCommented, skipPost } from "./reach-posts/acts.js";
 import { reachPosts, redditThreads } from "./schema.js";
@@ -179,15 +178,4 @@ export async function markDmPosted(
     );
     return stats;
   });
-}
-
-/** A DM sent again: back in the sender's queue, due now; its ledger row goes with it. */
-export async function requeueDm(db: Queryable, id: number, now: Date): Promise<void> {
-  const [m] = await db
-    .update(reachMessages)
-    .set({ state: "queued", dueAt: now, stateReason: "sent again after an unsure send" })
-    .where(and(eq(reachMessages.id, id), eq(reachMessages.state, "unknown")))
-    .returning({ id: reachMessages.id });
-  if (!m) throw new ReachRefusal("that message is no longer waiting");
-  await forgetUnsure(db, `dm:${id}`);
 }

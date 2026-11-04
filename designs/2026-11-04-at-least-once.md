@@ -1,6 +1,6 @@
 # At least once: every send and every inbound event
 
-2026-11-04. Tasks WA-1057 to WA-1063. Status: agreed (William, 11-04), building.
+2026-11-04. Tasks WA-1057 to WA-1063. Status: agreed (William, 11-04). SMS, email, DMs, comments and posts built; WA-1060 to WA-1063 open.
 
 ## Goal
 
@@ -61,8 +61,20 @@ Restate runs as one node on the Postgres box. A lost volume loses every queued c
 
 - A paused call still holds its key until `wren dlq` ends it.
 - `pg_notify` wakes can be lost; each loop's timed pass covers them.
+- `sdm:` (a client's answer in its Inbox) is never resent: the client's own word sends it.
+- A client's pass resends its DMs only. Its comments and posts wait on the client, as before.
+- A past-cap DM `unknown` from a send error or a stale `sending` has no ledger row, so To approve
+  does not show it. This was true before.
+- A not-sent try on a comment or post deletes its row (`releaseSend`), so that try is not counted.
+  The send never left, so no duplicate can come of it.
+- Auto resends record `by: wren` on the settle; the draft record's `by` reads "console".
 
 ## Decision log
 
 - 2026-11-04: at least once (William). Resend cap 1. Same Message-ID on an email resend: receivers
   that dedupe on it drop the copy, the rest show two. SMS via Telnyx is exactly once by its key.
+- 2026-11-04 (WA-1059): a recheck that proves `verified_absent` is sent once more, not handed to a
+  person. A send error with no verdict is sent once more. Unsure rows from before the switch keep
+  `tries >= 2`: they stay a person's. A post of ours on Send again keeps its ledger row
+  (`markResend`), so the scheduler's claim counts the try; deleting it reset the count and could
+  resend without end.

@@ -7,9 +7,9 @@
  *
  * Per account at most one send a tick, inside the window, under the account's
  * standing for the day (policy.ts). Intent before act: the row is `sending`
- * in its own step before the platform is called; a `sending` row older than
- * ten minutes becomes `unknown` and nothing ever resends. Messaging a
- * stranger twice is worse than missing one.
+ * in its own step before the platform is called. At least once
+ * (designs/2026-11-04-at-least-once.md): a lost or unsure send goes once more
+ * (`tries`, `MAX_TRIES`); past that a person decides. A duplicate is the cost.
  *
  * LinkedIn: a sequence step goes only once the invite is accepted. When the
  * step is due the tick reads the relationship: connected = send (and mark the
@@ -23,7 +23,7 @@
  * a read showed it absent) holds the row five minutes. It sends again under a new key.
  * A used daily cap (a 429 whose wait is hours) holds the row, and the account's other rows on
  * that cap, until it resets; a short 429 holds the row an hour; any other 4xx fails it and ends
- * the contact as `unreachable`; anything else leaves `unknown`.
+ * the contact as `unreachable`; anything else sends again once, then `unknown`.
  * An invite LinkedIn does not offer (already connected, invite pending, Follow only) sent nothing:
  * the row is `skipped`, counts toward no cap and no failure, and the contact is never invited
  * again (`noInvite`).
@@ -47,16 +47,20 @@ import {
   forgetUnsure,
   healthOf,
   inWindow,
+  MAX_TRIES,
+  markResend,
   NO_RECHECK,
   nextRecheck,
   noteRef,
   parkUnsure,
   type ReachAccount,
   type ReachPolicy,
+  ReachRefusal,
   type RecheckCols,
   reachAccounts,
   recheckOf,
   sendsToRecheck,
+  sendsToResend,
   setRecheck,
   settleSent,
   settleUnsure,
@@ -112,6 +116,8 @@ export interface RecheckAsks {
   verdict: (ask: WriteAsk) => Promise<SendVerdict>;
   /** Found on the site: settle it as a person's Mark posted does. */
   posted: (item: string) => void;
+  /** Still unsure with no recheck left: send it once more, as a person's Send again does. */
+  again: (item: string) => void;
 }
 
 export interface TickStats {
@@ -159,19 +165,35 @@ const hold = (stats: TickStats, why: string) => {
   stats.held[why] = (stats.held[why] ?? 0) + 1;
 };
 
-/** `sending` rows past STALE become `unknown`: the call's fate is lost, never resent. */
+/** `sending` rows past STALE lost their call: queued once more under `MAX_TRIES`, else `unknown`. */
 export async function reconcile(db: Queryable, now: Date): Promise<number> {
-  const rows = await db
+  const stale = and(
+    eq(reachMessages.state, "sending"),
+    lt(reachMessages.createdAt, new Date(now.getTime() - STALE_SENDING_MS)),
+  );
+  const why = "the platform call's outcome was lost";
+  const again = await db
     .update(reachMessages)
-    .set({ state: "unknown", stateReason: "the platform call's outcome was lost" })
-    .where(
-      and(
-        eq(reachMessages.state, "sending"),
-        lt(reachMessages.createdAt, new Date(now.getTime() - STALE_SENDING_MS)),
-      ),
-    )
+    .set({ state: "queued", dueAt: now, stateReason: why })
+    .where(and(stale, lt(reachMessages.tries, MAX_TRIES)))
     .returning({ id: reachMessages.id });
-  return rows.length;
+  const lost = await db
+    .update(reachMessages)
+    .set({ state: "unknown", stateReason: why })
+    .where(stale)
+    .returning({ id: reachMessages.id });
+  return again.length + lost.length;
+}
+
+/** A DM sent again: back in the sender's queue, due now; its ledger row goes with it. */
+export async function requeueDm(db: Queryable, id: number, now: Date): Promise<void> {
+  const [m] = await db
+    .update(reachMessages)
+    .set({ state: "queued", dueAt: now, stateReason: "sent again after an unsure send" })
+    .where(and(eq(reachMessages.id, id), eq(reachMessages.state, "unknown")))
+    .returning({ id: reachMessages.id });
+  if (!m) throw new ReachRefusal("that message is no longer waiting");
+  await forgetUnsure(db, `dm:${id}`);
 }
 
 /** Today's sends from each account, by kind (fleet day). */
@@ -400,13 +422,16 @@ async function applyRelationship(
   return "wait";
 }
 
-/** Step 3: intent. */
+/** Step 3: intent. A try counts here; one that sent nothing gives it back (`giveBack`). */
 async function markSending(db: Queryable, rowId: number): Promise<void> {
   await db
     .update(reachMessages)
-    .set({ state: "sending", stateReason: null })
+    .set({ state: "sending", stateReason: null, tries: sql`${reachMessages.tries} + 1` })
     .where(eq(reachMessages.id, rowId));
 }
+
+/** A try that sent nothing (a cap, a busy browser): not one of `MAX_TRIES`. */
+const giveBack = sql`greatest(${reachMessages.tries} - 1, 0)`;
 
 /** Queue step `step`, due `dueAt`; an emptied step finishes the contact instead. False if it ended. */
 async function queueStep(
@@ -571,8 +596,8 @@ async function recordNoInvite(
 }
 
 /**
- * Step 4c: it may have gone out and no read could tell. `unknown`, never resent; the item is
- * asked again per `recheck`, else waits unsure in To approve for a person.
+ * Step 4c: it may have gone out and no read could tell. `unknown`; the item is asked again per
+ * `recheck`, then sent once more (`resendUnsure`), else waits unsure in To approve for a person.
  */
 async function recordUnsure(
   db: Queryable,
@@ -596,7 +621,7 @@ async function recordUnsure(
     target: c.contact.handle,
     url: c.contact.url ?? null,
     why,
-    tries: 1,
+    tries: c.row.tries + 1,
     now,
     sendKey,
     recheck,
@@ -606,8 +631,9 @@ async function recordUnsure(
 
 /**
  * Step 4d: autobrowse says nothing went out; no failure, nothing spent. Refused before the submit:
- * the row goes again under a new key. A read proved it absent: back to a person's yes, never a
- * resend on its own (William, 11-02: a duplicate costs trust).
+ * the row goes again under a new key, the try given back. A read proved it absent: again once
+ * under `MAX_TRIES` (the read may be wrong, so the try counts), then a person's yes. 11-04 at
+ * least once replaces 11-02's "a duplicate costs trust".
  */
 async function recordNotSent(
   db: Queryable,
@@ -623,7 +649,7 @@ async function recordNotSent(
     hold(stats, "cap");
     return;
   }
-  if (got.how === "verified_absent") {
+  if (got.how === "verified_absent" && c.row.tries + 1 >= MAX_TRIES) {
     await db
       .update(reachMessages)
       .set({
@@ -640,6 +666,7 @@ async function recordNotSent(
       state: "queued",
       dueAt: new Date(now.getTime() + NOT_SENT_HOLD_MS),
       stateReason: reason.slice(0, 5000),
+      ...(got.how === "before_submit" ? { tries: giveBack } : {}),
     })
     .where(eq(reachMessages.id, c.row.id));
   hold(stats, "not-sent");
@@ -662,7 +689,7 @@ export function limitWaitMs(text: string): number | null {
 async function holdLane(db: Queryable, c: Candidate, until: Date, why: string): Promise<void> {
   await db
     .update(reachMessages)
-    .set({ state: "queued", dueAt: until, stateReason: why.slice(0, 5000) })
+    .set({ state: "queued", dueAt: until, stateReason: why.slice(0, 5000), tries: giveBack })
     .where(eq(reachMessages.id, c.row.id));
   await db
     .update(reachMessages)
@@ -699,7 +726,12 @@ async function recordFailure(
   if (err instanceof SiteCallError && err.status === 429) {
     await db
       .update(reachMessages)
-      .set({ state: "queued", dueAt: new Date(now.getTime() + HOLD_MS), stateReason: text })
+      .set({
+        state: "queued",
+        dueAt: new Date(now.getTime() + HOLD_MS),
+        stateReason: text,
+        tries: giveBack,
+      })
       .where(eq(reachMessages.id, c.row.id));
     hold(stats, "retry");
     return;
@@ -715,11 +747,18 @@ async function recordFailure(
     stats.unreachable++;
     return;
   }
+  // Anything else may have gone: once more under a new key, then a person (`c.row.tries` is pre-claim).
+  const again = c.row.tries + 1 < MAX_TRIES;
   await db
     .update(reachMessages)
-    .set({ state: "unknown", stateReason: text })
+    .set(
+      again
+        ? { state: "queued", dueAt: new Date(now.getTime() + NOT_SENT_HOLD_MS), stateReason: text }
+        : { state: "unknown", stateReason: text },
+    )
     .where(eq(reachMessages.id, c.row.id));
-  stats.failed++;
+  if (again) hold(stats, "retry");
+  else stats.failed++;
 }
 
 /** The workflow a follow-up DM belongs to (`provenance.follow` is `<workflow>/<node>`). */
@@ -752,6 +791,7 @@ export async function tick(
     return s;
   };
   await recheckUnsure(db, o, run, stepStats);
+  await resendUnsure(db, o, run);
   for (const c of candidates) {
     const channel = o.channelFor(c.account);
     if (!channel || (c.checkRelationship && !channel.relationship)) {
@@ -789,8 +829,8 @@ export async function tick(
     let sent: Sent | NoInvite;
     try {
       // The send runs under its key and autobrowse says whether it went out (designs/2026-10-16-
-      // send-verdicts.md): sent or found = sent, not sent = hold the row, else unsure and never
-      // resent.
+      // send-verdicts.md): sent or found = sent, not sent = hold the row, else unsure (rechecked,
+      // then sent once more).
       const got = await sendOnce<Sent | NoInvite>({
         key: sendKey,
         send: () => sendCall(channel, c, words),
@@ -895,8 +935,8 @@ async function recheckPlan(db: Queryable, now: Date, asks: boolean): Promise<Rec
 
 /**
  * Step 0: unsure sends due a recheck (designs/2026-10-16-maybe-sent.md, WA-1012). Each asks
- * autobrowse and writes nothing on the site. Sent settles it as a send would; not sent goes to a
- * person (never resent on its own); unknown takes the answer's next time.
+ * autobrowse and writes nothing on the site. Sent settles it as a send would; not sent leaves it
+ * unsure with no recheck, so `resendUnsure` sends it again; unknown takes the answer's next time.
  */
 async function recheckUnsure(
   db: Queryable,
@@ -909,6 +949,31 @@ async function recheckUnsure(
     if (r.kind === "ask") await recheckAsk(db, o, run, r);
     else await recheckDm(db, o, run, stepStats, r);
   }
+}
+
+/**
+ * Step 0b (designs/2026-11-04-at-least-once.md): unsure sends with no recheck left, under
+ * `MAX_TRIES`, go once more through their own queue: a DM back to this queue, any other kind
+ * through `ReachDesk/settleSend` again (as a person's Send again). Each is marked first, so no
+ * pass hands it over twice; one that `again` refuses stays marked, in To approve for a person.
+ * A client's pass (no `asks`) resends its DMs only.
+ */
+async function resendUnsure(db: Queryable, o: TickOptions, run: Journal): Promise<void> {
+  const items = await run("resends", async () => {
+    const out: string[] = [];
+    for (const a of await sendsToResend(db, o.asks ? "all" : "dm")) {
+      if (!(await markResend(db, a.item, o.now))) continue;
+      if (a.item.startsWith("dm:")) {
+        try {
+          await requeueDm(db, Number(a.item.slice("dm:".length)), o.now);
+        } catch (err) {
+          if (!(err instanceof ReachRefusal)) throw err;
+        }
+      } else out.push(a.item);
+    }
+    return out;
+  });
+  for (const item of items) o.asks?.again(item);
 }
 
 async function recheckAsk(

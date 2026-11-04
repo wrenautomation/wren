@@ -1,16 +1,17 @@
 /**
- * The send ledger (designs/2026-10-16-maybe-sent.md): one row per item that must land at most
- * once. A claim marks it `sending` before any call and makes the send key (autobrowse keeps one
- * verdict per key); a second invocation meanwhile is refused, and one after a lost answer takes
- * it over under the same key, so autobrowse answers its stored verdict. Settled `sent` (with the
- * real ref) or `unsure`: asked again at `recheck_at` while its write's verdict may still come
- * (WA-1012), else it waits on a person in To approve. A refusal or a send that never left
- * releases it; the next send makes a new key.
+ * The send ledger (designs/2026-10-16-maybe-sent.md): one row per item that must land at least
+ * once (designs/2026-11-04-at-least-once.md). A claim marks it `sending` before any call and makes
+ * the send key (autobrowse keeps one verdict per key); a second invocation meanwhile is refused,
+ * and one after a lost answer takes it over under the same key, so autobrowse answers its stored
+ * verdict. Settled `sent` (with the real ref) or `unsure`: asked again at `recheck_at` while its
+ * write's verdict may still come (WA-1012), then sent once more under a new key while
+ * `tries < MAX_TRIES` (`sendsToResend`), else it waits on a person in To approve. A refusal or a
+ * send that never left releases it; the next send makes a new key.
  */
 import { keyedWaitEnds } from "@wren/core/autobrowse/restate";
 import { newSendKey, type VerdictNext, type WriteAsk } from "@wren/core/send-verdict";
 import type { Queryable } from "@wren/db";
-import { and, eq, gt, inArray, isNotNull, isNull, lte, not, type SQL, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, isNull, lt, lte, not, type SQL, sql } from "drizzle-orm";
 import { ReachRefusal } from "./refusal.js";
 import { type SendAttempt, sendAttempts } from "./schema.js";
 
@@ -21,6 +22,11 @@ import { type SendAttempt, sendAttempts } from "./schema.js";
 const SENDING_STALE_MS = 10 * 60_000;
 const staleAt = (row: SendAttempt) =>
   new Date(keyedWaitEnds(row.updatedAt).getTime() + SENDING_STALE_MS);
+
+/** Tries per item: the first send and one resend of an unsure one. Past it, a person decides. */
+export const MAX_TRIES = 2;
+/** `invocation` on an unsure row handed to a send again (wren's or a person's): never picked twice. */
+export const RESEND_MARK = "wren-resend";
 
 export const UNSURE_WAITS =
   "may have gone out. It waits in To approve, where you can open it on the site, mark it posted, or send it again";
@@ -99,7 +105,7 @@ export interface SendClaim {
 }
 
 type Claimed =
-  | { go: "send"; tried: boolean; since: string; sendKey: string }
+  | { go: "send"; tried: boolean; tries: number; since: string; sendKey: string }
   | { go: "done"; ref: string | null; at: string | null };
 
 /** Take the item for this invocation, or say why not. */
@@ -123,7 +129,7 @@ export async function claimSend(db: Queryable, c: SendClaim): Promise<Claimed> {
       .onConflictDoNothing()
       .returning({ item: sendAttempts.item });
     if (!made.length) throw new ReachRefusal("it is already being sent");
-    return { go: "send", tried: false, since: c.now.toISOString(), sendKey };
+    return { go: "send", tried: false, tries: 1, since: c.now.toISOString(), sendKey };
   }
   if (row.state === "sent")
     return { go: "done", ref: row.ref, at: row.sentAt?.toISOString() ?? null };
@@ -161,12 +167,13 @@ export async function claimSend(db: Queryable, c: SendClaim): Promise<Claimed> {
           : eq(sendAttempts.invocation, row.invocation),
       ),
     )
-    .returning({ item: sendAttempts.item });
-  if (!taken.length) throw new ReachRefusal("it is already being sent");
+    .returning({ tries: sendAttempts.tries });
+  if (!taken[0]) throw new ReachRefusal("it is already being sent");
   // A lost invocation may have sent; a person who said send again has looked.
   return {
     go: "send",
     tried: takeOver,
+    tries: taken[0].tries,
     since: (takeOver ? row.startedAt : c.now).toISOString(),
     sendKey,
   };
@@ -269,6 +276,7 @@ export async function parkUnsure(
     url: a.url,
     tries: a.tries,
     why: a.why.slice(0, 10_000),
+    invocation: null,
     ...(a.recheck ?? NO_RECHECK),
     updatedAt: a.now,
   };
@@ -302,6 +310,45 @@ export async function sendsToRecheck(db: Queryable, now: Date): Promise<SendAtte
     .from(sendAttempts)
     .where(and(eq(sendAttempts.state, "unsure"), lte(sendAttempts.recheckAt, now)))
     .orderBy(sendAttempts.recheckAt);
+}
+
+/**
+ * Unsure sends a person would decide, sent once more instead: no recheck left, under
+ * `MAX_TRIES`, keyed, not yet handed over. `sdm:` (a client's Inbox answer) stays a person's.
+ */
+export async function sendsToResend(db: Queryable, kinds: "all" | "dm"): Promise<SendAttempt[]> {
+  return db
+    .select()
+    .from(sendAttempts)
+    .where(
+      and(
+        eq(sendAttempts.state, "unsure"),
+        isNull(sendAttempts.recheckAt),
+        isNull(sendAttempts.invocation),
+        isNotNull(sendAttempts.sendKey),
+        lt(sendAttempts.tries, MAX_TRIES),
+        kinds === "dm"
+          ? sql`${sendAttempts.item} like 'dm:%'`
+          : sql`${sendAttempts.item} not like 'sdm:%'`,
+      ),
+    )
+    .orderBy(sendAttempts.updatedAt);
+}
+
+/** Hand an unsure row to the resend: false when another pass or a person took it first. */
+export async function markResend(db: Queryable, item: string, now: Date): Promise<boolean> {
+  const rows = await db
+    .update(sendAttempts)
+    .set({ invocation: RESEND_MARK, updatedAt: now })
+    .where(
+      and(
+        eq(sendAttempts.item, item),
+        eq(sendAttempts.state, "unsure"),
+        isNull(sendAttempts.invocation),
+      ),
+    )
+    .returning({ item: sendAttempts.item });
+  return rows.length > 0;
 }
 
 /** The soonest recheck still ahead, or null. */

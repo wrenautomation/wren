@@ -68,7 +68,7 @@ export function makeReachSender(deps: ReachDeps) {
 type SettleSend = {
   settleSend: (
     ctx: restate.Context,
-    req: { item: string; outcome: "posted"; by: "autobrowse" },
+    req: { item: string; outcome: "posted" | "again"; by: "autobrowse" | "wren" },
   ) => Promise<unknown>;
 };
 
@@ -85,6 +85,10 @@ function recheckAsks(deps: ReachDeps, ctx: restate.ObjectContext): RecheckAsks |
       ctx
         .serviceSendClient<SettleSend>({ name: "ReachDesk" })
         .settleSend({ item, outcome: "posted", by: "autobrowse" }),
+    again: (item) =>
+      ctx
+        .serviceSendClient<SettleSend>({ name: "ReachDesk" })
+        .settleSend({ item, outcome: "again", by: "wren" }),
   };
 }
 

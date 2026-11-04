@@ -1,5 +1,7 @@
 # Maybe sent
 
+Status: "never sends twice" reversed 2026-11-04 (`designs/2026-11-04-at-least-once.md`): an unsure send is sent once more. The ledger, keys and verdicts stand.
+
 2026-10-16. A send whose outcome is unknown is recorded once or parked for a person. It never pauses Restate and never sends twice. Since the same day, autobrowse says whether a send went out (a verdict), and wren reads no words and looks at no site for any send.
 
 ## What happened

@@ -19,7 +19,8 @@ import {
 } from "@wren/starling-acts";
 import { z } from "zod";
 import { reachLead } from "../follow.js";
-import { markDmPosted, reachKinds, requeueDm } from "../item-kinds.js";
+import { markDmPosted, reachKinds } from "../item-kinds.js";
+import { requeueDm } from "../tick.js";
 import type { DeskContext } from "./desk-context.js";
 import { scheduleProofs } from "./proofs.js";
 
@@ -36,9 +37,11 @@ const SETTLE_SEND = z.looseObject({
       "posted: he saw it on the site; again: send it once more; dropped: it did not go out and stays out",
     ),
   by: z
-    .literal("autobrowse")
+    .enum(["autobrowse", "wren"])
     .optional()
-    .describe("The sender's recheck found it on the site (WA-1012); unset: the viewer"),
+    .describe(
+      "autobrowse: the sender's recheck found it (WA-1012); wren: the sender's one resend (designs/2026-11-04-at-least-once.md); unset: the viewer",
+    ),
 });
 
 /** ReachDesk's own sends, called again on a person's Send again. */
@@ -67,7 +70,7 @@ export function settleHandlers(desk: DeskContext) {
       { input: SETTLE_SEND, effect: "sends" },
       async (
         ctx: restate.Context,
-        req: { item: string; outcome: SettleOutcome; by?: "autobrowse"; viewer?: unknown },
+        req: { item: string; outcome: SettleOutcome; by?: "autobrowse" | "wren"; viewer?: unknown },
       ): Promise<{ item: string; outcome: SettleOutcome }> => {
         const now = await nowOf(ctx);
         const by = req.by ?? byOf(req);

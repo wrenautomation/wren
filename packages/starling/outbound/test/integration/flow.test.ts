@@ -362,7 +362,7 @@ describe("linkedin sequence", () => {
 });
 
 describe("failures", () => {
-  it("429 holds an hour, other 4xx ends the contact, a crash leaves unknown", async () => {
+  it("429 holds an hour, other 4xx ends the contact, a crash goes once more then unknown", async () => {
     await account("reddit", "reddit@alt");
     const c = await addContact(db(), { platform: "reddit", handle: "busy" });
     await enroll(db(), { sequence: REDDIT, sender: "William", limit: 10, now: OPEN });
@@ -390,9 +390,13 @@ describe("failures", () => {
       throw new Error("socket hung up");
     };
     const crashed = await tickAt(at(0.1));
-    expect(crashed.failed).toBe(1);
+    expect(crashed.held).toEqual({ retry: 1 });
     [row] = await messagesOf(d.id);
-    expect(row?.state).toBe("unknown");
+    expect(row).toMatchObject({ state: "queued", tries: 1 });
+    const again = await tickAt(at(0.11));
+    expect(again.failed).toBe(1);
+    [row] = await messagesOf(d.id);
+    expect(row).toMatchObject({ state: "unknown", tries: 2 });
     f.message = ok;
     expect((await tickAt(at(0.12))).sent).toBe(0);
   });
@@ -459,19 +463,25 @@ describe("failures", () => {
     expect(asked).toBe(1);
   });
 
-  it("a stale sending row becomes unknown and is never resent", async () => {
+  it("a stale sending row is queued once more, then unknown", async () => {
     await account("reddit", "reddit@alt");
     const c = await addContact(db(), { platform: "reddit", handle: "lost" });
     await enroll(db(), { sequence: REDDIT, sender: "William", limit: 10, now: OPEN });
-    await db()
-      .update(reachMessages)
-      .set({ state: "sending", createdAt: OPEN })
-      .where(eq(reachMessages.contactId, c.id));
+    const lose = (tries: number) =>
+      db()
+        .update(reachMessages)
+        .set({ state: "sending", createdAt: OPEN, tries })
+        .where(eq(reachMessages.contactId, c.id));
+    await lose(1);
     expect(await reconcile(db(), new Date(OPEN.getTime() + STALE_SENDING_MS / 2))).toBe(0);
-    const t = await tickAt(new Date(OPEN.getTime() + STALE_SENDING_MS * 2));
-    expect(t.reconciled).toBe(1);
-    expect(t.sent).toBe(0);
-    const [row] = await messagesOf(c.id);
+    const later = new Date(OPEN.getTime() + STALE_SENDING_MS * 2);
+    expect(await reconcile(db(), later)).toBe(1);
+    let [row] = await messagesOf(c.id);
+    expect(row).toMatchObject({ state: "queued", dueAt: later });
+
+    await lose(2);
+    expect(await reconcile(db(), later)).toBe(1);
+    [row] = await messagesOf(c.id);
     expect(row?.state).toBe("unknown");
   });
 

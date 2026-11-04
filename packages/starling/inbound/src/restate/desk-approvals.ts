@@ -7,6 +7,7 @@ import { clientKey, clientOfKey, exclusiveHandler, PORTAL_FIELDS } from "@wren/c
 import { isDelivery } from "@wren/core/send-verdict";
 import {
   forgetUnsure,
+  markResend,
   SETTLE_OUTCOMES,
   type SettleOutcome,
   settleSent,
@@ -263,9 +264,10 @@ export function approvalsHandlers(desk: ContentDeskContext) {
           deps.posted?.(ctx, waiting.platform, client);
           return { id: req.id, outcome: "posted", found: false };
         }
+        // Row kept, marked: the scheduler's claim counts this try (`tries`).
         await ctx.run("again", async () => {
-          await sendAgain(db, req.id);
-          await forgetUnsure(db, item);
+          if (await sendAgain(db, req.id)) await markResend(db, item, now);
+          else await forgetUnsure(db, item);
         });
         ctx
           .objectSendClient<SchedulerWake>(
