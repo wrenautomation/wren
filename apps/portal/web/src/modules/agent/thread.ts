@@ -362,12 +362,18 @@ export function asked(
   return s;
 }
 
-export function answered(s0: ThreadState, id: string, allow: boolean): ThreadState {
+/** An ask answered; AskUserQuestion's picks stay on its card. */
+export function answered(
+  s0: ThreadState,
+  id: string,
+  allow: boolean,
+  answers?: Record<string, string>,
+): ThreadState {
   const { s, m } = reply(s0);
   const at = toolAt(m, id);
   const p = m.parts[at];
   if (p?.type !== "tool" || !p.ask) return s0;
-  setPart(m, at, { ...p, ask: { ...p.ask, allowed: allow } });
+  setPart(m, at, { ...p, ask: { ...p.ask, allowed: allow }, ...(answers ? { answers } : {}) });
   return s;
 }
 

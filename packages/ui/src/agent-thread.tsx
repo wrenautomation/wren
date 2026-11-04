@@ -13,6 +13,7 @@ import {
   type AttachmentAdapter,
   AttachmentPrimitive,
   ComposerPrimitive,
+  type DataMessagePartProps,
   MessagePrimitive,
   type ReasoningMessagePartComponent,
   type TextMessagePartComponent,
@@ -22,7 +23,16 @@ import {
   useAuiState,
   useExternalStoreRuntime,
 } from "@assistant-ui/react";
-import { type PropsWithChildren, type ReactNode, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  type PropsWithChildren,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Streamdown } from "streamdown";
 import { Ring } from "./busy.js";
 import { Button, Tag } from "./controls.js";
@@ -55,7 +65,26 @@ export type AgentPart =
       failed?: boolean | undefined;
       /** The agent asks before it runs this: open until `allowed` is set. */
       ask?: { why?: string | undefined; allowed?: boolean | undefined } | undefined;
+      /** AskUserQuestion: the picks, by question. */
+      answers?: Record<string, string> | undefined;
     };
+
+/** One of AskUserQuestion's questions: 2-4 options; "Something else" is always offered. */
+export interface AgentQuestion {
+  question: string;
+  header?: string | undefined;
+  options: { label: string; description?: string | undefined }[];
+  multiSelect?: boolean | undefined;
+}
+
+/** The agent's choices as a card (AskUserQuestion): open, answered, or skipped. */
+interface ChoicesData {
+  id: string;
+  questions: AgentQuestion[];
+  answers: Record<string, string> | null;
+  open: boolean;
+  skipped: boolean;
+}
 
 /** What a turn cost, from the CLI's result line. */
 export interface AgentFoot {
@@ -114,7 +143,8 @@ export interface AgentThreadProps {
   /** The page the next turn names: a chip in the box; Close drops it. */
   context?: { label: string; onDrop: () => void } | null | undefined;
   onStop: () => void;
-  onAnswer: (toolId: string, allow: boolean) => void;
+  /** An ask answered; `answers` for AskUserQuestion, by question. */
+  onAnswer: (toolId: string, allow: boolean, answers?: Record<string, string>) => void;
   /** Before the first turn: a heading, a line, and prompts that send on a click. */
   welcome?:
     | { title: string; text?: string | undefined; suggestions?: readonly string[] | undefined }
@@ -149,27 +179,29 @@ export function threadMessage(m: AgentMessage): ThreadMessageLike {
     content: m.parts.flatMap((p) =>
       p.type === "file"
         ? []
-        : p.type === "text"
-          ? { type: "text" as const, text: p.text }
-          : p.type === "thinking"
-            ? { type: "reasoning" as const, text: p.text }
-            : {
-                type: "tool-call" as const,
-                toolCallId: p.id,
-                toolName: p.name,
-                args: p.input as never,
-                argsText: p.inputText ?? JSON.stringify(p.input),
-                ...(p.result !== undefined ? { result: p.result, isError: !!p.failed } : {}),
-                ...(p.ask
-                  ? {
-                      approval: {
-                        id: p.id,
-                        ...(p.ask.why ? { prompt: p.ask.why } : {}),
-                        ...(p.ask.allowed !== undefined ? { approved: p.ask.allowed } : {}),
-                      },
-                    }
-                  : {}),
-              },
+        : p.type === "tool" && p.name === ASK_TOOL
+          ? { type: "data" as const, name: "choices", id: p.id, data: choicesOf(p) }
+          : p.type === "text"
+            ? { type: "text" as const, text: p.text }
+            : p.type === "thinking"
+              ? { type: "reasoning" as const, text: p.text }
+              : {
+                  type: "tool-call" as const,
+                  toolCallId: p.id,
+                  toolName: p.name,
+                  args: p.input as never,
+                  argsText: p.inputText ?? JSON.stringify(p.input),
+                  ...(p.result !== undefined ? { result: p.result, isError: !!p.failed } : {}),
+                  ...(p.ask
+                    ? {
+                        approval: {
+                          id: p.id,
+                          ...(p.ask.why ? { prompt: p.ask.why } : {}),
+                          ...(p.ask.allowed !== undefined ? { approved: p.ask.allowed } : {}),
+                        },
+                      }
+                    : {}),
+                },
     ),
     ...(m.role === "assistant"
       ? {
@@ -184,6 +216,32 @@ export function threadMessage(m: AgentMessage): ThreadMessageLike {
           metadata: { custom: { foot: m.foot ?? null, state: m.state ?? "done" } },
         }
       : {}),
+  };
+}
+
+const ASK_TOOL = "AskUserQuestion";
+
+/** The CLI's result line: `"<question>"="<answer>"` per question. */
+const PICKED = /"((?:[^"\\]|\\.)*)"="((?:[^"\\]|\\.)*)"/g;
+
+export function answersOf(result: string | undefined): Record<string, string> | null {
+  if (!result) return null;
+  const out: Record<string, string> = {};
+  const plain = (x: string) => x.replace(/\\(.)/g, "$1");
+  for (const [, q, a] of result.matchAll(PICKED))
+    if (q && a !== undefined) out[plain(q)] = plain(a);
+  return Object.keys(out).length ? out : null;
+}
+
+function choicesOf(p: Extract<AgentPart, { type: "tool" }>): ChoicesData {
+  const qs = Array.isArray(p.input.questions) ? (p.input.questions as AgentQuestion[]) : [];
+  const answers = p.answers ?? answersOf(p.result);
+  return {
+    id: p.id,
+    questions: qs.filter((q) => q && typeof q.question === "string" && Array.isArray(q.options)),
+    answers,
+    open: !answers && !p.failed && !!p.ask && p.ask.allowed === undefined,
+    skipped: !answers && (p.ask?.allowed === false || !!p.failed),
   };
 }
 
@@ -285,7 +343,10 @@ function useFiles(files: AgentFiles | undefined) {
   return { adapter, take };
 }
 
+const Answer = createContext<AgentThreadProps["onAnswer"]>(() => {});
+
 /** The reading column: replies, the box and the welcome share it. */
+
 const COLUMN = "mx-auto w-full max-w-[46rem] px-[clamp(12px,3vw,28px)]";
 
 export function AgentThread(p: AgentThreadProps) {
@@ -306,53 +367,57 @@ export function AgentThread(p: AgentThreadProps) {
   });
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <ThreadPrimitive.Root className={cx("flex h-full min-h-0 flex-col", p.className)}>
-        <ThreadPrimitive.Viewport
-          aria-busy={p.stale || undefined}
-          className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
-        >
-          <div
-            className={cx(
-              COLUMN,
-              "grid gap-8 pt-6 pb-6 transition-opacity duration-200",
-              p.stale && "opacity-50",
-            )}
+      <Answer.Provider value={p.onAnswer}>
+        <ThreadPrimitive.Root className={cx("flex h-full min-h-0 flex-col", p.className)}>
+          <ThreadPrimitive.Viewport
+            aria-busy={p.stale || undefined}
+            className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
           >
-            <ThreadPrimitive.Messages>
-              {({ message }) => (message.role === "user" ? <UserTurn /> : <ReplyTurn />)}
-            </ThreadPrimitive.Messages>
-            {p.starting ? <Starting /> : null}
-            {p.error ? (
-              <Alert onRetry={p.error.retry} className="ui-rise mb-0">
-                {p.error.text}
-              </Alert>
-            ) : null}
-          </div>
-          <ThreadPrimitive.Empty>
-            {p.welcome ? <Welcome {...p.welcome} /> : null}
-          </ThreadPrimitive.Empty>
-          <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-[linear-gradient(transparent,var(--ui-paper)_28px)] pt-7 pb-1">
-            <div className={cx(COLUMN, "relative")}>
-              <ThreadPrimitive.ScrollToBottom
-                className="absolute -top-11 left-1/2 grid size-8 -translate-x-1/2 place-items-center rounded-full bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-opacity duration-200 hover:text-(--ui-ink) disabled:pointer-events-none disabled:opacity-0"
-                aria-label="Scroll to the newest"
-              >
-                <Icon name="down" size={15} />
-              </ThreadPrimitive.ScrollToBottom>
-              <Composer
-                closed={p.closed}
-                placeholder={p.placeholder}
-                tools={p.tools}
-                files={!!p.files}
-                context={p.context}
-              />
-              {p.note ? (
-                <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">{p.note}</p>
+            <div
+              className={cx(
+                COLUMN,
+                "grid gap-8 pt-6 pb-6 transition-opacity duration-200",
+                p.stale && "opacity-50",
+              )}
+            >
+              <ThreadPrimitive.Messages>
+                {({ message }) => (message.role === "user" ? <UserTurn /> : <ReplyTurn />)}
+              </ThreadPrimitive.Messages>
+              {p.starting ? <Starting /> : null}
+              {p.error ? (
+                <Alert onRetry={p.error.retry} className="ui-rise mb-0">
+                  {p.error.text}
+                </Alert>
               ) : null}
             </div>
-          </ThreadPrimitive.ViewportFooter>
-        </ThreadPrimitive.Viewport>
-      </ThreadPrimitive.Root>
+            <ThreadPrimitive.Empty>
+              {p.welcome ? <Welcome {...p.welcome} /> : null}
+            </ThreadPrimitive.Empty>
+            <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-[linear-gradient(transparent,var(--ui-paper)_28px)] pt-7 pb-1">
+              <div className={cx(COLUMN, "relative")}>
+                <ThreadPrimitive.ScrollToBottom
+                  className="absolute -top-11 left-1/2 grid size-8 -translate-x-1/2 place-items-center rounded-full bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-opacity duration-200 hover:text-(--ui-ink) disabled:pointer-events-none disabled:opacity-0"
+                  aria-label="Scroll to the newest"
+                >
+                  <Icon name="down" size={15} />
+                </ThreadPrimitive.ScrollToBottom>
+                <Composer
+                  closed={p.closed}
+                  placeholder={p.placeholder}
+                  tools={p.tools}
+                  files={!!p.files}
+                  context={p.context}
+                />
+                {p.note ? (
+                  <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">
+                    {p.note}
+                  </p>
+                ) : null}
+              </div>
+            </ThreadPrimitive.ViewportFooter>
+          </ThreadPrimitive.Viewport>
+        </ThreadPrimitive.Root>
+      </Answer.Provider>
     </AssistantRuntimeProvider>
   );
 }
@@ -401,16 +466,23 @@ function UserTurn() {
   const page = useAuiState(
     (s) => (s.message.metadata.custom as { page?: string } | undefined)?.page,
   );
+  const said = useAuiState((s) =>
+    s.message.content.map((c) => (c.type === "text" ? c.text : "")).join("\n"),
+  );
+  const urls = useMemo(() => linksIn(said), [said]);
   return (
-    <MessagePrimitive.Root className="ui-rise grid justify-items-end gap-1.5">
+    <MessagePrimitive.Root className="ui-rise grid min-w-0 justify-items-end gap-1.5">
       <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5 empty:hidden">
         <MessagePrimitive.Attachments>{() => <FileChip />}</MessagePrimitive.Attachments>
       </div>
       {words ? (
-        <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-[14px_4px_14px_14px] bg-(--ui-wash) px-3.5 py-2.5 text-[14.5px]/[1.5] text-(--ui-ink)">
+        <div className="max-w-[85%] whitespace-pre-wrap wrap-anywhere rounded-[14px_4px_14px_14px] bg-(--ui-wash) px-3.5 py-2.5 text-[14.5px]/[1.5] text-(--ui-ink)">
           <MessagePrimitive.Parts />
         </div>
       ) : null}
+      {urls.map((u) => (
+        <LinkCard key={u.href} url={u} />
+      ))}
       {page ? (
         <span className="inline-flex max-w-[85%] items-center gap-1 text-[12px] text-(--ui-ink-3)">
           <Icon name="page" size={12} className="flex-none" />
@@ -418,6 +490,50 @@ function UserTurn() {
         </span>
       ) : null}
     </MessagePrimitive.Root>
+  );
+}
+
+// trailing punctuation is the sentence's, not the address's; a ")" only when unmatched
+const URL_IN = /https?:\/\/[^\s<>"'`]+[^\s<>"'`.,;:!?\]]/g;
+
+/** The web addresses in a turn, once each, as cards (a guard cap only). */
+export function linksIn(text: string): URL[] {
+  const out = new Map<string, URL>();
+  for (let [m] of text.matchAll(URL_IN)) {
+    while (m.endsWith(")") && m.split(")").length > m.split("(").length) m = m.slice(0, -1);
+    try {
+      const u = new URL(m);
+      if (!out.has(u.href)) out.set(u.href, u);
+    } catch {}
+    if (out.size >= 12) break;
+  }
+  return [...out.values()];
+}
+
+/** A web address in a turn: its site, then its path; opens in a new tab. */
+function LinkCard({ url }: { url: URL }) {
+  const path = `${url.pathname === "/" ? "" : url.pathname}${url.search}`;
+  return (
+    <a
+      href={url.href}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="flex max-w-[85%] items-center gap-3 rounded-[12px] bg-(--ui-paper) py-2 pr-3.5 pl-2 no-underline shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-colors duration-150 hover:bg-(--ui-hover)"
+    >
+      <span className="grid size-9 flex-none place-items-center rounded-[8px] bg-(--ui-fill) text-(--ui-ink-2)">
+        <Icon name="globe" size={16} />
+      </span>
+      <span className="grid min-w-0 leading-tight">
+        <span className="text-[13.5px] font-medium text-(--ui-ink) wrap-anywhere">
+          {url.host.replace(/^www\./, "")}
+        </span>
+        {path ? (
+          <span className="text-[12.5px] text-(--ui-ink-3) wrap-anywhere">{path}</span>
+        ) : null}
+      </span>
+      <Icon name="external" size={13} className="flex-none text-(--ui-ink-3)" />
+      <span className="sr-only">, opens in a new tab</span>
+    </a>
   );
 }
 
@@ -499,6 +615,7 @@ function ReplyTurn() {
           Text: Reply,
           Reasoning: Thinking,
           tools: { Fallback: ToolRow },
+          data: { by_name: { choices: Choices } },
           ToolGroup: Steps,
         }}
       />
@@ -570,7 +687,21 @@ function toolTitle(name: string, input: Record<string, unknown>): string {
   return name;
 }
 
-/** Runs of tool calls, one line: open while a step runs or asks, folded when all are done. */
+/** Seconds since `from` (else since it began), ticking while `on`. */
+function useElapsed(on: boolean, from: number): string {
+  const start = useRef(from || Date.now());
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!on) return;
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [on]);
+  const s = Math.max(0, Math.round((now - (from || start.current)) / 1000));
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+}
+
+/** Runs of tool calls, one line: folded, it names the live step and the time; opens on a click or an ask. */
 function Steps({
   startIndex,
   endIndex,
@@ -598,15 +729,24 @@ function Steps({
     number,
     number,
   ];
+  // the live step's own name: the one line shown while the steps work, folded
+  const now = useAuiState((s) => {
+    for (const x of s.message.parts.slice(startIndex, endIndex + 1))
+      if (x.type === "tool-call" && x.result === undefined && x.approval?.approved !== false)
+        return toolTitle(x.toolName, (x.args ?? {}) as Record<string, unknown>);
+    return "";
+  });
+  const from = useAuiState((s) => s.message.createdAt?.getTime() ?? 0);
   const [mine, setMine] = useState<boolean | null>(null);
-  if (n < 2) return <>{children}</>;
   const busy = asks > 0 || (live > 0 && running > 0);
-  const open = asks > 0 || (mine ?? busy);
+  const took = useElapsed(busy && !asks, from);
+  if (n < 2) return <>{children}</>;
+  const open = asks > 0 || (mine ?? false);
   const label =
     asks > 0
       ? "Waiting on you"
       : busy
-        ? `Running step ${n - live + 1} of ${n}`
+        ? `${now || "Working"} · ${took}`
         : `Ran ${n} steps${bad ? `, ${bad} failed` : ""}`;
   return (
     <div className="grid gap-1.5">
@@ -617,7 +757,7 @@ function Steps({
         className="inline-flex items-center gap-2 justify-self-start text-[13px] font-semibold text-(--ui-ink-3) hover:text-(--ui-ink-2)"
       >
         {busy && !asks ? <Ring /> : <Icon name="list" size={14} />}
-        <span key={label} className="[animation:ui-fade_.2s_both]">
+        <span key={busy ? now : label} className="[animation:ui-fade_.2s_both] tabular-nums">
           {label}
         </span>
         <Icon
@@ -630,6 +770,154 @@ function Steps({
         <div className="ui-rise ml-[6px] grid gap-0.5 border-(--ui-hair) border-l pl-3">
           {children}
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** The agent's options as a card (AskUserQuestion). One question with one pick sends on the click;
+ * else pick, then Send. Once answered it stays, the pick marked. */
+function Choices(props: DataMessagePartProps<ChoicesData>) {
+  // the part state's own union widens data to any
+  const data: ChoicesData = props.data;
+  const answer = useContext(Answer);
+  const [picks, setPicks] = useState<Record<string, string[]>>({});
+  const [other, setOther] = useState<Record<string, string | undefined>>({});
+  // input still streaming or malformed: nothing to pick yet
+  if (!data.questions.length) return null;
+  const one = data.questions.length === 1 && !data.questions[0]?.multiSelect;
+  const pickOf = (q: AgentQuestion, p = picks, o = other) => {
+    const typed = o[q.question]?.trim();
+    if (typed !== undefined && !q.multiSelect) return typed;
+    return [...(p[q.question] ?? []), ...(typed ? [typed] : [])].join(", ");
+  };
+  const ready = data.questions.every((q) => !!pickOf(q));
+  const send = (p = picks, o = other) =>
+    answer(
+      data.id,
+      true,
+      Object.fromEntries(data.questions.map((q) => [q.question, pickOf(q, p, o)])),
+    );
+  const pick = (q: AgentQuestion, label: string) => {
+    const was = picks[q.question] ?? [];
+    const next = {
+      ...picks,
+      [q.question]: q.multiSelect
+        ? was.includes(label)
+          ? was.filter((x) => x !== label)
+          : [...was, label]
+        : [label],
+    };
+    const o = q.multiSelect ? other : { ...other, [q.question]: undefined };
+    setPicks(next);
+    setOther(o);
+    if (one) send(next, o);
+  };
+  return (
+    <div className="ui-rise grid gap-5 rounded-(--ui-leaf-box) bg-(--ui-paper) p-4 shadow-[inset_0_0_0_1px_var(--ui-hair)]">
+      {data.questions.map((q) => {
+        const final = data.answers?.[q.question];
+        const chosen = (label: string) =>
+          final !== undefined
+            ? final === label || final.split(", ").includes(label)
+            : (picks[q.question] ?? []).includes(label);
+        // the person's own words: what the answer holds past the option labels
+        const own =
+          final === undefined
+            ? undefined
+            : (q.multiSelect
+                ? final.split(", ").filter((x) => !q.options.some((o) => o.label === x))
+                : q.options.some((o) => o.label === final)
+                  ? []
+                  : [final]
+              ).join(", ") || undefined;
+        const typing = other[q.question] !== undefined;
+        return (
+          <fieldset key={q.question} disabled={!data.open} className="m-0 grid gap-2 border-0 p-0">
+            <legend className="mb-2 grid gap-0.5 p-0">
+              {q.header ? (
+                <span className="text-[12px] font-semibold text-(--ui-ink-3)">{q.header}</span>
+              ) : null}
+              <span className="text-[14.5px]/[1.45] font-semibold text-(--ui-ink)">
+                {q.question}
+              </span>
+            </legend>
+            {q.options.map((o) => (
+              <button
+                key={o.label}
+                type="button"
+                aria-pressed={chosen(o.label)}
+                onClick={() => pick(q, o.label)}
+                className={cx(
+                  "grid gap-0.5 rounded-[10px] px-3 py-2.5 text-left shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-[background-color,box-shadow] duration-150 enabled:hover:bg-(--ui-hover) aria-pressed:bg-(--ui-wash) aria-pressed:shadow-[inset_0_0_0_1.5px_var(--ui-active)]",
+                )}
+              >
+                <span
+                  className={cx(
+                    "flex items-center gap-2 text-[14px] font-medium",
+                    // answered: the pick in ink, the rest a step back
+                    !data.open && !chosen(o.label) ? "text-(--ui-ink-2)" : "text-(--ui-ink)",
+                  )}
+                >
+                  <span className="min-w-0 flex-1 wrap-anywhere">{o.label}</span>
+                  {chosen(o.label) ? (
+                    <Icon name="check" size={15} className="flex-none text-(--ui-active)" />
+                  ) : null}
+                </span>
+                {o.description ? (
+                  <span className="text-[13px]/[1.45] text-(--ui-ink-3)">{o.description}</span>
+                ) : null}
+              </button>
+            ))}
+            {own !== undefined ? (
+              <p className="m-0 flex items-start gap-2 rounded-[10px] bg-(--ui-wash) px-3 py-2.5 text-[14px] text-(--ui-ink) shadow-[inset_0_0_0_1.5px_var(--ui-active)]">
+                <span className="min-w-0 flex-1 wrap-anywhere">{own}</span>
+                <Icon name="check" size={15} className="mt-0.5 flex-none text-(--ui-active)" />
+              </p>
+            ) : data.open ? (
+              typing ? (
+                <input
+                  // biome-ignore lint/a11y/noAutofocus: opened by its own click
+                  autoFocus
+                  aria-label={`Your own answer: ${q.question}`}
+                  placeholder="Your own answer"
+                  value={other[q.question] ?? ""}
+                  onChange={(e) => {
+                    setOther({ ...other, [q.question]: e.target.value });
+                    if (!q.multiSelect) setPicks({ ...picks, [q.question]: [] });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && ready) send();
+                    if (e.key === "Escape") setOther({ ...other, [q.question]: undefined });
+                  }}
+                  className="h-10 rounded-[10px] border-0 bg-(--ui-paper) px-3 text-[14px] text-(--ui-ink) shadow-[inset_0_0_0_1.5px_var(--ui-focus)] outline-none placeholder:text-(--ui-ink-3)"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setOther({ ...other, [q.question]: "" })}
+                  className="justify-self-start rounded-(--ui-radius) px-1 py-1 text-[13.5px] text-(--ui-ink-3) hover:text-(--ui-ink)"
+                >
+                  Something else…
+                </button>
+              )
+            ) : null}
+          </fieldset>
+        );
+      })}
+      {data.open ? (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button tone="quiet" size="sm" onClick={() => answer(data.id, false)}>
+            Skip
+          </Button>
+          {one && !Object.values(other).some((v) => v !== undefined) ? null : (
+            <Button size="sm" disabled={!ready} onClick={() => send()}>
+              Send
+            </Button>
+          )}
+        </div>
+      ) : data.skipped ? (
+        <Tag className="justify-self-start">Skipped</Tag>
       ) : null}
     </div>
   );
@@ -875,7 +1163,7 @@ function Composer({
 }) {
   const running = useAuiState((s) => s.thread.isRunning);
   const box = (
-    <ComposerPrimitive.Root className="grid rounded-[16px] bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-shadow duration-150 focus-within:shadow-[inset_0_0_0_1px_var(--ui-accent),var(--ui-raise)] in-data-dragging:shadow-[inset_0_0_0_2px_var(--ui-accent),var(--ui-raise)]">
+    <ComposerPrimitive.Root className="grid rounded-[16px] bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-shadow duration-150 focus-within:shadow-[inset_0_0_0_1px_var(--ui-focus),var(--ui-raise)] in-data-dragging:shadow-[inset_0_0_0_2px_var(--ui-active),var(--ui-raise)]">
       {context || files ? (
         <div className="flex flex-wrap items-center gap-2 px-3 pt-3 empty:hidden">
           {context ? (

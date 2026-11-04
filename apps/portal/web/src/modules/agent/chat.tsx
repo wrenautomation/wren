@@ -114,7 +114,7 @@ export function AgentChat({
         placeholder={setup.name === "birdwatch" ? "Ask a research question" : "Ask the agent"}
         tools={tools}
         welcome={w ?? { title: `Ask ${setup.title}` }}
-        note={`Claude agent${a.plan === false ? " on an API key" : a.plan ? " on your Claude plan" : ""} · ${setup.tools.join(", ")}`}
+        note={`Claude agent${a.plan === false ? " on an API key" : a.plan ? " on your Claude plan" : ""} · ${setup.tools.filter((t) => t !== "AskUserQuestion").join(", ")}`}
       />
     </>
   );

@@ -98,6 +98,19 @@ describe("fold", () => {
     expect(answered(s, "nope", false)).toBe(s);
   });
 
+  it("answered keeps AskUserQuestion's picks on its part", () => {
+    let s = said(EMPTY, "go");
+    const input = {
+      questions: [{ question: "Which list?", options: [{ label: "A" }, { label: "B" }] }],
+    };
+    s = asked(s, { id: "q1", name: "AskUserQuestion", input });
+    s = answered(s, "q1", true, { "Which list?": "B" });
+    expect(s.messages[1]?.parts[0]).toMatchObject({
+      ask: { allowed: true },
+      answers: { "Which list?": "B" },
+    });
+  });
+
   it("Stop: the interrupt marker and the error result read as stopped, not failed", () => {
     const s = play(frames(stop), ["essay"]);
     const reply = s.messages[1];

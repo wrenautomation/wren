@@ -30,7 +30,7 @@ interface Live {
   q: Query;
   end: () => void;
   say: (content: Wire[] | string) => void;
-  asks: Map<string, (allow: boolean) => void>;
+  asks: Map<string, (allow: boolean, answers?: Record<string, string>) => void>;
   closing: boolean;
 }
 
@@ -51,7 +51,7 @@ export interface AgentChat {
   /** A picked file → what its turn carries (AgentThread `files.ready`). */
   ready: (file: File) => Promise<Wire[]>;
   stop: () => void;
-  answer: (toolId: string, allow: boolean) => void;
+  answer: (toolId: string, allow: boolean, answers?: Record<string, string>) => void;
 }
 
 export function useAgent(o: {
@@ -133,7 +133,7 @@ export function useAgent(o: {
   const open = useCallback(
     async (resume: string | undefined): Promise<Live> => {
       const t = turns();
-      const asks = new Map<string, (allow: boolean) => void>();
+      const asks = new Map<string, (allow: boolean, answers?: Record<string, string>) => void>();
       const token = await pageToken();
       const q = await openSetup({
         setup: o.setup,
@@ -143,16 +143,24 @@ export function useAgent(o: {
         ...(model.current ? { model: model.current } : {}),
         canUseTool: (name, input, { toolUseID, decisionReason, signal }) =>
           new Promise((res) => {
-            const done = (allow: boolean) => {
+            const done = (allow: boolean, answers?: Record<string, string>) => {
               asks.delete(toolUseID);
               res(
                 allow
-                  ? { behavior: "allow", updatedInput: input }
+                  ? // AskUserQuestion takes the picks back on its input
+                    { behavior: "allow", updatedInput: answers ? { ...input, answers } : input }
                   : { behavior: "deny", message: "The person said no." },
               );
             };
             asks.set(toolUseID, done);
-            signal.addEventListener("abort", () => done(false), { once: true });
+            signal.addEventListener(
+              "abort",
+              () => {
+                done(false);
+                setS((p) => answered(p, toolUseID, false));
+              },
+              { once: true },
+            );
             setS((p) => asked(p, { id: toolUseID, name, input, why: decisionReason }));
           }),
       });
@@ -224,13 +232,19 @@ export function useAgent(o: {
     const l = live.current;
     if (!l) return setS(cut);
     setS((p) => ({ ...p, stopping: true }));
-    for (const a of l.asks.values()) a(false);
+    for (const [id, a] of l.asks) {
+      a(false);
+      setS((p) => answered(p, id, false));
+    }
     void l.q.interrupt().catch(() => {});
   }, []);
 
-  const answer = useCallback((id: string, allow: boolean) => {
-    live.current?.asks.get(id)?.(allow);
-    setS((p) => answered(p, id, allow));
+  const answer = useCallback((id: string, allow: boolean, answers?: Record<string, string>) => {
+    // an ask already closed (Stop, abort) took its deny: a late click changes nothing
+    const ask = live.current?.asks.get(id);
+    if (!ask) return;
+    ask(allow, answers);
+    setS((p) => answered(p, id, allow, answers));
   }, []);
 
   return {

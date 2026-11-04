@@ -87,12 +87,14 @@ function Live(p: Partial<AgentThreadProps> & { messages: AgentMessage[] }) {
           );
           setRunning(false);
         }}
-        onAnswer={(id, allow) =>
+        onAnswer={(id, allow, answers) =>
           setMessages((m) =>
             m.map((x) => ({
               ...x,
               parts: x.parts.map((q) =>
-                q.type === "tool" && q.id === id ? { ...q, ask: { ...q.ask, allowed: allow } } : q,
+                q.type === "tool" && q.id === id
+                  ? { ...q, ask: { ...q.ask, allowed: allow }, ...(answers ? { answers } : {}) }
+                  : q,
               ),
             })),
           )
@@ -181,7 +183,7 @@ export const Steps: Story = {
   },
 };
 
-/** Steps still running: the group open, the count moving. */
+/** Steps still running: one line, folded, with the live step and the time. */
 export const Running: Story = {
   render: () => (
     <Live
@@ -202,7 +204,8 @@ export const Running: Story = {
   ),
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
-    await expect(c.getByText("Running step 2 of 2")).toBeTruthy();
+    await expect(c.getByText(/^Plan the run · \d+s$/)).toBeTruthy();
+    await expect(c.queryByText("Check past runs")).toBeNull();
   },
 };
 
@@ -380,4 +383,125 @@ export const Files: Story = {
     await userEvent.click(c.getByRole("button", { name: "Send" }));
     await waitFor(() => expect(c.getAllByText("notes.txt")).toHaveLength(1));
   },
+};
+
+const ASK_TOOL = (id: string, questions: unknown[], more: Record<string, unknown> = {}) => ({
+  type: "tool" as const,
+  id,
+  name: "AskUserQuestion",
+  input: { questions },
+  ask: {},
+  ...more,
+});
+
+const WHICH = {
+  header: "Next run",
+  question: "Which buyers should the next run read?",
+  multiSelect: false,
+  options: [
+    { label: "Career coaches", description: "Solo coaches who sell 1:1 packages." },
+    { label: "Coaching firms", description: "Teams of 5 or more, with a sales lead." },
+    { label: "Both, side by side" },
+  ],
+};
+
+const SOURCES = {
+  header: "Sources",
+  question: "Which sources may it read?",
+  multiSelect: true,
+  options: [
+    { label: "Coach sites" },
+    { label: "Reddit threads" },
+    { label: "YouTube talks", description: "Slower: each video is watched in full." },
+  ],
+};
+
+/** The agent's options as buttons: one pick sends; many picks, then Send; Skip says no. Answered cards stay, the pick marked. */
+export const Choices: Story = {
+  render: () => (
+    <Live
+      running
+      messages={[
+        you("u1", "Plan the next research run."),
+        {
+          id: "a1",
+          role: "assistant",
+          state: "done",
+          parts: [
+            { type: "text", text: "Two runs fit. Pick one." },
+            ASK_TOOL("c1", [WHICH], {
+              ask: { allowed: true },
+              answers: { [WHICH.question]: "Coaching firms" },
+            }),
+            ASK_TOOL("c2", [SOURCES], { ask: { allowed: false } }),
+          ],
+        },
+        you("u2", "Again, with sources."),
+        {
+          id: "a2",
+          role: "assistant",
+          state: "live",
+          parts: [ASK_TOOL("c3", [WHICH, SOURCES])],
+        },
+      ]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await expect(c.getByText("Skipped")).toBeTruthy();
+    const send = c.getByRole("button", { name: "Send" });
+    await expect(send).toBeDisabled();
+    const firms = c.getAllByRole("button", { name: /^Coaching firms/ }).at(-1);
+    if (!firms) throw new Error("no option");
+    await userEvent.click(firms);
+    await userEvent.click(c.getAllByRole("button", { name: /^Coach sites/ }).at(-1) as HTMLElement);
+    await userEvent.click(
+      c.getAllByRole("button", { name: /^Reddit threads/ }).at(-1) as HTMLElement,
+    );
+    await waitFor(() => expect(send).toBeEnabled());
+    await userEvent.click(send);
+    await waitFor(() => expect(c.queryByRole("button", { name: "Send" })).toBeNull());
+    await expect(c.getAllByRole("button", { name: /^Reddit threads/, pressed: true })).toHaveLength(
+      1,
+    );
+  },
+};
+
+/** A web address in a turn shows as a card: the site, then the path; it opens in a new tab. */
+export const Links: Story = {
+  render: () => (
+    <Live
+      messages={[
+        you(
+          "u1",
+          "Compare the pricing on https://www.northwind.example/pricing/teams-and-enterprise-plans?billing=annual with https://acme.example.",
+        ),
+        {
+          id: "a1",
+          role: "assistant",
+          state: "done",
+          parts: [{ type: "text", text: "Northwind charges per seat; Acme charges per run." }],
+        },
+      ]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    const card = c.getByRole("link", { name: /northwind\.example/ });
+    await expect(card).toHaveAttribute("target", "_blank");
+    await expect(c.getByRole("link", { name: /^acme\.example/ })).toBeTruthy();
+  },
+};
+
+/** One question, one pick: the click sends; "Something else…" opens a line for the person's own words. */
+export const Choice: Story = {
+  render: () => (
+    <Live
+      running
+      messages={[
+        you("u1", "Plan the next research run."),
+        { id: "a1", role: "assistant", state: "live", parts: [ASK_TOOL("c1", [WHICH])] },
+      ]}
+    />
+  ),
 };

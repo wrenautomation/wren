@@ -161,3 +161,20 @@ Terms limit the second: Wren may not hold or route a client's claude.ai sign-in.
 | D. A self-hosted LLM gateway (LiteLLM virtual keys: TTL, budgets, spend logs) | as A | framework, not custom code | a Python service and its own database to run; needs a security vetting pass before adoption |
 
 Ranked by risk (key exposure), then $, then result. Choice: A, with D checked first as the framework for its proxy part; build A only if D fails the vetting. Not built: wren may be rebuilt (WA-1065 stays the record). To verify at build: what `apiKeySource` the init reports with `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL` set, since `credentialBreach` keys on it. Two prerequisites stand: the `anthropic` vendor needs a client-key mode (today `own: null`, Wren only), and the gateway, not the Mac, holds the keystore key.
+
+## Decision 9: the agent's choices, links and progress in a chat (agreed 11-04, WA-1068)
+William asked for three upgrades from a reel: options as buttons, a sent URL as a card, and a working line with commands folded.
+
+How the agent offers choices:
+
+| Option | For | Against |
+|---|---|---|
+| A. The SDK's own AskUserQuestion tool. It reaches the page through `canUseTool`; the pick goes back as `updatedInput.answers` | native: the model already knows when to ask; the answer is the tool result, so the turn continues with it; no parser | the tool must be in `tools` and out of `allow`, so it always asks |
+| B. Parse the reply's markdown lists into buttons | no tool change | guesses which lists are choices; a click becomes a new turn, not an answer |
+| C. A custom MCP tool with a choices schema | full control of the shape | custom code for what A does; one more server per setup |
+
+Choice: A. Proven 11-04 on a Haiku turn: card, click, `"Q"="A"` in the result, the pick kept on reload (read back from the result text).
+
+- The card: one question with one pick sends on the click. Otherwise the person picks, then Send. "Something else…" takes their own words. Skip denies.
+- Links: each http(s) address in a turn shows as a card (site, path, new tab). Titles and images (an unfurl) wait: they need a relay endpoint that fetches only public addresses (a private-address guard such as `request-filtering-agent`).
+- Steps: a run of tool calls is one folded line. It names the live step and its time ("Plan the run · 12s"). A click opens it; an ask opens it.
