@@ -18,7 +18,6 @@ export const DOCUMENTS_COMPONENTS = [
     provides: {
       services: ["Documents", "DocumentsConsole"],
       records: [DOC_RECORD, TEMPLATE_RECORD],
-      apps: ["documents"],
     },
     effects: ["sends"],
     // A document email waits on the client's sends flag; a text on Texts' own gates.

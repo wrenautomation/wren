@@ -22,7 +22,6 @@ export const PAYMENTS_COMPONENTS = [
       // Once a day, recent links held against Stripe: what a dropped webhook missed heals.
       loops: ["PayReconcile"],
       records: [LINK_RECORD],
-      apps: ["payments"],
     },
     effects: ["sends"],
     // A pay email waits on the client's sends flag; a pay text on Texts' own gates.

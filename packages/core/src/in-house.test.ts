@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  IN_HOUSE,
-  includedIn,
-  inHouseOfApp,
-  inHouseOfPart,
-  monthlyOf,
-  totalOf,
-} from "./in-house.js";
+import { IN_HOUSE, includedIn, inHouseOfPart, monthlyOf, totalOf } from "./in-house.js";
 
 describe("in-house tools", () => {
   it("every entry names a vendor with its own pricing page and the day it was read", () => {
@@ -43,10 +36,7 @@ describe("in-house tools", () => {
     expect(includedIn(new Set())).toEqual({ tools: [], monthly: 0 });
   });
 
-  it("a launcher card names only a live tool", () => {
-    for (const t of IN_HOUSE)
-      for (const app of t.apps) expect(inHouseOfApp(app)?.state ?? "live").toBe("live");
-    expect(inHouseOfApp("calendar")).toBeNull();
+  it("a Shop part names its live tool first", () => {
     // A Shop part names its live tool first: Marketing numbers is site analytics, not heatmaps.
     expect(inHouseOfPart("marketing.stats")?.id).toBe("site-analytics");
   });

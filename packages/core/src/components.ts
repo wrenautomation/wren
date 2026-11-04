@@ -299,7 +299,6 @@ export interface Component {
     services: string[];
     loops: string[];
     records: string[];
-    apps: string[];
     /**
      * The default templates it reads (`<kind>:<system>/<name>`, or a prefix ending in `/`):
      * installing it puts them in the client's database, following the default.
@@ -357,7 +356,7 @@ export const defineComponent = (c: Input): Component => ({
   wrenOnly: c.wrenOnly ?? [],
   clientOnly: c.clientOnly ?? [],
   requires: { components: [], accounts: [], anyAccount: [], facts: [], ...c.requires },
-  provides: { services: [], loops: [], records: [], apps: [], templates: [], ...c.provides },
+  provides: { services: [], loops: [], records: [], templates: [], ...c.provides },
   effects: c.effects ?? [],
   liveSwitch: c.liveSwitch ?? false,
   soon: c.soon ?? [],

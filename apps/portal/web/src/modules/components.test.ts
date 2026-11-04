@@ -1,18 +1,24 @@
-/** Every portal app is in exactly one component, or the platform's own; a module names its component. */
+/** Products gate pages, not places: a page names its component; a client sees what it installed. */
 import { OFFERS } from "@wren/offers";
-import { COMPONENTS, PLATFORM } from "@wren/worker/components";
+import { COMPONENTS } from "@wren/worker/components";
 import { describe, expect, it } from "vitest";
 
 // The apps read the page's address as they load; a bare one does here.
 Object.assign(globalThis, { location: new URL("https://app.example.test/") });
 const { MODULES, appsIn } = await import("./index.js");
-const { clientSites, sites } = await import("./sites/index.js");
 
-describe("apps and components", () => {
-  it("every app is one component's, or the platform's", () => {
+const live = (wren: boolean, team: boolean, installed: string[]) =>
+  appsIn(MODULES, { wren, team, installed: new Set(installed) }).filter((m) => !m.parked);
+const ids = (wren: boolean, team: boolean, installed: string[]) =>
+  live(wren, team, installed).map((m) => m.id);
+
+describe("places and components", () => {
+  it("every gate names a component", () => {
+    const known = new Set(COMPONENTS.map((c) => c.id));
     for (const m of MODULES) {
-      const owners = COMPONENTS.filter((c) => c.provides.apps.includes(m.id)).map((c) => c.id);
-      expect(owners, m.id).toEqual(m.id in PLATFORM.apps ? [] : [m.component]);
+      if (m.component) expect(known, m.id).toContain(m.component);
+      for (const p of m.pages)
+        if (p.component) expect(known, `${m.id}/${p.id}`).toContain(p.component);
     }
   });
 
@@ -25,105 +31,36 @@ describe("apps and components", () => {
         ).toBeDefined();
   });
 
-  it("every app a component provides is a module", () => {
-    const ids = MODULES.map((m) => m.id);
-    for (const c of COMPONENTS) for (const a of c.provides.apps) expect(ids, c.id).toContain(a);
+  it("a client sees the pages of what it installed; the team sees every page", () => {
+    expect(ids(false, false, [])).toEqual(["people", "office"]);
+    expect(ids(false, false, ["reactivation"])).toEqual(["campaigns", "people", "office"]);
+    expect(ids(false, false, ["delivery.portal"])).toContain("map");
+    expect(ids(false, true, [])).toEqual([
+      "map",
+      "campaigns",
+      "content",
+      "people",
+      "inbox",
+      "calendar",
+      "office",
+    ]);
+    // Installing a part adds its pages and nothing else.
+    const pages = (inst: string[]) => live(false, false, inst).flatMap((m) => m.pages);
+    const added = pages(["calls.outcome"]).filter((p) => !pages([]).includes(p));
+    expect(added.length).toBeGreaterThan(0);
+    for (const p of added) expect(p.component).toBe("calls.outcome");
   });
 
-  it("a client sees only the apps of what it installed; the team sees the rest", () => {
-    const ids = (team: boolean, installed: string[]) =>
-      appsIn(MODULES, { wren: false, team, installed: new Set(installed) }).map((m) => m.id);
-    expect(ids(false, ["reactivation"])).toEqual([
-      "reactivation",
+  it("Wren's workspace holds Wren's places, never a client's", () => {
+    expect(ids(true, true, [])).toEqual([
+      "map",
+      "campaigns",
+      "content",
       "people",
-      "marketplace",
-      "learn",
-      "notes",
-      "settings",
-      "account",
-    ]);
-    expect(ids(false, [])).toEqual([
-      "people",
-      "marketplace",
-      "learn",
-      "notes",
-      "settings",
-      "account",
-    ]);
-    expect(ids(true, [])).toEqual([
-      "work",
-      "reactivation",
-      "leads",
-      "texts",
-      "calls",
-      "payments",
-      "documents",
-      "pipelines",
-      "people",
-      "marketplace",
-      "marketing",
-      "learn",
-      "sites",
-      "notes",
+      "inbox",
       "calendar",
-      "settings",
-      "account",
-    ]);
-    expect(ids(false, ["calendar.booking"])).toEqual([
-      "people",
-      "marketplace",
-      "learn",
-      "notes",
-      "calendar",
-      "settings",
-      "account",
-    ]);
-    expect(ids(false, ["research.lead_sheet"])).toEqual([
-      "leads",
-      "people",
-      "marketplace",
-      "learn",
-      "notes",
-      "settings",
-      "account",
-    ]);
-    expect(ids(false, ["calls.outcome"])).toEqual([
-      "calls",
-      "people",
-      "marketplace",
-      "learn",
-      "notes",
-      "settings",
-      "account",
-    ]);
-    expect(ids(false, ["marketing.stats"])).toEqual([
-      "people",
-      "marketplace",
-      "marketing",
-      "learn",
-      "notes",
-      "settings",
-      "account",
-    ]);
-    // Wren's own Content in Wren's workspace, never the client's Marketing.
-    const wrens = appsIn(MODULES, { wren: true, team: true, installed: new Set() });
-    expect(wrens.filter((m) => m.id === "content").map((m) => m.pages.length > 5)).toEqual([true]);
-    expect(
-      appsIn(MODULES, { wren: true, team: true, installed: new Set() }).map((m) => m.id),
-    ).not.toContain("work");
-    // A client's Sites is its own pages; Wren's workspace keeps Wren's.
-    const sitesOf = (wren: boolean) =>
-      appsIn(MODULES, { wren, team: true, installed: new Set() }).find((m) => m.id === "sites");
-    expect(sitesOf(false)).toBe(clientSites);
-    expect(sitesOf(true)).toBe(sites);
-    expect(ids(false, ["sites.pages"])).toEqual([
-      "people",
-      "marketplace",
-      "learn",
-      "sites",
-      "notes",
-      "settings",
-      "account",
+      "office",
+      "research",
     ]);
   });
 });

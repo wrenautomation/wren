@@ -1,6 +1,6 @@
 /**
  * The tools we built in place of a SaaS (designs/2026-10-06-in-house-tools.md): what each is,
- * the Shop parts and apps it lives in, what it replaces at that vendor's public price, what it
+ * the Shop parts it lives in, what it replaces at that vendor's public price, what it
  * costs us, and how far along it is. Books → In-house lists them; the launcher, the Shop and a
  * client's Billing say it quietly. Prices come only from the vendor's own pricing page, with the
  * URL and the day it was read; no public number is "custom pricing" and adds nothing.
@@ -29,8 +29,6 @@ interface InHouse {
   name: string;
   /** The Shop parts (`console.component` ids) it lives in; empty when it's Wren's own tooling. */
   parts: readonly string[];
-  /** The apps it lives in. */
-  apps: readonly string[];
   /** One or two vendors, the closest first. */
   instead: readonly Instead[];
   /** What it costs us a month, USD, past what we already run; null when it isn't split out. */
@@ -46,7 +44,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "site-analytics",
     name: "Site analytics: events, funnels, session replay",
     parts: ["marketing.stats"],
-    apps: ["sites"],
     instead: [
       {
         vendor: "PostHog",
@@ -75,7 +72,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "heatmaps",
     name: "Heatmaps",
     parts: ["marketing.stats"],
-    apps: [],
     instead: [
       {
         vendor: "Hotjar",
@@ -95,7 +91,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "flags",
     name: "Feature flags",
     parts: [],
-    apps: [],
     instead: [
       {
         vendor: "LaunchDarkly",
@@ -115,7 +110,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "experiments",
     name: "Site experiments",
     parts: [],
-    apps: [],
     instead: [
       {
         vendor: "Optimizely",
@@ -144,7 +138,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "surveys",
     name: "Surveys",
     parts: [],
-    apps: [],
     instead: [
       {
         vendor: "Typeform",
@@ -173,7 +166,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "calendar",
     name: "Calendar and booking",
     parts: ["calendar.booking"],
-    apps: ["calendar"],
     instead: [
       {
         vendor: "Calendly",
@@ -202,7 +194,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "workflows",
     name: "Workflows: the executor and webhooks",
     parts: [],
-    apps: [],
     instead: [
       {
         vendor: "Zapier",
@@ -231,7 +222,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "workflow-editor",
     name: "Workflow editor",
     parts: [],
-    apps: [],
     instead: [
       {
         vendor: "n8n",
@@ -251,7 +241,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "voice",
     name: "Voice agent",
     parts: ["voice.agent"],
-    apps: ["voice"],
     instead: [
       {
         vendor: "Retell",
@@ -280,7 +269,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "verification",
     name: "Email verification",
     parts: ["research.verify"],
-    apps: [],
     instead: [
       {
         vendor: "ZeroBounce",
@@ -300,7 +288,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "cold-email",
     name: "Cold email: inboxes, sequences, A/B",
     parts: ["email.sequences"],
-    apps: ["outbound"],
     instead: [
       {
         vendor: "Instantly",
@@ -329,7 +316,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "reach",
     name: "LinkedIn and Reddit outreach",
     parts: ["reach.outreach"],
-    apps: [],
     instead: [
       {
         vendor: "HeyReach",
@@ -358,7 +344,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "lead-research",
     name: "Lead research, lead sheet and dossier",
     parts: ["research.lead_sheet", "research.people", "research.dossier"],
-    apps: ["leads"],
     instead: [
       {
         vendor: "Clay",
@@ -378,7 +363,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "content",
     name: "Content planning and posting",
     parts: ["content.posting", "content.planner"],
-    apps: [],
     instead: [
       {
         vendor: "Buffer",
@@ -407,7 +391,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "video-editor",
     name: "Video editor: cuts, Shorts, thumbnails",
     parts: ["studio"],
-    apps: [],
     instead: [
       {
         vendor: "Descript",
@@ -436,7 +419,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "watch",
     name: "Monitor: mail triage",
     parts: ["watch.triage"],
-    apps: [],
     instead: [
       {
         vendor: "SaneBox",
@@ -456,7 +438,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "books",
     name: "Books: spend, subscriptions, unit economics",
     parts: ["books"],
-    apps: ["money"],
     instead: [
       {
         vendor: "QuickBooks",
@@ -485,7 +466,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "portal",
     name: "Client portal on the client's own domain",
     parts: ["delivery.portal"],
-    apps: ["work"],
     instead: [
       {
         vendor: "GoHighLevel",
@@ -505,7 +485,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "llm-gateway",
     name: "LLM gateway: key rotation and routing",
     parts: [],
-    apps: [],
     instead: [
       {
         vendor: "Portkey",
@@ -534,7 +513,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "credvault",
     name: "credvault: shared credentials, audited",
     parts: [],
-    apps: [],
     instead: [
       {
         vendor: "Doppler",
@@ -563,7 +541,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "autobrowse",
     name: "Browser automation (autobrowse)",
     parts: [],
-    apps: [],
     instead: [
       {
         vendor: "Browserbase",
@@ -583,7 +560,6 @@ export const IN_HOUSE: readonly InHouse[] = [
     id: "links",
     name: "Link tracking (/go/)",
     parts: [],
-    apps: [],
     instead: [
       {
         vendor: "Bitly",
@@ -608,10 +584,6 @@ export const monthlyOf = (t: InHouse): number | null =>
 /** The tool a Shop part is, live first. */
 export const inHouseOfPart = (part: string): InHouse | null =>
   pick(IN_HOUSE.filter((t) => t.parts.includes(part)));
-
-/** The tool an app is, live only: a card never promises what isn't running. */
-export const inHouseOfApp = (app: string): InHouse | null =>
-  IN_HOUSE.find((t) => t.state === "live" && t.apps.includes(app)) ?? null;
 
 const pick = (ts: readonly InHouse[]) => ts.find((t) => t.state === "live") ?? ts[0] ?? null;
 

@@ -53,7 +53,7 @@ const union = <T>(lists: readonly (readonly T[])[]) => [...new Set(lists.flat())
 
 /** What a part provides, by kind, in its code names: "Services SearchWatch; Loops SearchWatch". */
 const providesText = (p: Component["provides"]) =>
-  (["services", "loops", "records", "apps"] as const)
+  (["services", "loops", "records"] as const)
     .filter((k) => p[k].length)
     .map((k) => `${k[0]?.toUpperCase()}${k.slice(1)} ${p[k].join(", ")}`)
     .join("; ") || null;

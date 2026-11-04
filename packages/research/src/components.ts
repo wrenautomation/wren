@@ -224,7 +224,6 @@ export const RESEARCH_COMPONENTS = [
     provides: {
       services: ["PoolScheduler"],
       loops: ["PoolScheduler"],
-      apps: ["leads"],
     },
     clientLoops: (client) => [{ service: "PoolScheduler", key: clientKey(client, "all") }],
     inside: "research.leads",

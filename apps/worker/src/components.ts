@@ -102,23 +102,6 @@ export const PLATFORM = {
     Webhooks:
       "a client's own URLs hear its events: subscriptions, signed deliveries, the retry ladder",
   },
-  apps: {
-    account: "every client's account: people, look, billing",
-    loops: "every loop, whoever's it is",
-    handlers: "every handler, as a form",
-    clients: "the client registry",
-    team: "Wren's team and their roles",
-    marketplace: "every component, and the browser mods",
-    workflows: "every workflow, drawn with live numbers",
-    ask: "questions to Claude Code about the system, read only",
-    research: "birdwatch runs from birdwatch serve on the Mac, live and read only",
-    review: "the Friday review of parked ideas",
-    settings: "your layout and look, and a guide to every app and key",
-    library: "every template, prompt and sequence, with their numbers",
-    notes: "docs for Wren's team and each client's people, with versions and sharing",
-    learn: "saved links and followed sources, read and kept like a drive, in every workspace",
-    people: "everyone a workspace knows, and every message sent to them",
-  },
   records: {
     "console.ask": "every question asked of Claude Code",
     "console.client": "the client registry",

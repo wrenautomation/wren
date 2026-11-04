@@ -36,7 +36,6 @@ export const PIPELINE_COMPONENTS = [
         TERMS_RECORD,
         ENTRY_RECORD,
       ],
-      apps: ["pipelines", "offers", "numbers"],
     },
     effects: [],
     out: [],

@@ -26,7 +26,6 @@ export const REACTIVATION_COMPONENTS = [
         "reactivation.reply",
         "reactivation.setting",
       ],
-      apps: ["reactivation"],
       templates: ["prompt:reactivation/compose"],
     },
     effects: ["sends", "spends"],

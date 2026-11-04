@@ -22,7 +22,6 @@ export const DELIVERY_COMPONENTS = [
         "delivery.deliverable",
         "delivery.result",
       ],
-      apps: ["work"],
     },
     effects: ["sends"],
     in: [{ id: "clients", label: "clients", kind: "client" }],

@@ -24,7 +24,6 @@ export const BOOKS_COMPONENTS = [
         "books.account",
         "books.in_house",
       ],
-      apps: ["money"],
     },
     hypothesis: {
       from: "Wren's own books, 2026-10",

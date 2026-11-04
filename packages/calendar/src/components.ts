@@ -35,7 +35,6 @@ export const CALENDAR_COMPONENTS = [
     provides: {
       services: ["Calendar", "ClientCalendar", "CalendarConsole"],
       records: ["calendar.booking", "calendar.recording"],
-      apps: ["calendar"],
     },
     out: [
       {
@@ -109,7 +108,7 @@ export const CALENDAR_COMPONENTS = [
     ready: true,
     missing: [],
     settings: outcomeSettingsSchema,
-    provides: { apps: ["calls"] },
+    provides: {},
     in: [{ id: "calls", label: "calls held", kind: "call" }],
     out: [
       { id: "won", label: "clients won", kind: "client" },

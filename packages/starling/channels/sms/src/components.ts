@@ -73,7 +73,6 @@ export const SMS_COMPONENTS = [
     provides: {
       services: ["SmsSender", "SmsEvents", "SmsDesk", "SmsWatch", "SmsForms", "SmsConsole"],
       loops: ["SmsSender", "SmsWatch"],
-      apps: ["texts"],
     },
     effects: ["sends", "spends"],
     clientLoops: (client) => [

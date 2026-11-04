@@ -57,7 +57,6 @@ export const VOICE_COMPONENTS = [
     provides: {
       services: ["VoiceConsole"],
       records: ["voice.call", "voice.latency"],
-      apps: ["voice"],
     },
     in: [{ id: "leads", label: "leads", kind: "lead" }],
     out: [

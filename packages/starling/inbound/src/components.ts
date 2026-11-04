@@ -230,7 +230,6 @@ export const CONTENT_COMPONENTS = [
       ],
       // Ads and Outreach are Wren's own, split from Marketing (designs/2026-10-11-split-marketing.md,
       // 2026-10-16-outreach-app.md).
-      apps: ["marketing", "content", "engage", "ads"],
     },
     hypothesis: {
       from: "Wren's marketing, 2026-09",
