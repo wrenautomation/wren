@@ -1307,3 +1307,9 @@ autobrowse now takes one preset grammar on every search route (WA-1031): `latest
 - 11-03, 5 real 60 s clips: turbo q5_0 20 s, 0.9 GB peak; full turbo 22 s, 1.9 GB, the same words. Took q5_0 (memory lean). 10-min clips lost half the words, and Silero VAD gave none, so 60 s clips and no VAD.
 - `speechHere(cohereKeys)` in read picks the ear; birdwatch `open`, `read` and `watch` use it. J04_XStLzP0 (23 min): 116 s, about the same text as Cohere.
 - Shared whisper-server weighed and dropped (11-03): warm, a 60 s clip still takes 4.2–4.5 s, the same as whisper-cli per call (about 4 s). The cost is inference, not the model load. A server would only queue birdwatch and wren on the GPU, and it adds a process to start and stop.
+
+## 11-05: Gemini video ladder, engine 0.36.2
+
+- William, 11-05: "3.8 first, then step down, with exponential retry over a key rotation". `GEMINI_MODELS` is now 3.8, 3.7, 3.6, 3.5 Flash, 3.5 Flash-Lite. Free-tier quota counts per model per project, so each model on 9 keys adds room.
+- Passes 3 → 5 (waits 2, 4, 8, 16 s; 30 s total, well inside `READ_MS` 360 s). 3.6–3.8 answer 503 "high demand" in bursts; a 503 is fast, so more passes cost little.
+- 3.6 and 3.7 have no row in `prices.ts`: their cost reads undefined. The keys are free tier, so no spend is lost.
