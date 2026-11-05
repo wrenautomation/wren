@@ -1,9 +1,11 @@
 /**
  * Storybook for the portal's pages and shell (designs/2026-10-18-portal-page-stories.md): the
- * real app on a fake server (MSW, `web/src/mocks/`). `pnpm --filter @wren/portal storybook`
- * serves it on :61001; `test:stories` runs every story as a Vitest test (vitest.config.ts).
+ * real app on a fake server (MSW, `web/src/mocks/`). `pnpm storybook` (repo root) serves it on
+ * :61000 with the `@wren/ui` parts beside the pages, one dev Storybook for both (WA-1098).
+ * `test:stories` runs every story as a Vitest test (vitest.config.ts).
  */
 
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { StorybookConfig } from "@storybook/react-vite";
 import tailwindcss from "@tailwindcss/vite";
@@ -48,9 +50,19 @@ const recordTypes: Plugin = {
   },
 };
 
+/** ui's own Storybook config: its stories, and its head (Storybook's padding off; the frame pads). */
+const UI = fileURLToPath(new URL("../../../packages/ui/", import.meta.url));
+
+/**
+ * The ui parts' stories only in the dev server (`serve.mjs` sets `WREN_STORYBOOK`). Tests and
+ * builds keep each package's own: ui's run in ui's config, so a part never leans on the app.
+ */
+const parts = process.env.WREN_STORYBOOK === "serve" ? [`${UI}src/**/*.stories.tsx`] : [];
+
 const config: StorybookConfig = {
   framework: "@storybook/react-vite",
-  stories: ["../web/src/**/*.stories.tsx"],
+  stories: ["../web/src/**/*.stories.tsx", ...parts],
+  previewHead: (head) => `${head}${readFileSync(`${UI}.storybook/preview-head.html`, "utf8")}`,
   addons: ["@storybook/addon-a11y", "@storybook/addon-vitest", "msw-storybook-addon"],
   // The app's own files (icons), and the service worker MSW answers from (`msw init`), kept here
   // so the app's build never ships it.

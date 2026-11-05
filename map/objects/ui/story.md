@@ -9,7 +9,7 @@ entity: packages/ui/.storybook/main.ts:1
 
 # story
 
-A Storybook story (CSF): one state of one `@wren/ui` part, in `packages/ui/src/<stem>.stories.tsx` beside the part, served by `pnpm --filter @wren/ui storybook` on :61000 (id `<stem>--<export>`), and run as a test (render, `play`, axe).
+A Storybook story (CSF): one state of one `@wren/ui` part, in `packages/ui/src/<stem>.stories.tsx` beside the part, served by the one dev Storybook, `pnpm storybook` on :61000 (the portal's config, [[ui/page-story]]) (id `<stem>--<export>`), and run as a test (render, `play`, axe).
 
 ## Why this shape
 
@@ -17,7 +17,7 @@ A part tuned in its story needs no portal, backend or login, and the same fixtur
 
 ## Shape
 
-- Config: `packages/ui/.storybook/main.ts` (glob `src/**/*.stories.tsx`, addons a11y + vitest, Tailwind and the portal's React plugin), `serve.mjs` (one server per Mac on 61000: a running one is reused)
+- Config: `packages/ui/.storybook/main.ts` (glob `src/**/*.stories.tsx`, addons a11y + vitest, Tailwind and the portal's React plugin; used by `test:stories` and `stories:build`), `serve.mjs` (one server per Mac on 61000: a running one is reused; it serves the portal's config, which adds these stories)
 - Preview: `packages/ui/.storybook/preview.tsx`: tailwind.css, the look from the light/dark toolbar global (dark = `PRESETS.night`), `QUERIES` cleared per story, `HintLayer`, viewports phone 390 / tablet 820 / desktop 1280, axe `test: "error"`; `parameters.layout: "fullscreen"` drops the padding
 - Tests: `.storybook/vitest.config.ts` + `vitest.setup.ts` (one project per look in `looks.ts`: light at 390, dark at 1280; fixed clock, no motion, the hash cleared per story), `run.mjs` (the checks lock; one Chromium, one project at a time; no screenshot compare)
 - Shared with the portal's page stories ([[ui/page-story]]): `@wren/ui/storybook/frame` (the preview), `@wren/ui/storybook/tests` (`storyTests(configDir)`), bins `wren-storybook <port>`, `wren-stories`, `wren-shot --port <port>`; each works on the package it runs in

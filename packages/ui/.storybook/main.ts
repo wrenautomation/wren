@@ -1,7 +1,8 @@
 /**
- * Storybook, the component workbench for `@wren/ui` (designs/2026-10-17-storybook-visual-tests.md).
- * `pnpm --filter @wren/ui storybook` serves it on :61000; `stories:build` writes `storybook-static/`.
- * `test:stories` runs every story as a Vitest test (vitest.config.ts, through run.mjs).
+ * Storybook config for the `@wren/ui` parts alone (designs/2026-10-17-storybook-visual-tests.md):
+ * `test:stories` runs every story as a Vitest test (vitest.config.ts, through run.mjs);
+ * `stories:build` writes `storybook-static/`. To look at the parts, `pnpm storybook` (repo root)
+ * serves them with the portal pages on :61000 (apps/portal/.storybook/main.ts, WA-1098).
  */
 import type { StorybookConfig } from "@storybook/react-vite";
 import tailwindcss from "@tailwindcss/vite";

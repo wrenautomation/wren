@@ -9,7 +9,7 @@ entity: apps/portal/web/src/mocks/page.tsx:1
 
 # page-story
 
-A whole portal page in Storybook: the real app (router, shell, data layer, batching) at one address, on a fake server (MSW). `pnpm --filter @wren/portal storybook` serves it on :61001 (id `pages-client--<app>`, `pages-wren--<app>`), and each story runs as a test.
+A whole portal page in Storybook: the real app (router, shell, data layer, batching) at one address, on a fake server (MSW). `pnpm storybook` serves it on :61000, in one sidebar with the ui parts (id `pages-client--<app>`, `pages-wren--<app>`), and each story runs as a test.
 
 ## Why this shape
 
@@ -17,7 +17,7 @@ Layout and organization changes need the shell, the router and the reads togethe
 
 ## Shape
 
-- Config: `apps/portal/.storybook/main.ts` (stories `web/src/**/*.stories.tsx`, addons a11y + vitest + msw, `nodeStubs` for server modules the app imports, `dictateOff` for the one GET made at load), `preview.tsx` (ui's frame + `mswLoader`), `vitest.config.ts` (`storyTests` from `@wren/ui/storybook/tests`), `public/mockServiceWorker.js` (msw init, never in the app build)
+- Config: `apps/portal/.storybook/main.ts` (stories `web/src/**/*.stories.tsx`, plus the ui parts' stories when `serve.mjs` starts it (`WREN_STORYBOOK=serve`; tests and builds keep each package's own), addons a11y + vitest + msw, `nodeStubs` for server modules the app imports, `dictateOff` for the one GET made at load), `preview.tsx` (ui's frame + `mswLoader`), `vitest.config.ts` (`storyTests` from `@wren/ui/storybook/tests`), `public/mockServiceWorker.js` (msw init, never in the app build)
 - A story: `pageAt(at, { me, answers, mode })` (`web/src/mocks/page.tsx`): a memory-history router at `at`; `me` = `OWNER` (a client's owner, every app) or `ADMIN` (Wren's team); `mode` `pending` or `fails` for every read but `delivery/me`
 - Fake server: `web/src/mocks/api.ts`: one table, key = path (`console/call:<Service>.<handler>` for named handlers), value = body or a function of the call's body; `serve<Api>(service, {...})` types the answers with the server's API object; `pulse` fans out to the same table
 - Unmocked call: a 404 and `unmocked: <key>` in the console; the story's `play` (`settled()`) waits for the server to go quiet and fails on it
@@ -42,7 +42,7 @@ Layout and organization changes need the shell, the router and the reads togethe
 
 | Surface | Role |
 |---|---|
-| Storybook (:61001) | reads |
+| Storybook (:61000) | reads |
 | CI `test:stories` | tests every page story (render, play, axe) |
 
 ## See

@@ -3,8 +3,8 @@
  * One Storybook per port: the package it is called from, on the port it is given (default 61000).
  * If one already serves there, it says where and exits 0; if something else holds the port, it
  * says so and exits 1. It never moves to another port. A package's `storybook` is `wren-storybook`.
- *   pnpm --filter @wren/ui storybook          (61000)
- *   pnpm --filter @wren/portal storybook      (61001)
+ * The one dev Storybook is the portal's: `pnpm storybook` (61000). `WREN_STORYBOOK=serve` tells
+ * its main.ts to add the ui parts' stories (WA-1098).
  */
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
@@ -27,7 +27,7 @@ const pkg = process.cwd();
 const child = spawn(
   resolve(pkg, "node_modules/.bin/storybook"),
   ["dev", "--port", String(PORT), "--exact-port", "--ci"],
-  { cwd: pkg, stdio: "inherit" },
+  { cwd: pkg, stdio: "inherit", env: { ...process.env, WREN_STORYBOOK: "serve" } },
 );
 // Ctrl-C or a kill stops the server with this script.
 for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => child.kill(sig));

@@ -13,10 +13,10 @@
     "preview": "vite build web && tsx scripts/preview.ts",
     "e2e:writes": "tsx scripts/writes-e2e.ts",
     "e2e:outreach": "tsx scripts/outreach-e2e.ts",
-    "storybook": "wren-storybook 61001",
+    "storybook": "wren-storybook",
     "stories:build": "storybook build --quiet",
-    "stories:shot": "wren-shot --port 61001",
-    "look": "wren-look --port 61001",
+    "stories:shot": "wren-shot",
+    "look": "wren-look",
     "test:stories": "wren-stories",
     "kestrel:screens": "tsx scripts/screens.ts"
   },

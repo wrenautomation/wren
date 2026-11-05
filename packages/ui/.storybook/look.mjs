@@ -2,7 +2,7 @@
 /**
  * Layout problems on local pages, as text (designs/2026-10-21-dev-loop.md). Each problem is one
  * line (look.ts); a picture is taken only of a page with problems, and only with `--shot`.
- *   wren-look [--port 61001] <story-id>...        stories from a running Storybook
+ *   wren-look [--port 61000] <story-id>...        stories from a running Storybook
  *   wren-look --all [--static storybook-static]   every page story; --static serves a build itself
  *   wren-look http://localhost:5173/inbox/mail     any local page (the dev server)
  * --width 390,1280 (the widths), --messy (prod-like data; --data both for tidy and messy),
@@ -21,7 +21,7 @@ import { serve } from "./static.mjs";
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
-    port: { type: "string", default: "61001" },
+    port: { type: "string", default: "61000" },
     all: { type: "boolean", default: false },
     static: { type: "string" },
     width: { type: "string", default: "390,1280" },
