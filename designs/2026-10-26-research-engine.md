@@ -1373,3 +1373,11 @@ William: API spend is far under budget, so judgments move from Haiku to Sonnet.
 - Cost: Sonnet 5.5 is $2/$10 per million tokens against Haiku 5.5 at $0.1/$0.5. All 32 runs so far cost $4.62 ($3.56 of it Haiku); on Sonnet about $70. A typical run moves from cents to $1–3; the largest to about $10.
 - Open option, not yet put to William: Sonnet for `check` only and Haiku for the bulk (extract is most of the tokens). Offer it if spend becomes a concern.
 - The portal chat agent runs the pinned package, so it stays on Haiku until wren's pin moves to 0.43.0.
+
+## 11-05, later: back to Haiku everywhere (0.43.1)
+
+William, after the numbers: all Haiku for now, because the run count will rise.
+
+- Per run on average: Haiku $0.14, Sonnet about $2.25 (scaled from the 20x price gap, not measured). $200 a month buys about 1,400 runs on Haiku and about 90 on Sonnet. The pace so far is about 107 runs a month.
+- `--model` defaults to `anthropic` (Haiku) again. `--model anthropic:sonnet` or `BIRDWATCH_MODEL` gives Sonnet for one run.
+- Agreed in principle, not built: Haiku extracts, Sonnet judges (triage, check, group), about $0.60 a run by estimate. It needs a model setting per step. Measure the token share per step from the ledger first.
