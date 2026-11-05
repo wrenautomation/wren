@@ -6,6 +6,7 @@
 import { Button, cx, Input } from "@wren/ui";
 import type { Source } from "@wrenautomation/vireo/sync";
 import { type PointerEvent, type ReactNode, useRef, useState } from "react";
+import { LivePage } from "./live-page.js";
 import { useTogether } from "./together.js";
 
 export type Box = { x: number; y: number; w: number; h: number };
@@ -382,7 +383,14 @@ export function SampleBody({
     ) : (
       <Missing />
     );
-  // A page: its html in a frame with no origin of its own (scripts run, nothing of ours reachable).
+  // A page that runs code: a link on its own origin.
+  if (sample.mediaUrl)
+    return (
+      <LivePage id={sample.id} url={sample.mediaUrl} still={sample.posterUrl}>
+        <BoxLayer on={boxing} boxes={boxes} onBox={(b) => onAnchor({ type: "box", ...b })} />
+      </LivePage>
+    );
+  // A static page: its html in a frame with no origin of its own (nothing of ours reachable).
   return (
     <div className="relative overflow-hidden rounded-(--ui-radius) border border-(--ui-hair) bg-white">
       <iframe

@@ -65,6 +65,41 @@ const VIDEO = {
   ],
 };
 
+/** Three scenes that run code, each a link (same origin here; a preview deploy in prod). */
+const scene = (i: number) => ({
+  body: null,
+  mediaUrl: `/variants/scene-${i}.html`,
+  posterUrl: `/variants/scene-${i}.svg`,
+});
+const PAGE = {
+  batch: { id: 9, createdAt: ago(0.05), note: null },
+  subject: {
+    id: 3,
+    slug: "hero-background",
+    name: "Hero background",
+    kind: "page",
+    brief: "A scene that moves with scroll. Calm at rest.",
+  },
+  samples: [
+    {
+      ...base,
+      id: 51,
+      ...scene(1),
+      verdict: "good",
+      notes: [
+        {
+          id: 4,
+          anchor: { type: "box", x: 0.3, y: 0.25, w: 0.4, h: 0.4 },
+          tone: "good",
+          text: "The centre reads well",
+        },
+      ],
+    },
+    { ...base, id: 52, ...scene(2), verdict: null },
+    { ...base, id: 53, ...scene(3), verdict: null },
+  ],
+};
+
 const COPY = {
   batch: { id: 8, createdAt: ago(0.3), note: null },
   subject: {
@@ -241,7 +276,7 @@ const SUBJECT = {
 };
 
 export const VARIANTS_ANSWERS: Answers = {
-  "variants/queue": [VIDEO, COPY],
+  "variants/queue": [VIDEO, PAGE, COPY],
   "variants/subjects": [
     SUBJECT.subject,
     { ...VIDEO.subject, state: "open", samples: 3, kept: 0, toPick: 3 },

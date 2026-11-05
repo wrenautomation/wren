@@ -26,7 +26,7 @@ import { z } from "zod";
 import { VARIANTS_CONSOLE_APPS, VARIANTS_CONSOLE_ROUTES } from "./console-routes.js";
 import { variants } from "./index.js";
 
-/** s3:// → a URL the browser can play; absent in local runs (media shows as missing). */
+/** s3:// → a URL the browser can play; absent in local runs (media shows as missing). An https:// link (a live page) needs no signer. */
 export type Sign = (uri: string) => Promise<string>;
 
 type Req = PortalRequest & Record<string, unknown>;
@@ -48,7 +48,8 @@ const refuse = async <T>(fn: () => Promise<T>) => {
 
 export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
   const v = variants(db);
-  const url = async (uri: string | null) => (uri && sign ? sign(uri).catch(() => null) : null);
+  const url = async (uri: string | null) =>
+    !uri ? null : /^https:\/\//i.test(uri) ? uri : sign ? sign(uri).catch(() => null) : null;
   const media = async <T extends Pick<SampleRow, "media" | "poster">>(s: T) => ({
     ...s,
     mediaUrl: await url(s.media),

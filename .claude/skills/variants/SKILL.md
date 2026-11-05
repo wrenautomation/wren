@@ -26,7 +26,7 @@ You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (pr
 ```
 
 1. **Start.** No brief = from scratch: read the seeds (a Birdwatch study's claims, the SOP, the skill) and spread wide. A brief = his direction: stay near it. Add each seed tip as a `guide` (`--source study --ref <slug>`), state `testing`.
-2. **Make a batch.** 4-6 samples. Text: inline `body`. Video: render with studio, then `file` (mp4) + `posterFile` (jpg), and `studio: {edit, format}` (or `source: {ref, spans}`) so he can play cuts of one footage in step. Image: `file`. Page: full html in `body` (shown in a sandboxed frame).
+2. **Make a batch.** 4-6 samples. Text: inline `body`. Video: render with studio, then `file` (mp4) + `posterFile` (jpg), and `studio: {edit, format}` (or `source: {ref, spans}`) so he can play cuts of one footage in step. Image: `file`. Page: full html in `body` (a sandboxed frame; no scripts run). A page that runs code (WebGL, scroll scenes): build it, deploy it to a URL that never changes (a Cloudflare Pages preview, `https://<hash>.<project>.pages.dev`), then `media: "https://…"` + `posterFile` (a still at 1280×800). The portal frames only `*.pages.dev`; the page must not send `X-Frame-Options` or a `frame-ancestors` that shuts out `app.wrenautomation.com`. He runs one at a time, at 1280 or 390, and full screen.
 3. **Spread on purpose.** Each batch tests one or two ideas. Vary one thing per sample when you can, so his calls teach something. Tag each sample's `guides` with the guide ids it applies; that is how a tip's with-vs-without rate is counted.
 4. **Say why.** `why` = what you changed from the last batch and what it tests. `change` per sample = what differs from its `parent`. He does not see these while he judges (blind); `show` gives them back to you.
 5. **Tell him** it is in Campaigns › Variants. Stop. Wait for him to send the batch back.
@@ -43,6 +43,7 @@ You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (pr
   "agent": "<your session id>",
   "samples": [
     { "body": "…", "parent": 22, "guides": [1], "change": "adds a next step" },
+    { "media": "https://a1b2c3d4.example.pages.dev/", "posterFile": "out/scene-a.jpg", "change": "flow field, slower drift" },
     { "file": "out/cut-b.mp4", "posterFile": "out/cut-b.jpg", "parent": 31, "change": "captions 20% lower", "studio": { "edit": 12, "format": "short" } }
   ]
 }

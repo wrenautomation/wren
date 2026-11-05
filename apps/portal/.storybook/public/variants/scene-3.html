@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scene 3</title>
+<style>html,body{margin:0;background:#06140f;color:#fff;font:600 44px/1.1 system-ui}canvas{position:fixed;inset:0;width:100%;height:100%}main{position:relative}section{height:100vh;display:grid;place-items:center;padding:0 24px;text-align:center}</style>
+<canvas id="c"></canvas>
+<main><section>Scene 3</section><section>Scroll moves the field</section><section>End</section></main>
+<script>
+// synthetic test scene: a dot field that drifts and follows scroll
+const c=document.getElementById("c"),x=c.getContext("2d");let w,h;
+const fit=()=>{w=c.width=innerWidth;h=c.height=innerHeight};fit();addEventListener("resize",fit);
+const dots=Array.from({length:140},(_,k)=>({a:k*2.4,r:20+k*5}));
+(function tick(t){x.clearRect(0,0,w,h);x.fillStyle="#6dffb0";
+for(const d of dots){const a=d.a+t/4500+scrollY/300;x.beginPath();x.arc(w/2+Math.cos(a)*d.r,h/2+Math.sin(a*3)*d.r*.6,2.2,0,7);x.fill()}
+requestAnimationFrame(tick)})(0);
+</script>

@@ -7,10 +7,12 @@
 import { Button, cx, Empty, Icon, LoadFailed, Loading, Seg, Textarea, useEdit } from "@wren/ui";
 import { footageLength } from "@wrenautomation/vireo/sync";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { type Live, LiveView } from "./live.js";
+import { FramesProvider, useFrames, WIDTHS } from "./live-page.js";
 import {
   type Anchor,
   anchorLabel,
@@ -198,6 +200,8 @@ function Batch({
         <p className="m-0 text-[12px] text-(--ui-ink-3)">
           {open.samples.length} samples, shown blind in random order. Mark what's good or bad; tap a
           line, drag a box or mark a moment to say where.
+          {open.samples.some((s) => open.subject.kind === "page" && s.mediaUrl) &&
+            " One page runs at a time."}
         </p>
       </header>
       {videos.length > 1 && (
@@ -232,9 +236,11 @@ function Batch({
             wide ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1 md:grid-cols-2",
           )}
         >
-          {open.samples.map((s, i) => (
-            <SampleCard key={s.id} n={i + 1} kind={open.subject.kind} sample={s} patch={patch} />
-          ))}
+          <FramesProvider ids={open.samples.map((s) => s.id)}>
+            {open.samples.map((s, i) => (
+              <SampleCard key={s.id} n={i + 1} kind={open.subject.kind} sample={s} patch={patch} />
+            ))}
+          </FramesProvider>
         </div>
       </TogetherProvider>
       <div className="-mx-1 flex flex-col gap-2 border-t border-(--ui-hair) bg-(--ui-paper) p-3 md:sticky md:bottom-0 md:z-10 md:flex-row md:items-end md:pr-16">
@@ -309,16 +315,66 @@ function SampleCard({
     call("variants/unnote", { id }).catch(fail);
   };
   const canBox = kind !== "text";
+  const frames = useFrames();
+  const staged = frames?.stage === sample.id;
+  const step = (by: number) => {
+    const to =
+      frames?.ids[(frames.ids.indexOf(sample.id) + by + frames.ids.length) % frames.ids.length];
+    if (to != null) frames?.show(to);
+  };
+  // on stage: the list under it holds still; keys work while focus is ours (the frame keeps its own)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: bound once per stage
+  useEffect(() => {
+    if (!staged) return;
+    const was = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const key = (e: KeyboardEvent) => {
+      if ((e.target as Element).closest?.("input, textarea")) return;
+      if (e.key === "Escape") frames?.show(null);
+      if (e.key === "ArrowRight") step(1);
+      if (e.key === "ArrowLeft") step(-1);
+    };
+    window.addEventListener("keydown", key);
+    return () => {
+      document.body.style.overflow = was;
+      window.removeEventListener("keydown", key);
+    };
+  }, [staged]);
 
-  return (
+  const card = (
     <article
       className={cx(
-        "flex min-w-0 flex-col gap-3 rounded-(--ui-radius-panel) border bg-(--ui-paper) p-3",
-        sample.verdict ? VERDICT_ON[sample.verdict].split(" ")[0] : "border-(--ui-hair)",
+        "flex min-w-0 flex-col gap-3 bg-(--ui-paper) p-3",
+        staged ? "fixed inset-0 z-50" : "rounded-(--ui-radius-panel) border",
+        !staged &&
+          (sample.verdict ? VERDICT_ON[sample.verdict].split(" ")[0] : "border-(--ui-hair)"),
       )}
     >
-      <div className="flex items-center gap-2">
-        <span className="text-[12px] font-semibold text-(--ui-ink-3)">#{n}</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[12px] font-semibold whitespace-nowrap text-(--ui-ink-3)">
+          #{n}
+          {staged && ` of ${frames?.ids.length}`}
+        </span>
+        {staged && (
+          <>
+            <Button size="dense" tone="quiet" icon="left" onClick={() => step(-1)}>
+              <span className="max-sm:sr-only">Back</span>
+            </Button>
+            <Button size="dense" tone="quiet" icon="right" onClick={() => step(1)}>
+              <span className="max-sm:sr-only">Next</span>
+            </Button>
+            {/* a narrow window scales both widths: nothing to choose there */}
+            <span className="ml-2 max-sm:hidden">
+              <Seg
+                dense
+                label="Width"
+                items={WIDTHS}
+                value={frames?.width ?? "desktop"}
+                onChange={(w) => frames?.setWidth(w)}
+              />
+            </span>
+          </>
+        )}
         <span className="flex-1" />
         {canBox && (
           <Button
@@ -333,6 +389,11 @@ function SampleCard({
         <Button size="dense" tone="quiet" icon="pin" onClick={keep}>
           {sample.keptAt ? "Kept" : "Keep"}
         </Button>
+        {staged && (
+          <Button size="dense" icon="shrink" onClick={() => frames?.show(null)}>
+            <span className="max-sm:sr-only">Exit</span>
+          </Button>
+        )}
       </div>
       <SampleBody
         kind={kind}
@@ -345,7 +406,12 @@ function SampleCard({
         <NoteStrip anchor={pending.anchor} onSave={save} onCancel={() => setPending(null)} />
       )}
       {sample.notes.length > 0 && (
-        <ul className="m-0 flex list-none flex-col gap-1 p-0">
+        <ul
+          className={cx(
+            "m-0 flex list-none flex-col gap-1 p-0",
+            staged && "max-h-24 shrink-0 overflow-y-auto",
+          )}
+        >
           {sample.notes.map((x) => (
             <li key={x.id} className="flex items-start gap-2 text-[13px]">
               <span
@@ -374,7 +440,7 @@ function SampleCard({
           ))}
         </ul>
       )}
-      <div className="mt-auto flex flex-wrap gap-2">
+      <div className={cx("mt-auto flex flex-wrap gap-2", staged && "justify-center")}>
         {VERDICTS.map((v) => (
           <button
             type="button"
@@ -382,7 +448,9 @@ function SampleCard({
             aria-pressed={sample.verdict === v.v}
             onClick={() => judge(v.v)}
             className={cx(
-              "inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-(--ui-radius) border px-3 text-[13px] font-semibold transition-colors duration-150",
+              "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-(--ui-radius) border text-[13px] font-semibold transition-colors duration-150",
+              // on stage a control hugs its words; in a card the three share the row
+              staged ? "px-5 max-sm:px-3" : "flex-1 px-3",
               sample.verdict === v.v
                 ? VERDICT_ON[v.v]
                 : "border-(--ui-hair) text-(--ui-ink-2) hover:bg-(--ui-hover)",
@@ -399,6 +467,7 @@ function SampleCard({
       {err && <div className="text-[12px] text-(--ui-bad)">{err}</div>}
     </article>
   );
+  return staged ? createPortal(card, document.body) : card;
 }
 
 function Subjects() {
