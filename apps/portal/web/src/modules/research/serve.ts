@@ -120,6 +120,30 @@ export interface RunView {
   spend: { source: string; op: string; calls: number; failed: number; usd: number }[];
 }
 
+/** One dot of the research map (engine `engine/map.ts`): positions are the engine's, fixed. */
+export interface MapNode {
+  id: string;
+  kind: "run" | "query" | "source" | "hub" | "page" | "finding";
+  label: string;
+  x: number;
+  y: number;
+  size: number;
+  run?: string;
+  group?: string;
+  url?: string;
+  read?: boolean;
+  kept?: boolean;
+  ask?: string;
+  runs?: number;
+  key?: string;
+}
+
+export interface ResearchMap {
+  v: 1;
+  nodes: MapNode[];
+  edges: { source: string; target: string; kind: "tree" | "hub" }[];
+}
+
 export interface StoredPage {
   id: string;
   url: string;
@@ -140,6 +164,11 @@ export async function viewOf(run: string): Promise<RunView> {
   const v = await get<RunView>(`/runs/${encodeURIComponent(run)}`);
   if (v.v !== 1) throw new Error(`serve sends view v${v.v}; this page reads v1`);
   return v;
+}
+export async function mapOf(): Promise<ResearchMap> {
+  const m = await get<ResearchMap>("/map");
+  if (m.v !== 1) throw new Error(`serve sends map v${m.v}; this page reads v1`);
+  return m;
 }
 export const pageOf = (run: string, doc: string) =>
   get<StoredPage>(`/runs/${encodeURIComponent(run)}/documents/${encodeURIComponent(doc)}`);

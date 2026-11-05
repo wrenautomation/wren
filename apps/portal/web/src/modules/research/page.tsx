@@ -71,7 +71,7 @@ const usd = (n: number) => money(n, "USD", false);
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** What the page says when serve is off, or Chrome has not let the portal reach it. */
-function NoServe({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+export function NoServe({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   return (
     <Empty
       title="Can't reach birdwatch serve"
@@ -83,8 +83,8 @@ function NoServe({ error, onRetry }: { error: unknown; onRetry: () => void }) {
     >
       <span className="grid gap-1">
         <span>
-          Run <code>birdwatch serve --ledger &lt;the run's folder&gt;</code> on this Mac. It listens
-          on {SERVE}.
+          Run <code>birdwatch serve --ledger &lt;a folder&gt; --also &lt;more folders&gt;</code> on
+          this Mac. It listens on {SERVE}.
         </span>
         <span>If Chrome asks to let this site reach your local network, allow it.</span>
         <span className={QUIET}>{error instanceof Error ? error.message : String(error)}</span>
@@ -544,7 +544,7 @@ function PageCard({ view, d, go }: { view: RunView; d: RunDocument; go: Go }) {
         ) : null}
       </p>
       <Judge answers={d.judge} />
-      <PostEmbed d={d} />
+      <PostEmbed id={d.id} url={d.url} title={d.title} />
       {findings.length ? (
         <ol className="m-0 grid list-none gap-2 p-0">
           {findings.map((f) => (
@@ -591,7 +591,7 @@ function PageCard({ view, d, go }: { view: RunView; d: RunDocument; go: Go }) {
 }
 
 /** A video or post in its own player, where the CSP lets one in; else nothing (the link is above). */
-function PostEmbed({ d }: { d: RunDocument }) {
+export function PostEmbed(d: { id: string; url: string; title?: string | undefined }) {
   const vid = youtubeId(d.url);
   if (vid)
     return (

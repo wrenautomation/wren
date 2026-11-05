@@ -36,6 +36,9 @@ type NS = { lit: boolean; focus: boolean };
 type ES = { lit: boolean };
 type MapSigma = Sigma<Attributes, Attributes, Attributes, NS, ES>;
 
+/** Rendered px a dot needs before its label shows. */
+const LABEL_MIN = 6;
+
 /** Lit dots, links and labels draw above the veil; the rest below it. */
 const DEPTHS = ["edges", "nodes", "veil", "topEdges", "topNodes"] as const;
 
@@ -136,6 +139,8 @@ export default function MapCanvas(p: MapCanvasProps) {
   const host = useRef<HTMLDivElement>(null);
   const sigma = useRef<MapSigma | null>(null);
   const lights = useRef<ReturnType<typeof lightsOf> | null>(null);
+  // kept across rebuilds: a live update must not move the camera
+  const camera = useRef<ReturnType<ReturnType<MapSigma["getCamera"]>["getState"]> | null>(null);
   const on = useRef(p);
   on.current = p;
 
@@ -167,7 +172,7 @@ export default function MapCanvas(p: MapCanvasProps) {
       settings: {
         hideEdgesOnMove: true,
         itemSizesReference: "screen",
-        labelRenderedSizeThreshold: 6,
+        labelRenderedSizeThreshold: LABEL_MIN,
         labelDensity: 0.6,
         minCameraRatio: 0.002,
         maxCameraRatio: 2,
@@ -198,6 +203,7 @@ export default function MapCanvas(p: MapCanvasProps) {
       },
     } as never);
     sigma.current = s;
+    if (camera.current) s.getCamera().setState(camera.current);
     const l = lightsOf(s);
     lights.current = l;
     s.addCustomLayerProgram("veil", "veil" as never, (gl) =>
@@ -213,6 +219,7 @@ export default function MapCanvas(p: MapCanvasProps) {
     s.on("leaveNode", () => l.light(litOf(on.current), false));
     el.style.cursor = "grab";
     return () => {
+      camera.current = s.getCamera().getState();
       s.kill();
       sigma.current = null;
       lights.current = null;
@@ -265,6 +272,9 @@ function lightsOf(s: MapSigma) {
   const g = s.getGraph();
   let litNodes: string[] = [];
   let litEdges: string[] = [];
+  const settings = (
+    s as unknown as { internals: { settings: { labelRenderedSizeThreshold: number } } }
+  ).internals.settings;
   return {
     any: () => litNodes.length > 0,
     /** The dots given and, for a hover or a pick of a few, their neighbours and links. */
@@ -292,6 +302,9 @@ function lightsOf(s: MapSigma) {
         { focus: true },
       );
       s.setEdgesState(litEdges, { lit: true });
+      // veiled: only forced labels; setSetting would restyle every dot (sigma pinned at 4.0.4)
+      settings.labelRenderedSizeThreshold =
+        litNodes.length > 0 ? Number.POSITIVE_INFINITY : LABEL_MIN;
       s.scheduleRender();
     },
   };

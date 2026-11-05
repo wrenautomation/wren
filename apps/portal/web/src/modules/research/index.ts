@@ -4,6 +4,7 @@
  */
 import type { Module } from "../../module.js";
 import { AskPage } from "./ask.js";
+import { MapPage } from "./map.js";
 import { RunsPage } from "./page.js";
 
 export const research: Module = {
@@ -18,6 +19,14 @@ export const research: Module = {
       label: "Ask",
       about: "Ask a Claude agent with birdwatch; your past chats stay on the left.",
       Page: AskPage,
+      fill: true,
+    },
+    {
+      id: "map",
+      label: "Map",
+      about: "Every run on one map: what was researched where, and the sources runs shared.",
+      Page: MapPage,
+      wide: true,
       fill: true,
     },
     {

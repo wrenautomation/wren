@@ -4,9 +4,9 @@
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { HttpResponse, http, sse } from "msw";
-import { expect, waitFor, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ADMIN } from "./mocks/data/me.js";
-import { RESEARCH_ROWS, RESEARCH_VIEW } from "./mocks/data/research.js";
+import { RESEARCH_MAP, RESEARCH_ROWS, RESEARCH_VIEW } from "./mocks/data/research.js";
 import { pageAt, tidy } from "./mocks/page.js";
 import { SERVE } from "./modules/research/serve.js";
 
@@ -29,6 +29,7 @@ const SERVED = [
       text: "Start with three cafes inside a short drive.",
     }),
   ),
+  http.get(`${SERVE}/map`, () => HttpResponse.json(RESEARCH_MAP)),
   // Open and quiet: a story sends no change.
   sse(`${SERVE}/events`, () => {}),
 ];
@@ -94,3 +95,25 @@ export const NoServe = story(
   },
   REFUSED,
 );
+
+/** Every run on one map; a search finds a run and the side shows it, with a way into the run. */
+export const MapAll = tidy(
+  story("/research/map", async (page) => {
+    const p = within(page);
+    await p.findByRole("img", { name: /^Research map: 5 runs/ });
+    await p.findByText(/5 runs · 20 queries/);
+    await userEvent.type(p.getByRole("searchbox", { name: "Find on the map" }), "croissants");
+    await userEvent.click(
+      await p.findByRole("button", { name: /What do cafes pay for wholesale croissants/ }),
+    );
+    await expect(await p.findByRole("link", { name: "Open run" })).toBeVisible();
+  }),
+);
+
+/** A page picked: its video plays beside the map, its findings under it, kept or cut. */
+export const MapPicked = story("/research/map?at=m1-h00", async (page) => {
+  const p = within(page);
+  await p.findByRole("heading", { name: "How I landed 12 cafe accounts" });
+  await p.findByText("Wholesale runs at about half of retail.");
+  await p.findByRole("button", { name: "How do small bakeries find wholesale buyers?" });
+});
