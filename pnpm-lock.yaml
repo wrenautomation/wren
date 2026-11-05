@@ -200,11 +200,11 @@ importers:
         specifier: 0.36.1
         version: 0.36.1
       '@wrenautomation/models':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       '@wrenautomation/read':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       commander:
         specifier: 15.0.0
         version: 15.0.0
@@ -590,8 +590,8 @@ importers:
         specifier: 0.8.4
         version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       '@wrenautomation/read':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -686,8 +686,8 @@ importers:
         specifier: workspace:*
         version: link:../llm
       '@wrenautomation/read':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -825,8 +825,8 @@ importers:
         specifier: workspace:*
         version: link:../db
       '@wrenautomation/models':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       csv-parse:
         specifier: 7.0.2
         version: 7.0.2
@@ -1022,8 +1022,8 @@ importers:
         specifier: workspace:*
         version: link:../research
       '@wrenautomation/read':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1044,8 +1044,8 @@ importers:
   packages/llm:
     dependencies:
       '@wrenautomation/models':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -1075,8 +1075,8 @@ importers:
         specifier: workspace:*
         version: link:../starling/channels/sms
       '@wrenautomation/read':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       fflate:
         specifier: 0.8.3
         version: 0.8.3
@@ -1225,8 +1225,8 @@ importers:
         specifier: workspace:*
         version: link:../video
       '@wrenautomation/read':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1274,11 +1274,11 @@ importers:
         specifier: workspace:*
         version: link:../llm
       '@wrenautomation/models':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       '@wrenautomation/read':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       csv-parse:
         specifier: 7.0.2
         version: 7.0.2
@@ -1412,8 +1412,8 @@ importers:
         specifier: 0.8.4
         version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       '@wrenautomation/read':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1837,8 +1837,8 @@ importers:
         specifier: 0.8.4
         version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       '@wrenautomation/read':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1926,11 +1926,11 @@ importers:
         specifier: workspace:*
         version: link:../../video
       '@wrenautomation/models':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       '@wrenautomation/read':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       diff:
         specifier: 8.0.4
         version: 8.0.4
@@ -2154,8 +2154,8 @@ importers:
         specifier: workspace:*
         version: link:../starling/channels/sms
       '@wrenautomation/models':
-        specifier: 0.37.0
-        version: 0.37.0
+        specifier: 0.38.0
+        version: 0.38.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -2256,6 +2256,15 @@ packages:
       '@anthropic-ai/sdk': '>=0.93.0'
       '@modelcontextprotocol/sdk': ^1.29.0
       zod: ^4.0.0
+
+  '@anthropic-ai/sdk@1.3.0':
+    resolution: {integrity: sha512-k7z9BlLLPxfZH+ov7dS6EnaN/wiZeV8YNT1LZfrpAHIy7oY7pHr4UzirF9f2OlHtFEnRBOX+AZQ91Y5fK+TPTw==}
+    hasBin: true
+    peerDependencies:
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
 
   '@anthropic-ai/sdk@1.4.0':
     resolution: {integrity: sha512-tyuibnhQL57kLOx5oomY4Ld7jOVOPNC5v3IiyRtR3l+Friv66tI4VbuZYF2NMel/T0WMuQMBFOMKDBUbUh8gPA==}
@@ -6461,8 +6470,8 @@ packages:
     resolution: {integrity: sha512-4o4muhhT04fwqvtrFm/h14nLPm+ZLUVO/GJ8CjtOgQ7t7Qzis0BNkJwBec8MmoQb5dngZRFyak9nL6+E5pgI0Q==}
     engines: {node: '>=24'}
 
-  '@wrenautomation/models@0.37.0':
-    resolution: {integrity: sha512-NDk0Jjkf+9eYfwkS8HnTqWUIeFubrjadYBbU+vpIpy1CqfxP0n8nuMm/yvq1j8iLEvyWXmsk4J41ARurVeaL8g==}
+  '@wrenautomation/models@0.38.0':
+    resolution: {integrity: sha512-6FxxZ+2Q/nUop2ehuxkLdTJblNW8BoIVygYka077hLGAv7YNSTCw1RMKZDWwvBqXGTmz5SC3IxTgLOxYk7jGzA==}
     engines: {node: '>=24'}
 
   '@wrenautomation/orrery@0.28.0':
@@ -6472,8 +6481,8 @@ packages:
     resolution: {integrity: sha512-tbU74AWu9HFhb2skE5HBjjbrPE83EcZr8gnoamIx6LuU7c1Hk3NVcNqN59kaR3l87rR0F2XAGIx54W73qXStyg==}
     engines: {node: '>=24'}
 
-  '@wrenautomation/read@0.37.0':
-    resolution: {integrity: sha512-POi48kHzmb+/GLNuJrjAr9zajbsxoEN4wMiQwWAHOlfKdSl5oBhoEsJxnvpfN9t89h48JFTlV/BHqWxF5QK89Q==}
+  '@wrenautomation/read@0.38.0':
+    resolution: {integrity: sha512-l3T3VTj8HAYRFzUnD/Lk8EdWG8vnlEvStdVwv3wKK2J8XPLYrAjx6zJLLPsMhUmvrHe3PakMTKxoFFslMDTvnw==}
     engines: {node: '>=24'}
 
   '@xmldom/xmldom@0.8.15':
@@ -10695,6 +10704,14 @@ snapshots:
       '@anthropic-ai/sdk': 1.4.0(zod@4.6.7)
       '@modelcontextprotocol/sdk': 1.32.0(zod@4.6.7)
       zod: 4.6.7
+
+  '@anthropic-ai/sdk@1.3.0(zod@4.6.5)':
+    dependencies:
+      '@opentelemetry/api': 1.9.1
+      json-schema-to-ts: 3.1.1
+      standardwebhooks: 1.1.1
+    optionalDependencies:
+      zod: 4.6.5
 
   '@anthropic-ai/sdk@1.4.0(zod@4.6.5)':
     dependencies:
@@ -15053,12 +15070,13 @@ snapshots:
       ai: 7.0.155(zod@4.6.5)
       zod: 4.6.5
 
-  '@wrenautomation/models@0.37.0':
+  '@wrenautomation/models@0.38.0':
     dependencies:
       '@ai-sdk/anthropic': 4.0.90(zod@4.6.5)
       '@ai-sdk/cohere': 4.0.71(zod@4.6.5)
       '@ai-sdk/google': 4.0.107(zod@4.6.5)
       '@ai-sdk/openai-compatible': 3.0.80(zod@4.6.5)
+      '@anthropic-ai/sdk': 1.3.0(zod@4.6.5)
       '@typesafe-ai/sdk': 0.6.0
       ai: 7.0.155(zod@4.6.5)
       zod: 4.6.5
@@ -15076,9 +15094,9 @@ snapshots:
     transitivePeerDependencies:
       - '@napi-rs/canvas'
 
-  '@wrenautomation/read@0.37.0':
+  '@wrenautomation/read@0.38.0':
     dependencies:
-      '@wrenautomation/models': 0.37.0
+      '@wrenautomation/models': 0.38.0
       entities: 8.1.0
       htmlparser2: 12.0.0
       robots-parser: 3.0.1

@@ -15,6 +15,7 @@ import type { Db } from "@wren/db";
 import {
   askSop,
   BROKEN_DOWN,
+  breakdownAsk,
   breakdownItem,
   breakdowns,
   FACT_CALLS,
@@ -28,6 +29,7 @@ import {
   readItem,
   readVideo,
   recordFactCall,
+  saveBreakdown,
   saveLink,
   seedFilmFacts,
   seedStudySchema,
@@ -35,6 +37,8 @@ import {
   writeAsked,
 } from "@wren/learn";
 import { ITEM_KINDS, type ItemKind, SHOT_INS, SHOT_MOVES, SHOT_TYPES } from "@wren/learn/schema";
+import { loadLlmEnv } from "@wren/llm";
+import { anthropicBatch } from "@wrenautomation/models/batch";
 import { download, labelMatch, labelShots } from "@wrenautomation/read/video";
 import { watchEyes } from "./video-watch.js";
 
@@ -330,35 +334,94 @@ export function registerLearn(
     .description(
       "break read reels and videos down (hook style, beats, call to action); no ids: every one not done yet",
     )
-    .option("--model <name>", "the model", "cohere")
+    .option("--model <name>", "the model (--batch: a Claude model, default haiku)", "cohere")
     .option("--limit <n>", "at most this many", Number, 50)
-    .action(async (ids: string[], o: { model: string; limit: number }) =>
-      json(
-        await inWorkspace(async (db, client) => {
-          const judge = judgeFor(db, o.model);
-          const todo = ids.length
-            ? idsOf(ids)
-            : (
-                await db
-                  .select({ id: items.id })
-                  .from(items)
-                  .leftJoin(breakdowns, eq(breakdowns.itemId, items.id))
-                  .where(
-                    and(
-                      eq(items.client, client),
-                      inArray(items.kind, [...BROKEN_DOWN]),
-                      isNotNull(items.transcript),
-                      isNull(breakdowns.itemId),
-                    ),
-                  )
-                  .orderBy(desc(items.id))
-                  .limit(o.limit)
-              ).map((r) => r.id);
-          const done: number[] = [];
-          for (const id of todo) if (await breakdownItem(db, judge, id)) done.push(id);
-          return { tried: todo.length, done };
-        }),
-      ),
+    .option(
+      "--batch",
+      "send as one Anthropic batch: half price, answers within 24 h; Wren's items only",
+    )
+    .option("--collect <batch>", "save a sent batch's answers; says running until it ends")
+    .action(
+      async (
+        ids: string[],
+        o: { model: string; limit: number; batch?: boolean; collect?: string },
+      ) =>
+        json(
+          await inWorkspace(async (db, client) => {
+            let batcher: ReturnType<typeof anthropicBatch> | null = null;
+            if (o.batch || o.collect) {
+              if (client !== WREN) throw new Error("batches are for Wren's own items for now");
+              loadLlmEnv(settings.llmEnvPath, rootDir);
+              const key = process.env.ANTHROPIC_API_KEY;
+              if (!key) throw new Error("no ANTHROPIC_API_KEY in the model keys file");
+              batcher = anthropicBatch({ key, model: o.model === "cohere" ? "haiku" : o.model });
+              if (o.collect) {
+                const s = await batcher.batchResults(o.collect);
+                if (s.state === "running") return s;
+                const saved: number[] = [];
+                const failed: Array<{ id: number; why: string }> = [];
+                let usd = 0;
+                for (const a of s.answers) {
+                  const id = Number(a.id.replace(/^item-/, ""));
+                  usd += a.reply?.usage.usd ?? 0;
+                  const r = a.reply
+                    ? await saveBreakdown(db, id, a.reply.text)
+                    : (a.error ?? "no reply");
+                  if (r === true) saved.push(id);
+                  else failed.push({ id, why: r });
+                }
+                return { batch: s.id, saved, failed, usd };
+              }
+            }
+            const todo = ids.length
+              ? idsOf(ids)
+              : (
+                  await db
+                    .select({ id: items.id })
+                    .from(items)
+                    .leftJoin(breakdowns, eq(breakdowns.itemId, items.id))
+                    .where(
+                      and(
+                        eq(items.client, client),
+                        inArray(items.kind, [...BROKEN_DOWN]),
+                        isNotNull(items.transcript),
+                        isNull(breakdowns.itemId),
+                      ),
+                    )
+                    .orderBy(desc(items.id))
+                    .limit(o.limit)
+                ).map((r) => r.id);
+            if (batcher) {
+              const asks = (
+                await Promise.all(todo.map(async (id) => ({ id, ask: await breakdownAsk(db, id) })))
+              ).flatMap(({ id, ask }) =>
+                ask
+                  ? [
+                      {
+                        id: `item-${id}`,
+                        request: {
+                          prompt: ask.prompt,
+                          system: ask.system,
+                          maxTokens: ask.maxTokens,
+                        },
+                      },
+                    ]
+                  : [],
+              );
+              if (!asks.length) return { batch: null, items: [] };
+              const { id } = await batcher.batch(asks);
+              return {
+                batch: id,
+                items: asks.map((a) => a.id),
+                collect: `wren learn breakdown --collect ${id}`,
+              };
+            }
+            const judge = judgeFor(db, o.model);
+            const done: number[] = [];
+            for (const id of todo) if (await breakdownItem(db, judge, id)) done.push(id);
+            return { tried: todo.length, done };
+          }),
+        ),
     );
 
   learn

@@ -10,7 +10,7 @@
  */
 import { isVendorStop } from "@wren/core/metered";
 import type { Db } from "@wren/db";
-import { completeAndParse } from "@wren/llm";
+import { completeAndParse, parseModel } from "@wren/llm";
 import { readWatchFacts } from "@wrenautomation/read/video";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -209,6 +209,84 @@ export function factsOf(
   }
 }
 
+type Item = typeof items.$inferSelect & { kind: BrokenDown; readAt: Date; transcript: string };
+
+/** The item when a breakdown is due: read, a kind with a rubric, not done yet. */
+async function dueItem(db: Db, id: number): Promise<Item | null> {
+  const [row] = await db
+    .select({ item: items, done: breakdowns.itemId })
+    .from(items)
+    .leftJoin(breakdowns, eq(breakdowns.itemId, items.id))
+    .where(eq(items.id, id));
+  if (!row || row.done !== null) return null;
+  const { item } = row;
+  if (!isBrokenDown(item.kind) || !item.readAt || !item.transcript) return null;
+  return item as Item;
+}
+
+const BREAKDOWN_TOKENS = 900;
+const systemOf = (kind: BrokenDown) =>
+  `You study how ${ABOUT[kind].thing}s are made. Answer with JSON only.`;
+
+/** A due item's ask, for a caller that sends it later (a batch); null when it isn't due. */
+export async function breakdownAsk(
+  db: Db,
+  id: number,
+): Promise<{ client: string; prompt: string; system: string; maxTokens: number } | null> {
+  const item = await dueItem(db, id);
+  if (!item) return null;
+  return {
+    client: item.client,
+    prompt: breakdownPrompt({
+      kind: item.kind,
+      title: item.title,
+      url: item.url,
+      text: item.transcript,
+    }),
+    system: systemOf(item.kind),
+    maxTokens: BREAKDOWN_TOKENS,
+  };
+}
+
+async function store(
+  db: Db,
+  item: Item,
+  v: Answer,
+  hand?: { facts: Record<string, unknown>; by: BreakdownBy },
+): Promise<boolean> {
+  const kind = item.kind;
+  const facts = hand?.facts ?? factsOf({ kind, text: item.text, transcript: item.transcript }, v);
+  if (!facts) return false;
+  const [row] = await db
+    .insert(breakdowns)
+    .values({
+      itemId: item.id,
+      hookStyle: v.hook_style,
+      hook: v.hook,
+      hookWhy: v.hook_why,
+      topic: v.topic,
+      kind,
+      facts: FACTS[kind].parse(facts) as Record<string, unknown>,
+      by: hand?.by ?? "model",
+      beats: beatsOf(v.beats),
+      ctaKind: v.cta_kind,
+      cta: v.cta_kind === "none" ? null : (v.cta ?? null),
+    })
+    .onConflictDoNothing()
+    .returning();
+  if (row) await factFindings(db, row);
+  return true;
+}
+
+/** A reply to `breakdownAsk` stored as the item's breakdown; why not, when it isn't. */
+export async function saveBreakdown(db: Db, id: number, text: string): Promise<true | string> {
+  const item = await dueItem(db, id);
+  if (!item) return "not due";
+  const v = parseModel(text, answerSchema(item.kind)) as Answer | string;
+  if (typeof v === "string") return v;
+  return (await store(db, item, v)) || "no facts";
+}
+
 /**
  * Break down one read item through its workspace's judge, once. False when it isn't due (a kind
  * with no rubric, unread, done already, a film page with no facts), the judge waits (a client's
@@ -221,27 +299,20 @@ export async function breakdownItem(
   id: number,
   hand?: { facts: Record<string, unknown>; by: BreakdownBy },
 ): Promise<boolean> {
-  const [row] = await db
-    .select({ item: items, done: breakdowns.itemId })
-    .from(items)
-    .leftJoin(breakdowns, eq(breakdowns.itemId, items.id))
-    .where(eq(items.id, id));
-  if (!row || row.done !== null) return false;
-  const { item } = row;
-  if (!isBrokenDown(item.kind) || !item.readAt || !item.transcript) return false;
-  const kind = item.kind;
+  const item = await dueItem(db, id);
+  if (!item) return false;
   const judge = await judgeFor(item.client);
   if (judge.wait || !judge.llm) return false;
   const prompt = breakdownPrompt({
-    kind,
+    kind: item.kind,
     title: item.title,
     url: item.url,
     text: item.transcript,
   });
   for (let i = 0; i < TRIES; i++) {
-    const out = await completeAndParse(judge.llm, prompt, answerSchema(kind), {
-      maxTokens: 900,
-      system: `You study how ${ABOUT[kind].thing}s are made. Answer with JSON only.`,
+    const out = await completeAndParse(judge.llm, prompt, answerSchema(item.kind), {
+      maxTokens: BREAKDOWN_TOKENS,
+      system: systemOf(item.kind),
       name: "learn.breakdown",
     }).catch((err: unknown) => {
       if (isVendorStop(err)) return null;
@@ -250,27 +321,7 @@ export async function breakdownItem(
     if (!out) return false;
     const v = out.parsed as Answer | null;
     if (!v) continue;
-    const facts = hand?.facts ?? factsOf({ kind, text: item.text, transcript: item.transcript }, v);
-    if (!facts) return false;
-    const [row] = await db
-      .insert(breakdowns)
-      .values({
-        itemId: id,
-        hookStyle: v.hook_style,
-        hook: v.hook,
-        hookWhy: v.hook_why,
-        topic: v.topic,
-        kind,
-        facts: FACTS[kind].parse(facts) as Record<string, unknown>,
-        by: hand?.by ?? "model",
-        beats: beatsOf(v.beats),
-        ctaKind: v.cta_kind,
-        cta: v.cta_kind === "none" ? null : (v.cta ?? null),
-      })
-      .onConflictDoNothing()
-      .returning();
-    if (row) await factFindings(db, row);
-    return true;
+    return store(db, item, v, hand);
   }
   return false;
 }

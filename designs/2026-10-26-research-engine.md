@@ -1320,3 +1320,11 @@ autobrowse now takes one preset grammar on every search route (WA-1031): `latest
 - `geminiLadder` keeps 5 passes, waits 2, 4, 8, 16 s, every key per model. `model` names the first choice; the rest of the ladder follows. `rotate` sets the ladder's waits; the rings under it make one pass each, so there is one wait loop.
 - Options for the default: (a) bare `gemini` spec is the ladder, `gemini()` stays one model; (b) `gemini()` with no model is the ladder. Took (a): `gemini()` is the part the ladder is built from, and a caller that names one model wants one model and a fast fail. `gemini:<id>` stays one model.
 - Price rows for 3.6 and 3.7 Flash (0.36.3): $0.75 in, $3.75 out, the same lower rate to 12-31 as 3.8. 3.6 is on Google's page; 3.7 is not, so its row takes the aggregators' quote. Not $0: a free key already reads `usd: 0` and keeps the list price in `listUsd`, and a paid key must show its cost.
+
+## 11-05: batch calls in models (WA-1089, engine 0.38.0)
+
+- autobrowse work, on William's go (async-leverage §3): judgments nobody waits on go as batches. `@wrenautomation/models/batch`: `anthropicBatch({key, model})` → `batch(items)` gives an id, `batchResults(id)` says running or gives each item's `Reply`. Price is half the list (`BATCH_SHARE`), cache tokens included.
+- Options: (a) Anthropic's own SDK (`@anthropic-ai/sdk`, already in the tree) for the batch calls; (b) plain fetch on `/v1/messages/batches`; (c) the AI SDK, which has no batch API. Took (a): it reads the JSONL results and retries; our code only maps `Request` to params (system with a cache breakpoint, text, image, PDF, effort). It sits on a subpath, so a plain models import does not load it.
+- models stores nothing: the caller keeps the batch id, and each item's id comes back on its answer. A batch outlives the process that sent it.
+- First wren caller: `wren learn breakdown --batch` sends Wren's due items; `--collect <id>` saves the answers. Opt in: the default stays one call per item on Cohere (free). Clients' items wait: their judge goes through the models gate and meter, which has no batch path yet.
+- Gemini batch mode (also half price) is the next vendor when a Gemini caller can wait.
