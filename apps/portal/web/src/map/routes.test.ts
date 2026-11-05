@@ -80,17 +80,18 @@ const NODES = [
 describe("appsOnShape", () => {
   it("names each node under every app it opens, at Wren", () => {
     const on = appsOnShape(NODES, "wren");
-    expect(on.get("people")?.map((n) => n.id)).toEqual(["booked", "signed", "pay"]);
+    expect(on.get("people")?.map((n) => n.id)).toEqual(["booked", "signed"]);
+    expect(on.get("office")?.map((n) => n.id)).toEqual(["pay"]);
     expect(on.get("map")?.map((n) => n.id)).toEqual(["signed"]);
-    expect(on.get("campaigns")?.map((n) => n.id)).toEqual(["ads1"]);
-    expect(on.get("inbox")?.map((n) => n.id)).toEqual(["dm1"]);
+    expect(on.has("campaigns")).toBe(false);
+    expect(on.get("today")?.map((n) => n.id)).toEqual(["dm1"]);
     expect(on.get("content")?.map((n) => n.id)).toEqual(["yt"]);
   });
 
   it("reads the client's apps in a client's workspace", () => {
     const on = appsOnShape(NODES, "client");
     expect(on.get("content")?.map((n) => n.id)).toEqual(["yt", "dm1"]);
-    expect(on.get("campaigns")?.map((n) => n.id)).toEqual(["ads1"]);
+    expect(on.has("campaigns")).toBe(false);
     expect(on.get("office")?.map((n) => n.id)).toEqual(["pay"]);
     expect(on.has("map")).toBe(false);
   });
@@ -112,7 +113,7 @@ describe("systemsOf", () => {
     const got = systemsOf(apps, NODES, "wren");
     expect(got.onShape.map((g) => [g.app.id, g.nodes.map((n) => n.id)])).toEqual([
       ["content", ["yt"]],
-      ["people", ["booked", "signed", "pay"]],
+      ["people", ["booked", "signed"]],
     ]);
     expect(got.rest.map((a) => a.id)).toEqual(["handlers", "loops"]);
   });

@@ -16,6 +16,7 @@ import { clientMarketing, content as oldContent } from "./marketing/index.js";
 import { CONVERSATION_TOP } from "./marketing/pages.js";
 import { offers } from "./offers/index.js";
 import { engage } from "./outreach/index.js";
+import { payments } from "./payments/index.js";
 import { clientPeople as oldClientPeople, people as oldPeople } from "./people/index.js";
 import { product } from "./product.js";
 import { reactivation } from "./reactivation/index.js";
@@ -336,6 +337,7 @@ const clientOfficePlace: Module = {
     ...from(work, ["contract", "paperwork"], "Contract"),
     ...from(documents, [{ id: "all", as: "documents" }], "Contract"),
     ...from(account, ["billing"], "Money"),
+    ...from(payments, [{ id: "links", as: "pay-links" }], "Money"),
     ...from(account, ["accounts", "social", "mail"], "Accounts"),
     ...from(account, [{ id: "people", as: "team" }, "grants", "look"], "Team"),
   ],

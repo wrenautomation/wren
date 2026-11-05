@@ -558,7 +558,8 @@ const lineFrom = {
     at: e.at,
     summary: `${e.title ?? "A form"} sent`,
     body: formBody(e.fields, e.pages),
-    link: `/people/submissions/${e.id}`,
+    // No page of its own: the line sits on the person, its fields in the body.
+    link: null,
     source: "site_forms",
     sourceId: e.id,
   }),

@@ -1,10 +1,10 @@
 /**
  * Where a Map node opens: the app that manages it, one table (designs/2026-10-19-business-map.md,
  * "Map page"). A source opens Marketing for its channel, Engage for an outbound DM source, Ads for
- * ads; a step and an offer open the Journeys list at that node; an offer also opens Offers; a plan
- * opens the money (Payments in a client's workspace, Deals at Wren). A content line's stations open
- * Learn's items. `routes.test.ts` checks each
- * target is a real page of a real app.
+ * ads (none while ads are cut); a step and an offer open the Journeys list at that node; an offer
+ * also opens Offers; a plan opens the money (Pay links in a client's workspace, Money at Wren). A
+ * content line's stations open Learn's items. `routes.test.ts` checks each target is a real page of
+ * a real app.
  */
 import type { ShapeNode } from "@wren/pipeline/model";
 import { href, type Params } from "../route.js";
@@ -27,12 +27,10 @@ const DM_CHANNELS = ["dm", "linkedin", "instagram", "x", "facebook", "reddit"];
 
 /** Every target the table can give, by what a node is. The first of each list is the default. */
 export const ROUTES = {
-  ads: {
-    wren: [{ label: "Ads", app: "campaigns", page: "ads" }],
-    client: [{ label: "Ads", app: "campaigns", page: "ads" }],
-  },
+  // Ads cut 11-04 (WA-1067): an ads node opens nothing until ads come back.
+  ads: { wren: [], client: [] },
   dm: {
-    wren: [{ label: "DMs", app: "inbox", page: "dms" }],
+    wren: [{ label: "DMs", app: "today", page: "dms" }],
     client: [{ label: "Content", app: "content", page: "content", channel: true }],
   },
   source: {
@@ -51,7 +49,7 @@ export const ROUTES = {
     client: [{ label: "Journeys", app: "people", page: "journeys", node: true }],
   },
   plan: {
-    wren: [{ label: "Deals", app: "people", page: "deals" }],
+    wren: [{ label: "Money", app: "office", page: "money" }],
     client: [{ label: "Payments", app: "office", page: "pay-links" }],
   },
   content: {

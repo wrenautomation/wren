@@ -474,3 +474,10 @@ None.
     `WREN_SEARCH_ORIGIN` and the search Discord lane are no longer read; delete them from SSM later.
     Restart cursors: SiteRollup reads heat and clicks from id 0 on its first pass (SearchWatch
     never ran that step on prod: no export token).
+  - Dead links fixed (WA-1067): Pay links is placed in a client's Back office › Money
+    (`/office/pay-links`, old `/payments/links` moves there), so the timeline's pay lines and the
+    pay-link approval open. Text lines open the thread in Messages (`/today/messages/text:<id>`).
+    Form and voice lines link nowhere: a form has no page of its own (its fields are the line's
+    body) and voice stays parked. The Map: an ads node opens nothing while ads are cut, a DM node
+    opens Today › DMs, and a Wren plan node opens Back office › Money (Deals is cut). The watch
+    mail view's held link points at `/today/mail`.

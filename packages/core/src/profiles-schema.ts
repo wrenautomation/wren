@@ -285,7 +285,7 @@ export const profileTimeline = pgView("profile_timeline", {
   union all
   select 'sms_message:' || s.id, k.profile_id, coalesce(s.received_at, s.sent_at, s.created_at),
     case when s.direction = 'in' then 'text_received' else 'text_sent' end, 'sms',
-    s.body, s.body, '/marketing/texts/' || c.id, 'sms_messages', null
+    s.body, s.body, '/today/messages/text:' || c.id, 'sms_messages', null
   from profile_keys k
   join sms_contacts c on c.e164 = k.value
   join sms_messages s on s.contact_id = c.id
@@ -293,13 +293,13 @@ export const profileTimeline = pgView("profile_timeline", {
   union all
   select 'sms_call:' || x.id, k.profile_id, x.started_at, 'call_in', 'phone',
     'Called in: ' || coalesce(x.result, 'ringing'), x.text_back_detail,
-    case when x.contact_id is not null then '/marketing/texts/' || x.contact_id end, 'sms_calls', null
+    case when x.contact_id is not null then '/today/messages/text:' || x.contact_id end, 'sms_calls', null
   from profile_keys k
   join sms_calls x on x.from_e164 = k.value
   where k.kind = 'phone'
   union all
   select 'voice_call:' || v.id, k.profile_id, v.started_at, 'voice_call', 'phone',
-    v.direction || ' call: ' || v.outcome, v.message, '/voice/calls/' || v.id, 'voice_calls', null
+    v.direction || ' call: ' || v.outcome, v.message, null, 'voice_calls', null
   from profile_keys k
   join voice_calls v on k.value in (v.from_number, v.to_number)
   where k.kind = 'phone'
@@ -336,7 +336,7 @@ export const profileTimeline = pgView("profile_timeline", {
       'Pages seen first: '
         || (select string_agg(v ->> 'path', ', ' order by n) from jsonb_array_elements(e.pages)
           with ordinality y(v, n))),
-    '/sites/submissions/' || e.id, 'site_forms', null
+    null, 'site_forms', null
   from (
     select e.id, k.profile_id from profile_keys k
       join site_forms e on lower(e.fields ->> 'email') = k.value where k.kind = 'email'
