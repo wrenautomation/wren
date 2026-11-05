@@ -8,7 +8,6 @@ import { makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { collect } from "./collect.js";
 
-export const COLLECT_KEY = "all";
 const EVERY_MS = 6 * 3_600_000;
 
 type Stats = Awaited<ReturnType<typeof collect>>;
