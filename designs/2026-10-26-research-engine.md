@@ -1363,3 +1363,13 @@ Built:
 Live, static only, 11-05: Stripe #533afd and sohne-var; Mailchimp Means Web and Graphik Web, its logo; Career Clarity Labs DM Sans and navy; Allbirds Geograph and its SVG logo; Basecamp Graphik. Weak: Linear (46 sheets, past the cap: nothing), Notion and Vercel (a counted hue, low confidence). Blue Bottle came through the ladder and the render rung.
 
 Next: autobrowse builds `web GET /brand` to the `BrandProbe` contract (WA-1097). Linear-style sites wait on it; a higher sheet cap was rejected (one polite second per sheet per host).
+
+## 11-05: Sonnet is the default model for judgments (0.43.0)
+
+William: API spend is far under budget, so judgments move from Haiku to Sonnet.
+
+- `birdwatch` `--model` now defaults to `anthropic:sonnet` (was `anthropic:haiku`). It covers triage, extract, check and group.
+- Back to Haiku for one run: `--model anthropic:haiku`, or set `BIRDWATCH_MODEL`.
+- Cost: Sonnet 5.5 is $2/$10 per million tokens against Haiku 5.5 at $0.1/$0.5. All 32 runs so far cost $4.62 ($3.56 of it Haiku); on Sonnet about $70. A typical run moves from cents to $1–3; the largest to about $10.
+- Open option, not yet put to William: Sonnet for `check` only and Haiku for the bulk (extract is most of the tokens). Offer it if spend becomes a concern.
+- The portal chat agent runs the pinned package, so it stays on Haiku until wren's pin moves to 0.43.0.
