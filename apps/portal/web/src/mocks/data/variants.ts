@@ -2,9 +2,22 @@
 import type { Answers } from "../api.js";
 import { ago } from "./shell.js";
 
+/** Three cuts of one 12 s test footage (its counter shows the footage second); spans match the files. */
+const SPANS = [
+  [
+    { s: 0, e: 4 },
+    { s: 6, e: 10 },
+  ],
+  [{ s: 2, e: 8 }],
+  [
+    { s: 9, e: 10.5 },
+    { s: 0, e: 5 },
+  ],
+];
 const clip = (i: number) => ({
   mediaUrl: `/variants/cut-${i}.mp4`,
   posterUrl: `/variants/cut-${i}.jpg`,
+  source: { ref: "studio:9", spans: SPANS[i - 1] },
 });
 const base = { media: null, poster: null, keptAt: null, notes: [] as unknown[] };
 
@@ -105,9 +118,63 @@ const COPY = {
   ],
 };
 
+/** Email live rows: one sample's rates per segment, Wilson range and P(best) as the server sends them. */
+const rate = (wins: number, of: number, lo: number, hi: number, pBest: number | null) => ({
+  wins,
+  of,
+  rate: of ? wins / of : null,
+  lo,
+  hi,
+  pBest,
+});
+const mail = (
+  sample: number,
+  segment: string,
+  sends: number,
+  replies: [number, number, number, number],
+  booked: [number, number, number, number],
+) => ({
+  sample,
+  channel: "email",
+  segment,
+  ships: 1,
+  totals: { sends, replies: replies[0], booked: booked[0] },
+  means: {},
+  rates: {
+    replies: rate(replies[0], sends, replies[1], replies[2], replies[3]),
+    booked: rate(booked[0], sends, booked[1], booked[2], booked[3]),
+  },
+});
+const LIVE = {
+  segments: ["all", "niche:bakeries", "niche:cafes"],
+  rows: [
+    mail(22, "all", 420, [19, 0.029, 0.07, 0.81], [4, 0.0037, 0.024, 0.62]),
+    mail(24, "all", 410, [11, 0.015, 0.047, 0.17], [2, 0.0013, 0.017, 0.31]),
+    mail(26, "all", 380, [6, 0.0073, 0.034, 0.02], [1, 0.0005, 0.015, 0.07]),
+    mail(22, "niche:bakeries", 210, [13, 0.036, 0.1, 0.88], [3, 0.0049, 0.041, 0.6]),
+    mail(24, "niche:bakeries", 200, [5, 0.011, 0.057, 0.1], [1, 0.0009, 0.028, 0.3]),
+    mail(26, "niche:bakeries", 190, [3, 0.0054, 0.045, 0.02], [0, 0, 0.02, 0.1]),
+    mail(22, "niche:cafes", 210, [6, 0.013, 0.061, 0.52], [1, 0.0008, 0.026, 0.4]),
+    mail(24, "niche:cafes", 210, [6, 0.013, 0.061, 0.44], [1, 0.0008, 0.026, 0.4]),
+    mail(26, "niche:cafes", 190, [3, 0.0054, 0.045, 0.04], [1, 0.0009, 0.029, 0.2]),
+  ],
+  rates: {
+    post: [{ name: "engaged", wins: "engaged", of: "views" }],
+    site: [{ name: "forms", wins: "form", of: "view" }],
+    email: [
+      { name: "replies", wins: "replies", of: "sends" },
+      { name: "booked", wins: "booked", of: "sends" },
+    ],
+  },
+};
+
 const SUBJECT = {
   subject: { ...COPY.subject, state: "open", samples: 12, kept: 1, toPick: 4 },
-  leaders: [{ sample: 22, strength: 2.4, se: 0.6 }],
+  leaders: [
+    { sample: 22, strength: 2.4, se: 0.6 },
+    { sample: 24, strength: 1.1, se: 0.5 },
+  ],
+  live: LIVE,
   guides: [
     {
       id: 1,

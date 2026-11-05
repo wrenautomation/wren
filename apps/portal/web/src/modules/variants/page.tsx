@@ -5,6 +5,7 @@
  * test. Catalog: what we kept. The agent writes through `wren variants`; this page only judges.
  */
 import { Button, cx, Empty, Icon, LoadFailed, Loading, Seg, Textarea, useEdit } from "@wren/ui";
+import { footageLength } from "@wren/variants/sync";
 import { useEffect, useMemo, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -18,6 +19,7 @@ import {
   type Sample,
   SampleBody,
 } from "./marks.js";
+import { FootageLanes, type SyncMode, Together, TogetherProvider } from "./together.js";
 
 type Verdict = Sample["verdict"];
 interface Open {
@@ -64,6 +66,30 @@ interface SubjectView {
     samples: (Sample & { change: string | null })[];
   }[];
   leaders: { sample: number; strength: number; se: number }[];
+  live?: Live;
+}
+type Channel = "post" | "site" | "email";
+interface LiveRate {
+  wins: number;
+  of: number;
+  rate: number | null;
+  lo: number;
+  hi: number;
+  pBest: number | null;
+}
+interface LiveRow {
+  sample: number;
+  channel: Channel;
+  segment: string;
+  ships: number;
+  totals: Record<string, number>;
+  means: Record<string, number>;
+  rates: Record<string, LiveRate>;
+}
+interface Live {
+  segments: string[];
+  rows: LiveRow[];
+  rates: Record<Channel, { name: string; wins: string; of: string }[]>;
 }
 interface Kept {
   sample: Sample;
@@ -162,6 +188,19 @@ function Batch({
   const [err, setErr] = useState<string | null>(null);
   const judged = open.samples.filter((s) => s.verdict).length;
   const wide = WIDE_KINDS.includes(open.subject.kind);
+  const group = useMemo(() => new Together(), []);
+  const [mode, setMode] = useState<SyncMode>("off");
+  useEffect(() => group.setMode(mode), [group, mode]);
+  const videos = open.subject.kind === "video" ? open.samples.filter((s) => s.mediaUrl) : [];
+  const sources = videos.flatMap((s) => (s.source ? [s.source] : []));
+  // same moment needs every cut's spans over one footage
+  const oneFootage =
+    sources.length === videos.length && new Set(sources.map((x) => x.ref)).size === 1;
+  const modes = [
+    { value: "off", label: "Apart" },
+    ...(oneFootage ? [{ value: "moment", label: "Same moment" }] : []),
+    { value: "clock", label: "Same clock" },
+  ] as { value: SyncMode; label: string }[];
   const send = async () => {
     setBusy(true);
     setErr(null);
@@ -187,16 +226,43 @@ function Batch({
           line, drag a box or mark a moment to say where.
         </p>
       </header>
-      <div
-        className={cx(
-          "grid gap-4",
-          wide ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1 md:grid-cols-2",
-        )}
-      >
-        {open.samples.map((s, i) => (
-          <SampleCard key={s.id} n={i + 1} kind={open.subject.kind} sample={s} patch={patch} />
-        ))}
-      </div>
+      {videos.length > 1 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <Seg dense label="Play together" items={modes} value={mode} onChange={setMode} />
+            <span className="text-[12px] text-(--ui-ink-3)">
+              {mode === "moment"
+                ? "Play or seek any cut: the others jump to the same moment of the footage."
+                : mode === "clock"
+                  ? "Play or seek any cut: the others match its second."
+                  : oneFootage
+                    ? `${videos.length} cuts of one footage. Play them together to compare a moment.`
+                    : "Play them together to compare."}
+            </span>
+          </div>
+          {mode === "moment" && (
+            <FootageLanes
+              group={group}
+              length={footageLength(sources)}
+              cuts={open.samples.flatMap((s, i) =>
+                s.source ? [{ n: i + 1, spans: s.source.spans }] : [],
+              )}
+            />
+          )}
+        </div>
+      )}
+      <TogetherProvider value={group}>
+        <div
+          className={cx(
+            "grid gap-4",
+            wide ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1 md:grid-cols-2",
+          )}
+        >
+          {open.samples.map((s, i) => (
+            <SampleCard key={s.id} n={i + 1} kind={open.subject.kind} sample={s} patch={patch} />
+          ))}
+        </div>
+      </TogetherProvider>
       <div className="-mx-1 flex flex-col gap-2 border-t border-(--ui-hair) bg-(--ui-paper) p-3 md:sticky md:bottom-0 md:z-10 md:flex-row md:items-end md:pr-16">
         <Textarea
           {...note.field}
@@ -456,6 +522,7 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
           </div>
         </section>
       )}
+      {v.live && v.live.rows.length > 0 && <LiveView live={v.live} view={v} />}
       <section className="flex flex-col gap-2">
         <h3 className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">Guides</h3>
         {guides.map((g) => (
@@ -542,6 +609,160 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
         ))}
       </section>
     </div>
+  );
+}
+
+const CHANNEL_LABEL: Record<Channel, string> = { post: "Posts", site: "Pages", email: "Email" };
+const RATE_LABEL: Record<string, string> = {
+  engaged: "Engaged",
+  likes: "Liked",
+  comments: "Commented",
+  shares: "Shared",
+  follows: "Followed",
+  clicks: "Clicked",
+  forms: "Sent the form",
+  books: "Booked",
+  replies: "Replied",
+  booked: "Booked",
+};
+const OF_LABEL: Record<string, string> = { views: "views", view: "visits", sends: "sends" };
+const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
+const segLabel = (seg: string) => {
+  if (seg === "all") return "Everyone";
+  const [dim, ...rest] = seg.split(":");
+  const val = rest.join(":");
+  return dim === "source" || dim === "campaign" ? `${cap(dim)}: ${val}` : cap(val);
+};
+const pct1 = (n: number) => `${(n * 100).toFixed(n < 0.1 ? 1 : 0)}%`;
+
+/**
+ * What the market says, beside his taste: each shipped sample's rate in one segment, its 95%
+ * range, and the chance it is the best of those shipped there.
+ */
+function LiveView({ live, view }: { live: Live; view: SubjectView }) {
+  const channels = [...new Set(live.rows.map((r) => r.channel))];
+  const [channel, setChannel] = useState<Channel>(channels[0] as Channel);
+  const ch = channels.includes(channel) ? channel : (channels[0] as Channel);
+  const segments = live.segments.filter((g) =>
+    live.rows.some((r) => r.channel === ch && r.segment === g),
+  );
+  const [segment, setSegment] = useState("all");
+  const seg = segments.includes(segment) ? segment : (segments[0] ?? "all");
+  const rates = live.rates[ch] ?? [];
+  const [rateName, setRate] = useState<string>(rates[0]?.name ?? "");
+  const rate = rates.find((r) => r.name === rateName) ?? rates[0];
+  const n = new Map<number, { verdict: Verdict; taste: number | null }>();
+  for (const b of view.batches)
+    for (const x of b.samples) n.set(x.id, { verdict: x.verdict, taste: null });
+  view.leaders.forEach((l, i) => {
+    const cur = n.get(l.sample);
+    if (cur) cur.taste = i + 1;
+  });
+  if (!rate) return null;
+  const rows = live.rows
+    .filter((r) => r.channel === ch && r.segment === seg)
+    .sort((a, b) => (b.rates[rate.name]?.rate ?? -1) - (a.rates[rate.name]?.rate ?? -1));
+  const top = Math.max(0.01, ...rows.map((r) => r.rates[rate.name]?.hi ?? 0)) * 1.05;
+  const chips = <T extends string>(
+    items: readonly T[],
+    on: T,
+    set: (x: T) => void,
+    label: (x: T) => string,
+  ) => (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((x) => (
+        <Button
+          key={x}
+          size="dense"
+          tone={x === on ? "primary" : "secondary"}
+          onClick={() => set(x)}
+        >
+          {label(x)}
+        </Button>
+      ))}
+    </div>
+  );
+  return (
+    <section className="flex flex-col gap-2.5">
+      <div>
+        <h3 className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">Live</h3>
+        <p className="m-0 text-[12px] text-(--ui-ink-3)">
+          Real numbers from where each sample shipped. The band is where the true rate sits, 95%
+          sure. Best is the chance it beats the others here.
+        </p>
+      </div>
+      {channels.length > 1 && chips(channels, ch, setChannel, (c) => CHANNEL_LABEL[c])}
+      {chips(segments, seg, setSegment, segLabel)}
+      {rates.length > 1 &&
+        chips(
+          rates.map((r) => r.name),
+          rate.name,
+          setRate,
+          (r) => RATE_LABEL[r] ?? cap(r),
+        )}
+      <ul className="m-0 flex list-none flex-col p-0">
+        {rows.map((r) => {
+          const x = r.rates[rate.name];
+          const mine = n.get(r.sample);
+          const watched = r.means.avg_view_pct;
+          return (
+            <li
+              key={r.sample}
+              className="flex flex-col gap-1.5 border-b border-(--ui-hair) py-2.5 md:flex-row md:items-center md:gap-3"
+            >
+              <div className="flex items-center gap-2 md:w-40 md:shrink-0">
+                <span className="text-[13px] font-semibold text-(--ui-ink)">#{r.sample}</span>
+                {mine?.verdict && (
+                  <span
+                    className={cx(
+                      "rounded-full border px-2 py-0.5 text-[11px]",
+                      VERDICT_ON[mine.verdict],
+                    )}
+                  >
+                    {cap(mine.verdict)}
+                  </span>
+                )}
+                {mine?.taste != null && (
+                  <span className="text-[11px] text-(--ui-ink-3)">your #{mine.taste}</span>
+                )}
+              </div>
+              <div className="relative h-3 w-full shrink-0 rounded-full bg-(--ui-tile) md:w-auto md:flex-1">
+                {x && x.of > 0 && (
+                  <>
+                    <span
+                      className="absolute top-0 h-3 rounded-full bg-(--ui-accent)/30"
+                      style={{
+                        left: `${(x.lo / top) * 100}%`,
+                        width: `${(Math.max(0.002, x.hi - x.lo) / top) * 100}%`,
+                      }}
+                    />
+                    <span
+                      className="absolute top-0 size-3 -translate-x-1/2 rounded-full bg-(--ui-accent)"
+                      style={{ left: `${((x.rate ?? 0) / top) * 100}%` }}
+                    />
+                  </>
+                )}
+              </div>
+              <div className="text-[12px] text-(--ui-ink-2) md:w-56 md:shrink-0 md:text-right">
+                {x && x.of > 0 ? (
+                  <>
+                    <span className="font-semibold text-(--ui-ink)">{pct1(x.rate ?? 0)}</span>
+                    {` · ${x.wins} of ${x.of} ${OF_LABEL[rate.of] ?? rate.of}`}
+                    <span className="block text-(--ui-ink-3)">
+                      {`range ${pct1(x.lo)}–${pct1(x.hi)}`}
+                      {x.pBest != null ? ` · best ${pct(x.pBest)}` : ""}
+                      {watched != null ? ` · watched ${pct(watched / 100)}` : ""}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-(--ui-ink-3)">No {OF_LABEL[rate.of] ?? rate.of} yet</span>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

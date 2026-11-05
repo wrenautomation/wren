@@ -4,7 +4,9 @@
  * Boxes are fractions of the shown frame, so they hold at any width.
  */
 import { Button, cx, Input } from "@wren/ui";
+import type { Source } from "@wren/variants/sync";
 import { type PointerEvent, type ReactNode, useRef, useState } from "react";
+import { useTogether } from "./together.js";
 
 export type Box = { x: number; y: number; w: number; h: number };
 export type Anchor =
@@ -26,6 +28,8 @@ export interface Sample {
   verdict: "amazing" | "good" | "bad" | null;
   keptAt: string | null;
   notes: Note[];
+  /** A video's footage spans: lets cuts of one footage play in step. */
+  source?: Source | null;
 }
 
 export const clock = (s: number) => {
@@ -217,6 +221,7 @@ function VideoBody({
   onAnchor: (a: Anchor) => void;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const cut = useTogether(sample.id, ref, sample.source?.spans ?? null);
   const [dur, setDur] = useState(0);
   const [start, setStart] = useState<number | null>(null);
   const [t, setT] = useState(0);
@@ -246,6 +251,11 @@ function VideoBody({
           onTimeUpdate={(e) => setT(e.currentTarget.currentTime)}
           onSeeked={(e) => setT(e.currentTarget.currentTime)}
         />
+        {cut && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/60 text-[13px] font-semibold text-white">
+            Cut here
+          </div>
+        )}
         <BoxLayer
           on={boxing}
           boxes={shownBoxes}
