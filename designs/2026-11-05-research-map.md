@@ -65,11 +65,11 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
 
 ## Done
 
-1. `mapOf` in the engine: tests for stable positions (same records, same map; a new run moves no old node) and hubs.
-2. `GET /map` and `birdwatch map --json` over every ledger folder (`--also`).
-3. `MapCanvas` in `@wren/ui` graph kit; a story with 100k synthetic nodes holds 60 FPS on this Mac (measured, not guessed).
-4. Research Map view: page story on a real-shaped fixture; search, hover, click preview (page, YouTube, run), double-click focus, open in a new tab.
-5. The ui-design proof step: 390 and 1280, both looks.
+1. [done] `mapOf` in the engine: tests for stable positions (same records, same map; a new run moves no old node) and hubs.
+2. [done] `GET /map` and `birdwatch map --json` over every ledger folder (`--also`).
+3. [done] `MapCanvas` in `@wren/ui` graph kit; a story with 100k synthetic nodes holds 60 FPS on this Mac (measured, not guessed).
+4. [done] Research Map view: page story on a real-shaped fixture; search, hover, click preview (page, YouTube, run), double-click focus, open in a new tab.
+5. [done] The ui-design proof step: 390 and 1280, both looks.
 6. Fly-through story for the demo.
 
 ## Log
@@ -82,3 +82,5 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Hover fade as a state on every dot: 1.2–1.4 s per hover. Replaced by a veil: one quad in the ground colour, drawn between the unlit and lit depth layers. Hover now changes only the lit dots: no frame over 17 ms in a hover sweep, 60 FPS in motion.
   - Trap: sigma leaves GL blending off between programs. A custom layer must enable it, or it overwrites what is under it.
 - 11-05: Open with William: the map replaces the runs list as the Research landing, with search (recommended), or the runs list stays as a tab. The run view stays either way.
+- 11-05: wren e006fd7be: Research › Map, before Runs. Runs stays: it hosts the run view. The pick lives in `?at=`; search flies to the island at a ratio from the map's extent. Engine 0.40.0 on npm; wren pins it (011621ea9).
+- 11-05: labels under the veil overlapped. While a dot is lit, only forced labels draw: the label size threshold is set in place, because `setSetting` reprocesses every dot. Reaches into sigma's private `internals`; safe while sigma is pinned at 4.0.4. Hover sweep at 100k after: p50 16.7 ms, p99 16.8 ms.
