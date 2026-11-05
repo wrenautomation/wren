@@ -1,7 +1,7 @@
 /**
- * The sidebar is the product shell (designs/2026-11-04-portal-places.md): fixed places, then the
- * products, then the core. Each place is one app (`modules/places.ts`). An app no place names
- * lands under Other; a parked app shows nowhere, yet its routes and ⌘K work.
+ * The sidebar is the places (designs/2026-11-04-portal-places.md, Lean places). Each place is one
+ * app (`modules/places.ts`). An app no place names lands under Other; a parked app shows nowhere,
+ * yet its routes and ⌘K work.
  */
 import type { IconName } from "@wren/ui";
 
@@ -18,21 +18,17 @@ export interface Area {
 export const PLACES = [
   { label: "Map", app: "map", area: "fixed" },
   { label: "Today", app: "today", area: "fixed" },
-  { label: "Results", app: "results", area: "fixed" },
-  { label: "Content", app: "content", area: "products" },
-  { label: "Outbound", app: "outbound", area: "products" },
-  { label: "Reactivation", app: "reactivation", area: "products" },
-  { label: "Research", app: "research", area: "products" },
-  { label: "Project", app: "project", area: "core" },
-  { label: "Clients", app: "clients", area: "core" },
+  { label: "Project", app: "project", area: "fixed" },
+  { label: "Campaigns", app: "campaigns", area: "work" },
+  { label: "Research", app: "research", area: "work" },
   { label: "People", app: "people", area: "core" },
   { label: "Back office", app: "office", area: "core" },
 ] as const;
 
-/** The sidebar's areas: only Products is named; the others read by place. */
+/** The sidebar's areas, unnamed: each reads by its places. */
 export const AREAS = [
   { id: "fixed", label: "" },
-  { id: "products", label: "Products" },
+  { id: "work", label: "" },
   { id: "core", label: "" },
 ] as const;
 
@@ -69,10 +65,10 @@ export function sidebarOf<T extends { id: string; parked?: true | undefined }>(
 type DockPick<T, P> = { label: string; app: T } | { pin: P };
 
 /** The places a phone docks after home, in order (the design's dock). */
-const DOCKED = ["today", "content", "outbound", "people"];
+const DOCKED = ["today", "campaigns", "research", "people"];
 
 /**
- * A phone's tabs after home: Today, Content, Outbound, People, then the person's first pin. A pin
+ * A phone's tabs after home: Today, Campaigns, Research, People, then the person's first pin. A pin
  * that does not open (moved, or a page they may not see) is not in `pins`, so the first one that
  * opens docks. `size` counts home's tab too.
  */

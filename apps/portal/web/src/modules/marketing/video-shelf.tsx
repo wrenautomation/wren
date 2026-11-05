@@ -1,7 +1,7 @@
 /**
  * Studio's Videos (designs/2026-10-15-studio-editor.md): the newest recordings and rendered videos
  * as cards (first frame, length, state, where each went), and the editor opened right there in
- * Studio (`?video=<id>`), the Recordings page's own record body at full width. `/content/videos`
+ * Studio (`?video=<id>`), the Recordings page's own record body at full width. `/campaigns/videos`
  * stays: its links still open the same editor.
  */
 import type { Thumb } from "@wren/core/records";
@@ -16,7 +16,7 @@ import { type ShelfRow, shelfState, wentTo } from "./video-shelf-state.js";
 
 /** The cards Studio shows; All recordings lists the rest. */
 const SHELF_MAX = 12;
-const STUDIO = "/content/studio";
+const STUDIO = "/campaigns/studio";
 
 /** The Recordings page, as the module defines it: Studio opens its records in place. */
 let videos: ListPage | null = null;
@@ -80,7 +80,7 @@ export function VideoShelf({ params }: { params: URLSearchParams }) {
         </span>
         <a
           className="ml-auto text-[13px] font-medium text-(--ui-link) no-underline hover:underline"
-          href="/content/videos"
+          href="/campaigns/videos"
         >
           All recordings
         </a>
@@ -151,7 +151,7 @@ export function StudioVideo({ id, ...props }: PageProps & { id: string }) {
     <TemplatePage
       {...props}
       page={videos}
-      path="/content/videos"
+      path="/campaigns/videos"
       id={id}
       app="marketing"
       at={STUDIO}

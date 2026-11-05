@@ -83,15 +83,13 @@ describe("appsOnShape", () => {
     expect(on.get("people")?.map((n) => n.id)).toEqual(["booked", "signed"]);
     expect(on.get("office")?.map((n) => n.id)).toEqual(["pay"]);
     expect(on.get("map")?.map((n) => n.id)).toEqual(["signed"]);
-    expect(on.has("campaigns")).toBe(false);
     expect(on.get("today")?.map((n) => n.id)).toEqual(["dm1"]);
-    expect(on.get("content")?.map((n) => n.id)).toEqual(["yt"]);
+    expect(on.get("campaigns")?.map((n) => n.id)).toEqual(["yt"]);
   });
 
   it("reads the client's apps in a client's workspace", () => {
     const on = appsOnShape(NODES, "client");
-    expect(on.get("content")?.map((n) => n.id)).toEqual(["yt", "dm1"]);
-    expect(on.has("campaigns")).toBe(false);
+    expect(on.get("campaigns")?.map((n) => n.id)).toEqual(["yt", "dm1"]);
     expect(on.get("office")?.map((n) => n.id)).toEqual(["pay"]);
     expect(on.has("map")).toBe(false);
   });
@@ -103,7 +101,7 @@ describe("appsOnShape", () => {
 
 describe("systemsOf", () => {
   const apps = [
-    { id: "content" },
+    { id: "campaigns" },
     { id: "people" },
     { id: "handlers" },
     { id: "loops" },
@@ -112,7 +110,7 @@ describe("systemsOf", () => {
   it("splits apps into on the shape and not, naming the nodes", () => {
     const got = systemsOf(apps, NODES, "wren");
     expect(got.onShape.map((g) => [g.app.id, g.nodes.map((n) => n.id)])).toEqual([
-      ["content", ["yt"]],
+      ["campaigns", ["yt"]],
       ["people", ["booked", "signed"]],
     ]);
     expect(got.rest.map((a) => a.id)).toEqual(["handlers", "loops"]);
@@ -120,7 +118,7 @@ describe("systemsOf", () => {
   it("puts every app in Not on the shape when there are no nodes", () => {
     const got = systemsOf(apps, [], "wren");
     expect(got.onShape).toEqual([]);
-    expect(got.rest.map((a) => a.id)).toEqual(["content", "people", "handlers", "loops"]);
+    expect(got.rest.map((a) => a.id)).toEqual(["campaigns", "people", "handlers", "loops"]);
   });
   it("puts a parked app in neither group, even when a node opens it", () => {
     const got = systemsOf([{ id: "people", parked: true as const }], NODES, "wren");

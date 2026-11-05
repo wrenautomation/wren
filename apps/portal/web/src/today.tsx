@@ -238,7 +238,7 @@ function WriteMark({ l }: { l: WriteLine }) {
 
 /** Where to make the next piece for a platform's line. */
 const writeAt = (l: WriteLine) =>
-  l.id === "autopilot" ? "/content/plan" : makeAt(l.next.piece, [l.next]).href;
+  l.id === "autopilot" ? "/campaigns/plan" : makeAt(l.next.piece, [l.next]).href;
 
 const MET = "met";
 
@@ -266,7 +266,7 @@ function WriteList({ narrow }: { narrow: boolean }) {
       note="Today's quota, by platform"
       count={plan.data && !plan.error ? short.length : undefined}
       actions={
-        <a className={MORE} href="/content/plan">
+        <a className={MORE} href="/campaigns/plan">
           Plan
         </a>
       }

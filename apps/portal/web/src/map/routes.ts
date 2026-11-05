@@ -1,10 +1,10 @@
 /**
  * Where a Map node opens: the app that manages it, one table (designs/2026-10-19-business-map.md,
- * "Map page"). A source opens Marketing for its channel, Engage for an outbound DM source, Ads for
- * ads (none while ads are cut); a step and an offer open the Journeys list at that node; an offer
- * also opens Offers; a plan opens the money (Pay links in a client's workspace, Money at Wren). A
- * content line's stations open Learn's items. `routes.test.ts` checks each target is a real page of
- * a real app.
+ * "Map page"). A source opens Campaigns › Content for its channel, Today › DMs for an outbound DM
+ * source, Ads for ads (none while ads are cut); a step and an offer open the Journeys list at that
+ * node; an offer also opens Offers; a plan opens the money (Pay links in a client's workspace,
+ * Money at Wren). A content line's stations open Campaigns › Content. `routes.test.ts` checks each
+ * target is a real page of a real app.
  */
 import type { ShapeNode } from "@wren/pipeline/model";
 import { href, type Params } from "../route.js";
@@ -31,11 +31,11 @@ export const ROUTES = {
   ads: { wren: [], client: [] },
   dm: {
     wren: [{ label: "DMs", app: "today", page: "dms" }],
-    client: [{ label: "Content", app: "content", page: "content", channel: true }],
+    client: [{ label: "Content", app: "campaigns", page: "content", channel: true }],
   },
   source: {
-    wren: [{ label: "Content", app: "content", page: "content", channel: true }],
-    client: [{ label: "Content", app: "content", page: "content", channel: true }],
+    wren: [{ label: "Content", app: "campaigns", page: "content", channel: true }],
+    client: [{ label: "Content", app: "campaigns", page: "content", channel: true }],
   },
   step: {
     wren: [{ label: "Journeys", app: "people", page: "journeys", node: true }],
@@ -53,8 +53,8 @@ export const ROUTES = {
     client: [{ label: "Payments", app: "office", page: "pay-links" }],
   },
   content: {
-    wren: [{ label: "Content", app: "content", page: "content" }],
-    client: [{ label: "Content", app: "content", page: "content" }],
+    wren: [{ label: "Content", app: "campaigns", page: "content" }],
+    client: [{ label: "Content", app: "campaigns", page: "content" }],
   },
 } as const satisfies Record<string, Record<Place, readonly Target[]>>;
 

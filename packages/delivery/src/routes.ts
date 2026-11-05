@@ -187,10 +187,9 @@ export const PULSE_WORDS: Readonly<Record<number, string>> = {
 /** A project's home: every offer's plan is in Project (designs/2026-11-04-portal-places.md). */
 export const PLAN_HOME = "project";
 
-/** Plan pages outside Project: what waits on the client is Today's, the board Results', paperwork Back office's. */
+/** Plan pages outside Project: what waits on the client is Today's, paperwork Back office's. */
 const PLAN_AT: Readonly<Record<string, string>> = {
   "needs-you": "/today/needs-you",
-  results: "/results/board",
   paperwork: "/office/paperwork",
   contract: "/office/contract",
 };

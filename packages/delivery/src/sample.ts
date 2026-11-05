@@ -30,8 +30,8 @@ const UPDATES: [number, string][] = [
 ];
 /** [days after the start, title, demo page it links to, step]. */
 const DELIVERABLES: [number, string, string, string][] = [
-  [4, "Cleaned contact list", "/reactivation/people", "set-up"],
-  [12, "The campaign, in your recruiter's voice", "/reactivation/emails", "approve"],
+  [4, "Cleaned contact list", "/campaigns/people", "set-up"],
+  [12, "The campaign, in your recruiter's voice", "/campaigns/emails", "approve"],
 ];
 /** A thread under the first week's numbers: [days after the start, hour, from Wren, text]. */
 const THREAD: [number, number, boolean, string][] = [

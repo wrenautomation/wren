@@ -30,9 +30,9 @@ const tests: Test[] = [
       for (const p of ["engage", "invites", "threads", "dm-copy"])
         assert.ok((await navLink(page, `/campaigns/${p}`).count()) > 0, `Campaigns links ${p}`);
       await page.goto(`${url}/content`);
-      await navLink(page, "/content/").first().waitFor();
+      await navLink(page, "/campaigns/").first().waitFor();
       for (const p of ["engage", "dms", "invites", "people"])
-        assert.equal(await navLink(page, `/content/${p}`).count(), 0, `Content drops ${p}`);
+        assert.equal(await navLink(page, `/campaigns/${p}`).count(), 0, `Content drops ${p}`);
       await context.close();
     },
   ],
@@ -44,7 +44,7 @@ const tests: Test[] = [
       await at(page, "/today/dms?view=all");
       await page.getByText("Dana Rivera").first().waitFor();
       await page.goto(`${url}/outreach/invites?view=proposed`);
-      await at(page, "/outbound/invites?view=proposed");
+      await at(page, "/campaigns/invites?view=proposed");
       await page.getByText("Alex Sample").first().waitFor();
       // Back goes past the redirect, to the page before it.
       await page.goBack();

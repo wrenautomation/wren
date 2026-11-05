@@ -1,6 +1,6 @@
-# Portal places: a product shell
+# Portal places: lean places
 
-2026-11-04. Status: layout agreed (William, 11-04). The picks under "Open picks" wait on him.
+2026-11-04. Status: lean places built (William, 11-04 late). The product shell is a mock only. The picks under "Open picks" wait on him.
 Builds on `2026-11-02-campaigns.md` (a campaign is a group on the metro map),
 `2026-11-02-starling.md` (the marketing product), `2026-10-06-scoped-access.md` (grants) and the
 WA-1043 pause (40 loops stopped 11-03). An adversarial pass (Sonnet, 11-04) checked this doc
@@ -17,7 +17,37 @@ portal about 6 times. His console calls in the last 14 days: approve invites 60,
 content waiting 22, mark read 17, the rest under 10. The agent and the loops do the work through
 the CLI. So the portal is where a person sees, approves and annotates.
 
-## Product shell (supersedes the six places, 11-04 night)
+## Lean places (supersedes the product shell, 11-04 late)
+
+William, 11-04: "i always wanted a campaign place. why is clients in its own place?" Then: "what
+definitely needs to be well made ... is the research ... Birdwatch handles all the research ...
+Campaigns ... mainly for inbound and outreach ... I'm not even sure about the split between
+content and outbound ... Oftentimes we're going to be doing outbound off of our content. I have no
+clue why you added a results thing ... Everything else you can just fold in ... Right now we need
+to get this UI unified ASAP, and the goal is to record a video for Birdwatch."
+
+The product shell (below) dropped his Campaigns place, made Clients a place and added Results.
+That was a silent change to his 18:47 design. Lean places put it back and cut further.
+
+Team sidebar: Map, Today · Campaigns, Research · People, Back office.
+Client sidebar: Today, Project · Campaigns · People, Back office.
+
+- **Campaigns** holds every channel: Overview (the old Results board), Content (plan, studio,
+  posts, voice and facts) and Outreach (engage, conversations, cold email, inboxes). Content and
+  Outbound are one place because outbound runs off the content. A client's Campaigns holds its
+  Reactivation run and its posts.
+- **Research** is Birdwatch's own place. It gets the most care: the video shows it.
+- **People** holds Clients as a tab (his 18:47 words: "Clients is obviously also under people").
+- **Today** keeps Calendar as a tab ("Calendar, I think we can keep calendar").
+- **Results** goes. Its board is Campaigns › Overview. A client's results are Project › Results.
+- `modules/product.ts` goes: no page used it.
+- Old addresses land: `/content/*`, `/outbound/*`, `/engage/*`, `/outreach/*`, `/marketing/*`,
+  `/reactivation/*`, `/results/*` go to `/campaigns/*`; `/clients/*` to `/people/clients`.
+- The product shell stays a direction, not a build. It shows as a static mock in Back office ›
+  Experiments, so William can see it without a second preview server.
+- Deferred: SOPs, protocols and turning Birdwatch's conclusions into rules.
+
+## Product shell (superseded by lean places; mock only)
 
 William, 11-04: "we as a business we create the system for other businesses ... so essentially
 were making a giant product line, and the catalog of products ... each thing should be able to
@@ -501,3 +531,8 @@ None.
     so the link landed on no page. It sits in a client's Back office › Team (`/office/you`), and the
     footer links there direct. The `portal` skill is rewritten for the places; README and the
     `wren` skill name the new pages.
+- 2026-11-04 late: lean places (William). Map, Today, Campaigns, Research, People, Back office.
+  Campaigns merges Content, Outbound and a client's Reactivation; Results folds into Campaigns ›
+  Overview and Project › Results; Clients is a People tab; Calendar stays a Today tab. The product
+  shell becomes a static mock page in the app. Why: he always wanted a Campaigns place, outbound
+  runs off content, and the UI must be one shape for the Birdwatch video.

@@ -165,7 +165,7 @@ export const recordingExtras: NonNullable<ListPage["extras"]> = (detail, { row }
         ? ([
             [
               "Booked call",
-              <a key="call" href={`/outbound/calls/${d.booking}`}>
+              <a key="call" href={`/campaigns/calls/${d.booking}`}>
                 Its brief and outcome
               </a>,
             ],

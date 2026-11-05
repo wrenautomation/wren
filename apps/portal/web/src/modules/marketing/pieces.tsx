@@ -116,9 +116,9 @@ function didOf(b: Branch): string | null {
 function hrefOf(b: Branch): string | null {
   // A recording opens in Studio's editor.
   if (b.platform === "editor")
-    return `/content/studio?video=${/^video:(\d+)/.exec(b.id)?.[1] ?? ""}`;
-  if (b.id.startsWith("blog:")) return "/content/studio?make=blog";
-  return `/content/drafts/${b.id}`;
+    return `/campaigns/studio?video=${/^video:(\d+)/.exec(b.id)?.[1] ?? ""}`;
+  if (b.id.startsWith("blog:")) return "/campaigns/studio?make=blog";
+  return `/campaigns/drafts/${b.id}`;
 }
 
 export const pieces = () =>

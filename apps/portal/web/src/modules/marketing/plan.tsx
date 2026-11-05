@@ -65,17 +65,17 @@ export const makeAt = (piece: string, gs: readonly Goal[]): { href: string; labe
   const g = gs[0];
   if (piece === "story")
     return {
-      href: `/content/studio?make=story&platform=${g?.platform ?? "instagram"}`,
+      href: `/campaigns/studio?make=story&platform=${g?.platform ?? "instagram"}`,
       label: "Make a story",
     };
-  if (piece === "newsletter") return { href: "/content/studio?make=blog", label: "Write a post" };
-  if (piece === "replies") return { href: "/outbound/engage", label: "Answer threads" };
+  if (piece === "newsletter") return { href: "/campaigns/studio?make=blog", label: "Write a post" };
+  if (piece === "replies") return { href: "/campaigns/engage", label: "Answer threads" };
   if (g?.starts === "video")
     return {
-      href: piece === "long" ? "/content/studio?make=video" : "/content/videos",
+      href: piece === "long" ? "/campaigns/studio?make=video" : "/campaigns/videos",
       label: piece === "long" ? "Record" : "Cut clips",
     };
-  return { href: "/content/studio", label: "Write" };
+  return { href: "/campaigns/studio", label: "Write" };
 };
 
 const counted = (gs: readonly Goal[]) => gs.filter((g) => g.done !== null);
@@ -293,7 +293,7 @@ export function PlanPage(_props: PageProps) {
         note={waiting.length ? `${waiting.length} pieces, ${waitCount(open)}` : undefined}
         actions={
           waiting.length > SHOWN ? (
-            <a className={cx("text-[13px] underline", QUIET)} href="/content/drafts?view=waiting">
+            <a className={cx("text-[13px] underline", QUIET)} href="/campaigns/drafts?view=waiting">
               All {waiting.length}
             </a>
           ) : null

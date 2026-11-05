@@ -14,38 +14,27 @@ const ALL = new Set(
 const ids = (xs: readonly { id: string }[]) => xs.map((x) => x.id);
 
 describe("the places", () => {
-  it("gives Wren's team the fixed places, its products, then the core", () => {
+  it("gives Wren's team its places: Map, Today, Campaigns, Research, People, Back office", () => {
     const apps = appsIn(MODULES, { wren: true, team: true, installed: ALL });
     expect(sidebarOf(apps).map((i) => [i.label, i.area])).toEqual([
       ["Map", "fixed"],
       ["Today", "fixed"],
-      ["Results", "fixed"],
-      ["Content", "products"],
-      ["Outbound", "products"],
-      ["Research", "products"],
-      ["Clients", "core"],
+      ["Campaigns", "work"],
+      ["Research", "work"],
       ["People", "core"],
       ["Back office", "core"],
     ]);
   });
 
-  it("gives a client its places: Project, never Map, Clients or Research", () => {
+  it("gives a client its places: Project, never Map or Research", () => {
     const apps = appsIn(MODULES, { wren: false, team: false, installed: ALL });
     expect(sidebarOf(apps).map((i) => i.app.id)).toEqual([
       "today",
-      "results",
-      "content",
-      "reactivation",
       "project",
+      "campaigns",
       "people",
       "office",
     ]);
-  });
-
-  it("caps a product at 4 tabs", () => {
-    for (const id of ["content", "outbound", "reactivation"])
-      for (const m of MODULES.filter((x) => x.id === id))
-        expect(m.pages.filter((p) => !p.hidden).length, id).toBeLessThanOrEqual(4);
   });
 
   it("shows no app outside a place, and no parked app", () => {
@@ -67,15 +56,17 @@ describe("the places", () => {
     expect(apps.some((m) => m.id === "reactivation")).toBe(false);
   });
 
-  it("docks Today, Content, Outbound, People, then the first pin", () => {
-    const apps = ["map", "people", "content", "outbound", "today", "office"].map((id) => ({ id }));
-    const pins = [{ href: "/content/studio" }, { href: "/outbound/engage" }];
+  it("docks Today, Campaigns, Research, People, then the first pin", () => {
+    const apps = ["map", "people", "campaigns", "research", "today", "office"].map((id) => ({
+      id,
+    }));
+    const pins = [{ href: "/campaigns/studio" }, { href: "/campaigns/engage" }];
     expect(dockOf(apps, pins).map((d) => ("pin" in d ? d.pin.href : d.app.id))).toEqual([
       "today",
-      "content",
-      "outbound",
+      "campaigns",
+      "research",
       "people",
-      "/content/studio",
+      "/campaigns/studio",
     ]);
     expect(dockOf(apps, [])).toHaveLength(4);
     expect(dockOf(apps, pins, 3)).toHaveLength(2);
@@ -111,7 +102,7 @@ describe("phoneTabsOf", () => {
     expect(out[4]?.count).toBe(5);
   });
   it("skips picks the workspace lacks", () => {
-    expect(phoneTabsOf("outbound", [t("engage"), t("inboxes")]).map((x) => x.id)).toEqual([
+    expect(phoneTabsOf("campaigns", [t("engage"), t("inboxes")]).map((x) => x.id)).toEqual([
       "engage",
       "inboxes",
     ]);

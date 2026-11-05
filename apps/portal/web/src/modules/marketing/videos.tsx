@@ -1199,7 +1199,7 @@ function Promos({ promos }: { promos: Promo[] }) {
                   {ds.map((d) => (
                     <a
                       key={d.id}
-                      href={`/content/drafts/${encodeURIComponent(d.id)}`}
+                      href={`/campaigns/drafts/${encodeURIComponent(d.id)}`}
                       className="text-[13px] text-(--ui-ink-2) underline underline-offset-2"
                     >
                       {ds.length > 1 ? `Open ${SITE[d.platform]}` : "Open"}
@@ -1236,10 +1236,10 @@ function WriteAbout({ id, title }: { id: string; title: string }) {
   const link = "text-[14px] text-(--ui-ink) underline underline-offset-2";
   return (
     <p className="m-0 flex flex-wrap gap-x-5 gap-y-1">
-      <a className={link} href={href("/content/studio", about)}>
+      <a className={link} href={href("/campaigns/studio", about)}>
         Write a post about it
       </a>
-      <a className={link} href={href("/content/studio", { ...about, make: "blog" })}>
+      <a className={link} href={href("/campaigns/studio", { ...about, make: "blog" })}>
         Write a blog post about it
       </a>
     </p>

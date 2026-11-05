@@ -31,8 +31,8 @@ const pathOf = (href: string) => href.split(/[?#]/)[0]?.split("/").slice(0, 3).j
 describe("movedTo", () => {
   it("sends a page to its place, keeping the rest of the path, search and hash", () => {
     expect(movedTo("/engage/dms/12?view=all#x", WREN)).toBe("/today/dms/12?view=all#x");
-    expect(movedTo("/campaigns/email", WREN)).toBe("/outbound/overview");
-    expect(movedTo("/clients/all?view=live", WREN)).toBe("/clients/clients?view=live");
+    expect(movedTo("/outbound/overview", WREN)).toBe("/campaigns/email");
+    expect(movedTo("/clients/all?view=live", WREN)).toBe("/people/clients?view=live");
     expect(movedTo("/work/needs-you", CLIENT)).toBe("/today/needs-you");
     expect(movedTo("/map/plan/3", CLIENT)).toBe("/project/plan/3");
     expect(movedTo("/account/people", CLIENT)).toBe("/office/team");
@@ -49,14 +49,14 @@ describe("movedTo", () => {
     expect(movedTo("/inbox/replies/4", WREN)).toBe("/today/replies/4");
     expect(movedTo("/calendar/schedule?d=2026-11-04", WREN)).toBe("/today/calendar?d=2026-11-04");
     expect(movedTo("/inbox", WREN)).toBe("/today");
-    expect(movedTo("/campaigns/emails?view=sent", CLIENT)).toBe("/reactivation/emails?view=sent");
+    expect(movedTo("/reactivation/emails?view=sent", CLIENT)).toBe("/campaigns/emails?view=sent");
     expect(heldByClient("/marketing/drafts")).toBe(false);
   });
 
   it("leaves every live address alone", () => {
-    expect(movedTo("/content/plan", WREN)).toBeNull();
+    expect(movedTo("/campaigns/plan", WREN)).toBeNull();
     expect(movedTo("/today/approve", CLIENT)).toBeNull();
-    expect(movedTo("/outbound/engage", WREN)).toBeNull();
+    expect(movedTo("/campaigns/engage", WREN)).toBeNull();
     expect(movedTo("/map/station/booked", WREN)).toBeNull();
     expect(movedTo("/marketingx/plan", WREN)).toBeNull();
     expect(movedTo("/", WREN)).toBeNull();
@@ -68,8 +68,8 @@ describe("who is at Wren", () => {
     expect(atWrenOf(true, null)).toBe(true);
     expect(atWrenOf(true, "acme")).toBe(false);
     expect(atWrenOf(false, null)).toBe(false);
-    expect(namedIn("/content/plan?client=acme")).toBe("acme");
-    expect(namedIn("/content/plan?view=all")).toBeNull();
+    expect(namedIn("/campaigns/plan?client=acme")).toBe("acme");
+    expect(namedIn("/campaigns/plan?view=all")).toBeNull();
   });
 });
 

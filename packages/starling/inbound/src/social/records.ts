@@ -659,9 +659,9 @@ const replyItem = (r: InboxReply) => ({
  */
 function outreachOf(id: string): string | null {
   const [type, rest] = typed(id);
-  if (type === "thread" || type === "onpost") return `/outbound/engage/${encodeURIComponent(id)}`;
+  if (type === "thread" || type === "onpost") return `/campaigns/engage/${encodeURIComponent(id)}`;
   if (type === "invite" || type === "connect")
-    return `/outbound/invites/${encodeURIComponent(rest)}`;
+    return `/campaigns/invites/${encodeURIComponent(rest)}`;
   return null;
 }
 
@@ -736,7 +736,7 @@ export const approvalRecordOf = (deps: ConsoleDeps) =>
           account: null,
           at: v.at,
           due: v.at,
-          url: `/content/videos/${v.id}`,
+          url: `/campaigns/videos/${v.id}`,
         })),
         // Queued threads and posts, accepted and proposed invites: outbound's, with their picks.
         ...reach.filter(notParked(uss)),

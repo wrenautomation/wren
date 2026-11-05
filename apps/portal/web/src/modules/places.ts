@@ -1,8 +1,8 @@
 /**
- * The product shell (designs/2026-11-04-portal-places.md, Product shell). Fixed: Today and
- * Results. Products: one place each, built with `product()`, at most 4 tabs. Core: Map, Clients,
- * People, Back office. A page keeps its own component and access, so a client sees only what it
- * holds. Old addresses: `../moved.ts`.
+ * The places (designs/2026-11-04-portal-places.md, Lean places). Wren: Map, Today, Campaigns,
+ * Research, People, Back office. A client: Today, Project, Campaigns, People, Back office. A page
+ * keeps its own component and access, so a client sees only what it holds. Old addresses:
+ * `../moved.ts`.
  */
 import { findAll } from "../find.js";
 import type { Found, ListPage, Module, ModulePage } from "../module.js";
@@ -18,7 +18,6 @@ import { offers } from "./offers/index.js";
 import { engage } from "./outreach/index.js";
 import { payments } from "./payments/index.js";
 import { clientPeople as oldClientPeople, people as oldPeople } from "./people/index.js";
-import { product } from "./product.js";
 import { reactivation } from "./reactivation/index.js";
 import { settings } from "./settings/index.js";
 import { work } from "./work/index.js";
@@ -119,30 +118,32 @@ const todayPlace: Module = {
   ],
 };
 
-const resultsPlace: Module = {
-  id: "results",
-  name: "Results",
-  icon: "chart",
-  blurb: "What every product got, on one board.",
+/** Every campaign's channels in one place: content made and posted, outreach off it, cold email. */
+const campaignsPlace: Module = {
+  id: "campaigns",
+  name: "Campaigns",
+  icon: "megaphone",
+  blurb: "Content, outreach and cold email: what each campaign makes, sends and gets.",
   requires: TEAM,
+  find: finds(oldContent, outbound),
   pages: [
     {
-      id: "board",
-      label: "Results",
-      about: "What every product got, on one board.",
+      id: "overview",
+      label: "Overview",
+      about: "What the campaigns got, on one board.",
       template: "overview",
       tiles: [
         {
           label: "Content views",
           record: "marketing.post",
-          href: "/content/content?view=all",
+          href: "/campaigns/content?view=all",
           period: "month",
           sum: "views",
         },
         {
           label: "Followers",
           record: "marketing.audience",
-          href: "/content/followers",
+          href: "/campaigns/followers",
           sum: "count",
         },
         {
@@ -154,65 +155,44 @@ const resultsPlace: Module = {
       ],
       top: [CONVERSATION_TOP],
     },
-  ],
-};
-
-const contentProduct = product({
-  id: "content",
-  name: "Content",
-  icon: "megaphone",
-  blurb: "Posts, clips and videos in your voice, planned, made and posted for you.",
-  requires: TEAM,
-  find: finds(oldContent),
-  overview: one(oldContent, "plan"),
-  work: one(oldContent, "studio"),
-  results: one(oldContent, "content"),
-  settings: one(oldContent, { id: "facts", label: "Voice and facts" }),
-  hidden: from(oldContent, [
-    { id: "drafts", lights: "studio" },
-    { id: "videos", lights: "studio" },
-    { id: "write", lights: "studio" },
-  ]).concat(from(engage, [{ id: "followers", lights: "content" }])),
-});
-
-const outboundProduct = product({
-  id: "outbound",
-  name: "Outbound",
-  icon: "billboard",
-  blurb: "Cold email and LinkedIn: invites, comments and DMs, each one approved.",
-  requires: TEAM,
-  find: finds(outbound),
-  overview: one(outbound, "overview"),
-  work: one(engage, "engage"),
-  results: one(engage, "conversation"),
-  settings: one(outbound, "inboxes"),
-  hidden: [
-    ...from(engage, [{ id: "invites", lights: "engage" }]),
-    ...from(outbound, [{ id: "campaigns", lights: "overview" }]),
+    ...from(
+      oldContent,
+      ["plan", "studio", "content", { id: "facts", label: "Voice and facts" }],
+      "Content",
+    ),
+    ...from(oldContent, [
+      { id: "drafts", lights: "studio" },
+      { id: "videos", lights: "studio" },
+      { id: "write", lights: "studio" },
+    ]).map(hide),
+    ...from(engage, [{ id: "followers", lights: "content" }]).map(hide),
+    ...from(engage, ["engage", "conversation"], "Outreach"),
+    ...from(
+      outbound,
+      [{ id: "overview", as: "email", label: "Cold email" }, "inboxes"],
+      "Outreach",
+    ),
+    ...from(engage, [{ id: "invites", lights: "engage" }]).map(hide),
+    ...from(outbound, [{ id: "campaigns", as: "email-campaigns", lights: "email" }]).map(hide),
     // Calls within a day: Today's Prepare call.
-    {
-      ...(one(calls, { id: "calls", lights: "overview" }) as ListPage),
+    hide({
+      ...(one(calls, { id: "calls", lights: "email" }) as ListPage),
       head: recorderHead,
       count: { soon: ["yes"] },
-    },
+    }),
   ],
-});
-
-const clientsPlace: Module = {
-  id: "clients",
-  name: "Clients",
-  icon: "people",
-  blurb: "Every client: what they bought and how it goes.",
-  requires: TEAM,
-  find: finds(clients),
-  pages: from(clients, [{ id: "all", as: "clients" }]),
 };
 
 const peoplePlace: Module = {
   ...oldPeople,
   blurb: "Everyone we know, once each.",
-  find: finds(oldPeople, journeys),
-  pages: [...from(oldPeople, ["people", "timeline"]), ...from(journeys, ["journeys"])],
+  find: finds(oldPeople, journeys, clients),
+  pages: [
+    ...from(oldPeople, ["people"]),
+    ...from(clients, [{ id: "all", as: "clients" }]),
+    ...from(oldPeople, ["timeline"]),
+    ...from(journeys, ["journeys"]),
+  ],
 };
 
 const officePlace: Module = {
@@ -235,14 +215,11 @@ const officePlace: Module = {
   ],
 };
 
-/** Wren's places, in sidebar order. Research is its own product (`./index.ts`). */
+/** Wren's places, in sidebar order. Research is Birdwatch's own place (`./index.ts`). */
 export const TEAM_PLACES: Module[] = [
   mapPlace,
   todayPlace,
-  resultsPlace,
-  contentProduct,
-  outboundProduct,
-  clientsPlace,
+  campaignsPlace,
   peoplePlace,
   officePlace,
 ];
@@ -267,14 +244,6 @@ const clientTodayPlace: Module = {
   ],
 };
 
-const clientResultsPlace: Module = {
-  id: "results",
-  name: "Results",
-  icon: "chart",
-  blurb: "The numbers that show the work paid off.",
-  pages: from(work, [{ id: "results", as: "board" }]),
-};
-
 /** A client's project: the plan of what it bought, our updates and what we hand over. */
 const projectPlace: Module = {
   id: "project",
@@ -284,36 +253,33 @@ const projectPlace: Module = {
   fallback: true,
   ...(work.Glance ? { Glance: work.Glance } : {}),
   pages: [
-    ...from(work, ["overview", "plan", "updates", "deliverables"]),
+    ...from(work, ["overview", "plan", "updates", "deliverables", "results"]),
     ...from(work, ["welcome"]).map(hide),
   ],
 };
 
-const clientContentProduct = product({
-  id: "content",
-  name: "Content",
+/** A client's campaigns: its reactivation run and its content. */
+const clientCampaignsPlace: Module = {
+  id: "campaigns",
+  name: "Campaigns",
   icon: "megaphone",
-  blurb: "Your posts and the drafts that wait on your OK.",
-  work: one(clientMarketing, { id: "drafts", lights: null }),
-  results: one(clientMarketing, { id: "content", hidden: false }),
-});
-
-const reactivationProduct = product({
-  id: "reactivation",
-  name: "Reactivation",
-  icon: "billboard",
-  blurb: reactivation.blurb,
+  blurb: "Your reactivation run and your posts.",
   ...(reactivation.Glance ? { Glance: reactivation.Glance } : {}),
   find: finds(reactivation),
-  overview: one(reactivation, "overview"),
-  work: one(reactivation, "emails"),
-  results: one(reactivation, "replies"),
-  settings: one(reactivation, "setup"),
-  hidden: [
-    ...from(reactivation, ["run", "people", "keep", "real"]),
-    ...from(calls, [{ id: "calls", lights: "overview" }]),
+  pages: [
+    ...from(reactivation, ["overview", "emails", "replies", "setup"], "Reactivation"),
+    ...from(reactivation, ["run", "people", "keep", "real"]).map(hide),
+    ...from(calls, [{ id: "calls", lights: "overview" }]).map(hide),
+    ...from(
+      clientMarketing,
+      [
+        { id: "drafts", lights: null },
+        { id: "content", hidden: false },
+      ],
+      "Content",
+    ),
   ],
-});
+};
 
 const clientPeoplePlace: Module = {
   ...oldClientPeople,
@@ -353,10 +319,8 @@ const clientOfficePlace: Module = {
 /** A client's places, in sidebar order. */
 export const CLIENT_PLACES: Module[] = [
   clientTodayPlace,
-  clientResultsPlace,
   projectPlace,
-  clientContentProduct,
-  reactivationProduct,
+  clientCampaignsPlace,
   clientPeoplePlace,
   clientOfficePlace,
 ];

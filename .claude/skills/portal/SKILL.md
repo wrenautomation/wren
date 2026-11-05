@@ -17,19 +17,16 @@ The portal is a fixed shell of places (designs/2026-11-04-portal-places.md). Cod
 |---|---|---|
 | Map | Offers on the metro map, terms | `/map/offers` |
 | Today | Approvals, messages, mail, calendar | `/today/approve` |
-| Results | One board for every product | `/results/board` |
-| Content | Plan, Studio, posts, voice and facts | `/content/plan` |
-| Outbound | Cold email and LinkedIn: overview, engage, conversations, inboxes | `/outbound/overview` |
-| Clients | Every client and what it bought | `/clients/clients` |
-| People | Everyone once, timeline, journeys | `/people/people` |
-| Back office | Contracts, money, spend, accounts, team, grants, look | `/office/money` |
+| Campaigns | Overview board; Content (plan, studio, posts, voice and facts); Outreach (engage, conversations, cold email, inboxes) | `/campaigns/overview` |
 | Research | Birdwatch runs and sources | `/research/runs` |
+| People | Everyone once, clients, timeline, journeys | `/people/people` |
+| Back office | Contracts, money, spend, accounts, team, grants, look | `/office/money` |
 
-**A client's sidebar:** Today, Results, Project, Content, Reactivation, People, Back office. A client sees only the pages of the products it holds.
+**A client's sidebar:** Today, Project, Campaigns (its reactivation run and posts), People, Back office. A client sees only the pages of the products it holds.
 
 - **Addresses:** `/<place>/<page>`, with filters and the open record in the query (`?person=12`). A reload or a shared link lands on the same screen.
 - **Hidden pages:** some pages have no tab and open from a link (Today's DMs, replies, calls).
-- **Old addresses:** they redirect. The table is `apps/portal/web/src/moved.ts` (`MOVED`, `CLIENT_MOVED`).
+- **Old addresses:** they redirect. Content, Outbound, Reactivation and Results now live in Campaigns; Clients in People. The table is `apps/portal/web/src/moved.ts` (`MOVED`, `MOVED_APPS`, `CLIENT_MOVED`).
 - **Gone:** Learn, Notes, Review, Handlers, Marketplace, Workflows, Loops, Ask, the lead sheet, SEO pages, Ads. Loops and flags are CLI verbs now (`wren loops`, `wren features`).
 
 ## His look

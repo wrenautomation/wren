@@ -15,18 +15,18 @@ const meta: Meta = { title: "Ready to build/Engage and Outbound", id: "pages-wre
 export default meta;
 
 // Engage: one story per tab.
-export const EngageEngage = pageAt("/outbound/engage", { me: ADMIN });
+export const EngageEngage = pageAt("/campaigns/engage", { me: ADMIN });
 export const EngageDms = pageAt("/today/dms", { me: ADMIN });
-export const EngageInvites = pageAt("/outbound/invites", { me: ADMIN });
+export const EngageInvites = pageAt("/campaigns/invites", { me: ADMIN });
 /** Long names, roles and firms beside short figures: every word shows whole, no sideways scroll. */
 const LONG = ownRows("marketing.invite", LONG_INVITES, ANSWERS);
-export const EngageInvitesLong = pageAt("/outbound/invites?view=all", {
+export const EngageInvitesLong = pageAt("/campaigns/invites?view=all", {
   me: ADMIN,
   answers: LONG,
   check: rowsFit,
 });
 /** A row opened: the record beside the list, never over it. */
-export const EngageInvitesLongOpen = pageAt("/outbound/invites?view=all&invite=1", {
+export const EngageInvitesLongOpen = pageAt("/campaigns/invites?view=all&invite=1", {
   me: ADMIN,
   answers: LONG,
   check: rowsFit,
@@ -70,11 +70,11 @@ export const EngageCommentsOpen = pageAt("/today/comments?comment=1", {
     expect(open.getBoundingClientRect().left).toBeGreaterThanOrEqual(list?.right ?? 0);
   },
 });
-export const EngageConversation = pageAt("/outbound/conversation", { me: ADMIN });
-export const EngageFollowers = pageAt("/content/followers", { me: ADMIN });
+export const EngageConversation = pageAt("/campaigns/conversation", { me: ADMIN });
+export const EngageFollowers = pageAt("/campaigns/followers", { me: ADMIN });
 export const EngageAccounts = pageAt("/office/accounts", { me: ADMIN });
 
 // Outbound: one story per tab.
-export const OutboundOverview = pageAt("/outbound/overview", { me: ADMIN });
-export const OutboundCampaigns = pageAt("/outbound/campaigns", { me: ADMIN });
-export const OutboundInboxes = pageAt("/outbound/inboxes", { me: ADMIN });
+export const OutboundOverview = pageAt("/campaigns/email", { me: ADMIN });
+export const OutboundCampaigns = pageAt("/campaigns/email-campaigns", { me: ADMIN });
+export const OutboundInboxes = pageAt("/campaigns/inboxes", { me: ADMIN });

@@ -113,7 +113,10 @@ function StudioHome(props: PageProps) {
                   className={LINE_PICK}
                   value={line ?? ""}
                   onChange={(e) =>
-                    navigate(href("/content/studio", { line: e.target.value }, props.params), true)
+                    navigate(
+                      href("/campaigns/studio", { line: e.target.value }, props.params),
+                      true,
+                    )
                   }
                 >
                   <option value="">All lines</option>
@@ -142,7 +145,7 @@ function StudioHome(props: PageProps) {
                 Still due this week
               </h2>
               <a
-                href="/content/plan"
+                href="/campaigns/plan"
                 className="text-[13px] font-medium text-(--ui-link) no-underline hover:underline max-sm:hidden"
               >
                 Open the plan
@@ -165,7 +168,7 @@ function StudioHome(props: PageProps) {
         <VideoShelf params={props.params} />
       </div>
       <a
-        href={href("/content/studio", { make: "post" }, props.params)}
+        href={href("/campaigns/studio", { make: "post" }, props.params)}
         aria-label="New post"
         className="fixed right-5 bottom-[calc(104px+env(safe-area-inset-bottom))] z-20 grid size-14 place-items-center bg-(--ui-primary) text-(--ui-on-accent) [border-radius:14px_28px] shadow-[0_8px_20px_-8px_color-mix(in_srgb,var(--ui-umbra)_50%,transparent)] transition-transform duration-200 ease-(--ui-spring) active:scale-95 motion-reduce:transition-none sm:hidden"
       >

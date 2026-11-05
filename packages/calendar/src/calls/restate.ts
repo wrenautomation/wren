@@ -5,7 +5,6 @@
  * team's channel with a link, never the lead's words. A moved or cancelled call's old send skips.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { WREN } from "@wren/core/access";
 import type { MeetingOutcome } from "@wren/core/calls";
 import { type ExecutorEvent, executorEmit, type Fired, type Step } from "@wren/core/executor";
 import { aboutOf } from "@wren/core/logic";
@@ -177,9 +176,8 @@ const SEND = BUILD.extend({
   start: z.string().describe("The call time the send was queued for"),
 });
 
-/** The call's page: Outbound for Wren (null or `wren`), Reactivation for a client. */
-export const briefPath = (client: string | null, id: number) =>
-  `/${!client || client === WREN ? "outbound" : "reactivation"}/calls/${id}`;
+/** The call's page: Campaigns › Calls, at Wren and at a client. */
+export const briefPath = (_client: string | null, id: number) => `/campaigns/calls/${id}`;
 
 export function makeCallBriefs(deps: CallBriefsDeps) {
   /** Build the brief again now and keep it; null when the call is gone. */

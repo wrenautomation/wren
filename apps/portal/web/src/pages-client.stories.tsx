@@ -18,7 +18,7 @@ export const Payments = pageAt("/office");
 export const Documents = pageAt("/office");
 export const Pipelines = pageAt("/people");
 export const People = pageAt("/people");
-export const Marketing = pageAt("/content");
+export const Marketing = pageAt("/campaigns");
 export const Calendar = pageAt("/today");
 
 /** The agenda as `Rows`: a band per day, a call a row, and a press opens it beside the list. */

@@ -13,7 +13,7 @@ export default meta;
 
 export const People = pageAt("/people", { me: ADMIN });
 export const Pipelines = pageAt("/people", { me: ADMIN });
-export const Content = pageAt("/content", { me: ADMIN });
+export const Content = pageAt("/campaigns", { me: ADMIN });
 export const Clients = pageAt("/people", { me: ADMIN });
 export const Money = pageAt("/office", { me: ADMIN });
 export const Team = pageAt("/office", { me: ADMIN });

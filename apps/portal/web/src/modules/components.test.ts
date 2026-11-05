@@ -33,17 +33,9 @@ describe("places and components", () => {
 
   it("a client sees the pages of what it installed; the team sees every page", () => {
     expect(ids(false, false, [])).toEqual(["people", "office"]);
-    expect(ids(false, false, ["reactivation"])).toEqual(["reactivation", "people", "office"]);
+    expect(ids(false, false, ["reactivation"])).toEqual(["campaigns", "people", "office"]);
     expect(ids(false, false, ["delivery.portal"])).toContain("project");
-    expect(ids(false, true, [])).toEqual([
-      "today",
-      "results",
-      "project",
-      "content",
-      "reactivation",
-      "people",
-      "office",
-    ]);
+    expect(ids(false, true, [])).toEqual(["today", "project", "campaigns", "people", "office"]);
     // Installing a part adds its pages and nothing else.
     const pages = (inst: string[]) => live(false, false, inst).flatMap((m) => m.pages);
     const added = pages(["calls.outcome"]).filter((p) => !pages([]).includes(p));
@@ -55,10 +47,7 @@ describe("places and components", () => {
     expect(ids(true, true, [])).toEqual([
       "map",
       "today",
-      "results",
-      "content",
-      "outbound",
-      "clients",
+      "campaigns",
       "people",
       "office",
       "research",

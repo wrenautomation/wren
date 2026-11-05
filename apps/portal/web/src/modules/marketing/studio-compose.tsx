@@ -132,7 +132,7 @@ export function Compose(
   const { make, only } = props;
   const kind = makeKind(make);
   const [sent, setSent] = useState(false);
-  const back = href("/content/studio", { make: "", idea: "", from: "", about: "" }, props.params);
+  const back = href("/campaigns/studio", { make: "", idea: "", from: "", about: "" }, props.params);
   const about = fromOf(props.params);
   const made = () => setSent(true);
   return (
@@ -156,7 +156,7 @@ export function Compose(
           items={offeredFor(only).map((m) => ({
             id: m.id,
             label: m.id === "blog" ? "Blog" : m.name,
-            href: href("/content/studio", { make: m.id }, props.params),
+            href: href("/campaigns/studio", { make: m.id }, props.params),
             on: m.id === make,
           }))}
         />
@@ -273,7 +273,7 @@ function PostBox(
       form.forget();
       props.onSent();
       // Sent: the idea it opened with is spent too.
-      if (idea) navigate(href("/content/studio", { idea: "" }, props.params), true);
+      if (idea) navigate(href("/campaigns/studio", { idea: "" }, props.params), true);
     } catch (err) {
       setError(message(err));
     } finally {
@@ -283,7 +283,7 @@ function PostBox(
   const off = !fits || !!busy || props.demo || where.length === 0;
   const pick = (name: "line" | "angle", value: string, now: string) =>
     form.setValue(name, now === value ? "" : value, { shouldDirty: true });
-  const back = href("/content/studio", { make: "", idea: "", from: "", about: "" }, props.params);
+  const back = href("/campaigns/studio", { make: "", idea: "", from: "", about: "" }, props.params);
 
   // The board's flex: the write column takes the room; the side holds 320 to 420 px and wraps under it.
   return (
@@ -303,12 +303,12 @@ function PostBox(
         {about ? (
           <p className="m-0 flex flex-wrap items-center gap-x-2 text-[13.5px]">
             <span className={QUIET}>About:</span>
-            <a href={`/content/videos/${about.id}`}>{about.title}</a>
+            <a href={`/campaigns/videos/${about.id}`}>{about.title}</a>
             <Button
               size="dense"
               tone="quiet"
               onClick={() =>
-                navigate(href("/content/studio", { from: "", about: "" }, props.params), true)
+                navigate(href("/campaigns/studio", { from: "", about: "" }, props.params), true)
               }
             >
               Clear

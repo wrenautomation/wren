@@ -103,7 +103,7 @@ const APPROVAL_PAGE: ListPage = {
 export const CONVERSATION_TOP = {
   label: "Conversation, last 30 days",
   record: "marketing.conversation",
-  href: "/outbound/conversation?view=30d",
+  href: "/campaigns/conversation?view=30d",
   fields: ["answered", "replySecs", "dmed", "booked"],
   units: { answered: "answered", replySecs: "to reply", dmed: "to DM", booked: "booked" },
   empty: "No comments from others or DMs in 30 days.",

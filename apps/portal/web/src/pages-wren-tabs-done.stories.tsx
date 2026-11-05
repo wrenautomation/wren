@@ -14,7 +14,7 @@ const meta: Meta = { title: "Done/Wren apps", id: "pages-wren-apps" };
 export default meta;
 
 // Content's Plan: what the week still asks for.
-export const ContentPlan = pageAt("/content/plan", { me: ADMIN });
+export const ContentPlan = pageAt("/campaigns/plan", { me: ADMIN });
 
 // Studio: the desk (due cards, New, the waiting table), then compose with a line and a kind chosen.
 // The shape has two sample lines; a phone shows the same page narrower (the story tests run at 390).
@@ -22,7 +22,7 @@ const STUDIO = studioAnswers({
   get: ANSWERS["pipeline/recordsGet"] as (b: Record<string, unknown>) => unknown,
   list: ANSWERS["pipeline/recordsList"] as (b: Record<string, unknown>) => unknown,
 });
-export const ContentStudio = pageAt("/content/studio", {
+export const ContentStudio = pageAt("/campaigns/studio", {
   me: ADMIN,
   answers: STUDIO,
   check: async (page) => {
@@ -33,7 +33,7 @@ export const ContentStudio = pageAt("/content/studio", {
   },
 });
 /** A row's check approves in place: the row goes aside and the toast offers Undo. */
-export const ContentStudioApprove = pageAt("/content/studio", {
+export const ContentStudioApprove = pageAt("/campaigns/studio", {
   me: ADMIN,
   answers: STUDIO,
   check: async (page) => {
@@ -45,7 +45,7 @@ export const ContentStudioApprove = pageAt("/content/studio", {
   },
 });
 /** A draft's title opens its platforms side by side in a sheet. */
-export const ContentStudioOpen = pageAt("/content/studio", {
+export const ContentStudioOpen = pageAt("/campaigns/studio", {
   me: ADMIN,
   answers: STUDIO,
   check: async (page) => {
@@ -63,7 +63,7 @@ const SAMPLE_POST = [
   "Last month I rebuilt an offer page down to a single line: who it is for, what changes in 30 days, the price. Three fewer sections.",
 ].join("\n\n");
 export const ContentStudioCompose = pageAt(
-  `/content/studio?make=post&idea=${encodeURIComponent(SAMPLE_POST)}`,
+  `/campaigns/studio?make=post&idea=${encodeURIComponent(SAMPLE_POST)}`,
   {
     me: ADMIN,
     answers: STUDIO,

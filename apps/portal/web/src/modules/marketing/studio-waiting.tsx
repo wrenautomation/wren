@@ -299,11 +299,11 @@ function DraftCard({
       {unfit ? <p className={ERROR}>{unfit}</p> : null}
       {missing.length ? (
         <p className={ERROR}>
-          Fill in {listed(missing)} before Approve. <a href={`/content/drafts/${d.id}`}>Open it</a>{" "}
-          to pick.
+          Fill in {listed(missing)} before Approve.{" "}
+          <a href={`/campaigns/drafts/${d.id}`}>Open it</a> to pick.
         </p>
       ) : null}
-      <a className="text-[13px]" href={`/content/drafts/${d.id}`}>
+      <a className="text-[13px]" href={`/campaigns/drafts/${d.id}`}>
         {d.carousel
           ? "Open the slides, fields and versions"
           : "Open for fields, media and versions"}
@@ -497,7 +497,7 @@ export function WaitingBoard(
         </h2>
         {/* A phone has room for one word: the other view, as a link. */}
         <a
-          href={href("/content/studio", { view: view === "line" ? "" : "line" }, props.params)}
+          href={href("/campaigns/studio", { view: view === "line" ? "" : "line" }, props.params)}
           className="text-[13px] font-medium text-(--ui-link) no-underline hover:underline sm:hidden"
         >
           {view === "line" ? "Table" : "By line"}
@@ -520,13 +520,13 @@ export function WaitingBoard(
               {
                 id: "table",
                 label: "Table",
-                href: href("/content/studio", { view: "" }, props.params),
+                href: href("/campaigns/studio", { view: "" }, props.params),
                 on: view === "table",
               },
               {
                 id: "line",
                 label: "By line",
-                href: href("/content/studio", { view: "line" }, props.params),
+                href: href("/campaigns/studio", { view: "line" }, props.params),
                 on: view === "line",
               },
             ]}

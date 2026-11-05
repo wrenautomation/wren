@@ -100,7 +100,7 @@ const DIGEST_KINDS = {
 };
 
 /** The post a digest line names, as its page's link. */
-const postHref = (id: string) => `/content/content/${encodeURIComponent(id)}`;
+const postHref = (id: string) => `/campaigns/content/${encodeURIComponent(id)}`;
 
 /** The latest week's digest lines, every platform's and the whole's, in their order. */
 export const digestRecord = defineRecord({

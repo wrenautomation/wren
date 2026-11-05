@@ -119,7 +119,7 @@ export function studioHref(params: URLSearchParams): string {
       if (!q.has("make")) q.set("make", kind);
     }
   const rest = q.toString();
-  return `/content/studio${rest ? `?${rest}` : ""}`;
+  return `/campaigns/studio${rest ? `?${rest}` : ""}`;
 }
 
 /** One idea's drafts that wait, as ContentDesk's `waiting` answers. */

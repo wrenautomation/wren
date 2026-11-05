@@ -12,5 +12,5 @@ import { pageAt } from "./mocks/page.js";
 const meta: Meta = { title: "Revamp/Wren apps", id: "pages-wren-apps" };
 export default meta;
 
-export const ContentContent = pageAt("/content/content", { me: ADMIN });
-export const ContentFacts = pageAt("/content/facts", { me: ADMIN });
+export const ContentContent = pageAt("/campaigns/content", { me: ADMIN });
+export const ContentFacts = pageAt("/campaigns/facts", { me: ADMIN });

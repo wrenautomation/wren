@@ -136,32 +136,32 @@ export const outbound: Module = {
         {
           label: "Inboxes sending",
           record: "email.inbox",
-          href: "/outbound/inboxes?view=sending",
+          href: "/campaigns/inboxes?view=sending",
         },
         {
           label: "Inboxes paused",
           record: "email.inbox",
-          href: "/outbound/inboxes?view=paused",
+          href: "/campaigns/inboxes?view=paused",
           needs: true,
         },
         {
           label: "Campaigns opening",
           record: "email.campaign",
-          href: "/outbound/campaigns?view=opening",
+          href: "/campaigns/email-campaigns?view=opening",
         },
       ],
       top: [
         {
           label: "Campaigns",
           record: "email.campaign",
-          href: "/outbound/campaigns?view=all",
+          href: "/campaigns/email-campaigns?view=all",
           fields: ["sent", "replyRate", "killSwitch"],
           empty: "No campaigns yet.",
         },
         {
           label: "Paused inboxes",
           record: "email.inbox",
-          href: "/outbound/inboxes?view=paused",
+          href: "/campaigns/inboxes?view=paused",
           fields: ["reason", "pausedAt"],
           empty: "Every inbox is sending.",
         },
@@ -253,7 +253,7 @@ export const clients: Module = {
   icon: "people",
   blurb: "Every client: what they bought and how it goes.",
   requires: TEAM,
-  find: findRecords({ record: "console.client", path: "/clients/clients", kind: "Client" }),
+  find: findRecords({ record: "console.client", path: "/people/clients", kind: "Client" }),
   pages: [
     {
       id: "all",

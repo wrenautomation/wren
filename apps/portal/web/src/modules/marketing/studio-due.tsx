@@ -120,7 +120,7 @@ export function NewRow({ params, only }: { params: URLSearchParams; only: Platfo
       {offeredFor(only).map((m) => (
         <a
           key={m.id}
-          href={href("/content/studio", { make: m.id }, params)}
+          href={href("/campaigns/studio", { make: m.id }, params)}
           className={cx(CARD, LIFT, "flex flex-col gap-2.5 p-4")}
         >
           <Icon name={m.mark} size={20} className="text-(--ui-active)" />
