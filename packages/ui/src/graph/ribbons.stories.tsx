@@ -63,13 +63,8 @@ export const Empty: Story = {
   render: () => <Graph nodes={[]} edges={[]} label="Ribbons" ribbons />,
 };
 
-/** The nearest real state: a graph has no loading state of its own; its chunk shows a pulse. */
-export const Loading: Story = {
-  render: () => <div className="h-40 w-full animate-pulse bg-(--ui-tile)" aria-busy="true" />,
-};
-
-/** The nearest real state: a graph with nodes and no wires draws the nodes alone. */
-export const Failed: Story = {
+/** Nodes and no wires: the nodes draw alone. */
+export const NoWires: Story = {
   render: () => (
     <Graph nodes={RIBBON_NODES} edges={[]} label="Ribbons, no wires" direction="down" ribbons />
   ),

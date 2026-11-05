@@ -68,8 +68,8 @@ export const Empty: Story = {
   ),
 };
 
-/** The nearest real state: charts load their code on first show (a quiet box), and a read that has no figure yet draws days with none. */
-export const Loading: Story = {
+/** No figure yet on any day: the days draw with none; a tile's chart shows a quiet box while its code loads. */
+export const NoFigures: Story = {
   render: () => (
     <div className="grid max-w-3xl gap-6">
       <div className={`${card} max-w-xs`}>
@@ -82,8 +82,8 @@ export const Loading: Story = {
   ),
 };
 
-/** The nearest real state: charts have no error state, so days whose read failed are gaps the line spans, and a stage nobody reached keeps a thin bar. */
-export const Failed: Story = {
+/** Days whose read failed are gaps the line spans; a stage nobody reached keeps a thin bar. */
+export const Gaps: Story = {
   render: () => (
     <div className="grid max-w-3xl gap-6">
       <div className={`${card} max-w-xs`}>

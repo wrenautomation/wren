@@ -71,7 +71,7 @@ export default {
           "Charts",
           ["Dashboard", "*"],
           "Pages",
-          "Metro",
+          "Orrery",
         ],
       },
     },

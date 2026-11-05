@@ -171,6 +171,18 @@ const isWide = (canvasElement: HTMLElement) => !!within(canvasElement).queryByRo
 /** People in rows: a gutter box, an avatar and name, two properties, one quiet action, a count. */
 export const Default: Story = {
   render: () => <Host />,
+  // On a phone: the name, one property and the action; the wide row has the rest.
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findAllByRole("checkbox", { name: /^Select (?!every)/ });
+    const li = canvas.getByRole("link", { name: "Ada North" }).closest("li");
+    if (isWide(canvasElement) || !li) return;
+    const row = within(li);
+    await expect(row.getByText("Leeds")).toBeVisible();
+    // The second column does not fit beside the name.
+    await expect(row.queryByText("2 days")).toBeNull();
+    await expect(row.getByRole("button", { name: "Mark done" })).toBeVisible();
+  },
 };
 
 /** The same rows under three stage folds. */
@@ -291,22 +303,6 @@ export const TitlePlain: Story = {
     await expect(canvas.queryByRole("link", { name: "Ada North" })).toBeNull();
     await expect(canvas.getByText("Ada North").tagName).toBe("SPAN");
     await expect(canvas.queryByRole("button", { name: "Open" })).toBeNull();
-  },
-};
-
-/** The phone's row: the name, one property and the action. The wide row has the rest. */
-export const Phone: Story = {
-  render: () => <Host />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await canvas.findAllByRole("checkbox", { name: /^Select (?!every)/ });
-    const li = canvas.getByRole("link", { name: "Ada North" }).closest("li");
-    if (isWide(canvasElement) || !li) return;
-    const row = within(li);
-    await expect(row.getByText("Leeds")).toBeVisible();
-    // The second column does not fit beside the name.
-    await expect(row.queryByText("2 days")).toBeNull();
-    await expect(row.getByRole("button", { name: "Mark done" })).toBeVisible();
   },
 };
 

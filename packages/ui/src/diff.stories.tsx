@@ -21,16 +21,6 @@ export const Empty: Story = {
   render: () => <Diff a={DIFF_SAME} b={DIFF_SAME} names={names} />,
 };
 
-/** The nearest real state: a diff has no loading state, so a parent still waiting for the newer text passes it empty and every line shows removed. */
-export const Loading: Story = {
-  render: () => <Diff a={DIFF_A} b="" names={["Version 2", "Loading…"]} />,
-};
-
-/** The nearest real state: a diff has no error state, so a parent that could not read the newer text says so in its name. */
-export const Failed: Story = {
-  render: () => <Diff a={DIFF_A} b={DIFF_A} names={["Version 2", "Version 3 (could not load)"]} />,
-};
-
 /** Long lines, an address that never breaks, mixed scripts and a long run of changes, both layouts. */
 export const WorstCase: Story = {
   render: () => (

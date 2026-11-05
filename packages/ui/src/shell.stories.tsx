@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Empty as EmptyLine, Loading as Ghosts, LoadFailed } from "./feedback.js";
+import { Empty as EmptyLine, Loading as Ghosts } from "./feedback.js";
 import {
   SHELL,
   SHELL_CLIENT,
@@ -50,17 +50,6 @@ export const Loading: Story = {
   render: () => (
     <AppShell {...SHELL_LOADING}>
       <Ghosts lines={8} heading />
-    </AppShell>
-  ),
-};
-
-/** No error state of its own: the page inside it failed to read. */
-export const Failed: Story = {
-  render: () => (
-    <AppShell {...SHELL}>
-      <LoadFailed
-        error={Object.assign(new Error("The server could not answer."), { status: 500 })}
-      />
     </AppShell>
   ),
 };

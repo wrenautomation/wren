@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Tag } from "./controls.js";
 import {
   FACTS_HEAD,
   FACTS_ROWS,
@@ -97,24 +96,6 @@ export const FactsEmpty: Story = {
 export const FactsLoading: Story = {
   render: () => (
     <FactsTable head={FACTS_HEAD} rows={FACTS_ROWS.map(() => [ghost(), ghost(), ghost()])} stack />
-  ),
-};
-
-/** The nearest real state: a page whose read broke fills the cells with a warn tag. */
-export const FactsFailed: Story = {
-  render: () => (
-    <FactsTable
-      head={FACTS_HEAD}
-      rows={FACTS_ROWS.map(([source]) => [
-        source,
-        <Tag key="v" tone="warn">
-          Failed
-        </Tag>,
-        <Tag key="b" tone="warn">
-          Failed
-        </Tag>,
-      ])}
-    />
   ),
 };
 

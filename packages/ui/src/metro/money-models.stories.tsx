@@ -7,7 +7,7 @@ import { expect, waitFor, within } from "storybook/test";
 import { MetroMap } from "./map.js";
 import { GYM_MODEL, MONEY_STAGES, type MoneyStage } from "./money-models.js";
 
-export default { title: "Metro/Money models", parameters: { layout: "padded" } } satisfies Meta;
+export default { title: "Orrery/Money models", parameters: { layout: "padded" } } satisfies Meta;
 
 type Story = StoryObj;
 

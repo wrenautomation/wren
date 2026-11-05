@@ -67,6 +67,18 @@ export const Hundred: Story = { render: () => <Bench n={100_000} />, play: drawn
 
 /** A run picked: it and its queries lift over the veil. */
 export const Picked: Story = { render: () => <Bench n={15_000} pick="r0" />, play: drawn };
+/** One run alone: the camera frames its island, not an empty plane. */
+export const OneRun: Story = { render: () => <Bench n={1} />, play: drawn };
+/** No runs yet: a plain line, no renderer. */
+export const Empty: Story = {
+  render: () => (
+    <WebCanvas dots={[]} links={[]} label="Research web" selected={null} onSelect={() => {}} />
+  ),
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.textContent).toContain("Nothing to draw.");
+    await expect(canvasElement.querySelector("canvas")).toBeNull();
+  },
+};
 
 const STOPS = ["r0", "r0q3", "r7", "r7q6p2", "r24"];
 const HOLD_MS = 2200;

@@ -46,7 +46,8 @@ Dev Storybook draws Agentation at the bottom right and a session picker at the b
 ## Stories
 
 - A story file sits beside its part: `packages/ui/src/<stem>.stories.tsx`, in CSF (`Meta`, `StoryObj` from `@storybook/react-vite`). Id = `<stem>--<export>` in kebab case.
-- Each set exports `Default`, `Empty`, `Loading`, `Failed`, `WorstCase`. Add a named state when a part has one (`PanelOpen`, `Bulk`).
+- One story per state the part really has, named for what it shows: `Default`, `Empty`, `Loading`, `Failed`, `WorstCase` where the part has them, and named states (`PanelOpen`, `Bulk`, `NoWires`). A state the part does not have gets no story: the page that owns it draws it.
+- No two stories show the same thing. A check at another width goes in the story's `play`: every story runs at 390 and 1280.
 - Data comes from `packages/ui/src/fixtures/`, never inline in a story. A read's states: `answer`, `pending`, `fails` (`load.ts`). Long text and huge numbers: `WORST` (`worst.ts`). An address: `fakePlace`, or `usePlace` for a live one (`place.ts`). Records: `fakeRecords`, `useRecordsDemo` (`records.ts`).
 - Fixtures are synthetic only. The repo is public: no real names, leads, amounts or clients.
 - Unit tests import the same fixtures. A new fixture goes in the domain file, or a new one, and `fixtures/index.ts`.
