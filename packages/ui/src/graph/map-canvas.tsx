@@ -36,8 +36,8 @@ type NS = { lit: boolean; focus: boolean };
 type ES = { lit: boolean };
 type MapSigma = Sigma<Attributes, Attributes, Attributes, NS, ES>;
 
-/** Rendered px a dot needs before its label shows. */
-const LABEL_MIN = 6;
+/** Rendered px a dot needs before its label shows: whole map, none; labels come in as it nears. */
+const LABEL_MIN = 16;
 
 /** Lit dots, links and labels draw above the veil; the rest below it. */
 const DEPTHS = ["edges", "nodes", "veil", "topEdges", "topNodes"] as const;
@@ -174,6 +174,8 @@ export default function MapCanvas(p: MapCanvasProps) {
         itemSizesReference: "screen",
         labelRenderedSizeThreshold: LABEL_MIN,
         labelDensity: 0.6,
+        // one label per cell; a long ask runs ~280 px
+        labelGridCellSize: 300,
         minCameraRatio: 0.002,
         maxCameraRatio: 2,
       },

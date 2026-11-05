@@ -4,7 +4,7 @@
  * open it. A run opens in the runs view.
  */
 import { Button, cx, Icon, Input, Loading, MapCanvas, type MapDot, type MapHandle } from "@wren/ui";
-import { type ReactNode, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate, useRoute } from "../../route.js";
@@ -113,6 +113,16 @@ export function MapPage({ params }: PageProps) {
   }, [m, q]);
   const match = useMemo(() => (found ? new Set(found.map((n) => n.id)) : null), [found]);
   const pick = (id: string | null) => navigate(href(here, { at: id }, params), true);
+  const clear = useRef(() => pick(null));
+  clear.current = () => pick(null);
+  useEffect(() => {
+    if (!at) return;
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) clear.current();
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [at]);
   const go = (id: string) => {
     pick(id);
     const kind = ix?.byId.get(id)?.kind;
@@ -178,6 +188,15 @@ export function MapPage({ params }: PageProps) {
 const count = (m: ResearchMap, kind: MapNode["kind"]) =>
   m.nodes.filter((n) => n.kind === kind).length;
 
+const LEGEND: [string, string][] = [
+  ["Run", "--ui-cue-1"],
+  ["Query", "--ui-ink-2"],
+  ["Page", "--ui-ink"],
+  ["Shared source", "--ui-accent"],
+  ["Kept", "--ui-good"],
+  ["Cut", "--ui-bad"],
+];
+
 function Whole({ m }: { m: ResearchMap }) {
   const read = m.nodes.filter((n) => n.kind === "page" && n.read).length;
   const kept = m.nodes.filter((n) => n.kind === "finding" && n.kept).length;
@@ -187,8 +206,17 @@ function Whole({ m }: { m: ResearchMap }) {
         {count(m, "run")} runs · {count(m, "query")} queries · {read} pages read · {kept} findings
         kept · {count(m, "hub")} shared sources
       </p>
+      <ul className="m-0 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-[13px] text-(--ui-ink-2)">
+        {LEGEND.map(([name, color]) => (
+          <li key={name} className="flex items-center gap-1.5">
+            <span className="size-2 rounded-full" style={{ background: `var(${color})` }} />
+            {name}
+          </li>
+        ))}
+      </ul>
       <p className={cx("m-0 text-[13px]", QUIET)}>
-        Click a dot to see it. Double click opens it: a run in the runs view, a page in a new tab.
+        Click a dot to see it. Esc lets it go. Double click opens it: a run in the runs view, a page
+        in a new tab.
       </p>
     </div>
   );
@@ -278,7 +306,14 @@ function Picked({ n, ix, go }: { n: MapNode; ix: Index; go: (id: string) => void
               {kids.map((f) => (
                 <li key={f.id}>
                   {f.label}
-                  <span className={cx("ml-1 text-[12px]", QUIET)}>{f.kept ? "kept" : "cut"}</span>
+                  <span
+                    className={cx(
+                      "ml-1 text-[12px]",
+                      f.kept ? "text-(--ui-good)" : "text-(--ui-bad)",
+                    )}
+                  >
+                    {f.kept ? "kept" : "cut"}
+                  </span>
                 </li>
               ))}
             </ul>
