@@ -162,7 +162,10 @@ export function WebPage({ params }: PageProps) {
           Whole web
         </Button>
       </div>
-      <aside className="grid min-h-0 content-start gap-4 overflow-auto">
+      <aside
+        aria-label="Search and details"
+        className="grid min-h-0 content-start gap-4 overflow-auto"
+      >
         {/* edit-ok: search box */}
         <Input
           type="search"

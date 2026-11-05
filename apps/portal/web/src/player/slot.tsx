@@ -9,6 +9,7 @@
  */
 import { cx, Icon } from "@wren/ui";
 import { useLayoutEffect, useRef } from "react";
+import { here } from "../route.js";
 import type { PlayerItem } from "./store.js";
 import { usePlayer, usePlayerStore } from "./use.js";
 
@@ -40,7 +41,7 @@ export function PlayerSlot({
     const now = latest.current;
     return {
       ...now,
-      back: now.back ?? location.pathname + location.search,
+      back: now.back ?? here(),
       onTime: (...a) => latest.current.onTime?.(...a),
     };
   };

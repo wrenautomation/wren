@@ -13,6 +13,9 @@ import { SERVE } from "./modules/research/serve.js";
 const meta: Meta = { title: "Wren/Research", id: "pages-research" };
 export default meta;
 
+/** The tree and the web load their drawing code late: a loaded Mac needs more than the 1 s default. */
+const LATE = { timeout: 8000 };
+
 const SERVED = [
   http.get(`${SERVE}/runs`, () => HttpResponse.json({ v: 1, runs: RESEARCH_ROWS })),
   http.get(`${SERVE}/runs/:run`, ({ params }) =>
@@ -57,7 +60,7 @@ export const Tree = tidy(
     await p.findByRole("link", { name: /How do small bakeries find wholesale buyers/ });
     await p.findByText(/From: How do small bakeries/);
     // The frame and the flow inside it both carry the label.
-    const [tree] = await p.findAllByLabelText(/^The run's tree: How do small bakeries/);
+    const [tree] = await p.findAllByLabelText(/^The run's tree: How do small bakeries/, {}, LATE);
     if (!tree) throw new Error("no tree");
     await waitFor(() =>
       expect(within(tree).getByText("bakery wholesale price list margin")).toBeVisible(),
@@ -100,7 +103,7 @@ export const NoServe = story(
 export const WebAll = tidy(
   story("/research/web", async (page) => {
     const p = within(page);
-    await p.findByRole("img", { name: /^Research web: 5 runs/ });
+    await p.findByRole("img", { name: /^Research web: 5 runs/ }, LATE);
     await p.findByText(/5 runs · 20 queries/);
     await userEvent.type(p.getByRole("searchbox", { name: "Find on the web" }), "croissants");
     await userEvent.click(

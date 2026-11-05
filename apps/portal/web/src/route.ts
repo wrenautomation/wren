@@ -56,6 +56,12 @@ export function bindRouter(router: AnyRouter | null) {
   ROUTER = router;
 }
 
+/** The address now, path and search: the router's own, so a memory history (a page story) answers right. */
+export function here(): string {
+  const at = ROUTER?.latestLocation.publicHref ?? location.pathname + location.search;
+  return at.split("#")[0] ?? "/";
+}
+
 /** Go to `to` inside the app. `replace` swaps the current history entry instead of adding one. */
 export function navigate(to: string, replace = false) {
   const here = location.pathname + location.search + location.hash;
