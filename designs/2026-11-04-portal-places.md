@@ -541,3 +541,9 @@ None.
   People › Channels, Findings, a client's Asks and Issues. Their records and handlers stay. Dead
   stories go (Limits, a Sites split, duplicate client stories). `hide` and `flat` keep a page's
   old address, so the redirect test now checks hidden pages too.
+- 2026-11-05: Restate cleanup (William's go, 11-04). Killed RedditReads' 2 calls, cleared 33 dead
+  state objects (ghost loops, retired sender domains, the agencies and sec_ria lead lists) and
+  deleted 16 old deployments. Restate now holds 3 deployments and 121 services, no ghosts. Found
+  on the way: the WA-1077 rename left an InboxPush listener on `Watch`, so every Gmail push failed
+  from 11-05 01:44; the poll caught the mail. The listener now names `MyMailTriage`, the stuck
+  pushes are killed, and `restate-rename.mjs --go` rewrites listeners from now on.

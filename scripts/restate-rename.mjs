@@ -4,7 +4,8 @@
 //   ... restate-rename.mjs --stop   before the push: stop the old loops that run, drain, kill their
 //                                   pending timers (the box retires the old slot), keep the list
 //   ... restate-rename.mjs --go     after the deploy: copy state to the new names (loops stopped),
-//                                   clear old and DROPPED state, start what --stop stopped
+//                                   clear old and DROPPED state, point InboxPush listeners at
+//                                   the new names, start what --stop stopped
 // Reads over the ingress's /admin/query; state writes over SSM (the full admin API is loopback
 // only). The plan never prints state values.
 import { execFileSync } from "node:child_process";
@@ -75,6 +76,25 @@ const readOld = async () =>
     ),
   );
 
+/** `InboxPush` listeners name a loop by service: a renamed one's push would hit a gone name. */
+export function relisten(objects) {
+  const out = [];
+  for (const o of Object.values(objects)) {
+    if (!o.state.listeners) continue;
+    const ls = JSON.parse(o.state.listeners);
+    if (!ls.some((l) => RENAMES[l.service])) continue;
+    const listeners = ls.map((l) => ({ ...l, service: RENAMES[l.service] ?? l.service }));
+    out.push({ ...o, state: { ...o.state, listeners: JSON.stringify(listeners) } });
+  }
+  return out;
+}
+const readPush = async () =>
+  objectsOf(
+    await query(
+      "SELECT service_name, service_key, key, value_utf8 FROM state WHERE service_name = 'InboxPush'",
+    ),
+  );
+
 /** Calls not done on an old or dropped name; paused ones wait in the dead-letter queue. */
 const open = () =>
   query(
@@ -126,7 +146,7 @@ const setState = (service, key, state, tag) => {
 };
 
 /** Copy (stopped), clear old, start what ran. Batched under SSM's size limit. */
-function toBox(objects, restart) {
+function toBox(objects, restart, push) {
   const instance = aws([
     "ec2",
     "describe-instances",
@@ -141,6 +161,7 @@ function toBox(objects, restart) {
     if (to) lines.push(setState(to, o.key, stopped(o.state), "copied"));
     lines.push(setState(o.service, o.key, {}, "cleared"));
   }
+  for (const o of push) lines.push(setState(o.service, o.key, o.state, "relistened"));
   for (const o of restart)
     lines.push(
       `curl -sf -o /dev/null -X POST http://127.0.0.1:8080/${RENAMES[o.service]}/${encodeURIComponent(o.key)}/start && echo "started ${RENAMES[o.service]}/${o.key}" || echo "FAILED start ${RENAMES[o.service]}/${o.key}"`,
@@ -204,6 +225,6 @@ if (mode === "dry") {
   console.log(`saved ${restart.length} to restart in ${STOPPED}. Push, then --go.`);
 } else {
   if (!existsSync(STOPPED)) throw new Error(`no ${STOPPED}: run --stop first`);
-  toBox(before, JSON.parse(readFileSync(STOPPED, "utf8")));
+  toBox(before, JSON.parse(readFileSync(STOPPED, "utf8")), relisten(await readPush()));
   console.log("renamed.");
 }
