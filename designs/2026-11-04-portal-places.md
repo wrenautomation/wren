@@ -481,3 +481,7 @@ None.
     body) and voice stays parked. The Map: an ads node opens nothing while ads are cut, a DM node
     opens Today › DMs, and a Wren plan node opens Back office › Money (Deals is cut). The watch
     mail view's held link points at `/today/mail`.
+  - Client People (WA-1067): People, Timeline, Groups, Broadcasts, Import and Journeys. Channels
+    leaves the client, as it left Wren's: each channel's funnel is Results. Sent loses its tab
+    and stays hidden: a broadcast's send log opens it. Groups and Broadcasts stay for the
+    newsletter path.

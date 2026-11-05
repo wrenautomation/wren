@@ -319,10 +319,17 @@ const clientPeoplePlace: Module = {
   ...oldClientPeople,
   find: finds(oldClientPeople, journeys),
   pages: [
-    ...from(
-      oldClientPeople,
-      oldClientPeople.pages.map((p) => p.id),
-    ),
+    // Channels is cut, as at Wren: funnels are Results. Sent has no tab; a broadcast opens its log.
+    ...from(oldClientPeople, ["sent"]).map(hide),
+    ...from(oldClientPeople, [
+      "people",
+      "timeline",
+      "groups",
+      "members",
+      "broadcasts",
+      "recipients",
+      "import",
+    ]),
     ...from(journeys, ["journeys"]),
   ],
 };
