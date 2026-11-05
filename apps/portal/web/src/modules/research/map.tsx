@@ -153,6 +153,7 @@ export function MapPage({ params }: PageProps) {
         </Button>
       </div>
       <aside className="grid min-h-0 content-start gap-4 overflow-auto">
+        {/* edit-ok: search box */}
         <Input
           type="search"
           value={q}

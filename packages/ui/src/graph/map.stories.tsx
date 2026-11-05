@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { expect, waitFor } from "storybook/test";
 import { islandsMap } from "../fixtures/map.js";
 import { MapCanvas, type MapHandle } from "./index.js";
@@ -67,3 +67,50 @@ export const Hundred: Story = { render: () => <Bench n={100_000} />, play: drawn
 
 /** A run picked: it and its queries lift over the veil. */
 export const Picked: Story = { render: () => <Bench n={15_000} pick="r0" />, play: drawn };
+
+const STOPS = ["r0", "r0q3", "r7", "r7q6p2", "r24"];
+const HOLD_MS = 2200;
+
+/** For the demo film: whole map, then run to query to page across islands, then whole again; loops. */
+function Tour() {
+  const m = useMemo(() => islandsMap(15_000), []);
+  const map = useRef<MapHandle>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    (async () => {
+      await wait(1500);
+      while (live) {
+        for (const id of STOPS) {
+          if (!live) return;
+          setSelected(id);
+          // runs framed with their island, deeper dots closer
+          await map.current?.flyTo(id, id.includes("p") ? 0.03 : id.includes("q") ? 0.06 : 0.12);
+          await wait(HOLD_MS);
+        }
+        setSelected(null);
+        await map.current?.whole();
+        await wait(HOLD_MS);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, []);
+  return (
+    <div className="h-[720px]">
+      <MapCanvas
+        dots={m.dots}
+        links={m.links}
+        label="Research map"
+        selected={selected}
+        onSelect={setSelected}
+        handle={map}
+      />
+    </div>
+  );
+}
+
+/** The demo's fly-through. */
+export const FlyThrough: Story = { render: () => <Tour />, play: drawn };
