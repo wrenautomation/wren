@@ -2612,6 +2612,13 @@
       "when": 1793900585984,
       "tag": "0373_variants_sync_live",
       "breakpoints": true
+    },
+    {
+      "idx": 374,
+      "version": "7",
+      "when": 1793912198531,
+      "tag": "0374_drop_variants_schema",
+      "breakpoints": true
     }
   ]
 }
