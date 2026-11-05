@@ -26,7 +26,7 @@ const first = (): FrameWidth =>
   typeof window !== "undefined" && window.innerWidth < 700 ? "phone" : "desktop";
 
 /** The page's own viewport and its scale, for the room `slot` gives. On stage a wide window is used as is. */
-export function frameFit(width: FrameWidth, slot: { w: number; h: number }, staged: boolean) {
+function frameFit(width: FrameWidth, slot: { w: number; h: number }, staged: boolean) {
   const v = VIEW[width];
   if (staged && width === "desktop" && slot.w >= 1024) return { w: slot.w, h: slot.h, scale: 1 };
   const scale = Math.min(1, slot.w / v.w);
