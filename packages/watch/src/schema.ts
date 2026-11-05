@@ -169,7 +169,7 @@ export const mailRecords = watch
         when m.verdict = 'hold' then 'held' else 'dropped' end queue,
       m.at, coalesce(m.link, 'https://mail.google.com/mail/u/' || m.mailbox || '/#all/' || m.thread_id) open,
       h.n::int held,
-      case when h.n > 0 then '/inbox/mail?view=held&fromAddress=~' || m.from_address end others
+      case when h.n > 0 then '/today/mail?view=held&fromAddress=~' || m.from_address end others
     from watch.mail m
     left join lateral (select count(*) n from watch.mail o
       where o.from_address = m.from_address and o.verdict = 'hold' and o.id <> m.id) h on true`);
