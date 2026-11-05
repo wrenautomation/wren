@@ -193,6 +193,7 @@ export const guides = variants.table(
       foreignColumns: [subjects.id],
       name: "fk_guides_subject_id_subjects",
     }).onDelete("cascade"),
+    index("ix_variants_guides_subject").on(t.subjectId),
     oneOf("ck_variants_guides_source", t.source, GUIDE_SOURCES),
     oneOf("ck_variants_guides_kind", t.kind, KINDS),
     oneOf("ck_variants_guides_state", t.state, GUIDE_STATES),

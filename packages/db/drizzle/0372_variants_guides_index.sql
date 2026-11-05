@@ -1,0 +1,1 @@
+CREATE INDEX "ix_variants_guides_subject" ON "variants"."guides" USING btree ("subject_id");

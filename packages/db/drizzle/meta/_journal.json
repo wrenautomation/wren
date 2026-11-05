@@ -2598,6 +2598,13 @@
       "when": 1793897360112,
       "tag": "0371_variants",
       "breakpoints": true
+    },
+    {
+      "idx": 372,
+      "version": "7",
+      "when": 1793899074329,
+      "tag": "0372_variants_guides_index",
+      "breakpoints": true
     }
   ]
 }
