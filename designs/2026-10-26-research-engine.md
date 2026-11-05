@@ -1328,3 +1328,15 @@ autobrowse now takes one preset grammar on every search route (WA-1031): `latest
 - models stores nothing: the caller keeps the batch id, and each item's id comes back on its answer. A batch outlives the process that sent it.
 - First wren caller: `wren learn breakdown --batch` sends Wren's due items; `--collect <id>` saves the answers. Opt in: the default stays one call per item on Cohere (free). Clients' items wait: their judge goes through the models gate and meter, which has no batch path yet.
 - Gemini batch mode (also half price) is the next vendor when a Gemini caller can wait.
+
+## 11-05: channel survey (WA-1054, engine 0.39.0)
+
+A person skims a channel: every upload, ranked by how far it beat the channel's usual. The parts existed: `follow --as posts` (30 newest) and each hit's `lift` over its author's median.
+
+- `follow` takes `-n` (up to 1000), `--since` (YYYY-MM-DD) and `--q` (search inside the channel). The query record keeps all three. Sources that take a window or words say `followsBy`; YouTube does on the Data API only. Others refuse such a follow, not drop the filter.
+- Cost: uploads 2 units per 50; `--q` 100 units per 50 (search.list with channelId).
+- `brief.surveys`: per posts follow, its hits ranked by views lift, else views; the first 20, with length (short or long), read or not, and the channel median.
+- `open --survey <query> --top K` reads the first K by that rank. Fixed and checkable, so code; which survey and which K stay the agent's.
+- Rejected: a separate `survey` command (a follow already lists, the brief already ranks); `order=viewCount` on search.list (100 units per 50 for what playlistItems gives at 2).
+- The median is over every run's hits of the channel, a `--q` list included, so a search of a channel's hits lifts its median a little. Accepted: one baseline per channel.
+- Live, 11-05: Ali Abdaal 200 uploads since 2024 (median 32.6k views, top 53.9×); Herman Huang 66 (median 15.9k, top 67.7×); Tuan Le (`@tuann_lee`) 20 (median 4.5k, top 74×). A follow that failed (a wrong handle) is tried again on the next fetch, as a failed search is.
