@@ -234,7 +234,9 @@ function place(path: string[], apps: Module[], known: boolean, team = false): Pl
   const page = module?.pages.find((p) => p.id === path[1]);
   if (module && page) return { kind: "page", module, page };
   // "/reactivation" alone opens the app; anything else unknown goes home.
-  if (module && path.length === 1) return { kind: "go", to: firstOf(module) };
+  // waits for the viewer: a team place and a client place share an id, with different first pages
+  if (module && path.length === 1)
+    return known ? { kind: "go", to: firstOf(module) } : { kind: "wait" };
   return known ? { kind: "go", to: home } : { kind: "wait" };
 }
 

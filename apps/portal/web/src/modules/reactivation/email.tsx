@@ -72,7 +72,9 @@ const nameOf = (c: unknown) =>
   c && typeof c === "object" && "name" in c ? String(c.name) : typeof c === "string" ? c : "";
 
 export const emailExtras: NonNullable<ListPage["extras"]> = (detail, { row }) => {
-  const d = detail as EmailDetail;
+  const d = detail as EmailDetail | null;
+  // a type read with no detail yet: nothing to add
+  if (!d) return {};
   const first = nameOf(row.name).split(" ")[0];
   return {
     lead: <Draft key={String(row.id)} d={d} subject={row.subject} first={first} />,

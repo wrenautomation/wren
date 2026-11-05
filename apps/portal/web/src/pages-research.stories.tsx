@@ -7,10 +7,10 @@ import { HttpResponse, http, sse } from "msw";
 import { expect, waitFor, within } from "storybook/test";
 import { ADMIN } from "./mocks/data/me.js";
 import { RESEARCH_ROWS, RESEARCH_VIEW } from "./mocks/data/research.js";
-import { pageAt } from "./mocks/page.js";
+import { pageAt, tidy } from "./mocks/page.js";
 import { SERVE } from "./modules/research/serve.js";
 
-const meta: Meta = { title: "Revamp/Research", id: "pages-research" };
+const meta: Meta = { title: "Wren/Research", id: "pages-research" };
 export default meta;
 
 const SERVED = [
@@ -50,18 +50,20 @@ const story = (
 };
 
 /** The runs down the side; the first run's tree drawn: the ask, its facets, queries and pages. */
-export const Tree = story("/research/runs", async (page) => {
-  const p = within(page);
-  await p.findByRole("link", { name: /How do small bakeries find wholesale buyers/ });
-  await p.findByText(/From: How do small bakeries/);
-  // The frame and the flow inside it both carry the label.
-  const [tree] = await p.findAllByLabelText(/^The run's tree: How do small bakeries/);
-  if (!tree) throw new Error("no tree");
-  await waitFor(() =>
-    expect(within(tree).getByText("bakery wholesale price list margin")).toBeVisible(),
-  );
-  await expect(within(tree).getByText("posts of youtube.com")).toBeVisible();
-});
+export const Tree = tidy(
+  story("/research/runs", async (page) => {
+    const p = within(page);
+    await p.findByRole("link", { name: /How do small bakeries find wholesale buyers/ });
+    await p.findByText(/From: How do small bakeries/);
+    // The frame and the flow inside it both carry the label.
+    const [tree] = await p.findAllByLabelText(/^The run's tree: How do small bakeries/);
+    if (!tree) throw new Error("no tree");
+    await waitFor(() =>
+      expect(within(tree).getByText("bakery wholesale price list margin")).toBeVisible(),
+    );
+    await expect(within(tree).getByText("posts of youtube.com")).toBeVisible();
+  }),
+);
 
 /** Every decision in order, with its why and who made it; a human's steer among them. */
 export const BackAndForth = story("/research/runs?run=r1&tab=talk", async (page) => {

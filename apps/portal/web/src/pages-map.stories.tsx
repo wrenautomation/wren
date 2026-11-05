@@ -32,7 +32,8 @@ import { REFUSED_UNDO } from "./mocks/data/map-drafts.js";
 import { ADMIN } from "./mocks/data/me.js";
 import { type PageAt, pageAt } from "./mocks/page.js";
 
-const meta: Meta = { title: "Done/Map", id: "pages-map" };
+// the Map's checks read hand-made names (views, lines, file names): tidy data (`tidy`, mocks/page.tsx)
+const meta: Meta = { title: "Wren/Map", id: "pages-map", globals: { data: "tidy" } };
 export default meta;
 
 /** The layout is async: a station shows when the renderer has placed it. */

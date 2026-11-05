@@ -73,9 +73,10 @@ const LEAN_TABS = ["Overview", "Plan", "Studio", "Content", "Engage", "Cold emai
 /** A product's four slots, in order. */
 const SHELL_TABS = ["Overview", "Make", "Results", "Settings"];
 
+// a picture of a sidebar, so no nav landmark
 function Sidebar({ groups }: { groups: Group[] }) {
   return (
-    <nav className="grid content-start gap-3 rounded-lg border border-(--ui-hair) bg-(--ui-paper) p-2">
+    <div className="grid content-start gap-3 rounded-lg border border-(--ui-hair) bg-(--ui-paper) p-2">
       {groups.map((g, i) => (
         <div key={g.label || i} className="grid gap-0.5">
           {g.label ? (
@@ -101,7 +102,7 @@ function Sidebar({ groups }: { groups: Group[] }) {
           ))}
         </div>
       ))}
-    </nav>
+    </div>
   );
 }
 

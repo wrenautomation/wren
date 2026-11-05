@@ -15,7 +15,7 @@ import { ADMIN } from "./mocks/data/me.js";
 import { pageAt } from "./mocks/page.js";
 import { fakeRelay, type TapeLine, typedOn } from "./mocks/relay.js";
 
-const meta: Meta = { title: "Revamp/Agent chat", id: "pages-agent" };
+const meta: Meta = { title: "Wren/Agent chat", id: "pages-agent" };
 export default meta;
 
 const TAPES = { work: WORK, stop: STOP, commands: COMMANDS } as Record<string, TapeLine[]>;

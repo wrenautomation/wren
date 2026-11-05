@@ -8,9 +8,9 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ANSWERS } from "./mocks/data/index.js";
 import { ADMIN } from "./mocks/data/me.js";
 import { studioAnswers } from "./mocks/data/studio.js";
-import { pageAt } from "./mocks/page.js";
+import { pageAt, tidy } from "./mocks/page.js";
 
-const meta: Meta = { title: "Done/Wren apps", id: "pages-wren-apps" };
+const meta: Meta = { title: "Wren/Studio and shell", id: "pages-wren-apps" };
 export default meta;
 
 // Content's Plan: what the week still asks for.
@@ -33,17 +33,21 @@ export const ContentStudio = pageAt("/campaigns/studio", {
   },
 });
 /** A row's check approves in place: the row goes aside and the toast offers Undo. */
-export const ContentStudioApprove = pageAt("/campaigns/studio", {
-  me: ADMIN,
-  answers: STUDIO,
-  check: async (page) => {
-    const view = within(page);
-    const row = "Behind the scenes: rebuilding the offer page";
-    await userEvent.click(await view.findByRole("button", { name: `Approve ${row}` }));
-    await waitFor(() => expect(view.queryByText(row)).toBeNull());
-    await expect(await within(document.body).findByRole("button", { name: /undo/i })).toBeVisible();
-  },
-});
+export const ContentStudioApprove = tidy(
+  pageAt("/campaigns/studio", {
+    me: ADMIN,
+    answers: STUDIO,
+    check: async (page) => {
+      const view = within(page);
+      const row = "Behind the scenes: rebuilding the offer page";
+      await userEvent.click(await view.findByRole("button", { name: `Approve ${row}` }));
+      await waitFor(() => expect(view.queryByText(row)).toBeNull());
+      await expect(
+        await within(document.body).findByRole("button", { name: /undo/i }),
+      ).toBeVisible();
+    },
+  }),
+);
 /** A draft's title opens its platforms side by side in a sheet. */
 export const ContentStudioOpen = pageAt("/campaigns/studio", {
   me: ADMIN,
@@ -86,34 +90,28 @@ const links = (scope: ReturnType<typeof within>, name: string) =>
   scope.queryAllByRole("link", { name: named(name) }).length;
 
 /**
- * The sidebar at home: the Map, then Inbox, People, Money and Admin, then every other app under its
- * area, Marketing open (designs/2026-10-23-focus-view.md, F3). Parked apps keep their routes and
- * their place in ⌘K, not in the sidebar. A phone has no sidebar, so the look at phone width checks
- * the bottom tabs in PhoneDock instead.
+ * The sidebar at home: Wren's places (designs/2026-11-04-portal-places.md). Old app names are gone
+ * from it; their pages sit under a place. A phone has no sidebar, so PhoneDock checks its tabs.
  */
 export const SidebarItems = pageAt("/", {
   me: ADMIN,
   check: async (page) => {
     if (onPhone()) return;
     const nav = within(await within(page).findByRole("navigation", { name: "Apps" }));
-    for (const name of ["Inbox", "People", "Money", "Admin"])
+    for (const name of ["Map", "Today", "Campaigns", "Research", "People", "Back office"])
       expect(links(nav, name), `${name} is in the sidebar`).toBeGreaterThan(0);
-    for (const name of ["Pipelines", "Content", "Engage", "Outbound", "Ads", "Analytics"])
-      expect(links(nav, name), `${name} is in the sidebar`).toBeGreaterThan(0);
-    for (const name of ["Notes", "Voice"]) expect(links(nav, name), `${name} is parked`).toBe(0);
-    await expect(within(page).getAllByRole("link", { name: named("Map") }).length).toBeGreaterThan(
-      0,
-    );
+    for (const name of ["Pipelines", "Outbound", "Ads", "Analytics", "Notes"])
+      expect(links(nav, name), `${name} is gone`).toBe(0);
   },
 });
 
-/** A phone's bottom tabs at home: the Map, Inbox, People, then Apps. */
+/** A phone's bottom tabs at home: the Map, the first three docked places, then Apps (iOS fits five). */
 export const PhoneDock = pageAt("/", {
   me: ADMIN,
   check: async (page) => {
     if (!onPhone()) return;
     const dock = within(await within(page).findByRole("navigation", { name: "Tabs" }));
-    for (const name of ["Map", "Inbox", "People"])
+    for (const name of ["Map", "Today", "Campaigns", "Research"])
       expect(links(dock, name), `${name} is a tab`).toBe(1);
     await expect(dock.getByRole("button", { name: named("Apps") })).toBeVisible();
   },

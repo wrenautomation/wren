@@ -5,11 +5,11 @@
  */
 import type { Meta } from "@storybook/react-vite";
 import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
-import { freshStory, settled } from "./mocks/api.js";
+import { freshStory } from "./mocks/api.js";
 import { ACCOUNT_ANSWERS, ACCOUNT_CALLS, forgetAccount } from "./mocks/data/account.js";
-import { pageAt } from "./mocks/page.js";
+import { pageAt, tidy } from "./mocks/page.js";
 
-const meta: Meta = { title: "Revamp/Account", id: "pages-account" };
+const meta: Meta = { title: "Client/Back office", id: "pages-account" };
 export default meta;
 
 /** A page on the account answers; each story starts from the same lists. */
@@ -48,94 +48,27 @@ async function fromMenu(row: ReturnType<typeof within>, title: string | RegExp, 
   await userEvent.click(await within(document.body).findByRole("button", { name: item }));
 }
 
-/** Webhooks: a row each with its state and what it hears; a failed test or off hook says why under it. */
-export const Webhooks = accountAt("/office/webhooks", async (page) => {
-  await expect((await within(page).findAllByText("Zapier: new reply"))[0]).toBeVisible();
-  await expect(await within(page).findByText(/Failing since/)).toBeVisible();
-  await expect(await within(page).findByText(/Turned off/, { selector: "p" })).toBeVisible();
-});
-
-/** Send test on a hook shows its answer under the row. */
-export const WebhookTest = accountAt("/office/webhooks", async (page) => {
-  const row = await rowOf(page, "Sheet of bookings");
-  await userEvent.click(row.getByRole("button", { name: "Send test" }));
-  await expect(await within(page).findByText(/It answered: 200/)).toBeVisible();
-  await expect(sent("delivery/webhookTest")).toHaveLength(1);
-});
-
-/** Remove asks first, then the hook leaves the list. */
-export const WebhookRemove = accountAt("/office/webhooks", async (page) => {
-  const row = await rowOf(page, "Old CRM");
-  // A phone row shows its first action alone; Remove is a swipe there, so this is the wide shape.
-  const remove = row.queryByRole("button", { name: "Remove" });
-  if (!remove) return;
-  await yes(async () => {
-    fireEvent.click(remove);
-  });
-  await waitFor(() => expect(within(page).queryByText("Old CRM")).toBeNull());
-  await expect(sent("delivery/webhookRemove")).toEqual([
-    { path: "delivery/webhookRemove", body: expect.objectContaining({ id: "wh3" }) },
-  ]);
-});
-
-/** Two quick presses on two rows send one test: one write at a time. */
-export const WebhookTwoRows = accountAt("/office/webhooks", async (page) => {
-  await within(page).findAllByText("Sheet of bookings");
-  const [a, b] = within(page).getAllByRole("button", { name: "Send test" });
-  if (!a || !b) throw new Error("two rows have Send test");
-  fireEvent.click(a);
-  fireEvent.click(b);
-  await settled();
-  await expect(sent("delivery/webhookTest")).toHaveLength(1);
-});
-
-/** A delivery opens under its row. */
-export const WebhookDelivery = accountAt("/office/webhooks", async (page) => {
-  const title = await within(page).findByRole("button", { name: "reply.received" });
-  await userEvent.click(title);
-  await expect(await within(page).findByText("Internal error")).toBeVisible();
-});
-
-/** AI tools: a row each with what it can do; Remove asks, then the token leaves. */
-export const AiTools = accountAt("/office/ai", async (page) => {
-  const row = await rowOf(page, "Claude for the office");
-  await yes(async () => {
-    fireEvent.click(row.getByRole("button", { name: "Remove" }));
-  });
-  await waitFor(() => expect(within(page).queryByText("Claude for the office")).toBeNull());
-  await expect(sent("console/tokenRevoke")).toHaveLength(1);
-});
-
-/** Two quick presses on two token rows revoke one token. */
-export const AiToolsTwoRows = accountAt("/office/ai", async (page) => {
-  await within(page).findByText("Claude for the office");
-  await yes(async () => {
-    const [a, b] = within(page).getAllByRole("button", { name: "Remove" });
-    if (!a || !b) throw new Error("two rows have Remove");
-    fireEvent.click(a);
-    fireEvent.click(b);
-    await settled();
-  });
-  await expect(sent("console/tokenRevoke")).toHaveLength(1);
-});
-
 /** People: a row each with role and last seen; their title opens their access under the row. */
-export const People = accountAt("/office/team", async (page) => {
-  const row = await rowOf(page, "sam@acme.example");
-  await userEvent.click(row.getByRole("button", { name: "sam@acme.example" }));
-  await expect(await within(page).findByText("Act in Leads on Email.")).toBeVisible();
-  await expect(await within(page).findByText("History (1)")).toBeVisible();
-});
+export const People = tidy(
+  accountAt("/office/team", async (page) => {
+    const row = await rowOf(page, "sam@acme.example");
+    await userEvent.click(row.getByRole("button", { name: "sam@acme.example" }));
+    await expect(await within(page).findByText("Act in Leads on Email.")).toBeVisible();
+    await expect(await within(page).findByText("History (1)")).toBeVisible();
+  }),
+);
 
 /** End now on an extra grant asks first, then the grant leaves the list. */
-export const PersonGrantEnd = accountAt("/office/team", async (page) => {
-  const row = await rowOf(page, "sam@acme.example");
-  await userEvent.click(row.getByRole("button", { name: "sam@acme.example" }));
-  const grant = await rowOf(page, "Act in Leads on Email.");
-  await yes(() => fromMenu(grant, /^More for/, "End now"));
-  await waitFor(() => expect(within(page).queryByText("Act in Leads on Email.")).toBeNull());
-  await expect(sent("console/grantEnd")).toHaveLength(1);
-});
+export const PersonGrantEnd = tidy(
+  accountAt("/office/team", async (page) => {
+    const row = await rowOf(page, "sam@acme.example");
+    await userEvent.click(row.getByRole("button", { name: "sam@acme.example" }));
+    const grant = await rowOf(page, "Act in Leads on Email.");
+    await yes(() => fromMenu(grant, /^More for/, "End now"));
+    await waitFor(() => expect(within(page).queryByText("Act in Leads on Email.")).toBeNull());
+    await expect(sent("console/grantEnd")).toHaveLength(1);
+  }),
+);
 
 /** Remove a person asks first, then they leave the list. */
 export const PersonRemove = accountAt("/office/team", async (page) => {
@@ -147,34 +80,14 @@ export const PersonRemove = accountAt("/office/team", async (page) => {
   await expect(sent("delivery/remove")).toHaveLength(1);
 });
 
-/** Connectors: an app's accounts as rows, a broken one saying why under it. */
-export const Connectors = accountAt("/office/connectors", async (page) => {
-  await expect(await within(page).findByText("Acme Plumbing CRM")).toBeVisible();
-  await expect(await within(page).findByText(/sign-in ended/)).toBeVisible();
-});
-
-/** Read now (behind ⋯) sends the write and says so. */
-export const ConnectorsReadNow = accountAt("/office/connectors", async (page) => {
-  const row = await rowOf(page, "Acme Plumbing CRM");
-  await fromMenu(row, /^More for/, "Read now");
-  await expect(await within(page).findByText(/Reading now/)).toBeVisible();
-  await expect(sent("connectors/syncNow")).toHaveLength(1);
-});
-
-/** Disconnect asks first, then the account leaves the list. */
-export const ConnectorsDisconnect = accountAt("/office/connectors", async (page) => {
-  const row = await rowOf(page, "Account 9071");
-  await yes(() => fromMenu(row, /^More for/, "Disconnect"));
-  await waitFor(() => expect(within(page).queryByText("Account 9071")).toBeNull());
-  await expect(sent("connectors/disconnect")).toHaveLength(1);
-});
-
 /** Social: each platform's accounts as rows; a TikTok's numbers and newest videos under its row. */
-export const Social = accountAt("/office/social", async (page) => {
-  await expect(await within(page).findByText("@acme-plumbing")).toBeVisible();
-  await expect(await within(page).findByText("Fix a dripping tap in two minutes")).toBeVisible();
-  await expect(await within(page).findByText(/stopped the sign-in/)).toBeVisible();
-});
+export const Social = tidy(
+  accountAt("/office/social", async (page) => {
+    await expect(await within(page).findByText("@acme-plumbing")).toBeVisible();
+    await expect(await within(page).findByText("Fix a dripping tap in two minutes")).toBeVisible();
+    await expect(await within(page).findByText(/stopped the sign-in/)).toBeVisible();
+  }),
+);
 
 /** Check (behind ⋯) sends the write; Turn off asks first, then the account leaves. */
 export const SocialActions = accountAt("/office/social", async (page) => {
@@ -202,7 +115,7 @@ export const MailCheck = accountAt("/office/mail", async (page) => {
 
 /** Feedback: "When you're ready for more" as a row with its pitch under it; I'm interested sends. */
 export const Feedback = {
-  ...pageAt("/map", {
+  ...pageAt("/project/overview", {
     answers: ACCOUNT_ANSWERS,
     check: async (page) => {
       const row = await rowOf(page, "Reviews");

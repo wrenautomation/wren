@@ -9,9 +9,9 @@ import { ANSWERS } from "./mocks/data/index.js";
 import { LONG_INVITES } from "./mocks/data/long.js";
 import { ADMIN } from "./mocks/data/me.js";
 import { ownRows } from "./mocks/data/records.js";
-import { pageAt, rowsFit } from "./mocks/page.js";
+import { pageAt, rowsFit, tidy } from "./mocks/page.js";
 
-const meta: Meta = { title: "Ready to build/Engage and Outbound", id: "pages-wren-apps" };
+const meta: Meta = { title: "Wren/Engage and cold email", id: "pages-wren-apps" };
 export default meta;
 
 // Engage: one story per tab.
@@ -37,24 +37,26 @@ export const EngageInbox = pageAt("/today/messages", { me: ADMIN });
  * and "By type" folds the rows by kind, each fold with its count and oldest
  * wait. A fold shuts on a press.
  */
-export const EngageInboxByType = pageAt("/today/messages?view=all", {
-  me: ADMIN,
-  check: async (page) => {
-    const view = within(page);
-    // A row that waited past its promise says so in its wait, as text.
-    await waitFor(() => expect(page.querySelectorAll("[data-late]").length).toBeGreaterThan(0));
-    // Only open threads read late: a thread already answered shows its age.
-    const rows = page.querySelectorAll("tbody tr[data-index], li[data-index]").length;
-    await expect(page.querySelectorAll("[data-late]").length).toBeLessThan(rows);
-    await userEvent.click(await view.findByRole("link", { name: "By type" }));
-    const fold = await view.findByRole("button", { name: /DM/ });
-    await expect(fold).toHaveAttribute("aria-expanded", "true");
-    // Two groups show, each its own fold.
-    await expect(await view.findByRole("button", { name: /Comment/ })).toBeVisible();
-    await userEvent.click(fold);
-    await expect(fold).toHaveAttribute("aria-expanded", "false");
-  },
-});
+export const EngageInboxByType = tidy(
+  pageAt("/today/messages?view=all", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      // A row that waited past its promise says so in its wait, as text.
+      await waitFor(() => expect(page.querySelectorAll("[data-late]").length).toBeGreaterThan(0));
+      // Only open threads read late: a thread already answered shows its age.
+      const rows = page.querySelectorAll("tbody tr[data-index], li[data-index]").length;
+      await expect(page.querySelectorAll("[data-late]").length).toBeLessThan(rows);
+      await userEvent.click(await view.findByRole("link", { name: "By type" }));
+      const fold = await view.findByRole("button", { name: /DM/ });
+      await expect(fold).toHaveAttribute("aria-expanded", "true");
+      // Two groups show, each its own fold.
+      await expect(await view.findByRole("button", { name: /Comment/ })).toBeVisible();
+      await userEvent.click(fold);
+      await expect(fold).toHaveAttribute("aria-expanded", "false");
+    },
+  }),
+);
 export const EngageApprove = pageAt("/today/approve", { me: ADMIN });
 export const EngageComments = pageAt("/today/comments", { me: ADMIN });
 /** A comment opened: the whole comment docks beside the list (`peek: false`), never over it. */

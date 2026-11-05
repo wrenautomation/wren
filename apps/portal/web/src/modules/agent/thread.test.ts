@@ -1,10 +1,9 @@
-// Fixtures: one real relay session each, trimmed (ids and paths made up).
+// Tapes: real relay sessions, scrubbed (`packages/agent/scripts/scrub-tape.mjs`); the stories play the same ones
 import { describe, expect, it } from "vitest";
+import stored from "../../mocks/data/agent/history.json" with { type: "json" };
+import stop from "../../mocks/data/agent/stop.json" with { type: "json" };
+import work from "../../mocks/data/agent/work.json" with { type: "json" };
 import { turnContent } from "./files.js";
-import birdwatch from "./fixtures/birdwatch.json" with { type: "json" };
-import stored from "./fixtures/history.json" with { type: "json" };
-import prompt from "./fixtures/prompt.json" with { type: "json" };
-import stop from "./fixtures/stop.json" with { type: "json" };
 import {
   answered,
   asked,
@@ -19,32 +18,53 @@ import {
 } from "./thread.js";
 
 type Frame = Record<string, unknown> & { type?: string };
-const frames = (f: { frames: unknown[] }) => f.frames as Frame[];
+type Tape = { t: number; from: string; frame: Frame }[];
+type Ask = {
+  request_id: string;
+  request: {
+    subtype: string;
+    tool_name: string;
+    input: Record<string, unknown>;
+    tool_use_id?: string;
+  };
+};
 
-/** Plays a session as the page does: each turn said, then its frames to the result. */
-function play(f: Frame[], turns: string[], step?: (s: ThreadState, f: Frame) => ThreadState) {
+/** Plays a tape as the page does: its turns said, the CLI's frames folded, asks and answers on their cards. */
+function play(tape: Tape) {
   let s = EMPTY;
-  let t = 0;
-  let open = false;
-  for (const x of f) {
-    if (!open && x.type !== "system") {
-      s = said(s, turns[t++] ?? "");
-      open = true;
-    }
-    s = (step ?? fold)(s, x);
-    if (x.type === "result") open = false;
+  const asks = new Map<string, string>();
+  for (const { from, frame } of tape) {
+    if (from === "page" && frame.type === "user") {
+      const m = frame.message as { content: string };
+      s = said(s, m.content);
+    } else if (from === "cli" && frame.type === "control_request") {
+      const { request_id, request: r } = frame as unknown as Ask;
+      if (r.subtype !== "can_use_tool" || !r.tool_use_id) continue;
+      asks.set(request_id, r.tool_use_id);
+      s = asked(s, { id: r.tool_use_id, name: r.tool_name, input: r.input });
+    } else if (from === "page" && frame.type === "control_response") {
+      const r = frame.response as {
+        request_id: string;
+        response?: { behavior?: string; updatedInput?: { answers?: Record<string, string> } };
+      };
+      const id = asks.get(r.request_id);
+      if (id)
+        s = answered(s, id, r.response?.behavior === "allow", r.response?.updatedInput?.answers);
+    } else if (from === "cli" && frame.type !== "control_response") s = fold(s, frame);
   }
   return s;
 }
 
+const tool = (s: ThreadState, name: string) =>
+  s.messages.flatMap((m) => m.parts).find((p) => p.type === "tool" && p.name === name);
+
 describe("fold", () => {
-  it("two turns: words, then a tool call with its result, then words; each with a foot", () => {
-    const s = play(frames(birdwatch), ["Reply OK only.", "Use Bash to run date."]);
+  it("a working turn: tools with their results, an answered ask, then words; each reply with a foot", () => {
+    const s = play(work as Tape);
     expect(s.running).toBe(false);
     expect(s.session).toMatch(/^0000/);
     expect(s.messages.map((m) => m.role)).toEqual(["user", "assistant", "user", "assistant"]);
     const [, one, , two] = s.messages;
-    expect(one?.parts).toEqual([{ type: "text", text: "OK" }]);
     expect(one?.state).toBe("done");
     expect(one?.foot?.model).toBe("claude-sonnet-5-5");
     expect(
@@ -52,18 +72,28 @@ describe("fold", () => {
     ).toBeGreaterThan(5000);
     expect(one?.foot?.output).toBeGreaterThan(0);
     expect(one?.foot?.cost).toBeGreaterThan(0);
-    const tool = two?.parts[0];
-    expect(tool).toMatchObject({ type: "tool", name: "Bash", input: { command: "date" } });
-    expect(tool?.type === "tool" && tool.result).toMatch(/2026/);
-    expect(tool?.type === "tool" && tool.inputText).toBeUndefined();
-    expect(two?.parts[1]).toMatchObject({ type: "text" });
-    expect(two?.parts).toHaveLength(2);
+    const bash = tool(s, "Bash");
+    expect(bash).toMatchObject({ input: { command: expect.stringMatching(/^printf/) } });
+    expect(bash?.type === "tool" && bash.result).toMatch(/northwind\.example 200/);
+    expect(bash?.type === "tool" && bash.inputText).toBeUndefined();
+    expect(tool(s, "Skill")).toMatchObject({
+      input: { skill: expect.stringMatching(/birdwatch/) },
+    });
+    expect(tool(s, "AskUserQuestion")).toMatchObject({
+      ask: { allowed: true },
+      answers: { "Which site should be read first?": expect.any(String) },
+    });
+    expect(one?.parts.at(-1)).toMatchObject({ type: "text" });
+    expect(two?.parts).toEqual([{ type: "text", text: expect.stringMatching(/42/) }]);
   });
 
   it("streams: the reply grows word by word before the whole frame lands", () => {
-    const f = frames(birdwatch);
-    const upTo = f.findIndex((x, i) => i > 30 && x.type === "assistant");
-    const s = play(f.slice(0, upTo), ["a", "b"]);
+    const t = work as Tape;
+    const words = t.findIndex(
+      (x) => x.frame.type === "stream_event" && JSON.stringify(x.frame).includes("text_delta"),
+    );
+    const whole = t.findIndex((x, i) => i > words && x.frame.type === "assistant");
+    const s = play(t.slice(0, whole));
     const last = s.messages.at(-1);
     expect(last?.state).toBe("live");
     expect(s.running).toBe(true);
@@ -71,22 +101,13 @@ describe("fold", () => {
     expect(text?.type === "text" && text.text.length).toBeGreaterThan(0);
   });
 
-  it("an ask lands on its tool card; a no shows as the tool's failed result", () => {
-    const p = prompt.prompts[0] as {
-      id: string;
-      name: string;
-      input: Record<string, unknown>;
-      why: string;
-    };
-    const s = play(frames(prompt), ["touch it"], (s, x) => {
-      const n = fold(s, x);
-      // the CLI asks right after the tool's whole frame
-      return x.type === "assistant" && JSON.stringify(x).includes(p.id) ? asked(n, p) : n;
+  it("a no shows on the ask's card", () => {
+    let s = said(EMPTY, "touch it");
+    s = asked(s, { id: "t1", name: "Bash", input: { command: "touch x" }, why: "writes a file" });
+    s = answered(s, "t1", false);
+    expect(s.messages[1]?.parts[0]).toMatchObject({
+      ask: { why: "writes a file", allowed: false },
     });
-    const reply = s.messages[1];
-    const tool = reply?.parts.find((x) => x.type === "tool");
-    expect(tool).toMatchObject({ id: p.id, ask: { why: p.why, allowed: false }, failed: true });
-    expect(reply?.parts.at(-1)).toMatchObject({ type: "text" });
   });
 
   it("answered marks the ask once", () => {
@@ -112,25 +133,27 @@ describe("fold", () => {
   });
 
   it("Stop: the interrupt marker and the error result read as stopped, not failed", () => {
-    const s = play(frames(stop), ["essay"]);
-    const reply = s.messages[1];
-    expect(reply?.state).toBe("stopped");
+    const s = play(stop as Tape);
+    expect(s.messages.map((m) => m.role)).toEqual(["user", "assistant", "user", "assistant"]);
+    const [, one, , two] = s.messages;
+    expect(one?.state).toBe("stopped");
+    expect(one?.parts.some((x) => x.type === "text")).toBe(true);
+    // the next turn runs as usual
+    expect(two?.state).toBe("done");
+    expect(two?.parts.at(-1)).toMatchObject({ type: "text", text: expect.stringMatching(/42/) });
     expect(s.running).toBe(false);
-    expect(reply?.parts.some((x) => x.type === "text")).toBe(true);
-    // the signed-only thinking block stays, empty: the part draws nothing once done
-    expect(s.messages).toHaveLength(2);
   });
 
   it("a stored session: its own turns, the tool result on its card, no foot", () => {
     const s = history(stored as Frame[]);
     expect(s.messages.map((m) => m.role)).toEqual(["user", "assistant", "user", "assistant"]);
-    expect(s.messages[0]?.parts).toEqual([{ type: "text", text: "Reply OK only." }]);
+    expect(s.messages[0]?.parts[0]).toMatchObject({
+      type: "text",
+      text: expect.stringMatching(/^A test of the chat page/),
+    });
     expect(s.messages[0]?.at).toMatch(/^2026-/);
-    const tool = s.messages[3]?.parts[0];
-    expect(tool).toMatchObject({
-      type: "tool",
-      name: "Bash",
-      result: expect.stringMatching(/2026/),
+    expect(tool(s, "Bash")).toMatchObject({
+      result: expect.stringMatching(/northwind\.example 200/),
     });
     expect(s.messages.every((m) => m.state !== "live")).toBe(true);
     expect(s.running).toBe(false);
@@ -197,7 +220,7 @@ describe("what a call cost", () => {
     message: { content: [{ type: "tool_result", tool_use_id: id, content: text }] },
     ...extra,
   });
-  const tool = (s: ThreadState, id: string) =>
+  const byId = (s: ThreadState, id: string) =>
     s.messages.at(-1)?.parts.find((p) => p.type === "tool" && p.id === id);
 
   it("a skill counts what the next call's prompt grew by", () => {
@@ -211,7 +234,7 @@ describe("what a call cost", () => {
       ),
     );
     s = fold(s, result("k1", "Launching skill: humanizer"));
-    expect(tool(s, "k1")).not.toHaveProperty("tokens");
+    expect(byId(s, "k1")).not.toHaveProperty("tokens");
     s = fold(s, {
       type: "assistant",
       message: {
@@ -222,7 +245,7 @@ describe("what a call cost", () => {
       },
     });
     // 37647 in the second prompt, 25842 in the first call's prompt and output
-    expect(tool(s, "k1")).toMatchObject({ tokens: 11805 });
+    expect(byId(s, "k1")).toMatchObject({ tokens: 11805 });
   });
 
   it("a subagent's count comes from its result", () => {
@@ -241,7 +264,7 @@ describe("what a call cost", () => {
         tool_use_result: { totalTokens: 48200, totalToolUseCount: 23 },
       }),
     );
-    expect(tool(s, "g1")).toMatchObject({ tokens: 48200, uses: 23 });
+    expect(byId(s, "g1")).toMatchObject({ tokens: 48200, uses: 23 });
   });
 });
 

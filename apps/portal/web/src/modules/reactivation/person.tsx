@@ -39,7 +39,9 @@ const nameOf = (c: unknown) =>
   c && typeof c === "object" && "name" in c ? String(c.name) : typeof c === "string" ? c : "";
 
 export const personExtras: NonNullable<ListPage["extras"]> = (detail, { client, team, row }) => {
-  const d = detail as PersonDetail;
+  const d = detail as PersonDetail | null;
+  // a type read with no detail yet: nothing to add
+  if (!d) return {};
   const placed = d.crm.find((c) => c.lastPlacementOn)?.lastPlacementOn;
   const where = whereNow(d.now);
   const facts: [string, ReactNode][] = [];

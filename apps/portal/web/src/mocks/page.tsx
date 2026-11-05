@@ -3,7 +3,7 @@
  * on a memory history, so links move inside the story and the frame's own address stays.
  */
 import type { StoryObj } from "@storybook/react-vite";
-import { createMemoryHistory } from "@tanstack/react-router";
+import { createMemoryHistory, type RouterHistory } from "@tanstack/react-router";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import type { Me } from "../api.js";
@@ -21,17 +21,34 @@ export interface PageAt {
   mode?: Mode;
   /** What the test asserts once the data is in, after the unmocked check. */
   check?: (page: HTMLElement) => void | Promise<void>;
+  /** Where the page must land, when not at `at` itself (an old address); false: anywhere. */
+  lands?: string | false;
 }
+
+// the story's own history: the play reads where the router landed
+let HISTORY: RouterHistory | null = null;
 
 function Page({ at }: { at: string }) {
   const [history] = useState(() => createMemoryHistory({ initialEntries: [at] }));
+  HISTORY = history;
   return <PortalRouter history={history} />;
+}
+
+/** A page the workspace lacks redirects home and still renders: a story there tests the wrong page. */
+async function landedAt(want: string) {
+  const path = want.split(/[?#]/)[0] ?? "";
+  if (path === "/") return;
+  await waitFor(() => {
+    const now = HISTORY?.location.pathname ?? "";
+    if (now !== path && !now.startsWith(`${path}/`))
+      throw new Error(`the story asks for ${path} and lands on ${now}`);
+  });
 }
 
 /** The story for the portal at `at` (`/reactivation/people?status=open`). */
 export function pageAt(
   at: string,
-  { me = OWNER, answers = {}, mode, check }: PageAt = {},
+  { me = OWNER, answers = {}, mode, check, lands }: PageAt = {},
 ): StoryObj {
   return {
     render: () => <Page at={at} />,
@@ -42,6 +59,7 @@ export function pageAt(
       : {
           play: async ({ canvasElement }) => {
             await settled();
+            if (lands !== false) await landedAt(lands ?? at);
             await check?.(canvasElement);
           },
         }),
@@ -102,3 +120,38 @@ export const rowsFit = async (page: HTMLElement) => {
     if (end && end.width > 0) expect(end.right).toBeLessThanOrEqual(right + 1);
   }
 };
+
+const startsWith = (s: string) => new RegExp(`^${s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
+
+/**
+ * The check that a page shows its heading and its main actions: a page that drops one fails.
+ * An action is a button whose name starts with the words (a key hint may follow).
+ */
+export const shows =
+  (heading: string, ...actions: string[]) =>
+  async (page: HTMLElement) => {
+    const view = within(page);
+    // a record's panel and its actions load after the list
+    const wait = { timeout: 4000 };
+    const [head] = await view.findAllByRole("heading", { name: startsWith(heading) }, wait);
+    await waitFor(() => expect(head).toBeVisible());
+    // a phone shows the list alone: tap the open row, as a person does, to reach its actions
+    const shown = () =>
+      actions.every((a) => view.queryAllByRole("button", { name: startsWith(a) }).length);
+    if (actions.length && matchMedia("(max-width: 767px)").matches) {
+      const row = await waitFor(() => {
+        if (shown()) return null;
+        const a = page.querySelector<HTMLElement>('li a[aria-current="true"], main li a');
+        if (!a) throw new Error("no actions and no row to open");
+        return a;
+      }, wait);
+      if (row) await userEvent.click(row);
+    }
+    for (const a of actions) await view.findAllByRole("button", { name: startsWith(a) }, wait);
+  };
+
+/**
+ * A story on the tidy table: its check reads hand-made words (a name, a file name) that Messy mode
+ * (the default, `.storybook/preview.tsx`) would stretch. A page's look runs messy.
+ */
+export const tidy = (s: StoryObj): StoryObj => ({ ...s, globals: { ...s.globals, data: "tidy" } });

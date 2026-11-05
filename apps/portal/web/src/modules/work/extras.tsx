@@ -11,7 +11,9 @@ const START = "justify-self-start";
 
 /** The update's words are its title; the thread goes under. */
 export const updateExtras: Extras = (detail, props) => {
-  const u = detail as UpdateView;
+  const u = detail as UpdateView | null;
+  // a type read with no detail yet: nothing to add
+  if (!u) return {};
   return {
     sections: [
       [
@@ -23,14 +25,18 @@ export const updateExtras: Extras = (detail, props) => {
 };
 
 export const askExtras: Extras = (detail, props) => {
-  const a = detail as AskView;
+  const a = detail as AskView | null;
+  // a type read with no detail yet: nothing to add
+  if (!a) return {};
   return {
     lead: a.file ? <OpenFile props={props} of={{ askId: a.id }} /> : null,
   } satisfies RecordExtras;
 };
 
 export const deliverableExtras: Extras = (detail, props) => {
-  const d = detail as DeliverableView;
+  const d = detail as DeliverableView | null;
+  // a type read with no detail yet: nothing to add
+  if (!d) return {};
   return {
     lead: d.url ? (
       <ButtonLink

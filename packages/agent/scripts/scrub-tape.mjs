@@ -52,8 +52,14 @@ const text = (s) => {
   // a letter TLD: a pnpm path (`@scope+pkg@0.36.1`) is no address
   return out.replace(/[\w.+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\b/gi, "you@example.com");
 };
+// a loaded skill's body rides as a synthetic user turn, ~20 KB; no page draws it
+const SKILL_CAP = 2000;
 const scrub = (v) => {
   if (typeof v === "string") return text(v);
+  if (v?.isSynthetic && Array.isArray(v.message?.content))
+    for (const b of v.message.content)
+      if (b.type === "text" && b.text.length > SKILL_CAP)
+        b.text = `${b.text.slice(0, SKILL_CAP)}\n[cut: the rest of the skill]`;
   if (Array.isArray(v)) return v.map(scrub);
   if (v && typeof v === "object")
     return Object.fromEntries(

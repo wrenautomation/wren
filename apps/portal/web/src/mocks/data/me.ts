@@ -6,8 +6,14 @@ import { MEMBER_GRANTS, PERMISSIONS } from "@wren/core/access";
 import type { Me } from "../../api.js";
 import { MODULES } from "../../modules/index.js";
 
-/** Every component an app belongs to, so each client app shows. */
-const EVERY = [...new Set(MODULES.flatMap((m) => (m.component ? [m.component] : [])))];
+/** Every component an app or a page belongs to, so each client page shows: places set it per page. */
+const EVERY = [
+  ...new Set(
+    MODULES.flatMap((m) => [m.component, ...m.pages.map((p) => p.component)]).filter(
+      (c): c is string => !!c,
+    ),
+  ),
+];
 
 export const CLIENT = { id: "acme", name: "Acme Plumbing" };
 

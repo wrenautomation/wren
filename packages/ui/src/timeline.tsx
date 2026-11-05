@@ -246,6 +246,8 @@ function Timeline({
             size="dense"
             aria-label={`${stepWord} after`}
             aria-disabled={after ? undefined : true}
+            // an <a> with no href has no role, and a name needs one
+            role={after ? undefined : "link"}
             className={after ? undefined : "pointer-events-none opacity-40"}
             {...tipProps(`${stepWord} after`)}
           >

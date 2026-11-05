@@ -1,7 +1,7 @@
 /**
  * Wren's pages that follow the Design Language artifact, as Wren's admin sees them, on the fake
- * server: Today, Inbox and Offers. The rest of Wren's pages are in `pages-wren.stories.tsx`
- * (Revamp). Same story ids as before the split (`pages-wren--<app>`).
+ * server: Today, Inbox and Offers. The rest of Wren's pages are in `pages-wren.stories.tsx`.
+ * Same story ids as before the split (`pages-wren--<app>`).
  */
 import type { Meta } from "@storybook/react-vite";
 import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
@@ -10,7 +10,7 @@ import { ADMIN } from "./mocks/data/me.js";
 import { forgetTermsCalls, TERMS_CALLS } from "./mocks/data/offers.js";
 import { failedIn, pageAt } from "./mocks/page.js";
 
-const meta: Meta = { title: "Done/Wren", id: "pages-wren" };
+const meta: Meta = { title: "Wren/Today", id: "pages-wren" };
 export default meta;
 
 /** A records answer with no rows. */

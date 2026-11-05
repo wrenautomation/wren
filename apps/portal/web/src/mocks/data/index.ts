@@ -5,6 +5,7 @@
 import type { Row } from "@wren/core/records/serve";
 import type { Answers } from "../api.js";
 import { APP_ANSWERS } from "./apps.js";
+import { CLIENT_PAGE_ANSWERS } from "./client-pages.js";
 import { JOURNEY_DETAIL, JOURNEY_ROWS, JOURNEY_WRITES } from "./journeys.js";
 import { MAP_ANSWERS } from "./map.js";
 import { DRAFT_ANSWERS, draftRecords } from "./map-drafts.js";
@@ -69,6 +70,7 @@ const BASE: Answers = {
   ),
   ...SHELL,
   ...APP_ANSWERS,
+  ...CLIENT_PAGE_ANSWERS,
   ...JOURNEY_WRITES,
   ...MAP_ANSWERS,
   ...OFFER_ANSWERS,

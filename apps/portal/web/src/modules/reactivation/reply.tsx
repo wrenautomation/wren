@@ -61,7 +61,9 @@ export const REPLY_EXAMPLE = (
 );
 
 export const replyExtras: NonNullable<ListPage["extras"]> = (detail) => {
-  const d = detail as { text: string; from: string | null };
+  const d = detail as { text: string; from: string | null } | null;
+  // a type read with no detail yet: nothing to add
+  if (!d) return {};
   return {
     lead: d.text ? (
       <div className={MAIL}>
