@@ -182,7 +182,7 @@ export function settingRecord(all: readonly Component[]): RecordType {
   };
   return defineRecord({
     id: "console.setting",
-    app: "loops",
+    app: "office",
     channel: null,
     name: { one: "setting", many: "settings" },
     rows: async (db) => {

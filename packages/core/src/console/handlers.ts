@@ -203,7 +203,7 @@ export function formOf(input: unknown): HandlerField[] | null {
 export const handlerRecord = (get: RestateAdminGet): RecordType =>
   defineRecord({
     id: "console.handler",
-    app: "handlers",
+    app: "office",
     channel: null,
     name: { one: "handler", many: "handlers" },
     rows: async () =>

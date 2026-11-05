@@ -311,7 +311,7 @@ export const componentRecord = (
   });
   return defineRecord({
     id: COMPONENT,
-    app: "marketplace",
+    app: "office",
     channel: null,
     name: { one: "component", many: "components" },
     rows: async () => {

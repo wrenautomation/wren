@@ -162,7 +162,7 @@ export function makeAsk(main: Db) {
 
 export const askRecord = defineRecord({
   id: "console.ask",
-  app: "ask",
+  app: "research",
   channel: null,
   name: { one: "question", many: "questions" },
   rows: async (db) =>

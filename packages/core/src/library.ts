@@ -255,7 +255,7 @@ export function workflowRecord(
     );
   return defineRecord({
     id: "library.workflow",
-    app: "workflows",
+    app: "office",
     channel: null,
     name: { one: "workflow", many: "workflows" },
     // A setup runs from a client's Accounts page, not the Library.

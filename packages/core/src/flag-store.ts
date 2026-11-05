@@ -188,7 +188,7 @@ const one = async (db: Queryable, key: string) =>
 export function flagRecord(push?: EdgePush): RecordType {
   return defineRecord({
     id: FLAG,
-    app: "loops",
+    app: "office",
     channel: null,
     name: { one: "flag", many: "flags" },
     rows: async (db) =>

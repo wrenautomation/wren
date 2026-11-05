@@ -343,7 +343,7 @@ export function automationRecord(o: {
 }): RecordType {
   return defineRecord({
     id: AUTOMATION,
-    app: "workflows",
+    app: "office",
     channel: null,
     name: { one: "automation", many: "automations" },
     rows: async (db) => {

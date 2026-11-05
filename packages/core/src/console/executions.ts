@@ -105,7 +105,7 @@ export function nowAtLabels(
 export const executionRecordOf = (labels: Readonly<Record<string, string>> = {}) =>
   defineRecord({
     id: "console.execution",
-    app: "workflows",
+    app: "office",
     channel: null,
     name: { one: "execution", many: "executions" },
     view: "executions",
@@ -154,7 +154,7 @@ export const executionRecord = executionRecordOf();
  */
 export const holdRecord = defineRecord({
   id: "console.hold",
-  app: "workflows",
+  app: "office",
   channel: null,
   name: { one: "hold", many: "holds" },
   view: "unit_holds_now",
@@ -194,7 +194,7 @@ export const holdRecord = defineRecord({
 /** Each check's pass rate per stage and source over 30 days; under 70% of 50 pauses a source. */
 export const checkRecord = defineRecord({
   id: "console.check",
-  app: "workflows",
+  app: "office",
   channel: null,
   name: { one: "check", many: "checks" },
   view: "check_rates",

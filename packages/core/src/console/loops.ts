@@ -115,7 +115,7 @@ export function loopsOf(rows: Record<string, unknown>[]): LoopRow[] {
 export const loopRecord = (admin: RestateAdmin): RecordType =>
   defineRecord({
     id: "console.loop",
-    app: "loops",
+    app: "office",
     channel: null,
     name: { one: "loop", many: "loops" },
     rows: async () =>
@@ -165,7 +165,7 @@ export const loopRecord = (admin: RestateAdmin): RecordType =>
  */
 export const eventRecord = defineRecord({
   id: "console.event",
-  app: "workflows",
+  app: "office",
   channel: null,
   name: { one: "event", many: "events" },
   view: "executor_events",

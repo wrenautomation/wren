@@ -490,3 +490,9 @@ None.
   - Weekly report (WA-1067.2): `wren report weekly` and its collect, render, schedule and send
     code go (last row 10-03; ReportScheduler already gone). The `reports` table and its 14 rows
     stay. Cold email's variant outcomes (`report/variants.ts`) stay.
+  - Parked ids out of APPS (WA-1067.2): Marketplace, Workflows, Loops, Handlers, Review, Ask and
+    Learn leave `APPS`. Their records and console routes move to the place that would hold them:
+    system records (holds, executions, checks, loops, flags, settings, components, handlers,
+    automations, workflows) to `office`, Ask to `research`, the parked-draft review to `inbox`.
+    No stored grant or token names an app (prod 11-04), so no one's access changes. Voice stays
+    parked with its package.

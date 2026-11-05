@@ -98,14 +98,7 @@ export const APPS = {
   calendar: "Calendar",
   research: "Research",
   office: "Back office",
-  // ponytail: parked apps, deleted in WA-1067.2
-  marketplace: "Marketplace",
-  workflows: "Workflows",
-  loops: "Loops",
-  handlers: "Handlers",
-  review: "Review",
-  ask: "Ask",
-  learn: "Learn",
+  // Parked with its package (designs/2026-11-04-portal-places.md).
   voice: "Voice",
 } as const satisfies Record<string, string>;
 export type App = keyof typeof APPS;
