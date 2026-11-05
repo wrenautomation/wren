@@ -1340,3 +1340,26 @@ A person skims a channel: every upload, ranked by how far it beat the channel's 
 - Rejected: a separate `survey` command (a follow already lists, the brief already ranks); `order=viewCount` on search.list (100 units per 50 for what playlistItems gives at 2).
 - The median is over every run's hits of the channel, a `--q` list included, so a search of a channel's hits lifts its median a little. Accepted: one baseline per channel.
 - Live, 11-05: Ali Abdaal 200 uploads since 2024 (median 32.6k views, top 53.9×); Herman Huang 66 (median 15.9k, top 67.7×); Tuan Le (`@tuann_lee`) 20 (median 4.5k, top 74×). A follow that failed (a wrong handle) is tried again on the next fetch, as a failed search is.
+
+## 11-05: a site's brand (WA-1094, engine 0.42.0)
+
+wren's pitch pages need a prospect's logo, palette and fonts. Shape from ScrapeGraphAI's `branding`: `logo {url, kind}`, `palette {primary, accent, background, text}`, `fonts {heading, body}`, a confidence each.
+
+Options put to William:
+- A. Static only: the page and its CSS by HTTP. Cheap; blind to JS-built pages and CSS-in-JS.
+- B. dembrandt (MIT, Playwright, computed styles) for every site. Right on JS pages; a browser per call.
+- C. Static first; an autobrowse browser leg only when the static read is thin. **Chosen** by William.
+- D. A plus dembrandt in-process. A second browser stack beside autobrowse's.
+
+Ranked by: right on most sites, then cost per call, then one browser stack. C keeps the browser for the few that need it, on the desk that already runs one.
+
+Built:
+- `@wrenautomation/read/brand`: `brandOf(url, {fetcher, sites?})`. HTML by htmlparser2 (logo by name in the header or home link, inline SVG as a data URI, favicons, theme colour, Google Fonts), then up to 8 sheets and one level of `@import` by postcss; colours by culori. Every reader writes weighted votes; one scorer picks. No model.
+- Root custom properties count by name only bare or under a theme's prefix (`--primary`, `--color-primary`, `--bs-primary`, `--wp--preset--color--primary`). Design systems name hundreds of roles: Stripe's `--hds-*` and WordPress's admin `--wpds-*` gave wrong backgrounds and blues until cut.
+- A button fill may be black or grey: monochrome brands (Squarespace, Vercel) have no hued primary. Text and primary must differ from the background; an unset background is white.
+- Thin (logo under 0.5, no primary, palette under 0.3, no body font) and a ladder at hand: `web GET /brand` (computed styles, `BrandProbe`); that route absent or failed, the ladder's render rung's HTML read again. A page the plain GET cannot get comes up the ladder first.
+- `birdwatch brand <url>` prints it as JSON; `--static` skips autobrowse.
+
+Live, static only, 11-05: Stripe #533afd and sohne-var; Mailchimp Means Web and Graphik Web, its logo; Career Clarity Labs DM Sans and navy; Allbirds Geograph and its SVG logo; Basecamp Graphik. Weak: Linear (46 sheets, past the cap: nothing), Notion and Vercel (a counted hue, low confidence). Blue Bottle came through the ladder and the render rung.
+
+Next: autobrowse builds `web GET /brand` to the `BrandProbe` contract (WA-1097). Linear-style sites wait on it; a higher sheet cap was rejected (one polite second per sheet per host).
