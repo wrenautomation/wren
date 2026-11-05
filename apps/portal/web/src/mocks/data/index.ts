@@ -14,6 +14,7 @@ import { MOVE_ROWS } from "./moves.js";
 import { OFFER_ANSWERS, OFFER_DETAIL, OFFER_ROWS } from "./offers.js";
 import { recordsAnswers } from "./records.js";
 import { ago, SHELL } from "./shell.js";
+import { VARIANTS_ANSWERS } from "./variants.js";
 
 /** A person's page read: their newest timeline lines, for the peek (`profileExtras`). */
 const PERSON_DETAIL = (row: Row) => ({
@@ -74,6 +75,7 @@ const BASE: Answers = {
   ...JOURNEY_WRITES,
   ...MAP_ANSWERS,
   ...OFFER_ANSWERS,
+  ...VARIANTS_ANSWERS,
   "console/call:Pieces.list": { pieces: PIECES },
   "console/call:ContentDesk.waiting": STUDIO_WAITING,
   "console/call:InboxDesk.autoReplies": AUTO_REPLY,

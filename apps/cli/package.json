@@ -43,6 +43,7 @@
     "@wren/starling-sms": "workspace:*",
     "@wren/starling-studio": "workspace:*",
     "@wren/video": "workspace:*",
+    "@wren/variants": "workspace:*",
     "@wren/watch": "workspace:*",
     "@wren/worker": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",

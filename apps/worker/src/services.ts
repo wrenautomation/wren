@@ -23,6 +23,7 @@ import { reactivationServices } from "./services/reactivation.js";
 import { researchServices } from "./services/research.js";
 import { searchServices } from "./services/search.js";
 import { smsServices } from "./services/sms.js";
+import { variantsServices } from "./services/variants.js";
 import { watchServices } from "./services/watch.js";
 
 export type { AnyService, BuildOptions, Deps } from "./services/deps.js";
@@ -73,6 +74,7 @@ const DOMAINS: ((deps: Deps) => AnyService[])[] = [
   platformServices,
   booksServices,
   watchServices,
+  variantsServices,
   smsServices,
   peopleServices,
   reachServices,

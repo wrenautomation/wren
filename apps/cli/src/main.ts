@@ -75,6 +75,7 @@ import { registerTemplates } from "./templates.js";
 import { registerTouches } from "./touches.js";
 import { registerTrain } from "./train.js";
 import { registerVideo } from "./video.js";
+import { registerVariants } from "./variants.js";
 import { registerWatch } from "./watch.js";
 import { registerWebhooks } from "./webhooks.js";
 import { registerWorkflows } from "./workflows.js";
@@ -263,6 +264,7 @@ registerReach(program, withMainDb, settings);
 registerAccounts(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
 registerWatch(program, withMainDb, settings, rootDir);
+registerVariants(program, withDb, settings, actor);
 registerLearn(
   program,
   {

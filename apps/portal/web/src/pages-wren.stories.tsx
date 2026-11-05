@@ -14,6 +14,7 @@ export default meta;
 export const People = pageAt("/people", { me: ADMIN });
 export const Clients = pageAt("/people/clients", { me: ADMIN });
 export const Campaigns = pageAt("/campaigns", { me: ADMIN });
+export const Variants = pageAt("/campaigns/variants", { me: ADMIN });
 export const Money = pageAt("/office/money", { me: ADMIN });
 export const OfficeBare = pageAt("/office", { me: ADMIN });
 export const Team = pageAt("/office/team", { me: ADMIN });

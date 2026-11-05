@@ -53,6 +53,7 @@
     "@wren/starling-x": "workspace:*",
     "@wren/starling-youtube": "workspace:*",
     "@wren/voice": "workspace:*",
+    "@wren/variants": "workspace:*",
     "@wren/watch": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
     "@wrenautomation/read": "0.38.0",

@@ -99,6 +99,11 @@ import {
   SMS_CONSOLE_WRITES,
 } from "@wren/starling-sms/console-routes";
 import {
+  VARIANTS_CONSOLE_APPS,
+  VARIANTS_CONSOLE_ROUTES,
+  VARIANTS_CONSOLE_WRITES,
+} from "@wren/variants/console-routes";
+import {
   VOICE_CONSOLE_APPS,
   VOICE_CONSOLE_ROUTES,
   VOICE_CONSOLE_WRITES,
@@ -173,6 +178,13 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   books: service("BooksConsole", BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_APPS, BOOKS_CONSOLE_WRITES),
   // The Monitor: William's mail and its rules.
   watch: service("WatchConsole", WATCH_CONSOLE_ROUTES, WATCH_CONSOLE_APPS, WATCH_CONSOLE_WRITES),
+  // Variants: batches to pick, calls and anchored notes, guides, the catalog.
+  variants: service(
+    "VariantsConsole",
+    VARIANTS_CONSOLE_ROUTES,
+    VARIANTS_CONSOLE_APPS,
+    VARIANTS_CONSOLE_WRITES,
+  ),
   // Clients' health and flags: Wren's rating, an override, a flag's owner and state.
   health: service(
     "HealthConsole",
