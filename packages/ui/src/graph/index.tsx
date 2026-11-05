@@ -5,9 +5,12 @@
 import { lazy, Suspense, useMemo } from "react";
 import type { GraphProps } from "./canvas.js";
 import { journeyOf, type Touch } from "./journey.js";
+import type { MapCanvasProps } from "./map-canvas.js";
 
 export type { GraphDot, GraphEdit, GraphProps } from "./canvas.js";
 export { journeyOf, type Touch } from "./journey.js";
+export type { MapCanvasProps, MapHandle } from "./map-canvas.js";
+export type { MapDot, MapLink } from "./map-model.js";
 export {
   edgeId,
   GRAPH_DROP,
@@ -27,6 +30,19 @@ export {
 } from "./model.js";
 
 const GraphCanvas = lazy(() => import("./canvas.js"));
+const MapCanvasLazy = lazy(() => import("./map-canvas.js"));
+
+/** A map of many dots at fixed places (sigma, WebGL): zoom shows detail by size. Its own chunk. */
+export function MapCanvas(props: MapCanvasProps) {
+  if (!props.dots.length) return <p className="text-[14px] text-(--ui-ink-2)">Nothing to draw.</p>;
+  return (
+    <Suspense
+      fallback={<div className="h-full min-h-80 w-full bg-(--ui-canvas)" aria-busy="true" />}
+    >
+      <MapCanvasLazy {...props} />
+    </Suspense>
+  );
+}
 
 export function Graph(props: GraphProps) {
   if (!props.nodes.length) return <p className="text-[14px] text-(--ui-ink-2)">Nothing to draw.</p>;
