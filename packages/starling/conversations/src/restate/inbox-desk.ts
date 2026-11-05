@@ -15,13 +15,13 @@ import { clientKey, errorText, PORTAL_FIELDS, serviceHandler } from "@wren/core/
 import { gate } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { type LlmClient, llmForKey } from "@wren/llm";
-import { addInboxNote, teamEmails } from "@wren/notes/inbox";
-import { mailMentions, type SendMention } from "@wren/notes/mention-mail";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { ChatRefusal, replyChat } from "../chat/store.js";
 import { autoModes, setAutoMode } from "../inbox/auto.js";
 import { partyOf, type ReplyOption, threadChannelOf } from "../inbox/conversation.js";
+import { mailMentions, type SendMention } from "../inbox/mention-mail.js";
+import { addInboxNote, markInboxMentions, teamEmails } from "../inbox/notes.js";
 import { clientRoutes, routeOf } from "../inbox/routes.js";
 import {
   accessChannel,
@@ -215,6 +215,10 @@ const REPLY = BASE.extend({
   channel: z.enum(INBOX_CHANNELS).describe("Where it goes: email, text, dm, comment or chat"),
   target: z.string().min(1).max(80).describe("The channel's id from the thread's options"),
   body: z.string().describe("The words"),
+});
+const MENTIONS = z.looseObject({
+  ids: z.array(z.string().max(64)).max(200).describe("Mention ids"),
+  ...PORTAL_FIELDS,
 });
 const PICK = BASE.extend({ channel: z.enum(INBOX_CHANNELS), target: z.string().min(1).max(80) });
 const ASKED = z.looseObject({ id: z.number().describe("The asked reply's id"), ...PORTAL_FIELDS });
@@ -650,14 +654,28 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
           );
           const mail = deps.mentionMail;
           if (out.mentioned.length && mail)
-            // Only this note's: a note-body mention waits for Notes, which checks who may open it.
             await ctx.run("mail mentions", () =>
-              mailMentions(db, { ...mail, client, readerOf: async () => null }).catch(
-                (e: unknown) => console.warn(`mention mail: ${(e as Error).message}`),
+              mailMentions(db, { ...mail, client }).catch((e: unknown) =>
+                console.warn(`mention mail: ${(e as Error).message}`),
               ),
             );
           return out;
         },
+      ),
+      /** Mark the asker's own Inbox mentions read, or unread again (Mark read's Undo). */
+      mentionsRead: serviceHandler(
+        { input: MENTIONS },
+        (ctx: restate.Context, req: Req & { ids: string[] }) =>
+          ctx.run("read", () =>
+            markInboxMentions(dbOf(clientOf(req)), by(req), req.ids, true).then((n) => ({ n })),
+          ),
+      ),
+      mentionsUnread: serviceHandler(
+        { input: MENTIONS },
+        (ctx: restate.Context, req: Req & { ids: string[] }) =>
+          ctx.run("unread", () =>
+            markInboxMentions(dbOf(clientOf(req)), by(req), req.ids, false).then((n) => ({ n })),
+          ),
       ),
       /** Give the thread to a teammate, or to nobody. */
       assign: serviceHandler(

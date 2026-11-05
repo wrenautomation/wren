@@ -105,7 +105,6 @@ export const APPS = {
   handlers: "Handlers",
   review: "Review",
   ask: "Ask",
-  notes: "Notes",
   learn: "Learn",
   voice: "Voice",
 } as const satisfies Record<string, string>;

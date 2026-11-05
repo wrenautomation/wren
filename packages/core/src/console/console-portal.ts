@@ -298,7 +298,7 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       releaseHold: (_: restate.Context, req: PortalRequest & { id?: unknown }) =>
         answer(() => api.releaseHold(req)),
       question: (ctx: restate.Context, req: QuestionRequest) =>
-        answer(() => ask(ctx, deps.main, req, deps.askContext)),
+        answer(() => ask(ctx, deps.main, req)),
       addClient: (ctx: restate.Context, req: AddClientRequest) =>
         answer(async () => {
           const ask = api.newClient(req);

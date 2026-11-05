@@ -2,10 +2,8 @@
  * Each client app's first page, as the client's owner sees it, on the fake server
  * (designs/2026-10-18-portal-page-stories.md). `pnpm --filter @wren/portal storybook`.
  */
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Meta } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { freshStory } from "./mocks/api.js";
-import { starring } from "./mocks/data/apps.js";
 import { failedIn, pageAt } from "./mocks/page.js";
 
 const meta: Meta = { title: "Revamp/Client", id: "pages-client" };
@@ -36,48 +34,6 @@ export const CalendarAgenda = pageAt("/today/calendar?v=list&d=2026-10-12", {
     await waitFor(() => expect(ada.closest("tr, li")).toHaveAttribute("data-row"));
   },
 });
-
-/** Notes as `Rows`: a star writes, the list reads again, and two fast presses both land. */
-const stars = starring();
-export const NotesRows: StoryObj = {
-  ...pageAt("/notes", {
-    answers: stars.answers,
-    check: async (page) => {
-      const row = (name: string) => within(page).findByRole("link", { name });
-      await expect(await row("Spring promo plan")).toBeVisible();
-      // Rows, not a hand list: a table on a wide screen, a list on a phone.
-      await expect(
-        within(page).queryByRole("table", { name: "notes" }) ??
-          within(page).getByRole("list", { name: "notes" }),
-      ).toBeInTheDocument();
-      // Spring promo plan starts starred. Press it: it reads again and shows unstarred.
-      await userEvent.click(
-        await within(page).findByRole("button", { name: "Unstar Spring promo plan" }),
-      );
-      await within(page).findByRole("button", { name: "Star Spring promo plan" });
-      // Two rows pressed fast: both stars land, neither press is lost.
-      await userEvent.click(
-        within(page).getByRole("button", { name: "Star Call back the Brandt job" }),
-      );
-      await userEvent.click(
-        within(page).getByRole("button", { name: "Star Crew schedule for November" }),
-      );
-      await waitFor(() => {
-        expect(
-          within(page).getByRole("button", { name: "Unstar Call back the Brandt job" }),
-        ).toBeVisible();
-        expect(
-          within(page).getByRole("button", { name: "Unstar Crew schedule for November" }),
-        ).toBeVisible();
-      });
-    },
-  }),
-  // The server's stars start over with each story.
-  beforeEach: () => {
-    stars.reset();
-    freshStory();
-  },
-};
 
 export const Settings = pageAt("/office");
 export const Library = pageAt("/map");

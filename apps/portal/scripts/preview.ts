@@ -69,10 +69,6 @@ import { webhooksApi } from "@wren/delivery/webhooks";
 import { documentsConsoleApi } from "@wren/documents/console";
 import { DOCUMENTS_CONSOLE_APPS, DOCUMENTS_CONSOLE_ROUTES } from "@wren/documents/console-routes";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
-import { notesApi } from "@wren/notes/console";
-import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "@wren/notes/console-routes";
-import { googleDrive } from "@wren/notes/drive";
-import { LIVE_PREFIX, Room, RoomRefusal, type SyncAnswer } from "@wren/notes/room";
 import { paymentsConsoleApi } from "@wren/payments/console";
 import { PAYMENTS_CONSOLE_APPS, PAYMENTS_CONSOLE_ROUTES } from "@wren/payments/console-routes";
 import { pipelineConsoleApi } from "@wren/pipeline/console";
@@ -108,7 +104,6 @@ import { setEdit, setLine, setWords } from "@wren/starling-studio/edit";
 import { withFallback } from "@wren/starling-studio/stress";
 import { dictationApi } from "@wren/voice/console";
 import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "@wren/voice/console-routes";
-import { WebSocketServer } from "ws";
 import { PORTAL_APPS } from "../../../packages/reactivation/src/portal/routes.js";
 import { marketingConsoleApi } from "../../../packages/starling/inbound/src/restate/marketing-console.js";
 import { COMPONENTS } from "../../worker/src/components.js";
@@ -389,7 +384,6 @@ const SERVICES: Record<
     guard: { needs: TEMPLATES_CONSOLE_ROUTES, apps: TEMPLATES_CONSOLE_APPS, unnamed: "wren" },
     api: templatesApi({ db: main }),
   },
-  // Notes, in each workspace's own database; images in memory like client files.
   // Health and flags: rate, override, raise, take, address, clear.
   health: {
     routes: Object.keys(HEALTH_CONSOLE_ROUTES),
@@ -401,18 +395,6 @@ const SERVICES: Record<
     routes: Object.keys(BILLING_CONSOLE_ROUTES),
     guard: { needs: BILLING_CONSOLE_ROUTES, apps: BILLING_CONSOLE_APPS, unnamed: "wren" },
     api: billingConsoleApi(main),
-  },
-  notes: {
-    routes: Object.keys(NOTES_CONSOLE_ROUTES),
-    guard: { needs: NOTES_CONSOLE_ROUTES, apps: NOTES_CONSOLE_APPS, unnamed: "wren" },
-    api: notesApi({
-      main,
-      open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
-      files,
-      zone: settings.sendTimezone,
-      // Public links only: the service account's key stays on the Worker.
-      drive: googleDrive({}),
-    }),
   },
   // Sites, in Wren's own database. No model here: a new page takes the offer's own words.
   sites: {
@@ -896,66 +878,6 @@ const server = createServer(async (req, res) => {
   createReadStream(found).pipe(res);
 });
 
-/**
- * Live notes: the same room as the Worker's Durable Object (src/live.ts), here in-process, one per
- * note. `?as=<email>` joins as someone else, for a second cursor in a script; preview only.
- */
-const rooms = new Map<string, Room>();
-const sockets = new WebSocketServer({ noServer: true });
-server.on("upgrade", (req, socket, head) => {
-  const url = new URL(req.url ?? "/", "http://x");
-  const id = url.pathname.startsWith(LIVE_PREFIX) ? url.pathname.slice(LIVE_PREFIX.length) : "";
-  if (!id || demo) return socket.destroy();
-  const client = url.searchParams.get("client");
-  // A second person in the room: `?as=` on the socket, or a `preview_as` cookie for a browser.
-  const who =
-    url.searchParams.get("as") ??
-    /(?:^|;\s*)preview_as=([^;]+)/.exec(req.headers.cookie ?? "")?.[1] ??
-    null;
-  sockets.handleUpgrade(req, socket, head, async (ws) => {
-    // Frames that come before the room lets them in wait, as the Durable Object's do.
-    const early: string[] = [];
-    let take = (f: string) => void early.push(f);
-    ws.on("message", (data: unknown) => take(String(data)));
-    const me: Viewer = who
-      ? {
-          email: decodeURIComponent(who),
-          ...((await teamSeat(main, decodeURIComponent(who))) ? { operator: true } : {}),
-        }
-      : viewer;
-    const email = "email" in me ? me.email : "";
-    let room = rooms.get(id);
-    if (!room || room.closed) {
-      const fresh: Room = new Room(id, {
-        sync: async (as, body) => {
-          const out = await callApi("notes", "sync", { ...body, ...as });
-          const b = out.body as Record<string, unknown>;
-          return out.status === 200
-            ? ({ ok: true, ...b } as SyncAnswer)
-            : { ok: false, status: out.status, message: String(b.message ?? b.error) };
-        },
-        onEmpty: () => {
-          if (rooms.get(id) === fresh) rooms.delete(id);
-        },
-      });
-      room = fresh;
-      rooms.set(id, room);
-    }
-    const r = room;
-    const s = {
-      send: (f: string) => ws.send(f),
-      close: (code: number, reason: string) => ws.close(code, reason),
-    };
-    try {
-      const peer = await r.join(s, { email, as: { ...(client ? { client } : {}), viewer: me } });
-      take = (f) => void r.message(peer, f);
-      for (const f of early.splice(0)) take(f);
-      ws.on("close", () => r.leave(peer));
-    } catch (err) {
-      ws.close(4000 + (err instanceof RoomRefusal ? err.status : 503), "refused");
-    }
-  });
-});
 server.listen(port, () =>
   console.log(`portal preview${demo ? " (demo)" : ""}: http://localhost:${port}`),
 );

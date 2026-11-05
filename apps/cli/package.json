@@ -27,7 +27,6 @@
     "@wren/learn": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/niches": "workspace:*",
-    "@wren/notes": "workspace:*",
     "@wren/offers": "workspace:*",
     "@wren/pipeline": "workspace:*",
     "@wren/reactivation": "workspace:*",

@@ -18,7 +18,6 @@ import { makeWebhooks, turnedOffTeller } from "@wren/core/webhooks";
 import { engagementOf, postUpdate } from "@wren/delivery";
 import { s3Files } from "@wren/delivery/files";
 import { makeLlm } from "@wren/llm";
-import { notesContext } from "@wren/notes/console";
 import { leadOffers } from "@wren/offers";
 import { EMAIL_CONSOLE_VIEWS, EMAIL_COST_VIEWS } from "@wren/starling-email/views";
 import { policyFrom as reachPolicyFrom } from "@wren/starling-outbound";
@@ -39,7 +38,6 @@ export function platformServices(deps: Deps): AnyService[] {
     edge,
     laneNotifier,
     mediaSigner,
-    notesDeps,
     notify,
     openClient,
     policy,
@@ -149,8 +147,6 @@ export function platformServices(deps: Deps): AnyService[] {
       adminGet: settings.restateAdminUrl
         ? restateAdminGet(settings.restateAdminUrl, settings.restateAuthToken, cache)
         : undefined,
-      // Ask Claude reads the asker's own notes that match.
-      askContext: (req, q) => notesContext(notesDeps, req, q),
     }),
   );
   return services;

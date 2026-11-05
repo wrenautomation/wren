@@ -55,7 +55,7 @@ export default defineConfig({
     "../starling/studio/src/schema.ts",
     "../calendar/src/schema.ts",
     "../voice/src/schema.ts",
-    "../notes/src/schema.ts",
+    "../starling/conversations/src/notes-schema.ts",
     "../sites/src/schema.ts",
     "../sites/src/views.ts",
     "../payments/src/schema.ts",

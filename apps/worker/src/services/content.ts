@@ -61,7 +61,7 @@ export function contentServices(deps: Deps): AnyService[] {
     llm,
     log,
     mediaSigner,
-    notesDeps,
+    mentionMail,
     openClient,
     operatorText,
     settings,
@@ -215,7 +215,7 @@ export function contentServices(deps: Deps): AnyService[] {
       markAnswered,
       senderName: settings.smsSenderName,
       facts: () => wrenFacts(db),
-      mentionMail: notesDeps.mail ?? null,
+      mentionMail,
     }),
   );
   // A reply drafted when someone writes in (designs/2026-10-09-auto-reply.md); Auto is held.

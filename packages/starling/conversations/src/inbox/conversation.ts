@@ -3,9 +3,9 @@
  * every message and touch with them on any channel, our notes, and the channels a reply can take.
  */
 import type { Queryable } from "@wren/db";
-import { atEmails, inboxNotesOf } from "@wren/notes/inbox";
 import { type SQL, sql } from "drizzle-orm";
 import type { InboxChannel } from "../schema.js";
+import { atEmails, inboxNotesOf } from "./notes.js";
 import { typed } from "./threads.js";
 
 type Row = Record<string, unknown>;

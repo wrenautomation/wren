@@ -1,16 +1,10 @@
 /**
- * Notes (designs/2026-10-07-notes.md): docs in every workspace, in every database. A client's
- * notes live in its own database; Wren's in main.
+ * Inbox notes and mentions, live: `inbox_notes` (the team's words on a thread) and
+ * `note_mentions` (who was `@`ed, mailed, seen).
  *
- * - `notes`: one row per doc. `y_state` is the Yjs doc, the source of truth; `title`, `body`
- *   (editor JSON) and `text` are derived from it on every save, for search, links and export.
- * - `note_updates`: every Yjs update as it arrived, who sent it. Append only.
- * - `note_versions`: the timeline. An `auto` version is one person's editing session.
- * - `note_shares`, `note_stars`, `note_seen`, `note_links`, `notes_settings`.
- * - `note_comments` (threads anchored to a range) and `note_mentions` (who was `@`ed, and seen).
- * - Boards (designs/2026-10-14-boards.md): a card is a note of kind `task`, on a `boards` row, in
- *   one of its columns. `board_shares` share a board; `task_blocks` order cards; `task_moves` is
- *   each card's history.
+ * The rest are the tables of the Notes app, cut 2026-11-04 (designs/2026-11-04-portal-places.md):
+ * docs, versions, shares, comments, boards, task moves. Kept with their rows until they go to the
+ * lake. Nothing writes them.
  */
 import { oneOf } from "@wren/db/columns";
 import { type SQL, sql } from "drizzle-orm";
@@ -33,17 +27,30 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import {
-  type BoardColumn,
-  type CommentAnchor,
-  GENERAL,
-  KINDS,
-  MOVE_KINDS,
-  type NoteJson,
-  ROLES,
-  VERSION_KINDS,
-  VIA,
-} from "./types.js";
+
+// The cut Notes app's words, kept for its tables' checks.
+const KINDS = ["note", "dump", "task"] as const;
+const VIA = ["person", "agent"] as const;
+const GENERAL = ["private", "workspace"] as const;
+const ROLES = ["view", "comment", "edit"] as const;
+const VERSION_KINDS = ["auto", "named", "restore", "import"] as const;
+const MOVE_KINDS = ["create", "move", "assign", "close", "reopen"] as const;
+interface NoteJson {
+  type: string;
+  attrs?: Record<string, unknown>;
+  content?: NoteJson[];
+  text?: string;
+  marks?: { type: string; attrs?: Record<string, unknown> }[];
+}
+interface CommentAnchor {
+  from: unknown;
+  to: unknown;
+}
+interface BoardColumn {
+  id: string;
+  name: string;
+  done: boolean;
+}
 
 const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
   dataType: () => "bytea",

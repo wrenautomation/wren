@@ -42,7 +42,6 @@ import {
   type PageProps,
   WREN,
 } from "./module.js";
-import { notesSection } from "./modules/notes/backlinks.js";
 import { recordsApi } from "./records-api.js";
 import { ENTRY, href, navigate } from "./route.js";
 
@@ -391,6 +390,8 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "inbox/suggest": (id, { channel, target }) =>
     handlerCall("InboxDesk", "suggest", { thread: id, channel, target }),
   "inbox/note": (id, { body }) => handlerCall("InboxDesk", "note", { thread: id, body }),
+  "inbox/mentionsRead": (id) => handlerCall("InboxDesk", "mentionsRead", { ids: [id] }),
+  "inbox/mentionsUnread": (id) => handlerCall("InboxDesk", "mentionsUnread", { ids: [id] }),
   "inbox/assign": (id, { assignee }) =>
     handlerCall("InboxDesk", "assign", { thread: id, assignee: assignee || null }),
   "inbox/take": (id) => handlerCall("InboxDesk", "take", { thread: id }),
@@ -951,12 +952,10 @@ export function TemplatePage({
     needs: page.needs ?? page.count,
     late: page.late,
     peek: page.peek,
-    // Every record lists the notes that @ it, after its own sections.
-    extras: (detail: unknown, row: Row, act: RecordAct, readAt: number) => {
-      const own = extras ? extras(detail, { ...props, row, act, readAt }) : {};
-      const notes = notesSection(props, page.record, String(row.id));
-      return notes ? { ...own, sections: [...(own.sections ?? []), notes] } : own;
-    },
+    extras: extras
+      ? (detail: unknown, row: Row, act: RecordAct, readAt: number) =>
+          extras(detail, { ...props, row, act, readAt })
+      : undefined,
     // A list row's Reply opens the page's own box under it.
     reply: reply && {
       when: reply.when,

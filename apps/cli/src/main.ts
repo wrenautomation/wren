@@ -61,7 +61,6 @@ import { registerLimits } from "./limits.js";
 import { registerListmonk } from "./listmonk.js";
 import { registerLoops } from "./loops.js";
 import { registerNewsletter } from "./newsletter.js";
-import { registerNotes } from "./notes.js";
 import { registerObjects } from "./objects.js";
 import { registerPages } from "./pages.js";
 import { registerPeople } from "./people.js";
@@ -75,7 +74,6 @@ import { registerSms } from "./sms.js";
 import { registerSocial } from "./social.js";
 import { registerSop } from "./sop.js";
 import { registerStudy } from "./study.js";
-import { registerTasks } from "./tasks.js";
 import { registerTemplates } from "./templates.js";
 import { registerTouches } from "./touches.js";
 import { registerTrain } from "./train.js";
@@ -262,15 +260,7 @@ registerJudge(program, withMainDb, {
   rootDir,
   ingress: ingressOf(settings),
 });
-registerTrain(program, withMainDb, (database, fn) =>
-  open(clientDatabaseUrl(settings.databaseUrl, database), fn),
-);
-registerNotes(program, {
-  withDb,
-  withMainDb,
-  client: () => program.opts<{ client?: string }>().client,
-});
-registerTasks(program, { withDb, client: () => program.opts<{ client?: string }>().client });
+registerTrain(program, withMainDb);
 registerSms(program, withDb, settings);
 registerReach(program, withMainDb, settings);
 registerAccounts(program, withMainDb, settings);

@@ -128,19 +128,6 @@ const reloadHeld = async (page: Page, path: string, shows: string) => {
   await page.unroute(alone, hold);
   await page.unroute(/\/api\/pulse$/, hold);
 };
-/** The preview's API from here, as the server's other writers would change things. */
-const api = async <T>(route: string, body: Record<string, unknown> = {}): Promise<T> => {
-  const res = await fetch(`${url}/api/${route}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const json = (await res.json()) as T;
-  if (!res.ok) throw new Error(`${route}: ${res.status} ${JSON.stringify(json)}`);
-  return json;
-};
-const stamp = () => Date.now().toString(36);
-
 /** Wren's calendar, answered here: the preview has no Restate for Wren's own calls. */
 const serveCalendar = (page: Page, call: { name: string }) =>
   serveCall(page, "calendar/range", async () => {
@@ -464,70 +451,6 @@ const tests: Test[] = [
       words.now = "Each invoice, read again.";
       await awayAndBack(page);
       await page.getByText(words.now).first().waitFor({ timeout: 5000 });
-      await context.close();
-    },
-  ],
-  [
-    "a board: painted from the device copy, then only the changed cards read after a tab away",
-    async (browser) => {
-      const { context, page } = await fresh(browser);
-      await page.clock.install();
-      const k = stamp();
-      const still = await api<{ id: string }>("notes/taskAdd", { title: `Stays ${k}` });
-      const moves = await api<{ id: string }>("notes/taskAdd", { title: `Moves ${k}` });
-      await page.goto(`${url}/notes/board`);
-      await page.getByText(`Moves ${k}`).first().waitFor();
-      await reloadHeld(page, "notes/board", `Moves ${k}`);
-      await page.waitForTimeout(500);
-
-      const asks: { known?: string[] }[] = [];
-      const answers: { cards: { id: string; name?: string }[]; same?: number[] }[] = [];
-      await serveCall(page, "notes/board", async (body, real) => {
-        asks.push(body);
-        const got = (await real()) as (typeof answers)[number];
-        answers.push(got);
-        return got;
-      });
-      // Changed elsewhere while the tab is away: a raw edit bumps the card's version.
-      await hide(page);
-      await api("notes/taskEdit", { id: moves.id, due: "2031-01-09" });
-      await page.clock.fastForward(61_000);
-      await show(page);
-      for (let i = 0; i < 50 && !answers.length; i++) await page.waitForTimeout(100);
-      assert.ok(asks[0]?.known?.length, "it sent the marks of the cards it holds");
-      const got = answers[0];
-      const full = got?.cards.filter((c) => "name" in c).map((c) => c.id) ?? [];
-      assert.ok(full.includes(moves.id), "the changed card came whole");
-      assert.ok(!full.includes(still.id), "the untouched card came as a stub");
-      await page.getByText(`Stays ${k}`).first().waitFor();
-      await page.getByText(`Moves ${k}`).first().waitFor();
-      await context.close();
-    },
-  ],
-  [
-    "a board saved elsewhere since it was opened: the save is refused, both names shown",
-    async (browser) => {
-      const { context, page } = await fresh(browser);
-      const k = stamp();
-      const board = await api<{ id: string; version: number }>("notes/boardCreate", {
-        name: `Board ${k}`,
-      });
-      await page.goto(`${url}/notes/board?b=${board.id}`);
-      await page.getByRole("button", { name: /board settings/i }).click();
-      const name = page.getByRole("dialog").getByRole("textbox").first();
-      await name.fill(`Mine ${k}`);
-      await api("notes/boardSave", { id: board.id, name: `Theirs ${k}`, expect: board.version });
-      await page.getByRole("dialog").getByRole("button", { name: "Save", exact: true }).click();
-      await page
-        .getByText(/saved this board after you opened it/)
-        .first()
-        .waitFor({ timeout: 5000 });
-      const conflict = page.locator("[data-edit-conflict]");
-      await conflict.waitFor({ timeout: 8000 });
-      await conflict.getByText(`Mine ${k}`).waitFor();
-      await conflict.getByText(`Theirs ${k}`).waitFor();
-      const now = await api<{ board: { name: string } }>("notes/board", { id: board.id });
-      assert.equal(now.board.name, `Theirs ${k}`, "theirs stays until he picks");
       await context.close();
     },
   ],

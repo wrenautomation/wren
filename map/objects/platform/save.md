@@ -32,7 +32,7 @@ Each box once had its own save, and two raced: a save's answer written back over
 
 - **owned-by:** [[platform/records]]
 - **joins:** [[platform/edits]] (version expect, 409 as conflict), [[platform/writes]] (every write on the wire)
-- **looks-like-but-is-not:** Notes' Yjs sync ([[platform/notes]]), which keeps its own; [[platform/saved-views]] (`useSavedViews`, a list's saved tabs)
+- **looks-like-but-is-not:** [[platform/saved-views]] (`useSavedViews`, a list's saved tabs)
 
 ## If you change this
 

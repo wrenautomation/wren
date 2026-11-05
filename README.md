@@ -150,14 +150,6 @@ handler, `autobrowseDo({ url, token })` from a laptop: one verb, autobrowse rout
 it (site API → compiled workflow → its agent, which compiles what it did for next
 time). `restateSites(ctx)` stays for calls that need the official API shape.
 
-## Boards
-
-Notes has a kanban Board. A card is a note, so it keeps a body, comments and history. Agents work the same board through `wren tasks`, and write as `agent:claude` (`--agent <name>` for another).
-
-`wren tasks ready` lists open cards that are the agent's or nobody's and have nothing open blocking them (`--board`, `--limit`). `ls` filters by `--board`, `--column`, `--owner` and `--all` (closed too). `show <id>`, `add <title>` (`--board`, `--column`, `--owner`, `--due`, `--blocked-by`, `--body`), `move <id> <column>`, `assign <id> <owner|none>`, `due <id> <day|none>`, `close <id> --why <words>`, `reopen <id>`, `comment <id> <text>` and `block <id> <other> [--off]` do what they say. Most take `--json`. When an agent moves or closes a card a person owns, the card lands in Review and the command says so.
-
-On the page, Board has Export CSV and Import. Import takes a CSV or a table pasted from Sheets, asks which column is which once, and updates the card when a row's link points at one.
-
 ## Call recordings
 
 The desk on William's Mac records each booked call with OBS. It starts 5 minutes before the call if a Meet or Zoom window is open. It stops 3 minutes after the window closes. Record now and Stop recording sit on Calendar > Calls and Inbox > Calls. The desk asks `wren calls upcoming` what to wait for, and runs `wren calls add <file>` on each finished file. That command encodes a 720p mp4 and transcribes it on the Mac. It writes the notes, uploads the video and puts a line on the person's timeline. Calendar > Recordings lists every recording. Setup and the desk side live in autobrowse (`autobrowse calls setup`); the design is `designs/2026-10-16-call-recording.md`.

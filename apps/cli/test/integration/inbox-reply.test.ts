@@ -11,11 +11,11 @@ import { ingressOf } from "@wren/config";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
-import { mentionRecord } from "@wren/notes/records";
 import { markAnswered } from "@wren/starling-conversations";
 import {
   askFollowEmail,
   conversationOf,
+  mentionRecord,
   pickOption,
   type ReplySender,
   setThread,
@@ -263,7 +263,7 @@ describe("InboxDesk", () => {
       who: s.admin,
     });
     const mine = await mentionRecord.rows?.(pg.db, { email: s.operator, team: true });
-    expect(mine?.[0]).toMatchObject({ place: "inbox", state: "unread", thread: thread() });
+    expect(mine?.[0]).toMatchObject({ state: "unread", thread: thread() });
   });
 
   it("assigns to a teammate only, closes, snoozes and wakes", async () => {

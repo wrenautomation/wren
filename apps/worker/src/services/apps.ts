@@ -1,5 +1,5 @@
 /**
- * The portal's product apps: voice, templates, notes, sites, payments, documents, journeys and
+ * The portal's product apps: voice, templates, sites, payments, documents, journeys and
  * the pipeline console.
  */
 import { githubRepo } from "@wren/core/github";
@@ -8,7 +8,6 @@ import { s3Files } from "@wren/delivery/files";
 import { makeDocumentsConsole } from "@wren/documents/console";
 import { documenso } from "@wren/documents/documenso";
 import { makeDocuments } from "@wren/documents/service";
-import { makeNotesConsole } from "@wren/notes/console";
 import { makePaymentsConsole } from "@wren/payments/console";
 import { makeStripeReconcile } from "@wren/payments/reconcile";
 import { makePayments } from "@wren/payments/service";
@@ -21,18 +20,7 @@ import type { AnyService, Deps } from "./deps.js";
 
 /** The apps domain's services, in the order they were served from `services.ts`. */
 export function appsServices(deps: Deps): AnyService[] {
-  const {
-    bookerMailer,
-    clientDb,
-    db,
-    fireAll,
-    keys,
-    llm,
-    notesDeps,
-    notify,
-    openClient,
-    settings,
-  } = deps;
+  const { bookerMailer, clientDb, db, fireAll, keys, llm, notify, openClient, settings } = deps;
   // E-signature for sealed documents lives in Documenso when both of its settings are set.
   const esign =
     settings.documensoUrl && settings.documensoToken
@@ -51,8 +39,6 @@ export function appsServices(deps: Deps): AnyService[] {
     makeVoiceConsole({ db }),
     // The Library's templates: save, publish (copy that sends waits in To approve), approve.
     makeTemplatesConsole({ db }),
-    // Notes: docs in every workspace, Yjs in each one's own database (designs/2026-10-07-notes.md).
-    makeNotesConsole(notesDeps),
     // Sites: offer landers as data at /o/<slug>, code pages by URL, one tracker and form into the
     // door (designs/2026-10-07-sites.md). Claude drafts copy only where a real model runs.
     makeSites({ main: db, shareKey: settings.siteExportToken ?? null, open: clientDb }),

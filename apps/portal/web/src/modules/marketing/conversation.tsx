@@ -35,9 +35,7 @@ import {
   useLastWrite,
 } from "@wren/ui";
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
-import { WREN } from "../../module.js";
-import { notes } from "../notes/api.js";
-import { Compose } from "../notes/comments.js";
+import { NoteBox } from "./note-box.js";
 
 /** `@wren/starling-inbound/inbox`'s `Entry`: one line of the timeline. */
 export type Entry = {
@@ -471,14 +469,11 @@ function Thread({
   draft,
   send,
   act,
-  client,
 }: {
   c: Conversation;
   draft: string;
   send: boolean;
   act: RecordAct;
-  /** The workspace: `@` finds its people. */
-  client: string;
 }) {
   const reply = useRef<HTMLTextAreaElement>(null);
   const note = useRef<HTMLTextAreaElement>(null);
@@ -518,12 +513,9 @@ function Thread({
       </section>
       <section className="grid gap-2">
         <h3 className="text-[13px] font-medium text-(--ui-ink-2)">Note for the team</h3>
-        <Compose
+        <NoteBox
           key={c.thread}
           box={note}
-          people={() => notes(client, "people")}
-          placeholder="Only the team sees it. @ to tag someone."
-          button="Add note"
           busy={noting}
           submit={async (body) => {
             setNoting(true);
@@ -552,26 +544,13 @@ const conversationOf = (detail: unknown): Conversation | null =>
  */
 export const conversationExtras = (
   detail: unknown,
-  {
-    row,
-    act,
-    can,
-    client,
-  }: { row: Row; act: RecordAct; can?: readonly Permission[] | undefined; client?: string },
+  { row, act, can }: { row: Row; act: RecordAct; can?: readonly Permission[] | undefined },
 ): RecordExtras => {
   const c = conversationOf(detail);
   if (!c) return { sections: [] };
   const draft = typeof row.draft === "string" ? row.draft : "";
   return {
-    lead: (
-      <Thread
-        c={c}
-        draft={draft}
-        send={!!can?.includes("effect")}
-        act={act}
-        client={client ?? WREN.id}
-      />
-    ),
+    lead: <Thread c={c} draft={draft} send={!!can?.includes("effect")} act={act} />,
   };
 };
 

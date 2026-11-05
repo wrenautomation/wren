@@ -50,7 +50,7 @@ const INBOX_QUEUES: OverviewQueue[] = [
   // Yours only: the console reads the signed-in person's mentions (`mine`).
   {
     label: "Mentions",
-    record: "notes.mention",
+    record: "inbox.mention",
     view: "unread",
     href: "/today/mentions?view=unread",
     icon: "at",
@@ -79,7 +79,7 @@ const OPEN: Record<string, { field: string; values: readonly string[] }> = {
   "marketing.inbox": { field: "status", values: ["open"] },
   "marketing.approval": { field: "state", values: ["new", "waiting"] },
   "watch.mail": { field: "queue", values: ["needs_you"] },
-  "notes.mention": { field: "state", values: ["unread"] },
+  "inbox.mention": { field: "state", values: ["unread"] },
   "access.issue": { field: "state", values: ["open"] },
   "access.ask": { field: "state", values: ["open"] },
 };

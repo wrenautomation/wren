@@ -58,11 +58,6 @@ import {
   DOCUMENTS_CONSOLE_WRITES,
 } from "@wren/documents/console-routes";
 import {
-  NOTES_CONSOLE_APPS,
-  NOTES_CONSOLE_ROUTES,
-  NOTES_CONSOLE_WRITES,
-} from "@wren/notes/console-routes";
-import {
   PAYMENTS_CONSOLE_APPS,
   PAYMENTS_CONSOLE_ROUTES,
   PAYMENTS_CONSOLE_WRITES,
@@ -207,15 +202,6 @@ export const SERVICES: Readonly<Record<string, Service>> = {
     TEMPLATES_CONSOLE_ROUTES,
     TEMPLATES_CONSOLE_APPS,
     TEMPLATES_CONSOLE_WRITES,
-  ),
-  // Notes: docs with versions and sharing. A sync carries a Yjs update in base64 (up to 4 MB of
-  // bytes), under Lambda's 6 MB request.
-  notes: service(
-    "NotesConsole",
-    NOTES_CONSOLE_ROUTES,
-    NOTES_CONSOLE_APPS,
-    NOTES_CONSOLE_WRITES,
-    5_600_000,
   ),
   // Sites: every page we run; new pages from an offer, copy, publish via To approve, retire.
   sites: service("SitesConsole", SITES_CONSOLE_ROUTES, SITES_CONSOLE_APPS, SITES_CONSOLE_WRITES),

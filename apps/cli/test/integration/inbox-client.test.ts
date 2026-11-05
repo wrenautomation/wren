@@ -17,9 +17,12 @@ import { setManaged } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
-import { inboxMentionsOf } from "@wren/notes/inbox";
 import { markAnswered } from "@wren/starling-conversations";
-import { conversationOf, type ReplySender } from "@wren/starling-conversations/inbox";
+import {
+  conversationOf,
+  inboxMentionsOf,
+  type ReplySender,
+} from "@wren/starling-conversations/inbox";
 import { type MailReply, makeInboxDesk, makeMailReply } from "@wren/starling-conversations/restate";
 import { askedReplyRecord, CONTENT_RECORDS, inboxRecordOf } from "@wren/starling-inbound/records";
 import {

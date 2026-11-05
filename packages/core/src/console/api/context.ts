@@ -6,7 +6,6 @@
 import { createDb, type Db, type Queryable } from "@wren/db";
 import { type Permission, type Target, WREN } from "../../access.js";
 import { ACCESS_TYPES, accessRecords } from "../../access-records.js";
-import type { AskContext } from "../../ask.js";
 import { automationRecord } from "../../automations.js";
 import { type Client, changeRecord, clientUrl, teamRecord } from "../../clients/index.js";
 import type { Component } from "../../components.js";
@@ -71,8 +70,6 @@ export interface ConsoleDeps {
   edge?: EdgePush | undefined;
   /** Account setups (`SETUPS` in the worker): a template's plan says how to make a missing fact. */
   setups?: readonly Setup[];
-  /** Ask's context from the asker's notes (`@wren/notes`'s `notesContext`); none without it. */
-  askContext?: AskContext | undefined;
 }
 
 /**

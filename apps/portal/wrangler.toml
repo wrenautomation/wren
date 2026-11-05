@@ -34,12 +34,7 @@ binding = "ASSETS"
 run_worker_first = ["/*", "!/assets/*"]
 not_found_handling = "single-page-application"
 
-# Live notes: one room per open note (src/live.ts). SQLite-backed class, though the room keeps
-# nothing on disk: the doc lives in Postgres.
-[[durable_objects.bindings]]
-name = "NOTE_ROOM"
-class_name = "NoteRoom"
-
+# v1 was NoteRoom, the cut Notes app's live rooms (kept nothing on disk); v3 deletes it.
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["NoteRoom"]
@@ -53,6 +48,10 @@ class_name = "WriteWatch"
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["WriteWatch"]
+
+[[migrations]]
+tag = "v3"
+deleted_classes = ["NoteRoom"]
 
 # One cap per visitor on public posts: forms, chat, signing, booking, AI tools (src/limit.ts).
 [[ratelimits]]

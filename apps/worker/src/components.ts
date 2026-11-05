@@ -87,7 +87,6 @@ export const PLATFORM = {
     ConnectorSync: "one connected app's hourly read: people into the CRM, changes to the executor",
     MailReply: "a reply from the Inbox to a client's mail, sent through its own mailbox",
     SocialInbox: "a client's DMs in, and its DM and comment answers out, on its own accounts",
-    NotesConsole: "notes: docs with versions, sharing and links, in every workspace",
     HealthConsole: "each client's health and the flags about it: rate, override, raise, clear",
     ClientInvoicing:
       "Wren's own billing: the month's invoices made and mailed, money in read from Wise and matched",
@@ -139,8 +138,7 @@ export const PLATFORM = {
     "console.automation":
       "every automation in one list: workflows, loops, keyword DMs, auto-replies",
     "loops.flag": "feature flags and their rules, for logins and the site",
-    "notes.mention": "where you were @ed in a note",
-    "notes.task": "a board's cards, as a list",
+    "inbox.mention": "where you were @ed in an Inbox note",
     "access.role": "the roles and what each may do",
     "access.grant": "a scoped grant: an app, channel or record, with a time limit",
     "access.review": "each person's access, for review",

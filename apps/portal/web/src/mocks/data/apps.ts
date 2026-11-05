@@ -1,15 +1,12 @@
 /**
  * Each app's own first read, past the records pages: the reactivation run, the delivery home,
- * notes, the calendar, deals' board. Typed by what the page reads, so a change
+ * the calendar, deals' board. Typed by what the page reads, so a change
  * to the answer fails the typecheck here. Synthetic data only.
  */
 
 import type { TemplateListRow } from "@wren/core/templates/console";
-import type { NotesApi } from "@wren/notes/console";
 import type { DeliveryHome, Overview } from "../../api.js";
-import type { NotesHome } from "../../modules/notes/api.js";
-import { type Answers, serve } from "../api.js";
-import { CLIENT } from "./me.js";
+import type { Answers } from "../api.js";
 import { ago } from "./shell.js";
 
 const OVERVIEW: Overview = {
@@ -183,61 +180,6 @@ const HOME: DeliveryHome = {
   ],
 };
 
-const note = (id: string, title: string, kind: "note" | "task", days: number) => ({
-  id,
-  name: title,
-  title,
-  kind,
-  owner: "owner@acme.example",
-  mine: true,
-  via: "person" as const,
-  general: "workspace" as const,
-  parentId: null,
-  starred: id === "n1",
-  createdAt: ago(days + 2),
-  updatedAt: ago(days),
-  editedBy: null,
-  seenAt: ago(days),
-  archived: false,
-  excerpt: "Dates, offer and who sends what.",
-  home: "/notes/home",
-});
-
-const NOTES: NotesHome = {
-  notes: [
-    note("n1", "Spring promo plan", "note", 0.5),
-    note("n2", "Call back the Brandt job", "task", 2),
-    note("n3", "Crew schedule for November", "note", 4),
-  ],
-  me: "owner@acme.example",
-  workspace: CLIENT.id,
-  canWrite: true,
-  canManage: true,
-  train: false,
-};
-
-/**
- * Notes that remember their stars, as the server does: Star writes, and the next read of the list
- * shows it. `reset` puts the first note back, for a story's start.
- */
-export function starring() {
-  const on = new Set(["n1"]);
-  return {
-    reset: () => {
-      on.clear();
-      on.add("n1");
-    },
-    answers: serve<NotesApi>("notes", {
-      home: () => ({ ...NOTES, notes: NOTES.notes.map((n) => ({ ...n, starred: on.has(n.id) })) }),
-      star: (b) => {
-        if (b.on === false) on.delete(String(b.id));
-        else on.add(String(b.id));
-        return { starred: b.on !== false };
-      },
-    }),
-  };
-}
-
 /** The week of the stories' clock: two booked calls, open hours each weekday. */
 const day = (d: number, h: number) =>
   new Date(Date.parse("2026-10-12T00:00:00Z") + d * 864e5 + h * 36e5).toISOString();
@@ -300,10 +242,7 @@ const template = (
 export const APP_ANSWERS: Answers = {
   "reactivation/overview": OVERVIEW,
   "delivery/home": HOME,
-  // Thumbnails are null, so a grant is never used: Wren's one, or a client's per item.
-  "notes/home": NOTES,
-  // A record's panel: no notes link to it, no issues raised on it.
-  "notes/backlinks": { notes: [] },
+  // A record's panel: no issues raised on it.
   "console/issues": [],
   "calendar/range": RANGE,
   "payments/status": {

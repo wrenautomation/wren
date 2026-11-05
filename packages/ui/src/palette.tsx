@@ -76,20 +76,12 @@ export function byRecent(found: readonly PaletteItem[], recent: readonly string[
     .map(({ i }) => i);
 }
 
-/** What a "note:" line says, without the prefix; anything else typed counts too. */
-const noted = (q: string) => q.replace(/^\s*note:\s*/i, "").trim();
-
-/** What a "card:" line says, without the prefix. */
-const carded = (q: string) => q.replace(/^\s*card:\s*/i, "").trim();
-
 export function CommandPalette({
   items,
   onPick,
   open,
   onOpenChange,
   ask,
-  capture,
-  card,
   find,
   recentKey,
 }: {
@@ -99,10 +91,6 @@ export function CommandPalette({
   onOpenChange: (open: boolean) => void;
   /** Wren's team: what's typed can go to Claude Code as a question, from this page. */
   ask?: ((question: string) => void) | undefined;
-  /** What's typed goes into the viewer's notes ("note: call Sam back"). */
-  capture?: ((words: string) => void) | undefined;
-  /** What's typed becomes a card on the Work board ("card: order the sign"). */
-  card?: ((title: string) => void) | undefined;
   /** Records that match what's typed, asked after a pause: Learn's items, by their app. */
   find?: ((q: string) => Promise<PaletteItem[]>) | undefined;
   /** Where the records opened from here are remembered: the workspace. None, none kept. */
@@ -130,32 +118,6 @@ export function CommandPalette({
     onOpenChange(false);
     i.run();
   };
-  // "note: …" leads the list; anything else typed can still be kept, last.
-  const lead = /^\s*note:/i.test(q);
-  const leadCard = /^\s*card:/i.test(q);
-  const note =
-    capture && noted(q) && !leadCard ? (
-      // Forced, like its item: cmdk hides a group none of whose items its filter matched.
-      <CommandGroup heading="Note" forceMount>
-        <CommandItem
-          value={`note ${q}`}
-          forceMount
-          onSelect={run({ run: () => capture(noted(q)) })}
-        >
-          <Icon name="note" />
-          <span>Add to your notes: “{noted(q)}”</span>
-        </CommandItem>
-      </CommandGroup>
-    ) : null;
-  const made =
-    card && carded(q) && !lead ? (
-      <CommandGroup heading="Card" forceMount>
-        <CommandItem value={`card ${q}`} forceMount onSelect={run({ run: () => card(carded(q)) })}>
-          <Icon name="board" />
-          <span>New card: “{carded(q)}”</span>
-        </CommandItem>
-      </CommandGroup>
-    ) : null;
   return (
     <CommandDialog
       open={open}
@@ -177,7 +139,7 @@ export function CommandPalette({
           />
         </DictateField>
         <CommandList>
-          {note || made || found.length || finding.pending ? null : (
+          {found.length || finding.pending ? null : (
             <CommandEmpty>Nothing by that name.</CommandEmpty>
           )}
           {scope.search && q.trim() ? (
@@ -191,17 +153,6 @@ export function CommandPalette({
                 <span>
                   {scope.search.label} for “{q.trim()}”
                 </span>
-              </CommandItem>
-            </CommandGroup>
-          ) : null}
-          {lead ? note : null}
-          {leadCard ? made : null}
-          {card && !lead && !leadCard ? (
-            <CommandGroup heading="Make">
-              <CommandItem value="new card" onSelect={() => setQ("card: ")}>
-                <Icon name="board" />
-                <span>New card</span>
-                <CommandShortcut>card: title</CommandShortcut>
               </CommandItem>
             </CommandGroup>
           ) : null}
@@ -310,8 +261,6 @@ export function CommandPalette({
                 ))}
             </CommandGroup>
           ))}
-          {lead || leadCard ? null : note}
-          {lead || leadCard ? null : made}
         </CommandList>
       </Command>
     </CommandDialog>

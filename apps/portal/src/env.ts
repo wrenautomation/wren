@@ -30,8 +30,6 @@ export interface Env {
   DICTATE_MODEL?: string;
   /** Its key, a secret, when it takes one. */
   DICTATE_KEY?: string;
-  /** Live notes' rooms, one Durable Object per note (./live.ts). Unset = notes sync over HTTP. */
-  NOTE_ROOM?: DurableObjectNamespace;
   /** Each person's open writes, told to their tabs over a socket (./watch.ts). Unset = tabs poll. */
   WRITE_WATCH?: DurableObjectNamespace;
   /** The cap on public posts per visitor (./limit.ts). Unset = no cap. */

@@ -24,25 +24,11 @@
     "@anthropic-ai/claude-agent-sdk": "0.3.318",
     "@huggingface/transformers": "4.3.1",
     "@tanstack/react-router": "1.170.41",
-    "@tiptap/core": "3.31.4",
-    "@tiptap/extension-collaboration": "3.31.4",
-    "@tiptap/extension-collaboration-caret": "3.31.4",
-    "@tiptap/extension-image": "3.31.4",
-    "@tiptap/extension-list": "3.31.4",
-    "@tiptap/extension-mention": "3.31.4",
-    "@tiptap/extension-table": "3.31.4",
-    "@tiptap/extensions": "3.31.4",
-    "@tiptap/pm": "3.31.4",
-    "@tiptap/react": "3.31.4",
-    "@tiptap/starter-kit": "3.31.4",
-    "@tiptap/suggestion": "3.31.4",
-    "@tiptap/y-tiptap": "3.0.9",
     "@wren/auth": "workspace:*",
     "@wren/calendar": "workspace:*",
     "@wren/connectors": "workspace:*",
     "@wren/delivery": "workspace:*",
     "@wren/documents": "workspace:*",
-    "@wren/notes": "workspace:*",
     "@wren/payments": "workspace:*",
     "@wren/pipeline": "workspace:*",
     "@wren/reactivation": "workspace:*",
@@ -60,8 +46,6 @@
     "react-dom": "19.3.0",
     "rrweb-player": "2.1.7",
     "y-indexeddb": "9.0.12",
-    "y-protocols": "1.0.7",
-    "yjs": "13.6.33",
     "zod": "4.6.5"
   },
   "devDependencies": {
@@ -101,7 +85,6 @@
     "typescript": "5.9.3",
     "vite": "8.3.0",
     "vitest": "5.0.1",
-    "wrangler": "4.142.0",
-    "ws": "8.21.0"
+    "wrangler": "4.142.0"
   }
 }

@@ -4,7 +4,7 @@
  */
 import { clientMembers } from "@wren/core/clients";
 import type { Db, Queryable } from "@wren/db";
-import { addInboxNote } from "@wren/notes/inbox";
+import { addInboxNote } from "@wren/starling-conversations/inbox";
 import { comments } from "@wren/starling-conversations/schema";
 import { and, eq, inArray, isNull, lte } from "drizzle-orm";
 

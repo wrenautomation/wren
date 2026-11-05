@@ -89,11 +89,11 @@ describe("parked apps", () => {
       app("inbox", [page("replies", "email.reply", { state: ["needs_you"] }, true)]),
       app("other", [
         page("replies2", "email.reply", { state: ["needs_you"] }, true),
-        page("hid", "notes.mention", { state: ["unread"] }, true),
+        page("hid", "inbox.mention", { state: ["unread"] }, true),
       ]),
     ];
     rows["email.reply"] = [{}, {}, {}];
-    rows["notes.mention"] = [{}];
+    rows["inbox.mention"] = [{}];
     const { out } = await readApps(apps, "wren", true, true);
     expect(out).toEqual({ inbox: { replies: 3 }, other: {} });
   });

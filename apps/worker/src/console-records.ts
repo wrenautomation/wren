@@ -17,10 +17,10 @@ import { SENT_RECORDS } from "@wren/core/sent/records";
 import { templateRecords } from "@wren/core/templates/records";
 import { BILLING_RECORDS } from "@wren/delivery/billing/records";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
-import { NOTES_RECORDS } from "@wren/notes/records";
 import { PIPELINE_RECORDS } from "@wren/pipeline/records";
 import { RESEARCH_RECORDS } from "@wren/research/records";
 import { SITES_RECORDS } from "@wren/sites/records";
+import { mentionRecord } from "@wren/starling-conversations/inbox";
 import { emailRecords, firmRecord, modelRecord, replyRecord } from "@wren/starling-email/records";
 import { mediaRecord, sopRecord, videoRecord } from "@wren/starling-inbound/records";
 import { heatRecord, sessionRecord, surveyAnswerRecord } from "@wren/starling-search/records";
@@ -88,8 +88,8 @@ export function consoleRecords(at: ConsoleRecordsAt = {}): RecordType[] {
     ...HEALTH_RECORDS,
     // Money in by bank transfer, and the invoice each paid (Money).
     ...BILLING_RECORDS,
-    // Where you were @ed in Wren's notes: yours only (the Inbox's Mentions).
-    ...NOTES_RECORDS,
+    // Where you were @ed in an Inbox note: yours only (the Inbox's Mentions).
+    mentionRecord,
     // Every page we run and its numbers by source (Sites).
     ...SITES_RECORDS,
     // The shape, its journeys, deals and numbers (Journeys).

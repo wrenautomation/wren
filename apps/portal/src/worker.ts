@@ -33,7 +33,6 @@ import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
 import { viewAsShape } from "@wren/core/access";
 import { readBody } from "@wren/core/http";
 import { KEY_STAGE_PATH } from "@wren/core/key-refs";
-import { LIVE_PREFIX } from "@wren/notes/room";
 import { AGENT_PATH, agentRoute, operatorToken } from "./agent.js";
 import { bookRoute } from "./book.js";
 import { BUILD_FILE, BUILD_HEADER, isStale, STALE_CODE, STALE_SEND, STALE_WRITE } from "./build.js";
@@ -45,7 +44,6 @@ import type { Env } from "./env.js";
 import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
 import { keyStage, rawKeyRefusal } from "./keys.js";
 import { publicLimit } from "./limit.js";
-import { liveRoute, NoteRoom } from "./live.js";
 import { oauthLanding } from "./oauth-landing.js";
 import { payRoute } from "./pay.js";
 import { PULSE_MAX, PULSE_PATH, type PulseAnswer, pulseCalls } from "./pulse.js";
@@ -56,7 +54,7 @@ import { WRITES_LIVE_PATH, WriteWatch, watchWrite, writesSocketRoute } from "./w
 import { REQUEST_ID, WRITE_STATUS_PATH, writeKey, writeStatus } from "./writes.js";
 
 /** The live note rooms' Durable Object (./live.ts): wrangler finds it on the main module. */
-export { NoteRoom, WriteWatch };
+export { WriteWatch };
 
 const MAX_BODY = 16 * 1024;
 const DEMO_CACHE_SECONDS = 300;
@@ -346,7 +344,6 @@ export default {
             ? !(await env.PUBLIC_LIMIT.limit({ key: `unfurl:${who}` })).success
             : false,
       });
-    if (pathname.startsWith(LIVE_PREFIX)) return liveRoute(req, env, site, (r) => viewerOf(r, env));
     if (pathname === WRITES_LIVE_PATH)
       return writesSocketRoute(req, env, site, (r) => viewerOf(r, env));
     if (pathname === KEY_STAGE_PATH) return keyStage(req, env, site, (r) => viewerOf(r, env));

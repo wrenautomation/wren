@@ -1,15 +1,15 @@
 /**
  * Inbox notes (designs/2026-10-07-inbox-reply.md): the team's words on a thread or a person,
- * never sent. An `@someone@firm.com` naming a teammate lands in their Mentions, the same rows a
- * note's mention writes.
+ * never sent. An `@someone@firm.com` naming a teammate lands in their Mentions and gets one mail.
  */
 import { clientMembers, operators } from "@wren/core/clients";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
-import { type InboxNote, inboxNotes, noteMentions } from "./schema.js";
+import { type InboxNote, inboxNotes, noteMentions } from "../notes-schema.js";
 
-/** `@someone@firm.com` in the words, as the notes' comments read it. */
+/** `@someone@firm.com` in the words. */
 const AT_EMAIL = /(?:^|[^\w.@])@([^\s@]+@[^\s@]+\.[\w-]+)/g;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** How long a note may run. */
 const INBOX_NOTE_MAX = 4000;
 
@@ -20,8 +20,7 @@ export const atEmails = (body: string): string[] => [
 
 /**
  * Who an Inbox note may `@` and a thread may go to, as emails, lowercased: on Wren's own threads
- * Wren's team; on a client's, the teammates who reach that client and its own people. Notes'
- * `@` finds the same people.
+ * Wren's team; on a client's, the teammates who reach that client and its own people.
  */
 export async function teamEmails(main: Queryable, client: string | null = null): Promise<string[]> {
   const team = await main
@@ -128,4 +127,22 @@ export async function unseenInboxMentions(db: Queryable, email: string): Promise
       ),
     );
   return Number(row?.n ?? 0);
+}
+
+/** Mark these mentions of `email` seen, or not seen again. Anyone else's id is skipped. */
+export async function markInboxMentions(
+  db: Queryable,
+  email: string,
+  ids: readonly string[],
+  seen: boolean,
+  now: Date = new Date(),
+): Promise<number> {
+  const uuids = ids.filter((i) => UUID_RE.test(i));
+  if (!uuids.length) return 0;
+  const done = await db
+    .update(noteMentions)
+    .set({ seenAt: seen ? now : null })
+    .where(and(eq(noteMentions.who, email.toLowerCase()), inArray(noteMentions.id, uuids)))
+    .returning({ id: noteMentions.id });
+  return done.length;
 }

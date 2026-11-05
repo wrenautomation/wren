@@ -22,7 +22,6 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
-    "@wren/notes": "workspace:*",
     "@wren/research": "workspace:*",
     "@wren/sites": "workspace:*",
     "@wren/starling-acts": "workspace:*",

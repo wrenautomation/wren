@@ -455,3 +455,12 @@ None.
     Business setup stays because content reads reviews by Place ID. Every table stays.
   - Open: the one Wren door hook on prod still names `speed_to_lead.steps` (last call 10-15). The
     executor answers 410 now. Delete the row with William's yes.
+  - Notes (WA-1067): the app, NotesConsole, `wren notes`, `wren tasks`, `wren train --notes`,
+    quick capture and record backlinks go; `packages/notes` is deleted. Inbox thread notes and
+    `@` mentions move to `@wren/starling-conversations` (`inbox/notes.ts`, `inbox/mentions.ts`,
+    `inbox/mention-mail.ts`). The note box is a plain textarea: the rich editor and the `@`
+    picker went with Tiptap; `@email` still tags. Mentions are record `inbox.mention`, marked read
+    by `InboxDesk/mentionsRead|Unread`; mention mail links the thread. The NoteRoom Durable Object
+    is deleted (wrangler migration v3; it kept nothing on disk). Ask no longer reads notes. Every
+    notes table stays in `conversations/src/notes-schema.ts` until the lake; the `notes/*` S3
+    grant stays while the images do.

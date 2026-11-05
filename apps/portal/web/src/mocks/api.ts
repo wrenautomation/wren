@@ -24,7 +24,7 @@ export type Out<A, K extends keyof A> = A[K] extends (...args: never[]) => infer
   : never;
 
 /**
- * Answers for one service, typed by its API object (`serve<NotesApi>("notes", { … })`): when the
+ * Answers for one service, typed by its API object (`serve<DeliveryApi>("delivery", { … })`): when the
  * server changes what a route answers, the typecheck fails here, not the story.
  */
 export function serve<A>(

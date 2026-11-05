@@ -4,7 +4,6 @@
 import type { accountsApi } from "@wren/core/accounts/console";
 import type { consoleApi } from "@wren/core/console";
 import type { DeliveryApi } from "@wren/delivery/restate";
-import type { NotesApi } from "@wren/notes/console";
 import { serve } from "../api.js";
 import { CLIENT } from "./me.js";
 
@@ -67,38 +66,6 @@ export const SHELL = {
           why: "Google sent a code by post.",
           at: ago(1),
           open: true,
-        },
-      ],
-    },
-  }),
-  ...serve<NotesApi>("notes", {
-    needsYou: { n: 2 },
-    mentions: {
-      unseen: 1,
-      mentions: [
-        {
-          id: "m1",
-          noteId: "n1",
-          name: "Spring promo plan",
-          commentId: null,
-          comment: null,
-          by: "Sam Rivera",
-          at: ago(0.5),
-          seen: false,
-          home: "/notes/all",
-          thread: null,
-        },
-        {
-          id: "m2",
-          noteId: "n2",
-          name: "Call back the Brandt job",
-          commentId: "c1",
-          comment: "Can you move this to Thursday? The crew is out Wednesday.",
-          by: "Jo Chen",
-          at: ago(2),
-          seen: true,
-          home: "/notes/all",
-          thread: null,
         },
       ],
     },

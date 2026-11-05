@@ -62,7 +62,6 @@ import { type Module, type ModulePage, type PageProps, WREN } from "./module.js"
 import { ownerOf } from "./modules/agent/chat.js";
 import { AgentPanel, useAgentPanel } from "./modules/agent/panel.js";
 import { appsIn, MODULES } from "./modules/index.js";
-import { capture, makeCard, QuickNote, useQuickNoteKey } from "./modules/notes/capture.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { atWrenOf, MOVED_APPS, movedTo } from "./moved.js";
 import { homeIcon, homeOf, jumps } from "./palette-items.js";
@@ -347,12 +346,6 @@ export function App() {
   const mine = operator ? keepOf(null, { app: "", asClient: false }) : keeper;
   const display = useDisplay(mine);
   const myLook = usePref<unknown>(operator ? mine : undefined, LOOK_PREF);
-  // Quick capture (N, ⌘K "Note: …") where this login has Notes, never on a sample or under View as.
-  const noteAt =
-    current && !sample && !viewing && apps.some((m) => m.id === "notes" && !m.parked)
-      ? current.id
-      : null;
-  const [quick, setQuick] = useQuickNoteKey(noteAt !== null);
   // ⌘K finds records as you type in each app here that can (`find`: people, clients, deals,
   // workflows, templates, pages, Learn's items); never on a sample.
   // Stations too: the live shape's nodes, each opening on the Map (Wren's team only).
@@ -791,9 +784,6 @@ export function App() {
         {/* The one player: over a page's slot, or docked bottom-right when the page goes. */}
         <PlayerHost />
         {operator || viewing ? <ViewAsPicker /> : null}
-        {noteAt && quick ? (
-          <QuickNote client={noteAt} open={quick} onOpenChange={setQuick} />
-        ) : null}
         {!operator && onDemo === false && current && current.id !== WREN.id ? (
           <SurveyCard client={current.id} />
         ) : null}
@@ -804,8 +794,6 @@ export function App() {
               onOpenChange={setJump}
               items={[...jumps(apps, launcher, homeLabel, keys), ...viewAsItem, ...others]}
               onPick={(href) => (href === VIEW_AS_HREF ? openViewAs() : navigate(href))}
-              capture={noteAt ? (words) => void capture(noteAt, words) : undefined}
-              card={noteAt ? (title) => void makeCard(noteAt, title) : undefined}
               find={finder}
               recentKey={finder ? current?.id : undefined}
             />

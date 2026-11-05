@@ -42,12 +42,11 @@ import { readMessageSettings } from "@wren/core/message-settings";
 import { meteredModel } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
 import { PortalRefusal } from "@wren/core/portal";
-import { answers, clientKey, LIMITS, within } from "@wren/core/restate";
+import { answers, LIMITS, within } from "@wren/core/restate";
 import { dnsChecks } from "@wren/core/setup";
 import { vendorKeys } from "@wren/core/vendor-keys";
 import { meterTokens } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
-import { s3Files } from "@wren/delivery/files";
 import { answerChecks, remindPass, smsChecks } from "@wren/delivery/sms";
 import {
   type LlmClient,
@@ -59,7 +58,6 @@ import {
   withPart,
 } from "@wren/llm";
 import { LANDERS_BY_NICHE, NICHES, SMS_SEQUENCES } from "@wren/niches";
-import { DRIVE_READ_SCOPE, googleDrive } from "@wren/notes/drive";
 import { stripeChecks } from "@wren/payments/setups";
 import { liveCampaignsOf } from "@wren/pipeline/store";
 import {
@@ -101,14 +99,7 @@ import {
   socialSites,
 } from "@wren/starling-inbound/connect";
 import { ourPosts } from "@wren/starling-inbound/our-posts";
-import {
-  type ContentDesk,
-  clientDrafting,
-  DESK_KEY,
-  DESK_UNIT,
-  SOCIAL_KEY,
-  type SocialPushed,
-} from "@wren/starling-inbound/restate";
+import { SOCIAL_KEY, type SocialPushed } from "@wren/starling-inbound/restate";
 import { contentDrafts, contentPlaybooks } from "@wren/starling-inbound/schema";
 import { formPasses } from "@wren/starling-inbound/sms";
 import { REACH_SEQUENCES, policyFrom as reachPolicyFrom } from "@wren/starling-outbound";
@@ -372,11 +363,6 @@ export async function buildDeps(
   const openClient = (client: { database: string }) =>
     cachedDb(clientDatabaseUrl(databaseUrl, client.database), { app: WORKER_APP });
   const clientDb = (id: string) => openClient({ database: clientDatabaseName(id) });
-  // Drive import reads as the service account (a doc shared with it), else by public link; the
-  // key loads on first use, so a worker without one still starts.
-  let driveKey: ServiceAccountKey | null = null;
-  let driveToken: (() => Promise<string>) | null = null;
-  const driveKeyOf = () => (driveKey ??= googleKey(expandHome(settings.googleServiceAccount)));
   // A client's cal.com is its autobrowse login (`clients.accounts.calcom`), read through the desk.
   const calcomSites = ingressSites(ingressOf(settings), {
     caller: "wren:calcom",
@@ -508,50 +494,13 @@ export async function buildDeps(
             name,
           })
       : null;
-  const notesDeps = {
-    main: db,
-    open: openClient,
-    files: settings.filesBucket ? s3Files({ bucket: settings.filesBucket }) : undefined,
-    zone: settings.sendTimezone,
-    // A mention in a note mailed from portal@, linking to the portal.
-    mail: bookerMailer
-      ? {
-          send: bookerMailer("Wren"),
-          portal: settings.portalOrigin ?? "https://app.wrenautomation.com",
-        }
-      : undefined,
-    // Selected words to drafts (the workspace's ContentDesk).
-    turns: {
-      draft: async (
-        ctx: Context,
-        o: { client: string | null; text: string; by: string },
-      ): Promise<void> => {
-        const client = o.client;
-        if (client) {
-          const plan = await ctx.run("plan", () => clientDrafting(db, client));
-          if (!plan.ok) throw new PortalRefusal(plan.why, 409);
-        }
-        ctx
-          .objectSendClient<ContentDesk>(
-            { name: "ContentDesk" },
-            client ? clientKey(client, DESK_UNIT) : DESK_KEY,
-          )
-          .add({ text: o.text, source: "note" });
-      },
-    },
-    // Turn into cards: Claude proposes, the person picks. Only where a real model runs.
-    write:
-      settings.llm === "fake"
-        ? null
-        : (p: string) => llm.complete(p, { maxTokens: 4000 }).then((r) => r.text),
-    drive: googleDrive({
-      token: () => {
-        driveToken ??= serviceAccountToken(driveKeyOf(), { scopes: [DRIVE_READ_SCOPE] });
-        return driveToken();
-      },
-      who: () => driveKeyOf().clientEmail,
-    }),
-  };
+  // An Inbox note's mention mailed from portal@, linking to the portal.
+  const mentionMail = bookerMailer
+    ? {
+        send: bookerMailer("Wren"),
+        portal: settings.portalOrigin ?? "https://app.wrenautomation.com",
+      }
+    : null;
   // Site flags, pushed to the lander's edge on every change and each search pass.
   const edge = settings.siteEdgeToken
     ? siteEdge(settings.siteBaseUrl, settings.siteEdgeToken)
@@ -921,7 +870,7 @@ export async function buildDeps(
     mediaBucket,
     mediaSigner,
     noPush,
-    notesDeps,
+    mentionMail,
     notifier,
     notify,
     openClient,

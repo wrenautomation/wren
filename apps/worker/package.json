@@ -32,7 +32,6 @@
     "@wren/documents": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/niches": "workspace:*",
-    "@wren/notes": "workspace:*",
     "@wren/offers": "workspace:*",
     "@wren/payments": "workspace:*",
     "@wren/pipeline": "workspace:*",
