@@ -10,16 +10,11 @@ const meta: Meta = { title: "Revamp/Client", id: "pages-client" };
 export default meta;
 
 export const Today = pageAt("/");
-export const Work = pageAt("/map");
-export const Leads = pageAt("/people");
-export const Texts = pageAt("/today");
-export const Calls = pageAt("/people");
-export const Payments = pageAt("/office");
-export const Documents = pageAt("/office");
-export const Pipelines = pageAt("/people");
+export const Project = pageAt("/project");
+export const Campaigns = pageAt("/campaigns");
 export const People = pageAt("/people");
-export const Marketing = pageAt("/campaigns");
-export const Calendar = pageAt("/today");
+export const Office = pageAt("/office");
+export const Calendar = pageAt("/today/calendar");
 
 /** The agenda as `Rows`: a band per day, a call a row, and a press opens it beside the list. */
 export const CalendarAgenda = pageAt("/today/calendar?v=list&d=2026-10-12", {
@@ -34,10 +29,6 @@ export const CalendarAgenda = pageAt("/today/calendar?v=list&d=2026-10-12", {
     await waitFor(() => expect(ada.closest("tr, li")).toHaveAttribute("data-row"));
   },
 });
-
-export const Settings = pageAt("/office");
-export const Library = pageAt("/map");
-export const Account = pageAt("/office");
 
 /** The list: a person's name with an avatar, their stage as its square, their last touch as an age. */
 export const PeopleList = pageAt("/people/people", {

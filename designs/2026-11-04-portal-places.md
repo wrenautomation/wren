@@ -536,3 +536,8 @@ None.
   Overview and Project › Results; Clients is a People tab; Calendar stays a Today tab. The product
   shell becomes a static mock page in the app. Why: he always wanted a Campaigns place, outbound
   runs off content, and the UI must be one shape for the Birdwatch video.
+- 2026-11-05: final lean pass. Back office › Workspace › Experiments shows the product shell as a
+  static mock beside the live places. Page definitions no place used go: Roles, Access review,
+  People › Channels, Findings, a client's Asks and Issues. Their records and handlers stay. Dead
+  stories go (Limits, a Sites split, duplicate client stories). `hide` and `flat` keep a page's
+  old address, so the redirect test now checks hidden pages too.

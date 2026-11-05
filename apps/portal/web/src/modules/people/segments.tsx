@@ -664,7 +664,7 @@ function useKeptSegment(
  * Make or change a group: words to a rule (the model), the rule by hand, a live count, then
  * a save that says how many it matches before it's pressed.
  */
-export function SegmentEditor({
+function SegmentEditor({
   client,
   start,
   onDone,

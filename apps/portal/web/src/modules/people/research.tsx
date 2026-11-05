@@ -7,7 +7,6 @@
 import type { ResearchDetail, ResearchFinding } from "@wren/core/profile-findings";
 import { type Action, Button, Facts, PlatformMark, type RecordAct } from "@wren/ui";
 import { type ReactNode, useRef, useState } from "react";
-import type { ListPage } from "../../module.js";
 
 /** How often the profile reads again while a run works. */
 export const RESEARCH_POLL_MS = 3000;
@@ -55,23 +54,6 @@ export const inlineDecide: Action[] = [
   { ...keepFinding, inline: true },
   { ...dropFinding, inline: true },
 ];
-
-export const findingsPage: ListPage = {
-  id: "findings",
-  label: "Findings",
-  about: "What research found about people, to keep or drop.",
-  hidden: true,
-  template: "list",
-  record: "people.finding",
-  columns: ["who", "kind", "platform", "value", "source", "confidence", "state"],
-  empty: {
-    new: "Nothing waits. Research a person to find their pages and job.",
-    kept: "Nothing kept yet.",
-    dropped: "Nothing dropped yet.",
-    all: "Nothing found yet. Research a person to find their pages and job.",
-  },
-  actions: [keepFinding, dropFinding],
-};
 
 const GROUPS = [
   ["found", "To look at"],

@@ -80,10 +80,20 @@ const finds = (...ms: Module[]) => {
 };
 
 const TEAM = { audience: "team" } as const;
+/** A copy keeps its page's old address. */
+const keep = (from: ModulePage, to: ModulePage): ModulePage => {
+  const was = WAS.get(from);
+  if (was) WAS.set(to, was);
+  return to;
+};
 /** Off the tabs, reached by link. */
-const hide = (p: ModulePage): ModulePage => ({ ...p, hidden: true }) as ModulePage;
+const hide = (p: ModulePage): ModulePage => keep(p, { ...p, hidden: true } as ModulePage);
 /** Tabs of a fixed place: no sidebar groups. */
-const flat = (ps: ModulePage[]): ModulePage[] => ps.map(({ group: _g, ...p }) => p as ModulePage);
+const flat = (ps: ModulePage[]): ModulePage[] =>
+  ps.map((p) => {
+    const { group: _g, ...rest } = p;
+    return keep(p, rest as ModulePage);
+  });
 const one = (m: Module, take: string | Take): ModulePage => {
   const [p] = from(m, [take]);
   if (!p) throw new Error(`places: ${m.id} has no page`);
@@ -211,7 +221,7 @@ const officePlace: Module = {
     ...from(money, [{ id: "subscriptions", lights: "money" }]).map(hide),
     ...from(engage, [{ id: "accounts", as: "accounts" }], "Accounts"),
     ...from(team, [{ id: "all", as: "team" }, "grants"], "Team"),
-    ...from(settings, ["look"], "Team"),
+    ...from(settings, ["look", "experiments"], "Workspace"),
   ],
 };
 

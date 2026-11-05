@@ -7,7 +7,7 @@ import { type Action, said } from "@wren/ui";
 import { createElement } from "react";
 import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";
-import { managePages } from "../access/index.js";
+import { grantsPage } from "../access/index.js";
 import { PersonAccess } from "../access/PersonAccess.js";
 import { Domain } from "../account/Domain.js";
 import { ClientComponents } from "../account/Installed.js";
@@ -358,6 +358,6 @@ export const team: Module = {
         ],
       }),
     },
-    ...managePages(true),
+    grantsPage(true),
   ],
 };

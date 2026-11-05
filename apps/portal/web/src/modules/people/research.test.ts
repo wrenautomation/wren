@@ -3,13 +3,7 @@
 
 import { findingRecord, profileRecords } from "@wren/core/profile-records";
 import { describe, expect, it } from "vitest";
-import {
-  dropFinding,
-  findingsPage,
-  inlineDecide,
-  keepFinding,
-  researchAction,
-} from "./research.js";
+import { dropFinding, inlineDecide, keepFinding, researchAction } from "./research.js";
 import { profileExtras } from "./timeline.js";
 
 const run = (state: string) => ({
@@ -34,14 +28,6 @@ const act = async () => ({});
 const titles = (x: ReturnType<typeof profileExtras>) => (x.sections ?? []).map(([t]) => t);
 
 describe("research page", () => {
-  it("reads only fields and views the record declares", () => {
-    const fields = Object.keys(findingRecord.fields);
-    for (const c of findingsPage.columns ?? []) expect(fields, c).toContain(c);
-    const views = (findingRecord.views ?? []).map((v) => v.id);
-    expect(Object.keys(findingsPage.empty as object).sort()).toEqual([...views].sort());
-    expect(findingsPage.record).toBe(findingRecord.id);
-  });
-
   it("its actions are the ones the record names, handlers included", () => {
     expect(findingRecord.actions).toEqual([keepFinding.id, dropFinding.id]);
     expect(inlineDecide.map((a) => a.id)).toEqual([keepFinding.id, dropFinding.id]);

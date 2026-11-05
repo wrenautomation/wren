@@ -1,5 +1,5 @@
 /**
- * Engage and Outbound, one story per tab, as Wren's admin sees them, on the fake server. The Studio
+ * Campaigns › Outreach, one story per tab, as Wren's admin sees them, on the fake server. The Studio
  * and Marketing artifact draws both ("Marketing · inbound", "Marketing · outbound"); the pages
  * don't follow it yet. Same story ids as before the split (`pages-wren-apps--<app>-<tab>`).
  */

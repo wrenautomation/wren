@@ -1,6 +1,6 @@
 import { createElement } from "react";
-import type { ListPage, Module } from "../../module.js";
-import { inboxPages, managePages } from "../access/index.js";
+import type { Module } from "../../module.js";
+import { grantsPage } from "../access/index.js";
 import { Accounts } from "./Accounts.js";
 import { invoiceExtras } from "./billing.js";
 import { Included } from "./Included.js";
@@ -11,10 +11,6 @@ import { Overview } from "./Overview.js";
 import { People } from "./People.js";
 import { Social } from "./Social.js";
 import { You } from "./You.js";
-
-/** Pages under one sidebar heading; with `id`, only that one. */
-const inGroup = (pages: ListPage[], group: string, id?: string): ListPage[] =>
-  pages.filter((p) => !id || p.id === id).map((p) => ({ ...p, group }));
 
 export const account: Module = {
   id: "account",
@@ -41,8 +37,7 @@ export const account: Module = {
       Page: People,
       group: "People",
     },
-    ...inGroup(managePages(false), "People"),
-    ...inGroup(inboxPages(), "People", "asks"),
+    { ...grantsPage(false), group: "People" },
     {
       id: "look",
       label: "Look",
@@ -88,6 +83,5 @@ export const account: Module = {
       extras: invoiceExtras,
       head: (_meta, _reload, { client }) => createElement(Included, { client }),
     },
-    ...inGroup(inboxPages(), "Activity", "issues"),
   ],
 };

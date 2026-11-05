@@ -356,24 +356,3 @@ export async function channelPeople(
     link: `/people/people/${Number(r.id)}`,
   }));
 }
-
-/** A row and step as a segment rule: who `channelPeople` lists, kept live. */
-export function stepRule(
-  row: Pick<StatsRow, "channel" | "source">,
-  step: FunnelStep,
-  days?: number | null,
-): Rule {
-  return {
-    kind: "group",
-    match: "all",
-    of: [
-      {
-        kind: "step",
-        step,
-        ...(row.channel ? { channel: row.channel } : {}),
-        ...(row.source ? { source: row.source } : {}),
-        days: days ?? null,
-      },
-    ],
-  };
-}

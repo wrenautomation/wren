@@ -27,8 +27,6 @@ const VERB_LABELS: Readonly<Record<string, string>> = {
   team: "Manage the team",
   money: "Money",
 };
-/** A semi-admin: people and access, never money or sends. */
-const MANAGER = { wren: "read,comment,act,run,manage,team", client: "read,comment,act,manage" };
 
 const grantForm = (wren: boolean): FormField[] => [
   {
@@ -58,96 +56,6 @@ const grantForm = (wren: boolean): FormField[] => [
     hint: "None picked is every channel.",
   },
 ];
-
-/** The role actions; giving a role is the team's seat at Wren, a membership at a client. */
-function roleActions(wren: boolean): Action[] {
-  return [
-    {
-      id: "access.roleNew",
-      label: "New role",
-      handler: "console/roleSave",
-      requires: MANAGE,
-      form: [
-        { field: "name", label: "Name" },
-        ...grantForm(wren),
-        { field: "about", label: "About", optional: true, type: "long" },
-      ],
-      done: said("Role made"),
-    },
-    {
-      // A manager to pass access on to: people and access, no money or sends.
-      id: "access.roleManager",
-      label: "New manager role",
-      handler: "console/roleSave",
-      requires: MANAGE,
-      form: [
-        { field: "name", label: "Name", from: () => "Manager" },
-        ...grantForm(wren).map((f) =>
-          f.field === "verbs" ? { ...f, from: () => MANAGER[wren ? "wren" : "client"] } : f,
-        ),
-        {
-          field: "about",
-          label: "About",
-          optional: true,
-          type: "long",
-          from: () =>
-            wren
-              ? "Runs the team and access. No money or sends."
-              : "Runs people and access. No money.",
-        },
-      ],
-      done: said("Manager role made"),
-    },
-    {
-      id: "access.roleCopy",
-      label: "Copy",
-      handler: "console/roleCopy",
-      requires: MANAGE,
-      each: true,
-      form: [
-        { field: "name", label: "Name", optional: true, hint: 'Blank names it "<role> copy".' },
-      ],
-      done: said("Copied"),
-    },
-    {
-      id: "access.roleGrant",
-      label: "Add a grant",
-      handler: "console/roleGrant",
-      requires: MANAGE,
-      each: true,
-      when: { kind: ["custom"] },
-      form: grantForm(wren),
-      done: said("Added"),
-    },
-    {
-      id: "access.roleGive",
-      label: "Give to",
-      handler: wren ? "console/roleGive" : "delivery/roleGive",
-      requires: MANAGE,
-      each: true,
-      form: [
-        {
-          field: "email",
-          label: "Their email",
-          hint: wren
-            ? "Their team seat takes this role."
-            : "They join with this role, or move to it.",
-        },
-      ],
-      done: said("Given"),
-    },
-    {
-      id: "access.roleRemove",
-      label: "Remove",
-      icon: "trash",
-      handler: "console/roleRemove",
-      requires: MANAGE,
-      when: { kind: ["custom"] },
-      confirm: "Remove this role? Move its people off it first.",
-      done: said("Removed"),
-    },
-  ];
-}
 
 const grantActions = (wren: boolean): Action[] => [
   {
@@ -217,50 +125,23 @@ export const ASK_ACTIONS: Action[] = [
   },
 ];
 
-/** Roles, Grants and Access review: for whoever manages the workspace. */
-export function managePages(wren: boolean): ListPage[] {
-  return [
-    {
-      id: "roles",
-      label: "Roles",
-      about: "The roles people can hold, and what each one may do.",
-      requires: { needs: "manage" },
-      template: "list",
-      record: "access.role",
-      empty: "Roles show here.",
-      columns: ["name", "kind", "grants", "held"],
-      actions: roleActions(wren),
+/** Grants: for whoever manages the workspace. */
+export function grantsPage(wren: boolean): ListPage {
+  return {
+    id: "grants",
+    label: "Grants",
+    about: "Extra access given to someone beyond their role.",
+    requires: { needs: "manage" },
+    template: "list",
+    record: "access.grant",
+    empty: {
+      live: "No extra grants.",
+      ending: "Nothing ends this week.",
+      all: "Grants show here once someone gets one.",
     },
-    {
-      id: "grants",
-      label: "Grants",
-      about: "Extra access given to someone beyond their role.",
-      requires: { needs: "manage" },
-      template: "list",
-      record: "access.grant",
-      empty: {
-        live: "No extra grants.",
-        ending: "Nothing ends this week.",
-        all: "Grants show here once someone gets one.",
-      },
-      columns: ["email", "what", "state", "until", "by"],
-      actions: grantActions(wren),
-    },
-    {
-      id: "review",
-      label: "Access review",
-      about: "Who can reach what, to check it's still right.",
-      requires: { needs: "manage" },
-      template: "list",
-      record: "access.review",
-      empty: {
-        all: "People show here once they join.",
-        ending: "No grant ends this week.",
-      },
-      columns: ["email", "role", "can", "ending"],
-      count: { soon: ["yes"] },
-    },
-  ];
+    columns: ["email", "what", "state", "until", "by"],
+    actions: grantActions(wren),
+  };
 }
 
 /** Issues and asks: anyone signed in sees theirs and the ones waiting on them. */

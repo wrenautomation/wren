@@ -12,10 +12,10 @@ const meta: Meta = { title: "Revamp/Wren", id: "pages-wren" };
 export default meta;
 
 export const People = pageAt("/people", { me: ADMIN });
-export const Pipelines = pageAt("/people", { me: ADMIN });
-export const Content = pageAt("/campaigns", { me: ADMIN });
-export const Clients = pageAt("/people", { me: ADMIN });
+export const Clients = pageAt("/people/clients", { me: ADMIN });
+export const Campaigns = pageAt("/campaigns", { me: ADMIN });
 export const Money = pageAt("/office", { me: ADMIN });
-export const Team = pageAt("/office", { me: ADMIN });
-export const Library = pageAt("/map", { me: ADMIN });
-export const Calendar = pageAt("/today", { me: ADMIN });
+export const Team = pageAt("/office/team", { me: ADMIN });
+export const Experiments = pageAt("/office/experiments", { me: ADMIN });
+export const MapPlace = pageAt("/map", { me: ADMIN });
+export const Calendar = pageAt("/today/calendar", { me: ADMIN });

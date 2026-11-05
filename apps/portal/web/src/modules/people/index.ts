@@ -1,15 +1,14 @@
 /**
  * People (designs/2026-10-14-customerio-audit.md, B1): one profile per person in the workspace,
  * every address it goes by, its traits and its timeline. B2's sent log, B5's groups, B6's
- * broadcasts and Channels (each channel's funnel) live here too.
+ * broadcasts live here too.
  * One address, two apps: a client's own people and Wren's.
  */
 import type { Module, ModulePage } from "../../module.js";
 import { broadcastsPage, recipientsPage } from "./broadcasts.js";
-import { channelsPage } from "./channels.js";
 import { importPage } from "./import.js";
 import { LEAD_ACTIONS, withLeadCheck } from "./lead-check.js";
-import { findingsPage, inlineDecide, researchAction } from "./research.js";
+import { inlineDecide, researchAction } from "./research.js";
 import { addToGroup, groupsPage, membersPage } from "./segments.js";
 import { sentPage } from "./sent.js";
 import { KIND_ICONS, profileExtras } from "./timeline.js";
@@ -83,7 +82,6 @@ const PEOPLE_PAGES: ModulePage[] = [
   },
   sentPage,
   groupsPage,
-  channelsPage,
   broadcastsPage,
   recipientsPage,
   membersPage,
@@ -110,7 +108,6 @@ export const people: Module = {
         ? { ...p, actions: [...(p.actions ?? []), ...LEAD_ACTIONS] }
         : p,
     ),
-    findingsPage,
   ],
   requires: { audience: "team" },
 };
