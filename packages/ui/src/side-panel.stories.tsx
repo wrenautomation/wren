@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { PANEL, PanelAct, PanelClose, SidePanel } from "./side-panel.js";
 
 export default {
@@ -16,7 +16,13 @@ function Frame() {
   return (
     <div className="flex h-[560px] bg-(--ui-paper)">
       <div className="min-w-0 flex-1 p-6 text-[14px] text-(--ui-ink-2)">
-        {open ? "The page." : "Closed."}
+        {open ? (
+          "The page."
+        ) : (
+          <button type="button" onClick={() => setOpen(true)}>
+            Closed. Open
+          </button>
+        )}
       </div>
       <SidePanel
         open={open}
@@ -47,12 +53,14 @@ export const Default: Story = {
   },
 };
 
-/** Close in the head row folds the panel away. */
+/** Close folds the panel away and the page takes its room; Open brings it back. */
 export const Closes: Story = {
   render: () => <Frame />,
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
     await userEvent.click(c.getByRole("button", { name: "Close agent" }));
-    await expect(c.getByText("Closed.")).toBeTruthy();
+    await waitFor(() => expect(c.queryByRole("complementary", { name: "Agent" })).toBeNull());
+    await userEvent.click(c.getByRole("button", { name: "Closed. Open" }));
+    await waitFor(() => expect(c.getByRole("complementary", { name: "Agent" })).toBeVisible());
   },
 };

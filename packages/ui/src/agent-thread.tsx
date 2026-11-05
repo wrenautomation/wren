@@ -433,7 +433,7 @@ export function AgentThread(p: AgentThreadProps) {
                 <div
                   className={cx(
                     COLUMN,
-                    "grid gap-8 pt-6 pb-6 transition-opacity duration-200",
+                    "grid gap-6 pt-5 pb-5 transition-opacity duration-200",
                     p.stale && "opacity-50",
                   )}
                 >
@@ -634,7 +634,7 @@ function FileChip({ remove }: { remove?: boolean }) {
 
 function ReplyTurn() {
   return (
-    <MessagePrimitive.Root className="ui-rise group/reply grid min-w-0 gap-3">
+    <MessagePrimitive.Root className="ui-rise group/reply grid min-w-0 gap-2">
       <MessagePrimitive.Parts
         components={{
           Text: Reply,
@@ -661,7 +661,7 @@ const Reply: TextMessagePartComponent = (part) => {
     <>
       <div
         data-live={live ? "" : undefined}
-        className="ui-agent-text min-w-0 text-[14.5px]/[1.6] text-(--ui-ink) [overflow-wrap:anywhere]"
+        className="ui-agent-text min-w-0 text-[14.5px]/[1.55] text-(--ui-ink) [overflow-wrap:anywhere]"
       >
         <Streamdown
           mode={live ? "streaming" : "static"}

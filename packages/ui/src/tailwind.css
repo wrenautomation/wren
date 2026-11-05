@@ -120,9 +120,10 @@
   --ui-bad-tint: color-mix(in srgb, var(--ui-bad) 6%, transparent);
   --ui-warn-tint: color-mix(in srgb, var(--ui-warn) 9%, transparent); /* under what waits on you */
   /* A terminal block: dark in both looks, so commands read apart from words */
-  --ui-term: light-dark(#17161b, #070708); /* at night a well under the paper, never the paper */
+  /* by day a soft charcoal, not black on white; at night a well just under the paper */
+  --ui-term: light-dark(#3b3942, #121116);
   --ui-term-ink: #ecebe6;
-  --ui-term-dim: #a3a199; /* 7:1 on --ui-term */
+  --ui-term-dim: #b5b3ab; /* 5.4:1 by day, 9:1 at night */
   --ui-term-prompt: #f0a074; /* the $ */
   --ui-term-bad: #ff8f86;
   --ui-scrim: color-mix(in srgb, var(--ui-shade) 16%, transparent);
@@ -1098,7 +1099,7 @@ html[data-morph="cards"]::view-transition-new(*) {
 .ui-agent-text :is(h1, h2, h3) {
   font-size: 15.5px;
   font-weight: 650;
-  margin: 14px 0 6px;
+  margin: 12px 0 4px;
 }
 .ui-agent-text[data-live] > div > :last-child::after {
   content: "";
@@ -1174,7 +1175,7 @@ html[data-morph="cards"]::view-transition-new(*) {
   color: var(--ui-ink);
 }
 .ui-agent-text [data-streamdown="code-block"] {
-  margin: 12px 0;
+  margin: 10px 0;
   border: 0;
   border-radius: 4px 10px 4px 10px;
   background: var(--ui-paper);
@@ -1190,19 +1191,24 @@ html[data-morph="cards"]::view-transition-new(*) {
   background: transparent;
 }
 .ui-agent-text :is(ul, ol) {
-  margin: 8px 0;
+  margin: 6px 0;
   padding-left: 1.25em;
   list-style-position: outside;
 }
 .ui-agent-text li {
   margin-left: 0;
   padding-left: 2px;
+  padding-block: 0; /* Streamdown's py-1: 8px between short bullets */
 }
 .ui-agent-text li + li {
-  margin-top: 3px;
+  margin-top: 2px;
 }
 .ui-agent-text p {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
+}
+/* a loose list wraps each item in a p: its margin would double the gap */
+.ui-agent-text li > p {
+  margin: 0;
 }
 .ui-agent-text [data-streamdown="table-wrapper"],
 .ui-agent-text [data-streamdown="table"] {

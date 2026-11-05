@@ -257,3 +257,9 @@ Chosen: A. The story "Revamp/Agent chat" (`pages-agent.stories.tsx`) runs the re
 - Play tests assert each feature. A story fails when the page drops one.
 - The first replay found 4 bugs the part stories hid: typed command answers never showed, the `/model` refusal named a model twice, "Load the a skill" while the input streamed, and a second click on Allow threw.
 - Re-record when the CLI or SDK changes: `record-tape.mjs`, then `scrub-tape.mjs` into `mocks/data/agent/`.
+
+## 11-05: chat polish (WA-1082)
+
+- Terminal block: by day `#17161b` → `#3b3942`, a soft charcoal; at night `#070708` → `#121116`, still under the paper. It stays dark in both looks so commands read apart from words. Dim text `#b5b3ab`: 5.4:1 by day, 9:1 at night.
+- Tighter chat: turns 32 → 24 px apart, steps 12 → 8 px, text line 1.6 → 1.55; paragraphs, lists and headings lose 2 px each. Streamdown's 4 px padding on each list item is gone.
+- The panel opens and closes with motion (motion.dev). It stays mounted when closed, so the chat keeps its session. Its room grows from 0 as the card slides in 24 px on the ease (0.34 s), and the page gives way. It leaves on an accelerating curve (0.24 s), since an ease-out exit drops in one frame. On a phone the sheet slides up and down. Reduced motion: no animation.

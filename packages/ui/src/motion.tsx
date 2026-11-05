@@ -10,6 +10,8 @@ import { type BusySize, Ring } from "./busy.js";
 export const SPRING = [0.2, 0.9, 0.25, 1.12] as const;
 /** `--ui-ease`: things that arrive. */
 export const EASE = [0.16, 1, 0.3, 1] as const;
+/** Things that leave: slow off the mark, then gone; an ease-out exit drops in one frame. */
+export const LEAVE = [0.3, 0, 0.8, 0.15] as const;
 /** A size or place change: 0.3 s on the spring. */
 export const MOVE = { duration: 0.3, ease: SPRING };
 /** A fade: 0.2 s. */

@@ -3,11 +3,14 @@
  * (designs/2026-11-04-multi-user-runtime.md, Decision 6). Its left edge drags its width; dragged
  * past the fold it closes. On a phone it is the bottom sheet's shape (phone.tsx), full height.
  */
-import { type CSSProperties, type ReactNode, useRef } from "react";
+import { type MotionStyle, motion, useReducedMotion } from "motion/react";
+import { type ReactNode, useRef } from "react";
 import { cx } from "./format.js";
 import { Resizer } from "./frame.js";
 import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
+import { useNarrow } from "./list-bar.js";
+import { EASE, LEAVE } from "./motion.js";
 
 export const PANEL = { min: 340, max: 760, fold: 280, width: 440 } as const;
 
@@ -33,41 +36,62 @@ export function SidePanel({
   children: ReactNode;
 }) {
   const host = useRef<HTMLElement>(null);
+  const still = useReducedMotion() ?? false;
+  const phone = useNarrow();
+  // arrives on the ease, leaves quicker; closed it stays mounted, so the chat keeps its session
+  const move = still
+    ? { duration: 0 }
+    : open
+      ? { duration: 0.34, ease: EASE }
+      : { duration: 0.24, ease: LEAVE };
+  const shut = phone ? { y: "100%" } : { opacity: 0, x: 24 };
   return (
-    <aside
-      ref={host}
-      aria-label={label}
-      style={{ "--panel-w": `${width}px` } as CSSProperties}
-      className={cx(
-        // inset card, a faint rim: Claude's and ChatGPT's side panel
-        "relative flex min-h-0 w-(--panel-w) flex-none flex-col bg-(--ui-paper)",
-        "min-[901px]:my-2 min-[901px]:mr-2 min-[901px]:rounded-[12px] min-[901px]:border min-[901px]:border-[color-mix(in_srgb,var(--ui-ink)_8%,transparent)] min-[901px]:shadow-[0_1px_3px_rgb(0_0_0/.04)]",
-        "max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:z-40 max-[900px]:h-[calc(100dvh-env(safe-area-inset-top)-10px)] max-[900px]:w-full max-[900px]:rounded-[6px_24px_0_0] max-[900px]:border-t max-[900px]:border-l-0 max-[900px]:shadow-(--ui-shadow)",
-        open ? "[animation:ui-fade_.2s_var(--ui-ease)_both]" : "hidden",
-      )}
+    <motion.div
+      // its room: the page gives way as it opens and takes the room back as it shuts
+      className="flex min-h-0 flex-none overflow-hidden"
+      initial={false}
+      animate={
+        open ? { width: "auto", display: "flex" } : { width: 0, transitionEnd: { display: "none" } }
+      }
+      transition={move}
     >
-      <Resizer
-        side="left"
-        label={label}
-        width={width}
-        shut={false}
-        shutPx={0}
-        range={PANEL}
-        host={() => host.current}
-        cssVar="--panel-w"
-        style={{ left: -5 }}
-        onDone={(n) => (n.shut ? onClose() : onWidth(n.width))}
-        onReset={() => onWidth(PANEL.width)}
-      />
-      {title ? (
-        <header className="flex min-h-[54px] flex-none items-center gap-1.5 border-(--ui-hair) border-b pr-2 pl-4">
-          <div className="flex min-w-0 flex-1 items-center gap-2">{title}</div>
-          {actions}
-          <PanelClose label={label} onClose={onClose} />
-        </header>
-      ) : null}
-      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
-    </aside>
+      <motion.aside
+        ref={host}
+        aria-label={label}
+        style={{ "--panel-w": `${width}px` } as MotionStyle}
+        initial={false}
+        animate={open ? { opacity: 1, x: 0, y: 0 } : shut}
+        transition={move}
+        className={cx(
+          // inset card, a faint rim: Claude's and ChatGPT's side panel
+          "relative flex min-h-0 w-(--panel-w) flex-none flex-col bg-(--ui-paper)",
+          "min-[901px]:my-2 min-[901px]:mr-2 min-[901px]:rounded-[12px] min-[901px]:border min-[901px]:border-[color-mix(in_srgb,var(--ui-ink)_8%,transparent)] min-[901px]:shadow-[0_1px_3px_rgb(0_0_0/.04)]",
+          "max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:z-40 max-[900px]:h-[calc(100dvh-env(safe-area-inset-top)-10px)] max-[900px]:w-full max-[900px]:rounded-[6px_24px_0_0] max-[900px]:border-t max-[900px]:border-l-0 max-[900px]:shadow-(--ui-shadow)",
+        )}
+      >
+        <Resizer
+          side="left"
+          label={label}
+          width={width}
+          shut={false}
+          shutPx={0}
+          range={PANEL}
+          host={() => host.current}
+          cssVar="--panel-w"
+          style={{ left: -5 }}
+          onDone={(n) => (n.shut ? onClose() : onWidth(n.width))}
+          onReset={() => onWidth(PANEL.width)}
+        />
+        {title ? (
+          <header className="flex min-h-[54px] flex-none items-center gap-1.5 border-(--ui-hair) border-b pr-2 pl-4">
+            <div className="flex min-w-0 flex-1 items-center gap-2">{title}</div>
+            {actions}
+            <PanelClose label={label} onClose={onClose} />
+          </header>
+        ) : null}
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      </motion.aside>
+    </motion.div>
   );
 }
 
