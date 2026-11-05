@@ -60,6 +60,12 @@ export const TOKENS = [
   "backdrop",
   "grain",
   "lift",
+  // Terminal block: dark in both looks.
+  "term",
+  "term-ink",
+  "term-dim",
+  "term-prompt",
+  "term-bad",
   // Made from the ones above by default.
   "tile",
   "wash",

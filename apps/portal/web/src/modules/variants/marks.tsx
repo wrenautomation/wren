@@ -32,6 +32,13 @@ export interface Sample {
   source?: Source | null;
 }
 
+export const VERDICT_ON = {
+  amazing: "border-(--ui-accent) bg-(--ui-accent-wash) text-(--ui-accent)",
+  good: "border-(--ui-good) bg-(--ui-good-tint) text-(--ui-good-ink)",
+  bad: "border-(--ui-bad) bg-(--ui-bad-tint) text-(--ui-bad)",
+} as const;
+export const pct = (n: number) => `${Math.round(n * 100)}%`;
+
 export const clock = (s: number) => {
   const m = Math.floor(s / 60);
   const r = s - m * 60;
