@@ -3,13 +3,12 @@
  * from its own database, for anyone who may open that client, once `sms.texts` is installed.
  * `reply` is Wren's team only and goes through `SmsDesk.reply` with `client`, so the text is
  * journaled and leaves from the client's `SmsSend/<client>/fleet`. The Worker keeps the write
- * off the demo (`../console-routes.ts`). `askReview` puts one customer into the client's live
- * review requests by hand.
+ * off the demo (`../console-routes.ts`).
  */
 import * as restate from "@restatedev/restate-sdk";
 import { outcomeIn } from "@wren/core/calls";
 import type { Client } from "@wren/core/clients";
-import { executorEmit, liveFor } from "@wren/core/executor";
+
 import {
   answer,
   PortalRefusal,
@@ -33,15 +32,13 @@ import {
 } from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { atomic, type Db, setAuditActor, snapshot } from "@wren/db";
-import { TEXTS, toPhoneE164 } from "@wren/starling-sms";
+import { TEXTS } from "@wren/starling-sms";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/starling-sms/console-routes";
 import { SMS_RECORDS } from "@wren/starling-sms/records";
 import type { SmsDeskService } from "@wren/starling-sms/restate";
 import { CALL_OUTCOMES, type CallOutcome, speedRuns } from "@wren/starling-sms/schema";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { cleanEmail, handSubject } from "../reviews.js";
-import { REVIEWS_FLOW } from "./answers.js";
 
 interface SmsConsoleDeps {
   /** Main: the client registry. */
@@ -61,13 +58,6 @@ interface CallDoneRequest extends PortalRequest {
   ids: (string | number)[];
   /** How it went: a code or its label ("No answer"); left out, just done. */
   outcome?: string | null;
-}
-
-interface AskReviewRequest extends PortalRequest {
-  name?: string | null;
-  /** A mobile, an email, or both: at least one. */
-  phone?: string | null;
-  email?: string | null;
 }
 
 const outcomeOf = (said: string | null | undefined): CallOutcome | null => {
@@ -140,21 +130,6 @@ export function smsConsoleApi({ db, open }: SmsConsoleDeps) {
       const closed = new Set(done.map((r) => String(r.id)));
       return { done: [...closed], skipped: asked.filter((id) => !closed.has(id)) };
     },
-    /** One customer for review requests, by hand: the client's, with the template live. */
-    askingReview: async (req: AskReviewRequest) => {
-      const client = await texting(req);
-      if (!(await liveFor(db, client.id, REVIEWS_FLOW)))
-        throw new PortalRefusal("review requests aren't live: install them from the Shop", 409);
-      const phone = typeof req.phone === "string" ? req.phone.trim() : "";
-      const rawEmail = typeof req.email === "string" ? req.email.trim() : "";
-      if (!phone && !rawEmail) throw new PortalRefusal("give a mobile or an email", 400);
-      if (phone && !toPhoneE164(phone))
-        throw new PortalRefusal("that isn't a US or Canadian number", 400);
-      const email = rawEmail ? cleanEmail(rawEmail) : null;
-      if (rawEmail && !email) throw new PortalRefusal("that isn't an email address", 400);
-      const name = typeof req.name === "string" ? req.name.trim().slice(0, 120) || null : null;
-      return { client: client.id, name, phone: phone || null, email };
-    },
   };
 }
 
@@ -200,36 +175,6 @@ export function makeSmsConsole(deps: SmsConsoleDeps) {
         },
         (ctx: restate.Context, req: CallDoneRequest) =>
           answer(async () => api.callDone(req, new Date(await ctx.date.now()))),
-      ),
-      /** Ask one customer for a review by hand: into the client's live review requests. */
-      askReview: serviceHandler(
-        {
-          input: z.looseObject({
-            ...PORTAL_FIELDS,
-            name: z.string().max(120).nullish().describe("The customer's name"),
-            phone: z.string().max(40).nullish().describe("Their mobile"),
-            email: z.string().max(254).nullish().describe("Their email"),
-          }),
-        },
-        (ctx: restate.Context, req: AskReviewRequest) =>
-          answer(async () => {
-            const ask = await api.askingReview(req);
-            const id = ctx.rand.uuidv4();
-            executorEmit(ctx, {
-              client: ask.client,
-              workflow: REVIEWS_FLOW,
-              from: "in.customers",
-              onlyLive: true,
-              events: [
-                {
-                  subject: handSubject(id),
-                  kind: "lead",
-                  data: { name: ask.name, phone: ask.phone, email: ask.email, source: "hand" },
-                },
-              ],
-            });
-            return { asked: true };
-          }),
       ),
       /** Text a client's thread from its sticky number; it leaves on the client's next tick. */
       reply: serviceHandler(

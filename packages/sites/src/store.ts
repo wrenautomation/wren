@@ -3,7 +3,7 @@
  * copy is a new version per save; what's live changes only on a person's yes (`approvePage`).
  */
 import { randomBytes } from "node:crypto";
-import { HOOK_PRESETS } from "@wren/core/door";
+import { FORMS_INPUT } from "@wren/core/door";
 import { UUID } from "@wren/core/ids";
 import {
   noteClientForm,
@@ -810,27 +810,24 @@ export async function markForm(db: Db, id: string, entered: boolean, why: string
 }
 
 /**
- * The door a page's forms enter: its own hook, else its owner's first site-preset hook (Wren's:
- * the one the lander posts to). Null when the owner has none.
+ * The door a page's forms enter: its own hook, else its owner's first hook on a `forms` input,
+ * whatever its workflow. Null when the owner has none.
  */
 export const doorOf = (db: Queryable, page: Pick<SitePage, "hook" | "client">) => doorFor(db, page);
 
-/** A page's or a hosted form's door: its own hook, else its owner's first site-preset hook. */
+/** A page's or a hosted form's door: its own hook, else its owner's first `forms` hook. */
 export async function doorFor(
   db: Queryable,
   page: { hook: string | null; client: string | null },
 ): Promise<string | null> {
   if (page.hook) return page.hook;
-  const site = HOOK_PRESETS.site;
-  if (!site) return null;
   const [h] = await db
     .select({ id: hooks.id })
     .from(hooks)
     .where(
       and(
         page.client === null ? isNull(hooks.client) : eq(hooks.client, page.client),
-        eq(hooks.workflow, site.workflow),
-        eq(hooks.input, site.input),
+        eq(hooks.input, FORMS_INPUT),
       ),
     )
     .orderBy(asc(hooks.createdAt))

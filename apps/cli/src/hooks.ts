@@ -4,7 +4,7 @@
  * live on main, since the door finds the client from the token.
  */
 import { getClient } from "@wren/core/clients";
-import { fieldMapOf, HOOK_PRESETS, LEAD_FIELDS } from "@wren/core/door";
+import { fieldMapOf, LEAD_FIELDS } from "@wren/core/door";
 import { addHook } from "@wren/core/executor";
 import { hooks } from "@wren/core/schema";
 import type { Db } from "@wren/db";
@@ -57,24 +57,6 @@ export function registerHooks(program: Command, withMainDb: WithDb) {
         );
       },
     );
-
-  cmd
-    .command("preset <name>")
-    .description(
-      `Make a known sender's hook (${Object.keys(HOOK_PRESETS).join(", ")}); prints its URL once and where it goes`,
-    )
-    .action(async (name: string) => {
-      const p = HOOK_PRESETS[name];
-      if (!p) throw new Error(`no preset ${name} (${Object.keys(HOOK_PRESETS).join(", ")})`);
-      await make({
-        name,
-        workflow: p.workflow,
-        input: p.input,
-        subject: p.subject,
-        fields: p.fields,
-      });
-      console.log(`Shown once. It goes in ${p.goes}.`);
-    });
 
   cmd
     .command("list")

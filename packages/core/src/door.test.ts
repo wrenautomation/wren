@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldMapOf, fieldMapOfWith, fieldMapProblems, HOOK_PRESETS, leadOf } from "./door.js";
+import { FORM_PRESETS, fieldMapOf, fieldMapOfWith, fieldMapProblems, leadOf } from "./door.js";
 
 describe("leadOf", () => {
   it("reads the common names when the map is empty", () => {
@@ -59,7 +59,7 @@ describe("the site preset", () => {
   };
 
   it("reads a lander row as the lead, source site and its niche", () => {
-    expect(leadOf(SITE, HOOK_PRESETS.site?.fields)).toEqual({
+    expect(leadOf(SITE, FORM_PRESETS.site?.fields)).toEqual({
       name: "Bo Test",
       phone: "(312) 555-0144",
       email: "bo@example.test",
@@ -73,7 +73,7 @@ describe("the site preset", () => {
 
   it("a form with no consent box is no consent", () => {
     const { sms_consent: _, ...lead } = SITE;
-    expect(leadOf(lead, HOOK_PRESETS.site?.fields)).toMatchObject({
+    expect(leadOf(lead, FORM_PRESETS.site?.fields)).toMatchObject({
       consent: false,
       consentDetail: null,
     });

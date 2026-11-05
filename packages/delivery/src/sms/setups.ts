@@ -7,11 +7,11 @@
 import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { findClient } from "@wren/core/clients";
 import { defineSetup, type SetupCheck } from "@wren/core/setup";
-import type { Db } from "@wren/db";
+import { accountFacts, clientAccounts } from "@wren/core/setup-schema";
+import type { Db, Queryable } from "@wren/db";
 import type { Registration } from "@wren/starling-sms";
 import { TEXTS, textsSettingsSchema } from "@wren/starling-sms";
-import { smsCalls } from "@wren/starling-sms/schema";
-import { eq, max } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 const TEXTING_SETUP = defineSetup({
   id: "setup.texting",
@@ -101,26 +101,6 @@ const NUMBER_SETUP = defineSetup({
  * (missed.ts). The number's voice settings point at Wren's Telnyx connection; the check passes
  * once a call to it has come in. Until then missed-call text back shows "Needs setup".
  */
-const CALL_ROUTING_SETUP = defineSetup({
-  id: "setup.call_routing",
-  name: "Call routing",
-  blurb: "Calls to your number reach Wren, so a missed one gets a text back.",
-  site: "number",
-  steps: [
-    {
-      id: "routed",
-      fact: "number.calls_routed",
-      label: "Calls reach Wren",
-      who: "wren",
-      how: "Wren points your number's calls at its call app, then rings it once to test.",
-      forYou: "Wren points your number's calls at its call app, then rings it once to test.",
-      check: "telnyx.calls",
-      every: "1 hour",
-      within: "7 days",
-    },
-  ],
-});
-
 /** A Google Place ID, as Google prints it: `ChIJ` and the rest, letters, digits, `-` and `_`. */
 const PLACE_ID = /^[A-Za-z0-9_-]{16,200}$/;
 
@@ -163,15 +143,15 @@ export const reviewUrl = (placeId: string) =>
   `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`;
 
 /**
- * The client's Google Business Profile, by its Place ID: the review link every ask carries
- * (reviews.ts). The account's ref is the Place ID. Done for you, the account is added under the
+ * The client's Google Business Profile, by its Place ID: content reads its Google reviews off
+ * Maps by it (`placeIdOf`). The account's ref is the Place ID. Done for you, the account is added under the
  * business's name and address instead, and SetupAgent's finder (`findPlace`) looks it up on
  * Google Maps and makes the Place ID its ref.
  */
 const GOOGLE_BUSINESS_SETUP = defineSetup({
   id: "setup.google_business",
   name: "Google review link",
-  blurb: "Your Google Business Profile, so review requests link to your review form.",
+  blurb: "Your Google Business Profile, so Wren can read your Google reviews.",
   site: "google_business",
   repeat: "7 days",
   steps: [
@@ -190,27 +170,17 @@ const GOOGLE_BUSINESS_SETUP = defineSetup({
   ],
 });
 
-export const SMS_SETUPS = [TEXTING_SETUP, NUMBER_SETUP, CALL_ROUTING_SETUP, GOOGLE_BUSINESS_SETUP];
+export const SMS_SETUPS = [TEXTING_SETUP, NUMBER_SETUP, GOOGLE_BUSINESS_SETUP];
 
 /**
- * The missed-call and review setups' checks: a call seen to the number in its owner's texts, and
- * a Place ID whose review form Google serves. `fetch` is the one network read.
+ * The Google Business setup's check: a Place ID whose review form Google serves. `fetch` is the
+ * one network read.
  */
 export function answerChecks(
-  dbOf: (client: string | null) => Promise<Db>,
+  _dbOf: (client: string | null) => Promise<Db>,
   get: typeof fetch,
 ): Record<string, SetupCheck> {
   return {
-    "telnyx.calls": async ({ account }) => {
-      const db = await dbOf(account.client);
-      const [row] = await db
-        .select({ at: max(smsCalls.startedAt) })
-        .from(smsCalls)
-        .where(eq(smsCalls.toE164, account.ref));
-      return row?.at
-        ? { ok: true, why: "A call came through", seen: { last: row.at.toISOString() } }
-        : { ok: false, why: "No call to this number has reached Wren yet" };
-    },
     "google_business.place_id": async ({ account }) => {
       if (!PLACE_ID.test(account.ref)) return { ok: false, why: "That isn't a Place ID" };
       const res = await get(reviewUrl(account.ref), { method: "GET", redirect: "manual" });
@@ -259,4 +229,22 @@ export function smsChecks(
       };
     },
   };
+}
+
+/** The client's Place ID: its Google Business account whose Place ID the setup found. */
+export async function placeIdOf(main: Queryable, client: string): Promise<string | null> {
+  const [row] = await main
+    .select({ ref: clientAccounts.ref })
+    .from(clientAccounts)
+    .innerJoin(accountFacts, eq(accountFacts.accountId, clientAccounts.id))
+    .where(
+      and(
+        eq(clientAccounts.client, client),
+        eq(clientAccounts.site, "google_business"),
+        eq(accountFacts.fact, "google_business.place_id"),
+        eq(accountFacts.state, "ok"),
+      ),
+    )
+    .limit(1);
+  return row?.ref ?? null;
 }

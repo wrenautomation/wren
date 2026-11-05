@@ -7,26 +7,19 @@ import { briefStep } from "@wren/calendar/calls";
 import { CALL_BRIEF } from "@wren/calendar/calls/settings";
 import { ingressOf } from "@wren/config";
 import type { Platform } from "@wren/core/autobrowse";
-import { findClient, sendsOn } from "@wren/core/clients";
+import { findClient } from "@wren/core/clients";
 import { setFieldStep } from "@wren/core/custom-fields";
 import { type ExecutorEvent, makeExecutor, makeExecutorClock } from "@wren/core/executor";
 import { wrenFacts } from "@wren/core/facts";
 import { messageStep, notifyStep } from "@wren/core/message-step";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
-import { clientKey, ingressSend } from "@wren/core/restate";
+import { ingressSend } from "@wren/core/restate";
 import { segmentStep } from "@wren/core/segment-step";
 import { SETUP_STEP, setupStep } from "@wren/core/setup";
 import { SETUP_AGENT } from "@wren/core/setup-agent";
 import { gate } from "@wren/core/vendors";
 import { webhookStep, webhooksPublish } from "@wren/core/webhooks";
-import {
-  firstTextStep,
-  LINK_ORIGIN,
-  placeIdOf,
-  reviewStep,
-  textBackStep,
-} from "@wren/delivery/sms";
 import { llmForKey, withPart } from "@wren/llm";
 import { collectSteps } from "@wren/pipeline/collect";
 import { shapeWorkflowsOf, soundShapes } from "@wren/pipeline/journeys";
@@ -39,16 +32,7 @@ import { commentGuide } from "@wren/starling-inbound";
 import { touchStep as reachTouchStep, reachTurns } from "@wren/starling-outbound";
 import { emailTouchStep } from "@wren/starling-outbound/email";
 import { clientSms, touchStep } from "@wren/starling-sms";
-import {
-  MISSED_CALL,
-  missedCallSettingsSchema,
-  REVIEW_STEP,
-  REVIEWS,
-  reviewsSettingsSchema,
-  TEXT_BACK,
-  TOUCH,
-} from "@wren/starling-sms/components";
-import { SENDER_KEY } from "@wren/starling-sms/restate";
+import { TOUCH } from "@wren/starling-sms/components";
 import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { clientTriageStep, triageStep, mail as watchMail } from "@wren/watch";
 import { eq } from "drizzle-orm";
@@ -62,7 +46,6 @@ import type { AnyService, Deps } from "./deps.js";
 /** The executor domain's services, in the order they were served from `services.ts`. */
 export function executorServices(deps: Deps): AnyService[] {
   const {
-    bookerMailer,
     callBriefs,
     clientDb,
     clientTexts,
@@ -91,17 +74,6 @@ export function executorServices(deps: Deps): AnyService[] {
         : provider === "none"
           ? "no SMS provider (WREN_SMS_PROVIDER)"
           : null;
-  /** Wake whose sender, so a queued text leaves in seconds; the key wakes it once. */
-  const nudgeSender = (client: string | null) => (key: string) =>
-    ingressSend(
-      ingressOf(settings),
-      {
-        service: "SmsSend",
-        key: client ? clientKey(client, SENDER_KEY) : SENDER_KEY,
-        handler: "sync",
-      },
-      key,
-    );
   /** Whose texts an executor step runs on: Wren's, a client's with texts on, or why they're off. */
   const textsOf = async (client: string | null) => {
     if (!client) return { deps: sms, off: null };
@@ -161,72 +133,7 @@ export function executorServices(deps: Deps): AnyService[] {
           const { deps, off } = await textsOf(client);
           return { ...deps, main: db, off: textsWhy(deps.provider.name, off) };
         }),
-        // Speed to lead's first text: live only with WREN_SMS_LIVE and the client's texts on.
-        "sms.forms": firstTextStep(async (client) => {
-          const { deps: d, off } = await textsOf(client);
-          const why = textsWhy(d.provider.name, off);
-          return {
-            db: d.db,
-            live: why === null,
-            why,
-            policy: d.policy,
-            provider: d.provider,
-            senderName: d.senderName,
-            bookingLink: d.bookingLink ?? null,
-            nudge: (key) =>
-              ingressSend(
-                ingressOf(settings),
-                {
-                  service: "SmsSend",
-                  key: client ? clientKey(client, SENDER_KEY) : SENDER_KEY,
-                  handler: "sync",
-                },
-                key,
-              ),
-          };
-        }),
-        // Missed-call text back: live only with WREN_SMS_LIVE, the client's texts and its sends on.
-        [TEXT_BACK]: textBackStep(async (client) => {
-          const { deps: d, off } = await textsOf(client);
-          const c = client ? await findClient(db, client) : null;
-          const why =
-            textsWhy(d.provider.name, off) ??
-            (c && !sendsOn(c, MISSED_CALL) ? "sends are off for this client" : null);
-          const set = missedCallSettingsSchema.safeParse(c?.products[MISSED_CALL] ?? {});
-          return {
-            db: d.db,
-            live: why === null,
-            why,
-            senderName: d.senderName,
-            bookingLink: d.bookingLink ?? null,
-            onceEvery: set.success ? set.data.hoursBetween : 24,
-            zone: set.success ? set.data.zone : null,
-            nudge: nudgeSender(client),
-          };
-        }),
-        // Review requests: the same gates, the Place ID the setup found. An email ask goes from
-        // portal@ under the client's name and waits only on its sends switch.
-        [REVIEW_STEP]: reviewStep(async (client) => {
-          const { deps: d, off } = await textsOf(client);
-          const c = await findClient(db, client);
-          const sendsOff = c && !sendsOn(c, REVIEWS) ? "sends are off for this client" : null;
-          const why = textsWhy(d.provider.name, off) ?? sendsOff;
-          const set = reviewsSettingsSchema.safeParse(c?.products[REVIEWS] ?? {});
-          return {
-            db: d.db,
-            live: why === null,
-            why,
-            senderName: d.senderName,
-            placeId: await placeIdOf(db, client),
-            via: set.success ? set.data.via : "text",
-            mail: { send: bookerMailer?.(d.senderName) ?? null, why: sendsOff },
-            feedback: set.success ? set.data.feedback : false,
-            onceEvery: set.success ? set.data.daysBetween : 90,
-            origin: LINK_ORIGIN,
-            nudge: nudgeSender(client),
-          };
-        }),
-        // Speed to lead's call: "Call now" for the rep. No dialer until voice is set up.
+        // "Call now" for the rep. No dialer until voice is set up.
         [CALL_NOW]: callNowStep(async (client) => {
           const { deps: d } = await textsOf(client);
           return { db: d.db, bookings: d.bookings ?? null, dialer: null };

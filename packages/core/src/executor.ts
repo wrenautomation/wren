@@ -1011,7 +1011,7 @@ export async function notLive(db: Queryable, client: string): Promise<string[]> 
 }
 
 /** Whether `client` has `workflow`'s template installed and live. */
-export async function liveFor(db: Queryable, client: string, workflow: string): Promise<boolean> {
+async function liveFor(db: Queryable, client: string, workflow: string): Promise<boolean> {
   const [row] = await db
     .select({ state: workflowInstalls.state })
     .from(workflowInstalls)

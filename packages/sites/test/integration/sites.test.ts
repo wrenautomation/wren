@@ -6,7 +6,7 @@
 
 import { randomBytes } from "node:crypto";
 import { addOperator } from "@wren/core/clients";
-import { HOOK_PRESETS } from "@wren/core/door";
+import { FORM_PRESETS, FORMS_INPUT } from "@wren/core/door";
 import type { PortalRefusal } from "@wren/core/portal";
 import { serveRecords } from "@wren/core/records/serve";
 import { hooks } from "@wren/core/schema";
@@ -128,14 +128,14 @@ describe("data pages", () => {
 
 describe("tracking and forms", () => {
   it("counts views and forms, and enters the owner's door with the touch", async () => {
-    const site = HOOK_PRESETS.site!;
+    const site = FORM_PRESETS.site!;
     const [h] = await pg.db
       .insert(hooks)
       .values({
         name: "Site",
         client: null,
-        workflow: site.workflow,
-        input: site.input,
+        workflow: "site.forms",
+        input: FORMS_INPUT,
         subject: site.subject,
         fields: site.fields,
         tokenHash: randomBytes(32).toString("hex"),
@@ -230,14 +230,14 @@ describe("tracking and forms", () => {
 
 describe("hosted forms", () => {
   async function siteDoor() {
-    const site = HOOK_PRESETS.site!;
+    const site = FORM_PRESETS.site!;
     const [h] = await pg.db
       .insert(hooks)
       .values({
         name: "Site",
         client: null,
-        workflow: site.workflow,
-        input: site.input,
+        workflow: "site.forms",
+        input: FORMS_INPUT,
         subject: site.subject,
         fields: site.fields,
         tokenHash: randomBytes(32).toString("hex"),

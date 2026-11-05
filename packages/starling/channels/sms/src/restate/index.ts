@@ -133,14 +133,6 @@ export type RemindPass = (
   runId: string,
 ) => Promise<object>;
 
-/** What SmsEvents does after a call event or a reply, beside the reply trigger (delivery's `callHooks`). */
-export interface CallHooks {
-  /** A call nobody picked up: into the client's missed-call workflow, if it's live. */
-  missed(ctx: restate.Context, client: string | null, callId: number): void;
-  /** A reply: a texted-back caller's call marked replied, and on to speed to lead if live. */
-  replied(ctx: restate.Context, client: string | null, contactId: number): Promise<void>;
-}
-
 export interface SmsDeps {
   db: Db;
   provider: SmsProvider;
@@ -270,8 +262,6 @@ export function makeSmsEvents(
   > & {
     /** Each lead's reply to the executor's Reply triggers (`executorFire`). Unset, none fire. */
     fire?: FireTriggers;
-    /** Missed calls and texted-back callers' replies (delivery's `callHooks`). Unset, calls are rows only. */
-    calls?: CallHooks;
     /** Clients' saved keys: a client on its own Telnyx account signs with its public key. */
     keys?: KeyStore | null;
   },
@@ -340,9 +330,7 @@ export function makeSmsEvents(
           const replied = applied.replied;
           const who = await ctx.run("reply who", () => replyWho(deps.db, "sms", replied));
           deps.fire?.(ctx, replyFired(null, "sms", replied, who));
-          await deps.calls?.replied(ctx, null, applied.replied);
         }
-        if (applied.missed !== undefined) deps.calls?.missed(ctx, null, applied.missed);
         return applied;
       },
       /**
@@ -384,9 +372,7 @@ export function makeSmsEvents(
             replyWho(clientDb(req.client), "sms", replied),
           );
           deps.fire?.(ctx, replyFired(req.client, "sms", replied, who));
-          await deps.calls?.replied(ctx, req.client, applied.replied);
         }
-        if (applied.missed !== undefined) deps.calls?.missed(ctx, req.client, applied.missed);
         return applied;
       },
     },

@@ -10,7 +10,6 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { loadSettings } from "@wren/config";
 import { ACCOUNT_SITES } from "@wren/core/components";
-import { HOOK_PRESETS } from "@wren/core/door";
 import { setRecordAccounts } from "@wren/core/record-accounts";
 import { metaOf } from "@wren/core/records";
 import { handlerForm } from "@wren/core/restate";
@@ -205,6 +204,10 @@ describe("the component inventory", () => {
 });
 
 describe("workflows and hypotheses", () => {
+  it("win back installs as a template", () => {
+    expect(templatesOf(WORKFLOWS, COMPONENTS).map((t) => t.id)).toContain("win_back");
+  });
+
   it("every workflow wires real ports of matching kinds", () => {
     expect(checkWorkflows(WORKFLOWS, COMPONENTS)).toEqual([]);
   });
@@ -244,48 +247,6 @@ describe("workflows and hypotheses", () => {
         expect(found, `${c.id}: ${g.built}`).toBe(true);
       }
     }
-  });
-
-  it("every hook preset enters a real workflow input", () => {
-    for (const [name, p] of Object.entries(HOOK_PRESETS)) {
-      const f = WORKFLOWS.find((w) => w.id === p.workflow);
-      expect(f?.in.map((i) => i.id) ?? [], name).toContain(p.input);
-    }
-  });
-
-  it("speed to lead and win back install as templates", () => {
-    const sold = templatesOf(WORKFLOWS, COMPONENTS);
-    expect(sold.map((t) => t.id)).toEqual(expect.arrayContaining(["speed_to_lead", "win_back"]));
-    const speed = sold.find((t) => t.id === "speed_to_lead");
-    // Its four parts run per client now; each installs only with it.
-    for (const id of ["speed_to_lead", "sms.forms", "sms.follow_up", "voice.call_now"]) {
-      const c = COMPONENTS.find((x) => x.id === id);
-      expect(c?.ready, id).toBe(true);
-      expect(c?.comesWith, id).toBe("speed_to_lead");
-      expect(
-        speed?.parts.some((p) => p.part.id === id),
-        id,
-      ).toBe(true);
-    }
-    expect(speed?.spec.door).toEqual({ input: "forms", subject: "phone" });
-  });
-
-  it("missed-call text back and review requests install as templates", () => {
-    const sold = templatesOf(WORKFLOWS, COMPONENTS);
-    for (const [id, parts, fact] of [
-      ["missed_call", ["missed_call", "sms.text_back", "sms.texts"], "number.calls_routed"],
-      ["reviews", ["reviews", "reviews.ask", "sms.texts"], "google_business.place_id"],
-    ] as const) {
-      const t = sold.find((x) => x.id === id);
-      expect(t?.parts.map((p) => p.part.id).sort(), id).toEqual([...parts].sort());
-      const top = COMPONENTS.find((x) => x.id === id);
-      // Needs setup until its fact holds.
-      expect(top?.requires.facts, id).toEqual([fact]);
-    }
-    expect(sold.find((x) => x.id === "reviews")?.spec.door).toEqual({
-      input: "customers",
-      subject: "phone|email",
-    });
   });
 
   it("no shipped workflow runs a planned part", () => {

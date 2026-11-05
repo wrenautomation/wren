@@ -77,7 +77,7 @@ export interface FormSpec {
   booking?: { url: string; label?: string } | null;
 }
 
-/** The consent box's key: the door reads it (`HOOK_PRESETS.site`) and only a "yes" counts. */
+/** The consent box's key: the door reads it (`FORM_PRESETS.site`) and only a "yes" counts. */
 export const CONSENT_KEY = "sms_consent";
 const FIELDS_MAX = 30;
 /** Steps past the first: a form has at most 10. */

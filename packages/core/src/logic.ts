@@ -6,7 +6,7 @@
  * wires. A hook trigger is the door into a node. Pure, so the web reads it too.
  */
 import type { Effect, EventKind, Port } from "./components.js";
-import { type FieldMap, fieldMapOfWith, fieldMapProblems, HOOK_PRESETS } from "./door.js";
+import { type FieldMap, FORM_PRESETS, fieldMapOfWith, fieldMapProblems } from "./door.js";
 import { nudgeFixed } from "./epsilon.js";
 import type { ExecutorEvent, Step } from "./executor.js";
 import { canonicalZone, wallClock, zonedInstant } from "./time.js";
@@ -813,7 +813,7 @@ export const LOGIC: readonly LogicPart[] = [
         field: "form",
         label: "Form",
         type: "choice",
-        options: ["any", ...Object.keys(HOOK_PRESETS)],
+        options: ["any", ...Object.keys(FORM_PRESETS)],
         labels: { any: "Any form (by email)", site: "Our site's forms" },
         start: "any",
       },
@@ -1265,7 +1265,7 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
     l.id === "trigger.form" &&
     w.form !== undefined &&
     text(w.form) !== "any" &&
-    !HOOK_PRESETS[text(w.form)]
+    !FORM_PRESETS[text(w.form)]
   )
     out.push(`${at}: no form called ${text(w.form)}`);
   if (l.id === "trigger.journey") {
@@ -1324,7 +1324,7 @@ export function doorOf(n: WorkflowNode): { subject: string; fields: FieldMap } |
   if (n.uses === "trigger.hook") return { subject: text(w.subject), fields: fieldMapOfWith(w) };
   if (n.uses === "trigger.form") {
     // A known form posts its own shape; any other is read by its map, and is about its email.
-    const preset = HOOK_PRESETS[text(w.form)];
+    const preset = FORM_PRESETS[text(w.form)];
     if (preset) return { subject: preset.subject, fields: preset.fields };
     const fields = fieldMapOfWith(w);
     return { subject: fields.email ?? "email", fields };

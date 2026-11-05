@@ -25,7 +25,7 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 | `email/` | the cold-email machine: enrollments, messages, templates, sequences, roster, policy, health, inbox |
 | `content/` | the content loop: ideas, drafts, metrics, platforms, media |
 | `ads/` | Meta ads: cut 2026-11-04, tables stay |
-| `sms/` | texts: numbers, contacts, messages, events, speed to lead, missed calls, review asks |
+| `sms/` | texts: numbers, contacts, messages, events, site applicants' runs; missed calls and review asks cut 2026-11-04, tables stay |
 | `clients/` | who we work for: the registry row, its own database, its logins and what we deliver |
 | `reactivation/` | the lead reactivation product: CRM contacts, client profile, handoffs, demo videos |
 | `books/` | the money: vendors, bills, their documents, the journal |

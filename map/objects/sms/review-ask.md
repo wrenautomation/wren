@@ -2,12 +2,14 @@
 type: object
 cluster: sms
 universe: live
-status: verified
+status: stale
 verified: 2026-10-23 @ 39edf1d2
 entity: packages/starling/channels/sms/src/schema.ts:624
 ---
 
 # review-ask
+
+> **Cut 2026-11-04** (`designs/2026-11-04-portal-places.md`): the client SMS products went. The table stays; nothing writes to it now. The code before the cut is at git tag `pre-cut-2026-11-04`. The rest of this card is history.
 
 One customer asked for a Google review, by text or by email: the ask, the one reminder, clicks on the counted link, private feedback. Table `review_asks`, in each client's database. Product words: Reviews, Review asks, Review links opened.
 

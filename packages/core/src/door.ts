@@ -5,6 +5,33 @@
  * Consent is only ever a yes the form sent: a checked box, "yes", true. Anything else is no.
  */
 
+/**
+ * A known form's payload: the field that names one lead (`subject`) and its field map. `site` is
+ * our own lander (wrenautomation.com): each stored lead or application posts
+ * `{id: "site:<table>:<row id>", source: "site", ...}`, so a retry of the same row enters once.
+ */
+interface FormPreset {
+  subject: string;
+  fields: FieldMap;
+}
+
+/** The workflow input a form's hook enters by default (Sites' fallback door). */
+export const FORMS_INPUT = "forms";
+
+export const FORM_PRESETS: Readonly<Record<string, FormPreset>> = {
+  site: {
+    subject: "id",
+    fields: {
+      name: "name",
+      phone: "phone",
+      email: "email",
+      consent: "sms_consent",
+      source: "source",
+      niche: "niche",
+    },
+  },
+};
+
 export const LEAD_FIELDS = [
   "name",
   "phone",
@@ -132,35 +159,3 @@ export function fieldMapProblems(map: FieldMap): string[] {
     /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$/.test(path ?? "") ? [] : [`${f} reads like contact.${f}`],
   );
 }
-
-/**
- * A known sender's hook: the payload field that names one lead (`subject`), its field map, and
- * where the hook's URL goes once made. `site` is our own lander (wrenautomation.com): each stored
- * lead or application posts `{id: "site:<table>:<row id>", source: "site", ...}`, so a retry of
- * the same row is the same subject and enters once.
- */
-interface HookPreset {
-  workflow: string;
-  input: string;
-  subject: string;
-  fields: FieldMap;
-  /** Where the printed URL goes. */
-  goes: string;
-}
-
-export const HOOK_PRESETS: Readonly<Record<string, HookPreset>> = {
-  site: {
-    workflow: "speed_to_lead.steps",
-    input: "forms",
-    subject: "id",
-    fields: {
-      name: "name",
-      phone: "phone",
-      email: "email",
-      consent: "sms_consent",
-      source: "source",
-      niche: "niche",
-    },
-    goes: "the lander's Pages secret WREN_DOOR_URL: `cd lander && npx wrangler pages secret put WREN_DOOR_URL --project-name wren-lander`, paste it, then push or `npm run deploy`",
-  },
-};

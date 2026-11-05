@@ -2,12 +2,14 @@
 type: object
 cluster: sms
 universe: live
-status: verified
+status: stale
 verified: 2026-10-07 @ da86269
 entity: packages/starling/channels/sms/src/schema.ts:555
 ---
 
 # missed-call
+
+> **Cut 2026-11-04** (`designs/2026-11-04-portal-places.md`): the client SMS products went. The table stays; nothing writes to it now. The code before the cut is at git tag `pre-cut-2026-11-04`. The rest of this card is history.
 
 One incoming call to a client's number and what the missed-call text back did with it. Table `sms_calls`, in each client's database. Product words: Missed calls, Texted back, Callers who replied, Callers who booked.
 

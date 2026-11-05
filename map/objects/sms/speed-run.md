@@ -9,7 +9,7 @@ entity: packages/starling/channels/sms/src/schema.ts:518
 
 # speed-run
 
-One lead through speed to lead: what the door said, its first text and when it left, the call step, a booking. Wren's own site applications run as workflow `site.forms` (below): the email after the text and the one no-text notice live here too. Table `speed_runs`, in each client's database. Product words: Speed to lead, Call now, Time to first text.
+One lead's run: what the door said, its first text and when it left, the call step, a booking. Speed to lead (`speed_to_lead.steps`) was cut 2026-11-04; its old rows stay. Wren's own site applications run as workflow `site.forms` (below): the email after the text and the one no-text notice live here too. Table `speed_runs`, in each client's database. Product words: Speed to lead, Call now, Time to first text.
 
 ## Why this shape
 
@@ -36,14 +36,14 @@ Citations: `packages/starling/channels/sms/src/schema.ts:518`, `packages/starlin
 
 ## If you change this
 
-- **Hits:** `speed.ts`, `form.ts`, `form-after.ts`, `stats.ts` (speed), `follow.ts` (`bookedRun`), `call-now.ts`, `records.ts` (`sms.speed`), the Texts app's Speed to lead page and tiles (`apps/portal/web/src/modules/texts/index.tsx`)
+- **Hits:** `form.ts`, `form-after.ts`, `stats.ts` (speed), `follow.ts` (`bookedRun`), `call-now.ts`, `records.ts` (`sms.speed`), the Texts app's Speed to lead page and tiles (`apps/portal/web/src/modules/texts/index.tsx`)
 - **Does not hit:** cold text sequences; the main database (client databases only, and Wren's own)
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `Executor/hook` → `sms.forms`, `voice.call_now`, `SmsSend` (first touch on send) | writes |
+| `voice.call_now`, `SmsSend` (first touch on send) | writes |
 | `SmsForms` (the lander's push), `SmsUpkeep` form pass, `wren sms forms` | writes `site.forms` runs, emails, notices |
 | `wren sms stats`, the phone app's Stats (`SmsDesk.stats`) | reads minutes to text and email |
 | portal Texts > Speed to lead, Overview tiles Call now and Time to first text (`SmsConsole.records*`) | reads |
