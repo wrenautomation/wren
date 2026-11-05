@@ -443,3 +443,15 @@ None.
     (`profiles-backfill.ts`, the inbound approval row), and the profile data catalog's traits and
     addresses lists. They go with the SMS client products and the Notes cut.
 
+- 2026-11-04 night, backend cuts as built (tag `pre-cut-2026-11-04` holds the code before):
+  - RedditReads (`dabab3df`): the loop and `wren reach discovery` go. The desk keeps its Reddit
+    handlers (`desk-reddit.ts`); `src/discovery/`, the tables and autobrowse stay.
+  - Meta ads (`5f845d14`): Ads, AdSpendGuard, `wren ads`, the Meta partner setup, the `paid`
+    workflow and the ad report tiles go (0 rows). Meta posting for content stays; `ad_launches`
+    and `ad_days` stay as tables.
+  - Client SMS products (`b79d6364`): speed to lead, missed-call text back, review asks, the call
+    routing setup, the phone Worker's `/r/` pages. No client had them. SmsForms stays: it is the
+    lander's path into People, not a client product. Booking reminders stay with it. The Google
+    Business setup stays because content reads reviews by Place ID. Every table stays.
+  - Open: the one Wren door hook on prod still names `speed_to_lead.steps` (last call 10-15). The
+    executor answers 410 now. Delete the row with William's yes.
