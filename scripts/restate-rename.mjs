@@ -24,44 +24,10 @@ const STOPPED = join(homedir(), ".config/wren/rename-stopped.json");
 
 /** Old service name → new. Edit per rename; empty once done. */
 export const RENAMES = {
-  AuditSealer: "AuditSeal",
-  DeadLetters: "FailedCallAlert",
-  LoopWatch: "LoopRevive",
-  TokenRenewal: "SiteTokenRenew",
-  VaultKeys: "VaultKeyMirror",
-  PageArchive: "PageHtmlArchive",
-  ContentPlanner: "PostPlan",
-  ContentScheduler: "PostPublish",
-  ContentMetrics: "PostMetrics",
-  SocialWatch: "SocialActivityRead",
-  Watch: "MyMailTriage",
-  Books: "BooksDaily",
-  SendScheduler: "EmailSend",
-  InboxScheduler: "EmailInboxRead",
-  ComposeScheduler: "EmailOpenerFill",
-  PoolScheduler: "LeadPoolFill",
-  DigestScheduler: "EmailFleetDigest",
-  PlacementScheduler: "EmailPlacementTest",
-  PostmasterScheduler: "EmailPostmasterPull",
-  ClicksScheduler: "EmailClickPull",
-  BounceScheduler: "EmailBounceRead",
-  ListmonkSync: "NewsletterSync",
-  ReachSender: "ReachSend",
-  ReachWatch: "ReachInboxRead",
-  SmsSender: "SmsSend",
-  SmsWatch: "SmsUpkeep",
-  AdsWatch: "AdSpendGuard",
-  BillingWatch: "ClientInvoicing",
-  PayReconcile: "StripeReconcile",
-  DeliveryWatch: "ClientUpdateMail",
-  LineFeed: "MapLineFeed",
-  SourcedFeed: "ListToJourney",
-  TouchFeed: "TouchToJourney",
-  SegmentsNet: "SegmentsHourly",
-  SetupWatch: "SetupRecheck",
+  Decide: "Judge",
 };
 /** Deleted loops: state cleared. */
-export const DROPPED = ["OpensScheduler", "ReportScheduler", "PeopleMapNet", "PainFeed"];
+export const DROPPED = [];
 
 async function query(sql) {
   const res = await fetch(`${ingress}/admin/query`, {

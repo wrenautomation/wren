@@ -1,7 +1,8 @@
 /**
- * `wren decide …` (designs/2026-10-16-decide.md): the machine's calls beside William's. `stats`
- * shows agreement and spend per kind, `mode` sets a kind's mode, `export` writes the distill set
- * (`wren.decision/1` JSONL), `backfill` labels history from the draft record and can ask Jev about a capped sample of it, `pass` runs one pass here.
+ * `wren judge …` (designs/2026-10-16-decide.md, 2026-11-04-loops.md): the machine's calls beside
+ * William's. `stats` shows agreement and spend per kind, `mode` sets a kind's mode, `export` writes
+ * the distill set (`wren.decision/1` JSONL), `backfill` labels history from the draft record and can
+ * ask the judge about a capped sample of it, `pass` runs one pass here.
  */
 import { writeFileSync } from "node:fs";
 import {
@@ -15,6 +16,7 @@ import {
   decidePass,
   decideStats,
   decisionRecords,
+  deskJudge,
   isDecideMode,
   isDecisionKind,
   type KindStats,
@@ -80,17 +82,25 @@ const positive = (v: string) => {
   return n;
 };
 
-export function registerDecide(
+export function registerJudge(
   program: Command,
   withDb: WithDb,
-  env: { llmEnvPath: string; rootDir: string },
+  env: {
+    llmEnvPath: string;
+    rootDir: string;
+    /** Restate's ingress: the judge agent is the desk's `claude/ask` behind it. */
+    ingress: { url: string; headers?: Record<string, string> };
+  },
 ): Command {
   const decide = program
-    .command("decide")
-    .description("Machine calls (Jev) beside William's: agreement, spend, modes, the distill set");
+    .command("judge")
+    .alias("decide")
+    .description("The judge's calls beside William's: agreement, spend, modes, the distill set");
   const backends = () => {
     loadLlmEnv(env.llmEnvPath, env.rootDir);
-    return backendsFromEnv(process.env, (spec) => makeLlm(spec, process.env));
+    return backendsFromEnv(process.env, (spec) => makeLlm(spec, process.env), {
+      agent: deskJudge(env.ingress),
+    });
   };
 
   decide
@@ -146,7 +156,7 @@ export function registerDecide(
   decide
     .command("backfill")
     .description(
-      "Label history as his calls (drafted comments sent or dropped). --sample asks Jev about some of them",
+      "Label history as his calls (drafted comments sent or dropped). --sample asks the judge about some of them",
     )
     .option("--dry-run", "count, write nothing")
     .option("--sample <n>", "then ask about up to n called subjects with no decision", positive)
@@ -193,7 +203,7 @@ export function registerDecide(
   decide
     .command("pass")
     .description(
-      "One pass here: open comment drafts and people who wrote back, as Decide/wren runs it",
+      "One pass here: open comment drafts and people who wrote back, as Judge/wren runs it",
     )
     .option("--max <n>", "subjects at most", positive, 40)
     .option("--kind <kind>", `only this kind: ${DECISION_KINDS.join(", ")}`, kindArg)

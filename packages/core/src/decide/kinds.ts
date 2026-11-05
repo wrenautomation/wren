@@ -34,6 +34,8 @@ interface KindSpec {
   defaultMode: DecideMode;
   /** A gate filter is built for this kind; without one, `gate` is refused. */
   gate: boolean;
+  /** Who judges: `agent` (Claude Code on the desk, designs/2026-11-04-loops.md) or `model` (`WREN_DECIDE`'s chain). */
+  judge: "agent" | "model";
 }
 
 /** The question id every kind answers its label under. */
@@ -62,6 +64,7 @@ const commentQuality: KindSpec = {
   },
   defaultMode: "recommend",
   gate: false,
+  judge: "agent",
 };
 
 /**
@@ -90,6 +93,7 @@ const documentKind: KindSpec = {
   },
   defaultMode: "recommend",
   gate: false,
+  judge: "model",
 };
 
 /**
@@ -124,6 +128,7 @@ const leadFit: KindSpec = {
   },
   defaultMode: "recommend",
   gate: false,
+  judge: "agent",
 };
 
 /**
@@ -155,6 +160,7 @@ const finding: KindSpec = {
   },
   defaultMode: "off",
   gate: false,
+  judge: "model",
 };
 
 export const KINDS: Readonly<Record<DecisionKind, KindSpec>> = {

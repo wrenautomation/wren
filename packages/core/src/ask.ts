@@ -41,8 +41,17 @@ export type ClaudeService = {
       dir: string;
       also: string[];
       commands: string[];
+      model?: string;
     },
-  ) => Promise<{ answer: string; ms: number; turns: number; model: string; denied: number }>;
+  ) => Promise<{
+    answer: string;
+    ms: number;
+    turns: number;
+    model: string;
+    denied: number;
+    /** `claude --resume <sessionId>` opens the run. */
+    sessionId: string;
+  }>;
 };
 export type AskService = {
   answer: (ctx: restate.Context, req: { id: string }) => Promise<void>;

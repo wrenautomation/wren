@@ -6,6 +6,7 @@ export * from "./backends.js";
 export * from "./calls.js";
 export * from "./comments.js";
 export * from "./decide.js";
+export * from "./desk.js";
 export * from "./export.js";
 export * from "./kinds.js";
 export * from "./lead-fit.js";

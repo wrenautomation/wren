@@ -226,13 +226,16 @@ describe("the pass and the numbers", () => {
     const jev = fake();
     const s = await decidePass(db, {
       sources: [due],
-      backends: { chain: [jev], note: null },
+      backends: { chain: [jev], agent: jev, note: null },
       max: 2,
     });
     expect(s).toMatchObject({ asked: 2, answered: 2, stopped: null });
     // Spent today is past the default $1 cap after 24 calls at $0.042: hold.
     await db.execute(sql`update decisions set cost_usd = 5 where subject = 'thread:t3_p1'`);
-    const held = await decidePass(db, { sources: [due], backends: { chain: [jev], note: null } });
+    const held = await decidePass(db, {
+      sources: [due],
+      backends: { chain: [jev], agent: jev, note: null },
+    });
     expect(held.stopped).toContain("daily cap");
     expect(held.asked).toBe(0);
     const off = await decidePass(db, {
@@ -240,6 +243,15 @@ describe("the pass and the numbers", () => {
       backends: { chain: [], note: "WREN_DECIDE=off" },
     });
     expect(off.stopped).toBe("WREN_DECIDE=off");
+    // An agent kind waits for the agent; the model chain never takes it.
+    const waits = await decidePass(db, {
+      sources: [due],
+      backends: { chain: [jev], agent: null, note: null },
+    });
+    expect(waits).toMatchObject({
+      asked: 0,
+      stopped: expect.stringContaining("no judge for comment_quality"),
+    });
   });
 
   it("counts agreement per kind, refuses a gate not built, exports the pairs", async () => {
@@ -439,7 +451,7 @@ describe("the lead check", () => {
     expect(
       await decideOne(db, {
         sources,
-        backends: { chain: [jev], note: null },
+        backends: { chain: [jev], agent: jev, note: null },
         kind: LEAD_KIND,
         subject,
       }),
@@ -447,7 +459,7 @@ describe("the lead check", () => {
     // The same state is bought once.
     await decideOne(db, {
       sources,
-      backends: { chain: [jev], note: null },
+      backends: { chain: [jev], agent: jev, note: null },
       kind: LEAD_KIND,
       subject,
     });
@@ -455,7 +467,7 @@ describe("the lead check", () => {
     expect(
       await decideOne(db, {
         sources,
-        backends: { chain: [jev], note: null },
+        backends: { chain: [jev], agent: jev, note: null },
         kind: "document",
         subject,
       }),
@@ -463,7 +475,7 @@ describe("the lead check", () => {
     expect(
       await decideOne(db, {
         sources,
-        backends: { chain: [jev], note: null },
+        backends: { chain: [jev], agent: jev, note: null },
         kind: LEAD_KIND,
         subject: "profile:999999",
       }),
@@ -472,7 +484,7 @@ describe("the lead check", () => {
     expect(
       await decideOne(db, {
         sources,
-        backends: { chain: [jev], note: null },
+        backends: { chain: [jev], agent: jev, note: null },
         kind: LEAD_KIND,
         subject,
       }),

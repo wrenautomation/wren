@@ -1,5 +1,6 @@
 /**
- * `Decide/wren`: every 10 minutes, the subjects each source says are due get one decision each.
+ * `Judge/wren`: every 10 minutes, the subjects each source says are due get one decision each.
+ * An `agent` kind goes to the judge agent (Claude Code on the desk), the rest to `WREN_DECIDE`'s chain.
  * Scored here, never inline, so no draft or score step waits on an outside API, and the Mac's reads
  * are covered as well as the worker's.
  *
@@ -11,7 +12,7 @@ import type { Db, Queryable } from "@wren/db";
 import { z } from "zod";
 import { exclusiveHandler } from "../restate/form.js";
 import { makeLoopObject, type PassOutcome, runPass } from "../restate/loop.js";
-import type { BackendChoice } from "./backends.js";
+import { type BackendChoice, chainFor } from "./backends.js";
 import {
   DEFAULT_DAILY_USD,
   DecideStop,
@@ -80,14 +81,21 @@ export async function decidePass(
   };
   const now = o.now ?? new Date();
   const t0 = Date.now();
-  if (!o.backends.chain.length) return { ...s, stopped: o.backends.note ?? "no backend" };
+  if (!o.backends.chain.length && !o.backends.agent)
+    return { ...s, stopped: o.backends.note ?? "no backend" };
   const modes = await decideModes(db);
   const cap = o.maxUsd ?? (await decideSettings(db)).dailyUsd ?? DEFAULT_DAILY_USD;
   let spent = o.maxUsd !== undefined ? 0 : await spentToday(db, now);
   let left = o.max ?? DECIDE_MAX;
+  const waiting: string[] = [];
   outer: for (const src of o.sources) {
     const mode = modes[src.kind] === "off" ? "off" : (o.mode ?? modes[src.kind]);
     if (mode === "off" || left <= 0) continue;
+    const chain = chainFor(o.backends, KINDS[src.kind].judge);
+    if (!chain.length) {
+      waiting.push(src.kind);
+      continue;
+    }
     for (const sub of await src.due(db, now, left)) {
       if (spent >= cap) {
         s.stopped = `${o.maxUsd !== undefined ? "spend limit" : "daily cap"} $${cap} reached`;
@@ -105,7 +113,7 @@ export async function decidePass(
           subject: sub.subject,
           state: sub.state,
           mode,
-          chain: o.backends.chain,
+          chain,
           ...(o.limitMs ? { limitMs: o.limitMs } : {}),
         });
         if (!row) continue;
@@ -128,6 +136,8 @@ export async function decidePass(
       }
     }
   }
+  if (!s.asked && !s.stopped && waiting.length)
+    s.stopped = `no judge for ${waiting.join(", ")}: ${o.backends.note ?? "the agent is not wired"}`;
   s.usd = Math.round(s.usd * 1e6) / 1e6;
   return s;
 }
@@ -157,7 +167,8 @@ export async function decideOne(
   },
 ): Promise<DecideOneOutcome> {
   const no = (why: string): DecideOneOutcome => ({ asked: false, label: null, why });
-  if (!o.backends.chain.length) return no(o.backends.note ?? "no backend");
+  const chain = chainFor(o.backends, KINDS[o.kind].judge);
+  if (!chain.length) return no(o.backends.note ?? `no judge for ${KINDS[o.kind].name}`);
   const src = o.sources.find((x) => x.kind === o.kind && x.one);
   if (!src?.one) return no(`${KINDS[o.kind].name} cannot be asked about one`);
   const modes = await decideModes(db);
@@ -172,7 +183,7 @@ export async function decideOne(
       subject: sub.subject,
       state: sub.state,
       mode: modes[o.kind] === "shadow" ? "recommend" : modes[o.kind],
-      chain: o.backends.chain,
+      chain,
       ...(o.limitMs ? { limitMs: o.limitMs } : {}),
     });
     return { asked: !!row, label: row?.label ?? null, why: row?.error ?? null };
@@ -193,9 +204,9 @@ interface DecideDeps {
   backends(): BackendChoice;
 }
 
-/** `Decide/wren`: one pass every 10 minutes over Wren's own workspace. */
-export function makeDecide(d: DecideDeps) {
-  /** One subject asked now (the people console's "Check with Jev"). */
+/** `Judge/wren`: one pass every 10 minutes over Wren's own workspace. */
+export function makeJudge(d: DecideDeps) {
+  /** One subject asked now (the people console's "Check lead"). */
   const one = exclusiveHandler(
     { input: ONE_INPUT },
     async (
@@ -215,11 +226,11 @@ export function makeDecide(d: DecideDeps) {
     },
   );
   return makeLoopObject(
-    "Decide",
+    "Judge",
     async (ctx: restate.ObjectContext) => {
       return (await runPass<DecidePassStats>(ctx, d.main, {
-        name: "decide",
-        ledger: { command: "decide pass", argv: { daemon: true } },
+        name: "judge",
+        ledger: { command: "judge pass", argv: { daemon: true } },
         body: async (_runId, now) =>
           decidePass(d.main, { sources: d.sources, backends: d.backends(), now }),
         delayAfter: () => DECIDE_EVERY_MS,
@@ -229,4 +240,4 @@ export function makeDecide(d: DecideDeps) {
     { extra: { one } },
   );
 }
-export type DecideService = ReturnType<typeof makeDecide>;
+export type JudgeService = ReturnType<typeof makeJudge>;

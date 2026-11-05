@@ -4,13 +4,14 @@
  */
 import { BOOKS_CONSOLE_VIEWS } from "@wren/books";
 import { landerVisitLines } from "@wren/calendar/calls";
+import { ingressOf } from "@wren/config";
 import { makeAuditSeal } from "@wren/core/audit";
 import { sitesHost } from "@wren/core/autobrowse/box";
 import { makeSiteTokenRenew } from "@wren/core/autobrowse/renewal";
 import { cacheFrom } from "@wren/core/cache";
 import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
 import { makeFailedCallAlert, restateAdminPatch } from "@wren/core/dead-letters";
-import { backendsFromEnv, leadFitSource, makeDecide } from "@wren/core/decide";
+import { backendsFromEnv, deskJudge, leadFitSource, makeJudge } from "@wren/core/decide";
 import { makeLoopRevive } from "@wren/core/loop-watch";
 import { makeVaultKeyMirror } from "@wren/core/vault-keys";
 import { makeWebhooks, turnedOffTeller } from "@wren/core/webhooks";
@@ -67,13 +68,16 @@ export function platformServices(deps: Deps): AnyService[] {
   // The audit log's seals in every database, every 15 minutes; off until `wren audit sealer start`.
   services.push(makeAuditSeal({ main: db, open: openClient, ...notify }));
   services.push(
-    // Decide (designs/2026-10-16-decide.md): drafted comments and lead fits judged by Jev every
-    // 10 minutes, each answer logged beside his call; the gateway answers when Jev is down.
-    makeDecide({
+    // Judge (designs/2026-11-04-loops.md): drafted comments and lead fits judged every 10 minutes by
+    // Claude Code on the desk, each answer logged beside his call; other kinds on WREN_DECIDE's chain.
+    makeJudge({
       main: db,
       // Lead checks last: a drafted comment comes first in a short pass.
       sources: [commentSource, leadFitSource(leadOffers())],
-      backends: () => backendsFromEnv(process.env, (spec) => makeLlm(spec, process.env)),
+      backends: () =>
+        backendsFromEnv(process.env, (spec) => makeLlm(spec, process.env), {
+          agent: deskJudge(ingressOf(settings)),
+        }),
     }),
     makeWebhooks({
       main: db,

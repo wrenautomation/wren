@@ -1,8 +1,8 @@
 /**
- * People > a person: the lead check (designs/2026-10-17-people-depth.md). Jev reads what we know
- * about them and picks Lead, Unsure or Not a lead. The page shows the pick as a chip with the
- * chance and one line why, built by code from what Jev saw. William calls it himself with Lead
- * or Not a lead; a call against the pick says so. Wren's own People only.
+ * People > a person: the lead check (designs/2026-10-17-people-depth.md). The judge agent
+ * (designs/2026-11-04-loops.md) reads what we know about them and picks Lead, Unsure or Not a
+ * lead. The page shows the pick as a chip with the chance and the judge's one line why. William
+ * calls it himself with Lead or Not a lead; a call against the pick says so. Wren's own People only.
  */
 import type { State } from "@wren/core/records";
 import type { Action } from "@wren/ui";
@@ -24,8 +24,8 @@ interface LeadFit {
   failed: string | null;
 }
 
-/** How long "Checking" waits for an answer that does not come (the same state is bought once). */
-const CHECKING_MS = 90_000;
+/** How long "Checking" waits: the judge's call, behind a pass that may hold its object 5 minutes. */
+const CHECKING_MS = 6 * 60_000;
 /** How often the page reads again while a check is out. */
 const CHECKING_POLL_MS = 4_000;
 
@@ -37,7 +37,7 @@ const subscribe = (fn: () => void) => {
   return () => void listeners.delete(fn);
 };
 
-/** Remember that Jev was asked about these profiles just now. */
+/** Remember that the judge was asked about these profiles just now. */
 function markAsked(ids: readonly (string | number)[], now = Date.now()) {
   for (const id of ids) asked.set(String(id), now);
   for (const fn of listeners) fn();
@@ -69,7 +69,7 @@ function Chip({ id, fit }: { id: string; fit: LeadFit }) {
   const { pick, call } = fit;
   return (
     <div className="grid gap-2">
-      {out ? <p className="text-(--ui-ink-2)">Checking with Jev...</p> : null}
+      {out ? <p className="text-(--ui-ink-2)">Checking...</p> : null}
       {pick ? (
         <div className="grid gap-1">
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -79,18 +79,19 @@ function Chip({ id, fit }: { id: string; fit: LeadFit }) {
             {pick.percent !== null ? (
               <span className="text-(--ui-ink-2)">{pick.percent}% sure</span>
             ) : null}
-            <span className="text-(--ui-ink-2)">Jev, {day(pick.at)}</span>
+            <span className="text-(--ui-ink-2)">Judge, {day(pick.at)}</span>
           </p>
           <p>{pick.why}</p>
         </div>
       ) : out ? null : fit.failed ? (
-        <p className="text-(--ui-ink-2)">Jev could not answer: {fit.failed}</p>
+        <p className="text-(--ui-ink-2)">The judge could not answer: {fit.failed}</p>
       ) : (
-        <p className="text-(--ui-ink-2)">Jev has not said yet.</p>
+        <p className="text-(--ui-ink-2)">The judge has not said yet.</p>
       )}
       {call ? (
         <p className="text-(--ui-ink-2)">
-          You called them: {call.name}, {day(call.at)}.{call.overrode ? " You overrode Jev." : ""}
+          You called them: {call.name}, {day(call.at)}.
+          {call.overrode ? " You overrode the judge." : ""}
         </p>
       ) : null}
     </div>
@@ -135,16 +136,16 @@ export function withLeadCheck(
   };
 }
 
-/** "Check with Jev": ask now. The answer lands on the profile within a minute. */
-const checkWithJev: Action = {
+/** "Check lead": ask the judge now. The answer lands on the profile within a minute or two. */
+const checkLead: Action = {
   id: "people.leadCheck",
-  label: "Check with Jev",
+  label: "Check lead",
   handler: "people/leadCheck",
   bulk: true,
-  confirm: "Ask Jev if they are a lead? It costs a few cents.",
+  confirm: "Ask the judge if they are a lead?",
   done: (answer) => {
     markAsked((answer as { done?: (string | number)[] } | null)?.done ?? []);
-    return "Asked Jev";
+    return "Asked the judge";
   },
 };
 
@@ -169,4 +170,4 @@ const callNotLead: Action = {
 };
 
 /** The three, on Wren's People only. */
-export const LEAD_ACTIONS: Action[] = [checkWithJev, callLead, callNotLead];
+export const LEAD_ACTIONS: Action[] = [checkLead, callLead, callNotLead];

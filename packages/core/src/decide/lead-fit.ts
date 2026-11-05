@@ -216,7 +216,7 @@ export async function leadFitDue(
   return rows.map((r) => ({ id: Number(r.id), since: new Date(r.since).toISOString() }));
 }
 
-/** The lead check as a Decide source: `offers` are what Wren sells, passed in by the caller. */
+/** The lead check as a judge source: `offers` are what Wren sells, passed in by the caller. */
 export function leadFitSource(offers: readonly LeadOffer[]): DecideSource {
   const one = async (db: Queryable, id: number): Promise<DecideSubject> => ({
     subject: leadSubject(id),
@@ -329,6 +329,12 @@ export function pickPercent(answers: unknown, label: string, confidence: number 
   return typeof p === "number" && Number.isFinite(p) ? Math.round(p * 100) : null;
 }
 
+/** The judge agent's own line, when the answer carries one (Jev's never does). */
+function judgeWhy(answers: unknown): string | null {
+  const why = (answers as Record<string, { why?: unknown }> | null)?.[PICK]?.why;
+  return typeof why === "string" && why.trim() ? why.trim() : null;
+}
+
 /** What the chip shows for one profile; null parts when nothing was asked. */
 export async function leadFitView(db: Queryable, profileId: number): Promise<LeadFitView> {
   const subject = leadSubject(profileId);
@@ -357,7 +363,7 @@ export async function leadFitView(db: Queryable, profileId: number): Promise<Lea
             name: spec.name,
             tone: spec.tone,
             percent: pickPercent(shown.answers, shown.label, shown.confidence),
-            why: leadWhy(shown.label, shown.state),
+            why: judgeWhy(shown.answers) ?? leadWhy(shown.label, shown.state),
             at: new Date(shown.at).toISOString(),
           }
         : null,

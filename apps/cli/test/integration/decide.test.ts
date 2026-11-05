@@ -1,6 +1,6 @@
 /**
  * Decide's sources against a real Postgres (designs/2026-10-16-decide.md): history backfilled
- * once, due subjects shown without names, and `wren decide backfill --dry-run` writing nothing.
+ * once, due subjects shown without names, and `wren judge backfill --dry-run` writing nothing.
  * Synthetic.
  */
 
@@ -13,7 +13,7 @@ import { redditThreads } from "@wren/starling-outbound/schema";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { registerDecide } from "../../src/decide.js";
+import { registerJudge } from "../../src/decide.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -36,8 +36,12 @@ async function wren(...argv: string[]): Promise<string> {
   });
   try {
     const program = new Command().exitOverride();
-    registerDecide(program, (fn) => fn(pg.db), { llmEnvPath: "/nonexistent", rootDir: "/" });
-    await program.parseAsync(["node", "wren", "decide", ...argv]);
+    registerJudge(program, (fn) => fn(pg.db), {
+      llmEnvPath: "/nonexistent",
+      rootDir: "/",
+      ingress: { url: "http://127.0.0.1:1" },
+    });
+    await program.parseAsync(["node", "wren", "judge", ...argv]);
   } finally {
     log.mockRestore();
   }
@@ -94,7 +98,7 @@ describe("comment source", () => {
   });
 });
 
-describe("wren decide", () => {
+describe("wren judge", () => {
   it("backfill --dry-run counts and writes nothing; backfill adds each once", async () => {
     const before = (await calls()).length;
     const dry = JSON.parse(await wren("backfill", "--dry-run"));

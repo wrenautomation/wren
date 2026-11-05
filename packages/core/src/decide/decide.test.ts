@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  type AgentAsk,
+  agentBackend,
   backendsFromEnv,
   type CompleteLike,
+  chainFor,
   choiceConfidence,
   costOf,
   failureOf,
@@ -110,6 +113,52 @@ describe("backends", () => {
       probabilities: { keep: 0.75, drop: 0.25 },
     });
     expect(r.usage).toEqual({ input_tokens: 120, output_tokens: 9 });
+  });
+
+  it("asks the agent for probabilities and a why, keeping its session id", async () => {
+    const seen: { req: Parameters<AgentAsk>[0]; key: string }[] = [];
+    const ask: AgentAsk = async (req, key) => {
+      seen.push({ req, key });
+      return {
+        answer:
+          'Here: {"pick": {"probabilities": {"send": 1, "edit": 1, "drop": 2}, "why": "Generic."}}',
+        model: "sonnet",
+        sessionId: "s-1",
+      };
+    };
+    const b = agentBackend(ask);
+    const req = { state: { draft: "x" }, questions: KINDS.comment_quality.questions };
+    const r = await b.ask(req, {});
+    expect(r.model).toBe("claude-code:sonnet");
+    expect(r.answers.pick).toEqual({
+      type: "choice",
+      choice: "drop",
+      confidence: 0.25,
+      probabilities: { send: 0.25, edit: 0.25, drop: 0.5 },
+      why: "Generic.",
+      agent: "s-1",
+    });
+    expect(machineLabel("comment_quality", r.answers)?.label).toBe("drop");
+    expect(costOf(b.price, r.usage)).toBe(0);
+    expect(seen[0]?.req.model).toBe("sonnet");
+    expect(JSON.parse(seen[0]?.req.question ?? "{}").state).toEqual({ draft: "x" });
+    // The same question, the same key: a later pass picks up the run already made.
+    await b.ask(req, {});
+    expect(seen[1]?.key).toBe(seen[0]?.key);
+    await expect(
+      agentBackend(async () => ({ answer: "{}", model: "sonnet", sessionId: "s" })).ask(req, {}),
+    ).rejects.toThrow(/no probabilities/);
+  });
+
+  it("sends agent kinds to the agent only, the rest to the chain", () => {
+    const agent = agentBackend(async () => ({ answer: "", model: "sonnet", sessionId: "" }));
+    const jev = jevBackend({ apiKey: "k" });
+    expect(chainFor({ chain: [jev], agent, note: null }, KINDS.lead_fit.judge)).toEqual([agent]);
+    expect(chainFor({ chain: [jev], agent, note: null }, KINDS.document.judge)).toEqual([jev]);
+    expect(chainFor({ chain: [jev], note: null }, KINDS.comment_quality.judge)).toEqual([]);
+    const ask: AgentAsk = async () => ({ answer: "", model: "", sessionId: "" });
+    expect(backendsFromEnv({}, null, { agent: ask }).agent?.name).toBe("agent");
+    expect(backendsFromEnv({ WREN_DECIDE: "off" }, null, { agent: ask }).agent).toBeNull();
   });
 
   it("computes choice confidence Jev's way", () => {

@@ -73,8 +73,8 @@ export const PLATFORM = {
       "on a new touch, net every 15 min: each workspace's untold social touches told to the executor",
     ListToJourney: "people added to a list a sourced source takes people from open journeys there",
     MapLineFeed: "documents a content line finds open instances; a job that ends moves each on",
-    Decide:
-      "every 10 minutes: drafted comments and lead fits judged by Jev, each answer logged beside his call",
+    Judge:
+      "every 10 minutes: drafted comments and lead fits judged by Claude Code on the desk, each answer logged beside his call",
     ProfileResearch:
       "Research this person: Exa, Google and the account look for a profile's pages elsewhere, findings kept per profile",
     Broadcast: "one approved broadcast: started on its time, then a batch of its people per run",

@@ -113,18 +113,20 @@ wren drafts edits --type dm --limit 5        # how William changed drafts, befor
 node scripts/prod-wren.mjs drafts list       # on prod
 ```
 
-## Decide
+## Judge
 
-Machine calls beside William's (designs/2026-10-16-decide.md). Jev judges drafted comments
-(send, edit, drop) and Learn items (worth, skip); his send, drop, star or archive is logged next
-to it. `Decide/wren` runs every 10 minutes. The Agents page shows the same numbers.
+Machine calls beside William's (designs/2026-10-16-decide.md, 2026-11-04-loops.md). The judge
+agent (Claude Code on the desk, his plan, $0) judges drafted comments (send, edit, drop) and lead
+fits, each with a one-line why and its session id; Learn items stay on `WREN_DECIDE`'s chain.
+His send, drop, star or archive is logged next to it. `Judge/wren` runs every 10 minutes; while
+the Mac is off, its kinds wait. The Agents page shows the same numbers.
 
 ```bash
-wren decide stats                   # per kind: mode, his calls, agreement, overrides, tokens, $
-wren decide mode document shadow # off, shadow, recommend (a chip), gate (refused until built)
-wren decide export --called --out decisions.jsonl   # wren.decision/1: the distill set
-wren decide backfill [--dry-run] [--sample 100 --max-usd 2]   # history's calls; a Jev sample
-wren decide pass                    # one pass here
+wren judge stats                   # per kind: mode, his calls, agreement, overrides, tokens, $
+wren judge mode document shadow    # off, shadow, recommend (a chip), gate (refused until built)
+wren judge export --called --out decisions.jsonl   # wren.decision/1: the distill set
+wren judge backfill [--dry-run] [--sample 100 --max-usd 2]   # history's calls; a judged sample
+wren judge pass                    # one pass here
 ```
 
 ## Accounts

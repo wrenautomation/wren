@@ -93,9 +93,8 @@ curl -X POST -H "$H" $U/SegmentsHourly/all/start           # every hour: wakes S
 curl -X POST -H "$H" $U/TouchToJourney/all/start             # on a new touch and every 15 min: each non-demo workspace's untold touches (follows, comments, DMs...; `fired_at` null) told to the executor for `trigger.touch`, then marked; at least once; TouchToJourney/all/status shows the last pass
 curl -X POST -H "$H" $U/ListToJourney/all/start            # every 15 min (5 s while a list has more): people added to an import batch that a live funnel's `sourced` entry names open journeys there; ListToJourney/all/status shows the last pass
 curl -X POST -H "$H" $U/MapLineFeed/all/start               # every 15 min (5 s while a find has more): Wren's content lines; a document a find's SOP takes opens an instance, a job that ends moves it on; MapLineFeed/all/status shows the last pass
-curl -X POST -H "$H" $U/Decide/wren/start                # every 10 min: open comment drafts and fresh Learn items judged by Jev (gateway when Jev is down), logged in `decisions`; WREN_DECIDE=off stops it, $1/day cap (`decide.dailyUsd`); /sync runs one pass
+curl -X POST -H "$H" $U/Judge/wren/start                 # every 10 min: open comment drafts and people who wrote back judged by Claude Code on the desk (`claude/ask`, $0; they wait while the Mac is off), Learn items by WREN_DECIDE's chain; logged in `decisions`; WREN_DECIDE=off stops it, $1/day cap (`decide.dailyUsd`); /sync runs one pass
 curl -X POST -H "$H" $U/VaultKeyMirror/box/start             # hourly: the operator's API keys mirrored from autobrowse's vault (`sites/keys`) into `vault_keys`; /sync mirrors now; rotate, revoke and spend (`wren accounts key ...`) act on a key and mirror again
-# `Ads` is a plain service (no scheduler): `wren ads launch|start|stop|insights` call it through the ingress; it writes `ad_launches`.
 ```
 
 ### CLI (already configured for this env)
