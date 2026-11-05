@@ -759,7 +759,7 @@ function repliesSince(main: Db, es: number[], since: Date, now: Date) {
 }
 
 const mailSettings = (app: string, clientId: string) =>
-  `Change what we email you: ${app}/account/you?client=${clientId}`;
+  `Change what we email you: ${app}/office/you?client=${clientId}`;
 const recapSubject = (client: string) => `${client}: your week with Wren`;
 
 /** This Friday's digest for one client as it would go now; null when nothing's active. */

@@ -346,7 +346,7 @@ const clientOfficePlace: Module = {
     ...from(account, ["billing"], "Money"),
     ...from(payments, [{ id: "links", as: "pay-links" }], "Money"),
     ...from(account, ["accounts", "social", "mail"], "Accounts"),
-    ...from(account, [{ id: "people", as: "team" }, "grants", "look"], "Team"),
+    ...from(account, [{ id: "people", as: "team" }, "you", "grants", "look"], "Team"),
   ],
 };
 

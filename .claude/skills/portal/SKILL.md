@@ -1,54 +1,60 @@
 ---
 name: portal
-description: Help William find his way around the Wren portal (app.wrenautomation.com): where a page or setting lives, what an app is for, the keys, his look and layout, and how a client's portal differs. Use when he asks "where do I...", "how do I change...", "what does this page do", or says a page won't load.
+description: Help William find his way around the Wren portal (app.wrenautomation.com): where a page or setting lives, what a place is for, the keys, his look, and how a client's portal differs. Use when he asks "where do I...", "how do I change...", "what does this page do", or says a page won't load.
 ---
 
 # Navigating the portal
 
-Answer with the place first: app, then page, then the address. Example: "Settings → Themes, `/settings/themes`."
+Answer with the place first: place, then page, then the address. Example: "Back office → Look, `/office/look`."
 
 ## Where things are
 
-- **Sidebar:** every app, grouped by area. Today sits at the top and shows what needs him across all apps. Pins sit under Today.
-- **Window:** the open app. Its pages run down the left edge. The bar across the top has the app, the page, its one button and the pin.
-- **Addresses:** `/<app>/<page>`, with filters and the open record in the query (`?person=12`). Reload or share a link and it lands on the same screen.
-- **Live list of apps and pages:** Settings → Guide (`/settings/guide`). It reads the app list itself, so it never goes stale. In code, each app is a `Module` in `apps/portal/web/src/modules/<id>/index.ts` (`id`, `name`, `pages`).
+The portal is a fixed shell of places (designs/2026-11-04-portal-places.md). Code: `apps/portal/web/src/modules/places.ts`.
 
-## His own settings (Wren's workspace only)
+**Wren's sidebar, in order:**
 
-| Want | Go to |
-|---|---|
-| Sidebar width, page column, row height, text size | Settings → Layout. Or drag a panel's edge; double-click resets it. |
-| Try a theme, including the loud ones | Settings → Themes. Wear applies it at once. |
-| Tune colors, fonts, radius | Settings → Look |
-| Every app, page and key | Settings → Guide |
+| Place | Holds | Address |
+|---|---|---|
+| Map | Offers on the metro map, terms | `/map/offers` |
+| Today | Approvals, messages, mail, calendar | `/today/approve` |
+| Results | One board for every product | `/results/board` |
+| Content | Plan, Studio, posts, voice and facts | `/content/plan` |
+| Outbound | Cold email and LinkedIn: overview, engage, conversations, inboxes | `/outbound/overview` |
+| Clients | Every client and what it bought | `/clients/clients` |
+| People | Everyone once, timeline, journeys | `/people/people` |
+| Back office | Contracts, money, spend, accounts, team, grants, look | `/office/money` |
+| Research | Birdwatch runs and sources | `/research/runs` |
 
-Showcase themes (aurora, synthwave, terminal, gilded, riso, brutal) are for Wren's workspace only. The server refuses them on a client.
+**A client's sidebar:** Today, Results, Project, Content, Reactivation, People, Back office. A client sees only the pages of the products it holds.
 
-## Clients and people
+- **Addresses:** `/<place>/<page>`, with filters and the open record in the query (`?person=12`). A reload or a shared link lands on the same screen.
+- **Hidden pages:** some pages have no tab and open from a link (Today's DMs, replies, calls).
+- **Old addresses:** they redirect. The table is `apps/portal/web/src/moved.ts` (`MOVED`, `CLIENT_MOVED`).
+- **Gone:** Learn, Notes, Review, Handlers, Marketplace, Workflows, Loops, Ask, the lead sheet, SEO pages, Ads. Loops and flags are CLI verbs now (`wren loops`, `wren features`).
 
-- A client's people, domain, look and components: Clients → the client.
-- Roles, managers, giving access: Access. A manager can hand out only what they hold.
-- Team seats: Team.
+## His look
+
+Back office → Look (`/office/look`): colors, fonts, radius. Wren's workspace only.
 
 ## Keys
 
-- ⌘K opens anything: a page, a record or an action. `?` lists the keys.
-- ⌥↑ / ⌥↓ moves to the page above or below. G then a letter jumps to a page of the open app.
-- `[` folds the sidebar. `]` hides the page column. N writes a quick note.
-- In lists: ↑ ↓ (or J, K) move, Enter opens, Esc closes, `/` searches.
+- ⌘K opens a page, a record or an action. `?` lists the keys.
+- ⌥↑ / ⌥↓ moves to the page above or below.
+- `[` folds the sidebar. `]` hides the page column.
+- ⌘J opens the Claude agent panel.
+- In lists: ↑ ↓ (or J, K) move, Enter opens, Esc closes.
 
 ## When a page won't load
 
 It shows "This page couldn't load." with Try again.
 1. Reproduce it with the local preview: `pnpm --filter @wren/portal preview`, then open the same address.
-2. Check the server log for the failing `/api/...` call. A missing column means the local database needs `pnpm db:migrate`.
+2. Read the server log for the failing `/api/...` call. A missing column means the local database needs `pnpm db:migrate`.
 3. Fix it in the module or its service, then add a test.
 
-## Agents and automation
+## Agents
 
-Agents use `/api/agent` with a token from Account → AI tools, or the `wren` skill (`/agent/SKILL.md`). `/llms.txt` and `/robots.txt` explain the rules to outside agents.
+Outside agents read `/llms.txt` and `/agent/SKILL.md`.
 
-## Changing the look
+## Changing the look of a screen
 
-To change how a screen or a part looks, use the `wren-ui` skill (`.claude/skills/wren-ui/SKILL.md`).
+Use the `wren-ui` skill (`.claude/skills/wren-ui/SKILL.md`).

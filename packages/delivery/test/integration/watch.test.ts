@@ -148,7 +148,7 @@ describe("client mail", () => {
     expect(told?.subject).toBe("Acme Staffing: 2 things need you");
     expect(told?.text).toContain("- Your ATS login (by 2026-10-20)");
     expect(told?.text).toContain("- Cleaned list");
-    expect(told?.text).toContain("https://app.example/account/you?client=acme");
+    expect(told?.text).toContain("https://app.example/office/you?client=acme");
     await pass("2026-10-05T13:00:00Z");
     expect(take(mail)).toEqual([]);
   });

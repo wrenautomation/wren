@@ -33,15 +33,15 @@ describe("places and components", () => {
 
   it("a client sees the pages of what it installed; the team sees every page", () => {
     expect(ids(false, false, [])).toEqual(["people", "office"]);
-    expect(ids(false, false, ["reactivation"])).toEqual(["campaigns", "people", "office"]);
-    expect(ids(false, false, ["delivery.portal"])).toContain("map");
+    expect(ids(false, false, ["reactivation"])).toEqual(["reactivation", "people", "office"]);
+    expect(ids(false, false, ["delivery.portal"])).toContain("project");
     expect(ids(false, true, [])).toEqual([
-      "map",
-      "campaigns",
+      "today",
+      "results",
+      "project",
       "content",
+      "reactivation",
       "people",
-      "inbox",
-      "calendar",
       "office",
     ]);
     // Installing a part adds its pages and nothing else.
@@ -54,11 +54,12 @@ describe("places and components", () => {
   it("Wren's workspace holds Wren's places, never a client's", () => {
     expect(ids(true, true, [])).toEqual([
       "map",
-      "campaigns",
+      "today",
+      "results",
       "content",
+      "outbound",
+      "clients",
       "people",
-      "inbox",
-      "calendar",
       "office",
       "research",
     ]);

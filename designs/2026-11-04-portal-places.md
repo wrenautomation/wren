@@ -496,3 +496,8 @@ None.
     automations, workflows) to `office`, Ask to `research`, the parked-draft review to `inbox`.
     No stored grant or token names an app (prod 11-04), so no one's access changes. Voice stays
     parked with its package.
+  - Your settings comes back (WA-1067.2): the ground-up cut dropped a client's Account › Your
+    settings, where each person picks the mail they get. Every portal email's footer links there,
+    so the link landed on no page. It sits in a client's Back office › Team (`/office/you`), and the
+    footer links there direct. The `portal` skill is rewritten for the places; README and the
+    `wren` skill name the new pages.

@@ -83,12 +83,10 @@ runs it live. Design: `designs/2026-10-07-template-install.md`.
 every 15 minutes (`WREN_WATCH_MAILBOXES`, else the books' own), skipping promotions and social.
 Each email goes along the `watch` workflow to triage: a rule with a sender and a verdict settles it
 for $0, the model in `WREN_WATCH_LLM` (Cohere, set in `lambda.tf`) reads the rest. What needs him
-shows in the Inbox app under Your mail; Hide like this writes a rule, Sort again (or `wren monitor sort`)
+shows under Today → Mail; Hide like this writes a rule, Sort again (or `wren monitor sort`)
 re-triages what's waiting under today's rules. No bodies are kept. A client's Google data (a Gmail
 mailbox, YouTube comments, Business Profile reviews) reaches only `WREN_GOOGLE_LLM`, a model that
-doesn't train on it; unset, none. The same pass reads each feed Wren
-follows (hourly) and scores new items 0-10 against the pushed SOPs: 7 and up shows under Worth
-reading, 4 to 6 holds. Follow a feed from Inbox → Feeds.
+doesn't train on it; unset, none.
 
 ## Social inbox
 
@@ -97,7 +95,7 @@ New York. It reads comments on our posts of the last 14 days (older than 3 days 
 activity since the newest kept row (LinkedIn every 2 hours), and the follower count once a day.
 LinkedIn's count only on demand: `wren social audience linkedin` or Followers → Read now.
 New comments go on the `reach.comments` executor. One Discord ping per pass that kept something; a text
-only when a comment asks. Work them in Marketing → Inbox; answers go out only on William's click.
+only when a comment asks. Work them in Today → Messages; answers go out only on William's click.
 
 ## Drafts
 
@@ -131,7 +129,7 @@ wren judge pass                    # one pass here
 
 ## Accounts
 
-Every account we post and reply as, the same rows as Outreach → Accounts. A draft on a platform
+Every account we post and reply as, the same rows as Back office → Accounts. A draft on a platform
 with two or more accounts has a Send as picker; the pick is kept with the draft and the send uses
 it. A pick that misses a sub's karma or age rule gets a warning and still sends.
 
@@ -152,7 +150,7 @@ time). `restateSites(ctx)` stays for calls that need the official API shape.
 
 ## Call recordings
 
-The desk on William's Mac records each booked call with OBS. It starts 5 minutes before the call if a Meet or Zoom window is open. It stops 3 minutes after the window closes. Record now and Stop recording sit on Calendar > Calls and Inbox > Calls. The desk asks `wren calls upcoming` what to wait for, and runs `wren calls add <file>` on each finished file. That command encodes a 720p mp4 and transcribes it on the Mac. It writes the notes, uploads the video and puts a line on the person's timeline. Calendar > Recordings lists every recording. Setup and the desk side live in autobrowse (`autobrowse calls setup`); the design is `designs/2026-10-16-call-recording.md`.
+The desk on William's Mac records each booked call with OBS. It starts 5 minutes before the call if a Meet or Zoom window is open. It stops 3 minutes after the window closes. Record now and Stop recording sit on Today → Calls (`/today/calls`). The desk asks `wren calls upcoming` what to wait for, and runs `wren calls add <file>` on each finished file. That command encodes a 720p mp4 and transcribes it on the Mac. It writes the notes, uploads the video and puts a line on the person's timeline. Today → Recordings (`/today/recordings`) lists every recording. Setup and the desk side live in autobrowse (`autobrowse calls setup`); the design is `designs/2026-10-16-call-recording.md`.
 
 ## Groups and channels
 
@@ -187,7 +185,7 @@ front matter of `notes.md` names: `kinds`, `platforms`, `topic`, `set`) and `cal
 tune / drop calls on those pieces, rolled up and cited `[learn:<id>]`).
 `wren sop build <name>` syncs, then writes the next `SOP.md` from `notes.md` (your rules, top
 priority), your calls, the standard and the sources on Claude Code (`--no-sync` skips the sync).
-Iterate: edit notes.md, call on pieces (the item page, `wren learn call`), build again.
+Iterate: edit notes.md, call on pieces (`wren learn call`), build again.
 `wren sop extract <name> [source]` lists every point a source makes into `points/<source>.md`
 (cited, generated only); build reads the points instead of the raw source.
 `sop build` also writes `SKILL.md`; `wren sop link <name>` symlinks the folder into `~/.claude/skills/sop-<name>`
