@@ -1,6 +1,6 @@
 /**
- * A reply's steps as they come (designs/2026-11-04-multi-user-runtime.md, Decision 10): plain
- * shell commands fold into one "Ran N commands" block with a terminal inside; every other call is
+ * A reply's steps as they come (designs/2026-11-04-multi-user-runtime.md, Decisions 10, 12): plain
+ * shell commands fold into one "Ran N commands" block, open: each its description, command and output; every other call is
  * its own row, appended in order, its result on the right. The turn's line sits at the foot:
  * the live step and the time, then "Done" with what it cost.
  */
@@ -236,7 +236,7 @@ function Commands({ parts }: { parts: readonly Part[] }) {
         ) : null}
       </button>
       <Fold open={open}>
-        <div className="px-1.5 pb-1.5">
+        <div className="px-1.5 pb-2">
           <Terminal parts={parts} />
         </div>
       </Fold>
@@ -244,52 +244,62 @@ function Commands({ parts }: { parts: readonly Part[] }) {
   );
 }
 
-/** Dark block: `$`, the command, its result on the right; a line opens to its output. */
+/**
+ * The run of commands, as Claude's history shows it: each step its description, then one box
+ * with the command and its output. Open block shows every output; no second click.
+ */
 function Terminal({ parts }: { parts: readonly Part[] }) {
-  const [shown, setShown] = useState<string | null>(null);
   return (
-    <div className="grid rounded-[8px] bg-(--ui-term) shadow-[inset_0_0_0_1px_var(--ui-hair)] py-1.5 font-mono text-[12px]/[1.6] text-(--ui-term-ink)">
+    <ol className="m-0 grid list-none gap-3 p-0 pt-1">
       {parts.map((x) => {
         const id = x.toolCallId ?? "";
+        const input = argsOf(x);
         const done = x.result !== undefined;
         const out = outOf(x)?.trim() ?? "";
-        const open = shown === id;
+        const ms = msOf(x);
+        const said = typeof input.description === "string" && input.description;
         return (
-          <div key={id} className="grid [animation:ui-fade_.2s_both]">
-            <button
-              type="button"
-              aria-expanded={done ? open : undefined}
-              disabled={!done || !out}
-              onClick={() => setShown(open ? null : id)}
-              className="flex min-w-0 items-start gap-2 px-3 py-0.5 text-left enabled:hover:bg-[#ffffff0d]"
-            >
-              <span className="flex-none text-(--ui-term-prompt) select-none" aria-hidden="true">
-                $
-              </span>
-              <span className="min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]">
-                {toolLine("Bash", argsOf(x)) || x.argsText}
-                {done ? null : <span className="ui-term-caret" aria-hidden="true" />}
-              </span>
+          <li key={id} className="grid gap-1.5 [animation:ui-fade_.2s_both]">
+            {said || done ? (
+              <div className="flex min-w-0 items-baseline gap-2 px-1.5 text-[13px]">
+                <span className="min-w-0 flex-1 wrap-anywhere text-(--ui-ink-2)">{said}</span>
+                {done ? (
+                  <span
+                    className={cx(
+                      "flex-none font-mono text-[11.5px] tabular-nums",
+                      x.isError ? "text-(--ui-bad)" : "text-(--ui-ink-3)",
+                    )}
+                  >
+                    {[stat(outOf(x), x.isError), ms ? took(ms) : ""].filter(Boolean).join(" · ")}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="grid rounded-[8px] bg-(--ui-term) font-mono text-[12px]/[1.6] text-(--ui-term-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)]">
+              <div className="flex min-w-0 gap-2 px-3 py-1.5">
+                <span className="flex-none text-(--ui-term-prompt) select-none" aria-hidden="true">
+                  $
+                </span>
+                <span className="min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]">
+                  {toolLine("Bash", input) || x.argsText}
+                  {done ? null : <span className="ui-term-caret" aria-hidden="true" />}
+                </span>
+              </div>
               {done ? (
-                <span
+                <pre
                   className={cx(
-                    "flex-none tabular-nums",
+                    "m-0 max-h-64 overflow-auto border-t border-[#ffffff14] px-3 py-1.5 whitespace-pre-wrap [overflow-wrap:anywhere]",
                     x.isError ? "text-(--ui-term-bad)" : "text-(--ui-term-dim)",
                   )}
                 >
-                  {stat(outOf(x), x.isError)}
-                </span>
+                  {out || "No output."}
+                </pre>
               ) : null}
-            </button>
-            <Fold open={open}>
-              <pre className="m-0 max-h-64 overflow-auto px-3 pt-0.5 pb-2 pl-7 whitespace-pre-wrap text-(--ui-term-dim) [overflow-wrap:anywhere]">
-                {out}
-              </pre>
-            </Fold>
-          </div>
+            </div>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }
 

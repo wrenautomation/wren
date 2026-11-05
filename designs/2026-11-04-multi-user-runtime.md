@@ -263,3 +263,7 @@ Chosen: A. The story "Revamp/Agent chat" (`pages-agent.stories.tsx`) runs the re
 - Terminal block: by day `#17161b` → `#3b3942`, a soft charcoal; at night `#070708` → `#121116`, still under the paper. It stays dark in both looks so commands read apart from words. Dim text `#b5b3ab`: 5.4:1 by day, 9:1 at night.
 - Tighter chat: turns 32 → 24 px apart, steps 12 → 8 px, text line 1.6 → 1.55; paragraphs, lists and headings lose 2 px each. Streamdown's 4 px padding on each list item is gone.
 - The panel opens and closes with motion (motion.dev). It stays mounted when closed, so the chat keeps its session. Its room grows from 0 as the card slides in 24 px on the ease (0.34 s), and the page gives way. It leaves on an accelerating curve (0.24 s), since an ease-out exit drops in one frame. On a phone the sheet slides up and down. Reduced motion: no animation.
+
+## Decision 12: commands open as in Claude's history (11-05, WA-1092)
+William: copy Claude's history view for commands and outputs more closely. The open "Ran N commands" block was a dark terminal of `$` lines; each output took a second click. Now each command shows its description, its stat and time, then one box: the command, a rule, the output (64 lines high, then it scrolls). An open block shows every output. Named steps keep their row; a click opens the call and output, as before. Stored chats carry the output too (`thread.ts` maps each tool_result).
+
