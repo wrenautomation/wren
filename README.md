@@ -52,36 +52,8 @@ version waits in To approve. Wren ships no footer words: with none live, a video
 
 ## Meta ads
 
-```bash
-wren ads accounts                    # the ad accounts the Meta token admins
-wren ads interests "shopify"         # interest ids for the spec's targeting
-wren ads launch ads/founders.json    # campaign → ad set → creative → ad, all PAUSED; prints the ids
-wren ads start <campaignId> <adsetId> <adId> --daily 20   # the one command that spends
-wren ads insights --preset last_7d   # spend, impressions, reach, clicks, ctr, cpc per campaign
-wren ads stop <campaignId>
-wren ads lead-form founders https://wrenautomation.com/privacy   # an instant form; id → creative.leadForm
-wren ads leads <formId>              # what the form collected (needs leads_retrieval from app review)
-wren ads launches                    # the ad_launches ledger: ids, budget, started/stopped, why
-wren ads watch start                 # AdSpendGuard: daily guard, pauses a launch that spent $50 with nothing to show
-wren ads spec-from <draftId> --out ads/post.json   # a post that worked → a PAUSED launch spec (same words, same media)
-```
-
-The spec file: `name`, `objective` (OUTCOME_LEADS, OUTCOME_TRAFFIC, …), `dailyBudgetUsd`,
-`targeting {countries, ageMin, ageMax, interests[{id,name}]}`, `creative {message, link,
-headline, description, callToAction, media {kind, source}, leadForm {id} | {name, privacyUrl,
-questions?, followUpUrl?}}`. With `leadForm` (OUTCOME_LEADS, `optimizationGoal:
-LEAD_GENERATION`) the CTA opens the instant form on Facebook instead of the link, and
-`wren ads leads <formId>` reads the answers. A local media file lands in
-`WREN_MEDIA_BUCKET` first. Every ACTIVE write is a spend on the box: it asks (or auto-yes
-under its small cap) and writes the ledger. `WREN_META_AD_ACCOUNT_ID` picks the account;
-unset = the first one. Every launch/start/stop lands in `ad_launches`; `AdSpendGuard/default`
-reads adset insights once a day and stops any active launch whose 7-day spend reached
-`WREN_ADS_PAUSE_AFTER_USD` (default 50) with zero clicks and zero results — it only ever
-stops spend, and each pass is one message to the channel. A launch that wins (a result,
-or ten clicks) becomes one open idea for the content loop (`wren content ideas`, source
-`ads`), once; nothing is drafted until you say. The other way: `wren ads spec-from
-<draftId>` turns a published post into a spec. Design:
-`designs/2026-09-22-meta-ads.md`.
+Cut 2026-11-04 (stripdown): `wren ads`, `Ads` and `AdSpendGuard` are gone. The `ad_launches` and
+`ad_days` tables stay. Code: git tag `pre-cut-2026-11-04`.
 
 ## SMS
 

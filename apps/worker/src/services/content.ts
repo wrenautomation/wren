@@ -1,5 +1,5 @@
 /**
- * Content: the Blog box and Pieces, the channels and Meta ads, the content loop (desk,
+ * Content: the Blog box and Pieces, the channels, the content loop (desk,
  * scheduler, metrics, planner), the social inbox and desk, auto-reply, comment keywords and
  * the site chat.
  */
@@ -38,13 +38,12 @@ import {
   makeVideoDesk,
   socialPushed,
 } from "@wren/starling-inbound/restate";
-import { makeAdSpendGuard, makeAds } from "@wren/starling-meta/restate";
 import { draftDm } from "@wren/starling-outbound";
 import { wakeWatch } from "@wren/starling-outbound/restate";
 import { tiktokCreator } from "@wren/starling-tiktok";
 import { deskDrafts, deskKinds } from "../desk.js";
 import { clientMarketing } from "../marketing.js";
-import { adsFor, contentClientsFor, contentFor } from "./content-channels.js";
+import { contentClientsFor, contentFor } from "./content-channels.js";
 import type { AnyService, Deps } from "./deps.js";
 
 /** SocialActivityRead's clock: 07:00-23:00 New York (designs/2026-10-06-social-inbox.md). */
@@ -71,7 +70,6 @@ export function contentServices(deps: Deps): AnyService[] {
     voice,
     watchLlm,
   } = deps;
-  const adsNotify = lane(settings.discordAdsWebhookUrl);
   const contentNotify = lane(settings.discordContentWebhookUrl);
   const services: AnyService[] = [
     // Write's Blog box: posts committed to the lander repo, then mailed (designs/2026-10-13-blog-box.md).
@@ -94,12 +92,6 @@ export function contentServices(deps: Deps): AnyService[] {
       content ?? (() => ({})),
       contentClientsFor(settings, db, clientDb, keys, socialApi),
     ),
-  );
-  // Meta ads over the same `sites` service, as `Ads`. Always bound: a launch on a box without
-  // the meta site fails on its own invocation, and nothing spends until `start`.
-  services.push(
-    makeAds({ ...adsFor(settings), db }),
-    makeAdSpendGuard({ db, pauseAfterUsd: settings.adsPauseAfterUsd, ...adsNotify }),
   );
   // Client reports: kept every run; mailed from portal@ only once WREN_CLIENT_REPORTS_MAIL=on.
   const clientReportDeps = {

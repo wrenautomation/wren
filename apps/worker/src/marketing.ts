@@ -14,7 +14,6 @@ import {
   socialRecordsOf,
   type VideoSigner,
 } from "@wren/starling-inbound/records";
-import { adDayRecord } from "@wren/starling-meta/records";
 import { engageRecordOf, exploreRecord, reachItems } from "@wren/starling-outbound";
 import {
   accountRecordOf,
@@ -51,7 +50,6 @@ const consoleDeps = (signer?: VideoSigner): ConsoleDeps => ({
 export const marketingNumbers = (signer?: VideoSigner, policy?: ReachPolicy) => [
   ...contentRecords(signer),
   ...ANALYTICS_RECORDS,
-  adDayRecord,
   ...SEARCH_RECORDS,
   textContactRecord,
   dmRecord,
@@ -76,13 +74,11 @@ export const marketingNumbers = (signer?: VideoSigner, policy?: ReachPolicy) => 
 ];
 
 /**
- * A client's Marketing (`MarketingConsole`): what its posting, ads and search loops write into
- * its own database, and its Inbox with the replies there that wait on a yes. Its ad days stay
- * empty until its Meta ads are built.
+ * A client's Marketing (`MarketingConsole`): what its posting and search loops write into its own
+ * database, and its Inbox with the replies there that wait on a yes.
  */
 export const clientMarketing = (signer?: VideoSigner) => [
   ...contentRecords(signer),
-  adDayRecord,
   searchPageRecord,
   keywordRecord,
   searchDayRecord,

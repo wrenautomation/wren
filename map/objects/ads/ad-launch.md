@@ -7,6 +7,8 @@ verified: 2026-09-28 @ 28823cd
 entity: packages/starling/channels/meta/src/schema.ts:13
 ---
 
+> Cut 2026-11-04 (stripdown): the code this card cites is gone; the tables stay. Git tag `pre-cut-2026-11-04`.
+
 # ad-launch
 
 One Meta ad ladder we made (campaign → ad set → creative → ad) and whether it spends. Table `ad_launches`; the spec is `LaunchSpec`.

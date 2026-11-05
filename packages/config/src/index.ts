@@ -144,7 +144,6 @@ export const settingsSchema = z.object({
   discordEmailWebhookUrl: z.string().min(1).optional(),
   discordSmsWebhookUrl: z.string().min(1).optional(),
   discordReachWebhookUrl: z.string().min(1).optional(),
-  discordAdsWebhookUrl: z.string().min(1).optional(),
   discordContentWebhookUrl: z.string().min(1).optional(),
   discordSearchWebhookUrl: z.string().min(1).optional(),
   discordClientsWebhookUrl: z.string().min(1).optional(),
@@ -383,13 +382,6 @@ export const settingsSchema = z.object({
     .string()
     .regex(/^[0-9]+$/)
     .optional(),
-  /** The ad account `wren ads` works in (`act_…` or bare id); the first account on the token when unset. */
-  metaAdAccountId: z
-    .string()
-    .regex(/^(act_)?[0-9]+$/)
-    .optional(),
-  /** `AdSpendGuard`: 7-day spend that, with no clicks and no results, pauses a launch (default $50). */
-  adsPauseAfterUsd: z.coerce.number().positive().default(50),
   /**
    * Reddit's API, called straight from wren (no autobrowse on the path): an
    * approved OAuth app and a permanent refresh token from its consent. All
@@ -665,7 +657,6 @@ export const ENV_KEYS = {
   discordEmailWebhookUrl: "WREN_DISCORD_EMAIL_WEBHOOK_URL",
   discordSmsWebhookUrl: "WREN_DISCORD_SMS_WEBHOOK_URL",
   discordReachWebhookUrl: "WREN_DISCORD_REACH_WEBHOOK_URL",
-  discordAdsWebhookUrl: "WREN_DISCORD_ADS_WEBHOOK_URL",
   discordContentWebhookUrl: "WREN_DISCORD_CONTENT_WEBHOOK_URL",
   discordSearchWebhookUrl: "WREN_DISCORD_SEARCH_WEBHOOK_URL",
   discordClientsWebhookUrl: "WREN_DISCORD_CLIENTS_WEBHOOK_URL",
@@ -748,8 +739,6 @@ export const ENV_KEYS = {
   metaIgId: "WREN_META_IG_ID",
   metaPushEvents: "WREN_META_PUSH_EVENTS",
   metaPrivatePerHour: "WREN_META_PRIVATE_PER_HOUR",
-  metaAdAccountId: "WREN_META_AD_ACCOUNT_ID",
-  adsPauseAfterUsd: "WREN_ADS_PAUSE_AFTER_USD",
   smsProvider: "WREN_SMS_PROVIDER",
   linqApiKey: "WREN_LINQ_API_KEY",
   telnyxApiKey: "WREN_TELNYX_API_KEY",

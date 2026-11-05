@@ -266,11 +266,6 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
       { key: "default" },
     );
   },
-  "marketing/pause": (id, { reason }) =>
-    handlerCall("Ads", "stop", { campaignId: head(id, 1)[0], ...(reason ? { reason } : {}) }),
-  // It spends: the console asks for the handler's name, the action's confirm is the human's.
-  "marketing/resume": (id) =>
-    handlerCall("Ads", "resume", { campaignId: head(id, 1)[0] }, { confirm: "resume" }),
   "marketing/markRead": (id) => handlerCall("SmsDesk", "markRead", { contactId: num(id) }),
   // A draft's review: ContentDesk's one key, as the CLI's verdicts are one table.
   "marketing/approveDraft": (id, { expect }) =>

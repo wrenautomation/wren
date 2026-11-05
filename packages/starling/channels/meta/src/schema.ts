@@ -1,7 +1,6 @@
 /**
- * What `wren ads` launched, as rows: the spec, the four ids, the budget and
- * when it was started and stopped. `AdSpendGuard` reads the started ones; a
- * person reads the rest back without Ads Manager.
+ * Meta ad launches and ad set days, as rows. The Ads service and `wren ads` are cut
+ * (2026-11-04 stripdown); the tables stay until William says to drop them.
  */
 import { baseColumns, oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
@@ -19,7 +18,6 @@ import {
   timestamp,
   varchar,
 } from "drizzle-orm/pg-core";
-import type { LaunchSpec } from "./ads.js";
 
 export const LAUNCH_STATUSES = ["paused", "active", "stopped"] as const;
 export type LaunchStatus = (typeof LAUNCH_STATUSES)[number];
@@ -34,7 +32,7 @@ export const adLaunches = pgTable(
     adsetId: varchar("adset_id", { length: 32 }).notNull(),
     creativeId: varchar("creative_id", { length: 32 }).notNull(),
     adId: varchar("ad_id", { length: 32 }).notNull(),
-    spec: jsonb("spec").$type<LaunchSpec>().notNull(),
+    spec: jsonb("spec").$type<Record<string, unknown>>().notNull(),
     status: varchar("status", { length: 16 }).$type<LaunchStatus>().notNull().default("paused"),
     dailyBudgetUsd: real("daily_budget_usd").notNull(),
     startedAt: timestamp("started_at", { withTimezone: true }),

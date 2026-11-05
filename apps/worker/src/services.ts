@@ -123,7 +123,6 @@ export async function buildServices(
       postmaster: postmaster !== null,
       placement_seeds: settings.placementSeeds.length,
       content: settings.contentChannels.join(",") || "none",
-      ads: settings.metaAdAccountId ?? "first account",
       content_voice: voice !== null ? "file" : "default",
       sms: smsProvider.name,
       sms_live: settings.smsLive,

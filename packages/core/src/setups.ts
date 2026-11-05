@@ -1,7 +1,6 @@
 /**
  * Setups for the accounts core already knows how to connect (designs/2026-10-07-setup-and-vendors.md):
- * Google's Search Console and Calendar, and Meta's partner link. The phone's and email's live
- * beside their channels.
+ * Google's Search Console and Calendar. The phone's and email's live beside their channels.
  */
 import { defineSetup } from "./setup.js";
 
@@ -49,38 +48,4 @@ const GOOGLE_CALENDAR_SETUP = defineSetup({
   ],
 });
 
-const META_SETUP = defineSetup({
-  id: "setup.meta",
-  name: "Meta partner link",
-  blurb: "Wren's business works on your ad account as a partner.",
-  site: "meta",
-  repeat: "7 days",
-  steps: [
-    {
-      id: "partner",
-      fact: "meta.partner_added",
-      label: "Wren added as a partner",
-      who: "client",
-      how: "In Meta Business Settings, open Partners, add Wren's business ID and share your ad account with it.",
-      forYou: "Wren's team signs in to your Meta business and adds the partner.",
-      goal: "add Wren's business as a partner on this ad account",
-      check: "meta.ad_account",
-      every: "1 hour",
-      within: "14 days",
-    },
-    {
-      id: "page",
-      fact: "meta.page_shared",
-      label: "Page shared with Wren",
-      who: "client",
-      how: "In Meta Business Settings, open Partners and share your Facebook Page with Wren's business too.",
-      forYou: "Wren's team shares your Facebook Page with Wren's business.",
-      goal: "share this business's Facebook Page with Wren's business as a partner",
-      check: "meta.page",
-      every: "1 hour",
-      within: "14 days",
-    },
-  ],
-});
-
-export const CORE_SETUPS = [SEARCH_CONSOLE_SETUP, GOOGLE_CALENDAR_SETUP, META_SETUP];
+export const CORE_SETUPS = [SEARCH_CONSOLE_SETUP, GOOGLE_CALENDAR_SETUP];

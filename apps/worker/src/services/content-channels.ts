@@ -1,6 +1,6 @@
 /**
- * The content channels per invocation and a client's, Meta ads' dependencies, and where
- * Reddit calls go: what `Content`, `Ads` and the research chain are wired with.
+ * The content channels per invocation and a client's, and where
+ * Reddit calls go: what `Content` and the research chain are wired with.
  */
 
 import type { Settings } from "@wren/config";
@@ -22,7 +22,6 @@ import {
   instagramWebContent,
   threadsContent,
 } from "@wren/starling-meta";
-import type { makeAds } from "@wren/starling-meta/restate";
 import { redditApi, redditContent } from "@wren/starling-reddit";
 import { tiktokContent } from "@wren/starling-tiktok";
 import { xContent } from "@wren/starling-x";
@@ -226,17 +225,5 @@ export function contentClientsFor(
       const c = await findClient(db, client);
       return !!c && sendsOn(c, "content.posting");
     },
-  };
-}
-
-/** The `Ads` service's dependencies: the sites host (as the content channels), the account and Page. */
-export function adsFor(settings: Settings): Parameters<typeof makeAds>[0] {
-  const sitesAt = sitesHost(settings.autobrowseInstanceId);
-  const host = settings.mediaBucket ? s3MediaHost({ bucket: settings.mediaBucket }) : undefined;
-  return {
-    sitesFor: (ctx) => restateSites(ctx, { caller: "wren:ads", ...sitesAt }),
-    ...(settings.metaAdAccountId ? { adAccountId: settings.metaAdAccountId } : {}),
-    ...(settings.metaPageId ? { pageId: settings.metaPageId } : {}),
-    ...(host ? { host } : {}),
   };
 }

@@ -201,14 +201,11 @@ export const CONTENT_COMPONENTS = [
     for: "client",
     ready: true,
     missing: [],
-    // A client's Meta ads wait on its ad account; its ad days stay empty until then.
-    soon: ["meta"],
     provides: {
       services: ["MarketingConsole", "ClientReport"],
       records: [
         "marketing.draft",
         "marketing.post",
-        "marketing.ad_day",
         "ads.format",
         "marketing.search_page",
         "marketing.keyword",

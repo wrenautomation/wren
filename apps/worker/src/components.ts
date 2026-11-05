@@ -16,7 +16,6 @@ import { RESEARCH_COMPONENTS } from "@wren/research/components";
 import { SITES_COMPONENTS } from "@wren/sites/components";
 import { EMAIL_COMPONENTS } from "@wren/starling-email/components";
 import { CONTENT_COMPONENTS } from "@wren/starling-inbound/components";
-import { META_COMPONENTS } from "@wren/starling-meta/components";
 import { OUTREACH_COMPONENTS } from "@wren/starling-outbound/components";
 import { SEARCH_COMPONENTS } from "@wren/starling-search/components";
 import { SMS_COMPONENTS } from "@wren/starling-sms/components";
@@ -31,7 +30,6 @@ export const COMPONENTS: readonly Component[] = [
   ...REACTIVATION_COMPONENTS,
   ...DELIVERY_COMPONENTS,
   ...CONTENT_COMPONENTS,
-  ...META_COMPONENTS,
   ...SEARCH_COMPONENTS,
   ...OUTREACH_COMPONENTS,
   ...BOOKS_COMPONENTS,

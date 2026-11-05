@@ -14,13 +14,6 @@ export const REPORT_TILES = [
     view: "posts",
   },
   {
-    id: "ad_impressions",
-    label: "Ad impressions",
-    record: "marketing.ad_day",
-    sum: "impressions",
-    view: "campaign",
-  },
-  {
     id: "search_impressions",
     label: "Search impressions",
     record: "marketing.search_day",
@@ -44,7 +37,6 @@ export const REPORT_TILES = [
   },
   { id: "calls", label: "Calls booked", record: "marketing.site_day", sum: "calls", view: "30d" },
   { id: "paid", label: "Paid", record: "marketing.site_day", sum: "paid", view: "30d" },
-  { id: "spend", label: "Ad spend", record: "marketing.ad_day", sum: "spend", view: "campaign" },
 ] as const;
 type ReportTile = (typeof REPORT_TILES)[number];
 export type ReportTileId = ReportTile["id"];

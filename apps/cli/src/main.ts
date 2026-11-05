@@ -32,7 +32,6 @@ import { runWeeklyReport } from "@wren/starling-outbound/email";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { registerAccounts } from "./accounts.js";
-import { registerAds } from "./ads.js";
 import { registerAgent } from "./agent.js";
 import { registerAppReviews } from "./app-reviews.js";
 import { registerBooks } from "./books.js";
@@ -268,7 +267,6 @@ registerNotes(program, {
   client: () => program.opts<{ client?: string }>().client,
 });
 registerTasks(program, { withDb, client: () => program.opts<{ client?: string }>().client });
-registerAds(program, withMainDb, settings);
 registerSms(program, withDb, settings);
 registerReach(program, withMainDb, settings);
 registerAccounts(program, withMainDb, settings);

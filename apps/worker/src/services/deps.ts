@@ -111,7 +111,6 @@ import {
 } from "@wren/starling-inbound/restate";
 import { contentDrafts, contentPlaybooks } from "@wren/starling-inbound/schema";
 import { formPasses } from "@wren/starling-inbound/sms";
-import { metaChecks } from "@wren/starling-meta";
 import { REACH_SEQUENCES, policyFrom as reachPolicyFrom } from "@wren/starling-outbound";
 import type { Campaign } from "@wren/starling-outbound/email";
 import { makeFiller, rosterFleet } from "@wren/starling-outbound/email";
@@ -155,9 +154,6 @@ const WREN_CALL = { username: "wrenautomation", slug: "call" };
 
 /** One desk call from the books' day; past it the mailbox waits for tomorrow's pass. */
 export const BOOKS_DESK_TIMEOUT_MS = 120_000;
-
-/** A setup check's read through autobrowse: gives up, never wakes the box; the next round asks again. */
-const SETUP_READ_TIMEOUT_MS = 30_000;
 
 /** Through PgBouncer on the box when a pool port is set; each client database's URL follows. */
 function pooled({ databaseUrl, databasePoolPort }: Settings): string {
@@ -854,13 +850,6 @@ export async function buildDeps(
     ...stripeChecks(db),
     ...searchConsoleChecks(() => searchConsoleClient(googleKey(keyPath))),
     ...calendarChecks(googleCalendar),
-    ...metaChecks(
-      ingressSites(ingressOf(settings), {
-        caller: "wren:setup",
-        service: sitesHost(settings.autobrowseInstanceId).service,
-        timeoutMs: SETUP_READ_TIMEOUT_MS,
-      }),
-    ),
     ...(smsProvider.registration
       ? smsChecks(db, smsProvider.registration, settings.telnyxCampaignId ?? null)
       : {}),

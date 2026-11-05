@@ -205,25 +205,6 @@ const FUNNELS = [
     ],
   }),
   defineWorkflow({
-    id: "paid",
-    stage: "reach",
-    name: "Paid leads",
-    blurb: "Meta lead forms, answered by speed to lead.",
-    icon: "money",
-    for: "client",
-    out: [{ id: "won", label: "clients won", kind: "client" }],
-    nodes: [
-      { id: "ads", uses: "ads.meta" },
-      { id: "speed", uses: "speed_to_lead" },
-      { id: "close", uses: "close" },
-    ],
-    wires: [
-      { from: "ads.forms", to: "speed.forms", via: "events" },
-      { from: "speed.booked", to: "close.calls", via: "events" },
-      { from: "close.won", to: "out.won", via: "events" },
-    ],
-  }),
-  defineWorkflow({
     id: "win_back",
     stage: "reach",
     name: "Win back old leads",
@@ -256,16 +237,12 @@ const WREN = defineWorkflow({
   for: "wren",
   nodes: [
     { id: "outbound", uses: "outbound" },
-    { id: "paid", uses: "paid" },
     { id: "content", uses: "content" },
     { id: "onboarding", uses: "onboarding" },
     { id: "watch", uses: "watch" },
     { id: "books", uses: "books" },
   ],
-  wires: [
-    { from: "outbound.won", to: "onboarding.clients", via: "events" },
-    { from: "paid.won", to: "onboarding.clients", via: "events" },
-  ],
+  wires: [{ from: "outbound.won", to: "onboarding.clients", via: "events" }],
 });
 
 export const WORKFLOWS: readonly Workflow[] = [

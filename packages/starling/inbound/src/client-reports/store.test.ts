@@ -57,13 +57,13 @@ describe("the mail", () => {
       to: new Date("2026-10-12T03:59:59Z"),
       lines: [
         { tile: "visits", label: "Site visits", value: 1200, prior: 1000, currency: null },
-        { tile: "spend", label: "Ad spend", value: 50, prior: 0, currency: "USD" },
+        { tile: "paid", label: "Paid", value: 50, prior: 0, currency: "USD" },
       ],
       portal: "https://app.example.test/",
     });
     expect(m.subject).toBe("Weekly numbers, Oct 5 to Oct 11");
     expect(m.text).toContain("Site visits: 1,200 (+20% on the period before)");
-    expect(m.text).toContain("Ad spend: $50 (new)");
+    expect(m.text).toContain("Paid: $50 (new)");
     expect(m.text).toContain("https://app.example.test/marketing/reports");
   });
   it("changes and shown values", () => {

@@ -7,6 +7,8 @@ verified: 2026-10-05 @ fa06f2a
 entity: packages/starling/channels/meta/src/schema.ts:59
 ---
 
+> Cut 2026-11-04 (stripdown): the code this card cites is gone; the tables stay. Git tag `pre-cut-2026-11-04`.
+
 # ad-day
 
 One ad set's numbers for one day, as Meta's insights gave them. Table `ad_days`; the Marketing app reads it as `marketing.ad_day`.

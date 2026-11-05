@@ -242,8 +242,6 @@ describe("handler forms", () => {
     "Executor/hook": "the door: any sender's payload, wrapped with its token by the phone Worker",
   };
   const EFFECTS: Record<string, string> = {
-    "Ads/launch": "spends",
-    "Ads/start": "spends",
     "SetupAgent/run": "spends",
     "EmailConsole/approve": "sends",
     "SmsDesk/enroll": "sends",

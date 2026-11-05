@@ -191,8 +191,6 @@ const LIVE_CHECKS = new Set([
   "inbox.placement",
   "search_console.access",
   "google_calendar.access",
-  "meta.ad_account",
-  "meta.page",
   "mail.google_app",
   "mail.microsoft_app",
   "google.mail_trust",

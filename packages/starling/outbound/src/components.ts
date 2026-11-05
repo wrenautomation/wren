@@ -25,7 +25,8 @@ export const OUTREACH_COMPONENTS = [
     provides: {
       services: ["ReachSend", "ReachInboxRead", "ReachDesk", "CommentProofs"],
       loops: ["ReachSend", "ReachInboxRead"],
-      records: ["marketing.person", "marketing.account"],
+      // Places and threads: ReachDesk comments in a queued thread; nothing drafts new ones now.
+      records: ["marketing.person", "marketing.account", "marketing.place", "marketing.thread"],
     },
     clientLoops: (client) => [
       { service: "ReachSend", key: clientKey(client, SENDER_UNIT) },

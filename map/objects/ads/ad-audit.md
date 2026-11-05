@@ -7,6 +7,8 @@ verified: 2026-10-06 @ 9d6af2d
 entity: packages/starling/channels/meta/src/audit.ts:551
 ---
 
+> Cut 2026-11-04 (stripdown): the code this card cites is gone; the tables stay. Git tag `pre-cut-2026-11-04`.
+
 # ad-audit
 
 A read-only audit of Wren's Meta ad account: cold start per dimension, scored controls, draft fixes. Not stored; `Ads.audit` returns it and `wren ads audit` prints it.
