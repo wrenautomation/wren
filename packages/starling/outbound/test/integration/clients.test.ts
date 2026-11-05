@@ -24,7 +24,6 @@ import {
   DEFAULT_POLICY,
   listAccounts,
   loginsOf,
-  redditPlaces as places,
   reachAccounts,
 } from "@wren/starling-acts";
 import { sortStep } from "@wren/starling-conversations";
@@ -32,8 +31,6 @@ import { comments, reachContacts, reachMessages } from "@wren/starling-conversat
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { touchStep } from "../../src/follow.js";
-import type { DiscoveryStats } from "../../src/restate/discovery.js";
-import { makeRedditReads } from "../../src/restate/discovery.js";
 import {
   makeReachDesk,
   makeReachInboxRead,
@@ -46,8 +43,6 @@ import type { TickStats } from "../../src/tick.js";
 import { reachTurns } from "../../src/turns.js";
 
 const calls: { site: string; path: string; account: string | undefined }[] = [];
-/** The signed-out daily cap is used: every `reddit-public` read answers 429 until noon. */
-let publicCapped = false;
 /** Logins whose desk inbox read never answers. */
 const inboxHangs = new Set<string>();
 const NOW_S = Math.floor(Date.parse("2026-10-07T15:00:00Z") / 1000);
@@ -62,14 +57,6 @@ const sites: SiteClient = {
     account?: string,
   ) {
     calls.push({ site, path, account });
-    if (publicCapped && site === "reddit-public")
-      throw new SiteCallError(
-        site,
-        "GET",
-        path,
-        429,
-        "reads cap is used (240/240 today); retry after 21600s",
-      );
     const label = account?.split("@")[1] ?? "public";
     const out: unknown =
       path === "/connections"
@@ -121,28 +108,15 @@ beforeAll(async () => {
       "reach.outreach": {},
       "comments.read": {},
       "comments.sort": {},
-      "reddit.discovery": {
-        about: "Dentists who run their own practice",
-        subreddits: ["dentistry"],
-        exaSearches: 0,
-      },
     },
   });
   await addClient(pg.db, pg.url, {
     id: "lambda",
     name: "Lambda",
     accounts: { reddit: "reddit@lambda" },
-    products: { "comments.read": {}, "reddit.discovery": {} },
+    products: { "comments.read": {} },
   });
   await addClient(pg.db, pg.url, { id: "mu", name: "Mu", products: { "comments.read": {} } });
-  await addClient(pg.db, pg.url, {
-    id: "xi",
-    name: "Xi",
-    accounts: { reddit: "reddit@xi" },
-    products: {
-      "reddit.discovery": { about: "Vets who run a clinic", subreddits: ["vets"], exaSearches: 0 },
-    },
-  });
   await addClient(pg.db, pg.url, {
     id: "omicron",
     name: "Omicron",
@@ -200,17 +174,6 @@ beforeAll(async () => {
       makeReachDesk(deps),
       // Live globally: only the client's own flag holds its DMs.
       makeReachSend({ ...deps, live: true, clock: () => new Date(NOW_S * 1000) }),
-      makeRedditReads({
-        ...deps,
-        discovery: {
-          llm: null,
-          voice: "",
-          facts: async () => [],
-          audience: async () => {
-            throw new Error("Wren's audience is never read on a client's pass");
-          },
-        },
-      }),
     ],
     alwaysReplay: true,
     disableRetries: true,
@@ -226,10 +189,6 @@ const watch = (key: string) =>
   ingress()
     .objectClient<ReturnType<typeof makeReachInboxRead>>({ name: "ReachInboxRead" }, key)
     .sync() as Promise<PassOutcome<WatchStats>>;
-const reads = (key: string) =>
-  ingress()
-    .objectClient<ReturnType<typeof makeRedditReads>>({ name: "RedditReads" }, key)
-    .sync() as Promise<PassOutcome<DiscoveryStats>>;
 
 describe("a client's logins", () => {
   it("are its own: never one of Wren's, each site@label", () => {
@@ -360,51 +319,6 @@ describe("the comment sort per client", () => {
     expect(out).toEqual([{ port: "asked", event: expect.anything() }]);
     const [row] = await kappa.select().from(comments);
     expect(row).toMatchObject({ sort: "asked", state: "waiting" });
-  });
-});
-
-describe("Reddit discovery per client", () => {
-  it("reads for the client's own buyers, into its own database, metered", async () => {
-    calls.length = 0;
-    const out = await reads("kappa/daily");
-    expect(out.stopped).toBeUndefined();
-    expect(out.stats).toMatchObject({ judged: 1, stopped: null });
-    expect(calls.every((c) => c.site === "reddit-public")).toBe(true);
-    expect((await kappa.select().from(places)).map((p) => p.subreddit)).toEqual(["dentistry"]);
-    expect(await pg.db.select().from(places)).toEqual([]);
-    const used = await pg.db
-      .select()
-      .from(vendorUsage)
-      .where(eq(vendorUsage.part, "reddit.discovery"));
-    expect(used.length).toBe(calls.length);
-  });
-
-  it("a used signed-out cap holds its reads until it resets: asked once, no error", async () => {
-    await setManaged(pg.db, {
-      client: "xi",
-      vendor: "reddit",
-      perDay: 100,
-      capCents: 0,
-      by: "test",
-    });
-    publicCapped = true;
-    try {
-      calls.length = 0;
-      const first = await reads("xi/daily");
-      expect(first.error).toBeNull();
-      expect(first.stats).toMatchObject({ capped: true, judged: 0, errors: [] });
-      expect(calls.filter((c) => c.site === "reddit-public")).toHaveLength(1);
-      calls.length = 0;
-      const second = await reads("xi/daily");
-      expect(second.stats).toMatchObject({ capped: true, errors: [] });
-      expect(calls.filter((c) => c.site === "reddit-public")).toEqual([]);
-    } finally {
-      publicCapped = false;
-    }
-  });
-
-  it("never reads for Wren's buyers: no About, no pass", async () => {
-    expect((await reads("lambda/daily")).stopped).toBe("say who its buyers are: set About");
   });
 });
 

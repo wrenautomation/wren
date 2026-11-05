@@ -87,7 +87,6 @@ curl -X POST -H "$H" $U/EmailPlacementTest/fleet/start  # each ramped inbox's ne
 curl -X POST -H "$H" $U/PostPublish/default/start  # post approved content drafts as they come due (`wren content queue start`)
 curl -X POST -H "$H" $U/PostMetrics/default/start    # daily metrics snapshots of young posts; Monday what-worked (`wren content metrics start`)
 curl -X POST -H "$H" $U/AdSpendGuard/default/start          # daily ads guard: pauses a launch over WREN_ADS_PAUSE_AFTER_USD with no clicks/results (`wren ads watch start`)
-curl -X POST -H "$H" $U/RedditReads/wren/start           # Reddit discovery, signed out: places monthly, watched places every 2 h, drafts to Marketing → Threads; posts nothing (`wren reach discovery start`)
 curl -X POST -H "$H" $U/ClientInvoicing/fleet/start        # every 15 min: Wren's own invoices made on the 1st, mailed with their PDF, money in read from Wise (GET only) and matched; the first pass bills every signed client (`wren delivery billing start`)
 curl -X POST -H "$H" $U/StripeReconcile/all/start          # daily: each Stripe-connected client's links of 120 days held against Stripe; heals missed webhooks, flags drift; reads Stripe only
 curl -X POST -H "$H" $U/SegmentsHourly/all/start           # every hour: wakes Segments/fleet and each non-demo <client>/fleet (People → Groups kept true, segment/trait/date triggers fired); row triggers wake it at commit too; Segments/<key>/status shows the cursor

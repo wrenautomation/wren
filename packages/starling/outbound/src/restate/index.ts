@@ -42,12 +42,6 @@ export {
 } from "./deps.js";
 export { makeReachDesk, type ReachDeskService, terminalWhy } from "./desk.js";
 export {
-  type DiscoveryDeps,
-  makeRedditReads,
-  READS_KEY,
-  type RedditReadsObject,
-} from "./discovery.js";
-export {
   type CommentProofsService,
   makeCommentProofs,
   PROOFS_SERVICE,

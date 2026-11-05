@@ -1,25 +1,20 @@
 /**
  * Cold outreach on Reddit and LinkedIn over the Mac's desk worker: sender, watch, desk,
- * comment proofs and Reddit reads.
+ * comment proofs.
  */
 
-import { settingsFor } from "@wren/core/clients";
-import { wrenFacts } from "@wren/core/facts";
-import { DEFAULT_VOICE, putMedia } from "@wren/starling-inbound";
-import { ourPosts } from "@wren/starling-inbound/our-posts";
-import { discoverySettingsSchema, WREN_AUDIENCE } from "@wren/starling-outbound";
+import { putMedia } from "@wren/starling-inbound";
 import {
   makeCommentProofs,
   makeReachDesk,
   makeReachInboxRead,
   makeReachSend,
-  makeRedditReads,
 } from "@wren/starling-outbound/restate";
-import { type AnyService, type Deps, playbooksOf } from "./deps.js";
+import type { AnyService, Deps } from "./deps.js";
 
 /** The reach domain's services, in the order they were served from `services.ts`. */
 export function reachServices(deps: Deps): AnyService[] {
-  const { db, draftsLlm, log, mediaBucket, reach, reachNotify, settings, voice } = deps;
+  const { db, log, mediaBucket, reach, reachNotify, settings } = deps;
   const services: AnyService[] = [];
   // Cold outreach on Reddit and LinkedIn, over the Mac's desk worker as each
   // reach account. Always bound: the sender and watch are off until
@@ -40,24 +35,6 @@ export function reachServices(deps: Deps): AnyService[] {
         : {}),
       linkedinAccount: "linkedin@wren",
       ...reachNotify,
-    }),
-    // Reddit discovery reads signed out; drafts in the content voice, researched against the SOPs.
-    makeRedditReads({
-      ...reach,
-      discovery: {
-        llm: draftsLlm,
-        voice: voice ?? DEFAULT_VOICE,
-        facts: () => playbooksOf(db),
-        truths: () => wrenFacts(db),
-        ours: () => ourPosts(db),
-        // Wren's saved block (Shop → Reddit discovery); a bad one reads as the default.
-        audience: async () => {
-          const got = discoverySettingsSchema.safeParse(
-            (await settingsFor(db, null))["reddit.discovery"] ?? {},
-          );
-          return got.success ? got.data : WREN_AUDIENCE;
-        },
-      },
     }),
   );
   return services;

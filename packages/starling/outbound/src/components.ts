@@ -3,14 +3,12 @@ import { defineComponent } from "@wren/core/components";
 import { clientKey } from "@wren/core/restate";
 import { defineWorkflow } from "@wren/core/workflows";
 import { commentsReadSettingsSchema } from "@wren/starling-conversations";
-import { discoverySettingsSchema } from "./discovery/places.js";
 import { invitesSettingsSchema } from "./invites.js";
 import { COMMENTS_SETTINGS } from "./reach-posts/settings.js";
 
-/** A client's loop units: `ReachInboxRead/<client>/daily`, `ReachSend/<client>/fleet`, `RedditReads/<client>/daily`. */
+/** A client's loop units: `ReachInboxRead/<client>/daily`, `ReachSend/<client>/fleet`. */
 const WATCH_UNIT = "daily";
 const SENDER_UNIT = "fleet";
-const READS_UNIT = "daily";
 
 export const OUTREACH_COMPONENTS = [
   defineComponent({
@@ -157,56 +155,6 @@ export const OUTREACH_COMPONENTS = [
         { is: "change", says: "The words that mean they asked.", built: null },
         { is: "fixed", says: "Every answer and DM waits on William's click." },
         { is: "fixed", says: "Our two accounts never write in one thread." },
-      ],
-    },
-  }),
-  defineComponent({
-    id: "reddit.discovery",
-    stage: "reach",
-    channels: ["social"],
-    name: "Reddit discovery",
-    blurb:
-      "Finds subreddits where buyers ask questions, picks the day's best new threads, and drafts a comment in your voice for each.",
-    icon: "search",
-    for: "client",
-    ready: true,
-    settings: discoverySettingsSchema,
-    // Wren's own run reads its block from `wren_settings` until a client's runs.
-    wrenSettings: true,
-    requires: { accounts: ["reddit"] },
-    provides: {
-      services: ["RedditReads"],
-      loops: ["RedditReads"],
-      records: ["marketing.place", "marketing.thread"],
-    },
-    clientLoops: (client) => [{ service: "RedditReads", key: clientKey(client, READS_UNIT) }],
-    effects: ["sends", "spends"],
-    liveSwitch: true,
-    out: [
-      {
-        id: "queued",
-        label: "threads to answer",
-        kind: "post",
-        count: { record: "marketing.thread", view: "queued" },
-      },
-    ],
-    hypothesis: {
-      from: "Wren's Reddit, 2026-10",
-      guesses: [
-        { is: "change", says: "Who the buyers are, in words.", built: "settings.about" },
-        { is: "change", says: "The search words and named subreddits.", built: "settings.topics" },
-        {
-          is: "change",
-          says: "How many comments a day: the account's rung.",
-          built: "warmupOf in @wren/starling-reddit",
-        },
-        {
-          is: "needs",
-          says: "A few karma-building accounts, one per place.",
-          built: "the reach_accounts rows",
-        },
-        { is: "fixed", says: "Every read is signed out; our accounts only comment." },
-        { is: "fixed", says: "Every comment waits on William's click; two of ours never meet." },
       ],
     },
   }),

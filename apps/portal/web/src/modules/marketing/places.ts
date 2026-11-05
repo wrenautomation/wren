@@ -1,5 +1,5 @@
 /**
- * Reads on his click: audience, discovery.
+ * Reads on his click: audience.
  */
 import type { Action } from "@wren/ui";
 
@@ -18,8 +18,3 @@ export const AUDIENCE_ACTIONS: Action[] = [
     (a) => `LinkedIn: ${(a as { followers?: number } | null)?.followers ?? "no"} followers`,
   ),
 ];
-export const DISCOVERY_READ = readNow(
-  "marketing.discoveryRead",
-  "marketing/discoveryRead",
-  () => "Reading. Places and Thread replies fill in over a few minutes.",
-);

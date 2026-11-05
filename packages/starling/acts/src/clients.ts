@@ -1,5 +1,5 @@
 /**
- * Reach per client (designs/2026-10-07-per-client-runs.md): a client's comments, discovery, DMs
+ * Reach per client (designs/2026-10-07-per-client-runs.md): a client's comments, DMs
  * and invites run on its own logins (`clients.accounts.reddit`, `.linkedin`) into its own
  * database. Reads go through the vendor gate on its own limits (`@wren/core/metered`); nothing
  * leaves until an admin turns that part's sends on (`sendsOn`) and the global gate is on too.
@@ -15,7 +15,6 @@ const REACH_PARTS = [
   "reach.touch",
   "comments.read",
   "comments.sort",
-  "reddit.discovery",
   "linkedin.invites",
 ] as const;
 export type ReachPart = (typeof REACH_PARTS)[number];

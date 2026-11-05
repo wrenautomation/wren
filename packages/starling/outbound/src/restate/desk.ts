@@ -12,11 +12,11 @@ import { deskContext } from "./desk-context.js";
 import { invitesHandlers } from "./desk-invites.js";
 import { peopleHandlers } from "./desk-people.js";
 import { postsHandlers } from "./desk-posts.js";
+import { redditHandlers } from "./desk-reddit.js";
 import { scheduleHandlers } from "./desk-schedule.js";
 import { settleHandlers } from "./desk-settle.js";
 import { statsHandlers } from "./desk-stats.js";
 import { threadsHandlers } from "./desk-threads.js";
-import { discoveryHandlers } from "./discovery.js";
 import { pasteHandlers } from "./paste.js";
 
 export { terminalWhy } from "./desk-context.js";
@@ -35,7 +35,7 @@ export function makeReachDesk(deps: ReachDeps) {
       ...settleHandlers(desk),
       ...peopleHandlers(desk),
       ...scheduleHandlers(desk),
-      ...discoveryHandlers(deps),
+      ...redditHandlers(deps),
       ...pasteHandlers(deps),
       ...statsHandlers(desk),
     },

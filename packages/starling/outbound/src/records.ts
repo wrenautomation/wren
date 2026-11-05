@@ -239,12 +239,7 @@ export const placeRecord = defineRecord({
     { id: "held", label: "Held", where: { gated: "held" }, sort: "-fit" },
     { id: "all", label: "All", sort: "-fit" },
   ],
-  actions: [
-    "marketing.placeWatch",
-    "marketing.placeSkip",
-    "marketing.placeMove",
-    "marketing.discoveryRead",
-  ],
+  actions: ["marketing.placeWatch", "marketing.placeSkip", "marketing.placeMove"],
   // Reassign: pick another of our Reddit accounts in place; its threads go out from that one.
   edits: {
     fields: ["account"],
@@ -374,7 +369,6 @@ export const threadRecord = defineRecord({
     "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",
-    "marketing.discoveryRead",
   ],
   /** Ask Claude's thread on the draft comment. */
   load: async (db, id) => ({

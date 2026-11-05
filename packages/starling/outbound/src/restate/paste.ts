@@ -24,7 +24,6 @@ import {
 import { draftPost } from "../reach-posts/draft.js";
 import { postReader } from "../reach-posts/read.js";
 import { allCommentsSettings } from "../reach-posts/settings.js";
-import { READS_KEY } from "./discovery.js";
 import type { ReachDeps } from "./index.js";
 
 const PASTE = z.looseObject({ url: z.string().trim().min(1).max(2000) });
@@ -59,13 +58,6 @@ export function pasteHandlers(deps: ReachDeps) {
   };
   const nowOf = async (ctx: restate.Context) =>
     deps.clock ? deps.clock() : new Date(await ctx.date.now());
-  const wakeReads = (ctx: restate.Context) =>
-    ctx
-      .objectSendClient<{ wake: (c: restate.ObjectContext) => Promise<unknown> }>(
-        { name: "RedditReads" },
-        READS_KEY,
-      )
-      .wake();
 
   /** What a link names, acted on: watched, followed, queued or drafted now. */
   async function pasteUrl(ctx: restate.Context, url: string, by: string): Promise<Pasted> {
@@ -80,11 +72,10 @@ export function pasteHandlers(deps: ReachDeps) {
           return watchPlace(deps.db, p.subreddit, now);
         }),
       );
-      wakeReads(ctx);
       return {
         did: "watching",
         said: r.account
-          ? `Watching r/${p.subreddit}. New threads show here as they come.`
+          ? `Watching r/${p.subreddit}.`
           : `Watching r/${p.subreddit}. None of our Reddit accounts meets its minimums yet, so nothing is drafted there.`,
         item: null,
       };
@@ -108,10 +99,9 @@ export function pasteHandlers(deps: ReachDeps) {
       const t = await ctx.run("queue", () => terminal(() => queuePastedThread(deps.db, read, now)));
       if (t.state === "commented")
         return { did: "answered", said: "We already commented there.", item: `thread:${t.id}` };
-      wakeReads(ctx);
       return {
         did: "queued",
-        said: `Queued "${t.title.slice(0, 800)}". Its draft lands here within a few minutes.`,
+        said: `Queued "${t.title.slice(0, 800)}".`,
         item: `thread:${t.id}`,
       };
     }

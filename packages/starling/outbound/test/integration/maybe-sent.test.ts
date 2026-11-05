@@ -62,7 +62,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { enroll } from "../../src/enroll.js";
 import { addPlaces, keepPlace, keepThreads, watchPlace } from "../../src/index.js";
 import { COMMENTS_SETTINGS } from "../../src/reach-posts/settings.js";
-import { discoveryHandlers } from "../../src/restate/discovery.js";
+import { redditHandlers } from "../../src/restate/desk-reddit.js";
 import type { ReachDeps } from "../../src/restate/index.js";
 import { schedulePosts } from "../../src/scheduled.js";
 import { reachPosts, redditThreads } from "../../src/schema.js";
@@ -568,7 +568,7 @@ describe("a Reddit comment, the whole way (ReachDesk commentThread)", () => {
       sitesFor: (ctx: restate.Context) => restateSites(ctx, { caller: "test", service: DESK }),
       clock: () => NOW,
     } as unknown as ReachDeps;
-    const go = discoveryHandlers(deps).commentThread as unknown as (
+    const go = redditHandlers(deps).commentThread as unknown as (
       ctx: restate.Context,
       req: { id: string; again?: boolean },
     ) => Promise<{ ref: string | null }>;

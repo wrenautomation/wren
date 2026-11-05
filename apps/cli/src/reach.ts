@@ -9,7 +9,7 @@
 import { readFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
-import { settingsFor, setWrenSettings } from "@wren/core/clients";
+import { setWrenSettings } from "@wren/core/clients";
 import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
 import { REJECT_REASONS } from "@wren/core/reject-reasons";
 import { atomic, type Db, setAuditActor } from "@wren/db";
@@ -23,7 +23,6 @@ import {
   COMMENTS_SETTINGS,
   clearGate,
   commentsSettings,
-  discoverySettingsSchema,
   gateList,
   INVITES_COMPONENT,
   inviteSettings,
@@ -46,11 +45,9 @@ import {
 } from "@wren/starling-outbound";
 import {
   type CommentProofsService,
-  READS_KEY,
   type ReachDeskService,
   type ReachInboxReadObject,
   type ReachSend,
-  type RedditReadsObject,
   SENDER_KEY,
   WATCH_KEY,
 } from "@wren/starling-outbound/restate";
@@ -644,40 +641,6 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
         }),
       );
     });
-
-  const reads = () => ingress().objectClient<RedditReadsObject>({ name: "RedditReads" }, READS_KEY);
-  const d = cmd
-    .command("discovery")
-    .description(
-      "RedditReads: places monthly, watched places' threads every 2 h, drafts; reads signed out",
-    );
-  d.command("status").action(async () => json(await reads().status()));
-  d.command("start").action(async () => json(await reads().start()));
-  d.command("stop").action(async () => json(await reads().stop()));
-  d.command("set")
-    .description("Wren's discovery settings; a field left out keeps its value")
-    .option("--auto-send <on|off>", "each pass's drafts take spaced send slots without your yes")
-    .action(async (o: { autoSend?: string }) => {
-      if (o.autoSend !== undefined && !["on", "off"].includes(o.autoSend))
-        throw new Error(`on or off, not ${o.autoSend}`);
-      json(
-        await withDb(async (db) => {
-          const next = discoverySettingsSchema.parse({
-            ...((await settingsFor(db, null))["reddit.discovery"] ?? {}),
-            ...(o.autoSend !== undefined && { autoSend: o.autoSend === "on" }),
-          });
-          await atomic(db, async (tx) => {
-            await setAuditActor(tx, "cli");
-            await setWrenSettings(tx, "reddit.discovery", next, "cli");
-          });
-          return next;
-        }),
-      );
-    });
-  d.command("sync")
-    .alias("run")
-    .description("One pass now; the loop stays as it is")
-    .action(async () => json(await reads().sync()));
 
   cmd
     .command("schedule")

@@ -168,7 +168,7 @@ function pooled({ databaseUrl, databasePoolPort }: Settings): string {
 }
 
 /** Each pushed SOP's newest text. */
-export async function playbooksOf(db: Db): Promise<{ label: string; text: string }[]> {
+async function playbooksOf(db: Db): Promise<{ label: string; text: string }[]> {
   const rows = await db
     .selectDistinctOn([contentPlaybooks.sop], {
       sop: contentPlaybooks.sop,

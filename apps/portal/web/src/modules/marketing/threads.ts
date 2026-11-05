@@ -4,7 +4,6 @@
 import { type Action, said } from "@wren/ui";
 import { draftActions } from "./ask.js";
 import { REJECT_FORM } from "./drafts.js";
-import { DISCOVERY_READ } from "./places.js";
 
 /** A comment drafted on someone else's post (LinkedIn, X, Instagram): his click posts it, with a like and follow when set. */
 export const ONPOST_ACTIONS: Action[] = [
@@ -68,5 +67,4 @@ export const THREAD_ACTIONS: Action[] = [
     done: said("Skipped"),
   },
   ...draftActions("thread", { state: ["new", "ranked", "queued"] }),
-  DISCOVERY_READ,
 ];
