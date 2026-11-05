@@ -51,7 +51,7 @@ const flowReady = (parts: readonly Component[]) =>
 
 const union = <T>(lists: readonly (readonly T[])[]) => [...new Set(lists.flat())];
 
-/** What a part provides, by kind, in its code names: "Services SearchWatch; Loops SearchWatch". */
+/** What a part provides, by kind, in its code names: "Services SiteRollup; Loops SiteRollup". */
 const providesText = (p: Component["provides"]) =>
   (["services", "loops", "records"] as const)
     .filter((k) => p[k].length)

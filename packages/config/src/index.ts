@@ -145,7 +145,6 @@ export const settingsSchema = z.object({
   discordSmsWebhookUrl: z.string().min(1).optional(),
   discordReachWebhookUrl: z.string().min(1).optional(),
   discordContentWebhookUrl: z.string().min(1).optional(),
-  discordSearchWebhookUrl: z.string().min(1).optional(),
   discordClientsWebhookUrl: z.string().min(1).optional(),
   /** William's Discord user id: pings (replies, bookings, breakage) @mention him; routine reports post silent. */
   discordPingUserId: z
@@ -230,10 +229,6 @@ export const settingsSchema = z.object({
    * the domains at postmaster.google.com. Unset = no daily pull.
    */
   postmasterUser: z.string().min(1).optional(),
-  /** The Search Console property (`sc-domain:example.com`) the service account owns. Unset = no SearchWatch. */
-  searchSite: z.string().min(1).optional(),
-  /** The site it answers for (`https://example.com`): sitemap, pages, `/llms.txt`. */
-  searchOrigin: z.string().url().optional(),
   /** Where the Friday report goes (`wren report weekly`). */
   reportTo: z.string().email().optional(),
   /** The mailbox it is sent from (must be one the service account may impersonate); default = the first fleet sender. */
@@ -658,7 +653,6 @@ export const ENV_KEYS = {
   discordSmsWebhookUrl: "WREN_DISCORD_SMS_WEBHOOK_URL",
   discordReachWebhookUrl: "WREN_DISCORD_REACH_WEBHOOK_URL",
   discordContentWebhookUrl: "WREN_DISCORD_CONTENT_WEBHOOK_URL",
-  discordSearchWebhookUrl: "WREN_DISCORD_SEARCH_WEBHOOK_URL",
   discordClientsWebhookUrl: "WREN_DISCORD_CLIENTS_WEBHOOK_URL",
   discordPingUserId: "WREN_DISCORD_PING_USER_ID",
   operatorPhone: "WREN_OPERATOR_PHONE",
@@ -686,8 +680,6 @@ export const ENV_KEYS = {
   shapesGithubApi: "WREN_SHAPES_GITHUB_API",
   siteEdgeToken: "WREN_SITE_EDGE_TOKEN",
   postmasterUser: "WREN_POSTMASTER_USER",
-  searchSite: "WREN_SEARCH_SITE",
-  searchOrigin: "WREN_SEARCH_ORIGIN",
   reportTo: "WREN_REPORT_TO",
   reportFrom: "WREN_REPORT_FROM",
   googleServiceAccount: "WREN_GOOGLE_SERVICE_ACCOUNT",

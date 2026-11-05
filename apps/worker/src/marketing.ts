@@ -24,12 +24,7 @@ import {
   placeRecord,
   threadRecord,
 } from "@wren/starling-outbound/records";
-import {
-  keywordRecord,
-  SEARCH_RECORDS,
-  searchDayRecord,
-  searchPageRecord,
-} from "@wren/starling-search/records";
+import { SITE_RECORDS } from "@wren/starling-search/records";
 import { textContactRecord } from "@wren/starling-sms/records";
 import { deskKinds } from "./desk.js";
 
@@ -50,7 +45,7 @@ const consoleDeps = (signer?: VideoSigner): ConsoleDeps => ({
 export const marketingNumbers = (signer?: VideoSigner, policy?: ReachPolicy) => [
   ...contentRecords(signer),
   ...ANALYTICS_RECORDS,
-  ...SEARCH_RECORDS,
+  ...SITE_RECORDS,
   textContactRecord,
   dmRecord,
   commentRecord,
@@ -74,14 +69,11 @@ export const marketingNumbers = (signer?: VideoSigner, policy?: ReachPolicy) => 
 ];
 
 /**
- * A client's Marketing (`MarketingConsole`): what its posting and search loops write into its own
+ * A client's Marketing (`MarketingConsole`): what its posting loops write into its own
  * database, and its Inbox with the replies there that wait on a yes.
  */
 export const clientMarketing = (signer?: VideoSigner) => [
   ...contentRecords(signer),
-  searchPageRecord,
-  keywordRecord,
-  searchDayRecord,
   inboxRecordOf(consoleDeps(signer)),
   askedReplyRecord,
   reviewRecord,

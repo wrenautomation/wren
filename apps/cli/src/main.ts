@@ -67,7 +67,6 @@ import { registerPeople } from "./people.js";
 import { type PipelineWrites, registerPipeline } from "./pipeline.js";
 import { registerReach } from "./reach.js";
 import { registerReview } from "./review.js";
-import { registerSearch } from "./search.js";
 import { registerShape } from "./shape.js";
 import { registerSitePages } from "./site-pages.js";
 import { registerSms } from "./sms.js";
@@ -358,7 +357,6 @@ registerPeople(program, {
   },
 });
 registerVideo(program, withMainDb, settings, rootDir);
-registerSearch(program, withMainDb, settings, rootDir);
 registerSitePages(
   program,
   withMainDb,

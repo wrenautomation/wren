@@ -37,8 +37,6 @@ async function buildHandlers(): Promise<Map<string, Record<string, unknown>>> {
   const settings = loadSettings(
     {
       WREN_DATABASE_URL: "postgres://wren:wren@127.0.0.1:1/wren",
-      WREN_SEARCH_SITE: "sc-domain:example.test",
-      WREN_SEARCH_ORIGIN: "https://example.test",
       WREN_CONTENT_CHANNELS: "linkedin",
       WREN_NOTIFY: "console",
       WREN_PIXEL_BASE_URL: "https://pixel.example.test",

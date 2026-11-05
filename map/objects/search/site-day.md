@@ -13,7 +13,7 @@ The lander's visits for one day, channel and campaign, by the visitor's first to
 
 ## Why this shape
 
-Counts only, never a visitor id, so nothing about a person is stored. The whole `/api/export` is rolled up per day and upserted, so a re-read overwrites the day, never adds (`packages/starling/search/src/site-days.ts:43`, `:116`). One step in `SearchWatch`'s daily pass, never failing it (`packages/starling/search/src/restate/watch.ts:95`). `bookings` are booking-link clicks. `calls` are real cal.com bookings: email when the link carried a code, else the first touch of the application with that email, else `other`. `paid` counts an engagement on its first paid invoice's day under its own `source_channel` (`callsAndPaid`, `:140`).
+Counts only, never a visitor id, so nothing about a person is stored. The whole `/api/export` is rolled up per day and upserted, so a re-read overwrites the day, never adds (`packages/starling/search/src/site-days.ts:43`, `:116`). The main step of `SiteRollup`'s daily pass (`packages/starling/search/src/restate/rollup.ts`), stopped since the 11-04 split. `bookings` are booking-link clicks. `calls` are real cal.com bookings: email when the link carried a code, else the first touch of the application with that email, else `other`. `paid` counts an engagement on its first paid invoice's day under its own `source_channel` (`callsAndPaid`, `:140`).
 
 ## Shape
 
@@ -30,16 +30,15 @@ Citations: `packages/starling/search/src/site-days.ts:43`
 
 ## If you change this
 
-- **Hits:** `rollupSite`, both views (migration), `records.ts`, the Marketing app's Site and Funnel pages, tiles and weekly chart
+- **Hits:** `rollupSite`, both views (migration), `records.ts`, the client report tiles
 - **Does not hit:** `EmailClickPull` and `wren email clicks` ([[email/email-click]]), which read the export's `hits` themselves
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `SearchWatch` daily pass | writes |
-| Marketing app (`/marketing/site`, `/marketing/funnel`, Overview) | reads |
-| Sites app (`/sites/sessions`, Visitors) | reads the lander live, plays replays |
+| `SiteRollup` daily pass (stopped) | writes |
+| No page since 11-04: the records stay for the experiments phase | reads |
 
 ## See
 

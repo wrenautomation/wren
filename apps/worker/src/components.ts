@@ -17,7 +17,7 @@ import { SITES_COMPONENTS } from "@wren/sites/components";
 import { EMAIL_COMPONENTS } from "@wren/starling-email/components";
 import { CONTENT_COMPONENTS } from "@wren/starling-inbound/components";
 import { OUTREACH_COMPONENTS } from "@wren/starling-outbound/components";
-import { SEARCH_COMPONENTS } from "@wren/starling-search/components";
+import { SITE_ROLLUP_COMPONENTS } from "@wren/starling-search/components";
 import { SMS_COMPONENTS } from "@wren/starling-sms/components";
 import { VOICE_COMPONENTS } from "@wren/voice/components";
 import { MAIL_COMPONENTS, WATCH_COMPONENTS } from "@wren/watch/components";
@@ -30,7 +30,7 @@ export const COMPONENTS: readonly Component[] = [
   ...REACTIVATION_COMPONENTS,
   ...DELIVERY_COMPONENTS,
   ...CONTENT_COMPONENTS,
-  ...SEARCH_COMPONENTS,
+  ...SITE_ROLLUP_COMPONENTS,
   ...OUTREACH_COMPONENTS,
   ...BOOKS_COMPONENTS,
   ...CALENDAR_COMPONENTS,

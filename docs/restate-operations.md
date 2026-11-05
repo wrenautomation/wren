@@ -497,7 +497,6 @@ the digest and system pings (token renewal, audit seals):
 | reach | `WREN_DISCORD_REACH_WEBHOOK_URL` | Reddit/LinkedIn DMs |
 | ads | `WREN_DISCORD_ADS_WEBHOOK_URL` | AdSpendGuard |
 | content | `WREN_DISCORD_CONTENT_WEBHOOK_URL` | content scheduler, metrics, planner |
-| search | `WREN_DISCORD_SEARCH_WEBHOOK_URL` | SearchWatch, SearchWeek |
 | clients | `WREN_DISCORD_CLIENTS_WEBHOOK_URL` | ClientUpdateMail, reactivation |
 
 Lander intake has its own channel too: the lander's `DISCORD_WEBHOOK`. autobrowse

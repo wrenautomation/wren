@@ -7,10 +7,10 @@
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import type { SiteApplication, SiteEvent, SiteHit } from "@wren/starling-email";
-import { asc, sql } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { rollupHeat, writeHeatDays } from "../../src/heat.js";
-import { heatRecord, SEARCH_RECORDS, sessionRecord } from "../../src/records.js";
+import { heatRecord, SITE_RECORDS, sessionRecord } from "../../src/records.js";
 import { siteDays } from "../../src/schema.js";
 import { callsAndPaid, rollupSite, upsertSiteDays } from "../../src/site-days.js";
 
@@ -149,7 +149,7 @@ describe("site days", () => {
       ["2026-01-03", "sms", 1, 0],
       ["2026-01-09", "sms", 0, 1],
     ]);
-    const api = serveRecords(SEARCH_RECORDS, pg.db);
+    const api = serveRecords(SITE_RECORDS, pg.db);
     const funnel = await api.list({ record: "marketing.funnel", view: "all", limit: 50 });
     expect(funnel.rows.find((r) => r.channel === "sms")).toMatchObject({
       forms: 1,
@@ -169,29 +169,13 @@ describe("site days", () => {
     expect(await read()).toHaveLength(once.length);
   });
 
-  it("serves every search and site record, every view, with the footer's sums", async () => {
+  it("serves every site record, every view, with the footer's sums", async () => {
     await upsertSiteDays(pg.db, rollupSite(hits, apps));
-    await pg.db.execute(sql`
-      insert into search_keywords (phrase, source) values ('synthetic phrase', 'seed');
-      insert into search_days (day, query, page, clicks, impressions, position) values
-        ('2026-01-10', 'synthetic phrase', 'https://site.example/', 2, 40, 3),
-        ('2026-01-02', 'synthetic phrase', 'https://site.example/', 1, 10, 5);
-      insert into search_answers (engine, keyword_id, asked_on, cited, sources, questions)
-        select 'google', id, '2026-01-10', true, '[]', '[]' from search_keywords`);
-    const api = serveRecords(SEARCH_RECORDS, pg.db);
-    for (const t of SEARCH_RECORDS)
+    const api = serveRecords(SITE_RECORDS, pg.db);
+    for (const t of SITE_RECORDS)
       for (const v of t.views) await api.list({ record: t.id, view: v.id, limit: 50 });
     const site = await api.list({ record: "marketing.site_day", view: "channel", limit: 50 });
     expect(site.totals.booked).toEqual({ n: 1, of: 5 });
-    const [kw] = (await api.list({ record: "marketing.keyword", limit: 5 })).rows;
-    expect(kw).toMatchObject({
-      clicks: 2,
-      impressions: 40,
-      clicksChange: 1,
-      impressionsChange: 30,
-    });
-    const answers = await api.list({ record: "marketing.answer", view: "cited", limit: 5 });
-    expect(answers.rows).toHaveLength(1);
   });
 
   it("sessions read live from the export; opening one signs each chunk", async () => {

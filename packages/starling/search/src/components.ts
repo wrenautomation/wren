@@ -1,53 +1,28 @@
-/** Search Console: the site's search numbers, watched daily and summed weekly. */
+/** The lander's numbers rolled up daily, and the bandit over site experiments. */
 import { defineComponent } from "@wren/core/components";
-import { clientKey } from "@wren/core/restate";
-import { z } from "zod";
 
-export const SEARCH_COMPONENT = "search.watch";
-
-/** A client's block: `{}` reads the site the property names. */
-export const searchSettingsSchema = z
-  .object({
-    origin: z.url().optional().meta({
-      title: "Site address",
-      description: "Where the sitemap is. Left out: the site the property names.",
-    }),
-  })
-  .strict();
-
-export const SEARCH_COMPONENTS = [
+export const SITE_ROLLUP_COMPONENTS = [
   defineComponent({
-    id: SEARCH_COMPONENT,
+    id: "site.rollup",
     stage: "content",
     channels: ["web"],
-    name: "Search watch",
-    blurb: "Reads the site's Google search numbers daily and sums up each week.",
-    icon: "search",
-    for: "client",
-    ready: true,
-    missing: [],
-    settings: searchSettingsSchema,
-    // The property, and Wren's service account on it (`setup.search_console`).
-    requires: { accounts: ["search_console"], facts: ["search_console.service_account_added"] },
+    name: "Site numbers",
+    blurb:
+      "Rolls the lander's visits, clicks, heatmaps and survey answers into daily counts, and moves running experiments' shares.",
+    icon: "chart",
+    for: "wren",
+    ready: false,
+    missing: ["Stopped until the experiments phase (11-04)"],
+    requires: { accounts: [], facts: [] },
     // The bandit over site experiments runs on each pass, so the experiments are its records.
     provides: {
-      services: ["SearchWatch", "SearchWeek"],
-      loops: ["SearchWatch"],
+      services: ["SiteRollup"],
+      loops: ["SiteRollup"],
       records: ["marketing.experiment"],
     },
-    // One daily read per client, into its own database (`SearchWatch/<client>/daily`).
-    clientLoops: (client) => [{ service: "SearchWatch", key: clientKey(client, "daily") }],
     hypothesis: {
       from: "Wren's site, 2026-09",
-      guesses: [
-        { is: "change", says: "The site, per client.", built: "settings.origin" },
-        {
-          is: "needs",
-          says: "The client's Search Console property, with Wren's service account on it.",
-          built: "the Search Console account",
-        },
-        { is: "fixed", says: "Numbers come from Search Console once a day." },
-      ],
+      guesses: [{ is: "fixed", says: "The lander's export, read once a day." }],
     },
   }),
 ];

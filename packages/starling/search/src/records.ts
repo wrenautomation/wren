@@ -1,11 +1,10 @@
-/** Search and site numbers as console records for the Marketing app (views in `./schema.ts`). */
+/** The lander's numbers as console records (views in `./schema.ts`). UI off since 11-04. */
 
 import { touchChannel } from "@wren/core/clients";
 import {
   cued,
   date,
   defineRecord,
-  link,
   money,
   number,
   rate,
@@ -30,123 +29,6 @@ const SITE_CHANNEL_STATES = cued({
   other: neutral("Other"),
   direct: neutral("Direct"),
 });
-/** Its week against the week before, as `marketing_search_page_records` reads Search Console. */
-const WEEK = {
-  clicks: number(),
-  impressions: number(),
-  ctr: rate("impressions", "CTR", { from: "clicks" }),
-  position: number("Avg position"),
-  clicksChange: number("Clicks vs last week"),
-  impressionsChange: number("Impressions vs last week"),
-};
-
-export const searchPageRecord = defineRecord({
-  id: "marketing.search_page",
-  app: "campaigns",
-  channel: null,
-  name: { one: "page", many: "pages" },
-  view: "marketing_search_page_records",
-  key: "id",
-  title: "url",
-  fields: {
-    url: link("Page"),
-    indexed: status(
-      {
-        indexed: { label: "Indexed", tone: "good" },
-        not_indexed: { label: "Not indexed", tone: "warn" },
-      },
-      "Google",
-    ),
-    coverage: text(),
-    checked: date(),
-    ...WEEK,
-  },
-  views: [
-    { id: "all", label: "All", sort: "-impressions" },
-    {
-      id: "not_indexed",
-      label: "Not indexed",
-      where: { indexed: "not_indexed" },
-      sort: "-checked",
-    },
-  ],
-});
-
-export const keywordRecord = defineRecord({
-  id: "marketing.keyword",
-  app: "campaigns",
-  channel: null,
-  name: { one: "keyword", many: "keywords" },
-  view: "marketing_keyword_records",
-  key: "id",
-  title: "phrase",
-  subtitle: "page",
-  fields: {
-    phrase: text("Keyword"),
-    source: status({ seed: neutral("Seed"), fanout: neutral("Fan-out"), query: neutral("Query") }),
-    page: text(),
-    state: status({ active: { label: "Active", tone: "good" }, retired: neutral("Retired") }),
-    ...WEEK,
-    added: date(),
-  },
-  views: [
-    { id: "active", label: "Active", where: { state: "active" }, sort: "-impressions" },
-    { id: "all", label: "All", sort: "-impressions" },
-  ],
-});
-
-export const searchDayRecord = defineRecord({
-  id: "marketing.search_day",
-  app: "campaigns",
-  channel: null,
-  name: { one: "day in Google", many: "days in Google" },
-  view: "marketing_search_day_records",
-  key: "id",
-  title: "day",
-  fields: {
-    day: date(),
-    clicks: number(),
-    impressions: number(),
-    ctr: rate("impressions", "CTR", { from: "clicks" }),
-    position: number("Avg position"),
-  },
-  views: [{ id: "all", label: "All", sort: "-day", at: "day" }],
-});
-
-const answerRecord = defineRecord({
-  id: "marketing.answer",
-  app: "campaigns",
-  channel: null,
-  name: { one: "answer", many: "answers" },
-  view: "marketing_answer_records",
-  key: "id",
-  title: "phrase",
-  subtitle: "engine",
-  fields: {
-    phrase: text("Keyword"),
-    engine: status({ google: neutral("Google"), perplexity: neutral("Perplexity") }),
-    asked: date(),
-    cited: status(
-      { cited: { label: "Names Wren", tone: "good" }, not_cited: neutral("Doesn't") },
-      "Cited",
-    ),
-    rank: number(),
-    overview: status({ shown: neutral("Shown"), none: neutral("None") }, "AI Overview"),
-    latest: status({ latest: neutral("Newest"), older: neutral("Older") }, "Asked"),
-  },
-  views: [
-    { id: "latest", label: "Newest", where: { latest: "latest" }, sort: "-asked", at: "asked" },
-    {
-      id: "cited",
-      label: "Names Wren",
-      where: { latest: "latest", cited: "cited" },
-      sort: "-asked",
-      at: "asked",
-    },
-    { id: "all", label: "All", sort: "-asked", at: "asked" },
-  ],
-});
-
 const siteDayRecord = defineRecord({
   id: "marketing.site_day",
   app: "campaigns",
@@ -257,15 +139,7 @@ const linkDayRecord = defineRecord({
   ],
 });
 
-export const SEARCH_RECORDS = [
-  searchPageRecord,
-  keywordRecord,
-  searchDayRecord,
-  answerRecord,
-  siteDayRecord,
-  funnelRecord,
-  linkDayRecord,
-];
+export const SITE_RECORDS = [siteDayRecord, funnelRecord, linkDayRecord];
 
 /** Where sessions come from: the lander's export, and a short signed GET per chunk. */
 interface SessionSource {

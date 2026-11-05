@@ -14,13 +14,6 @@ export const REPORT_TILES = [
     view: "posts",
   },
   {
-    id: "search_impressions",
-    label: "Search impressions",
-    record: "marketing.search_day",
-    sum: "impressions",
-    view: "all",
-  },
-  {
     id: "visits",
     label: "Site visits",
     record: "marketing.site_day",

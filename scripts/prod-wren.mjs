@@ -11,7 +11,7 @@ import { parse } from "./secrets.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const prod = parse(readFileSync(join(root, "deploy/prod.env"), "utf8"));
-const KEYS = ["WREN_DATABASE_URL", "WREN_SEARCH_SITE", "WREN_SEARCH_ORIGIN"];
+const KEYS = ["WREN_DATABASE_URL"];
 const missing = KEYS.filter((k) => !prod[k]);
 if (missing.length) {
   console.error(`deploy/prod.env lacks ${missing.join(", ")}`);

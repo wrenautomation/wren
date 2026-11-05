@@ -991,7 +991,7 @@ export type FlagExperiment = typeof flagExperiments.$inferSelect;
 /**
  * Each site flag's variants per day of first exposure and first-touch channel: visitors who saw
  * it (`exp.seen`, cookie yes), and how many of them went on to a form, a call, a payment.
- * Rolled up from the lander's export by SearchWatch (`@wren/starling-search` flag-days), whole.
+ * Rolled up from the lander's export by SiteRollup (`@wren/starling-search` flag-days), whole.
  */
 export const flagDays = pgTable(
   "flag_days",
@@ -1044,7 +1044,7 @@ export type Survey = typeof surveys.$inferSelect;
 
 /**
  * Site answers per survey, day, value and first-touch channel, rolled up from the lander's
- * export by SearchWatch (`@wren/starling-search` survey-days), whole. A text answer counts under
+ * export by SiteRollup (`@wren/starling-search` survey-days), whole. A text answer counts under
  * the value `text`; the words are read live from the export.
  */
 export const surveyDays = pgTable(

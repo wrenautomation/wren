@@ -464,3 +464,13 @@ None.
     is deleted (wrangler migration v3; it kept nothing on disk). Ask no longer reads notes. Every
     notes table stays in `conversations/src/notes-schema.ts` until the lake; the `notes/*` S3
     grant stays while the images do.
+  - SearchWatch split (WA-1067): `SiteRollup/default` takes the lander rollups (site, link,
+    flag and survey days, heatmaps, `/go/` clicks), the bandit and the edge push. It is bound
+    always and left stopped; it stops itself without `WREN_SITE_EXPORT_TOKEN`. SearchWatch,
+    SearchWeek, the client Search watch part (0 installs), `wren search`, the `search-week`
+    skill, the brief, propose, PR and citability code, the four SEO records and the report's
+    search tile go. The adapter stays: the Search Console client and its setup check, `syncSearch`,
+    keywords and the AI-answer reads. Every search table stays. `WREN_SEARCH_SITE`,
+    `WREN_SEARCH_ORIGIN` and the search Discord lane are no longer read; delete them from SSM later.
+    Restart cursors: SiteRollup reads heat and clicks from id 0 on its first pass (SearchWatch
+    never ran that step on prod: no export token).

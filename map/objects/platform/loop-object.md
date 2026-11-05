@@ -18,7 +18,7 @@ Restate owns the timer, so a worker dying or a laptop closing loses nothing; the
 ## Shape
 
 - `makeLoopObject(name, pass, hooks)` (`loop.ts:366`); `hooks.effect` marks `sync` (`sends` on `EmailSend`); `passOrFailed` (`:343`): a pass that throws a terminal or replayed error is kept as a failed `last` with backoff, the next queued, never parked; `failuresInARow` (`:34`); state keys for `last` and the `start` input (`:20`, `:22`)
-- keys: `EmailSend/{sender}`, `EmailInboxRead/{sender}`, `EmailOpenerFill/{niche}`, `LeadPoolFill/{niche}`, `EmailFleetDigest/fleet`, `EmailPostmasterPull/fleet`, `EmailClickPull/fleet`, `EmailBounceRead/all`, `EmailPlacementTest/fleet`, `PostPublish/default`, `PostPlan/default`, `PostMetrics/default`, `AdSpendGuard/default`, `SiteTokenRenew/box`, `VaultKeyMirror/box`, `SmsSend/fleet`, `SmsUpkeep/daily`, `SearchWatch/default`, `SocialActivityRead/wren`, `StripeReconcile/all`, `TouchToJourney/all`
+- keys: `EmailSend/{sender}`, `EmailInboxRead/{sender}`, `EmailOpenerFill/{niche}`, `LeadPoolFill/{niche}`, `EmailFleetDigest/fleet`, `EmailPostmasterPull/fleet`, `EmailClickPull/fleet`, `EmailBounceRead/all`, `EmailPlacementTest/fleet`, `PostPublish/default`, `PostPlan/default`, `PostMetrics/default`, `AdSpendGuard/default`, `SiteTokenRenew/box`, `VaultKeyMirror/box`, `SmsSend/fleet`, `SmsUpkeep/daily`, `SiteRollup/default`, `SocialActivityRead/wren`, `StripeReconcile/all`, `TouchToJourney/all`
 
 - time limits (`packages/core/src/restate/limits.ts`): `within` on each Restate call, `limitedRun` on HTTP steps, `unitLimits` strikes a unit three passes in a row into [[platform/checks]] (stage `loop.<service>/<key>`); the pass keeps them as `last.timeouts`
 
