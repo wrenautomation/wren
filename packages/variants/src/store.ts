@@ -6,18 +6,22 @@ import { PortalRefusal } from "@wren/core/refusal";
 import { atomic, type Db, setAuditActor, type Tx } from "@wren/db";
 import { fitPlackettLuce, rateSplit, type Strength, tiersToChoices } from "@wren/experiments";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { live } from "./live.js";
 import {
   type Anchor,
   batches,
+  type Channel,
   type GuideState,
   guides,
   type Kind,
   notes,
   samples,
+  ships,
   subjects,
   type Tone,
   type Verdict,
 } from "./schema.js";
+import { isSource, type Source } from "./sync.js";
 
 /** A "no" to the caller: the portal answers its status, the CLI prints it. */
 export class VariantsError extends PortalRefusal {}
@@ -30,6 +34,8 @@ export interface NewSample {
   parent?: number | null;
   guides?: number[];
   change?: string | null;
+  /** A video's footage and kept spans, for synced play. */
+  source?: Source | null;
 }
 
 type SubjectRow = typeof subjects.$inferSelect;
@@ -116,7 +122,7 @@ export async function listSubjects(db: Db) {
 }
 
 /** One batch for review: samples in their shuffled order. */
-export function addBatch(
+export async function addBatch(
   db: Db,
   ref: string | number,
   b: { why: string; agent?: string | null; samples: NewSample[] },
@@ -125,6 +131,9 @@ export function addBatch(
   if (!b.samples.length) throw new VariantsError("a batch needs samples");
   for (const s of b.samples)
     if (!s.body?.trim() && !s.media) throw new VariantsError("each sample needs a body or a file");
+  for (const s of b.samples)
+    if (s.source != null && !isSource(s.source))
+      throw new VariantsError("source needs a ref and spans of {s, e} seconds, e > s");
   return write(db, b.agent ?? null, async (tx) => {
     const subject = await subjectOf(tx, ref);
     const [batch] = await tx
@@ -142,6 +151,7 @@ export function addBatch(
           body: s.body ?? null,
           media: s.media ?? null,
           poster: s.poster ?? null,
+          source: s.source ?? null,
           parentId: s.parent ?? null,
           guides: s.guides ?? [],
           change: s.change ?? null,
@@ -386,7 +396,60 @@ export async function feedback(db: Db, ref: string | number) {
     leaders: [...strength.values()]
       .slice(0, 5)
       .map((x) => ({ sample: Number(x.id), strength: x.strength, se: x.se })),
+    live: await live(db, s.id),
   };
+}
+
+/** A sample goes live on a channel's target; `collect` reads its numbers from then on. */
+export function ship(
+  db: Db,
+  sampleId: number,
+  o: { channel: Channel; target: string; why?: string | null },
+  by: string | null,
+) {
+  if (!o.target.trim()) throw new VariantsError("a ship needs the channel's target id");
+  return write(db, by, async (tx) => {
+    const [sample] = await tx
+      .select({ id: samples.id })
+      .from(samples)
+      .where(eq(samples.id, sampleId));
+    if (!sample) throw new VariantsError(`no sample ${sampleId}`, 404);
+    const [row] = await tx
+      .insert(ships)
+      .values({ sampleId, channel: o.channel, target: o.target.trim(), why: o.why ?? null, by })
+      .onConflictDoUpdate({
+        target: [ships.channel, ships.target, ships.sampleId],
+        set: { endedAt: null },
+      })
+      .returning();
+    if (!row) throw new Error("ship not written");
+    return row;
+  });
+}
+
+/** Ends a ship: its numbers stay, frozen at the next collect. */
+export function unship(db: Db, shipId: number, by: string | null) {
+  return write(db, by, async (tx) => {
+    const [row] = await tx
+      .update(ships)
+      .set({ endedAt: sql`now()` })
+      .where(and(eq(ships.id, shipId), isNull(ships.endedAt)))
+      .returning();
+    if (!row) throw new VariantsError(`no live ship ${shipId}`, 404);
+    return row;
+  });
+}
+
+/** A subject's ships, newest first. */
+export async function shipsOf(db: Db, ref: string | number) {
+  const s = await subjectOf(db, ref);
+  return db
+    .select({ ship: ships })
+    .from(ships)
+    .innerJoin(samples, eq(samples.id, ships.sampleId))
+    .where(eq(samples.subjectId, s.id))
+    .orderBy(desc(ships.startedAt))
+    .then((r) => r.map((x) => x.ship));
 }
 
 /** Kept samples, newest first, with their subject. */

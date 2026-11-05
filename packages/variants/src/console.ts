@@ -72,6 +72,8 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
                   body: s.body,
                   media: s.media,
                   poster: s.poster,
+                  // footage spans: lets the page play cuts of one footage in step
+                  source: s.source,
                   verdict: s.verdict,
                   keptAt: s.keptAt,
                   notes: s.notes,

@@ -2605,6 +2605,13 @@
       "when": 1793899074329,
       "tag": "0372_variants_guides_index",
       "breakpoints": true
+    },
+    {
+      "idx": 373,
+      "version": "7",
+      "when": 1793900585984,
+      "tag": "0373_variants_sync_live",
+      "breakpoints": true
     }
   ]
 }

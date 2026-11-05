@@ -6,6 +6,8 @@
 import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
+  date,
+  doublePrecision,
   foreignKey,
   index,
   integer,
@@ -19,6 +21,7 @@ import {
   unique,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { Source } from "./sync.js";
 
 export const variants = pgSchema("variants");
 
@@ -117,6 +120,8 @@ export const samples = variants.table(
     media: text("media"),
     /** s3:// uri of a still for a video. */
     poster: text("poster"),
+    /** A video's footage and kept spans: cuts of the same footage play in step (`sync.ts`). */
+    source: jsonb("source").$type<Source>(),
     parentId: integer("parent_id"),
     /** Guide ids this sample applied: a guide's with-vs-without rate reads these. */
     guides: integer("guides").array().notNull().default(sql`'{}'::integer[]`),
@@ -197,5 +202,65 @@ export const guides = variants.table(
     oneOf("ck_variants_guides_source", t.source, GUIDE_SOURCES),
     oneOf("ck_variants_guides_kind", t.kind, KINDS),
     oneOf("ck_variants_guides_state", t.state, GUIDE_STATES),
+  ],
+);
+
+/** Where a sample goes live: a post, a site page, an email template version. */
+export const CHANNELS = ["post", "site", "email"] as const;
+export type Channel = (typeof CHANNELS)[number];
+
+/**
+ * A sample out in the world. `target` is the channel's own id: a `content_drafts` id, a
+ * `site_pages` id, `<template>@<version>`. Outcomes are read off the channel by `collect.ts`.
+ */
+export const ships = variants.table(
+  "ships",
+  {
+    id: serial("id"),
+    sampleId: integer("sample_id").notNull(),
+    channel: varchar("channel", { length: 8, enum: CHANNELS }).notNull(),
+    target: varchar("target", { length: 200 }).notNull(),
+    why: text("why"),
+    by: varchar("by", { length: 320 }),
+    startedAt: at("started_at").notNull().defaultNow(),
+    endedAt: at("ended_at"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_ships" }),
+    foreignKey({
+      columns: [t.sampleId],
+      foreignColumns: [samples.id],
+      name: "fk_ships_sample_id_samples",
+    }).onDelete("cascade"),
+    index("ix_variants_ships_sample").on(t.sampleId),
+    unique("uq_variants_ships_target").on(t.channel, t.target, t.sampleId),
+    oneOf("ck_variants_ships_channel", t.channel, CHANNELS),
+  ],
+);
+
+/**
+ * A ship's numbers, long: totals to `day` per segment (`all`, `platform:linkedin`,
+ * `niche:recruiting`, `source:google`). A later collect the same day replaces that day's row.
+ */
+export const outcomes = variants.table(
+  "outcomes",
+  {
+    shipId: integer("ship_id").notNull(),
+    segment: varchar("segment", { length: 160 }).notNull(),
+    day: date("day", { mode: "string" }).notNull(),
+    metric: varchar("metric", { length: 32 }).notNull(),
+    value: doublePrecision("value").notNull(),
+    fetchedAt: at("fetched_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({
+      columns: [t.shipId, t.segment, t.day, t.metric],
+      name: "pk_outcomes",
+    }),
+    foreignKey({
+      columns: [t.shipId],
+      foreignColumns: [ships.id],
+      name: "fk_outcomes_ship_id_ships",
+    }).onDelete("cascade"),
   ],
 );

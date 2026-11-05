@@ -7,12 +7,16 @@ import { extname, resolve } from "node:path";
 import type { Settings } from "@wren/config";
 import type { Db } from "@wren/db";
 import { checkMediaStore, uploadMedia } from "@wren/starling-inbound";
+import { FPS, getEdit, keepSegments, shortCutsOver } from "@wren/starling-studio";
 import {
   addBatch,
   addGuide,
   addNote,
+  CHANNELS,
+  type Channel,
   catalog,
   closeBatch,
+  collect as collectLive,
   feedback,
   GUIDE_SOURCES,
   type GuideState,
@@ -24,8 +28,12 @@ import {
   type NewSample,
   newSubject,
   queue,
+  type Source,
   setGuide,
+  ship,
+  shipsOf,
   subjectOf,
+  unship,
   VERDICTS,
   type Verdict,
 } from "@wren/variants";
@@ -48,6 +56,8 @@ const oneOf = <T extends string>(v: string, all: readonly T[], what: string): T 
 interface SampleIn extends NewSample {
   file?: string;
   posterFile?: string;
+  /** A studio edit's spans: the cut as it plays (long) or its Short. */
+  studio?: { edit: number; format?: "long" | "short" };
 }
 interface BatchIn {
   why: string;
@@ -113,7 +123,7 @@ export function registerVariants(
 
   v.command("add <subject> [file]")
     .description(
-      "One batch from JSON (file or stdin): {why, agent, samples:[{body | file, posterFile?, parent?, guides?, change?}]}. Files go to the media bucket",
+      "One batch from JSON (file or stdin): {why, agent, samples:[{body | file, posterFile?, parent?, guides?, change?, source? | studio?}]}. Files go to the media bucket",
     )
     .action((s: string, file: string | undefined) =>
       withDb(async (db) => {
@@ -143,6 +153,7 @@ export function registerVariants(
             parent: x.parent ?? null,
             guides: x.guides ?? [],
             change: x.change ?? null,
+            source: x.source ?? (x.studio ? await studioSource(db, x.studio) : null),
           });
         json(await addBatch(db, s, { why: b.why, agent: b.agent ?? by, samples }));
       }),
@@ -228,6 +239,45 @@ export function registerVariants(
       ),
     );
 
+  v.command("ship <sample>")
+    .description("A sample goes live; its channel numbers come back per segment (`live`)")
+    .option("--post <draft>", "content draft id")
+    .option("--site <page>", "site page id")
+    .option("--email <template@version>")
+    .option("--why <text>")
+    .action((s: string, o: { post?: string; site?: string; email?: string; why?: string }) =>
+      withDb(async (db) => {
+        const set = CHANNELS.filter((c) => o[c]);
+        if (set.length !== 1) throw new Error(`one of --${CHANNELS.join(", --")}`);
+        const channel = set[0] as Channel;
+        json(
+          await ship(db, id(s), { channel, target: o[channel] as string, why: o.why ?? null }, by),
+        );
+      }),
+    );
+
+  v.command("unship <ship>")
+    .description("End a ship; its numbers stay")
+    .action((x: string) => withDb(async (db) => json(await unship(db, id(x), by))));
+
+  v.command("live <subject>")
+    .description(
+      "Live numbers per segment: each shipped sample's rates, 95% range, P(best); and its ships",
+    )
+    .action((s: string) =>
+      withDb(async (db) => {
+        const f = await feedback(db, s);
+        json({ ...f.live, ships: await shipsOf(db, s) });
+      }),
+    );
+
+  v.command("collect")
+    .description("Read every live ship's numbers now (the loop runs this every 6h)")
+    .option("--ship <ship>")
+    .action((o: { ship?: string }) =>
+      withDb(async (db) => json(await collectLive(db, o.ship ? { ship: id(o.ship) } : {}))),
+    );
+
   const g = v
     .command("guide")
     .description("Tips the agent writes from: testing, locked (a rule), dropped");
@@ -258,6 +308,16 @@ export function registerVariants(
     g.command(`${verb} <guide>`).action((x: string) =>
       withDb(async (db) => json(await setGuide(db, id(x), state as GuideState, by))),
     );
+}
+
+/** A studio edit's kept spans: the long cut, or the Short's tighter one. */
+async function studioSource(
+  db: Db,
+  x: { edit: number; format?: "long" | "short" },
+): Promise<Source> {
+  const e = await getEdit(db, x.edit);
+  const cuts = x.format === "short" ? shortCutsOver(e.cuts, e.shortCuts ?? []) : e.cuts;
+  return { ref: `studio:${e.id}`, spans: keepSegments(cuts, e.tracks.main.durationS, FPS) };
 }
 
 function boxOf(s: string) {

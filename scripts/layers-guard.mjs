@@ -11,9 +11,9 @@ const LAYERS = [
   // One vendor or one outside system behind an interface.
   "starling-email starling-sms starling-linkedin starling-meta starling-reddit starling-search starling-tiktok starling-x starling-youtube",
   // One domain, used by products: the money, the calendar, the shape, the papers, the studio, the threads.
-  "books calendar documents learn niches payments pipeline starling-acts starling-conversations starling-studio variants watch",
+  "books calendar documents learn niches payments pipeline starling-acts starling-conversations starling-studio watch",
   // What a client buys or Wren runs as a loop.
-  "delivery reactivation starling-inbound starling-outbound voice",
+  "delivery reactivation starling-inbound starling-outbound variants voice",
 ].flatMap((row, layer) => row.split(" ").map((name) => [name, layer]));
 const layerOf = new Map(LAYERS);
 

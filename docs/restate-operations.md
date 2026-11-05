@@ -95,6 +95,7 @@ curl -X POST -H "$H" $U/ListToJourney/all/start            # every 15 min (5 s w
 curl -X POST -H "$H" $U/MapLineFeed/all/start               # every 15 min (5 s while a find has more): Wren's content lines; a document a find's SOP takes opens an instance, a job that ends moves it on; MapLineFeed/all/status shows the last pass
 curl -X POST -H "$H" $U/Judge/wren/start                 # every 10 min: open comment drafts and people who wrote back judged by Claude Code on the desk (`claude/ask`, $0; they wait while the Mac is off), Learn items by WREN_DECIDE's chain; logged in `decisions`; WREN_DECIDE=off stops it, $1/day cap (`decide.dailyUsd`); /sync runs one pass
 curl -X POST -H "$H" $U/VaultKeyMirror/box/start             # hourly: the operator's API keys mirrored from autobrowse's vault (`sites/keys`) into `vault_keys`; /sync mirrors now; rotate, revoke and spend (`wren accounts key ...`) act on a key and mirror again
+curl -X POST -H "$H" $U/VariantsCollect/all/start            # every 6 h: each shipped Variants sample's channel numbers (post metrics, site events, email template stats) into `variants.outcomes` per segment; /sync now (`wren variants collect`)
 ```
 
 ### CLI (already configured for this env)

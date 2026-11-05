@@ -2143,6 +2143,12 @@ importers:
       '@wren/experiments':
         specifier: workspace:*
         version: link:../experiments
+      '@wren/sites':
+        specifier: workspace:*
+        version: link:../sites
+      '@wren/starling-inbound':
+        specifier: workspace:*
+        version: link:../starling/inbound
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
