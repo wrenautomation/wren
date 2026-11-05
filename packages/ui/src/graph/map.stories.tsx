@@ -76,6 +76,7 @@ function Tour() {
   const m = useMemo(() => islandsMap(15_000), []);
   const map = useRef<MapHandle>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  // read-ok: a camera tour on timers; reads no data.
   useEffect(() => {
     let live = true;
     const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
