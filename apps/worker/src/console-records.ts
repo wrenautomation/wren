@@ -17,7 +17,7 @@ import { SENT_RECORDS } from "@wren/core/sent/records";
 import { templateRecords } from "@wren/core/templates/records";
 import { BILLING_RECORDS } from "@wren/delivery/billing/records";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
-import { PIPELINE_RECORDS } from "@wren/pipeline/records";
+import { journeyOfProfile, PIPELINE_RECORDS } from "@wren/pipeline/records";
 import { RESEARCH_RECORDS } from "@wren/research/records";
 import { SITES_RECORDS } from "@wren/sites/records";
 import { mentionRecord } from "@wren/starling-conversations/inbox";
@@ -81,7 +81,11 @@ export function consoleRecords(at: ConsoleRecordsAt = {}): RecordType[] {
     // Wren's broadcasts and who each went to (People → Broadcasts).
     ...BROADCAST_RECORDS,
     // Everyone once, their addresses, traits and timeline (People). Research: Wren's own people only.
-    ...profileRecords(WORKFLOWS, { research: true, ...(at.visits ? { visits: at.visits } : {}) }),
+    ...profileRecords(WORKFLOWS, {
+      research: true,
+      journey: journeyOfProfile,
+      ...(at.visits ? { visits: at.visits } : {}),
+    }),
     ...templateRecords(WORKFLOWS),
     clientRecord,
     // Each client's health and the flags about it (Clients).

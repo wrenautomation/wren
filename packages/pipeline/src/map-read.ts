@@ -16,7 +16,10 @@ export type MapWindow = (typeof MAP_WINDOWS)[number];
 
 /** An open journey: who, where, since when. */
 export interface MapPerson {
+  /** The journey's id. */
   id: string;
+  /** Their page: `/people/people/<profile>`. */
+  profile: number;
   name: string;
   node: string;
   nodeName: string;
@@ -57,6 +60,7 @@ export async function mapAnswerOf(db: Queryable, window: MapWindow): Promise<Map
   const open = journeys.filter((j) => j.status === "open");
   const person = (j: (typeof open)[number]): MapPerson => ({
     id: j.id,
+    profile: j.profile,
     name: j.name,
     node: j.node,
     nodeName: j.node_name ?? j.node,

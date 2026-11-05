@@ -107,7 +107,7 @@ export function Numbers({ lines, window }: { lines: readonly string[]; window: W
   );
 }
 
-/** The people at a station, newest first, each a link to the journey. */
+/** The people at a station, newest first, each a link to the person: their journey is on their page. */
 export function PeopleHere({
   people,
   at,
@@ -128,7 +128,7 @@ export function PeopleHere({
           {people.slice(0, SHOWN).map((p) => (
             <li key={p.id}>
               <a
-                href={href(`/people/journeys/${encodeURIComponent(p.id)}`, at)}
+                href={href(`/people/people/${p.profile}`, at)}
                 className="flex min-h-9 items-center gap-2 text-(--ui-ink) no-underline hover:bg-(--ui-hover)"
               >
                 <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">{p.name}</span>

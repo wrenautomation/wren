@@ -1,8 +1,8 @@
 /**
  * Where a Map node opens: the app that manages it, one table (designs/2026-10-19-business-map.md,
  * "Map page"). A source opens Campaigns › Content for its channel, Today › DMs for an outbound DM
- * source, Ads for ads (none while ads are cut); a step and an offer open the Journeys list at that
- * node; an offer also opens Offers; a plan opens the money (Pay links in a client's workspace,
+ * source, Ads for ads (none while ads are cut); a step and an offer open the people at that
+ * node (the journey list, a route with no tab: WA-1114); an offer also opens Offers; a plan opens the money (Pay links in a client's workspace,
  * Money at Wren). A content line's stations open Campaigns › Content. `routes.test.ts` checks each
  * target is a real page of a real app.
  */
@@ -38,15 +38,15 @@ export const ROUTES = {
     client: [{ label: "Content", app: "campaigns", page: "content", channel: true }],
   },
   step: {
-    wren: [{ label: "Journeys", app: "people", page: "journeys", node: true }],
-    client: [{ label: "Journeys", app: "people", page: "journeys", node: true }],
+    wren: [{ label: "People", app: "people", page: "journeys", node: true }],
+    client: [{ label: "People", app: "people", page: "journeys", node: true }],
   },
   offer: {
     wren: [
-      { label: "Journeys", app: "people", page: "journeys", node: true },
+      { label: "People", app: "people", page: "journeys", node: true },
       { label: "Offers", app: "map", page: "offers" },
     ],
-    client: [{ label: "Journeys", app: "people", page: "journeys", node: true }],
+    client: [{ label: "People", app: "people", page: "journeys", node: true }],
   },
   plan: {
     wren: [{ label: "Money", app: "office", page: "money" }],

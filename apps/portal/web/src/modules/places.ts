@@ -198,12 +198,13 @@ const campaignsPlace: Module = {
 const peoplePlace: Module = {
   ...oldPeople,
   blurb: "Everyone we know, once each.",
-  find: finds(oldPeople, journeys, clients),
+  find: finds(oldPeople, clients),
   pages: [
     ...from(oldPeople, ["people"]),
     ...from(clients, [{ id: "all", as: "clients" }]),
     ...from(oldPeople, ["timeline"]),
-    ...from(journeys, ["journeys"]),
+    // No tab (WA-1114): a journey shows on the person. The list stays a route for the Map's step link.
+    ...from(journeys, ["journeys"]).map(hide),
   ],
 };
 
@@ -295,7 +296,7 @@ const clientCampaignsPlace: Module = {
 
 const clientPeoplePlace: Module = {
   ...oldClientPeople,
-  find: finds(oldClientPeople, journeys),
+  find: finds(oldClientPeople),
   pages: [
     // Channels is cut, as at Wren: funnels are Results. Sent has no tab; a broadcast opens its log.
     ...from(oldClientPeople, ["sent"]).map(hide),
@@ -308,7 +309,8 @@ const clientPeoplePlace: Module = {
       "recipients",
       "import",
     ]),
-    ...from(journeys, ["journeys"]),
+    // No tab (WA-1114): a journey shows on the person. The list stays a route for the Map's step link.
+    ...from(journeys, ["journeys"]).map(hide),
   ],
 };
 

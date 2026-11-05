@@ -49,6 +49,7 @@ const numberOf = (r: Row, kind: NumberRow["kind"]): NumberRow => {
 
 const personOf = (r: Row): MapPerson => ({
   id: String(r.id),
+  profile: Number(r.profile ?? 0),
   name: String(r.name ?? r.id),
   node: String(r.node ?? ""),
   nodeName: String(r.nodeName ?? r.node ?? ""),

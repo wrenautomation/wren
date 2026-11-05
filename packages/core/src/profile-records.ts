@@ -132,6 +132,31 @@ export interface VisitLine {
  */
 type VisitReader = (visitors: readonly string[]) => Promise<VisitLine[]>;
 
+/** A person's journey on the shape, on their page: the open one, else the newest closed. */
+export interface ProfileJourney {
+  id: string;
+  status: "open" | "done" | "dropped";
+  /** The step's name in the journey's own shape version. */
+  step: string;
+  days: number;
+  stale: boolean;
+  /** On a step the newest shape dropped. */
+  ghost: boolean;
+  source: string;
+  owner: string | null;
+  openedAt: string;
+  closedAt: string | null;
+  reason: string | null;
+  /** Steps reached, in order, ending at `step`; gates left out. */
+  trail: { name: string; at: string }[];
+  fit: { score: number; reasons: string[]; unknown: string[] } | null;
+  /** Journeys before this one. */
+  earlier: number;
+}
+
+/** The pipeline's read, handed in: core imports no pipeline. */
+type JourneyReader = (db: Queryable, profile: number) => Promise<ProfileJourney | null>;
+
 /** The visitor keys a profile page reads, newest first. */
 const VISITORS_MAX = 5;
 
@@ -173,6 +198,8 @@ export interface ProfileDetail {
   research: ResearchDetail | null;
   /** Jev's lead check and William's call, for Wren's own People; empty where nothing was asked. */
   leadFit: LeadFitView | null;
+  /** Where they are on the shape; null with no reader or no journey. */
+  journey: ProfileJourney | null;
   /** The parts that failed to read, by name ("Warmth"): the page says so and the rest still shows. */
   failed: string[];
 }
@@ -227,6 +254,7 @@ async function profileDetail(
   id: string,
   visits?: VisitReader,
   research = false,
+  journey?: JourneyReader,
 ): Promise<ProfileDetail | null> {
   if (!/^\d+$/.test(id)) return null;
   const rows = (await db.execute<{ kind: string; n: number; last: Date | string | null }>(sql`
@@ -267,6 +295,7 @@ async function profileDetail(
     research: research ? await part("Research", () => researchDetail(db, Number(id))) : null,
     // Wren's own People only (the same flag as research): a client's asks Jev nothing.
     leadFit: research ? await part("Lead check", () => leadFitView(db, Number(id))) : null,
+    journey: journey ? await part("Journey", () => journey(db, Number(id))) : null,
     failed,
   };
 }
@@ -673,13 +702,14 @@ export function datumRecord(workflows: readonly Workflow[] = []): RecordType {
  */
 export function profileRecords(
   workflows: readonly Workflow[] = [],
-  o: { visits?: VisitReader; research?: boolean } = {},
+  o: { visits?: VisitReader; research?: boolean; journey?: JourneyReader } = {},
 ): RecordType[] {
   const read = o.visits;
   const research = o.research === true;
+  const journey = o.journey;
   // Research is Wren's own people: its action, its findings tab and its detail, not a client's.
   const profile: RecordType =
-    read || research
+    read || research || journey
       ? {
           ...profileRecord,
           ...(research
@@ -696,7 +726,7 @@ export function profileRecords(
                 ],
               }
             : {}),
-          load: (db, id) => profileDetail(db, id, read, research),
+          load: (db, id) => profileDetail(db, id, read, research, journey),
         }
       : profileRecord;
   return [

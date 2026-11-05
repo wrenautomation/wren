@@ -64,11 +64,14 @@ export function Rail({
   groups,
   label = "Steps",
   states = RAIL_STATES,
+  tail = true,
   className,
 }: {
   groups: RailGroup[];
   label?: string;
   states?: Record<RailState, string>;
+  /** False where the last step is the end (a closed journey): no line runs on past it. */
+  tail?: boolean;
   className?: string | undefined;
 }) {
   return (
@@ -87,7 +90,10 @@ export function Rail({
               {g.label}
             </p>
             <ol
-              className="flex list-none @max-[820px]/rail:flex-col"
+              className={cn(
+                "flex list-none @max-[820px]/rail:flex-col",
+                !tail && "@min-[821px]/rail:[&>li:last-child]:before:hidden",
+              )}
               aria-labelledby={`ui-rail-${g.id}`}
             >
               {g.steps.map((s) => {

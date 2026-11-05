@@ -2,6 +2,7 @@
  * The fake server's answers, path → body (`../api.ts`), for every page story. Synthetic data only.
  * A story adds or swaps answers with `pageAt(at, { answers })`.
  */
+import type { ProfileJourney } from "@wren/core/profile-records";
 import type { Row } from "@wren/core/records/serve";
 import type { Answers } from "../api.js";
 import { APP_ANSWERS } from "./apps.js";
@@ -16,8 +17,82 @@ import { recordsAnswers } from "./records.js";
 import { ago, SHELL } from "./shell.js";
 import { VARIANTS_ANSWERS } from "./variants.js";
 
+/** A person's journey by their id: 1 open with a fit, 2 stale, 3 dropped, 4 done; the rest have none. */
+const journeyOf = (id: string): ProfileJourney | null => {
+  const base = {
+    id: `j${id}`,
+    ghost: false,
+    source: "Cold email",
+    owner: null,
+    closedAt: null,
+    reason: null,
+    fit: null,
+    earlier: 0,
+  };
+  const trail = (...steps: [string, number][]) => steps.map(([name, d]) => ({ name, at: ago(d) }));
+  if (id === "1")
+    return {
+      ...base,
+      status: "open",
+      step: "Booked",
+      days: 2,
+      stale: false,
+      owner: "sam@example.test",
+      openedAt: ago(12),
+      trail: trail(["Lead", 12], ["Engaged", 6], ["Booked", 2]),
+      fit: {
+        score: 82,
+        reasons: ["Owner of the firm", "Home services", "11 to 50 people"],
+        unknown: ["Region"],
+      },
+      earlier: 1,
+    };
+  if (id === "2")
+    return {
+      ...base,
+      status: "open",
+      step: "Engaged",
+      days: 19,
+      stale: true,
+      openedAt: ago(30),
+      trail: trail(["Lead", 30], ["Engaged", 19]),
+    };
+  if (id === "3")
+    return {
+      ...base,
+      status: "dropped",
+      step: "Engaged",
+      days: 40,
+      stale: false,
+      openedAt: ago(60),
+      closedAt: ago(40),
+      reason: "No budget this year",
+      trail: trail(["Lead", 60], ["Engaged", 48]),
+    };
+  if (id === "4")
+    return {
+      ...base,
+      status: "done",
+      step: "Signed",
+      days: 9,
+      stale: false,
+      source: "A referral with a long name, from the partner page of the autumn campaign",
+      openedAt: ago(50),
+      closedAt: ago(9),
+      trail: trail(
+        ["Lead", 50],
+        ["Engaged", 41],
+        ["Booked", 30],
+        ["Proposal sent", 20],
+        ["Signed", 9],
+      ),
+    };
+  return null;
+};
+
 /** A person's page read: their newest timeline lines, for the peek (`profileExtras`). */
 const PERSON_DETAIL = (row: Row) => ({
+  journey: journeyOf(String(row.id)),
   timeline: [],
   total: 3,
   href: "#",

@@ -68,6 +68,7 @@ const numbers = {
 
 const person = (id: string, node: string, h: number): Person => ({
   id,
+  profile: 1,
   name: `Person ${id}`,
   node,
   nodeName: node,

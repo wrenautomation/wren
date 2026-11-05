@@ -63,6 +63,7 @@ const row = (id: string, n: Partial<NodeNumbers>): [string, NodeNumbers] => [
 
 const person = (id: string, node: string): Person => ({
   id,
+  profile: 1,
   name: id,
   node,
   nodeName: node,

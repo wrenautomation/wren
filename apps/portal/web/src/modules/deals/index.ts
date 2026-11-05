@@ -1,7 +1,7 @@
 /**
- * Journeys (designs/2026-10-18-journeys.md): each person's way through the shape, one list under
- * People. The Map is the board: a node's people open here (`?node=<id>`), a journey at
- * `/people/journeys/<id>`.
+ * The journey list (designs/2026-10-18-journeys.md): a route with no tab since WA-1114. A person's
+ * journey shows on their page; the Map's step link opens a node's people here (`?node=<id>`).
+ * Deleted once the People list filters by step (WA-1115).
  */
 import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";

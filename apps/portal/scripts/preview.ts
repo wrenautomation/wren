@@ -73,6 +73,7 @@ import { paymentsConsoleApi } from "@wren/payments/console";
 import { PAYMENTS_CONSOLE_APPS, PAYMENTS_CONSOLE_ROUTES } from "@wren/payments/console-routes";
 import { pipelineConsoleApi } from "@wren/pipeline/console";
 import { PIPELINE_CONSOLE_APPS, PIPELINE_CONSOLE_ROUTES } from "@wren/pipeline/console-routes";
+import { journeyOfProfile } from "@wren/pipeline/records";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 import { sitesApi } from "@wren/sites/console";
 import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "@wren/sites/console-routes";
@@ -410,7 +411,7 @@ const SERVICES: Record<
     api: peopleConsoleApi({
       db: main,
       open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
-      records: [...PEOPLE_RECORDS, ...profileRecords(WORKFLOWS)],
+      records: [...PEOPLE_RECORDS, ...profileRecords(WORKFLOWS, { journey: journeyOfProfile })],
     }),
   },
   sms: {

@@ -338,12 +338,12 @@ export const StationPanel = mapAt("/", {
     const panel = await within(page).findByRole("region", { name: "Engaged, details" });
     const people = within(panel)
       .getAllByRole("link")
-      .filter((a) => a.getAttribute("href")?.startsWith("/people/journeys/"));
+      .filter((a) => a.getAttribute("href")?.startsWith("/people/people/"));
     await expect(people.map((a) => a.textContent)).toEqual([
       expect.stringContaining("Ada North"),
       expect.stringContaining("Bo Fenwick"),
     ]);
-    await expect(people[0]).toHaveAttribute("href", "/people/journeys/j1");
+    await expect(people[0]).toHaveAttribute("href", "/people/people/1");
     await expect(within(panel).getByText("Numbers in the last 30 days.")).toBeVisible();
     const open = within(panel).getByRole("link", { name: "Open" });
     await expect(open).toHaveAttribute("href", "/people/journeys?node=engaged&view=all");

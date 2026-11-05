@@ -19,7 +19,7 @@ The portal is a fixed shell of places (designs/2026-11-04-portal-places.md). Cod
 | Today | Approvals, messages, mail, calendar | `/today/approve` |
 | Campaigns | Overview board; Content (plan, studio, posts, voice and facts); Outreach (engage, conversations, cold email, inboxes) | `/campaigns/overview` |
 | Research | Birdwatch runs and sources | `/research/runs` |
-| People | Everyone once, clients, timeline, journeys | `/people/people` |
+| People | Everyone once, clients, timeline. A person's journey (steps reached, days at the step) leads their own page; no Journeys page | `/people/people` |
 | Back office | Contracts, money, spend, accounts, team, grants, look | `/office/money` |
 
 **A client's sidebar:** Today, Project, Campaigns (its reactivation run and posts), People, Back office. A client sees only the pages of the products it holds.

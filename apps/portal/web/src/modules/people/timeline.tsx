@@ -5,6 +5,7 @@
  * profiles).
  */
 import type { ResearchDetail } from "@wren/core/profile-findings";
+import type { ProfileJourney } from "@wren/core/profile-records";
 import type { State } from "@wren/core/records";
 import {
   Alert,
@@ -17,6 +18,7 @@ import {
   TimelineMini,
 } from "@wren/ui";
 import { createElement, type ReactNode } from "react";
+import { Journey } from "./journey.js";
 import { RESEARCH_POLL_MS, Research, researching } from "./research.js";
 
 /** Each timeline kind's icon on its node, here and on the Timeline page. */
@@ -111,6 +113,8 @@ interface Detail {
   warmth?: Warmth | null;
   /** Research this person: Wren's own people only (a client's detail has none). */
   research?: ResearchDetail | null;
+  /** Where they are on the shape. */
+  journey?: ProfileJourney | null;
 }
 
 const isDetail = (d: unknown): d is Detail =>
@@ -347,7 +351,7 @@ function recentOf(detail: Detail, name: string): PeekLine[] {
 }
 
 /**
- * The profile page's Profiles, Research, Warmth and Timeline sections, and Site visits when it
+ * The profile page's Journey, Profiles, Research, Warmth and Timeline sections, and Site visits when it
  * has a visitor key. Research shows for Wren's own people; the page reads again while a run works.
  * `name` is the person's, for the peek's newest lines.
  */
@@ -356,6 +360,8 @@ export const profileExtras = (detail: unknown, act?: RecordAct, name = "They"): 
     ? {
         recent: recentOf(detail, name),
         ...(researching(detail.research) ? { poll: RESEARCH_POLL_MS } : {}),
+        // Where they are leads the page: before the fields.
+        ...(detail.journey ? { lead: createElement(Journey, { j: detail.journey }) } : {}),
         sections: [
           ...(detail.reach
             ? [

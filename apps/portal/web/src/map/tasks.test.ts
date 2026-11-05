@@ -8,6 +8,7 @@ const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 36e5).toISOString()
 
 const person = (id: string, node: string, h: number | null): Person => ({
   id,
+  profile: 1,
   name: `Person ${id}`,
   node,
   nodeName: node,

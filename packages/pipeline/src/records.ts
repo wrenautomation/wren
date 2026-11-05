@@ -7,6 +7,7 @@
  * through a record edit.
  */
 
+import type { ProfileJourney } from "@wren/core/profile-records";
 import { keysOfProfile } from "@wren/core/profiles";
 import { profiles } from "@wren/core/profiles-schema";
 import {
@@ -615,6 +616,84 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
   });
 }
 
+/** The edges it crossed, in order, with the node names of its own version, and its fit. */
+async function journeyDetail(db: Queryable, id: string) {
+  const [r] = await db
+    .select({ trail: instances.trail, body: shapeVersions.body })
+    .from(instances)
+    .leftJoin(shapeVersions, eq(shapeVersions.number, instances.version))
+    .where(eq(instances.id, id))
+    .limit(1);
+  if (!r) return null;
+  const graph = r.body ? runOf(r.body) : undefined;
+  // The newest light read that scored the person against the offer's ICP.
+  const [read] = await db
+    .select({ stage: journeyResearch.stage, fit: sql<Fit>`${journeyResearch.result} -> 'fit'` })
+    .from(journeyResearch)
+    .where(
+      and(eq(journeyResearch.journey, id), sql`${journeyResearch.result} -> 'fit' is not null`),
+    )
+    .orderBy(desc(journeyResearch.requestedAt))
+    .limit(1);
+  return {
+    trail: r.trail.map((c) => ({
+      edge: c.edge,
+      from: c.from,
+      from_name: c.from ? nameOf(graph, c.from) : null,
+      to: c.to,
+      to_name: nameOf(graph, c.to),
+      at: c.at,
+    })),
+    fit: read ? { ...read.fit, node: read.stage, node_name: nameOf(graph, read.stage) } : null,
+  };
+}
+
+/** A person's journey for their page (the profile record's `journey` port): the open one, else the newest closed. */
+export async function journeyOfProfile(
+  db: Queryable,
+  profile: number,
+  now?: Date,
+): Promise<ProfileJourney | null> {
+  const own = await db
+    .select({ id: instances.id })
+    .from(instances)
+    .where(and(eq(instances.profileId, profile), eq(instances.subjectKind, "person")))
+    .orderBy(sql`${instances.status} = 'open' desc`, desc(instances.openedAt));
+  const [first] = own;
+  if (!first) return null;
+  const [[j], detail] = await Promise.all([
+    journeyRows(db, { id: first.id, ...(now ? { now } : {}) }),
+    journeyDetail(db, first.id),
+  ]);
+  if (!j) return null;
+  const steps = new Set(j.trail ? j.trail.split(" > ") : []);
+  // The row's trail names the arrivals; a gate is not one.
+  const trail = (detail?.trail ?? [])
+    .filter((c) => steps.has(c.to_name))
+    .map((c) => ({ name: c.to_name, at: c.at }));
+  // Entered at this step with no crossing: the trail still ends where they are.
+  if (trail.at(-1)?.name !== j.node_name)
+    trail.push({ name: j.node_name, at: j.moved_at.toISOString() });
+  return {
+    id: j.id,
+    status: j.status,
+    step: j.node_name,
+    days: j.days_at_node,
+    stale: j.flag === "stale",
+    ghost: j.ghost === "ghost",
+    source: detail?.trail[0]?.from_name ?? j.entry,
+    owner: j.owner,
+    openedAt: j.opened_at.toISOString(),
+    closedAt: j.closed_at ? j.closed_at.toISOString() : null,
+    reason: j.reason,
+    trail,
+    fit: detail?.fit
+      ? { score: detail.fit.score, reasons: detail.fit.reasons, unknown: detail.fit.unknown }
+      : null,
+    earlier: own.length - 1,
+  };
+}
+
 export const journeyRecord = (): RecordType =>
   defineRecord({
     id: JOURNEY_RECORD,
@@ -677,40 +756,7 @@ export const journeyRecord = (): RecordType =>
         (await db.select({ id: instances.id }).from(instances).where(eq(instances.id, id)).limit(1))
           .length > 0,
     },
-    /** The edges it crossed, in order, with the node names of its own version. */
-    load: async (db, id) => {
-      const [r] = await db
-        .select({ trail: instances.trail, body: shapeVersions.body })
-        .from(instances)
-        .leftJoin(shapeVersions, eq(shapeVersions.number, instances.version))
-        .where(eq(instances.id, String(id)))
-        .limit(1);
-      if (!r) return null;
-      const graph = r.body ? runOf(r.body) : undefined;
-      // The newest light read that scored the person against the offer's ICP.
-      const [read] = await db
-        .select({ stage: journeyResearch.stage, fit: sql<Fit>`${journeyResearch.result} -> 'fit'` })
-        .from(journeyResearch)
-        .where(
-          and(
-            eq(journeyResearch.journey, String(id)),
-            sql`${journeyResearch.result} -> 'fit' is not null`,
-          ),
-        )
-        .orderBy(desc(journeyResearch.requestedAt))
-        .limit(1);
-      return {
-        trail: r.trail.map((c) => ({
-          edge: c.edge,
-          from: c.from,
-          from_name: c.from ? nameOf(graph, c.from) : null,
-          to: c.to,
-          to_name: nameOf(graph, c.to),
-          at: c.at,
-        })),
-        fit: read ? { ...read.fit, node: read.stage, node_name: nameOf(graph, read.stage) } : null,
-      };
-    },
+    load: (db, id) => journeyDetail(db, String(id)),
   });
 
 // --- deals -----------------------------------------------------------------------------------

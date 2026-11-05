@@ -16,6 +16,7 @@ import { makeSegments, makeSegmentsHourly } from "@wren/core/segments-pass";
 import { makeTouchToJourney } from "@wren/core/touch-feed";
 import { flowsWith } from "@wren/core/workflows";
 import { llmForKey } from "@wren/llm";
+import { journeyOfProfile } from "@wren/pipeline/records";
 import { COMPONENTS } from "../components.js";
 import { makeMapLineFeed } from "../line-feed.js";
 import { makeListToJourney } from "../sourced-feed.js";
@@ -31,7 +32,7 @@ export function peopleServices(deps: Deps): AnyService[] {
     makePeopleConsole({
       db,
       open: openClient,
-      records: [...PEOPLE_RECORDS, ...profileRecords(WORKFLOWS)],
+      records: [...PEOPLE_RECORDS, ...profileRecords(WORKFLOWS, { journey: journeyOfProfile })],
       // Broadcasts (B6): each workspace's email and its tests; a text test only to the operator's phone.
       mail: (client, cdb) => mailOf(client, cdb),
       testPhone: settings.operatorPhone ?? null,

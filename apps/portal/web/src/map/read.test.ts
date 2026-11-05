@@ -31,7 +31,15 @@ vi.mock("../api.js", () => ({
       ],
       people: [],
       ghosts: [
-        { id: "j1", name: "Sam", node: "old", nodeName: "Old", movedAt: null, daysAtNode: 3 },
+        {
+          id: "j1",
+          profile: 1,
+          name: "Sam",
+          node: "old",
+          nodeName: "Old",
+          movedAt: null,
+          daysAtNode: 3,
+        },
       ],
       campaigns: [
         {

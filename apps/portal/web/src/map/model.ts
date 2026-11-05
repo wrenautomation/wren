@@ -70,6 +70,8 @@ export interface NodeNumbers {
 export interface Person {
   /** The journey's id. */
   id: string;
+  /** Their page: `/people/people/<profile>`. */
+  profile: number;
   name: string;
   node: string;
   nodeName: string;
