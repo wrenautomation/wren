@@ -7,7 +7,7 @@
 <script>
 // synthetic test scene: a dot field that drifts and follows scroll
 const c=document.getElementById("c"),x=c.getContext("2d");let w,h;
-const fit=()=>{w=c.width=innerWidth;h=c.height=innerHeight};fit();addEventListener("resize",fit);
+const size=()=>{w=c.width=innerWidth;h=c.height=innerHeight};size();addEventListener("resize",size);
 const dots=Array.from({length:140},(_,k)=>({a:k*2.4,r:20+k*3}));
 (function tick(t){x.clearRect(0,0,w,h);x.fillStyle="#7aa2ff";
 for(const d of dots){const a=d.a+t/1500+scrollY/300;x.beginPath();x.arc(w/2+Math.cos(a)*d.r,h/2+Math.sin(a*1)*d.r*.6,2.2,0,7);x.fill()}
