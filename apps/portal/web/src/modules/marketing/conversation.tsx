@@ -515,6 +515,7 @@ function Thread({
         <h3 className="text-[13px] font-medium text-(--ui-ink-2)">Note for the team</h3>
         <NoteBox
           key={c.thread}
+          thread={c.thread}
           box={note}
           busy={noting}
           submit={async (body) => {

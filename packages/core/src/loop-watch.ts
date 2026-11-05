@@ -35,7 +35,7 @@ const LOOP_EXPECT: Readonly<Record<string, Partial<LoopExpect>>> = {
   // A pass reads every watched person through the desk, one call after another: 70 min seen.
   ReachInboxRead: { stallMs: 90 * MIN },
 };
-export const expectOf = (service: string): LoopExpect => ({
+const expectOf = (service: string): LoopExpect => ({
   ...DEFAULT_EXPECT,
   ...LOOP_EXPECT[service],
 });
