@@ -1313,3 +1313,10 @@ autobrowse now takes one preset grammar on every search route (WA-1031): `latest
 - William, 11-05: "3.8 first, then step down, with exponential retry over a key rotation". `GEMINI_MODELS` is now 3.8, 3.7, 3.6, 3.5 Flash, 3.5 Flash-Lite. Free-tier quota counts per model per project, so each model on 9 keys adds room.
 - Passes 3 → 5 (waits 2, 4, 8, 16 s; 30 s total, well inside `READ_MS` 360 s). 3.6–3.8 answer 503 "high demand" in bursts; a 503 is fast, so more passes cost little.
 - 3.6 and 3.7 have no row in `prices.ts`: their cost reads undefined. The keys are free tier, so no spend is lost.
+
+## 11-05: the Gemini ladder moves to models, engine 0.37.0
+
+- William, via wren work: other Gemini calls through models must get the ladder too. `GEMINI_LADDER` and `geminiLadder(o)` now live in models (`providers.ts`). Read's `geminiReader` calls it; `GEMINI_MODELS` in read is gone.
+- `geminiLadder` keeps 5 passes, waits 2, 4, 8, 16 s, every key per model. `model` names the first choice; the rest of the ladder follows. `rotate` sets the ladder's waits; the rings under it make one pass each, so there is one wait loop.
+- Options for the default: (a) bare `gemini` spec is the ladder, `gemini()` stays one model; (b) `gemini()` with no model is the ladder. Took (a): `gemini()` is the part the ladder is built from, and a caller that names one model wants one model and a fast fail. `gemini:<id>` stays one model.
+- Price rows for 3.6 and 3.7 Flash (0.36.3): $0.75 in, $3.75 out, the same lower rate to 12-31 as 3.8. 3.6 is on Google's page; 3.7 is not, so its row takes the aggregators' quote. Not $0: a free key already reads `usd: 0` and keeps the list price in `listUsd`, and a paid key must show its cost.
