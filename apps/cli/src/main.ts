@@ -26,9 +26,7 @@ import {
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { mirrorShapes, WREN_WORKSPACE } from "@wren/pipeline/mirror";
 import type { JourneysService } from "@wren/pipeline/restate";
-import { ConsoleTransport } from "@wren/starling-email";
 import { collectStatus, formatStatusLines, weekSlipped } from "@wren/starling-inbound";
-import { runWeeklyReport } from "@wren/starling-outbound/email";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { registerAccounts } from "./accounts.js";
@@ -392,27 +390,6 @@ tokens
   .command("renew")
   .description("One pass now")
   .action(async () => console.log(JSON.stringify(await renewal().sync(), null, 2)));
-
-const report = program.command("report").description("periodic reports");
-report
-  .command("weekly")
-  .description("Collect this week's numbers, store the report, print it (no mail)")
-  .option("--now <iso>", "period end (default: now)")
-  .option("--days <n>", "period length", "7")
-  .action(async (opts: { now?: string; days: string }) => {
-    const now = opts.now ? new Date(opts.now) : new Date();
-    const out = await withMainDb((d) =>
-      runWeeklyReport({
-        db: d,
-        transport: new ConsoleTransport(),
-        mail: null,
-        now,
-        days: Number(opts.days),
-      }),
-    );
-    process.stdout.write(out.body);
-    console.error(`stored report ${out.reportId}`);
-  });
 
 registerAgent(program);
 

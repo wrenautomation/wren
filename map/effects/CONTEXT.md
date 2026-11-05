@@ -24,7 +24,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | how a call went, or its pre-call brief | [[email/call-booking]], [[email/call-brief]] | [[calendar/booking]] (mirror and view), [[platform/executor]] (`close`, `onboarding`), `packages/core/src/calls.ts`, `apps/portal/web/src/modules/calls` |
 | what a reply means | [[email/thread-event]] | [[processes/inbox-sync]], [[platform/llm-client]] |
 | kill switches | [[email/sender-pause]] | [[processes/send-tick]], [[platform/notifier]] |
-| the wire (Gmail) | [[email/transport]] | [[processes/send-tick]], [[email/report]] |
+| the wire (Gmail) | [[email/transport]] | [[processes/send-tick]] |
 | a client's connected mailboxes, Google trust, Microsoft consent | [[email/mail-access]] | [[platform/account-setup]], [[watch/mail]] (the client reader), Account → Mail, `apps/portal/src/oauth-landing.ts` |
 | a platform's API shape or limits | [[content/platform]] | [[content/draft]], [[processes/content-loop]], `apps/worker/src/services.ts` |
 | drafting, voice, slots | [[content/draft]] | [[content/idea]], [[content/content-metric]], [[content/playbook]], [[processes/content-loop]], [[content/draft-event]] |

@@ -487,3 +487,6 @@ None.
     newsletter path.
   - The data index (`people.datum`) links an event kind to the timeline; a trait or an address
     kind links nowhere, as neither has a list page now.
+  - Weekly report (WA-1067.2): `wren report weekly` and its collect, render, schedule and send
+    code go (last row 10-03; ReportScheduler already gone). The `reports` table and its 14 rows
+    stay. Cold email's variant outcomes (`report/variants.ts`) stay.

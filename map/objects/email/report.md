@@ -9,35 +9,21 @@ entity: packages/starling/channels/email/src/schema.ts:476
 
 # report
 
-The Friday report: the week's numbers as a stored row, then mailed. Table `reports`.
-
-## Why this shape
-
-No LLM: every line is a query the operator can re-run, so a report is never wrong in a way the rows are not (`report/weekly.ts:1`). Stored before mailed, so a lost mail is a re-send, not a re-compute.
+The Friday report's rows: table `reports`. The writer (`wren report weekly`, ReportScheduler) was
+cut 11-04 (WA-1067); the 14 rows stay until the lake. Tag `pre-cut-2026-11-04` holds the code.
 
 ## Shape
 
 - `kind` (weekly), `period_start`, `period_end`, `stats`, `body`, `sent_to`, `run_id` (`schema.ts:478`–`486`)
-- `runWeeklyReport`, `previousWeekly` (`report/send.ts:47`, `:35`)
 
 Citations: `packages/starling/channels/email/src/schema.ts:476`
 
 ## Connected to
 
-- **reads:** [[email/message]], [[email/thread-event]], [[email/postmaster-day]] through the views
-- **joins:** [[email/transport]] (mails it)
+- **reads:** nothing now
+- **joins:** [[ledger/run]] (`run_id`)
 
 ## If you change this
 
-- **Hits:** `report/weekly.ts`, `report/send.ts:52`, `wren report weekly`
+- **Hits:** the table only
 - **Does not hit:** the digest (a different, daily surface: `restate/digest-scheduler.ts`)
-
-## Surfaces
-
-| Surface | Role |
-|---|---|
-| `wren report weekly` | writes |
-
-## See
-
-- Source: `packages/starling/outbound/src/email/report/weekly.ts`
