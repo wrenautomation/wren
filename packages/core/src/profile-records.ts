@@ -658,12 +658,8 @@ export function datumRecord(workflows: readonly Workflow[] = []): RecordType {
           rows: Number(r.rows),
           last_seen: r.last_seen instanceof Date ? r.last_seen.toISOString() : r.last_seen,
           used_by: usedBy.length ? usedBy.join(", ") : null,
-          list:
-            r.what === "event"
-              ? `/people/timeline?kind=${r.name}`
-              : r.what === "trait"
-                ? `/people/traits?key=~${encodeURIComponent(r.name)}`
-                : `/people/addresses?kind=~${encodeURIComponent(r.name)}`,
+          // Traits and addresses have no list page since the 11-04 cut: on the person page only.
+          list: r.what === "event" ? `/people/timeline?kind=${r.name}` : null,
         };
       });
     },

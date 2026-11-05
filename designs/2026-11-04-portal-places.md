@@ -485,3 +485,5 @@ None.
     leaves the client, as it left Wren's: each channel's funnel is Results. Sent loses its tab
     and stays hidden: a broadcast's send log opens it. Groups and Broadcasts stay for the
     newsletter path.
+  - The data index (`people.datum`) links an event kind to the timeline; a trait or an address
+    kind links nowhere, as neither has a list page now.
