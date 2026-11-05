@@ -4,7 +4,7 @@
  * note, then send it back to the agent. Subjects: each one's batches, good rate, guides under
  * test. Catalog: what we kept. The agent writes through `wren variants`; this page only judges.
  */
-import { Button, cx, Empty, Icon, LoadFailed, Loading, Seg, Textarea } from "@wren/ui";
+import { Button, cx, Empty, Icon, LoadFailed, Loading, Seg, Textarea, useEdit } from "@wren/ui";
 import { useEffect, useMemo, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -156,7 +156,8 @@ function Batch({
   patch: (id: number, fn: (s: Sample) => Sample) => void;
   onSent: () => void;
 }) {
-  const [note, setNote] = useState("");
+  // kept across reloads until sent
+  const note = useEdit(`variants:batch:${open.batch.id}:note`, "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const judged = open.samples.filter((s) => s.verdict).length;
@@ -165,7 +166,8 @@ function Batch({
     setBusy(true);
     setErr(null);
     try {
-      await call("variants/close", { batch: open.batch.id, note: note.trim() || null });
+      await call("variants/close", { batch: open.batch.id, note: note.value.trim() || null });
+      note.saved();
       onSent();
     } catch (e) {
       setErr(String((e as Error).message ?? e));
@@ -197,8 +199,7 @@ function Batch({
       </div>
       <div className="-mx-1 flex flex-col gap-2 border-t border-(--ui-hair) bg-(--ui-paper) p-3 md:sticky md:bottom-0 md:z-10 md:flex-row md:items-end md:pr-16">
         <Textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
+          {...note.field}
           rows={2}
           placeholder="Guide for the next batch: what to keep, what to change"
           className="flex-1"
@@ -396,7 +397,7 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
   const got = useCall(`variants-subject:${id}`, () =>
     call<SubjectView>("variants/subject", { id }),
   );
-  const [tip, setTip] = useState("");
+  const tip = useEdit(`variants:subject:${id}:tip`, "");
   const [guides, setGuides] = useState<Guide[]>([]);
   useEffect(() => setGuides(got.data?.guides ?? []), [got.data]);
   const leaders = useMemo(
@@ -411,8 +412,9 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
     void call("variants/setGuide", { id: g.id, state });
   };
   const add = async () => {
-    if (!tip.trim()) return;
-    const row = await call<Guide>("variants/guide", { text: tip, subject: v.subject.id });
+    const text = tip.value.trim();
+    if (!text) return;
+    const row = await call<Guide>("variants/guide", { text, subject: v.subject.id });
     setGuides((gs) => [
       ...gs,
       {
@@ -420,7 +422,7 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
         effect: { with: { good: 0, n: 0 }, without: { good: 0, n: 0 }, diff: null, early: true },
       },
     ]);
-    setTip("");
+    tip.saved();
   };
   const closed = v.batches.filter((b) => b.state === "closed" && b.goodRate != null);
   return (
@@ -493,12 +495,11 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
         <div className="flex gap-2">
           <Textarea
             rows={1}
-            value={tip}
-            onChange={(e) => setTip(e.target.value)}
+            {...tip.field}
             placeholder="A tip to test on this subject"
             className="flex-1"
           />
-          <Button onClick={add} disabled={!tip.trim()}>
+          <Button onClick={add} disabled={!tip.value.trim()}>
             Add tip
           </Button>
         </div>

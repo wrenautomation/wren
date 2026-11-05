@@ -130,6 +130,7 @@ function NoteStrip({
   return (
     <div className="mt-2 flex flex-col gap-2 rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-tile) p-2.5">
       <div className="text-[12px] text-(--ui-ink-2)">{anchorLabel(anchor)}</div>
+      {/* edit-ok: lives only with its pending anchor, which a reload drops */}
       <Input
         autoFocus
         value={text}
