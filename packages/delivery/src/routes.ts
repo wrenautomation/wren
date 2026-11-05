@@ -183,3 +183,21 @@ export const PULSE_WORDS: Readonly<Record<number, string>> = {
   2: "Not great",
   1: "Bad",
 };
+
+/** A project's home: every offer's plan is in Project (designs/2026-11-04-portal-places.md). */
+export const PLAN_HOME = "project";
+
+/** Plan pages outside Project: what waits on the client is Today's, the board Results', paperwork Back office's. */
+const PLAN_AT: Readonly<Record<string, string>> = {
+  "needs-you": "/today/needs-you",
+  results: "/results/board",
+  paperwork: "/office/paperwork",
+  contract: "/office/contract",
+};
+
+/** A plan page's address, the same for every offer; a sub-path (`plan/3`) rides along. */
+export const planPath = (page: string): string => {
+  const [head = "", ...rest] = page.split("/");
+  const base = PLAN_AT[head] ?? `/${PLAN_HOME}/${head}`;
+  return rest.length ? `${base}/${rest.join("/")}` : base;
+};

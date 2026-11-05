@@ -38,6 +38,7 @@ try {
       ":!packages/db/drizzle/*",
       ":!packages/starling/inbound/src/schema.ts",
       ":!packages/core/src/profiles-schema.ts",
+      ":!packages/watch/src/schema.ts",
       ":!packages/starling/channels/linkedin/src/content.ts",
       ":!packages/research/src/enrichment/ad-library.ts",
       ":!packages/voice/src/transports/*",

@@ -171,7 +171,7 @@ export function recordingLine(
     at: r.startedAt,
     summary: `Call recorded, ${mins} min${n ? `: ${n.summary}` : ""}`,
     body,
-    link: `/calendar/recordings/${id}`,
+    link: `/today/recordings/${id}`,
     source: "call_recordings",
     sourceId: String(id),
   };

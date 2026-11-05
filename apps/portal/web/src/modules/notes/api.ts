@@ -5,26 +5,17 @@
 import { knownOf, mergeChanged } from "@wren/core/records/delta";
 import type { NotesApi } from "@wren/notes/console";
 import { call } from "../../api.js";
-import { type Load, useCall } from "../../load.js";
 import { WREN } from "../../module.js";
 
 type Out<K extends keyof NotesApi> = Awaited<ReturnType<NotesApi[K]>>;
 export type NotesHome = Out<"home">;
 export type NoteRow = NotesHome["notes"][number];
-export type NoteOpen = Out<"open">;
-export type NoteVersions = Out<"versions">["versions"];
 export type NoteVersion = Out<"version">;
-export type NoteCompare = Out<"compare">;
 export type NotePeople = Out<"people">;
-export type NoteShare = NoteOpen["shares"][number];
 export type NoteComments = Out<"comments">;
 export type NoteMention = Out<"mentions">["mentions"][number];
-type BoardList = Out<"boards">;
-export type BoardInfo = BoardList["boards"][number];
 type BoardOpen = Out<"board">;
 export type Card = BoardOpen["cards"][number];
-export type CardOpen = Out<"task">;
-export type CardMoves = Out<"taskMoves">["moves"];
 
 /** A call in `client`'s workspace. */
 export const notes = <K extends keyof NotesApi>(
@@ -53,13 +44,6 @@ export async function readBoard(
   return { ...rest, cards: whole.rows };
 }
 
-/** The board on screen, or beside a card: one key, so the board and its cards' pages share it. */
-const boardKey = (client: string, id: string) => `notes:board:${client}:${id}`;
-
-/** A board read through the data layer: kept on the device, change-only after the first read. */
-export const useBoard = (client: string, id: string | null | undefined): Load<BoardOpen> =>
-  useCall(id ? boardKey(client, id) : null, (before) => readBoard(client, id as string, before));
-
 export const VIEWS = [
   ["recent", "Recent"],
   ["mine", "Owned by me"],
@@ -71,16 +55,6 @@ export type View = (typeof VIEWS)[number][0];
 
 export const docPath = (id: string) => `/notes/doc/${id}`;
 
-/** Where a mention goes: a note, or a record's page. A person stays a name. */
-export function mentionHref(id: string): string | null {
-  const at = id.indexOf(":");
-  const kind = id.slice(0, at);
-  const rest = id.slice(at + 1);
-  if (kind === "note") return docPath(rest);
-  if (kind === "console.client") return `/people/clients/${encodeURIComponent(rest)}`;
-  return null;
-}
-
 /** Which of the eight kind hues is a person's, 1 to 8, the same for them everywhere. */
 function hueIndex(email: string): number {
   let h = 0;
@@ -91,8 +65,5 @@ function hueIndex(email: string): number {
 /** A person's mark: their hue as a color. */
 export const hueOf = (email: string): string => `var(--ui-cue-${hueIndex(email)})`;
 
-/** Their hue as a class (`note-who-N`), where an inline style can't go (the editor's DOM). */
-export const hueClass = (email: string): string => `note-who-${hueIndex(email)}`;
-
-export const ROLE_LABEL = { view: "Can view", comment: "Can comment", edit: "Can edit" } as const;
+const ROLE_LABEL = { view: "Can view", comment: "Can comment", edit: "Can edit" } as const;
 export type ShareRole = keyof typeof ROLE_LABEL;

@@ -474,7 +474,7 @@ function analyticsSections(detail: unknown, row: Row, team = true): [string, Rea
   const links = footer
     ? `/campaigns/visit-links?view=all&campaign=${encodeURIComponent(footer.campaign)}`
     : `/campaigns/visit-links?view=all&content=${encodeURIComponent(draft.slice(0, 8))}`;
-  const comments = `/inbox/comments?view=all&postTitle=${encodeURIComponent(title.slice(0, 60))}`;
+  const comments = `/today/comments?view=all&postTitle=${encodeURIComponent(title.slice(0, 60))}`;
   const activity = `/content/content?view=all&post=${encodeURIComponent(id)}&tab=activity`;
   const out: [string, ReactNode][] = [
     ["How it did", <Cells key="did" a={a} activity={activity} team={team} />],

@@ -280,6 +280,8 @@ export function inboxPages(): ListPage[] {
       },
       columns: ["body", "title", "state", "by", "at"],
       actions: ISSUE_ACTIONS,
+      // Today's moves: Fix.
+      count: { state: ["open"], yours: ["yes"] },
     },
     {
       id: "asks",

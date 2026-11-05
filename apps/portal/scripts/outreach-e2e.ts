@@ -41,14 +41,14 @@ const tests: Test[] = [
     async (browser) => {
       const { context, page } = await fresh(browser);
       await page.goto(`${url}/marketing/dms?view=all`);
-      await at(page, "/inbox/dms?view=all");
+      await at(page, "/today/dms?view=all");
       await page.getByText("Dana Rivera").first().waitFor();
       await page.goto(`${url}/outreach/invites?view=proposed`);
-      await at(page, "/campaigns/invites?view=proposed");
+      await at(page, "/outbound/invites?view=proposed");
       await page.getByText("Alex Sample").first().waitFor();
       // Back goes past the redirect, to the page before it.
       await page.goBack();
-      await at(page, "/inbox/dms?view=all");
+      await at(page, "/today/dms?view=all");
       await context.close();
     },
   ],

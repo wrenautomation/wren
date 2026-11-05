@@ -6,12 +6,12 @@
  */
 import type { OverviewQueue } from "@wren/ui";
 
-export const INBOX_QUEUES: OverviewQueue[] = [
+const INBOX_QUEUES: OverviewQueue[] = [
   {
     label: "Waiting on you",
     record: "marketing.inbox",
     view: "waiting",
-    href: "/inbox/messages?view=waiting",
+    href: "/today/messages?view=waiting",
     icon: "chat",
     line: 0,
     wait: "due",
@@ -21,7 +21,7 @@ export const INBOX_QUEUES: OverviewQueue[] = [
     label: "Issues for you",
     record: "access.issue",
     view: "waiting",
-    href: "/inbox/issues?view=waiting",
+    href: "/today/issues?view=waiting",
     icon: "alert",
     line: 2,
     wait: "at",
@@ -31,7 +31,7 @@ export const INBOX_QUEUES: OverviewQueue[] = [
     label: "To approve",
     record: "marketing.approval",
     view: "waiting",
-    href: "/inbox/approve?view=waiting",
+    href: "/today/approve?view=waiting",
     icon: "check",
     line: 1,
     wait: "due",
@@ -41,7 +41,7 @@ export const INBOX_QUEUES: OverviewQueue[] = [
     label: "Mail that needs you",
     record: "watch.mail",
     view: "needs_you",
-    href: "/inbox/mail?view=needs_you",
+    href: "/today/mail?view=needs_you",
     icon: "mail",
     line: 3,
     wait: "at",
@@ -52,7 +52,7 @@ export const INBOX_QUEUES: OverviewQueue[] = [
     label: "Mentions",
     record: "notes.mention",
     view: "unread",
-    href: "/inbox/mentions?view=unread",
+    href: "/today/mentions?view=unread",
     icon: "at",
     wait: "at",
     promise: "24h",
@@ -61,7 +61,7 @@ export const INBOX_QUEUES: OverviewQueue[] = [
     label: "Asks for access",
     record: "access.ask",
     view: "waiting",
-    href: "/inbox/asks?view=waiting",
+    href: "/today/asks?view=waiting",
     icon: "key",
     line: 1,
     wait: "at",

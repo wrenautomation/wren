@@ -86,43 +86,6 @@ const PEOPLE_PAGES: ModulePage[] = [
   channelsPage,
   broadcastsPage,
   recipientsPage,
-  {
-    id: "data",
-    label: "Data",
-    about:
-      "Every address kind, trait and timeline kind: where it comes from, who has it, what uses it.",
-    template: "list",
-    record: "people.datum",
-    empty: "Data shows here once the first profile is made.",
-    columns: ["what", "name", "sources", "people", "rows", "lastSeen", "usedBy", "list"],
-  },
-  {
-    id: "addresses",
-    label: "Addresses",
-    about: "Every email, phone, handle and cookie a profile goes by.",
-    hidden: true,
-    template: "list",
-    record: "people.key",
-    empty: "No addresses yet.",
-  },
-  {
-    id: "traits",
-    label: "Traits",
-    about: "What we know about each person, one value per trait, every change kept.",
-    hidden: true,
-    template: "list",
-    record: "people.trait",
-    empty: "No traits yet.",
-  },
-  {
-    id: "merges",
-    label: "Merges",
-    about: "Profiles that turned out to be one person, and what moved.",
-    hidden: true,
-    template: "list",
-    record: "people.merge",
-    empty: "No merges yet.",
-  },
   membersPage,
 ];
 

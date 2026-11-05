@@ -1,13 +1,8 @@
-/** DMs as the person meets them on a laptop and a phone: a thread's replies, and William's copy. */
-import { preview, type RenderFields } from "@wren/starling-outbound/sequences";
 import { exact, type MessageKind, MessagePreview, type RecordExtras } from "@wren/ui";
 import type { ListPage } from "../../module.js";
 
 /** `@wren/starling-outbound`'s preview data: the app, who it comes from, its cap. */
 type Dm = { site: string; from: string | null; max: number };
-/** A template slot's message: `slot` where its words go. */
-type Frame = { subject: string | null; body: string; slot: string };
-type CopyDetail = { dm?: Dm & { frame: Frame }; sample?: RenderFields } | null;
 
 type Message = {
   id: number;
@@ -39,26 +34,6 @@ const kindOf = (dm: Dm): DmKind => ({
   max: dm.max,
   ...(dm.from ? { from: dm.from } : {}),
 });
-
-/** The slot's words with sample facts, in its message; a field it can't fill shows as typed. */
-function copyKind(d: CopyDetail): MessageKind | null {
-  if (!d?.dm || !d.sample) return null;
-  const { frame } = d.dm;
-  const sample = d.sample;
-  const fill = (text: string) => {
-    let words = text.trim();
-    try {
-      words = preview(words, sample);
-    } catch {
-      // Saving says why.
-    }
-    return {
-      subject: frame.subject?.replace(frame.slot, words) ?? null,
-      body: frame.body.replace(frame.slot, words),
-    };
-  };
-  return { ...kindOf(d.dm), fill };
-}
 
 /** The thread oldest first, above the reply box; then our last message as they saw it. */
 export const dmExtras: NonNullable<ListPage["extras"]> = (detail) => {
@@ -111,22 +86,4 @@ export const dmExtras: NonNullable<ListPage["extras"]> = (detail) => {
 export const dmLooks = (detail: unknown) => {
   const dm = (detail as { dm?: Dm } | null)?.dm;
   return dm ? kindOf(dm) : null;
-};
-
-/** A slot in its message with sample facts, or that it's empty. */
-export const copyExtras: NonNullable<ListPage["extras"]> = (detail, { row }) => {
-  const kind = copyKind(detail as CopyDetail);
-  const body = String(row.body ?? "");
-  return {
-    sections: [
-      [
-        "How it looks",
-        kind && body ? (
-          <MessagePreview key="looks" message={kind} body={body} />
-        ) : (
-          "Empty: this message never goes."
-        ),
-      ],
-    ],
-  } satisfies RecordExtras;
 };

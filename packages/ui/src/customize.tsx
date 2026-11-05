@@ -13,7 +13,7 @@ import { NAV_LABEL, NAV_ON, NAV_ROW } from "./layout.js";
 import type { KeepApi } from "./list-bar.js";
 import { Latest } from "./save/latest.js";
 
-/** The rail's pins: page paths ("/inbox/replies"), in his order. */
+/** The rail's pins: page paths ("/today/approve"), in his order. */
 export const RAIL_PREF = "rail";
 export interface RailPref {
   pins: string[];

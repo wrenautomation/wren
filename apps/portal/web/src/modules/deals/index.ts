@@ -1,27 +1,20 @@
 /**
- * Journeys (designs/2026-10-18-journeys.md, "Folding `@wren/deals`"; designs/2026-10-19-business-
- * map.md): each person's way through the shape. The board has a column per node; the list keeps
- * saved views. One app in Wren's workspace and each client's, as `/pipelines` (it was `/deals`;
- * `moved.ts` sends an old link on). A move goes through the shape's own step, so a workflow that
- * hears it decides what follows. The old Funnels page is gone: the shape is the Map page's (M2).
+ * Journeys (designs/2026-10-18-journeys.md): each person's way through the shape, one list under
+ * People. The Map is the board: a node's people open here (`?node=<id>`), a journey at
+ * `/people/journeys/<id>`.
  */
 import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";
-import { JourneyBoard } from "./board.js";
 import { fitExtras } from "./fit.js";
-import { TEAM_PIPELINE_PAGES } from "./team-pages.js";
 
-/**
- * The Map opens a node's people as `?node=<id>`. A list filter on words reads `~<words>`, so a
- * bare id is sent on as that (`ListPage.legacy` runs before the page draws).
- */
+/** The Map opens a node's people as `?node=<id>`; a list filter on words reads `~<words>`. */
 const nodeLegacy = (params: URLSearchParams) => {
   const node = params.get("node");
   return node && !/^[~+-]/.test(node) ? { node: `~${node}` } : null;
 };
 
-/** A client's Journeys, in its own workspace: its own shape and journeys. */
-export const clientDeals: Module = {
+/** Journeys, in Wren's workspace and each client's: its own shape and journeys. */
+export const journeys: Module = {
   id: "pipelines",
   name: "Journeys",
   component: "pipeline.journeys",
@@ -29,13 +22,6 @@ export const clientDeals: Module = {
   blurb: "Every person by node of the shape, and how long they have been there.",
   find: findRecords({ record: "pipeline.journey", path: "/people/journeys", kind: "Journey" }),
   pages: [
-    {
-      id: "board",
-      label: "Board",
-      about: "Everyone by node, to drag down the shape as they move.",
-      Page: JourneyBoard,
-      wide: true,
-    },
     {
       id: "journeys",
       label: "Journeys",
@@ -59,13 +45,4 @@ export const clientDeals: Module = {
       count: { flag: ["stale"] },
     },
   ],
-};
-
-/** Wren's own Pipelines, in Wren's workspace: the same pages on Wren's journeys. */
-export const pipelines: Module = {
-  ...clientDeals,
-  name: "Pipelines",
-  blurb: "Wren's own people by node of the shape: who is booked, who is signed, who has stalled.",
-  requires: { audience: "team" },
-  pages: [...clientDeals.pages, ...TEAM_PIPELINE_PAGES],
 };

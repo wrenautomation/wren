@@ -301,7 +301,7 @@ export async function readHealth(
         what: "Wren's rating",
         value: `${ours.score} of 5${ours.note ? `: ${ours.note}` : ""}`,
         at: iso(ours.at),
-        href: `/people/health/${encodeURIComponent(clientId)}`,
+        href: `/clients/clients/${encodeURIComponent(clientId)}`,
       });
     const scores = [...theirs.map((t) => t.score), ...(ours ? [ours.score] : [])];
     const feltAt = iso(newest([...theirs.map((t) => t.at), ours?.at]));

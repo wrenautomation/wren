@@ -3,10 +3,9 @@
  */
 
 import { type Action, said } from "@wren/ui";
-import type { ListPage } from "../../module.js";
 import { ONPOST_DRAFT, THREAD_DRAFT } from "./approval.js";
 import { type DraftOf, draftActions } from "./ask.js";
-import { PASS_ACTION, REJECT_FORM } from "./drafts.js";
+import { PASS_ACTION } from "./drafts.js";
 import { only, own, threadWhen, WAITS } from "./inbox.js";
 import { ONPOST_ACTIONS, THREAD_ACTIONS } from "./threads.js";
 
@@ -37,66 +36,3 @@ export const ENGAGE_ACTIONS: Action[] = [
   PASS_ACTION,
   ...draftActions("inbox", { type: ["thread", "onpost"], state: ["waiting"] }),
 ];
-/** Explore's picks: as if pasted (`ReachDesk.pick`), so a reply waits in Engage. */
-const EXPLORE_ACTIONS: Action[] = [
-  {
-    id: "marketing.exploreReply",
-    label: "Reply",
-    icon: "reply",
-    handler: "marketing/exploreReply",
-    key: "r",
-    done: said("It waits in Engage"),
-  },
-  {
-    id: "marketing.exploreFollow",
-    label: "Follow",
-    icon: "addPerson",
-    handler: "marketing/exploreFollow",
-    done: said("Following"),
-  },
-  only(
-    "onpost",
-    {
-      id: "marketing.onpostSkip",
-      label: "Skip",
-      icon: "close",
-      handler: "marketing/onpostSkip",
-      form: REJECT_FORM,
-      each: true,
-      bulk: true,
-      key: "e",
-      done: said("Skipped"),
-    },
-    {},
-  ),
-  only(
-    "thread",
-    {
-      id: "marketing.threadSkip",
-      label: "Skip",
-      icon: "close",
-      handler: "marketing/threadSkip",
-      bulk: true,
-      key: "e",
-      done: said("Skipped"),
-    },
-    {},
-  ),
-  PASS_ACTION,
-];
-/** Campaigns → Explore (`marketing.explore`): found by topic, not followed or picked yet. */
-export const EXPLORE_PAGE: ListPage = {
-  id: "explore",
-  label: "Explore",
-  about: "New posts the topic searches found, to reply to or follow.",
-  template: "list",
-  record: "marketing.explore",
-  columns: ["who", "platform", "where", "fit", "at"],
-  empty: {
-    best: "Nothing new was found. The topic searches run each day.",
-    posts: "No new posts were found on your topics.",
-    reddit: "No new Reddit threads fit.",
-    new: "Nothing new was found.",
-  },
-  actions: EXPLORE_ACTIONS,
-};

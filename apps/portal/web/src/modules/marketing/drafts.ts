@@ -252,28 +252,6 @@ export const DRAFT_ACTIONS: Action[] = [
   ...fieldActions(OPEN),
 ];
 
-export const AD_ACTIONS: Action[] = [
-  {
-    id: "marketing.pause",
-    label: "Pause",
-    icon: "pause",
-    handler: "marketing/pause",
-    ask: { field: "reason", label: "Why?" },
-    when: { state: ["active"] },
-    done: said("Paused"),
-  },
-  {
-    // It spends again: asked every time, never an undo.
-    id: "marketing.resume",
-    label: "Resume",
-    icon: "play",
-    handler: "marketing/resume",
-    confirm: "Start spending on it again at its budget?",
-    when: { state: ["paused", "stopped"] },
-    done: said("Running again"),
-  },
-];
-
 export const TEXT_ACTIONS: Action[] = [
   {
     id: "marketing.markRead",

@@ -1,38 +1,28 @@
 /**
- * The eight places (designs/2026-11-04-portal-places.md): Map, Campaigns, Content, People, Inbox,
- * Calendar, Research, Back office. Each is one app made of the old apps' pages; a page keeps its
- * own component and access, so a client sees only what it holds. Old addresses: `../moved.ts`.
+ * The product shell (designs/2026-11-04-portal-places.md, Product shell). Fixed: Today and
+ * Results. Products: one place each, built with `product()`, at most 4 tabs. Core: Map, Clients,
+ * People, Back office. A page keeps its own component and access, so a client sees only what it
+ * holds. Old addresses: `../moved.ts`.
  */
 import { findAll } from "../find.js";
-import type { Found, Module, ModulePage } from "../module.js";
+import type { Found, ListPage, Module, ModulePage } from "../module.js";
 import { account } from "./account/index.js";
-import { analytics } from "./analytics/index.js";
 import { calendar, clientCalendar } from "./calendar/index.js";
+import { recorderHead } from "./calendar/recorder.js";
 import { calls } from "./calls/index.js";
-import { clientDeals, pipelines } from "./deals/index.js";
+import { journeys } from "./deals/index.js";
 import { documents } from "./documents/index.js";
-import { library } from "./library/index.js";
-import { ads, clientMarketing, content as oldContent } from "./marketing/index.js";
-import { numbers } from "./numbers/index.js";
+import { clientMarketing, content as oldContent } from "./marketing/index.js";
+import { CONVERSATION_TOP } from "./marketing/pages.js";
 import { offers } from "./offers/index.js";
 import { engage } from "./outreach/index.js";
-import { payments } from "./payments/index.js";
 import { clientPeople as oldClientPeople, people as oldPeople } from "./people/index.js";
+import { product } from "./product.js";
 import { reactivation } from "./reactivation/index.js";
-import { clientSettings, settings } from "./settings/index.js";
-import { clientSites, sites } from "./sites/index.js";
-import { texts } from "./texts/index.js";
+import { settings } from "./settings/index.js";
 import { work } from "./work/index.js";
-import { handlers } from "./wren/handlers.js";
-import {
-  clients,
-  leads,
-  money,
-  inbox as oldInbox,
-  outbound,
-  team,
-  workflows,
-} from "./wren/index.js";
+import { inbox } from "./wren/inbox.js";
+import { clients, money, outbound, team } from "./wren/index.js";
 
 /** A page taken from an old app: its new id, group or light; null clears one. */
 interface Take {
@@ -90,6 +80,15 @@ const finds = (...ms: Module[]) => {
 };
 
 const TEAM = { audience: "team" } as const;
+/** Off the tabs, reached by link. */
+const hide = (p: ModulePage): ModulePage => ({ ...p, hidden: true }) as ModulePage;
+/** Tabs of a fixed place: no sidebar groups. */
+const flat = (ps: ModulePage[]): ModulePage[] => ps.map(({ group: _g, ...p }) => p as ModulePage);
+const one = (m: Module, take: string | Take): ModulePage => {
+  const [p] = from(m, [take]);
+  if (!p) throw new Error(`places: ${m.id} has no page`);
+  return p;
+};
 
 // Wren's team.
 
@@ -97,277 +96,233 @@ const mapPlace: Module = {
   id: "map",
   name: "Map",
   icon: "workflow",
-  blurb: "What we sell, how it flows, what it earns, and how we do it.",
+  blurb: "What we sell and how each offer runs, on the metro map.",
   requires: TEAM,
-  find: finds(offers, library),
+  find: finds(offers),
+  pages: from(offers, [{ id: "all", as: "offers" }, "terms"]),
+};
+
+const todayPlace: Module = {
+  id: "today",
+  name: "Today",
+  icon: "inbox",
+  blurb: "What waits on you now: approvals, messages, mail and calls.",
+  requires: TEAM,
   pages: [
-    ...from(offers, [{ id: "all", as: "offers" }, "terms"], "Offers"),
-    ...from(
-      numbers,
-      [
-        { id: "funnels", as: "shape" },
-        { id: "offers", as: "offer-numbers" },
-        "economics",
-        "months",
-        "channels",
-        "cohorts",
-      ],
-      "Numbers",
-    ),
-    ...from(oldContent, [{ id: "reports", hidden: false, lights: null }], "Numbers"),
-    ...from(library, ["templates", "sequences", "snippets", "sections", "sops"], "Playbook"),
+    ...flat(from(engage, ["approve", { id: "inbox", as: "messages", label: "Messages" }])),
+    ...flat(from(inbox, ["mail"])),
+    ...flat(from(calendar, [{ id: "schedule", as: "calendar", label: "Calendar" }])),
+    ...from(engage, ["dms", "comments"]).map(hide),
+    ...from(inbox, ["replies", "mentions", "issues", "asks", "rules"]).map(hide),
+    ...from(calendar, ["calls", "recordings"]).map(hide),
   ],
 };
 
-const campaignsPlace: Module = {
-  id: "campaigns",
-  name: "Campaigns",
-  icon: "billboard",
-  blurb: "Each push of an offer to an audience: its channels, landers, rules and results.",
+const resultsPlace: Module = {
+  id: "results",
+  name: "Results",
+  icon: "chart",
+  blurb: "What every product got, on one board.",
   requires: TEAM,
-  find: finds(sites),
   pages: [
-    ...from(
-      outbound,
-      [
-        { id: "overview", as: "email", label: "Cold email" },
-        { id: "campaigns", as: "email-campaigns" },
-        "signals",
-        "stalls",
-        "text-copy",
+    {
+      id: "board",
+      label: "Results",
+      about: "What every product got, on one board.",
+      template: "overview",
+      tiles: [
+        {
+          label: "Content views",
+          record: "marketing.post",
+          href: "/content/content?view=all",
+          period: "month",
+          sum: "views",
+        },
+        {
+          label: "Followers",
+          record: "marketing.audience",
+          href: "/content/followers",
+          sum: "count",
+        },
+        {
+          label: "Calls booked",
+          record: "calendar.booking",
+          href: "/today/calls?view=booked",
+          period: 30,
+        },
       ],
-      "Cold email",
-    ),
-    ...from(engage, ["engage", "invites", "threads", "places", "dm-copy"], "Engage"),
-    ...from(oldContent, ["explore"], "Engage"),
-    ...from(engage, ["auto-reply", "keywords", "keyword-dms"], "Rules"),
-    ...from(ads, [{ id: "sets", as: "ads" }, "formats"], "Ads"),
-    ...from(
-      sites,
-      ["pages", { id: "funnel", as: "page-funnel" }, "funnel-map", "links", "forms"],
-      "Landers",
-    ),
-    ...from(
-      analytics,
-      [
-        "visits",
-        "sessions",
-        "heatmaps",
-        "experiments",
-        "surveys",
-        "survey-answers",
-        "funnel",
-        { id: "links", as: "visit-links" },
-      ],
-      "Results",
-    ),
-    ...from(engage, ["conversation"], "Results"),
+      top: [CONVERSATION_TOP],
+    },
   ],
 };
 
-const contentPlace: Module = {
+const contentProduct = product({
   id: "content",
   name: "Content",
   icon: "megaphone",
-  blurb: "Every piece we make: plan, make, post, and how each did.",
+  blurb: "Posts, clips and videos in your voice, planned, made and posted for you.",
   requires: TEAM,
-  find: finds(oldContent, library),
-  pages: [
-    ...from(oldContent, [
-      "plan",
-      "studio",
-      "pieces",
-      "content",
-      "overview",
-      "topics",
-      "facts",
-      "drafts",
-      "write",
-      "videos",
-      "digest",
-      "metrics",
-      "cadence",
-    ]),
-    ...from(library, ["media"], "Setup"),
+  find: finds(oldContent),
+  overview: one(oldContent, "plan"),
+  work: one(oldContent, "studio"),
+  results: one(oldContent, "content"),
+  settings: one(oldContent, { id: "facts", label: "Voice and facts" }),
+  hidden: from(oldContent, [
+    { id: "drafts", lights: "studio" },
+    { id: "videos", lights: "studio" },
+    { id: "write", lights: "studio" },
+  ]).concat(from(engage, [{ id: "followers", lights: "content" }])),
+});
+
+const outboundProduct = product({
+  id: "outbound",
+  name: "Outbound",
+  icon: "billboard",
+  blurb: "Cold email and LinkedIn: invites, comments and DMs, each one approved.",
+  requires: TEAM,
+  find: finds(outbound),
+  overview: one(outbound, "overview"),
+  work: one(engage, "engage"),
+  results: one(engage, "conversation"),
+  settings: one(outbound, "inboxes"),
+  hidden: [
+    ...from(engage, [{ id: "invites", lights: "engage" }]),
+    ...from(outbound, [{ id: "campaigns", lights: "overview" }]),
+    // Calls within a day: Today's Prepare call.
+    {
+      ...(one(calls, { id: "calls", lights: "overview" }) as ListPage),
+      head: recorderHead,
+      count: { soon: ["yes"] },
+    },
   ],
+});
+
+const clientsPlace: Module = {
+  id: "clients",
+  name: "Clients",
+  icon: "people",
+  blurb: "Every client: what they bought and how it goes.",
+  requires: TEAM,
+  find: finds(clients),
+  pages: from(clients, [{ id: "all", as: "clients" }]),
 };
 
 const peoplePlace: Module = {
   ...oldPeople,
-  blurb: "Everyone we know: leads, clients, companies, their journeys and calls.",
-  find: finds(oldPeople, pipelines, clients, outbound, engage),
-  pages: [
-    ...from(
-      oldPeople,
-      oldPeople.pages.map((p) => p.id),
-    ),
-    ...from(pipelines, ["board", "journeys", "deals", "calls", "entries"], "Pipeline"),
-    ...from(
-      clients,
-      [
-        { id: "all", as: "clients" },
-        { id: "overview", as: "client-overview" },
-        "health",
-        "flags",
-        "days",
-        "inputs",
-        "usage",
-      ],
-      "Clients",
-    ),
-    ...from(outbound, ["companies"], "Clients"),
-    ...from(
-      engage,
-      [{ id: "people", as: "contacts", label: "Contacts" }, "followers", "subscribers"],
-      "Audience",
-    ),
-    ...from(sites, ["submissions"], "Audience"),
-  ],
-};
-
-const inboxPlace: Module = {
-  ...oldInbox,
-  blurb: "What waits on you now: replies, approvals, holds and mail.",
-  pages: [
-    ...from(oldInbox, ["overview"]),
-    ...from(oldContent, [{ id: "today", hidden: false, lights: null }]),
-    ...from(engage, [
-      { id: "inbox", as: "messages", label: "Messages" },
-      "approve",
-      "dms",
-      "comments",
-      "reviews",
-    ]),
-    ...from(outbound, ["texts"]),
-    ...from(oldInbox, ["mail", "replies"]),
-    ...from(workflows, ["holds"]),
-    ...from(oldInbox, ["done", "rules", "issues", "asks", "mentions"]),
-  ],
+  blurb: "Everyone we know, once each.",
+  find: finds(oldPeople, journeys),
+  pages: [...from(oldPeople, ["people", "timeline"]), ...from(journeys, ["journeys"])],
 };
 
 const officePlace: Module = {
   id: "office",
   name: "Back office",
   icon: "building",
-  blurb: "Runs the company: money, team and access, channel setup and settings.",
+  blurb: "Runs the company: contracts, money, accounts and team.",
   requires: TEAM,
   pages: [
+    ...from(documents, [{ id: "all", as: "documents", label: "Contracts" }], "Contracts"),
     ...from(
       money,
-      [
-        { id: "overview", as: "money", label: "Money" },
-        "spend",
-        "models",
-        "payments-in",
-        "subscriptions",
-        "card",
-        "in-house",
-        "accounts",
-      ],
+      [{ id: "overview", as: "money", label: "Money" }, "spend", "models", "payments-in"],
       "Money",
     ),
-    ...from(
-      team,
-      [
-        { id: "all", as: "team" },
-        "roles",
-        "grants",
-        { id: "review", as: "access-review" },
-        "changes",
-      ],
-      "Team",
-    ),
-    ...from(outbound, ["inboxes"], "Channels"),
-    ...from(engage, [{ id: "accounts", as: "channel-accounts" }], "Channels"),
-    ...from(settings, ["systems", "guide", "layout", "themes", "look"], "Settings"),
-    ...from(handlers, ["ai"], "Settings"),
+    ...from(money, [{ id: "subscriptions", lights: "money" }]).map(hide),
+    ...from(engage, [{ id: "accounts", as: "accounts" }], "Accounts"),
+    ...from(team, [{ id: "all", as: "team" }, "grants"], "Team"),
+    ...from(settings, ["look"], "Team"),
   ],
 };
 
-/** Wren's places, in sidebar order; Calendar and Research keep their apps. */
+/** Wren's places, in sidebar order. Research is its own product (`./index.ts`). */
 export const TEAM_PLACES: Module[] = [
   mapPlace,
-  campaignsPlace,
-  contentPlace,
+  todayPlace,
+  resultsPlace,
+  contentProduct,
+  outboundProduct,
+  clientsPlace,
   peoplePlace,
-  inboxPlace,
-  calendar,
   officePlace,
 ];
 
-// A client's workspace: the same places, less Research.
+// A client's workspace.
 
-const clientMapPlace: Module = {
-  id: "map",
-  name: "Map",
+const clientTodayPlace: Module = {
+  id: "today",
+  name: "Today",
+  icon: "inbox",
+  blurb: "What waits on you: our asks, drafts to approve, messages and calls.",
+  pages: [
+    ...flat(from(work, ["needs-you"])),
+    ...flat(
+      from(clientMarketing, [
+        "approve",
+        { id: "inbox", as: "messages", label: "Messages", hidden: false },
+      ]),
+    ),
+    ...flat(from(clientCalendar, [{ id: "schedule", as: "calendar", label: "Calendar" }])),
+    ...from(clientCalendar, ["calls"]).map(hide),
+  ],
+};
+
+const clientResultsPlace: Module = {
+  id: "results",
+  name: "Results",
+  icon: "chart",
+  blurb: "The numbers that show the work paid off.",
+  pages: from(work, [{ id: "results", as: "board" }]),
+};
+
+/** A client's project: the plan of what it bought, our updates and what we hand over. */
+const projectPlace: Module = {
+  id: "project",
+  name: "Project",
   icon: "workflow",
-  blurb: "What we do for you, where it stands, and the numbers that show it paid off.",
+  blurb: "What we do for you and where it stands.",
   fallback: true,
   ...(work.Glance ? { Glance: work.Glance } : {}),
   pages: [
-    ...from(work, ["overview", "plan", "updates", "results"]),
-    ...from(clientMarketing, ["reports"]),
+    ...from(work, ["overview", "plan", "updates", "deliverables"]),
+    ...from(work, ["welcome"]).map(hide),
   ],
 };
 
-const clientCampaignsPlace: Module = {
-  id: "campaigns",
-  name: "Campaigns",
-  icon: "billboard",
-  blurb: "Each push to win customers: who it reaches, its pages and how it did.",
-  ...(reactivation.Glance ? { Glance: reactivation.Glance } : {}),
-  find: finds(reactivation, clientSites),
-  pages: [
-    ...from(
-      reactivation,
-      ["overview", "run", "people", "emails", "replies", "keep", "setup", "real"],
-      "Reactivation",
-    ),
-    ...from(clientMarketing, ["ads"], "Ads"),
-    ...from(clientSites, ["pages", "links", "forms"], "Landers"),
-    ...from(clientMarketing, ["auto-reply"], "Rules"),
-  ],
-};
-
-const clientContentPlace: Module = {
+const clientContentProduct = product({
   id: "content",
   name: "Content",
   icon: "megaphone",
   blurb: "Your posts and the drafts that wait on your OK.",
-  pages: from(clientMarketing, [
-    { id: "drafts", lights: null },
-    { id: "content", hidden: false },
-  ]),
-};
+  work: one(clientMarketing, { id: "drafts", lights: null }),
+  results: one(clientMarketing, { id: "content", hidden: false }),
+});
+
+const reactivationProduct = product({
+  id: "reactivation",
+  name: "Reactivation",
+  icon: "billboard",
+  blurb: reactivation.blurb,
+  ...(reactivation.Glance ? { Glance: reactivation.Glance } : {}),
+  find: finds(reactivation),
+  overview: one(reactivation, "overview"),
+  work: one(reactivation, "emails"),
+  results: one(reactivation, "replies"),
+  settings: one(reactivation, "setup"),
+  hidden: [
+    ...from(reactivation, ["run", "people", "keep", "real"]),
+    ...from(calls, [{ id: "calls", lights: "overview" }]),
+  ],
+});
 
 const clientPeoplePlace: Module = {
   ...oldClientPeople,
-  find: finds(oldClientPeople, clientDeals, leads),
+  find: finds(oldClientPeople, journeys),
   pages: [
     ...from(
       oldClientPeople,
       oldClientPeople.pages.map((p) => p.id),
     ),
-    ...from(clientDeals, ["board", "journeys"], "Pipeline"),
-    ...from(calls, ["calls"], "Pipeline"),
-    ...from(leads, ["companies"], "Audience"),
-    ...from(clientSites, ["submissions"], "Audience"),
-  ],
-};
-
-const clientInboxPlace: Module = {
-  id: "inbox",
-  name: "Inbox",
-  icon: "inbox",
-  blurb: "What waits on you: replies, reviews and what we need from you.",
-  pages: [
-    ...from(work, ["needs-you", "deliverables", "welcome"]),
-    ...from(clientMarketing, [
-      { id: "inbox", as: "messages", label: "Messages", hidden: false },
-      "approve",
-      "reviews",
-    ]),
-    ...from(texts, ["threads"]),
+    ...from(journeys, ["journeys"]),
   ],
 };
 
@@ -375,42 +330,24 @@ const clientOfficePlace: Module = {
   id: "office",
   name: "Back office",
   icon: "building",
-  blurb: "Your account: payments, documents, people and settings.",
+  blurb: "Your account: contract, invoices, accounts and team.",
   pages: [
     ...from(account, ["overview"], "Account"),
-    ...from(payments, [{ id: "links", as: "pay-links" }], "Money"),
+    ...from(work, ["contract", "paperwork"], "Contract"),
+    ...from(documents, [{ id: "all", as: "documents" }], "Contract"),
     ...from(account, ["billing"], "Money"),
-    ...from(documents, [{ id: "all", as: "documents" }, "templates"], "Documents"),
-    ...from(work, ["paperwork", "contract"], "Documents"),
-    ...from(
-      account,
-      [
-        "you",
-        { id: "people", as: "team" },
-        "roles",
-        "grants",
-        { id: "review", as: "access-review" },
-        "asks",
-      ],
-      "Team",
-    ),
-    ...from(
-      account,
-      ["accounts", "mail", "social", "connectors", "vendors", "webhooks", "ai", "domain"],
-      "Channels",
-    ),
-    ...from(account, ["look", "fields", "facts", "messaging", "issues", "changes"], "Settings"),
-    ...from(clientSettings, ["systems"], "Settings"),
+    ...from(account, ["accounts", "social", "mail"], "Accounts"),
+    ...from(account, [{ id: "people", as: "team" }, "grants", "look"], "Team"),
   ],
 };
 
 /** A client's places, in sidebar order. */
 export const CLIENT_PLACES: Module[] = [
-  clientMapPlace,
-  clientCampaignsPlace,
-  clientContentPlace,
+  clientTodayPlace,
+  clientResultsPlace,
+  projectPlace,
+  clientContentProduct,
+  reactivationProduct,
   clientPeoplePlace,
-  clientInboxPlace,
-  clientCalendar,
   clientOfficePlace,
 ];

@@ -121,7 +121,7 @@ export function fieldSaving(
  * doesn't. What's typed is kept on the device until it saves (a reload opens the field with it);
  * someone's change meanwhile asks Keep mine or Use theirs; offline, it saves once back.
  */
-export function EditField({
+function EditField({
   field,
   value,
   save,

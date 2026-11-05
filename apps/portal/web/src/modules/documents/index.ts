@@ -3,14 +3,7 @@
  * client's templates, sent by text or email, signed on a page under its name, a deposit on signing.
  */
 import type { Module } from "../../module.js";
-import {
-  DOC_ACTIONS,
-  docExtras,
-  documentsHead,
-  TEMPLATE_ACTIONS,
-  templateExtras,
-  templatesHead,
-} from "./documents.js";
+import { DOC_ACTIONS, docExtras, documentsHead } from "./documents.js";
 
 export const documents: Module = {
   id: "documents",
@@ -36,18 +29,6 @@ export const documents: Module = {
       actions: DOC_ACTIONS,
       head: documentsHead,
       extras: docExtras,
-    },
-    {
-      id: "templates",
-      label: "Templates",
-      about: "Saved documents to start an estimate or contract from.",
-      template: "list",
-      record: "documents.template",
-      columns: ["name", "kind", "lines", "depositPct", "expiresDays", "starter"],
-      empty: "No templates. Add one, or start a document blank.",
-      actions: TEMPLATE_ACTIONS,
-      head: templatesHead,
-      extras: templateExtras,
     },
   ],
 };

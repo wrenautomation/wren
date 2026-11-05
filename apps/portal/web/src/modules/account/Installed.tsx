@@ -4,7 +4,7 @@
  * (`wren clients set`, designs/2026-11-04-portal-places.md).
  */
 import type { RecordAnswer, RecordsPage } from "@wren/core/records/serve";
-import { Empty, LoadFailed, Loading, type SettingField, Settings, Tag } from "@wren/ui";
+import { Empty, LoadFailed, Loading, type SettingField, Settings } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { LIST, QUIET } from "../work/bits.js";
@@ -51,58 +51,6 @@ export function ClientComponents({ client }: { client: string }) {
         </ul>
       ) : (
         <Empty>Nothing installed.</Empty>
-      )}
-    </div>
-  );
-}
-
-interface InstalledTemplate {
-  template: string;
-  name: string;
-  state: "draft" | "waiting" | "live" | "off";
-  current: boolean;
-  parts: number;
-  at: string;
-}
-
-const STATE = {
-  draft: { label: "Not live yet", tone: "neutral" },
-  waiting: { label: "Waiting on approval", tone: "accent" },
-  live: { label: "Live", tone: "green" },
-  off: { label: "Uninstalled", tone: "neutral" },
-} as const;
-
-const day = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-
-/** A client's templates: each one's state, how many parts it put on, and when. */
-export function ClientTemplates({ client }: { client: string }) {
-  const got = useCall(`templates:${client}`, () =>
-    call<InstalledTemplate[]>("console/templateInstalls", { client }),
-  );
-  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
-  if (!got.data) return <Loading lines={2} />;
-  return (
-    <div className="grid gap-3">
-      {got.data.length ? (
-        <ul className={LIST}>
-          {got.data.map((t) => (
-            <li key={t.template} className="grid gap-1">
-              <span className="flex items-center justify-between gap-3">
-                <b className="min-w-0">{t.name}</b>
-                <Tag tone={STATE[t.state].tone}>{STATE[t.state].label}</Tag>
-              </span>
-              <span className={QUIET}>
-                {t.state === "off"
-                  ? `Uninstalled ${day(t.at)}. Data and copy kept.`
-                  : `${t.parts} ${t.parts === 1 ? "part" : "parts"}, installed ${day(t.at)}.`}
-                {t.current || t.state === "off" ? "" : " The template changed since."}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <Empty>No templates yet.</Empty>
       )}
     </div>
   );

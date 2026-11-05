@@ -46,7 +46,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
 import { call, ME_CHANGED, type Me, signOutUrl, viewing } from "./api.js";
 import { AppsProvider } from "./apps-context.js";
-import { dockOf, phoneTabsOf, sidebarOf } from "./areas.js";
+import { AREAS, dockOf, phoneTabsOf, sidebarOf } from "./areas.js";
 import { Contained } from "./contained.js";
 import { dictation } from "./dictation/index.js";
 import { useShareFlags } from "./flags.js";
@@ -530,21 +530,16 @@ export function App() {
   const listed = new Set(fixed.map((f) => f.app.id));
   // Wren's home is the Map place's row: `/` draws the metro map, its pages fold under it.
   const homeRow = team && listed.has("map") ? "map" : undefined;
+  const rowAt = ({ label, app }: (typeof fixed)[number]) =>
+    app.id === homeRow ? { ...rowOf(app, label), href: launcher ?? "/" } : rowOf(app, label);
+  const stray =
+    open && !open.module.menu && !listed.has(open.module.id) ? [rowOf(open.module)] : [];
   const areas: NavArea[] | undefined = launcher
-    ? [
-        {
-          id: "main",
-          label: "",
-          apps: [
-            ...fixed.map(({ label, app }) =>
-              app.id === homeRow ? { ...rowOf(app, label), href: launcher } : rowOf(app, label),
-            ),
-            ...(open && !open.module.menu && !listed.has(open.module.id)
-              ? [rowOf(open.module)]
-              : []),
-          ],
-        },
-      ]
+    ? AREAS.map(({ id, label }) => ({
+        id,
+        label,
+        apps: [...fixed.filter((f) => f.area === id).map(rowAt), ...(id === "core" ? stray : [])],
+      })).filter((a) => a.apps.length)
     : undefined;
 
   // A phone's bottom tabs at home: the Map, then Inbox, People and his first pin; Apps comes after.

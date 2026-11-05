@@ -1,8 +1,7 @@
 /**
- * The sidebar is the eight places (designs/2026-11-04-portal-places.md): Map, Campaigns, Content,
- * People, Inbox, Calendar, Research (Wren's team only) and Back office. Each place is one app
- * (`modules/places.ts`). An app no place names (none today) lands under Other; a parked app shows
- * nowhere, yet its routes and ⌘K work.
+ * The sidebar is the product shell (designs/2026-11-04-portal-places.md): fixed places, then the
+ * products, then the core. Each place is one app (`modules/places.ts`). An app no place names
+ * lands under Other; a parked app shows nowhere, yet its routes and ⌘K work.
  */
 import type { IconName } from "@wren/ui";
 
@@ -15,17 +14,29 @@ export interface Area {
   shut?: boolean;
 }
 
-/** The places in sidebar order. A workspace without one (a client has no Research) skips it. */
+/** The places in sidebar order, each in its area. A workspace without one skips it. */
 export const PLACES = [
-  { label: "Map", app: "map" },
-  { label: "Campaigns", app: "campaigns" },
-  { label: "Content", app: "content" },
-  { label: "People", app: "people" },
-  { label: "Inbox", app: "inbox" },
-  { label: "Calendar", app: "calendar" },
-  { label: "Research", app: "research" },
-  { label: "Back office", app: "office" },
+  { label: "Map", app: "map", area: "fixed" },
+  { label: "Today", app: "today", area: "fixed" },
+  { label: "Results", app: "results", area: "fixed" },
+  { label: "Content", app: "content", area: "products" },
+  { label: "Outbound", app: "outbound", area: "products" },
+  { label: "Reactivation", app: "reactivation", area: "products" },
+  { label: "Research", app: "research", area: "products" },
+  { label: "Project", app: "project", area: "core" },
+  { label: "Clients", app: "clients", area: "core" },
+  { label: "People", app: "people", area: "core" },
+  { label: "Back office", app: "office", area: "core" },
 ] as const;
+
+/** The sidebar's areas: only Products is named; the others read by place. */
+export const AREAS = [
+  { id: "fixed", label: "" },
+  { id: "products", label: "Products" },
+  { id: "core", label: "" },
+] as const;
+
+type AreaId = (typeof AREAS)[number]["id"];
 
 const PLACE_AREA: Area = { id: "places", label: "Places", apps: PLACES.map((p) => p.app) };
 /** Where an app no place names goes, so a new app always shows. */
@@ -44,13 +55,13 @@ export function areasOf<T extends { id: string; parked?: true | undefined }>(
   ].filter((a) => a.apps.length);
 }
 
-/** The places this workspace has, in order, each with its app. A parked app is skipped. */
+/** The places this workspace has, in order, each with its app and area. A parked app is skipped. */
 export function sidebarOf<T extends { id: string; parked?: true | undefined }>(
   apps: readonly T[],
-): { label: string; app: T }[] {
-  return PLACES.flatMap(({ label, app: id }) => {
+): { label: string; app: T; area: AreaId }[] {
+  return PLACES.flatMap(({ label, app: id, area }) => {
     const app = apps.find((m) => !m.parked && m.id === id);
-    return app ? [{ label, app }] : [];
+    return app ? [{ label, app, area }] : [];
   });
 }
 
@@ -58,10 +69,10 @@ export function sidebarOf<T extends { id: string; parked?: true | undefined }>(
 type DockPick<T, P> = { label: string; app: T } | { pin: P };
 
 /** The places a phone docks after home, in order (the design's dock). */
-const DOCKED = ["inbox", "calendar", "content", "people"];
+const DOCKED = ["today", "content", "outbound", "people"];
 
 /**
- * A phone's tabs after home: Inbox, Calendar, Content, People, then the person's first pin. A pin
+ * A phone's tabs after home: Today, Content, Outbound, People, then the person's first pin. A pin
  * that does not open (moved, or a page they may not see) is not in `pins`, so the first one that
  * opens docks. `size` counts home's tab too.
  */
@@ -88,20 +99,10 @@ interface TabPick {
  * or group, in its own order.
  */
 const PHONE_TABS: Readonly<Record<string, readonly TabPick[]>> = {
-  content: [
-    { page: "plan", icon: "calendar" },
-    { page: "studio", icon: "write" },
-    { page: "pieces", icon: "write" },
-  ],
-  inbox: [
-    { page: "today", icon: "calendar" },
-    { page: "messages", icon: "chat" },
+  today: [
     { page: "approve", icon: "check" },
-  ],
-  campaigns: [
-    { page: "engage", icon: "reply" },
-    { page: "invites", icon: "people" },
-    { page: "visits", icon: "chart" },
+    { page: "messages", icon: "chat" },
+    { page: "calendar", icon: "calendar" },
   ],
 };
 

@@ -36,7 +36,7 @@ export const POLL_EVERY = 15_000;
 /** The server unreachable: try again after. */
 const RETRY_AFTER = 5_000;
 /** A frame's longest: a Yjs update's limit, base64 and the envelope. */
-export const FRAME_MAX = Math.ceil((UPDATE_MAX * 4) / 3) + 1024;
+const FRAME_MAX = Math.ceil((UPDATE_MAX * 4) / 3) + 1024;
 
 /** One socket, as the room uses it. */
 export interface Socket {

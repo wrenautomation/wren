@@ -33,7 +33,7 @@ import { type AccountRow, currentOf, type RunRow, railOf, runTag } from "./setup
 export const ownerOf = (client: string) => (client === WREN.id ? "wren" : client);
 
 /** A write to AccountsConsole: busy while it runs, its refusal shown, then a reload. */
-export function useAccountsAct(client: string, reload: () => void) {
+function useAccountsAct(client: string, reload: () => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // One write at a time; a second press of the same one is one action (its request id).

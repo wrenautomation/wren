@@ -5,6 +5,7 @@
  * team's channel with a link, never the lead's words. A moved or cancelled call's old send skips.
  */
 import * as restate from "@restatedev/restate-sdk";
+import { WREN } from "@wren/core/access";
 import type { MeetingOutcome } from "@wren/core/calls";
 import { type ExecutorEvent, executorEmit, type Fired, type Step } from "@wren/core/executor";
 import { aboutOf } from "@wren/core/logic";
@@ -176,8 +177,9 @@ const SEND = BUILD.extend({
   start: z.string().describe("The call time the send was queued for"),
 });
 
-/** The call's page, in People for Wren and a client alike. */
-export const briefPath = (id: number) => `/people/calls/${id}`;
+/** The call's page: Outbound for Wren (null or `wren`), Reactivation for a client. */
+export const briefPath = (client: string | null, id: number) =>
+  `/${!client || client === WREN ? "outbound" : "reactivation"}/calls/${id}`;
 
 export function makeCallBriefs(deps: CallBriefsDeps) {
   /** Build the brief again now and keep it; null when the call is gone. */
@@ -241,7 +243,9 @@ export function makeCallBriefs(deps: CallBriefsDeps) {
             0,
             Math.round((new Date(call.start).getTime() - now.getTime()) / 60_000),
           );
-          const link = deps.portal ? `${deps.portal.replace(/\/+$/, "")}${briefPath(id)}` : null;
+          const link = deps.portal
+            ? `${deps.portal.replace(/\/+$/, "")}${briefPath(client, id)}`
+            : null;
           await ctx.run("ping", () =>
             notifier.notify(
               `Call in ${mins} min: brief ready`,

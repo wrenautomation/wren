@@ -10,7 +10,6 @@ import {
   DEFAULT_FACTS,
   FACT_MAX,
   FACTS_CAP,
-  FACTS_DROP,
   FACTS_PAGE,
   factsChange,
   factsChangeText,
@@ -48,7 +47,7 @@ import {
 } from "react";
 import { call, viewingAs } from "../../api.js";
 import { patchCalls, useCall } from "../../load.js";
-import type { ListPage, PageProps } from "../../module.js";
+import type { PageProps } from "../../module.js";
 import { QUIET } from "../work/bits.js";
 
 /** Where a drop for made-up facts, or his own "Wrong facts", sends him. */
@@ -59,25 +58,6 @@ export function FactsLink() {
     </a>
   );
 }
-
-/** A row's drop reason with the link when the facts guard dropped it; its line replaces the field's. */
-export const factsDropped =
-  (field: string, label: string): NonNullable<ListPage["extras"]> =>
-  (_detail, at) => {
-    const why = at.row[field];
-    return typeof why === "string" && why.startsWith(FACTS_DROP)
-      ? {
-          facts: [
-            [
-              label,
-              <span key={field}>
-                {why} <FactsLink />
-              </span>,
-            ],
-          ],
-        }
-      : {};
-  };
 
 const RECORD = "marketing.facts";
 const ID = "wren";

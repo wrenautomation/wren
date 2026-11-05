@@ -310,8 +310,6 @@ export async function templateDetail(db: Queryable, id: string) {
   };
 }
 
-export type TemplateDetail = NonNullable<Awaited<ReturnType<typeof templateDetail>>>;
-
 const PATCH = z
   .object({ words: z.string().max(WORDS_MAX) })
   .partial()

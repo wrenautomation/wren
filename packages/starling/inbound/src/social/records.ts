@@ -386,7 +386,7 @@ export const inboxRecordOf = (deps: ConsoleDeps) =>
           account: null,
           at: e.at,
           due: e.at,
-          url: e.invite ? `/inbox/replies/${e.invite}` : null,
+          url: e.invite ? `/today/replies/${e.invite}` : null,
         })),
         // Theirs is the last word and nobody read it: waiting. Ours came after: answered.
         ...xs.map((x) => ({
@@ -650,7 +650,7 @@ const replyItem = (r: InboxReply) => ({
   at: r.state === "queued" ? (r.decidedAt ?? r.askedAt) : r.askedAt,
   due: r.state === "queued" ? (r.sendAt ?? r.askedAt) : r.askedAt,
   // Our email thread they never answered has no Inbox row to open.
-  url: r.thread.startsWith("outbound:") ? null : `/inbox/messages/${encodeURIComponent(r.thread)}`,
+  url: r.thread.startsWith("outbound:") ? null : `/today/messages/${encodeURIComponent(r.thread)}`,
 });
 
 /**
@@ -659,9 +659,9 @@ const replyItem = (r: InboxReply) => ({
  */
 function outreachOf(id: string): string | null {
   const [type, rest] = typed(id);
-  if (type === "thread" || type === "onpost") return `/campaigns/engage/${encodeURIComponent(id)}`;
+  if (type === "thread" || type === "onpost") return `/outbound/engage/${encodeURIComponent(id)}`;
   if (type === "invite" || type === "connect")
-    return `/campaigns/invites/${encodeURIComponent(rest)}`;
+    return `/outbound/invites/${encodeURIComponent(rest)}`;
   return null;
 }
 
@@ -1169,7 +1169,7 @@ export const askedReplyRecord = defineRecord({
       send_at: r.state === "queued" ? r.sendAt : null,
       asked_by: r.askedBy,
       at: r.state === "queued" ? (r.decidedAt ?? r.askedAt) : r.askedAt,
-      url: `/inbox/messages/${encodeURIComponent(r.thread)}`,
+      url: `/today/messages/${encodeURIComponent(r.thread)}`,
     })),
   ],
   key: "id",

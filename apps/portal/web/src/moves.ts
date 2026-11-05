@@ -10,16 +10,6 @@ import type { Module, ModulePage } from "./module.js";
 type Row = Record<string, unknown>;
 type Where = Record<string, unknown>;
 
-/** Where each kind of move opens. The reshape's addresses; `moved.ts` holds the old ones. */
-const AT = {
-  call: "/people/calls",
-  approve: "/inbox/approve",
-  inbox: "/inbox/messages",
-  reply: "/inbox/replies",
-  ask: "/inbox/asks",
-  stale: "/people/journeys?view=stale",
-} as const;
-
 /** To approve's kinds: their name and the view they list under. */
 export const ASKS: Record<string, { label: string; view: string; person?: boolean }> = {
   invite: { label: "First messages to new connections", view: "invites", person: true },
@@ -78,8 +68,8 @@ interface Source {
   id: "call" | "approve" | "inbox" | "reply" | "ask" | "stale";
   record: string;
   limit: number;
-  /** Rows to moves. */
-  make: (rows: Row[]) => Move[];
+  /** Rows to moves; `at` is the page that counts the record, where a move opens. */
+  make: (rows: Row[], at: string) => Move[];
 }
 
 const str = (v: unknown) => String(v ?? "").trim();
@@ -119,7 +109,7 @@ export const SOURCES: readonly Source[] = [
     id: "call",
     record: "email.call",
     limit: 20,
-    make: (rows) =>
+    make: (rows, at) =>
       [...rows]
         .sort((a, b) => str(a.start).localeCompare(str(b.start)))
         .map((r) => ({
@@ -127,7 +117,7 @@ export const SOURCES: readonly Source[] = [
           icon: "phone",
           verb: "Prepare call",
           what: [nameOf(r.who), timeOf(r.start)].filter(Boolean).join(", "),
-          href: `${AT.call}/${encodeURIComponent(str(r.id))}`,
+          href: `${at}/${encodeURIComponent(str(r.id))}`,
           n: 1,
           emails: emailsOf(r.email),
         })),
@@ -137,7 +127,7 @@ export const SOURCES: readonly Source[] = [
     record: "marketing.approval",
     limit: 200,
     // Post drafts show as the Write list; every other kind gets its own line.
-    make: (rows) => {
+    make: (rows, at) => {
       const by = new Map<string, Row[]>();
       for (const r of rows) {
         const t = str(r.type);
@@ -152,7 +142,7 @@ export const SOURCES: readonly Source[] = [
           icon: "check",
           verb: "Approve",
           what: [a.label, namesLine(names, rs.length)].filter(Boolean).join(", "),
-          href: `${AT.approve}?view=${a.view}`,
+          href: `${at}?view=${a.view}`,
           n: rs.length,
           emails: [],
         };
@@ -165,19 +155,19 @@ export const SOURCES: readonly Source[] = [
     limit: 50,
     // A person wrote. Activity is a notice; an email reply with an invite shows with the
     // replies below.
-    make: (rows) =>
+    make: (rows, at) =>
       rows
         .filter(
           (r) =>
             str(r.type) !== "activity" &&
-            !(str(r.type) === "email" && str(r.url).startsWith("/inbox/replies/")),
+            !(str(r.type) === "email" && /^\/[a-z]+\/replies\//.test(str(r.url))),
         )
         .map((r) => ({
           key: `inbox:${str(r.id)}`,
           icon: "inbox",
           verb: "Reply",
           what: nameOf(r.who, true),
-          href: AT.inbox,
+          href: at,
           n: 1,
           emails: [],
         })),
@@ -186,13 +176,13 @@ export const SOURCES: readonly Source[] = [
     id: "reply",
     record: "email.reply",
     limit: 50,
-    make: (rows) =>
+    make: (rows, at) =>
       rows.map((r) => ({
         key: `reply:${str(r.id)}`,
         icon: "mail",
         verb: "Reply",
         what: nameOf(r.who, true),
-        href: AT.reply,
+        href: at,
         n: 1,
         emails: emailsOf(r.email),
       })),
@@ -201,13 +191,13 @@ export const SOURCES: readonly Source[] = [
     id: "ask",
     record: "access.ask",
     limit: 20,
-    make: (rows) =>
+    make: (rows, at) =>
       rows.map((r) => ({
         key: `ask:${str(r.id)}`,
         icon: "shield",
         verb: "Answer",
         what: nameOf(r.email),
-        href: AT.ask,
+        href: at,
         n: 1,
         emails: [],
       })),
@@ -216,7 +206,7 @@ export const SOURCES: readonly Source[] = [
     id: "stale",
     record: "pipeline.journey",
     limit: 50,
-    make: (rows) =>
+    make: (rows, at) =>
       rows.map((r) => ({
         key: `stale:${str(r.id)}`,
         icon: "target",
@@ -224,7 +214,7 @@ export const SOURCES: readonly Source[] = [
         what: [nameOf(r.name), str(r.nodeName), `${Number(r.daysAtNode) || 0} days`]
           .filter(Boolean)
           .join(", "),
-        href: AT.stale,
+        href: at,
         n: 1,
         emails: emailsOf(...str(r.email).split(/\s+/)),
         journey: str(r.id),
@@ -260,7 +250,7 @@ export function sourcesOf(
     const at = pageOf(apps, s.record);
     const where = at ? whereOf(at.p) : null;
     const n = at ? (waiting[at.m.id]?.[at.p.id] ?? 0) : 0;
-    return where && n > 0 ? [{ s, where, n }] : [];
+    return at && where && n > 0 ? [{ s, where, n, at: `/${at.m.id}/${at.p.id}` }] : [];
   });
 }
 
@@ -304,15 +294,15 @@ export async function movesOf(
 ): Promise<Moves> {
   const live = sourcesOf(apps, waiting);
   const lists = await Promise.all(
-    live.map(({ s, where }) =>
+    live.map(({ s, where, at }) =>
       call<{ rows: Row[] }>("console/recordsList", {
         record: s.record,
         where,
         limit: s.limit,
-      }).then((r) => ({ s, rows: r.rows })),
+      }).then((r) => ({ s, at, rows: r.rows })),
     ),
   );
-  const moves = lists.flatMap(({ s, rows }) => s.make(rows));
+  const moves = lists.flatMap(({ s, at, rows }) => s.make(rows, at));
   const stale = lists.find((l) => l.s.id === "stale")?.rows ?? [];
   const needs = moves.some((m) => m.emails.length && !m.journey);
   const open = needs

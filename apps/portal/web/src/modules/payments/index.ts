@@ -86,18 +86,6 @@ const CREATE: Action = {
   done: sentLine,
 };
 
-/** On a texting thread (Texts): a pay link to that number. */
-export const THREAD_PAY: Action = {
-  id: "payments.fromThread",
-  label: "Send a pay link",
-  icon: "send",
-  handler: "payments/fromThread",
-  each: true,
-  form: MONEY,
-  key: "p",
-  done: sentLine,
-};
-
 export const payments: Module = {
   id: "payments",
   name: "Payments",

@@ -36,7 +36,6 @@ import { SetupNow } from "./modules/account/Now.js";
 import { SetupCard } from "./modules/account/SetupCard.js";
 import { atOf } from "./modules/deals/board.js";
 import { goalsOf, makeAt, usePlan } from "./modules/marketing/plan.js";
-import { HealthNow } from "./modules/wren/health.js";
 import type { Move, Moves } from "./moves.js";
 import { href, navigate } from "./route.js";
 import { useFolds } from "./use-folds.js";
@@ -468,7 +467,6 @@ export function WrenToday({
         />
       ) : null}
       {props.team ? <SetupNow client={props.client} team /> : null}
-      {props.team ? <HealthNow /> : null}
       <PinnedRow pins={pins} />
       <WriteList narrow={narrow} />
       <ProposalsLine props={props} />

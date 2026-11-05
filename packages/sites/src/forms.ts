@@ -6,7 +6,7 @@
  */
 import { esc, para, safeHref } from "./templates/parts.js";
 
-export const FIELD_KINDS = [
+const FIELD_KINDS = [
   "text",
   "long",
   "email",
@@ -21,10 +21,10 @@ export const FIELD_KINDS = [
 export type FieldKind = (typeof FIELD_KINDS)[number];
 
 /** Rules past required and length: fixed shapes, never a free regex (it would run on our side). */
-export const FIELD_RULES = ["digits", "letters", "zip", "url"] as const;
+const FIELD_RULES = ["digits", "letters", "zip", "url"] as const;
 export type FieldRule = (typeof FIELD_RULES)[number];
 
-export const FIELD_KIND_LABELS: Record<FieldKind, string> = {
+const FIELD_KIND_LABELS: Record<FieldKind, string> = {
   text: "Short text",
   long: "Paragraph",
   email: "Email",
@@ -38,14 +38,8 @@ export const FIELD_KIND_LABELS: Record<FieldKind, string> = {
 };
 
 /** A show-when rule's test on the earlier field it names. */
-export const SHOW_OPS = ["is", "not", "filled", "empty"] as const;
+const SHOW_OPS = ["is", "not", "filled", "empty"] as const;
 export type ShowOp = (typeof SHOW_OPS)[number];
-export const SHOW_OP_LABELS: Record<ShowOp, string> = {
-  is: "is",
-  not: "is not",
-  filled: "is filled in",
-  empty: "is empty",
-};
 
 /** Shown only when an earlier field passes: `service` is "Repair", `phone` is filled in. */
 export interface ShowRule {
@@ -54,12 +48,6 @@ export interface ShowRule {
   /** For `is` and `not`: any one matches, in any case. */
   values?: string[];
 }
-export const FIELD_RULE_LABELS: Record<FieldRule, string> = {
-  digits: "Digits only",
-  letters: "Letters only",
-  zip: "US ZIP code",
-  url: "Web address",
-};
 
 export interface FormField {
   /** The value's name in the submission and the door's payload: `email`, `service`. */

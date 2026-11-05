@@ -27,7 +27,7 @@ import { ERROR, FORM, Kept, NARROW, QUIET, SPLIT } from "../work/bits.js";
 type Grant = RecordsPage["rows"][number];
 
 /** A console call in this workspace: Wren's own, or the client's. */
-export const consoleIn = <T,>(client: string, handler: string, body: Record<string, unknown>) =>
+const consoleIn = <T,>(client: string, handler: string, body: Record<string, unknown>) =>
   call<T>(`console/${handler}`, client === WREN.id ? body : { client, ...body });
 
 const VERBS: [Permission, string][] = [

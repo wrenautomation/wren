@@ -69,7 +69,7 @@ export const makeAt = (piece: string, gs: readonly Goal[]): { href: string; labe
       label: "Make a story",
     };
   if (piece === "newsletter") return { href: "/content/studio?make=blog", label: "Write a post" };
-  if (piece === "replies") return { href: "/campaigns/engage", label: "Answer threads" };
+  if (piece === "replies") return { href: "/outbound/engage", label: "Answer threads" };
   if (g?.starts === "video")
     return {
       href: piece === "long" ? "/content/studio?make=video" : "/content/videos",
@@ -293,7 +293,7 @@ export function PlanPage(_props: PageProps) {
         note={waiting.length ? `${waiting.length} pieces, ${waitCount(open)}` : undefined}
         actions={
           waiting.length > SHOWN ? (
-            <a className={cx("text-[13px] underline", QUIET)} href="/content/pieces?show=waiting">
+            <a className={cx("text-[13px] underline", QUIET)} href="/content/drafts?view=waiting">
               All {waiting.length}
             </a>
           ) : null

@@ -181,11 +181,8 @@ function ByMonth() {
     <section className="grid grid-cols-[minmax(0,1fr)] content-start">
       <div className={FLAT_HEAD}>
         <h2 className={SECTION_TITLE}>Spend by month</h2>
-        <a
-          href="/map/months?view=all"
-          className="text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)"
-        >
-          All months
+        <a href="/office/spend" className="text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)">
+          All spend
         </a>
       </div>
       <div className="pt-3">

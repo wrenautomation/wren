@@ -34,7 +34,7 @@ export const reviewRecord = defineRecord({
       ...r,
       id: `comment:${r.id}`,
       band: r.stars != null && Number(r.stars) <= 3 ? "low" : "high",
-      url: `/inbox/messages/${encodeURIComponent(`comment:${r.id}`)}`,
+      url: `/today/messages/${encodeURIComponent(`comment:${r.id}`)}`,
     })),
   key: "id",
   title: "who",

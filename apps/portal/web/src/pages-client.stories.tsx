@@ -13,22 +13,18 @@ export default meta;
 
 export const Today = pageAt("/");
 export const Work = pageAt("/map");
-export const Reactivation = pageAt("/campaigns");
 export const Leads = pageAt("/people");
-export const Texts = pageAt("/inbox");
+export const Texts = pageAt("/today");
 export const Calls = pageAt("/people");
 export const Payments = pageAt("/office");
 export const Documents = pageAt("/office");
 export const Pipelines = pageAt("/people");
 export const People = pageAt("/people");
 export const Marketing = pageAt("/content");
-export const Sites = pageAt("/campaigns");
-export const Learn = pageAt("/learn");
-export const Notes = pageAt("/notes");
-export const Calendar = pageAt("/calendar");
+export const Calendar = pageAt("/today");
 
 /** The agenda as `Rows`: a band per day, a call a row, and a press opens it beside the list. */
-export const CalendarAgenda = pageAt("/calendar/schedule?v=list&d=2026-10-12", {
+export const CalendarAgenda = pageAt("/today/calendar?v=list&d=2026-10-12", {
   check: async (page) => {
     await expect(await within(page).findByText("Tuesday, October 13")).toBeVisible();
     await expect(within(page).getByText("Thursday, October 15")).toBeVisible();
@@ -83,16 +79,6 @@ export const NotesRows: StoryObj = {
   },
 };
 
-/** Mentions as `Rows`: a new tag reads heavier with a dot, and a row opens its note. */
-export const NoteMentions = pageAt("/notes/mentions", {
-  check: async (page) => {
-    const link = await within(page).findByRole("link", { name: "Spring promo plan" });
-    await expect(link).toBeVisible();
-    await expect(link).toHaveAttribute("href", "/notes/doc/n1");
-    await expect(within(page).getByRole("img", { name: "New" })).toBeVisible();
-  },
-});
-export const Voice = pageAt("/voice");
 export const Settings = pageAt("/office");
 export const Library = pageAt("/map");
 export const Account = pageAt("/office");

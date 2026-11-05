@@ -5,7 +5,7 @@
  */
 
 /** A line that already has a card carries a link whose label starts with this. */
-export const CARD_LABEL = "Card: ";
+const CARD_LABEL = "Card: ";
 
 /** Where a card stands now, as the `cardChips` route answers. */
 export interface CardChip {

@@ -1,5 +1,5 @@
 /**
- * The Module objects: Wren's Ads and Content apps, and a client's Marketing.
+ * The Module objects: Wren's Content app, and a client's Marketing.
  */
 
 import { POST_NOW as POST_NOW_FLAG } from "@wren/core/marketing/console-routes";
@@ -7,43 +7,18 @@ import type { Action } from "@wren/ui";
 import type { ListPage, Module } from "../../module.js";
 import { BROADCAST_DECIDE_ACTIONS } from "../people/broadcasts.js";
 import { ASKED_REPLY_ACTIONS } from "./approval.js";
-import { AutoReplyPage } from "./auto-reply.js";
 import { askedReplyExtras, conversationExtras, conversationReply } from "./conversation.js";
 import { DRAFT_ACTIONS, fieldActions, OPEN, POST_ACTIONS, UNSURE_ACTIONS } from "./drafts.js";
 import { withShape } from "./fields.js";
 import { INBOX_THREAD_ACTIONS, only, WAITS } from "./inbox.js";
-import { AD_DAYS, MARKETING_PAGES, REVIEWS_PAGE, SITE_PAGES } from "./pages.js";
-import { ReportsPage } from "./reports.js";
+import { MARKETING_PAGES } from "./pages.js";
 import { withThread } from "./thread-context.js";
-
-/** Wren's Ads app: apart from Marketing, since ads carry spend, variants and their own numbers. */
-export const ads: Module = {
-  id: "ads",
-  name: "Ads",
-  icon: "billboard",
-  component: "marketing.stats",
-  blurb: "Every ad set by day: spend, reach, leads and what each one cost.",
-  requires: { audience: "team" },
-  pages: [
-    { ...AD_DAYS, id: "sets", label: "Ad sets" },
-    {
-      id: "formats",
-      label: "Formats",
-      about: "The ad formats we make, and how each one does.",
-      template: "list",
-      record: "ads.format",
-      empty: "No formats yet.",
-    },
-  ],
-};
 
 const P = MARKETING_PAGES;
 
 /**
- * Content (designs/2026-10-14-content-types.md): what to make, make it, and how it did. Plan is the
- * day (what to make, what waits, what went out), Studio makes anything new and finishes what
- * waits, Pieces lists each thing made with everywhere it went, Posts what went out. The rest
- * opens from a link and lights the tab it belongs to.
+ * Content (designs/2026-10-14-content-types.md): Plan is the day, Studio makes and finishes,
+ * Posts is what went out. The rest opens from a link.
  */
 export const content: Module = {
   id: "content",
@@ -52,24 +27,7 @@ export const content: Module = {
   icon: "megaphone",
   blurb: "Every platform's posts: plan, make, and how each did.",
   requires: { audience: "team" },
-  pages: [
-    P.plan,
-    P.studio,
-    P.pieces,
-    P.content,
-    P.overview,
-    { ...P.topics, group: "Setup" },
-    { ...P.facts, group: "Setup" },
-    P.drafts,
-    P.write,
-    P.videos,
-    P.explore,
-    { ...P.today, lights: "plan" },
-    { ...P.digest, lights: "overview" },
-    { ...P.metrics, lights: "overview" },
-    { ...P.cadence, lights: "overview" },
-    { ...P.reports, hidden: true, lights: "overview" },
-  ],
+  pages: [P.plan, P.studio, P.content, P.facts, P.drafts, P.write, P.videos],
 };
 
 const VERDICTS = new Set(["marketing.approveDraft", "marketing.redraft", "marketing.rejectDraft"]);
@@ -79,9 +37,7 @@ const POST_NOW = { id: "marketing.postNow", flag: POST_NOW_FLAG } as const;
 const EDITS = new Set(fieldActions(OPEN).map((a) => a.id));
 /** One of Wren's Marketing pages, as a client's: its records from its own database, read only. */
 const asClient = (id: string, more: Partial<ListPage> = {}): ListPage => {
-  const page = [AD_DAYS, ...SITE_PAGES, ...Object.values(MARKETING_PAGES)].find(
-    (p) => p.id === id,
-  ) as ListPage;
+  const page = Object.values(MARKETING_PAGES).find((p) => p.id === id) as ListPage;
   const { actions: _a, extras: _e, ...rest } = page;
   return { ...rest, ...more };
 };
@@ -129,7 +85,7 @@ const CLIENT_APPROVE: ListPage = {
 
 /**
  * A client's Marketing, once `marketing.stats` is installed: its Inbox, the replies there that
- * wait on a yes, its drafts, posts, ads and search (`MarketingConsole`, its own database). Drafts take its approver's verdict, a YouTube post its
+ * wait on a yes, its drafts and posts (`MarketingConsole`, its own database). Drafts take its approver's verdict, a YouTube post its
  * approver's Promote (drafts on its own logins); the rest read only.
  * Same address as Wren's; the workspace picks which.
  */
@@ -138,7 +94,7 @@ export const clientMarketing: Module = {
   name: "Marketing",
   component: "marketing.stats",
   icon: "megaphone",
-  blurb: "Your posts, drafts, ads and search in one place.",
+  blurb: "Your posts and drafts, and the messages that wait on you.",
   pages: [
     // Its own threads: reply, Suggest, notes, assign, close and snooze.
     asClient("inbox", {
@@ -148,13 +104,6 @@ export const clientMarketing: Module = {
       extras: withThread(conversationExtras, { readOnly: true }),
       reply: conversationReply,
     }),
-    {
-      id: "auto-reply",
-      label: "Auto-reply",
-      about: "What happens when someone writes in, per channel.",
-      Page: AutoReplyPage,
-    },
-    REVIEWS_PAGE,
     CLIENT_APPROVE,
     // The draft's own settings and preview (a TikTok post's Direct Post panel), as Wren's.
     asClient("drafts", {
@@ -169,15 +118,5 @@ export const clientMarketing: Module = {
       hidden: true,
       actions: POST_ACTIONS.filter((a) => a.id === "marketing.postPromote"),
     }),
-    asClient("ads", { empty: "In development: ads show here once your ad account is connected." }),
-    asClient("search"),
-    asClient("keywords"),
-    {
-      id: "reports",
-      label: "Reports",
-      about: "Your numbers by email each week or month, against the one before.",
-      Page: ReportsPage,
-      requires: { needs: "manage" },
-    },
   ],
 };

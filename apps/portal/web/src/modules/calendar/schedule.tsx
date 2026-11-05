@@ -44,7 +44,7 @@ import {
 } from "./grid.js";
 
 const RECORD = "calendar.booking";
-const PATH = "/calendar/schedule";
+const PATH = "/today/calendar";
 /** Pixels per hour in the time grid. */
 const HOUR = 48;
 const PX = HOUR / 60;
@@ -324,8 +324,8 @@ function Board({ client: workspace, params, team, demo, can }: PageProps) {
           place={{
             params,
             link: (change) => href(PATH, change, params),
-            page: (id) => `/calendar/calls/${encodeURIComponent(String(id))}`,
-            list: "/calendar/calls",
+            page: (id) => `/today/calls/${encodeURIComponent(String(id))}`,
+            list: "/today/calls",
             go: navigate,
           }}
           extras={(detail, row) => callExtras(detail, row, { reason: "outcomeReason" })}

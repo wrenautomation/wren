@@ -167,7 +167,7 @@ export const dollars = (micros: number) =>
   (micros / 1_000_000).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 /** "1,204 searches". */
-export const unitsText = (n: number, units: string) => `${n.toLocaleString("en-US")} ${units}`;
+const unitsText = (n: number, units: string) => `${n.toLocaleString("en-US")} ${units}`;
 
 /** Today's room on a vendor: what's left, or why nothing runs. */
 export function roomText(v: Pick<VendorRow, "room" | "why" | "units" | "quota">): string {

@@ -128,7 +128,8 @@ describe("booking on the executor", () => {
       from: "in.calls",
     });
     expect(bookingEmit({ id: 7, state: "cancelled", start: null })).toBeNull();
-    expect(briefPath(7)).toBe("/people/calls/7");
+    expect(briefPath("wren", 7)).toBe("/outbound/calls/7");
+    expect(briefPath("acme", 7)).toBe("/reactivation/calls/7");
   });
 });
 

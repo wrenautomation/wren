@@ -51,7 +51,7 @@ export const MOVE_ROWS: Record<string, Partial<Row>[]> = {
       type: "email",
       who: "Ada North",
       status: "open",
-      url: "/inbox/replies/4",
+      url: "/today/replies/4",
     },
     { id: "dm:5", type: "dm", who: "Old Thread", status: "closed", url: null },
   ],

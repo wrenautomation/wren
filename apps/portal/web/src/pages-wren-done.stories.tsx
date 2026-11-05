@@ -83,9 +83,9 @@ export const TodayPhone = {
   }),
   globals: { viewport: { value: "phone" } },
 };
-export const Inbox = pageAt("/inbox", { me: ADMIN });
+export const Inbox = pageAt("/today", { me: ADMIN });
 /** Your mail: the Monitor's queue of your own email. */
-export const InboxMail = pageAt("/inbox/mail?view=needs_you", { me: ADMIN });
+export const InboxMail = pageAt("/today/mail?view=needs_you", { me: ADMIN });
 /** The text is on the page once its list has come in. */
 const shows =
   (...texts: string[]) =>

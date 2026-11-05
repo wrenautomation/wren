@@ -220,7 +220,6 @@ function accountView(
 export type AccountsView = Awaited<ReturnType<ReturnType<typeof accountsApi>["accounts"]>>;
 export type NowView = Awaited<ReturnType<ReturnType<typeof accountsApi>["now"]>>;
 export type VendorsView = Awaited<ReturnType<ReturnType<typeof accountsApi>["vendors"]>>;
-export type UsageView = Awaited<ReturnType<ReturnType<typeof accountsApi>["usage"]>>;
 export type LimitsView = Awaited<ReturnType<ReturnType<typeof accountsApi>["limits"]>>;
 
 export interface AccountRequest extends PortalRequest {

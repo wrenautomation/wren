@@ -13,7 +13,7 @@
 ## If you drive the browser
 
 - Sign in as the person. Never share or reuse another person's session.
-- The address is the state: `/<app>/<page>`, with filters and the open record in it too (`/campaigns/people?filter=moved&person=12`). Go to the address instead of clicking through, and share it to show someone the same screen.
+- The address is the state: `/<app>/<page>`, with filters and the open record in it too (`/people/people?person=12`). Go to the address instead of clicking through, and share it to show someone the same screen.
 - Back office → Guide (`/office/guide`) lists every app, its pages and the keys.
 - Buttons, links, tabs and form fields have accessible names. Select them by role and name, not by CSS class.
 - ⌘K opens a search over pages, records and actions. `?` lists the keys.

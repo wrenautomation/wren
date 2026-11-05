@@ -278,7 +278,7 @@ export function callExtras(
           Recorded {dayOf(rec.startedAt)}, {Math.max(1, Math.round(rec.durationS / 60))} min
         </span>
         <a
-          href={`/calendar/recordings/${rec.id}`}
+          href={`/today/recordings/${rec.id}`}
           className="font-normal underline underline-offset-2"
         >
           Watch and read it

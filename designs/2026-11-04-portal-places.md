@@ -1,4 +1,4 @@
-# Portal places: eight tabs, one home per object
+# Portal places: a product shell
 
 2026-11-04. Status: layout agreed (William, 11-04). The picks under "Open picks" wait on him.
 Builds on `2026-11-02-campaigns.md` (a campaign is a group on the metro map),
@@ -17,7 +17,49 @@ portal about 6 times. His console calls in the last 14 days: approve invites 60,
 content waiting 22, mark read 17, the rest under 10. The agent and the loops do the work through
 the CLI. So the portal is where a person sees, approves and annotates.
 
-## Ground-up cut (supersedes Target, 11-04 evening)
+## Product shell (supersedes the six places, 11-04 night)
+
+William, 11-04: "we as a business we create the system for other businesses ... so essentially
+were making a giant product line, and the catalog of products ... each thing should be able to
+function as its own product, or dependencies are minimal ... crm is honestly just a small part of
+it". The unit of the portal is a product a client buys, not a CRM object.
+
+Options (William picked D):
+
+| | Shape | Against it |
+|---|---|---|
+| A | Sidebar by product, locked ones grey | The sidebar grows with the catalog; shared data repeats |
+| B | Agent first, no sidebar: a feed and the chat | Deep work (the content plan) has no home |
+| C | Places by object (the six places above) | One product spreads over 3 places; a client can't see what it bought |
+| D | Fixed shell + product apps on one small core | Core vs product must be drawn right, or overlap comes back |
+
+Ranked: matches how we sell (product = unit of sale and access), few places, products depend on
+core only, agent-native.
+
+Shape:
+- Fixed: **Today** (to approve, messages, calendar; a client's adds Needs you), **Results** (one
+  board of tiles over every product). Ask is the chat panel on every page, not a place.
+- Products: each one place built with `product()` (`modules/product.ts`). At most 4 tabs, in slot
+  order: overview, work (needs you or make), results, settings. More pages only as hidden detail
+  pages reached by link. The type holds the cap, so no micro sections.
+- Core: Map (team home: the metro map and offers), Clients (team), People (one list), Back office
+  (contracts, money, accounts, team).
+- A product imports core only, never another product. A client sees a product's pages by its
+  component (entitlement); Wren is client zero with all of them.
+
+Team sidebar: Map, Today, Results · Content, Outbound, Research · Clients, People, Back office.
+Client sidebar: Today, Results · Project, Content, Reactivation · People, Back office.
+
+Catalog: core offer Audit + direction, then Content funnel. Add-ons: Outbound, Paid ads (later),
+Lead tracking + analytics, Research, SOPs, Automations, Newsletter, Community (far future). A
+product gets a module only when one sells; today Content, Outbound and Research run, and Audit
+and Reactivation are sold.
+
+Backends: site analytics stays (sessions, heatmaps, surveys, experiments), no UI, for Lead
+tracking. Client SMS products (speed to lead, missed calls, review asks, reminders) go; SMS stays
+for newsletters. Ads and RedditReads go. Git tag `pre-cut-2026-11-04` marks the code before the cut.
+
+## Ground-up cut (superseded by the product shell)
 
 William, 11-04: "we need to be even more aggressive with pruning and only keep essentials (and
 things we know for a fact we'll need like contracts) ... hyperaggressive so we can tune this from
@@ -381,3 +423,23 @@ None.
   Deals page goes. RedditReads goes; the autobrowse Reddit code stays. Ads go (0 rows). He will
   rebuild the system from the ground up and reorganise outreach and content later. So the cut is
   the UI plus Ads and RedditReads; the Backends table above is superseded.
+- 2026-11-04 night, William: option D, the product shell (above), over A (sidebar by product),
+  B (agent first) and C (places by object). Site analytics backend stays for Lead tracking. "we
+  can always revert if we overdo it."
+- 2026-11-04 night, product shell as built:
+  - Team home stays the Map; Today docks under it as a sheet, and is a place with tabs To approve,
+    Messages, Mail, Calendar. Hidden there: DMs, comments, replies, mentions, issues, asks, rules,
+    calls, recordings (`modules/wren/inbox.ts` holds the team inbox pages).
+  - The client's Audit place is named Project: it holds the plan of any offer, not only an audit.
+    `planPath(page)` in `@wren/delivery/routes` names each plan page's address.
+  - Restored after the proof step, because kept parts link to them: Journeys (People tab; the Map's
+    node panel and Today's "Nudge or drop" open it), Booked calls (hidden in Outbound for Wren,
+    Reactivation for a client; Today's "Prepare call" and the call ping open it), Subscriptions
+    (hidden in Back office; Money's "Renewing soon" opens it). The kanban board stays cut: the Map
+    is the board.
+  - Today's moves link to the page that counts the record (`pageOf`). A record no page counts
+    makes no move.
+  - Known dead links until the backend cut: pay links and form submissions on a client's timeline
+    (`profiles-backfill.ts`, the inbound approval row), and the profile data catalog's traits and
+    addresses lists. They go with the SMS client products and the Notes cut.
+

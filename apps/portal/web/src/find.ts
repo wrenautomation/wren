@@ -5,8 +5,6 @@
  */
 import type { RecordMeta } from "@wren/core/records";
 import type { Row } from "@wren/core/records/serve";
-import type { TemplateListRow } from "@wren/core/templates/console";
-import { folderLabel, nameLabel } from "@wren/core/templates/labels";
 import { call } from "./api.js";
 import { type Found, WREN } from "./module.js";
 
@@ -75,18 +73,3 @@ export const findAll =
   (...finds: ((q: string, client: string) => Promise<Found[]>)[]) =>
   async (q: string, client: string): Promise<Found[]> =>
     (await Promise.all(finds.map((f) => f(q, client).catch(() => [] as Found[])))).flat();
-
-/** Library's templates and prompts by name or words: one list, read once a search. */
-export async function findTemplates(q: string, client: string): Promise<Found[]> {
-  if (client !== WREN.id) return [];
-  const { templates } = await call<{ templates: TemplateListRow[] }>("templates/list");
-  const needle = q.toLowerCase();
-  return templates
-    .filter((r) => `${nameLabel(r.name)}\n${r.ref}\n${r.words}`.toLowerCase().includes(needle))
-    .slice(0, FEW)
-    .map((r) => ({
-      label: nameLabel(r.name),
-      href: `/map/templates?open=${encodeURIComponent(String(r.id))}`,
-      hint: `Template · ${folderLabel(r.folder)}`,
-    }));
-}

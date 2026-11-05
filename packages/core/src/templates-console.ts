@@ -319,10 +319,6 @@ export function templatesApi(deps: { db: Db }) {
 type TemplatesApi = ReturnType<typeof templatesApi>;
 /** A row of the Library's browser. */
 export type TemplateListRow = Awaited<ReturnType<TemplatesApi["list"]>>["templates"][number];
-/** An open template: its state, every version with its words, and whether the viewer may act. */
-export type TemplateOpen = Awaited<ReturnType<TemplatesApi["detail"]>>;
-/** A save's or restore's answer. */
-export type TemplateSaved = Awaited<ReturnType<TemplatesApi["save"]>>;
 
 const NUMBER = z.number().int().positive();
 

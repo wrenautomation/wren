@@ -532,7 +532,7 @@ if (TOKEN_URL) startWriteSocket({ token, writes: WRITES });
 readTogether(batched);
 
 /** Bytes to a URL the server signed, with the headers it signed. `what` names it in the error. */
-export async function putSigned(
+async function putSigned(
   url: string,
   headers: Record<string, string>,
   body: Blob,

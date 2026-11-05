@@ -30,41 +30,33 @@ const pathOf = (href: string) => href.split(/[?#]/)[0]?.split("/").slice(0, 3).j
 
 describe("movedTo", () => {
   it("sends a page to its place, keeping the rest of the path, search and hash", () => {
-    expect(movedTo("/engage/dms/12?view=all#x", WREN)).toBe("/inbox/dms/12?view=all#x");
-    expect(movedTo("/outbound/overview", WREN)).toBe("/campaigns/email");
-    expect(movedTo("/clients/all?view=live", WREN)).toBe("/people/clients?view=live");
-    expect(movedTo("/workflows/holds", WREN)).toBe("/inbox/holds");
-    expect(movedTo("/work/needs-you", CLIENT)).toBe("/inbox/needs-you");
+    expect(movedTo("/engage/dms/12?view=all#x", WREN)).toBe("/today/dms/12?view=all#x");
+    expect(movedTo("/campaigns/email", WREN)).toBe("/outbound/overview");
+    expect(movedTo("/clients/all?view=live", WREN)).toBe("/clients/clients?view=live");
+    expect(movedTo("/work/needs-you", CLIENT)).toBe("/today/needs-you");
+    expect(movedTo("/map/plan/3", CLIENT)).toBe("/project/plan/3");
     expect(movedTo("/account/people", CLIENT)).toBe("/office/team");
   });
 
   it("sends an older address straight to the page's place: one hop", () => {
-    expect(movedTo("/marketing/dms/5", WREN)).toBe("/inbox/dms/5");
-    expect(movedTo("/outreach/inbox", WREN)).toBe("/inbox/messages");
-    expect(movedTo("/inbox/waiting", WREN)).toBe("/inbox/messages");
-    expect(movedTo("/money/economics", WREN)).toBe("/map/economics");
-    expect(movedTo("/pipeline/overview", WREN)).toBe("/people/companies");
+    expect(movedTo("/marketing/dms/5", WREN)).toBe("/today/dms/5");
+    expect(movedTo("/outreach/inbox", WREN)).toBe("/today/messages");
+    expect(movedTo("/inbox/waiting", WREN)).toBe("/today/messages");
+    expect(movedTo("/reactivation/plan", CLIENT)).toBe("/project/plan");
   });
 
   it("sends a gone app's other pages, and the app itself, to its place", () => {
-    expect(movedTo("/clients/health/acme", WREN)).toBe("/people/health/acme");
-    expect(movedTo("/reactivation/emails?view=sent", CLIENT)).toBe("/campaigns/emails?view=sent");
-    expect(movedTo("/deals/board", CLIENT)).toBe("/people/board");
-    expect(movedTo("/outbound", WREN)).toBe("/campaigns");
-    expect(movedTo("/marketing?x=1#y", WREN)).toBe("/content?x=1#y");
-  });
-
-  it("sends a client's own search pages to its reports", () => {
-    expect(movedTo("/marketing/keywords", CLIENT)).toBe("/map/reports");
-    expect(movedTo("/marketing/keywords", WREN)).toBe("/campaigns/keywords");
-    expect(heldByClient("/marketing/search?x=1")).toBe(true);
+    expect(movedTo("/inbox/replies/4", WREN)).toBe("/today/replies/4");
+    expect(movedTo("/calendar/schedule?d=2026-11-04", WREN)).toBe("/today/calendar?d=2026-11-04");
+    expect(movedTo("/inbox", WREN)).toBe("/today");
+    expect(movedTo("/campaigns/emails?view=sent", CLIENT)).toBe("/reactivation/emails?view=sent");
     expect(heldByClient("/marketing/drafts")).toBe(false);
   });
 
   it("leaves every live address alone", () => {
     expect(movedTo("/content/plan", WREN)).toBeNull();
-    expect(movedTo("/people/journeys", WREN)).toBeNull();
-    expect(movedTo("/inbox/approve", CLIENT)).toBeNull();
+    expect(movedTo("/today/approve", CLIENT)).toBeNull();
+    expect(movedTo("/outbound/engage", WREN)).toBeNull();
     expect(movedTo("/map/station/booked", WREN)).toBeNull();
     expect(movedTo("/marketingx/plan", WREN)).toBeNull();
     expect(movedTo("/", WREN)).toBeNull();

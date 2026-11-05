@@ -4,11 +4,6 @@
  * split (`pages-wren--<app>`).
  */
 import type { Meta } from "@storybook/react-vite";
-import { ADMIN } from "./mocks/data/me.js";
-import { pageAt } from "./mocks/page.js";
 
 const meta: Meta = { title: "Ready to build/Engage and Outbound home", id: "pages-wren" };
 export default meta;
-
-export const Outbound = pageAt("/campaigns", { me: ADMIN });
-export const Engage = pageAt("/campaigns", { me: ADMIN });

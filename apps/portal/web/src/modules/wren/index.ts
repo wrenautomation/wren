@@ -3,28 +3,20 @@
  * its records on the templates. The console serves every record here.
  */
 
-import { IN_HOUSE, totalOf } from "@wren/core/in-house";
 import { type Action, said } from "@wren/ui";
 import { createElement } from "react";
 import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";
-import { inboxPages, managePages } from "../access/index.js";
+import { managePages } from "../access/index.js";
 import { PersonAccess } from "../access/PersonAccess.js";
 import { Domain } from "../account/Domain.js";
-import { ClientComponents, ClientTemplates } from "../account/Installed.js";
+import { ClientComponents } from "../account/Installed.js";
 import { ClientLook } from "../account/Look.js";
 import { People } from "../account/People.js";
-import { ClientAccounts, VendorUsage } from "../account/summary.js";
-import { pipelinesAt } from "../deals/id.js";
-import { INBOX_QUEUES, queueLate } from "../inbox-queues.js";
-import { CONVERSATION_TOP, DONE_PAGE, MARKETING_PAGES } from "../marketing/index.js";
+import { ClientAccounts } from "../account/summary.js";
 import { CREDIT_ACTIONS } from "./credits.js";
-import { FirmDossier } from "./dossier.js";
 import { AiSpend, idOf } from "./heads.js";
-import { CLIENT_FLAG_ACTIONS, ClientHealth, HEALTH_ACTIONS, healthExtras } from "./health.js";
-import { MENTION_ACTIONS, mentionExtras } from "./mentions.js";
 import { MoneyOverview } from "./money.js";
-import { REPLY_ACTIONS, REPLY_WAITING } from "./replies.js";
 
 const TEAM = { audience: "team" } as const;
 const overview = { id: "overview", label: "Overview", template: "overview" } as const;
@@ -129,149 +121,47 @@ const CLIENT_ACTIONS: Action[] = [
   },
 ];
 
-/**
- * The lead sheet's pages, under `base`: Wren's niches in Wren's Outbound, a client's own in its.
- * Inside Outbound the sheet's first page is `first`, since Outbound has its own overview.
- */
-const sheetPages = (
-  base: string,
-  first: { id: string; label: string } = overview,
-): Module["pages"] => [
-  {
-    ...overview,
-    ...first,
-    about: "Companies our lead sources found, and how far each got.",
-    tiles: [
-      {
-        label: "Companies found",
-        record: "email.firm",
-        href: `${base}/companies?view=in_play`,
-        period: 30,
-      },
-      {
-        label: "With a domain",
-        record: "email.firm",
-        href: `${base}/companies?view=with_domain`,
-        period: 30,
-      },
-      {
-        label: "Crawled",
-        record: "email.firm",
-        href: `${base}/companies?view=crawled`,
-        period: 30,
-      },
-      {
-        label: "Named a person",
-        record: "email.firm",
-        href: `${base}/companies?view=named`,
-        period: 30,
-      },
-      {
-        label: "Verified leads",
-        record: "email.firm",
-        href: `${base}/companies?view=lead`,
-        period: 30,
-      },
-      {
-        label: "Crawled, no person",
-        record: "email.firm",
-        href: `${base}/companies?view=crawled&named=-`,
-        needs: true,
-      },
-      {
-        label: "No domain yet",
-        record: "email.firm",
-        href: `${base}/companies?view=in_play&domain=-`,
-      },
-    ],
-    top: [
-      {
-        label: "Newest verified leads",
-        record: "email.firm",
-        href: `${base}/companies?view=lead&sort=-lead`,
-        fields: ["campaign", "lead"],
-        empty: "No verified leads yet.",
-      },
-      {
-        label: "Where companies stall",
-        record: "email.stall",
-        href: `${base}/stalls`,
-        fields: ["queuedFirms", "catchAllLeads", "riskyLeads"],
-        empty: "Nothing is stuck.",
-      },
-    ],
-  },
-  {
-    id: "companies",
-    label: "Companies",
-    about: "Every company our lead sources found, with its people.",
-    template: "list",
-    record: "email.firm",
-    empty: "Companies show here once a source finds them.",
-    extras: (_, { client, row }) => ({
-      sections: [["Dossier", createElement(FirmDossier, { client, id: String(row.id) })]],
-    }),
-  },
-  {
-    id: "stalls",
-    label: "Stalls",
-    about: "Leads stuck before a send, and why.",
-    template: "list",
-    record: "email.stall",
-    empty: "Nothing is stuck.",
-  },
-];
-
 export const outbound: Module = {
   id: "outbound",
   name: "Outbound",
   component: "email.sequences",
   icon: "mail",
-  blurb: "Campaigns and the inboxes that send them, the companies they reach and the texts.",
+  blurb: "Cold email campaigns and the inboxes that send them.",
   requires: TEAM,
-  // People are leads until profiles land (B1): the companies they work at.
-  find: findRecords({ record: "email.firm", path: "/people/companies", kind: "Company" }),
   pages: [
     {
       ...overview,
-      about: "Cold email campaigns, inboxes and replies, at a glance.",
+      about: "Cold email campaigns and inboxes, at a glance.",
       tiles: [
-        { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
-        {
-          label: "Booked",
-          record: "email.call",
-          href: pipelinesAt("calls", "view=booked"),
-          period: 30,
-        },
         {
           label: "Inboxes sending",
           record: "email.inbox",
-          href: "/office/inboxes?view=sending",
+          href: "/outbound/inboxes?view=sending",
         },
         {
           label: "Inboxes paused",
           record: "email.inbox",
-          href: "/office/inboxes?view=paused",
+          href: "/outbound/inboxes?view=paused",
           needs: true,
         },
         {
           label: "Campaigns opening",
           record: "email.campaign",
-          href: "/campaigns/email-campaigns?view=opening",
+          href: "/outbound/campaigns?view=opening",
         },
       ],
       top: [
         {
           label: "Campaigns",
           record: "email.campaign",
-          href: "/campaigns/email-campaigns?view=all",
+          href: "/outbound/campaigns?view=all",
           fields: ["sent", "replyRate", "killSwitch"],
           empty: "No campaigns yet.",
         },
         {
           label: "Paused inboxes",
           record: "email.inbox",
-          href: "/office/inboxes?view=paused",
+          href: "/outbound/inboxes?view=paused",
           fields: ["reason", "pausedAt"],
           empty: "Every inbox is sending.",
         },
@@ -295,246 +185,8 @@ export const outbound: Module = {
       empty: { paused: "Every inbox is sending.", sending: "No inbox is sending." },
       actions: INBOX_ACTIONS,
     },
-    {
-      id: "signals",
-      label: "Signals",
-      about: "News about prospects that gives us a reason to write.",
-      template: "list",
-      record: "research.signal",
-      empty: { fresh: "No signal in the last 30 days.", all: "No signals yet." },
-    },
-    // The lead sheet (was the Pipeline app), then the texts (were Marketing's).
-    ...sheetPages("/campaigns", { id: "sheet", label: "Lead sheet" }),
-    MARKETING_PAGES.texts,
-    MARKETING_PAGES["text-copy"],
   ],
 };
-
-// The Monitor's hands (WatchConsole); William's own mail, so admins only.
-const MAIL_ACTIONS: Action[] = [
-  {
-    id: "watch.done",
-    label: "Done",
-    icon: "selected",
-    handler: "watch/done",
-    undo: "watch/undone",
-    bulk: true,
-    key: "e",
-    when: { queue: ["needs_you"] },
-    done: said("Done"),
-  },
-  {
-    id: "watch.hide",
-    label: "Hide like this",
-    icon: "close",
-    handler: "watch/hide",
-    each: true,
-    bulk: true,
-    form: [
-      {
-        field: "subject",
-        label: "Subject has",
-        optional: true,
-        hint: "Blank hides everything from this sender.",
-      },
-    ],
-    when: { queue: ["needs_you", "done"] },
-    done: said("Hidden. A rule holds mail like it from now on."),
-  },
-  {
-    id: "watch.show",
-    label: "Show like this",
-    icon: "heart",
-    handler: "watch/show",
-    each: true,
-    bulk: true,
-    form: [
-      {
-        field: "subject",
-        label: "Subject has",
-        optional: true,
-        hint: "Blank shows everything from this sender.",
-      },
-    ],
-    when: { queue: ["held", "dropped"] },
-    done: said("Shown. A rule shows mail like it from now on."),
-  },
-  {
-    id: "watch.sort",
-    label: "Sort again",
-    icon: "retry",
-    handler: "watch/sort",
-    bulk: true,
-    when: { queue: ["needs_you"] },
-    done: said("Sorted again under today's rules."),
-  },
-];
-
-const RULE_ACTIONS: Action[] = [
-  {
-    id: "watch.addRule",
-    label: "Add rule",
-    handler: "watch/addRule",
-    form: [
-      {
-        field: "words",
-        label: "Rule",
-        hint: 'In plain words: "Inbox Insiders: hold invoices and receipts. Show order status changes."',
-      },
-      {
-        field: "sender",
-        label: "Sender",
-        optional: true,
-        hint: "An address or a domain. With a verdict, code settles it for $0.",
-      },
-      { field: "subject", label: "Subject has", optional: true },
-      {
-        field: "verdict",
-        label: "Verdict",
-        optional: true,
-        hint: "show, hold or drop. Blank leaves it to the model.",
-      },
-    ],
-    done: said("Rule added"),
-  },
-  {
-    id: "watch.removeRule",
-    label: "Remove",
-    icon: "trash",
-    handler: "watch/removeRule",
-    bulk: true,
-    confirm: "Remove this rule? Mail it settled keeps its verdict.",
-    done: said("Removed"),
-  },
-];
-
-export const inbox: Module = {
-  id: "inbox",
-  name: "Inbox",
-  component: "email.replies",
-  icon: "inbox",
-  blurb: "Every lead's answer, by email, text or DM, and the mail that needs you.",
-  requires: TEAM,
-  pages: [
-    {
-      ...overview,
-      about: "Everything that waits on you, across channels.",
-      // The queues are Overview E; the period tiles are its trend cards.
-      queues: INBOX_QUEUES,
-      tiles: [
-        { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
-        {
-          label: "Booked",
-          record: "email.call",
-          href: pipelinesAt("calls", "view=booked"),
-          period: 30,
-        },
-      ],
-      top: [CONVERSATION_TOP],
-    },
-    {
-      id: "mail",
-      label: "Your mail",
-      about: "Your own email that needs you, pulled from the rest.",
-      template: "list",
-      record: "watch.mail",
-      late: queueLate("watch.mail"),
-      empty: {
-        needs_you: "Nothing in your inboxes needs you.",
-        held: "Mail the Monitor holds shows here, searchable.",
-        done: "Mail you mark done shows here.",
-        all: "Mail the Monitor reads shows here.",
-      },
-      actions: MAIL_ACTIONS,
-    },
-    DONE_PAGE,
-    {
-      id: "rules",
-      label: "Mail rules",
-      about: "Rules that hide email you don't need to see.",
-      template: "list",
-      record: "watch.rule",
-      empty: { all: "No rules yet. Hide like this on any email writes one." },
-      actions: RULE_ACTIONS,
-    },
-    // What came in and what waits on a yes are Engage's Inbox and To approve now; their old
-    // addresses here redirect (`moved.ts`). Here: your own mail, what is done, and the rules.
-    // The rest is off the tabs, each still a tile on the Overview and a link: issues, access asks,
-    // mentions, email replies (Engage's Inbox, Email view) and calls.
-    ...inboxPages().map((p) => ({ ...p, hidden: true as const })),
-    {
-      id: "mentions",
-      label: "Mentions",
-      hidden: true,
-      about: "Notes where someone tagged you with @.",
-      template: "list",
-      record: "notes.mention",
-      late: queueLate("notes.mention"),
-      empty: {
-        unread: "Nothing new. When someone tags you with @ in a note, it shows here.",
-        all: "When someone tags you with @ in a note or a comment, it shows here.",
-      },
-      columns: ["note", "words", "place", "by", "at"],
-      actions: MENTION_ACTIONS,
-      extras: mentionExtras,
-      count: { state: ["unread"] },
-    },
-    {
-      id: "replies",
-      label: "Email replies",
-      hidden: true,
-      about: "Warm email replies, each with a drafted answer.",
-      template: "queue",
-      record: "email.reply",
-      empty: {
-        waiting: "Warm replies wait here, each with a draft answer.",
-        booked: "Calls booked from a reply show here.",
-        all: "Warm replies show here.",
-      },
-      actions: REPLY_ACTIONS,
-      // Counted for Today's moves (Reply: name), though the tab hides.
-      count: REPLY_WAITING,
-    },
-  ],
-};
-
-// The options are BUCKETS and CHANNELS (books, core clients); BooksConsole refuses anything else.
-const ACCOUNT_ACTIONS: Action[] = [
-  {
-    id: "books.setBucket",
-    label: "Set bucket",
-    handler: "books/setAccount",
-    each: true,
-    bulk: true,
-    form: [
-      {
-        field: "bucket",
-        label: "Bucket",
-        optional: true,
-        hint: "acquisition, delivery or overhead. Blank counts as overhead.",
-      },
-    ],
-    when: { type: ["expense"] },
-    done: said("Bucket set"),
-  },
-  {
-    id: "books.setChannel",
-    label: "Set channel",
-    handler: "books/setAccount",
-    each: true,
-    bulk: true,
-    form: [
-      {
-        field: "channel",
-        label: "Channel",
-        optional: true,
-        hint: "email, sms, ads, content, search or reach. Blank splits it across channels by new clients.",
-      },
-    ],
-    when: { type: ["expense"] },
-    done: said("Channel set"),
-  },
-];
 
 export const money: Module = {
   id: "money",
@@ -558,6 +210,14 @@ export const money: Module = {
       template: "list",
       record: "books.spend",
       empty: "Spend shows here once the books import it.",
+    },
+    {
+      id: "subscriptions",
+      label: "Subscriptions",
+      about: "Every subscription we pay for.",
+      template: "list",
+      record: "books.subscription",
+      empty: "Subscriptions show here once the books find them.",
     },
     {
       id: "models",
@@ -584,134 +244,17 @@ export const money: Module = {
       },
       columns: ["status", "amount", "invoice", "client", "why", "at"],
     },
-    {
-      id: "subscriptions",
-      label: "Subscriptions",
-      about: "Every subscription we pay for.",
-      template: "list",
-      record: "books.subscription",
-      empty: "Subscriptions show here once the books find them.",
-    },
-    {
-      id: "card",
-      label: "Card",
-      about: "Charges on the company card, and the bill each one paid.",
-      template: "list",
-      record: "books.card",
-      empty: {
-        business: "Card charges show here once a statement is in or a purchase alert arrives.",
-        to_sort: "Nothing to sort.",
-        personal: "Nothing marked personal.",
-        all: "Card charges show here once a statement is in or a purchase alert arrives.",
-      },
-    },
-    {
-      id: "in-house",
-      label: "In-house",
-      about: "Tools we built instead of buying, and what they save.",
-      template: "list",
-      record: "books.in_house",
-      empty: {
-        live: "No tool we built is live yet.",
-        all: "Tools we built in place of a SaaS show here.",
-      },
-      // Money we didn't spend, not revenue: it never enters the ledger.
-      head: () => {
-        const { tools, monthly } = totalOf(IN_HOUSE);
-        return createElement(
-          "p",
-          { className: "text-[13px] text-(--ui-ink-2)" },
-          `${tools.length} live tools would cost about $${Math.round(monthly).toLocaleString("en-US")} a month bought. Not revenue; never in the ledger.`,
-        );
-      },
-    },
-    {
-      id: "accounts",
-      label: "Accounts",
-      about: "Expense accounts, and where each one's spend counts.",
-      template: "list",
-      record: "books.account",
-      empty: { expenses: "No expense accounts yet.", all: "No accounts yet." },
-      columns: ["type", "bucket", "channel"],
-      actions: ACCOUNT_ACTIONS,
-    },
   ],
-};
-
-/** The same sheet in a client's workspace, read from its own database (O1). */
-export const leads: Module = {
-  id: "leads",
-  name: "Pipeline",
-  component: "research.lead_sheet",
-  icon: "pulse",
-  blurb: "Companies from found to verified lead, and where they stall.",
-  find: findRecords({ record: "email.firm", path: "/people/companies", kind: "Company" }),
-  pages: sheetPages("/people"),
 };
 
 export const clients: Module = {
   id: "clients",
   name: "Clients",
   icon: "people",
-  blurb: "Every client, how each is doing, and what needs a look.",
+  blurb: "Every client: what they bought and how it goes.",
   requires: TEAM,
-  find: findRecords({ record: "console.client", path: "/people/clients", kind: "Client" }),
+  find: findRecords({ record: "console.client", path: "/clients/clients", kind: "Client" }),
   pages: [
-    {
-      ...overview,
-      about: "How your clients are doing, at a glance.",
-      tiles: [
-        { label: "Clients", record: "console.client", href: "/people/clients?view=clients" },
-        // Demos are accounts, not clients: both tiles count clients only.
-        {
-          label: "Added",
-          record: "console.client",
-          href: "/people/clients?view=clients",
-          period: 30,
-        },
-        { label: "At risk", record: "console.health", href: "/people/health?view=risk" },
-        { label: "Watch", record: "console.health", href: "/people/health?view=watch" },
-        { label: "Open risks", record: "console.flag", href: "/people/flags?view=risks" },
-        // Yours only: open flags you own (`mine` on the view).
-        {
-          label: "Flags I own",
-          record: "console.flag",
-          href: "/people/flags?view=mine",
-          needs: true,
-        },
-        {
-          label: "Opportunities",
-          record: "console.flag",
-          href: "/people/flags?view=opportunities",
-        },
-        { label: "Stale scores", record: "console.health", href: "/people/health?view=stale" },
-      ],
-      top: [
-        {
-          label: "Lowest health",
-          record: "console.health",
-          href: "/people/health?view=all&sort=score",
-          fields: ["score", "risks"],
-          line: "weakest",
-          empty: "Scores show here after the first nightly pass.",
-        },
-        {
-          label: "Newest flags",
-          record: "console.flag",
-          href: "/people/flags?view=open&sort=-raised",
-          fields: ["side", "owner"],
-          line: "name",
-          empty: "Nothing flagged.",
-        },
-        {
-          label: "Last seen",
-          record: "console.client",
-          href: "/people/clients?view=all&sort=-lastSeen",
-          fields: ["members", "lastSeen"],
-          empty: "Clients show here once you add one.",
-        },
-      ],
-    },
     {
       id: "all",
       label: "Clients",
@@ -728,73 +271,14 @@ export const clients: Module = {
         const real = row.kind === "client";
         return {
           sections: [
-            ["Health", createElement(ClientHealth, { client })],
             ["People", real ? createElement(People, as) : "A demo has no people."],
-            ["Templates", createElement(ClientTemplates, { client })],
-            ["Components", createElement(ClientComponents, { client })],
+            ["Products", createElement(ClientComponents, { client })],
             ["Accounts", createElement(ClientAccounts, { client })],
             ["Look", createElement(ClientLook, { client })],
             ["Domain", real ? createElement(Domain, as) : "A demo keeps Wren's address."],
           ],
         };
       },
-    },
-    {
-      id: "health",
-      label: "Health",
-      about: "Each client's health score, lowest first.",
-      template: "list",
-      record: "console.health",
-      empty: {
-        all: "Scores show here after the first nightly pass.",
-        risk: "No client is at risk.",
-        watch: "No client to watch.",
-        stale: "Every score is fresh.",
-        hand: "No score is set by hand.",
-      },
-      actions: HEALTH_ACTIONS,
-      columns: ["name", "score", "band", "results", "engagement", "sentiment", "money", "risks"],
-      extras: healthExtras,
-    },
-    {
-      id: "flags",
-      label: "Flags",
-      about: "Risks and openings flagged on clients, to own and close.",
-      template: "list",
-      record: "console.flag",
-      empty: {
-        open: "Nothing flagged.",
-        mine: "No open flag is yours. Take one to own it.",
-        risks: "No open risks.",
-        opportunities: "No open opportunities.",
-        cleared: "Cleared flags show here.",
-        all: "Flags show here once one is raised.",
-      },
-      actions: CLIENT_FLAG_ACTIONS,
-      columns: ["what", "name", "side", "state", "owner", "raised"],
-      count: { state: ["open"], side: ["risk"] },
-    },
-    {
-      id: "days",
-      label: "Health by day",
-      about: "Each client's health score, day by day.",
-      template: "list",
-      record: "console.health_day",
-      hidden: true,
-    },
-    {
-      id: "inputs",
-      label: "Health inputs",
-      about: "The numbers behind each health score.",
-      template: "list",
-      record: "console.health_input",
-      hidden: true,
-    },
-    {
-      id: "usage",
-      label: "Vendor usage",
-      about: "What each client used of each vendor this month.",
-      Page: VendorUsage,
     },
   ],
 };
@@ -875,46 +359,5 @@ export const team: Module = {
       }),
     },
     ...managePages(true),
-    {
-      id: "changes",
-      label: "Changes",
-      about: "Who changed what in the last 7 days.",
-      template: "list",
-      record: "console.change",
-      empty: { today: "No changes today.", people: "Nobody changed anything by hand this week." },
-      columns: ["at", "who", "op", "table", "row", "change"],
-    },
-  ],
-};
-
-/** A hold let go: the unit runs again on the stage's next pass, or the source resumes. */
-const HOLD_ACTIONS: Action[] = [
-  {
-    id: "console.releaseHold",
-    label: "Release",
-    icon: "play",
-    handler: "console/releaseHold",
-    when: { state: ["held", "due", "stuck", "paused"] },
-    done: () => "Released. It runs on the next pass",
-  },
-];
-
-/** Holds: the one page left of the Workflows app, shown in Inbox (`../places.ts`). */
-export const workflows: Module = {
-  id: "workflows",
-  name: "Workflows",
-  icon: "bolt",
-  blurb: "Work a check held back.",
-  requires: TEAM,
-  pages: [
-    {
-      id: "holds",
-      label: "Holds",
-      about: "Work a check held back, and until when.",
-      template: "list",
-      record: "console.hold",
-      empty: { open: "Nothing is held.", all: "Nothing was ever held." },
-      actions: HOLD_ACTIONS,
-    },
   ],
 };

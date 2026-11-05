@@ -53,10 +53,6 @@ export const REPORT_TILE_IDS = REPORT_TILES.map((t) => t.id) as [ReportTileId, .
 /** Weekly on Monday, or monthly on the 1st. */
 export const REPORT_EVERY = ["week", "month"] as const;
 export type ReportEvery = (typeof REPORT_EVERY)[number];
-export const EVERY_NAMES: Record<ReportEvery, string> = {
-  week: "Every Monday, for the week before",
-  month: "On the 1st, for the month before",
-};
 
 /** The hour a report runs, in its zone. */
 export const REPORT_HOUR = 9;

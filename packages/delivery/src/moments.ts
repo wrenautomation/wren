@@ -15,20 +15,7 @@ import {
   reviews,
 } from "./schema.js";
 
-/** A project's home: every offer's plan is in Map (designs/2026-11-04-portal-places.md). */
-export const PLAN_HOME = "map";
-
-/** Plan pages outside Map: what waits on the client is Inbox's, paperwork Back office's. */
-const PLAN_PLACE: Readonly<Record<string, string>> = {
-  "needs-you": "inbox",
-  deliverables: "inbox",
-  welcome: "inbox",
-  paperwork: "office",
-  contract: "office",
-};
-
-/** A plan page's address, the same for every offer. */
-export const planPath = (page: string): string => `/${PLAN_PLACE[page] ?? PLAN_HOME}/${page}`;
+export { PLAN_HOME, planPath } from "./routes.js";
 
 export const HALFWAY = "halfway";
 

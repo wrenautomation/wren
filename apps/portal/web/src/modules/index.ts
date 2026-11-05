@@ -1,22 +1,16 @@
 /**
- * The portal's apps: the eight places for a client and for Wren (`./places.ts`), Research, and the
- * old apps parked until they are deleted. A parked app keeps its routes; the sidebar skips it.
+ * The portal's apps: the product shell for a client and for Wren (`./places.ts`), and Research.
  */
 
 import type { Module } from "../module.js";
-import { clientNotes, notes } from "./notes/index.js";
 import { CLIENT_PLACES, TEAM_PLACES } from "./places.js";
 import { research } from "./research/index.js";
-import { voice } from "./voice/index.js";
 
 export const MODULES: Module[] = [
   // One address, two apps: a client's place in its own workspace, Wren's in Wren's.
   ...CLIENT_PLACES,
   ...TEAM_PLACES,
   research,
-  // Off the sidebar until phase 2 deletes them (designs/2026-11-04-portal-places.md, Removals).
-  ...[clientNotes, notes].map((m) => ({ ...m, parked: true as const })),
-  voice,
 ];
 
 /**

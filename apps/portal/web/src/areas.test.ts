@@ -1,6 +1,6 @@
 /** The sidebar is the places, in order; a workspace shows the ones it has. */
 import { describe, expect, it } from "vitest";
-import { areasOf, dockOf, PLACES, pageIcon, phoneTabsOf, sidebarOf } from "./areas.js";
+import { areasOf, dockOf, pageIcon, phoneTabsOf, sidebarOf } from "./areas.js";
 
 // The apps read the page's address as they load; a bare one does here.
 Object.assign(globalThis, { location: new URL("https://app.example.test/") });
@@ -14,25 +14,38 @@ const ALL = new Set(
 const ids = (xs: readonly { id: string }[]) => xs.map((x) => x.id);
 
 describe("the places", () => {
-  it("gives Wren's team the eight places, in order", () => {
+  it("gives Wren's team the fixed places, its products, then the core", () => {
     const apps = appsIn(MODULES, { wren: true, team: true, installed: ALL });
-    expect(sidebarOf(apps).map((i) => i.label)).toEqual([
-      "Map",
-      "Campaigns",
-      "Content",
-      "People",
-      "Inbox",
-      "Calendar",
-      "Research",
-      "Back office",
+    expect(sidebarOf(apps).map((i) => [i.label, i.area])).toEqual([
+      ["Map", "fixed"],
+      ["Today", "fixed"],
+      ["Results", "fixed"],
+      ["Content", "products"],
+      ["Outbound", "products"],
+      ["Research", "products"],
+      ["Clients", "core"],
+      ["People", "core"],
+      ["Back office", "core"],
     ]);
   });
 
-  it("gives a client every place but Research", () => {
+  it("gives a client its places: Project, never Map, Clients or Research", () => {
     const apps = appsIn(MODULES, { wren: false, team: false, installed: ALL });
-    expect(sidebarOf(apps).map((i) => i.app.id)).toEqual(
-      PLACES.map((p) => p.app).filter((id) => id !== "research"),
-    );
+    expect(sidebarOf(apps).map((i) => i.app.id)).toEqual([
+      "today",
+      "results",
+      "content",
+      "reactivation",
+      "project",
+      "people",
+      "office",
+    ]);
+  });
+
+  it("caps a product at 4 tabs", () => {
+    for (const id of ["content", "outbound", "reactivation"])
+      for (const m of MODULES.filter((x) => x.id === id))
+        expect(m.pages.filter((p) => !p.hidden).length, id).toBeLessThanOrEqual(4);
   });
 
   it("shows no app outside a place, and no parked app", () => {
@@ -45,29 +58,28 @@ describe("the places", () => {
       );
     }
     expect(
-      sidebarOf([{ id: "inbox", parked: true as const }, { id: "map" }]).map((i) => i.label),
+      sidebarOf([{ id: "today", parked: true as const }, { id: "map" }]).map((i) => i.label),
     ).toEqual(["Map"]);
   });
 
   it("drops a client's page whose product it lacks, and a place left empty", () => {
     const apps = appsIn(MODULES, { wren: false, team: false, installed: new Set() });
-    const campaigns = apps.find((m) => m.id === "campaigns");
-    expect(campaigns?.pages.some((p) => p.id === "run")).toBeFalsy();
+    expect(apps.some((m) => m.id === "reactivation")).toBe(false);
   });
 
-  it("docks Inbox, Calendar, Content, People, then the first pin", () => {
-    const apps = ["map", "people", "content", "calendar", "inbox", "office"].map((id) => ({ id }));
-    const pins = [{ href: "/content/studio" }, { href: "/campaigns/engage" }];
+  it("docks Today, Content, Outbound, People, then the first pin", () => {
+    const apps = ["map", "people", "content", "outbound", "today", "office"].map((id) => ({ id }));
+    const pins = [{ href: "/content/studio" }, { href: "/outbound/engage" }];
     expect(dockOf(apps, pins).map((d) => ("pin" in d ? d.pin.href : d.app.id))).toEqual([
-      "inbox",
-      "calendar",
+      "today",
       "content",
+      "outbound",
       "people",
       "/content/studio",
     ]);
     expect(dockOf(apps, [])).toHaveLength(4);
     expect(dockOf(apps, pins, 3)).toHaveLength(2);
-    expect(dockOf([{ id: "inbox", parked: true as const }], [])).toEqual([]);
+    expect(dockOf([{ id: "today", parked: true as const }], [])).toEqual([]);
   });
 });
 
@@ -80,30 +92,28 @@ describe("phoneTabsOf", () => {
     ...(count !== undefined ? { count } : {}),
   });
   it("leads with an app's picks, then a tab per page or group", () => {
-    const tabs = [t("feed"), t("plan"), t("studio"), t("pieces"), t("a", "G", 2), t("b", "G", 3)];
-    const out = phoneTabsOf("content", tabs);
+    const tabs = [
+      t("mail"),
+      t("calendar"),
+      t("messages"),
+      t("approve"),
+      t("a", "G", 2),
+      t("b", "G", 3),
+    ];
+    const out = phoneTabsOf("today", tabs);
     expect(out.map((x) => [x.id, x.label, x.holds])).toEqual([
-      ["plan", "plan", ["plan"]],
-      ["studio", "studio", ["studio"]],
-      ["pieces", "pieces", ["pieces"]],
-      ["feed", "feed", ["feed"]],
+      ["approve", "approve", ["approve"]],
+      ["messages", "messages", ["messages"]],
+      ["calendar", "calendar", ["calendar"]],
+      ["mail", "mail", ["mail"]],
       ["a", "G", ["a", "b"]],
     ]);
     expect(out[4]?.count).toBe(5);
   });
-  it("gives Inbox its daily three: Today, Messages, Approve", () => {
-    const tabs = [t("overview"), t("approve"), t("messages"), t("today")];
-    expect(phoneTabsOf("inbox", tabs).map((x) => x.id)).toEqual([
-      "today",
-      "messages",
-      "approve",
-      "overview",
-    ]);
-  });
   it("skips picks the workspace lacks", () => {
-    expect(phoneTabsOf("campaigns", [t("engage"), t("ads")]).map((x) => x.id)).toEqual([
+    expect(phoneTabsOf("outbound", [t("engage"), t("inboxes")]).map((x) => x.id)).toEqual([
       "engage",
-      "ads",
+      "inboxes",
     ]);
   });
   it("names an icon from the page", () => {

@@ -22,8 +22,9 @@ describe("jumps", () => {
         expect(hrefs, `/${m.id}/${p.id}`).toContain(`/${m.id}/${p.id}`);
   });
 
-  it("holds Systems and tags a parked app's pages", () => {
-    expect(items.some((i) => i.href === "/office/systems")).toBe(true);
-    expect(items.find((i) => i.href === "/notes/home")?.hint).toContain("parked");
+  it("tags a parked app's pages", () => {
+    const parked = apps.map((m) => (m.id === "people" ? { ...m, parked: true as const } : m));
+    const got = jumps(parked, "/", homeOf(true), new Map());
+    expect(got.find((i) => i.href === "/people/people")?.hint).toContain("parked");
   });
 });

@@ -34,7 +34,7 @@ export type { OverviewQueue } from "./overview-queues.js";
 export interface OverviewTile {
   label: string;
   record: string;
-  /** The list it opens, with the view and filters it reads: "/inbox/replies?view=all". */
+  /** The list it opens, with the view and filters it reads: "/today/replies?view=all". */
   href: string;
   /** Days back (today counts), or the month so far. Left out: the rows there now. */
   period?: Period;

@@ -51,7 +51,7 @@ export type AskService = {
 
 export interface QuestionRequest extends PortalRequest {
   question?: unknown;
-  /** The console page it was asked from: "/inbox/waiting?view=all". */
+  /** The console page it was asked from: "/today/messages?view=all". */
   page?: unknown;
 }
 

@@ -1,18 +1,7 @@
-/**
- * Engage (designs/2026-10-16-outreach-app.md, 2026-10-19-portal-reshape.md): everything said to and
- * with other people. Comments on others' posts, DMs, Invites and People, then the Inbox and To
- * approve, the comments on our own posts, reviews, the conversation's speed, followers and
- * subscribers; Reddit's threads and places; and, under Setup, the accounts we send as, the DMs'
- * words, the auto-reply and the comment keywords. Records stay `marketing.*`; the app was Outreach,
- * and old `/outreach/...`, `/marketing/...` and Inbox addresses redirect here (`../../moved.ts`).
- */
-import { type Action, said } from "@wren/ui";
 import { createElement } from "react";
-import { findRecords } from "../../find.js";
 import type { ListPage, Module } from "../../module.js";
 import { draftActions, withDraft } from "../marketing/ask.js";
-import { copyExtras, dmExtras } from "../marketing/dms.js";
-import { factsDropped } from "../marketing/facts.js";
+import { dmExtras } from "../marketing/dms.js";
 import {
   ACCOUNT_ACTIONS,
   CONNECT_ACTIONS,
@@ -24,59 +13,12 @@ import {
   INVITE_ACTIONS,
   INVITE_DRAFT,
   MARKETING_PAGES,
-  PLACE_ACTIONS,
-  THREAD_ACTIONS,
-  THREAD_DRAFT,
 } from "../marketing/index.js";
 import { withProof } from "../marketing/proof.js";
 import { withThread } from "../marketing/thread-context.js";
 import { EngageHead } from "./engage.js";
 
 const P = MARKETING_PAGES;
-/** A page of Marketing's, taken in without the heading it had there. */
-const bare = ({ group: _, ...page }: ListPage): ListPage => page;
-
-const PERSON_ACTIONS: Action[] = [
-  {
-    id: "marketing.personDraft",
-    label: "Draft",
-    icon: "edit",
-    handler: "marketing/personDraft",
-    key: "d",
-    when: { can: ["message"] },
-    done: said("Drafted. Message opens with it."),
-  },
-  {
-    id: "marketing.personMessage",
-    label: "Message",
-    icon: "dm",
-    handler: "marketing/personMessage",
-    ask: { field: "body", label: "Your message", from: "draft" },
-    key: "r",
-    when: { can: ["message"] },
-    done: said("Queued. It leaves on the next tick."),
-  },
-  {
-    id: "marketing.personInvite",
-    label: "Invite",
-    icon: "addPerson",
-    handler: "marketing/personInvite",
-    confirm: "Send them a LinkedIn invite?",
-    key: "i",
-    when: { can: ["invite"] },
-    done: said("Queued. It leaves under the day's invite cap."),
-  },
-  {
-    id: "marketing.personFollow",
-    label: "Follow",
-    icon: "addPerson",
-    handler: "marketing/personFollow",
-    confirm: "Follow them from Wren's account?",
-    key: "f",
-    when: { platform: ["linkedin", "x", "instagram"] },
-    done: said("Followed."),
-  },
-];
 
 const GONE_VIEWS = new Set(["inbound", "outbound", "ours", "dms"]);
 
@@ -115,7 +57,6 @@ export const engage: Module = {
   icon: "reply",
   blurb: "Everything said with other people: comments, DMs, invites, replies and reviews.",
   requires: { audience: "team" },
-  find: findRecords({ record: "marketing.person", path: "/people/contacts", kind: "Person" }),
   pages: [
     ENGAGE_PAGE,
     {
@@ -166,56 +107,11 @@ export const engage: Module = {
       extras: withDraft((row) => (row.status === "accepted" ? INVITE_DRAFT : null)),
       count: { next: ["approve", "message"] },
     },
-    {
-      id: "people",
-      label: "People",
-      about: "People you can message, and what's open with each.",
-      template: "list",
-      record: "marketing.person",
-      empty: {
-        message: "No one to message yet. Accepted invites and Reddit people show here.",
-        invite: "No one to invite. People with a LinkedIn page show here.",
-        all: "People with a LinkedIn page or a Reddit read show here.",
-      },
-      actions: PERSON_ACTIONS,
-    },
     P.inbox,
     P.approve,
     P.comments,
-    bare(P.reviews),
     P.conversation,
     P.followers,
-    P.subscribers,
-    {
-      id: "threads",
-      label: "Thread replies",
-      about: "New posts in the places you watch, each with a reply drafted.",
-      group: "Reddit",
-      template: "list",
-      record: "marketing.thread",
-      empty: {
-        queued: "No thread to answer. Watch a place to read its new posts.",
-        commented: "Threads we commented in show here.",
-        all: "New posts in watched places show here.",
-      },
-      actions: THREAD_ACTIONS,
-      extras: withDraft(THREAD_DRAFT, factsDropped("dropped", "Dropped because")),
-    },
-    {
-      id: "places",
-      label: "Places",
-      about: "Subreddits worth posting in, and what each one wants.",
-      group: "Reddit",
-      template: "list",
-      record: "marketing.place",
-      empty: {
-        found: "Nothing to pick. Places are found once a month from the audience.",
-        watching: "No place watched yet. Pick one under To pick.",
-        held: "No subreddit holds our comments back. One shows here when it asks for more karma or an older account than we have.",
-        all: "Subreddits found for the audience show here.",
-      },
-      actions: PLACE_ACTIONS,
-    },
     {
       id: "accounts",
       label: "Accounts",
@@ -248,18 +144,5 @@ export const engage: Module = {
       },
       actions: ACCOUNT_ACTIONS,
     },
-    {
-      id: "dm-copy",
-      label: "DM copy",
-      about: "The words each DM sends, slot by slot.",
-      group: "Setup",
-      template: "list",
-      record: "marketing.dm_copy",
-      empty: { empty: "Every slot has words.", all: "No reach sequence has slots." },
-      extras: copyExtras,
-    },
-    { ...P["auto-reply"], group: "Setup" },
-    { ...P.keywords, group: "Setup" },
-    { ...P["keyword-dms"], group: "Setup" },
   ],
 };

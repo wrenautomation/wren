@@ -126,7 +126,7 @@ describe("client mail", () => {
     expect(rest).toEqual([]);
     expect(welcome?.to).toBe("amy@acme.example");
     expect(welcome?.subject).toBe("You're invited to Acme Staffing's project with Wren");
-    expect(welcome?.text).toContain("https://app.example/map/overview?client=acme");
+    expect(welcome?.text).toContain("https://app.example/project/overview?client=acme");
     await pass("2026-10-05T10:30:00Z");
     expect(take(mail)).toEqual([]);
   });
@@ -302,7 +302,7 @@ describe("flags", () => {
     expect(told?.to).toBe("cal@acme.example");
     expect(told?.subject).toBe("Acme Staffing: Wren replied");
     expect(told?.text).toContain('- On "List is clean.": 388 of them.');
-    expect(told?.text).toContain("https://app.example/map/updates?client=acme");
+    expect(told?.text).toContain("https://app.example/project/updates?client=acme");
   });
 
   it("an invoice past its due day waits for the next digest, and clears when paid", async () => {
@@ -354,7 +354,7 @@ describe("moments, reviews and reminders (D13)", () => {
     const sent = titled("Acme Staffing: Your first meeting is booked");
     expect(sent.map((m) => m.to).sort()).toEqual(["amy@acme.example", "cal@acme.example"]);
     expect(sent[0]?.text).toContain(
-      "Excellent: https://app.example/map/overview?client=acme&e=1&review=first%3Ameetings&score=5",
+      "Excellent: https://app.example/project/overview?client=acme&e=1&review=first%3Ameetings&score=5",
     );
     expect(sent[0]?.text).not.toContain("ready for more");
     await pass("2026-10-14T11:00:00Z");

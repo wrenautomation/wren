@@ -9,14 +9,7 @@ import { expect, fireEvent, waitFor, within } from "storybook/test";
 import { freshStory } from "./mocks/api.js";
 import { ANSWERS } from "./mocks/data/index.js";
 import { ADMIN } from "./mocks/data/me.js";
-import {
-  DOSSIER,
-  detailOf,
-  ENDED_SPLIT,
-  FLAG_ROWS,
-  HEALTH_ROWS,
-  rowsOf,
-} from "./mocks/data/wren-rows.js";
+import { detailOf, ENDED_SPLIT, FLAG_ROWS, HEALTH_ROWS, rowsOf } from "./mocks/data/wren-rows.js";
 import { pageAt } from "./mocks/page.js";
 
 const meta: Meta = { title: "Revamp/Wren rows", id: "pages-wren-rows" };
@@ -42,17 +35,6 @@ export const HealthAtRisk = pageAt("/", {
       await expect(within(rows).getByText("Sender domain flagged")).toBeVisible();
       await expect(within(rows).getByText("Urgent")).toBeVisible();
     });
-  },
-});
-
-/** A company's dossier: facts and posts as rows. */
-export const Dossier = pageAt("/people/companies/1", {
-  me: ADMIN,
-  answers: { "email/dossier": DOSSIER },
-  check: async (page) => {
-    const view = within(page);
-    await expect(await view.findByLabelText("Facts")).toBeVisible();
-    await expect(await view.findByLabelText("Recent posts")).toBeVisible();
   },
 });
 

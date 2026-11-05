@@ -1,38 +1,17 @@
 /**
- * Calls: a client's booked calls, each with its pre-call brief and how it went
- * (designs/2026-10-07-close-brief-outcome.md). Served from the client's own database once the
- * Call outcome part is installed. Wren's own calls are under Pipelines > Calls.
+ * Booked sales calls (`call_bookings`): each with its pre-call brief and how it went
+ * (designs/2026-10-07-close-brief-outcome.md). Wren's under Outbound, a client's under Reactivation,
+ * once the Call outcome part is installed.
  */
 import type { ListPage, Module } from "../../module.js";
 import { EMAIL_CALL_ACTIONS } from "./actions.js";
 import { callExtras } from "./brief.js";
 
-const RECORD = "email.call";
-
 /** A `call_bookings` call's page: the brief, and Rebuild from inside it. */
 const emailCallExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }) =>
   callExtras(detail, row, { reason: "reason", rebuild: () => act("email.callBrief") });
 
-/** The Calls list: Wren's Pipelines and a client's Calls app share it. */
-export const callsPage = (empty: string): ListPage => ({
-  id: "calls",
-  label: "Calls",
-  about: "Sales calls booked with you, past and coming up.",
-  template: "list",
-  record: RECORD,
-  columns: ["who", "company", "status", "start", "campaign", "reason"],
-  count: { status: ["past"] },
-  empty: {
-    upcoming: `No call is booked. ${empty}`,
-    past: "Calls wait here once they're over, until you say how they went.",
-    marked: "Calls you've marked show here.",
-    booked: empty,
-    cancelled: "No call was cancelled.",
-    all: empty,
-  },
-  actions: EMAIL_CALL_ACTIONS,
-  extras: emailCallExtras,
-});
+const empty = "Calls booked from a campaign show here.";
 
 export const calls: Module = {
   id: "calls",
@@ -42,26 +21,23 @@ export const calls: Module = {
   blurb: "Booked calls, a brief before each, and how each went.",
   pages: [
     {
-      id: "overview",
-      label: "Overview",
-      about: "Your booked sales calls at a glance.",
-      template: "overview",
-      tiles: [
-        { label: "Upcoming", record: RECORD, href: "/people/calls?view=upcoming" },
-        { label: "To mark", record: RECORD, href: "/people/calls?view=past", needs: true },
-        { label: "Booked", record: RECORD, href: "/people/calls?view=booked", period: 30 },
-        { label: "Marked", record: RECORD, href: "/people/calls?view=marked", period: 30 },
-      ],
-      top: [
-        {
-          label: "Next calls",
-          record: RECORD,
-          href: "/people/calls?view=upcoming",
-          fields: ["company", "start"],
-          empty: "No call is booked.",
-        },
-      ],
+      id: "calls",
+      label: "Booked calls",
+      about: "Sales calls booked with you, past and coming up.",
+      template: "list",
+      record: "email.call",
+      columns: ["who", "company", "status", "start", "campaign", "reason"],
+      count: { status: ["past"] },
+      empty: {
+        upcoming: `No call is booked. ${empty}`,
+        past: "Calls wait here once they're over, until you say how they went.",
+        marked: "Calls you've marked show here.",
+        booked: empty,
+        cancelled: "No call was cancelled.",
+        all: empty,
+      },
+      actions: EMAIL_CALL_ACTIONS,
+      extras: emailCallExtras,
     },
-    callsPage("Calls booked on your page show here."),
   ],
 };

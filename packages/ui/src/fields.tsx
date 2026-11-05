@@ -169,7 +169,7 @@ export function breaks(s: string): ReactNode {
 /** A link that opens apart from the row it sits in. The demo's hidden profiles show unlinked. */
 function Out({ href, children }: { href: string; children: ReactNode }) {
   if (href.includes("•••")) return <span>{children}</span>;
-  // A page of this app ("/inbox/replies/12") opens in place, a phone number dials; anything else
+  // A page of this app ("/today/replies/12") opens in place, a phone number dials; anything else
   // in a new tab.
   const away = !href.startsWith("/") && !href.startsWith("tel:");
   return (

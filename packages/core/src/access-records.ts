@@ -32,7 +32,7 @@ export const ROLE = "access.role";
 const GRANT = "access.grant";
 export const ISSUE = "access.issue";
 export const ASK = "access.ask";
-export const REVIEW = "access.review";
+const REVIEW = "access.review";
 export const ACCESS_TYPES = [ROLE, GRANT, ISSUE, ASK, REVIEW] as const;
 
 /** Where access is managed: Back office, at Wren and at a client. */

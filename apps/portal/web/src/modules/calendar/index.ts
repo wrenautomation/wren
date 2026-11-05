@@ -31,46 +31,6 @@ export const calendar: Module = {
       Page: Schedule,
     },
     {
-      id: "overview",
-      label: "Overview",
-      about: "Your calls at a glance.",
-      template: "overview",
-      tiles: [
-        {
-          label: "Upcoming",
-          record: "calendar.booking",
-          href: "/calendar/calls?view=upcoming",
-        },
-        {
-          label: "Booked",
-          record: "calendar.booking",
-          href: "/calendar/calls?view=booked",
-          period: 30,
-        },
-        {
-          label: "To mark",
-          record: "calendar.booking",
-          href: "/calendar/calls?view=past&status=past",
-          needs: true,
-        },
-        {
-          label: "No-shows",
-          record: "calendar.booking",
-          href: "/calendar/calls?view=no_show",
-          period: 30,
-        },
-      ],
-      top: [
-        {
-          label: "Next calls",
-          record: "calendar.booking",
-          href: "/calendar/calls?view=upcoming",
-          fields: ["start", "offer"],
-          empty: "No call is booked.",
-        },
-      ],
-    },
-    {
       id: "calls",
       label: "Calls",
       about: "Every booked call, past and coming up.",

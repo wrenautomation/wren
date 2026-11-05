@@ -14,7 +14,6 @@ import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { ListPage } from "../../module.js";
 import { PlayerSlot } from "../../player/index.js";
-import { pipelinesAt } from "../deals/id.js";
 
 const timeOf = (iso: string) =>
   new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
@@ -166,7 +165,7 @@ export const recordingExtras: NonNullable<ListPage["extras"]> = (detail, { row }
         ? ([
             [
               "Booked call",
-              <a key="call" href={`${pipelinesAt("calls")}/${d.booking}`}>
+              <a key="call" href={`/outbound/calls/${d.booking}`}>
                 Its brief and outcome
               </a>,
             ],
