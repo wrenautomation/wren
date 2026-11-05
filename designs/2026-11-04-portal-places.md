@@ -339,11 +339,14 @@ their part.
 
 ## Phases
 
+Re-cut to lean places on 11-05: six team places (Map, Today, Campaigns, Research, People, Back
+office). Phases 1, 2 and 8 are done. The rest build inside those six places.
+
 UI follows the design-language artifact (`designs/2026-10-20-design-language/`) and the `ui-design`
 proof step.
 
 1. **Places and moves.**
-   - `areas.ts` becomes the eight places for team and client, with the client sidebar and the phone
+   - `areas.ts` becomes the lean places for team and client, with the client sidebar and the phone
      dock above.
    - Pages move to their place's app id. Old links go in `moved.ts`, and every href in code moves
      too (`moved-guard.mjs`). A client's old ids redirect through `CLIENT_MOVED`.
@@ -358,19 +361,19 @@ proof step.
    - Done when: no code, route, loop key or skill of a removed part is left; `knip` is clean.
 3. **Map and Back office.** Map › Offers, Numbers (reports), Playbook. Back office ›
    Money, Documents, Team and Access, Channels, Products (read only), Settings, the health line.
-4. **Campaigns place.** List and campaign page from the metro groups: overview, channels, landers,
+4. **Campaigns place.** Content and outreach in one place. List and campaign page from the metro groups: overview, channels, landers,
    rules, budget, results. Cold email's drafts, review, copy and sequences join the shared outreach. The stamps it needs, each with its writer: a lander's campaign
    (`sites` pages), auto-reply and keyword-DM rules per campaign. The campaign filter.
    - Done when: a campaign's channels, landers, rules and results show on one page; the filter
      scopes People, Content, Inbox and Calendar.
-5. **Content and Studio.** Studio is the piece page: player, micro edits, annotations (the `video`
+5. **Campaigns › Content and Studio.** Studio is the piece page: player, micro edits, annotations (the `video`
    editor verbs behind it).
-6. **People.** Clients, the board, companies, calls, recordings and form answers on the person.
-7. **Inbox and Calendar.** Inbox › Today, approvals, holds, DMs, comments, reviews, mentions.
-   Calendar shows every dated thing and opens its home.
+6. **People.** Clients as a tab, the board, companies, calls, recordings and form answers on the person.
+7. **Today and Calendar.** Today: approvals, holds, DMs, comments, reviews, mentions.
+   Today › Calendar shows every dated thing and opens its home.
 8. **Out of scope.** The chat panel (WA-1066, another session) and the Research place's
    Birdwatch UI (tuned first, apart). This doc only places them.
-9. **Products and teasers.** First the map of product → components → sections. Then each locked
+9. **Products and teasers** (after the video; it leans on the product shell mock). First the map of product → components → sections. Then each locked
    section teases, and Today's add-on cards point to them.
 
 Experiments: its own design doc and phases, after phase 4.
@@ -547,3 +550,8 @@ None.
   on the way: the WA-1077 rename left an InboxPush listener on `Watch`, so every Gmail push failed
   from 11-05 01:44; the poll caught the mail. The listener now names `MyMailTriage`, the stuck
   pushes are killed, and `restate-rename.mjs --go` rewrites listeners from now on.
+- 2026-11-05: William's yes. Deleted the stale prod `hooks` row (speed_to_lead.steps) and the SSM
+  keys WREN_SEARCH_SITE, WREN_SEARCH_ORIGIN and WREN_DISCORD_SEARCH_WEBHOOK_URL. Discord paused
+  for a restructure: WREN_NOTIFY=console, so every wren ping logs and none posts. Warm-reply texts
+  to his phone still go. The lander's intake and cal.com pings still post. Phases re-cut to lean
+  places (WA-1067.4–.9 retitled).
