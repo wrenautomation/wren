@@ -1,16 +1,16 @@
 /**
- * `VariantsCollect/all`: rolls live ships' numbers into `outcomes` (`collect.ts`) every 6 hours,
+ * `VariantsCollect/all`: vireo's collect over wren's collectors every 6 hours,
  * so a post's daily metrics land within a quarter day. `wren variants collect` runs one pass.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
-import { collect } from "./collect.js";
+import { variants } from "./index.js";
 
 const EVERY_MS = 6 * 3_600_000;
 
-type Stats = Awaited<ReturnType<typeof collect>>;
+type Stats = Awaited<ReturnType<ReturnType<typeof variants>["collect"]>>;
 
 export function makeVariantsCollect(deps: { db: Db; notifier?: Notifier }) {
   return makeLoopObject("VariantsCollect", async (ctx: restate.ObjectContext) => {
@@ -19,7 +19,7 @@ export function makeVariantsCollect(deps: { db: Db; notifier?: Notifier }) {
       now,
       name: "collect",
       ledger: { command: "variants collect", argv: { daemon: true } },
-      body: () => collect(deps.db),
+      body: () => variants(deps.db).collect(),
       delayAfter: () => EVERY_MS,
       retryMs: EVERY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),

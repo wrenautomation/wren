@@ -4,7 +4,7 @@
  * Boxes are fractions of the shown frame, so they hold at any width.
  */
 import { Button, cx, Input } from "@wren/ui";
-import type { Source } from "@wren/variants/sync";
+import type { Source } from "@wrenautomation/vireo/sync";
 import { type PointerEvent, type ReactNode, useRef, useState } from "react";
 import { useTogether } from "./together.js";
 

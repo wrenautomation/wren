@@ -5,10 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema.ts",
     "./console-routes": "./src/console-routes.ts",
-    "./restate": "./src/restate.ts",
-    "./sync": "./src/sync.ts"
+    "./restate": "./src/restate.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -19,9 +17,9 @@
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
-    "@wren/experiments": "workspace:*",
     "@wren/sites": "workspace:*",
     "@wren/starling-inbound": "workspace:*",
+    "@wrenautomation/vireo": "0.1.1",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"
   },

@@ -5,7 +5,7 @@ description: Run William's taste loop with `wren variants`. You make a batch of 
 
 # variants
 
-You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (prod: `node scripts/prod-wren.mjs variants …`). JSON out. Design: `designs/2026-11-05-variants.md`.
+You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (prod: `node scripts/prod-wren.mjs variants …`). JSON out. The engine is vireo (`../vireo`, npm `@wrenautomation/vireo`); wren gives its db, collectors and bucket. Design: `designs/2026-11-05-variants.md`, `../vireo/designs/2026-11-05-vireo.md`.
 
 ## The loop
 
@@ -18,7 +18,8 @@ You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (pr
 ./bin/wren variants guide lock|drop|test <id>
 ./bin/wren variants keep <sample>               # only when he asks; he keeps in the portal
 ./bin/wren variants catalog [--kind k]
-./bin/wren variants ship <sample> --post <draft> | --site <page> | --email <template@version> [--why …]
+./bin/wren variants ship <sample> post|site|email <draft id | page id | template@version> [--why …]
+./bin/wren variants channels                    # each channel's target, rates, means
 ./bin/wren variants unship <ship>
 ./bin/wren variants live <subject>              # market numbers per segment, beside his calls
 ./bin/wren variants collect [--ship id]         # read numbers now (the loop runs every 6 h)

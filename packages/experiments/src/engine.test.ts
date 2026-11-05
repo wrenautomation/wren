@@ -9,7 +9,6 @@ import {
   stopReason,
   withFloor,
 } from "./engine.js";
-import { betaDraw, seeded } from "./rng.js";
 import { parseSettings } from "./settings.js";
 
 const counts = (exposures: number, interested: number, extra: Partial<AlleleCounts> = {}) => ({
@@ -37,51 +36,6 @@ describe("settings", () => {
       autoApprove: false,
     });
     expect(() => parseSettings({ selection: "greedy" })).toThrow();
-  });
-});
-
-describe("pBest", () => {
-  it("splits evenly between equal posteriors and favors the stronger one", () => {
-    const even = pBest([
-      { a: 5, b: 95 },
-      { a: 5, b: 95 },
-    ]);
-    expect(even[0]).toBeCloseTo(0.5, 3);
-    const p = pBest([
-      { a: 2, b: 298 },
-      { a: 12, b: 288 },
-    ]);
-    expect(p[1]).toBeGreaterThan(0.99);
-    expect((p[0] ?? 0) + (p[1] ?? 0)).toBeCloseTo(1, 9);
-  });
-
-  it("matches Monte Carlo on three close arms", () => {
-    const post = [
-      { a: 6, b: 294 },
-      { a: 9, b: 291 },
-      { a: 8, b: 292 },
-    ];
-    const rng = seeded("mc");
-    const wins = [0, 0, 0];
-    for (let i = 0; i < 40_000; i++) {
-      const d = post.map(({ a, b }) => betaDraw(rng, a, b));
-      const at = d.indexOf(Math.max(...d));
-      wins[at] = (wins[at] ?? 0) + 1;
-    }
-    for (const [i, p] of pBest(post).entries()) expect(p).toBeCloseTo((wins[i] ?? 0) / 40_000, 2);
-  });
-});
-
-describe("posteriors", () => {
-  it("pools the prior at the locus mean", () => {
-    const [a] = posteriors(
-      [
-        { successes: 0, trials: 0 },
-        { successes: 10, trials: 498 },
-      ],
-      50,
-    );
-    expect((a?.a ?? 0) / ((a?.a ?? 0) + (a?.b ?? 0))).toBeCloseTo(11 / 500, 6);
   });
 });
 

@@ -3,7 +3,7 @@
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { siteEvents, sitePages } from "@wren/sites/schema";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { addBatch, collect, feedback, newSubject, ship, unship } from "../../src/index.js";
+import { variants } from "../../src/index.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -31,14 +31,15 @@ function views(page: string, channel: string, n: number, forms: number) {
 describe("variants live", () => {
   it("keeps sources, ships, collects and ranks by segment", async () => {
     const db = pg.db;
-    await newSubject(db, { slug: "hero", name: "Hero cut", kind: "video", by: "me" });
+    const v = variants(db);
+    await v.newSubject({ slug: "hero", name: "Hero cut", kind: "video", by: "me" });
     await expect(
-      addBatch(db, "hero", {
+      v.addBatch("hero", {
         why: "bad source",
         samples: [{ body: "x", source: { ref: "studio:1", spans: [{ s: 3, e: 1 }] } }],
       }),
     ).rejects.toThrow(/source/);
-    const b = await addBatch(db, "hero", {
+    const b = await v.addBatch("hero", {
       why: "Long cold open vs straight start",
       agent: "test",
       samples: [
@@ -68,8 +69,8 @@ describe("variants live", () => {
         updatedBy: "me",
       })),
     );
-    const sa = await ship(db, a, { channel: "site", target: PAGE_A }, "me");
-    await ship(db, bb, { channel: "site", target: PAGE_B }, "me");
+    const sa = await v.ship(a, { channel: "site", target: PAGE_A }, "me");
+    await v.ship(bb, { channel: "site", target: PAGE_B }, "me");
 
     await db
       .insert(siteEvents)
@@ -79,10 +80,10 @@ describe("variants live", () => {
         ...views(PAGE_B, "outreach", 40, 2),
         ...views(PAGE_B, "organic", 40, 2),
       ]);
-    const got = await collect(db);
+    const got = await v.collect();
     expect(got.ships).toHaveLength(2);
 
-    const f = await feedback(db, "hero");
+    const f = await v.feedback("hero");
     expect(f.batches[0]?.samples.find((x) => x.id === bb)?.source?.spans).toHaveLength(2);
     expect(f.live.segments).toEqual(["all", "channel:organic", "channel:outreach"]);
     const row = (s: number, seg: string) =>
@@ -95,7 +96,7 @@ describe("variants live", () => {
     expect(social).toBeGreaterThan(0.2);
     expect(social).toBeLessThan(0.8);
 
-    await unship(db, sa.id, "me");
-    await expect(unship(db, sa.id, "me")).rejects.toThrow(/no live ship/);
+    await v.unship(sa.id, "me");
+    await expect(v.unship(sa.id, "me")).rejects.toThrow(/no live ship/);
   });
 });

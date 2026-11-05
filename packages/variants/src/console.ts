@@ -12,23 +12,19 @@ import {
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import {
+  type Anchor,
+  GUIDE_STATES,
+  KINDS,
+  type Kind,
+  type SampleRow,
+  TONES,
+  VERDICTS,
+  VireoError,
+} from "@wrenautomation/vireo";
 import { z } from "zod";
 import { VARIANTS_CONSOLE_APPS, VARIANTS_CONSOLE_ROUTES } from "./console-routes.js";
-import { type Anchor, GUIDE_STATES, KINDS, type Kind, TONES, VERDICTS } from "./schema.js";
-import {
-  addGuide,
-  addNote,
-  catalog,
-  closeBatch,
-  dropNote,
-  feedback,
-  judge,
-  keep,
-  listSubjects,
-  queue,
-  type SampleRow,
-  setGuide,
-} from "./store.js";
+import { variants } from "./index.js";
 
 /** s3:// → a URL the browser can play; absent in local runs (media shows as missing). */
 export type Sign = (uri: string) => Promise<string>;
@@ -40,10 +36,18 @@ const num = (v: unknown, what: string) => {
   if (!Number.isSafeInteger(n) || n <= 0) throw new PortalRefusal(`which ${what}?`, 400);
   return n;
 };
-/** Store refusals are PortalRefusals already; `answer` sends their status. */
-const refuse = <T>(fn: () => Promise<T>) => fn();
+/** Vireo's no → a PortalRefusal; `answer` sends its status. */
+const refuse = async <T>(fn: () => Promise<T>) => {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof VireoError) throw new PortalRefusal(err.message, err.status);
+    throw err;
+  }
+};
 
 export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
+  const v = variants(db);
   const url = async (uri: string | null) => (uri && sign ? sign(uri).catch(() => null) : null);
   const media = async <T extends Pick<SampleRow, "media" | "poster">>(s: T) => ({
     ...s,
@@ -53,7 +57,7 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
   return {
     queue: (req: Req) =>
       refuse(async () => {
-        const open = await queue(db, (req.subject as string | undefined) ?? undefined);
+        const open = await v.queue((req.subject as string | undefined) ?? undefined);
         return Promise.all(
           open.map(async (o) => ({
             batch: { id: o.batch.id, createdAt: o.batch.createdAt, note: o.batch.note },
@@ -83,10 +87,10 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
           })),
         );
       }),
-    subjects: () => refuse(() => listSubjects(db)),
+    subjects: () => refuse(() => v.listSubjects()),
     subject: (req: Req) =>
       refuse(async () => {
-        const f = await feedback(db, num(req.id, "subject"));
+        const f = await v.feedback(num(req.id, "subject"));
         return {
           ...f,
           batches: await Promise.all(
@@ -100,23 +104,26 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
     catalog: (req: Req) =>
       refuse(async () => {
         const kind = KINDS.includes(req.kind as Kind) ? (req.kind as Kind) : null;
-        const rows = await catalog(db, kind ? { kind } : {});
+        const rows = await v.catalog(kind ? { kind } : {});
         return Promise.all(rows.map(async (r) => ({ ...r, sample: await media(r.sample) })));
       }),
     judge: (req: Req) =>
       refuse(() => {
-        const v = req.verdict == null ? null : String(req.verdict);
-        if (v && !(VERDICTS as readonly string[]).includes(v))
+        const call = req.verdict == null ? null : String(req.verdict);
+        if (call && !(VERDICTS as readonly string[]).includes(call))
           throw new PortalRefusal(`one of ${VERDICTS.join(", ")}`, 400);
-        return judge(db, num(req.sample, "sample"), v as (typeof VERDICTS)[number] | null, by(req));
+        return v.judge(
+          num(req.sample, "sample"),
+          call as (typeof VERDICTS)[number] | null,
+          by(req),
+        );
       }),
     note: (req: Req) =>
       refuse(() => {
         const tone = req.tone == null ? null : String(req.tone);
         if (tone && !(TONES as readonly string[]).includes(tone))
           throw new PortalRefusal("good or bad", 400);
-        return addNote(
-          db,
+        return v.addNote(
           num(req.sample, "sample"),
           {
             anchor: (req.anchor as Anchor | undefined) ?? null,
@@ -126,14 +133,13 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
           by(req),
         );
       }),
-    unnote: (req: Req) => refuse(() => dropNote(db, num(req.id, "note"), by(req))),
+    unnote: (req: Req) => refuse(() => v.dropNote(num(req.id, "note"), by(req))),
     close: (req: Req) =>
-      refuse(() => closeBatch(db, num(req.batch, "batch"), (req.note as string) ?? null, by(req))),
-    keep: (req: Req) =>
-      refuse(() => keep(db, num(req.sample, "sample"), req.on !== false, by(req))),
+      refuse(() => v.closeBatch(num(req.batch, "batch"), (req.note as string) ?? null, by(req))),
+    keep: (req: Req) => refuse(() => v.keep(num(req.sample, "sample"), req.on !== false, by(req))),
     guide: (req: Req) =>
       refuse(() =>
-        addGuide(db, {
+        v.addGuide({
           text: String(req.text ?? ""),
           subject: req.subject == null ? null : num(req.subject, "subject"),
           kind: KINDS.includes(req.kind as Kind) ? (req.kind as Kind) : null,
@@ -145,7 +151,7 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
         const state = String(req.state);
         if (!(GUIDE_STATES as readonly string[]).includes(state))
           throw new PortalRefusal(`one of ${GUIDE_STATES.join(", ")}`, 400);
-        return setGuide(db, num(req.id, "guide"), state as (typeof GUIDE_STATES)[number], by(req));
+        return v.setGuide(num(req.id, "guide"), state as (typeof GUIDE_STATES)[number], by(req));
       }),
   };
 }

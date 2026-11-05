@@ -5,7 +5,7 @@
  * test. Catalog: what we kept. The agent writes through `wren variants`; this page only judges.
  */
 import { Button, cx, Empty, Icon, LoadFailed, Loading, Seg, Textarea, useEdit } from "@wren/ui";
-import { footageLength } from "@wren/variants/sync";
+import { footageLength } from "@wrenautomation/vireo/sync";
 import { useEffect, useMemo, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";

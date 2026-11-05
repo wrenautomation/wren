@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { MIGRATIONS as VIREO } from "@wrenautomation/vireo/migrations";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate as drizzleMigrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
@@ -16,6 +18,9 @@ export interface DbHandle {
 }
 
 const MIGRATIONS_FOLDER = new URL("../drizzle", import.meta.url).pathname;
+// bundled (Lambda, box): build-lambda copies vireo's SQL beside ours; else the package's own
+const VIREO_BUNDLED = new URL("../vireo-drizzle", import.meta.url).pathname;
+const VIREO_FOLDER = existsSync(VIREO_BUNDLED) ? VIREO_BUNDLED : VIREO.migrationsFolder;
 
 interface DbOptions {
   max?: number;
@@ -72,6 +77,8 @@ export function cachedDb(databaseUrl: string, opts: Pick<DbOptions, "app"> = {})
 /** Apply every migration in packages/db/drizzle, then the audit layer (triggers follow the tables). Idempotent. */
 export async function migrate(db: Db): Promise<void> {
   await drizzleMigrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+  // vireo (variants) keeps its own journal; before audit so its tables get triggers
+  await drizzleMigrate(db, { ...VIREO, migrationsFolder: VIREO_FOLDER });
   await installAudit(db);
 }
 

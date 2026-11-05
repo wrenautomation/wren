@@ -5,7 +5,7 @@
  * No library does leader/follower sync over native <video>, so this is small and ours.
  */
 import { cx } from "@wren/ui";
-import { type Span, toPlay, toSource } from "@wren/variants/sync";
+import { type Span, toPlay, toSource } from "@wrenautomation/vireo/sync";
 import { createContext, type RefObject, useContext, useEffect, useRef, useState } from "react";
 
 export type SyncMode = "off" | "moment" | "clock";

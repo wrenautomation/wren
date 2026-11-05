@@ -5,7 +5,7 @@
  * Postgres box, `node app/box.mjs`), the niche templates beside it (the
  * niches resolve `../templates` from their module), the migrations (the db
  * resolves `../drizzle`, so the worker can migrate a new client's database:
- * the SQL files and the journal, not the snapshots), the sender roster when
+ * the SQL files and the journal, not the snapshots; vireo's in `vireo-drizzle`), the sender roster when
  * the repo has one, and playwright-core for the Browserbase render tier.
  * Node 22 runtime; nothing in the bundle needs a native module.
  */
@@ -79,6 +79,22 @@ if (journal.length === 0 || journal.length !== shipped.length || missing.length)
     `bundle migrations: ${journal.length} journal entries, ${shipped.length} SQL files` +
       (missing.length ? `, missing ${missing.map((e) => e.tag).join(", ")}` : ""),
   );
+
+// vireo's own migrations (the db resolves `../vireo-drizzle` when bundled)
+const vireoSrc = resolve(repo, "packages/db/node_modules/@wrenautomation/vireo/drizzle");
+const vireoOut = resolve(out, "vireo-drizzle");
+mkdirSync(resolve(vireoOut, "meta"), { recursive: true });
+cpSync(resolve(vireoSrc, "meta/_journal.json"), resolve(vireoOut, "meta/_journal.json"));
+for (const f of readdirSync(vireoSrc).filter((f) => f.endsWith(".sql")))
+  cpSync(resolve(vireoSrc, f), resolve(vireoOut, f));
+const vireoJournal = JSON.parse(
+  readFileSync(resolve(vireoOut, "meta/_journal.json"), "utf8"),
+).entries;
+if (
+  !vireoJournal.length ||
+  vireoJournal.some((e) => !existsSync(resolve(vireoOut, `${e.tag}.sql`)))
+)
+  throw new Error("bundle migrations: vireo's journal and SQL files differ");
 
 const roster = resolve(repo, "senders_config.toml");
 if (existsSync(roster)) cpSync(roster, resolve(out, "senders_config.toml"));

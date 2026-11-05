@@ -1,9 +1,13 @@
 /**
+ * LEGACY: the tables before vireo (WA-1099). Kept only so drizzle-kit does not drop them; one
+ * migration drops schema `variants` on William's yes. Nothing reads these.
+ *
  * Variants (designs/2026-11-05-variants.md): subjects we iterate on, batches the agent sends,
  * samples, William's calls and anchored notes, guides under test. No client column: a client's
  * subjects live in its own database (same migrations), so isolation is the database's.
  */
 import { oneOf } from "@wren/db/columns";
+import type { Source } from "@wrenautomation/vireo/sync";
 import { sql } from "drizzle-orm";
 import {
   date,
@@ -21,7 +25,6 @@ import {
   unique,
   varchar,
 } from "drizzle-orm/pg-core";
-import type { Source } from "./sync.js";
 
 export const variants = pgSchema("variants");
 

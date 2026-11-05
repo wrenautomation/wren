@@ -7,7 +7,11 @@
  * shares above a floor. Guards and convergence decide what retires and when a
  * locus or the whole experiment is done.
  */
+import { type Arm, type Beta, pBest, posteriors } from "@wrenautomation/vireo/stats";
 import type { FitnessName, SelectionName, Settings } from "./settings.js";
+
+// posteriors and P(best) live in vireo: one copy
+export { type Beta, pBest, posteriors };
 
 /** One allele's counts. The unit is the recipient: each count is recipients, never messages. */
 export interface AlleleCounts {
@@ -20,16 +24,6 @@ export interface AlleleCounts {
   readonly tracked: number;
   /** Opt-outs and not-interested replies. */
   readonly negatives: number;
-}
-
-interface Arm {
-  readonly successes: number;
-  readonly trials: number;
-}
-
-export interface Beta {
-  readonly a: number;
-  readonly b: number;
 }
 
 export type Weights = Settings["weights"];
@@ -62,85 +56,6 @@ export const FITNESS: Readonly<Record<FitnessName, Fitness>> = {
     return FITNESS[key ?? "interested"](counts, w);
   },
 };
-
-/** Each allele starts at its locus's mean rate, weighted as `prior` sends. */
-export function posteriors(arms: readonly Arm[], prior: number): Beta[] {
-  const s = arms.reduce((t, x) => t + x.successes, 0);
-  const n = arms.reduce((t, x) => t + x.trials, 0);
-  const mean = (s + 1) / (n + 2);
-  return arms.map((x) => ({
-    a: prior * mean + x.successes,
-    b: prior * (1 - mean) + x.trials - x.successes,
-  }));
-}
-
-const GRID = 512;
-
-/**
- * P(each allele has the highest rate), by integrating the posteriors on a grid
- * over their joint range: P_i = sum f_i(x) * prod_j F_j(x). Deterministic, so the
- * same stats always give the same shares.
- */
-export function pBest(post: readonly Beta[]): number[] {
-  const n = post.length;
-  if (n <= 1) return post.map(() => 1);
-  let lo = 1;
-  let hi = 0;
-  for (const { a, b } of post) {
-    const m = a / (a + b);
-    const sd = Math.sqrt((a * b) / ((a + b) ** 2 * (a + b + 1)));
-    lo = Math.min(lo, m - 8 * sd);
-    hi = Math.max(hi, m + 8 * sd);
-  }
-  lo = Math.max(lo, 0);
-  hi = Math.min(hi, 1);
-  const step = (hi - lo) / GRID;
-  const lx = new Float64Array(GRID);
-  const l1x = new Float64Array(GRID);
-  for (let k = 0; k < GRID; k++) {
-    const x = lo + (k + 0.5) * step;
-    lx[k] = Math.log(x);
-    l1x[k] = Math.log1p(-x);
-  }
-  // Row i: allele i's probability in each cell, and its CDF to the cell's middle.
-  const mass = post.map(({ a, b }) => {
-    const row = new Float64Array(GRID);
-    let top = Number.NEGATIVE_INFINITY;
-    for (let k = 0; k < GRID; k++) {
-      row[k] = (a - 1) * (lx[k] as number) + (b - 1) * (l1x[k] as number);
-      top = Math.max(top, row[k] as number);
-    }
-    let sum = 0;
-    for (let k = 0; k < GRID; k++) {
-      const d = (row[k] as number) - top;
-      row[k] = d < -40 ? 0 : Math.exp(d);
-      sum += row[k] as number;
-    }
-    for (let k = 0; k < GRID; k++) row[k] = (row[k] as number) / sum;
-    return row;
-  });
-  const cdf = mass.map((row) => {
-    const out = new Float64Array(GRID);
-    let run = 0;
-    for (let k = 0; k < GRID; k++) {
-      out[k] = run + (row[k] as number) / 2;
-      run += row[k] as number;
-    }
-    return out;
-  });
-  const p = mass.map((row, i) => {
-    let total = 0;
-    for (let k = 0; k < GRID; k++) {
-      let below = row[k] as number;
-      if (below === 0) continue;
-      for (let j = 0; j < n; j++) if (j !== i) below *= (cdf[j] as Float64Array)[k] as number;
-      total += below;
-    }
-    return total;
-  });
-  const total = p.reduce((t, v) => t + v, 0) || 1;
-  return p.map((v) => v / total);
-}
 
 interface SelectionInput {
   readonly arms: readonly Arm[];

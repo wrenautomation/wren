@@ -1,39 +1,21 @@
 /** Subject › Live: shipped samples' real rates per segment, beside his taste rank. */
 import { Button, cx } from "@wren/ui";
+import type { Live } from "@wrenautomation/vireo";
 import { useState } from "react";
 import { pct, type Sample, VERDICT_ON } from "./marks.js";
 
 type Verdict = Sample["verdict"];
-type Channel = "post" | "site" | "email";
-interface LiveRate {
-  wins: number;
-  of: number;
-  rate: number | null;
-  lo: number;
-  hi: number;
-  pBest: number | null;
-}
-interface LiveRow {
-  sample: number;
-  channel: Channel;
-  segment: string;
-  ships: number;
-  totals: Record<string, number>;
-  means: Record<string, number>;
-  rates: Record<string, LiveRate>;
-}
-export interface Live {
-  segments: string[];
-  rows: LiveRow[];
-  rates: Record<Channel, { name: string; wins: string; of: string }[]>;
-}
+
+// vireo's read model: the page renders what the store answers
+export type { Live } from "@wrenautomation/vireo";
+
 /** What Live needs from the subject: verdicts and the taste order. */
 interface Picks {
   batches: { samples: Pick<Sample, "id" | "verdict">[] }[];
   leaders: { sample: number }[];
 }
 
-const CHANNEL_LABEL: Record<Channel, string> = { post: "Posts", site: "Pages", email: "Email" };
+const CHANNEL_LABEL: Record<string, string> = { post: "Posts", site: "Pages", email: "Email" };
 const RATE_LABEL: Record<string, string> = {
   engaged: "Engaged",
   likes: "Liked",
@@ -62,8 +44,8 @@ const pct1 = (n: number) => `${(n * 100).toFixed(n < 0.1 ? 1 : 0)}%`;
  */
 export function LiveView({ live, picks }: { live: Live; picks: Picks }) {
   const channels = [...new Set(live.rows.map((r) => r.channel))];
-  const [channel, setChannel] = useState<Channel>(channels[0] as Channel);
-  const ch = channels.includes(channel) ? channel : (channels[0] as Channel);
+  const [channel, setChannel] = useState<string>(channels[0] as string);
+  const ch = channels.includes(channel) ? channel : (channels[0] as string);
   const segments = live.segments.filter((g) =>
     live.rows.some((r) => r.channel === ch && r.segment === g),
   );
@@ -112,7 +94,7 @@ export function LiveView({ live, picks }: { live: Live; picks: Picks }) {
           sure. Best is the chance it beats the others here.
         </p>
       </div>
-      {channels.length > 1 && chips(channels, ch, setChannel, (c) => CHANNEL_LABEL[c])}
+      {channels.length > 1 && chips(channels, ch, setChannel, (c) => CHANNEL_LABEL[c] ?? cap(c))}
       {chips(segments, seg, setSegment, segLabel)}
       {rates.length > 1 &&
         chips(
