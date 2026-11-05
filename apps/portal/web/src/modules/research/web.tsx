@@ -1,23 +1,23 @@
 /**
- * The research map (designs/2026-11-05-research-map.md): every birdwatch run on one canvas, from
- * serve's `/map` (positions are the engine's). Search, hover, click to see a dot, double click to
+ * The research web (designs/2026-11-05-research-web.md): every birdwatch run on one canvas, from
+ * serve's `/web` (positions are the engine's). Search, hover, click to see a dot, double click to
  * open it. A run opens in the runs view.
  */
-import { Button, cx, Icon, Input, Loading, MapCanvas, type MapDot, type MapHandle } from "@wren/ui";
+import { Button, cx, Icon, Input, Loading, WebCanvas, type WebDot, type WebHandle } from "@wren/ui";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate, useRoute } from "../../route.js";
 import { QUIET } from "../work/bits.js";
 import { NoServe, PostEmbed } from "./page.js";
-import { type MapNode, mapOf, type ResearchMap, useLive } from "./serve.js";
+import { type ResearchWeb, useLive, type WebNode, webOf } from "./serve.js";
 
 /** One cue per ask kind, so a run's color says what it asked. */
 const CUE: Record<string, number> = { web: 1, video: 2, channel: 3, people: 4, social: 5 };
 const cueOf = (kind = "web") =>
   `--ui-cue-${CUE[kind] ?? ([...kind].reduce((a, c) => a + c.charCodeAt(0), 0) % 8) + 1}`;
 
-const COLOR: Record<MapNode["kind"], (n: MapNode) => string> = {
+const COLOR: Record<WebNode["kind"], (n: WebNode) => string> = {
   run: (n) => cueOf(n.ask),
   query: () => "--ui-ink-2",
   source: () => "--ui-ink-3",
@@ -26,7 +26,7 @@ const COLOR: Record<MapNode["kind"], (n: MapNode) => string> = {
   finding: (n) => (n.kept ? "--ui-good" : "--ui-bad"),
 };
 
-const KIND: Record<MapNode["kind"], string> = {
+const KIND: Record<WebNode["kind"], string> = {
   run: "Run",
   query: "Query",
   source: "Site or channel",
@@ -39,17 +39,17 @@ const KIND: Record<MapNode["kind"], string> = {
 const SHOWN = 12;
 /** World units a fly-to frames: a run's island, or a page with its findings. */
 const FRAME = { island: 900, near: 300 };
-/** A burst of live events refetches the map once. */
+/** A burst of live events refetches the web once. */
 const SETTLE_MS = 3000;
 
 interface Index {
-  byId: Map<string, MapNode>;
+  byId: Map<string, WebNode>;
   /** Tree children and hub links, both ways. */
   out: Map<string, string[]>;
   into: Map<string, string[]>;
 }
 
-function indexOf(m: ResearchMap): Index {
+function indexOf(m: ResearchWeb): Index {
   const byId = new Map(m.nodes.map((n) => [n.id, n]));
   const out = new Map<string, string[]>();
   const into = new Map<string, string[]>();
@@ -68,22 +68,22 @@ const hostOf = (url: string) => {
   }
 };
 
-export function MapPage({ params }: PageProps) {
+export function WebPage({ params }: PageProps) {
   const here = `/${useRoute().path.join("/")}`;
-  const got = useCall("research:map", mapOf, { kept: false });
+  const got = useCall("research:web", webOf, { kept: false });
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
   useLive(() => {
     if (settle.current) clearTimeout(settle.current);
     settle.current = setTimeout(got.retry, SETTLE_MS);
   });
-  const map = useRef<MapHandle>(null);
+  const web = useRef<WebHandle>(null);
   const [q, setQ] = useState("");
   const at = params.get("at");
   const m = got.data;
   const ix = useMemo(() => (m ? indexOf(m) : null), [m]);
   const drawn = useMemo(() => {
     if (!m) return null;
-    const dots: MapDot[] = m.nodes.map((n) => ({
+    const dots: WebDot[] = m.nodes.map((n) => ({
       id: n.id,
       x: n.x,
       y: n.y,
@@ -94,7 +94,7 @@ export function MapPage({ params }: PageProps) {
     }));
     return { dots, links: m.edges };
   }, [m]);
-  // sigma's camera ratio 1 frames the whole map
+  // sigma's camera ratio 1 frames the whole web
   const span = useMemo(() => {
     if (!m?.nodes.length) return 1;
     const xs = m.nodes.map((n) => n.x);
@@ -107,7 +107,7 @@ export function MapPage({ params }: PageProps) {
     const hits = m.nodes.filter(
       (n) => n.label.toLowerCase().includes(words) || n.url?.toLowerCase().includes(words),
     );
-    // runs first, then by kind order on the map
+    // runs first, then by kind order on the web
     const rank = ["run", "hub", "source", "query", "page", "finding"];
     return hits.sort((a, b) => rank.indexOf(a.kind) - rank.indexOf(b.kind));
   }, [m, q]);
@@ -127,7 +127,7 @@ export function MapPage({ params }: PageProps) {
     pick(id);
     const kind = ix?.byId.get(id)?.kind;
     const frame = kind === "run" || kind === "hub" ? FRAME.island : FRAME.near;
-    void map.current?.flyTo(id, Math.min(1, frame / span));
+    void web.current?.flyTo(id, Math.min(1, frame / span));
   };
   const open = (id: string) => {
     const n = ix?.byId.get(id);
@@ -142,24 +142,24 @@ export function MapPage({ params }: PageProps) {
   return (
     <div className="grid h-full min-h-0 grid-rows-[minmax(360px,62vh)_auto] gap-4 min-[1100px]:grid-cols-[minmax(0,1fr)_360px] min-[1100px]:grid-rows-1">
       <div className="relative min-h-0 overflow-hidden border border-(--ui-hair) bg-(--ui-canvas)">
-        <MapCanvas
+        <WebCanvas
           dots={drawn.dots}
           links={drawn.links}
-          label={`Research map: ${count(m, "run")} runs, ${count(m, "page")} pages`}
+          label={`Research web: ${count(m, "run")} runs, ${count(m, "page")} pages`}
           selected={at}
           match={match}
           onSelect={pick}
           onOpen={open}
-          handle={map}
+          handle={web}
           className="h-full w-full"
         />
         <Button
           size="dense"
           tone="secondary"
           className="absolute right-2 bottom-2"
-          onClick={() => void map.current?.whole()}
+          onClick={() => void web.current?.whole()}
         >
-          Whole map
+          Whole web
         </Button>
       </div>
       <aside className="grid min-h-0 content-start gap-4 overflow-auto">
@@ -169,7 +169,7 @@ export function MapPage({ params }: PageProps) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Find an ask, a site, a channel, a finding"
-          aria-label="Find on the map"
+          aria-label="Find on the web"
           className="h-9 text-[14px]"
         />
         {found ? (
@@ -185,7 +185,7 @@ export function MapPage({ params }: PageProps) {
   );
 }
 
-const count = (m: ResearchMap, kind: MapNode["kind"]) =>
+const count = (m: ResearchWeb, kind: WebNode["kind"]) =>
   m.nodes.filter((n) => n.kind === kind).length;
 
 const LEGEND: [string, string][] = [
@@ -197,7 +197,7 @@ const LEGEND: [string, string][] = [
   ["Cut", "--ui-bad"],
 ];
 
-function Whole({ m }: { m: ResearchMap }) {
+function Whole({ m }: { m: ResearchWeb }) {
   const read = m.nodes.filter((n) => n.kind === "page" && n.read).length;
   const kept = m.nodes.filter((n) => n.kind === "finding" && n.kept).length;
   return (
@@ -222,8 +222,8 @@ function Whole({ m }: { m: ResearchMap }) {
   );
 }
 
-function Found({ nodes, ix, go }: { nodes: MapNode[]; ix: Index; go: (id: string) => void }) {
-  if (!nodes.length) return <p className={cx("m-0 text-[14px]", QUIET)}>Nothing on the map.</p>;
+function Found({ nodes, ix, go }: { nodes: WebNode[]; ix: Index; go: (id: string) => void }) {
+  if (!nodes.length) return <p className={cx("m-0 text-[14px]", QUIET)}>Nothing on the web.</p>;
   return (
     <div className="grid gap-1">
       <p className={cx("m-0 text-[13px] tabular-nums", QUIET)}>{nodes.length} found</p>
@@ -264,11 +264,11 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function Picked({ n, ix, go }: { n: MapNode; ix: Index; go: (id: string) => void }) {
+function Picked({ n, ix, go }: { n: WebNode; ix: Index; go: (id: string) => void }) {
   const run = n.run ? ix.byId.get(n.run) : undefined;
   const kids = (ix.out.get(n.id) ?? []).map((id) => ix.byId.get(id)).filter((x) => !!x);
   const parents = (ix.into.get(n.id) ?? []).map((id) => ix.byId.get(id)).filter((x) => !!x);
-  const jump = (x: MapNode) => (
+  const jump = (x: WebNode) => (
     <button key={x.id} type="button" className={cx(LINK, "text-left")} onClick={() => go(x.id)}>
       {x.label}
     </button>

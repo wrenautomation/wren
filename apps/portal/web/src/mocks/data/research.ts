@@ -1,5 +1,5 @@
 /** A made-up birdwatch run as `birdwatch serve` sends it: Research's story and tree test read it. */
-import type { MapNode, ResearchMap, RunRow, RunView } from "../../modules/research/serve.js";
+import type { ResearchWeb, RunRow, RunView, WebNode } from "../../modules/research/serve.js";
 
 const ai = { from: "ai", by: "claude-code" };
 const tool = { from: "tool", by: "runner" };
@@ -287,9 +287,9 @@ export const RESEARCH_VIEW: RunView = {
 };
 
 /** Five runs as the engine draws them (radial islands, one shared channel): synthetic. */
-export const RESEARCH_MAP: ResearchMap = (() => {
-  const nodes: MapNode[] = [];
-  const edges: ResearchMap["edges"] = [];
+export const RESEARCH_WEB: ResearchWeb = (() => {
+  const nodes: WebNode[] = [];
+  const edges: ResearchWeb["edges"] = [];
   const runs = [
     { ask: "How do small bakeries find wholesale buyers?", kind: "web" },
     { ask: "What do cafes pay for wholesale croissants?", kind: "web" },

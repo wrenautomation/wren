@@ -1,10 +1,10 @@
 /**
- * The map's shape (designs/2026-11-05-research-map.md): dots at fixed positions. Zoom shows
+ * The web's shape (designs/2026-11-05-research-web.md): dots at fixed positions. Zoom shows
  * detail by size alone: a dot grows as the camera nears, and its label shows once it is big enough.
  */
 
 /** One dot: where it sits, how big, its color as a token name or a CSS color. */
-export interface MapDot {
+export interface WebDot {
   id: string;
   x: number;
   y: number;
@@ -16,7 +16,7 @@ export interface MapDot {
   faint?: boolean | undefined;
 }
 
-export interface MapLink {
+export interface WebLink {
   source: string;
   target: string;
 }

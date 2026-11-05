@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { expect, waitFor } from "storybook/test";
-import { islandsMap } from "../fixtures/map.js";
-import { MapCanvas, type MapHandle } from "./index.js";
+import { islandsWeb } from "../fixtures/web.js";
+import { WebCanvas, type WebHandle } from "./index.js";
 
 export default {
-  title: "Charts/Map",
-  id: "graph-map",
+  title: "Charts/Web",
+  id: "graph-web",
 } satisfies Meta;
 
 type Story = StoryObj;
@@ -19,8 +19,8 @@ const drawn = async ({ canvasElement }: { canvasElement: HTMLElement }) => {
 
 /** Frames a camera sweep in and out takes: the bench reads `data-fps`. */
 function Bench({ n, pick = null }: { n: number; pick?: string | null }) {
-  const m = useMemo(() => islandsMap(n), [n]);
-  const map = useRef<MapHandle>(null);
+  const m = useMemo(() => islandsWeb(n), [n]);
+  const web = useRef<WebHandle>(null);
   const [selected, setSelected] = useState<string | null>(pick);
   const [fps, setFps] = useState<number | null>(null);
   const sweep = async () => {
@@ -32,8 +32,8 @@ function Bench({ n, pick = null }: { n: number; pick?: string | null }) {
     };
     requestAnimationFrame(count);
     const t = performance.now();
-    await map.current?.flyTo("r0q0p0", 0.01);
-    await map.current?.whole();
+    await web.current?.flyTo("r0q0p0", 0.01);
+    await web.current?.whole();
     going = false;
     setFps(Math.round((frames * 1000) / (performance.now() - t)));
   };
@@ -47,13 +47,13 @@ function Bench({ n, pick = null }: { n: number; pick?: string | null }) {
         <span data-fps={fps ?? ""}>{fps === null ? "" : `${fps} FPS`}</span>
         <span>{selected ?? ""}</span>
       </div>
-      <MapCanvas
+      <WebCanvas
         dots={m.dots}
         links={m.links}
-        label="Research map"
+        label="Research web"
         selected={selected}
         onSelect={setSelected}
-        handle={map}
+        handle={web}
       />
     </div>
   );
@@ -71,10 +71,10 @@ export const Picked: Story = { render: () => <Bench n={15_000} pick="r0" />, pla
 const STOPS = ["r0", "r0q3", "r7", "r7q6p2", "r24"];
 const HOLD_MS = 2200;
 
-/** For the demo film: whole map, then run to query to page across islands, then whole again; loops. */
+/** For the demo film: whole web, then run to query to page across islands, then whole again; loops. */
 function Tour() {
-  const m = useMemo(() => islandsMap(15_000), []);
-  const map = useRef<MapHandle>(null);
+  const m = useMemo(() => islandsWeb(15_000), []);
+  const web = useRef<WebHandle>(null);
   const [selected, setSelected] = useState<string | null>(null);
   // read-ok: a camera tour on timers; reads no data.
   useEffect(() => {
@@ -87,11 +87,11 @@ function Tour() {
           if (!live) return;
           setSelected(id);
           // runs framed with their island, deeper dots closer
-          await map.current?.flyTo(id, id.includes("p") ? 0.03 : id.includes("q") ? 0.06 : 0.12);
+          await web.current?.flyTo(id, id.includes("p") ? 0.03 : id.includes("q") ? 0.06 : 0.12);
           await wait(HOLD_MS);
         }
         setSelected(null);
-        await map.current?.whole();
+        await web.current?.whole();
         await wait(HOLD_MS);
       }
     })();
@@ -101,13 +101,13 @@ function Tour() {
   }, []);
   return (
     <div className="h-[720px]">
-      <MapCanvas
+      <WebCanvas
         dots={m.dots}
         links={m.links}
-        label="Research map"
+        label="Research web"
         selected={selected}
         onSelect={setSelected}
-        handle={map}
+        handle={web}
       />
     </div>
   );

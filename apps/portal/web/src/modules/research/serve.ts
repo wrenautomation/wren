@@ -120,8 +120,8 @@ export interface RunView {
   spend: { source: string; op: string; calls: number; failed: number; usd: number }[];
 }
 
-/** One dot of the research map (engine `engine/map.ts`): positions are the engine's, fixed. */
-export interface MapNode {
+/** One dot of the research web (engine `engine/web.ts`): positions are the engine's, fixed. */
+export interface WebNode {
   id: string;
   kind: "run" | "query" | "source" | "hub" | "page" | "finding";
   label: string;
@@ -138,9 +138,9 @@ export interface MapNode {
   key?: string;
 }
 
-export interface ResearchMap {
+export interface ResearchWeb {
   v: 1;
-  nodes: MapNode[];
+  nodes: WebNode[];
   edges: { source: string; target: string; kind: "tree" | "hub" }[];
 }
 
@@ -165,9 +165,9 @@ export async function viewOf(run: string): Promise<RunView> {
   if (v.v !== 1) throw new Error(`serve sends view v${v.v}; this page reads v1`);
   return v;
 }
-export async function mapOf(): Promise<ResearchMap> {
-  const m = await get<ResearchMap>("/map");
-  if (m.v !== 1) throw new Error(`serve sends map v${m.v}; this page reads v1`);
+export async function webOf(): Promise<ResearchWeb> {
+  const m = await get<ResearchWeb>("/web");
+  if (m.v !== 1) throw new Error(`serve sends web v${m.v}; this page reads v1`);
   return m;
 }
 export const pageOf = (run: string, doc: string) =>

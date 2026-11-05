@@ -1,8 +1,8 @@
 /**
- * A synthetic research map: islands of run → query → page → finding on a grid, the shape
- * birdwatch's /map draws. Seeded, so a story and a bench see the same dots.
+ * A synthetic research web: islands of run → query → page → finding on a grid, the shape
+ * birdwatch's /web draws. Seeded, so a story and a bench see the same dots.
  */
-import type { MapDot, MapLink } from "../graph/map-model.js";
+import type { WebDot, WebLink } from "../graph/web-model.js";
 
 const seeded = (seed: number) => () => {
   seed = (seed * 1664525 + 1013904223) % 2 ** 32;
@@ -10,10 +10,10 @@ const seeded = (seed: number) => () => {
 };
 
 /** About `n` dots: islands of 1 run, 10 queries, 8 pages each, 3 findings a read page. */
-export function islandsMap(n: number): { dots: MapDot[]; links: MapLink[] } {
+export function islandsWeb(n: number): { dots: WebDot[]; links: WebLink[] } {
   const rand = seeded(7);
-  const dots: MapDot[] = [];
-  const links: MapLink[] = [];
+  const dots: WebDot[] = [];
+  const links: WebLink[] = [];
   const per = 1 + 10 + 80 + 3 * 56;
   const islands = Math.max(1, Math.round(n / per));
   const cols = Math.ceil(Math.sqrt(islands));

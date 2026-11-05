@@ -4,8 +4,8 @@
  */
 import type { Module } from "../../module.js";
 import { AskPage } from "./ask.js";
-import { MapPage } from "./map.js";
 import { RunsPage } from "./page.js";
+import { WebPage } from "./web.js";
 
 export const research: Module = {
   id: "research",
@@ -22,10 +22,10 @@ export const research: Module = {
       fill: true,
     },
     {
-      id: "map",
-      label: "Map",
-      about: "Every run on one map: what was researched where, and the sources runs shared.",
-      Page: MapPage,
+      id: "web",
+      label: "Web",
+      about: "Every run on one web: what was researched where, and the sources runs shared.",
+      Page: WebPage,
       wide: true,
       fill: true,
     },

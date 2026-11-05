@@ -1,4 +1,6 @@
-# Research map: every birdwatch run on one canvas (WA-1090)
+# Research web: every birdwatch run on one canvas (WA-1090)
+
+Terms: the web is birdwatch's research web, every run and source on one canvas. The Map is the business map (`designs/2026-10-19-business-map.md`); orrery is the system map. Named the web on William's ask (11-05) so the three never mix.
 
 2026-11-05. William: a chat panel on the side and a big node map of every run and source, "like Obsidian... but a lot simpler and easier to navigate". "I just need to be able to navigate it in a way where I can see the high level of what research was done where." "I can go into YouTube and start clicking around... opening new tabs from the diagram... if it used a Hormozi video, it's embedded in the diagram." "For both the demo video and the daily use." He picked option C (WebGL, fixed positions, zoom levels).
 
@@ -6,7 +8,7 @@ Research: `tasks/docs/11-05/research-map-ui/memo.md` (WA-1091, run 01M6P4Y711SC0
 
 ## Target
 
-- Research gets a Map view beside the run list. The map fills the page; the agent chat stays docked on the right; a preview panel opens over the map's right edge.
+- Research gets a Web view beside the run list. The web fills the page; the agent chat stays docked on the right; a preview panel opens over the web's right edge.
 - One canvas holds every run in every ledger the Mac has. Today: 44 runs, ~9k hits, 1.2k pages read, 6.3k findings, 2.1k channels, 3k sites (~20k nodes). Built for 100k.
 - Positions never move between visits. Zoom changes what is drawn, never where.
 - Every source is one click from its page: a click previews it in the panel (a YouTube video plays there, a page shows its findings and quotes); a second action opens it in a new tab.
@@ -36,7 +38,7 @@ Research: `tasks/docs/11-05/research-map-ui/memo.md` (WA-1091, run 01M6P4Y711SC0
 
 ## Data
 
-`birdwatch serve --also <ledger...>` reads every ledger folder. A new `GET /map` answers `{nodes, edges}` with positions, built by a pure `mapOf(records)` in the engine (`packages/birdwatch/src/engine/map.ts`), tested there. `birdwatch map --json` prints the same. The portal draws; it computes nothing.
+`birdwatch serve --also <ledger...>` reads every ledger folder. A new `GET /web` answers `{nodes, edges}` with positions, built by a pure `mapOf(records)` in the engine (`packages/birdwatch/src/engine/web.ts`), tested there. `birdwatch web --json` prints the same. The portal draws; it computes nothing.
 
 Live: the existing per-run event updates one island; finished runs stay where they are.
 
@@ -48,7 +50,7 @@ Live: the existing per-run event updates one island; finished runs stay where th
 |---|---|---|
 | A. sigma.js 4 + graphology, inside the graph kit as a second canvas | WebGL; labels, hover, picking and camera built in; 100k in range; Louvain and layouts if wanted | a second engine in the kit beside React Flow |
 | B. cosmos.gl | GPU layout and draw, 1M+ nodes, a striking live layout | few UI parts (labels, picking are ours); a live layout moves nodes, against fixed positions |
-| C. deck.gl + graph-layers | one stack with a future geo map | graph layers are a community fork; layout is ours |
+| C. deck.gl + graph-layers | one stack with a future geo web | graph layers are a community fork; layout is ours |
 | D. React Flow (the kit today) | one engine, rich DOM nodes | dies at a few thousand nodes (memo: 8 FPS at 5k) |
 
 Ranked: daily use (labels, click, focus), fixed positions, 100k nodes, demo look. Chosen: A. The kit stays the one door: `MapCanvas` loads lazily beside `GraphCanvas`, so first paint carries neither. B only if a ledger passes ~500k nodes.
@@ -59,18 +61,18 @@ Ranked: daily use (labels, click, focus), fixed positions, 100k nodes, demo look
 |---|---|---|
 | A. Radial tree per run, islands on a grid, shared hubs between | pure, stable, no worker; reads as "what was done where" | islands by time, not by topic |
 | B. ForceAtlas2 over everything, cached | clusters by shared sources | a new run moves the old; slow at 100k; hairball |
-| C. Islands placed by ask meaning (embeddings, 2D) | near runs are near topics | a model call per run; a new run can shift the map |
+| C. Islands placed by ask meaning (embeddings, 2D) | near runs are near topics | a model call per run; a new run can shift the web |
 
 Chosen: A now. C later only to place each new island (old ones stay put), if time order reads badly.
 
 ## Done
 
-1. [done] `mapOf` in the engine: tests for stable positions (same records, same map; a new run moves no old node) and hubs.
-2. [done] `GET /map` and `birdwatch map --json` over every ledger folder (`--also`).
-3. [done] `MapCanvas` in `@wren/ui` graph kit; a story with 100k synthetic nodes holds 60 FPS on this Mac (measured, not guessed).
-4. [done] Research Map view: page story on a real-shaped fixture; search, hover, click preview (page, YouTube, run), double-click focus, open in a new tab.
+1. [done] `webOf` in the engine: tests for stable positions (same records, same web; a new run moves no old node) and hubs.
+2. [done] `GET /web` and `birdwatch web --json` over every ledger folder (`--also`).
+3. [done] `WebCanvas` in `@wren/ui` graph kit; a story with 100k synthetic nodes holds 60 FPS on this Mac (measured, not guessed).
+4. [done] Research Web view: page story on a real-shaped fixture; search, hover, click preview (page, YouTube, run), double-click focus, open in a new tab.
 5. [done] The ui-design proof step: 390 and 1280, both looks.
-6. Fly-through story for the demo.
+6. [done] Fly-through story for the demo: `graph-web--fly-through` (run → query → page across islands, then whole; loops).
 
 ## Log
 
@@ -84,3 +86,4 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
 - 11-05: Open with William: the map replaces the runs list as the Research landing, with search (recommended), or the runs list stays as a tab. The run view stays either way.
 - 11-05: wren e006fd7be: Research › Map, before Runs. Runs stays: it hosts the run view. The pick lives in `?at=`; search flies to the island at a ratio from the map's extent. Engine 0.40.0 on npm; wren pins it (011621ea9).
 - 11-05: labels under the veil overlapped. While a dot is lit, only forced labels draw: the label size threshold is set in place, because `setSetting` reprocesses every dot. Reaches into sigma's private `internals`; safe while sigma is pinned at 4.0.4. Hover sweep at 100k after: p50 16.7 ms, p99 16.8 ms.
+- 11-05: renamed map → web (William: "Lets called it like a web to be clear on terminology"). Engine 0.41.0: `engine/web.ts`, `webOf`, `GET /web`, `birdwatch web`. wren: Research › Web at `/research/web`, `WebCanvas` in @wren/ui, this doc. Breaks `/map` and `birdwatch map` with no alias: one caller each, both moved.

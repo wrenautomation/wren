@@ -1,26 +1,26 @@
 /**
- * The map canvas: sigma 4 on WebGL, positions as given (no layout runs here). Dots grow as the
+ * The web canvas: sigma 4 on WebGL, positions as given (no layout runs here). Dots grow as the
  * camera nears and labels show by size; links draw only around the dot in hand. Hover, a pick or a
- * search lifts those dots over a veil that dims the rest. Its own chunk, loaded when a map shows.
+ * search lifts those dots over a veil that dims the rest. Its own chunk, loaded when a web shows.
  */
 import Graph from "graphology";
 import type { Attributes } from "graphology-types";
 import { type Ref, useEffect, useImperativeHandle, useRef } from "react";
 import Sigma from "sigma";
-import type { MapDot, MapLink } from "./map-model.js";
+import type { WebDot, WebLink } from "./web-model.js";
 
-/** What a page drives: fly to a dot, or show the whole map. */
-export interface MapHandle {
+/** What a page drives: fly to a dot, or show the whole web. */
+export interface WebHandle {
   flyTo(id: string, ratio?: number): Promise<void>;
   whole(): Promise<void>;
-  /** The camera's ratio: 1 is the whole map. */
+  /** The camera's ratio: 1 is the whole web. */
   ratio(): number;
 }
 
-export interface MapCanvasProps {
-  dots: readonly MapDot[];
-  links: readonly MapLink[];
-  /** The map's name for a screen reader. */
+export interface WebCanvasProps {
+  dots: readonly WebDot[];
+  links: readonly WebLink[];
+  /** The web's name for a screen reader. */
   label: string;
   selected?: string | null | undefined;
   /** Dots a search found: lit like a pick. */
@@ -28,15 +28,15 @@ export interface MapCanvasProps {
   onSelect?: ((id: string | null) => void) | undefined;
   /** A double click: open the dot's page or source. */
   onOpen?: ((id: string) => void) | undefined;
-  handle?: Ref<MapHandle> | undefined;
+  handle?: Ref<WebHandle> | undefined;
   className?: string | undefined;
 }
 
 type NS = { lit: boolean; focus: boolean };
 type ES = { lit: boolean };
-type MapSigma = Sigma<Attributes, Attributes, Attributes, NS, ES>;
+type WebSigma = Sigma<Attributes, Attributes, Attributes, NS, ES>;
 
-/** Rendered px a dot needs before its label shows: whole map, none; labels come in as it nears. */
+/** Rendered px a dot needs before its label shows: whole web, none; labels come in as it nears. */
 const LABEL_MIN = 16;
 
 /** Lit dots, links and labels draw above the veil; the rest below it. */
@@ -135,12 +135,12 @@ function veil(gl: WebGL2RenderingContext, rgb: [number, number, number], on: () 
   };
 }
 
-export default function MapCanvas(p: MapCanvasProps) {
+export default function WebCanvas(p: WebCanvasProps) {
   const host = useRef<HTMLDivElement>(null);
-  const sigma = useRef<MapSigma | null>(null);
+  const sigma = useRef<WebSigma | null>(null);
   const lights = useRef<ReturnType<typeof lightsOf> | null>(null);
   // kept across rebuilds: a live update must not move the camera
-  const camera = useRef<ReturnType<ReturnType<MapSigma["getCamera"]>["getState"]> | null>(null);
+  const camera = useRef<ReturnType<ReturnType<WebSigma["getCamera"]>["getState"]> | null>(null);
   const on = useRef(p);
   on.current = p;
 
@@ -165,7 +165,7 @@ export default function MapCanvas(p: MapCanvasProps) {
     const ink = css(color("--ui-ink"));
     const font = getComputedStyle(el).getPropertyValue("--ui-font").trim() || "sans-serif";
     // every style declarative: a function style runs per dot per frame (100k dots: 42 FPS, not 60)
-    const s: MapSigma = new Sigma<Attributes, Attributes, Attributes, NS, ES>(g, el, {
+    const s: WebSigma = new Sigma<Attributes, Attributes, Attributes, NS, ES>(g, el, {
       primitives: { depthLayers: DEPTHS },
       customNodeState: { lit: false, focus: false },
       customEdgeState: { lit: false },
@@ -263,14 +263,14 @@ export default function MapCanvas(p: MapCanvasProps) {
   );
 }
 
-const litOf = (p: Pick<MapCanvasProps, "selected" | "match">): Set<string> => {
+const litOf = (p: Pick<WebCanvasProps, "selected" | "match">): Set<string> => {
   const out = new Set(p.match ?? []);
   if (p.selected) out.add(p.selected);
   return out;
 };
 
 /** The lit dots and links, changed by difference: a hover touches a few states, never all. */
-function lightsOf(s: MapSigma) {
+function lightsOf(s: WebSigma) {
   const g = s.getGraph();
   let litNodes: string[] = [];
   let litEdges: string[] = [];
