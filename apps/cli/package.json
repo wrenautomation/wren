@@ -47,7 +47,7 @@
     "@wren/watch": "workspace:*",
     "@wren/worker": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
-    "@wrenautomation/birdwatch": "0.36.1",
+    "@wrenautomation/birdwatch": "0.40.0",
     "@wrenautomation/models": "0.38.0",
     "@wrenautomation/read": "0.38.0",
     "commander": "15.0.0",
