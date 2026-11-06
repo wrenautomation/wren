@@ -131,3 +131,8 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
     - The map keeps its layout when the panel opens. It slides, and shrinks to 70 % at most, so the picked pieces stay in view. A pick fades all other pieces.
   - Mock limits: no video plays in the page (artifacts cannot embed YouTube); the tilt is drawn by hand in SVG; the data is fixed.
 - 11-06: William chose tilted. The flat switch goes. Later, birdwatch researches a better UI for the graph (WA-1133) before the real build (WA-1106).
+- 11-06: WA-1133 birdwatch run on graph UIs (run `01M6RXZ8NEAJSXFYGEBHMTV7JQ`, ledger `tasks/docs/11-06/graph-ui/`: 977 hits, 120 read, 186 findings, 10 claims, $0.47). William did not read it; its ideas went into round 7 of artifact `LdYvUurK`.
+  - Applied: lines only for the claim, search or source in focus; a fixed place per kind; zoom changes what shows (islands as counts, then main sources, then all with a finding); kept-but-unread hits as dashed rings; a Searches tab with hits, kept, read and findings; a round control with new-source dots; a hover card with the best quote; "open at the quote" by text fragment; a funnel strip from hits to claims; a sortable sources table synced with the map; a tilt with no perspective.
+  - Left out: a flat switch (William chose tilted); a minimap (100 sources fit on screen); edge bundling (the claim is the bundle).
+  - The session's choices, not William's: the place per kind; zoom steps at 0.72 and 1.45; a linear funnel; the four runs.
+  - Limits: not tested at 1,000 sources; videos have no time stamp for a quote.
