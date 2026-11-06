@@ -122,3 +122,11 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Limits: the card has no claims (the ledger holds none; open item). It never shows `Reading`: the ledger cannot tell a stopped run from one left at a step. A page that holds a `::view` line in its text can draw a card of another local run; the card only reads `birdwatch serve` on this Mac.
   - Story `pages-agent--card`: a stored chat written by hand, since no tape holds a birdwatch step yet.
 - 11-05: William on a pasted source with no scope: he leans to "default, small, isolated". The agent reads the pasted sources only and stops. Not firm. Not chosen: the agent asks first; the agent widens when it judges the source good. The skill says so from engine 0.45.0.
+- 11-06: William on the round 5 graph (artifact `NfPA6Hpj`): he keeps option 4, sources as thumbnail pieces on the ground. He leans to tilted; flat or tilted is still open. A click on a source must show more detail. Collapse the options to one design.
+- 11-06: round 6 mock, artifact `LdYvUurK` (https://claude.ai/artifact/LdYvUurKnRNGtrguY6HQwP). One design; one switch left: flat or tilted, tilted by default. Three real runs. No real build before William settles the graph (WA-1106).
+  - The session's choices, not William's:
+    - Every source with a kept finding stands up: a video source as its thumbnail, a site as its icon and name. Past 14 name chips on desktop, a source stands as a small icon pin. On a phone, 4 thumbnails and 3 name chips at most; the rest stay discs.
+    - One panel for a source and a claim, at the right on desktop and as a bottom sheet on a phone. A source lists each page read, each finding with its quote, its claim and its check, and the quiet pages folded. A claim lists its sources with their findings for it.
+    - Claim numbers as badges on the pieces, so the map reads without the lines. Round 5's callout cards are dropped.
+    - The map keeps its layout when the panel opens. It slides, and shrinks to 70 % at most, so the picked pieces stay in view. A pick fades all other pieces.
+  - Mock limits: no video plays in the page (artifacts cannot embed YouTube); the tilt is drawn by hand in SVG; the data is fixed.
