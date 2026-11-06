@@ -38,7 +38,8 @@ A set has `default`, `empty`, `loading`, `failed`, `worst-case` where the part h
 | a graph: ribbons (people as width), loops | `Graph` `graph/index.tsx:47`, `ribbonWidth` `graph/model.ts:111` | `graph-ribbons` | Motion |
 | the research web: runs, sources, claims as dots | `WebCanvas` `graph/index.tsx:36` | `graph-web` | Motion |
 | the metro map: lines, stations, tracks, zoom, focus, diff marks | `MetroMap` `metro/map.tsx:151` | `orrery`, `orrery-lab`, `orrery-money-models` | Motion |
-| the agent chat: a thread, its cards, the chat list | `AgentThread` `agent-thread.tsx:404`, `AgentChats` `agent-chats.tsx:34` | `agent-thread`, `agent-chats` | Lists and records |
+| the agent chat: a thread, its cards, the chat list | `AgentThread` `agent-thread.tsx:421`, `AgentChats` `agent-chats.tsx:34` | `agent-thread`, `agent-chats` | Lists and records |
+| a product's cards in the chat (draft): a Birdwatch run with its graph, claims and sources; one source read alone | `RunCard` `research/cards.tsx:296`, `SourceCard` `:395`, `ResearchGraph` `research/graph.tsx:45`, `RESEARCH_VIEWS` `research/chat.tsx:20` | `research-chat` | Cards |
 | the leaf and the sweep | `Leaf` `metro/marks.tsx:628`, `Sweep` `sweep.tsx:76` | `leaf-and-sweep` | Shapes |
 | `queue`, `form`, `shop` pages | `RecordQueue` `queue.tsx:60`, `RecordForm` `form.tsx:27`, `RecordShop` `shop.tsx:37` | no part story: their page stories | Lists and records, Cards |
 

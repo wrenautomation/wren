@@ -88,3 +88,18 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
 - 11-05: labels under the veil overlapped. While a dot is lit, only forced labels draw: the label size threshold is set in place, because `setSetting` reprocesses every dot. Reaches into sigma's private `internals`; safe while sigma is pinned at 4.0.4. Hover sweep at 100k after: p50 16.7 ms, p99 16.8 ms.
 - 11-05: renamed map → web (William: "Lets called it like a web to be clear on terminology"). Engine 0.41.0: `engine/web.ts`, `webOf`, `GET /web`, `birdwatch web`. wren: Research › Web at `/research/web`, `WebCanvas` in @wren/ui, this doc. Breaks `/map` and `birdwatch map` with no alias: one caller each, both moved.
 - 11-05: William: the side chat must drive every product. Birdwatch gets components drawn in the chat, ports of its full interface (a run's tree, sources, findings, the web), so the chat shows the same view and he can navigate it. Vireo gets its own the same way (WA-1119). One mechanism for both, built once in the shell's chat. Shape not agreed: he fleshes it out with this session first. Task WA-1123. Nothing is built.
+- 11-06: draft chat cards for Birdwatch, as stories only (WA-1123). Not wired to the portal, not exported from `@wren/ui`. William sees them first.
+  - The graph is the round 4 mock (artifact `8ad6c513`): islands of sources by kind, a disc per source sized by kept findings, a solid centre for what a claim uses, claim hubs with edges. `research/layout.ts` is pure; `research/graph.tsx` draws SVG. No new library.
+  - `RunCard` is one run in a chat turn: facts, graph, claims, sources. A claim opens its findings under its own row. A source opens under the graph. `SourceCard` is one source read with no run.
+  - Stories `research-chat--…`: `scope` (the agent asks how far to go), `one-source`, `channel`, `answered`, `source-picked`, `live`, `worst-case`. They cover William's three jobs: read one reel and stop, the whole channel from one reel, a standard run.
+  - The UI seam, built: `AgentPart` has a `view` part (`name`, `data`); `AgentThread` takes a `views` table by name. A card sends a turn through `Say`. Vireo adds `vireo.*` to the same table (WA-1119).
+  - Open, William's call: how a product's CLI output becomes a `view` part.
+
+    | Option | For | Against |
+    |---|---|---|
+    | A. The CLI prints a view line with a ref (`{view, ref}`); the thread lifts it to a `view` part; the card reads the data from the product's API | no data passes through the model; the card matches the ledger; live updates | each product serves a read per view |
+    | B. The agent writes the component spec | any shape, no new read | costs tokens; data can drift from the ledger |
+    | C. The UI pins a run's card to the turn by a shared chat and run id | no agent choice | does not fit Vireo's shapes |
+
+    Ranked: truth to the ledger, cost, flexibility. The session recommends A. Not chosen.
+  - Known limit: 40 edges read as a tangle until a claim is pointed at (`worst-case`).
