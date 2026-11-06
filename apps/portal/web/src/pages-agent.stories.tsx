@@ -27,11 +27,13 @@ const LIBRARY = Object.values(TAPES);
 const STORED = "00000000-0000-4000-8000-000000000001";
 const CARDED = "00000000-0000-4000-8000-000000000002";
 const LONG = { timeout: 30_000 };
+type Stored = NonNullable<Parameters<typeof fakeRelay>[0]["stored"]>[number];
 
 const story = (
   at: string,
   tape: TapeLine[],
   check: (page: HTMLElement) => Promise<void>,
+  more: Stored[] = [],
 ): StoryObj => {
   const base = pageAt(at, { me: ADMIN, check });
   const relay = fakeRelay({
@@ -39,7 +41,7 @@ const story = (
     library: LIBRARY,
     setups: SETUPS,
     stored: [
-      { session: CARDED, at: "2026-11-05T18:00:00Z", title: "Wholesale buyers", frames: CARD },
+      ...more,
       { session: STORED, at: "2026-11-04T23:01:40Z", title: "Bakery buyers", frames: HISTORY },
     ],
   });
@@ -143,13 +145,18 @@ export const Stored = story(`/research/ask?setup=birdwatch&chat=${STORED}`, [], 
  * serve, once and under the last step. These frames are written by hand in the stored shape.
  */
 export const Card = (() => {
-  const base = story(`/research/ask?setup=birdwatch&chat=${CARDED}`, [], async (page) => {
-    const c = within(page);
-    const card = await c.findByRole("article", { name: /^Birdwatch run: / }, LONG);
-    expect(within(card).getByText("How do small bakeries find wholesale buyers?")).toBeTruthy();
-    expect(c.getAllByRole("article", { name: /^Birdwatch run: / })).toHaveLength(1);
-    await c.findByText(/The review is next/, {}, LONG);
-  });
+  const base = story(
+    `/research/ask?setup=birdwatch&chat=${CARDED}`,
+    [],
+    async (page) => {
+      const c = within(page);
+      const card = await c.findByRole("article", { name: /^Birdwatch run: / }, LONG);
+      expect(within(card).getByText("How do small bakeries find wholesale buyers?")).toBeTruthy();
+      expect(c.getAllByRole("article", { name: /^Birdwatch run: / })).toHaveLength(1);
+      await c.findByText(/The review is next/, {}, LONG);
+    },
+    [{ session: CARDED, at: "2026-11-05T18:00:00Z", title: "Wholesale buyers", frames: CARD }],
+  );
   const served = [
     http.get(`${SERVE}/runs`, () => HttpResponse.json({ v: 1, runs: RESEARCH_ROWS })),
     http.get(`${SERVE}/runs/:run`, () => HttpResponse.json(RESEARCH_VIEW)),
