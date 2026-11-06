@@ -5,7 +5,7 @@
  */
 import { ComposerPrimitive, type TriggerAdapter, type TriggerMatcher } from "@assistant-ui/react";
 import { cn } from "cn";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Fold, tokens, took, useElapsed } from "./agent-steps.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { tipProps } from "./hint.js";
@@ -482,27 +482,47 @@ const PLAIN = {
   parse: (text: string) => [{ kind: "text" as const, text }],
 };
 
+// internal (`__x`) and retired ones: the CLI lists them, a person never runs them
+const listed = (c: AgentCommand) =>
+  !c.name.startsWith("_") && !c.description?.startsWith("(removed)");
+const skillOf = (c: AgentCommand) => c.name.includes(":");
+const HINT_MAX = 48;
+const ENTITY: Record<string, string> = { lt: "<", gt: ">", amp: "&", quot: '"', "#39": "'" };
+/** A skill's description is its model trigger ("Use when…"): the person reads its first sentence. */
+export const commandLine = (d: string): string =>
+  d
+    .replace(/&(lt|gt|amp|quot|#39);/g, (_, e: string) => ENTITY[e] ?? "")
+    .replace(/^\([\w-]+\)\s*/, "")
+    .split(/(?<=[.!?])\s+(?=[A-Z])/)[0]
+    ?.trim() ?? "";
+
 /** `/` at the start of the box lists the commands; a pick writes `/name ` for the arguments. */
 export function SlashMenu({ commands }: { commands: readonly AgentCommand[] }) {
+  const query = useRef("");
   const adapter = useMemo<TriggerAdapter>(
     () => ({
       categories: () => [],
       categoryItems: () => [],
       search: (q) => {
         const l = q.toLowerCase();
+        query.current = l;
+        // a plugin skill matches on its own name too: `/bird` finds `birdwatch:birdwatch`
+        const starts = (c: AgentCommand) =>
+          c.name.toLowerCase().startsWith(l) || c.name.toLowerCase().split(":")[1]?.startsWith(l);
         return commands
-          .filter((c) => c.name.toLowerCase().includes(l))
-          .sort(
-            (a, b) =>
-              Number(!a.name.toLowerCase().startsWith(l)) -
-                Number(!b.name.toLowerCase().startsWith(l)) || a.name.localeCompare(b.name),
+          .filter((c) => listed(c) && c.name.toLowerCase().includes(l))
+          .sort((a, b) =>
+            l
+              ? Number(!starts(a)) - Number(!starts(b)) || a.name.localeCompare(b.name)
+              : Number(!skillOf(a)) - Number(!skillOf(b)) || a.name.localeCompare(b.name),
           )
           .map((c) => ({
             id: c.name,
-            type: "command",
+            type: skillOf(c) ? "skill" : "command",
             label: `/${c.name}`,
-            description: c.description,
-            ...(c.hint ? { metadata: { hint: c.hint } } : {}),
+            description: c.description ? commandLine(c.description) : "",
+            // a flag spec past one short line is for scripts, not a person picking
+            ...(c.hint && c.hint.length <= HINT_MAX ? { metadata: { hint: c.hint } } : {}),
           }));
       },
     }),
@@ -515,32 +535,41 @@ export function SlashMenu({ commands }: { commands: readonly AgentCommand[] }) {
       matcher={atStart}
       adapter={adapter}
       aria-label="Commands"
-      className="absolute inset-x-0 bottom-full z-20 mb-2 max-h-72 overflow-y-auto rounded-[12px] bg-(--ui-paper) py-1 shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] [animation:ui-fade_.12s_both]"
+      className="absolute inset-x-0 bottom-full z-20 mb-2 max-h-80 overflow-y-auto overscroll-contain rounded-(--ui-radius-sheet) bg-(--ui-paper) p-1 shadow-(--ui-float) [animation:ui-fade_.1s_both]"
     >
       <ComposerPrimitive.TriggerPopover.Directive formatter={PLAIN} />
       <ComposerPrimitive.TriggerPopoverItems>
         {(items) =>
           items.length ? (
             items.map((it, i) => (
-              <ComposerPrimitive.TriggerPopoverItem
-                key={it.id}
-                item={it}
-                index={i}
-                className="flex w-full cursor-pointer items-baseline gap-3 border-0 bg-transparent px-3 py-1.5 text-left hover:bg-(--ui-hover) data-highlighted:bg-(--ui-hover)"
-              >
-                <span className="flex-none font-mono text-[12.5px] text-(--ui-ink)">
-                  {it.label}
-                  {typeof it.metadata?.hint === "string" ? (
-                    <span className="text-(--ui-ink-3)"> {it.metadata.hint}</span>
-                  ) : null}
-                </span>
-                {it.description ? (
-                  <span className="min-w-0 text-[12.5px] text-(--ui-ink-3)">{it.description}</span>
+              <Fragment key={it.id}>
+                {!query.current && it.type !== items[i - 1]?.type ? (
+                  <div
+                    role="presentation"
+                    className="px-2.5 pt-2 pb-1 text-[11.5px] text-(--ui-ink-3) first:pt-1.5"
+                  >
+                    {it.type === "skill" ? "Skills" : "Commands"}
+                  </div>
                 ) : null}
-              </ComposerPrimitive.TriggerPopoverItem>
+                <ComposerPrimitive.TriggerPopoverItem
+                  item={it}
+                  index={i}
+                  className="grid w-full cursor-pointer gap-0.5 rounded-(--ui-radius) border-0 bg-transparent px-2.5 py-1.5 text-left hover:bg-(--ui-hover) data-highlighted:bg-(--ui-hover)"
+                >
+                  <span className="min-w-0 wrap-anywhere text-[13px] text-(--ui-ink-3)">
+                    <span className="font-medium text-(--ui-ink)">{it.label}</span>
+                    {typeof it.metadata?.hint === "string" ? <> {it.metadata.hint}</> : null}
+                  </span>
+                  {it.description ? (
+                    <span className="min-w-0 text-[12px]/[1.4] text-(--ui-ink-3)">
+                      {it.description}
+                    </span>
+                  ) : null}
+                </ComposerPrimitive.TriggerPopoverItem>
+              </Fragment>
             ))
           ) : (
-            <p className="m-0 px-3 py-1.5 text-[12.5px] text-(--ui-ink-3)">No such command.</p>
+            <p className="m-0 px-2.5 py-1.5 text-[12.5px] text-(--ui-ink-3)">No command matches.</p>
           )
         }
       </ComposerPrimitive.TriggerPopoverItems>
