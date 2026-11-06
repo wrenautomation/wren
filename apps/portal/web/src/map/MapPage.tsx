@@ -10,17 +10,22 @@
  */
 
 import type { BlameLine, ShapeRef } from "@wren/pipeline/history";
-import { Button, Icon, LoadFailed, SELECT_CLASS, Segmented, usePref } from "@wren/ui";
+import { Button, ButtonLink, Icon, LoadFailed, SELECT_CLASS, Segmented, usePref } from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import {
+  type FocusSpec,
   type Fold,
   type LayerFloor,
+  type LayerPart,
+  type LayerSplit,
   MetroDepth,
   MetroLayers,
   MetroMap,
   type MetroPick,
   MetroSkeleton,
   type MetroView,
+  type MetroZoom,
+  partFocus,
   preloadMetro,
   viewTree,
   viewZoom,
@@ -141,10 +146,54 @@ function useKeptView(client: string): [Kept, (part: Kept) => void] {
   return [state.kept, update];
 }
 
-/** `floor=node:<id>` or `line:<id>`: the part the Layers look stands on. */
-function floorOf(v: string | null): LayerFloor {
+/** `node:<id>` or `line:<id>`: the part Layers stands on (`floor=`) or the flat map shows (`focus=`). */
+function partOf(v: string | null): LayerPart | null {
   const m = v?.match(/^(node|line):(.+)$/);
   return m ? { kind: m[1] as "node" | "line", id: m[2] as string } : null;
+}
+const partParam = (p: LayerPart | null) => (p ? `${p.kind}:${p.id}` : null);
+
+/** The flat map's focus from `focus=`: the part as the map's spec, and its name. */
+function useFocus(zoom: MetroZoom | null, param: string | null) {
+  const [got, setGot] = useState<{ key: string; spec: FocusSpec; label: string } | null>(null);
+  // read-ok: a local layout (ELK in a worker), no fetch; cached in the zoom.
+  useEffect(() => {
+    const part = partOf(param);
+    if (!zoom || !part || !param) return setGot(null);
+    let on = true;
+    const node = zoom.nodes.find((n) =>
+      part.kind === "node" ? n.id === part.id : n.id.startsWith(`${part.id}@`),
+    );
+    partFocus(zoom, part).then(
+      (spec) => on && setGot({ key: param, spec, label: node?.label ?? part.id }),
+      () => on && setGot(null),
+    );
+    return () => {
+      on = false;
+    };
+  }, [zoom, param]);
+  return got && got.key === param ? got : null;
+}
+
+/** Over the flat map while a part is open: back to the stack, or the whole map. */
+function FocusBar({ label, back, whole }: { label: string; back: string; whole: string }) {
+  return (
+    <nav
+      aria-label="Open part"
+      className="flex flex-wrap items-center gap-1 px-[clamp(12px,2.5vw,24px)] pb-2 text-[13.5px]"
+    >
+      <ButtonLink tone="quiet" size="dense" icon="back" href={back}>
+        Layers
+      </ButtonLink>
+      <span aria-hidden="true" className="text-(--ui-ink-3)">
+        ›
+      </span>
+      <span className="font-semibold">{label}</span>
+      <ButtonLink tone="quiet" size="dense" className="ml-auto" href={whole}>
+        Whole map
+      </ButtonLink>
+    </nav>
+  );
 }
 
 export function MapPage({
@@ -341,8 +390,12 @@ export function MapPage({
   );
   // Layers is an experiment beside the flat map: one URL param, so a link keeps the look.
   const layers = props.params.get("look") === "layers";
-  const floor = floorOf(props.params.get("floor"));
+  const floor: LayerFloor = partOf(props.params.get("floor"));
+  const split: LayerSplit = props.params.get("split") === "lines" ? "lines" : "folds";
   const zoom = useMemo(() => (shown?.view ? viewZoom(shown.view) : null), [shown?.view]);
+  // A part opened from Layers: the flat map shows only it, all open.
+  const focusParam = layers ? null : props.params.get("focus");
+  const inFocus = useFocus(zoom, focusParam);
   const waiting = !!draftId && !row && !opened.error;
 
   return (
@@ -372,7 +425,7 @@ export function MapPage({
               ].map((l) => ({
                 id: l.id,
                 label: l.label,
-                href: href("/", { look: l.look, floor: null }, props.params),
+                href: href("/", { look: l.look, floor: null, focus: null }, props.params),
                 on: (l.look === "layers") === layers,
               }))}
             />
@@ -521,13 +574,25 @@ export function MapPage({
               <MetroLayers
                 zoom={zoom}
                 floor={floor}
-                onFloor={(f) =>
-                  navigate(href("/", { floor: f ? `${f.kind}:${f.id}` : null }, props.params), true)
+                onFloor={(f) => navigate(href("/", { floor: partParam(f) }, props.params), true)}
+                onOpen={(p) =>
+                  navigate(href("/", { look: null, focus: partParam(p) }, props.params))
+                }
+                split={split}
+                onSplit={(s) =>
+                  navigate(href("/", { split: s === "lines" ? s : null }, props.params), true)
                 }
                 className="h-full"
               />
             ) : shown?.view ? (
               <div className="flex h-full flex-col">
+                {inFocus ? (
+                  <FocusBar
+                    label={inFocus.label}
+                    back={href("/", { look: "layers", focus: null }, props.params)}
+                    whole={href("/", { focus: null, floor: null }, props.params)}
+                  />
+                ) : null}
                 <MetroMap
                   view={shown.view}
                   lit={lit ?? null}
@@ -536,6 +601,7 @@ export function MapPage({
                   open={fold.open}
                   onOpen={(open) => keepNow({ open })}
                   controls={false}
+                  focus={inFocus?.spec ?? null}
                   onPick={onPick}
                   selected={panel && panel.kind !== "line" ? panel.id : null}
                   intro={false}

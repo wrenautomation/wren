@@ -481,6 +481,13 @@
   width: max(min(100cqw, 100cqh * var(--r, 1), var(--w, 100cqw)), var(--w, 0px) * 0.6);
   height: auto;
 }
+/* One part open as the main view: it grows to fit the frame (to 1.6x real size), centred. */
+.metro-fill[data-focus] .metro-stage {
+  align-items: safe center;
+}
+.metro-fill[data-focus] .mm {
+  width: max(min(100cqw, 100cqh * var(--r, 1), var(--w, 100cqw) * 1.6), var(--w, 0px) * 0.6);
+}
 /* The frame fills the room it is given, so the host can centre the map in it. */
 .metro {
   display: flex;
@@ -942,7 +949,8 @@
   }
 }
 
-/* Layers (experiment): the floor on a base plate, each closed fold lifted onto its own plate. */
+/* Layers (experiment): the floor, and each part on a plate over its own place. `--e` on the stage:
+   0 landed (the flat map), 1 apart. JS moves the camera; CSS only eases the hover pull. */
 .mlay {
   display: flex;
   flex-direction: column;
@@ -975,21 +983,12 @@
   color: var(--ui-ink);
   font-weight: 600;
 }
-.mlay-line {
-  display: inline-flex;
+.mlay-ctl {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--ui-ink-2);
-}
-.mlay-line select {
-  height: 30px;
-  padding: 0 8px;
-  border: 1px solid var(--ui-edge);
-  border-radius: 8px;
-  background: var(--ui-paper);
-  color: var(--ui-ink);
-  font: inherit;
+  gap: 8px 12px;
+  margin-left: auto;
 }
 .mlay-view {
   position: relative;
@@ -1000,6 +999,7 @@
   perspective-origin: 50% 30%;
   touch-action: none;
   cursor: grab;
+  user-select: none;
   background: radial-gradient(
     120% 90% at 50% 0%,
     color-mix(in srgb, var(--ui-active) 6%, var(--ui-paper)),
@@ -1010,15 +1010,12 @@
   cursor: grabbing;
 }
 .mlay-stage {
+  --e: 1;
   position: absolute;
   left: 50%;
   top: 50%;
   transform-style: preserve-3d;
   will-change: transform;
-  transition: transform 0.9s var(--ui-ease);
-}
-.mlay-stage.drag {
-  transition: none;
 }
 .mlay-floor {
   position: absolute;
@@ -1038,67 +1035,135 @@
 .mlay .xp {
   filter: none;
 }
-.mlay-plate {
-  --lift: 0;
-}
-.mlay-stage.up .mlay-plate {
-  --lift: 1;
-}
-.mlay-plate {
-  transform: translateZ(calc(var(--z) * var(--lift)));
+/* One part: its footprint, four posts and the plate. Zero size: each child places itself. */
+.mlay-slot {
+  --pull: 0;
   position: absolute;
-  padding: 0;
-  border: 0;
+  inset: 0 auto auto 0;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+.mlay-stage:not(.landed) .mlay-slot:has(.mlay-plate:hover) {
+  --pull: 40;
+}
+.mlay-plate {
+  position: absolute;
   border-radius: 12px;
+  pointer-events: auto;
+  transform: translateZ(calc((var(--zn) * var(--e) + var(--pull)) * 1px));
   /* A step off the floor in both looks; dark loses a shadow, so the top edge is lit too. */
   background: color-mix(in srgb, var(--ui-paper) 95%, var(--ui-ink));
-  cursor: pointer;
-  transform-style: preserve-3d;
-  transition:
-    transform 0.9s var(--ui-ease),
-    box-shadow 0.2s var(--ui-ease);
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--ui-active) 40%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--ui-ink) 14%, transparent),
-    0 24px 40px -18px color-mix(in srgb, var(--ui-shade, #000) 55%, transparent);
+    0 24px 40px -18px color-mix(in srgb, #000 55%, transparent);
+  transition:
+    transform 0.25s var(--ui-ease),
+    box-shadow 0.2s var(--ui-ease),
+    opacity 0.35s var(--ui-ease);
 }
 .mlay-plate:hover,
-.mlay-plate:focus-visible {
-  outline: none;
+.mlay-plate:focus-within {
   box-shadow:
     0 0 0 1.5px var(--ui-active),
-    0 30px 50px -18px color-mix(in srgb, #000 50%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--ui-ink) 14%, transparent),
+    0 40px 60px -18px color-mix(in srgb, #000 50%, transparent);
+}
+/* One plate in hand: the others step back, its name takes the accent. */
+.mlay-stage:not(.landed, .opening):has(.mlay-plate:hover) .mlay-plate:not(:hover) {
+  opacity: 0.6;
+}
+.mlay-plate:hover .mlay-tag {
+  color: var(--ui-active);
+}
+.mlay-open {
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  cursor: pointer;
+}
+.mlay-open:focus-visible {
+  outline: none;
 }
 .mlay-tag {
   position: absolute;
   left: 10px;
+  right: 10px;
   top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font: 600 12px var(--ui-font);
   color: var(--ui-ink-2);
+  pointer-events: none;
 }
-/* A plate's place on the floor: shows only while the plate floats. */
+.mlay-stack {
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--ui-edge);
+  border-radius: 6px;
+  background: var(--ui-paper);
+  color: var(--ui-ink-2);
+  font: 500 11.5px var(--ui-font);
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 0.2s var(--ui-ease);
+}
+.mlay-plate:hover .mlay-stack,
+.mlay-plate:focus-within .mlay-stack,
+.mlay-stack:focus-visible {
+  opacity: 1;
+}
+.mlay-stack:hover {
+  color: var(--ui-ink);
+  border-color: var(--ui-active);
+}
+/* Touch has no hover: the button always shows. */
+@media (hover: none) {
+  .mlay-stack {
+    opacity: 1;
+  }
+}
+/* Its place on the floor, and a post up from each corner, as high as the plate floats. */
 .mlay-foot {
   position: absolute;
   border: 1px dashed color-mix(in srgb, var(--ui-active) 55%, transparent);
   border-radius: 12px;
   background: color-mix(in srgb, var(--ui-active) 4%, transparent);
-  opacity: 0;
-  transition: opacity 0.5s var(--ui-ease);
 }
-.mlay-stage.up .mlay-foot {
-  opacity: 1;
+.mlay-post {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  background: color-mix(in srgb, var(--ui-active) 45%, transparent);
+  transform-origin: 0 0;
+  transform: rotateX(90deg) scaleY(calc(var(--zn) * var(--e) + var(--pull)));
+  transition: transform 0.25s var(--ui-ease);
 }
-/* Folded back, a plate is part of the flat map: no edge, no shadow. */
-.mlay-stage:not(.up) .mlay-plate:not(:hover, :focus-visible) {
+/* While the camera moves, JS sets each frame: no easing behind it. */
+.mlay-stage.moving .mlay-plate,
+.mlay-stage.moving .mlay-post {
+  transition: none;
+}
+/* Landed, a plate is part of the flat map: no edge, no shadow, no name. */
+.mlay-stage.landed .mlay-plate:not(:hover, :focus-within) {
+  background: transparent;
   box-shadow: none;
 }
-.mlay-stage:not(.up) .mlay-tag {
-  opacity: 0;
+.mlay-stage.landed .mlay-tag,
+.mlay-stage.landed .mlay-foot,
+.mlay-stage.landed .mlay-post {
+  visibility: hidden;
 }
-.mlay-ctl {
-  display: flex;
-  gap: 12px;
-  margin-left: auto;
+/* Opening a plate: the rest fade while the camera comes down onto it. */
+.mlay-stage.opening .mlay-floor,
+.mlay-stage.opening .mlay-slot:not(.chosen) > *,
+.mlay-stage.opening .chosen .mlay-tag {
+  opacity: 0.08;
+  transition: opacity 0.35s var(--ui-ease);
 }
 .mlay-hint {
   position: absolute;
@@ -1106,6 +1171,7 @@
   bottom: 14px;
   font-size: 12.5px;
   color: var(--ui-ink-3);
+  pointer-events: none;
 }
 .mlay-fail {
   padding: 20px;
@@ -1117,9 +1183,9 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mlay-stage,
   .mlay-plate,
-  .mlay-drop {
+  .mlay-post,
+  .mlay-stack {
     transition: none;
   }
 }

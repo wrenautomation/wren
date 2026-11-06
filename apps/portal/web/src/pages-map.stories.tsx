@@ -477,7 +477,11 @@ export const Big = mapAt("/", {
   },
 });
 
-/** Layers (an experiment): the whole map flat at the bottom, each open fold lifted over it. */
+/** A plate's button: "Open <part>", and nothing else on the page. */
+const plateName = (name: string, el: Element) =>
+  name.startsWith("Open ") && el.classList.contains("mlay-open");
+
+/** Layers (an experiment): the whole map at the bottom, each part on a plate over its place. */
 export const Layers = mapAt("/?look=layers", {
   answers: bigAnswers(SHARED),
   check: async (page) => {
@@ -485,28 +489,46 @@ export const Layers = mapAt("/?look=layers", {
       "aria-current",
       "page",
     );
-    const plates = await within(page).findAllByRole(
-      "button",
-      { name: /: make it the floor$/ },
+    const plates = await within(page).findAllByRole("button", { name: plateName }, LATE);
+    await expect(plates.length).toBeGreaterThan(1);
+    // Together lands every plate; Apart lifts them again.
+    const view = within(page).getByRole("group", { name: "View" });
+    await userEvent.click(within(view).getByRole("button", { name: "Together" }));
+    await waitFor(
+      () =>
+        expect(within(view).getByRole("button", { name: "Together" })).toHaveAttribute(
+          "aria-pressed",
+          "true",
+        ),
       LATE,
     );
-    await expect(plates.length).toBeGreaterThan(1);
-    await expect(within(page).getByRole("button", { name: "Fold back" })).toBeVisible();
+    await expect(page.querySelector(".mlay-stage.landed")).not.toBeNull();
+    await userEvent.click(within(view).getByRole("button", { name: "Apart" }));
+    await waitFor(() => expect(page.querySelector(".mlay-stage.landed")).toBeNull(), LATE);
   },
 });
 
-/** Layers on a fold: the fold is the floor, its own folds lift over it; the crumbs lead back. */
-export const LayersFloor = mapAt("/?look=layers", {
+/** A part as the floor (`floor=`): the crumbs name it and lead back; with nothing to split, it lies flat. */
+export const LayersFloor = mapAt("/?look=layers&floor=line:growth", {
   answers: bigAnswers(SHARED),
   check: async (page) => {
-    const [plate] = await within(page).findAllByRole(
-      "button",
-      { name: /: make it the floor$/ },
-      LATE,
-    );
-    await userEvent.click(plate as HTMLElement);
     const crumbs = await within(page).findByRole("navigation", { name: "Floor" });
-    await expect(within(crumbs).getByRole("button", { name: "Whole map" })).toBeVisible();
+    await expect(await within(crumbs).findByText("Growth", {}, LATE)).toBeVisible();
+    await waitFor(() => expect(page.querySelector(".mlay-stage.landed")).not.toBeNull(), LATE);
+    await userEvent.click(within(crumbs).getByRole("button", { name: "Whole map" }));
+    await within(page).findAllByRole("button", { name: plateName }, LATE);
+  },
+});
+
+/** Open: the camera comes down onto a plate, then the flat map shows only that part. */
+export const LayersOpen = mapAt("/?look=layers", {
+  answers: bigAnswers(SHARED),
+  check: async (page) => {
+    const [plate] = await within(page).findAllByRole("button", { name: plateName }, LATE);
+    await userEvent.click(plate as HTMLElement);
+    const bar = await within(page).findByRole("navigation", { name: "Open part" }, LATE);
+    await expect(within(bar).getByRole("link", { name: "Layers" })).toBeVisible();
+    await expect(within(bar).getByRole("link", { name: "Whole map" })).toBeVisible();
   },
 });
 

@@ -210,9 +210,30 @@ export function focusScene(scene: MetroScene, spec: FocusSpec): MetroScene {
       }),
     ),
     folds: [],
+    // An open group's outline stays only round a station that stays.
+    opened: (scene.opened ?? []).filter((o) =>
+      st.some((s) => {
+        const [sx, sy] = centre(s);
+        const [l, t, r, b] = o.box ?? [o.cap[0], o.y - 30, o.cap[1], o.y + 30];
+        return sx >= l && sx <= r && sy >= t && sy <= b;
+      }),
+    ),
   };
-  return st.length ? out : { ...out, x0: 0, w: scene.w ?? 960 };
+  if (!st.length) return { ...out, x0: 0, w: scene.w ?? 960 };
+  // Top and bottom crop too: the part's band, its frames and outlines, room for names and stubs.
+  const ys = st.map((s) => centre(s)[1]);
+  let top = Math.min(...ys) - BAND.top;
+  let bottom = Math.max(...ys) + BAND.bottom;
+  for (const f of out.frames ?? [])
+    [top, bottom] = [Math.min(top, f.y - 8), Math.max(bottom, f.y + f.h + 8)];
+  for (const o of out.opened ?? [])
+    if (o.box) [top, bottom] = [Math.min(top, o.box[1] - 8), Math.max(bottom, o.box[3] + 8)];
+  const y0 = Math.max(scene.y0 ?? 0, Math.floor(top));
+  return { ...out, y0, h: Math.min((scene.y0 ?? 0) + scene.h, Math.ceil(bottom)) - y0 };
 }
+
+/** Room over and under a focused part's stations: names above, stubs and tabs below. */
+const BAND = { top: 62, bottom: 56 };
 
 /** The stubs in a focused scene: where each comes from or goes to. */
 export function stubsOf(scene: MetroScene) {

@@ -72,6 +72,31 @@ Measured (Storybook, big map, 1280): zoom steps 85–139 ms to the new view, 0 l
 
 Considered for zoom: caching rendered sizes (bitmaps per zoom level). Rejected: the map is vector and zoom is a CSS scale of one SVG; the cost on a step is the layout, not the paint. Revisit if a paint profile shows the SVG paint over 16 ms.
 
+## Layers, round 2 (WA-1145)
+
+William: "a little bit underbaked ... open the stacked view and also click into it ... fit it into the sub workflow as the main view. Both of those options should exist ... polish the moving around ... snap to flatten or view everything ... too diagonal ... the fold lines [button] is not doing anything ... like the artifact, you could pull things out".
+
+Why prod did nothing: plates came only from shut folds. A level with none had no plates; "Fold back" sat greyed. Nothing to pull.
+
+| Part | Round 1 | Round 2 |
+|---|---|---|
+| Split | shut folds only | `split=folds\|lines`; falls back to the one that gives plates; Lines needs 2+ lines; the hub stays on the floor |
+| Plate click | makes it the floor | **Open**: camera flies top-down onto it, the rest fade, then the flat map shows only that part (`focus=node:<id>\|line:<id>`), grown to fit (to 1.6× real size) |
+| Floor | plate click | **Stack here** on the plate's tag, shown on hover, only when the part holds parts |
+| Pull out | none | hover lifts the plate 40 px; dashed footprint and four posts from floor to plate (the artifact's `.drop`) |
+| Views | Fold back, Reset view | View **Together \| Apart** (not "Flat": the Look switch says Flat), **Fit all** |
+| Pose | 28° turn (62° tall) | 10° turn, tilt 54°; phones the same (a big turn put names on their side) |
+| Moving | drag turns | drag turns, and tilt drives apart (`e` follows `rx`); release under 16° snaps flat, else apart and the turn snaps home within 12°; wheel/pinch zooms at the pointer; trackpad scroll and shift- or right-drag pan; springs (`motion`) |
+| Line `<select>` | floor = one line | gone: Split Lines + Open covers it |
+
+Camera: one ref `{rx, rz, e, k, x, y}` written to `style.transform` and `--e` once a frame; React never renders on a move. Plates use `translateZ((--zn × --e + --pull) px)`, so apart and landed are one variable.
+
+`scale3d(k,k,k)`, not `scale(k)`: `scale` leaves z alone, so the lift did not shrink with the map and the fit overran the box.
+
+Focused flat map: `focusScene` now drops other groups' open outlines and crops top and bottom to the part (it cropped only the sides).
+
+Option weighed for Open: open the part as a new floor in 3D, top-down. Rejected: the flat map has the panels, picks and marks; Layers would copy them.
+
 ## Tests changed
 
 - Column tests (order, append, empty-column step, "To map", column drop in a fold): deleted with the columns.
