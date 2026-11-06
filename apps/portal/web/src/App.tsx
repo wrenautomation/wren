@@ -61,6 +61,7 @@ import { prefetchMap } from "./map/read.js";
 import { stationItems } from "./map/stations.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
 import { ownerOf } from "./modules/agent/chat.js";
+import { useHand, usePageContextText } from "./modules/agent/drive.js";
 import { AgentPanel, useAgentPanel } from "./modules/agent/panel.js";
 import { appsIn, MODULES } from "./modules/index.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
@@ -289,6 +290,13 @@ export function App() {
   const team = operator;
   // the agent runs on this Mac's relay: Wren's team only, for now (Decision 6)
   const agent = useAgentPanel(team);
+  // a page handed the chat a turn: the panel opens to take it
+  const hand = useHand();
+  const inView = usePageContextText();
+  const openAgent = agent.set;
+  useEffect(() => {
+    if (hand) openAgent({ open: true });
+  }, [hand, openAgent]);
   const onDemo = me.data ? me.data.demo : null;
   const clients = me.data?.clients ?? [];
   const current = wren
@@ -591,7 +599,7 @@ export function App() {
   // Research › Ask is the same chat, full size: no panel over it
   const onAsk = open?.module.id === "research" && open.page.id === "ask";
   const pageLine = open
-    ? `${open.module.name} › ${open.page.label} (${location.pathname})`
+    ? `${open.module.name} › ${open.page.label} (${location.pathname})${inView ? `; ${inView}` : ""}`
     : undefined;
 
   return (
@@ -695,7 +703,8 @@ export function App() {
                   width={agent.width}
                   onWidth={(width) => agent.set({ width })}
                   onClose={() => agent.set({ open: false })}
-                  app={open?.module.id ?? null}
+                  product={product}
+                  hand={hand}
                   page={pageLine}
                   owner={ownerOf(whoAt(me.data, WREN.id))}
                 />

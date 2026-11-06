@@ -1,8 +1,9 @@
 /**
  * Campaigns › Variants (designs/2026-11-05-variants.md). To pick: the oldest open batch, every
- * sample whole and blind; Amazing / Good / Bad, notes on a line, a region or a moment, one guide
- * note, then send it back to the agent. Subjects: each one's batches, good rate, guides under
- * test. Catalog: what we kept. The agent writes through `wren variants`; this page only judges.
+ * sample whole and blind; Amazing / Good / Bad, notes on a line, a region or a moment, then Hand
+ * to Vireo: the batch closes and the side chat takes a turn that points at it (`agent/drive.ts`).
+ * Subjects: each one's batches, good rate, guides under test. Catalog: what we kept. The agent
+ * writes through `wren variants`; this page only judges.
  */
 import { Button, cx, Empty, Icon, LoadFailed, Loading, Seg, Textarea, useEdit } from "@wren/ui";
 import { footageLength } from "@wrenautomation/vireo/sync";
@@ -11,6 +12,7 @@ import { createPortal } from "react-dom";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { handToChat, usePageContext } from "../agent/drive.js";
 import { type Live, LiveView } from "./live.js";
 import { FramesProvider, useFrames, WIDTHS } from "./live-page.js";
 import {
@@ -27,6 +29,7 @@ import {
 import { FootageLanes, type SyncMode, Together, TogetherProvider } from "./together.js";
 
 type Verdict = Sample["verdict"];
+const TALLY = ["amazing", "good", "bad"] as const;
 interface Open {
   batch: { id: number; createdAt: string; note: string | null };
   subject: { id: number; slug: string; name: string; kind: Kind; brief: string | null };
@@ -158,11 +161,16 @@ function Batch({
   patch: (id: number, fn: (s: Sample) => Sample) => void;
   onSent: () => void;
 }) {
-  // kept across reloads until sent
-  const note = useEdit(`variants:batch:${open.batch.id}:note`, "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const judged = open.samples.filter((s) => s.verdict).length;
+  const tally = TALLY.map((t) => [t, open.samples.filter((s) => s.verdict === t).length] as const)
+    .filter(([, n]) => n)
+    .map(([t, n]) => `${n} ${t}`)
+    .join(", ");
+  usePageContext(
+    `in view: ${open.subject.slug} (${open.subject.kind}), batch ${open.batch.id}, ${judged} of ${open.samples.length} marked`,
+  );
   const wide = WIDE_KINDS.includes(open.subject.kind);
   const group = useMemo(() => new Together(), []);
   const [mode, setMode] = useState<SyncMode>("off");
@@ -181,8 +189,13 @@ function Batch({
     setBusy(true);
     setErr(null);
     try {
-      await call("variants/close", { batch: open.batch.id, note: note.value.trim() || null });
-      note.saved();
+      // the calls and notes are records; the chat gets one line that points at them
+      await call("variants/close", { batch: open.batch.id, note: null });
+      // first line = the chat's title
+      handToChat(
+        "vireo",
+        `Batch ${open.batch.id} of ${open.subject.slug}\nMarked and closed: ${tally || "no calls"}${judged < open.samples.length ? `, ${open.samples.length - judged} unmarked` : ""}. Read my calls and notes, then tell me what you see.`,
+      );
       onSent();
     } catch (e) {
       setErr(String((e as Error).message ?? e));
@@ -243,19 +256,16 @@ function Batch({
           </FramesProvider>
         </div>
       </TogetherProvider>
-      <div className="-mx-1 flex flex-col gap-2 border-t border-(--ui-hair) bg-(--ui-paper) p-3 md:sticky md:bottom-0 md:z-10 md:flex-row md:items-end md:pr-16">
-        <Textarea
-          {...note.field}
-          rows={2}
-          placeholder="Guide for the next batch: what to keep, what to change"
-          className="flex-1"
-        />
+      <div className="-mx-1 flex flex-col gap-2 border-t border-(--ui-hair) bg-(--ui-paper) p-3 md:sticky md:bottom-0 md:z-10 md:flex-row md:items-center md:justify-end md:pr-16">
+        <span className="text-[12px] text-(--ui-ink-2) md:mr-auto">
+          Your guide for the next batch goes in the chat.
+        </span>
         <div className="flex items-center gap-3">
           <span className="text-[12px] whitespace-nowrap text-(--ui-ink-3)">
             {judged} of {open.samples.length} marked
           </span>
-          <Button tone="primary" icon="send" onClick={send} disabled={busy}>
-            Send to agent
+          <Button tone="primary" icon="send" onClick={send} disabled={busy || judged === 0}>
+            Hand to Vireo
           </Button>
         </div>
         {err && <div className="text-[12px] text-(--ui-bad)">{err}</div>}

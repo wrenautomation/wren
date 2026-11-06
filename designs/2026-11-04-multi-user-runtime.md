@@ -138,7 +138,7 @@ William: the chat is not a section. It is one panel in the shell, open on any pa
 
 Ranked by result (the chat sees and keeps the page), then risk, then $. Choice: A. Under 900 px it is a full-screen sheet with Close. Opener: one quiet button (chat icon, ⌘J) that the shell draws in each frame (AppShell `agent`): the sidebar's foot, the folded column (in sight, not behind "…"), a phone's top bar. Not an "Ask AI" button on pages (DESIGN.md's rule stands for pages). The Ask page hides the opener: it is the same chat, full size.
 
-- Setup: the one whose `app` is the open app, else the first the relay lists. The picker shows when there are more.
+- Setup (changed 11-05, WA-1119): the one whose title is the page's `product` (Research → Birdwatch, Variants → Vireo), else the last used, else the first the relay lists. A pick holds for that product. A running chat holds its setup. A page can hand the chat a turn (`handToChat(setup, text)`): the panel opens on that setup and sends it. The picker shows when there are more.
 - Page context: each turn sent from a page carries one line, `[Page: <app> › <page> (<path>)]`. The composer shows it as a chip; Close on the chip drops it. A page may add a record or a selection later through `useAgentPage` (built, unused yet). The thread hides the line and shows the page as a small label on the turn.
 - Open state and width on the device; the chat id per tab, so a reload reopens it.
 

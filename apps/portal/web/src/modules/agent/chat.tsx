@@ -19,10 +19,21 @@ import { useEffect, useRef, useState } from "react";
 import { linkPreview } from "../../api.js";
 import { keep, recall } from "../../local.js";
 import { relayFile, relayRename, type SetupInfo } from "./connect.js";
+import { type Hand, takeHand } from "./drive.js";
 import { ACCEPT } from "./files.js";
 import { pageToken, useAgent } from "./use-agent.js";
 
 const WELCOME: Record<string, { title: string; text: string; suggestions: readonly string[] }> = {
+  vireo: {
+    title: "What are we tuning?",
+    text: "Vireo makes a batch of versions, you mark them on the Variants page, and it makes the next from your calls. Hand it a marked batch from the page, or ask here.",
+    suggestions: [
+      "What waits on me?",
+      "What is winning, and why?",
+      "Start a subject from my direction.",
+      "Which guides are ready to lock?",
+    ],
+  },
   birdwatch: {
     title: "What should I research?",
     text: "The agent plans the research with birdwatch, runs it, and answers with sources. Each step shows as it runs. Add a file, a picture or a video and it reads that too.",
@@ -188,6 +199,7 @@ export function AgentChat({
   owner,
   head,
   page,
+  hand,
   onSession,
   onIdle,
   onRunning,
@@ -203,6 +215,8 @@ export function AgentChat({
   head?: (first: string | undefined) => React.ReactNode;
   /** The page open beside the chat: a chip in the box, and a line in the turn. */
   page?: string | undefined;
+  /** A turn a page hands this chat: sent once, as the person's. */
+  hand?: Hand | null;
   onSession: (id: string) => void;
   /** A turn ended: the chat's title and time change in the list. */
   onIdle?: () => void;
@@ -240,8 +254,16 @@ export function AgentChat({
   // a page dropped from the box stays dropped until another page opens
   const [dropped, setDropped] = useState<string | null>(null);
   const sendPage = page && page !== dropped ? page : undefined;
+  const send = useRef(a.send);
+  send.current = a.send;
+  useEffect(() => {
+    if (!hand || a.loading || a.running) return;
+    takeHand(hand.id);
+    send.current(hand.text, [], sendPage);
+  }, [hand, a.loading, a.running, sendPage]);
   const one = a.messages.find((m) => m.role === "user")?.parts[0];
-  const first = one?.type === "text" ? one.text : undefined;
+  // a long opening turn: its first line names the chat
+  const first = one?.type === "text" ? one.text.split("\n")[0] : undefined;
   if (a.loading)
     return (
       <>
@@ -269,7 +291,7 @@ export function AgentChat({
         onAnswer={a.answer}
         preview={linkPreview}
         readFile={async (path) => relayFile(setup.name, await pageToken(), path)}
-        placeholder={setup.name === "birdwatch" ? "Ask a research question" : "Ask the agent"}
+        placeholder={setup.name === "birdwatch" ? "Ask a research question" : `Ask ${setup.title}`}
         tools={
           <>
             <AgentPick

@@ -196,6 +196,9 @@ so Claude Code can follow the SOP as a skill. A non-text source (PDF, image) lan
 `wren agent serve` runs the relay on `ws://127.0.0.1:4748`. Each session opens one unmodified `claude` on this
 Mac's Claude plan. A portal page drives it with `modules/agent/connect.ts` (designs/2026-11-04-multi-user-runtime.md).
 A setup (`packages/agent/src/setups.ts`) is one record: app, tools, skill plugin, allow rules, model.
+Setups: `research` (Birdwatch) and `vireo` (Vireo, plugin in `packages/variants`). A plugin is a package name or a path
+from the workspace root; its `package.json` `bin` lands on the child's PATH. The side chat opens the setup whose
+title is the page's product.
 `wren agent setups` lists them. `wren agent token` prints the token a page sends first.
 `wren agent check [setup] --say "<turn>"...` opens one session and prints the credential source, what loaded and
 each turn's tokens. `--resume <id>` continues a session.

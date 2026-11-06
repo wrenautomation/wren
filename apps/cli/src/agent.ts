@@ -133,7 +133,7 @@ export function registerAgent(program: Command): void {
         },
         // one dir per setup per serve: a rebuild mid-session would pull a live child's PATH
         binDirs: (s) => {
-          const dir = bins.get(s.name) ?? binDir(s);
+          const dir = bins.get(s.name) ?? binDir(s, undefined, workspaceRoot());
           bins.set(s.name, dir);
           return [dir];
         },

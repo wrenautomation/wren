@@ -1,0 +1,4 @@
+{
+  "name": "vireo",
+  "description": "Run the variant loop with the vireo CLI: make a batch, read the person's calls and notes, make the next."
+}

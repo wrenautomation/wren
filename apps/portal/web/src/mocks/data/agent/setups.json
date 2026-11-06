@@ -7,5 +7,14 @@
     "models": ["sonnet", "haiku", "opus", "fable"],
     "tools": ["Bash", "Read", "Skill", "AskUserQuestion"],
     "skills": ["birdwatch:birdwatch"]
+  },
+  {
+    "name": "vireo",
+    "title": "Vireo",
+    "app": "campaigns",
+    "model": "sonnet",
+    "models": ["sonnet", "haiku", "opus", "fable"],
+    "tools": ["Bash", "Read", "Write", "Skill", "AskUserQuestion"],
+    "skills": ["vireo:variants"]
   }
 ]

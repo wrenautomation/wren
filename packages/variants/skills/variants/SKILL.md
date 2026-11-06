@@ -29,7 +29,7 @@ You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (pr
 2. **Make a batch.** 4-6 samples. Text: inline `body`. Video: render with studio, then `file` (mp4) + `posterFile` (jpg), and `studio: {edit, format}` (or `source: {ref, spans}`) so he can play cuts of one footage in step. Image: `file`. Page: full html in `body` (a sandboxed frame; no scripts run). A page that runs code (WebGL, scroll scenes): build it, deploy it to a URL that never changes (a Cloudflare Pages preview, `https://<hash>.<project>.pages.dev`), then `media: "https://…"` + `posterFile` (a still at 1280×800). The portal frames only `*.pages.dev`; the page must not send `X-Frame-Options` or a `frame-ancestors` that shuts out `app.wrenautomation.com`. He runs one at a time, at 1280 or 390, and full screen.
 3. **Spread on purpose.** Each batch tests one or two ideas. Vary one thing per sample when you can, so his calls teach something. Tag each sample's `guides` with the guide ids it applies; that is how a tip's with-vs-without rate is counted.
 4. **Say why.** `why` = what you changed from the last batch and what it tests. `change` per sample = what differs from its `parent`. He does not see these while he judges (blind); `show` gives them back to you.
-5. **Tell him** it is in Campaigns › Variants. Stop. Wait for him to send the batch back.
+5. **Tell him** it is in Campaigns › Variants. Stop. Wait for him to hand the batch back: in the portal he marks, then presses Hand to Vireo, which closes the batch and tells the Vireo chat. In a Claude Code session he tells you himself.
 6. **Read `show`.** Per batch: his `note`, each sample's `verdict` and `notes` (a `quote` = a line, `box` = a region in fractions, `time` = seconds on a video). `leaders` = Plackett-Luce strengths across all batches. Guides carry `effect` (good rate with vs without, `early` under 30 judged).
 7. **Next batch.** Keep what Amazing/Good samples share. Fix every anchored Bad note. Obey his batch note first. Mutate from the leaders (`parent`), and keep one wild sample in each batch so the loop does not narrow too early.
 8. **Ship.** When he keeps a sample and it goes out (a post, a page, an email version), `ship` it. Read `live` before each batch: a segment where the market disagrees with his calls is the next thing to test. Trust a rate only when its range is narrow; `pBest` over 0.9 is a winner there.
@@ -55,5 +55,7 @@ Paths are relative to the json file. Playable: mp4 mov m4v webm jpg png gif pdf.
 
 - Never judge for him. `judge` and `note` exist for tests and for his spoken calls in chat only.
 - One open batch per subject at a time. Wait for it to close.
+- His guide for the next batch is the batch `note`. Given in chat after the batch closed: `variants close <batch> --note "…"` sets it.
+- In the portal's Vireo chat the command is `vireo <command>` (the same commands, on prod).
 - The repo is public: subjects and samples live in the database, never in files under `wren/`.
 - A client's subjects: `--client <id>` (their own database).

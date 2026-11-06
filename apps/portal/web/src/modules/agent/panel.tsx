@@ -5,11 +5,12 @@
  * Open and width on the device; the setup and chat per tab.
  */
 import { Alert, Loading, PANEL, PanelAct, PanelClose, ProductMark, Seg, SidePanel } from "@wren/ui";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import { keep, recall } from "../../local.js";
 import { AgentChat, ChatTitle } from "./chat.js";
 import { relaySessions, relaySetups } from "./connect.js";
+import type { Hand } from "./drive.js";
 import { closeText } from "./thread.js";
 import { pageToken } from "./use-agent.js";
 
@@ -63,9 +64,12 @@ export function useAgentPanel(on: boolean) {
 }
 
 interface Tab {
+  /** The setup picked, and the product it was picked under (`""` = a page with none). */
   setup?: string;
-  chat?: string | null;
-  model?: string;
+  for?: string;
+  /** Per setup: its chat and model, so each product keeps its own thread. */
+  chats?: Record<string, string | null>;
+  models?: Record<string, string>;
 }
 const tabRead = (): Tab => {
   try {
@@ -85,7 +89,8 @@ export function AgentPanel({
   width,
   onWidth,
   onClose,
-  app,
+  product,
+  hand,
   page,
   owner,
 }: {
@@ -93,8 +98,10 @@ export function AgentPanel({
   width: number;
   onWidth: (w: number) => void;
   onClose: () => void;
-  /** The open app's id: its own setup comes first. */
-  app: string | null;
+  /** The open page's product (`Module.product`): the setup of that title comes first. */
+  product: string | undefined;
+  /** A turn a page hands the chat (`drive.ts`). */
+  hand: Hand | null;
   /** The page the next turn names, as `App › Page (/path)`. */
   page: string | undefined;
   /** The Mac's owner (`ownerOf`). */
@@ -105,19 +112,28 @@ export function AgentPanel({
   if (!open && !busy) return null;
   return (
     <SidePanel open={open} label="Agent" width={width} onWidth={onWidth} onClose={onClose}>
-      <PanelChat app={app} page={page} owner={owner} onRunning={setBusy} onClose={onClose} />
+      <PanelChat
+        product={product}
+        hand={hand}
+        page={page}
+        owner={owner}
+        onRunning={setBusy}
+        onClose={onClose}
+      />
     </SidePanel>
   );
 }
 
 function PanelChat({
-  app,
+  product,
+  hand,
   page,
   owner,
   onRunning,
   onClose,
 }: {
-  app: string | null;
+  product: string | undefined;
+  hand: Hand | null;
   page: string | undefined;
   owner: boolean;
   onRunning: (r: boolean) => void;
@@ -131,9 +147,27 @@ function PanelChat({
       tabKeep(n);
       return n;
     });
+  const [running, setRunning] = useState(false);
   const list = setups.data ?? [];
-  const setup =
-    list.find((s) => s.name === tab.setup) ?? list.find((s) => s.app === app) ?? list[0];
+  const named = (n: string | undefined) => list.find((s) => s.name === n);
+  const under = product ?? "";
+  // a pick holds for the product it was made under; another product brings its own setup;
+  // a page with none keeps the last one
+  const wanted =
+    (tab.for === under ? named(tab.setup) : undefined) ??
+    list.find((s) => s.title === product) ??
+    named(tab.setup) ??
+    list[0];
+  // a running chat stays through a page change: unmounting it would drop its stream
+  const held = useRef<string | undefined>(undefined);
+  const setup = (running ? named(held.current) : undefined) ?? wanted;
+  held.current = setup?.name;
+  // a hand-off opens its own setup's chat, once this one is idle
+  const lost = !!hand && !!setups.data && !named(hand.setup);
+  useEffect(() => {
+    if (!hand || running || lost || !setups.data || setup?.name === hand.setup) return;
+    put({ setup: hand.setup, for: under });
+  });
   // the same list the Ask page reads: a name given in one shows in the other
   const sessions = useCall(setup ? `agent:sessions:${setup.name}` : null, async () =>
     relaySessions(setup?.name ?? "", await pageToken()),
@@ -146,6 +180,14 @@ function PanelChat({
       </div>
     );
   }
+  if (lost && hand)
+    return (
+      <div className="p-4">
+        <Alert onRetry={setups.retry}>
+          The relay on this Mac has no {hand.setup} setup. Restart wren agent serve, then retry.
+        </Alert>
+      </div>
+    );
   if (!setup)
     return setups.data ? (
       <p className="m-0 p-4 text-[13.5px] text-(--ui-ink-2)">No agent setup on this Mac.</p>
@@ -154,17 +196,25 @@ function PanelChat({
         <Loading shape="rows" lines={3} />
       </div>
     );
-  const chat = tab.setup === setup.name ? (tab.chat ?? null) : null;
+  const chat = tab.chats?.[setup.name] ?? null;
+  const pick = { setup: setup.name, for: under };
+  const putChat = (id: string | null) =>
+    put({ ...pick, chats: { ...tabRead().chats, [setup.name]: id } });
   const stored = sessions.data?.find((r) => r.session === chat)?.title;
-  const model = (tab.setup === setup.name && tab.model) || setup.model;
-  const full = `/${setup.app}/ask?setup=${encodeURIComponent(setup.name)}${chat ? `&chat=${encodeURIComponent(chat)}` : ""}`;
+  const model = tab.models?.[setup.name] || setup.model;
+  // only Research has the chat as a page of its own
+  const full =
+    setup.app === "research"
+      ? `/research/ask?setup=${encodeURIComponent(setup.name)}${chat ? `&chat=${encodeURIComponent(chat)}` : ""}`
+      : null;
   return (
     <AgentChat
       key={setup.name}
       setup={setup}
       chat={chat}
       model={model}
-      onModel={(v) => put({ setup: setup.name, model: v })}
+      onModel={(v) => put({ ...pick, models: { ...tabRead().models, [setup.name]: v } })}
+      hand={hand?.setup === setup.name ? hand : null}
       owner={owner}
       page={page}
       className="min-h-0 flex-1"
@@ -176,29 +226,30 @@ function PanelChat({
               dense
               items={list.map((s) => ({ value: s.name, label: s.title }))}
               value={setup.name}
-              onChange={(v) => put({ setup: v, chat: null, model: "" })}
+              onChange={(v) => put({ setup: v, for: under })}
             />
           ) : (
-            <ProductMark name={setup.title} className="mr-1.5" />
+            <ProductMark name={setup.title} />
           )}
           <ChatTitle
             setup={setup.name}
             chat={chat}
             title={stored ?? first ?? (chat ? "Chat" : "New chat")}
             onRenamed={sessions.retry}
-            className="flex-1 text-[13.5px]"
+            className="ml-1.5 flex-1 text-[13.5px]"
           />
-          <PanelAct
-            icon="plus"
-            label="New chat"
-            onClick={() => put({ setup: setup.name, chat: null })}
-          />
-          <PanelAct icon="expand" label="Open on its own page" href={full} onClick={onClose} />
+          <PanelAct icon="plus" label="New chat" onClick={() => putChat(null)} />
+          {full ? (
+            <PanelAct icon="expand" label="Open on its own page" href={full} onClick={onClose} />
+          ) : null}
           <PanelClose label="Agent" onClose={onClose} />
         </div>
       )}
-      onSession={(id) => put({ setup: setup.name, chat: id })}
-      onRunning={onRunning}
+      onSession={putChat}
+      onRunning={(r) => {
+        setRunning(r);
+        onRunning(r);
+      }}
     />
   );
 }

@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "vireo": "./bin/vireo.mjs"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./console-routes": "./src/console-routes.ts",
