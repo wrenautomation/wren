@@ -1424,3 +1424,13 @@ Limits:
 - stdout is unchanged: still one JSON document a command.
 - Skill, "Their finds": with no scope said, the agent reads the pasted sources only, writes their findings and stops. It does not widen on its own judgment. William 11-05: he leans to this ("default, small, isolated"); not firm. Not chosen: ask first; widen when the source looks good.
 
+## 11-06: the brief in layers (0.46.0, WA-1135)
+
+William asked how a long or continued run avoids filling the agent's context. Measured: a 4-round run with 102 pages gave an 800 KB brief (about 200k tokens). Most of it was 580 findings, 701 checks, 119 KB of known lines and 1,030 yield rows.
+
+Options put to William: 1, the brief in parts the agent reads on demand; 2, earlier rounds folded to digests; 3, child runs as the unit of continuation; 4, a fresh agent session per round.
+
+- William chose 1 and 2, with 4 as the default for a new run. Model: skills. A short header per part, and the agent reads the whole part when it needs it.
+- `brief <run>` is now the index: small fields whole, `rounds` (each earlier round's edge, patterns and finding count), the first 15 rows of each long list, and `parts` (name, what it holds, rows, bytes, read command). `brief --part <name>` reads one part, 100 rows a page. A part by round takes the current round unless `--round` says. `--full` keeps the old output. The web viewer still reads the full brief.
+- Result on the same run: 800 KB to 30 KB. A 1-round run with 84 pages: 95 KB to 29 KB.
+- The session's choices, not William's: 15 rows in the index and 100 rows a page; the digest holds no model-written summary, only what the agent already wrote (edge whys, patterns), so it costs nothing; failed checks come first in their part; a new angle on a past run is a child run.
