@@ -1,9 +1,9 @@
 /**
- * Variants, its own app (designs/2026-11-05-variants.md). To pick: the oldest open batch, every
+ * Variants, its own app (designs/2026-11-05-variants.md). `MarkBatch`: one open batch, every
  * sample whole and blind; Amazing / Good / Bad, notes on a line, a region or a moment, then Hand
  * to Vireo: the batch closes and the side chat takes a turn that points at it (`agent/drive.ts`).
- * Batches: `./batches.tsx`. Subjects: each one's batches, good rate, guides under test. Catalog:
- * what we kept. The agent writes through `wren variants`; these pages only judge.
+ * Batches: `./batches.tsx`, the open ones marked there. Subjects: each one's batches, good rate,
+ * guides under test. The agent writes through `wren variants`; these pages only judge.
  */
 import {
   Button,
@@ -42,7 +42,7 @@ import { FootageLanes, type SyncMode, Together, TogetherProvider } from "./toget
 
 type Verdict = Sample["verdict"];
 export const TALLY = ["amazing", "good", "bad"] as const;
-interface Open {
+export interface Open {
   batch: { id: number; createdAt: string; note: string | null };
   subject: { id: number; slug: string; name: string; kind: Kind; brief: string | null };
   samples: Sample[];
@@ -88,10 +88,6 @@ interface SubjectView {
   leaders: { sample: number; strength: number; se: number }[];
   live?: Live;
 }
-interface Kept {
-  sample: Sample;
-  subject: { slug: string; name: string; kind: Kind };
-}
 
 const VERDICTS: { v: NonNullable<Verdict>; label: string; icon: "star" | "check" | "close" }[] = [
   { v: "amazing", label: "Amazing", icon: "star" },
@@ -102,53 +98,8 @@ export const WIDE_KINDS: readonly Kind[] = ["video", "page"];
 /** A past call, read only: the kit's status tag in the call's tone. */
 const TAG_OF = { amazing: "accent", good: "green", bad: "bad" } as const;
 
-export function PickPage(_: PageProps) {
-  const got = useCall("variants-queue", () => call<Open[]>("variants/queue", {}));
-  const [open, setOpen] = useState<Open[] | null>(null);
-  const [at, setAt] = useState(0);
-  useEffect(() => setOpen(got.data), [got.data]);
-  if (got.error && !open) return <LoadFailed error={got.error} onRetry={got.retry} />;
-  if (!open) return <Loading />;
-  if (!open.length)
-    return (
-      <Empty title="Nothing to pick">
-        The agent's next batch lands here. Ask it in chat to start a subject.
-      </Empty>
-    );
-  const cur = open[Math.min(at, open.length - 1)] as Open;
-  const patch = (sampleId: number, fn: (s: Sample) => Sample) =>
-    setOpen((o) =>
-      (o ?? []).map((b) => ({
-        ...b,
-        samples: b.samples.map((s) => (s.id === sampleId ? fn(s) : s)),
-      })),
-    );
-  const sent = () => {
-    setOpen((o) => (o ?? []).filter((b) => b.batch.id !== cur.batch.id));
-    setAt(0);
-  };
-  return (
-    <div className="flex flex-col gap-3">
-      {open.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          {open.map((b, i) => (
-            <Button
-              key={b.batch.id}
-              size="dense"
-              tone={i === at ? "primary" : "secondary"}
-              onClick={() => setAt(i)}
-            >
-              {b.subject.name} · {b.samples.length}
-            </Button>
-          ))}
-        </div>
-      )}
-      <Batch key={cur.batch.id} open={cur} patch={patch} onSent={sent} />
-    </div>
-  );
-}
-
-function Batch({
+/** One open batch to mark, blind; Hand to Vireo closes it. */
+export function MarkBatch({
   open,
   patch,
   onSent,
@@ -201,18 +152,12 @@ function Batch({
   };
   return (
     <div className="flex flex-col gap-4 md:pb-24">
-      <header className="flex flex-col gap-1">
-        <h2 className="m-0 text-[18px] font-semibold text-(--ui-ink)">{open.subject.name}</h2>
-        {open.subject.brief && (
-          <p className="m-0 text-[13px] text-(--ui-ink-2)">{open.subject.brief}</p>
-        )}
-        <p className="m-0 text-[12px] text-(--ui-ink-3)">
-          {open.samples.length} samples, shown blind in random order. Mark what's good or bad; tap a
-          line, drag a box or mark a moment to say where.
-          {open.samples.some((s) => open.subject.kind === "page" && s.mediaUrl) &&
-            " One page runs at a time."}
-        </p>
-      </header>
+      <p className="m-0 text-[12px] text-(--ui-ink-3)">
+        {open.samples.length} samples, shown blind in random order. Mark what's good or bad; tap a
+        line, drag a box or mark a moment to say where.
+        {open.samples.some((s) => open.subject.kind === "page" && s.mediaUrl) &&
+          " One page runs at a time."}
+      </p>
       {videos.length > 1 && (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -529,7 +474,7 @@ export function SubjectsPage({ params }: PageProps) {
               <span className="block text-[14px] font-semibold text-(--ui-ink)">{s.name}</span>
               <span className="block text-[12px] text-(--ui-ink-3)">
                 {s.kind} · {s.samples} samples · {s.kept} kept
-                {s.toPick ? ` · ${s.toPick} to pick` : ""}
+                {s.toPick ? ` · ${s.toPick} open` : ""}
               </span>
             </span>
             <Icon name="right" size={14} />
@@ -659,9 +604,7 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
             <div className="text-[13px] text-(--ui-ink)">
               <a
                 className="font-semibold text-(--ui-ink) underline-offset-2 hover:underline"
-                href={
-                  b.state === "open" ? "/variants/pick" : href("/variants/batches", { batch: b.id })
-                }
+                href={href("/variants/batches", { batch: b.id })}
               >
                 Batch {b.id}
               </a>
@@ -669,7 +612,7 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
                 {" "}
                 ·{" "}
                 {b.state === "open"
-                  ? "to pick"
+                  ? "open, to mark"
                   : b.goodRate != null
                     ? `${pct(b.goodRate)} good`
                     : ""}
@@ -700,34 +643,6 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
   );
 }
 
-export function CatalogPage(_: PageProps) {
-  const got = useCall("variants-catalog", () => call<Kept[]>("variants/catalog", {}));
-  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
-  if (!got.data) return <Loading />;
-  if (!got.data.length)
-    return <Empty title="Nothing kept yet">Tap Keep on a sample you want to reuse.</Empty>;
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      {got.data.map((k) => (
-        <article
-          key={k.sample.id}
-          className="flex min-w-0 flex-col gap-2 rounded-(--ui-radius-panel) border border-(--ui-hair) p-3"
-        >
-          <div className="text-[12px] text-(--ui-ink-3)">
-            {k.subject.name} · #{k.sample.id}
-          </div>
-          <SampleBody
-            kind={k.subject.kind}
-            sample={{ ...k.sample, notes: [] }}
-            boxing={false}
-            onAnchor={() => {}}
-          />
-        </article>
-      ))}
-    </div>
-  );
-}
-
-/** Open batches, for the tab's badge. */
-export const toPick = async (): Promise<number> =>
+/** Open batches, for the Batches tab's badge. */
+export const openBatches = async (): Promise<number> =>
   (await call<Open[]>("variants/queue", {}).catch(() => [])).length;

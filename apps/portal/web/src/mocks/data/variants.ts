@@ -373,7 +373,6 @@ export const VARIANTS_ANSWERS: Answers = {
     { ...VIDEO.subject, state: "open", samples: 3, kept: 0, toPick: 3 },
   ],
   "variants/subject": SUBJECT,
-  "variants/catalog": [{ sample: { ...COPY.samples[1], notes: [] }, subject: COPY.subject }],
   "variants/judge": (b: Record<string, unknown>) => ({ id: b.sample, verdict: b.verdict }),
   "variants/note": (b: Record<string, unknown>) => ({ id: Math.floor(Math.random() * 1e6), ...b }),
   "variants/unnote": { done: [] },

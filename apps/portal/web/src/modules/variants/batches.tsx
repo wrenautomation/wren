@@ -1,7 +1,7 @@
 /**
- * Variants › Batches: every batch, newest first, and one batch whole (`?batch=<id>`) with his
- * calls, notes and the idea each sample tested, read only. An open batch stays blind: it opens in
- * To pick.
+ * Variants › Batches: every batch, newest first, and one batch whole (`?batch=<id>`). A closed
+ * batch: his calls, notes and the idea each sample tested, read only. An open batch: marked here,
+ * blind (queue order, no ideas), then handed to Vireo.
  */
 import {
   Button,
@@ -24,7 +24,7 @@ import { usePageContext } from "../agent/drive.js";
 import { dayLabel } from "../work/bits.js";
 import { FramesProvider } from "./live-page.js";
 import { type Kind, pct, type Sample, VERDICT_ON } from "./marks.js";
-import { SampleCard, TALLY, WIDE_KINDS } from "./page.js";
+import { MarkBatch, type Open, SampleCard, TALLY, WIDE_KINDS } from "./page.js";
 import { Together, TogetherProvider } from "./together.js";
 
 interface Row {
@@ -69,7 +69,12 @@ export function BatchesPage({ params }: PageProps) {
             : { ...r, samples: r.samples.map((s) => (s.id === sampleId ? { ...s, ...fn(s) } : s)) },
         ),
       );
-    return <BatchView row={row} patch={patch} params={params} />;
+    // closed now: the agent's why shows; a fresh read brings it
+    const sent = () => {
+      setRows((rs) => (rs ?? []).map((r) => (r.id === id ? { ...r, state: "closed" } : r)));
+      got.retry();
+    };
+    return <BatchView row={row} patch={patch} params={params} onSent={sent} />;
   }
   return <BatchList rows={rows} params={params} />;
 }
@@ -90,7 +95,7 @@ function BatchList({ rows, params }: { rows: Row[]; params: URLSearchParams }) {
   if (!rows.length)
     return (
       <Empty title="No batches yet">
-        The agent's batches land in To pick. Each one shows here once it exists.
+        Ask the agent in chat to start a subject. Its batches land here.
       </Empty>
     );
   return (
@@ -135,7 +140,7 @@ function BatchRow({ row: r }: { row: Row }) {
   const more = r.samples.filter((s) => s.posterUrl).length - thumbs.length;
   return (
     <a
-      href={open ? "/variants/pick" : href(HERE, { batch: r.id })}
+      href={href(HERE, { batch: r.id })}
       className="flex flex-col gap-2 border-b border-(--ui-hair) px-1 py-3 text-(--ui-ink) no-underline hover:bg-(--ui-hover) md:flex-row md:items-start md:gap-4"
     >
       <span className="flex min-w-0 flex-1 flex-col gap-1">
@@ -152,8 +157,9 @@ function BatchRow({ row: r }: { row: Row }) {
         </span>
         <span className="flex flex-wrap items-center gap-1.5">
           {open ? (
+            // "Needs you" says it waits; the tag adds how far he got
             <Tag tone="warn" dot>
-              To pick
+              {r.samples.filter((s) => s.verdict).length} of {r.samples.length} marked
             </Tag>
           ) : (
             <>
@@ -241,10 +247,12 @@ function BatchView({
   row: r,
   patch,
   params,
+  onSent,
 }: {
   row: Row;
   patch: (id: number, fn: (s: Sample) => Sample) => void;
   params: URLSearchParams;
+  onSent: () => void;
 }) {
   const open = r.state === "open";
   usePageContext(
@@ -266,6 +274,7 @@ function BatchView({
           </Button>
         </span>
         <h2 className={cx(PAGE_TITLE, "m-0 mt-1 text-(--ui-ink)")}>{r.subject.name}</h2>
+        {r.subject.brief && <p className="m-0 text-[13px] text-(--ui-ink-2)">{r.subject.brief}</p>}
         <p className="m-0 text-[12px] text-(--ui-ink-3)">
           Batch {r.id} · {dayLabel(r.createdAt)} · {r.samples.length} samples
           {r.goodRate != null && ` · ${pct(r.goodRate)} good or better`}
@@ -289,9 +298,7 @@ function BatchView({
         )}
       </div>
       {open ? (
-        <Empty title="This batch waits for your calls">
-          It stays blind until you hand it back. <a href="/variants/pick">Open it in To pick</a>
-        </Empty>
+        <OpenBatch id={r.id} onSent={onSent} />
       ) : (
         <TogetherProvider value={group}>
           <div
@@ -317,4 +324,17 @@ function BatchView({
       )}
     </div>
   );
+}
+
+/** The open batch as the queue holds it: blind, in its shuffled order, with his marks so far. */
+function OpenBatch({ id, onSent }: { id: number; onSent: () => void }) {
+  const got = useCall("variants-queue", () => call<Open[]>("variants/queue", {}));
+  const [open, setOpen] = useState<Open | null>(null);
+  useEffect(() => setOpen(got.data?.find((o) => o.batch.id === id) ?? null), [got.data, id]);
+  if (got.error && !open) return <LoadFailed error={got.error} onRetry={got.retry} />;
+  if (!got.data) return <Loading />;
+  if (!open) return <Empty title="This batch is closed">Reload to see its calls.</Empty>;
+  const patch = (sampleId: number, fn: (s: Sample) => Sample) =>
+    setOpen((o) => o && { ...o, samples: o.samples.map((s) => (s.id === sampleId ? fn(s) : s)) });
+  return <MarkBatch open={open} patch={patch} onSent={onSent} />;
 }

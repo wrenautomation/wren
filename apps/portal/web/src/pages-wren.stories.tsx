@@ -17,14 +17,15 @@ export default meta;
 export const People = pageAt("/people", { me: ADMIN });
 export const Clients = pageAt("/people/clients", { me: ADMIN });
 export const Campaigns = pageAt("/campaigns", { me: ADMIN });
-export const Variants = pageAt("/variants/pick", { me: ADMIN });
 export const VariantsBatches = pageAt("/variants/batches", { me: ADMIN });
 export const VariantsBatch = pageAt("/variants/batches?batch=6", { me: ADMIN });
+/** An open batch, marked here: blind, in queue order. */
+export const VariantsOpen = pageAt("/variants/batches?batch=7", { me: ADMIN });
 
 /** Hand to Vireo: the batch closes, the side chat opens on Vireo and holds the turn that points at it. */
 export const VariantsHand: StoryObj = tidy(
   (() => {
-    const base = pageAt("/variants/pick", {
+    const base = pageAt("/variants/batches?batch=7", {
       me: ADMIN,
       check: async (page) => {
         const p = within(page);

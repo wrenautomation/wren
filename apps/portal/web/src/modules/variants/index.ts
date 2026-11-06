@@ -4,7 +4,7 @@
  */
 import type { Module } from "../../module.js";
 import { BatchesPage } from "./batches.js";
-import { CatalogPage, PickPage, SubjectsPage, toPick } from "./page.js";
+import { openBatches, SubjectsPage } from "./page.js";
 
 export const variants: Module = {
   id: "variants",
@@ -16,32 +16,18 @@ export const variants: Module = {
   requires: { audience: "team" },
   pages: [
     {
-      id: "pick",
-      label: "To pick",
-      about: "The oldest open batch, blind: mark each sample, then hand it to Vireo.",
-      Page: PickPage,
-      wide: true,
-      badge: (_client, team) => (team ? toPick() : Promise.resolve(0)),
-    },
-    {
       id: "batches",
       label: "Batches",
-      about: "Every batch, newest first: your calls and notes, and what each sample tested.",
+      about: "Every batch, newest first. Mark an open one blind, then hand it to Vireo.",
       Page: BatchesPage,
       wide: true,
+      badge: (_client, team) => (team ? openBatches() : Promise.resolve(0)),
     },
     {
       id: "subjects",
       label: "Subjects",
       about: "Each subject's good rate per batch, its live numbers and the tips under test.",
       Page: SubjectsPage,
-      wide: true,
-    },
-    {
-      id: "catalog",
-      label: "Catalog",
-      about: "The samples you kept, to reuse.",
-      Page: CatalogPage,
       wide: true,
     },
   ],
