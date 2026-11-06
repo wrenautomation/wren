@@ -56,7 +56,7 @@ function bendsOf(scene: MetroScene): number {
 }
 
 /** Columns whose gaps differ. Soft: the map widens only the gaps a span needs. */
-export function unevenOf(scene: Pick<MetroScene, "st" | "zones">): number {
+function unevenOf(scene: Pick<MetroScene, "st" | "zones">): number {
   const marks = scene.st.filter(isMark).filter((s) => s.t !== "exit");
   let n = 0;
   for (const [x0, x1] of scene.zones ?? []) {
