@@ -135,20 +135,13 @@ export function useAgent(o: {
     },
     [o.setup],
   );
-  // no session yet this tab: ask the relay for the setup's last list
+  // no session yet this tab: the relay's last list for the setup
+  const relayed = useLoad(COMMANDS.has(o.setup) ? null : `commands:${o.setup}`, async () =>
+    relayCommands(o.setup, await pageToken()),
+  );
   useEffect(() => {
-    if (COMMANDS.has(o.setup)) return;
-    let gone = false;
-    pageToken()
-      .then((token) => relayCommands(o.setup, token))
-      .then((list) => {
-        if (!gone && list.length && !COMMANDS.has(o.setup)) learned(commandsOf(list));
-      })
-      .catch(() => {});
-    return () => {
-      gone = true;
-    };
-  }, [o.setup, learned]);
+    if (relayed.data?.length && !COMMANDS.has(o.setup)) learned(commandsOf(relayed.data));
+  }, [relayed.data, o.setup, learned]);
   const model = useRef(o.model);
   model.current = o.model;
   const picks = useRef({ effort: o.effort, mode: o.mode });
