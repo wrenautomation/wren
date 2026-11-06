@@ -136,3 +136,10 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Left out: a flat switch (William chose tilted); a minimap (100 sources fit on screen); edge bundling (the claim is the bundle).
   - The session's choices, not William's: the place per kind; zoom steps at 0.72 and 1.45; a linear funnel; the four runs.
   - Limits: not tested at 1,000 sources; videos have no time stamp for a quote.
+- 11-06: round 8 of artifact `LdYvUurK` (WA-1150). William asked for faster scroll with numbers, a way to overrule a drop, no edge bars, a better ground, less flat, fewer small marks, and a clear read of size.
+  - Each source is a hill on its island, cut from one height field into terraces. One step for each step in findings kept, so one finding gives no step. A dark top backs a claim. The map draws on one canvas; the terrain layer redraws only when the view turns, zooms or moves.
+  - Names: only the 10 most used sources at rest (4 on a phone), type size by rank. A pick names only its own sources.
+  - Dropped tab: hits grouped by the run's reason, sorted by the judge's subject score. "Read it" queues a hit; the bar copies one `birdwatch open <run> <hits>` command. The mock does not send it.
+  - Perf box: draw ms, motion fps, page scroll, long tasks, scene size. Bench at 4x CPU slowdown, Chrome with GPU: page scroll 0 slow frames of 156 (round 7: 21 of 148); turning the map 12 of 340 (round 7: 27 of 292). The box's backdrop blur had cost 15 slow frames in a scroll; it is gone.
+  - The session's choices, not William's: terraces, the step rule, the label counts, the phone stage height set by the map.
+  - Open: William is not sure stacked round terraces are the best shape for weight. Variants next.
