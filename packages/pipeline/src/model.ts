@@ -13,6 +13,8 @@ export interface Advance {
   with?: Record<string, string | number>;
 }
 
+/** Days an open journey sits at one node before it reads stale, unless the node sets `idleDays`. */
+export const STALE_DAYS = 14;
 /** The longest `idleDays` a node may set. */
 export const IDLE_DAYS_MAX = 365;
 

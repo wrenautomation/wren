@@ -55,10 +55,10 @@ describe("map routes", () => {
 
   it("links a step to its people, an offer to its offer too", () => {
     expect(opensOf({ id: "booked", kind: "step" }, "wren", null)).toEqual([
-      { label: "People", href: "/people/journeys?node=booked&view=all" },
+      { label: "People", href: "/people/people?stepNode=%3Dbooked&view=journey" },
     ]);
     expect(opensOf({ id: "signed", kind: "offer" }, "wren", null).map((o) => o.href)).toEqual([
-      "/people/journeys?node=signed&view=all",
+      "/people/people?stepNode=%3Dsigned&view=journey",
       "/map/offers",
     ]);
     expect(opensOf({ id: "pay", kind: "plan" }, "client", "acme")).toEqual([

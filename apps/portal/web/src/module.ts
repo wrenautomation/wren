@@ -100,6 +100,11 @@ export interface ListPage extends PageBase {
   actions?: Action[];
   /** The columns shown until the viewer picks others; every one when left out. A Shop's chips. */
   columns?: string[];
+  /**
+   * A view's own display, by view id: its columns, and the field a phone row shows beside the
+   * name. People's "In a journey" shows the step.
+   */
+  views?: Readonly<Record<string, { columns?: string[]; phone?: string }>>;
   /** A Shop's groups, in order, each under its own heading (Templates, Parts, Workflows). */
   sections?: ShopSections;
   /** A Shop card's art, across its top: what the record does, drawn. */

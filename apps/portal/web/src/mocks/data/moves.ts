@@ -1,13 +1,45 @@
 /**
  * What waits on Wren's team (`../../moves.ts`), one record each: a call within a day, approvals,
- * inbox items, replies, access asks. Cells set by hand on top of made-up rows. Names and
+ * inbox items, replies, access asks, people past their step's limit. Cells set by hand on top of made-up rows. Names and
  * addresses match the journeys' (`./journeys.ts`), so Ada's and Bo's moves sit under their
  * journeys and the rest under Others. Synthetic data only.
  */
 import type { Row } from "@wren/core/records/serve";
 import { ago } from "./shell.js";
 
+/** A person with no open journey: every step cell empty. */
+const NO_STEP = {
+  journey: null,
+  step: null,
+  stepNode: null,
+  stepDays: null,
+  stepFlag: null,
+  stepSince: null,
+  stepOwner: null,
+};
+/** A person at a node of the synthetic shape (`./journeys.ts`), `days` there. */
+const at = (journey: string, node: string, step: string, days: number, owner?: string) => ({
+  journey,
+  step,
+  stepNode: node,
+  stepDays: days,
+  stepFlag: days >= 14 ? "stale" : null,
+  stepSince: ago(days),
+  stepOwner: owner ?? null,
+});
+
 export const MOVE_ROWS: Record<string, Partial<Row>[]> = {
+  // The made-up names run Ada, Bo, Cai, Dee, Eli, Fay, then again: the first four are on the Map.
+  "people.profile": [
+    { emails: "ada@example.test", ...at("j1", "engaged", "Engaged", 2) },
+    { emails: "bo@example.test", ...at("j2", "engaged", "Engaged", 17) },
+    { emails: "cai@example.test", ...at("j3", "booked", "Booked", 0, "Ada North") },
+    { emails: "dee@example.test", ...at("j4", "booked", "Booked", 5) },
+    NO_STEP,
+    NO_STEP,
+    NO_STEP,
+    NO_STEP,
+  ],
   "email.call": [
     {
       id: "c1",

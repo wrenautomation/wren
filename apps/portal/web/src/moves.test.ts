@@ -44,7 +44,7 @@ const APPS = [
     page("asks", "access.ask", { state: ["open"], yours: ["yes"] }, true),
     page("calls", "email.call", { soon: ["yes"] }, true),
   ]),
-  app("deals", [page("journeys", "pipeline.journey", { flag: ["stale"] })]),
+  app("people", [page("people", "people.profile", { stepFlag: ["stale"] })]),
 ];
 const ALL = Object.fromEntries(
   APPS.map((m) => [m.id, Object.fromEntries(m.pages.map((p) => [p.id, 1]))]),
@@ -76,12 +76,12 @@ describe("parked apps", () => {
   it("are not counted", async () => {
     const apps = [
       app("inbox", [page("waiting", "marketing.inbox", { status: ["open"] })], true),
-      app("deals", [page("journeys", "pipeline.journey", { flag: ["stale"] })]),
+      app("people", [page("people", "people.profile", { stepFlag: ["stale"] })]),
     ];
     rows["marketing.inbox"] = [{}, {}];
-    rows["pipeline.journey"] = [{}];
+    rows["people.profile"] = [{}];
     const { out } = await readApps(apps, "wren", true, true);
-    expect(out).toEqual({ deals: { journeys: 1 } });
+    expect(out).toEqual({ people: { people: 1 } });
   });
 
   it("do not stop a hidden page that lists a move from counting, once", async () => {
@@ -117,13 +117,14 @@ describe("movesOf", () => {
     ];
     rows["email.reply"] = [{ id: 1, who: "Bo Fenwick", email: "bo@example.test" }];
     rows["access.ask"] = [{ id: 1, email: "ivy@example.test" }];
-    rows["pipeline.journey"] = [
+    rows["people.profile"] = [
       {
-        id: "j2",
+        id: 2,
+        journey: "j2",
         name: "Bo Fenwick",
-        nodeName: "Engaged",
-        daysAtNode: 17,
-        email: "bo@example.test",
+        step: "Engaged",
+        stepDays: 17,
+        emails: "bo@example.test, bo@work.example.test",
       },
     ];
     const got = await movesOf(APPS, ALL);
@@ -151,6 +152,12 @@ describe("movesOf", () => {
       [1, "/inbox/approve?view=videos"],
     ]);
     expect(approve[0]?.what).toBe("First messages to new connections, Cai, Dee");
+    // The stale move opens the person, where their journey shows.
+    const stale = all.find((m) => m.verb === "Nudge or drop");
+    expect([stale?.what, stale?.href]).toEqual([
+      "Bo Fenwick, Engaged, 17 days",
+      "/people/people/2",
+    ]);
   });
 
   it("puts a person's moves under their journey and strangers last", async () => {
@@ -161,19 +168,21 @@ describe("movesOf", () => {
       { id: 1, who: "Ada North", email: "ADA@example.test" },
       { id: 2, who: "Bo Fenwick", email: "bo@example.test" },
     ];
-    rows["pipeline.journey"] = [
+    rows["people.profile"] = [
       {
-        id: "j1",
+        id: 1,
+        journey: "j1",
         name: "Ada North",
-        nodeName: "Engaged",
-        email: "ada@example.test",
+        step: "Engaged",
+        emails: "ada@example.test",
       },
       {
-        id: "j2",
+        id: 2,
+        journey: "j2",
         name: "Bo Fenwick",
-        nodeName: "Booked",
-        daysAtNode: 20,
-        email: "bo@example.test",
+        step: "Booked",
+        stepDays: 20,
+        emails: "bo@work.example.test, bo@example.test",
       },
     ];
     const got = await movesOf(APPS, ALL);

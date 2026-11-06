@@ -14,6 +14,7 @@ import { findingRows, type ResearchDetail, researchDetail } from "./profile-find
 import { type ProfileReach, reachOf } from "./profile-reach.js";
 import { TIMELINE_KIND_NAMES, type TimelineKind } from "./profiles-schema.js";
 import {
+  actor,
   choice,
   cued,
   date,
@@ -104,6 +105,9 @@ const ROLES = cued({
   staff: { label: "Staff", tone: "neutral" },
   unknown: { label: "Unknown", tone: "neutral" },
 } as const);
+
+/** An open journey past its step's limit (`pipeline.person_steps`). */
+const STEP_FLAGS = { stale: { label: "Stale", tone: "warn" } } as const;
 
 const LEADS = cued({
   lead: { label: "Lead", tone: "good", about: "William called them a lead." },
@@ -367,6 +371,14 @@ export const profileRecord = defineRecord({
     personaNiche: text("Niche"),
     personaSize: status(SIZES, "Size"),
     lead: status(LEADS, "Lead call"),
+    // The open journey, from `pipeline.person_steps`: null when the person is in none.
+    step: text("Step"),
+    stepNode: text("Step key", { listed: false }),
+    stepDays: number("Days"),
+    stepFlag: status(STEP_FLAGS, "Needs"),
+    stepSince: date("At step since"),
+    stepOwner: actor("Owner"),
+    journey: text("Journey", { listed: false }),
     lastSeen: date("Last seen"),
     firstSeen: date("First seen"),
     keys: number("Addresses"),
@@ -391,6 +403,20 @@ export const profileRecord = defineRecord({
       where: { lead: "lead" },
       sort: "-lastTouchAt",
       hint: "People William called a lead.",
+    },
+    {
+      id: "journey",
+      label: "In a journey",
+      where: { step: { empty: false } },
+      sort: "-stepSince",
+      hint: "People on the Map now, newest move first.",
+    },
+    {
+      id: "stale",
+      label: "Stale",
+      where: { stepFlag: "stale" },
+      sort: "stepSince",
+      hint: "At one step past its limit: nudge or drop.",
     },
     {
       id: "clients",

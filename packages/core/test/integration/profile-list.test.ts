@@ -56,12 +56,20 @@ const OLD = sql.raw(`
   left join profile_rollups r on r.profile_id = p.id
   where p.merged_into is null`);
 
+/** `profile_records` less its step columns (live from `pipeline.person_steps`, not the list). */
+const NOW = sql.raw(`
+  select id, name, emails, phones, handles, channels, consent, first_seen, last_seen, keys, traits,
+    merged, stage, warmth, why, warmth_line, warm_since, persona, persona_role, persona_niche,
+    persona_size, subscriptions, replies, replied_last, replied_channel, first_channel,
+    last_touch_at, last_channel, came_from, lead
+  from profile_records`);
+
 /** Rows the list and the old view disagree on, either way. */
 async function drift(): Promise<unknown[]> {
   return rows(sql`
-    (select 'old' side, * from (${OLD}) o except select 'old', * from profile_records)
+    (select 'old' side, * from (${OLD}) o except select 'old', * from (${NOW}) n)
     union all
-    (select 'list', * from profile_records except select 'list', * from (${OLD}) o)`);
+    (select 'list', * from (${NOW}) n except select 'list', * from (${OLD}) o)`);
 }
 
 describe("profile list", () => {

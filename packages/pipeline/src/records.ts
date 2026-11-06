@@ -28,7 +28,7 @@ import { and, desc, eq, lte, sql } from "drizzle-orm";
 import type { DraftDetail, DraftState, VersionLine } from "./history.js";
 import type { Fit } from "./icp.js";
 import { placesOf } from "./metro.js";
-import { gateOf, type ShapeBody } from "./model.js";
+import { gateOf, type ShapeBody, STALE_DAYS } from "./model.js";
 import { isRowId, subjectOf } from "./moves.js";
 import { type NumberRow, numberRows } from "./numbers.js";
 import { scheduleOf } from "./schedule.js";
@@ -55,8 +55,6 @@ export const NUMBER_RECORD = "pipeline.number";
 export const TERMS_RECORD = "pipeline.terms";
 export const ENTRY_RECORD = "pipeline.entry";
 
-/** Days an open journey sits at one node before it reads stale, unless the node sets `idleDays`. */
-export const STALE_DAYS = 14;
 const DAY_MS = 86_400_000;
 /** Rows, not a view: a workspace works hundreds of journeys, not tens of thousands. */
 const ROWS = 2000;

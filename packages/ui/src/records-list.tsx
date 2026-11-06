@@ -307,6 +307,7 @@ export function RecordList(props: RecordTemplateProps) {
     place,
     empty,
     columns,
+    phone,
     extras,
     acts,
     head,
@@ -330,6 +331,7 @@ export function RecordList(props: RecordTemplateProps) {
       place={place}
       empty={empty}
       columns={columns}
+      phone={phone}
       extras={extras}
       acts={acts}
       head={head}
@@ -350,6 +352,7 @@ function List({
   place,
   empty,
   columns,
+  phone,
   extras,
   acts,
   head,
@@ -366,6 +369,7 @@ function List({
   place: Place;
   empty: RecordTemplateProps["empty"];
   columns: string[] | undefined;
+  phone: string | undefined;
   extras: RecordTemplateProps["extras"];
   acts: RecordActs | undefined;
   head: RecordTemplateProps["head"];
@@ -467,13 +471,15 @@ function List({
   // orders the columns as the address says, and keeps which rows are picked.
   // Columns picked in Display all show; the page's own fit the room.
   const byHand = params.has("cols");
+  // Beside a phone row's name: the view's pick, else the watched wait.
+  const beside = phone ?? (late?.promise ? late.field : undefined);
   const table = useListTable({
     meta,
     rows: tiered,
     cols: shownColumns(meta, columnsOf(meta, params, columns), tiered, {
       byHand,
       narrow,
-      wait: late?.promise ? late.field : undefined,
+      wait: beside,
     }),
     sort,
     group: grouped,
@@ -805,7 +811,7 @@ function List({
       // When it happened reads quieter than what it is; a watched wait draws as its own.
       quiet: f.kind === "date" && f.key !== late?.field,
       // A phone's row shows one beside the name: the watched wait, else the first of them.
-      phone: late?.promise ? f.key === late.field : i === 0,
+      phone: beside ? f.key === beside : i === 0,
       total: footed ? <FieldTotal field={f} total={totals?.[f.key]} to={place.link} /> : undefined,
       cell: (r) => {
         const w = f.key === late?.field ? waitOf(r) : null;

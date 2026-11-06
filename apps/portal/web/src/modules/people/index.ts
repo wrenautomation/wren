@@ -13,6 +13,9 @@ import { addToGroup, groupsPage, membersPage } from "./segments.js";
 import { sentPage } from "./sent.js";
 import { KIND_ICONS, profileExtras } from "./timeline.js";
 
+/** Where a person is on the Map, for the views that list people by step. */
+const STEP_COLUMNS = ["name", "step", "stepDays", "stepFlag", "stepOwner", "lastTouchAt"];
+
 /** The pages both apps share; each build adds its own here. */
 const PEOPLE_PAGES: ModulePage[] = [
   {
@@ -27,6 +30,8 @@ const PEOPLE_PAGES: ModulePage[] = [
       replied: "Nobody has written back yet.",
       booked: "Nobody has a call booked.",
       leads: "Nobody is called a lead yet. Open a person and press Lead.",
+      journey: "Nobody is on the Map now.",
+      stale: "Nobody has sat at a step past its limit.",
       clients: "No clients here yet.",
       cold: "Everyone here is warm.",
       subscribed: "Nobody has signed up for anything yet.",
@@ -35,6 +40,12 @@ const PEOPLE_PAGES: ModulePage[] = [
       merged: "No two profiles have turned out to be one person yet.",
     },
     columns: ["name", "stage", "warmth", "warmthLine", "persona", "lastTouchAt"],
+    views: {
+      journey: { columns: STEP_COLUMNS, phone: "step" },
+      stale: { columns: STEP_COLUMNS, phone: "step" },
+    },
+    // Wren's Today lists the stale ones as a move: Nudge or drop.
+    count: { stepFlag: ["stale"] },
     // How long ago, never late: a last touch has no promise.
     late: { field: "lastTouchAt" },
     peek: {

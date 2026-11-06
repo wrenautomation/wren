@@ -59,6 +59,8 @@ describe("readFilter", () => {
   });
   it("reads words and set-or-empty only where the field allows them", () => {
     expect(readFilter(title, "~acme")).toEqual({ contains: "acme" });
+    expect(readFilter(title, "=acme")).toEqual({ eq: "acme" });
+    expect(readFilter(field({ ops: ["contains", "empty"] }), "=acme")).toBeUndefined();
     expect(readFilter(title, "-")).toEqual({ empty: true });
     expect(readFilter(now, "+")).toBeUndefined();
   });

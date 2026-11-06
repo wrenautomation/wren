@@ -10,7 +10,6 @@ import { account } from "./account/index.js";
 import { calendar, clientCalendar } from "./calendar/index.js";
 import { recorderHead } from "./calendar/recorder.js";
 import { calls } from "./calls/index.js";
-import { journeys } from "./deals/index.js";
 import { documents } from "./documents/index.js";
 import { clientMarketing, content as oldContent } from "./marketing/index.js";
 import { CONVERSATION_TOP } from "./marketing/pages.js";
@@ -203,8 +202,6 @@ const peoplePlace: Module = {
     ...from(oldPeople, ["people"]),
     ...from(clients, [{ id: "all", as: "clients" }]),
     ...from(oldPeople, ["timeline"]),
-    // No tab (WA-1114): a journey shows on the person. The list stays a route for the Map's step link.
-    ...from(journeys, ["journeys"]).map(hide),
   ],
 };
 
@@ -309,8 +306,6 @@ const clientPeoplePlace: Module = {
       "recipients",
       "import",
     ]),
-    // No tab (WA-1114): a journey shows on the person. The list stays a route for the Map's step link.
-    ...from(journeys, ["journeys"]).map(hide),
   ],
 };
 

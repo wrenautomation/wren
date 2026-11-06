@@ -501,8 +501,8 @@ function dayBound(s: string, end: boolean): string {
 
 /**
  * A filter as it rides in the address: states "moved,hiring"; a range "10..50", "..50"; a date
- * preset "7d"; words "~acme"; set or not "+" or "-". Anything else reads as no filter. A day
- * reads as where the viewer is, its end included.
+ * preset "7d"; words "~acme", or "=acme" for the whole value; set or not "+" or "-". Anything else
+ * reads as no filter. A day reads as where the viewer is, its end included.
  */
 export function readFilter(f: FieldMeta, s: string | null, now = new Date()): Filter | undefined {
   if (!s) return undefined;
@@ -532,6 +532,9 @@ export function readFilter(f: FieldMeta, s: string | null, now = new Date()): Fi
     return Object.keys(out).length ? out : undefined;
   }
   if (shape === "words" && s.startsWith("~") && s.length > 1) return { contains: s.slice(1) };
+  // The whole value: a link that names a key (the Map's step).
+  if (shape === "words" && s.startsWith("=") && s.length > 1 && f.ops.includes("eq"))
+    return { eq: s.slice(1) };
   return undefined;
 }
 
@@ -559,6 +562,7 @@ export function filterParts(
   if (s === "+") return { op: "has", value: "a value" };
   if (s === "-") return { op: "is", value: "empty" };
   if (s.startsWith("~")) return { op: "has", value: `“${s.slice(1)}”` };
+  if (s.startsWith("=")) return { op: "is", value: s.slice(1) };
   const preset = f.kind === "date" ? DATE_PRESETS.find((p) => p.id === s) : undefined;
   if (preset) return { op: preset.op, value: preset.says };
   if (s.includes("..")) {

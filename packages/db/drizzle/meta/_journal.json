@@ -2619,6 +2619,13 @@
       "when": 1793912198531,
       "tag": "0374_drop_variants_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 375,
+      "version": "7",
+      "when": 1793925373474,
+      "tag": "0375_people_step",
+      "breakpoints": true
     }
   ]
 }

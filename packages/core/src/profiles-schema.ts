@@ -29,6 +29,7 @@ import {
   text,
   timestamp,
   unique,
+  uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 import { BROKEN_IG_URL } from "./touches-schema.js";
@@ -490,7 +491,8 @@ export const profileList = pgTable(
  * Live profiles as the People list reads them: addresses, channels and consent on the row, and
  * the people map's stage, warmth and persona (`profile_rollups`; defaults before its first pass),
  * and William's lead call (`lead` trait: `lead` or `not_lead`; null before he calls it).
- * Read from `profile_list`.
+ * Read from `profile_list`. The open journey's step comes live from `pipeline.person_steps` (one
+ * open journey per person: `uq_instances_open_person`).
  */
 export const profileRecords = pgView("profile_records", {
   id: integer("id"),
@@ -523,13 +525,22 @@ export const profileRecords = pgView("profile_records", {
   lastChannel: text("last_channel"),
   cameFrom: text("came_from"),
   lead: text("lead"),
+  journey: uuid("journey"),
+  step: text("step"),
+  stepNode: text("step_node"),
+  stepSince: timestamp("step_since", { withTimezone: true }),
+  stepDays: integer("step_days"),
+  stepFlag: text("step_flag"),
+  stepOwner: text("step_owner"),
 }).as(sql`
   select l.profile_id id, l.name, l.emails, l.phones, l.handles, l.channels, l.consent,
     l.first_seen, l.last_seen, l.keys, l.traits, l.merged, l.stage, l.warmth, l.why,
     l.warmth_line, l.warm_since, l.persona, l.persona_role, l.persona_niche, l.persona_size,
     l.subscriptions, l.replies, l.replied_last, l.replied_channel, l.first_channel,
-    l.last_touch_at, l.last_channel, l.came_from, l.lead
-  from profile_list l`);
+    l.last_touch_at, l.last_channel, l.came_from, l.lead,
+    s.journey, s.step, s.node::text step_node, s.since step_since, s.days step_days,
+    s.flag step_flag, s.owner step_owner
+  from profile_list l left join pipeline.person_steps s on s.profile_id = l.profile_id`);
 
 /** Each trait as a row: its value as text for the list, the whole JSON for the page. */
 export const profileTraitRecords = pgView("profile_trait_records", {

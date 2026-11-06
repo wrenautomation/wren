@@ -50,6 +50,9 @@ export const MOVED: Readonly<Record<string, string>> = {
   "/outreach/inbox": "/today/messages",
   "/people/calls": "/campaigns/calls",
   "/people/followers": "/campaigns/followers",
+  // The journey list is People's "In a journey" view (WA-1115).
+  "/people/journeys": "/people/people",
+  "/pipelines/journeys": "/people/people",
   "/results/board": "/campaigns/overview",
   "/pipeline/campaigns": "/campaigns/email-campaigns",
   "/pipelines/calls": "/campaigns/calls",

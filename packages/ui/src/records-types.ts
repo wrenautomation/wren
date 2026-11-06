@@ -226,6 +226,8 @@ export interface RecordTemplateProps {
   example?: ReactNode;
   /** The columns shown until the viewer picks others; every one when left out. */
   columns?: string[] | undefined;
+  /** The field a phone row shows beside the name; left out: the watched wait, else the first state. */
+  phone?: string | undefined;
   /** A Shop's groups: its rows by one field's value, in this order, each under its own heading. */
   sections?: ShopSections | undefined;
   /** A Shop card's art, across its top in place of the icon: what the record does, drawn. */

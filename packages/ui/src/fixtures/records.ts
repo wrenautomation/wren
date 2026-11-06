@@ -363,6 +363,7 @@ const meetsFilter = (cell: Cell | undefined, w: unknown): boolean => {
   if (w && typeof w === "object") {
     const o = w as Record<string, unknown>;
     const s = String(sortKey(cell));
+    if ("eq" in o && String(o.eq) !== String(cell ?? "")) return false;
     if ("contains" in o && !s.toLowerCase().includes(String(o.contains).toLowerCase()))
       return false;
     if ("gte" in o && !(sortKey(cell) >= (o.gte as number | string))) return false;

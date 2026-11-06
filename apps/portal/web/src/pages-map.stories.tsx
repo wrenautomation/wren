@@ -346,7 +346,7 @@ export const StationPanel = mapAt("/", {
     await expect(people[0]).toHaveAttribute("href", "/people/people/1");
     await expect(within(panel).getByText("Numbers in the last 30 days.")).toBeVisible();
     const open = within(panel).getByRole("link", { name: "Open" });
-    await expect(open).toHaveAttribute("href", "/people/journeys?node=engaged&view=all");
+    await expect(open).toHaveAttribute("href", "/people/people?stepNode=%3Dengaged&view=journey");
     // A track of the station opens that track.
     await userEvent.click(within(panel).getByRole("button", { name: "Track to Booked" }));
     await expect(

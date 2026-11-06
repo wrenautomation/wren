@@ -2,14 +2,14 @@
  * Where a Map node opens: the app that manages it, one table (designs/2026-10-19-business-map.md,
  * "Map page"). A source opens Campaigns › Content for its channel, Today › DMs for an outbound DM
  * source, Ads for ads (none while ads are cut); a step and an offer open the people at that
- * node (the journey list, a route with no tab: WA-1114); an offer also opens Offers; a plan opens the money (Pay links in a client's workspace,
- * Money at Wren). A content line's stations open Campaigns › Content. `routes.test.ts` checks each
+ * node (People, "In a journey", kept to the step); an offer also opens Offers; a plan opens the
+ * money (Pay links in a client's workspace, Money at Wren). A content line's stations open Campaigns › Content. `routes.test.ts` checks each
  * target is a real page of a real app.
  */
 import type { ShapeNode } from "@wren/pipeline/model";
 import { href, type Params } from "../route.js";
 
-/** One page to open. `node` adds the node's id as the page's `?node=` filter. */
+/** One page to open. `node` keeps the page to the people at the node (`?stepNode==<id>`). */
 export interface Target {
   label: string;
   app: string;
@@ -38,15 +38,15 @@ export const ROUTES = {
     client: [{ label: "Content", app: "campaigns", page: "content", channel: true }],
   },
   step: {
-    wren: [{ label: "People", app: "people", page: "journeys", node: true }],
-    client: [{ label: "People", app: "people", page: "journeys", node: true }],
+    wren: [{ label: "People", app: "people", page: "people", node: true }],
+    client: [{ label: "People", app: "people", page: "people", node: true }],
   },
   offer: {
     wren: [
-      { label: "People", app: "people", page: "journeys", node: true },
+      { label: "People", app: "people", page: "people", node: true },
       { label: "Offers", app: "map", page: "offers" },
     ],
-    client: [{ label: "People", app: "people", page: "journeys", node: true }],
+    client: [{ label: "People", app: "people", page: "people", node: true }],
   },
   plan: {
     wren: [{ label: "Money", app: "office", page: "money" }],
@@ -77,9 +77,9 @@ export function linkOf(
   client: string | null,
 ): string {
   return href(`/${t.app}/${t.page}`, {
-    // The Journeys list reads a bare id as "has these words" (`nodeLegacy`).
-    node: t.node ? n.id : null,
-    view: t.node ? "all" : null,
+    // "=": the whole key, so `held` never lists `call_held`.
+    stepNode: t.node ? `=${n.id}` : null,
+    view: t.node ? "journey" : null,
     platform: t.channel ? (n.channel ?? null) : null,
     client,
   });

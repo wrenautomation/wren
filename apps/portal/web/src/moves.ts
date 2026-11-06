@@ -102,6 +102,11 @@ const timeOf = (v: unknown) => {
 };
 
 const emailsOf = (...v: unknown[]) => v.map(lower).filter(Boolean);
+/** People's `emails` cell ("a@x.test, b@x.test") as addresses. */
+const addressesOf = (v: unknown) => emailsOf(...str(v).split(/[\s,]+/));
+
+/** A person's open journey rides on their People row: `journey`, `step`, `stepDays`. */
+const PEOPLE = "people.profile";
 
 /** In the order they show. */
 export const SOURCES: readonly Source[] = [
@@ -204,20 +209,21 @@ export const SOURCES: readonly Source[] = [
   },
   {
     id: "stale",
-    record: "pipeline.journey",
+    // A person past their step's limit (People's Stale view); the move opens the person.
+    record: PEOPLE,
     limit: 50,
     make: (rows, at) =>
       rows.map((r) => ({
-        key: `stale:${str(r.id)}`,
+        key: `stale:${str(r.journey)}`,
         icon: "target",
         verb: "Nudge or drop",
-        what: [nameOf(r.name), str(r.nodeName), `${Number(r.daysAtNode) || 0} days`]
+        what: [nameOf(r.name), str(r.step), `${Number(r.stepDays) || 0} days`]
           .filter(Boolean)
           .join(", "),
-        href: at,
+        href: `${at}/${encodeURIComponent(str(r.id))}`,
         n: 1,
-        emails: emailsOf(...str(r.email).split(/\s+/)),
-        journey: str(r.id),
+        emails: addressesOf(r.emails),
+        journey: str(r.journey),
       })),
   },
 ];
@@ -278,15 +284,15 @@ export function groupMoves(moves: readonly Move[], journeys: readonly JourneyLin
 }
 
 const lineOf = (r: Row): JourneyLine => ({
-  id: str(r.id),
+  id: str(r.journey),
   person: nameOf(r.name),
-  node: str(r.nodeName),
-  emails: str(r.email).split(/\s+/).filter(Boolean).map(lower),
+  node: str(r.step),
+  emails: addressesOf(r.emails),
 });
 
 /**
  * Every move: each source with rows waiting is read through its page's filter, together; the
- * open journeys are read too when a move might belong to one. A failed read fails them all.
+ * people in a journey are read too when a move might belong to one. A failed read fails them all.
  */
 export async function movesOf(
   apps: readonly Module[],
@@ -308,8 +314,8 @@ export async function movesOf(
   const open = needs
     ? (
         await call<{ rows: Row[] }>("console/recordsList", {
-          record: "pipeline.journey",
-          where: { status: ["open"] },
+          record: PEOPLE,
+          where: { step: { empty: false } },
           limit: 500,
         })
       ).rows

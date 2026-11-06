@@ -38,7 +38,7 @@ import {
 import type { Branch } from "./branches.js";
 import type { Moves } from "./carry.js";
 import { DRAFT_STATES } from "./history.js";
-import { type Crossing, type ShapeBody, SUBJECT_KINDS } from "./model.js";
+import { type Crossing, type ShapeBody, STALE_DAYS, SUBJECT_KINDS } from "./model.js";
 import type { StoredBody } from "./stored.js";
 
 export const pipeline = pgSchema("pipeline");
@@ -340,6 +340,34 @@ export const instances = pipeline.table(
   ],
 );
 export type Instance = typeof instances.$inferSelect;
+
+/**
+ * Each person's open journey as one row: the step's name on the journey's own shape version, the
+ * whole days there, and `stale` once those pass the node's `idleDays` (else `STALE_DAYS`). The
+ * People list joins it (`profile_records`). Same rule as `journeyRows`.
+ */
+export const personSteps = pipeline
+  .view("person_steps", {
+    profileId: integer("profile_id"),
+    journey: uuid("journey"),
+    node: varchar("node", { length: 40 }),
+    step: text("step"),
+    since: timestamp("since", { withTimezone: true }),
+    days: integer("days"),
+    flag: text("flag"),
+    owner: text("owner"),
+  })
+  .as(sql`
+  select i.profile_id, i.id journey, i.node, coalesce(n.name, i.node::text) step, i.moved_at since,
+    d.days, case when d.days >= coalesce(n.idle, ${sql.raw(String(STALE_DAYS))}) then 'stale' end flag, i.owner
+  from pipeline.instances i
+  left join pipeline.shape_versions v on v.number = i.version
+  left join lateral (
+    select x.n->>'name' name, (x.n->>'idleDays')::int idle
+    from jsonb_array_elements(v.run->'nodes') x(n) where x.n->>'id' = i.node limit 1) n on true
+  cross join lateral (
+    select floor(extract(epoch from now() - i.moved_at) / 86400)::int days) d
+  where i.status = 'open' and i.subject_kind = 'person'`);
 
 /** Readers that mean people: a person's instance (a journey). */
 export const isPerson = eq(instances.subjectKind, "person");

@@ -84,7 +84,14 @@ export const PeopleImport = pageAt("/people/import", {
   answers,
   check: shows("Import", "Import a CSV"),
 });
-export const PeopleJourneys = pageAt("/people/journeys", { answers, check: shows("Journeys") });
+export const PeopleInJourney = pageAt("/people/people?view=journey", {
+  answers,
+  check: shows("People"),
+});
+export const PeopleStale = pageAt("/people/people?view=stale", {
+  answers,
+  check: shows("People"),
+});
 export const OfficeContract = pageAt("/office/contract", {
   answers,
   check: shows("Contract", "Sign the contract"),
