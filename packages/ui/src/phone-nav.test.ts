@@ -14,13 +14,13 @@ describe("barOf", () => {
     expect(more).toEqual([]);
   });
 
-  it("keeps three tabs and leaves the rest for Apps", () => {
+  it("keeps four tabs and leaves the rest for Apps", () => {
     const { tabs, more } = barOf(
-      ["a", "b", "c", "d", "e"].map((id) => page(id)),
+      ["a", "b", "c", "d", "e", "f"].map((id) => page(id)),
       undefined,
     );
-    expect(tabs.map((t) => t.id)).toEqual(["a", "b", "c"]);
-    expect(more.map((p) => p.id)).toEqual(["d", "e"]);
+    expect(tabs.map((t) => t.id)).toEqual(["a", "b", "c", "d"]);
+    expect(more.map((p) => p.id)).toEqual(["e", "f"]);
   });
 
   it("leaves pages a pick doesn't hold for Apps", () => {

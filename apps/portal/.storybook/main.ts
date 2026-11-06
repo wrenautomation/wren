@@ -45,7 +45,13 @@ const recordTypes: Plugin = {
       configFile: false,
       root: WORKER,
       logLevel: "error",
-    }).then(({ module }) => `export default ${JSON.stringify(module.recordMetas())};`);
+    })
+      .then(({ module }) => `export default ${JSON.stringify(module.recordMetas())};`)
+      .catch((err) => {
+        // a failed read is not kept: the next page story reads again
+        types = undefined;
+        throw err;
+      });
     return types;
   },
 };

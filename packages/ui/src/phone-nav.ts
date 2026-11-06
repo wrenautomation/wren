@@ -47,8 +47,8 @@ export const total = (tabs: readonly TabPage[]) =>
     ? tabs.reduce((n, t) => n + (t.count ?? 0), 0)
     : undefined;
 
-/** iOS fits five: Home first and Apps last never move; these three in between are the section's. */
-export const BAR_SIZE = 3;
+/** Home first and Apps last never move; these four in between are the section's (William, 11-05: six tabs, so People docks). */
+export const BAR_SIZE = 4;
 export const HOME = "home";
 /**
  * Home's tab inside an app: an id no page takes, so an app's own `home` page (Notes) keeps its
@@ -57,7 +57,7 @@ export const HOME = "home";
 export const HOME_TAB = "@home";
 
 /**
- * A section's bottom tabs: its picks (else one per run of its pages), three at most. The pages
+ * A section's bottom tabs: its picks (else one per run of its pages), four at most. The pages
  * they leave over open from Apps, under the section's name.
  */
 export function barOf(

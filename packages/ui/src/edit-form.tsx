@@ -469,39 +469,6 @@ export function ChecksField<V extends FieldValues>({
   );
 }
 
-/** One of a few choices, all in view: `[value, label]` pairs. */
-export function RadioField<V extends FieldValues>({
-  form,
-  name,
-  label,
-  className,
-  options,
-}: FieldBase<V> & { options: readonly (readonly [string, ReactNode])[] }) {
-  const { field, fieldState } = useController({ control: form.control, name });
-  return (
-    <fieldset className={cn("m-0 grid gap-1.5 border-0 p-0", className)}>
-      {label ? <legend className="mb-1 text-[13px] font-medium">{label}</legend> : null}
-      {options.map(([v, l]) => (
-        <label key={v} className="flex items-baseline gap-2 text-[13.5px]">
-          <input
-            type="radio"
-            data-edit={`form:${name}.${v}`}
-            name={field.name}
-            value={v}
-            checked={field.value === v}
-            onChange={() => field.onChange(v)}
-            onBlur={field.onBlur}
-          />
-          <span>{l}</span>
-        </label>
-      ))}
-      {fieldState.error?.message ? (
-        <span className="text-[12px] text-(--ui-bad)">{fieldState.error.message}</span>
-      ) : null}
-    </fieldset>
-  );
-}
-
 /** A day, "2026-10-16". */
 export function DateField<V extends FieldValues>(
   p: FieldBase<V> & Omit<ComponentProps<typeof Input>, "form" | "name" | "value" | "type">,

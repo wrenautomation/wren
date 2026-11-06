@@ -105,13 +105,13 @@ export const SidebarItems = pageAt("/", {
   },
 });
 
-/** A phone's bottom tabs at home: the Map, the first three docked places, then Apps (iOS fits five). */
+/** A phone's bottom tabs at home: the Map, the four docked places, then Apps. */
 export const PhoneDock = pageAt("/", {
   me: ADMIN,
   check: async (page) => {
     if (!onPhone()) return;
     const dock = within(await within(page).findByRole("navigation", { name: "Tabs" }));
-    for (const name of ["Map", "Today", "Campaigns", "Research"])
+    for (const name of ["Map", "Today", "Campaigns", "Research", "People"])
       expect(links(dock, name), `${name} is a tab`).toBe(1);
     await expect(dock.getByRole("button", { name: named("Apps") })).toBeVisible();
   },

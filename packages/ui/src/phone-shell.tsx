@@ -1,6 +1,6 @@
 /**
  * The shell on a phone, under 900px, walked as the big apps are walked. The bottom bar's ends never
- * move: Home first, Apps last. The three tabs between are the section's: the daily picks at home,
+ * move: Home first, Apps last. The four tabs between are the section's: the daily picks at home,
  * the app's own pages inside one; its other pages open from Apps. Each
  * tab keeps its stack, so a tap on another tab and back lands where he was, scrolled where he
  * was. The bar at the top is iOS's: back, named for where it goes, the page's title once its own
@@ -485,7 +485,7 @@ function TabFace({
 }
 
 /**
- * The tabs at the thumb: Home, the section's three, Apps. A tap on another tab opens it where he
+ * The tabs at the thumb: Home, the section's four, Apps. A tap on another tab opens it where he
  * left it; on the tab on screen, it goes back to the tab's first page, and from there up to the
  * top. Hidden on a record's own page, which brings its buttons down here instead.
  */
@@ -511,7 +511,7 @@ export function PhoneTabs({
         !hidden && "max-[900px]:block",
       )}
     >
-      <ul className="mx-auto grid h-[54px] max-w-[640px] list-none grid-cols-5">
+      <ul className="mx-auto grid h-[54px] max-w-[640px] list-none grid-cols-6">
         {walk.tabs.map((t) => {
           const on = !apps && t.id === walk.current;
           const go = walk.tap(t);
@@ -540,7 +540,7 @@ export function PhoneTabs({
           {/* Apps keeps the right end however few tabs come before it. */}
           <button
             type="button"
-            className={cn(TAB, "col-start-5")}
+            className={cn(TAB, "col-start-6")}
             onClick={onApps}
             aria-haspopup="dialog"
             aria-expanded={apps}
@@ -604,7 +604,7 @@ const TILE_MARK =
 
 /**
  * Every app, as a phone's home screen: by area, a grid of marks. Whose workspace it is and his
- * own buttons sit at its head; the open app's pages past its three tabs come first. Opens at half height; pull it up for the rest.
+ * own buttons sit at its head; the open app's pages past its four tabs come first. Opens at half height; pull it up for the rest.
  */
 export function AppsSheet({
   head,

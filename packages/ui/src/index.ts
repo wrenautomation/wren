@@ -180,7 +180,6 @@ export {
   HINT_CLASS,
   LABEL_CLASS,
   MoneyField,
-  RadioField,
   SELECT_CLASS,
   SelectField,
   TextAreaField,

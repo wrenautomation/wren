@@ -12,7 +12,6 @@ export const CONTACT = z.object({
   budget: z.string().regex(/^[\d.,$\s]*$/, "Use digits, like 1,250.50."),
   vip: z.boolean(),
   channels: z.array(z.string()),
-  tone: z.string(),
   account: z.string().nullable(),
 });
 export type ContactValues = z.infer<typeof CONTACT>;
@@ -27,7 +26,6 @@ export const CONTACT_DEFAULTS: ContactValues = {
   budget: "1,250.50",
   vip: false,
   channels: ["email"],
-  tone: "warm",
   account: null,
 };
 
@@ -41,7 +39,6 @@ export const CONTACT_BLANK: ContactValues = {
   budget: "",
   vip: false,
   channels: [],
-  tone: "warm",
   account: null,
 };
 
@@ -64,10 +61,6 @@ export const CHANNELS = [
   ["email", "Email"],
   ["sms", "Text"],
   ["dm", "Direct message"],
-] as const;
-export const TONES = [
-  ["warm", "Warm"],
-  ["plain", "Plain"],
 ] as const;
 
 /** Two accounts on one platform; the form's field holds the pick. */

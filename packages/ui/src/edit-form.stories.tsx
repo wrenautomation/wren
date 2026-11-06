@@ -10,7 +10,6 @@ import {
   DateField,
   FormKept,
   MoneyField,
-  RadioField,
   SelectField,
   TextAreaField,
   TextField,
@@ -25,7 +24,6 @@ import {
   type ContactValues,
   FORM_ACCOUNTS,
   STAGES,
-  TONES,
 } from "./fixtures/edit-form.js";
 import { fails, pending } from "./fixtures/load.js";
 import { WORST } from "./fixtures/worst.js";
@@ -86,7 +84,6 @@ function ContactForm({
       <MoneyField form={form} name="budget" label="Budget ($)" />
       <CheckField form={form} name="vip" label="Treat as VIP" />
       <ChecksField form={form} name="channels" label="Reach them by" options={CHANNELS} />
-      <RadioField form={form} name="tone" label="Tone" options={TONES} />
       <AccountField form={form} name="account" pick={FORM_ACCOUNTS} />
       {form.error ? (
         <p role="alert" className="text-[13px] text-(--ui-bad)">

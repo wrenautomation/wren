@@ -381,7 +381,7 @@ Source: `phone-shell.tsx`, `phone.tsx`, `phone-nav.ts`, `shell.tsx`.
 
 - Breakpoint `max-width: 900px`. Touch targets 44 px via `pointer-coarse`.
 - **Bar:** sticky, `--ui-glass`, blur 12 to 16 px, `env(safe-area-inset-*)`. iOS style: back chevron in `--ui-link`, compact title, a `Segmented` control for group pages.
-- **Bottom tabs:** Home first, Apps last, three section tabs between. Labels 10.5 px medium. Current tab is semibold `--ui-active` with a 52 x 30 capsule in `--ui-accent-tint`. Count badge is a red pill (`--ui-bad`) at the icon's top right.
+- **Bottom tabs:** Home first, Apps last, four section tabs between. Labels 10.5 px medium. Current tab is semibold `--ui-active` with a 52 x 30 capsule in `--ui-accent-tint`. Count badge is a red pill (`--ui-bad`) at the icon's top right.
 - **Apps sheet:** a grid of 56 px square marks by area. Badge is an amber chip. Opens at half height.
 - **Bottom sheet:** detents, a 36 x 5 px grabber, drag down to close, `SPRING` curve `cubic-bezier(0.32, 0.72, 0, 1)`, 300 ms.
 - **Rows:** `Rows` draws a phone's row as a `SwipeRow`: the name, one property and the quiet action. Swipe right shows the first safe action; swipe left shows up to two, the destructive one last. A full swipe runs the far one. A touch within 24 px of the left edge belongs to back swipe.
