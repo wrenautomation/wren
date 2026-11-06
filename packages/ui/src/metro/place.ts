@@ -18,7 +18,7 @@ import {
   tryMetro,
 } from "./layout.js";
 import type { MetroScene, Point, Zone } from "./types.js";
-import { DEFAULT_COLUMNS, type MetroView, type ViewStation } from "./view.js";
+import { DEFAULT_COLUMNS, type MetroView, oneBand, type ViewStation } from "./view.js";
 
 /** An open node: the stations right inside it, and the open node it sits in. */
 export interface PlaceBox {
@@ -186,33 +186,39 @@ function zonesOf(view: MetroView, pos: ReadonlyMap<string, Point>, pad = 60): Zo
   });
 }
 
-/** One even step inside each column, in ELK's order; columns follow each other. */
+/**
+ * ELK's layers one even step apart. A gap a clash touched takes `extra` more (keyed by the slot on
+ * its right). Returns each slot's x.
+ */
 function evenX(
   view: MetroView,
   pos: Map<string, Point>,
-  stepOf: (column: string) => number,
+  step: number,
+  extra: ReadonlyMap<number, number>,
   merge = 24,
-) {
-  let start = 0;
-  for (const c of columnsOf(view)) {
-    const step = stepOf(c);
-    const ids = view.stations.filter((s) => s.column === c && pos.has(s.id)).map((s) => s.id);
-    const xs = [...new Set(ids.map((k) => (pos.get(k) as Point)[0]))].sort((a, b) => a - b);
-    // Stations within `merge` px share a slot.
-    const slots: number[] = [];
-    for (const x of xs)
-      if (!slots.length || x - (slots[slots.length - 1] as number) > merge) slots.push(x);
-    const slotOf = (x: number) =>
-      slots.reduce(
-        (best, s, i) => (Math.abs(s - x) < Math.abs((slots[best] as number) - x) ? i : best),
-        0,
-      );
-    for (const k of ids) {
-      const [x, y] = pos.get(k) as Point;
-      pos.set(k, [start + (slotOf(x) + 0.5) * step, y]);
-    }
-    start += Math.max(1, slots.length) * step;
+): number[] {
+  const ids = view.stations.filter((s) => pos.has(s.id)).map((s) => s.id);
+  const xs = [...new Set(ids.map((k) => (pos.get(k) as Point)[0]))].sort((a, b) => a - b);
+  // Stations within `merge` px share a slot.
+  const slots: number[] = [];
+  for (const x of xs)
+    if (!slots.length || x - (slots[slots.length - 1] as number) > merge) slots.push(x);
+  const slotOf = (x: number) =>
+    slots.reduce(
+      (best, s, i) => (Math.abs(s - x) < Math.abs((slots[best] as number) - x) ? i : best),
+      0,
+    );
+  const at: number[] = [];
+  let x = step / 2;
+  slots.forEach((_, i) => {
+    if (i) x += step + (extra.get(i) ?? 0);
+    at.push(x);
+  });
+  for (const k of ids) {
+    const [x0, y] = pos.get(k) as Point;
+    pos.set(k, [at[slotOf(x0)] as number, y]);
   }
+  return at;
 }
 
 async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Map<string, Point>> {
@@ -418,16 +424,18 @@ const WIDEN = 3;
  * tries, chips fold to dots.
  */
 export async function placeMetro(
-  view: MetroView,
+  given: MetroView,
   o: { boxes?: readonly PlaceBox[]; step?: number } = {},
 ): Promise<Placed> {
+  const view = oneBand(given);
   const boxes = o.boxes ?? [];
   const step = o.step ?? STEP;
   const elk = await elkPlace(view, boxes);
-  const steps = new Map<string, number>();
+  const extra = new Map<number, number>();
+  let last: { at: Placement; frames: Map<string, Frame>; bad: number } | undefined;
   for (let i = 0; ; i++) {
     const pos = new Map(elk);
-    evenX(view, pos, (c) => steps.get(c) ?? step);
+    const slots = evenX(view, pos, step, extra);
     const frames0 = framesOf(view, boxes, pos);
     const zones0 = zonesOf(view, pos);
     const tops = [...pos.values()].map((p) => p[1]).concat([...frames0.values()].map((f) => f[1]));
@@ -458,10 +466,17 @@ export async function placeMetro(
     if (i === WIDEN) return { scene: finishMetro(view, at), frames };
     const tried = tryMetro(view, at);
     if (!tried.bad.length) return { scene: tried.scene, frames };
-    // The columns a bad span touches widen. A span with no width (a name) widens its own column.
-    for (const [x0, x1, c] of at.zones)
-      if (tried.bad.some(([a, b]) => a < x1 && b >= x0))
-        steps.set(c, (steps.get(c) ?? step) + step / 2);
+    // A widen that cleared nothing is undone: the narrower map finishes.
+    if (last && tried.bad.length >= last.bad)
+      return { scene: finishMetro(view, last.at), frames: last.frames };
+    last = { at, frames, bad: tried.bad.length };
+    // The gaps a bad span touches widen; a span with no width (a name) widens the gaps beside it.
+    slots.forEach((x, k) => {
+      const lo = (slots[k - 1] ?? x) + dx;
+      const hi = x + dx;
+      if (k && tried.bad.some(([a, b]) => a <= hi && b >= lo))
+        extra.set(k, (extra.get(k) ?? 0) + step / 2);
+    });
   }
 }
 

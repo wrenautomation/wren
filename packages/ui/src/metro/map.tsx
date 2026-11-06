@@ -115,6 +115,34 @@ const INTRO_MS = 4200;
  * A zoom's scenes, one per open set. A sync scene comes back at once; an async one comes back
  * `undefined` the first time and calls `ready` when it lands.
  */
+/** Runs the tasks one by one when the main thread is idle; the returned call stops the rest. */
+function whenIdle(tasks: readonly (() => unknown)[]): () => void {
+  let stop = false;
+  let handle = 0;
+  const later =
+    typeof requestIdleCallback === "function"
+      ? (f: () => void) => requestIdleCallback(f, { timeout: 2000 })
+      : (f: () => void) => window.setTimeout(f, 200);
+  const cancel =
+    typeof cancelIdleCallback === "function" ? cancelIdleCallback : (h: number) => clearTimeout(h);
+  const run = (i: number) => {
+    const task = tasks[i];
+    if (stop || !task) return;
+    handle = later(() => {
+      if (stop) return;
+      Promise.resolve(task()).then(
+        () => run(i + 1),
+        () => run(i + 1),
+      );
+    });
+  };
+  run(0);
+  return () => {
+    stop = true;
+    cancel(handle);
+  };
+}
+
 function useScenes(zoom: MetroZoom) {
   const [, bump] = useState(0);
   // A new zoom starts a new cache.
@@ -180,6 +208,16 @@ export function MetroMap(props: MetroMapProps) {
     [base, focus],
   );
   const full = useMemo(() => fullDepth(zoom.nodes), [zoom]);
+  // Warm one step in and one out while idle, so a zoom step draws at once. The zoom keeps what
+  // it lays out (`viewZoom` caches by open set), so this reads the same cache and draws nothing.
+  useEffect(() => {
+    if (!now || focus) return;
+    const next = [1, -1]
+      .map((by) => stepDepth(zoom.nodes, depth, by))
+      .filter((f) => f.depth !== depth)
+      .map((f) => () => zoom.scene(openSet(zoom.nodes, f)));
+    return whenIdle(next);
+  }, [now, zoom, depth, focus]);
   const mixed = Object.keys(open).length > 0;
 
   // The first load happens once, on mount. A fold or a refresh never brings it back.
@@ -274,7 +312,23 @@ export function MetroMap(props: MetroMapProps) {
     // Hover or focus a line: light it, dim the rest.
     const lightOf = (t: EventTarget | null) =>
       t instanceof Element ? (t.closest<SVGElement>("[data-l]")?.dataset.l ?? null) : null;
-    const over = (e: Event) => setHover(lightOf(e.target));
+    // A fold the pointer rests on lays out before the click.
+    let rest = 0;
+    const over = (e: Event) => {
+      setHover(lightOf(e.target));
+      clearTimeout(rest);
+      const grp =
+        e.target instanceof Element
+          ? e.target.closest<SVGElement>("[data-grp]")?.dataset.grp
+          : null;
+      if (!grp || live.current.focused) return;
+      rest = window.setTimeout(() => {
+        const { zoom: z, depth: d, open: op } = live.current;
+        void Promise.resolve(
+          z.scene(openSet(z.nodes, toggle(z.nodes, { depth: d, open: op }, grp, true))),
+        ).catch(() => {});
+      }, 120);
+    };
     const out = () => setHover(null);
 
     // Steps. Trackpad pinch arrives as ctrl + wheel; a plain wheel still scrolls the page.
@@ -360,6 +414,7 @@ export function MetroMap(props: MetroMapProps) {
       on("pointercancel", up as EventListener),
     ];
     return () => {
+      clearTimeout(rest);
       for (const off of offs) off();
     };
   }, []);

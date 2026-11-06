@@ -59,6 +59,7 @@ export {
   textWidth,
   xferGeometry,
 } from "./geometry.js";
+export { type LayerFloor, MetroLayers, type MetroLayersProps } from "./layers.js";
 export { lineKeyOf, SPACE } from "./layout.js";
 export {
   MetroDepth,

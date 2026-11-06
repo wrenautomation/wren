@@ -14,13 +14,16 @@ import { Button, Icon, LoadFailed, SELECT_CLASS, Segmented, usePref } from "@wre
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import {
   type Fold,
+  type LayerFloor,
   MetroDepth,
+  MetroLayers,
   MetroMap,
   type MetroPick,
   MetroSkeleton,
   type MetroView,
   preloadMetro,
   viewTree,
+  viewZoom,
 } from "@wren/ui/metro";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../api.js";
@@ -136,6 +139,12 @@ function useKeptView(client: string): [Kept, (part: Kept) => void] {
     [client],
   );
   return [state.kept, update];
+}
+
+/** `floor=node:<id>` or `line:<id>`: the part the Layers look stands on. */
+function floorOf(v: string | null): LayerFloor {
+  const m = v?.match(/^(node|line):(.+)$/);
+  return m ? { kind: m[1] as "node" | "line", id: m[2] as string } : null;
 }
 
 export function MapPage({
@@ -326,7 +335,14 @@ export function MapPage({
   const picker = useRef<HTMLInputElement>(null);
 
   const nodes = useMemo(() => (shown?.view ? viewTree(shown.view).nodes : []), [shown?.view]);
-  const fold: Fold = { depth: kept.depth ?? 1, open: kept.open ?? {} };
+  const fold: Fold = useMemo(
+    () => ({ depth: kept.depth ?? 1, open: kept.open ?? {} }),
+    [kept.depth, kept.open],
+  );
+  // Layers is an experiment beside the flat map: one URL param, so a link keeps the look.
+  const layers = props.params.get("look") === "layers";
+  const floor = floorOf(props.params.get("floor"));
+  const zoom = useMemo(() => (shown?.view ? viewZoom(shown.view) : null), [shown?.view]);
   const waiting = !!draftId && !row && !opened.error;
 
   return (
@@ -347,6 +363,20 @@ export function MapPage({
         </div>
         {/* The bar: the window, History and the depth. The rarer tools sit behind ⋯. */}
         <div className="flex flex-wrap items-center gap-2">
+          {shown?.view ? (
+            <Segmented
+              label="Look"
+              items={[
+                { id: "flat", label: "Flat", look: null },
+                { id: "layers", label: "Layers", look: "layers" },
+              ].map((l) => ({
+                id: l.id,
+                label: l.label,
+                href: href("/", { look: l.look, floor: null }, props.params),
+                on: (l.look === "layers") === layers,
+              }))}
+            />
+          ) : null}
           <Segmented
             label="Window"
             items={WINDOWS.map((w) => ({
@@ -487,7 +517,16 @@ export function MapPage({
           <NoShape mayStart={mayEdit} at={at} onStarted={read.retry} />
         ) : (
           <>
-            {shown?.view ? (
+            {shown?.view && layers && zoom ? (
+              <MetroLayers
+                zoom={zoom}
+                floor={floor}
+                onFloor={(f) =>
+                  navigate(href("/", { floor: f ? `${f.kind}:${f.id}` : null }, props.params), true)
+                }
+                className="h-full"
+              />
+            ) : shown?.view ? (
               <div className="flex h-full flex-col">
                 <MetroMap
                   view={shown.view}

@@ -477,6 +477,39 @@ export const Big = mapAt("/", {
   },
 });
 
+/** Layers (an experiment): the whole map flat at the bottom, each open fold lifted over it. */
+export const Layers = mapAt("/?look=layers", {
+  answers: bigAnswers(SHARED),
+  check: async (page) => {
+    await expect(within(page).getByRole("link", { name: "Layers" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    const plates = await within(page).findAllByRole(
+      "button",
+      { name: /: make it the floor$/ },
+      LATE,
+    );
+    await expect(plates.length).toBeGreaterThan(1);
+    await expect(within(page).getByRole("button", { name: "Fold back" })).toBeVisible();
+  },
+});
+
+/** Layers on a fold: the fold is the floor, its own folds lift over it; the crumbs lead back. */
+export const LayersFloor = mapAt("/?look=layers", {
+  answers: bigAnswers(SHARED),
+  check: async (page) => {
+    const [plate] = await within(page).findAllByRole(
+      "button",
+      { name: /: make it the floor$/ },
+      LATE,
+    );
+    await userEvent.click(plate as HTMLElement);
+    const crumbs = await within(page).findByRole("navigation", { name: "Floor" });
+    await expect(within(crumbs).getByRole("button", { name: "Whole map" })).toBeVisible();
+  },
+});
+
 export const Phone = {
   ...mapAt("/", {
     check: async (page) => {

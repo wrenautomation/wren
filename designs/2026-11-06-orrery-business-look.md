@@ -1,0 +1,86 @@
+# Orrery business look, Layers, map speed (WA-1139)
+
+2026-11-06. William: "the business look is a little bit better ... slightly bigger icons ... the rails and the lines look too thick ... remove the broad column categories ... the 2.5D exploding view as an experiment alternate view ... isolate [a part] and make that the bottom flat layer". Then: "be very cognisant of performance ... especially on zoom".
+
+## Goal
+
+The flat map reads as business software: thin rails, clear stops, no leftover columns. Layers shows one level of the map with each fold lifted over its own place, and any fold or line can become the floor. A zoom step or a fold draws at once.
+
+## Target
+
+| Part | Before | After |
+|---|---|---|
+| Rail weights `WEIGHT` | out 3, front 7, core 12 | 2, 3, 5 |
+| Stop radii | per kind | +1 px each; glyph 18 (hub 24, exit 16) |
+| Stop colour | ink | its line's colour (`--lc` on the mark) |
+| Open-fold frame | dashed, 1.5 px | solid hairline, 1 px, .55 |
+| Columns | Marketing / Sales / Delivery / Money bands | none: one band (`oneBand`) |
+| Whole-line node | framed | no frame, name tab under its first stop |
+| Looks | flat | Flat, Layers (experiment), `?look=layers&floor=node:<id>\|line:<id>` |
+
+Override: the design-language artifact draws thicker rails and the column bands. William's direction wins for line weights and columns. Every other artifact value stays.
+
+## Decisions
+
+### 1. Columns: drop in the view, keep in the data (now)
+
+`oneBand(view)` (WeakMap-memoized) sets one column and drops spans before tree, place and zoom. `column` stays in the schema, store and pipeline until a follow-up task removes it. Why: one seam changes the look today; the schema change touches convert.ts, metro.ts and the lab, and is its own step.
+
+Widening: one band made the big map 5517 px wide, because the widen loop widened every slot. Now `evenX` widens only the gaps a bad span touches, and a widen that clears nothing is undone. Result 2277 px (3297 with the old columns).
+
+### 2. Layers: how to draw 2.5D
+
+| Option | For | Against |
+|---|---|---|
+| **CSS 3D over `MetroSvg`** (chosen) | No new dependency. Text stays vector and sharp. Same marks, same CSS, same theme. Hit testing is DOM. | Perspective is limited to planes; no real lighting; very large floors cost GPU memory. |
+| three.js / react-three-fiber | Real camera, lighting, free orbit, instancing. | ~150 kB+; text as SDF or textures (blurry or heavy); a second renderer to keep in step with the SVG marks. |
+| Canvas 2D with a fake projection | Small. | Redraws every frame on turn; text and hit testing by hand. |
+| Isometric SVG (one transform) | One SVG, cheap. | No lift between levels without redrawing; no turn. |
+
+Ranked by: same marks as the flat map (one renderer), cost per frame while turning, bundle size. CSS 3D wins all three for planes stacked in z.
+
+### 3. Layers: what a level shows (exploded in place)
+
+The floor is one level with its folds shut. `all` = that level with every fold open, laid out once. Each fold's stations are cut from `all` onto a plate, at the place they hold in `all`; the floor keeps the rest in the same frame. So a plate floats straight over its own place, its footprint shows dashed on the floor, and "Fold back" lands every plate in place: the flat map again.
+
+First try floated each plate over its fold's capsule on a shut floor. Plates were wider than that floor and hung off it. Rejected.
+
+A plate click makes that fold the floor; "Line" picks one line as the floor; crumbs walk back.
+
+Plates lift by depth: the plate nearest the eye (largest y) is lowest, each one further back rises one step (`LIFT` base 90, step 45). Same lift for all made front plates cover back ones.
+
+Pose: a wide floor turns 28°, a tall one (a line floor on a phone) 62°, so it fills the box. Fit projects every corner and solves the scale (0.25–1.4).
+
+Plate surface is tokens only (`--ui-paper` mixed 5% toward `--ui-ink`, a top inset line, a black shadow). The theme sets tokens inline on `<html>`; there is no `.dark` class to hook. Black, not ink, for shadows: ink is light in dark and glowed.
+
+"Fold back" greys out when the level has no plates, so the bar does not jump.
+
+### 4. Speed
+
+| Where | What | Why |
+|---|---|---|
+| Layers | One layout per level (all folds open at once), plates are crops | N plates cost 1 layout, not N |
+| Layers | `Stage` memoized; the pose goes to `style.transform` once per rAF from a ref | A drag never renders React |
+| Layers | No filters or shadows on marks inside 3D | Filters in a preserve-3d layer repaint every frame |
+| Layers | Fit by projecting the floor and plate corners (math, not DOM) | No layout read while a transition runs |
+| Zoom | Idle preload of depth −1 and +1 (`requestIdleCallback`, one at a time) | A zoom step finds its scene laid out |
+| Zoom | A fold the pointer rests on (120 ms) lays out before the click | The click draws at once |
+| Cache | Scenes cached by view content (JSON key, last 6 views), not object | Each refetch makes a new, equal view; it no longer lays out again |
+| ELK | Runs in a web worker (`elk-worker.min.js` shipped as is via `?url`); in-page build as fallback when no Worker or the worker is silent for 4 s | Layout never blocks a frame |
+
+Measured (Storybook, big map, 1280): zoom steps 85–139 ms to the new view, 0 long tasks after a step. Layers first draw ~1.5 s warm, as the flat map.
+
+Considered for zoom: caching rendered sizes (bitmaps per zoom level). Rejected: the map is vector and zoom is a CSS scale of one SVG; the cost on a step is the layout, not the paint. Revisit if a paint profile shows the SVG paint over 16 ms.
+
+## Tests changed
+
+- Column tests (order, append, empty-column step, "To map", column drop in a fold): deleted with the columns.
+- Even gaps in a column: no longer a clash in `sceneClashes`. Per-gap widen is the rule now. The lab keeps it as a soft score (`unevenOf`).
+- Fold ids hold the column: `web@1` is `web@0`, `tpl:post@so@Marketing` is `tpl:post@so@`. They lose the suffix when `column` goes.
+- Found by the portal's calm test: a diamond's name sat from `r`, but its tips reach `r × 1.4`. `labelOf` now clears the tips.
+
+## Open
+
+- Phone: Layers at whole-map level is small; a line or fold floor is the way in. A phone-first Layers waits on use.
+- Out of scope, from the fresh-eye review: phone header height, flat map framing on a phone, a 24 px inset round the big map, the chat button over the phone nav and dim in dark.
+- Follow-up task: remove `column` from schema, store, pipeline (convert.ts, metro.ts columnIndex), lab, `DEFAULT_COLUMNS`, `zonesOf`.

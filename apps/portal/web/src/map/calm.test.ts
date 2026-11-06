@@ -14,7 +14,7 @@ import { viewOf } from "./view.js";
 
 /**
  * The shapes the Map page stories draw, through the page's own `viewOf`, then `layoutView`: no
- * name over a mark or another name, no chip over a mark or the hub, equal gaps in a column, no
+ * name over a mark or another name, no chip over a mark or the hub, no
  * track under the hub. The crossings are pinned at what each shape draws now (the file shape
  * crosses once: its data runs backward). Each fold depth the page can show is calm too.
  */

@@ -11,7 +11,7 @@ const LEVEL = 8;
 export interface Score {
   /** Overlaps: a name, chip or track on another mark or name. Must be 0. */
   clashes: number;
-  /** Columns whose stations are not one even step apart: the hand maps keep one step. */
+  /** Columns whose stations are not one even step apart (soft). */
   uneven: number;
   crossings: number;
   bends: number;
@@ -55,12 +55,27 @@ function bendsOf(scene: MetroScene): number {
   return n;
 }
 
+/** Columns whose gaps differ. Soft: the map widens only the gaps a span needs. */
+export function unevenOf(scene: Pick<MetroScene, "st" | "zones">): number {
+  const marks = scene.st.filter(isMark).filter((s) => s.t !== "exit");
+  let n = 0;
+  for (const [x0, x1] of scene.zones ?? []) {
+    const xs = [...new Set(marks.filter((s) => s.x >= x0 && s.x < x1).map((s) => s.x))].sort(
+      (p, q) => p - q,
+    );
+    const steps = new Set<number>();
+    for (let i = 1; i < xs.length; i++)
+      steps.add(Math.round(((xs[i] as number) - (xs[i - 1] as number)) * 100) / 100);
+    if (steps.size > 1) n++;
+  }
+  return n;
+}
+
 export function scoreScene(scene: MetroScene, hand?: MetroScene): Score {
-  const all = sceneClashes(scene);
-  const clashes = all.filter((w) => !w.startsWith("gaps in "));
+  const clashes = sceneClashes(scene);
   return {
     clashes: clashes.length,
-    uneven: all.length - clashes.length,
+    uneven: unevenOf(scene),
     crossings: crossingsOf(scene),
     bends: bendsOf(scene),
     width: Math.round(scene.w ?? 0),

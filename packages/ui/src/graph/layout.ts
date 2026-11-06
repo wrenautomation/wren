@@ -1,3 +1,4 @@
+/// <reference path="./assets.d.ts" />
 /**
  * Auto layout with elkjs (layered): columns left to right, or rows top to bottom on a phone.
  * The same graph lays out the same way every load: nodes and wires keep their given order and
@@ -24,13 +25,45 @@ export interface LayoutEdge {
 }
 
 let elk: Promise<ELK> | null = null;
+/** elk runs in a worker where the page has one, so a layout never blocks a frame; else in-page. */
 export const elkOf = () => {
-  elk ??= import("elkjs/lib/elk.bundled.js").then((m) => {
+  elk ??= inWorker().catch(inPage);
+  return elk;
+};
+
+const inPage = () =>
+  import("elkjs/lib/elk.bundled.js").then((m) => {
     const Elk = (m as unknown as { default: new () => ELK }).default;
     return new Elk();
   });
-  return elk;
-};
+
+// The worker file ships as is: elk's GWT code breaks when bundled as a module.
+async function inWorker(): Promise<ELK> {
+  if (typeof Worker === "undefined") throw new Error("no Worker");
+  const [api, url] = await Promise.all([
+    import("elkjs/lib/elk-api.js"),
+    import("elkjs/lib/elk-worker.min.js?url").then((m) => (m as { default: string }).default),
+  ]);
+  const Elk = (api as unknown as { default: new (o: object) => ELK }).default;
+  const made = new Elk({ workerFactory: () => new Worker(url) });
+  // A worker that will not start (a data: URL blocked, a strict CSP) fails here, not mid-layout;
+  // elk never hears a worker error, so a silent one times out.
+  let wait = 0;
+  try {
+    await Promise.race([
+      made.knownLayoutAlgorithms(),
+      new Promise((_, no) => {
+        wait = window.setTimeout(() => no(new Error("elk worker silent")), 4000);
+      }),
+    ]);
+  } catch (e) {
+    made.terminateWorker();
+    throw e;
+  } finally {
+    clearTimeout(wait);
+  }
+  return made;
+}
 
 /** Gaps (px): between columns, between nodes in one, and a wire's words from its line. */
 const GAP = { layers: 64, nodes: 22, label: 4 };

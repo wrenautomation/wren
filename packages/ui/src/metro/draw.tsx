@@ -92,31 +92,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
   const H = scene.h;
   const Wd = scene.w ?? 960;
   const X0 = scene.x0 ?? 0;
-
-  const zones: ReactNode[] = [];
-  const todo: ReactNode[] = [];
-  const at = scene.st.map((s) => [s.x ?? 0, s.y] as const);
-  (scene.zones ?? []).forEach(([x0, x1, n], i) => {
-    // A cropped scene (focus) draws only the zones in view, and keeps a name on screen.
-    if (x1 <= X0 || x0 >= X0 + Wd) return;
-    // A column with no station yet shows a planned one, on the row that runs through it.
-    if (!at.some(([x]) => x >= x0 && x < x1)) {
-      const before = at.filter(([x]) => x < x0).sort((p, q) => q[0] - p[0])[0];
-      todo.push(
-        <Marker
-          key={`zo${x0}`}
-          s={{ id: `todo-${n}`, t: "plan", x: (x0 + x1) / 2, y: before?.[1] ?? H / 2, n: "To map" }}
-        />,
-      );
-    }
-    if (i && x0 > X0)
-      zones.push(<line key={`zl${x0}`} className="zl" x1={x0} y1={6} x2={x0} y2={H - 22} />);
-    zones.push(
-      <text key={`zt${x0}`} className="zt" x={Math.max(x0 + (i ? 8 : 0), X0 + 8)} y={H - 8}>
-        {n}
-      </text>,
-    );
-  });
+  const Y0 = scene.y0 ?? 0;
 
   /** A track's diff tag, beside it. A track with no pill of its own is named by the tag. */
   const tag = (k: string, r: MetroTrack, pts: Point[], l: string | undefined) => {
@@ -330,7 +306,8 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
             key={`m-${k}-${j}`}
             className={cx("mv", on(l) && "on")}
             data-l={l}
-            r={r.w === "core" ? 3.4 : l === "out" ? 3 : 2.6}
+            // Inside the rail: a pulse, not a gap. An out line's dot is its own colour, so it bulges.
+            r={l === "out" ? w / 2 + 1 : w * 0.32}
           >
             <animateMotion
               dur={`${du}s`}
@@ -387,7 +364,8 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
 
   const stations = scene.st.map((s) => {
     const sel = selected === s.id;
-    if (isCapsule(s)) return <Capsule key={s.id} c={s} selected={sel} on={on(s.l)} />;
+    if (isCapsule(s))
+      return <Capsule key={s.id} c={s} colours={colours} selected={sel} on={on(s.l)} />;
     if (isRing(s))
       return (
         <Ring key={s.id} c={s} colours={colours} selected={sel} on={on(s.l)} still={isStill} />
@@ -401,6 +379,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
         click={click}
         selected={sel}
         l={l}
+        colour={l ? lineColour(colours, l) : undefined}
         on={!!l && on(l)}
         at={land ? land(s.x) : undefined}
       />
@@ -414,7 +393,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
     <svg
       ref={ref}
       className={cx("mm", lit && "focus", intro && "ld")}
-      viewBox={`${X0} 0 ${Wd} ${H}`}
+      viewBox={`${X0} ${Y0} ${Wd} ${H}`}
       // One scene px is one css px, so a label reads at its real size. A glyph table sets its own.
       {...(width ? { width, height: (H / Wd) * width } : { width: Wd, height: H })}
       // The real size, for a frame that fits the map to its page (`.metro-fit`, `.metro-fill`).
@@ -430,10 +409,9 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
               <circle cx={1} cy={1} r={1} />
             </pattern>
           </defs>
-          <rect x={X0} width={Wd} height={H} fill={`url(#${grid})`} />
+          <rect x={X0} y={Y0} width={Wd} height={H} fill={`url(#${grid})`} />
         </>
       )}
-      {zones}
       {(scene.opened ?? []).map((o) => (
         <OpenedOutline key={`on${o.grp}`} o={o} colours={colours} />
       ))}
@@ -456,7 +434,6 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
         <Chip key={`ch${c.x}-${c.y}`} {...c} />
       ))}
       {stations}
-      {todo}
       {/* An open group's fold leaf sits under its circle, as the expand leaf did: in front. */}
       {(scene.opened ?? []).map((o) => (
         <OpenedTab key={`ok${o.grp}`} o={o} />

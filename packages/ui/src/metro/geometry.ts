@@ -15,22 +15,22 @@ import {
 
 /** Marker radius by kind. */
 export const RADIUS: Record<StationKind, number> = {
-  hub: 21,
-  att: 14,
-  time: 15,
-  cash: 16,
-  exit: 13,
-  plan: 14,
-  dec: 15,
-  race: 15,
+  hub: 22,
+  att: 15,
+  time: 16,
+  cash: 17,
+  exit: 14,
+  plan: 15,
+  dec: 16,
+  race: 16,
   par: 6,
-  ab: 14,
-  ok: 15,
-  link: 15,
+  ab: 15,
+  ok: 16,
+  link: 16,
 };
 
 /** The glyph size a marker holds. */
-export const GLYPH_SIZE: Partial<Record<StationKind, number>> = { hub: 22, exit: 15 };
+export const GLYPH_SIZE: Partial<Record<StationKind, number>> = { hub: 24, exit: 16 };
 
 /** Points of an octilinear route a to b: straight, then 45 degrees, then straight. */
 export function octPts(a: Point, b: Point, bend?: "a" | "b", reach = Infinity): Point[] {
@@ -281,8 +281,11 @@ type LabelStation = Pick<
  * and the diff tag. `Marker` draws from this, and `labelBoxes` measures from it.
  */
 export function labelOf(s: LabelStation) {
-  const { r, cy, top, h, w } = markerBox(s);
-  const bot = top + h;
+  const { r, cy, h, w, d, ...box } = markerBox(s);
+  // diamond: name clears its tips, not r
+  const diamond = s.t === "dec" || s.t === "race";
+  const top = diamond ? cy - d : box.top;
+  const bot = diamond ? cy + d : box.top + h;
   const p = s.p ?? "up";
   const anchor: "start" | "middle" | "end" =
     p === "right" ? "start" : p === "left" ? "end" : "middle";
@@ -529,8 +532,7 @@ export function sceneBoxes(scene: Pick<MetroScene, "st" | "tr">): SceneBoxes {
 
 /**
  * What a calm map must not do, as one line each. Empty when the map is calm: no name on a name or a
- * mark, no mark on a mark, no chip on a mark, a name or the hub, no track under the hub, one step between the
- * stations of a column, and the hub's inputs on its left and its offers on its right. The tests, the stories and the layout's own checks read this one copy.
+ * mark, no mark on a mark, no chip on a mark, a name or the hub, no track under the hub, and the hub's inputs on its left and its offers on its right. The tests, the stories and the layout's own checks read this one copy.
  */
 export function sceneClashes(scene: Pick<MetroScene, "st" | "tr" | "zones">): string[] {
   const out: string[] = [];
@@ -577,15 +579,5 @@ export function sceneClashes(scene: Pick<MetroScene, "st" | "tr" | "zones">): st
       out.push(`track ${r.id} leaves hub ${from.id} to the left`);
   }
 
-  // One step in a column: every gap between neighbours there is the same.
-  for (const [x0, x1, name] of scene.zones ?? []) {
-    const xs = [
-      ...new Set(marks.filter((s) => s.t !== "exit" && s.x >= x0 && s.x < x1).map((s) => s.x)),
-    ].sort((p, q) => p - q);
-    const steps = new Set<number>();
-    for (let i = 1; i < xs.length; i++)
-      steps.add(Math.round(((xs[i] as number) - (xs[i - 1] as number)) * 100) / 100);
-    if (steps.size > 1) out.push(`gaps in ${name} differ: ${[...steps].join(", ")}`);
-  }
   return out;
 }

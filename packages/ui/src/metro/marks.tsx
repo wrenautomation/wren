@@ -365,6 +365,7 @@ export function Marker({
   on,
   at,
   fold,
+  colour,
 }: {
   s: MarkStation;
   click?: boolean | undefined;
@@ -376,8 +377,12 @@ export function Marker({
   at?: number | undefined;
   /** A folded run: a stacked circle with its kind's glyph. Its count of steps is in the sub line. */
   fold?: Pick<CapsuleStation, "steps"> | undefined;
+  /** Its line's colour: ring and glyph take it (`--lc`). */
+  colour?: string | undefined;
 }) {
   const { x, t } = s;
+  const lag = delay(at).style;
+  const tint = colour ? ({ "--lc": colour } as CSSProperties) : undefined;
   const { r, cy, top, h, w, d } = markerBox(s);
   // A fold is a circle whatever its kind: it holds stations, it is none of them.
   const rx = fold ? r : markerBox(s).rx;
@@ -406,7 +411,7 @@ export function Marker({
         )}
         {...(s.mark ? { "data-mark": s.mark } : {})}
         {...(l ? { "data-l": l } : {})}
-        {...delay(at)}
+        {...(lag || tint ? { style: { ...lag, ...tint } } : {})}
         {...(click && s.id ? { "data-id": s.id, ...asButton(nameOf(s)) } : {})}
       >
         {stacked ? (
@@ -420,7 +425,7 @@ export function Marker({
             name={s.icon ?? STATION_GLYPH[t === "par" ? "att" : t]}
             x={x}
             y={cy}
-            size={GLYPH_SIZE[t] ?? 16}
+            size={GLYPH_SIZE[t] ?? 18}
           />
         )}
         {s.rule ? <RuleTag x={x} y={top - 14} t={s.rule} /> : null}
@@ -478,13 +483,16 @@ const foldedAttrs = (c: { id: string; grp?: string | undefined }) =>
  */
 export function Capsule({
   c,
+  colours,
   selected,
   on,
 }: {
   c: CapsuleStation;
+  colours?: Colours | undefined;
   selected?: boolean | undefined;
   on?: boolean | undefined;
 }) {
+  const colour = colours && c.l ? lineColour(colours, c.l) : undefined;
   // Under its name: its steps and the people in it (`fold.ts`); side by side, the platforms.
   const sub = c.s ?? (c.each ? undefined : foldSteps(c));
   const s: MarkStation = {
@@ -510,7 +518,7 @@ export function Capsule({
       // A capsule with no group opens nothing (a legend sample): no button.
       {...(c.grp ? asButton(marked(`${c.n}: ${foldIo(c)}. Open`, c.mark)) : {})}
     >
-      <Marker s={s} l={c.l} selected={selected} on={on} fold={c} />
+      <Marker s={s} l={c.l} selected={selected} on={on} fold={c} colour={colour} />
       {/* Bad stations inside (people drop out there): a red count on the circle's shoulder. */}
       {c.bad ? (
         <g className="bd" aria-label={`${c.bad} bad`}>
@@ -553,11 +561,11 @@ export function Ring({
         cx={c.x}
         cy={c.y}
         r={r}
-        style={{ stroke: lineColour(colours, c.l), strokeWidth: 7 }}
+        style={{ stroke: lineColour(colours, c.l), strokeWidth: 4 }}
       />
       {still ? null : (
         // One dot runs round the ring, as dots run round the open lap.
-        <circle className="mv" r={2.6}>
+        <circle className="mv" r={1.4}>
           <animateMotion
             dur="9s"
             repeatCount="indefinite"

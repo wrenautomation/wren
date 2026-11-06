@@ -14,7 +14,7 @@ import { GROWTH_RETAINER } from "./money-models.js";
 import { layoutView } from "./place.js";
 import { DIFF_VIEW, loopZoom, protocolZoom, TWINS_VIEW, ZOOM_SCENE, ZOOM_VIEW } from "./samples.js";
 import { isCapsule, isMark, type MetroScene } from "./types.js";
-import type { MetroView } from "./view.js";
+import { type MetroView, oneBand } from "./view.js";
 
 const NONE = new Set<string>();
 const at = (nodes: Parameters<typeof openSet>[0], depth: number, open = {}) =>
@@ -143,8 +143,8 @@ describe("a fold keeps the diff marks", () => {
 
   it("marks the capsule of a folded run", () => {
     const caps = scene.st.filter(isCapsule);
-    expect(caps.find((c) => c.id === "web@1")?.mark).toBe("added");
-    expect(caps.find((c) => c.id === "gp@1")?.mark).toBe("changed");
+    expect(caps.find((c) => c.id === "web@0")?.mark).toBe("added");
+    expect(caps.find((c) => c.id === "gp@0")?.mark).toBe("changed");
   });
 
   it("keeps the mark of a track that reattaches to a capsule", () => {
@@ -224,7 +224,7 @@ describe("viewScene", () => {
 });
 
 describe("side-by-side stations", () => {
-  const key = "tpl:post@so@Marketing";
+  const key = "tpl:post@so@";
   const z = viewZoom(TWINS_VIEW);
   const deepest = (open: Record<string, boolean> = {}) =>
     z.scene(at(z.nodes, fullDepth(z.nodes), open));
@@ -256,7 +256,7 @@ describe("side-by-side stations", () => {
       ),
     };
     expect(
-      twinRuns(view)
+      twinRuns(oneBand(view))
         .get(key)
         ?.m.map((s) => s.id),
     ).not.toContain("px");
@@ -283,7 +283,7 @@ describe("side-by-side stations", () => {
   it("folds twins first, so a node folded at depth 0 takes the twins in", async () => {
     const top = await z.scene(NONE);
     expect(top.st.some((s) => s.id === key)).toBe(false);
-    expect(top.st.some((s) => s.id === "so@Marketing")).toBe(true);
+    expect(top.st.some((s) => s.id === "so@")).toBe(true);
   });
 });
 
@@ -381,11 +381,5 @@ describe("the hub in a group", () => {
     expect(top.tr.find((t) => t.a === "mkt")?.l).toBe("gp");
     expect(sceneClashes(top)).toEqual([]);
     expect((await z.scene(allOpen(z.nodes))).st.map((s) => s.id)).toContain("hub");
-  });
-
-  it("drops a column whose stations all sit in a fold from another column", async () => {
-    const zones = (await z.scene(at(z.nodes, 0))).zones?.map((q) => q[2]);
-    expect(zones).not.toContain("Money");
-    expect((await z.scene(allOpen(z.nodes))).zones?.map((q) => q[2])).toContain("Money");
   });
 });

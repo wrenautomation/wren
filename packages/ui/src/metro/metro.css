@@ -22,9 +22,9 @@
   stroke-linejoin: round;
 }
 .mm .trk.plan {
-  stroke-dasharray: 1 12;
+  stroke-dasharray: 1 8;
   /* biome-ignore lint/complexity/noImportantStyles: a planned line is thin, whatever its job; the weight is an inline style. */
-  stroke-width: 7px !important;
+  stroke-width: 4px !important;
 }
 /* A loop back: thin and dashed in its line's colour, under the line it returns along. */
 .mm .trk.back {
@@ -32,7 +32,7 @@
 }
 .mm .xfer {
   fill: none;
-  stroke-width: 4;
+  stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -47,14 +47,15 @@
 .mm .spur {
   fill: none;
   stroke: var(--ui-ink-3);
-  stroke-width: 3;
+  stroke-width: 2;
   stroke-linecap: round;
-  stroke-dasharray: 2 5;
+  stroke-dasharray: 2 4;
   opacity: 0.8;
 }
+/* A stop takes its line's colour (`--lc`, set per marker); no line: ink. */
 .mm .mk {
-  filter: drop-shadow(0 1px 1.5px color-mix(in srgb, var(--ui-ink) 22%, transparent))
-    drop-shadow(0 3px 8px color-mix(in srgb, var(--ui-ink) 10%, transparent));
+  --lc: var(--ui-ink-2);
+  filter: drop-shadow(0 1px 1.5px color-mix(in srgb, var(--ui-ink) 14%, transparent));
 }
 .mm .mk .ic {
   fill: none;
@@ -66,23 +67,24 @@
 }
 .mm .m-hub .ic {
   stroke: var(--ui-on-accent);
-  stroke-width: 2.4;
+  stroke-width: 2;
 }
 .mm .m-att .b {
   fill: var(--ui-paper);
-  stroke: var(--ui-ink-3);
+  stroke: var(--lc);
   stroke-width: 1.5;
 }
 .mm .m-att .ic {
-  stroke: var(--ui-ink-2);
-  stroke-width: 2.6;
+  stroke: var(--lc);
+  stroke-width: 2;
 }
+/* Filled: an action. */
 .mm .m-time .b {
-  fill: var(--ui-ink);
+  fill: var(--lc);
 }
 .mm .m-time .ic {
   stroke: var(--ui-paper);
-  stroke-width: 2.8;
+  stroke-width: 2.2;
 }
 /* Green is money, everywhere. */
 .mm .m-cash .b {
@@ -90,7 +92,7 @@
 }
 .mm .m-cash .ic {
   stroke: var(--ui-paper);
-  stroke-width: 2.8;
+  stroke-width: 2.2;
 }
 .mm .m-exit .b {
   fill: var(--ui-paper);
@@ -99,7 +101,7 @@
 }
 .mm .m-exit .ic {
   stroke: var(--ui-ink-3);
-  stroke-width: 2.8;
+  stroke-width: 2.2;
 }
 .mm .m-exit.bad .b {
   fill: var(--ui-bad);
@@ -119,7 +121,7 @@
 }
 .mm .m-plan .ic {
   stroke: var(--ui-ink-3);
-  stroke-width: 2.6;
+  stroke-width: 2;
 }
 .mm .mk .ring {
   fill: none;
@@ -262,17 +264,6 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.mm .zl {
-  stroke: var(--ui-hair);
-  stroke-width: 1;
-  stroke-dasharray: 2 4;
-}
-.mm .zt {
-  font: 700 9.5px var(--ui-font);
-  letter-spacing: 0.1em;
-  fill: var(--ui-ink-3);
-  opacity: 0.85;
-}
 /* A lap's inside: a faint wash of its line colour, under the tracks. */
 .mm .field {
   stroke: none;
@@ -318,8 +309,9 @@
 /* A fold draws stacked: one mark that holds several. */
 .mm .cap .stk {
   fill: var(--ui-paper);
-  stroke: var(--ui-ink-3);
-  stroke-width: 1.5;
+  stroke: var(--lc);
+  stroke-opacity: 0.6;
+  stroke-width: 1.25;
 }
 .mm .cap:hover .fl .lf,
 .mm .cap:focus-visible .fl .lf {
@@ -439,9 +431,8 @@
    node back into its circle. */
 .mm .opn {
   fill: none;
-  stroke-width: 1.5;
-  stroke-dasharray: 5 4;
-  opacity: 0.7;
+  stroke-width: 1;
+  opacity: 0.55;
   pointer-events: none;
 }
 .mm .opn.box {
@@ -536,19 +527,19 @@
 }
 .mm .m-dec .b {
   fill: var(--ui-paper);
-  stroke: var(--ui-ink);
-  stroke-width: 2.2;
+  stroke: var(--lc);
+  stroke-width: 1.5;
 }
 .mm .m-dec .ic {
-  stroke: var(--ui-ink);
-  stroke-width: 2.6;
+  stroke: var(--lc);
+  stroke-width: 2;
 }
 .mm .m-race .b {
-  fill: var(--ui-ink);
+  fill: var(--lc);
 }
 .mm .m-race .ic {
   stroke: var(--ui-paper);
-  stroke-width: 2.4;
+  stroke-width: 2;
 }
 .mm .m-par .b {
   fill: var(--ui-ink);
@@ -566,34 +557,35 @@
 }
 .mm .m-ab .b {
   fill: var(--ui-paper);
-  stroke: var(--ui-ink-2);
-  stroke-width: 1.8;
+  stroke: var(--lc);
+  stroke-width: 1.5;
   stroke-dasharray: 3 2.5;
 }
 .mm .m-ab .ic {
-  stroke: var(--ui-ink-2);
-  stroke-width: 2.6;
+  stroke: var(--lc);
+  stroke-width: 2;
 }
 .mm .m-ok .b {
   fill: var(--ui-active);
 }
 .mm .m-ok .ic {
   stroke: var(--ui-on-accent);
-  stroke-width: 2.4;
+  stroke-width: 2;
 }
 .mm .m-link .b {
   fill: var(--ui-paper);
-  stroke: var(--ui-ink);
-  stroke-width: 2;
+  stroke: var(--lc);
+  stroke-width: 1.5;
 }
 .mm .m-link .stk {
   fill: var(--ui-paper);
-  stroke: var(--ui-ink-3);
-  stroke-width: 1.5;
+  stroke: var(--lc);
+  stroke-opacity: 0.6;
+  stroke-width: 1.25;
 }
 .mm .m-link .ic {
-  stroke: var(--ui-ink);
-  stroke-width: 2.6;
+  stroke: var(--lc);
+  stroke-width: 2;
 }
 .mm .by circle {
   fill: var(--ui-paper);
@@ -725,11 +717,6 @@
   opacity: 0;
   animation: mm-fade 0.6s 1.4s forwards;
 }
-.mm.ld .zt,
-.mm.ld .zl {
-  opacity: 0;
-  animation: mm-fade 0.6s 0.1s forwards;
-}
 .mm.ld .mk {
   opacity: 0;
   transform-box: fill-box;
@@ -789,9 +776,7 @@
   }
   .mm.ld .mk,
   .mm.ld .lab,
-  .mm.ld .sub,
-  .mm.ld .zt,
-  .mm.ld .zl {
+  .mm.ld .sub {
     /* biome-ignore lint/complexity/noImportantStyles: the per-mark delay is an inline style; reduced motion must win over it. */
     animation: mm-fade 0.3s forwards !important;
   }
@@ -954,5 +939,187 @@
   }
   .metro-skeleton-spin {
     animation-duration: 2.4s;
+  }
+}
+
+/* Layers (experiment): the floor on a base plate, each closed fold lifted onto its own plate. */
+.mlay {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+.mlay-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 0 clamp(12px, 2.5vw, 24px) 8px;
+}
+.mlay-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 13.5px;
+}
+.mlay-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ui-ink-3);
+}
+.mlay-crumbs [aria-current="true"],
+.mlay-here {
+  color: var(--ui-ink);
+  font-weight: 600;
+}
+.mlay-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ui-ink-2);
+}
+.mlay-line select {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--ui-edge);
+  border-radius: 8px;
+  background: var(--ui-paper);
+  color: var(--ui-ink);
+  font: inherit;
+}
+.mlay-view {
+  position: relative;
+  flex: 1;
+  min-height: 420px;
+  overflow: hidden;
+  perspective: 2200px;
+  perspective-origin: 50% 30%;
+  touch-action: none;
+  cursor: grab;
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    color-mix(in srgb, var(--ui-active) 6%, var(--ui-paper)),
+    var(--ui-paper)
+  );
+}
+.mlay-view:active {
+  cursor: grabbing;
+}
+.mlay-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-style: preserve-3d;
+  will-change: transform;
+  transition: transform 0.9s var(--ui-ease);
+}
+.mlay-stage.drag {
+  transition: none;
+}
+.mlay-floor {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: var(--ui-paper);
+  box-shadow:
+    0 0 0 1px var(--ui-hair),
+    0 30px 60px -30px color-mix(in srgb, #000 35%, transparent);
+}
+.mlay-floor svg,
+.mlay-plate svg {
+  display: block;
+}
+/* Shadows and filters on every mark cost a lot inside a 3D layer: none here. */
+.mlay .mk,
+.mlay .xp {
+  filter: none;
+}
+.mlay-plate {
+  --lift: 0;
+}
+.mlay-stage.up .mlay-plate {
+  --lift: 1;
+}
+.mlay-plate {
+  transform: translateZ(calc(var(--z) * var(--lift)));
+  position: absolute;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  /* A step off the floor in both looks; dark loses a shadow, so the top edge is lit too. */
+  background: color-mix(in srgb, var(--ui-paper) 95%, var(--ui-ink));
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition:
+    transform 0.9s var(--ui-ease),
+    box-shadow 0.2s var(--ui-ease);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ui-active) 40%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--ui-ink) 14%, transparent),
+    0 24px 40px -18px color-mix(in srgb, var(--ui-shade, #000) 55%, transparent);
+}
+.mlay-plate:hover,
+.mlay-plate:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 1.5px var(--ui-active),
+    0 30px 50px -18px color-mix(in srgb, #000 50%, transparent);
+}
+.mlay-tag {
+  position: absolute;
+  left: 10px;
+  top: 8px;
+  font: 600 12px var(--ui-font);
+  color: var(--ui-ink-2);
+}
+/* A plate's place on the floor: shows only while the plate floats. */
+.mlay-foot {
+  position: absolute;
+  border: 1px dashed color-mix(in srgb, var(--ui-active) 55%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ui-active) 4%, transparent);
+  opacity: 0;
+  transition: opacity 0.5s var(--ui-ease);
+}
+.mlay-stage.up .mlay-foot {
+  opacity: 1;
+}
+/* Folded back, a plate is part of the flat map: no edge, no shadow. */
+.mlay-stage:not(.up) .mlay-plate:not(:hover, :focus-visible) {
+  box-shadow: none;
+}
+.mlay-stage:not(.up) .mlay-tag {
+  opacity: 0;
+}
+.mlay-ctl {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+}
+.mlay-hint {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  font-size: 12.5px;
+  color: var(--ui-ink-3);
+}
+.mlay-fail {
+  padding: 20px;
+  color: var(--ui-ink-2);
+}
+@media (max-width: 600px) {
+  .mlay-hint {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mlay-stage,
+  .mlay-plate,
+  .mlay-drop {
+    transition: none;
   }
 }

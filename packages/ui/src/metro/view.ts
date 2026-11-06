@@ -142,3 +142,21 @@ export interface MetroView {
 }
 
 export const DEFAULT_COLUMNS = ["Marketing", "Sales", "Delivery", "Money"];
+
+const BANDED = new WeakMap<MetroView, MetroView>();
+/**
+ * Columns are gone (2026-11-06, designs/2026-11-06-orrery-business-look.md): every station sits in
+ * one band, so placement follows the tracks only. `column` stays in the data until the schema drops it.
+ */
+export function oneBand(view: MetroView): MetroView {
+  if (view.columns?.length === 1 && view.columns[0] === "") return view;
+  const hit = BANDED.get(view);
+  if (hit) return hit;
+  const out: MetroView = {
+    ...view,
+    columns: [""],
+    stations: view.stations.map(({ spans: _, ...s }) => ({ ...s, column: "" })),
+  };
+  BANDED.set(view, out);
+  return out;
+}

@@ -21,7 +21,13 @@ import {
   type Point,
   type SceneStation,
 } from "./types.js";
-import { DEFAULT_COLUMNS, type MetroView, type ViewStation, type ViewTrack } from "./view.js";
+import {
+  DEFAULT_COLUMNS,
+  type MetroView,
+  oneBand,
+  type ViewStation,
+  type ViewTrack,
+} from "./view.js";
 
 /** The folds a hand-composed scene reads: one flag per node, true when open. */
 export type Flags = Readonly<Record<string, boolean | undefined>>;
@@ -466,7 +472,8 @@ const trees = new WeakMap<MetroView, ViewTree>();
  * stations side by side. A group sits in the line · column its stations share; one that spans
  * several sits in the map itself. An exit folds with its source.
  */
-export function viewTree(view: MetroView): ViewTree {
+export function viewTree(given: MetroView): ViewTree {
+  const view = oneBand(given);
   const known = trees.get(view);
   if (known) return known;
   const twins = twinRuns(view);
@@ -484,7 +491,10 @@ export function viewTree(view: MetroView): ViewTree {
   const lineCol = (s: ViewStation): FoldNode => {
     const line = lines.get(s.line);
     const n = line?.label ?? line?.offer ?? s.line;
-    return { id: `${s.line}@${s.column}`, label: line?.tier === "out" ? n : `${n} · ${s.column}` };
+    return {
+      id: `${s.line}@${s.column}`,
+      label: line?.tier === "out" || !s.column ? n : `${n} · ${s.column}`,
+    };
   };
   // The hub joins every line, so it has no line · column: it folds only inside a group.
   const leaves = view.stations.filter((s) => s.kind !== "exit" && (s.kind !== "hub" || s.group));
@@ -531,13 +541,36 @@ export function viewTree(view: MetroView): ViewTree {
   return out;
 }
 
-/** Laid-out scenes per view, by step and open set: a scene laid out once comes back at once. */
-const SCENES = new WeakMap<MetroView, Map<string, MetroScene | Promise<MetroScene>>>();
+/**
+ * Laid-out scenes per view content, by step and open set: a scene laid out once comes back at once.
+ * Keyed by content, not object: each read of a page makes a new, equal view, and must not lay out
+ * again. The last few views stay; a page holds one or two.
+ */
+const SCENES = new Map<string, Map<string, MetroScene | Promise<MetroScene>>>();
+const KEEP = 6;
+const KEYS = new WeakMap<MetroView, string>();
+
+function scenesOf(view: MetroView) {
+  let key = KEYS.get(view);
+  if (key === undefined) {
+    key = JSON.stringify(view);
+    KEYS.set(view, key);
+  }
+  const done = SCENES.get(key) ?? new Map<string, MetroScene | Promise<MetroScene>>();
+  // Newest last; the oldest goes first.
+  SCENES.delete(key);
+  SCENES.set(key, done);
+  for (const old of SCENES.keys()) {
+    if (SCENES.size <= KEEP) break;
+    SCENES.delete(old);
+  }
+  return done;
+}
 
 /** Zoom for a view: each fold folds the view first, then lays it out, so a fold takes one place. */
-export function viewZoom(view: MetroView, step?: number): MetroZoom {
-  const done = SCENES.get(view) ?? new Map<string, MetroScene | Promise<MetroScene>>();
-  SCENES.set(view, done);
+export function viewZoom(given: MetroView, step?: number): MetroZoom {
+  const view = oneBand(given);
+  const done = scenesOf(view);
   return {
     nodes: viewTree(view).nodes,
     scene: (open) => {
@@ -610,8 +643,12 @@ export async function viewScene(
     }
   // An open lap draws its own loop: no frame, no pill.
   const laps = new Map((view.groups ?? []).filter((g) => g.lap).map((g) => [g.id, g]));
+  // A whole line needs no frame: the line is its own outline.
+  const whole = new Set(view.stations.map((s) => `${s.line}@${s.column}`));
   const boxed = new Set(
-    shown.filter((n) => !laps.has(n.id) && columns.get(n.id)?.size === 1).map((n) => n.id),
+    shown
+      .filter((n) => !laps.has(n.id) && !whole.has(n.id) && columns.get(n.id)?.size === 1)
+      .map((n) => n.id),
   );
   const boxOf = (k: string | undefined): string | undefined => {
     for (let at = k; at; at = by.get(at)?.parent) if (boxed.has(at)) return at;

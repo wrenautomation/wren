@@ -169,22 +169,6 @@ describe("diff marks", () => {
   });
 });
 
-describe("an empty column", () => {
-  it("shows a planned stop to map, on the row through it", async () => {
-    // This view names Delivery, and none of its stations is in it.
-    expect(DIFF_VIEW.stations.some((s) => s.column === "Delivery")).toBe(false);
-    await warm(DIFF_VIEW);
-    const html = renderToStaticMarkup(<MetroMap view={DIFF_VIEW} depth={9} intro={false} />);
-    expect(html.match(/>To map<\/text>/g)).toHaveLength(1);
-    // Without that column, nothing is left to map.
-    const full = { ...DIFF_VIEW, columns: ["Marketing", "Sales", "Money"] };
-    await warm(full);
-    expect(renderToStaticMarkup(<MetroMap view={full} depth={9} intro={false} />)).not.toContain(
-      ">To map</text>",
-    );
-  });
-});
-
 describe("the hub", () => {
   it("draws its count under its label", async () => {
     await warm(DIFF_VIEW);
@@ -271,8 +255,9 @@ describe("MetroMap", () => {
     expect(html).not.toContain("metro-bar");
   });
 
-  it("lays out a view and gives every station an accessible name", () => {
+  it("lays out a view and gives every station an accessible name", async () => {
     for (const view of SAMPLE_VIEWS) {
+      await warm(view);
       const html = renderToStaticMarkup(<MetroMap view={view} depth={9} intro={false} />);
       const found = names(html);
       expect(found.length, view.title).toBeGreaterThan(0);

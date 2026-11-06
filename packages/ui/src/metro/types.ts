@@ -264,6 +264,8 @@ export interface MetroScene {
   /** The left edge of what shows and its width. A focused scene crops to its part. */
   x0?: number;
   w?: number;
+  /** The top of what shows (a layer plate crops to its band); `h` is then the band's height. */
+  y0?: number;
   h: number;
   zones?: Zone[];
   st: SceneStation[];
@@ -296,4 +298,4 @@ export function lineColour(scene: Pick<MetroScene, "colours">, l: LineKey): stri
 }
 
 /** Line weight in px. */
-export const WEIGHT: Record<Weight, number> = { out: 3, front: 7, core: 12 };
+export const WEIGHT: Record<Weight, number> = { out: 2, front: 3, core: 5 };

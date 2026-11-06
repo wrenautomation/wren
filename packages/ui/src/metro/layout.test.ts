@@ -70,19 +70,6 @@ describe("layoutView", () => {
     }
   });
 
-  it("puts stations in column order, left to right", async () => {
-    const s = await layoutView(COLD_OUTBOUND_VIEW);
-    const z = s.zones ?? [];
-    expect(z.map((r) => r[2])).toEqual(["Marketing", "Sales", "Delivery", "Money"]);
-    for (let i = 1; i < z.length; i++) expect(z[i]?.[0]).toBe(z[i - 1]?.[1]);
-    for (const m of s.st) {
-      const col = COLD_OUTBOUND_VIEW.stations.find((v) => v.id === m.id)?.column;
-      const zone = z.find((r) => r[2] === col);
-      expect(m.x, m.id).toBeGreaterThanOrEqual(zone?.[0] ?? 0);
-      expect(m.x, m.id).toBeLessThan(zone?.[1] ?? 0);
-    }
-  });
-
   it("sits the hub after the stations that lead into it, round and inline with one line each side", async () => {
     const s = await layoutView(COLD_OUTBOUND_VIEW);
     const hub = at(s, "hub");
@@ -191,28 +178,6 @@ describe("layoutView", () => {
     const s = await layoutView(v);
     expect(s.tr).toHaveLength(COLD_OUTBOUND_VIEW.tracks.length);
     expect(s.tr.some((t) => t.b === "ghost")).toBe(false);
-  });
-
-  it("appends a column that the default columns do not list", async () => {
-    const v: MetroView = {
-      title: "x",
-      lines: [{ id: "a", tier: "core", colour: 0, offer: "A" }],
-      stations: [
-        { id: "s1", kind: "att", line: "a", column: "One" },
-        { id: "s2", kind: "cash", line: "a", column: "Two" },
-      ],
-      tracks: [{ from: "s1", to: "s2", by: "system" }],
-    };
-    const s = await layoutView(v);
-    expect(s.zones?.map((z) => z[2])).toEqual([
-      "Marketing",
-      "Sales",
-      "Delivery",
-      "Money",
-      "One",
-      "Two",
-    ]);
-    expect(at(s, "s1").x).toBeLessThan(at(s, "s2").x ?? 0);
   });
 
   it("keeps stations on one row apart and never lets two stations overlap", async () => {
@@ -352,7 +317,6 @@ const KIND = {
   names: /^name of /,
   chips: /^chip /,
   hub: /^track .* (passes under hub|enters hub|leaves hub)|^hub .* spans row/,
-  gaps: /^gaps in /,
 } as const;
 const clashesOf = (scene: MetroScene, kind: keyof typeof KIND) =>
   sceneClashes(scene).filter((c) => KIND[kind].test(c));
@@ -372,10 +336,6 @@ describe("a calm map", () => {
 
   it.each(DRAWN)("%s: no task chip sits on a mark, the hub or a name", async (_t, v) => {
     expect(clashesOf(await layoutView(v), "chips")).toEqual([]);
-  });
-
-  it.each(DRAWN)("%s: gaps in each column are equal", async (_t, v) => {
-    expect(clashesOf(await layoutView(v), "gaps")).toEqual([]);
   });
 
   it.each(DRAWN)(
@@ -405,15 +365,6 @@ describe("a calm map", () => {
     const hub = at(s, "hub");
     expect(at(s, "yt").x).toBeLessThan(hub.x);
     expect(at(s, "lan").x).toBeGreaterThan(hub.x);
-  });
-
-  it("gives a column with no station one step, so zones stay steady from map to map", async () => {
-    const s = await layoutView(LATE_VIEW);
-    const empty = (s.zones ?? []).filter(([a, b]) => {
-      return !s.st.some((m) => isMark(m) && m.x > a && m.x < b);
-    });
-    expect(empty.length).toBeGreaterThan(0);
-    for (const [a, b, name] of empty) expect(b - a, name).toBeGreaterThanOrEqual(STEP);
   });
 
   it.each(DRAWN)("%s: a task chip keeps 12 px from every mark, on both sides", async (_t, v) => {
