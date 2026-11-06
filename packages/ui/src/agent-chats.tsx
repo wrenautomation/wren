@@ -2,7 +2,12 @@
  * The asker's chats beside the thread (designs/2026-11-04-multi-user-runtime.md): day heads, the
  * time on the right, the open one marked by a bar and a fill.
  */
+import { useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { cx } from "./format.js";
+import { tipProps } from "./hint.js";
+import { Icon } from "./icons.js";
+import { PANEL_ACT } from "./side-panel.js";
 
 /** A stored chat, as the relay lists it. */
 export interface AgentChatRow {
@@ -70,10 +75,10 @@ export function AgentChats({
                       onOpen(r);
                     }}
                     className={cx(
-                      "group/chat relative flex items-baseline gap-3 rounded-[8px] py-2 pr-2.5 pl-3 no-underline transition-[background-color,color] duration-150",
-                      "before:absolute before:inset-y-2 before:left-0 before:w-[2px] before:rounded-full before:bg-(--ui-ink) before:opacity-0 before:transition-opacity before:duration-150",
+                      "group/chat relative flex items-baseline gap-3 rounded-[8px] py-2 pr-2.5 pl-3 no-underline transition-[background-color,color] duration-150 focus-visible:outline-offset-[-2px]",
+                      // the open one by its fill and weight: no side bar (William, 11-06)
                       on
-                        ? "bg-(--ui-fill) text-(--ui-ink) before:opacity-100"
+                        ? "bg-(--ui-fill) text-(--ui-ink)"
                         : "text-(--ui-ink) hover:bg-(--ui-fill)",
                     )}
                   >
@@ -96,5 +101,52 @@ export function AgentChats({
         </section>
       ))}
     </div>
+  );
+}
+
+/** The side panel's chat switcher: the Ask page's list, off a head action. */
+export function AgentChatsMenu({
+  rows,
+  open,
+  hrefOf,
+  onOpen,
+}: {
+  /** undefined while the list reads. */
+  rows: readonly AgentChatRow[] | undefined;
+  open: string | null;
+  hrefOf: (r: AgentChatRow) => string;
+  onOpen: (r: AgentChatRow) => void;
+}) {
+  const [shown, setShown] = useState(false);
+  return (
+    <Popover open={shown} onOpenChange={setShown}>
+      <PopoverTrigger aria-label="Chats" {...tipProps("Chats")} className={PANEL_ACT}>
+        <Icon name="list" size={16} />
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        side="bottom"
+        aria-label="Chats"
+        // a click opens it unfocused: no ring on the first row
+        initialFocus={(t) => t === "keyboard"}
+        className="grid max-h-[min(70dvh,520px)] w-[min(340px,calc(100vw-24px))] gap-0 overflow-hidden bg-(--ui-paper) p-1.5 pt-2.5 text-(--ui-ink)"
+      >
+        {rows?.length ? (
+          <AgentChats
+            rows={rows}
+            open={open}
+            hrefOf={hrefOf}
+            onOpen={(r) => {
+              setShown(false);
+              onOpen(r);
+            }}
+          />
+        ) : (
+          <p className="m-0 px-2.5 pb-1.5 text-[13px] text-(--ui-ink-3)">
+            {rows ? "No chats yet." : "Reading chats…"}
+          </p>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }

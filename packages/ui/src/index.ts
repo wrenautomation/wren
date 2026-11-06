@@ -28,7 +28,7 @@ export {
   useLastWrite,
 } from "./action.js";
 export type { LinkPreview } from "./agent-cards.js";
-export { type AgentChatRow, AgentChats } from "./agent-chats.js";
+export { type AgentChatRow, AgentChats, AgentChatsMenu } from "./agent-chats.js";
 export {
   type AgentCommand,
   AgentPick,

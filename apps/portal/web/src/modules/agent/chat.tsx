@@ -325,13 +325,16 @@ export function AgentChat({
         above={<AgentTasks tasks={a.tasks} onStop={a.stopTask} onOutput={a.taskOutput} />}
         commands={a.commands}
         note={
-          a.status.model ? (
-            <AgentStatus
-              info={{ ...a.status, model: modelName(a.status.model) }}
-              onCompact={a.running ? undefined : () => a.send("/compact")}
-              onAutoCompact={(on) => picks.set({ autoCompact: on })}
-            />
-          ) : undefined
+          // before the first turn: the picks, as the terminal shows them at start
+          <AgentStatus
+            info={{
+              ...a.status,
+              model: modelName(a.status.model ?? model),
+              effort: a.status.effort ?? (picks.effort || a.baseEffort),
+            }}
+            onCompact={a.running || !a.status.context ? undefined : () => a.send("/compact")}
+            onAutoCompact={(on) => picks.set({ autoCompact: on })}
+          />
         }
       />
     </>

@@ -322,3 +322,21 @@ How it holds:
 - A probe is headless and owner-wide: no run token, no upload folder. The list is cut per person when read.
 - Each session's `initialize` and `commands_changed` still refresh the store.
 - Hosted: a relay in a client's container calls `prime()` at boot. `CommandStore` takes a database store there in place of the file.
+
+## Decision 16: the status line before the first turn (11-06, WA-1146)
+William, 11-06: the status line showed only after the first turn, and chats compacted near 967k, not at his terminal's 240k.
+
+Compact window: relay children run with `--setting-sources ""`, so the host's `autoCompactWindow` and per-model `modelSettings` never reached them. `wren agent serve` now reads only those keys from `~/.claude/settings.json` and passes them in `--settings` (`compactOf`, `launch.ts`). The CLI's `maxTokens` is then the terminal's window: 240k for Sonnet, 1M with auto-compact off.
+
+Meter before a session:
+
+| Option | For | Against |
+|---|---|---|
+| A. The command probe also sends `set_model` and `get_context_usage` (summary) per model; `GET /s/<setup>/context` serves it | the CLI's own numbers; no model call; one probe start serves both | a few control calls more per setup per serve |
+| B. Open the session when the chat opens | exact live numbers | a live child per open tab, held against the session cap |
+| C. The page guesses the window from the model | no relay code | no "used" figure; drifts from the host's settings |
+
+Chosen (session): A, for the same reason as Decision 15.
+- The meter shows `used/max` with auto-compact on and `used/raw` with it off.
+- A failed `set_model` drops that model's meter, so a meter never carries the last model's numbers.
+- 5h and 7d are the account's. The page keeps the last seen values with their reset times and shows them until each resets. Before any turn on a fresh browser, they stay hidden, as in the terminal.

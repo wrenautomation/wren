@@ -1,0 +1,30 @@
+{
+  "sonnet": {
+    "used": 18400,
+    "max": 240000,
+    "raw": 1000000,
+    "compactAt": 207000,
+    "autoCompact": true
+  },
+  "haiku": {
+    "used": 18400,
+    "max": 200000,
+    "raw": 200000,
+    "compactAt": 167000,
+    "autoCompact": true
+  },
+  "opus": {
+    "used": 18400,
+    "max": 250000,
+    "raw": 1000000,
+    "compactAt": 217000,
+    "autoCompact": true
+  },
+  "fable": {
+    "used": 18400,
+    "max": 250000,
+    "raw": 1000000,
+    "compactAt": 217000,
+    "autoCompact": true
+  }
+}

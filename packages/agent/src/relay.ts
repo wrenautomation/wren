@@ -95,11 +95,43 @@ const FILES_PATH = /^\/s\/([\w-]+)\/files$/;
 const UPLOAD_CAP = 500 * 1024 * 1024;
 const FILE_PATH = /^\/s\/([\w-]+)\/file$/;
 const COMMANDS_PATH = /^\/s\/([\w-]+)\/commands$/;
+const CONTEXT_PATH = /^\/s\/([\w-]+)\/context$/;
 const RUNS_PATH = /^\/s\/([\w-]+)\/runs(?:\/([\w-]+)(\/stop)?)?$/;
 const RUN_MS = 45 * 60_000;
 const PROBE_MS = 20_000;
 /** The command probe: the full list, cut per person when read. */
 const PROBER: Person = { who: "relay", owner: true };
+
+/** A fresh chat's meter per model, as `get_context_usage` gives it before the first turn. */
+export interface Meter {
+  used: number;
+  /** The window shown: the auto-compact window while it is on. */
+  max: number;
+  /** The model's own window: the meter's top with auto-compact off. */
+  raw: number;
+  compactAt?: number | undefined;
+  autoCompact: boolean;
+}
+interface Probed {
+  commands: unknown[];
+  meters: Record<string, Meter>;
+}
+
+function meterIn(body: unknown): Meter | undefined {
+  if (typeof body !== "object" || !body) return undefined;
+  const b = body as Record<string, unknown>;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+  const used = n(b.totalTokens);
+  const max = n(b.maxTokens);
+  if (used === undefined || !max) return undefined;
+  return {
+    used,
+    max,
+    raw: n(b.rawMaxTokens) ?? max,
+    compactAt: n(b.autoCompactThreshold),
+    autoCompact: b.isAutoCompactEnabled === true,
+  };
+}
 const RUNS_QUEUED = 12;
 const RUNS_KEPT = 100;
 const RESULT_CAP = 8000;
@@ -148,12 +180,13 @@ export const tokenMatches = (got: string, token: string): boolean => {
 export function relay(o: RelayOptions): {
   server: WebSocketServer;
   close: () => Promise<void>;
-  /** Fresh command lists for every setup, one CLI at a time: a new chat's `/` menu before any session. */
+  /** Fresh command lists and meters for every setup, one CLI at a time: a new chat's `/` menu and status line before any session. */
   prime: () => Promise<void>;
 } {
   const log = o.log ?? (() => {});
   const ledger = o.ledger ?? memoryLedger();
   const commandStore = o.commands ?? memoryCommands();
+  const meterStore = new Map<string, Record<string, Meter>>();
   const live = new Set<ChildProcess>();
   const http = createServer((req, res) => void answer(req, res));
   const server = new WebSocketServer({
@@ -375,12 +408,15 @@ export function relay(o: RelayOptions): {
     return child;
   }
 
-  const probing = new Map<string, Promise<unknown[] | undefined>>();
-  /** The setup's commands from its CLI: `initialize` alone makes no model call. One per setup at a time. */
-  function probe(setup: Setup): Promise<unknown[] | undefined> {
+  const probing = new Map<string, Promise<Probed | undefined>>();
+  /**
+   * The setup's commands, then each model's fresh meter, from its CLI: `initialize`, `set_model` and
+   * `get_context_usage` (summary) make no model call. One per setup at a time.
+   */
+  function probe(setup: Setup): Promise<Probed | undefined> {
     const was = probing.get(setup.name);
     if (was) return was;
-    const p = new Promise<unknown[] | undefined>((done) => {
+    const p = new Promise<Probed | undefined>((done) => {
       // a probe holds a slot like a chat: skipped when full, the next session's list fills it
       if (live.size >= (o.maxSessions ?? 3)) return done(undefined);
       let child: ChildProcess;
@@ -390,33 +426,59 @@ export function relay(o: RelayOptions): {
         log(`${setup.name}: command probe failed: ${e instanceof Error ? e.message : e}`);
         return done(undefined);
       }
-      const end = (list?: unknown[]) => {
+      const models = [...new Set([setup.model, ...(setup.models ?? [])])];
+      let commands: unknown[] | undefined;
+      const meters: Record<string, Meter> = {};
+      const failed = new Set<string>();
+      const end = () => {
         clearTimeout(timer);
         stop(child);
-        done(list);
+        if (Object.keys(meters).length) meterStore.set(setup.name, meters);
+        done(commands && { commands, meters });
       };
       const timer = setTimeout(() => {
         log(`${setup.name}: command probe got no answer in ${PROBE_MS / 1000} s`);
         end();
       }, PROBE_MS);
-      child.on("exit", () => end());
-      child.on("error", () => end());
+      child.on("exit", end);
+      child.on("error", end);
+      const ask = (request_id: string, request: Record<string, unknown>) =>
+        child.stdin?.write(`${JSON.stringify({ type: "control_request", request_id, request })}\n`);
       if (child.stdout)
         createInterface({ input: child.stdout }).on("line", (line) => {
-          let listed: unknown[] | undefined;
+          let frame: {
+            type?: string;
+            response?: { subtype?: string; request_id?: string; response?: unknown };
+          };
           try {
-            listed = commandsIn(JSON.parse(line));
+            frame = JSON.parse(line);
           } catch {
             return;
           }
-          if (!listed) return;
-          commandStore.set(setup.name, listed);
-          end(listed);
+          if (frame.type !== "control_response") return;
+          const id = frame.response?.request_id ?? "";
+          if (id === "commands") {
+            commands = commandsIn(frame);
+            if (!commands) return end();
+            commandStore.set(setup.name, commands);
+            // each answer comes back in order: set the model, then read its meter
+            for (const m of models) {
+              ask(`model:${m}`, { subtype: "set_model", model: m });
+              ask(`meter:${m}`, { subtype: "get_context_usage", detail: "summary" });
+            }
+            return;
+          }
+          // a failed switch: the next meter would be the last model's
+          if (id.startsWith("model:") && frame.response?.subtype === "error")
+            failed.add(id.slice(6));
+          if (!id.startsWith("meter:")) return;
+          const m = id.slice(6);
+          const got = meterIn(frame.response?.response);
+          if (got && !failed.has(m)) meters[m] = got;
+          if (m === models.at(-1)) end();
         });
       child.stdin?.on("error", () => {});
-      child.stdin?.write(
-        `${JSON.stringify({ type: "control_request", request_id: "commands", request: { subtype: "initialize", skills: [...setup.skills] } })}\n`,
-      );
+      ask("commands", { subtype: "initialize", skills: [...setup.skills] });
     }).finally(() => probing.delete(setup.name));
     probing.set(setup.name, p);
     return p;
@@ -555,6 +617,7 @@ export function relay(o: RelayOptions): {
     if (req.method !== "GET") return send(res, 405, { error: "GET only" });
     if (FILE_PATH.test(url.pathname)) return show(req, res, url);
     if (COMMANDS_PATH.test(url.pathname)) return commandsRoute(req, res, url);
+    if (CONTEXT_PATH.test(url.pathname)) return contextRoute(req, res, url);
     if (url.pathname === "/setups")
       return send(
         res,
@@ -612,8 +675,20 @@ export function relay(o: RelayOptions): {
       ? await authorize({ credential, origin: req.headers.origin, setup }).catch(() => null)
       : null;
     if (!person) return send(res, 401, { error: "not allowed to open this setup" });
-    const list = commandStore.get(setup.name) ?? (await probe(setup)) ?? [];
+    const list = commandStore.get(setup.name) ?? (await probe(setup))?.commands ?? [];
     return send(res, 200, commandsFor(list, setup, person.owner));
+  }
+
+  /** `GET /s/<setup>/context`: a fresh chat's meter per model, so the status line shows before the first turn; probed on a miss. */
+  async function contextRoute(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+    const setup = setupOf(CONTEXT_PATH.exec(url.pathname)?.[1]);
+    if (!setup) return send(res, 404, { error: "not found" });
+    const credential = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
+    const person = credential
+      ? await authorize({ credential, origin: req.headers.origin, setup }).catch(() => null)
+      : null;
+    if (!person) return send(res, 401, { error: "not allowed to open this setup" });
+    return send(res, 200, meterStore.get(setup.name) ?? (await probe(setup))?.meters ?? {});
   }
 
   /** `POST /s/<setup>/runs {prompt, model?}` queues a run; `GET` lists the asker's own, or one by

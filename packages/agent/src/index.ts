@@ -6,7 +6,9 @@ export { sdkHistory } from "./history.js";
 export { hostSetups } from "./host.js";
 export {
   BASE_ENV,
+  type CompactSettings,
   type Credential,
+  compactOf,
   type Launch,
   LaunchError,
   type LaunchOptions,

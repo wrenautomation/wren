@@ -96,6 +96,10 @@ export function SidePanel({
 }
 
 /** A panel head's icon button: New, Expand, Close. */
+/** A head action's look; a part with its own trigger (a menu) takes it too. */
+export const PANEL_ACT =
+  "grid size-8 flex-none place-items-center rounded-(--ui-radius) text-(--ui-ink-2) no-underline transition-colors duration-150 hover:bg-(--ui-fill) hover:text-(--ui-ink) data-popup-open:bg-(--ui-wash) pointer-coarse:size-11";
+
 export function PanelAct({
   icon,
   label,
@@ -109,8 +113,7 @@ export function PanelAct({
   onClick?: () => void;
   href?: string;
 }) {
-  const cls =
-    "grid size-8 flex-none place-items-center rounded-(--ui-radius) text-(--ui-ink-2) no-underline transition-colors duration-150 hover:bg-(--ui-fill) hover:text-(--ui-ink) pointer-coarse:size-11";
+  const cls = PANEL_ACT;
   const tip = tipProps(label, keys ? { keys } : {});
   return href ? (
     <a href={href} aria-label={label} onClick={onClick} {...tip} className={cls}>

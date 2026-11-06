@@ -14,7 +14,15 @@ import {
 } from "@wren/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { socketToken } from "../../api.js";
-import { openSetup, type Query, relayCommands, relayHistory, turns } from "./connect.js";
+import {
+  type FreshMeter,
+  openSetup,
+  type Query,
+  relayCommands,
+  relayContext,
+  relayHistory,
+  turns,
+} from "./connect.js";
 import { readyFile, turnContent, type Wire } from "./files.js";
 import {
   answered,
@@ -144,6 +152,8 @@ export function useAgent(o: {
   useEffect(() => {
     if (relayed.data?.length && !COMMANDS.has(o.setup)) learned(commandsOf(relayed.data));
   }, [relayed.data, o.setup, learned]);
+  // a new chat's meter before its session opens: the relay reads it once per serve
+  const fresh = useLoad(`context:${o.setup}`, async () => relayContext(o.setup, await pageToken()));
   const model = useRef(o.model);
   model.current = o.model;
   const picks = useRef({ effort: o.effort, mode: o.mode, autoCompact: o.autoCompact });
@@ -399,7 +409,10 @@ export function useAgent(o: {
       (stored.error && s.session !== o.session ? storedError(stored.error, stored.retry) : null),
     session: s.session ?? o.session ?? undefined,
     plan: s.plan,
-    status,
+    status: withFresh(
+      status,
+      (s.session ?? o.session) ? undefined : freshOf(fresh.data, o.model, o.autoCompact),
+    ),
     baseEffort,
     tasks,
     stopTask: (id: string) => void live.current?.q.stopTask(id).catch(() => {}),
@@ -499,6 +512,70 @@ const autoCompact = (q: Query, on: boolean | undefined) =>
     ? Promise.resolve()
     : q.applyFlagSettings({ autoCompactEnabled: on }).catch(() => {});
 
+interface Fresh {
+  used: number;
+  max: number;
+  autoCompact: boolean;
+  compactAt: number | undefined;
+}
+
+/** The relay's meter for the model picked; unset = the setup's own, listed first. */
+function freshOf(
+  meters: Record<string, FreshMeter> | null | undefined,
+  model: string | undefined,
+  autoCompact: boolean | undefined,
+): Fresh | undefined {
+  const m = meters && (meters[model ?? ""] ?? (model ? undefined : Object.values(meters)[0]));
+  if (!m) return undefined;
+  const on = autoCompact ?? m.autoCompact;
+  return {
+    used: m.used,
+    max: on ? m.max : m.raw,
+    autoCompact: on,
+    compactAt: on ? m.compactAt : undefined,
+  };
+}
+
+/** Before a session's own numbers: the fresh meter, and the plan limits last seen in any chat until they reset. */
+function withFresh(st: AgentStatusInfo, fresh: Fresh | undefined): AgentStatusInfo {
+  const out = { ...st };
+  if (!out.context && fresh) {
+    out.context = { used: fresh.used, max: fresh.max };
+    out.autoCompact = fresh.autoCompact;
+    out.compactAt = fresh.compactAt;
+  }
+  if (out.fiveHour === undefined && out.sevenDay === undefined) {
+    const l = savedLimits();
+    out.fiveHour = l.fiveHour;
+    out.sevenDay = l.sevenDay;
+  }
+  return out;
+}
+
+// plan limits are the account's, not a chat's: kept with their reset times
+const LIMITS = "agent-limits";
+interface Window {
+  utilization?: number | null;
+  resets_at?: string | null;
+}
+const saveLimits = (l: { five_hour?: Window | null; seven_day?: Window | null }) => {
+  try {
+    localStorage.setItem(LIMITS, JSON.stringify({ five: l.five_hour, seven: l.seven_day }));
+  } catch {}
+};
+const savedLimits = (): { fiveHour?: number | undefined; sevenDay?: number | undefined } => {
+  try {
+    const v = JSON.parse(localStorage.getItem(LIMITS) ?? "{}") as { five?: Window; seven?: Window };
+    const live = (w?: Window) =>
+      w?.utilization != null && w.resets_at && Date.parse(w.resets_at) > Date.now()
+        ? w.utilization
+        : undefined;
+    return { fiveHour: live(v.five), sevenDay: live(v.seven) };
+  } catch {
+    return {};
+  }
+};
+
 // a chat's meter across reloads, without the plan limits: those change by the hour
 const statusKey = (session: string) => `agent-status:${session}`;
 const savedStatus = (session: string): AgentStatusInfo => {
@@ -528,6 +605,7 @@ async function measure(q: Query, set: (f: (s: AgentStatusInfo) => AgentStatusInf
       .catch(() => null),
   ]);
   const limits = use?.rate_limits_available ? use.rate_limits : null;
+  if (limits) saveLimits(limits);
   set((s) => ({
     ...s,
     ...(ctx

@@ -113,8 +113,9 @@ const k = (n: number) =>
 const tone = (pct: number) =>
   pct >= 95 ? "text-(--ui-bad)" : pct >= 80 ? "text-(--ui-warn-ink)" : undefined;
 
-/** The terminal's status line: model, effort, context used/window (%), 5h %, 7d %. The context
- * opens a menu to compact now and to turn auto-compact on or off, when the page gives them. */
+/** The terminal's status line: model · effort · ctx used/window (%) · 5h % · 7d %. The window is
+ * the auto-compact window while it is on, else the model's full window. The context opens a menu
+ * to compact now and to turn auto-compact on or off, when the page gives them. */
 export function AgentStatus({
   info,
   onCompact,
@@ -128,11 +129,13 @@ export function AgentStatus({
   const parts: { key: string; text: string; cls?: string | undefined }[] = [];
   if (info.model) parts.push({ key: "model", text: info.model, cls: "text-(--ui-ink-2)" });
   if (info.effort) parts.push({ key: "effort", text: info.effort });
-  if (info.context?.max) {
-    const pct = Math.round((info.context.used / info.context.max) * 100);
+  // the CLI's window is already the terminal's: the auto-compact window while on, else the model's
+  const win = info.context?.max;
+  if (info.context && win) {
+    const pct = Math.round((info.context.used / win) * 100);
     parts.push({
       key: "ctx",
-      text: `${k(info.context.used)}/${k(info.context.max)} (${pct}%)`,
+      text: `ctx ${k(info.context.used)}/${k(win)} (${pct}%)`,
       cls: tone(pct),
     });
   }
@@ -143,8 +146,8 @@ export function AgentStatus({
   if (!parts.length) return null;
   const menu = !!(onCompact || onAutoCompact);
   return (
-    // gaps, no dots: a wrapped line never starts on a separator
-    <span className="inline-flex flex-wrap items-center justify-center gap-x-3 font-mono text-[11.5px] tabular-nums">
+    // the dot rides on its part: a wrapped line never starts on a separator
+    <span className="inline-flex flex-wrap items-center justify-center gap-x-1.5 font-mono text-[11.5px] text-(--ui-ink-3) tabular-nums [&>*:not(:last-child)]:after:ml-1.5 [&>*:not(:last-child)]:after:text-(--ui-ink-3) [&>*:not(:last-child)]:after:content-['·']">
       {parts.map((p) =>
         p.key === "ctx" && menu ? (
           <ContextMenu
@@ -204,7 +207,7 @@ function ContextMenu({
           <span className="text-[11.5px] text-(--ui-ink-3)">Context</span>
           {info.context ? (
             <span className="text-[13px]">
-              {k(info.context.used)} of {k(info.context.max)} tokens
+              {k(info.context.used)} used of a {k(info.context.max)} window
             </span>
           ) : null}
           <span className="text-[12px] text-(--ui-ink-3)">

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { inbound, modeAllowed, outbound, typed } from "./filter.js";
 import { credentialBreach } from "./guard.js";
-import { LaunchError, launch, TOKEN_VARS } from "./launch.js";
+import { compactOf, LaunchError, launch, TOKEN_VARS } from "./launch.js";
 import type { Setup } from "./setup.js";
 
 const setup: Setup = {
@@ -54,6 +54,28 @@ describe("launch", () => {
       permissions: { allow: ["Bash(demo *)"] },
     });
     expect(l.cwd).toBe("/root/work");
+  });
+
+  it("carries only the host's auto-compact windows, never the rest of its settings", () => {
+    const compact = compactOf({
+      autoCompactWindow: 240000,
+      modelSettings: {
+        "claude-a": { autoCompactWindow: 250000, effortLevel: "max" },
+        "claude-b": { autoCompactWindow: null },
+      },
+      permissions: { allow: ["Bash"] },
+      hooks: {},
+    });
+    expect(compact).toEqual({
+      autoCompactWindow: 240000,
+      modelSettings: { "claude-a": { autoCompactWindow: 250000 } },
+    });
+    const set = JSON.parse(
+      flag(launch(setup, { kind: "plan" }, { ...opts, compact }).args, "--settings") ?? "{}",
+    );
+    expect(set.autoCompactWindow).toBe(240000);
+    expect(set.permissions.allow).toEqual([...setup.allow]);
+    expect(compactOf({ autoCompactWindow: "big" })).toBeUndefined();
   });
 
   it("a setup's sandbox goes to the CLI's settings as it is", () => {

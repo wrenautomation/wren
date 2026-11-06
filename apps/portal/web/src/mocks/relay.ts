@@ -7,6 +7,7 @@
  */
 import { HttpResponse, http, ws } from "msw";
 import { HTTP, RELAY, type SetupInfo } from "../modules/agent/connect.js";
+import CONTEXT from "./data/agent/context.json";
 
 type Frame = Record<string, unknown> & { type?: string };
 export interface TapeLine {
@@ -120,6 +121,7 @@ export function fakeRelay({ tape, library = [], setups, stored = [], gap = 400 }
         : HttpResponse.json({ error: "no such chat" }, { status: 404 });
     }),
     http.patch(`${HTTP}/s/:setup/sessions/:id`, () => HttpResponse.json({ ok: true })),
+    http.get(`${HTTP}/s/:setup/context`, () => HttpResponse.json(CONTEXT)),
     http.get(`${HTTP}/s/:setup/commands`, () => HttpResponse.json(listed ?? [])),
     http.get(`${HTTP}/s/:setup/file`, () => new HttpResponse(null, { status: 404 })),
     link.addEventListener("connection", ({ client }) => {

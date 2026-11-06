@@ -142,6 +142,14 @@ export const Stored = story(`/research/ask?setup=birdwatch&chat=${STORED}`, [], 
   await c.findByText(/42/, {}, LONG);
 });
 
+/** The side panel on a page past Ask: its Chats menu lists the stored chats. */
+export const Panel = story("/research/runs", [], async (page) => {
+  const c = within(page);
+  await userEvent.click(await c.findByRole("button", { name: "Agent" }, LONG));
+  await userEvent.click(await c.findByRole("button", { name: "Chats" }, LONG));
+  await within(document.body).findByText("Bakery buyers", {}, LONG);
+});
+
 /**
  * A step's output names its run (`::view research.run`): the run's card, read from birdwatch
  * serve, once and under the last step. These frames are written by hand in the stored shape.

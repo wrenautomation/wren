@@ -13,6 +13,7 @@ import {
   binDir,
   type Credential,
   checkSession,
+  compactOf,
   fileCommands,
   fileLedger,
   hostSetups,
@@ -37,6 +38,13 @@ const ORIGINS = [
   "http://127.0.0.1:5173",
 ];
 const SECRET_HOOK = join(homedir(), ".claude", "hooks", "no-secret-print.py");
+const readJson = (path: string): unknown => {
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch {
+    return undefined;
+  }
+};
 
 /** A page's answer is kept this long per token: the socket and the sessions list ask together. */
 const ASKED_MS = 60_000;
@@ -148,6 +156,8 @@ export function registerAgent(program: Command): void {
             root: workspaceRoot(),
             host: process.env,
             secretHook: existsSync(SECRET_HOOK) ? `python3 ${SECRET_HOOK}` : undefined,
+            // chats compact where this Mac's terminal does
+            compact: compactOf(readJson(join(homedir(), ".claude", "settings.json"))),
           },
           // one dir per setup per serve: a rebuild mid-session would pull a live child's PATH
           binDirs: (s) => {

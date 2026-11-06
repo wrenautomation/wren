@@ -4,7 +4,17 @@
  * unmounts: the socket closes and frees a relay slot; reopened, the chat reads back by its id.
  * Open and width on the device; the setup and chat per tab.
  */
-import { Alert, Loading, PANEL, PanelAct, PanelClose, ProductMark, Seg, SidePanel } from "@wren/ui";
+import {
+  AgentChatsMenu,
+  Alert,
+  Loading,
+  PANEL,
+  PanelAct,
+  PanelClose,
+  ProductMark,
+  Seg,
+  SidePanel,
+} from "@wren/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import { keep, recall } from "../../local.js";
@@ -204,10 +214,11 @@ function PanelChat({
   const stored = sessions.data?.find((r) => r.session === chat)?.title;
   const model = tab.models?.[setup.name] || setup.model;
   // only Research has the chat as a page of its own
-  const full =
+  const pageOf = (id: string | null) =>
     setup.app === "research"
-      ? `/research/ask?setup=${encodeURIComponent(setup.name)}${chat ? `&chat=${encodeURIComponent(chat)}` : ""}`
+      ? `/research/ask?setup=${encodeURIComponent(setup.name)}${id ? `&chat=${encodeURIComponent(id)}` : ""}`
       : null;
+  const full = pageOf(chat);
   return (
     <AgentChat
       key={setup.name}
@@ -238,6 +249,12 @@ function PanelChat({
             title={stored ?? first ?? (chat ? "Chat" : "New chat")}
             onRenamed={sessions.retry}
             className="ml-1.5 flex-1 text-[13.5px]"
+          />
+          <AgentChatsMenu
+            rows={sessions.data ?? undefined}
+            open={chat}
+            hrefOf={(r) => pageOf(r.session) ?? "#"}
+            onOpen={(r) => putChat(r.session)}
           />
           <PanelAct icon="plus" label="New chat" onClick={() => putChat(null)} />
           {full ? (

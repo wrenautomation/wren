@@ -115,6 +115,17 @@ export const relayCommands = (setup: string, token: string) =>
     token,
   );
 
+/** A fresh chat's meter per model (`GET /s/<setup>/context`); `max` is the auto-compact window, `raw` the model's. */
+export interface FreshMeter {
+  used: number;
+  max: number;
+  raw: number;
+  compactAt?: number | undefined;
+  autoCompact: boolean;
+}
+export const relayContext = (setup: string, token: string) =>
+  relayGet<Record<string, FreshMeter>>(`/s/${encodeURIComponent(setup)}/context`, token);
+
 export const relayHistory = (setup: string, session: string, token: string) =>
   relayGet<Record<string, unknown>[]>(
     `/s/${encodeURIComponent(setup)}/sessions/${encodeURIComponent(session)}`,

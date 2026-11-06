@@ -32,9 +32,12 @@ writeFileSync(
   fake,
   `import { createInterface } from "node:readline";
 const out = (o) => process.stdout.write(JSON.stringify(o) + "\\n");
+let model = "default";
 createInterface({ input: process.stdin }).on("line", (l) => {
   const m = JSON.parse(l);
   const listed = ["compact", "demo:demo", "deploy"].map((name) => ({ name, description: "", argumentHint: "" }));
+  if (m.type === "control_request" && m.request.subtype === "set_model") model = m.request.model;
+  if (m.type === "control_request" && m.request.subtype === "get_context_usage") return out({ type: "control_response", response: { subtype: "success", request_id: m.request_id, response: { totalTokens: 1200, maxTokens: model === "haiku" ? 200000 : 0, rawMaxTokens: 1000000, autoCompactThreshold: 167000, isAutoCompactEnabled: true } } });
   if (m.type === "control_request") return out({ type: "control_response", response: { subtype: "success", request_id: m.request_id, response: { skills: m.request.skills ?? null, ...(m.request.subtype === "initialize" ? { commands: listed } : {}) } } });
   if (m.type !== "user") return;
   out({ type: "system", subtype: "init", apiKeySource: process.env.FAKE_SOURCE ?? "none", session_id: "s1" });
@@ -274,6 +277,22 @@ describe("relay", () => {
     await closeRelay?.();
     await start({}, async () => ({ who: "local", owner: true }), { commands: store });
     expect(await names("tok")).toEqual(["deploy"]);
+  });
+
+  it("reads a fresh chat's meter per model in the same probe", async () => {
+    await start();
+    const before = spawned.length;
+    const context = (token?: string) =>
+      fetch(`http://127.0.0.1:${port}/s/demo/context`, {
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+      });
+    const meter = {
+      haiku: { used: 1200, max: 200000, raw: 1000000, compactAt: 167000, autoCompact: true },
+    };
+    expect(await (await context("tok")).json()).toEqual(meter);
+    expect(await (await context("tok")).json()).toEqual(meter);
+    expect(spawned.length).toBe(before + 1);
+    expect((await context()).status).toBe(401);
   });
 
   it("answers a widening control request with an error", async () => {

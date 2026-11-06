@@ -73,7 +73,30 @@ export interface LaunchOptions {
   owner?: boolean | undefined;
   /** Dirs the child may read beyond its cwd (the person's uploads). */
   addDirs?: readonly string[];
+  /** Where auto-compact fires, as the host's terminal has it (`compactOf`). */
+  compact?: CompactSettings | undefined;
   command?: string;
+}
+
+/** The CLI's own keys: one window, and per model id. */
+export interface CompactSettings {
+  autoCompactWindow?: number;
+  modelSettings?: Record<string, { autoCompactWindow: number }>;
+}
+
+const tokens = (v: unknown): v is number => typeof v === "number" && v > 0 && Number.isInteger(v);
+/** The auto-compact windows from a Claude Code settings object; nothing else of it. */
+export function compactOf(settings: unknown): CompactSettings | undefined {
+  if (typeof settings !== "object" || !settings) return undefined;
+  const s = settings as { autoCompactWindow?: unknown; modelSettings?: unknown };
+  const out: CompactSettings = {};
+  if (tokens(s.autoCompactWindow)) out.autoCompactWindow = s.autoCompactWindow;
+  if (typeof s.modelSettings === "object" && s.modelSettings)
+    for (const [id, m] of Object.entries(s.modelSettings)) {
+      const w = (m as { autoCompactWindow?: unknown } | null)?.autoCompactWindow;
+      if (tokens(w)) out.modelSettings = { ...out.modelSettings, [id]: { autoCompactWindow: w } };
+    }
+  return Object.keys(out).length ? out : undefined;
 }
 
 const require_ = createRequire(import.meta.url);
@@ -109,7 +132,10 @@ export function launch(setup: Setup, cred: Credential, o: LaunchOptions): Launch
   Object.assign(env, LEAN_ENV);
   if (cred.kind === "key") env.ANTHROPIC_API_KEY = cred.key;
 
-  const settings: Record<string, unknown> = { permissions: { allow: [...setup.allow] } };
+  const settings: Record<string, unknown> = {
+    ...o.compact,
+    permissions: { allow: [...setup.allow] },
+  };
   if (setup.sandbox) settings.sandbox = setup.sandbox;
   if (o.secretHook)
     settings.hooks = {
