@@ -442,12 +442,12 @@ export function relay(o: RelayOptions): {
       child.on("exit", end);
       child.on("error", end);
       // the CLI answers control requests out of order: one at a time, each after the last answer
-      type Step = { request: Record<string, unknown>; then: (ok: boolean, body: unknown) => void };
+      type Step = { request: Record<string, unknown>; got: (ok: boolean, body: unknown) => void };
       const steps: Step[] = [];
       let model = "";
       const meter = (pass: "on" | "off") => ({
         request: { subtype: "get_context_usage", detail: "summary" },
-        then: (ok: boolean, body: unknown) => {
+        got: (ok: boolean, body: unknown) => {
           const got = ok && model ? meterIn(body) : undefined;
           if (!got) return;
           const was = meters[model];
@@ -461,14 +461,16 @@ export function relay(o: RelayOptions): {
             {
               request: { subtype: "set_model", model: m },
               // a failed switch: the next meter would be the last model's
-              then: (ok) => void (model = ok ? m : ""),
+              got: (ok) => {
+                model = ok ? m : "";
+              },
             },
             meter(p),
           );
       };
       steps.push({
         request: { subtype: "initialize", skills: [...setup.skills] },
-        then: (_ok, body) => {
+        got: (_ok, body) => {
           commands = commandsIn({ type: "control_response", response: { response: body } });
           if (!commands) return end();
           commandStore.set(setup.name, commands);
@@ -477,7 +479,7 @@ export function relay(o: RelayOptions): {
       pass("on");
       steps.push({
         request: { subtype: "apply_flag_settings", settings: { autoCompactEnabled: false } },
-        then: () => {},
+        got: () => {},
       });
       pass("off");
       let at = 0;
@@ -501,7 +503,7 @@ export function relay(o: RelayOptions): {
           }
           if (frame.type !== "control_response" || frame.response?.request_id !== `probe:${at}`)
             return;
-          steps[at]?.then(frame.response.subtype === "success", frame.response.response);
+          steps[at]?.got(frame.response.subtype === "success", frame.response.response);
           at++;
           if (commands) next();
         });
