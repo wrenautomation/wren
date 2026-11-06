@@ -97,6 +97,25 @@ Focused flat map: `focusScene` now drops other groups' open outlines and crops t
 
 Option weighed for Open: open the part as a new floor in 3D, top-down. Rejected: the flat map has the panels, picks and marks; Layers would copy them.
 
+## Layers, round 3: match the artifact
+
+William: "doesn't look clean on prod ... no double layered expandable icons ... really make sure it matches the artifacts". Judge: the Layers (3D) tab of the Variants Process Tree artifact (`A5xNkRRGMoMZuH8s7mvfRL`).
+
+| Part | Round 2 | Round 3 (artifact) |
+|---|---|---|
+| Floor | the level with plates cut out; dashed footprints | the open layout with each fold shut to one stacked stop (two circles, last glyph, "N steps · M now") at its group's middle (`shutFloor`) |
+| Plate | crop with stubs ("from First touch") | that fold's stations only, ± 64 px, no stubs; an exit goes with its source |
+| Link | footprint + four posts | one dashed line (1 px, accent 70%) from the stop up to the plate |
+| Lift | 90 + 45 per depth | 120; a plate rises 60 over the highest plate in front that shares its x range (a stair, so no plate hides another) |
+| Look | paper 5% ink, inset line, black shadow | artifact values: paper, ring accent 45%, `0 24px 40px -18px rgb(30 20 60/.45)`; hover ring 1.5 px + pull 40; floor radius 16, hair ring |
+| Name | tag on the plate | pill under the plate; "Stack here" inside it on hover |
+| Pose | turn 10°, tilt 54° | turn −32°, tilt 56°, perspective 2200 at 30% height |
+| Together | plates land on their place | plates land as cards over their stops (the artifact does the same) |
+
+Floor marks are a picture: a scene with `click: false` draws capsules, rings, badges and fold leaves without button roles, so the floor SVG holds no focusable parts under the plates (axe `nested-interactive`).
+
+Not built yet (William, 11-06: "close and open everything and zoom into subviews ... default views"): saved default views in Layers, and open or shut one fold on a plate. Today: Together/Apart closes or opens all, Open zooms to one part with the rest gone, Stack here makes a part the floor.
+
 ## Tests changed
 
 - Column tests (order, append, empty-column step, "To map", column drop in a fold): deleted with the columns.

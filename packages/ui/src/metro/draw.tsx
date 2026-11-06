@@ -87,6 +87,8 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
   /** The line that is lit keeps full strength; CSS dims every other `[data-l]` (`.mm.focus`). */
   const on = (l: string) => !!lit && l === lit;
   const click = !!scene.click;
+  // Folds open and fold back unless the scene says it is a picture (`click: false`).
+  const folds = scene.click !== false;
   const isStill = still ?? scene.still;
   const land = intro ? landTimes(scene) : null;
   const H = scene.h;
@@ -365,12 +367,23 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
   const stations = scene.st.map((s) => {
     const sel = selected === s.id;
     if (isCapsule(s))
-      return <Capsule key={s.id} c={s} colours={colours} selected={sel} on={on(s.l)} />;
+      return (
+        <Capsule key={s.id} c={s} colours={colours} selected={sel} on={on(s.l)} click={folds} />
+      );
     if (isRing(s))
       return (
-        <Ring key={s.id} c={s} colours={colours} selected={sel} on={on(s.l)} still={isStill} />
+        <Ring
+          key={s.id}
+          c={s}
+          colours={colours}
+          selected={sel}
+          on={on(s.l)}
+          still={isStill}
+          click={folds}
+        />
       );
-    if (isBadge(s)) return <Badge key={s.id} c={s} colours={colours} selected={sel} on={on(s.l)} />;
+    if (isBadge(s))
+      return <Badge key={s.id} c={s} colours={colours} selected={sel} on={on(s.l)} click={folds} />;
     const l = s.ln ? (scene.lines?.[s.ln]?.l ?? s.ln) : undefined;
     return (
       <Marker
@@ -387,7 +400,8 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
   });
 
   // A map you can act on is a group of buttons; a still picture is an image.
-  const acts = click || scene.st.some((s) => !("t" in s)) || scene.tr.some((r) => r.stub);
+  const acts =
+    click || (folds && scene.st.some((s) => !("t" in s))) || scene.tr.some((r) => r.stub);
   const grid = `${uid}dg`;
   return (
     <svg
@@ -418,7 +432,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       {/* Fold tabs sit behind the tracks, faded, until a pointer is on one. */}
       {(scene.folds ?? []).map((f) => (
         <g key={`f${f.grp}`} className="tab">
-          <FoldTab {...f} />
+          <FoldTab {...f} click={folds} />
         </g>
       ))}
       {fields}
@@ -436,7 +450,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
       {stations}
       {/* An open group's fold leaf sits under its circle, as the expand leaf did: in front. */}
       {(scene.opened ?? []).map((o) => (
-        <OpenedTab key={`ok${o.grp}`} o={o} />
+        <OpenedTab key={`ok${o.grp}`} o={o} click={folds} />
       ))}
       {labels}
     </svg>

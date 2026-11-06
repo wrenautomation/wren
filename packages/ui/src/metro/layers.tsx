@@ -1,8 +1,9 @@
 /**
- * Layers (experiment, 2026-11-06; designs/2026-11-06-orrery-business-look.md): the map in 2.5D.
- * The floor is one level: the whole map, a fold node or one line. The level splits into plates,
- * by fold or by line; each plate floats over its own place. Tilt it and it comes apart, flatten it
- * and it lands: the flat map again. A plate opens as the main flat view, or becomes the floor.
+ * Layers (experiment, 2026-11-06; designs/2026-11-06-orrery-business-look.md): the map in 2.5D,
+ * as the artifact's "Layers (3D)". The floor is one level with its folds shut: each fold a stacked
+ * stop. Each fold's inside floats on a plate over its stop, on one dashed drop line. "Together"
+ * lands the plates onto their stops: the fold, as a move. By line, each line is a plate over its
+ * own place. A plate opens as the main flat view, or becomes the floor.
  * CSS 3D over `MetroSvg`: no new renderer, text stays vector. Camera springs: `motion`.
  */
 import { allOpen, type FoldNode, pathTo } from "@wrenautomation/orrery";
@@ -24,7 +25,7 @@ import { MetroSvg } from "./draw.js";
 import { type FocusSpec, focusScene } from "./focus.js";
 import type { MetroZoom } from "./fold.js";
 import { MetroSkeleton } from "./skeleton.js";
-import { isMark, type MetroScene, type SceneStation } from "./types.js";
+import { isCapsule, isMark, type MetroScene, type SceneStation } from "./types.js";
 
 /** A part of the map: a fold node, or one line. */
 export type LayerPart = { kind: "node" | "line"; id: string };
@@ -33,11 +34,18 @@ export type LayerFloor = LayerPart | null;
 /** How a level comes apart: one plate per fold, or one per line. */
 export type LayerSplit = "folds" | "lines";
 
+/** A box on the floor: left, top, width, height (px from the floor's corner). */
+type Box = { left: number; top: number; width: number; height: number };
+
 interface Plate {
   part: LayerPart;
   label: string;
-  /** Cut from the level's scene: its `x0`, `y0` place it over the floor. */
+  /** What it shows: a cut of the level. */
   scene: MetroScene;
+  /** Where it sits over the floor. */
+  box: Box;
+  /** Where its drop line stands on the floor: a fold's stop, a line's centre. */
+  at: readonly [number, number];
   /** How high it floats when apart (px). */
   z: number;
   /** It holds parts of its own: it can be the floor. */
@@ -53,22 +61,52 @@ interface Level {
   lines: { id: string; n: string }[];
 }
 
-/** Room round a plate's stations, so names and stubs show. */
-const PAD = { top: 62, bottom: 48 };
-/** Front plate lowest, each one further back a step higher: none hides the one behind. */
-const LIFT = { base: 90, step: 45 } as const;
+/** Room round a plate's stations, so names show. */
+const PAD = { top: 62, bottom: 48, side: 64 };
+/** The artifact's lift; a plate whose footprint overlaps one in front of it rises a step more. */
+const LIFT = { base: 120, step: 60 } as const;
 
 const grpOf = (s: SceneStation): string | undefined =>
   "grp" in s && typeof s.grp === "string" ? s.grp : undefined;
 const lineOf = (s: SceneStation): string | undefined =>
   isMark(s) ? s.ln : "l" in s && typeof s.l === "string" ? s.l : undefined;
+const centreOf = (s: SceneStation): readonly [number, number] => [
+  isCapsule(s) ? (s.x ?? (s.cap[0] + s.cap[1]) / 2) : (s.x ?? 0),
+  s.y,
+];
+/** The middle of a scene's stations. */
+function midOf(scene: MetroScene): readonly [number, number] {
+  const pts = scene.st.map(centreOf);
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
+}
+/** The boxes share some x: one in front hides the other when both lie flat. */
+const sameColumn = (a: Box, b: Box) => a.left < b.left + b.width && b.left < a.left + a.width;
 
-/** A focused scene cropped to its stations' band, top and bottom too. */
+/**
+ * A plate: a focused scene cut to its stations, no stubs (the floor's rail shows where it joins),
+ * no outline of its own fold.
+ */
 function band(scene: MetroScene): MetroScene {
-  const ys = scene.st.map((s) => s.y);
-  if (!ys.length) return scene;
+  const pts = scene.st.map(centreOf);
+  if (!pts.length) return scene;
+  const ys = pts.map((p) => p[1]);
+  const half = (s: SceneStation) => (isCapsule(s) ? (s.cap[1] - s.cap[0]) / 2 : 0);
+  const x0 = Math.max(0, Math.min(...scene.st.map((s) => centreOf(s)[0] - half(s))) - PAD.side);
+  const x1 = Math.max(...scene.st.map((s) => centreOf(s)[0] + half(s))) + PAD.side;
   const y0 = Math.max(0, Math.min(...ys) - PAD.top);
-  return { ...scene, y0, h: Math.max(...ys) + PAD.bottom - y0, still: true, click: false };
+  return {
+    ...scene,
+    x0,
+    w: x1 - x0,
+    y0,
+    h: Math.max(...ys) + PAD.bottom - y0,
+    tr: scene.tr.filter((r) => !r.stub),
+    opened: [],
+    still: true,
+    click: false,
+  };
 }
 
 const only = (ids: Iterable<string>): FocusSpec =>
@@ -98,9 +136,66 @@ export async function partFocus(zoom: MetroZoom, part: LayerPart): Promise<Focus
 }
 
 /**
- * One level, apart. `all` is the level with each of its folds open: the map as it stands. Each
- * plate is a cut of `all` where its stations stand; the floor keeps the rest, in the same frame. So
- * a plate floats straight over its own place, and landed it is the flat map again.
+ * The open layout with each fold shut in place, as the artifact's floor: its stations go, one
+ * stacked stop stands at their middle, and the rail runs on through it. Nothing else moves, so a
+ * plate's place on the floor is its own.
+ */
+function shutFloor(
+  all: MetroScene,
+  frame: MetroScene,
+  byFold: ReadonlyMap<string, readonly string[]>,
+  stops: ReadonlyMap<string, SceneStation>,
+  mids: ReadonlyMap<string, readonly [number, number]>,
+): MetroScene {
+  const hidden = new Map<string, string>();
+  for (const [k, ids] of byFold) for (const id of ids) hidden.set(id, k);
+  const lineOfFold = new Map([...stops].map(([k, s]) => [k, lineOf(s)]));
+  const stations: SceneStation[] = [...byFold.keys()].flatMap((k): SceneStation[] => {
+    const stop = stops.get(k);
+    const [x, y] = mids.get(k) ?? [0, 0];
+    if (!stop) return [];
+    if (isCapsule(stop)) return [{ ...stop, x, cap: [x, x], y }];
+    return [{ ...stop, x, y }];
+  });
+  const tr = all.tr.flatMap((r) => {
+    const ka = r.a ? hidden.get(r.a) : undefined;
+    const kb = r.b ? hidden.get(r.b) : undefined;
+    if (!ka && !kb) return [r];
+    // Inside a fold, only its own rail stays, bare: the stop sits on it.
+    if (ka && ka === kb) {
+      if (r.k || r.l !== lineOfFold.get(ka)) return [];
+      const { who, late, dot, cond, condGlyph, cat, lab, mv, dots, task, ...bare } = r;
+      void [who, late, dot, cond, condGlyph, cat, lab, mv, dots, task];
+      return [bare];
+    }
+    return [r];
+  });
+  const inBox = (x: number, y: number, k: string) => {
+    const o = all.opened?.find((p) => p.grp === k);
+    if (!o) return false;
+    const [l, t, rr, b] = o.box ?? [o.cap[0], o.y - 30, o.cap[1], o.y + 30];
+    return x >= l && x <= rr && y >= t && y <= b;
+  };
+  const folded = (x: number, y: number) => [...byFold.keys()].some((k) => inBox(x, y, k));
+  return {
+    ...all,
+    ...(frame.x0 === undefined ? {} : { x0: frame.x0 }),
+    ...(frame.w === undefined ? {} : { w: frame.w }),
+    ...(frame.y0 === undefined ? {} : { y0: frame.y0 }),
+    h: frame.h,
+    st: [...all.st.filter((s) => !hidden.has(s.id)), ...stations],
+    tr,
+    chips: (all.chips ?? []).filter((c) => !folded(c.x, c.y)),
+    frames: (all.frames ?? []).filter((f) => !folded(f.x + f.w / 2, f.y + f.h / 2)),
+    folds: (all.folds ?? []).filter((f) => !byFold.has(f.grp)),
+    opened: (all.opened ?? []).filter((o) => !byFold.has(o.grp)),
+  };
+}
+
+/**
+ * One level, apart. The floor is the level as it stands, its folds shut as stacked stops. By fold:
+ * `all` opens every fold at once, and each plate is a cut of it, hung over its fold's stop. By line:
+ * each plate is that line's cut of the floor, over its own place.
  */
 async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit): Promise<Level> {
   let open = new Set<string>();
@@ -118,19 +213,31 @@ async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit): Promi
   const mine = (s: SceneStation) =>
     outside ? !outside.has(s.id) : at?.kind === "line" ? lineOf(s) === at.id : true;
   const flat = await zoom.scene(open);
-  const kids = [...new Set(flat.st.filter(mine).map(grpOf))].filter((k): k is string => !!k);
+  const ours = flat.st.filter(mine);
+  // The shut folds here: each a stacked stop, each a plate.
+  const stops = new Map<string, SceneStation>();
+  for (const s of ours) {
+    const k = grpOf(s);
+    if (k && !flat.st.some((m) => isMark(m) && m.g === k)) stops.set(k, s);
+  }
+  const kids = [...stops.keys()];
   // One layout opens every fold at once: each plate is a cut of it.
   const all = kids.length ? await zoom.scene(new Set([...open, ...kids])) : flat;
-  const ours = all.st.filter(mine);
-
-  // By fold: what each shut fold held.
-  const was = new Set(flat.st.map((s) => s.id));
   const under = underOf(zoom, new Set(kids));
   const byFold = new Map<string, string[]>();
-  for (const s of ours) {
-    const k = was.has(s.id) ? undefined : under(s);
-    if (k) byFold.set(k, [...(byFold.get(k) ?? []), s.id]);
+  const foldOf = new Map<string, string>();
+  for (const s of all.st) {
+    const k = stops.has(s.id) ? undefined : under(s);
+    if (k) foldOf.set(s.id, k);
   }
+  // An exit follows its source: it is in the fold when every track into it starts there.
+  for (const s of all.st) {
+    if (foldOf.has(s.id) || !isMark(s) || s.t !== "exit") continue;
+    const from = all.tr.filter((r) => r.b === s.id && r.a).map((r) => foldOf.get(r.a ?? ""));
+    const k = from[0];
+    if (k && from.every((f) => f === k)) foldOf.set(s.id, k);
+  }
+  for (const [id, k] of foldOf) byFold.set(k, [...(byFold.get(k) ?? []), id]);
   // By line: each line's own stops; the hub stays on the floor.
   const byLine = new Map<string, string[]>();
   for (const s of ours) {
@@ -140,36 +247,82 @@ async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit): Promi
   for (const [ln, ids] of byLine) if (ids.length < 2) byLine.delete(ln);
   const can = { folds: byFold.size > 0, lines: at?.kind !== "line" && byLine.size > 1 };
   const split: LayerSplit = can[want] ? want : can.folds ? "folds" : "lines";
-  const groups = can[split] ? (split === "folds" ? byFold : byLine) : new Map<string, string[]>();
 
-  const name = (id: string) =>
-    split === "folds"
-      ? (zoom.nodes.find((n) => n.id === id)?.label ?? id)
-      : (all.lines?.[id]?.n ?? id);
-  const cut = [...groups].map(([id, ids]) => ({
-    part: { kind: split === "folds" ? "node" : "line", id } as LayerPart,
-    label: name(id),
-    scene: band(focusScene(all, only(ids))),
-    deep: zoom.nodes.some(
-      (n) =>
-        n.parent ===
-        (split === "folds" ? id : zoom.nodes.find((n) => n.id.startsWith(`${id}@`))?.id),
-    ),
-  }));
-  const lifted = new Set([...groups.values()].flat());
-  const frame = band(focusScene(all, only(ours.map((s) => s.id))));
-  const rest = ours.filter((s) => !lifted.has(s.id)).map((s) => s.id);
-  const floor: MetroScene = {
-    ...(rest.length ? focusScene(all, only(rest)) : { ...all, st: [], tr: [] }),
-    ...(frame.x0 === undefined ? {} : { x0: frame.x0 }),
-    ...(frame.w === undefined ? {} : { w: frame.w }),
-    ...(frame.y0 === undefined ? {} : { y0: frame.y0 }),
-    h: frame.h,
-    still: true,
-    click: false,
-  };
-  const front = [...cut].sort((a, b) => (b.scene.y0 ?? 0) - (a.scene.y0 ?? 0));
-  const plates = cut.map((p) => ({ ...p, z: LIFT.base + front.indexOf(p) * LIFT.step }));
+  // The floor's frame: the open layout; a part floor keeps only what is inside it.
+  const inside = new Set(all.st.filter(mine).map((s) => s.id));
+  const frame = at ? band(focusScene(all, only(inside))) : all;
+  const fx = frame.x0 ?? 0;
+  const fy = frame.y0 ?? 0;
+  const lineNode = (id: string) => zoom.nodes.find((n) => n.id.startsWith(`${id}@`))?.id;
+  const place = (scene: MetroScene): Box => ({
+    left: (scene.x0 ?? 0) - fx,
+    top: (scene.y0 ?? 0) - fy,
+    width: scene.w ?? 0,
+    height: scene.h,
+  });
+  let cut: Omit<Plate, "z">[] = [];
+  let floor: MetroScene = { ...frame, still: true, click: false };
+  if (split === "folds" && can.folds) {
+    const mids = new Map<string, readonly [number, number]>();
+    cut = [...byFold].flatMap(([id, ids]) => {
+      const scene = band(focusScene(all, only(ids)));
+      const mid = midOf(scene);
+      mids.set(id, mid);
+      return [
+        {
+          part: { kind: "node" as const, id },
+          label: zoom.nodes.find((n) => n.id === id)?.label ?? id,
+          scene,
+          box: place(scene),
+          at: [mid[0] - fx, mid[1] - fy] as const,
+          deep: zoom.nodes.some((n) => n.parent === id),
+        },
+      ];
+    });
+    floor = { ...shutFloor(all, frame, byFold, stops, mids), still: true, click: false };
+  } else if (split === "lines" && can.lines) {
+    cut = [...byLine].map(([id, ids]) => {
+      const scene = band(focusScene(flat, only(ids)));
+      const box = place(scene);
+      return {
+        part: { kind: "line" as const, id },
+        label: flat.lines?.[id]?.n ?? id,
+        scene,
+        box,
+        at: [box.left + box.width / 2, box.top + box.height / 2] as const,
+        deep: zoom.nodes.some((n) => n.parent === lineNode(id)),
+      };
+    });
+    // Lifted off the floor: the rest stays in the same frame.
+    const lifted = new Set([...byLine.values()].flat());
+    const rest = ours.filter((s) => !lifted.has(s.id)).map((s) => s.id);
+    const shut = at ? band(focusScene(flat, only(ours.map((s) => s.id)))) : flat;
+    floor = {
+      ...(rest.length ? focusScene(flat, only(rest)) : { ...flat, st: [], tr: [] }),
+      ...(shut.x0 === undefined ? {} : { x0: shut.x0 }),
+      ...(shut.w === undefined ? {} : { w: shut.w }),
+      ...(shut.y0 === undefined ? {} : { y0: shut.y0 }),
+      h: shut.h,
+      still: true,
+      click: false,
+    };
+  }
+  // The floor reaches under every plate.
+  const right = Math.max(floor.w ?? 0, ...cut.map((p) => p.box.left + p.box.width + 16));
+  const bottom = Math.max(floor.h, ...cut.map((p) => p.box.top + p.box.height + 16));
+  floor = { ...floor, w: right, h: bottom };
+  // Front to back. A raised plate hides what stands behind it in its column, so a plate rises one
+  // step over the highest plate in front that shares its x range: back plates step up like a stair.
+  const front = [...cut].sort((a, b) => b.at[1] - a.at[1]);
+  const zs: number[] = [];
+  const plates = front.map((p, i) => {
+    const under = front
+      .slice(0, i)
+      .map((q, j) => (sameColumn(q.box, p.box) ? (zs[j] ?? LIFT.base) : 0));
+    const z = Math.max(LIFT.base, ...under.map((u) => (u ? u + LIFT.step : 0)));
+    zs.push(z);
+    return { ...p, z };
+  });
   const lines = Object.entries(all.lines ?? {})
     .filter(([id]) => all.st.some((s) => lineOf(s) === id))
     .map(([id, l]) => ({ id, n: l.n }));
@@ -179,6 +332,8 @@ async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit): Promi
 /** Perspective on `.mlay-view` (px) and its origin's height (share of the box). */
 const PERSPECTIVE = 2200;
 const EYE_Y = 0.3;
+/** Room kept clear at the foot of the view for the hint and the plates' names (px). */
+const FOOT = 36;
 
 /** Where the camera is: the turn, how far apart (0 landed, 1 apart), and the scale and shift. */
 interface Cam {
@@ -192,8 +347,8 @@ interface Cam {
 type Pose = Pick<Cam, "rx" | "rz" | "e">;
 
 const FLAT: Pose = { rx: 0, rz: 0, e: 0 };
-/** Apart: tilted, a small turn so the stack reads. Same on a phone: a bigger turn put names on their side. */
-const APART: Pose = { rx: 54, rz: -10, e: 1 };
+/** Apart: the artifact's pose. */
+const APART: Pose = { rx: 56, rz: -32, e: 1 };
 /** Tilt below this lands the plates; the lift follows the tilt up to `TILT_APART`. */
 const SNAP_FLAT = 16;
 const TILT_APART = 32;
@@ -245,11 +400,11 @@ function fitOf(
   let y = 0;
   for (let i = 0; i < 3; i++) {
     const b = boxAt(k, x, y);
-    k *= Math.min((bw * fill) / (b.x1 - b.x0), (bh * fill) / (b.y1 - b.y0));
+    k *= Math.min((bw * fill) / (b.x1 - b.x0), ((bh - FOOT) * fill) / (b.y1 - b.y0));
     k = Math.min(2.5, Math.max(0.2, k));
     const c = boxAt(k, x, y);
     x += bw / 2 - (c.x0 + c.x1) / 2;
-    y += bh / 2 - (c.y0 + c.y1) / 2;
+    y += (bh - FOOT) / 2 - (c.y0 + c.y1) / 2;
   }
   return { k, x, y };
 }
@@ -279,20 +434,12 @@ const Stage = memo(function Stage({
   onPlate: (p: Plate, how: "open" | "stack") => void;
   open: boolean;
 }) {
-  const f = level.floor;
-  const x0 = f.x0 ?? 0;
-  const y0 = f.y0 ?? 0;
   return (
     <>
       <div className="mlay-floor">
-        <MetroSvg scene={f} still bare />
+        <MetroSvg scene={level.floor} still bare />
       </div>
       {level.plates.map((p) => {
-        const left = (p.scene.x0 ?? 0) - x0;
-        const top = (p.scene.y0 ?? 0) - y0;
-        const width = p.scene.w ?? 0;
-        const height = p.scene.h;
-        const box = { left, top, width, height };
         const key = `${p.part.kind}:${p.part.id}`;
         return (
           <div
@@ -301,22 +448,9 @@ const Stage = memo(function Stage({
             data-part={key}
             style={{ "--zn": p.z } as CSSProperties}
           >
-            {/* Its place on the floor, and a post at each corner up to it. */}
-            <div className="mlay-foot" style={box} aria-hidden="true" />
-            {[
-              [left, top],
-              [left + width, top],
-              [left, top + height],
-              [left + width, top + height],
-            ].map(([l, t]) => (
-              <i
-                key={`${l}:${t}`}
-                className="mlay-post"
-                style={{ left: l, top: t }}
-                aria-hidden="true"
-              />
-            ))}
-            <div className="mlay-plate" style={box}>
+            {/* One dashed line from its stop up to the plate. */}
+            <i className="mlay-drop" style={{ left: p.at[0], top: p.at[1] }} aria-hidden="true" />
+            <div className="mlay-plate" style={p.box}>
               <button
                 type="button"
                 className="mlay-open"
@@ -412,17 +546,15 @@ export function MetroLayers({
   }, [place]);
 
   /** Every box at full apart: the floor and each plate. */
-  const rects = useCallback((): Rect[] => {
-    const x0 = f?.x0 ?? 0;
-    const y0 = f?.y0 ?? 0;
-    return [
+  const rects = useCallback(
+    (): Rect[] => [
       [0, 0, w, h, 0],
       ...(level?.plates ?? []).map(
-        (p) =>
-          [(p.scene.x0 ?? 0) - x0, (p.scene.y0 ?? 0) - y0, p.scene.w ?? 0, p.scene.h, p.z] as const,
+        ({ box: b, z }) => [b.left, b.top, b.width, b.height, z] as const,
       ),
-    ];
-  }, [f, w, h, level]);
+    ],
+    [w, h, level],
+  );
 
   /** Spring the camera to `to`; `done` runs when it lands. */
   const fly = useCallback(
@@ -614,16 +746,8 @@ export function MetroLayers({
       if (dragged.current) return;
       if (how === "stack" || !live.current.onOpen) return live.current.onFloor(p.part);
       // Fly down onto the plate, top-down, till it fills the view; then it opens flat.
-      const x0 = f?.x0 ?? 0;
-      const y0 = f?.y0 ?? 0;
       const top: Pose = { rx: 0, rz: 0, e: cam.current.e };
-      const rect: Rect = [
-        (p.scene.x0 ?? 0) - x0,
-        (p.scene.y0 ?? 0) - y0,
-        p.scene.w ?? 0,
-        p.scene.h,
-        p.z,
-      ];
+      const rect: Rect = [p.box.left, p.box.top, p.box.width, p.box.height, p.z];
       const el = stage.current;
       el?.classList.add("opening");
       el?.querySelector(
@@ -633,7 +757,7 @@ export function MetroLayers({
         live.current.onOpen?.(p.part, p.label),
       );
     },
-    [f, w, h, box, fly],
+    [w, h, box, fly],
   );
 
   const crumbs = crumbsOf(zoom.nodes, floor);
@@ -725,7 +849,7 @@ export function MetroLayers({
         <p className="mlay-hint">
           {level && !level.plates.length
             ? "Nothing to split at this level."
-            : "Drag to turn. Shift-drag or scroll to move. Pinch to zoom. Click a plate to open it."}
+            : "Drag to turn. Scroll to move, pinch to zoom. Point at a plate to raise it, click to open it."}
         </p>
       </div>
     </div>

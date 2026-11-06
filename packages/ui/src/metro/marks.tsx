@@ -486,11 +486,14 @@ export function Capsule({
   colours,
   selected,
   on,
+  click = true,
 }: {
   c: CapsuleStation;
   colours?: Colours | undefined;
   selected?: boolean | undefined;
   on?: boolean | undefined;
+  /** False in a picture: no button. */
+  click?: boolean | undefined;
 }) {
   const colour = colours && c.l ? lineColour(colours, c.l) : undefined;
   // Under its name: its steps and the people in it (`fold.ts`); side by side, the platforms.
@@ -516,7 +519,7 @@ export function Capsule({
       data-g={c.id}
       {...foldedAttrs(c)}
       // A capsule with no group opens nothing (a legend sample): no button.
-      {...(c.grp ? asButton(marked(`${c.n}: ${foldIo(c)}. Open`, c.mark)) : {})}
+      {...(c.grp && click ? asButton(marked(`${c.n}: ${foldIo(c)}. Open`, c.mark)) : {})}
     >
       <Marker s={s} l={c.l} selected={selected} on={on} fold={c} colour={colour} />
       {/* Bad stations inside (people drop out there): a red count on the circle's shoulder. */}
@@ -539,6 +542,7 @@ export function Ring({
   selected,
   on,
   still,
+  click = true,
 }: {
   c: RingStation;
   colours: Colours;
@@ -546,6 +550,7 @@ export function Ring({
   on?: boolean | undefined;
   /** No dot runs round the ring. */
   still?: boolean | undefined;
+  click?: boolean | undefined;
 }) {
   const r = c.r ?? 26;
   return (
@@ -553,7 +558,7 @@ export function Ring({
       className={cx("cap ring", selected && "sel", on && "on")}
       data-l={c.l}
       {...foldedAttrs(c)}
-      {...asButton(`${c.n}. Open`)}
+      {...(click ? asButton(`${c.n}. Open`) : {})}
     >
       <circle className="cr" cx={c.x} cy={c.y} r={r + 5} />
       <circle
@@ -590,11 +595,13 @@ export function Badge({
   colours,
   selected,
   on,
+  click = true,
 }: {
   c: BadgeStation;
   colours: Colours;
   selected?: boolean | undefined;
   on?: boolean | undefined;
+  click?: boolean | undefined;
 }) {
   const w = c.w ?? 280;
   const h = 56;
@@ -606,7 +613,7 @@ export function Badge({
       className={cx("cap bdg", selected && "sel", on && "on")}
       data-l={c.l}
       {...foldedAttrs(c)}
-      {...asButton(`${c.n}. Open`)}
+      {...(click ? asButton(`${c.n}. Open`) : {})}
     >
       <rect className="cr" x={X - 5} y={Y - 5} width={w + 10} height={h + 10} rx={17} />
       <rect
@@ -688,14 +695,20 @@ export function OpenedOutline({ o, colours }: { o: OpenedSpec; colours: Colours 
 }
 
 /** The fold leaf of an open node: on its frame's top edge, or under the circle where its expand leaf was. */
-export function OpenedTab({ o }: { o: OpenedSpec }) {
-  return <FoldTab x={o.at[0]} y={o.at[1]} t={o.t} grp={o.grp} />;
+export function OpenedTab({ o, click }: { o: OpenedSpec; click?: boolean | undefined }) {
+  return <FoldTab x={o.at[0]} y={o.at[1]} t={o.t} grp={o.grp} click={click} />;
 }
 
-/** A fold leaf on an open group: click it to fold the group back. */
-export function FoldTab({ x, y, t, grp }: FoldSpec): ReactNode {
+/** A fold leaf on an open group: click it to fold the group back. In a picture (`click` false) it is a plain mark. */
+export function FoldTab({
+  x,
+  y,
+  t,
+  grp,
+  click = true,
+}: FoldSpec & { click?: boolean | undefined }): ReactNode {
   return (
-    <g className="fold" data-fold={grp} {...asButton(`Fold ${t}`)}>
+    <g className="fold" data-fold={grp} {...(click ? asButton(`Fold ${t}`) : {})}>
       <FoldLeaf x={x} y={y} t={t} icon="shrink" />
     </g>
   );
