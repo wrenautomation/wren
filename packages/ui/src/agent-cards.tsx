@@ -12,6 +12,9 @@ import { Icon } from "./icons.js";
 
 export const Answer = createContext<AgentThreadProps["onAnswer"]>(() => {});
 
+/** A card sends a turn: the words go out as the person's own. */
+export const Say = createContext<(text: string) => void>(() => {});
+
 /** A page's head as the portal reads it (`/api/unfurl`); images are `data:` URLs. */
 export interface LinkPreview {
   title?: string | undefined;

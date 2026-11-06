@@ -22,7 +22,14 @@ import {
   useExternalStoreRuntime,
   useSmooth,
 } from "@assistant-ui/react";
-import { type ReactNode, useMemo, useRef } from "react";
+import {
+  type ComponentType,
+  createContext,
+  type ReactNode,
+  useContext,
+  useMemo,
+  useRef,
+} from "react";
 import { Streamdown } from "streamdown";
 import {
   Answer,
@@ -34,6 +41,7 @@ import {
   type LinkPreview,
   linksIn,
   Preview,
+  Say,
 } from "./agent-cards.js";
 import { type AgentCommand, SlashMenu } from "./agent-picks.js";
 import { partsOf, spanOf, ToolPart, took, Working } from "./agent-steps.js";
@@ -57,6 +65,8 @@ export type AgentPart =
   | { type: "text"; text: string }
   | { type: "file"; file: AgentFile }
   | { type: "thinking"; text: string }
+  /** A product's own card, drawn by the `views` entry of that name. */
+  | { type: "view"; id: string; name: string; data: unknown }
   | {
       type: "tool";
       id: string;
@@ -135,6 +145,9 @@ export interface AgentFiles {
   ready: (file: File) => Promise<unknown>;
 }
 
+/** A product's cards by name (`research.run`): each draws one `view` part's data. */
+export type AgentViews = Readonly<Record<string, ComponentType<{ data: unknown }>>>;
+
 export interface AgentThreadProps {
   messages: readonly AgentMessage[];
   /** A turn is out: Stop shows, Send waits. */
@@ -172,6 +185,8 @@ export interface AgentThreadProps {
   preview?: ((href: string) => Promise<LinkPreview>) | undefined;
   /** An image or video the chat names by path, read from the agent's machine; none = no previews. */
   readFile?: ((path: string) => Promise<Blob>) | undefined;
+  /** The cards a `view` part may name; an unknown name draws nothing. */
+  views?: AgentViews | undefined;
   className?: string | undefined;
 }
 
@@ -197,38 +212,40 @@ export function threadMessage(m: AgentMessage): ThreadMessageLike {
     content: m.parts.flatMap((p) =>
       p.type === "file"
         ? []
-        : p.type === "tool" && p.name === ASK_TOOL
-          ? { type: "data" as const, name: "choices", id: p.id, data: choicesOf(p) }
-          : p.type === "text"
-            ? { type: "text" as const, text: p.text }
-            : p.type === "thinking"
-              ? { type: "reasoning" as const, text: p.text }
-              : {
-                  type: "tool-call" as const,
-                  toolCallId: p.id,
-                  toolName: p.name,
-                  args: p.input as never,
-                  argsText: p.inputText ?? JSON.stringify(p.input),
-                  ...(p.startedAt
-                    ? {
-                        timing: {
-                          startedAt: p.startedAt,
-                          ...(p.completedAt ? { completedAt: p.completedAt } : {}),
-                        },
-                      }
-                    : {}),
-                  ...(p.result !== undefined ? { result: p.result, isError: !!p.failed } : {}),
-                  ...(p.tokens || p.uses ? { artifact: { tokens: p.tokens, uses: p.uses } } : {}),
-                  ...(p.ask
-                    ? {
-                        approval: {
-                          id: p.id,
-                          ...(p.ask.why ? { prompt: p.ask.why } : {}),
-                          ...(p.ask.allowed !== undefined ? { approved: p.ask.allowed } : {}),
-                        },
-                      }
-                    : {}),
-                },
+        : p.type === "view"
+          ? { type: "data" as const, name: p.name, id: p.id, data: p.data }
+          : p.type === "tool" && p.name === ASK_TOOL
+            ? { type: "data" as const, name: "choices", id: p.id, data: choicesOf(p) }
+            : p.type === "text"
+              ? { type: "text" as const, text: p.text }
+              : p.type === "thinking"
+                ? { type: "reasoning" as const, text: p.text }
+                : {
+                    type: "tool-call" as const,
+                    toolCallId: p.id,
+                    toolName: p.name,
+                    args: p.input as never,
+                    argsText: p.inputText ?? JSON.stringify(p.input),
+                    ...(p.startedAt
+                      ? {
+                          timing: {
+                            startedAt: p.startedAt,
+                            ...(p.completedAt ? { completedAt: p.completedAt } : {}),
+                          },
+                        }
+                      : {}),
+                    ...(p.result !== undefined ? { result: p.result, isError: !!p.failed } : {}),
+                    ...(p.tokens || p.uses ? { artifact: { tokens: p.tokens, uses: p.uses } } : {}),
+                    ...(p.ask
+                      ? {
+                          approval: {
+                            id: p.id,
+                            ...(p.ask.why ? { prompt: p.ask.why } : {}),
+                            ...(p.ask.allowed !== undefined ? { approved: p.ask.allowed } : {}),
+                          },
+                        }
+                      : {}),
+                  },
     ),
     ...(m.role === "assistant"
       ? {
@@ -420,64 +437,68 @@ export function AgentThread(p: AgentThreadProps) {
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <Answer.Provider value={p.onAnswer}>
-        <Preview.Provider value={p.preview}>
-          <FileRead.Provider value={p.readFile}>
-            <ThreadPrimitive.Root
-              data-agent-thread=""
-              className={cx("flex h-full min-h-0 flex-col", p.className)}
-            >
-              <ThreadPrimitive.Viewport
-                aria-busy={p.stale || undefined}
-                className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
-              >
-                <div
-                  className={cx(
-                    COLUMN,
-                    "grid gap-6 pt-5 pb-5 transition-opacity duration-200",
-                    p.stale && "opacity-50",
-                  )}
+        <Views.Provider value={p.views ?? NO_VIEWS}>
+          <Say.Provider value={(text) => p.onSend(text, [])}>
+            <Preview.Provider value={p.preview}>
+              <FileRead.Provider value={p.readFile}>
+                <ThreadPrimitive.Root
+                  data-agent-thread=""
+                  className={cx("flex h-full min-h-0 flex-col", p.className)}
                 >
-                  <ThreadPrimitive.Messages>
-                    {({ message }) => (message.role === "user" ? <UserTurn /> : <ReplyTurn />)}
-                  </ThreadPrimitive.Messages>
-                  {p.starting ? <Starting /> : null}
-                  {p.error ? (
-                    <Alert onRetry={p.error.retry} className="ui-rise mb-0">
-                      {p.error.text}
-                    </Alert>
-                  ) : null}
-                </div>
-                <ThreadPrimitive.Empty>
-                  {p.welcome ? <Welcome {...p.welcome} /> : null}
-                </ThreadPrimitive.Empty>
-                <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-[linear-gradient(transparent,var(--ui-paper)_28px)] pt-7 pb-1">
-                  <div className={cx(COLUMN, "relative")}>
-                    <ThreadPrimitive.ScrollToBottom
-                      className="absolute -top-11 left-1/2 grid size-8 -translate-x-1/2 place-items-center rounded-full bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-opacity duration-200 hover:text-(--ui-ink) disabled:pointer-events-none disabled:opacity-0"
-                      aria-label="Scroll to the newest"
+                  <ThreadPrimitive.Viewport
+                    aria-busy={p.stale || undefined}
+                    className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
+                  >
+                    <div
+                      className={cx(
+                        COLUMN,
+                        "grid gap-6 pt-5 pb-5 transition-opacity duration-200",
+                        p.stale && "opacity-50",
+                      )}
                     >
-                      <Icon name="down" size={15} />
-                    </ThreadPrimitive.ScrollToBottom>
-                    {p.above}
-                    <Composer
-                      closed={p.closed}
-                      placeholder={p.placeholder}
-                      tools={p.tools}
-                      files={!!p.files}
-                      context={p.context}
-                      commands={p.commands}
-                    />
-                    {p.note ? (
-                      <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">
-                        {p.note}
-                      </p>
-                    ) : null}
-                  </div>
-                </ThreadPrimitive.ViewportFooter>
-              </ThreadPrimitive.Viewport>
-            </ThreadPrimitive.Root>
-          </FileRead.Provider>
-        </Preview.Provider>
+                      <ThreadPrimitive.Messages>
+                        {({ message }) => (message.role === "user" ? <UserTurn /> : <ReplyTurn />)}
+                      </ThreadPrimitive.Messages>
+                      {p.starting ? <Starting /> : null}
+                      {p.error ? (
+                        <Alert onRetry={p.error.retry} className="ui-rise mb-0">
+                          {p.error.text}
+                        </Alert>
+                      ) : null}
+                    </div>
+                    <ThreadPrimitive.Empty>
+                      {p.welcome ? <Welcome {...p.welcome} /> : null}
+                    </ThreadPrimitive.Empty>
+                    <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-[linear-gradient(transparent,var(--ui-paper)_28px)] pt-7 pb-1">
+                      <div className={cx(COLUMN, "relative")}>
+                        <ThreadPrimitive.ScrollToBottom
+                          className="absolute -top-11 left-1/2 grid size-8 -translate-x-1/2 place-items-center rounded-full bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-opacity duration-200 hover:text-(--ui-ink) disabled:pointer-events-none disabled:opacity-0"
+                          aria-label="Scroll to the newest"
+                        >
+                          <Icon name="down" size={15} />
+                        </ThreadPrimitive.ScrollToBottom>
+                        {p.above}
+                        <Composer
+                          closed={p.closed}
+                          placeholder={p.placeholder}
+                          tools={p.tools}
+                          files={!!p.files}
+                          context={p.context}
+                          commands={p.commands}
+                        />
+                        {p.note ? (
+                          <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">
+                            {p.note}
+                          </p>
+                        ) : null}
+                      </div>
+                    </ThreadPrimitive.ViewportFooter>
+                  </ThreadPrimitive.Viewport>
+                </ThreadPrimitive.Root>
+              </FileRead.Provider>
+            </Preview.Provider>
+          </Say.Provider>
+        </Views.Provider>
       </Answer.Provider>
     </AssistantRuntimeProvider>
   );
@@ -632,7 +653,11 @@ function FileChip({ remove }: { remove?: boolean }) {
   );
 }
 
+const NO_VIEWS: AgentViews = {};
+const Views = createContext<AgentViews>(NO_VIEWS);
+
 function ReplyTurn() {
+  const views = useContext(Views);
   return (
     <MessagePrimitive.Root className="ui-rise group/reply grid min-w-0 gap-2">
       <MessagePrimitive.Parts
@@ -640,7 +665,7 @@ function ReplyTurn() {
           Text: Reply,
           Reasoning: Thinking,
           tools: { Fallback: ToolPart },
-          data: { by_name: { choices: Choices } },
+          data: { by_name: { ...views, choices: Choices } },
         }}
       />
       <Working />
