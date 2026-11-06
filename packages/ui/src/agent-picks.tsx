@@ -489,7 +489,7 @@ const skillOf = (c: AgentCommand) => c.name.includes(":");
 const HINT_MAX = 48;
 const ENTITY: Record<string, string> = { lt: "<", gt: ">", amp: "&", quot: '"', "#39": "'" };
 /** A skill's description is its model trigger ("Use when…"): the person reads its first sentence. */
-export const commandLine = (d: string): string =>
+const commandLine = (d: string): string =>
   d
     .replace(/&(lt|gt|amp|quot|#39);/g, (_, e: string) => ENTITY[e] ?? "")
     .replace(/^\([\w-]+\)\s*/, "")
