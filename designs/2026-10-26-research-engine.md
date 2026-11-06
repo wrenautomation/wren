@@ -1418,3 +1418,9 @@ Limits:
 - `add finding` still writes after a stop edge.
 - Not set: what the agent does when the person does not say how far to go. The chat mock asks once (`research-chat--scope`); William has not seen it.
 
+## 11-06: the view line, and no scope said (0.45.0)
+
+- Each step that writes to a run (`printDid`, `add`, `accept`) and `brief` print `::view research.run {"run":"<id>"}` on stderr. The portal's chat draws the run's card from it and reads the data from `birdwatch serve`. William chose this mechanism; the line's form and place are the session's. Options and reasons: `designs/2026-11-05-research-web.md`, Log 11-05.
+- stdout is unchanged: still one JSON document a command.
+- Skill, "Their finds": with no scope said, the agent reads the pasted sources only, writes their findings and stops. It does not widen on its own judgment. William 11-05: he leans to this ("default, small, isolated"); not firm. Not chosen: ask first; widen when the source looks good.
+

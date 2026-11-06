@@ -268,6 +268,63 @@ describe("what a call cost", () => {
   });
 });
 
+describe("a product's card", () => {
+  const call = (id: string, command: string): Frame => ({
+    type: "assistant",
+    message: {
+      id: `m-${id}`,
+      content: [{ type: "tool_use", id, name: "Bash", input: { command } }],
+    },
+  });
+  const result = (id: string, text: string): Frame => ({
+    type: "user",
+    message: { content: [{ type: "tool_result", tool_use_id: id, content: text }] },
+  });
+  const step = (run: string) =>
+    `${run} 1.read ok\n::view research.run {"run":"${run}"}\n{"run":"${run}"}`;
+  const kinds = (s: ThreadState) =>
+    s.messages
+      .at(-1)
+      ?.parts.map((p) => (p.type === "view" ? `${p.name} ${JSON.stringify(p.data)}` : p.type));
+
+  it("a view line in a tool's output becomes a view part after it", () => {
+    let s = said(EMPTY, "read this reel");
+    s = fold(s, call("t1", "birdwatch open --lines reel.txt"));
+    s = fold(s, result("t1", step("r1")));
+    expect(kinds(s)).toEqual(["tool", 'research.run {"run":"r1"}']);
+  });
+
+  it("one card a run in a reply: the next step moves it under itself", () => {
+    let s = said(EMPTY, "read this reel");
+    s = fold(s, call("t1", "birdwatch open --lines reel.txt"));
+    s = fold(s, result("t1", step("r1")));
+    s = fold(s, call("t2", "birdwatch add edge r1 stop --why asked"));
+    s = fold(s, result("t2", step("r1")));
+    s = fold(s, call("t3", "birdwatch brief r2"));
+    s = fold(s, result("t3", step("r2")));
+    expect(kinds(s)).toEqual([
+      "tool",
+      "tool",
+      'research.run {"run":"r1"}',
+      "tool",
+      'research.run {"run":"r2"}',
+    ]);
+  });
+
+  it("reads the line from a numbered file read; words that only hold it draw nothing", () => {
+    let s = said(EMPTY, "check the step");
+    s = fold(s, call("t1", "cat out.txt"));
+    s = fold(
+      s,
+      result(
+        "t1",
+        '     1\t::view research.run {"run":"r1"}\nsee ::view research.run {"run":"r9"}\n::view research.run not json',
+      ),
+    );
+    expect(kinds(s)).toEqual(["tool", 'research.run {"run":"r1"}']);
+  });
+});
+
 describe("files in a turn", () => {
   const png = { type: "base64", media_type: "image/png", data: "iVBO" };
   const wire = turnContent(

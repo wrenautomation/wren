@@ -200,8 +200,8 @@ importers:
         specifier: 0.8.4
         version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       '@wrenautomation/birdwatch':
-        specifier: 0.44.1
-        version: 0.44.1
+        specifier: 0.45.0
+        version: 0.45.0
       '@wrenautomation/models':
         specifier: 0.38.0
         version: 0.38.0
@@ -633,8 +633,8 @@ importers:
         specifier: 0.3.318
         version: 0.3.318(@anthropic-ai/sdk@1.4.0(zod@4.6.5))(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(zod@4.6.5)
       '@wrenautomation/birdwatch':
-        specifier: 0.44.1
-        version: 0.44.1
+        specifier: 0.45.0
+        version: 0.45.0
       ws:
         specifier: 8.21.0
         version: 8.21.0
@@ -6534,8 +6534,8 @@ packages:
     engines: {node: '>=24'}
     hasBin: true
 
-  '@wrenautomation/birdwatch@0.44.1':
-    resolution: {integrity: sha512-orVTuW+iUSuHiSMdgrzOtzGF4m6lsqp1WH5RgGwHg2SioeDDzMYTd6KIQ+ckctRpAyWPNic6TuYPiZinxtOEDA==}
+  '@wrenautomation/birdwatch@0.45.0':
+    resolution: {integrity: sha512-VXPT6l6iy1+CStUL+8nCKLIs+lx0xjXfcT6c3dFIo+vrCsIV/dhA+h5EDQKdniW1e0zSm36HkpvrGV8kmTjO/A==}
     engines: {node: '>=24'}
     hasBin: true
 
@@ -6543,8 +6543,8 @@ packages:
     resolution: {integrity: sha512-6FxxZ+2Q/nUop2ehuxkLdTJblNW8BoIVygYka077hLGAv7YNSTCw1RMKZDWwvBqXGTmz5SC3IxTgLOxYk7jGzA==}
     engines: {node: '>=24'}
 
-  '@wrenautomation/models@0.44.1':
-    resolution: {integrity: sha512-/jjV3LLlKUQ0pLTEpvtRCCDbB7OcZaGKMy8rhRPcHQBQdaqFhLfE6skf8YYK/75fVclCngag+aIjXxnRREV2PA==}
+  '@wrenautomation/models@0.45.0':
+    resolution: {integrity: sha512-wyLiEx5x2b9M/eIMvAAR0/SzMNMnZCb4/Lvjzo0BcrNExYY8a8EZrdJ9VGdMdNzvoqf8dkZefI6i8nCZX6Mk6Q==}
     engines: {node: '>=24'}
 
   '@wrenautomation/orrery@0.28.0':
@@ -6554,8 +6554,8 @@ packages:
     resolution: {integrity: sha512-l3T3VTj8HAYRFzUnD/Lk8EdWG8vnlEvStdVwv3wKK2J8XPLYrAjx6zJLLPsMhUmvrHe3PakMTKxoFFslMDTvnw==}
     engines: {node: '>=24'}
 
-  '@wrenautomation/read@0.44.1':
-    resolution: {integrity: sha512-gL1SFPMIP2B1hd2wG5xJ9lvxS+dHBsGGhI1gwN3MofJhJZQsbUvJ7Fk7HkWSTIkrLLjKf4whc2GRtvcy7bfWTg==}
+  '@wrenautomation/read@0.45.0':
+    resolution: {integrity: sha512-eQ56SVFSQ1mL/BBBXdWY/lhYv7oVp6ylOgCAeVF/gY+G9ohgMMoLSQnc4qTi7RQvhwZV7FIXaZvJHVedgpBP5Q==}
     engines: {node: '>=24'}
 
   '@wrenautomation/vireo@0.2.0':
@@ -15119,11 +15119,11 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@wrenautomation/birdwatch@0.44.1':
+  '@wrenautomation/birdwatch@0.45.0':
     dependencies:
       '@hono/node-server': 2.1.3(hono@4.13.12)
-      '@wrenautomation/models': 0.44.1
-      '@wrenautomation/read': 0.44.1
+      '@wrenautomation/models': 0.45.0
+      '@wrenautomation/read': 0.45.0
       commander: 15.0.0
       hono: 4.13.12
       htmlparser2: 12.0.0
@@ -15144,7 +15144,7 @@ snapshots:
       ai: 7.0.155(zod@4.6.5)
       zod: 4.6.5
 
-  '@wrenautomation/models@0.44.1':
+  '@wrenautomation/models@0.45.0':
     dependencies:
       '@ai-sdk/anthropic': 4.0.90(zod@4.6.5)
       '@ai-sdk/cohere': 4.0.71(zod@4.6.5)
@@ -15168,9 +15168,9 @@ snapshots:
     transitivePeerDependencies:
       - '@napi-rs/canvas'
 
-  '@wrenautomation/read@0.44.1':
+  '@wrenautomation/read@0.45.0':
     dependencies:
-      '@wrenautomation/models': 0.44.1
+      '@wrenautomation/models': 0.45.0
       culori: 4.0.2
       entities: 8.1.0
       htmlparser2: 12.0.0

@@ -103,3 +103,22 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
 
     Ranked: truth to the ledger, cost, flexibility. The session recommends A. Not chosen.
   - Known limit: 40 edges read as a tangle until a claim is pointed at (`worst-case`).
+- 11-05: William chose A: the CLI names a view with a ref, the thread lifts it to a `view` part, the card reads its data from the product. Built (WA-1123), engine 0.45.0.
+  - The line is a contract for every product's CLI, so its place is hard to change. The session chose it; William chose A only.
+
+    | Option | For | Against |
+    |---|---|---|
+    | 1. Its own line on stderr: `::view research.run {"run":"<id>"}` | stdout stays one JSON document; the line passes a pipe on stdout; one parser for all products | lost when the agent drops stderr |
+    | 2. A `view` field in the JSON on stdout | no new line | each command's JSON changes; lost in a pipe that picks a field; the thread must find JSON in mixed text |
+    | 3. Its own line on stdout | simple | breaks each caller that parses stdout as one document |
+    | 4. No line: the thread reads the command and its result | no CLI change | not what William chose; breaks when a command's words change |
+
+    Ranked: no break for present callers, then pipes, then one parser. Chosen: 1. The skill tells the agent to keep stderr on.
+  - No framework fits. The AI SDK and assistant-ui map a typed tool call to a component, and MCP Apps carry a UI resource. This agent's only tool is Bash on CLIs. The part itself is assistant-ui's `data` part; only the lift is custom (`lift`, `modules/agent/thread.ts`).
+  - Engine: each step that writes to a run (`printDid`, `add`, `accept`) and `brief` print the line. One name: `research.run`.
+  - Thread: a line in any tool's output becomes a `view` part with the ref as its data. One card for each ref in a reply; a later line moves the card under the newest step. A file read's line numbers are skipped.
+  - Portal: `modules/agent/views.ts` is the table of every product's cards. `modules/research/chat-card.tsx` reads the run from `birdwatch serve` and follows `/events`; `card.ts` maps the run's records to the card. One event stream for the page, not one a card: a browser keeps 6 connections a host.
+  - The session's choices, not William's: a source is a YouTube channel, a subreddit or a site; its island is its pages' class (the agent's, else the judge's best guess), `Other` with none. A run of one page and no search draws as the source card with a link to the run. The source card offers no wider job.
+  - Limits: the card has no claims (the ledger holds none; open item). It never shows `Reading`: the ledger cannot tell a stopped run from one left at a step. A page that holds a `::view` line in its text can draw a card of another local run; the card only reads `birdwatch serve` on this Mac.
+  - Story `pages-agent--card`: a stored chat written by hand, since no tape holds a birdwatch step yet.
+- 11-05: William on a pasted source with no scope: he leans to "default, small, isolated". The agent reads the pasted sources only and stops. Not firm. Not chosen: the agent asks first; the agent widens when it judges the source good. The skill says so from engine 0.45.0.

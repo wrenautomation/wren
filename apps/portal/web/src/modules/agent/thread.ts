@@ -113,6 +113,28 @@ const resultText = (c: unknown): string =>
       ? c.map((b: Block) => (b.type === "text" ? String(b.text ?? "") : "")).join("\n")
       : "";
 
+/** A product's CLI names a card on a line of its own: `::view research.run {"run":"…"}`
+ * (designs/2026-11-05-research-web.md, Log 11-05). A file read numbers its lines. */
+const VIEW = /^(?:\s*\d+\t)?::view ([a-z][\w.-]*) (\{.*\})\s*$/gm;
+
+/** The cards a tool's output names. One card a ref in a reply: a later line moves it down. */
+function lift(s: ThreadState, m: AgentMessage, text: string): void {
+  for (const [, name, json] of text.matchAll(VIEW)) {
+    const data = parsed(json);
+    if (!name || !data) continue;
+    const id = `view:${name}:${JSON.stringify(data)}`;
+    const was = m.parts.findIndex((p) => p.type === "view" && p.id === id);
+    if (was >= 0) {
+      m.parts.splice(was, 1);
+      // a live stream's blocks point at parts by place
+      s.blocks = Object.fromEntries(
+        Object.entries(s.blocks).map(([k, at]) => [k, at > was ? at - 1 : at]),
+      );
+    }
+    m.parts.push({ type: "view", id, name, data });
+  }
+}
+
 function parsed(text: string | undefined): Record<string, unknown> | null {
   try {
     return text ? (JSON.parse(text) as Record<string, unknown>) : null;
@@ -236,14 +258,16 @@ function userFrame(s0: ThreadState, f: Frame, t: number): ThreadState {
       if (b.type !== "tool_result") continue;
       const at = toolAt(m, String(b.tool_use_id));
       const p = m.parts[at];
-      if (p?.type === "tool")
-        setPart(m, at, {
-          ...p,
-          result: resultText(b.content),
-          failed: !!b.is_error,
-          completedAt: t,
-          ...agentUse(f.tool_use_result),
-        });
+      if (p?.type !== "tool") continue;
+      const result = resultText(b.content);
+      setPart(m, at, {
+        ...p,
+        result,
+        failed: !!b.is_error,
+        completedAt: t,
+        ...agentUse(f.tool_use_result),
+      });
+      lift(s, m, result);
     }
     return s;
   }

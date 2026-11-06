@@ -1,0 +1,122 @@
+[
+  {
+    "type": "user",
+    "uuid": "00000000-0000-4000-8000-000000000101",
+    "session_id": "00000000-0000-4000-8000-000000000002",
+    "message": {
+      "role": "user",
+      "content": "How do small bakeries find wholesale buyers?"
+    },
+    "parent_tool_use_id": null,
+    "parent_agent_id": null,
+    "timestamp": "2026-11-05T18:00:00.000Z"
+  },
+  {
+    "type": "assistant",
+    "uuid": "00000000-0000-4000-8000-000000000102",
+    "session_id": "00000000-0000-4000-8000-000000000002",
+    "message": {
+      "model": "claude-haiku-5-5",
+      "id": "msg_card_2",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_card_1",
+          "name": "Bash",
+          "input": {
+            "command": "birdwatch search r1 --ledger research/ledger",
+            "description": "Search the round's queries"
+          }
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "parent_agent_id": null,
+    "timestamp": "2026-11-05T18:00:05.000Z"
+  },
+  {
+    "type": "user",
+    "uuid": "00000000-0000-4000-8000-000000000103",
+    "session_id": "00000000-0000-4000-8000-000000000002",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_card_1",
+          "content": "r1 1.fetch ok\n::view research.run {\"run\":\"r1\"}\n{\n  \"run\": \"r1\",\n  \"round\": 1,\n  \"step\": \"fetch\",\n  \"ok\": true,\n  \"wrote\": 5\n}",
+          "is_error": false
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "parent_agent_id": null,
+    "timestamp": "2026-11-05T18:00:21.000Z"
+  },
+  {
+    "type": "assistant",
+    "uuid": "00000000-0000-4000-8000-000000000104",
+    "session_id": "00000000-0000-4000-8000-000000000002",
+    "message": {
+      "model": "claude-haiku-5-5",
+      "id": "msg_card_4",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_card_2",
+          "name": "Bash",
+          "input": {
+            "command": "birdwatch open r1 h1 h2 h4 --ledger research/ledger",
+            "description": "Read the kept hits"
+          }
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "parent_agent_id": null,
+    "timestamp": "2026-11-05T18:00:30.000Z"
+  },
+  {
+    "type": "user",
+    "uuid": "00000000-0000-4000-8000-000000000105",
+    "session_id": "00000000-0000-4000-8000-000000000002",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_card_2",
+          "content": "r1 1.read ok\n::view research.run {\"run\":\"r1\"}\n{\n  \"run\": \"r1\",\n  \"round\": 1,\n  \"step\": \"read\",\n  \"ok\": true,\n  \"wrote\": 3\n}",
+          "is_error": false
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "parent_agent_id": null,
+    "timestamp": "2026-11-05T18:01:02.000Z"
+  },
+  {
+    "type": "assistant",
+    "uuid": "00000000-0000-4000-8000-000000000106",
+    "session_id": "00000000-0000-4000-8000-000000000002",
+    "message": {
+      "model": "claude-haiku-5-5",
+      "id": "msg_card_6",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Three pages are read. The review is next."
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "parent_agent_id": null,
+    "timestamp": "2026-11-05T18:01:10.000Z"
+  }
+]

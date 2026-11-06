@@ -22,6 +22,7 @@ import { relayFile, relayRename, type SetupInfo } from "./connect.js";
 import { type Hand, takeHand } from "./drive.js";
 import { ACCEPT } from "./files.js";
 import { pageToken, useAgent } from "./use-agent.js";
+import { VIEWS } from "./views.js";
 
 const WELCOME: Record<string, { title: string; text: string; suggestions: readonly string[] }> = {
   vireo: {
@@ -290,6 +291,7 @@ export function AgentChat({
         onStop={a.stop}
         onAnswer={a.answer}
         preview={linkPreview}
+        views={VIEWS}
         readFile={async (path) => relayFile(setup.name, await pageToken(), path)}
         placeholder={setup.name === "birdwatch" ? "Ask a research question" : `Ask ${setup.title}`}
         tools={

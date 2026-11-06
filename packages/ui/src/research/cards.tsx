@@ -390,6 +390,8 @@ export interface SourceRead {
   by: string;
   meta: string;
   asks?: readonly string[] | undefined;
+  /** The run that holds it, when one does. */
+  href?: string | undefined;
 }
 
 export function SourceCard({
@@ -402,7 +404,7 @@ export function SourceCard({
   const s = read.source;
   return (
     <article aria-label={`Birdwatch source: ${s.name}`} className={CARD}>
-      <Head name={s.name} meta={`${read.by} · ${read.meta}`} />
+      <Head name={s.name} meta={`${read.by} · ${read.meta}`} href={read.href} />
       <div className="flex min-w-0 items-center gap-2.5">
         <SourceMark kept={s.findings.length} used={0} />
         <p className="m-0 flex flex-wrap gap-x-3.5 gap-y-0.5 text-[12.5px] text-(--ui-ink-2)">
@@ -413,7 +415,7 @@ export function SourceCard({
           <span>
             <b className="font-semibold text-(--ui-ink) tabular-nums">{s.cut}</b> cut
           </span>
-          <span>No run. In no claim.</span>
+          <span>{read.href ? "In no claim." : "No run. In no claim."}</span>
         </p>
       </div>
       <ul aria-label="Findings" className={LIST}>

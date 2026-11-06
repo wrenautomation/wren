@@ -173,17 +173,30 @@ export async function webOf(): Promise<ResearchWeb> {
 export const pageOf = (run: string, doc: string) =>
   get<StoredPage>(`/runs/${encodeURIComponent(run)}/documents/${encodeURIComponent(doc)}`);
 
+// one stream for the whole page: a browser keeps 6 connections a host, a chat holds many cards
+const heard = new Set<(run: string) => void>();
+let stream: EventSource | null = null;
+
+function listen(on: (run: string) => void): () => void {
+  heard.add(on);
+  if (!stream && typeof EventSource !== "undefined") {
+    stream = new EventSource(`${SERVE}/events`);
+    stream.addEventListener("run", (e) => {
+      const { run } = JSON.parse((e as MessageEvent<string>).data) as { run: string };
+      for (const f of heard) f(run);
+    });
+  }
+  return () => {
+    heard.delete(on);
+    if (heard.size) return;
+    stream?.close();
+    stream = null;
+  };
+}
+
 /** Calls `on(run)` each time a run's records change, while the page is open. */
 export function useLive(on: (run: string) => void) {
   const latest = useRef(on);
   latest.current = on;
-  useEffect(() => {
-    if (typeof EventSource === "undefined") return;
-    const es = new EventSource(`${SERVE}/events`);
-    es.addEventListener("run", (e) => {
-      const { run } = JSON.parse((e as MessageEvent<string>).data) as { run: string };
-      latest.current(run);
-    });
-    return () => es.close();
-  }, []);
+  useEffect(() => listen((run) => latest.current(run)), []);
 }

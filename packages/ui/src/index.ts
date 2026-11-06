@@ -49,6 +49,7 @@ export {
   type AgentSent,
   AgentThread,
   type AgentThreadProps,
+  type AgentViews,
   fileKind,
   footLine,
   modelName,
@@ -429,6 +430,12 @@ export {
   waitsOn,
 } from "./records.js";
 export { type LocalRecords, localRecords } from "./records-local.js";
+export {
+  RunCard as ResearchRunCard,
+  SourceCard as ResearchSourceCard,
+  type SourceRead,
+} from "./research/cards.js";
+export type { ResearchRun, ResearchSource } from "./research/model.js";
 export { RowActions, rowActsOf } from "./row-acts.js";
 export {
   Age,

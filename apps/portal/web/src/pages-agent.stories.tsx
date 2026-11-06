@@ -5,15 +5,19 @@
  * `wren agent serve --tape <dir>`, drive a chat, `node packages/agent/scripts/scrub-tape.mjs`.
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { HttpResponse, http, sse } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import CARD from "./mocks/data/agent/card.json";
 import COMMANDS from "./mocks/data/agent/commands.json";
 import HISTORY from "./mocks/data/agent/history.json";
 import SETUPS from "./mocks/data/agent/setups.json";
 import STOP from "./mocks/data/agent/stop.json";
 import WORK from "./mocks/data/agent/work.json";
 import { ADMIN } from "./mocks/data/me.js";
+import { RESEARCH_ROWS, RESEARCH_VIEW } from "./mocks/data/research.js";
 import { pageAt } from "./mocks/page.js";
 import { fakeRelay, type TapeLine, typedOn } from "./mocks/relay.js";
+import { SERVE } from "./modules/research/serve.js";
 
 const meta: Meta = { title: "Wren/Agent chat", id: "pages-agent" };
 export default meta;
@@ -21,6 +25,7 @@ export default meta;
 const TAPES = { work: WORK, stop: STOP, commands: COMMANDS } as Record<string, TapeLine[]>;
 const LIBRARY = Object.values(TAPES);
 const STORED = "00000000-0000-4000-8000-000000000001";
+const CARDED = "00000000-0000-4000-8000-000000000002";
 const LONG = { timeout: 30_000 };
 
 const story = (
@@ -34,6 +39,7 @@ const story = (
     library: LIBRARY,
     setups: SETUPS,
     stored: [
+      { session: CARDED, at: "2026-11-05T18:00:00Z", title: "Wholesale buyers", frames: CARD },
       { session: STORED, at: "2026-11-04T23:01:40Z", title: "Bakery buyers", frames: HISTORY },
     ],
   });
@@ -131,3 +137,26 @@ export const Stored = story(`/research/ask?setup=birdwatch&chat=${STORED}`, [], 
   await c.findByText(/A test of the chat page/, {}, LONG);
   await c.findByText(/42/, {}, LONG);
 });
+
+/**
+ * A step's output names its run (`::view research.run`): the run's card, read from birdwatch
+ * serve, once and under the last step. These frames are written by hand in the stored shape.
+ */
+export const Card = (() => {
+  const base = story(`/research/ask?setup=birdwatch&chat=${CARDED}`, [], async (page) => {
+    const c = within(page);
+    const card = await c.findByRole("article", { name: /^Birdwatch run: / }, LONG);
+    expect(within(card).getByText("How do small bakeries find wholesale buyers?")).toBeTruthy();
+    expect(c.getAllByRole("article", { name: /^Birdwatch run: / })).toHaveLength(1);
+    await c.findByText(/The review is next/, {}, LONG);
+  });
+  const served = [
+    http.get(`${SERVE}/runs`, () => HttpResponse.json({ v: 1, runs: RESEARCH_ROWS })),
+    http.get(`${SERVE}/runs/:run`, () => HttpResponse.json(RESEARCH_VIEW)),
+    sse(`${SERVE}/events`, () => {}),
+  ];
+  return {
+    ...base,
+    parameters: { ...base.parameters, msw: [...served, ...(base.parameters?.msw ?? [])] },
+  };
+})();
