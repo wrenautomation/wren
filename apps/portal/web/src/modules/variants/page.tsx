@@ -1,17 +1,29 @@
 /**
- * Campaigns › Variants (designs/2026-11-05-variants.md). To pick: the oldest open batch, every
+ * Variants, its own app (designs/2026-11-05-variants.md). To pick: the oldest open batch, every
  * sample whole and blind; Amazing / Good / Bad, notes on a line, a region or a moment, then Hand
  * to Vireo: the batch closes and the side chat takes a turn that points at it (`agent/drive.ts`).
- * Subjects: each one's batches, good rate, guides under test. Catalog: what we kept. The agent
- * writes through `wren variants`; this page only judges.
+ * Batches: `./batches.tsx`. Subjects: each one's batches, good rate, guides under test. Catalog:
+ * what we kept. The agent writes through `wren variants`; these pages only judge.
  */
-import { Button, cx, Empty, Icon, LoadFailed, Loading, Seg, Textarea, useEdit } from "@wren/ui";
+import {
+  Button,
+  cx,
+  Empty,
+  Icon,
+  LoadFailed,
+  Loading,
+  Seg,
+  Tag,
+  Textarea,
+  useEdit,
+} from "@wren/ui";
 import { footageLength } from "@wrenautomation/vireo/sync";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { href, navigate } from "../../route.js";
 import { handToChat, usePageContext } from "../agent/drive.js";
 import { type Live, LiveView } from "./live.js";
 import { FramesProvider, useFrames, WIDTHS } from "./live-page.js";
@@ -29,7 +41,7 @@ import {
 import { FootageLanes, type SyncMode, Together, TogetherProvider } from "./together.js";
 
 type Verdict = Sample["verdict"];
-const TALLY = ["amazing", "good", "bad"] as const;
+export const TALLY = ["amazing", "good", "bad"] as const;
 interface Open {
   batch: { id: number; createdAt: string; note: string | null };
   subject: { id: number; slug: string; name: string; kind: Kind; brief: string | null };
@@ -81,32 +93,16 @@ interface Kept {
   subject: { slug: string; name: string; kind: Kind };
 }
 
-type Tab = "pick" | "subjects" | "catalog";
-const TABS = [
-  { value: "pick", label: "To pick" },
-  { value: "subjects", label: "Subjects" },
-  { value: "catalog", label: "Catalog" },
-] as const;
 const VERDICTS: { v: NonNullable<Verdict>; label: string; icon: "star" | "check" | "close" }[] = [
   { v: "amazing", label: "Amazing", icon: "star" },
   { v: "good", label: "Good", icon: "check" },
   { v: "bad", label: "Bad", icon: "close" },
 ];
-const WIDE_KINDS: readonly Kind[] = ["video", "page"];
+export const WIDE_KINDS: readonly Kind[] = ["video", "page"];
+/** A past call, read only: the kit's status tag in the call's tone. */
+const TAG_OF = { amazing: "accent", good: "green", bad: "bad" } as const;
 
-export function VariantsPage(_: PageProps) {
-  const [tab, setTab] = useState<Tab>("pick");
-  return (
-    <div className="flex flex-col gap-4">
-      <Seg label="Variants" items={TABS} value={tab} onChange={setTab} />
-      {tab === "pick" && <ToPick />}
-      {tab === "subjects" && <Subjects />}
-      {tab === "catalog" && <Catalog />}
-    </div>
-  );
-}
-
-function ToPick() {
+export function PickPage(_: PageProps) {
   const got = useCall("variants-queue", () => call<Open[]>("variants/queue", {}));
   const [open, setOpen] = useState<Open[] | null>(null);
   const [at, setAt] = useState(0);
@@ -274,16 +270,19 @@ function Batch({
   );
 }
 
-function SampleCard({
+export function SampleCard({
   n,
   kind,
   sample,
   patch,
+  closed,
 }: {
   n: number;
   kind: Kind;
   sample: Sample;
   patch: (id: number, fn: (s: Sample) => Sample) => void;
+  /** A closed batch's sample: his call and notes read only, with the idea it tested. */
+  closed?: { change: string | null };
 }) {
   const [pending, setPending] = useState<{ anchor: Anchor | null } | null>(null);
   const [boxing, setBoxing] = useState(false);
@@ -324,7 +323,8 @@ function SampleCard({
     patch(sample.id, (s) => ({ ...s, notes: s.notes.filter((x) => x.id !== id) }));
     call("variants/unnote", { id }).catch(fail);
   };
-  const canBox = kind !== "text";
+  const canBox = kind !== "text" && !closed;
+  const shown = VERDICTS.find((v) => v.v === sample.verdict);
   const frames = useFrames();
   const staged = frames?.stage === sample.id;
   const step = (by: number) => {
@@ -405,12 +405,18 @@ function SampleCard({
           </Button>
         )}
       </div>
+      {closed?.change && (
+        <p className="m-0 text-[13px] text-(--ui-ink-2)">
+          <span className="text-(--ui-ink-3)">Tested: </span>
+          {closed.change}
+        </p>
+      )}
       <SampleBody
         kind={kind}
         sample={sample}
         boxing={boxing}
         pending={pending?.anchor ?? null}
-        onAnchor={(anchor) => setPending({ anchor })}
+        onAnchor={(anchor) => !closed && setPending({ anchor })}
       />
       {pending && (
         <NoteStrip anchor={pending.anchor} onSave={save} onCancel={() => setPending(null)} />
@@ -438,51 +444,73 @@ function SampleCard({
                 <span className="text-(--ui-ink-3)">{anchorLabel(x.anchor)}</span>
                 {x.text ? ` ${x.text}` : ""}
               </span>
-              <button
-                type="button"
-                aria-label="Remove note"
-                className="cursor-pointer text-(--ui-ink-3) hover:text-(--ui-ink)"
-                onClick={() => unnote(x.id)}
-              >
-                <Icon name="close" size={14} />
-              </button>
+              {!closed && (
+                <button
+                  type="button"
+                  aria-label="Remove note"
+                  className="cursor-pointer text-(--ui-ink-3) hover:text-(--ui-ink)"
+                  onClick={() => unnote(x.id)}
+                >
+                  <Icon name="close" size={14} />
+                </button>
+              )}
             </li>
           ))}
         </ul>
       )}
-      <div className={cx("mt-auto flex flex-wrap gap-2", staged && "justify-center")}>
-        {VERDICTS.map((v) => (
-          <button
-            type="button"
-            key={v.v}
-            aria-pressed={sample.verdict === v.v}
-            onClick={() => judge(v.v)}
-            className={cx(
-              "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-(--ui-radius) border text-[13px] font-semibold transition-colors duration-150",
-              // on stage a control hugs its words; in a card the three share the row
-              staged ? "px-5 max-sm:px-3" : "flex-1 px-3",
-              sample.verdict === v.v
-                ? VERDICT_ON[v.v]
-                : "border-(--ui-hair) text-(--ui-ink-2) hover:bg-(--ui-hover)",
-            )}
+      {closed ? (
+        shown && (
+          <div className={cx("mt-auto flex", staged && "justify-center")}>
+            <Tag tone={TAG_OF[shown.v]}>
+              <span className="inline-flex items-center gap-1">
+                <Icon name={shown.icon} size={12} />
+                {shown.label}
+              </span>
+            </Tag>
+          </div>
+        )
+      ) : (
+        <div className={cx("mt-auto flex flex-wrap gap-2", staged && "justify-center")}>
+          {VERDICTS.map((v) => (
+            <button
+              type="button"
+              key={v.v}
+              aria-pressed={sample.verdict === v.v}
+              onClick={() => judge(v.v)}
+              className={cx(
+                "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-(--ui-radius) border text-[13px] font-semibold transition-colors duration-150",
+                // on stage a control hugs its words; in a card the three share the row
+                staged ? "px-5 max-sm:px-3" : "flex-1 px-3",
+                sample.verdict === v.v
+                  ? VERDICT_ON[v.v]
+                  : "border-(--ui-hair) text-(--ui-ink-2) hover:bg-(--ui-hover)",
+              )}
+            >
+              <Icon name={v.icon} size={14} />
+              {v.label}
+            </button>
+          ))}
+          <Button
+            size="dense"
+            tone="quiet"
+            icon="note"
+            onClick={() => setPending({ anchor: null })}
           >
-            <Icon name={v.icon} size={14} />
-            {v.label}
-          </button>
-        ))}
-        <Button size="dense" tone="quiet" icon="note" onClick={() => setPending({ anchor: null })}>
-          Note
-        </Button>
-      </div>
+            Note
+          </Button>
+        </div>
+      )}
       {err && <div className="text-[12px] text-(--ui-bad)">{err}</div>}
     </article>
   );
   return staged ? createPortal(card, document.body) : card;
 }
 
-function Subjects() {
+export function SubjectsPage({ params }: PageProps) {
   const got = useCall("variants-subjects", () => call<SubjectRow[]>("variants/subjects", {}));
-  const [pick, setPick] = useState<number | null>(null);
+  const pick = Number(params.get("subject")) || null;
+  const setPick = (id: number | null) =>
+    navigate(href("/variants/subjects", { subject: id }, params));
   if (pick != null) return <SubjectDetail id={pick} onBack={() => setPick(null)} />;
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading />;
@@ -629,7 +657,14 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
         {[...v.batches].reverse().map((b) => (
           <div key={b.id} className="flex flex-col gap-1.5 border-b border-(--ui-hair) pb-3">
             <div className="text-[13px] text-(--ui-ink)">
-              <span className="font-semibold">Batch {b.id}</span>
+              <a
+                className="font-semibold text-(--ui-ink) underline-offset-2 hover:underline"
+                href={
+                  b.state === "open" ? "/variants/pick" : href("/variants/batches", { batch: b.id })
+                }
+              >
+                Batch {b.id}
+              </a>
               <span className="text-(--ui-ink-3)">
                 {" "}
                 ·{" "}
@@ -642,7 +677,7 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
             </div>
             <p className="m-0 text-[13px] text-(--ui-ink-2)">Agent: {b.why}</p>
             {b.note && <p className="m-0 text-[13px] text-(--ui-ink-2)">You: {b.note}</p>}
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {b.samples.map((s) => (
                 <span
                   key={s.id}
@@ -665,7 +700,7 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
   );
 }
 
-function Catalog() {
+export function CatalogPage(_: PageProps) {
   const got = useCall("variants-catalog", () => call<Kept[]>("variants/catalog", {}));
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading />;

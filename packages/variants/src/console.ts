@@ -1,5 +1,5 @@
 /**
- * VariantsConsole: Campaigns › Variants in the portal. Reads the queue blind (no change notes,
+ * VariantsConsole: the portal's Variants app. Reads the queue blind (no change notes,
  * parents, guides or agent), signs media for the player, writes William's calls and notes.
  */
 import type * as restate from "@restatedev/restate-sdk";
@@ -102,6 +102,50 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
           ),
         };
       }),
+    /** Every batch of every subject, newest first, whole: each sample with its call, notes and
+     * the idea it tested. An open batch stays blind: no change notes. */
+    batches: () =>
+      refuse(async () => {
+        const subjects = await v.listSubjects();
+        const all = await Promise.all(
+          subjects.map(async (s) => {
+            const f = await v.feedback(s.id);
+            const subject = { id: s.id, slug: s.slug, name: s.name, kind: s.kind, brief: s.brief };
+            return Promise.all(
+              f.batches.map(async (b) => ({
+                id: b.id,
+                why: b.state === "open" ? null : b.why,
+                note: b.note,
+                state: b.state,
+                createdAt: b.createdAt,
+                goodRate: b.goodRate,
+                subject,
+                samples: await Promise.all(
+                  // made order: #n stays the same sample on every visit
+                  [...b.samples]
+                    .sort((x, y) => x.id - y.id)
+                    .map((x) =>
+                      media({
+                        id: x.id,
+                        body: x.body,
+                        media: x.media,
+                        poster: x.poster,
+                        source: x.source,
+                        verdict: x.verdict,
+                        keptAt: x.keptAt,
+                        notes: x.notes,
+                        change: b.state === "open" ? null : x.change,
+                      }),
+                    ),
+                ),
+              })),
+            );
+          }),
+        );
+        return all
+          .flat()
+          .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt) || b.id - a.id);
+      }),
     catalog: (req: Req) =>
       refuse(async () => {
         const kind = KINDS.includes(req.kind as Kind) ? (req.kind as Kind) : null;
@@ -177,6 +221,7 @@ const INPUTS = {
   queue: { subject: ID.nullish() },
   subjects: {},
   subject: { id: ID },
+  batches: {},
   catalog: { kind: z.string().nullish() },
   judge: {
     sample: ID,
@@ -213,6 +258,7 @@ export function makeVariantsConsole(db: Db, sign: Sign | null) {
     queue: h("queue"),
     subjects: h("subjects"),
     subject: h("subject"),
+    batches: h("batches"),
     catalog: h("catalog"),
     judge: h("judge"),
     note: h("note"),

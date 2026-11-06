@@ -1,16 +1,19 @@
 /**
- * The portal's apps: the product shell for a client and for Wren (`./places.ts`), and Research.
+ * The portal's apps: the product shell for a client and for Wren (`./places.ts`), Research and
+ * Variants.
  */
 
 import type { Module } from "../module.js";
 import { CLIENT_PLACES, TEAM_PLACES } from "./places.js";
 import { research } from "./research/index.js";
+import { variants } from "./variants/index.js";
 
 export const MODULES: Module[] = [
   // One address, two apps: a client's place in its own workspace, Wren's in Wren's.
   ...CLIENT_PLACES,
   ...TEAM_PLACES,
   research,
+  variants,
 ];
 
 /**

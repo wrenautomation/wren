@@ -1,0 +1,320 @@
+/**
+ * Variants › Batches: every batch, newest first, and one batch whole (`?batch=<id>`) with his
+ * calls, notes and the idea each sample tested, read only. An open batch stays blind: it opens in
+ * To pick.
+ */
+import {
+  Button,
+  CHIP,
+  cx,
+  Empty,
+  Icon,
+  LoadFailed,
+  Loading,
+  PAGE_TITLE,
+  Tag,
+  TierLabel,
+} from "@wren/ui";
+import { useEffect, useMemo, useState } from "react";
+import { call } from "../../api.js";
+import { useCall } from "../../load.js";
+import type { PageProps } from "../../module.js";
+import { href, navigate } from "../../route.js";
+import { usePageContext } from "../agent/drive.js";
+import { dayLabel } from "../work/bits.js";
+import { FramesProvider } from "./live-page.js";
+import { type Kind, pct, type Sample, VERDICT_ON } from "./marks.js";
+import { SampleCard, TALLY, WIDE_KINDS } from "./page.js";
+import { Together, TogetherProvider } from "./together.js";
+
+interface Row {
+  id: number;
+  /** Null while open: the agent's reason stays hidden until he hands it back. */
+  why: string | null;
+  note: string | null;
+  state: string;
+  createdAt: string;
+  goodRate: number | null;
+  subject: { id: number; slug: string; name: string; kind: Kind; brief: string | null };
+  samples: (Sample & { change: string | null })[];
+}
+
+const HERE = "/variants/batches";
+/** `CHIP_ON` by the address: a variant outranks CHIP's own ground and ink, cx does not merge. */
+const CHIP_SET =
+  "aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:text-(--ui-active) aria-[current=page]:hover:bg-(--ui-accent-tint)";
+const MARK = { amazing: "star", good: "check", bad: "close" } as const;
+const THUMBS = 6;
+
+export function BatchesPage({ params }: PageProps) {
+  const got = useCall("variants-batches", () => call<Row[]>("variants/batches", {}));
+  const [rows, setRows] = useState<Row[] | null>(null);
+  useEffect(() => setRows(got.data), [got.data]);
+  const id = Number(params.get("batch")) || null;
+  if (got.error && !rows) return <LoadFailed error={got.error} onRetry={got.retry} />;
+  if (!rows) return <Loading shape="rows" lines={4} />;
+  if (id != null) {
+    const row = rows.find((r) => r.id === id);
+    if (!row)
+      return (
+        <Empty title={`No batch ${id}`}>
+          <a href={HERE}>All batches</a>
+        </Empty>
+      );
+    const patch = (sampleId: number, fn: (s: Sample) => Sample) =>
+      setRows((rs) =>
+        (rs ?? []).map((r) =>
+          r.id !== id
+            ? r
+            : { ...r, samples: r.samples.map((s) => (s.id === sampleId ? { ...s, ...fn(s) } : s)) },
+        ),
+      );
+    return <BatchView row={row} patch={patch} params={params} />;
+  }
+  return <BatchList rows={rows} params={params} />;
+}
+
+function BatchList({ rows, params }: { rows: Row[]; params: URLSearchParams }) {
+  const subjects = useMemo(
+    () => [...new Map(rows.map((r) => [r.subject.slug, r.subject.name])).entries()],
+    [rows],
+  );
+  const pick = params.get("subject") ?? "";
+  const shown = pick ? rows.filter((r) => r.subject.slug === pick) : rows;
+  // open batches wait on him: they lead (DESIGN.md, Needs You)
+  const tiers = [
+    { needs: true, rows: shown.filter((r) => r.state === "open") },
+    { needs: false, rows: shown.filter((r) => r.state !== "open") },
+  ].filter((t) => t.rows.length);
+  usePageContext(`in view: every Variants batch${pick ? ` of ${pick}` : ""}, newest first`);
+  if (!rows.length)
+    return (
+      <Empty title="No batches yet">
+        The agent's batches land in To pick. Each one shows here once it exists.
+      </Empty>
+    );
+  return (
+    <div className="flex flex-col gap-3">
+      {subjects.length > 1 && (
+        <nav aria-label="Subject" className="-mx-1 flex gap-1 overflow-x-auto px-1">
+          {[["", "All"] as const, ...subjects].map(([slug, name]) => (
+            <a
+              key={slug}
+              href={href(HERE, { subject: slug }, params)}
+              aria-current={pick === slug ? "page" : undefined}
+              className={cx(CHIP, CHIP_SET)}
+            >
+              {name}
+            </a>
+          ))}
+        </nav>
+      )}
+      <ul className="m-0 flex list-none flex-col p-0">
+        {tiers.map((t) => [
+          <li
+            key={t.needs ? "needs" : "info"}
+            className="flex h-8 items-center bg-(--ui-band) px-2 text-[12px] font-semibold text-(--ui-ink-2)"
+          >
+            <TierLabel needs={t.needs} n={t.rows.length} />
+          </li>,
+          ...t.rows.map((r) => (
+            <li key={r.id}>
+              <BatchRow row={r} />
+            </li>
+          )),
+        ])}
+      </ul>
+    </div>
+  );
+}
+
+function BatchRow({ row: r }: { row: Row }) {
+  const open = r.state === "open";
+  const kept = r.samples.filter((s) => s.keptAt).length;
+  const thumbs = r.samples.filter((s) => s.posterUrl).slice(0, THUMBS);
+  const more = r.samples.filter((s) => s.posterUrl).length - thumbs.length;
+  return (
+    <a
+      href={open ? "/variants/pick" : href(HERE, { batch: r.id })}
+      className="flex flex-col gap-2 border-b border-(--ui-hair) px-1 py-3 text-(--ui-ink) no-underline hover:bg-(--ui-hover) md:flex-row md:items-start md:gap-4"
+    >
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <span
+          className={cx(
+            "text-[14px]",
+            open ? "font-semibold text-(--ui-ink)" : "font-normal text-(--ui-ink-2)",
+          )}
+        >
+          {r.subject.name}
+        </span>
+        <span className="text-[12px] text-(--ui-ink-3) tabular-nums">
+          Batch {r.id} · {dayLabel(r.createdAt)} · {r.samples.length} samples
+        </span>
+        <span className="flex flex-wrap items-center gap-1.5">
+          {open ? (
+            <Tag tone="warn" dot>
+              To pick
+            </Tag>
+          ) : (
+            <>
+              {r.goodRate != null && (
+                <span className="text-[12px] font-semibold text-(--ui-ink-2)">
+                  {pct(r.goodRate)} good or better
+                </span>
+              )}
+              <Tally samples={r.samples} />
+              {kept > 0 && (
+                <span className="inline-flex items-center gap-1 text-[12px] text-(--ui-ink-3)">
+                  <Icon name="pin" size={12} />
+                  {kept} kept
+                </span>
+              )}
+            </>
+          )}
+        </span>
+        {r.why && (
+          <span className="text-[13px] text-(--ui-ink-2)">
+            <span className="text-(--ui-ink-3)">Agent: </span>
+            {r.why}
+          </span>
+        )}
+        {r.note && (
+          <span className="text-[13px] text-(--ui-ink)">
+            <span className="text-(--ui-ink-3)">You: </span>
+            {r.note}
+          </span>
+        )}
+      </span>
+      {thumbs.length > 0 && (
+        <span className="flex shrink-0 flex-wrap items-center gap-1.5">
+          {thumbs.map((s) => (
+            <span key={s.id} className="relative block">
+              <img
+                src={s.posterUrl ?? ""}
+                alt=""
+                loading="lazy"
+                className="block h-12 w-20 rounded-[4px] border border-(--ui-hair) bg-(--ui-tile) object-cover"
+              />
+              {!open && s.verdict && (
+                <span
+                  role="img"
+                  aria-label={s.verdict}
+                  className={cx(
+                    "absolute -right-1 -bottom-1 grid size-4 place-items-center rounded-full border",
+                    VERDICT_ON[s.verdict],
+                  )}
+                >
+                  <Icon name={MARK[s.verdict]} size={10} />
+                </span>
+              )}
+            </span>
+          ))}
+          {more > 0 && <span className="text-[12px] text-(--ui-ink-3)">+{more}</span>}
+        </span>
+      )}
+    </a>
+  );
+}
+
+/** "2 amazing · 1 good · 3 bad", each in its call's color; unmarked last. */
+function Tally({ samples }: { samples: Sample[] }) {
+  const counts = TALLY.map((t) => [t, samples.filter((s) => s.verdict === t).length] as const);
+  const none = samples.filter((s) => !s.verdict).length;
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      {counts
+        .filter(([, n]) => n)
+        .map(([t, n]) => (
+          <span
+            key={t}
+            className={cx("rounded-full border px-2 py-0.5 text-[12px]", VERDICT_ON[t])}
+          >
+            {n} {t}
+          </span>
+        ))}
+      {none > 0 && <span className="text-[12px] text-(--ui-ink-3)">{none} unmarked</span>}
+    </span>
+  );
+}
+
+function BatchView({
+  row: r,
+  patch,
+  params,
+}: {
+  row: Row;
+  patch: (id: number, fn: (s: Sample) => Sample) => void;
+  params: URLSearchParams;
+}) {
+  const open = r.state === "open";
+  usePageContext(
+    `in view: batch ${r.id} of ${r.subject.slug} (${r.subject.kind}), ${open ? "open" : "closed"}, ${r.samples.length} samples`,
+  );
+  const group = useMemo(() => new Together(), []);
+  const wide = WIDE_KINDS.includes(r.subject.kind);
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <span>
+          <Button
+            size="dense"
+            tone="quiet"
+            icon="left"
+            onClick={() => navigate(href(HERE, { batch: null }, params))}
+          >
+            Batches
+          </Button>
+        </span>
+        <h2 className={cx(PAGE_TITLE, "m-0 mt-1 text-(--ui-ink)")}>{r.subject.name}</h2>
+        <p className="m-0 text-[12px] text-(--ui-ink-3)">
+          Batch {r.id} · {dayLabel(r.createdAt)} · {r.samples.length} samples
+          {r.goodRate != null && ` · ${pct(r.goodRate)} good or better`}
+        </p>
+        {!open && (
+          <div className="mt-1">
+            <Tally samples={r.samples} />
+          </div>
+        )}
+        {r.why && (
+          <p className="m-0 mt-1 text-[13px] text-(--ui-ink-2)">
+            <span className="text-(--ui-ink-3)">Agent: </span>
+            {r.why}
+          </p>
+        )}
+        {r.note && (
+          <p className="m-0 text-[13px] text-(--ui-ink)">
+            <span className="text-(--ui-ink-3)">You: </span>
+            {r.note}
+          </p>
+        )}
+      </div>
+      {open ? (
+        <Empty title="This batch waits for your calls">
+          It stays blind until you hand it back. <a href="/variants/pick">Open it in To pick</a>
+        </Empty>
+      ) : (
+        <TogetherProvider value={group}>
+          <div
+            className={cx(
+              "grid gap-4",
+              wide ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1 md:grid-cols-2",
+            )}
+          >
+            <FramesProvider ids={r.samples.map((s) => s.id)}>
+              {r.samples.map((s, i) => (
+                <SampleCard
+                  key={s.id}
+                  n={i + 1}
+                  kind={r.subject.kind}
+                  sample={s}
+                  patch={patch}
+                  closed={{ change: s.change }}
+                />
+              ))}
+            </FramesProvider>
+          </div>
+        </TogetherProvider>
+      )}
+    </div>
+  );
+}

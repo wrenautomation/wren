@@ -1,6 +1,6 @@
 /**
  * `wren variants`: vireo's commands (`@wrenautomation/vireo/cli`) on wren's db, collectors,
- * media bucket and audit actor. William judges in the portal (Campaigns › Variants).
+ * media bucket and audit actor. William judges in the portal (Variants).
  */
 import type { Settings } from "@wren/config";
 import type { Db } from "@wren/db";

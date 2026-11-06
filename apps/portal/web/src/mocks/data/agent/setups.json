@@ -11,7 +11,7 @@
   {
     "name": "vireo",
     "title": "Vireo",
-    "app": "campaigns",
+    "app": "variants",
     "model": "sonnet",
     "models": ["sonnet", "haiku", "opus", "fable"],
     "tools": ["Bash", "Read", "Write", "Skill", "AskUserQuestion"],

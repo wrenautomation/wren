@@ -21,6 +21,7 @@ export const PLACES = [
   { label: "Project", app: "project", area: "fixed" },
   { label: "Campaigns", app: "campaigns", area: "work" },
   { label: "Research", app: "research", area: "work" },
+  { label: "Variants", app: "variants", area: "work" },
   { label: "People", app: "people", area: "core" },
   { label: "Back office", app: "office", area: "core" },
 ] as const;

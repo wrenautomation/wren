@@ -5,6 +5,7 @@ export const VARIANTS_CONSOLE_ROUTES = {
   queue: "wren:team",
   subjects: "wren:team",
   subject: "wren:team",
+  batches: "wren:team",
   catalog: "wren:team",
   judge: "wren:team",
   note: "wren:team",
@@ -14,8 +15,8 @@ export const VARIANTS_CONSOLE_ROUTES = {
   guide: "wren:team",
   setGuide: "wren:team",
 } as const satisfies Record<string, Need>;
-/** Campaigns › Variants. */
-export const VARIANTS_CONSOLE_APPS = { "*": "campaigns" } as const satisfies RouteApps<
+/** Variants: its own app, beside Research. */
+export const VARIANTS_CONSOLE_APPS = { "*": "variants" } as const satisfies RouteApps<
   typeof VARIANTS_CONSOLE_ROUTES
 >;
 export const VARIANTS_CONSOLE_WRITES: readonly (keyof typeof VARIANTS_CONSOLE_ROUTES)[] = [

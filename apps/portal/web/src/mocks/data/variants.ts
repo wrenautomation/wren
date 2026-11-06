@@ -275,7 +275,98 @@ const SUBJECT = {
   ],
 };
 
+/** Every batch, newest first: the three open ones blind, then closed ones with calls and ideas. */
+const openRow = (o: typeof VIDEO | typeof PAGE | typeof COPY) => ({
+  id: o.batch.id,
+  why: null,
+  note: null,
+  state: "open",
+  createdAt: o.batch.createdAt,
+  goodRate: null,
+  subject: o.subject,
+  samples: o.samples.map((x) => ({ ...x, verdict: null, notes: [], change: null })),
+});
+const BATCHES = [
+  openRow(PAGE),
+  openRow(VIDEO),
+  openRow(COPY),
+  {
+    id: 6,
+    why: "Claims only, each opener names a real place",
+    note: "The place works. Cut the question at the end.",
+    state: "closed",
+    createdAt: ago(5),
+    goodRate: 0.5,
+    subject: COPY.subject,
+    samples: COPY.samples.map((x, i) => ({
+      ...x,
+      id: 27 + i,
+      change:
+        ["Market stall in line one", "Two named cafes", "Greeting first", "A sold-out fact"][i] ??
+        null,
+    })),
+  },
+  {
+    id: 4,
+    why: "Three scenes: depth, grain, slow light",
+    note: "Calm at rest is right. More contrast at night.",
+    state: "closed",
+    createdAt: ago(9),
+    goodRate: 0.67,
+    subject: PAGE.subject,
+    samples: PAGE.samples.map((x, i) => ({
+      ...x,
+      id: 47 + i,
+      verdict: (["amazing", "good", "bad"] as const)[i],
+      keptAt: i === 0 ? ago(9) : null,
+      change:
+        ["Parallax depth on scroll", "Film grain over a flat field", "A slow light sweep"][i] ??
+        null,
+    })),
+  },
+  {
+    id: 3,
+    why: "Open on the result vs the setup",
+    note: "Result first. Captions too low.",
+    state: "closed",
+    createdAt: ago(14),
+    goodRate: 0.33,
+    subject: VIDEO.subject,
+    samples: VIDEO.samples.map((x, i) => ({
+      ...x,
+      id: 34 + i,
+      change: ["Result in the first second", "Setup first", "Result, then a fast recap"][i] ?? null,
+    })),
+  },
+  {
+    id: 5,
+    why: "Six openers: question vs claim",
+    note: "Claims win. Shorter.",
+    state: "closed",
+    createdAt: ago(30),
+    goodRate: 0.33,
+    subject: COPY.subject,
+    samples: [
+      "Do you sell to cafes yet?",
+      "Your rye sells out by noon.",
+      "Want more wholesale buyers?",
+      "Three cafes near you buy outside pastries.",
+      "Ever thought about wholesale?",
+      "Hi, quick question for you.",
+    ].map((body, i) => ({
+      ...base,
+      id: 21 + i,
+      body,
+      mediaUrl: null,
+      posterUrl: null,
+      change: i % 2 ? "claim" : "question",
+      verdict: i === 1 ? "amazing" : i === 3 ? "good" : i === 5 ? "bad" : null,
+    })),
+  },
+].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+
 export const VARIANTS_ANSWERS: Answers = {
+  "variants/batches": BATCHES,
   "variants/queue": [VIDEO, PAGE, COPY],
   "variants/subjects": [
     SUBJECT.subject,

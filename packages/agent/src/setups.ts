@@ -29,7 +29,7 @@ export const SETUPS: readonly Setup[] = [
   {
     name: "vireo",
     title: "Vireo",
-    app: "campaigns",
+    app: "variants",
     // private repo: batch files hold copy, the wren repo is public
     cwd: "tasks/docs/variants",
     model: "sonnet",

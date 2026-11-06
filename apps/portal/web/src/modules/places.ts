@@ -1,6 +1,6 @@
 /**
  * The places (designs/2026-11-04-portal-places.md, Lean places). Wren: Map, Today, Campaigns,
- * Research, People, Back office. A client: Today, Project, Campaigns, People, Back office. A page
+ * Research, Variants, People, Back office. A client: Today, Project, Campaigns, People, Back office. A page
  * keeps its own component and access, so a client sees only what it holds. Old addresses:
  * `../moved.ts`.
  */
@@ -19,7 +19,6 @@ import { payments } from "./payments/index.js";
 import { clientPeople as oldClientPeople, people as oldPeople } from "./people/index.js";
 import { reactivation } from "./reactivation/index.js";
 import { settings } from "./settings/index.js";
-import { variantsPage } from "./variants/index.js";
 import { work } from "./work/index.js";
 import { inbox } from "./wren/inbox.js";
 import { clients, money, outbound, team } from "./wren/index.js";
@@ -175,7 +174,6 @@ const campaignsPlace: Module = {
       { id: "videos", lights: "studio" },
       { id: "write", lights: "studio" },
     ]).map(hide),
-    variantsPage,
     ...from(engage, [{ id: "followers", lights: "content" }]).map(hide),
     ...from(engage, ["engage", "conversation"], "Outreach"),
     ...from(
