@@ -1,7 +1,7 @@
 /** Variants' fake answers: a video batch and a copy batch to pick, a subject, the catalog. Synthetic. */
 import type { Answers } from "../api.js";
 import { ago } from "./shell.js";
-import { TREE_SUBJECT } from "./variants-tree.js";
+import { NOTES_ONLY, TREE_SUBJECT } from "./variants-tree.js";
 
 /** Three cuts of one 12 s test footage (its counter shows the footage second); spans match the files. */
 const SPANS = [
@@ -371,11 +371,16 @@ export const VARIANTS_ANSWERS: Answers = {
   "variants/queue": [VIDEO, PAGE, COPY],
   "variants/subjects": [
     TREE_SUBJECT.subject,
+    NOTES_ONLY.subject,
     SUBJECT.subject,
     { ...VIDEO.subject, state: "open", samples: 3, kept: 0, toPick: 3 },
   ],
   "variants/subject": (b: Record<string, unknown>) =>
-    b.id === TREE_SUBJECT.subject.id ? TREE_SUBJECT : SUBJECT,
+    b.id === TREE_SUBJECT.subject.id
+      ? TREE_SUBJECT
+      : b.id === NOTES_ONLY.subject.id
+        ? NOTES_ONLY
+        : SUBJECT,
   "variants/judge": (b: Record<string, unknown>) => ({ id: b.sample, verdict: b.verdict }),
   "variants/note": (b: Record<string, unknown>) => ({ id: Math.floor(Math.random() * 1e6), ...b }),
   "variants/unnote": { done: [] },

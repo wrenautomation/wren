@@ -154,6 +154,12 @@
   stroke-width: 2;
   stroke-dasharray: 3 3;
 }
+.vt-names {
+  pointer-events: none;
+}
+.vt-names .dim {
+  opacity: 0.3;
+}
 .vt-nl {
   font: 500 11px var(--ui-font);
   fill: var(--ui-ink-3);

@@ -198,3 +198,82 @@ export const TREE_SUBJECT = {
     },
   ],
 };
+
+/** Notes only, no calls: one sample grows eight across two batches (the shape prod has). */
+const IDEAS: [number, Look, string, number | null][] = [
+  [101, "shader", "Curl noise ribbons: ink points beside the copy.", null],
+  [102, "shader", "Ink plume: a fluid the pointer stirs.", null],
+  [103, "3d", "Clay blobs: raymarched shapes that merge.", null],
+  [104, "3d", "Dither planet: a wild card in three tones.", null],
+  [105, "shader", "Coral growth: reaction-diffusion across the page.", null],
+  [106, "shader", "Warm caustics: a light network on the page.", null],
+  [107, "grid", "Swiss index: an info grid with a live clock.", null],
+  [108, "film", "Live exhibits: curved screens, one sim each.", null],
+  [109, "3d", "One signature object: a clay planet with contour lines.", null],
+  [110, "type", "Poster: vermilion field, condensed display type.", null],
+  [111, "terminal", "Ledger: mono readouts and a glyph graph.", null],
+  [112, "3d", "Dusk horizon: the name curves along the earth.", 109],
+  [113, "3d", "Star system: scroll climbs a telescope into the sky.", 109],
+  [114, "3d", "Toy world: the camera lifts to the whole planet.", 109],
+  [115, "3d", "Eyepiece: the view opens through the lens.", 109],
+  [116, "grid", "Paper diorama: cut layers with soft shadows.", 109],
+  [117, "3d", "Planet at night: the name over a lit rim.", 109],
+  [118, "list", "Star atlas: hatched earth on deep navy.", 109],
+  [119, "3d", "Star system, crisp: the climb with sharp edges.", 113],
+  [120, "film", "Aurora: pastel curtains over a dark earth.", 109],
+];
+const NOTES_CLOSED = [
+  [41, 101, 106, "Six background techniques.", "None land. I want a whole page, not a background."],
+  [42, 107, 111, "From your note: five full pages.", "The planet is the one. Push it."],
+  [
+    43,
+    112,
+    116,
+    "From your note: five takes on the planet.",
+    "Star system is close. Try the rest too.",
+  ],
+  [44, 117, 120, "Star system, sharper, and three more planets.", "Aurora. Make more like it."],
+] as const;
+export const NOTES_ONLY = {
+  subject: {
+    id: 4,
+    slug: "portfolio-hero",
+    name: "Portfolio hero",
+    kind: "page",
+    brief: "A designer's landing page. One scene, award-site craft.",
+    state: "open",
+    samples: 27,
+    kept: 0,
+    toPick: 7,
+  },
+  leaders: [],
+  guides: [],
+  batches: [
+    ...NOTES_CLOSED.map(([id, lo, hi, why, note], i) => ({
+      id,
+      why,
+      note,
+      state: "closed",
+      createdAt: ago(5 - i),
+      closedAt: ago(4.8 - i),
+      goodRate: null,
+      samples: IDEAS.filter(([n]) => n >= lo && n <= hi).map(([n, look, change, parent]) =>
+        row(n, look, null, change, parent),
+      ),
+    })),
+    {
+      id: 45,
+      why: "From your note: seven aurora takes.",
+      note: null,
+      state: "open",
+      createdAt: ago(0.5),
+      closedAt: null,
+      goodRate: null,
+      samples: [121, 122, 123, 124, 125, 126, 127].map((id) => ({
+        ...row(id, "film", null, ""),
+        change: null,
+        parentId: null,
+      })),
+    },
+  ],
+};

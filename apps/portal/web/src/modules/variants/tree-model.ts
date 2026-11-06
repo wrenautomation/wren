@@ -99,10 +99,8 @@ export function shortName(text: string | null, fallback: string): string {
 /** The idea after its first clause, up to 6 words, no leading article: the edge label. */
 export function deltaOf(text: string | null): string | null {
   const m = (text ?? "").match(/^[^:;—–]+[:;—–]\s*(.+)$/);
-  const rest = (m?.[1] ?? "")
-    .replace(/\s*\([^)]*\)/g, "")
-    .replace(/[.!?]+$/, "")
-    .trim();
+  // first sentence only
+  const rest = ((m?.[1] ?? "").split(/[.!?;](\s|$)/)[0] ?? "").replace(/\s*\([^)]*\)/g, "").trim();
   if (!rest) return null;
   const words = rest.split(/\s+/);
   if (/^(a|an|the)$/i.test(words[0] ?? "") && words.length > 1) words.shift();
@@ -205,6 +203,8 @@ function layout(S: TNode[], rounds: TRound[]) {
     under.set(id, n);
     return n;
   };
+  /** room a leaf takes, in columns: wide enough for its snapshot */
+  const room = (s: TNode) => (strong(s) ? 2.4 : s.v === "unmarked" ? 1.45 : 1.15);
   const loose = (s: TNode) => prim(s) === 0 && !strong(s) && !tkids(s.id).length;
   // lines from the brief keep a clear column; loose seeds pack to the sides
   const X = new Map<number, number>();
@@ -222,7 +222,7 @@ function layout(S: TNode[], rounds: TRound[]) {
     const ch = tkids(s.id);
     const start = cur;
     if (!ch.length) {
-      const w = strong(s) ? 2.4 : 1.15;
+      const w = room(s);
       X.set(s.id, cur + w / 2);
       cur += w;
       return;
@@ -238,6 +238,8 @@ function layout(S: TNode[], rounds: TRound[]) {
       for (const [k, v] of X) if (k === s.id || (v >= start && v <= cur)) X.set(k, v + d);
       cur = start + need;
     }
+    // a named parent's label sits to its right: keep the next sibling clear of it
+    if (strong(s)) cur += 1.4;
   };
   order.forEach(place);
   const L: Record<number, number> = {};
@@ -246,13 +248,14 @@ function layout(S: TNode[], rounds: TRound[]) {
   let lo = 0;
   let hi = cur;
   S.filter((s) => s.v !== "open" && loose(s)).forEach((s, i) => {
+    const w = room(s);
     if (i % 2 === 0) {
-      L[s.r] = (L[s.r] ?? 0) + 1.15;
-      X.set(s.id, -(L[s.r] ?? 0) + 0.575);
+      L[s.r] = (L[s.r] ?? 0) + w;
+      X.set(s.id, -(L[s.r] ?? 0) + w / 2);
       lo = Math.min(lo, -(L[s.r] ?? 0));
     } else {
-      R[s.r] = (R[s.r] ?? GAP) + 1.15;
-      X.set(s.id, cur + (R[s.r] ?? 0) - 0.575);
+      R[s.r] = (R[s.r] ?? GAP) + w;
+      X.set(s.id, cur + (R[s.r] ?? 0) - w / 2);
       hi = Math.max(hi, cur + (R[s.r] ?? 0));
     }
   });

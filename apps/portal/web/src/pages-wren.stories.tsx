@@ -22,6 +22,8 @@ export const VariantsBatch = pageAt("/variants/batches?batch=6", { me: ADMIN });
 export const VariantsSubjects = pageAt("/variants/subjects", { me: ADMIN });
 /** A subject's generation tree: four rounds, one open (blind). */
 export const VariantsTree = pageAt("/variants/subjects?subject=3", { me: ADMIN });
+/** Notes only, no calls: grew and unmarked carry the tree (prod's shape). */
+export const VariantsTreeNotes = pageAt("/variants/subjects?subject=4", { me: ADMIN });
 /** An open batch, marked here: blind, in queue order. */
 export const VariantsOpen = pageAt("/variants/batches?batch=7", { me: ADMIN });
 

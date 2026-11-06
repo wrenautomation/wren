@@ -17,7 +17,7 @@ Judge: pass 5 of artifact `A5xNkRRGMoMZuH8s7mvfRL`. Values port as is (`G={W:830
 | Page | `page.tsx` SubjectDetail: header, brief, tree, Live, Guides. The per-batch chart and batch list are gone: the tree holds both. |
 | Blind | `packages/variants/src/console.ts` blanks `why`, `change`, `parentId` on an open batch; the model blanks them again |
 | None of these | MarkBatch: one action marks every unmarked sample bad, closes the batch, hands to chat. Hidden once any sample is good. |
-| Story | `pages-wren.stories.tsx` `VariantsTree` (synthetic, the artifact's example data) |
+| Story | `pages-wren.stories.tsx` `VariantsTree` (synthetic, the artifact's example data); `VariantsTreeNotes` (synthetic, prod's shape: notes only, no calls) |
 
 ## Decisions (v1: no schema change)
 
@@ -33,6 +33,13 @@ Other derived fields:
 - Locks: locked guides whose `decidedAt` falls between this batch's close and the next one's.
 - Round call: "N to mark", "None of these" (all bad), "g of n good", "Note only".
 - A parent that is missing, in the same row or later (a cycle) is dropped; the sample is a seed.
+- Edge label: `deltaOf(change)`, the first sentence after the first `:`/`—`, up to 6 words.
+
+Layout rules found on prod (names hit siblings):
+
+- Names draw in one top layer after all nodes, so no sibling covers one.
+- Width per leaf: 2.4 columns if strong, 1.45 if unmarked, else 1.15. A strong parent gets 1.4 more for its name.
+- Name side: right if the free space to the next node fits it, else left, else under.
 
 ## Open: what the schema should hold (William's call)
 

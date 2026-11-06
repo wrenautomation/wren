@@ -413,7 +413,6 @@ function TreeSvg({
           s.v === "open"
             ? `${s.name}, batch ${s.r}, to mark`
             : `${s.name}, batch ${s.r}, ${VERD[s.v]}`;
-        const named = s.v !== "open" && (strong(s) || isSel || (mode === "all" && path.has(s.id)));
         return (
           // biome-ignore lint/a11y/useSemanticElements: an SVG node; <button> cannot live in SVG.
           <g
@@ -452,10 +451,29 @@ function TreeSvg({
                 <path d={PIN} fill="currentColor" transform="scale(0.917)" />
               </g>
             )}
-            {named && <Name t={t} s={s} sel={isSel} />}
           </g>
         );
       })}
+      {/* names over every snapshot: a sibling never covers one */}
+      {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: plain g, no tabindex; names repeat each node's aria-label */}
+      <g className="vt-names" aria-hidden="true">
+        {t.S.map((s) => {
+          const isSel = s.id === sel;
+          if (s.v === "open" || !(strong(s) || isSel || (mode === "all" && path.has(s.id))))
+            return null;
+          const p = t.pos(s);
+          const dim = mode === "line" && !hot.has(s.id);
+          return (
+            <g
+              key={s.id}
+              className={dim ? "dim" : undefined}
+              transform={`translate(${f1(p.x)} ${f1(p.y)})`}
+            >
+              <Name t={t} s={s} sel={isSel} />
+            </g>
+          );
+        })}
+      </g>
     </svg>
   );
 }
@@ -589,11 +607,25 @@ function Name({ t, s, sel }: { t: Tree; s: TNode; sel: boolean }) {
   const cls = `vt-nl vt-halo${strong(s) ? " k" : ""}`;
   const ls = wrap(s.name, 11);
   if (t.tkids(s.id).length) {
-    const x = HW(s.v) + pad + 6;
+    // edges leave from below: name to the right, or left, or under when neither side has room
+    const me = t.pos(s);
+    const xs = t.S.filter((o) => o.r === s.r && o.id !== s.id && o.v !== "open").map((o) => ({
+      x: t.pos(o).x,
+      hw: HW(o.v),
+    }));
+    const need = HW(s.v) + pad + 10 + Math.max(...ls.map((l) => l.length)) * 6.6;
+    const free = (dir: 1 | -1) =>
+      Math.min(
+        dir > 0 ? G.W - me.x : me.x - G.AX,
+        ...xs.filter((o) => (o.x - me.x) * dir > 0).map((o) => Math.abs(o.x - me.x) - o.hw),
+      );
+    const side = free(1) >= need ? 1 : free(-1) >= need ? -1 : 0;
+    const x = side * (HW(s.v) + pad + 6);
+    const y = side ? (ls.length > 1 ? -2.5 : 4) : HH(s.v) + pad + 14;
     return (
-      <text className={cls} y={ls.length > 1 ? -2.5 : 4}>
+      <text className={cls} y={y} textAnchor={side < 0 ? "end" : "start"}>
         {ls.map((l, i) => (
-          <tspan key={l} x={x} dy={i ? 13 : 0}>
+          <tspan key={l} x={side ? x : 7} dy={i ? 13 : 0}>
             {l}
           </tspan>
         ))}
