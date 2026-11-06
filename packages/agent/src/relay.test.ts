@@ -23,7 +23,7 @@ import {
   tokenMatches,
   uploadDir,
 } from "./relay.js";
-import { memoryLedger } from "./sessions.js";
+import { fileCommands, memoryCommands, memoryLedger } from "./sessions.js";
 import type { Setup } from "./setup.js";
 
 const dir = mkdtempSync(join(tmpdir(), "wren-agent-"));
@@ -37,6 +37,7 @@ createInterface({ input: process.stdin }).on("line", (l) => {
   if (m.type === "control_request") return out({ type: "control_response", response: { subtype: "success", request_id: m.request_id, response: { skills: m.request.skills ?? null } } });
   if (m.type !== "user") return;
   out({ type: "system", subtype: "init", apiKeySource: process.env.FAKE_SOURCE ?? "none", session_id: "s1" });
+  if (m.message.content === "commands") out({ type: "system", subtype: "commands_changed", commands: ["compact", "demo:demo", "deploy"].map((name) => ({ name, description: "", argumentHint: "" })) });
   out({ type: "result", subtype: "success", result: m.message.content, has_key: Boolean(process.env.ANTHROPIC_API_KEY), session_id: "s1" });
 });
 `,
@@ -248,6 +249,27 @@ describe("relay", () => {
     expect(pre.headers.get("access-control-allow-private-network")).toBe("true");
   });
 
+  it("keeps the last command list: a new chat gets it before a turn, cut to the asker", async () => {
+    const commands = (token?: string) =>
+      fetch(`http://127.0.0.1:${port}/s/demo/commands`, {
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+      });
+    const names = async (token: string) =>
+      ((await (await commands(token)).json()) as { name: string }[]).map((c) => c.name);
+    await start();
+    expect(await names("tok")).toEqual([]);
+    const { frames } = await session("/s/demo", [auth(), user("commands")], isResult);
+    expect(frames.find((f) => f.subtype === "commands_changed").commands).toHaveLength(2);
+    expect(await names("tok")).toEqual(["compact", "demo:demo"]);
+    expect((await commands()).status).toBe(401);
+    expect((await fetch(`http://127.0.0.1:${port}/s/nope/commands`)).status).toBe(404);
+    const store = memoryCommands();
+    store.set("demo", [{ name: "deploy" }]);
+    await closeRelay?.();
+    await start({}, async () => ({ who: "local", owner: true }), { commands: store });
+    expect(await names("tok")).toEqual(["deploy"]);
+  });
+
   it("answers a widening control request with an error", async () => {
     await start();
     const bad = {
@@ -316,6 +338,14 @@ describe("relay", () => {
     owner = true;
     expect(await (await get(join(away, "far.png"))).text()).toBe("far");
     expect((await get(join(away, "key"))).status).toBe(415);
+  });
+
+  it("a file command store keeps lists across restarts; a torn file starts empty", () => {
+    const path = join(dir, "commands.json");
+    fileCommands(path).set("demo", [{ name: "compact" }]);
+    expect(fileCommands(path).get("demo")).toEqual([{ name: "compact" }]);
+    writeFileSync(path, "{torn");
+    expect(fileCommands(path).get("demo")).toBeUndefined();
   });
 
   it("file names keep one path segment", () => {

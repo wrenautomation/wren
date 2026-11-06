@@ -267,3 +267,9 @@ Chosen: A. The story "Revamp/Agent chat" (`pages-agent.stories.tsx`) runs the re
 ## Decision 12: commands open as in Claude's history (11-05, WA-1092)
 William: copy Claude's history view for commands and outputs more closely. The open "Ran N commands" block was a dark terminal of `$` lines; each output took a second click. Now each command shows its description, its stat and time, then one box: the command, a rule, the output (64 lines high, then it scrolls). An open block shows every output. Named steps keep their row; a click opens the call and output, as before. Stored chats carry the output too (`thread.ts` maps each tool_result).
 
+## Decision 13: the `/` menu before the first turn (11-06, WA-1131)
+William: the side chat had no `/` menu. A chat learned its commands only from its own session's init, so a new chat or a reload showed none.
+- The relay keeps each setup's last full command list, from `commands_changed` and from any control answer that carries `commands`. A file in `~/.config/wren/agent-commands.json` keeps it across restarts.
+- `GET /s/<setup>/commands` gives the list cut to what the asker may run, as the socket does. Before any session it gives `[]`.
+- The page keeps the list per setup in localStorage, then asks the relay. The next session's list replaces both.
+- William: the composer's note "Claude agent · <tools>" goes. The `/` menu shows the skills. The page's setup type drops `tools`; `/setups` still lists them.

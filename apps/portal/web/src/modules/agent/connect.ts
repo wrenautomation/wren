@@ -29,7 +29,6 @@ export interface SetupInfo {
   app: string;
   model: string;
   models: string[];
-  tools: string[];
   skills: string[];
   /** A fixed permission mode: the page offers no other. */
   mode?: string;
@@ -109,6 +108,13 @@ export async function relayRename(
 export const relaySessions = (setup: string, token: string) =>
   relayGet<SessionRow[]>(`/s/${encodeURIComponent(setup)}/sessions`, token);
 /** A stored session's frames, to fold with `history` (thread.ts). */
+/** The setup's last command list, cut to what this person may run; [] before its first session. */
+export const relayCommands = (setup: string, token: string) =>
+  relayGet<{ name: string; description: string; argumentHint: string }[]>(
+    `/s/${encodeURIComponent(setup)}/commands`,
+    token,
+  );
+
 export const relayHistory = (setup: string, session: string, token: string) =>
   relayGet<Record<string, unknown>[]>(
     `/s/${encodeURIComponent(setup)}/sessions/${encodeURIComponent(session)}`,

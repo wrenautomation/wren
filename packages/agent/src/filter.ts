@@ -168,16 +168,27 @@ function control(m: Obj, setup: Setup, owner: boolean): Inbound {
   return refuse(id, `${sub} is not allowed in setup ${setup.name}`);
 }
 
+/** The commands a person may see, from a full list. */
+export const commandsFor = (list: readonly unknown[], setup: Setup, owner: boolean): unknown[] =>
+  list.filter((c) => isObj(c) && commandShown(setup, owner, String(c.name)));
+
+/** The full command list a CLI frame carries: `commands_changed`, or the answer to `supported_commands`. */
+export function commandsIn(frame: unknown): unknown[] | undefined {
+  if (!isObj(frame)) return undefined;
+  if (frame.type === "system" && frame.subtype === "commands_changed")
+    return Array.isArray(frame.commands) ? frame.commands : undefined;
+  if (frame.type !== "control_response" || !isObj(frame.response)) return undefined;
+  const body = frame.response.response;
+  return isObj(body) && Array.isArray(body.commands) ? body.commands : undefined;
+}
+
 /**
  * CLI → page: a settings answer keeps only `applied` (model, effort), never env, hooks or sources;
  * a command list keeps only what this person may run.
  */
 export function outbound(frame: unknown, setup: Setup, owner: boolean): unknown {
   if (!isObj(frame)) return frame;
-  const mine = (list: unknown) =>
-    Array.isArray(list)
-      ? list.filter((c) => isObj(c) && commandShown(setup, owner, String(c.name)))
-      : list;
+  const mine = (list: unknown) => (Array.isArray(list) ? commandsFor(list, setup, owner) : list);
   if (frame.type === "system" && frame.subtype === "commands_changed")
     return { ...frame, commands: mine(frame.commands) };
   if (frame.type !== "control_response" || !isObj(frame.response)) return frame;

@@ -5,11 +5,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { HttpResponse, http, type RequestHandler, sse, type WebSocketHandler } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import COMMANDS from "./mocks/data/agent/commands.json";
 import SETUPS from "./mocks/data/agent/setups.json";
 import { ADMIN } from "./mocks/data/me.js";
 import { RESEARCH_ROWS, RESEARCH_VIEW, RESEARCH_WEB } from "./mocks/data/research.js";
 import { pageAt, tidy } from "./mocks/page.js";
-import { fakeRelay } from "./mocks/relay.js";
+import { fakeRelay, type TapeLine } from "./mocks/relay.js";
 import { SERVE } from "./modules/research/serve.js";
 
 const meta: Meta = { title: "Wren/Research", id: "pages-research" };
@@ -136,7 +137,13 @@ export const Chat = tidy(
       await within(chat).findByText("Birdwatch", {}, LATE);
       // the page's own head carries the same name
       expect(within(page).getAllByText("Birdwatch").length).toBeGreaterThan(1);
+      // a new chat has the `/` menu before its first turn: the relay keeps the last list
+      await userEvent.type(within(chat).getByRole("textbox", { name: "Message" }), "/");
+      await within(chat).findByRole("listbox", { name: "Commands" }, LATE);
     },
-    [...SERVED, ...fakeRelay({ tape: [], setups: SETUPS })],
+    [
+      ...SERVED,
+      ...fakeRelay({ tape: [], library: [COMMANDS as TapeLine[]], setups: SETUPS }),
+    ],
   ),
 );

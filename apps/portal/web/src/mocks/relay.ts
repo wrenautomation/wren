@@ -103,6 +103,10 @@ export function fakeRelay({ tape, library = [], setups, stored = [], gap = 400 }
       lib.find((x) => x.sub === s);
     return r?.response ?? { subtype: "success", response: {} };
   };
+  // the relay keeps each setup's last list: the first recorded answer that carries one
+  const listed = [...own, ...lib]
+    .map((r) => (r.response.response as { commands?: unknown } | undefined)?.commands)
+    .find(Array.isArray);
   const link = ws.link(`${RELAY}/*`);
   return [
     http.get(`${HTTP}/setups`, () => HttpResponse.json(setups)),
@@ -116,6 +120,7 @@ export function fakeRelay({ tape, library = [], setups, stored = [], gap = 400 }
         : HttpResponse.json({ error: "no such chat" }, { status: 404 });
     }),
     http.patch(`${HTTP}/s/:setup/sessions/:id`, () => HttpResponse.json({ ok: true })),
+    http.get(`${HTTP}/s/:setup/commands`, () => HttpResponse.json(listed ?? [])),
     http.get(`${HTTP}/s/:setup/file`, () => new HttpResponse(null, { status: 404 })),
     link.addEventListener("connection", ({ client }) => {
       const turns = turnsOf(tape);

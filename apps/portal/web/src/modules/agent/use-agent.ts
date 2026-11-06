@@ -14,7 +14,7 @@ import {
 } from "@wren/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { socketToken } from "../../api.js";
-import { openSetup, type Query, relayHistory, turns } from "./connect.js";
+import { openSetup, type Query, relayCommands, relayHistory, turns } from "./connect.js";
 import { readyFile, turnContent, type Wire } from "./files.js";
 import {
   answered,
@@ -36,6 +36,22 @@ const CHATS = {};
 
 /** A setup's commands, as its last session listed them: a new chat has the `/` menu before it opens. */
 const COMMANDS = new Map<string, readonly AgentCommand[]>();
+// across reloads; the relay's list replaces it
+const savedCommands = (setup: string): readonly AgentCommand[] => {
+  try {
+    const list = JSON.parse(localStorage.getItem(`agent-commands:${setup}`) ?? "[]");
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+};
+const saveCommands = (setup: string, list: readonly AgentCommand[]) => {
+  try {
+    localStorage.setItem(`agent-commands:${setup}`, JSON.stringify(list));
+  } catch {
+    // private mode or full: the tab's Map still holds it
+  }
+};
 const commandsOf = (
   list: readonly { name: string; description: string; argumentHint: string }[],
 ): AgentCommand[] =>
@@ -110,14 +126,29 @@ export function useAgent(o: {
   // the model's own effort, seen while no effort is picked
   const [baseEffort, setBaseEffort] = useState<string | undefined>();
   const [tasks, setTasks] = useState<readonly AgentTask[]>([]);
-  const [commands, setCommands] = useState(() => COMMANDS.get(o.setup) ?? []);
+  const [commands, setCommands] = useState(() => COMMANDS.get(o.setup) ?? savedCommands(o.setup));
   const learned = useCallback(
     (list: readonly AgentCommand[]) => {
       COMMANDS.set(o.setup, list);
+      saveCommands(o.setup, list);
       setCommands(list);
     },
     [o.setup],
   );
+  // no session yet this tab: ask the relay for the setup's last list
+  useEffect(() => {
+    if (COMMANDS.has(o.setup)) return;
+    let gone = false;
+    pageToken()
+      .then((token) => relayCommands(o.setup, token))
+      .then((list) => {
+        if (!gone && list.length && !COMMANDS.has(o.setup)) learned(commandsOf(list));
+      })
+      .catch(() => {});
+    return () => {
+      gone = true;
+    };
+  }, [o.setup, learned]);
   const model = useRef(o.model);
   model.current = o.model;
   const picks = useRef({ effort: o.effort, mode: o.mode });

@@ -18,11 +18,11 @@ import { homedir } from "node:os";
 import { basename, extname, isAbsolute, join, sep } from "node:path";
 import { createInterface } from "node:readline";
 import { type WebSocket, WebSocketServer } from "ws";
-import { EFFORTS, inbound, modeAllowed, outbound } from "./filter.js";
+import { commandsFor, commandsIn, EFFORTS, inbound, modeAllowed, outbound } from "./filter.js";
 import { credentialBreach } from "./guard.js";
 import { type Credential, LaunchError, type LaunchOptions, launch, setupCwd } from "./launch.js";
 import { RUN_ENV, type Run } from "./runs.js";
-import { type Ledger, memoryLedger } from "./sessions.js";
+import { type CommandStore, type Ledger, memoryCommands, memoryLedger } from "./sessions.js";
 import type { Setup } from "./setup.js";
 
 /** What the page sent: the auth frame's token (or a bearer) and its Origin, if any. */
@@ -66,6 +66,8 @@ export interface RelayOptions {
   /** A run is stopped after this long; default 45 min. */
   runMs?: number;
   ledger?: Ledger;
+  /** Each setup's last command list; default in memory. */
+  commands?: CommandStore;
   history?: History;
   /** Root for chat files (`POST /s/<setup>/files`), one folder per person; none = no uploads. */
   uploads?: string;
@@ -92,6 +94,7 @@ const SESSION_PATH = /^\/s\/([\w-]+)(?:\/sessions(?:\/([\w-]+))?)?$/;
 const FILES_PATH = /^\/s\/([\w-]+)\/files$/;
 const UPLOAD_CAP = 500 * 1024 * 1024;
 const FILE_PATH = /^\/s\/([\w-]+)\/file$/;
+const COMMANDS_PATH = /^\/s\/([\w-]+)\/commands$/;
 const RUNS_PATH = /^\/s\/([\w-]+)\/runs(?:\/([\w-]+)(\/stop)?)?$/;
 const RUN_MS = 45 * 60_000;
 const RUNS_QUEUED = 12;
@@ -145,6 +148,7 @@ export function relay(o: RelayOptions): {
 } {
   const log = o.log ?? (() => {});
   const ledger = o.ledger ?? memoryLedger();
+  const commandStore = o.commands ?? memoryCommands();
   const live = new Set<ChildProcess>();
   const http = createServer((req, res) => void answer(req, res));
   const server = new WebSocketServer({
@@ -349,6 +353,8 @@ export function relay(o: RelayOptions): {
         noted.add(session);
         ledger.add({ setup: setup.name, session, who, at: new Date().toISOString() });
       }
+      const listed = commandsIn(frame);
+      if (listed) commandStore.set(setup.name, listed);
       const out = outbound(frame, setup, owner);
       const sent = out === frame ? line : JSON.stringify(out);
       tape?.("cli", sent);
@@ -496,6 +502,7 @@ export function relay(o: RelayOptions): {
     if (req.method === "PATCH") return rename(req, res, url);
     if (req.method !== "GET") return send(res, 405, { error: "GET only" });
     if (FILE_PATH.test(url.pathname)) return show(req, res, url);
+    if (COMMANDS_PATH.test(url.pathname)) return commandsRoute(req, res, url);
     if (url.pathname === "/setups")
       return send(
         res,
@@ -542,6 +549,18 @@ export function relay(o: RelayOptions): {
       log(`${setup.name}: history failed: ${e instanceof Error ? e.message : e}`);
       return send(res, 500, { error: "could not read the session" });
     }
+  }
+
+  /** `GET /s/<setup>/commands`: the setup's last command list, cut to what the asker may run; [] before any session. */
+  async function commandsRoute(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+    const setup = setupOf(COMMANDS_PATH.exec(url.pathname)?.[1]);
+    if (!setup) return send(res, 404, { error: "not found" });
+    const credential = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
+    const person = credential
+      ? await authorize({ credential, origin: req.headers.origin, setup }).catch(() => null)
+      : null;
+    if (!person) return send(res, 401, { error: "not allowed to open this setup" });
+    return send(res, 200, commandsFor(commandStore.get(setup.name) ?? [], setup, person.owner));
   }
 
   /** `POST /s/<setup>/runs {prompt, model?}` queues a run; `GET` lists the asker's own, or one by

@@ -324,9 +324,7 @@ export function AgentChat({
         note={
           a.status.model ? (
             <AgentStatus info={{ ...a.status, model: modelName(a.status.model) }} />
-          ) : (
-            `Claude agent · ${setup.tools.filter((t) => t !== "AskUserQuestion").join(", ")}`
-          )
+          ) : undefined
         }
       />
     </>

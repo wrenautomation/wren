@@ -130,3 +130,4 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
     - Claim numbers as badges on the pieces, so the map reads without the lines. Round 5's callout cards are dropped.
     - The map keeps its layout when the panel opens. It slides, and shrinks to 70 % at most, so the picked pieces stay in view. A pick fades all other pieces.
   - Mock limits: no video plays in the page (artifacts cannot embed YouTube); the tilt is drawn by hand in SVG; the data is fixed.
+- 11-06: William chose tilted. The flat switch goes. Later, birdwatch researches a better UI for the graph (WA-1133) before the real build (WA-1106).

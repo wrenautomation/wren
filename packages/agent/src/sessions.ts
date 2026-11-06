@@ -3,7 +3,7 @@
  * Decision 4). The page lists and reopens only these: the CLI's own session store holds every
  * Claude session in a folder, other people's and other tools' too.
  */
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -54,4 +54,38 @@ export function fileLedger(path = LEDGER_FILE): Ledger {
 export function memoryLedger(): Ledger {
   const rows: SessionRecord[] = [];
   return { add: (r) => void rows.push(r), list: (setup, who) => newestPer(rows, setup, who) };
+}
+
+/** Each setup's last full command list, as its CLI gave it: a new chat's `/` menu before its first turn. */
+export interface CommandStore {
+  get(setup: string): unknown[] | undefined;
+  set(setup: string, list: unknown[]): void;
+}
+
+export const COMMANDS_FILE = join(homedir(), ".config", "wren", "agent-commands.json");
+
+export function memoryCommands(): CommandStore {
+  const by = new Map<string, unknown[]>();
+  return { get: (s) => by.get(s), set: (s, l) => void by.set(s, l) };
+}
+
+/** One JSON file, read once; written only when a list changes. */
+export function fileCommands(path = COMMANDS_FILE): CommandStore {
+  const by = new Map<string, unknown[]>();
+  try {
+    const all = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    for (const [k, v] of Object.entries(all)) if (Array.isArray(v)) by.set(k, v);
+  } catch {
+    // none yet, or torn: start empty
+  }
+  return {
+    get: (s) => by.get(s),
+    set: (s, l) => {
+      const was = by.get(s);
+      if (was && JSON.stringify(was) === JSON.stringify(l)) return;
+      by.set(s, l);
+      mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+      writeFileSync(path, JSON.stringify(Object.fromEntries(by)), { mode: 0o600 });
+    },
+  };
 }
