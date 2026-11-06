@@ -6,6 +6,7 @@
 import { cn } from "cn";
 import { createContext, type ReactNode, useContext } from "react";
 import { cx } from "./format.js";
+import { tipProps } from "./hint.js";
 
 /** The heading scale. A page has one title; each section one section title; a group in it a label. */
 export const PAGE_TITLE =
@@ -87,6 +88,25 @@ export function PageTitle({
       <h1 className={hero ? HERO_TITLE : PAGE_TITLE}>{title}</h1>
       {line ? <p className={ABOUT}>{line}</p> : null}
     </div>
+  );
+}
+
+/**
+ * The product that runs a page (Birdwatch, Vireo), at the app head's right and on the chat's head.
+ * Outlined, so it never reads as a status tag.
+ */
+export function ProductMark({ name, className }: { name: string; className?: string }) {
+  return (
+    <span
+      className={cx(
+        // Tag's metrics and leaf; the ring from ink-3, so it holds on the dark look
+        "inline-flex flex-none items-center rounded-(--ui-leaf-chip) px-2.5 py-[3px] text-[12.5px]/[1.55] font-semibold whitespace-nowrap text-(--ui-ink-2) shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--ui-ink-3)_55%,transparent)]",
+        className,
+      )}
+      {...tipProps(`Runs on ${name}`)}
+    >
+      {name}
+    </span>
   );
 }
 

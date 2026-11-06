@@ -46,6 +46,8 @@ interface PageBase {
   about?: string;
   /** The sidebar heading it sits under. An app's pages of one group stay next to each other. */
   group?: string;
+  /** The product that runs it, shown at the app head: "Vireo". Its app's when left out. */
+  product?: string;
   /** Reached by link only, never a tab. */
   hidden?: true;
   /** The tab lit while it's open, when it has none: Feed's Explore lights Feed. */
@@ -191,6 +193,8 @@ export interface Module {
   icon: IconName;
   /** One sentence on its service card (a client's Today): what it does for the client. */
   blurb: string;
+  /** The product that runs its pages, shown at the app head: "Birdwatch". The page name stays. */
+  product?: string;
   /** Its card's numbers, and what waits on the viewer. */
   Glance?: ComponentType<PageProps>;
   pages: ModulePage[];

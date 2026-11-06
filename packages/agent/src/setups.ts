@@ -7,7 +7,7 @@ const BIRDWATCH_APPEND =
 export const SETUPS: readonly Setup[] = [
   {
     name: "birdwatch",
-    title: "Research",
+    title: "Birdwatch",
     app: "research",
     cwd: "tasks/docs/research",
     model: "sonnet",

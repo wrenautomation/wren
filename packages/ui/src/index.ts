@@ -308,6 +308,7 @@ export {
   PAGE_TITLE,
   PageHeader,
   PageTitle,
+  ProductMark,
   SECTION_TITLE,
   Section,
   useAbout,

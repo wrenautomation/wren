@@ -4,7 +4,7 @@
  * unmounts: the socket closes and frees a relay slot; reopened, the chat reads back by its id.
  * Open and width on the device; the setup and chat per tab.
  */
-import { Alert, Loading, PANEL, PanelAct, PanelClose, Seg, SidePanel } from "@wren/ui";
+import { Alert, Loading, PANEL, PanelAct, PanelClose, ProductMark, Seg, SidePanel } from "@wren/ui";
 import { useCallback, useEffect, useState } from "react";
 import { useCall } from "../../load.js";
 import { keep, recall } from "../../local.js";
@@ -178,11 +178,13 @@ function PanelChat({
               value={setup.name}
               onChange={(v) => put({ setup: v, chat: null, model: "" })}
             />
-          ) : null}
+          ) : (
+            <ProductMark name={setup.title} className="mr-1.5" />
+          )}
           <ChatTitle
             setup={setup.name}
             chat={chat}
-            title={stored ?? first ?? (chat ? "Chat" : setup.title)}
+            title={stored ?? first ?? (chat ? "Chat" : "New chat")}
             onRenamed={sessions.retry}
             className="flex-1 text-[13.5px]"
           />

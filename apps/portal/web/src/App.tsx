@@ -26,6 +26,7 @@ import {
   type NavItem,
   type PaletteItem,
   type PinLine,
+  ProductMark,
   RAIL_PREF,
   type RailPins,
   type RailPref,
@@ -501,6 +502,7 @@ export function App() {
       ? open.module.component
       : null;
   const action = open?.module.action;
+  const product = open ? (open.page.product ?? open.module.product) : undefined;
   const counts = open ? (waiting[open.module.id] ?? {}) : {};
   // The fixed items under the Map, what waits in each beside it; none with one app (the demo).
   // An app opened from elsewhere (a pin, ⌘K, the Map) gets a row while it is open, so its pages show.
@@ -626,15 +628,20 @@ export function App() {
                     dock: phoneTabsOf(open.module.id, openTabs),
                     current: lit,
                     action:
-                      action && action.page !== open.page.id ? (
-                        <ButtonLink
-                          href={`/${open.module.id}/${action.page}`}
-                          tone="quiet"
-                          size="sm"
-                          icon={action.icon}
-                        >
-                          {action.label}
-                        </ButtonLink>
+                      product || (action && action.page !== open.page.id) ? (
+                        <>
+                          {product ? <ProductMark name={product} /> : null}
+                          {action && action.page !== open.page.id ? (
+                            <ButtonLink
+                              href={`/${open.module.id}/${action.page}`}
+                              tone="quiet"
+                              size="sm"
+                              icon={action.icon}
+                            >
+                              {action.label}
+                            </ButtonLink>
+                          ) : null}
+                        </>
                       ) : undefined,
                   }
                 : null

@@ -11,6 +11,7 @@ export const research: Module = {
   id: "research",
   name: "Research",
   icon: "search",
+  product: "Birdwatch",
   blurb: "Birdwatch runs as they go: the tree, the back and forth, and every source to check.",
   requires: { audience: "team" },
   pages: [

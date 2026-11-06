@@ -3,11 +3,13 @@
  * address with a made-up run (`./mocks/data/research.ts`). No pixel compare: render, axe.
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { HttpResponse, http, sse } from "msw";
+import { HttpResponse, http, type RequestHandler, sse, type WebSocketHandler } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import SETUPS from "./mocks/data/agent/setups.json";
 import { ADMIN } from "./mocks/data/me.js";
 import { RESEARCH_ROWS, RESEARCH_VIEW, RESEARCH_WEB } from "./mocks/data/research.js";
 import { pageAt, tidy } from "./mocks/page.js";
+import { fakeRelay } from "./mocks/relay.js";
 import { SERVE } from "./modules/research/serve.js";
 
 const meta: Meta = { title: "Wren/Research", id: "pages-research" };
@@ -44,7 +46,7 @@ const REFUSED = [
 const story = (
   at: string,
   check: (page: HTMLElement) => Promise<void>,
-  served = SERVED,
+  served: readonly (RequestHandler | WebSocketHandler)[] = SERVED,
 ): StoryObj => {
   const base = pageAt(at, { me: ADMIN, check });
   return {
@@ -120,3 +122,21 @@ export const WebPicked = story("/research/web?at=m1-h00", async (page) => {
   await p.findByText("Wholesale runs at about half of retail.");
   await p.findByRole("button", { name: "How do small bakeries find wholesale buyers?" });
 });
+
+/** ⌘J opens the chat beside the page; its head names the product whose agent answers. */
+export const Chat = tidy(
+  story(
+    "/research/runs",
+    async (page) => {
+      await within(page).findByRole("link", {
+        name: /How do small bakeries find wholesale buyers/,
+      });
+      await userEvent.keyboard("{Control>}j{/Control}");
+      const chat = await within(page).findByRole("complementary", { name: "Agent" });
+      await within(chat).findByText("Birdwatch", {}, LATE);
+      // the page's own head carries the same name
+      expect(within(page).getAllByText("Birdwatch").length).toBeGreaterThan(1);
+    },
+    [...SERVED, ...fakeRelay({ tape: [], setups: SETUPS })],
+  ),
+);

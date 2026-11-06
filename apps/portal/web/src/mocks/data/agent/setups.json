@@ -1,7 +1,7 @@
 [
   {
     "name": "birdwatch",
-    "title": "Research",
+    "title": "Birdwatch",
     "app": "research",
     "model": "sonnet",
     "models": ["sonnet", "haiku", "opus", "fable"],

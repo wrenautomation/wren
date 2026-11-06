@@ -8,6 +8,7 @@ export const variantsPage: HandPage = {
   about:
     "Batches the agent made: mark what's good or bad and say where; it makes the next from that.",
   group: "Variants",
+  product: "Vireo",
   Page: VariantsPage,
   wide: true,
   badge: (_client, team) => (team ? toPick() : Promise.resolve(0)),
