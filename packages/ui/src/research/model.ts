@@ -47,9 +47,6 @@ export interface ResearchRun {
 /** What a hover or a click holds: a claim or a source. */
 export type Pick = { claim: number } | { source: string };
 
-export const pickKey = (p: Pick | null) =>
-  !p ? null : "claim" in p ? `c${p.claim}` : `s${p.source}`;
-
 export const usedOf = (s: ResearchSource) => s.findings.filter((f) => f.claim !== undefined).length;
 
 export const count = (n: number, one: string, many = `${one}s`) =>

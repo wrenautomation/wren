@@ -91,7 +91,7 @@ export function RunFacts({ run }: { run: ResearchRun }) {
 }
 
 /** A claim as a row: its number, its words, its findings and sources. */
-export function ClaimRow({
+function ClaimRow({
   run,
   claim,
   on,
