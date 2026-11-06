@@ -19,6 +19,9 @@ export const Clients = pageAt("/people/clients", { me: ADMIN });
 export const Campaigns = pageAt("/campaigns", { me: ADMIN });
 export const VariantsBatches = pageAt("/variants/batches", { me: ADMIN });
 export const VariantsBatch = pageAt("/variants/batches?batch=6", { me: ADMIN });
+export const VariantsSubjects = pageAt("/variants/subjects", { me: ADMIN });
+/** A subject's generation tree: four rounds, one open (blind). */
+export const VariantsTree = pageAt("/variants/subjects?subject=3", { me: ADMIN });
 /** An open batch, marked here: blind, in queue order. */
 export const VariantsOpen = pageAt("/variants/batches?batch=7", { me: ADMIN });
 

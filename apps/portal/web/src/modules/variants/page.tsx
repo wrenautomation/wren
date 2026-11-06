@@ -39,6 +39,7 @@ import {
   VERDICT_ON,
 } from "./marks.js";
 import { FootageLanes, type SyncMode, Together, TogetherProvider } from "./together.js";
+import { SubjectTree } from "./tree.js";
 
 type Verdict = Sample["verdict"];
 export const TALLY = ["amazing", "good", "bad"] as const;
@@ -71,6 +72,7 @@ interface Guide {
   state: "testing" | "locked" | "dropped";
   subjectId: number | null;
   kind: Kind | null;
+  decidedAt?: string | null;
   effect: Effect;
 }
 interface SubjectView {
@@ -82,8 +84,9 @@ interface SubjectView {
     note: string | null;
     state: string;
     createdAt: string;
+    closedAt?: string | null;
     goodRate: number | null;
-    samples: (Sample & { change: string | null })[];
+    samples: (Sample & { change: string | null; parentId?: number | null })[];
   }[];
   leaders: { sample: number; strength: number; se: number }[];
   live?: Live;
@@ -132,16 +135,27 @@ export function MarkBatch({
     ...(oneFootage ? [{ value: "moment", label: "Same moment" }] : []),
     { value: "clock", label: "Same clock" },
   ] as { value: SyncMode; label: string }[];
-  const send = async () => {
+  const anyGood = open.samples.some((s) => s.verdict === "amazing" || s.verdict === "good");
+  /** none = "None of these": every unmarked sample bad, then close, in one action */
+  const send = async (none = false) => {
     setBusy(true);
     setErr(null);
     try {
+      if (none) {
+        const rest = open.samples.filter((s) => !s.verdict);
+        await Promise.all(
+          rest.map((s) => call("variants/judge", { sample: s.id, verdict: "bad" })),
+        );
+        for (const s of rest) patch(s.id, (x) => ({ ...x, verdict: "bad" }));
+      }
       // the calls and notes are records; the chat gets one line that points at them
       await call("variants/close", { batch: open.batch.id, note: null });
       // first line = the chat's title
       handToChat(
         "vireo",
-        `Batch ${open.batch.id} of ${open.subject.slug}\nMarked and closed: ${tally || "no calls"}${judged < open.samples.length ? `, ${open.samples.length - judged} unmarked` : ""}. Read my calls and notes, then tell me what you see.`,
+        none
+          ? `Batch ${open.batch.id} of ${open.subject.slug}\nNone of these: all ${open.samples.length} marked bad and closed. Read my notes, then tell me what you see.`
+          : `Batch ${open.batch.id} of ${open.subject.slug}\nMarked and closed: ${tally || "no calls"}${judged < open.samples.length ? `, ${open.samples.length - judged} unmarked` : ""}. Read my calls and notes, then tell me what you see.`,
       );
       onSent();
     } catch (e) {
@@ -205,7 +219,12 @@ export function MarkBatch({
           <span className="text-[12px] whitespace-nowrap text-(--ui-ink-3)">
             {judged} of {open.samples.length} marked
           </span>
-          <Button tone="primary" icon="send" onClick={send} disabled={busy || judged === 0}>
+          {!anyGood && (
+            <Button tone="quiet" onClick={() => send(true)} disabled={busy}>
+              None of these
+            </Button>
+          )}
+          <Button tone="primary" icon="send" onClick={() => send()} disabled={busy || judged === 0}>
             Hand to Vireo
           </Button>
         </div>
@@ -492,10 +511,6 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
   const tip = useEdit(`variants:subject:${id}:tip`, "");
   const [guides, setGuides] = useState<Guide[]>([]);
   useEffect(() => setGuides(got.data?.guides ?? []), [got.data]);
-  const leaders = useMemo(
-    () => new Set(got.data?.leaders.slice(0, 3).map((l) => l.sample)),
-    [got.data],
-  );
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading />;
   const v = got.data;
@@ -516,38 +531,26 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
     ]);
     tip.saved();
   };
-  const closed = v.batches.filter((b) => b.state === "closed" && b.goodRate != null);
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <Button size="dense" tone="quiet" icon="left" onClick={onBack}>
-          Subjects
-        </Button>
-        <h2 className="m-0 mt-2 text-[18px] font-semibold text-(--ui-ink)">{v.subject.name}</h2>
-        {v.subject.brief && <p className="m-0 text-[13px] text-(--ui-ink-2)">{v.subject.brief}</p>}
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <div>
+          <Button size="dense" tone="quiet" icon="left" onClick={onBack}>
+            Subjects
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+          <h2 className="m-0 text-[22px]/[1.2] font-bold tracking-[-0.01em] text-(--ui-ink)">
+            {v.subject.name}
+          </h2>
+          <Tag>Vireo</Tag>
+          <span className="text-[13px] text-(--ui-ink-3) capitalize">{v.subject.kind}</span>
+        </div>
+        {v.subject.brief && (
+          <p className="m-0 max-w-[70ch] text-[13px] text-(--ui-ink-2)">{v.subject.brief}</p>
+        )}
       </div>
-      {closed.length > 0 && (
-        <section className="flex flex-col gap-1.5">
-          <h3 className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">
-            Good or better, per batch
-          </h3>
-          <div className="flex h-24 items-end gap-1.5">
-            {closed.map((b) => (
-              <div
-                key={b.id}
-                className="flex h-full flex-1 flex-col items-center justify-end gap-1"
-                title={b.why}
-              >
-                <span className="text-[11px] text-(--ui-ink-3)">{pct(b.goodRate ?? 0)}</span>
-                <div
-                  className="w-full max-w-10 rounded-t-[3px] bg-(--ui-accent)"
-                  style={{ height: `${Math.max(4, (b.goodRate ?? 0) * 100)}%` }}
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      <SubjectTree subject={v.subject} batches={v.batches} guides={guides} />
       {v.live && v.live.rows.length > 0 && <LiveView live={v.live} picks={v} />}
       <section className="flex flex-col gap-2">
         <h3 className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">Guides</h3>
@@ -596,48 +599,6 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
             Add tip
           </Button>
         </div>
-      </section>
-      <section className="flex flex-col gap-3">
-        <h3 className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">Batches</h3>
-        {[...v.batches].reverse().map((b) => (
-          <div key={b.id} className="flex flex-col gap-1.5 border-b border-(--ui-hair) pb-3">
-            <div className="text-[13px] text-(--ui-ink)">
-              <a
-                className="font-semibold text-(--ui-ink) underline-offset-2 hover:underline"
-                href={href("/variants/batches", { batch: b.id })}
-              >
-                Batch {b.id}
-              </a>
-              <span className="text-(--ui-ink-3)">
-                {" "}
-                ·{" "}
-                {b.state === "open"
-                  ? "open, to mark"
-                  : b.goodRate != null
-                    ? `${pct(b.goodRate)} good`
-                    : ""}
-              </span>
-            </div>
-            <p className="m-0 text-[13px] text-(--ui-ink-2)">Agent: {b.why}</p>
-            {b.note && <p className="m-0 text-[13px] text-(--ui-ink-2)">You: {b.note}</p>}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {b.samples.map((s) => (
-                <span
-                  key={s.id}
-                  title={s.change ?? ""}
-                  className={cx(
-                    "rounded-full border px-2 py-0.5 text-[12px]",
-                    s.verdict ? VERDICT_ON[s.verdict] : "border-(--ui-hair) text-(--ui-ink-3)",
-                    leaders.has(s.id) && "ring-2 ring-(--ui-accent)",
-                  )}
-                >
-                  {s.id}
-                  {s.keptAt ? " · kept" : ""}
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
       </section>
     </div>
   );

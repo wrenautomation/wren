@@ -97,7 +97,13 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
           batches: await Promise.all(
             f.batches.map(async (b) => ({
               ...b,
-              samples: await Promise.all(b.samples.map(media)),
+              // blind: an open batch shows no idea and no parent until it closes
+              why: b.state === "open" ? null : b.why,
+              samples: await Promise.all(
+                b.samples.map((x) =>
+                  media(b.state === "open" ? { ...x, change: null, parentId: null } : x),
+                ),
+              ),
             })),
           ),
         };
