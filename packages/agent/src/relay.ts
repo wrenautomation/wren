@@ -105,10 +105,10 @@ const PROBER: Person = { who: "relay", owner: true };
 /** A fresh chat's meter per model, as `get_context_usage` gives it before the first turn. */
 export interface Meter {
   used: number;
-  /** The window shown: the auto-compact window while it is on. */
+  /** The window with auto-compact on: its compact window. */
   max: number;
-  /** The model's own window: the meter's top with auto-compact off. */
-  raw: number;
+  /** The window with auto-compact off. */
+  off: number;
   compactAt?: number | undefined;
   autoCompact: boolean;
 }
@@ -127,7 +127,7 @@ function meterIn(body: unknown): Meter | undefined {
   return {
     used,
     max,
-    raw: n(b.rawMaxTokens) ?? max,
+    off: max,
     compactAt: n(b.autoCompactThreshold),
     autoCompact: b.isAutoCompactEnabled === true,
   };
@@ -429,7 +429,6 @@ export function relay(o: RelayOptions): {
       const models = [...new Set([setup.model, ...(setup.models ?? [])])];
       let commands: unknown[] | undefined;
       const meters: Record<string, Meter> = {};
-      const failed = new Set<string>();
       const end = () => {
         clearTimeout(timer);
         stop(child);
@@ -442,8 +441,53 @@ export function relay(o: RelayOptions): {
       }, PROBE_MS);
       child.on("exit", end);
       child.on("error", end);
-      const ask = (request_id: string, request: Record<string, unknown>) =>
-        child.stdin?.write(`${JSON.stringify({ type: "control_request", request_id, request })}\n`);
+      // the CLI answers control requests out of order: one at a time, each after the last answer
+      type Step = { request: Record<string, unknown>; then: (ok: boolean, body: unknown) => void };
+      const steps: Step[] = [];
+      let model = "";
+      const meter = (pass: "on" | "off") => ({
+        request: { subtype: "get_context_usage", detail: "summary" },
+        then: (ok: boolean, body: unknown) => {
+          const got = ok && model ? meterIn(body) : undefined;
+          if (!got) return;
+          const was = meters[model];
+          if (pass === "on") meters[model] = got;
+          else if (was) was.off = got.max;
+        },
+      });
+      const pass = (p: "on" | "off") => {
+        for (const m of models)
+          steps.push(
+            {
+              request: { subtype: "set_model", model: m },
+              // a failed switch: the next meter would be the last model's
+              then: (ok) => void (model = ok ? m : ""),
+            },
+            meter(p),
+          );
+      };
+      steps.push({
+        request: { subtype: "initialize", skills: [...setup.skills] },
+        then: (_ok, body) => {
+          commands = commandsIn({ type: "control_response", response: { response: body } });
+          if (!commands) return end();
+          commandStore.set(setup.name, commands);
+        },
+      });
+      pass("on");
+      steps.push({
+        request: { subtype: "apply_flag_settings", settings: { autoCompactEnabled: false } },
+        then: () => {},
+      });
+      pass("off");
+      let at = 0;
+      const next = () => {
+        const s = steps[at];
+        if (!s) return end();
+        child.stdin?.write(
+          `${JSON.stringify({ type: "control_request", request_id: `probe:${at}`, request: s.request })}\n`,
+        );
+      };
       if (child.stdout)
         createInterface({ input: child.stdout }).on("line", (line) => {
           let frame: {
@@ -455,30 +499,14 @@ export function relay(o: RelayOptions): {
           } catch {
             return;
           }
-          if (frame.type !== "control_response") return;
-          const id = frame.response?.request_id ?? "";
-          if (id === "commands") {
-            commands = commandsIn(frame);
-            if (!commands) return end();
-            commandStore.set(setup.name, commands);
-            // each answer comes back in order: set the model, then read its meter
-            for (const m of models) {
-              ask(`model:${m}`, { subtype: "set_model", model: m });
-              ask(`meter:${m}`, { subtype: "get_context_usage", detail: "summary" });
-            }
+          if (frame.type !== "control_response" || frame.response?.request_id !== `probe:${at}`)
             return;
-          }
-          // a failed switch: the next meter would be the last model's
-          if (id.startsWith("model:") && frame.response?.subtype === "error")
-            failed.add(id.slice(6));
-          if (!id.startsWith("meter:")) return;
-          const m = id.slice(6);
-          const got = meterIn(frame.response?.response);
-          if (got && !failed.has(m)) meters[m] = got;
-          if (m === models.at(-1)) end();
+          steps[at]?.then(frame.response.subtype === "success", frame.response.response);
+          at++;
+          if (commands) next();
         });
       child.stdin?.on("error", () => {});
-      ask("commands", { subtype: "initialize", skills: [...setup.skills] });
+      next();
     }).finally(() => probing.delete(setup.name));
     probing.set(setup.name, p);
     return p;

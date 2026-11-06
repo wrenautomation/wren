@@ -115,11 +115,11 @@ export const relayCommands = (setup: string, token: string) =>
     token,
   );
 
-/** A fresh chat's meter per model (`GET /s/<setup>/context`); `max` is the auto-compact window, `raw` the model's. */
+/** A fresh chat's meter per model (`GET /s/<setup>/context`): the window with auto-compact on (`max`) and off (`off`). */
 export interface FreshMeter {
   used: number;
   max: number;
-  raw: number;
+  off: number;
   compactAt?: number | undefined;
   autoCompact: boolean;
 }

@@ -33,11 +33,13 @@ writeFileSync(
   `import { createInterface } from "node:readline";
 const out = (o) => process.stdout.write(JSON.stringify(o) + "\\n");
 let model = "default";
+let compact = true;
 createInterface({ input: process.stdin }).on("line", (l) => {
   const m = JSON.parse(l);
   const listed = ["compact", "demo:demo", "deploy"].map((name) => ({ name, description: "", argumentHint: "" }));
   if (m.type === "control_request" && m.request.subtype === "set_model") model = m.request.model;
-  if (m.type === "control_request" && m.request.subtype === "get_context_usage") return out({ type: "control_response", response: { subtype: "success", request_id: m.request_id, response: { totalTokens: 1200, maxTokens: model === "haiku" ? 200000 : 0, rawMaxTokens: 1000000, autoCompactThreshold: 167000, isAutoCompactEnabled: true } } });
+  if (m.type === "control_request" && m.request.subtype === "apply_flag_settings") compact = m.request.settings.autoCompactEnabled !== false;
+  if (m.type === "control_request" && m.request.subtype === "get_context_usage") return out({ type: "control_response", response: { subtype: "success", request_id: m.request_id, response: { totalTokens: 1200, maxTokens: model !== "haiku" ? 0 : compact ? 200000 : 1000000, autoCompactThreshold: 167000, isAutoCompactEnabled: compact } } });
   if (m.type === "control_request") return out({ type: "control_response", response: { subtype: "success", request_id: m.request_id, response: { skills: m.request.skills ?? null, ...(m.request.subtype === "initialize" ? { commands: listed } : {}) } } });
   if (m.type !== "user") return;
   out({ type: "system", subtype: "init", apiKeySource: process.env.FAKE_SOURCE ?? "none", session_id: "s1" });
@@ -287,7 +289,7 @@ describe("relay", () => {
         headers: token ? { authorization: `Bearer ${token}` } : {},
       });
     const meter = {
-      haiku: { used: 1200, max: 200000, raw: 1000000, compactAt: 167000, autoCompact: true },
+      haiku: { used: 1200, max: 200000, off: 1000000, compactAt: 167000, autoCompact: true },
     };
     expect(await (await context("tok")).json()).toEqual(meter);
     expect(await (await context("tok")).json()).toEqual(meter);

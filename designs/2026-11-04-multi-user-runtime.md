@@ -337,6 +337,8 @@ Meter before a session:
 | C. The page guesses the window from the model | no relay code | no "used" figure; drifts from the host's settings |
 
 Chosen (session): A, for the same reason as Decision 15.
-- The meter shows `used/max` with auto-compact on and `used/raw` with it off.
+- The CLI answers control requests out of order, so the probe sends one at a time, each after the last answer.
+- It reads every model with auto-compact on, then again after `apply_flag_settings {autoCompactEnabled: false}`. `rawMaxTokens` is no help: it equals the compact window.
+- The meter shows `used/max` with auto-compact on and `used/off` with it off.
 - A failed `set_model` drops that model's meter, so a meter never carries the last model's numbers.
 - 5h and 7d are the account's. The page keeps the last seen values with their reset times and shows them until each resets. Before any turn on a fresh browser, they stay hidden, as in the terminal.

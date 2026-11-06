@@ -530,7 +530,7 @@ function freshOf(
   const on = autoCompact ?? m.autoCompact;
   return {
     used: m.used,
-    max: on ? m.max : m.raw,
+    max: on ? m.max : m.off,
     autoCompact: on,
     compactAt: on ? m.compactAt : undefined,
   };
