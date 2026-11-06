@@ -4,7 +4,8 @@
  */
 import type { DataMessagePartProps } from "@assistant-ui/react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import type { AgentQuestion, AgentThreadProps, ChoicesData } from "./agent-thread.js";
+import { tokens } from "./agent-steps.js";
+import type { AgentQuestion, AgentThreadProps, ChoicesData, CompactData } from "./agent-thread.js";
 import { Button, Tag } from "./controls.js";
 import { useLoad } from "./data/query.js";
 import { cx } from "./format.js";
@@ -388,5 +389,28 @@ export function Choices(props: DataMessagePartProps<ChoicesData>) {
         <Tag className="justify-self-start">Skipped</Tag>
       ) : null}
     </div>
+  );
+}
+
+/** A rule across the thread where the context compacted; the turn's Working line covers it live. */
+export function Compacted(props: DataMessagePartProps<CompactData>) {
+  const d: CompactData = props.data;
+  if (d.state === "live") return null;
+  const failed = d.state === "failed";
+  const what = failed
+    ? `Compaction failed${d.error ? `: ${d.error}` : ""}`
+    : `${d.trigger === "auto" ? "Auto-compacted" : "Compacted"}${
+        d.before ? `: ${tokens(d.before)} to ${tokens(d.after ?? 0)} tokens` : ""
+      }`;
+  return (
+    <p className="m-0 flex items-center gap-3 py-1 text-[12px] [animation:ui-fade_.2s_both]">
+      <span aria-hidden className="h-px flex-1 bg-(--ui-hair)" />
+      <span
+        className={cx("max-w-[80%] text-center", failed ? "text-(--ui-bad)" : "text-(--ui-ink-3)")}
+      >
+        {what}
+      </span>
+      <span aria-hidden className="h-px flex-1 bg-(--ui-hair)" />
+    </p>
   );
 }

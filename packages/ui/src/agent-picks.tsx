@@ -93,6 +93,9 @@ export interface AgentStatusInfo {
   effort?: string | undefined;
   /** Context in use and the window, in tokens. */
   context?: { used: number; max: number } | undefined;
+  /** Auto-compact on, and the tokens it compacts at. */
+  autoCompact?: boolean | undefined;
+  compactAt?: number | undefined;
   /** Plan limits used, 0-100; absent on an API key. */
   fiveHour?: number | undefined;
   sevenDay?: number | undefined;
@@ -109,8 +112,18 @@ const k = (n: number) =>
 const tone = (pct: number) =>
   pct >= 95 ? "text-(--ui-bad)" : pct >= 80 ? "text-(--ui-warn-ink)" : undefined;
 
-/** The terminal's status line: model, effort, context used/window (%), 5h %, 7d %. */
-export function AgentStatus({ info }: { info: AgentStatusInfo }) {
+/** The terminal's status line: model, effort, context used/window (%), 5h %, 7d %. The context
+ * opens a menu to compact now and to turn auto-compact on or off, when the page gives them. */
+export function AgentStatus({
+  info,
+  onCompact,
+  onAutoCompact,
+}: {
+  info: AgentStatusInfo;
+  /** Runs `/compact`. */
+  onCompact?: (() => void) | undefined;
+  onAutoCompact?: ((on: boolean) => void) | undefined;
+}) {
   const parts: { key: string; text: string; cls?: string | undefined }[] = [];
   if (info.model) parts.push({ key: "model", text: info.model, cls: "text-(--ui-ink-2)" });
   if (info.effort) parts.push({ key: "effort", text: info.effort });
@@ -127,15 +140,108 @@ export function AgentStatus({ info }: { info: AgentStatusInfo }) {
   if (info.sevenDay !== undefined)
     parts.push({ key: "7d", text: `7d ${Math.round(info.sevenDay)}%`, cls: tone(info.sevenDay) });
   if (!parts.length) return null;
+  const menu = !!(onCompact || onAutoCompact);
   return (
     // gaps, no dots: a wrapped line never starts on a separator
-    <span className="inline-flex flex-wrap justify-center gap-x-3 font-mono text-[11.5px] tabular-nums">
-      {parts.map((p) => (
-        <span key={p.key} className={cn("whitespace-nowrap", p.cls)}>
-          {p.text}
-        </span>
-      ))}
+    <span className="inline-flex flex-wrap items-center justify-center gap-x-3 font-mono text-[11.5px] tabular-nums">
+      {parts.map((p) =>
+        p.key === "ctx" && menu ? (
+          <ContextMenu
+            key={p.key}
+            text={p.text}
+            cls={p.cls}
+            info={info}
+            onCompact={onCompact}
+            onAutoCompact={onAutoCompact}
+          />
+        ) : (
+          <span key={p.key} className={cn("whitespace-nowrap", p.cls)}>
+            {p.text}
+          </span>
+        ),
+      )}
     </span>
+  );
+}
+
+function ContextMenu({
+  text,
+  cls,
+  info,
+  onCompact,
+  onAutoCompact,
+}: {
+  text: string;
+  cls?: string | undefined;
+  info: AgentStatusInfo;
+  onCompact?: (() => void) | undefined;
+  onAutoCompact?: ((on: boolean) => void) | undefined;
+}) {
+  const pop = useHoverPop();
+  const on = info.autoCompact !== false;
+  const row =
+    "flex w-full cursor-pointer items-center gap-2 border-0 bg-transparent px-3 py-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover)";
+  return (
+    <Popover {...pop.root}>
+      <PopoverTrigger
+        {...pop.trigger}
+        aria-label={`Context: ${text}`}
+        className={cn(
+          "-mx-1 inline-flex h-6 pointer-coarse:h-9 items-center whitespace-nowrap rounded-md border-0 bg-transparent px-1 font-mono text-[11.5px] tabular-nums transition-colors duration-150 hover:bg-(--ui-fill) data-popup-open:bg-(--ui-wash)",
+          cls ?? "text-(--ui-ink-3)",
+        )}
+      >
+        {text}
+      </PopoverTrigger>
+      <PopoverContent
+        align="center"
+        side="top"
+        className="w-64 gap-0 overflow-hidden bg-(--ui-paper) p-0 text-(--ui-ink)"
+      >
+        <div className="grid gap-0.5 px-3 pt-2.5 pb-2">
+          <span className="text-[11.5px] text-(--ui-ink-3)">Context</span>
+          {info.context ? (
+            <span className="text-[13px]">
+              {k(info.context.used)} of {k(info.context.max)} tokens
+            </span>
+          ) : null}
+          <span className="text-[12px] text-(--ui-ink-3)">
+            {on
+              ? info.compactAt
+                ? `Compacts by itself at ${k(info.compactAt)}`
+                : "Compacts by itself when full"
+              : "Auto-compact is off"}
+          </span>
+        </div>
+        <div className="grid border-(--ui-hair) border-t py-1" role="menu" aria-label="Context">
+          {onAutoCompact ? (
+            <button
+              type="button"
+              role="menuitemcheckbox"
+              aria-checked={on}
+              onClick={() => onAutoCompact(!on)}
+              className={row}
+            >
+              <span className="flex-1">Auto-compact</span>
+              {on ? <Icon name="check" size={14} className="text-(--ui-active)" /> : null}
+            </button>
+          ) : null}
+          {onCompact ? (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                pop.setOpen(false);
+                onCompact();
+              }}
+              className={row}
+            >
+              Compact now
+            </button>
+          ) : null}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

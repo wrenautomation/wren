@@ -35,6 +35,7 @@ import {
   Answer,
   answersOf,
   Choices,
+  Compacted,
   FilePreviews,
   FileRead,
   LinkCard,
@@ -67,6 +68,8 @@ export type AgentPart =
   | { type: "thinking"; text: string }
   /** A product's own card, drawn by the `views` entry of that name. */
   | { type: "view"; id: string; name: string; data: unknown }
+  /** The context compacted: live while it runs, then the tokens before and after. */
+  | ({ type: "compact"; id: string } & CompactData)
   | {
       type: "tool";
       id: string;
@@ -95,6 +98,17 @@ export interface AgentQuestion {
   header?: string | undefined;
   options: { label: string; description?: string | undefined }[];
   multiSelect?: boolean | undefined;
+}
+
+/** A compaction of the chat's context, as the CLI reports it. */
+export interface CompactData {
+  state: "live" | "done" | "failed";
+  /** `/compact`, or the CLI's own as the context filled. */
+  trigger?: "manual" | "auto" | undefined;
+  /** Context tokens before and after. */
+  before?: number | undefined;
+  after?: number | undefined;
+  error?: string | undefined;
 }
 
 /** The agent's choices as a card (AskUserQuestion): open, answered, or skipped. */
@@ -214,38 +228,42 @@ export function threadMessage(m: AgentMessage): ThreadMessageLike {
         ? []
         : p.type === "view"
           ? { type: "data" as const, name: p.name, id: p.id, data: p.data }
-          : p.type === "tool" && p.name === ASK_TOOL
-            ? { type: "data" as const, name: "choices", id: p.id, data: choicesOf(p) }
-            : p.type === "text"
-              ? { type: "text" as const, text: p.text }
-              : p.type === "thinking"
-                ? { type: "reasoning" as const, text: p.text }
-                : {
-                    type: "tool-call" as const,
-                    toolCallId: p.id,
-                    toolName: p.name,
-                    args: p.input as never,
-                    argsText: p.inputText ?? JSON.stringify(p.input),
-                    ...(p.startedAt
-                      ? {
-                          timing: {
-                            startedAt: p.startedAt,
-                            ...(p.completedAt ? { completedAt: p.completedAt } : {}),
-                          },
-                        }
-                      : {}),
-                    ...(p.result !== undefined ? { result: p.result, isError: !!p.failed } : {}),
-                    ...(p.tokens || p.uses ? { artifact: { tokens: p.tokens, uses: p.uses } } : {}),
-                    ...(p.ask
-                      ? {
-                          approval: {
-                            id: p.id,
-                            ...(p.ask.why ? { prompt: p.ask.why } : {}),
-                            ...(p.ask.allowed !== undefined ? { approved: p.ask.allowed } : {}),
-                          },
-                        }
-                      : {}),
-                  },
+          : p.type === "compact"
+            ? { type: "data" as const, name: "compact", id: p.id, data: p }
+            : p.type === "tool" && p.name === ASK_TOOL
+              ? { type: "data" as const, name: "choices", id: p.id, data: choicesOf(p) }
+              : p.type === "text"
+                ? { type: "text" as const, text: p.text }
+                : p.type === "thinking"
+                  ? { type: "reasoning" as const, text: p.text }
+                  : {
+                      type: "tool-call" as const,
+                      toolCallId: p.id,
+                      toolName: p.name,
+                      args: p.input as never,
+                      argsText: p.inputText ?? JSON.stringify(p.input),
+                      ...(p.startedAt
+                        ? {
+                            timing: {
+                              startedAt: p.startedAt,
+                              ...(p.completedAt ? { completedAt: p.completedAt } : {}),
+                            },
+                          }
+                        : {}),
+                      ...(p.result !== undefined ? { result: p.result, isError: !!p.failed } : {}),
+                      ...(p.tokens || p.uses
+                        ? { artifact: { tokens: p.tokens, uses: p.uses } }
+                        : {}),
+                      ...(p.ask
+                        ? {
+                            approval: {
+                              id: p.id,
+                              ...(p.ask.why ? { prompt: p.ask.why } : {}),
+                              ...(p.ask.allowed !== undefined ? { approved: p.ask.allowed } : {}),
+                            },
+                          }
+                        : {}),
+                    },
     ),
     ...(m.role === "assistant"
       ? {
@@ -665,7 +683,7 @@ function ReplyTurn() {
           Text: Reply,
           Reasoning: Thinking,
           tools: { Fallback: ToolPart },
-          data: { by_name: { ...views, choices: Choices } },
+          data: { by_name: { ...views, choices: Choices, compact: Compacted } },
         }}
       />
       <Working />

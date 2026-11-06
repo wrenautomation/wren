@@ -110,6 +110,8 @@ export function useAgent(o: {
   effort?: string | undefined;
   /** The permission mode picked; unset = the setup's. */
   mode?: string | undefined;
+  /** Auto-compact picked; unset = the CLI's own (on). */
+  autoCompact?: boolean | undefined;
   /** The CLI named the session: a new chat gets its id. */
   onSession?: (id: string) => void;
   /** A typed `/model` or `/effort` ran: what the CLI applies now, for the pickers. */
@@ -144,8 +146,8 @@ export function useAgent(o: {
   }, [relayed.data, o.setup, learned]);
   const model = useRef(o.model);
   model.current = o.model;
-  const picks = useRef({ effort: o.effort, mode: o.mode });
-  picks.current = { effort: o.effort, mode: o.mode };
+  const picks = useRef({ effort: o.effort, mode: o.mode, autoCompact: o.autoCompact });
+  picks.current = { effort: o.effort, mode: o.mode, autoCompact: o.autoCompact };
   const onSession = useRef(o.onSession);
   onSession.current = o.onSession;
   const onCommand = useRef(o.onCommand);
@@ -194,6 +196,7 @@ export function useAgent(o: {
     if (o.session && o.session === shown.current && live.current) return;
     close();
     shown.current = o.session;
+    setStatus(o.session ? savedStatus(o.session) : {});
     setError(null);
     setStarting(false);
     if (!o.session) setS(EMPTY);
@@ -231,6 +234,15 @@ export function useAgent(o: {
   useEffect(() => {
     if (o.mode) void live.current?.q.setPermissionMode(o.mode as "default").catch(() => {});
   }, [o.mode]);
+  useEffect(() => {
+    // read-ok: a control call to the open session, not a data read
+    const q = live.current?.q;
+    if (q) void autoCompact(q, o.autoCompact).then(() => measure(q, setStatus));
+  }, [o.autoCompact]);
+  // a past chat shows its last meter before it opens
+  useEffect(() => {
+    if (s.session && status.context) saveStatus(s.session, status);
+  }, [s.session, status]);
 
   const open = useCallback(
     async (resume: string | undefined): Promise<Live> => {
@@ -277,6 +289,7 @@ export function useAgent(o: {
               const effort = (m as { effort?: string | null }).effort;
               setStatus((s) => ({ ...s, model: m.model, effort: effort ?? s.effort }));
               void applied(q, setStatus, picks.current.effort ? undefined : setBaseEffort);
+              void autoCompact(q, picks.current.autoCompact).then(() => measure(q, setStatus));
               void q
                 .supportedCommands()
                 .then((c) => learned(commandsOf(c)))
@@ -298,6 +311,7 @@ export function useAgent(o: {
                 void settingsNow(q).then((now) => now && onCommand.current?.(c.name, now));
             }
             if (m.type === "system") setTasks((t) => taskFold(t, m));
+            if (m.type === "system" && m.subtype === "compact_boundary") void measure(q, setStatus);
             if (m.type === "system" && m.subtype === "commands_changed")
               learned(commandsOf(m.commands));
           }
@@ -479,6 +493,31 @@ async function applied(
   base?.(e);
 }
 
+/** The pick to the open session; unset leaves the CLI's own. */
+const autoCompact = (q: Query, on: boolean | undefined) =>
+  on === undefined
+    ? Promise.resolve()
+    : q.applyFlagSettings({ autoCompactEnabled: on }).catch(() => {});
+
+// a chat's meter across reloads, without the plan limits: those change by the hour
+const statusKey = (session: string) => `agent-status:${session}`;
+const savedStatus = (session: string): AgentStatusInfo => {
+  try {
+    const v = JSON.parse(localStorage.getItem(statusKey(session)) ?? "{}");
+    return typeof v === "object" && v ? v : {};
+  } catch {
+    return {};
+  }
+};
+const saveStatus = (session: string, st: AgentStatusInfo) => {
+  const { fiveHour: _f, sevenDay: _s, ...keep } = st;
+  try {
+    localStorage.setItem(statusKey(session), JSON.stringify(keep));
+  } catch {
+    // private mode or full: the meter shows from the first turn
+  }
+};
+
 /** After a turn: the context in use and the plan's 5h and 7d use, as `/context` and `/usage` give them. */
 async function measure(q: Query, set: (f: (s: AgentStatusInfo) => AgentStatusInfo) => void) {
   const [ctx, use] = await Promise.all([
@@ -491,7 +530,13 @@ async function measure(q: Query, set: (f: (s: AgentStatusInfo) => AgentStatusInf
   const limits = use?.rate_limits_available ? use.rate_limits : null;
   set((s) => ({
     ...s,
-    ...(ctx ? { context: { used: ctx.totalTokens, max: ctx.maxTokens } } : {}),
+    ...(ctx
+      ? {
+          context: { used: ctx.totalTokens, max: ctx.maxTokens },
+          autoCompact: ctx.isAutoCompactEnabled,
+          compactAt: ctx.autoCompactThreshold,
+        }
+      : {}),
     fiveHour: limits?.five_hour?.utilization ?? undefined,
     sevenDay: limits?.seven_day?.utilization ?? undefined,
   }));

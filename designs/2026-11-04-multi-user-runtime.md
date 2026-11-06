@@ -273,3 +273,32 @@ William: the side chat had no `/` menu. A chat learned its commands only from it
 - `GET /s/<setup>/commands` gives the list cut to what the asker may run, as the socket does. Before any session it gives `[]`.
 - The page keeps the list per setup in localStorage, then asks the relay. The next session's list replaces both.
 - William: the composer's note "Claude agent · <tools>" goes. The `/` menu shows the skills. The page's setup type drops `tools`; `/setups` still lists them.
+
+## Decision 14: context meter, `/compact`, auto-compact (11-06, WA-1137)
+William: show the context window in the chat, let him set auto-compact and run `/compact`, and keep a long chat whole.
+
+What already worked: `/compact` passes through the relay to the CLI. The meter showed `16k/1M (2%)` after each turn.
+
+What was missing, now built:
+- A reopened chat lost every turn before its last compaction. The SDK's `getSessionMessages` (0.3.318) starts at the boundary and drops its numbers and the summary's flag.
+- No sign that a compaction ran. Now a rule between turns reads "Compacted: 12k to 1.2k tokens", "Auto-compacted…" or "Compaction failed: <error>". While it runs, the step line reads "Compacting context". The summary turn stays hidden.
+- No meter before a chat's first turn. Now each chat keeps its last meter.
+- No auto-compact control. Now a click on the meter opens a menu: tokens used, where auto-compact fires, an "Auto-compact" check and "Compact now". The filter lets `autoCompactEnabled` through `apply_flag_settings`, beside the effort.
+
+How the relay reads a compacted chat:
+
+| Option | Gives | Against |
+|---|---|---|
+| A. Read the CLI's JSONL when it holds a `compact_boundary`; walk `parentUuid`, across each boundary by `logicalParentUuid` | every turn, boundary numbers, summary flag | ties to the CLI's file shape |
+| B. The SDK reader only | stable API | turns before the boundary gone, no marker |
+| C. The relay keeps its own copy of each frame | full control | a second store that can drift from the CLI's |
+
+Chosen (session): A. A chat with no boundary still reads the SDK's way, so a change in the file shape hits only compacted chats. `packages/agent/src/transcript.ts`; drop it when the SDK reads across a boundary.
+
+Session choices:
+- The meter cache lives in localStorage per session (`agent-status:<session>`), without the plan limits.
+- The auto-compact pick is per device, with the model and effort picks. Unset leaves the CLI's own setting.
+- The menu sits on the meter, not in the `/` menu: the meter is where the number is.
+- The story "Compacted" replays a scrubbed real Haiku chat (`mocks/data/agent/compacted.json`).
+
+Run sessions (William, 11-06): a stopped run goes on in its own chat when it can, since that chat holds what the person said. A fresh chat starts from `brief <run>`. Birdwatch 0.46.1 skill text; engine log 11-06.

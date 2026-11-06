@@ -196,14 +196,19 @@ describe("inbound", () => {
     expect(modeAllowed(setup, "auto", true)).toBe(false);
   });
 
-  it("flag settings pass the effort only", () => {
+  it("flag settings pass the effort and auto-compact only", () => {
     const flags = (settings: unknown) =>
       inbound(req({ subtype: "apply_flag_settings", settings }), setup).kind;
     expect(flags({ effortLevel: "high" })).toBe("forward");
     expect(flags({ effortLevel: null })).toBe("forward");
     expect(flags({ effortLevel: "huge" })).toBe("reply");
     expect(flags({ effortLevel: "high", permissions: { allow: ["Bash(*)"] } })).toBe("reply");
+    expect(flags({ autoCompactEnabled: false })).toBe("forward");
+    expect(flags({ autoCompactEnabled: true, effortLevel: "low" })).toBe("forward");
+    expect(flags({ autoCompactEnabled: "no" })).toBe("reply");
+    expect(flags({ autoCompactWindow: 100000 })).toBe("reply");
     expect(flags({ model: "opus" })).toBe("reply");
+    expect(flags({})).toBe("reply");
     expect(flags(undefined)).toBe("reply");
   });
 

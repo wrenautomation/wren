@@ -1,6 +1,7 @@
 /** `History` from the CLI's own session store, through the Agent SDK's session readers. */
 import { getSessionInfo, getSessionMessages, renameSession } from "@anthropic-ai/claude-agent-sdk";
 import type { History } from "./relay.js";
+import { readCompacted } from "./transcript.js";
 
 export const sdkHistory: History = {
   info: async (session, dir) => {
@@ -12,6 +13,7 @@ export const sdkHistory: History = {
       at: new Date(i.lastModified).toISOString(),
     };
   },
-  messages: (session, dir) => getSessionMessages(session, { dir }),
+  // a compacted chat keeps its turns before the boundary, and the boundary itself
+  messages: async (session, dir) => readCompacted(session) ?? getSessionMessages(session, { dir }),
   rename: (session, dir, title) => renameSession(session, title, { dir }),
 };

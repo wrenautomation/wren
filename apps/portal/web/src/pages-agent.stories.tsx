@@ -9,6 +9,7 @@ import { HttpResponse, http, sse } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import CARD from "./mocks/data/agent/card.json";
 import COMMANDS from "./mocks/data/agent/commands.json";
+import COMPACTED_CHAT from "./mocks/data/agent/compacted.json";
 import HISTORY from "./mocks/data/agent/history.json";
 import SETUPS from "./mocks/data/agent/setups.json";
 import STOP from "./mocks/data/agent/stop.json";
@@ -26,6 +27,7 @@ const TAPES = { work: WORK, stop: STOP, commands: COMMANDS } as Record<string, T
 const LIBRARY = Object.values(TAPES);
 const STORED = "00000000-0000-4000-8000-000000000001";
 const CARDED = "00000000-0000-4000-8000-000000000002";
+const COMPACTED = "00000000-0000-4000-8000-000000000003";
 const LONG = { timeout: 30_000 };
 type Stored = NonNullable<Parameters<typeof fakeRelay>[0]["stored"]>[number];
 
@@ -167,3 +169,48 @@ export const Card = (() => {
     parameters: { ...base.parameters, msw: [...served, ...(base.parameters?.msw ?? [])] },
   };
 })();
+
+/**
+ * A chat after `/compact` (a real session, scrubbed): the turns before stay, a rule marks the
+ * compaction, and the meter, kept from the chat's last turn, opens its menu.
+ */
+export const Compacted: StoryObj = {
+  ...story(
+    `/research/ask?setup=birdwatch&chat=${COMPACTED}`,
+    [],
+    async (page) => {
+      const c = within(page);
+      await c.findByText(/Strawberry/, {}, LONG);
+      await c.findByText("Compacted: 12k to 1.2k tokens", {}, LONG);
+      expect(c.queryByText(/This session is being continued/)).toBeNull();
+      await userEvent.click(await c.findByRole("button", { name: /^Context: / }, LONG));
+      const menu = await within(document.body).findByRole("menu", { name: "Context" });
+      expect(within(menu).getByRole("menuitemcheckbox", { name: "Auto-compact" }).ariaChecked).toBe(
+        "true",
+      );
+      expect(within(menu).getByRole("menuitem", { name: "Compact now" })).toBeTruthy();
+    },
+    [
+      {
+        session: COMPACTED,
+        at: "2026-11-06T16:29:30Z",
+        title: "Fruit list",
+        frames: COMPACTED_CHAT,
+      },
+    ],
+  ),
+  beforeEach: () => {
+    const key = `agent-status:${COMPACTED}`;
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        model: "claude-haiku-5-5",
+        effort: "medium",
+        context: { used: 15_598, max: 1_000_000 },
+        autoCompact: true,
+        compactAt: 967_000,
+      }),
+    );
+    return () => localStorage.removeItem(key);
+  },
+};

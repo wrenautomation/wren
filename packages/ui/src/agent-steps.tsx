@@ -430,6 +430,9 @@ function nowOf(parts: readonly Part[]): string {
     if (x?.type === "tool-call" && x.result === undefined && x.approval?.approved !== false)
       return asking(x) ? "Waiting on you" : toolTitle(x.toolName ?? "", argsOf(x));
   }
+  const d = last as { name?: string; data?: { state?: string } } | undefined;
+  if (last?.type === "data" && d?.name === "compact" && d.data?.state === "live")
+    return "Compacting context";
   if (last?.type === "reasoning") return "Thinking";
   if (last?.type === "text") return "Writing";
   return "Working";

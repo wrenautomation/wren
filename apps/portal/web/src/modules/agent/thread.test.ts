@@ -418,3 +418,72 @@ describe("typed commands in a stored chat", () => {
     expect(words).toEqual(["/model sonnet", "/context"]);
   });
 });
+
+describe("compaction", () => {
+  const compacts = (s: ThreadState) =>
+    s.messages.flatMap((m) => m.parts.filter((p) => p.type === "compact"));
+
+  it("live: compacting, then the boundary's numbers on the same mark", () => {
+    let s = said(EMPTY, "/compact");
+    s = fold(s, { type: "system", subtype: "status", status: "compacting" });
+    expect(compacts(s)).toMatchObject([{ state: "live" }]);
+    s = fold(s, { type: "system", subtype: "status", status: null, compact_result: "success" });
+    s = fold(s, {
+      type: "system",
+      subtype: "compact_boundary",
+      compact_metadata: { trigger: "manual", pre_tokens: 12419, post_tokens: 1246 },
+    });
+    s = fold(s, {
+      type: "user",
+      isSynthetic: true,
+      message: { role: "user", content: "This session is being continued" },
+    });
+    expect(compacts(s)).toMatchObject([
+      { state: "done", trigger: "manual", before: 12419, after: 1246 },
+    ]);
+    expect(s.messages.filter((m) => m.role === "user")).toHaveLength(1);
+  });
+
+  it("live: a failed compaction says why", () => {
+    let s = fold(EMPTY, { type: "system", subtype: "status", status: "compacting" });
+    s = fold(s, {
+      type: "system",
+      subtype: "status",
+      status: null,
+      compact_result: "failed",
+      compact_error: "Not enough messages to compact.",
+    });
+    expect(compacts(s)).toMatchObject([
+      { state: "failed", error: "Not enough messages to compact." },
+    ]);
+  });
+
+  it("stored: the turns before stay, the mark sits after /compact, the summary hides", () => {
+    const user = (content: string, more = {}) => ({
+      type: "user",
+      message: { role: "user", content },
+      ...more,
+    });
+    const s = history([
+      user("Say apple"),
+      { type: "assistant", message: { id: "m1", content: [{ type: "text", text: "Apple" }] } },
+      {
+        type: "system",
+        subtype: "compact_boundary",
+        compactMetadata: { trigger: "manual", preTokens: 900, postTokens: 90 },
+      },
+      user("This session is being continued", { isCompactSummary: true }),
+      user("<local-command-caveat>Caveat</local-command-caveat>", { isMeta: true }),
+      user(
+        "<command-name>/compact</command-name>\n            <command-message>compact</command-message>\n            <command-args></command-args>",
+      ),
+      user("<local-command-stdout>Compacted </local-command-stdout>"),
+      user("What word first?"),
+    ]);
+    const shown = s.messages.map((m) =>
+      m.parts.map((p) => (p.type === "text" ? p.text : p.type)).join(" "),
+    );
+    expect(shown).toEqual(["Say apple", "Apple", "/compact", "compact", "What word first?", ""]);
+    expect(compacts(s)).toMatchObject([{ before: 900, after: 90 }]);
+  });
+});

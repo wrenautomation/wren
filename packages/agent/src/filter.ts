@@ -96,6 +96,11 @@ export const modeAllowed = (setup: Setup, mode: string, owner: boolean): boolean
   setup.mode ? mode === setup.mode : (owner ? OWNER_MODES : MODES).has(mode);
 
 type Obj = Record<string, unknown>;
+/** The settings a page may change mid-chat, each with its check. */
+const FLAGS: Record<string, (v: unknown) => boolean> = {
+  effortLevel: (v) => v === null || EFFORTS.includes(v as (typeof EFFORTS)[number]),
+  autoCompactEnabled: (v) => v === null || typeof v === "boolean",
+};
 const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
 
 const refuse = (id: unknown, error: string): Inbound => ({
@@ -152,17 +157,15 @@ function control(m: Obj, setup: Setup, owner: boolean): Inbound {
       ? { kind: "forward", line: JSON.stringify(m) }
       : refuse(id, `permission mode ${String(r.mode)} is not allowed here`);
   if (sub === "apply_flag_settings") {
-    // effort only: the same request carries permissions, hooks and models, which widen a setup
+    // effort and auto-compact only: the same request carries permissions, hooks and models, which widen a setup
     const s = r.settings;
-    const keys = isObj(s) ? Object.keys(s) : [];
-    const level = isObj(s) ? s.effortLevel : undefined;
     const ok =
-      keys.length === 1 &&
-      keys[0] === "effortLevel" &&
-      (level === null || EFFORTS.includes(level as (typeof EFFORTS)[number]));
+      isObj(s) &&
+      Object.keys(s).length > 0 &&
+      Object.entries(s).every(([k, v]) => FLAGS[k]?.(v) ?? false);
     return ok
       ? { kind: "forward", line: JSON.stringify(m) }
-      : refuse(id, "only the effort may change here");
+      : refuse(id, "only the effort and auto-compact may change here");
   }
   if (PASS.has(sub)) return { kind: "forward", line: JSON.stringify(m) };
   return refuse(id, `${sub} is not allowed in setup ${setup.name}`);

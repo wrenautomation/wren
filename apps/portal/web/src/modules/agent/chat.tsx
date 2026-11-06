@@ -86,6 +86,8 @@ const PICKS = "wren.agent.picks";
 interface Picks {
   effort: string;
   mode?: string;
+  /** Unset: the CLI's own (on). */
+  autoCompact?: boolean;
 }
 
 /** Effort and mode, kept on this device: the owner's mode starts on bypass, as asked 11-04. */
@@ -106,7 +108,7 @@ function usePicks(owner: boolean) {
   const modes = MODES.filter((m) => owner || !m.owner);
   const mode =
     modes.find((m) => m.value === p.mode)?.value ?? (owner ? "bypassPermissions" : "default");
-  return { effort: p.effort, mode, modes, set };
+  return { effort: p.effort, mode, modes, autoCompact: p.autoCompact, set };
 }
 
 /** The chat's name: a click edits it, Enter saves, Esc leaves it. A new chat has none to edit. */
@@ -233,6 +235,7 @@ export function AgentChat({
     model,
     effort: picks.effort || undefined,
     mode,
+    autoCompact: picks.autoCompact,
     onSession,
     onCommand: (name, now) => {
       if (name === "model") {
@@ -323,7 +326,11 @@ export function AgentChat({
         commands={a.commands}
         note={
           a.status.model ? (
-            <AgentStatus info={{ ...a.status, model: modelName(a.status.model) }} />
+            <AgentStatus
+              info={{ ...a.status, model: modelName(a.status.model) }}
+              onCompact={a.running ? undefined : () => a.send("/compact")}
+              onAutoCompact={(on) => picks.set({ autoCompact: on })}
+            />
           ) : undefined
         }
       />

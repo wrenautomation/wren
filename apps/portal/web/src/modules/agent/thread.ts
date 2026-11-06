@@ -149,6 +149,7 @@ export function fold(s: ThreadState, f: Frame, now = Date.now()): ThreadState {
   const t = typeof f.timestamp === "string" ? Date.parse(f.timestamp) || now : now;
   switch (f.type) {
     case "system":
+      if (f.subtype === "status" || f.subtype === "compact_boundary") return compacted(s, f);
       return f.subtype === "init"
         ? {
             ...s,
@@ -251,7 +252,7 @@ const COMMAND =
 
 function userFrame(s0: ThreadState, f: Frame, t: number): ThreadState {
   const content = (f.message as { content?: unknown })?.content;
-  if (f.isMeta || f.isSynthetic) return s0;
+  if (f.isMeta || f.isSynthetic || f.isCompactSummary) return s0;
   if (Array.isArray(content) && content.some((b: Block) => b.type === "tool_result")) {
     const { s, m } = reply(s0);
     for (const b of content as Block[]) {
@@ -281,10 +282,17 @@ function userFrame(s0: ThreadState, f: Frame, t: number): ThreadState {
   }
   // a stored session's own turn; live turns come from `said`, the CLI does not echo them
   const at = typeof f.timestamp === "string" ? f.timestamp : undefined;
+  // the file keeps `/compact`'s boundary before the turn that asked for it
+  const prev = s0.messages.at(-1);
+  const mark = cmd?.[1] === "/compact" && prev?.parts.at(-1)?.type === "compact";
+  const before =
+    mark && prev
+      ? [...s0.messages.slice(0, -1), { ...prev, parts: prev.parts.slice(0, -1) }]
+      : s0.messages;
   return {
     ...s0,
     messages: [
-      ...s0.messages,
+      ...before,
       {
         id: String(f.uuid ?? mint("you")),
         role: "user",
@@ -292,7 +300,13 @@ function userFrame(s0: ThreadState, f: Frame, t: number): ThreadState {
         at,
         ...(turn.page ? { page: turn.page } : {}),
       },
-      { id: mint("reply"), role: "assistant", parts: [], state: "done", at },
+      {
+        id: mint("reply"),
+        role: "assistant",
+        parts: mark && prev ? [prev.parts.at(-1) as AgentPart] : [],
+        state: "done",
+        at,
+      },
     ],
   };
 }
@@ -425,6 +439,41 @@ function ended(s0: ThreadState, f: Frame): ThreadState {
       : p,
   );
   return { ...s, running: false, stopping: false, blocks: {} };
+}
+
+type Compact = Extract<AgentPart, { type: "compact" }>;
+const num = (v: unknown) => (typeof v === "number" && v > 0 ? v : undefined);
+
+/** `compacting`, its result, then the boundary with the numbers (live snake case, stored camel). */
+function compacted(s0: ThreadState, f: Frame): ThreadState {
+  const boundary = f.subtype === "compact_boundary";
+  if (!boundary && f.status !== "compacting" && f.compact_result !== "failed") return s0;
+  const { s, m } = reply(s0);
+  const at = m.parts.findLastIndex((p) => p.type === "compact" && p.state === "live");
+  const live = at < 0 ? undefined : (m.parts[at] as Compact);
+  if (f.status === "compacting") {
+    if (!live) m.parts.push({ type: "compact", id: mint("compact"), state: "live" });
+    return s;
+  }
+  const meta = (f.compact_metadata ?? f.compactMetadata ?? {}) as Record<string, unknown>;
+  const next: Compact = boundary
+    ? {
+        type: "compact",
+        id: live?.id ?? String(f.uuid ?? mint("compact")),
+        state: "done",
+        trigger: meta.trigger === "auto" ? "auto" : "manual",
+        before: num(meta.pre_tokens ?? meta.preTokens),
+        after: num(meta.post_tokens ?? meta.postTokens),
+      }
+    : {
+        type: "compact",
+        id: live?.id ?? mint("compact"),
+        state: "failed",
+        error: typeof f.compact_error === "string" ? f.compact_error : undefined,
+      };
+  if (live) setPart(m, at, next);
+  else m.parts.push(next);
+  return s;
 }
 
 /** A stored session (the relay's `/s/<setup>/sessions/<id>`) as a thread. */
