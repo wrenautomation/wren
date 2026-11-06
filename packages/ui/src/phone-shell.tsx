@@ -339,6 +339,8 @@ export function PhoneTop({
       root.removeProperty("--phone-bar");
     };
   }, []);
+  const slot = useRef<HTMLSpanElement>(null);
+  const fits = useFits(slot);
   const { title: keep } = walk;
   useEffect(() => {
     if (title) keep(title);
@@ -382,12 +384,15 @@ export function PhoneTop({
             </a>
           )}
         </div>
-        <span
-          className="max-w-[44vw] wrap-anywhere whitespace-normal text-center text-[16px] font-semibold transition-opacity duration-200 ease-(--ui-ease)"
-          style={{ opacity: under && title ? 1 : 0 }}
-          aria-hidden={!under}
-        >
-          {title}
+        {/* out of flow: the bar keeps one height whatever the title's length */}
+        <span ref={slot} className="relative block h-11 w-[44vw]">
+          <span
+            className="absolute inset-x-0 top-1/2 -translate-y-1/2 wrap-anywhere whitespace-normal text-center text-[16px] leading-5 font-semibold transition-opacity duration-200 ease-(--ui-ease)"
+            style={{ opacity: under && title && fits ? 1 : 0 }}
+            aria-hidden={!under || !fits}
+          >
+            {title}
+          </span>
         </span>
         <div className="flex min-w-0 items-center justify-end gap-1">
           {app.action}
@@ -410,6 +415,24 @@ export function PhoneTop({
       ) : null}
     </header>
   );
+}
+
+/** The title fits the bar whole (two lines); else it stays hidden: the page heading shows it whole, never cut. */
+function useFits(slot: RefObject<HTMLSpanElement | null>) {
+  const [fits, setFits] = useState(true);
+  useLayoutEffect(() => {
+    const box = slot.current;
+    const text = box?.firstElementChild as HTMLElement | null | undefined;
+    if (!box || !text) return;
+    const check = () => setFits(text.offsetHeight <= box.clientHeight);
+    check();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(check);
+    ro.observe(box);
+    ro.observe(text);
+    return () => ro.disconnect();
+  }, [slot]);
+  return fits;
 }
 
 /**
