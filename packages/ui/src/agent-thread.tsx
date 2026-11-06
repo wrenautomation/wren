@@ -30,6 +30,7 @@ import {
   useMemo,
   useRef,
 } from "react";
+import TextareaAutosize, { type TextareaAutosizeProps } from "react-textarea-autosize";
 import { Streamdown } from "streamdown";
 import {
   Answer,
@@ -880,6 +881,11 @@ function Starting() {
 }
 
 /** One box: the words, then the model pick left and Send (Stop while a turn is out) right. */
+/** The `/` menu's input: assistant-ui sets aria-expanded, which a textarea may not carry (axe aria-allowed-attr). */
+function MessageInput({ "aria-expanded": _, ...p }: TextareaAutosizeProps) {
+  return <TextareaAutosize {...p} />;
+}
+
 function Composer({
   closed,
   placeholder,
@@ -925,13 +931,14 @@ function Composer({
           </div>
         ) : null}
         <ComposerPrimitive.Input
-          rows={1}
-          maxRows={12}
+          asChild
           disabled={!!closed}
           placeholder={closed ?? placeholder ?? "Ask the agent"}
           aria-label="Message"
           className="w-full resize-none border-0 bg-transparent px-4 pt-3.5 pb-1.5 text-[14.5px]/[1.5] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) disabled:cursor-not-allowed"
-        />
+        >
+          <MessageInput rows={1} maxRows={12} />
+        </ComposerPrimitive.Input>
         <div className="flex min-h-11 items-center gap-2 px-2.5 pb-2.5">
           {files ? (
             <ComposerPrimitive.AddAttachment
