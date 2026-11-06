@@ -266,7 +266,7 @@ export const Foot: Story = {
   ),
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
-    await expect(c.getByText("172k/200k (86%)")).toBeTruthy();
+    await expect(c.getByText("ctx 172k/200k (86%)")).toBeTruthy();
     await expect(c.getByText("7d 97%")).toBeTruthy();
     await userEvent.click(c.getByRole("button", { name: "Effort: Auto effort" }));
     const page = within(canvasElement.ownerDocument.body);
