@@ -143,3 +143,7 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Perf box: draw ms, motion fps, page scroll, long tasks, scene size. Bench at 4x CPU slowdown, Chrome with GPU: page scroll 0 slow frames of 156 (round 7: 21 of 148); turning the map 12 of 340 (round 7: 27 of 292). The box's backdrop blur had cost 15 slow frames in a scroll; it is gone.
   - The session's choices, not William's: terraces, the step rule, the label counts, the phone stage height set by the map.
   - Open: William is not sure stacked round terraces are the best shape for weight. Variants next.
+- 11-06: round 9 of artifact `LdYvUurK` (WA-1151). Ten looks for a source's weight, on one map and the same data, behind a Look switch. Round 8's terraces stay as look 0.
+  - Looks: Relief (quarter-step contours), Peaks (lit cones, height by square root of findings kept), Towers (equal-width columns, height linear), Bubbles (flat discs, area), Pins (head by claims backed), Ridges (profile lines), Treemap (kind blocks, cells by area), Heat (shaded field), Coins (one coin per finding, to 10), Zoom (discs that rise into peaks).
+  - The session's choices, not William's: the ten looks, their scales, and one shared layout for all. Treemap and Bubbles are flat, so drag pans.
+  - Open: William picks a look, or a merge. The winner then gets its own spacing and label rules before WA-1106.
