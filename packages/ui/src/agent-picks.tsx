@@ -53,6 +53,7 @@ export function AgentPick({
       <PopoverContent
         align="start"
         side="top"
+        aria-label={label}
         className="w-64 gap-0 overflow-hidden bg-(--ui-paper) p-0 text-(--ui-ink)"
       >
         <div className="px-3 pt-2.5 pb-1 text-[11.5px] text-(--ui-ink-3)">{label}</div>
@@ -196,6 +197,7 @@ function ContextMenu({
       <PopoverContent
         align="center"
         side="top"
+        aria-label="Context"
         className="w-64 gap-0 overflow-hidden bg-(--ui-paper) p-0 text-(--ui-ink)"
       >
         <div className="grid gap-0.5 px-3 pt-2.5 pb-2">
