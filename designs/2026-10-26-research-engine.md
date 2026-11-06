@@ -1404,3 +1404,17 @@ Built:
 - `SEE_PER_RUN` and its check are gone. The skill's test for `--see` drops "among the run's strongest": it now asks only that the video answers the ask and its captions fall short. Captions stay first.
 
 Not built: `--kind` on `open --ask` (a pasted run is `web`; `plan --run` keeps that kind). Add it when a run needs another kind's guide.
+
+## 11-06: read one source and stop (0.44.1)
+
+William: "there will also be times where I just want you to watch the reel and like do nothing and just ingest that one source. And I think Birdwatch should be flexible enough to do all that." He also wants the whole channel from one reel, and a standard run.
+
+No engine code changed. Checked on a scratch ledger: `open --ask "<ask>" --lines <file> --human <name>` read one page with no search, `add finding` kept one finding, `add edge stop` closed the run, and `recall` found the finding from the ledger.
+
+The skill gains one rule under "Their finds": how far to go is the person's to say. On "just read it", the agent reads the source, writes its findings and stops with a why that says so. No search, no follow, no pattern. The seed rule stays for the other case.
+
+Limits:
+- `recall` reads findings. A source read with no finding kept is not recalled.
+- `add finding` still writes after a stop edge.
+- Not set: what the agent does when the person does not say how far to go. The chat mock asks once (`research-chat--scope`); William has not seen it.
+
