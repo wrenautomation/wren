@@ -56,6 +56,12 @@ describe("launch", () => {
     expect(l.cwd).toBe("/root/work");
   });
 
+  it("a setup's sandbox goes to the CLI's settings as it is", () => {
+    const sandbox = { enabled: true, allowUnsandboxedCommands: false };
+    const l = launch({ ...setup, sandbox }, { kind: "plan" }, opts);
+    expect(JSON.parse(flag(l.args, "--settings") ?? "{}").sandbox).toEqual(sandbox);
+  });
+
   it("key: the session's key only, never the host's", () => {
     const l = launch(setup, { kind: "key", key: "sk-client" }, opts);
     expect(l.env.ANTHROPIC_API_KEY).toBe("sk-client");

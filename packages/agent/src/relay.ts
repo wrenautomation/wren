@@ -138,6 +138,12 @@ export function relay(o: RelayOptions): {
   });
   http.listen(o.port, "127.0.0.1");
 
+  // one gate for the socket and every HTTP route: an owner setup is a no for anyone else
+  const authorize: Authorize = async (a) => {
+    const p = await o.authorize(a);
+    return p && a.setup.owner && !p.owner ? null : p;
+  };
+
   function allowed(origin: string | undefined): boolean {
     return !origin || o.origins.includes(origin);
   }
@@ -191,7 +197,7 @@ export function relay(o: RelayOptions): {
           const credential = authToken(line);
           if (credential === null) return ws.close(CLOSE.unauthorized, "first frame is not auth");
           state = "checking";
-          o.authorize({ credential, origin, setup })
+          authorize({ credential, origin, setup })
             .catch((e) => {
               log(`${setup.name}: authorize failed: ${e instanceof Error ? e.message : e}`);
               return null;
@@ -342,6 +348,7 @@ export function relay(o: RelayOptions): {
           tools: s.tools,
           skills: s.skills,
           ...(s.mode ? { mode: s.mode } : {}),
+          ...(s.owner ? { owner: true } : {}),
         })),
       );
     const m = SESSION_PATH.exec(url.pathname);
@@ -349,7 +356,7 @@ export function relay(o: RelayOptions): {
     if (!setup) return send(res, 404, { error: "not found" });
     const credential = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
     const who = credential
-      ? (await o.authorize({ credential, origin, setup }).catch(() => null))?.who
+      ? (await authorize({ credential, origin, setup }).catch(() => null))?.who
       : null;
     if (!who) return send(res, 401, { error: "not allowed to open this setup" });
     const mine = ledger.list(setup.name, who);
@@ -382,8 +389,7 @@ export function relay(o: RelayOptions): {
     if (!setup || !m?.[2] || !o.history) return send(res, 404, { error: "not found" });
     const credential = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
     const who = credential
-      ? (await o.authorize({ credential, origin: req.headers.origin, setup }).catch(() => null))
-          ?.who
+      ? (await authorize({ credential, origin: req.headers.origin, setup }).catch(() => null))?.who
       : null;
     if (!who) return send(res, 401, { error: "not allowed to open this setup" });
     const session = m[2];
@@ -417,7 +423,7 @@ export function relay(o: RelayOptions): {
     if (!setup) return send(res, 404, { error: "not found" });
     const credential = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
     const person = credential
-      ? await o.authorize({ credential, origin: req.headers.origin, setup }).catch(() => null)
+      ? await authorize({ credential, origin: req.headers.origin, setup }).catch(() => null)
       : null;
     if (!person) return send(res, 401, { error: "not allowed to open this setup" });
     const raw = url.searchParams.get("path") ?? "";
@@ -460,8 +466,7 @@ export function relay(o: RelayOptions): {
     if (!setup || !o.uploads) return send(res, 404, { error: "not found" });
     const credential = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
     const who = credential
-      ? (await o.authorize({ credential, origin: req.headers.origin, setup }).catch(() => null))
-          ?.who
+      ? (await authorize({ credential, origin: req.headers.origin, setup }).catch(() => null))?.who
       : null;
     if (!who) return send(res, 401, { error: "not allowed to open this setup" });
     const name = fileName(url.searchParams.get("name") ?? "");

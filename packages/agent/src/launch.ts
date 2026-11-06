@@ -110,6 +110,7 @@ export function launch(setup: Setup, cred: Credential, o: LaunchOptions): Launch
   if (cred.kind === "key") env.ANTHROPIC_API_KEY = cred.key;
 
   const settings: Record<string, unknown> = { permissions: { allow: [...setup.allow] } };
+  if (setup.sandbox) settings.sandbox = setup.sandbox;
   if (o.secretHook)
     settings.hooks = {
       PreToolUse: [

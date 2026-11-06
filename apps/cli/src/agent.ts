@@ -13,9 +13,11 @@ import {
   type Credential,
   checkSession,
   fileLedger,
+  hostSetups,
   localToken,
   relay,
   SETUPS,
+  type Setup,
   sdkHistory,
   setupNamed,
   tokenMatches,
@@ -81,6 +83,13 @@ function emailOf(token: string): string | null {
 /** The folder that holds wren, engine and tasks: a setup's relative cwd resolves here. */
 const workspaceRoot = () => resolve(process.env.WREN_ROOT ?? process.cwd(), "..");
 
+/** This Mac's own setups, in the private tasks repo: makers, owner only (`@wren/agent` host.ts). */
+const HOST_SETUPS = "tasks/docs/agent/setups";
+const allSetups = (): readonly Setup[] => [
+  ...SETUPS,
+  ...hostSetups(resolve(workspaceRoot(), HOST_SETUPS), SETUPS),
+];
+
 export function registerAgent(program: Command): void {
   const agent = program
     .command("agent")
@@ -88,11 +97,11 @@ export function registerAgent(program: Command): void {
 
   agent
     .command("setups")
-    .description("list setups: app, tools, skills, credentials")
+    .description("list setups: app, tools, skills, credentials; this Mac's own are owner only")
     .action(() => {
-      for (const s of SETUPS)
+      for (const s of allSetups())
         console.log(
-          `${s.name}  app=${s.app}  model=${s.model}  tools=${s.tools.join(",")}  skills=${s.skills.join(",")}  credentials=${s.credentials.join(",")}  ${s.connection}`,
+          `${s.name}  app=${s.app}  model=${s.model}  tools=${s.tools.join(",")}  skills=${s.skills.join(",")}  credentials=${s.credentials.join(",")}  ${s.connection}${s.owner ? "  owner only" : ""}${s.sandbox ? "  sandbox" : ""}`,
         );
     });
 
@@ -114,6 +123,7 @@ export function registerAgent(program: Command): void {
     .option("--tape <dir>", "record each session's frames, both ways, for story fixtures")
     .action((o: { port: string; credential: string; max: string; tape?: string }) => {
       const credential = credentialOf(o.credential);
+      const setups = allSetups();
       const bins = new Map<string, string>();
       const r = relay({
         port: Number(o.port),
@@ -121,7 +131,7 @@ export function registerAgent(program: Command): void {
         ledger: fileLedger(),
         history: sdkHistory,
         origins: ORIGINS,
-        setups: SETUPS,
+        setups,
         credential,
         maxSessions: Number(o.max),
         uploads: UPLOADS_DIR,
@@ -141,7 +151,7 @@ export function registerAgent(program: Command): void {
       });
       r.server.on("listening", () =>
         console.error(
-          `wren agent: ws://127.0.0.1:${o.port}/s/<setup> on ${credential.kind}; setups ${SETUPS.map((s) => s.name).join(", ")}`,
+          `wren agent: ws://127.0.0.1:${o.port}/s/<setup> on ${credential.kind}; setups ${setups.map((s) => s.name).join(", ")}`,
         ),
       );
       const quit = () => void r.close().then(() => process.exit(0));
@@ -159,7 +169,8 @@ export function registerAgent(program: Command): void {
     .option("--say <text...>", "turns to send", ["Reply OK only."])
     .option("--resume <session>", "resume a session")
     .action(async (name: string, o: { port: string; say: string[]; resume?: string }) => {
-      if (!setupNamed(name)) throw new Error(`no setup ${name}; see wren agent setups`);
+      if (!setupNamed(name, allSetups()))
+        throw new Error(`no setup ${name}; see wren agent setups`);
       const r = await checkSession({
         port: Number(o.port),
         token: localToken(),

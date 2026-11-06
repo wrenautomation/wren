@@ -148,7 +148,8 @@ function PanelChat({
       return n;
     });
   const [running, setRunning] = useState(false);
-  const list = setups.data ?? [];
+  // the relay refuses an owner setup to anyone else: not offered either
+  const list = (setups.data ?? []).filter((s) => owner || !s.owner);
   const named = (n: string | undefined) => list.find((s) => s.name === n);
   const under = product ?? "";
   // a pick holds for the product it was made under; another product brings its own setup;

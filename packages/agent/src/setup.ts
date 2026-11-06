@@ -41,4 +41,11 @@ export interface Setup {
   append?: string;
   credentials: readonly CredentialKind[];
   connection: Connection;
+  /**
+   * The CLI's `sandbox` settings, passed as they are: an OS boundary on shell commands (writes to
+   * the cwd and temp only, network by domain). File tools stay under `allow`.
+   */
+  sandbox?: Readonly<Record<string, unknown>>;
+  /** Opens for the Mac's owner only, on every route: a setup with a wide shell (a maker). */
+  owner?: true;
 }

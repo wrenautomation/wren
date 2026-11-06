@@ -199,6 +199,9 @@ A setup (`packages/agent/src/setups.ts`) is one record: app, tools, skill plugin
 Setups: `research` (Birdwatch) and `vireo` (Vireo, plugin in `packages/variants`). A plugin is a package name or a path
 from the workspace root; its `package.json` `bin` lands on the child's PATH. The side chat opens the setup whose
 title is the page's product.
+This Mac's own setups (makers: a wide shell in one project) are `tasks/docs/agent/setups/<name>.json`, with
+`<name>.md` as the system prompt text. They open for the Mac's owner only; a setup may carry the CLI's `sandbox`
+settings (`packages/agent/src/host.ts`, designs/2026-11-05-variants.md).
 `wren agent setups` lists them. `wren agent token` prints the token a page sends first.
 `wren agent check [setup] --say "<turn>"...` opens one session and prints the credential source, what loaded and
 each turn's tokens. `--resume <id>` continues a session.

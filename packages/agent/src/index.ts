@@ -3,6 +3,7 @@ export { type CheckReport, checkSession, type TurnReport } from "./check.js";
 export { type Inbound, inbound } from "./filter.js";
 export { credentialBreach } from "./guard.js";
 export { sdkHistory } from "./history.js";
+export { hostSetups } from "./host.js";
 export {
   BASE_ENV,
   type Credential,
