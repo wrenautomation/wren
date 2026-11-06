@@ -302,3 +302,23 @@ Session choices:
 - The story "Compacted" replays a scrubbed real Haiku chat (`mocks/data/agent/compacted.json`).
 
 Run sessions (William, 11-06): a stopped run goes on in its own chat when it can, since that chat holds what the person said. A fresh chat starts from `brief <run>`. Birdwatch 0.46.1 skill text; engine log 11-06.
+
+## Decision 15: the `/` menu on a fresh relay (11-06, WA-1138)
+William, 11-06: `/` opened nothing in a new chat. Cause: the relay learned a setup's commands only from a live session's frames. A relay restarted before any chat had none, so a new chat's menu was empty until its first turn.
+
+| Option | For | Against |
+|---|---|---|
+| A. The relay asks the setup's CLI: spawn, `initialize`, read `commands`, stop. All setups at serve, one on a miss | the CLI's own list, exact per version and plugins; no model call; the same code in a hosted relay | a CLI start per setup per serve (about 2 s, a few hundred MB, serial) |
+| B. Build the list from the setup record: skills, plugin dirs, a built-in list | no process | the built-ins drift with each CLI version |
+| C. The page opens its session when a chat opens, so the SDK's `supportedCommands()` answers early | no relay code | a live child per open tab, held against the session cap |
+| D. Ship each list at build time | no start cost | stale on any setup or CLI change |
+
+Ranked by result, then risk, then $. Chosen (session): A. The list stays the CLI's own answer, so it holds on any host that runs the CLI.
+
+How it holds:
+- `prime()` runs at `wren agent serve`, one setup at a time. A setup or CLI change shows at the next serve.
+- `GET /s/<setup>/commands` probes on a miss and waits for it. One probe per setup at a time.
+- A probe takes a session slot. At the cap it is skipped, and the next session's list fills the store.
+- A probe is headless and owner-wide: no run token, no upload folder. The list is cut per person when read.
+- Each session's `initialize` and `commands_changed` still refresh the store.
+- Hosted: a relay in a client's container calls `prime()` at boot. `CommandStore` takes a database store there in place of the file.

@@ -34,10 +34,11 @@ writeFileSync(
 const out = (o) => process.stdout.write(JSON.stringify(o) + "\\n");
 createInterface({ input: process.stdin }).on("line", (l) => {
   const m = JSON.parse(l);
-  if (m.type === "control_request") return out({ type: "control_response", response: { subtype: "success", request_id: m.request_id, response: { skills: m.request.skills ?? null } } });
+  const listed = ["compact", "demo:demo", "deploy"].map((name) => ({ name, description: "", argumentHint: "" }));
+  if (m.type === "control_request") return out({ type: "control_response", response: { subtype: "success", request_id: m.request_id, response: { skills: m.request.skills ?? null, ...(m.request.subtype === "initialize" ? { commands: listed } : {}) } } });
   if (m.type !== "user") return;
   out({ type: "system", subtype: "init", apiKeySource: process.env.FAKE_SOURCE ?? "none", session_id: "s1" });
-  if (m.message.content === "commands") out({ type: "system", subtype: "commands_changed", commands: ["compact", "demo:demo", "deploy"].map((name) => ({ name, description: "", argumentHint: "" })) });
+  if (m.message.content === "commands") out({ type: "system", subtype: "commands_changed", commands: listed.slice(0, 1) });
   out({ type: "result", subtype: "success", result: m.message.content, has_key: Boolean(process.env.ANTHROPIC_API_KEY), session_id: "s1" });
 });
 `,
@@ -257,10 +258,15 @@ describe("relay", () => {
     const names = async (token: string) =>
       ((await (await commands(token)).json()) as { name: string }[]).map((c) => c.name);
     await start();
-    expect(await names("tok")).toEqual([]);
-    const { frames } = await session("/s/demo", [auth(), user("commands")], isResult);
-    expect(frames.find((f) => f.subtype === "commands_changed").commands).toHaveLength(2);
+    // no session yet: the relay asks the CLI with initialize alone, then the probe ends
+    const before = spawned.length;
     expect(await names("tok")).toEqual(["compact", "demo:demo"]);
+    expect(spawned.length).toBe(before + 1);
+    expect(await names("tok")).toEqual(["compact", "demo:demo"]);
+    expect(spawned.length).toBe(before + 1);
+    const { frames } = await session("/s/demo", [auth(), user("commands")], isResult);
+    expect(frames.find((f) => f.subtype === "commands_changed").commands).toHaveLength(1);
+    expect(await names("tok")).toEqual(["compact"]);
     expect((await commands()).status).toBe(401);
     expect((await fetch(`http://127.0.0.1:${port}/s/nope/commands`)).status).toBe(404);
     const store = memoryCommands();

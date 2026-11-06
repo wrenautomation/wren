@@ -97,6 +97,9 @@ const FILE_PATH = /^\/s\/([\w-]+)\/file$/;
 const COMMANDS_PATH = /^\/s\/([\w-]+)\/commands$/;
 const RUNS_PATH = /^\/s\/([\w-]+)\/runs(?:\/([\w-]+)(\/stop)?)?$/;
 const RUN_MS = 45 * 60_000;
+const PROBE_MS = 20_000;
+/** The command probe: the full list, cut per person when read. */
+const PROBER: Person = { who: "relay", owner: true };
 const RUNS_QUEUED = 12;
 const RUNS_KEPT = 100;
 const RESULT_CAP = 8000;
@@ -145,6 +148,8 @@ export const tokenMatches = (got: string, token: string): boolean => {
 export function relay(o: RelayOptions): {
   server: WebSocketServer;
   close: () => Promise<void>;
+  /** Fresh command lists for every setup, one CLI at a time: a new chat's `/` menu before any session. */
+  prime: () => Promise<void>;
 } {
   const log = o.log ?? (() => {});
   const ledger = o.ledger ?? memoryLedger();
@@ -263,11 +268,11 @@ export function relay(o: RelayOptions): {
     person: Person,
     resume: string | undefined,
     pick: { model?: string | undefined; effort?: string | undefined; mode?: string | undefined },
-    headless = false,
+    kind: "chat" | "run" | "probe" = "chat",
   ): ChildProcess {
     const { who, owner } = person;
     const binDirs = o.binDirs?.(setup) ?? o.launch.binDirs;
-    const mine = o.uploads ? uploadDir(o.uploads, who) : undefined;
+    const mine = o.uploads && kind !== "probe" ? uploadDir(o.uploads, who) : undefined;
     // made before spawn: --add-dir needs it, and a file sent mid-chat reads without a restart
     if (mine) mkdirSync(mine, { recursive: true, mode: 0o700 });
     const l = launch(setup, o.credential, {
@@ -279,7 +284,7 @@ export function relay(o: RelayOptions): {
       ...(mine ? { addDirs: [mine] } : {}),
     });
     // a run never starts runs: no token for a headless child
-    const token = setup.runs && !headless ? randomUUID() + randomUUID() : undefined;
+    const token = setup.runs && kind === "chat" ? randomUUID() + randomUUID() : undefined;
     const vars = l.env;
     if (token) {
       sessionTokens.set(token, { person, app: setup.app });
@@ -294,7 +299,7 @@ export function relay(o: RelayOptions): {
     });
     live.add(child);
     log(
-      `${setup.name}: started pid ${child.pid} for ${who}${resume ? ` resume ${resume}` : ""}${headless ? " headless" : ""}`,
+      `${setup.name}: started pid ${child.pid} for ${who}${resume ? ` resume ${resume}` : ""}${kind === "chat" ? "" : ` ${kind}`}`,
     );
     child.stderr?.on("data", (d) => log(`${setup.name}: ${String(d).trim().slice(0, 300)}`));
     const gone = () => {
@@ -370,6 +375,53 @@ export function relay(o: RelayOptions): {
     return child;
   }
 
+  const probing = new Map<string, Promise<unknown[] | undefined>>();
+  /** The setup's commands from its CLI: `initialize` alone makes no model call. One per setup at a time. */
+  function probe(setup: Setup): Promise<unknown[] | undefined> {
+    const was = probing.get(setup.name);
+    if (was) return was;
+    const p = new Promise<unknown[] | undefined>((done) => {
+      // a probe holds a slot like a chat: skipped when full, the next session's list fills it
+      if (live.size >= (o.maxSessions ?? 3)) return done(undefined);
+      let child: ChildProcess;
+      try {
+        child = open(setup, PROBER, undefined, {}, "probe");
+      } catch (e) {
+        log(`${setup.name}: command probe failed: ${e instanceof Error ? e.message : e}`);
+        return done(undefined);
+      }
+      const end = (list?: unknown[]) => {
+        clearTimeout(timer);
+        stop(child);
+        done(list);
+      };
+      const timer = setTimeout(() => {
+        log(`${setup.name}: command probe got no answer in ${PROBE_MS / 1000} s`);
+        end();
+      }, PROBE_MS);
+      child.on("exit", () => end());
+      child.on("error", () => end());
+      if (child.stdout)
+        createInterface({ input: child.stdout }).on("line", (line) => {
+          let listed: unknown[] | undefined;
+          try {
+            listed = commandsIn(JSON.parse(line));
+          } catch {
+            return;
+          }
+          if (!listed) return;
+          commandStore.set(setup.name, listed);
+          end(listed);
+        });
+      child.stdin?.on("error", () => {});
+      child.stdin?.write(
+        `${JSON.stringify({ type: "control_request", request_id: "commands", request: { subtype: "initialize", skills: [...setup.skills] } })}\n`,
+      );
+    }).finally(() => probing.delete(setup.name));
+    probing.set(setup.name, p);
+    return p;
+  }
+
   /** Starts queued runs while a slot is free; the oldest first. */
   function pump(): void {
     const cap = o.maxRuns ?? Math.max(1, (o.maxSessions ?? 3) - 1);
@@ -392,7 +444,7 @@ export function relay(o: RelayOptions): {
     let child: ChildProcess;
     try {
       if (!setup) throw new LaunchError(`no setup ${run.setup}`);
-      child = open(setup, person, undefined, { model: run.model }, true);
+      child = open(setup, person, undefined, { model: run.model }, "run");
     } catch (e) {
       const why = e instanceof Error ? e.message : String(e);
       log(`${run.setup}: run ${run.id} launch failed: ${why}`);
@@ -551,7 +603,7 @@ export function relay(o: RelayOptions): {
     }
   }
 
-  /** `GET /s/<setup>/commands`: the setup's last command list, cut to what the asker may run; [] before any session. */
+  /** `GET /s/<setup>/commands`: the setup's last command list, cut to what the asker may run; probed on a miss. */
   async function commandsRoute(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
     const setup = setupOf(COMMANDS_PATH.exec(url.pathname)?.[1]);
     if (!setup) return send(res, 404, { error: "not found" });
@@ -560,7 +612,8 @@ export function relay(o: RelayOptions): {
       ? await authorize({ credential, origin: req.headers.origin, setup }).catch(() => null)
       : null;
     if (!person) return send(res, 401, { error: "not allowed to open this setup" });
-    return send(res, 200, commandsFor(commandStore.get(setup.name) ?? [], setup, person.owner));
+    const list = commandStore.get(setup.name) ?? (await probe(setup)) ?? [];
+    return send(res, 200, commandsFor(list, setup, person.owner));
   }
 
   /** `POST /s/<setup>/runs {prompt, model?}` queues a run; `GET` lists the asker's own, or one by
@@ -770,6 +823,9 @@ export function relay(o: RelayOptions): {
         for (const c of server.clients) c.terminate();
         server.close(() => http.close(() => res()));
       }),
+    prime: async () => {
+      for (const s of o.setups) await probe(s);
+    },
   };
 }
 

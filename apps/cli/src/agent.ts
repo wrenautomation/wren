@@ -157,11 +157,13 @@ export function registerAgent(program: Command): void {
           },
           log: (l) => console.error(l),
         });
-        r.server.on("listening", () =>
+        r.server.on("listening", () => {
           console.error(
             `wren agent: ws://127.0.0.1:${o.port}/s/<setup> on ${credential.kind}; setups ${setups.map((s) => s.name).join(", ")}`,
-          ),
-        );
+          );
+          // a setup or CLI change shows in the / menu at the next serve, before any chat
+          void r.prime();
+        });
         const quit = () => void r.close().then(() => process.exit(0));
         process.on("SIGINT", quit);
         process.on("SIGTERM", quit);
