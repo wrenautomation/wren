@@ -260,6 +260,7 @@ export function MetroLayers({ zoom, floor, onFloor, className }: MetroLayersProp
   const pick = useCallback((at: LayerFloor) => onFloorRef.current(at), []);
 
   const key = `${floor?.kind ?? ""}:${floor?.id ?? ""}`;
+  // read-ok: a local layout (ELK in a worker), no fetch; cached in the zoom.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `key` stands for the floor.
   useEffect(() => {
     let live = true;
