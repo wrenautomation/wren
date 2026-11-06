@@ -24,6 +24,7 @@ const Host = z.strictObject({
   passEnv: names.default([]),
   vars: z.record(z.string(), z.string()).optional(),
   sandbox: z.record(z.string(), z.unknown()).optional(),
+  serves: names.optional(),
 });
 
 const NAME = /^[a-z][a-z0-9-]*$/;
@@ -46,7 +47,7 @@ export function hostSetups(dir: string, taken: readonly Setup[] = []): Setup[] {
       }
       const r = Host.safeParse(json);
       if (!r.success) throw bad(z.prettifyError(r.error));
-      const { models, mode, vars, sandbox, ...rest } = r.data;
+      const { models, mode, vars, sandbox, serves, ...rest } = r.data;
       if (taken.some((s) => s.name === name || s.title === rest.title))
         throw bad(`${name} / ${rest.title} is a built-in setup`);
       const md = join(dir, `${name}.md`);
@@ -58,6 +59,7 @@ export function hostSetups(dir: string, taken: readonly Setup[] = []): Setup[] {
         ...(mode ? { mode } : {}),
         ...(vars ? { vars } : {}),
         ...(sandbox ? { sandbox } : {}),
+        ...(serves ? { serves } : {}),
         ...(append ? { append } : {}),
         credentials: ["plan"],
         connection: "sdk",

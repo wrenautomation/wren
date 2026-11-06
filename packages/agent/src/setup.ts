@@ -48,4 +48,8 @@ export interface Setup {
   sandbox?: Readonly<Record<string, unknown>>;
   /** Opens for the Mac's owner only, on every route: a setup with a wide shell (a maker). */
   owner?: true;
+  /** What a maker builds for: tags a caller matches (a Vireo subject's slug). */
+  serves?: readonly string[];
+  /** Its sessions may start headless runs: `maker` on PATH, the session's own token in the env. */
+  runs?: true;
 }

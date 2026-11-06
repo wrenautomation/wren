@@ -28,6 +28,7 @@ export {
   UPLOADS_DIR,
   uploadDir,
 } from "./relay.js";
+export { type MakerInfo, RUN_ENV, type Run, RunError, runClient } from "./runs.js";
 export { fileLedger, LEDGER_FILE, type Ledger, type SessionRecord } from "./sessions.js";
 export type { Connection, CredentialKind, Setup } from "./setup.js";
 export { SETUPS, setupNamed } from "./setups.js";

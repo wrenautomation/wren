@@ -2,9 +2,10 @@
  * `wren agent …` (designs/2026-11-04-multi-user-runtime.md, Decision 2): the relay that puts a
  * Claude setup in a wren page. `serve` runs it on 127.0.0.1; `check` opens one session as a page
  * would and reports what loaded and what it cost; `setups` lists the records; `token` prints the
- * local token the page sends first.
+ * local token the page sends first. `makers`, `run`, `runs` and `stop` drive headless runs through
+ * a running relay (designs/2026-11-05-variants.md, C3); a chat calls them as `maker`.
  */
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
@@ -15,7 +16,9 @@ import {
   fileLedger,
   hostSetups,
   localToken,
+  RUN_ENV,
   relay,
+  runClient,
   SETUPS,
   type Setup,
   sdkHistory,
@@ -101,7 +104,7 @@ export function registerAgent(program: Command): void {
     .action(() => {
       for (const s of allSetups())
         console.log(
-          `${s.name}  app=${s.app}  model=${s.model}  tools=${s.tools.join(",")}  skills=${s.skills.join(",")}  credentials=${s.credentials.join(",")}  ${s.connection}${s.owner ? "  owner only" : ""}${s.sandbox ? "  sandbox" : ""}`,
+          `${s.name}  app=${s.app}  model=${s.model}  tools=${s.tools.join(",")}  skills=${s.skills.join(",")}  credentials=${s.credentials.join(",")}  ${s.connection}${s.owner ? "  owner only" : ""}${s.sandbox ? "  sandbox" : ""}${s.serves ? `  serves=${s.serves.join(",")}` : ""}${s.runs ? "  runs" : ""}`,
         );
     });
 
@@ -120,8 +123,9 @@ export function registerAgent(program: Command): void {
       "plan",
     )
     .option("--max <n>", "live sessions at once", "3")
+    .option("--run-min <n>", "a headless run is stopped after this many minutes", "45")
     .option("--tape <dir>", "record each session's frames, both ways, for story fixtures")
-    .action((o: { port: string; credential: string; max: string; tape?: string }) => {
+    .action((o: { port: string; credential: string; max: string; runMin: string; tape?: string }) => {
       const credential = credentialOf(o.credential);
       const setups = allSetups();
       const bins = new Map<string, string>();
@@ -134,6 +138,7 @@ export function registerAgent(program: Command): void {
         setups,
         credential,
         maxSessions: Number(o.max),
+        runMs: Number(o.runMin) * 60_000,
         uploads: UPLOADS_DIR,
         ...(o.tape ? { tape: o.tape } : {}),
         launch: {
@@ -181,6 +186,77 @@ export function registerAgent(program: Command): void {
       console.log(JSON.stringify(r, null, 2));
       if (r.closed && r.closed.code !== 1000 && r.closed.code !== 1005) process.exitCode = 1;
     });
+
+  registerRuns(agent);
+}
+
+/** A chat's session token and relay from its env; a terminal uses the local token. */
+const client = (port: string) =>
+  runClient({
+    url: process.env[RUN_ENV.url] ?? `http://127.0.0.1:${port}`,
+    token: process.env[RUN_ENV.token] ?? localToken(),
+  });
+const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
+
+function registerRuns(agent: Command): void {
+  const port = ["--port <n>", "the relay's port", String(AGENT_PORT)] as const;
+  agent
+    .command("makers")
+    .description("list this Mac's makers (owner setups) and what each serves, as JSON")
+    .option(...port)
+    .action(async (o: { port: string }) =>
+      json(
+        (await client(o.port).makers()).map(({ name, title, serves, model, models }) => ({
+          name,
+          title,
+          serves: serves ?? [],
+          model,
+          models,
+        })),
+      ),
+    );
+  agent
+    .command("run")
+    .description("queue one headless run of a setup: one prompt, no page, every ask denied")
+    .argument("<setup>", "setup name")
+    .argument("[prompt...]", "the prompt")
+    .option("--file <path>", "read the prompt from a file")
+    .option("--model <m>", "one of the setup's models")
+    .option(...port)
+    .action(
+      async (
+        setup: string,
+        words: string[],
+        o: { file?: string; model?: string; port: string },
+      ) => {
+        const prompt = o.file ? readFileSync(o.file, "utf8") : words.join(" ");
+        json(await client(o.port).start(setup, prompt, o.model));
+      },
+    );
+  agent
+    .command("runs")
+    .description("your runs, newest first, or one by id: state, session, result, denied calls")
+    .argument("[id]", "run id")
+    .option("--setup <name>", "one setup only")
+    .option("--wait <seconds>", "block until none is queued or running, or the time passes")
+    .option(...port)
+    .action(async (id: string | undefined, o: { setup?: string; wait?: string; port: string }) => {
+      const c = client(o.port);
+      const read = async () => (id ? [await c.get(id)] : await c.list(o.setup));
+      const until = Date.now() + Number(o.wait ?? 0) * 1000;
+      let rows = await read();
+      while (rows.some((r) => !r.ended) && Date.now() < until) {
+        await new Promise((res) => setTimeout(res, 5000));
+        rows = await read();
+      }
+      json(id ? rows[0] : rows);
+    });
+  agent
+    .command("stop")
+    .description("stop a queued or running run")
+    .argument("<id>", "run id")
+    .option(...port)
+    .action(async (id: string, o: { port: string }) => json(await client(o.port).stop(id)));
 }
 
 function credentialOf(kind: string): Credential {

@@ -4,13 +4,16 @@
  * `./browser` `query({websocket})` speaks, so the page holds the whole SDK and the relay parses
  * only to filter (filter.ts), to guard the credential (guard.ts) and to note the session id.
  * HTTP on the same port: `GET /setups`, a person's own sessions (designs/2026-11-04-multi-user-runtime.md,
- * Decisions 4 and 5), and an image or video by path for its preview (`GET /s/<setup>/file`). `authorize` decides who may open which setup; the relay holds no access model.
+ * Decisions 4 and 5), an image or video by path for its preview (`GET /s/<setup>/file`), and headless
+ * runs (`/s/<setup>/runs`: one prompt, no page, every ask denied; designs/2026-11-05-variants.md, C3).
+ * `authorize` decides who may open which setup; the relay holds no access model.
  */
 import { type ChildProcess, spawn as nodeSpawn, type SpawnOptions } from "node:child_process";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { appendFileSync, createReadStream, createWriteStream, mkdirSync, rmSync } from "node:fs";
 import { realpath, stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import type { AddressInfo } from "node:net";
 import { homedir } from "node:os";
 import { basename, extname, isAbsolute, join, sep } from "node:path";
 import { createInterface } from "node:readline";
@@ -18,6 +21,7 @@ import { type WebSocket, WebSocketServer } from "ws";
 import { EFFORTS, inbound, modeAllowed, outbound } from "./filter.js";
 import { credentialBreach } from "./guard.js";
 import { type Credential, LaunchError, type LaunchOptions, launch, setupCwd } from "./launch.js";
+import { RUN_ENV, type Run } from "./runs.js";
 import { type Ledger, memoryLedger } from "./sessions.js";
 import type { Setup } from "./setup.js";
 
@@ -57,6 +61,10 @@ export interface RelayOptions {
   binDirs?: (setup: Setup) => readonly string[];
   /** Live children at once; each `claude` holds a few hundred MB. */
   maxSessions?: number;
+  /** Headless runs at once; default one less than `maxSessions`, so a chat can still open. */
+  maxRuns?: number;
+  /** A run is stopped after this long; default 45 min. */
+  runMs?: number;
   ledger?: Ledger;
   history?: History;
   /** Root for chat files (`POST /s/<setup>/files`), one folder per person; none = no uploads. */
@@ -84,6 +92,13 @@ const SESSION_PATH = /^\/s\/([\w-]+)(?:\/sessions(?:\/([\w-]+))?)?$/;
 const FILES_PATH = /^\/s\/([\w-]+)\/files$/;
 const UPLOAD_CAP = 500 * 1024 * 1024;
 const FILE_PATH = /^\/s\/([\w-]+)\/file$/;
+const RUNS_PATH = /^\/s\/([\w-]+)\/runs(?:\/([\w-]+)(\/stop)?)?$/;
+const RUN_MS = 45 * 60_000;
+const RUNS_QUEUED = 12;
+const RUNS_KEPT = 100;
+const RESULT_CAP = 8000;
+const NO_ANSWER =
+  "Headless run: no person answers and no rule allows this call. Do the work another way, or stop and say in your report what you need.";
 const SHOW_CAP = 50 * 1024 * 1024;
 /** What a preview may show; the type is the real file's, after links. */
 const SHOWN: Record<string, string> = {
@@ -138,9 +153,19 @@ export function relay(o: RelayOptions): {
   });
   http.listen(o.port, "127.0.0.1");
 
+  const runs: { run: Run; person: Person }[] = [];
+  const running = new Map<string, ChildProcess>();
+  // a `runs` session's own token: the person who opened it, and the app they proved a grant on
+  const sessionTokens = new Map<string, { person: Person; app: string }>();
+
   // one gate for the socket and every HTTP route: an owner setup is a no for anyone else
   const authorize: Authorize = async (a) => {
-    const p = await o.authorize(a);
+    const mine = a.origin ? undefined : sessionTokens.get(a.credential);
+    const p = mine
+      ? mine.person.owner || mine.app === a.setup.app
+        ? mine.person
+        : null
+      : await o.authorize(a);
     return p && a.setup.owner && !p.owner ? null : p;
   };
 
@@ -228,46 +253,80 @@ export function relay(o: RelayOptions): {
     return o.setups.find((s) => s.name === name);
   }
 
+  /** Launches the setup's child for a person; throws when the setup cannot launch. */
+  function open(
+    setup: Setup,
+    person: Person,
+    resume: string | undefined,
+    pick: { model?: string | undefined; effort?: string | undefined; mode?: string | undefined },
+    headless = false,
+  ): ChildProcess {
+    const { who, owner } = person;
+    const binDirs = o.binDirs?.(setup) ?? o.launch.binDirs;
+    const mine = o.uploads ? uploadDir(o.uploads, who) : undefined;
+    // made before spawn: --add-dir needs it, and a file sent mid-chat reads without a restart
+    if (mine) mkdirSync(mine, { recursive: true, mode: 0o700 });
+    const l = launch(setup, o.credential, {
+      ...o.launch,
+      resume,
+      ...pick,
+      owner,
+      ...(binDirs ? { binDirs } : {}),
+      ...(mine ? { addDirs: [mine] } : {}),
+    });
+    // a run never starts runs: no token for a headless child
+    const token = setup.runs && !headless ? randomUUID() + randomUUID() : undefined;
+    const vars = l.env;
+    if (token) {
+      sessionTokens.set(token, { person, app: setup.app });
+      vars[RUN_ENV.url] = `http://127.0.0.1:${(http.address() as AddressInfo).port}`;
+      vars[RUN_ENV.token] = token;
+    }
+    mkdirSync(l.cwd, { recursive: true });
+    const child = (o.spawn ?? nodeSpawn)(l.command, l.args, {
+      cwd: l.cwd,
+      env: vars,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    live.add(child);
+    log(
+      `${setup.name}: started pid ${child.pid} for ${who}${resume ? ` resume ${resume}` : ""}${headless ? " headless" : ""}`,
+    );
+    child.stderr?.on("data", (d) => log(`${setup.name}: ${String(d).trim().slice(0, 300)}`));
+    const gone = () => {
+      live.delete(child);
+      if (token) sessionTokens.delete(token);
+    };
+    child.on("exit", (code) => {
+      gone();
+      log(`${setup.name}: pid ${child.pid} exit ${code}`);
+    });
+    child.on("error", gone);
+    return child;
+  }
+
   function start(
     ws: WebSocket,
     setup: Setup,
-    { who, owner }: Person,
+    person: Person,
     resume: string | undefined,
     pick: { model?: string | undefined; effort?: string | undefined; mode?: string | undefined },
     tape?: Tape,
   ): ChildProcess | undefined {
+    const { who, owner } = person;
     if (resume && !ledger.list(setup.name, who).some((r) => r.session === resume)) {
       ws.close(CLOSE.unauthorized, "not your session");
       return undefined;
     }
-    let l: ReturnType<typeof launch>;
+    let child: ChildProcess;
     try {
-      const binDirs = o.binDirs?.(setup) ?? o.launch.binDirs;
-      const mine = o.uploads ? uploadDir(o.uploads, who) : undefined;
-      // made before spawn: --add-dir needs it, and a file sent mid-chat reads without a restart
-      if (mine) mkdirSync(mine, { recursive: true, mode: 0o700 });
-      l = launch(setup, o.credential, {
-        ...o.launch,
-        resume,
-        ...pick,
-        owner,
-        ...(binDirs ? { binDirs } : {}),
-        ...(mine ? { addDirs: [mine] } : {}),
-      });
+      child = open(setup, person, resume, pick);
     } catch (e) {
       const why = e instanceof Error ? e.message : String(e);
       log(`${setup.name}: launch failed: ${why}`);
       ws.close(CLOSE.setup, (e instanceof LaunchError ? why : "launch failed").slice(0, 120));
       return undefined;
     }
-    mkdirSync(l.cwd, { recursive: true });
-    const child = (o.spawn ?? nodeSpawn)(l.command, l.args, {
-      cwd: l.cwd,
-      env: l.env,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    live.add(child);
-    log(`${setup.name}: started pid ${child.pid} for ${who}${resume ? ` resume ${resume}` : ""}`);
 
     // `/clear` starts a new session in the same child: each id goes in the ledger
     const noted = new Set<string>();
@@ -295,18 +354,119 @@ export function relay(o: RelayOptions): {
       tape?.("cli", sent);
       if (ws.readyState === ws.OPEN) ws.send(`${sent}\n`);
     });
-    child.stderr?.on("data", (d) => log(`${setup.name}: ${String(d).trim().slice(0, 300)}`));
     child.on("exit", (code) => {
-      live.delete(child);
-      log(`${setup.name}: pid ${child.pid} exit ${code}`);
       if (ws.readyState === ws.OPEN)
         ws.close(code === 0 ? 1000 : CLOSE.child, `claude exit ${code}`);
     });
     child.on("error", (e) => {
-      live.delete(child);
       if (ws.readyState === ws.OPEN) ws.close(CLOSE.child, e.message.slice(0, 120));
     });
     return child;
+  }
+
+  /** Starts queued runs while a slot is free; the oldest first. */
+  function pump(): void {
+    const cap = o.maxRuns ?? Math.max(1, (o.maxSessions ?? 3) - 1);
+    for (const q of runs) {
+      if (running.size >= cap || live.size >= (o.maxSessions ?? 3)) return;
+      if (q.run.state === "queued") startRun(q.run, q.person);
+    }
+  }
+
+  function endRun(run: Run, state: Run["state"], result?: string): void {
+    if (run.ended) return;
+    run.state = state;
+    run.ended = new Date().toISOString();
+    if (result !== undefined) run.result = result.slice(0, RESULT_CAP);
+  }
+
+  /** One prompt to the setup's child, no page: an ask is denied, the result ends the child. */
+  function startRun(run: Run, person: Person): void {
+    const setup = setupOf(run.setup);
+    let child: ChildProcess;
+    try {
+      if (!setup) throw new LaunchError(`no setup ${run.setup}`);
+      child = open(setup, person, undefined, { model: run.model }, true);
+    } catch (e) {
+      const why = e instanceof Error ? e.message : String(e);
+      log(`${run.setup}: run ${run.id} launch failed: ${why}`);
+      endRun(run, "failed", e instanceof LaunchError ? why : "launch failed");
+      return;
+    }
+    run.state = "running";
+    run.started = new Date().toISOString();
+    running.set(run.id, child);
+    const write = (f: unknown) => child.stdin?.write(`${JSON.stringify(f)}\n`);
+    child.stdin?.on("error", () => {});
+    write({
+      type: "control_request",
+      request_id: "init",
+      request: { subtype: "initialize", skills: [...setup.skills] },
+    });
+    write({
+      type: "user",
+      message: { role: "user", content: run.prompt },
+      parent_tool_use_id: null,
+      session_id: "",
+    });
+    const ms = o.runMs ?? RUN_MS;
+    const timer = setTimeout(() => {
+      endRun(run, "failed", `stopped at the ${Math.round(ms / 60_000)} min cap`);
+      stop(child);
+    }, ms);
+    timer.unref();
+    if (child.stdout)
+      createInterface({ input: child.stdout }).on("line", (line) => {
+        // biome-ignore lint/suspicious/noExplicitAny: wire frames, read loosely
+        let f: any;
+        try {
+          f = JSON.parse(line);
+        } catch {
+          return;
+        }
+        const breach = credentialBreach(f, o.credential);
+        if (breach) {
+          log(`${setup.name}: ${breach}`);
+          endRun(run, "failed", breach);
+          return stop(child);
+        }
+        const session = initSession(f);
+        if (session && run.session !== session) {
+          run.session = session;
+          ledger.add({ setup: setup.name, session, who: person.who, at: new Date().toISOString() });
+        }
+        if (f?.type === "control_request") {
+          const asks = f.request?.subtype === "can_use_tool";
+          if (asks)
+            run.denied.push(
+              `${f.request.tool_name} ${JSON.stringify(f.request.input ?? {}).slice(0, 200)}`,
+            );
+          write({
+            type: "control_response",
+            response: asks
+              ? {
+                  subtype: "success",
+                  request_id: f.request_id,
+                  response: { behavior: "deny", message: NO_ANSWER },
+                }
+              : { subtype: "error", request_id: f.request_id, error: "not in a headless run" },
+          });
+        }
+        if (f?.type === "result") {
+          if (typeof f.total_cost_usd === "number") run.usd = f.total_cost_usd;
+          endRun(run, f.is_error ? "failed" : "done", String(f.result ?? f.subtype ?? ""));
+          child.stdin?.end();
+          setTimeout(() => stop(child), 5000).unref();
+        }
+      });
+    const over = (why: string) => {
+      clearTimeout(timer);
+      running.delete(run.id);
+      endRun(run, "failed", why);
+      pump();
+    };
+    child.on("exit", (code) => over(`claude exit ${code}`));
+    child.on("error", (e) => over(e.message));
   }
 
   function stop(child: ChildProcess | undefined): void {
@@ -331,6 +491,7 @@ export function relay(o: RelayOptions): {
       return;
     }
     const url = new URL(req.url ?? "/", "http://relay");
+    if (RUNS_PATH.test(url.pathname)) return runsRoute(req, res, url);
     if (req.method === "POST" && FILES_PATH.test(url.pathname)) return upload(req, res, url);
     if (req.method === "PATCH") return rename(req, res, url);
     if (req.method !== "GET") return send(res, 405, { error: "GET only" });
@@ -349,6 +510,7 @@ export function relay(o: RelayOptions): {
           skills: s.skills,
           ...(s.mode ? { mode: s.mode } : {}),
           ...(s.owner ? { owner: true } : {}),
+          ...(s.serves ? { serves: s.serves } : {}),
         })),
       );
     const m = SESSION_PATH.exec(url.pathname);
@@ -380,6 +542,77 @@ export function relay(o: RelayOptions): {
       log(`${setup.name}: history failed: ${e instanceof Error ? e.message : e}`);
       return send(res, 500, { error: "could not read the session" });
     }
+  }
+
+  /** `POST /s/<setup>/runs {prompt, model?}` queues a run; `GET` lists the asker's own, or one by
+   * id; `POST …/<id>/stop` ends one. */
+  async function runsRoute(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+    const m = RUNS_PATH.exec(url.pathname);
+    const setup = setupOf(m?.[1]);
+    if (!setup) return send(res, 404, { error: "not found" });
+    const credential = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
+    const person = credential
+      ? await authorize({ credential, origin: req.headers.origin, setup }).catch(() => null)
+      : null;
+    if (!person) return send(res, 401, { error: "not allowed to open this setup" });
+    const mine = runs.filter((q) => q.run.setup === setup.name && q.person.who === person.who);
+    const id = m?.[2];
+    const one = id ? mine.find((q) => q.run.id === id)?.run : undefined;
+    if (id && !one) return send(res, 404, { error: "no such run" });
+    if (req.method === "GET")
+      return send(
+        res,
+        200,
+        one ??
+          mine
+            .map((q) => q.run)
+            .reverse()
+            .slice(0, 50),
+      );
+    if (req.method !== "POST") return send(res, 405, { error: "GET or POST" });
+    if (one) {
+      if (!m?.[3]) return send(res, 404, { error: "not found" });
+      endRun(one, "stopped");
+      stop(running.get(one.id));
+      log(`${setup.name}: ${person.who} stopped run ${one.id}`);
+      return send(res, 200, one);
+    }
+    let body = "";
+    for await (const chunk of req) {
+      body += chunk;
+      if (body.length > 64 * 1024) return send(res, 413, { error: "prompt too long" });
+    }
+    let prompt = "";
+    let model: string | undefined;
+    try {
+      const b = JSON.parse(body) as { prompt?: unknown; model?: unknown };
+      prompt = typeof b.prompt === "string" ? b.prompt.trim() : "";
+      model = typeof b.model === "string" ? b.model : undefined;
+    } catch {}
+    if (!prompt) return send(res, 400, { error: "a prompt is needed" });
+    if (model && model !== setup.model && !setup.models?.includes(model))
+      return send(res, 400, { error: `setup ${setup.name} has no model ${model}` });
+    if (runs.filter((q) => q.run.state === "queued").length >= RUNS_QUEUED)
+      return send(res, 429, { error: `${RUNS_QUEUED} runs wait already` });
+    const run: Run = {
+      id: randomUUID().slice(0, 8),
+      setup: setup.name,
+      state: "queued",
+      prompt,
+      ...(model ? { model } : {}),
+      at: new Date().toISOString(),
+      denied: [],
+    };
+    runs.push({ run, person });
+    // ended runs fall off the front
+    while (runs.length > RUNS_KEPT) {
+      const i = runs.findIndex((q) => q.run.ended);
+      if (i < 0) break;
+      runs.splice(i, 1);
+    }
+    log(`${setup.name}: ${person.who} queued run ${run.id}`);
+    pump();
+    return send(res, 202, run);
   }
 
   /** `{title}` for one of the person's own sessions; an empty title is refused. */

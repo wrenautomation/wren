@@ -202,6 +202,9 @@ title is the page's product.
 This Mac's own setups (makers: a wide shell in one project) are `tasks/docs/agent/setups/<name>.json`, with
 `<name>.md` as the system prompt text. They open for the Mac's owner only; a setup may carry the CLI's `sandbox`
 settings (`packages/agent/src/host.ts`, designs/2026-11-05-variants.md).
+A setup with `runs` (Vireo) starts headless runs of a maker: `maker list|start|status|stop` in its chat,
+`wren agent makers|run|runs|stop` in a terminal. A run is one prompt with no page; the relay queues it, denies
+every ask and keeps its state, result and session (`packages/agent/src/runs.ts`). `--run-min` caps a run.
 `wren agent setups` lists them. `wren agent token` prints the token a page sends first.
 `wren agent check [setup] --say "<turn>"...` opens one session and prints the credential source, what loaded and
 each turn's tokens. `--resume <id>` continues a session.

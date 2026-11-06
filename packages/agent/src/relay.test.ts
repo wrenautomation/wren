@@ -325,3 +325,133 @@ describe("relay", () => {
     expect(fileName("a\u0000b.txt")).toBe("ab.txt");
   });
 });
+
+describe("headless runs", () => {
+  const post = (path: string, body?: object, token = "tok") =>
+    fetch(`http://127.0.0.1:${port}${path}`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}` },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+  const get = async (path: string, token = "tok") =>
+    (
+      await fetch(`http://127.0.0.1:${port}${path}`, {
+        headers: { authorization: `Bearer ${token}` },
+      })
+    ).json() as Promise<any>;
+  const settled = async (id: string) => {
+    for (let i = 0; i < 100; i++) {
+      const r = await get(`/s/demo/runs/${id}`);
+      if (r.ended) return r;
+      await new Promise((res) => setTimeout(res, 50));
+    }
+    throw new Error("run did not end");
+  };
+
+  it("queues a run, ends it on the result, and puts its session in the ledger", async () => {
+    const ledger = await start();
+    expect((await post("/s/demo/runs", { prompt: "hi" }, "bad")).status).toBe(401);
+    expect((await post("/s/demo/runs", {})).status).toBe(400);
+    expect((await post("/s/demo/runs", { prompt: "hi", model: "opus" })).status).toBe(400);
+    const res = await post("/s/demo/runs", { prompt: "make sample 3" });
+    expect(res.status).toBe(202);
+    const run = await settled(((await res.json()) as any).id);
+    expect(run).toMatchObject({
+      state: "done",
+      result: "make sample 3",
+      session: "s1",
+      denied: [],
+    });
+    expect(ledger.list("demo", "local").map((r) => r.session)).toEqual(["s1"]);
+    expect((await get("/s/demo/runs")).map((r: any) => r.id)).toEqual([run.id]);
+    expect((await post(`/s/demo/runs/${run.id}/stop`)).status).toBe(200);
+    expect((await get(`/s/demo/runs/${run.id}`)).state).toBe("done");
+  });
+
+  it("denies an ask, since no person answers", async () => {
+    const asker = join(dir, "asker.mjs");
+    writeFileSync(
+      asker,
+      `import { createInterface } from "node:readline";
+const out = (o) => process.stdout.write(JSON.stringify(o) + "\\n");
+createInterface({ input: process.stdin }).on("line", (l) => {
+  const m = JSON.parse(l);
+  if (m.type === "user") out({ type: "control_request", request_id: "a1", request: { subtype: "can_use_tool", tool_name: "Bash", input: { command: "rm x" } } });
+  if (m.type === "control_response" && m.response.request_id === "a1") out({ type: "result", subtype: "success", result: m.response.response.behavior, session_id: "s2" });
+});
+`,
+    );
+    await start({}, byToken, { spawn: (_c, _a, o) => spawn(process.execPath, [asker], o) });
+    const res = await post("/s/demo/runs", { prompt: "go" });
+    const run = await settled(((await res.json()) as any).id);
+    expect(run.result).toBe("deny");
+    expect(run.denied).toEqual(['Bash {"command":"rm x"}']);
+  });
+
+  it("holds runs over the cap in a queue, and stops one that waits", async () => {
+    const slow = join(dir, "slow.mjs");
+    writeFileSync(
+      slow,
+      `import { createInterface } from "node:readline";
+createInterface({ input: process.stdin }).on("line", (l) => {
+  const m = JSON.parse(l);
+  if (m.type === "user") setTimeout(() => process.stdout.write(JSON.stringify({ type: "result", subtype: "success", result: "late" }) + "\\n"), 300);
+});
+`,
+    );
+    await start({}, byToken, {
+      maxRuns: 1,
+      spawn: (_c, _a, o) => spawn(process.execPath, [slow], o),
+    });
+    const a = (await (await post("/s/demo/runs", { prompt: "a" })).json()) as any;
+    const b = (await (await post("/s/demo/runs", { prompt: "b" })).json()) as any;
+    const c = (await (await post("/s/demo/runs", { prompt: "c" })).json()) as any;
+    expect([a.state, b.state, c.state]).toEqual(["running", "queued", "queued"]);
+    expect(((await (await post(`/s/demo/runs/${c.id}/stop`)).json()) as any).state).toBe("stopped");
+    expect((await settled(a.id)).state).toBe("done");
+    expect((await settled(b.id)).result).toBe("late");
+    expect((await get(`/s/demo/runs/${c.id}`)).started).toBeUndefined();
+  });
+
+  it("a `runs` session gets its own token: it starts runs as its person, a run gets none", async () => {
+    const teller = join(dir, "teller.mjs");
+    writeFileSync(
+      teller,
+      `import { createInterface } from "node:readline";
+const out = (o) => process.stdout.write(JSON.stringify(o) + "\\n");
+createInterface({ input: process.stdin }).on("line", (l) => {
+  const m = JSON.parse(l);
+  if (m.type === "user") out({ type: "result", subtype: "success", result: [process.env.WREN_AGENT_URL ?? "", process.env.WREN_AGENT_TOKEN ?? ""].join(" ") });
+});
+`,
+    );
+    const chat: Setup = { ...setup, name: "chat", runs: true };
+    const maker: Setup = { ...setup, name: "maker", app: "campaigns", owner: true };
+    await start({}, byToken, {
+      setups: [chat, maker, setup],
+      spawn: (_c, _a, o) => spawn(process.execPath, [teller], o),
+    });
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/s/chat`);
+    const told = await new Promise<string>((res) => {
+      ws.on("open", () => ws.send([auth(), user("hi")].map((f) => JSON.stringify(f)).join("\n")));
+      ws.on("message", (d) => {
+        for (const l of String(d).split("\n").filter(Boolean)) {
+          const f = JSON.parse(l);
+          if (f.type === "result") res(String(f.result));
+        }
+      });
+    });
+    const [url, token] = told.split(" ") as [string, string];
+    expect(url).toBe(`http://127.0.0.1:${port}`);
+    // not the owner: no maker; another app: no
+    expect((await post("/s/maker/runs", { prompt: "x" }, token)).status).toBe(401);
+    const res = await post("/s/demo/runs", { prompt: "x" }, token);
+    expect(res.status).toBe(202);
+    const run = await settled(((await res.json()) as any).id);
+    expect(run.result).toBe(" ");
+    // the chat closed: its token is dead
+    ws.close();
+    await new Promise((r) => setTimeout(r, 300));
+    expect((await post("/s/demo/runs", { prompt: "x" }, token)).status).toBe(401);
+  });
+});

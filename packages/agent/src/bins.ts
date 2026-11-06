@@ -2,6 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { pluginRoot } from "./launch.js";
 import type { Setup } from "./setup.js";
 
@@ -12,6 +13,11 @@ export function setupBins(
   workspace?: string,
 ): Record<string, string> {
   const out: Record<string, string> = {};
+  if (setup.runs) {
+    // the CLI runs bundled: then this file is not beside bin/
+    const own = fileURLToPath(new URL("../bin/maker.mjs", import.meta.url));
+    out.maker = existsSync(own) ? own : join(resolvePlugin("@wren/agent"), "bin/maker.mjs");
+  }
   for (const p of setup.plugins) {
     const path = isAbsolute(p) || p.startsWith(".");
     if (path && !isAbsolute(p) && !workspace) continue;

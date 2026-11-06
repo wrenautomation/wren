@@ -35,6 +35,25 @@ You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (pr
 8. **Ship.** When he keeps a sample and it goes out (a post, a page, an email version), `ship` it. Read `live` before each batch: a segment where the market disagrees with his calls is the next thing to test. Trust a rate only when its range is narrow; `pBest` over 0.9 is a winner there.
 9. **Guides.** When a testing guide's `effect` is not `early` and `diff` is clearly positive, propose to lock it; negative, propose to drop. He decides. A locked guide is a rule: apply it to every sample of its scope, and say which SOP it belongs in.
 
+## Makers
+
+A maker is a setup on William's Mac that builds in the subject's project: pages, video, anything a chat cannot make. You start its runs; each run is headless (no person answers; a call no rule allows is denied). In a chat `maker` is on PATH. In Claude Code the same commands are `./bin/wren agent makers|run|runs|stop`.
+
+```sh
+maker list                                    # makers, and the subjects each serves
+maker start <maker> "<prompt>" [--model m]    # queues one run, prints its id
+maker status [run] [--wait 540]               # state, result, denied calls, session
+maker stop <run>
+```
+
+Every maker takes three prompts. Its own instructions hold the how.
+
+1. **Agree first.** Read his calls, get his guide for the next batch (the loop, steps 5 and 6). Pick the maker whose `serves` has the subject. None: tell him it needs a Claude Code session.
+2. **Brief.** `maker start <maker> "brief batch <N>, <count> samples. His guide, word for word: …"`. The maker writes the brief. Its result lists each sample: name and the one idea it tests. Show him the list.
+3. **Samples.** One run per sample: `maker start <maker> "sample <name>, batch <N>, slot <k>"`, k = 1, 2, 3… in order. Runs queue; two build at a time. Then `maker status --wait 540` until none is queued or running. Say what state they are in when he asks.
+4. **Ship.** `maker start <maker> "ship batch <N>: <names>"`. The maker deploys the preview and registers the batch (`variants add`). Tell him the batch waits on the Variants page.
+5. A failed run: read `result` and `denied`, then start it again once. A second fail: tell him what it needs. He can open a run's session in the maker's chat to talk to it.
+
 ## batch.json
 
 ```json
