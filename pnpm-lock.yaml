@@ -200,8 +200,8 @@ importers:
         specifier: 0.8.4
         version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       '@wrenautomation/birdwatch':
-        specifier: 0.46.0
-        version: 0.46.0
+        specifier: 0.46.1
+        version: 0.46.1
       '@wrenautomation/models':
         specifier: 0.38.0
         version: 0.38.0
@@ -633,8 +633,8 @@ importers:
         specifier: 0.3.318
         version: 0.3.318(@anthropic-ai/sdk@1.4.0(zod@4.6.5))(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(zod@4.6.5)
       '@wrenautomation/birdwatch':
-        specifier: 0.46.0
-        version: 0.46.0
+        specifier: 0.46.1
+        version: 0.46.1
       ws:
         specifier: 8.21.0
         version: 8.21.0
@@ -6534,8 +6534,8 @@ packages:
     engines: {node: '>=24'}
     hasBin: true
 
-  '@wrenautomation/birdwatch@0.46.0':
-    resolution: {integrity: sha512-DOqmIu3I7YpYVl5PiY998QJaRmLR54OYf0ppSlyeaSQF2YG+FCo4S9tv34ylGYFC5zCFMdiXrzgAES8GAS/VjA==}
+  '@wrenautomation/birdwatch@0.46.1':
+    resolution: {integrity: sha512-BysHLfjpsHzPy2ScLJrvqsLC5cQSNZQ3O7zNIfe7tjWhVPYm0u5ud2/XAUkwMXunLLaoK8h5AYaTNWUTzDQmOA==}
     engines: {node: '>=24'}
     hasBin: true
 
@@ -6543,8 +6543,8 @@ packages:
     resolution: {integrity: sha512-6FxxZ+2Q/nUop2ehuxkLdTJblNW8BoIVygYka077hLGAv7YNSTCw1RMKZDWwvBqXGTmz5SC3IxTgLOxYk7jGzA==}
     engines: {node: '>=24'}
 
-  '@wrenautomation/models@0.46.0':
-    resolution: {integrity: sha512-7YvICvjg94CH/39GprFZiMMOCSlEunN7Cv8zvf6absJeQ3lDTpRBaUHArO2FX76qEcQeK1YLmTqlNef9vLXt8A==}
+  '@wrenautomation/models@0.46.1':
+    resolution: {integrity: sha512-o59ZkHlLXYwdyhf0K1eLK3Srdsk0dBQQSKZxvUltFJOrh+LVpOreXjmpm5KGqxGNFSVhzElIiPlxR4l/3zrJEA==}
     engines: {node: '>=24'}
 
   '@wrenautomation/orrery@0.28.0':
@@ -6554,8 +6554,8 @@ packages:
     resolution: {integrity: sha512-l3T3VTj8HAYRFzUnD/Lk8EdWG8vnlEvStdVwv3wKK2J8XPLYrAjx6zJLLPsMhUmvrHe3PakMTKxoFFslMDTvnw==}
     engines: {node: '>=24'}
 
-  '@wrenautomation/read@0.46.0':
-    resolution: {integrity: sha512-tGo7xAr+RbiSFfhF77uGQPqTWCEKt2eHq4cyXcQyTk8OHEuXqZqaUa5AtvTry7IQ9U3AE4PwREhIYRIjp4gerA==}
+  '@wrenautomation/read@0.46.1':
+    resolution: {integrity: sha512-VJKErDSOpQ2+3K+4JBJsN4HBT94B60jRvmzIyJ5NKaEtVr9NQ9hPnLuQSc1pddQXOGSEPH2No/4WFqxnLXaLIw==}
     engines: {node: '>=24'}
 
   '@wrenautomation/vireo@0.2.0':
@@ -13659,14 +13659,14 @@ snapshots:
       '@remotion/timeline-utils': 4.0.533(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@rspack/core': 1.7.11(@swc/helpers@0.5.23)
       '@rspack/plugin-react-refresh': 1.6.1(react-refresh@0.18.0)
-      css-loader: 7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32))
+      css-loader: 7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32))
       esbuild: 0.28.1
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
       react-refresh: 0.18.0
       remotion: 4.0.533(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      style-loader: 4.0.0(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32))
-      webpack: 5.105.0(esbuild@0.28.1)(postcss@8.5.32)
+      style-loader: 4.0.0(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32))
+      webpack: 5.105.0(esbuild@0.28.2)(postcss@8.5.32)
     transitivePeerDependencies:
       - '@minify-html/node'
       - '@remotion/video-matting'
@@ -15119,11 +15119,11 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@wrenautomation/birdwatch@0.46.0':
+  '@wrenautomation/birdwatch@0.46.1':
     dependencies:
       '@hono/node-server': 2.1.3(hono@4.13.12)
-      '@wrenautomation/models': 0.46.0
-      '@wrenautomation/read': 0.46.0
+      '@wrenautomation/models': 0.46.1
+      '@wrenautomation/read': 0.46.1
       commander: 15.0.0
       hono: 4.13.12
       htmlparser2: 12.0.0
@@ -15144,7 +15144,7 @@ snapshots:
       ai: 7.0.155(zod@4.6.5)
       zod: 4.6.5
 
-  '@wrenautomation/models@0.46.0':
+  '@wrenautomation/models@0.46.1':
     dependencies:
       '@ai-sdk/anthropic': 4.0.90(zod@4.6.5)
       '@ai-sdk/cohere': 4.0.71(zod@4.6.5)
@@ -15168,9 +15168,9 @@ snapshots:
     transitivePeerDependencies:
       - '@napi-rs/canvas'
 
-  '@wrenautomation/read@0.46.0':
+  '@wrenautomation/read@0.46.1':
     dependencies:
-      '@wrenautomation/models': 0.46.0
+      '@wrenautomation/models': 0.46.1
       culori: 4.0.2
       entities: 8.1.0
       htmlparser2: 12.0.0
@@ -15839,7 +15839,7 @@ snapshots:
 
   crypto-js@4.2.0: {}
 
-  css-loader@7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32)):
+  css-loader@7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.32)
       postcss: 8.5.32
@@ -19020,7 +19020,7 @@ snapshots:
     optionalDependencies:
       '@types/node': 26.6.4
 
-  style-loader@4.0.0(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32)):
+  style-loader@4.0.0(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32)):
     dependencies:
       webpack: 5.105.0(esbuild@0.28.2)(postcss@8.5.32)
 
@@ -19102,7 +19102,7 @@ snapshots:
       - bare-abort-controller
       - react-native-b4a
 
-  terser-webpack-plugin@5.6.1(esbuild@0.28.1)(postcss@8.5.32)(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32)):
+  terser-webpack-plugin@5.6.1(esbuild@0.28.1)(postcss@8.5.32)(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32)):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
@@ -19111,17 +19111,6 @@ snapshots:
       webpack: 5.105.0(esbuild@0.28.2)(postcss@8.5.32)
     optionalDependencies:
       esbuild: 0.28.1
-      postcss: 8.5.32
-
-  terser-webpack-plugin@5.6.1(esbuild@0.28.2)(postcss@8.5.32)(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32)):
-    dependencies:
-      '@jridgewell/trace-mapping': 0.3.31
-      jest-worker: 27.5.1
-      schema-utils: 4.5.0
-      terser: 5.51.2
-      webpack: 5.105.0(esbuild@0.28.2)(postcss@8.5.32)
-    optionalDependencies:
-      esbuild: 0.28.2
       postcss: 8.5.32
 
   terser@5.51.2:
@@ -19505,47 +19494,6 @@ snapshots:
 
   webpack-sources@3.6.0: {}
 
-  webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32):
-    dependencies:
-      '@types/eslint-scope': 3.7.7
-      '@types/estree': 1.0.9
-      '@types/json-schema': 7.0.15
-      '@webassemblyjs/ast': 1.14.1
-      '@webassemblyjs/wasm-edit': 1.14.1
-      '@webassemblyjs/wasm-parser': 1.14.1
-      acorn: 8.19.0
-      acorn-import-phases: 1.0.4(acorn@8.19.0)
-      browserslist: 4.29.3
-      chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.26.0
-      es-module-lexer: 2.3.2
-      eslint-scope: 5.1.1
-      events: 3.3.0
-      glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.11
-      json-parse-even-better-errors: 2.3.1
-      loader-runner: 4.3.2
-      mime-types: 2.1.35
-      neo-async: 2.6.2
-      schema-utils: 4.5.0
-      tapable: 2.3.3
-      terser-webpack-plugin: 5.6.1(esbuild@0.28.1)(postcss@8.5.32)(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32))
-      watchpack: 2.5.2
-      webpack-sources: 3.6.0
-    transitivePeerDependencies:
-      - '@minify-html/node'
-      - '@swc/core'
-      - '@swc/css'
-      - '@swc/html'
-      - clean-css
-      - cssnano
-      - csso
-      - esbuild
-      - html-minifier-terser
-      - lightningcss
-      - postcss
-      - uglify-js
-
   webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32):
     dependencies:
       '@types/eslint-scope': 3.7.7
@@ -19570,7 +19518,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.5.0
       tapable: 2.3.3
-      terser-webpack-plugin: 5.6.1(esbuild@0.28.2)(postcss@8.5.32)(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32))
+      terser-webpack-plugin: 5.6.1(esbuild@0.28.1)(postcss@8.5.32)(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32))
       watchpack: 2.5.2
       webpack-sources: 3.6.0
     transitivePeerDependencies:
