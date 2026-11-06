@@ -125,44 +125,46 @@ export function registerAgent(program: Command): void {
     .option("--max <n>", "live sessions at once", "3")
     .option("--run-min <n>", "a headless run is stopped after this many minutes", "45")
     .option("--tape <dir>", "record each session's frames, both ways, for story fixtures")
-    .action((o: { port: string; credential: string; max: string; runMin: string; tape?: string }) => {
-      const credential = credentialOf(o.credential);
-      const setups = allSetups();
-      const bins = new Map<string, string>();
-      const r = relay({
-        port: Number(o.port),
-        authorize: pageGrant(localToken()),
-        ledger: fileLedger(),
-        history: sdkHistory,
-        origins: ORIGINS,
-        setups,
-        credential,
-        maxSessions: Number(o.max),
-        runMs: Number(o.runMin) * 60_000,
-        uploads: UPLOADS_DIR,
-        ...(o.tape ? { tape: o.tape } : {}),
-        launch: {
-          root: workspaceRoot(),
-          host: process.env,
-          secretHook: existsSync(SECRET_HOOK) ? `python3 ${SECRET_HOOK}` : undefined,
-        },
-        // one dir per setup per serve: a rebuild mid-session would pull a live child's PATH
-        binDirs: (s) => {
-          const dir = bins.get(s.name) ?? binDir(s, undefined, workspaceRoot());
-          bins.set(s.name, dir);
-          return [dir];
-        },
-        log: (l) => console.error(l),
-      });
-      r.server.on("listening", () =>
-        console.error(
-          `wren agent: ws://127.0.0.1:${o.port}/s/<setup> on ${credential.kind}; setups ${setups.map((s) => s.name).join(", ")}`,
-        ),
-      );
-      const quit = () => void r.close().then(() => process.exit(0));
-      process.on("SIGINT", quit);
-      process.on("SIGTERM", quit);
-    });
+    .action(
+      (o: { port: string; credential: string; max: string; runMin: string; tape?: string }) => {
+        const credential = credentialOf(o.credential);
+        const setups = allSetups();
+        const bins = new Map<string, string>();
+        const r = relay({
+          port: Number(o.port),
+          authorize: pageGrant(localToken()),
+          ledger: fileLedger(),
+          history: sdkHistory,
+          origins: ORIGINS,
+          setups,
+          credential,
+          maxSessions: Number(o.max),
+          runMs: Number(o.runMin) * 60_000,
+          uploads: UPLOADS_DIR,
+          ...(o.tape ? { tape: o.tape } : {}),
+          launch: {
+            root: workspaceRoot(),
+            host: process.env,
+            secretHook: existsSync(SECRET_HOOK) ? `python3 ${SECRET_HOOK}` : undefined,
+          },
+          // one dir per setup per serve: a rebuild mid-session would pull a live child's PATH
+          binDirs: (s) => {
+            const dir = bins.get(s.name) ?? binDir(s, undefined, workspaceRoot());
+            bins.set(s.name, dir);
+            return [dir];
+          },
+          log: (l) => console.error(l),
+        });
+        r.server.on("listening", () =>
+          console.error(
+            `wren agent: ws://127.0.0.1:${o.port}/s/<setup> on ${credential.kind}; setups ${setups.map((s) => s.name).join(", ")}`,
+          ),
+        );
+        const quit = () => void r.close().then(() => process.exit(0));
+        process.on("SIGINT", quit);
+        process.on("SIGTERM", quit);
+      },
+    );
 
   agent
     .command("check")
