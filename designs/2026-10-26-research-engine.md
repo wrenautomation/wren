@@ -1381,3 +1381,26 @@ William, after the numbers: all Haiku for now, because the run count will rise.
 - Per run on average: Haiku $0.14, Sonnet about $2.25 (scaled from the 20x price gap, not measured). $200 a month buys about 1,400 runs on Haiku and about 90 on Sonnet. The pace so far is about 107 runs a month.
 - `--model` defaults to `anthropic` (Haiku) again. `--model anthropic:sonnet` or `BIRDWATCH_MODEL` gives Sonnet for one run.
 - Agreed in principle, not built: Haiku extracts, Sonnet judges (triage, check, group), about $0.60 a run by estimate. It needs a model setting per step. Measure the token share per step from the ledger first.
+
+## 11-05: a person's pasted finds; no video cap (0.44.0, WA-1122)
+
+William: he finds sources himself (Instagram, YouTube, sites) and wants to paste many lines at once, each a URL and his why. A small read and a broad study are the same run. The cap of 6 seen videos a run goes: videos are the highest signal, the cost is accepted.
+
+Where the paste goes in:
+
+| | Option | For | Against |
+|---|---|---|---|
+| A | a new command, `birdwatch take` | one clear name | a third way to make a hit and read it, beside `open --url` and search; the skill grows a command for one input shape |
+| B | `add hit`, then `open` | `add` already writes a person's records | two steps for each paste; `add` never reads, so the paste sits unread until the agent remembers |
+| C | `open --lines`, with `--ask` for a new run | `open --url` already makes a hit, keeps it under a why and reads it: the paste is the same step with a why per line | `open` takes one more input |
+
+Ranked by: fewest steps for a paste, then one seam for "a named page becomes a kept, read hit", then no new command to learn. C. William said a new command was fine but saw no need for one.
+
+Built:
+- `findsOf(text, shared?)` (`engine/finds.ts`, pure): a URL and its why on a line, in any order; a line with no URL goes on the why above it; `#` and blank lines are skipped; two URLs on a line share its why; a URL named twice is one find. A URL with no why takes `--why`; with none, the paste fails before any record is written.
+- `open` takes `finds: {url, why}[]`: a hit each (the run's own hit when the page is in it), a keep call under that find's why, then the read. No search round.
+- CLI: `open <run> --lines <file|->` joins a run. `open --ask "<ask>" --lines <file|->` makes a web run on the plan file's defaults, then opens the finds. `--human <name>` writes the hits and calls as the person's.
+- Small and broad are one run: the skill says a pasted find is a seed, and `follow`, a channel survey, `open --url` and a query tree widen the same run. No new code for it.
+- `SEE_PER_RUN` and its check are gone. The skill's test for `--see` drops "among the run's strongest": it now asks only that the video answers the ask and its captions fall short. Captions stay first.
+
+Not built: `--kind` on `open --ask` (a pasted run is `web`; `plan --run` keeps that kind). Add it when a run needs another kind's guide.
