@@ -141,9 +141,6 @@ export const Chat = tidy(
       await userEvent.type(within(chat).getByRole("textbox", { name: "Message" }), "/");
       await within(chat).findByRole("listbox", { name: "Commands" }, LATE);
     },
-    [
-      ...SERVED,
-      ...fakeRelay({ tape: [], library: [COMMANDS as TapeLine[]], setups: SETUPS }),
-    ],
+    [...SERVED, ...fakeRelay({ tape: [], library: [COMMANDS as TapeLine[]], setups: SETUPS })],
   ),
 );
