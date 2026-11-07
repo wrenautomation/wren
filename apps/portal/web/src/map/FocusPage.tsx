@@ -18,15 +18,25 @@ import {
   Alert,
   Button,
   CHIP,
+  cx,
   FormKept,
   Icon,
   LoadFailed,
-  SELECT_CLASS,
   SelectField,
   TextField,
+  tipProps,
   useEditForm,
   usePref,
 } from "@wren/ui";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@wren/ui/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import { MetroMap, type MetroPart, type MetroPick, MetroSkeleton } from "@wren/ui/metro";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { call } from "../api.js";
@@ -314,7 +324,10 @@ function Attached({
   );
 }
 
-/** The parts row of a set: a chip per part, × to drop it, and Add part (a line or a group). */
+/**
+ * What the map shows: a chip per part (× drops one while two or more show) and Add, a picker of
+ * the lines and groups not shown yet. A pick adds it to the set.
+ */
 function PartsBar({
   metro,
   focus,
@@ -326,69 +339,89 @@ function PartsBar({
   params: URLSearchParams;
   onParts: (next: MetroPart[]) => void;
 }) {
+  const [open, setOpen] = useState(false);
   const has = (p: MetroPart) => focus.parts.some((x) => x.kind === p.kind && x.id === p.id);
   const lines = metro.lines.filter((l) => !has({ kind: "line", id: l.id }));
   const groups = metro.groups.filter((g) => !has({ kind: "group", id: g.id }));
-  const set = focus.parts.length > 1 || focus.word === "View";
+  const add = (p: MetroPart) => {
+    setOpen(false);
+    onParts([...focus.parts, p]);
+  };
+  const many = lines.length + groups.length > 7;
   return (
     <ul aria-label="Parts" className="flex list-none flex-wrap items-center gap-1.5">
-      {set
-        ? focus.parts.map((p) => {
-            const name = readPart(metro, p)?.label ?? p.id;
-            return (
-              <li
-                key={`${p.kind}:${p.id}`}
-                className="inline-flex items-center gap-1 rounded-(--ui-leaf-chip) bg-(--ui-wash) py-0.5 pr-0.5 pl-2 text-[12.5px] font-semibold"
+      {focus.parts.map((p) => {
+        const name = readPart(metro, p)?.label ?? p.id;
+        return (
+          <li
+            key={`${p.kind}:${p.id}`}
+            className={cx(
+              "inline-flex h-8 items-center gap-0.5 rounded-(--ui-leaf-chip) bg-(--ui-wash) pl-2.5 text-[13px] font-semibold pointer-coarse:h-11",
+              focus.parts.length > 1 ? "pr-1" : "pr-2.5",
+            )}
+          >
+            <a href={focusHref(p, params)} className="text-(--ui-ink) no-underline">
+              {name}
+            </a>
+            {focus.parts.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => onParts(focus.parts.filter((x) => x !== p))}
+                className="inline-flex size-6 cursor-pointer items-center justify-center rounded-(--ui-leaf-chip) border-0 bg-transparent text-(--ui-ink-3) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
+                {...tipProps(`Drop ${name}`, { as: "name" })}
               >
-                <a href={focusHref(p, params)} className="text-(--ui-ink) no-underline">
-                  {name}
-                </a>
-                {focus.parts.length > 1 ? (
-                  <button
-                    type="button"
-                    aria-label={`Drop ${name}`}
-                    onClick={() => onParts(focus.parts.filter((x) => x !== p))}
-                    className="inline-flex size-6 cursor-pointer items-center justify-center rounded-(--ui-leaf-chip) border-0 bg-transparent text-(--ui-ink-3) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
-                  >
-                    <Icon name="close" size={13} />
-                  </button>
-                ) : null}
-              </li>
-            );
-          })
-        : null}
+                <Icon name="close" size={13} />
+              </button>
+            ) : null}
+          </li>
+        );
+      })}
       {lines.length || groups.length ? (
         <li>
-          <select
-            aria-label="Add part"
-            className={`${SELECT_CLASS} h-8 w-auto`}
-            value=""
-            onChange={(e) => {
-              const [kind, id] = e.target.value.split("\u0000");
-              if ((kind === "line" || kind === "group") && id)
-                onParts([...focus.parts, { kind, id }]);
-            }}
-          >
-            <option value="">+ Add part</option>
-            {lines.length ? (
-              <optgroup label="Lines">
-                {lines.map((l) => (
-                  <option key={l.id} value={`line\u0000${l.id}`}>
-                    {l.label}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-            {groups.length ? (
-              <optgroup label="Groups">
-                {groups.map((g) => (
-                  <option key={g.id} value={`group\u0000${g.id}`}>
-                    {g.label}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-          </select>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger className={CHIP} aria-label="Add a line or group">
+              <Icon name="plus" size={15} />
+              Add
+            </PopoverTrigger>
+            <PopoverContent
+              align="start"
+              aria-label="Add a line or group"
+              className="w-72 bg-(--ui-paper) p-1 text-(--ui-ink)"
+            >
+              <Command className="bg-transparent p-0">
+                {many ? <CommandInput placeholder="Find a line or group" autoFocus /> : null}
+                <CommandList>
+                  <CommandEmpty>No line or group by that name.</CommandEmpty>
+                  {lines.length ? (
+                    <CommandGroup heading="Lines">
+                      {lines.map((l) => (
+                        <CommandItem
+                          key={l.id}
+                          value={`line ${l.label} ${l.id}`}
+                          onSelect={() => add({ kind: "line", id: l.id })}
+                        >
+                          <span className="wrap-anywhere whitespace-normal">{l.label}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  ) : null}
+                  {groups.length ? (
+                    <CommandGroup heading="Groups">
+                      {groups.map((g) => (
+                        <CommandItem
+                          key={g.id}
+                          value={`group ${g.label} ${g.id}`}
+                          onSelect={() => add({ kind: "group", id: g.id })}
+                        >
+                          <span className="wrap-anywhere whitespace-normal">{g.label}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  ) : null}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </li>
       ) : null}
     </ul>
@@ -473,7 +506,7 @@ export function FocusPage({
         <LoadFailed error={read.error} onRetry={read.retry} what="map" />
       </div>
     );
-  if (!read.data || (atView && !views.ready)) return <MetroSkeleton />;
+  if (!read.data || (atView && !views.ready)) return <MetroSkeleton ghost={ghostKey} />;
   if (!data || !metro || !focus || !view || !asked) {
     const [one] = "parts" in at ? at.parts : [];
     return (
@@ -500,7 +533,7 @@ export function FocusPage({
   return (
     <section
       aria-label={`${focus.word} ${focus.name}`}
-      className="grid min-w-0 grid-cols-[minmax(0,1fr)_250px] @max-[728px]/main:grid-cols-[minmax(0,1fr)]"
+      className="grid min-h-full min-w-0 grid-cols-[minmax(0,1fr)_250px] @max-[728px]/main:content-start @max-[728px]/main:grid-cols-[minmax(0,1fr)]"
     >
       <div className={`${PAD} grid min-w-0 content-start gap-3.5 py-[18px]`}>
         <header className="flex flex-wrap items-end justify-between gap-2.5">

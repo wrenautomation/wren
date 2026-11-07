@@ -78,7 +78,8 @@ export function MapHome({
   // Until the map is in, the Map page draws its own loading frame under its title.
   const map =
     waiting && data ? (
-      <MetroSkeleton />
+      // the home view's last layout (FocusPage's key), when one is known
+      <MetroSkeleton ghost={wanted ? `focus:${JSON.stringify({ view: wanted })}` : undefined} />
     ) : !waiting && homeView && drawn ? (
       <FocusPage key={homeView.id} props={props} at={{ view: homeView.id }} home />
     ) : (

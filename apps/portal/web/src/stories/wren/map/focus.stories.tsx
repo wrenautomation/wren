@@ -118,7 +118,7 @@ export const FromPanel = mapAt("/", {
 });
 
 /**
- * A set of parts (F2): the line and the group drawn as one, a chip for each, Add part, and Save
+ * A set of parts (F2): the line and the group drawn as one, a chip for each, Add, and Save
  * view, which keeps the set under record "map" and opens the saved view.
  */
 export const Parts = mapAt(`/map/parts/${encodeURIComponent("line:webinar,group:talk")}`, {
@@ -133,11 +133,10 @@ export const Parts = mapAt(`/map/parts/${encodeURIComponent("line:webinar,group:
     );
     const map = await mapOf(page);
     await expect(map.getByRole("button", { name: /^Book\b/ })).toBeVisible();
-    // Add part: the set grows by a line.
-    await userEvent.selectOptions(
-      within(parts).getByRole("combobox", { name: "Add part" }),
-      "Audit",
-    );
+    // Add: the set grows by a line.
+    await userEvent.click(within(parts).getByRole("button", { name: "Add a line or group" }));
+    const pick = await within(document.body).findByRole("dialog", { name: "Add a line or group" });
+    await userEvent.click(within(pick).getByRole("option", { name: "Audit" }));
     await focusHead(page, "Webinar + Sales talk + Audit");
     // Drop a part: back to two.
     await userEvent.click(within(page).getByRole("button", { name: "Drop Audit" }));
