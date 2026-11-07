@@ -298,7 +298,7 @@ function Day({
           {key === today ? "today" : "this day"}.
         </Empty>
       ) : (
-        <div className="grid grid-cols-1 items-start gap-x-10 gap-y-8 lg:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-x-10 gap-y-8 @min-[760px]/main:grid-cols-2 @min-[1260px]/main:grid-cols-3">
           {busy.map((g) => {
             const its = groups.get(g) ?? [];
             const s = label(g);

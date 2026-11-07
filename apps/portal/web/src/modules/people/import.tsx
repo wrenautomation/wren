@@ -303,7 +303,7 @@ export function ImportPanel({ client, reload }: { client: string; reload: () => 
           </label>
           <fieldset className="m-0 min-w-0 border-0 p-0">
             <legend className="mb-2 p-0 text-[13px] font-medium">Columns</legend>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 @min-[760px]/main:grid-cols-4">
               {main.map((f) => (
                 <ColumnPick
                   key={f.id}
@@ -316,7 +316,7 @@ export function ImportPanel({ client, reload }: { client: string; reload: () => 
             </div>
             <details className="mt-3" open={more.some((f) => columns[f.id])}>
               <summary className={`cursor-pointer text-[13px] ${QUIET}`}>More columns</summary>
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 @min-[760px]/main:grid-cols-4">
                 {more.map((f) => (
                   <ColumnPick
                     key={f.id}

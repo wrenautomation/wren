@@ -59,7 +59,7 @@ export function DueCards({
   return (
     <ul
       aria-label="Still due this week"
-      className="m-0 list-none p-0 max-sm:-mx-4 max-sm:flex max-sm:snap-x max-sm:scroll-px-4 max-sm:gap-2.5 max-sm:overflow-x-auto max-sm:px-4 max-sm:pb-1 max-sm:[scrollbar-width:none] sm:grid sm:grid-cols-3 sm:gap-3 lg:grid-cols-5 max-sm:[&::-webkit-scrollbar]:hidden"
+      className="m-0 list-none p-0 max-sm:-mx-4 max-sm:flex max-sm:snap-x max-sm:scroll-px-4 max-sm:gap-2.5 max-sm:overflow-x-auto max-sm:px-4 max-sm:pb-1 max-sm:[scrollbar-width:none] sm:grid sm:grid-cols-3 sm:gap-3 @min-[760px]/main:grid-cols-5 max-sm:[&::-webkit-scrollbar]:hidden"
     >
       {due.map((d) => {
         const line = lineOf(d, lines);
@@ -116,7 +116,10 @@ export function DueCards({
 /** New: one card per kind. A card opens compose with that kind; the platform chip on top rides along. */
 export function NewRow({ params, only }: { params: URLSearchParams; only: Platform | null }) {
   return (
-    <nav aria-label="New" className="grid grid-cols-3 gap-3 max-sm:hidden lg:grid-cols-6">
+    <nav
+      aria-label="New"
+      className="grid grid-cols-3 gap-3 max-sm:hidden @min-[760px]/main:grid-cols-6"
+    >
       {offeredFor(only).map((m) => (
         <a
           key={m.id}

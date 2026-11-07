@@ -65,6 +65,9 @@ export function SidePanel({
         className={cx(
           // inset card, a faint rim: Claude's and ChatGPT's side panel
           "relative flex min-h-0 w-(--panel-w) flex-none flex-col bg-(--ui-paper)",
+          // main keeps >= 560px while the panel can give: 616 = 560 + main pad 48 + panel gap 8;
+          // under that main narrows and its pages reflow (@container/main)
+          "min-[901px]:w-[max(340px,min(var(--panel-w),calc(100cqw-616px)))]",
           "min-[901px]:my-2 min-[901px]:mr-2 min-[901px]:rounded-[12px] min-[901px]:border min-[901px]:border-[color-mix(in_srgb,var(--ui-ink)_8%,transparent)] min-[901px]:shadow-[0_1px_3px_rgb(0_0_0/.04)]",
           "max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:z-40 max-[900px]:h-[calc(100dvh-env(safe-area-inset-top)-10px)] max-[900px]:w-full max-[900px]:rounded-[6px_24px_0_0] max-[900px]:border-t max-[900px]:border-l-0 max-[900px]:shadow-(--ui-shadow)",
         )}

@@ -170,7 +170,7 @@ export function Experiments() {
         sell: a fixed shell, then one place per product with four tabs.
       </Callout>
       <Section title="Product shell">
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="grid gap-8 @min-[760px]/main:grid-cols-2">
           <Shot
             title="Live: lean places"
             note="Places by job. Campaigns holds content, outreach and cold email."

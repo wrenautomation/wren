@@ -235,7 +235,7 @@ function Attached({
   return (
     <section
       aria-label="Attached"
-      className="grid content-start gap-2 border-l border-(--ui-hair) bg-[color-mix(in_srgb,var(--ui-canvas)_40%,var(--ui-paper))] px-3.5 py-4 max-[760px]:border-t max-[760px]:border-l-0"
+      className="grid content-start gap-2 border-l border-(--ui-hair) bg-[color-mix(in_srgb,var(--ui-canvas)_40%,var(--ui-paper))] px-3.5 py-4 @max-[728px]/main:border-t @max-[728px]/main:border-l-0"
     >
       <h2 className="mt-1 mb-0.5 text-[13.5px] font-[650]">
         Attached <span className="ml-1.5 font-semibold text-(--ui-ink-3)">{count}</span>
@@ -498,7 +498,7 @@ export function FocusPage({
   return (
     <section
       aria-label={`${focus.word} ${focus.name}`}
-      className="grid min-w-0 grid-cols-[minmax(0,1fr)_250px] max-[760px]:grid-cols-[minmax(0,1fr)]"
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)_250px] @max-[728px]/main:grid-cols-[minmax(0,1fr)]"
     >
       <div className={`${PAD} grid min-w-0 content-start gap-3.5 py-[18px]`}>
         <header className="flex flex-wrap items-end justify-between gap-2.5">

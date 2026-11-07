@@ -217,8 +217,8 @@ function Queue({
           </p>
         ))
       ) : (
-        <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]">
-          <div className={cn("grid content-start gap-2", inItem && "max-md:hidden")}>
+        <div className="grid min-w-0 gap-6 @min-[720px]/main:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]">
+          <div className={cn("grid content-start gap-2", inItem && "@max-[720px]/main:hidden")}>
             <div className="flex h-8 items-center text-[13px] text-(--ui-ink-2)">
               {picked.size ? (
                 <Bulk
@@ -297,11 +297,16 @@ function Queue({
             </ul>
           </div>
 
-          <section className={cn("grid min-w-0 content-start gap-4", !inItem && "max-md:hidden")}>
+          <section
+            className={cn(
+              "grid min-w-0 content-start gap-4",
+              !inItem && "@max-[720px]/main:hidden",
+            )}
+          >
             <div className="flex flex-wrap items-center gap-2 border-b border-(--ui-hair) pb-3">
               <a
                 href={place.link({ [one]: null, tab: null })}
-                className="mr-1 text-[13px] text-(--ui-ink-2) no-underline md:hidden"
+                className="mr-1 text-[13px] text-(--ui-ink-2) no-underline @min-[720px]/main:hidden"
               >
                 All {meta.name.many}
               </a>

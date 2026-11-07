@@ -111,9 +111,9 @@ export function LiveView({ live, picks }: { live: Live; picks: Picks }) {
           return (
             <li
               key={r.sample}
-              className="flex flex-col gap-1.5 border-b border-(--ui-hair) py-2.5 md:flex-row md:items-center md:gap-3"
+              className="flex flex-col gap-1.5 border-b border-(--ui-hair) py-2.5 @min-[720px]/main:flex-row @min-[720px]/main:items-center @min-[720px]/main:gap-3"
             >
-              <div className="flex items-center gap-2 md:w-40 md:shrink-0">
+              <div className="flex items-center gap-2 @min-[720px]/main:w-40 @min-[720px]/main:shrink-0">
                 <span className="text-[13px] font-semibold text-(--ui-ink)">#{r.sample}</span>
                 {mine?.verdict && (
                   <span
@@ -129,7 +129,7 @@ export function LiveView({ live, picks }: { live: Live; picks: Picks }) {
                   <span className="text-[11px] text-(--ui-ink-3)">your #{mine.taste}</span>
                 )}
               </div>
-              <div className="relative h-3 w-full shrink-0 rounded-full bg-(--ui-tile) md:w-auto md:flex-1">
+              <div className="relative h-3 w-full shrink-0 rounded-full bg-(--ui-tile) @min-[720px]/main:w-auto @min-[720px]/main:flex-1">
                 {x && x.of > 0 && (
                   <>
                     <span
@@ -146,7 +146,7 @@ export function LiveView({ live, picks }: { live: Live; picks: Picks }) {
                   </>
                 )}
               </div>
-              <div className="text-[12px] text-(--ui-ink-2) md:w-56 md:shrink-0 md:text-right">
+              <div className="text-[12px] text-(--ui-ink-2) @min-[720px]/main:w-56 @min-[720px]/main:shrink-0 @min-[720px]/main:text-right">
                 {x && x.of > 0 ? (
                   <>
                     <span className="font-semibold text-(--ui-ink)">{pct1(x.rate ?? 0)}</span>

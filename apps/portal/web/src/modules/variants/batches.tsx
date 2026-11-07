@@ -143,7 +143,7 @@ function BatchRow({ row: r }: { row: Row }) {
   return (
     <a
       href={href(HERE, { batch: r.id })}
-      className="flex flex-col gap-2 border-b border-(--ui-hair) px-1 py-3 text-(--ui-ink) no-underline hover:bg-(--ui-hover) md:flex-row md:items-start md:gap-4"
+      className="flex flex-col gap-2 border-b border-(--ui-hair) px-1 py-3 text-(--ui-ink) no-underline hover:bg-(--ui-hover) @min-[720px]/main:flex-row @min-[720px]/main:items-start @min-[720px]/main:gap-4"
     >
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span
@@ -306,7 +306,9 @@ function BatchView({
           <div
             className={cx(
               "grid gap-4",
-              wide ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1 md:grid-cols-2",
+              wide
+                ? "grid-cols-1 @min-[1000px]/main:grid-cols-2"
+                : "grid-cols-1 @min-[720px]/main:grid-cols-2",
             )}
           >
             <FramesProvider ids={r.samples.map((s) => s.id)}>

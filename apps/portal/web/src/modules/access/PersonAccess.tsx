@@ -332,7 +332,7 @@ export function PersonAccess({
                   icon: "user",
                   min: 180,
                   quiet: true,
-                  className: "max-[900px]:hidden",
+                  className: "@max-[642px]/main:hidden",
                   cell: (g) => String(g.by),
                 },
               ]}

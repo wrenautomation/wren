@@ -140,7 +140,7 @@ export function WebPage({ params }: PageProps) {
   if (!m || !ix || !drawn) return <Loading lines={8} />;
   const picked = at ? (ix.byId.get(at) ?? null) : null;
   return (
-    <div className="grid h-full min-h-0 grid-rows-[minmax(360px,62vh)_auto] gap-4 min-[1100px]:grid-cols-[minmax(0,1fr)_360px] min-[1100px]:grid-rows-1">
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(360px,62vh)_auto] gap-4 @min-[840px]/main:grid-cols-[minmax(0,1fr)_360px] @min-[840px]/main:grid-rows-1">
       <div className="relative min-h-0 overflow-hidden border border-(--ui-hair) bg-(--ui-canvas)">
         <WebCanvas
           dots={drawn.dots}

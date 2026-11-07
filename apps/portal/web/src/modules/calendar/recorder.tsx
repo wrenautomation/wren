@@ -99,7 +99,7 @@ export function CallNotesView({ notes, model }: { notes: CallNotes; model?: stri
   return (
     <div className="grid gap-4">
       <p className="text-[16px] leading-[1.5] text-pretty">{notes.summary}</p>
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 @min-[760px]/main:grid-cols-3">
         <Items title="What they need" items={notes.needs} />
         <Items title="Worries" items={notes.objections} />
         <Items title="Next" items={notes.next} />

@@ -82,7 +82,7 @@ export function Diff({
     <div
       className={cx(
         "border border-(--ui-hair) font-mono text-[12.5px]/[1.55]",
-        layout === "auto" && "hidden md:block",
+        layout === "auto" && "hidden @min-[720px]/main:block",
       )}
     >
       <div className="grid grid-cols-2 border-b border-(--ui-hair) bg-(--ui-fill) text-[12px] font-sans text-(--ui-ink-2)">
@@ -107,7 +107,7 @@ export function Diff({
     <div
       className={cx(
         "border border-(--ui-hair) font-mono text-[12.5px]/[1.55]",
-        layout === "auto" && "md:hidden",
+        layout === "auto" && "@min-[720px]/main:hidden",
       )}
     >
       <div className="grid gap-0.5 border-b border-(--ui-hair) bg-(--ui-fill) px-2 py-1 font-sans text-[12px] text-(--ui-ink-2)">

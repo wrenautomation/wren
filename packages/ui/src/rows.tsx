@@ -311,20 +311,34 @@ const BAND =
 const END_SEAM =
   "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:hidden before:w-px before:bg-(--ui-hair) group-data-wide/rows:before:block";
 
-/** Whether a table is wider than its box: a list at its least scrolls sideways. */
-function useWide(): [(el: HTMLTableElement | null) => void, boolean] {
-  const [wide, setWide] = useState(false);
+/** Under this box width a table that does not fit draws the phone's list (the agent panel open). */
+const TIGHT = 720;
+
+/**
+ * The box's room. `wide`: the table is wider than its box, it scrolls sideways. `tight`: the box is
+ * under the table's least width and under TIGHT, so the list draws instead.
+ */
+function useRoom(least: number): [(el: HTMLElement | null) => void, boolean, boolean] {
+  const [room, setRoom] = useState({ wide: false, tight: false });
   const watch = useRef<ResizeObserver | null>(null);
-  const ref = useCallback((el: HTMLTableElement | null) => {
+  const need = useRef(least);
+  need.current = least;
+  const ref = useCallback((el: HTMLElement | null) => {
     watch.current?.disconnect();
     const box = el?.parentElement;
     if (!el || !box || typeof ResizeObserver === "undefined") return;
-    const check = () => setWide(el.offsetWidth > box.clientWidth + 1);
+    const check = () => {
+      const w = box.clientWidth;
+      const wide = el instanceof HTMLTableElement && el.offsetWidth > w + 1;
+      const tight = w > 0 && w < Math.min(need.current, TIGHT);
+      setRoom((r) => (r.wide === wide && r.tight === tight ? r : { wide, tight }));
+    };
+    check();
     watch.current = new ResizeObserver(check);
     watch.current.observe(el);
     watch.current.observe(box);
   }, []);
-  return [ref, wide];
+  return [ref, room.wide, room.tight];
 }
 
 type Drawn<T> = RowsLine<T> & { stats?: WaitStats };
@@ -391,8 +405,10 @@ function GroupFold({
           shut && "-rotate-90",
         )}
       />
-      <Pill color={color}>{label}</Pill>
-      <b className="font-semibold text-(--ui-ink) tabular-nums">{stats.n}</b>
+      <Pill color={color} className="min-w-0 shrink">
+        {label}
+      </Pill>
+      <b className="flex-none font-semibold text-(--ui-ink) tabular-nums">{stats.n}</b>
       {stats.oldest ? (
         <span className="text-(--ui-ink-3)">
           oldest <Age hours={stats.oldest.hours} late={stats.oldest.late} className="text-[13px]" />
@@ -489,9 +505,24 @@ const BOX =
 
 /** The rows part: see the file's head. */
 export function Rows<T>(p: RowsProps<T>) {
-  const { columns, name, narrow, pick, open } = p;
+  const { columns, name, pick, open } = p;
+  const least =
+    GUTTER +
+    END +
+    (name.width ?? name.min ?? 220) +
+    columns.reduce((n, c) => n + (c.width ?? c.min ?? 144), 0);
+  const [roomRef, wide, tight] = useRoom(least);
+  const narrow = p.narrow || tight;
   const body = useRef<HTMLTableSectionElement>(null);
-  const list = useRef<HTMLUListElement>(null);
+  const list = useRef<HTMLUListElement | null>(null);
+  // the list watches its room too: more room, the table again
+  const listRef = useCallback(
+    (el: HTMLUListElement | null) => {
+      list.current = el;
+      roomRef(el);
+    },
+    [roomRef],
+  );
   const drawn = drawnOf(p.lines, p.group?.folded, p.wait);
   const root = useCallback(() => body.current ?? list.current, []);
   // A long list draws the lines in view of what scrolls the page.
@@ -514,7 +545,6 @@ export function Rows<T>(p: RowsProps<T>) {
   }, [cursor]);
 
   const span = columns.length + 3;
-  const [wideRef, wide] = useWide();
   const anyPicked = (pick?.count ?? 0) > 0;
   const phoneCol = columns.find((c) => c.phone);
   // Column lines draw in the table; a grouped table (the folds) reads by its rows only.
@@ -537,7 +567,7 @@ export function Rows<T>(p: RowsProps<T>) {
   if (narrow)
     return (
       <ul
-        ref={list}
+        ref={listRef}
         className={cn("list-none", p.empty && "hidden", p.className)}
         aria-label={p.label}
       >
@@ -671,7 +701,7 @@ export function Rows<T>(p: RowsProps<T>) {
 
   return (
     <table
-      ref={wideRef}
+      ref={roomRef}
       aria-label={p.label}
       data-wide={wide || undefined}
       // An empty view shows what fills it, not a row of column heads over nothing.
@@ -680,13 +710,7 @@ export function Rows<T>(p: RowsProps<T>) {
         p.empty && "hidden",
         p.className,
       )}
-      style={{
-        minWidth:
-          GUTTER +
-          END +
-          (name.width ?? name.min ?? 220) +
-          columns.reduce((n, c) => n + (c.width ?? c.min ?? 144), 0),
-      }}
+      style={{ minWidth: least }}
     >
       <colgroup>
         <col style={{ width: GUTTER }} />

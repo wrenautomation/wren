@@ -90,7 +90,7 @@ function Shop({
         <Button
           tone="secondary"
           size="dense"
-          className="md:hidden"
+          className="@min-[720px]/main:hidden"
           aria-expanded={sideOpen}
           onClick={() => setSideOpen((o) => !o)}
         >
@@ -106,10 +106,13 @@ function Shop({
         ) : null}
       </div>
 
-      <div className="grid items-start gap-6 md:grid-cols-[200px_minmax(0,1fr)]">
+      <div className="grid items-start gap-6 @min-[720px]/main:grid-cols-[200px_minmax(0,1fr)]">
         <aside
           aria-label="Filters"
-          className={cn("grid gap-5 max-md:pb-2", !sideOpen && "max-md:hidden")}
+          className={cn(
+            "grid gap-5 @max-[720px]/main:pb-2",
+            !sideOpen && "@max-[720px]/main:hidden",
+          )}
         >
           {facets.map((f) => (
             <Facet

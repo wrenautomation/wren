@@ -159,7 +159,7 @@ function BriefBody({
   const [failed, setFailed] = useState<string | null>(null);
   return (
     <div className="grid gap-6">
-      <div className="grid gap-6 lg:grid-cols-2 lg:gap-x-10">
+      <div className="grid gap-6 @min-[760px]/main:grid-cols-2 @min-[760px]/main:gap-x-10">
         <div className="grid content-start gap-6">
           <Part title="Ask">
             {b.questions.length ? (

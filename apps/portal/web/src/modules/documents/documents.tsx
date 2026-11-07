@@ -308,9 +308,9 @@ function Lines({
           {lines.map((l, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: rows have no id until saved
             <div key={i} className="grid gap-1.5 border-(--ui-hair) border-b pb-2">
-              <div className="grid grid-cols-[1fr_4.5rem_6.5rem_4.5rem_auto] gap-1.5 max-[560px]:grid-cols-[1fr_1fr_1fr]">
+              <div className="grid grid-cols-[1fr_4.5rem_6.5rem_4.5rem_auto] gap-1.5 @max-[528px]/main:grid-cols-[1fr_1fr_1fr]">
                 <input
-                  className={cx(CELL, "max-[560px]:col-span-3")}
+                  className={cx(CELL, "@max-[528px]/main:col-span-3")}
                   data-edit={editKey}
                   value={l.name}
                   onChange={(e) => change(i, "name", e.target.value)}

@@ -327,7 +327,7 @@ function Reviews({ moments }: { moments: MomentView[] }) {
             label: "Moment",
             icon: "flag",
             min: 180,
-            className: "max-[900px]:hidden",
+            className: "@max-[642px]/main:hidden",
             cell: (r) => r.moment.label,
           },
           {
@@ -335,7 +335,7 @@ function Reviews({ moments }: { moments: MomentView[] }) {
             label: "May quote",
             icon: "quote",
             width: 160,
-            className: "max-[1000px]:hidden",
+            className: "@max-[742px]/main:hidden",
             cell: (r) => <Tag>{quote[r.review.mayQuote]}</Tag>,
           },
           {
@@ -344,7 +344,7 @@ function Reviews({ moments }: { moments: MomentView[] }) {
             icon: "calendar",
             width: 120,
             quiet: true,
-            className: "max-[900px]:hidden",
+            className: "@max-[642px]/main:hidden",
             cell: (r) => dayLabel(r.moment.reachedOn),
           },
         ]}

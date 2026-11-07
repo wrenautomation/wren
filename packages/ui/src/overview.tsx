@@ -251,7 +251,7 @@ export function RecordOverview({
           className={cn(
             "grid grid-cols-[minmax(0,1fr)] gap-8",
             /* One list takes the full width; two sit side by side. */
-            top.length > 1 && "lg:grid-cols-2",
+            top.length > 1 && "@min-[760px]/main:grid-cols-2",
           )}
         >
           {top.map((t) => {

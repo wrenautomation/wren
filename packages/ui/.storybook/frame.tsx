@@ -33,6 +33,8 @@ function Frame({
   return (
     <QueryClientProvider client={QUERIES}>
       <div
+        // parts outside the shell size off the story, as pages off #main
+        className="@container/main"
         style={{
           background: "var(--ui-canvas)",
           color: "var(--ui-ink)",

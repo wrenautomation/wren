@@ -120,7 +120,7 @@ export function TikTokNumbersView({ n }: { n: TikTokNumbers }) {
                 icon: "star",
                 align: "end",
                 width: 110,
-                className: "max-[900px]:hidden",
+                className: "@max-[642px]/main:hidden",
                 cell: (v) => (v.likes !== null ? `${count(v.likes)} likes` : "-"),
               },
               {
@@ -129,7 +129,7 @@ export function TikTokNumbersView({ n }: { n: TikTokNumbers }) {
                 icon: "calendar",
                 width: 110,
                 quiet: true,
-                className: "max-[900px]:hidden",
+                className: "@max-[642px]/main:hidden",
                 cell: (v) => day(v.postedAt) ?? "-",
               },
             ]}

@@ -89,8 +89,8 @@
   background: linear-gradient(90deg, var(--ui-paper) 88%, transparent);
   pointer-events: none;
 }
-/* phone: crop the rail to the batch name and call */
-@media (max-width: 639px) {
+/* narrow main: crop the rail to the batch name and call */
+@container main (width < 608px) {
   .vt-rail {
     width: 108px;
   }
@@ -356,7 +356,7 @@
   padding-top: 16px;
   border-top: 1px solid var(--ui-hair);
 }
-@media (min-width: 760px) {
+@container main (width >= 728px) {
   .vt-detail {
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   }

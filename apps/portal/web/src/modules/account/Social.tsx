@@ -130,7 +130,7 @@ function Accounts({
           icon: "calendar",
           width: 130,
           quiet: true,
-          className: "max-[900px]:hidden",
+          className: "@max-[642px]/main:hidden",
           cell: (c) => day(c.connectedAt),
         },
         {
@@ -139,7 +139,7 @@ function Accounts({
           icon: "clock",
           width: 130,
           quiet: true,
-          className: "max-[900px]:hidden",
+          className: "@max-[642px]/main:hidden",
           cell: (c) => (c.checkedAt ? day(c.checkedAt) : "Not yet"),
         },
       ]}

@@ -106,7 +106,7 @@ export function RunsPage({ params }: PageProps) {
   const askOf = useMemo(() => new Map(rows.map((r) => [r.run, r.ask])), [rows]);
   if (runs.error && !runs.data) return <NoServe error={runs.error} onRetry={runs.retry} />;
   return (
-    <div className="grid items-start gap-5 min-[1100px]:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
+    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 @min-[840px]/main:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
       <div className="grid gap-3">
         {!runs.data ? (
           <Loading shape="rows" lines={5} />
@@ -634,7 +634,7 @@ function Talk({ view, card, go }: { view: RunView; card: string | null; go: Go }
   };
   const picked = card?.slice(2) ?? null;
   return (
-    <div className="grid items-start gap-4 min-[1400px]:grid-cols-[minmax(0,1fr)_minmax(340px,440px)]">
+    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 @min-[1140px]/main:grid-cols-[minmax(0,1fr)_minmax(340px,440px)]">
       <RowsPanel<Moment>
         groups={groups}
         rowKey={(m) => m.id}
@@ -716,7 +716,7 @@ function Sources({
       (!asked || `${h.title ?? ""} ${h.url} ${h.snippet ?? ""}`.toLowerCase().includes(asked)),
   );
   return (
-    <div className="grid items-start gap-4 min-[1400px]:grid-cols-[minmax(0,1fr)_minmax(340px,440px)]">
+    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 @min-[1140px]/main:grid-cols-[minmax(0,1fr)_minmax(340px,440px)]">
       <div className="grid min-w-0 gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Seg

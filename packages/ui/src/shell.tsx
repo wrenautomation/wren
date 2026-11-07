@@ -460,7 +460,10 @@ export function AppShell({
             className="pointer-events-none absolute inset-y-0 left-0 w-(--layout-side) border-r border-(--ui-hair) bg-(--ui-ground) max-[900px]:hidden"
           />
         ) : null}
-        <div className="flex min-h-0 min-w-0 flex-1 max-[900px]:block">
+        <div
+          // frame: the side panel sizes off it (side-panel.tsx)
+          className="@container/frame flex min-h-0 min-w-0 flex-1 max-[900px]:block"
+        >
           {/* With a sidebar, the open app's pages fold out under its row there instead. */}
           {app && !nav && !d.pagesShut ? (
             <AppColumn app={app} display={display} host={host} />
@@ -489,7 +492,8 @@ export function AppShell({
               className={cx(
                 // His text size: the page alone, so the frame's controls stay put.
                 "[zoom:var(--layout-zoom)]",
-                "mx-auto outline-none",
+                // pages size off main, not the viewport: the agent panel narrows main
+                "@container/main mx-auto outline-none",
                 bleed
                   ? "h-full max-[900px]:h-auto"
                   : fill

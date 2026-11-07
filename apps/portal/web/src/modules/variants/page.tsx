@@ -169,7 +169,7 @@ export function MarkBatch({
     }
   };
   return (
-    <div className="flex flex-col gap-4 md:pb-24">
+    <div className="flex flex-col gap-4 @min-[720px]/main:pb-24">
       <p className="m-0 text-[12px] text-(--ui-ink-3)">
         {open.samples.length} samples, shown blind in random order. Mark what's good or bad; tap a
         line, drag a box or mark a moment to say where.
@@ -205,7 +205,9 @@ export function MarkBatch({
         <div
           className={cx(
             "grid gap-4",
-            wide ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1 md:grid-cols-2",
+            wide
+              ? "grid-cols-1 @min-[1000px]/main:grid-cols-2"
+              : "grid-cols-1 @min-[720px]/main:grid-cols-2",
           )}
         >
           <FramesProvider ids={open.samples.map((s) => s.id)}>
@@ -215,8 +217,8 @@ export function MarkBatch({
           </FramesProvider>
         </div>
       </TogetherProvider>
-      <div className="-mx-1 flex flex-col gap-2 border-t border-(--ui-hair) bg-(--ui-paper) p-3 md:sticky md:bottom-0 md:z-10 md:flex-row md:items-center md:justify-end md:pr-16">
-        <span className="text-[12px] text-(--ui-ink-2) md:mr-auto">
+      <div className="-mx-1 flex flex-col gap-2 border-t border-(--ui-hair) bg-(--ui-paper) p-3 @min-[720px]/main:sticky @min-[720px]/main:bottom-0 @min-[720px]/main:z-10 @min-[720px]/main:flex-row @min-[720px]/main:items-center @min-[720px]/main:justify-end @min-[720px]/main:pr-16">
+        <span className="text-[12px] text-(--ui-ink-2) @min-[720px]/main:mr-auto">
           Your guide for the next batch goes in the chat.
         </span>
         <div className="flex items-center gap-3">

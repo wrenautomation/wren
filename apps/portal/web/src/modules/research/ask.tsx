@@ -47,8 +47,11 @@ export function AskPage({ params, who }: PageProps) {
   const model = params.get("model") ?? setup.model;
   const stored = chat ? rows.find((r) => r.session === chat)?.title : undefined;
   return (
-    <div className="grid min-h-0 flex-1 gap-5 min-[1000px]:grid-cols-[248px_minmax(0,1fr)]">
-      <nav aria-label="Chats" className="flex min-h-0 flex-col gap-3 max-[999px]:max-h-[40dvh]">
+    <div className="grid min-h-0 flex-1 gap-5 @min-[740px]/main:grid-cols-[248px_minmax(0,1fr)]">
+      <nav
+        aria-label="Chats"
+        className="flex min-h-0 flex-col gap-3 @max-[740px]/main:max-h-[40dvh]"
+      >
         <div className="flex gap-2">
           <Button tone="secondary" icon="plus" onClick={() => go({ chat: null })}>
             New chat
@@ -57,13 +60,13 @@ export function AskPage({ params, who }: PageProps) {
             tone="quiet"
             icon="list"
             aria-expanded={list}
-            className="min-[1000px]:hidden"
+            className="@min-[740px]/main:hidden"
             onClick={() => setList(!list)}
           >
             {list ? "Hide chats" : `Chats${rows.length ? ` (${rows.length})` : ""}`}
           </Button>
         </div>
-        <div className={cx("flex min-h-0 flex-col", !list && "max-[999px]:hidden")}>
+        <div className={cx("flex min-h-0 flex-col", !list && "@max-[740px]/main:hidden")}>
           {sessions.error && !sessions.data ? (
             <Alert onRetry={sessions.retry}>{closeText(sessions.error).text}</Alert>
           ) : sessions.pending ? (
@@ -80,7 +83,7 @@ export function AskPage({ params, who }: PageProps) {
           )}
         </div>
       </nav>
-      <section className="flex min-h-0 min-w-0 flex-col max-[999px]:h-[calc(100dvh-220px)] max-[999px]:min-h-[420px]">
+      <section className="flex min-h-0 min-w-0 flex-col @max-[740px]/main:h-[calc(100dvh-220px)] @max-[740px]/main:min-h-[420px]">
         <AgentChat
           key={setup.name}
           setup={setup}

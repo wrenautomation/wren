@@ -115,7 +115,7 @@ export function CarouselBox(props: { demo?: boolean; only: string | null; made: 
       title="Carousel"
       note={`${SLIDES_MIN} to ${SLIDES_MAX} slides. Instagram swipes them, LinkedIn shows them as a PDF.`}
     >
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_393px]">
+      <div className="grid items-start gap-5 @min-[760px]/main:grid-cols-[minmax(0,1fr)_393px]">
         <div className="grid gap-3">
           <div className="grid gap-1.5">
             <TextAreaField

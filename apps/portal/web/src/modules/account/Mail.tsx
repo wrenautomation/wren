@@ -138,7 +138,7 @@ function Mailboxes({
           label: "Hosted by",
           icon: "globe",
           min: 200,
-          className: "max-[1000px]:hidden",
+          className: "@max-[742px]/main:hidden",
           cell: (m) =>
             `${m.personal ? "Personal Gmail" : PROVIDER[m.provider]}${
               m.want === "read" ? ", to read and send" : ", to send"

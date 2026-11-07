@@ -171,7 +171,7 @@ function Breadcrumb({
   const crumb =
     "border-0 bg-transparent cursor-pointer text-(--ui-ink-2) underline decoration-(--ui-ink-3) underline-offset-[0.24em]";
   return (
-    <nav aria-label="Folders" className="grid gap-2 lg:hidden">
+    <nav aria-label="Folders" className="grid gap-2 @min-[760px]/main:hidden">
       <ol className="list-none flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[14px]">
         <li>
           {parts.length ? (
@@ -315,11 +315,11 @@ export function Browser({
   return (
     <section
       aria-label={label}
-      className="grid min-w-0 gap-4 lg:grid-cols-[200px_minmax(260px,320px)_minmax(0,1fr)] lg:gap-0"
+      className="grid min-w-0 gap-4 @min-[760px]/main:grid-cols-[200px_minmax(260px,320px)_minmax(0,1fr)] @min-[760px]/main:gap-0"
     >
       <nav
         aria-label="Folders"
-        className="hidden min-w-0 border-r border-(--ui-hair) pr-2 lg:block"
+        className="hidden min-w-0 border-r border-(--ui-hair) pr-2 @min-[760px]/main:block"
       >
         {/* biome-ignore lint/a11y/noStaticElementInteractions: a drop target; "Move to folder" does the same by click and key. */}
         <div
@@ -366,8 +366,8 @@ export function Browser({
       </nav>
       <div
         className={cx(
-          "min-w-0 lg:border-r lg:border-(--ui-hair) lg:px-3",
-          detail !== null && "hidden lg:block",
+          "min-w-0 @min-[760px]/main:border-r @min-[760px]/main:border-(--ui-hair) @min-[760px]/main:px-3",
+          detail !== null && "hidden @min-[760px]/main:block",
         )}
       >
         <Breadcrumb
@@ -378,20 +378,22 @@ export function Browser({
           onFolder={onFolder}
           nameOf={nameOf}
         />
-        <div className="mt-3 hidden h-8 items-center justify-between gap-2 lg:mt-0 lg:flex">
+        <div className="mt-3 hidden h-8 items-center justify-between gap-2 @min-[760px]/main:mt-0 @min-[760px]/main:flex">
           <h2 className="wrap-anywhere whitespace-normal text-[15px] font-semibold">{title}</h2>
           {folderActions}
         </div>
-        {folderActions ? <div className="mt-2 lg:hidden">{folderActions}</div> : null}
+        {folderActions ? (
+          <div className="mt-2 @min-[760px]/main:hidden">{folderActions}</div>
+        ) : null}
         {head ? <div className="mt-3 grid gap-2">{head}</div> : null}
         <div className="mt-3">{list}</div>
       </div>
       {detail !== null ? (
-        <div className="min-w-0 lg:pl-5">
+        <div className="min-w-0 @min-[760px]/main:pl-5">
           <button
             type="button"
             onClick={onClose}
-            className="border-0 bg-transparent cursor-pointer mb-3 inline-flex items-center gap-1.5 text-[14px] text-(--ui-ink-2) hover:text-(--ui-ink) lg:hidden"
+            className="border-0 bg-transparent cursor-pointer mb-3 inline-flex items-center gap-1.5 text-[14px] text-(--ui-ink-2) hover:text-(--ui-ink) @min-[760px]/main:hidden"
           >
             <Icon name="left" className="size-4" />
             {title}
@@ -399,7 +401,9 @@ export function Browser({
           {detail}
         </div>
       ) : (
-        <div className="hidden min-w-0 lg:block lg:pl-5">{placeholder}</div>
+        <div className="hidden min-w-0 @min-[760px]/main:block @min-[760px]/main:pl-5">
+          {placeholder}
+        </div>
       )}
     </section>
   );
