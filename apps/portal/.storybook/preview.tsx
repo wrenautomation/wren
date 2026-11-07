@@ -2,9 +2,9 @@
  * The portal Storybook's preview: `@wren/ui`'s frame over the app's stylesheet, and a fake server
  * (MSW) started before each story. A story's answers are `parameters.msw` (`web/src/mocks/`).
  * The `data` toolbar's Messy answers every call as prod looks (`setMessy`, mocks/api.ts).
- * The sidebar groups pages by who signs in: Wren's team, then a client; the ui parts follow in
- * ui's own groups (dev server only, main.ts). Each story file keeps its old id, so
- * `pages-wren--<app>` links still open.
+ * The sidebar follows the portal's: Wren's places and their groups, Birdwatch, Vireo, then a
+ * client's; the ui parts follow in ui's own groups (dev server only, main.ts). A story's id comes
+ * from its title (`stories/<place>/<group>/<file>`), so it moves when the file does.
  * In kestrel's frame (`?kestrel`), Alt+click posts the element's source (`data-insp-path`,
  * main.ts) and its tagged ancestors' to kestrel, which opens the screen's own file.
  */
@@ -61,9 +61,48 @@ export default {
     ...preview.parameters,
     options: {
       storySort: {
+        // the portal's sidebar order (modules/places.ts)
         order: [
           "Wren",
+          [
+            "Shell",
+            "Agent chat",
+            "Map",
+            [
+              "Overview",
+              "Loading and empty",
+              "Panels",
+              "Focus",
+              "Layers",
+              "History",
+              "Drafts",
+              "Import and export",
+              "Offer shapes",
+              "Offers",
+            ],
+            "Today",
+            ["Overview", "Approve and messages", "Mail", "Calendar"],
+            "Campaigns",
+            ["Overview", "Content", "Outreach", "Cold email"],
+            "People",
+            "Back office",
+            ["Money", "Team", "Workspace"],
+          ],
+          "Birdwatch",
+          "Vireo",
+          ["Batches", "Projects"],
           "Client",
+          [
+            "Today",
+            "Project",
+            "Campaigns",
+            ["Reactivation", "Content"],
+            "People",
+            ["Lists", "Journeys"],
+            "Back office",
+            ["Account", "Contract", "Money", "Accounts", "Team"],
+            "States",
+          ],
           // packages/ui/.storybook/preview.tsx
           "Parts",
           "Forms",
