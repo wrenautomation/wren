@@ -181,3 +181,18 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Pictures, no letters: thumbnail or og image, then a page shot (PDF first page), then site icons from four sources (globe rejected), then a drawn format glyph. Reddit icons need sign-in, so subreddits show the Reddit logo.
   - Speaker islands and evidence tags preview option 1; the mock maps them from the old class and format.
   - The session's choices, not William's: the budgets, the spot lists, the squeeze rule.
+- 11-07: round 12 of artifact `LdYvUurK` (version 7, WA-1157 mock). William on round 11: unsure of the islands; asked for a more traditional graph with the cards and better visual info.
+  - Options, ranked by read at a glance, no overlap at about 100 nodes, path tracing, cost:
+    - Islands on terrain (round 11). Weight and speaker read as place and height. Edges are hard to follow; much empty sea.
+    - Force graph only. Familiar; a hairball once sources pass about 200.
+    - Layered DAG (ELK or dagre): search, then source, then claim. Clean paths; wide and flat, and claims lose their center.
+    - Chosen: three layouts of one flat graph, with one set of marks.
+  - Layouts:
+    - Claim web: d3-force with a box collide. Claims are dark cards; the top 12 linked sources (4 on a phone) are cards, the rest chips. Sources with no claim sit on a shelf below, by speaker.
+    - Search tree: root, rounds, searches; each search shows the top 3 sources it found first, the rest on a click.
+    - Lanes: one lane per speaker with chips; claims on the right at their sources' mean height.
+  - Marks: card (image, name, counts, evidence bar), chip (icon, name, findings), dot (read, no finding), dashed ring (kept, not read). The evidence bar uses one ink at falling opacity, so it never fights the speaker hues.
+  - A summary strip over the graph: who speaks, evidence, and three holes (kept not read, read no finding, findings in no claim). A hole lights its nodes.
+  - Lost from the islands: weight at a glance, and speaker as place, except in Lanes. Gained: paths readable, no empty sea, claims at the center.
+  - For the portal: React Flow (xyflow, MIT) with d3-force or ELK. It slows at a few thousand DOM nodes; fine for one run at about 100.
+  - The session's choices, not William's: the three layouts, the card budget, the shelf.
