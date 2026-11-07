@@ -24,9 +24,9 @@ export const variants: Module = {
       badge: (_client, team) => (team ? openBatches() : Promise.resolve(0)),
     },
     {
-      id: "subjects",
-      label: "Subjects",
-      about: "Each subject's good rate per batch, its live numbers and the tips under test.",
+      id: "projects",
+      label: "Projects",
+      about: "Each project's tree of batches, its live numbers and the tips under test.",
       Page: SubjectsPage,
       wide: true,
     },

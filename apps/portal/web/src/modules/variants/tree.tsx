@@ -654,22 +654,39 @@ function Thumb({ s, sel, clip }: { s: TNode; sel: boolean; clip: string }) {
     <rect x={x - 4} y={y - 4} width={w + 8} height={h + 8} rx="9" fill="var(--vt-tint)" />
   ) : null;
   if (s.v === "open")
+    // to mark: its snapshot shows; name, idea and parents stay blind
     return (
       <>
         {ring}
         <g className="vt-th">
+          <clipPath id={clip}>
+            <rect x={x} y={y} width={w} height={h} rx="6" />
+          </clipPath>
+          <rect x={x} y={y} width={w} height={h} rx="6" fill="var(--ui-fill)" />
+          {s.poster && (
+            <image
+              href={s.poster}
+              x={x}
+              y={y}
+              width={w}
+              height={h}
+              preserveAspectRatio="xMidYMid slice"
+              clipPath={`url(#${clip})`}
+            />
+          )}
           <rect
             x={x}
             y={y}
             width={w}
             height={h}
             rx="6"
-            fill="var(--ui-paper)"
-            stroke="var(--ui-ink-3)"
-            strokeWidth="1"
-            strokeDasharray="3 3"
+            fill="none"
+            stroke="var(--ui-warn)"
+            strokeWidth="1.25"
+            strokeDasharray="3 2.5"
           />
-          <text className="vt-lt" textAnchor="middle" y="3.5">
+          <circle className="vt-ob" cx={x + 1} cy={y + 1} r="7" />
+          <text className="vt-ol" x={x + 1} y={y + 4.5} textAnchor="middle">
             {s.letter}
           </text>
         </g>
@@ -792,7 +809,15 @@ function Name({ t, s, sel }: { t: Tree; s: TNode; sel: boolean }) {
 }
 
 function Poster({ s }: { s: TNode }) {
-  if (s.v === "open") return <div className="vt-poster blind">{s.letter}</div>;
+  if (s.v === "open")
+    return s.poster ? (
+      <div className="vt-poster to-mark">
+        <img src={s.poster} alt={`Snapshot of sample ${s.letter}`} loading="lazy" />
+        <span>{s.letter}</span>
+      </div>
+    ) : (
+      <div className="vt-poster blind">{s.letter}</div>
+    );
   if (s.poster)
     return (
       <div className="vt-poster">

@@ -19,17 +19,19 @@ export const Clients = pageAt("/people/clients", { me: ADMIN });
 export const Campaigns = pageAt("/campaigns", { me: ADMIN });
 export const VariantsBatches = pageAt("/variants/batches", { me: ADMIN });
 export const VariantsBatch = pageAt("/variants/batches?batch=6", { me: ADMIN });
-export const VariantsSubjects = pageAt("/variants/subjects", { me: ADMIN });
+export const VariantsProjects = pageAt("/variants/projects", { me: ADMIN });
 /** A subject's generation tree: four rounds, one open (blind). */
-export const VariantsTree = pageAt("/variants/subjects?subject=3", { me: ADMIN });
+export const VariantsTree = pageAt("/variants/projects?subject=3", { me: ADMIN });
 /** Notes only, no calls: grew and unmarked carry the tree (prod's shape). */
-export const VariantsTreeNotes = pageAt("/variants/subjects?subject=4", { me: ADMIN });
+export const VariantsTreeNotes = pageAt("/variants/projects?subject=4", { me: ADMIN });
 /** One sample's line only (`branch=`): its parents up to the brief and all it grew. */
-export const VariantsTreeBranch = pageAt("/variants/subjects?subject=3&branch=14", { me: ADMIN });
+export const VariantsTreeBranch = pageAt("/variants/projects?subject=3&branch=14", { me: ADMIN });
 /** A folded sample (`fold=`): what grew only from it goes to "+N". */
-export const VariantsTreeFold = pageAt("/variants/subjects?subject=4&fold=109", { me: ADMIN });
+export const VariantsTreeFold = pageAt("/variants/projects?subject=4&fold=109", { me: ADMIN });
 /** An open batch, marked here: blind, in queue order. */
 export const VariantsOpen = pageAt("/variants/batches?batch=7", { me: ADMIN });
+/** page samples that run code: each still waits behind a glass play mark */
+export const VariantsPages = pageAt("/variants/batches?batch=9", { me: ADMIN });
 
 /** Hand to Vireo: the batch closes, the side chat opens on Vireo and holds the turn that points at it. */
 export const VariantsHand: StoryObj = tidy(

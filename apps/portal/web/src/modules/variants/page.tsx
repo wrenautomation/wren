@@ -2,7 +2,7 @@
  * Variants, its own app (designs/2026-11-05-variants.md). `MarkBatch`: one open batch, every
  * sample whole and blind; Amazing / Good / Bad, notes on a line, a region or a moment, then Hand
  * to Vireo: the batch closes and the side chat takes a turn that points at it (`agent/drive.ts`).
- * Batches: `./batches.tsx`, the open ones marked there. Subjects: each one's batches, good rate,
+ * Batches: `./batches.tsx`, the open ones marked there. Projects (a vireo subject each): batches, good rate,
  * guides under test. The agent writes through `wren variants`; these pages only judge.
  */
 import {
@@ -478,12 +478,12 @@ export function SubjectsPage({ params }: PageProps) {
   const got = useCall("variants-subjects", () => call<SubjectRow[]>("variants/subjects", {}));
   const pick = Number(params.get("subject")) || null;
   const setPick = (id: number | null) =>
-    navigate(href("/variants/subjects", { subject: id }, params));
+    navigate(href("/variants/projects", { subject: id }, params));
   if (pick != null) return <SubjectDetail id={pick} params={params} onBack={() => setPick(null)} />;
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading />;
   if (!got.data.length)
-    return <Empty title="No subjects yet">Ask the agent in chat: “start variants for …”.</Empty>;
+    return <Empty title="No projects yet">Ask the agent in chat: “start variants for …”.</Empty>;
   return (
     <ul className="m-0 flex list-none flex-col p-0">
       {got.data.map((s) => (
@@ -548,7 +548,7 @@ function SubjectDetail({
       <div className="flex flex-col gap-1">
         <div>
           <Button size="dense" tone="quiet" icon="left" onClick={onBack}>
-            Subjects
+            Projects
           </Button>
         </div>
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
@@ -604,7 +604,7 @@ function SubjectDetail({
           <Textarea
             rows={1}
             {...tip.field}
-            placeholder="A tip to test on this subject"
+            placeholder="A tip to test on this project"
             className="flex-1"
           />
           <Button onClick={add} disabled={!tip.value.trim()}>

@@ -77,7 +77,7 @@ export const TH: Record<Call, readonly [number, number]> = {
   grew: [46, 29],
   unmarked: [36, 23],
   bad: [28, 18],
-  open: [40, 25],
+  open: [46, 29],
 };
 export const VERD: Record<Call, string> = {
   amazing: "Amazing",
