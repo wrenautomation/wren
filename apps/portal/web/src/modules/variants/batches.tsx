@@ -23,8 +23,9 @@ import { href, navigate } from "../../route.js";
 import { usePageContext } from "../agent/drive.js";
 import { dayLabel } from "../work/bits.js";
 import { FramesProvider } from "./live-page.js";
-import { type Kind, pct, type Sample, VERDICT_ON } from "./marks.js";
+import { type Kind, pct, type Sample } from "./marks.js";
 import { MarkBatch, type Open, SampleCard, TALLY, WIDE_KINDS } from "./page.js";
+import { VERDICT_ON, ZONE_OF } from "./score.js";
 import { Together, TogetherProvider } from "./together.js";
 
 interface Row {
@@ -45,7 +46,6 @@ const HERE = "/variants/batches";
 /** `CHIP_ON` by the address: a variant outranks CHIP's own ground and ink, cx does not merge. */
 const CHIP_SET =
   "aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:text-(--ui-active) aria-[current=page]:hover:bg-(--ui-accent-tint)";
-const MARK = { amazing: "star", good: "check", bad: "close" } as const;
 const THUMBS = 6;
 
 export function BatchesPage({ params }: PageProps) {
@@ -212,7 +212,7 @@ function BatchRow({ row: r }: { row: Row }) {
                     VERDICT_ON[s.verdict],
                   )}
                 >
-                  <Icon name={MARK[s.verdict]} size={10} />
+                  <Icon name={ZONE_OF[s.verdict].icon} size={10} />
                 </span>
               )}
             </span>
@@ -224,7 +224,7 @@ function BatchRow({ row: r }: { row: Row }) {
   );
 }
 
-/** "2 amazing · 1 good · 3 bad", each in its call's color; unmarked last. */
+/** "2 amazing · 1 good · 1 okay · 3 bad", each in its call's color; unmarked last. */
 function Tally({ samples }: { samples: Sample[] }) {
   const counts = TALLY.map((t) => [t, samples.filter((s) => s.verdict === t).length] as const);
   const none = samples.filter((s) => !s.verdict).length;

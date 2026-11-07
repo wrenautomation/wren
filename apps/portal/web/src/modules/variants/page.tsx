@@ -17,8 +17,9 @@ import {
   Textarea,
   useEdit,
 } from "@wren/ui";
+import { verdictOf } from "@wrenautomation/vireo/calls";
 import { footageLength } from "@wrenautomation/vireo/sync";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -36,13 +37,12 @@ import {
   pct,
   type Sample,
   SampleBody,
-  VERDICT_ON,
 } from "./marks.js";
+import { callLabel, ScoreBar, VERDICT_ON, ZONE_OF } from "./score.js";
 import { FootageLanes, type SyncMode, Together, TogetherProvider } from "./together.js";
 import { SubjectTree } from "./tree.js";
 
-type Verdict = Sample["verdict"];
-export const TALLY = ["amazing", "good", "bad"] as const;
+export const TALLY = ["amazing", "good", "okay", "bad"] as const;
 export interface Open {
   batch: { id: number; n: number; createdAt: string; note: string | null };
   subject: { id: number; slug: string; name: string; kind: Kind; brief: string | null };
@@ -96,14 +96,9 @@ interface SubjectView {
   live?: Live;
 }
 
-const VERDICTS: { v: NonNullable<Verdict>; label: string; icon: "star" | "check" | "close" }[] = [
-  { v: "amazing", label: "Amazing", icon: "star" },
-  { v: "good", label: "Good", icon: "check" },
-  { v: "bad", label: "Bad", icon: "close" },
-];
 export const WIDE_KINDS: readonly Kind[] = ["video", "page"];
 /** A past call, read only: the kit's status tag in the call's tone. */
-const TAG_OF = { amazing: "accent", good: "green", bad: "bad" } as const;
+const TAG_OF = { amazing: "accent", good: "green", okay: "neutral", bad: "bad" } as const;
 
 /** One open batch to mark, blind; Hand to Vireo closes it. */
 export function MarkBatch({
@@ -150,7 +145,7 @@ export function MarkBatch({
         await Promise.all(
           rest.map((s) => call("variants/judge", { sample: s.id, verdict: "bad" })),
         );
-        for (const s of rest) patch(s.id, (x) => ({ ...x, verdict: "bad" }));
+        for (const s of rest) patch(s.id, (x) => ({ ...x, score: 2, verdict: "bad" }));
       }
       // the calls and notes are records; the chat gets one line that points at them
       await call("variants/close", { batch: open.batch.id, note: null });
@@ -259,12 +254,15 @@ export function SampleCard({
   const [err, setErr] = useState<string | null>(null);
   const fail = (e: unknown) => setErr(String((e as Error).message ?? e));
 
-  const judge = (v: NonNullable<Verdict>) => {
-    const next = sample.verdict === v ? null : v;
-    const before = sample.verdict;
-    patch(sample.id, (s) => ({ ...s, verdict: next }));
-    call("variants/judge", { sample: sample.id, verdict: next }).catch((e) => {
-      patch(sample.id, (s) => ({ ...s, verdict: before }));
+  // a drag sends many scores: the last one wins, an older answer never rolls it back
+  const sent = useRef(0);
+  const judge = (score: number | null) => {
+    const before = { score: sample.score, verdict: sample.verdict };
+    const n = ++sent.current;
+    patch(sample.id, (s) => ({ ...s, score, verdict: score == null ? null : verdictOf(score) }));
+    call("variants/judge", { sample: sample.id, score }).catch((e) => {
+      if (n !== sent.current) return;
+      patch(sample.id, (s) => ({ ...s, ...before }));
       fail(e);
     });
   };
@@ -294,7 +292,7 @@ export function SampleCard({
     call("variants/unnote", { id }).catch(fail);
   };
   const canBox = kind !== "text" && !closed;
-  const shown = VERDICTS.find((v) => v.v === sample.verdict);
+  const shown = sample.verdict ? ZONE_OF[sample.verdict] : null;
   const frames = useFrames();
   const staged = frames?.stage === sample.id;
   const step = (by: number) => {
@@ -434,32 +432,14 @@ export function SampleCard({
             <Tag tone={TAG_OF[shown.v]}>
               <span className="inline-flex items-center gap-1">
                 <Icon name={shown.icon} size={12} />
-                {shown.label}
+                {sample.score == null ? shown.label : callLabel(sample.score)}
               </span>
             </Tag>
           </div>
         )
       ) : (
-        <div className={cx("mt-auto flex flex-wrap gap-2", staged && "justify-center")}>
-          {VERDICTS.map((v) => (
-            <button
-              type="button"
-              key={v.v}
-              aria-pressed={sample.verdict === v.v}
-              onClick={() => judge(v.v)}
-              className={cx(
-                "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-(--ui-radius) border text-[13px] font-semibold transition-colors duration-150",
-                // on stage a control hugs its words; in a card the three share the row
-                staged ? "px-5 max-sm:px-3" : "flex-1 px-3",
-                sample.verdict === v.v
-                  ? VERDICT_ON[v.v]
-                  : "border-(--ui-hair) text-(--ui-ink-2) hover:bg-(--ui-hover)",
-              )}
-            >
-              <Icon name={v.icon} size={14} />
-              {v.label}
-            </button>
-          ))}
+        <div className={cx("mt-auto flex flex-wrap items-start gap-2", staged && "justify-center")}>
+          <ScoreBar score={sample.score} onScore={judge} staged={staged} />
           <Button
             size="dense"
             tone="quiet"

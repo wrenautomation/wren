@@ -2,7 +2,8 @@
 import { Button, cx } from "@wren/ui";
 import type { Live } from "@wrenautomation/vireo";
 import { useState } from "react";
-import { pct, type Sample, VERDICT_ON } from "./marks.js";
+import { pct, type Sample } from "./marks.js";
+import { callLabel, VERDICT_ON } from "./score.js";
 
 type Verdict = Sample["verdict"];
 
@@ -11,7 +12,7 @@ export type { Live } from "@wrenautomation/vireo";
 
 /** What Live needs from the subject: verdicts and the taste order. */
 interface Picks {
-  batches: { samples: Pick<Sample, "id" | "verdict">[] }[];
+  batches: { samples: Pick<Sample, "id" | "score" | "verdict">[] }[];
   leaders: { sample: number }[];
 }
 
@@ -54,9 +55,9 @@ export function LiveView({ live, picks }: { live: Live; picks: Picks }) {
   const rates = live.rates[ch] ?? [];
   const [rateName, setRate] = useState<string>(rates[0]?.name ?? "");
   const rate = rates.find((r) => r.name === rateName) ?? rates[0];
-  const n = new Map<number, { verdict: Verdict; taste: number | null }>();
+  const n = new Map<number, { score: number | null; verdict: Verdict; taste: number | null }>();
   for (const b of picks.batches)
-    for (const x of b.samples) n.set(x.id, { verdict: x.verdict, taste: null });
+    for (const x of b.samples) n.set(x.id, { score: x.score, verdict: x.verdict, taste: null });
   picks.leaders.forEach((l, i) => {
     const cur = n.get(l.sample);
     if (cur) cur.taste = i + 1;
@@ -122,7 +123,7 @@ export function LiveView({ live, picks }: { live: Live; picks: Picks }) {
                       VERDICT_ON[mine.verdict],
                     )}
                   >
-                    {cap(mine.verdict)}
+                    {mine.score == null ? cap(mine.verdict) : callLabel(mine.score)}
                   </span>
                 )}
                 {mine?.taste != null && (

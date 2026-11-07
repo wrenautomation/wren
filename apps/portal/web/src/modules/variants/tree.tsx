@@ -26,7 +26,7 @@ import {
 } from "./tree-model.js";
 import "./tree.css";
 
-const LEGEND: readonly Call[] = ["amazing", "good", "bad", "grew", "unmarked", "open"];
+const LEGEND: readonly Call[] = ["amazing", "good", "okay", "bad", "grew", "unmarked", "open"];
 const TONE = { amazing: "accent", good: "green", bad: "bad", open: "warn" } as const;
 const tone = (v: Call) => (v in TONE ? TONE[v as keyof typeof TONE] : "neutral");
 const f1 = (n: number) => Number(n.toFixed(1));
@@ -152,7 +152,7 @@ export function SubjectTree({ subject, batches, guides, params }: TreeProps) {
     const rw = G.AX - 12;
     el.scrollLeft = t.pos(at).x - rw - (el.clientWidth - rw) / 2;
   }, [t]);
-  const marked = full.S.filter((x) => x.v === "amazing" || x.v === "good" || x.v === "bad");
+  const marked = full.S.filter((x) => x.v !== "grew" && x.v !== "unmarked" && x.v !== "open");
   const locked = guides.filter((g) => g.state === "locked").length;
   const select = (id: number) => {
     // a hidden sample: show it, leave the rest of the shape
@@ -629,6 +629,7 @@ function TreeSvg({
 const STROKE: Record<Exclude<Call, "open">, readonly [string, number]> = {
   amazing: ["var(--ui-accent)", 1.5],
   good: ["var(--ui-good)", 1.25],
+  okay: ["var(--ui-ink-2)", 1],
   bad: ["var(--ui-bad)", 1],
   grew: ["var(--ui-ink-2)", 1.25],
   unmarked: ["var(--ui-ink-3)", 1],

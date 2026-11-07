@@ -1,6 +1,6 @@
 ---
 name: variants
-description: Run William's taste loop with `wren variants`. You make a batch of samples (email copy, video cuts, images, landers), he marks them Amazing/Good/Bad with anchored notes in the portal (Variants), you read his calls and make the next batch. Use when he says "variants", "make versions of", "iterate on", "try N cuts/openers/designs", "start from my direction", "what's winning", or adds a tip to test. Keep winners in the catalog; lock proven tips.
+description: Run William's taste loop with `wren variants`. You make a batch of samples (email copy, video cuts, images, landers), he scores them 1-10 (zones Bad, Okay, Good, Amazing) with anchored notes in the portal (Variants), you read his calls and make the next batch. Use when he says "variants", "make versions of", "iterate on", "try N cuts/openers/designs", "start from my direction", "what's winning", or adds a tip to test. Keep winners in the catalog; lock proven tips.
 ---
 
 # variants
@@ -30,8 +30,8 @@ You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (pr
 3. **Spread on purpose.** Each batch tests one or two ideas. Vary one thing per sample when you can, so his calls teach something. Tag each sample's `guides` with the guide ids it applies; that is how a tip's with-vs-without rate is counted.
 4. **Say why.** `why` = what you changed from the last batch and what it tests. `change` per sample = what differs from its main parent. `name` = 2-4 words he can say ("Star system"). `parents` = `[id]` or `[{"id": 7, "took": "the moving headline"}]`, main parent first; two or more = a cross, and say what each gave in `took`. He does not see these while he judges (blind); `show` gives them back to you.
 5. **Tell him** it is in Variants › Batches, as `<subject>` batch N (`n` from `add`; numbers count per subject). Stop. Wait for him to hand the batch back: in the portal he marks, then presses Hand to Vireo, which closes the batch and tells the Vireo chat. In a Claude Code session he tells you himself.
-6. **Read `show`.** Per batch: his `note`, each sample's `verdict` and `notes` (a `quote` = a line, `box` = a region in fractions, `time` = seconds on a video). `leaders` = Plackett-Luce strengths across all batches. Guides carry `effect` (good rate with vs without, `early` under 30 judged).
-7. **Next batch.** Keep what Amazing/Good samples share. Fix every anchored Bad note. Obey his batch note first. Mutate from the leaders (`parents`); cross two leaders when each has a part he liked, and keep one wild sample in each batch so the loop does not narrow too early.
+6. **Read `show`.** Per batch: his `note`, each sample's `score` (1-10), its zone `verdict` (bad 1-3, okay 4-6, good 7-8, amazing 9-10) and `notes` (a `quote` = a line, `box` = a region in fractions, `time` = seconds on a video). `leaders` = Plackett-Luce strengths across all batches. Guides carry `effect` (good rate with vs without, `early` under 30 judged).
+7. **Next batch.** Keep what high scores share; within a zone, the higher score wins. Okay = no harm, no pull. Fix every anchored Bad note. Obey his batch note first. Mutate from the leaders (`parents`); cross two leaders when each has a part he liked, and keep one wild sample in each batch so the loop does not narrow too early.
 8. **Ship.** When he keeps a sample and it goes out (a post, a page, an email version), `ship` it. Read `live` before each batch: a segment where the market disagrees with his calls is the next thing to test. Trust a rate only when its range is narrow; `pBest` over 0.9 is a winner there.
 9. **Guides.** When a testing guide's `effect` is not `early` and `diff` is clearly positive, propose to lock it; negative, propose to drop. He decides. A locked guide is a rule: apply it to every sample of its scope, and say which SOP it belongs in.
 
@@ -72,7 +72,7 @@ Paths are relative to the json file. Playable: mp4 mov m4v webm jpg png gif pdf.
 
 ## Rules
 
-- Never judge for him. `judge` and `note` exist for tests and for his spoken calls in chat only.
+- Never judge for him. `judge <sample> <1-10|verdict|clear>` and `note` exist for tests and for his spoken calls in chat only.
 - One open batch per subject at a time. Wait for it to close.
 - His guide for the next batch is the batch `note`. Given in chat after the batch closed: `variants close <subject>:<n> --note "…"` sets it (a plain batch id also works).
 - In the portal's Vireo chat the command is `vireo <command>` (the same commands, on prod).

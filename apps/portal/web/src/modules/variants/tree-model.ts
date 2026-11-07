@@ -5,8 +5,8 @@
  */
 import type { Sample } from "./marks.js";
 
-/** amazing/good/bad: his call. grew: no call, but a later batch grew from it. open: blind. */
-export type Call = "amazing" | "good" | "bad" | "grew" | "unmarked" | "open";
+/** amazing/good/okay/bad: his call. grew: no call, but a later batch grew from it. open: blind. */
+export type Call = "amazing" | "good" | "okay" | "bad" | "grew" | "unmarked" | "open";
 
 export interface TreeSample extends Sample {
   change: string | null;
@@ -74,6 +74,7 @@ export const G = { W: 830, AX: 168, TOP: 34, GEN: 112, SHUT: 72 } as const;
 export const TH: Record<Call, readonly [number, number]> = {
   amazing: [56, 35],
   good: [46, 29],
+  okay: [40, 25],
   grew: [46, 29],
   unmarked: [36, 23],
   bad: [28, 18],
@@ -82,6 +83,7 @@ export const TH: Record<Call, readonly [number, number]> = {
 export const VERD: Record<Call, string> = {
   amazing: "Amazing",
   good: "Good",
+  okay: "Okay",
   bad: "Bad",
   grew: "Grew a batch",
   unmarked: "No call",
@@ -188,7 +190,9 @@ export function treeOf(
   for (const s of S) s.p = s.p.filter((id) => (byId.get(id)?.r ?? s.r) < s.r);
   const rounds: TRound[] = bs.map((b, i) => {
     const mine = S.filter((s) => s.batchId === b.id);
-    const marked = mine.filter((s) => s.v === "amazing" || s.v === "good" || s.v === "bad");
+    const marked = mine.filter(
+      (s) => s.v === "amazing" || s.v === "good" || s.v === "okay" || s.v === "bad",
+    );
     const good = mine.filter(isGood).length;
     const open = openIds.has(b.id);
     const next = bs[i + 1];

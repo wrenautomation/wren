@@ -1,7 +1,12 @@
 /** Variants' fake answers: a video batch and a copy batch to pick, a subject, the catalog. Synthetic. */
+
+import { TAP, type Verdict } from "@wrenautomation/vireo/calls";
 import type { Answers } from "../api.js";
 import { ago } from "./shell.js";
 import { NOTES_ONLY, TREE_SUBJECT } from "./variants-tree.js";
+
+/** A call as vireo stores it: the score and its zone. */
+const call = (v: Verdict | null) => ({ score: v ? TAP[v] : null, verdict: v });
 
 /** Three cuts of one 12 s test footage (its counter shows the footage second); spans match the files. */
 const SPANS = [
@@ -37,7 +42,7 @@ const VIDEO = {
       id: 31,
       body: null,
       ...clip(1),
-      verdict: "good",
+      ...call("good"),
       notes: [
         {
           id: 1,
@@ -47,13 +52,13 @@ const VIDEO = {
         },
       ],
     },
-    { ...base, id: 32, body: null, ...clip(2), verdict: null },
+    { ...base, id: 32, body: null, ...clip(2), ...call(null) },
     {
       ...base,
       id: 33,
       body: null,
       ...clip(3),
-      verdict: "bad",
+      ...call("bad"),
       notes: [
         {
           id: 2,
@@ -86,7 +91,7 @@ const PAGE = {
       ...base,
       id: 51,
       ...scene(1),
-      verdict: "good",
+      ...call("good"),
       notes: [
         {
           id: 4,
@@ -96,8 +101,8 @@ const PAGE = {
         },
       ],
     },
-    { ...base, id: 52, ...scene(2), verdict: null },
-    { ...base, id: 53, ...scene(3), verdict: null },
+    { ...base, id: 52, ...scene(2), ...call(null) },
+    { ...base, id: 53, ...scene(3), ...call(null) },
   ],
 };
 
@@ -114,7 +119,7 @@ const COPY = {
     {
       ...base,
       id: 41,
-      verdict: null,
+      ...call(null),
       mediaUrl: null,
       posterUrl: null,
       body: "Saw your sourdough at the Saturday market.\n\nOne idea: a standing order for two cafes near you.\n\nWorth a look?",
@@ -122,7 +127,7 @@ const COPY = {
     {
       ...base,
       id: 42,
-      verdict: "amazing",
+      ...call("amazing"),
       mediaUrl: null,
       posterUrl: null,
       body: "Two cafes on Main Street buy pastries from outside bakers.\n\nI can introduce you this week.",
@@ -138,7 +143,7 @@ const COPY = {
     {
       ...base,
       id: 43,
-      verdict: "bad",
+      ...call("bad"),
       mediaUrl: null,
       posterUrl: null,
       body: "Hi there,\n\nHope you're well. Quick question about your wholesale plans?",
@@ -146,7 +151,7 @@ const COPY = {
     {
       ...base,
       id: 44,
-      verdict: null,
+      ...call(null),
       mediaUrl: null,
       posterUrl: null,
       body: "Your croissants sold out by ten last week.\n\nWant more buyers like that, every week?",
@@ -247,7 +252,7 @@ const SUBJECT = {
         mediaUrl: null,
         posterUrl: null,
         change: "claim",
-        verdict: i === 1 ? "amazing" : i === 3 ? "good" : i === 5 ? "bad" : null,
+        ...call(i === 1 ? "amazing" : i === 3 ? "good" : i === 4 ? "okay" : i === 5 ? "bad" : null),
       })),
     },
     {
@@ -265,7 +270,7 @@ const SUBJECT = {
         mediaUrl: null,
         posterUrl: null,
         change: "place",
-        verdict: i < 2 ? "good" : null,
+        ...call(i < 2 ? "good" : null),
       })),
     },
     {
@@ -288,7 +293,7 @@ const openRow = (o: typeof VIDEO | typeof PAGE | typeof COPY) => ({
   createdAt: o.batch.createdAt,
   goodRate: null,
   subject: o.subject,
-  samples: o.samples.map((x) => ({ ...x, verdict: null, notes: [], change: null })),
+  samples: o.samples.map((x) => ({ ...x, ...call(null), notes: [], change: null })),
 });
 const BATCHES = [
   openRow(PAGE),
@@ -323,7 +328,7 @@ const BATCHES = [
     samples: PAGE.samples.map((x, i) => ({
       ...x,
       id: 47 + i,
-      verdict: (["amazing", "good", "bad"] as const)[i],
+      ...call((["amazing", "good", "okay", "bad"] as const)[i] ?? null),
       keptAt: i === 0 ? ago(9) : null,
       change:
         ["Parallax depth on scroll", "Film grain over a flat field", "A slow light sweep"][i] ??
@@ -368,7 +373,7 @@ const BATCHES = [
       mediaUrl: null,
       posterUrl: null,
       change: i % 2 ? "claim" : "question",
-      verdict: i === 1 ? "amazing" : i === 3 ? "good" : i === 5 ? "bad" : null,
+      ...call(i === 1 ? "amazing" : i === 3 ? "good" : i === 4 ? "okay" : i === 5 ? "bad" : null),
     })),
   },
 ].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
@@ -388,7 +393,11 @@ export const VARIANTS_ANSWERS: Answers = {
       : b.id === NOTES_ONLY.subject.id
         ? NOTES_ONLY
         : SUBJECT,
-  "variants/judge": (b: Record<string, unknown>) => ({ id: b.sample, verdict: b.verdict }),
+  "variants/judge": (b: Record<string, unknown>) => ({
+    id: b.sample,
+    score: b.score,
+    verdict: b.verdict,
+  }),
   "variants/note": (b: Record<string, unknown>) => ({ id: Math.floor(Math.random() * 1e6), ...b }),
   "variants/unnote": { done: [] },
   "variants/keep": { id: 0, keptAt: null },

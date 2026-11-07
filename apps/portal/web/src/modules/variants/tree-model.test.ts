@@ -1,3 +1,4 @@
+import { TAP } from "@wrenautomation/vireo/calls";
 import { describe, expect, it } from "vitest";
 import {
   deltaOf,
@@ -19,6 +20,7 @@ const sample = (
   body: null,
   mediaUrl: null,
   posterUrl: null,
+  score: verdict ? TAP[verdict] : null,
   verdict,
   keptAt: null,
   notes: [],

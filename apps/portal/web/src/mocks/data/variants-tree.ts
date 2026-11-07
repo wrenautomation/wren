@@ -1,4 +1,5 @@
 /** A page subject with four batches, for the generation tree. Synthetic; the preview's examples. */
+import { TAP, type Verdict } from "@wrenautomation/vireo/calls";
 import { ago } from "./shell.js";
 
 type Look = "shader" | "3d" | "type" | "grid" | "film" | "list" | "terminal";
@@ -50,7 +51,7 @@ function poster(id: number, looks: Look[]): string {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
-type V = "amazing" | "good" | "bad" | null;
+type V = Verdict | null;
 const row = (
   id: number,
   look: Look | Look[],
@@ -67,6 +68,7 @@ const row = (
   poster: null,
   mediaUrl: `/variants/scene-${(id % 3) + 1}.html`,
   posterUrl: poster(id, ([] as Look[]).concat(look)),
+  score: verdict ? TAP[verdict] : null,
   verdict,
   keptAt: id === 13 ? ago(3) : null,
   notes: note ? [{ id: id * 10, anchor: null, tone: null, text: note }] : [],

@@ -84,6 +84,7 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
                   poster: s.poster,
                   // footage spans: lets the page play cuts of one footage in step
                   source: s.source,
+                  score: s.score,
                   verdict: s.verdict,
                   keptAt: s.keptAt,
                   notes: s.notes,
@@ -143,6 +144,7 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
                         media: x.media,
                         poster: x.poster,
                         source: x.source,
+                        score: x.score,
                         verdict: x.verdict,
                         keptAt: x.keptAt,
                         notes: x.notes,
@@ -166,12 +168,15 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
       }),
     judge: (req: Req) =>
       refuse(() => {
-        const call = req.verdict == null ? null : String(req.verdict);
-        if (call && !(VERDICTS as readonly string[]).includes(call))
-          throw new PortalRefusal(`one of ${VERDICTS.join(", ")}`, 400);
+        // a 1-10 score, or a verdict (its tap score); vireo checks the range
+        const call = req.score ?? req.verdict ?? null;
+        if (typeof call === "string" && !(VERDICTS as readonly string[]).includes(call))
+          throw new PortalRefusal(`1-10 or one of ${VERDICTS.join(", ")}`, 400);
+        if (call != null && typeof call !== "string" && typeof call !== "number")
+          throw new PortalRefusal("1-10 or a verdict", 400);
         return v.judge(
           num(req.sample, "sample"),
-          call as (typeof VERDICTS)[number] | null,
+          call as number | (typeof VERDICTS)[number] | null,
           by(req),
         );
       }),
@@ -237,6 +242,7 @@ const INPUTS = {
   catalog: { kind: z.string().nullish() },
   judge: {
     sample: ID,
+    score: z.number().int().min(1).max(10).nullish().describe("1-10; wins over verdict"),
     verdict: z
       .string()
       .nullish()

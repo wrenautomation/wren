@@ -4,6 +4,7 @@
  * Boxes are fractions of the shown frame, so they hold at any width.
  */
 import { Button, cx, Input } from "@wren/ui";
+import type { Verdict } from "@wrenautomation/vireo/calls";
 import type { Source } from "@wrenautomation/vireo/sync";
 import { type PointerEvent, type ReactNode, useRef, useState } from "react";
 import { LivePage } from "./live-page.js";
@@ -26,18 +27,15 @@ export interface Sample {
   body: string | null;
   mediaUrl: string | null;
   posterUrl: string | null;
-  verdict: "amazing" | "good" | "bad" | null;
+  /** 1-10; `verdict` is its zone (vireo D9). */
+  score: number | null;
+  verdict: Verdict | null;
   keptAt: string | null;
   notes: Note[];
   /** A video's footage spans: lets cuts of one footage play in step. */
   source?: Source | null;
 }
 
-export const VERDICT_ON = {
-  amazing: "border-(--ui-accent) bg-(--ui-accent-wash) text-(--ui-accent)",
-  good: "border-(--ui-good) bg-(--ui-good-tint) text-(--ui-good-ink)",
-  bad: "border-(--ui-bad) bg-(--ui-bad-tint) text-(--ui-bad)",
-} as const;
 export const pct = (n: number) => `${Math.round(n * 100)}%`;
 
 export const clock = (s: number) => {

@@ -40,7 +40,7 @@
     "@wren/variants": "workspace:*",
     "@wren/voice": "workspace:*",
     "@wren/watch": "workspace:*",
-    "@wrenautomation/vireo": "0.4.0",
+    "@wrenautomation/vireo": "0.5.1",
     "htmlparser2": "12.0.0",
     "mammoth": "1.13.0",
     "phonemizer": "1.2.1",
