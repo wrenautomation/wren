@@ -1,19 +1,16 @@
-/**
- * Research (WA-938): birdwatch runs read from `birdwatch serve` on this Mac. msw answers serve's
- * address with a made-up run (`./mocks/data/research.ts`). No pixel compare: render, axe.
- */
+/** Birdwatch in the portal: a run's tree, sources and the web graph. Fake server: `web/src/mocks/`. */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { HttpResponse, http, type RequestHandler, sse, type WebSocketHandler } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import COMMANDS from "./mocks/data/agent/commands.json";
-import SETUPS from "./mocks/data/agent/setups.json";
-import { ADMIN } from "./mocks/data/me.js";
-import { RESEARCH_ROWS, RESEARCH_VIEW, RESEARCH_WEB } from "./mocks/data/research.js";
-import { pageAt, tidy } from "./mocks/page.js";
-import { fakeRelay, type TapeLine } from "./mocks/relay.js";
-import { SERVE } from "./modules/research/serve.js";
+import COMMANDS from "../../mocks/data/agent/commands.json";
+import SETUPS from "../../mocks/data/agent/setups.json";
+import { ADMIN } from "../../mocks/data/me.js";
+import { RESEARCH_ROWS, RESEARCH_VIEW, RESEARCH_WEB } from "../../mocks/data/research.js";
+import { pageAt, tidy } from "../../mocks/page.js";
+import { fakeRelay, type TapeLine } from "../../mocks/relay.js";
+import { SERVE } from "../../modules/research/serve.js";
 
-const meta: Meta = { title: "Wren/Research", id: "pages-research" };
+const meta: Meta = { title: "Birdwatch/Research" };
 export default meta;
 
 /** The tree and the web load their drawing code late: a loaded Mac needs more than the 1 s default. */
@@ -39,6 +36,7 @@ const SERVED = [
   // Open and quiet: a story sends no change.
   sse(`${SERVE}/events`, () => {}),
 ];
+
 const REFUSED = [
   http.get(`${SERVE}/*`, () => HttpResponse.error()),
   sse(`${SERVE}/events`, ({ client }) => client.error()),

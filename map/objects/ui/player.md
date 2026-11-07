@@ -22,7 +22,7 @@ An iframe or video that moves in the DOM reloads and loses its place. So the pla
 - Host: `host.tsx` (full over the slot, the dock with Expand, Picture-in-Picture, Close; region "Mini player"), `media.tsx` (`YouTube` by postMessage, `Embed`, `FileMedia`), `geometry.ts` (clip), `pip.ts` (Document Picture-in-Picture, Chromium only; the button is hidden where the API is not there).
 - Where "where you stopped" lives: `item.onTime`, kept by the store beyond the page.
 - Users: Marketing videos (`modules/marketing/videos.tsx`: finished preview, Shorts, vertical cut), a recorded call (`modules/calendar/recorder.tsx`), a research source (`modules/research/page.tsx`: YouTube or a post's embed). Left alone, as tools and not playback: the storyboard and finish previews, shape preview, slides, heat, session replay, sites detail, the TikTok composer preview, the video-shelf posters (still frames).
-- Stories: `pages-player.stories.tsx` (`Wren/Player`, ids `pages-player--…`: `Expanded`, `MiniDocked`, `NavigationSurvives`, on a recording's page `/today/recordings/1`); unit: `player/store.test.ts`, `geometry.test.ts`.
+- Stories: `stories/wren/shell/player.stories.tsx` (`Wren/Shell/Player`, ids `wren-shell-player--…`: `Expanded`, `MiniDocked`, `NavigationSurvives`, on a recording's page `/today/recordings/1`); unit: `player/store.test.ts`, `geometry.test.ts`.
 
 Citations: `apps/portal/web/src/App.tsx` (the host), `apps/portal/web/src/player/host.tsx:31`
 

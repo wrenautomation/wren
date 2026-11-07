@@ -1,7 +1,7 @@
 /**
  * Every page a person can open has a page story (designs/2026-11-05-story-parity.md): the story
  * renders the real page, so a page with none can drift unseen. Client stories live in
- * `pages-client*` and `pages-account*`; the rest sign in as Wren's team.
+ * `stories/client/`; the rest sign in as Wren's team.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -11,14 +11,11 @@ const { CLIENT_PLACES, TEAM_PLACES } = await import("./modules/places.js");
 const { research } = await import("./modules/research/index.js");
 const { MOVED_APPS } = await import("./moved.js");
 
-const DIR = new URL(".", import.meta.url);
-const CLIENT = /^pages-(client|account)/;
+const DIR = new URL("./stories/", import.meta.url);
 /** Each story file's address literals: "/place/page…" anywhere in the file. */
 const addresses = (client: boolean) =>
-  readdirSync(DIR)
-    .filter(
-      (f) => f.startsWith("pages-") && f.endsWith(".stories.tsx") && CLIENT.test(f) === client,
-    )
+  readdirSync(DIR, { recursive: true, encoding: "utf8" })
+    .filter((f) => f.endsWith(".tsx") && f.startsWith("client/") === client)
     .flatMap((f) => [...readFileSync(new URL(f, DIR), "utf8").matchAll(/["'`](\/[a-z][\w/-]*)/g)])
     .map((m) => m[1] ?? "");
 

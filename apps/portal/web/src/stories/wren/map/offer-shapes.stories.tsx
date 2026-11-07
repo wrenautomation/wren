@@ -23,7 +23,9 @@ const meta: Meta = { title: "Wren/Map/Offer shapes", parameters: { layout: "full
 export default meta;
 
 type Story = StoryObj;
+
 type Play = { view: MetroView; note?: string };
+
 type Look = "flat" | "layers";
 
 /** One play at a time, full size: pick it, then Flat or Layers. */
@@ -148,6 +150,7 @@ const stage = (title: string) => {
   if (!s) throw new Error(`no stage ${title}`);
   return s;
 };
+
 const stageStory = (title: string): Story => ({
   render: () => <Board goal={stage(title).goal} plays={stage(title).plays} />,
   play: drawn,
@@ -163,10 +166,15 @@ export const Funnels: Story = {
   ),
   play: drawn,
 };
+
 export const Attraction = stageStory("Attraction");
+
 export const Upsells = stageStory("Upsells");
+
 export const Downsells = stageStory("Downsells");
+
 export const Continuity = stageStory("Continuity");
+
 /** The video's gym: a win-back challenge rolls into a membership, with a prepay upsell and a plan on a no. */
 export const WholeModel: Story = {
   render: () => (

@@ -43,24 +43,22 @@ A set has `default`, `empty`, `loading`, `failed`, `worst-case` where the part h
 | the leaf and the sweep | `Leaf` `metro/marks.tsx:628`, `Sweep` `sweep.tsx:76` | `leaf-and-sweep` | Shapes |
 | `queue`, `form`, `shop` pages | `RecordQueue` `queue.tsx:60`, `RecordForm` `form.tsx:27`, `RecordShop` `shop.tsx:37` | no part story: their page stories | Lists and records, Cards |
 
-No part story: a module's own pieces (for example `modules/marketing/pieces.tsx`, `plan.tsx`, `videos.tsx`) import `api.ts` at load. Tune them in their page story (`pages-wren-apps--content-plan`, `pages-wren-apps--content-studio`).
+No part story: a module's own pieces (for example `modules/marketing/pieces.tsx`, `plan.tsx`, `videos.tsx`) import `api.ts` at load. Tune them in their page story (`wren-campaigns-content--plan`, `wren-campaigns-content--studio`).
 
 ## Page stories
 
-Files in `apps/portal/web/src/`. The guard `stories-cover.test.ts` fails on a page with no story (`designs/2026-11-05-story-parity.md`).
+Files in `apps/portal/web/src/stories/`, one per sidebar group, laid out as the portal's sidebar: `<client|wren>/<place>/<group>.stories.tsx`, title `Wren/<Place>/<Group>`; Birdwatch and Vireo are top-level groups. The order is `storySort` in `.storybook/preview.tsx`. Ids follow titles (`wren-map-layers--floor`). Shared helpers: `<group dir>/<source>-kit.tsx`. The guard `stories-cover.test.ts` fails on a page with no story (`designs/2026-11-05-story-parity.md`).
 
-| Stories (`<stem>--…`) | File | Shows |
-|---|---|---|
-| `pages-wren` | `pages-wren.stories.tsx`, `pages-wren-done.stories.tsx` | each of Wren's places and Today's states |
-| `pages-team-places` | `pages-team-places.stories.tsx` | every other page of Wren's places (`<place>-<page>`), pending and failed once |
-| `pages-wren-apps` | `pages-wren-tabs.stories.tsx`, `-done`, `-port` | each tab of Content, Engage and cold email (`<app>-<tab>`), the sidebar, the phone dock |
-| `pages-map` | `pages-map.stories.tsx` | the Map: panels, History, drafts, import, focus pages, home views |
-| `pages-research` | `pages-research.stories.tsx` | Research: a run's tree, sources, the web |
-| `pages-agent` | `pages-agent.stories.tsx` | the agent chat on recorded tapes |
-| `pages-player` | `pages-player.stories.tsx` | the shell's player on a recording's page: over the slot, docked, after a move |
-| `pages-client` | `pages-client.stories.tsx` | each of a client's places, a person's peek, `loading`, `failed` |
-| `pages-client-places` | `pages-client-places.stories.tsx` | every other page of a client's places (`<place>-<page>`) |
-| `pages-account` | `pages-account.stories.tsx` | a client's Back office: people, grants, social, mail, feedback |
+| Folder | Shows |
+|---|---|
+| `wren/shell/` | the sidebar, the phone dock, the player |
+| `wren/agent-chat`, `birdwatch/` | the agent chat on tapes; Birdwatch's tree, sources, web |
+| `wren/map/` | Overview, Loading and empty, Panels, Focus, Layers, History, Drafts, Import and export, Offer shapes, Offers |
+| `wren/today/` | Overview (states), Approve and messages, Mail, Calendar |
+| `wren/campaigns/` | Overview, Content, Outreach, Cold email |
+| `vireo/` | Variants: Batches, Projects |
+| `wren/people`, `wren/office/` | People; Back office: Money, Team, Workspace |
+| `client/` | Today, Project, Campaigns (Reactivation, Content), People (Lists, Journeys), Back office (Account, Contract, Money, Accounts, Team), States |
 
 ## The Map page
 
@@ -70,7 +68,7 @@ Home for the team (`apps/portal/web/src/map/`; designs `2026-10-19-business-map.
 - A focus page (`FocusPage.tsx`, `focus.ts`) draws one part at `/map/<kind>/<id>`, a set at `/map/parts/<parts>`, a saved view at `/map/view/<id>` (`views.tsx`).
 - The shape changes only through History (`History.tsx`: Restore, Undo `Undo.tsx`, Tag `TagForm.tsx`), a draft (`DraftList.tsx`, `DraftBanner.tsx`, `?draft=<id>`: Propose, Apply, Drop), Import (`Import.tsx`) and a campaign's form (`CampaignForm.tsx`, which saves a draft). A diff draws as marks on the same map. `BlameList.tsx` lists a part's history. `Refused.tsx` shows a server refusal as sent.
 - Open goes to the app that manages a station (`routes.ts`; `routes.test.ts` checks each is a real page). Today's "N shape proposals wait" line is `ProposalsLine` (`apps/portal/web/src/today.tsx`).
-- Stories: `pages-map.stories.tsx` (`Wren/Map`, on Tidy data), answers in `mocks/data/map.ts`, `map-read.ts` and `map-drafts.ts`, a synthetic shape.
+- Stories: `stories/wren/map/` (`Wren/Map/…`, on Tidy data), answers in `mocks/data/map.ts`, `map-read.ts` and `map-drafts.ts`, a synthetic shape.
 
 ## Cards
 

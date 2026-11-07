@@ -1,22 +1,19 @@
-/**
- * The shell's one player (`./player`): over the page's slot, docked bottom-right when the page
- * goes. A recorded call stands in for every kind; the element is the same one whatever the item.
- * The page is a recording's own: the video, the notes, the transcript. No pixel compare.
- */
+/** The video player: expanded, docked mini, and kept across pages. Fake server: `web/src/mocks/`. */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { RecordingDetail } from "@wren/calendar/records";
 import { HttpResponse, http } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { freshStory } from "./mocks/api.js";
-import { ANSWERS } from "./mocks/data/index.js";
-import { ADMIN } from "./mocks/data/me.js";
-import { pageAt } from "./mocks/page.js";
-import { player } from "./player/index.js";
+import { freshStory } from "../../../mocks/api.js";
+import { ANSWERS } from "../../../mocks/data/index.js";
+import { ADMIN } from "../../../mocks/data/me.js";
+import { pageAt } from "../../../mocks/page.js";
+import { player } from "../../../player/index.js";
 
-const meta: Meta = { title: "Wren/Player", id: "pages-player" };
+const meta: Meta = { title: "Wren/Shell/Player" };
 export default meta;
 
 const FILE = "/story-media/call.wav";
+
 const DETAIL: RecordingDetail = {
   url: FILE,
   model: "claude-haiku-4-5",
@@ -37,6 +34,7 @@ const DETAIL: RecordingDetail = {
 };
 
 type Reply = (body: Record<string, unknown>) => unknown;
+
 /** The shared records answer, with this recording's detail on it. */
 const withDetail: Reply = (body) => {
   const got = (ANSWERS["console/recordsGet"] as Reply)(body) as Record<string, unknown>;
@@ -89,7 +87,9 @@ const story = (check: (page: HTMLElement) => Promise<void>): StoryObj => {
 };
 
 const DOCK = "Keep playing in the corner";
+
 const media = (root: HTMLElement) => root.ownerDocument.querySelector("video");
+
 const mini = (root: HTMLElement) =>
   within(root.ownerDocument.body).queryByRole("region", { name: "Mini player" });
 

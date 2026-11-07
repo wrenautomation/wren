@@ -1,34 +1,35 @@
-/**
- * The agent chat as the page builds it (WA-1076): the real page, SDK and thread code over a fake
- * relay (`./mocks/relay.ts`) that replays tapes from the real one. The tapes set what the page must
- * show, so a story can't look better than the live chat; only the data is recorded. Re-record:
- * `wren agent serve --tape <dir>`, drive a chat, `node packages/agent/scripts/scrub-tape.mjs`.
- */
+/** The side chat: an agent's work, stop, commands, stored chats. Fake server: `web/src/mocks/`. */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { HttpResponse, http, sse } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import CARD from "./mocks/data/agent/card.json";
-import COMMANDS from "./mocks/data/agent/commands.json";
-import COMPACTED_CHAT from "./mocks/data/agent/compacted.json";
-import HISTORY from "./mocks/data/agent/history.json";
-import SETUPS from "./mocks/data/agent/setups.json";
-import STOP from "./mocks/data/agent/stop.json";
-import WORK from "./mocks/data/agent/work.json";
-import { ADMIN } from "./mocks/data/me.js";
-import { RESEARCH_ROWS, RESEARCH_VIEW } from "./mocks/data/research.js";
-import { pageAt } from "./mocks/page.js";
-import { fakeRelay, type TapeLine, typedOn } from "./mocks/relay.js";
-import { SERVE } from "./modules/research/serve.js";
+import CARD from "../../mocks/data/agent/card.json";
+import COMMANDS from "../../mocks/data/agent/commands.json";
+import COMPACTED_CHAT from "../../mocks/data/agent/compacted.json";
+import HISTORY from "../../mocks/data/agent/history.json";
+import SETUPS from "../../mocks/data/agent/setups.json";
+import STOP from "../../mocks/data/agent/stop.json";
+import WORK from "../../mocks/data/agent/work.json";
+import { ADMIN } from "../../mocks/data/me.js";
+import { RESEARCH_ROWS, RESEARCH_VIEW } from "../../mocks/data/research.js";
+import { pageAt } from "../../mocks/page.js";
+import { fakeRelay, type TapeLine, typedOn } from "../../mocks/relay.js";
+import { SERVE } from "../../modules/research/serve.js";
 
-const meta: Meta = { title: "Wren/Agent chat", id: "pages-agent" };
+const meta: Meta = { title: "Wren/Agent chat" };
 export default meta;
 
 const TAPES = { work: WORK, stop: STOP, commands: COMMANDS } as Record<string, TapeLine[]>;
+
 const LIBRARY = Object.values(TAPES);
+
 const STORED = "00000000-0000-4000-8000-000000000001";
+
 const CARDED = "00000000-0000-4000-8000-000000000002";
+
 const COMPACTED = "00000000-0000-4000-8000-000000000003";
+
 const LONG = { timeout: 30_000 };
+
 type Stored = NonNullable<Parameters<typeof fakeRelay>[0]["stored"]>[number];
 
 const story = (

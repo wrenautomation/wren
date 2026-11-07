@@ -29,12 +29,12 @@ Run the full gate (`./scripts/gates.sh all`) once, at hand-off. Not in the loop.
 For a whole page, the shell, or how apps and pages are laid out. The real app runs on a fake server: no backend, no sign-in.
 
 1. Use the same Storybook (Loop, step 3). The pages sit under Wren and Client.
-2. Open a page: `pages-client--<place>` (a client's owner) or `pages-wren--<place>` (Wren's team), for example `/?path=/story/pages-client--campaigns`. A place's other pages: `pages-client-places--<place>-<page>`, `pages-team-places--<place>-<page>`. The hub's Page stories table lists every file. Links move inside the story.
+2. Open a page. The sidebar copies the portal's: `Wren/<place>/<group>` (Wren's team) and `Client/<place>/<group>` (a client's owner). A story id follows its title, for example `/?path=/story/client-campaigns-reactivation--default`. The hub's Page stories table lists every file. Links move inside the story.
 3. Edit the page or part. Storybook reloads it.
-4. Screenshot: `pnpm --filter @wren/portal stories:shot --width 390 --dark pages-client--people`.
-5. A new page story: `export const X = pageAt("/place/page?view=all")` in `apps/portal/web/src/pages-client-places.stories.tsx` (or `pages-team-places.stories.tsx` with `{ me: ADMIN }`). States: `{ mode: "pending" }`, `{ mode: "fails" }`. One answer swapped: `{ answers: { "<service>/<route>": body } }`. `check` runs once the reads are in; `lands` fails a story that opens another page. Data is Messy unless the story pins `tidy(story)`. A page with no story fails `stories-cover.test.ts`.
+4. Screenshot: `pnpm --filter @wren/portal stories:shot --width 390 --dark client-people-lists--default`.
+5. A new page story: `export const X = pageAt("/place/page?view=all")` in its group's file, `apps/portal/web/src/stories/<client|wren>/<place>/<group>.stories.tsx` (Wren's team: `{ me: ADMIN }`). Name it for what it shows, without the group's name (`Spend`, not `OfficeSpend`). States: `{ mode: "pending" }`, `{ mode: "fails" }`. One answer swapped: `{ answers: { "<service>/<route>": body } }`. `check` runs once the reads are in; `lands` fails a story that opens another page. Data is Messy unless the story pins `tidy(story)`. A page with no story fails `stories-cover.test.ts`.
 6. The console says `unmocked: <service>/<route>` for a read with no answer. Its test fails too. Add the answer in `apps/portal/web/src/mocks/data/`, typed with `serve<Api>(service, {...})` where the server exports its API type. Synthetic data only.
-7. Test one file: `pnpm --filter @wren/portal test:stories web/src/<file>` (it takes the checks lock itself). Then `./scripts/gates.sh ui`.
+7. Test one file: `pnpm --filter @wren/portal test:stories web/src/stories/<file>` (it takes the checks lock itself). Then `./scripts/gates.sh ui`.
 8. Stop it as in the Loop, step 8.
 
 Records pages get the server's own types (`virtual:record-types`, from `apps/worker/src/record-types.ts`). A column the server adds shows in the stories at the next start.
