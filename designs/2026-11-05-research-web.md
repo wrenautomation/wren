@@ -196,3 +196,17 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Lost from the islands: weight at a glance, and speaker as place, except in Lanes. Gained: paths readable, no empty sea, claims at the center.
   - For the portal: React Flow (xyflow, MIT) with d3-force or ELK. It slows at a few thousand DOM nodes; fine for one run at about 100.
   - The session's choices, not William's: the three layouts, the card budget, the shelf.
+- 11-07: round 13 of artifact `LdYvUurK` (version 8, WA-1163). William on round 12: claims too big, white and jarring; wants to click a node to open it into a subgraph of its pages, searches and findings, with far more detail.
+  - Options, ranked by keeping context, depth on demand, layout stability, cost:
+    - A. Open in place (Neo4j Bloom, Linkurious, Kumu). Children grow beside the node in the same web. Keeps neighbours; crowds when many nodes are open.
+    - B. Drill down with a breadcrumb trail. Clean at each level; loses the neighbours.
+    - C. Compound nodes (ELK, Cytoscape compound). Good for strict trees; findings link across sources, so edges cross box walls.
+    - D. Semantic zoom only. No clicks; the reader can't choose which node opens.
+    - Chosen: A.
+  - Depth: claim to findings; source to pages with findings, pages with none, pages not read, and its searches; page to findings; finding to quote; search to sources and dropped hits with reasons. A shelf chip lifts its source into the web.
+  - A run of more than 8 children (6 on a phone) opens 8 at a time behind "N more". Other kinds always show.
+  - Stability: a live d3-force pass. Old nodes hold to their places (strength .22); new nodes spawn from the parent, fanned outward; the clicked node is pinned. Box collide runs until no overlap, up to 400 passes.
+  - Claims: accent tint at 7% on paper, accent ring, number disc. No more dark blocks.
+  - Edges by kind: claim (speaker colour, width by weight), tree, backs (finding to claim), via and found (dashed).
+  - For the portal: React Flow with d3-force, same expand model.
+  - The session's choices, not William's: the page size of 8, the anchor strength, the edge kinds.
