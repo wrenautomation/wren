@@ -4,13 +4,14 @@
  * follows the ledger live (designs/2026-11-05-research-web.md, Log 11-05).
  */
 import {
+  AgentSay,
   type AgentViews,
   LoadFailed,
   Loading,
   ResearchRunCard,
   ResearchSourceCard,
 } from "@wren/ui";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useCall } from "../../load.js";
 import { runCard, runOf, sourceRead } from "./card.js";
 import { runsOf, useLive, viewOf } from "./serve.js";
@@ -22,6 +23,7 @@ function RunRef({ data }: { data: unknown }) {
   const got = useCall(run ? `research:view:${run}:${tick}` : null, () => viewOf(run ?? ""), {
     kept: false,
   });
+  const say = useContext(AgentSay);
   const row = rows.data?.find((r) => r.run === run) ?? null;
   useLive((changed) => {
     if (changed !== run) return;
@@ -32,7 +34,11 @@ function RunRef({ data }: { data: unknown }) {
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading shape="rows" lines={3} />;
   const one = sourceRead(got.data);
-  return one ? <ResearchSourceCard read={one} /> : <ResearchRunCard run={runCard(got.data, row)} />;
+  return one ? (
+    <ResearchSourceCard read={one} onAsk={say} />
+  ) : (
+    <ResearchRunCard run={runCard(got.data, row)} />
+  );
 }
 
 export const RESEARCH_REFS: AgentViews = { "research.run": RunRef };

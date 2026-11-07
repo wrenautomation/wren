@@ -32,7 +32,7 @@ Ranked: no code drift by construction, then public-repo safety, then upkeep. Cho
 
 ## Guard
 
-`apps/portal/web/src/stories-cover.test.ts` lists every page of `TEAM_PLACES`, `CLIENT_PLACES` and Research, and fails on each one with no story address. Client stories live in `pages-client*` and `pages-account*`. A bare place address (`/project`) covers the place's first page.
+`apps/portal/web/src/stories-cover.test.ts` lists every page of `TEAM_PLACES`, `CLIENT_PLACES` and Research, and fails on each one with no story address. Client stories live in `stories/client/` (was `pages-client*` and `pages-account*`, until WA-1160). A bare place address (`/project`) covers the place's first page.
 
 It is a Vitest test, not a `scripts/*-guard.mjs`: the place list is built by importing the page modules, which plain node cannot load. During the redesign unit tests report and do not hold the deploy (WA-917). That is the trade-off: it shows red, it does not block.
 
@@ -67,3 +67,9 @@ It is a Vitest test, not a `scripts/*-guard.mjs`: the place list is built by imp
   - Gap: the shell's player had no story since Learn was cut, and no story drew a recording's video, notes and transcript. New `pages-player.stories.tsx` (`Wren/Player`) on `/today/recordings/1`: over the slot, docked, and after a move.
   - Bug the player story found, fixed: a slot's way back was the window's address, so on a memory history Expand opened the wrong page. It now takes the router's address (`here`, `route.ts`). No change on the browser's history.
   - Docs that drifted, fixed: the map's UI hub (`map/objects/ui/CONTEXT.md`: places, today's parts and line numbers, a table of the page story files, the Map section), its `story`, `page-story` and `player` cards, and the `wren-ui` skill's page loop (story ids and files).
+- 11-07, drift audit (WA-1170): page stories render the real app, so drift lives in part stories (`packages/ui`) that pass props a portal call site never passes. Found and fixed:
+  - Research source card: its ask buttons never showed in prod. The chat card now passes the channel's ask ("Research the whole channel") and sends a pick as the person's own turn (`AgentSay`).
+  - Map skeleton: Focus and the home view's wait drew no ghost of the page's plates. Both now pass `ghost`, keyed as Focus keys it.
+  - Agent clip and Variants video: the part's own `Video` bar (WA-1172) replaces native controls in both.
+- Left, by choice: MetroMap `bare` (no dot grid) and the Map's draw-in `intro` are off in prod on purpose (MapPage doc; the ghost takes the intro's place).
+- Left, open: a research topic ask ("Research how … set prices") needs the agent's own suggestion; nothing makes one yet. Graph `ribbons` and the `Steps` long-job part have no page. Player `FileMedia` keeps native controls. Minor props no page sets: AgentThread `closed`, Rows `pick` on Today and Studio waiting, DataTable `framed`, AccountPicker unsaved.

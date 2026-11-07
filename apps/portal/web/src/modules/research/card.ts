@@ -114,5 +114,7 @@ export function sourceRead(view: RunView): SourceRead | null {
     by: d.channel ?? host(d.url),
     meta: `${MEDIA[d.media] ?? "Page"} · ${usd(view)}`,
     href: hrefOf(view.run),
+    // the wider job a channel's one item opens; the card sends it as his turn
+    ...(d.channel ? { asks: ["Research the whole channel"] } : {}),
   };
 }
