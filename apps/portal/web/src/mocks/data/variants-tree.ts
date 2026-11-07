@@ -115,6 +115,7 @@ export const TREE_SUBJECT = {
   batches: [
     {
       id: 21,
+      n: 1,
       why: "Six background techniques, one per sample.",
       note: "All six keep parts of the old site. I want a full redesign.",
       state: "closed",
@@ -132,6 +133,7 @@ export const TREE_SUBJECT = {
     },
     {
       id: 22,
+      n: 2,
       why: "From your batch 1 note: six full page directions, not backgrounds.",
       note: "Kinetic type is close. The type is the hero. The 3D scene is too heavy.",
       state: "closed",
@@ -163,6 +165,7 @@ export const TREE_SUBJECT = {
     },
     {
       id: 23,
+      n: 3,
       why: "From your batch 2 note: keep type as the hero, drop heavy 3D, test slower motion.",
       note: "Type, slow ease is the one. Keep the type. Slow the motion more.",
       state: "closed",
@@ -203,6 +206,7 @@ export const TREE_SUBJECT = {
     },
     {
       id: 24,
+      n: 4,
       why: "From your batch 3 note: test ease length and a reel under the type.",
       note: null,
       state: "open",
@@ -271,6 +275,7 @@ export const NOTES_ONLY = {
   batches: [
     ...NOTES_CLOSED.map(([id, lo, hi, why, note], i) => ({
       id,
+      n: i + 1,
       why,
       note,
       state: "closed",
@@ -283,6 +288,7 @@ export const NOTES_ONLY = {
     })),
     {
       id: 45,
+      n: 5,
       why: "From your note: seven aurora takes.",
       note: null,
       state: "open",

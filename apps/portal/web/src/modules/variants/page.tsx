@@ -44,7 +44,7 @@ import { SubjectTree } from "./tree.js";
 type Verdict = Sample["verdict"];
 export const TALLY = ["amazing", "good", "bad"] as const;
 export interface Open {
-  batch: { id: number; createdAt: string; note: string | null };
+  batch: { id: number; n: number; createdAt: string; note: string | null };
   subject: { id: number; slug: string; name: string; kind: Kind; brief: string | null };
   samples: Sample[];
 }
@@ -123,7 +123,7 @@ export function MarkBatch({
     .map(([t, n]) => `${n} ${t}`)
     .join(", ");
   usePageContext(
-    `in view: ${open.subject.slug} (${open.subject.kind}), batch ${open.batch.id}, ${judged} of ${open.samples.length} marked`,
+    `in view: ${open.subject.slug} (${open.subject.kind}), batch ${open.batch.n} (id ${open.batch.id}), ${judged} of ${open.samples.length} marked`,
   );
   const wide = WIDE_KINDS.includes(open.subject.kind);
   const group = useMemo(() => new Together(), []);
@@ -158,8 +158,8 @@ export function MarkBatch({
       handToChat(
         "vireo",
         none
-          ? `Batch ${open.batch.id} of ${open.subject.slug}\nNone of these: all ${open.samples.length} marked bad and closed. Read my notes, then tell me what you see.`
-          : `Batch ${open.batch.id} of ${open.subject.slug}\nMarked and closed: ${tally || "no calls"}${judged < open.samples.length ? `, ${open.samples.length - judged} unmarked` : ""}. Read my calls and notes, then tell me what you see.`,
+          ? `Batch ${open.batch.n} of ${open.subject.slug}\nNone of these: all ${open.samples.length} marked bad and closed. Read my notes, then tell me what you see.`
+          : `Batch ${open.batch.n} of ${open.subject.slug}\nMarked and closed: ${tally || "no calls"}${judged < open.samples.length ? `, ${open.samples.length - judged} unmarked` : ""}. Read my calls and notes, then tell me what you see.`,
       );
       onSent();
     } catch (e) {

@@ -29,6 +29,8 @@ import { Together, TogetherProvider } from "./together.js";
 
 interface Row {
   id: number;
+  /** number within its subject */
+  n: number;
   /** Null while open: the agent's reason stays hidden until he hands it back. */
   why: string | null;
   note: string | null;
@@ -153,7 +155,7 @@ function BatchRow({ row: r }: { row: Row }) {
           {r.subject.name}
         </span>
         <span className="text-[12px] text-(--ui-ink-3) tabular-nums">
-          Batch {r.id} · {dayLabel(r.createdAt)} · {r.samples.length} samples
+          Batch {r.n} · {dayLabel(r.createdAt)} · {r.samples.length} samples
         </span>
         <span className="flex flex-wrap items-center gap-1.5">
           {open ? (
@@ -256,7 +258,7 @@ function BatchView({
 }) {
   const open = r.state === "open";
   usePageContext(
-    `in view: batch ${r.id} of ${r.subject.slug} (${r.subject.kind}), ${open ? "open" : "closed"}, ${r.samples.length} samples`,
+    `in view: batch ${r.n} of ${r.subject.slug} (${r.subject.kind}, id ${r.id}), ${open ? "open" : "closed"}, ${r.samples.length} samples`,
   );
   const group = useMemo(() => new Together(), []);
   const wide = WIDE_KINDS.includes(r.subject.kind);
@@ -276,7 +278,7 @@ function BatchView({
         <h2 className={cx(PAGE_TITLE, "m-0 mt-1 text-(--ui-ink)")}>{r.subject.name}</h2>
         {r.subject.brief && <p className="m-0 text-[13px] text-(--ui-ink-2)">{r.subject.brief}</p>}
         <p className="m-0 text-[12px] text-(--ui-ink-3)">
-          Batch {r.id} · {dayLabel(r.createdAt)} · {r.samples.length} samples
+          Batch {r.n} · {dayLabel(r.createdAt)} · {r.samples.length} samples
           {r.goodRate != null && ` · ${pct(r.goodRate)} good or better`}
         </p>
         {!open && (

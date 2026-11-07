@@ -23,7 +23,7 @@ const clip = (i: number) => ({
 const base = { media: null, poster: null, keptAt: null, notes: [] as unknown[] };
 
 const VIDEO = {
-  batch: { id: 7, createdAt: ago(0.1), note: null },
+  batch: { id: 7, n: 3, createdAt: ago(0.1), note: null },
   subject: {
     id: 2,
     slug: "promo-cut",
@@ -73,7 +73,7 @@ const scene = (i: number) => ({
   posterUrl: `/variants/scene-${i}.svg`,
 });
 const PAGE = {
-  batch: { id: 9, createdAt: ago(0.05), note: null },
+  batch: { id: 9, n: 2, createdAt: ago(0.05), note: null },
   subject: {
     id: 3,
     slug: "hero-background",
@@ -102,7 +102,7 @@ const PAGE = {
 };
 
 const COPY = {
-  batch: { id: 8, createdAt: ago(0.3), note: null },
+  batch: { id: 8, n: 4, createdAt: ago(0.3), note: null },
   subject: {
     id: 1,
     slug: "opener",
@@ -234,6 +234,7 @@ const SUBJECT = {
   batches: [
     {
       id: 5,
+      n: 1,
       why: "Six openers: question vs claim",
       note: "Claims win. Shorter.",
       state: "closed",
@@ -251,6 +252,7 @@ const SUBJECT = {
     },
     {
       id: 6,
+      n: 2,
       why: "Claims only, named places",
       note: null,
       state: "closed",
@@ -281,6 +283,7 @@ const openRow = (o: typeof VIDEO | typeof PAGE | typeof COPY) => ({
   id: o.batch.id,
   why: null,
   note: null,
+  n: o.batch.n,
   state: "open",
   createdAt: o.batch.createdAt,
   goodRate: null,
@@ -293,6 +296,7 @@ const BATCHES = [
   openRow(COPY),
   {
     id: 6,
+    n: 2,
     why: "Claims only, each opener names a real place",
     note: "The place works. Cut the question at the end.",
     state: "closed",
@@ -309,6 +313,7 @@ const BATCHES = [
   },
   {
     id: 4,
+    n: 1,
     why: "Three scenes: depth, grain, slow light",
     note: "Calm at rest is right. More contrast at night.",
     state: "closed",
@@ -327,6 +332,7 @@ const BATCHES = [
   },
   {
     id: 3,
+    n: 1,
     why: "Open on the result vs the setup",
     note: "Result first. Captions too low.",
     state: "closed",
@@ -341,6 +347,7 @@ const BATCHES = [
   },
   {
     id: 5,
+    n: 1,
     why: "Six openers: question vs claim",
     note: "Claims win. Shorter.",
     state: "closed",

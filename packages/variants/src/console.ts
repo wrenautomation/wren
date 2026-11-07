@@ -61,7 +61,12 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
         const open = await v.queue((req.subject as string | undefined) ?? undefined);
         return Promise.all(
           open.map(async (o) => ({
-            batch: { id: o.batch.id, createdAt: o.batch.createdAt, note: o.batch.note },
+            batch: {
+              id: o.batch.id,
+              n: o.batch.n,
+              createdAt: o.batch.createdAt,
+              note: o.batch.note,
+            },
             subject: {
               id: o.subject.id,
               slug: o.subject.slug,
@@ -120,6 +125,7 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
             return Promise.all(
               f.batches.map(async (b) => ({
                 id: b.id,
+                n: b.n,
                 why: b.state === "open" ? null : b.why,
                 note: b.note,
                 state: b.state,

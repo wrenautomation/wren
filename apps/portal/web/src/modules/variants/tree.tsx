@@ -75,7 +75,7 @@ export function SubjectTree({ subject, batches, guides }: TreeProps) {
   const s = sel != null ? (t.byId.get(sel) ?? null) : null;
   const round = s ? t.rounds[s.r - 1] : undefined;
   usePageContext(
-    `in view: ${subject.slug} generation tree${s ? `, ${s.name} selected (sample ${s.id}, batch ${round?.id})` : ""}`,
+    `in view: ${subject.slug} generation tree${s ? `, ${s.name} selected (sample ${s.id}, batch ${round?.num})` : ""}`,
   );
   // open on the selected sample, centred in the scroll box
   useLayoutEffect(() => {
@@ -232,7 +232,7 @@ function Rail({ t }: { t: Tree }) {
         return (
           <g key={B.id}>
             <text className="vt-gt" x="0" y={y - 12}>
-              Batch {B.n}
+              Batch {B.num}
               <tspan className="vt-gd" dx="6">
                 {B.when}
               </tspan>
@@ -679,7 +679,7 @@ function Tip({
   const chips = (
     <div className="vt-row">
       <Tag tone={tone(s.v)}>{VERD[s.v]}</Tag>
-      <Tag>Batch {s.r}</Tag>
+      <Tag>Batch {t.rounds[s.r - 1]?.num ?? s.r}</Tag>
       {isKept(s) && (
         <Tag tone="accent">
           <Pin />
@@ -756,7 +756,7 @@ function SampleDetail({
         <Poster s={s} />
         <div className="vt-row">
           <h3>{s.name}</h3>
-          <Tag>Batch {s.r}</Tag>
+          <Tag>Batch {t.rounds[s.r - 1]?.num ?? s.r}</Tag>
           <Tag tone="warn">To mark</Tag>
         </div>
         <div>
@@ -782,7 +782,7 @@ function SampleDetail({
       <Poster s={s} />
       <div className="vt-row">
         <h3>{s.name}</h3>
-        <Tag>Batch {s.r}</Tag>
+        <Tag>Batch {t.rounds[s.r - 1]?.num ?? s.r}</Tag>
         <Tag tone={tone(s.v)}>{VERD[s.v]}</Tag>
         {kept && (
           <Tag tone="accent">
@@ -893,7 +893,7 @@ function BatchDetail({ t, n }: { t: Tree; n: number }) {
     return (
       <>
         <div className="vt-row">
-          <h3>Batch {B.n}</h3>
+          <h3>Batch {B.num}</h3>
           <Tag tone="warn">To mark</Tag>
           <span className="vt-hint">{B.when}</span>
         </div>
@@ -907,7 +907,7 @@ function BatchDetail({ t, n }: { t: Tree; n: number }) {
   return (
     <>
       <div className="vt-row">
-        <h3>Batch {B.n}</h3>
+        <h3>Batch {B.num}</h3>
         <span className="vt-hint">{B.when}</span>
       </div>
       <div className="vt-row">

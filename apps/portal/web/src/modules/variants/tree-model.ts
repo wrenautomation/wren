@@ -17,6 +17,8 @@ export interface TreeSample extends Sample {
 }
 export interface TreeBatch {
   id: number;
+  /** number within the subject (Vireo 0.4.0); older reads fall back to the order */
+  n?: number | undefined;
   why: string | null;
   note: string | null;
   state: string;
@@ -52,7 +54,10 @@ export interface TNode {
   letter: string | null;
 }
 export interface TRound {
+  /** row in the drawing, from 1 */
   n: number;
+  /** the batch's number in its subject, as shown */
+  num: number;
   id: number;
   when: string;
   call: string;
@@ -185,6 +190,7 @@ export function treeOf(batches: readonly TreeBatch[], guides: readonly TreeGuide
     const to = next?.closedAt ? +new Date(next.closedAt) : Number.POSITIVE_INFINITY;
     return {
       n: i + 1,
+      num: b.n ?? i + 1,
       id: b.id,
       when: day(b.createdAt),
       open,
