@@ -55,7 +55,9 @@ export const Open = mapAt("/?look=layers", {
   answers: bigAnswers(SHARED),
   check: async (page) => {
     const [plate] = await within(page).findAllByRole("button", { name: plateName }, LATE);
-    await userEvent.click(plate as HTMLElement);
+    // plates take no pointer hits (the camera's math does): the keys' way in
+    (plate as HTMLElement).focus();
+    await userEvent.keyboard("{Enter}");
     const bar = await within(page).findByRole("navigation", { name: "Open part" }, LATE);
     await expect(within(bar).getByRole("link", { name: "Layers" })).toBeVisible();
     await expect(within(bar).getByRole("link", { name: "Whole map" })).toBeVisible();

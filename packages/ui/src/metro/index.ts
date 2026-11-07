@@ -59,14 +59,7 @@ export {
   textWidth,
   xferGeometry,
 } from "./geometry.js";
-export {
-  type LayerFloor,
-  type LayerPart,
-  type LayerSplit,
-  MetroLayers,
-  type MetroLayersProps,
-  partFocus,
-} from "./layers.js";
+export { MetroLayers, type MetroLayersProps } from "./layers.js";
 export { lineKeyOf, SPACE } from "./layout.js";
 export {
   MetroDepth,
@@ -95,6 +88,7 @@ export {
   XferLabel,
 } from "./marks.js";
 export { type Frame, layoutView, type PlaceBox, type Placed, placeMetro, STEP } from "./place.js";
+export { type LayerFloor, type LayerPart, type LayerSplit, partFocus } from "./plates.js";
 export { MetroSkeleton } from "./skeleton.js";
 export {
   type BadgeStation,
