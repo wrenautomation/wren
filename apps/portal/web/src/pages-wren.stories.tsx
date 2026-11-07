@@ -24,6 +24,10 @@ export const VariantsSubjects = pageAt("/variants/subjects", { me: ADMIN });
 export const VariantsTree = pageAt("/variants/subjects?subject=3", { me: ADMIN });
 /** Notes only, no calls: grew and unmarked carry the tree (prod's shape). */
 export const VariantsTreeNotes = pageAt("/variants/subjects?subject=4", { me: ADMIN });
+/** One sample's line only (`branch=`): its parents up to the brief and all it grew. */
+export const VariantsTreeBranch = pageAt("/variants/subjects?subject=3&branch=14", { me: ADMIN });
+/** A folded sample (`fold=`): what grew only from it goes to "+N". */
+export const VariantsTreeFold = pageAt("/variants/subjects?subject=4&fold=109", { me: ADMIN });
 /** An open batch, marked here: blind, in queue order. */
 export const VariantsOpen = pageAt("/variants/batches?batch=7", { me: ADMIN });
 

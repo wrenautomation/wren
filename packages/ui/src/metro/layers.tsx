@@ -16,6 +16,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -421,18 +422,28 @@ export interface MetroLayersProps {
   onOpen?: ((part: LayerPart, label: string) => void) | undefined;
   split?: LayerSplit | undefined;
   onSplit?: ((split: LayerSplit) => void) | undefined;
+  /** Plates shut on their stop, as `kind:id`. */
+  shut?: readonly string[] | undefined;
+  /** No Shut or Lift without it. */
+  onShut?: ((shut: string[]) => void) | undefined;
   className?: string | undefined;
 }
+
+const partKey = (p: LayerPart) => `${p.kind}:${p.id}`;
 
 /** The floor and its plates: drawn once per level. Moving the camera never draws them again. */
 const Stage = memo(function Stage({
   level,
   onPlate,
   open,
+  shut,
+  onShut,
 }: {
   level: Level;
   onPlate: (p: Plate, how: "open" | "stack") => void;
   open: boolean;
+  shut: ReadonlySet<string>;
+  onShut: ((key: string) => void) | null;
 }) {
   return (
     <>
@@ -440,17 +451,18 @@ const Stage = memo(function Stage({
         <MetroSvg scene={level.floor} still bare />
       </div>
       {level.plates.map((p) => {
-        const key = `${p.part.kind}:${p.part.id}`;
+        const key = partKey(p.part);
+        const down = shut.has(key);
         return (
           <div
             key={key}
-            className="mlay-slot"
+            className={cx("mlay-slot", down && "shut")}
             data-part={key}
             style={{ "--zn": p.z } as CSSProperties}
           >
             {/* One dashed line from its stop up to the plate. */}
             <i className="mlay-drop" style={{ left: p.at[0], top: p.at[1] }} aria-hidden="true" />
-            <div className="mlay-plate" style={p.box}>
+            <div className="mlay-plate" style={p.box} inert={down || undefined}>
               <button
                 type="button"
                 className="mlay-open"
@@ -461,6 +473,16 @@ const Stage = memo(function Stage({
               </button>
               <div className="mlay-tag">
                 <span>{p.label}</span>
+                {onShut ? (
+                  <button
+                    type="button"
+                    className="mlay-shut"
+                    aria-label={`Shut ${p.label}`}
+                    onClick={() => onShut(key)}
+                  >
+                    Shut
+                  </button>
+                ) : null}
                 {open && p.deep ? (
                   <button
                     type="button"
@@ -490,8 +512,12 @@ export function MetroLayers({
   onOpen,
   split = "folds",
   onSplit,
+  shut: shutList,
+  onShut,
   className,
 }: MetroLayersProps) {
+  const shutKey = (shutList ?? []).join(",");
+  const shut = useMemo(() => new Set(shutKey ? shutKey.split(",") : []), [shutKey]);
   const [level, setLevel] = useState<Level | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
   const [box, setBox] = useState<[number, number]>([0, 0]);
@@ -509,8 +535,13 @@ export function MetroLayers({
   const dragged = useRef(false);
   const ptrs = useRef(new Map<number, { x: number; y: number }>());
   const grab = useRef<{ x: number; y: number; cam: Cam; pan: boolean; d?: number } | null>(null);
-  const live = useRef({ onFloor, onOpen });
-  live.current = { onFloor, onOpen };
+  const live = useRef({ onFloor, onOpen, onShut, shut });
+  live.current = { onFloor, onOpen, onShut, shut };
+  // One handler for the life of the stage, so a shut never draws the floor again.
+  const toggle = useCallback((key: string) => {
+    const { onShut: on, shut: now } = live.current;
+    on?.(now.has(key) ? [...now].filter((k) => k !== key) : [...now, key]);
+  }, []);
 
   const key = `${floor?.kind ?? ""}:${floor?.id ?? ""}:${split}`;
   // read-ok: a local layout (ELK in a worker), no fetch; cached in the zoom.
@@ -550,10 +581,11 @@ export function MetroLayers({
     (): Rect[] => [
       [0, 0, w, h, 0],
       ...(level?.plates ?? []).map(
-        ({ box: b, z }) => [b.left, b.top, b.width, b.height, z] as const,
+        ({ box: b, z, part }) =>
+          [b.left, b.top, b.width, b.height, shut.has(partKey(part)) ? 0 : z] as const,
       ),
     ],
-    [w, h, level],
+    [w, h, level, shut],
   );
 
   /** Spring the camera to `to`; `done` runs when it lands. */
@@ -671,7 +703,7 @@ export function MetroLayers({
   }, [zoomAt, soon]);
 
   const down = (e: PointerEvent<HTMLDivElement>) => {
-    if ((e.target as Element).closest(".mlay-stack, .mlay-bar")) return;
+    if ((e.target as Element).closest(".mlay-stack, .mlay-shut, .mlay-bar")) return;
     run.current?.stop();
     ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     dragged.current = false;
@@ -750,9 +782,7 @@ export function MetroLayers({
       const rect: Rect = [p.box.left, p.box.top, p.box.width, p.box.height, p.z];
       const el = stage.current;
       el?.classList.add("opening");
-      el?.querySelector(
-        `[data-part="${CSS.escape(`${p.part.kind}:${p.part.id}`)}"]`,
-      )?.classList.add("chosen");
+      el?.querySelector(`[data-part="${CSS.escape(partKey(p.part))}"]`)?.classList.add("chosen");
       fly({ ...top, ...fitOf(w, h, [rect], top, box, 0.98) }, () =>
         live.current.onOpen?.(p.part, p.label),
       );
@@ -791,6 +821,22 @@ export function MetroLayers({
           ) : null}
         </nav>
         <div className="mlay-ctl">
+          {/* Shut plates: each lies on its stop; Lift brings it up. In the bar: a plate in front can hide its stop. */}
+          {onShut && level
+            ? level.plates
+                .filter((p) => shut.has(partKey(p.part)))
+                .map((p) => (
+                  <Button
+                    key={partKey(p.part)}
+                    tone="quiet"
+                    size="dense"
+                    icon="up"
+                    onClick={() => toggle(partKey(p.part))}
+                  >
+                    Lift {p.label}
+                  </Button>
+                ))
+            : null}
           {onSplit && level?.can.folds && level.can.lines ? (
             <Seg
               label="Split by"
@@ -843,7 +889,13 @@ export function MetroLayers({
             className="mlay-stage"
             style={{ width: w, height: f.h, marginLeft: -w / 2, marginTop: -f.h / 2 }}
           >
-            <Stage level={level} onPlate={pick} open={!!onOpen} />
+            <Stage
+              level={level}
+              onPlate={pick}
+              open={!!onOpen}
+              shut={shut}
+              onShut={onShut ? toggle : null}
+            />
           </div>
         )}
         <p className="mlay-hint">

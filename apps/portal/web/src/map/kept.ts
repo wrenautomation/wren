@@ -45,7 +45,11 @@ export function keptOf(raw: string | null): Kept {
 
 export const recallView = (client: string): Kept => keptOf(recall(keptKey(client)));
 
-/** Keep `part` of the view; the rest stays as it was. */
-export function keepView(client: string, part: Kept): void {
-  keep(keptKey(client), JSON.stringify({ ...recallView(client), ...part }));
+/** Keep `part` of the view; the rest stays as it was. `fresh`: the folds are `part`'s alone (a view opened). */
+export function keepView(client: string, part: Kept, fresh = false): void {
+  const was = recallView(client);
+  keep(
+    keptKey(client),
+    JSON.stringify(fresh ? { panel: was.panel, ...part } : { ...was, ...part }),
+  );
 }

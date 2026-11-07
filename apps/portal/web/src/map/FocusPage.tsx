@@ -13,16 +13,14 @@ import {
   type Attach,
   type MetroBody,
 } from "@wren/pipeline/metro";
-import { MAP_VIEW_RECORD, partsParam, readPart } from "@wren/pipeline/metro-parts";
+import { partsParam, readPart } from "@wren/pipeline/metro-parts";
 import {
   Alert,
   Button,
   CHIP,
-  CHIP_ON,
   FormKept,
   Icon,
   LoadFailed,
-  SaveViewPop,
   SELECT_CLASS,
   SelectField,
   TextField,
@@ -51,7 +49,7 @@ import { messageOf, Refused } from "./Refused.js";
 import { useMap } from "./read.js";
 import { opensOf, panelParams } from "./routes.js";
 import { viewOf } from "./view.js";
-import { MAP_HOME, mapKeepOf, useMapViews, viewParamsOf, viewPartsOf } from "./views.js";
+import { MAP_HOME, mapKeepOf, useMapViews, ViewsMenu, viewParamsOf, viewPartsOf } from "./views.js";
 
 const PAD = "px-[clamp(12px,2.5vw,24px)]";
 const KIND_WORD: Record<Attach["kind"], string> = {
@@ -497,7 +495,6 @@ export function FocusPage({
   const gone = asked.length - focus.parts.length;
   // Save view once the parts differ from the open view; Home once they are the open view.
   const same = !!saved && partsParam(viewPartsOf(saved)) === partsParam(asked);
-  const isHome = !!saved && homePref.value === saved.id;
   return (
     <section
       aria-label={`${focus.word} ${focus.name}`}
@@ -544,26 +541,15 @@ export function FocusPage({
                 Whole map
               </a>
             ) : null}
-            {keep && saved && same ? (
-              <button
-                type="button"
-                aria-pressed={isHome}
-                onClick={() => homePref.set(isHome ? null : saved.id)}
-                className={`${CHIP} ${isHome ? CHIP_ON : ""}`}
-              >
-                <Icon name="home" size={15} /> Home view
-              </button>
-            ) : null}
-            {keep && views.ready && !same ? (
-              <SaveViewPop
-                record={MAP_VIEW_RECORD}
-                params={viewParamsOf(asked)}
+            {keep ? (
+              <ViewsMenu
+                views={views}
+                home={homePref}
+                current={saved && same ? saved : null}
+                save={same ? null : { params: viewParamsOf(asked), from: saved }}
+                params={props.params}
                 keep={keep}
-                open={saved ?? undefined}
-                onSaved={(v) => {
-                  views.reload();
-                  navigate(focusHref({ view: v.id }, props.params));
-                }}
+                onSaved={(v) => navigate(focusHref({ view: v.id }, props.params))}
               />
             ) : null}
           </div>

@@ -56,7 +56,15 @@ import { messageOf, Refused } from "./Refused.js";
 import { useDiffOf, useDraftDetail, useMap } from "./read.js";
 import { type PanelRef, panelOfParams, panelParams } from "./routes.js";
 import { viewOf } from "./view.js";
-import { MAP_HOME, MapViews, mapKeepOf, useMapViews } from "./views.js";
+import {
+  foldsOf,
+  isViewOf,
+  MAP_HOME,
+  mapKeepOf,
+  mapParamsOf,
+  useMapViews,
+  ViewsMenu,
+} from "./views.js";
 
 /** A workspace with no shape: what a shape is, and the start from Wren's own. */
 function NoShape({
@@ -133,13 +141,13 @@ function CannotDraw({ errors }: { errors: readonly string[] }) {
  * What this viewer kept of the Map in this browser, for one workspace. A change is kept at once;
  * a new workspace reads its own.
  */
-function useKeptView(client: string): [Kept, (part: Kept) => void] {
+function useKeptView(client: string): [Kept, (part: Kept, fresh?: boolean) => void] {
   const [state, setState] = useState(() => ({ client, kept: recallView(client) }));
   if (state.client !== client) setState({ client, kept: recallView(client) });
   const update = useCallback(
-    (part: Kept) => {
-      keepView(client, part);
-      setState((s) => ({ client: s.client, kept: { ...s.kept, ...part } }));
+    (part: Kept, fresh = false) => {
+      keepView(client, part, fresh);
+      setState((s) => ({ client: s.client, kept: recallView(s.client) }));
     },
     [client],
   );
@@ -225,6 +233,18 @@ export function MapPage({
   const panel = panelOfParams(props.params);
   const open = (p: PanelRef | null) => navigate(href("/", panelParams(p), props.params), true);
   const [kept, keepNow] = useKeptView(props.client);
+  // A view's folds come in the address once: they go to the kept store, then leave the address.
+  const folds = foldsOf(props.params);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run when the address names folds
+  useEffect(() => {
+    if (!folds) return;
+    keepNow(folds, true);
+    navigate(href("/", { depth: null, open: null, close: null }, props.params), true);
+  }, [props.params]);
+  const svId = Number(props.params.get("sv")) || null;
+  const saved = svId === null ? null : (views.lines.find((v) => v.id === svId) ?? null);
+  const here = mapParamsOf(props.params, folds ?? kept);
+  const current = saved && isViewOf(saved, here) ? saved : null;
   const restored = useRef<string | null>(null);
   // Run on the panel's identity and the data, not on the objects that change each render.
   // biome-ignore lint/correctness/useExhaustiveDependencies: open, keepNow and panel are new each render
@@ -392,6 +412,7 @@ export function MapPage({
   const layers = props.params.get("look") === "layers";
   const floor: LayerFloor = partOf(props.params.get("floor"));
   const split: LayerSplit = props.params.get("split") === "lines" ? "lines" : "folds";
+  const shutParts = (props.params.get("shut") ?? "").split(",").filter(Boolean);
   const zoom = useMemo(() => (shown?.view ? viewZoom(shown.view) : null), [shown?.view]);
   // A part opened from Layers: the flat map shows only it, all open.
   const focusParam = layers ? null : props.params.get("focus");
@@ -414,8 +435,18 @@ export function MapPage({
               : "The map of your business."}
           </p>
         </div>
-        {/* The bar: the window, History and the depth. The rarer tools sit behind ⋯. */}
+        {/* The bar: views, the look, the window, History and the depth. The rarer tools sit behind ⋯. */}
         <div className="flex flex-wrap items-center gap-2">
+          {keep && shown?.view ? (
+            <ViewsMenu
+              views={views}
+              home={homeView}
+              current={current}
+              save={current ? null : { params: here, from: saved }}
+              params={props.params}
+              keep={keep}
+            />
+          ) : null}
           {shown?.view ? (
             <Segmented
               label="Look"
@@ -510,9 +541,6 @@ export function MapPage({
                   <Icon name="upload" size={15} /> Import
                 </Button>
               ) : null}
-              {keep && views.ready ? (
-                <MapViews views={views.lines} home={homeView.value} params={props.params} />
-              ) : null}
             </PopoverContent>
           </Popover>
           {mayEdit ? (
@@ -574,13 +602,22 @@ export function MapPage({
               <MetroLayers
                 zoom={zoom}
                 floor={floor}
-                onFloor={(f) => navigate(href("/", { floor: partParam(f) }, props.params), true)}
+                onFloor={(f) =>
+                  navigate(href("/", { floor: partParam(f), shut: null }, props.params), true)
+                }
                 onOpen={(p) =>
                   navigate(href("/", { look: null, focus: partParam(p) }, props.params))
                 }
                 split={split}
+                shut={shutParts}
+                onShut={(k) =>
+                  navigate(href("/", { shut: k.length ? k.join(",") : null }, props.params), true)
+                }
                 onSplit={(s) =>
-                  navigate(href("/", { split: s === "lines" ? s : null }, props.params), true)
+                  navigate(
+                    href("/", { split: s === "lines" ? s : null, shut: null }, props.params),
+                    true,
+                  )
                 }
                 className="h-full"
               />

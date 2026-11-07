@@ -6,11 +6,13 @@
 import { Button, Seg, Tag } from "@wren/ui";
 import { type KeyboardEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
-import { href, navigate } from "../../route.js";
+import { keep as keepLocal, recall } from "../../local.js";
+import { here, href, navigate } from "../../route.js";
 import { handToChat, usePageContext } from "../agent/drive.js";
 import {
   type Call,
   G,
+  hiddenBy,
   isGood,
   nameLines,
   strong,
@@ -57,13 +59,76 @@ export interface TreeProps {
   subject: { slug: string; name: string; kind: string; brief: string | null };
   batches: readonly TreeBatch[];
   guides: readonly TreeGuide[];
+  /** The address: `show`, `branch`, `fold` set the shape. None: the shape kept in this browser. */
+  params?: URLSearchParams | undefined;
 }
 
-export function SubjectTree({ subject, batches, guides }: TreeProps) {
-  const t = useMemo(() => treeOf(batches, guides), [batches, guides]);
-  const [sel, setSel] = useState<number | null>(t.first);
-  const [focus, setFocus] = useState<number | null>(t.first);
-  const [mode, setMode] = useState<"all" | "line">("all");
+/** What the tree shows: all or the good line, one sample's line only, folded samples. */
+interface Shape {
+  mode: "all" | "line";
+  branch: number | null;
+  fold: number[];
+}
+const ALL: Shape = { mode: "all", branch: null, fold: [] };
+const shapeKey = (slug: string) => `variants:tree:${slug}`;
+const ids = (v: unknown): number[] =>
+  Array.isArray(v) ? v.filter((n): n is number => Number.isInteger(n) && n > 0) : [];
+function shapeOf(slug: string, params: URLSearchParams | undefined): Shape {
+  if (params && ["show", "branch", "fold"].some((k) => params.has(k)))
+    return {
+      mode: params.get("show") === "line" ? "line" : "all",
+      branch: Number(params.get("branch")) || null,
+      fold: ids((params.get("fold") ?? "").split(",").map(Number)),
+    };
+  try {
+    const k = JSON.parse(recall(shapeKey(slug)) ?? "null") as Partial<Shape> | null;
+    if (!k || typeof k !== "object") return ALL;
+    return {
+      mode: k.mode === "line" ? "line" : "all",
+      branch: Number.isInteger(k.branch) ? (k.branch as number) : null,
+      fold: ids(k.fold),
+    };
+  } catch {
+    return ALL;
+  }
+}
+
+export function SubjectTree({ subject, batches, guides, params }: TreeProps) {
+  const full = useMemo(() => treeOf(batches, guides), [batches, guides]);
+  const [shape, setShapeNow] = useState<Shape>(() => shapeOf(subject.slug, params));
+  const mode = shape.mode;
+  const setShape = (next: Shape) => {
+    setShapeNow(next);
+    keepLocal(shapeKey(subject.slug), JSON.stringify(next));
+    if (params)
+      navigate(
+        href(
+          here().split("?")[0] ?? "/",
+          {
+            show: next.mode === "line" ? "line" : null,
+            branch: next.branch,
+            fold: next.fold.join(",") || null,
+          },
+          params,
+        ),
+        true,
+      );
+  };
+  const setMode = (m: Shape["mode"]) => setShape({ ...shape, mode: m });
+  const { hide, count } = useMemo(
+    () => hiddenBy(full, shape.branch, new Set(shape.fold)),
+    [full, shape.branch, shape.fold],
+  );
+  const t = useMemo(
+    () => (hide.size ? treeOf(batches, guides, hide) : full),
+    [full, hide, batches, guides],
+  );
+  const branch = shape.branch != null ? (full.byId.get(shape.branch) ?? null) : null;
+  const folded = shape.fold.filter((id) => full.byId.has(id));
+  // the pick when it shows, else the drawn tree's own
+  const first = full.first != null && t.byId.has(full.first) ? full.first : t.first;
+  const [sel, setSel] = useState<number | null>(first);
+  const [focus, setFocus] = useState<number | null>(first);
   const [tip, setTip] = useState<number | null>(null);
   // the card sits outside the scroll box (no clip); place it by the box's scroll
   const [view, setView] = useState<{ left: number; width: number }>({ left: 0, width: G.W });
@@ -72,25 +137,41 @@ export function SubjectTree({ subject, batches, guides }: TreeProps) {
   const nodes = useRef(new Map<number, SVGGElement>());
   const uid = useId().replace(/:/g, "");
   const isKept = (s: TNode) => kept[s.id] ?? s.kept;
-  const s = sel != null ? (t.byId.get(sel) ?? null) : null;
-  const round = s ? t.rounds[s.r - 1] : undefined;
+  const s = sel != null ? (full.byId.get(sel) ?? null) : null;
+  const round = s ? full.rounds[s.r - 1] : undefined;
   usePageContext(
     `in view: ${subject.slug} generation tree${s ? `, ${s.name} selected (sample ${s.id}, batch ${round?.num})` : ""}`,
   );
-  // open on the selected sample, centred in the scroll box
+  // open on the selected sample, centred in the scroll box; again when the shape changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only a new layout moves the scroll.
   useLayoutEffect(() => {
     const el = scroll.current;
-    const at = t.first != null ? t.byId.get(t.first) : null;
+    const at =
+      (sel != null ? t.byId.get(sel) : null) ?? (t.first != null ? t.byId.get(t.first) : null);
     if (!el || !at) return;
     const rw = G.AX - 12;
     el.scrollLeft = t.pos(at).x - rw - (el.clientWidth - rw) / 2;
   }, [t]);
-  const marked = t.S.filter((x) => x.v === "amazing" || x.v === "good" || x.v === "bad");
+  const marked = full.S.filter((x) => x.v === "amazing" || x.v === "good" || x.v === "bad");
   const locked = guides.filter((g) => g.state === "locked").length;
   const select = (id: number) => {
+    // a hidden sample: show it, leave the rest of the shape
+    if (hide.has(id)) {
+      const up = full.line(id);
+      setShape({
+        ...shape,
+        branch: shape.branch != null && full.line(shape.branch).has(id) ? shape.branch : null,
+        fold: shape.fold.filter((f) => !up.has(f) || f === id),
+      });
+    }
     setSel(id);
     setFocus(id);
   };
+  const toggleFold = (id: number) =>
+    setShape({
+      ...shape,
+      fold: shape.fold.includes(id) ? shape.fold.filter((f) => f !== id) : [...shape.fold, id],
+    });
   const keys = (ev: KeyboardEvent, n: TNode) => {
     const row = t.S.filter((x) => x.r === n.r).sort((a, b) => t.pos(a).x - t.pos(b).x);
     const i = row.indexOf(n);
@@ -120,10 +201,10 @@ export function SubjectTree({ subject, batches, guides }: TreeProps) {
     <div className="vt">
       <div className="vt-sum">
         <span className="vt-fact">
-          <b>{t.rounds.length}</b> batches
+          <b>{full.rounds.length}</b> batches
         </span>
         <span className="vt-fact">
-          <b>{t.S.length}</b> samples
+          <b>{full.S.length}</b> samples
         </span>
         <span className="vt-fact">
           <b>{marked.filter(isGood).length}</b> good or better of {marked.length} marked
@@ -142,6 +223,34 @@ export function SubjectTree({ subject, batches, guides }: TreeProps) {
           onChange={setMode}
         />
       </div>
+      {(branch || folded.length > 0) && (
+        <div className="vt-scope">
+          {branch && (
+            <span className="vt-fact">
+              Only the line of <b>{branch.name}</b>
+            </span>
+          )}
+          {folded.length > 0 && (
+            <span className="vt-fact">
+              Folded:{" "}
+              <b>
+                {folded.length > 3
+                  ? `${folded.length} samples`
+                  : folded.map((id) => full.byId.get(id)?.name).join(", ")}
+              </b>
+              {!branch && ` · ${hide.size} hidden`}
+            </span>
+          )}
+          <Button
+            className="ml-auto"
+            size="dense"
+            tone="quiet"
+            onClick={() => setShape({ ...shape, branch: null, fold: [] })}
+          >
+            Show all
+          </Button>
+        </div>
+      )}
       <div className="vt-stage">
         <div className="vt-scroll" ref={scroll}>
           <div className="vt-in">
@@ -152,6 +261,8 @@ export function SubjectTree({ subject, batches, guides }: TreeProps) {
               sel={sel}
               focus={focus}
               mode={mode}
+              folds={count}
+              onUnfold={toggleFold}
               name={subject.name}
               isKept={isKept}
               nodes={nodes.current}
@@ -197,17 +308,21 @@ export function SubjectTree({ subject, batches, guides }: TreeProps) {
         <div className="vt-detail">
           <div className="vt-dl">
             <SampleDetail
-              t={t}
+              t={full}
               s={s}
               round={round}
               kept={isKept(s)}
               onGo={select}
               onKeep={() => keep(s)}
               subject={subject.slug}
+              only={shape.branch === s.id}
+              onOnly={() => setShape({ ...shape, branch: shape.branch === s.id ? null : s.id })}
+              folded={shape.fold.includes(s.id)}
+              onFold={() => toggleFold(s.id)}
             />
           </div>
           <div className="vt-dl">
-            <BatchDetail t={t} n={s.r} />
+            <BatchDetail t={full} n={s.r} />
           </div>
         </div>
       )}
@@ -227,7 +342,7 @@ function Rail({ t }: { t: Tree }) {
       height={t.height}
     >
       {t.rounds.map((B) => {
-        const y = G.TOP + B.n * G.GEN;
+        const y = t.rowY(B.n);
         const row = t.S.filter((s) => s.r === B.n);
         return (
           <g key={B.id}>
@@ -297,6 +412,8 @@ function TreeSvg({
   sel,
   focus,
   mode,
+  folds,
+  onUnfold,
   name,
   isKept,
   nodes,
@@ -309,6 +426,9 @@ function TreeSvg({
   sel: number | null;
   focus: number | null;
   mode: "all" | "line";
+  /** folded samples, by how many they hide */
+  folds: ReadonlyMap<number, number>;
+  onUnfold: (id: number) => void;
   name: string;
   isKept: (s: TNode) => boolean;
   nodes: Map<number, SVGGElement>;
@@ -350,14 +470,14 @@ function TreeSvg({
         <rect
           className="vt-band"
           x={G.AX - 14}
-          y={G.TOP + openRow.n * G.GEN - 30}
+          y={t.rowY(openRow.n) - 30}
           width={W - G.AX + 14}
           height="60"
           rx="10"
         />
       )}
       {t.rounds.map((B) => (
-        <path key={B.id} className="vt-guide" d={`M${G.AX - 8} ${G.TOP + B.n * G.GEN}H${W}`} />
+        <path key={B.id} className="vt-guide" d={`M${G.AX - 8} ${t.rowY(B.n)}H${W}`} />
       ))}
       {t.S.flatMap((c) => {
         if (c.v === "open") return [];
@@ -448,6 +568,39 @@ function TreeSvg({
             )}
           </g>
         );
+      })}
+      {/* a fold: what it hides, as "+N" under it; a click unfolds */}
+      {[...folds].flatMap(([id, n]) => {
+        const s = t.byId.get(id);
+        if (!s) return [];
+        const p = t.pos(s);
+        const w = 18 + String(n).length * 7.5;
+        // under its name when the name hangs below (a fold has no kids drawn)
+        const named = strong(s) || s.id === sel || (mode === "all" && path.has(s.id));
+        const pad = s.id === sel ? 5 : s.v === "amazing" ? 4 : 0;
+        const below = named ? pad + 14 + (nameLines(s.name).length - 1) * 13 + 20 : 18;
+        return [
+          // biome-ignore lint/a11y/useSemanticElements: an SVG node; <button> cannot live in SVG.
+          <g
+            key={`f${id}`}
+            className="vt-more"
+            role="button"
+            tabIndex={0}
+            aria-label={`Unfold ${n} that grew from ${s.name}`}
+            transform={`translate(${f1(p.x)} ${f1(p.y + HH(s.v) + below)})`}
+            onClick={() => onUnfold(id)}
+            onKeyDown={(ev) => {
+              if (ev.key !== "Enter" && ev.key !== " ") return;
+              ev.preventDefault();
+              onUnfold(id);
+            }}
+          >
+            <rect x={-w / 2} y="-11" width={w} height="22" rx="11" />
+            <text y="4.5" textAnchor="middle">
+              +{n}
+            </text>
+          </g>,
+        ];
       })}
       {/* names over every snapshot: a sibling never covers one */}
       {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: plain g, no tabindex; names repeat each node's aria-label */}
@@ -741,6 +894,10 @@ function SampleDetail({
   onGo,
   onKeep,
   subject,
+  only,
+  onOnly,
+  folded,
+  onFold,
 }: {
   t: Tree;
   s: TNode;
@@ -749,6 +906,11 @@ function SampleDetail({
   onGo: (id: number) => void;
   onKeep: () => void;
   subject: string;
+  /** the tree shows only this sample's line */
+  only: boolean;
+  onOnly: () => void;
+  folded: boolean;
+  onFold: () => void;
 }) {
   if (s.v === "open")
     return (
@@ -869,6 +1031,14 @@ function SampleDetail({
         >
           Branch from this
         </Button>
+        <Button aria-pressed={only} onClick={onOnly}>
+          {only ? "Show all" : "Only this line"}
+        </Button>
+        {(ch.length > 0 || folded) && (
+          <Button aria-pressed={folded} onClick={onFold}>
+            {folded ? "Unfold" : "Fold what grew"}
+          </Button>
+        )}
         {s.media && (
           <a className="vt-link" href={s.media} target="_blank" rel="noreferrer">
             Open sample ↗

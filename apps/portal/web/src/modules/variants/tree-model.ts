@@ -68,7 +68,8 @@ export interface TRound {
   locks: string[];
 }
 
-export const G = { W: 830, AX: 168, TOP: 34, GEN: 112 } as const;
+/** SHUT: a row with no sample drawn after another such row: its name and call only */
+export const G = { W: 830, AX: 168, TOP: 34, GEN: 112, SHUT: 72 } as const;
 /** snapshot sizes by call: the good line reads first */
 export const TH: Record<Call, readonly [number, number]> = {
   amazing: [56, 35],
@@ -140,7 +141,12 @@ export const isGood = (s: TNode) => s.v === "amazing" || s.v === "good";
 /** on the line: a good call, or a later batch grew from it */
 export const strong = (s: TNode) => isGood(s) || s.v === "grew";
 
-export function treeOf(batches: readonly TreeBatch[], guides: readonly TreeGuide[]) {
+/** `hide`: samples left out of the drawing; calls and batch counts still count them. */
+export function treeOf(
+  batches: readonly TreeBatch[],
+  guides: readonly TreeGuide[],
+  hide?: ReadonlySet<number>,
+) {
   const bs = [...batches].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
   const openIds = new Set(bs.filter((b) => b.state === "open").map((b) => b.id));
   // blind: an open batch shows no parents (the API strips them too)
@@ -212,7 +218,32 @@ export function treeOf(batches: readonly TreeBatch[], guides: readonly TreeGuide
         .map((g) => g.text),
     };
   });
-  return layout(S, rounds);
+  if (!hide?.size) return layout(S, rounds);
+  const shown = S.filter((s) => !hide.has(s.id));
+  // a hidden parent draws no edge: its child hangs from the parents that show
+  for (const s of shown) s.p = s.p.filter((id) => !hide.has(id));
+  return layout(shown, rounds);
+}
+
+/** What to leave out: all but one sample's line, and what grew only from a folded sample. */
+export function hiddenBy(t: Tree, branch: number | null, fold: ReadonlySet<number>) {
+  const hide = new Set<number>();
+  if (branch != null && t.byId.has(branch)) {
+    const keep = t.line(branch);
+    for (const s of t.S) if (s.v !== "open" && !keep.has(s.id)) hide.add(s.id);
+  }
+  const under = new Set<number>();
+  for (const s of [...t.S].sort((a, b) => a.r - b.r))
+    if (s.p.length && s.p.every((p) => fold.has(p) || under.has(p))) under.add(s.id);
+  for (const id of under) hide.add(id);
+  // what each shown fold hides, for its "+N"
+  const count = new Map<number, number>();
+  for (const f of fold) {
+    if (!t.byId.has(f) || hide.has(f)) continue;
+    const n = [...t.line(f)].filter((id) => under.has(id) && id !== f).length;
+    if (n) count.set(f, n);
+  }
+  return { hide, count };
 }
 
 function layout(S: TNode[], rounds: TRound[]) {
@@ -293,9 +324,16 @@ function layout(S: TNode[], rounds: TRound[]) {
   const total = hi - lo || 1;
   const openRow = new Map<number, TNode[]>();
   for (const s of S) if (s.v === "open") openRow.set(s.r, [...(openRow.get(s.r) ?? []), s]);
+  const drawn = new Set(S.map((s) => s.r));
+  const ys: number[] = [G.TOP];
+  // the first empty row keeps full room: names and "+N" chips hang below the row above
+  for (let i = 0; i < rounds.length; i++)
+    ys.push((ys[i] ?? G.TOP) + (drawn.has(i + 1) || drawn.has(i) || i === 0 ? G.GEN : G.SHUT));
+  /** the y of row r (1-based) */
+  const rowY = (r: number) => ys[r] ?? G.TOP + r * G.GEN;
   const pos = (s: TNode | null) => {
     if (!s) return { x: G.AX + (G.W - G.AX) / 2, y: G.TOP };
-    const y = G.TOP + s.r * G.GEN;
+    const y = rowY(s.r);
     if (s.v === "open") {
       const row = openRow.get(s.r) ?? [];
       // 58 apart; tighter when a big batch would leave the frame
@@ -362,7 +400,8 @@ function layout(S: TNode[], rounds: TRound[]) {
     goodLine,
     pathUp,
     first: pick?.id ?? null,
-    height: G.TOP + rounds.length * G.GEN + 46,
+    rowY,
+    height: rowY(rounds.length) + 46,
   };
 }
 export type Tree = ReturnType<typeof treeOf>;

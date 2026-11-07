@@ -479,7 +479,7 @@ export function SubjectsPage({ params }: PageProps) {
   const pick = Number(params.get("subject")) || null;
   const setPick = (id: number | null) =>
     navigate(href("/variants/subjects", { subject: id }, params));
-  if (pick != null) return <SubjectDetail id={pick} onBack={() => setPick(null)} />;
+  if (pick != null) return <SubjectDetail id={pick} params={params} onBack={() => setPick(null)} />;
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading />;
   if (!got.data.length)
@@ -508,7 +508,15 @@ export function SubjectsPage({ params }: PageProps) {
   );
 }
 
-function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
+function SubjectDetail({
+  id,
+  params,
+  onBack,
+}: {
+  id: number;
+  params: URLSearchParams;
+  onBack: () => void;
+}) {
   const got = useCall(`variants-subject:${id}`, () =>
     call<SubjectView>("variants/subject", { id }),
   );
@@ -554,7 +562,7 @@ function SubjectDetail({ id, onBack }: { id: number; onBack: () => void }) {
           <p className="m-0 max-w-[70ch] text-[13px] text-(--ui-ink-2)">{v.subject.brief}</p>
         )}
       </div>
-      <SubjectTree subject={v.subject} batches={v.batches} guides={guides} />
+      <SubjectTree subject={v.subject} batches={v.batches} guides={guides} params={params} />
       {v.live && v.live.rows.length > 0 && <LiveView live={v.live} picks={v} />}
       <section className="flex flex-col gap-2">
         <h3 className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">Guides</h3>

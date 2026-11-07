@@ -1291,7 +1291,7 @@ export const FocusSet = mapAt(`/map/parts/${encodeURIComponent("line:webinar,gro
   },
 });
 
-/** A saved view (F2): its name, the Map crumb back, and Home view sets the `map.home` pref. */
+/** A saved view (F2): its name, the Map crumb back; in Views, Make it the home view sets `map.home`. */
 export const FocusView = mapAt("/map/view/41", {
   answers: { ...focusAnswers(SHARED), ...viewsAnswers() },
   check: async (page) => {
@@ -1299,12 +1299,49 @@ export const FocusView = mapAt("/map/view/41", {
     const crumbs = within(page).getByRole("navigation", { name: "Breadcrumb" });
     await expect(within(crumbs).getByRole("link", { name: "Map" })).toHaveAttribute("href", "/");
     await expect(within(page).queryByRole("button", { name: "Save view" })).toBeNull();
-    const home = within(page).getByRole("button", { name: "Home view" });
+    await userEvent.click(within(page).getByRole("button", { name: "Views: Sales desk" }));
+    const pop = await within(document.body).findByRole("dialog", { name: "Views" });
+    const home = within(pop).getByRole("button", { name: "Make it the home view" });
     await expect(home).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(home);
     await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["setPref"]));
     await expect(MAP_CALLS[0]?.body).toMatchObject({ key: "map.home", value: 41 });
-    await expect(home).toHaveAttribute("aria-pressed", "true");
+  },
+});
+
+/** The Map bar's Views: Whole map, each saved view with its look, and Save view beside it. */
+export const MapViewsMenu = mapAt("/", {
+  answers: {
+    ...bigAnswers(SHARED),
+    ...viewsAnswers([
+      MAP_VIEW,
+      {
+        ...MAP_VIEW,
+        id: 42,
+        name: "Plates, audit shut",
+        params: "look=layers&shut=node%3Aaudit%40",
+      },
+    ]),
+  },
+  check: async (page) => {
+    await userEvent.click(await within(page).findByRole("button", { name: /^Views:/ }, LATE));
+    const pop = await within(document.body).findByRole("dialog", { name: "Views" });
+    await expect(within(pop).getByRole("link", { name: "Whole map" })).toBeVisible();
+    await expect(within(pop).getByRole("link", { name: /Plates, audit shut/ })).toHaveAttribute(
+      "href",
+      expect.stringContaining("sv=42"),
+    );
+  },
+});
+
+/** Layers, one plate shut (`shut=`): only its stop on the floor, with Lift. */
+export const LayersShut = mapAt("/?look=layers&shut=node%3Aaudit%40", {
+  answers: bigAnswers(SHARED),
+  check: async (page) => {
+    await expect(
+      await within(page).findByRole("button", { name: "Lift Audit" }, LATE),
+    ).toBeVisible();
+    await expect(within(page).queryByRole("button", { name: "Shut Audit" })).toBeNull();
   },
 });
 

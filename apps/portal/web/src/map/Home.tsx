@@ -5,9 +5,9 @@
  */
 import { usePref } from "@wren/ui";
 import { lineKeyOf, MetroSkeleton } from "@wren/ui/metro";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import type { PageProps } from "../module.js";
-import { go } from "../route.js";
+import { go, navigate } from "../route.js";
 import { FocusPage } from "./FocusPage.js";
 import { focusOf } from "./focus.js";
 import { MapPage } from "./MapPage.js";
@@ -15,7 +15,7 @@ import { windowOf } from "./model.js";
 import { useMap } from "./read.js";
 import { TodayTasks } from "./TodayTasks.js";
 import { tasksOf } from "./tasks.js";
-import { MAP_HOME, mapKeepOf, useMapViews, viewPartsOf } from "./views.js";
+import { MAP_HOME, mapKeepOf, useMapViews, viewHref, viewPartsOf } from "./views.js";
 
 export function MapHome({
   props,
@@ -60,8 +60,17 @@ export function MapHome({
   const views = useMapViews(keep);
   const wanted = keep && props.params.get("whole") !== "1" ? homeId.value : undefined;
   const homeView = wanted ? (views.lines.find((v) => v.id === wanted) ?? null) : null;
+  // A home view of the whole Map is a look and folds: "/" opens with them, unless it names its own.
+  const whole = !!homeView && !viewPartsOf(homeView).length;
+  const plain = !["sv", "look", "floor", "split", "shut", "focus"].some((k) => props.params.has(k));
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once per home view and bare address
+  useEffect(() => {
+    if (homeView && whole && plain) navigate(viewHref(homeView, props.params), true);
+  }, [homeView?.id, whole, plain]);
   const drawn =
-    homeView && data?.metro ? !!focusOf(data.metro, viewPartsOf(homeView), homeView.name) : false;
+    homeView && data?.metro && !whole
+      ? !!focusOf(data.metro, viewPartsOf(homeView), homeView.name)
+      : false;
   const waiting =
     !!keep &&
     props.params.get("whole") !== "1" &&
@@ -74,7 +83,7 @@ export function MapHome({
       <FocusPage key={homeView.id} props={props} at={{ view: homeView.id }} home />
     ) : (
       <>
-        {wanted && !waiting ? (
+        {wanted && !waiting && !whole ? (
           <p
             role="status"
             className="px-[clamp(12px,2.5vw,24px)] pt-3 text-[13px] text-(--ui-ink-3)"

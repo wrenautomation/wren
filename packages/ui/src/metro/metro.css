@@ -1132,6 +1132,28 @@
     opacity: 1;
   }
 }
+/* Shut and Lift: one plate at a time. Shut always shows: it is how a plate goes. */
+.mlay-shut {
+  height: 16px;
+  padding: 0 6px;
+  border: 0;
+  border-left: 1px solid var(--ui-hair);
+  border-radius: 0;
+  background: none;
+  color: var(--ui-ink-2);
+  font: 500 11.5px var(--ui-font);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.mlay-shut:hover,
+.mlay-shut:focus-visible {
+  color: var(--ui-active);
+}
+/* A shut plate: its stop stays on the floor, the plate and its drop go; Lift is in the bar. */
+.mlay-slot.shut .mlay-plate,
+.mlay-slot.shut .mlay-drop {
+  display: none;
+}
 /* From its stop on the floor up to the plate: the artifact's `.drop`. */
 .mlay-drop {
   position: absolute;

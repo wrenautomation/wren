@@ -22,6 +22,44 @@
   font-variant-numeric: tabular-nums;
   color: var(--ui-ink);
 }
+/* The shape on screen when it is not the whole tree: what is left out, and the way back. */
+.vt-scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  margin-top: 10px;
+  padding: 6px 6px 6px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ui-active) 7%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-active) 22%, transparent);
+}
+.vt-scope .vt-fact {
+  font-size: 13px;
+  color: var(--ui-ink-2);
+}
+.vt-scope b {
+  font-weight: 650;
+  color: var(--ui-ink);
+}
+.vt-more {
+  cursor: pointer;
+  outline: none;
+}
+.vt-more rect {
+  fill: var(--ui-paper);
+  stroke: color-mix(in srgb, var(--ui-active) 55%, transparent);
+  stroke-width: 1;
+}
+.vt-more text {
+  font: 600 12px var(--ui-font);
+  fill: var(--ui-active);
+}
+.vt-more:hover rect,
+.vt-more:focus-visible rect {
+  stroke: var(--ui-active);
+  stroke-width: 1.5;
+}
 .vt-sum .ui-seg {
   margin-left: auto;
 }

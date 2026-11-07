@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { deltaOf, G, shortName, type TreeBatch, type TreeSample, treeOf } from "./tree-model.js";
+import {
+  deltaOf,
+  G,
+  hiddenBy,
+  shortName,
+  type TreeBatch,
+  type TreeSample,
+  treeOf,
+} from "./tree-model.js";
 
 const sample = (
   id: number,
@@ -171,5 +179,56 @@ describe("lineage", () => {
     expect(t.byId.get(3)?.name).toBe("Sample A");
     expect(t.byId.get(3)?.p).toEqual([]);
     expect(t.byId.get(1)?.v).toBe("unmarked");
+  });
+});
+
+describe("hiddenBy", () => {
+  // 1 → 2 → 4, 1 → 3; 5 is a seed; 6 grew from 2 and 5
+  const bs = [
+    batch(1, 1, [sample(1, "good", "a"), sample(5, "bad", "e")]),
+    batch(2, 2, [sample(2, "good", "b", 1), sample(3, "bad", "c", 1)]),
+    batch(3, 3, [
+      sample(4, "amazing", "d", 2),
+      {
+        ...sample(6, "good", "f", 2),
+        parents: [
+          { id: 2, took: null },
+          { id: 5, took: null },
+        ],
+      },
+    ]),
+  ];
+  const t = treeOf(bs, []);
+  it("a branch keeps one line: parents up and all it grew", () => {
+    const { hide } = hiddenBy(t, 2, new Set());
+    expect([...hide].sort()).toEqual([3, 5]);
+  });
+  it("a fold hides only what grew from it alone, and counts it", () => {
+    const { hide, count } = hiddenBy(t, null, new Set([2]));
+    // 6 also grew from 5: it stays
+    expect([...hide]).toEqual([4]);
+    expect(count.get(2)).toBe(1);
+  });
+  it("ignores stale ids", () => {
+    const { hide, count } = hiddenBy(t, 99, new Set([98]));
+    expect(hide.size).toBe(0);
+    expect(count.size).toBe(0);
+  });
+  it("a hidden tree keeps calls from the whole and draws no edge to a hidden parent", () => {
+    const { hide } = hiddenBy(t, null, new Set([1]));
+    const cut = treeOf(bs, [], hide);
+    expect(cut.S.map((s) => s.id).sort()).toEqual([1, 5, 6]);
+    expect(cut.byId.get(6)?.p).toEqual([5]);
+    expect(cut.byId.get(1)?.v).toBe("good");
+  });
+  it("rows a fold empties shrink, after one full row for the names above", () => {
+    const line = [1, 2, 3, 4].map((n) =>
+      batch(n, n, [sample(n, "good", `s${n}`, n > 1 ? n - 1 : undefined)]),
+    );
+    const { hide } = hiddenBy(treeOf(line, []), null, new Set([1]));
+    const cut = treeOf(line, [], hide);
+    expect(cut.rowY(2) - cut.rowY(1)).toBe(G.GEN);
+    expect(cut.rowY(3) - cut.rowY(2)).toBe(G.SHUT);
+    expect(cut.height).toBeLessThan(treeOf(line, []).height);
   });
 });
