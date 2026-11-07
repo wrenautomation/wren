@@ -205,7 +205,7 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
     - Chosen: A.
   - Depth: claim to findings; source to pages with findings, pages with none, pages not read, and its searches; page to findings; finding to quote; search to sources and dropped hits with reasons. A shelf chip lifts its source into the web.
   - A run of more than 8 children (6 on a phone) opens 8 at a time behind "N more". Other kinds always show.
-  - Stability: a live d3-force pass. Old nodes hold to their places (strength .22); new nodes spawn from the parent, fanned outward; the clicked node is pinned. Box collide runs until no overlap, up to 400 passes.
+  - Stability (version 9, after William saw global drift): solve off screen, then one eased move per node (460 ms, cubic out). The clicked node never moves. Old nodes inside a radius sized to the new cards make room; the rest are pinned and give way a tenth as much in the box collide. A collide stuck between held nodes releases them. Closing folds the children back into the node. Measured on opening a claim: 5 of 32 old nodes move, none changes direction.
   - Claims: accent tint at 7% on paper, accent ring, number disc. No more dark blocks.
   - Edges by kind: claim (speaker colour, width by weight), tree, backs (finding to claim), via and found (dashed).
   - For the portal: React Flow with d3-force, same expand model.
