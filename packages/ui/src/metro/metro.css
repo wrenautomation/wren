@@ -927,6 +927,31 @@
   border-radius: 50%;
   animation: metro-skeleton-spin 0.8s linear infinite;
 }
+/* The Layers ghost: at its view's own place, on the view's own wash, no dot grid. */
+.metro-skeleton:has(> .layers) {
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    color-mix(in srgb, var(--ui-active) 7%, var(--ui-paper)),
+    var(--ui-paper)
+  );
+}
+.metro-skeleton-art.layers {
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin: 0;
+  transform-origin: 0 0;
+}
+.metro-skeleton .sk-floor,
+.metro-skeleton .sk-face {
+  fill: var(--ui-paper);
+  stroke: var(--ui-hair);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+.metro-skeleton .sk-face {
+  stroke: color-mix(in srgb, var(--ui-active) 30%, transparent);
+}
 @keyframes metro-skeleton-spin {
   to {
     transform: rotate(360deg);
@@ -1038,6 +1063,21 @@
 .mlay-floor svg,
 .mlay-plate svg {
   display: block;
+}
+/* Floor tracks into a fold: to its stop as the plates part, into the station as they land. */
+.mlay-floor > svg {
+  position: relative;
+}
+.mlay-join {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.mlay-join.apart {
+  opacity: var(--e, 1);
+}
+.mlay-join.landed {
+  opacity: calc(1 - var(--e, 1));
 }
 /* Shadows and filters on every mark cost a lot inside a 3D layer: none here. */
 .mlay .mk,

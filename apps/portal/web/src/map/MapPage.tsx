@@ -160,7 +160,7 @@ function partOf(v: string | null): LayerPart | null {
   return m ? { kind: m[1] as "node" | "line", id: m[2] as string } : null;
 }
 /** The URL params a Map layout hangs on: one ghost per set. */
-const GHOST_KEYS = ["sv", "focus", "draft", "history"] as const;
+const GHOST_KEYS = ["sv", "focus", "draft", "history", "look", "floor", "split", "shut"] as const;
 const partParam = (p: LayerPart | null) => (p ? `${p.kind}:${p.id}` : null);
 
 /** The flat map's focus from `focus=`: the part as the map's spec, and its name. */
@@ -617,6 +617,7 @@ export function MapPage({
                 onShut={(k) =>
                   navigate(href("/", { shut: k.length ? k.join(",") : null }, props.params), true)
                 }
+                ghost={ghostKey}
                 onSplit={(s) =>
                   navigate(
                     href("/", { split: s === "lines" ? s : null, shut: null }, props.params),

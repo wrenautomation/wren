@@ -29,8 +29,16 @@ import { MetroSvg } from "./draw.js";
 import { type FocusSpec, focusScene } from "./focus.js";
 import type { MetroZoom } from "./fold.js";
 import { labelBoxes, markerBox } from "./geometry.js";
+import { layerShapes, saveGhost } from "./ghost.js";
 import { MetroSkeleton } from "./skeleton.js";
-import { isCapsule, isMark, type MetroScene, type SceneStation } from "./types.js";
+import {
+  isCapsule,
+  isMark,
+  type MetroScene,
+  type MetroTrack,
+  type Point,
+  type SceneStation,
+} from "./types.js";
 
 /** A part of the map: a fold node, or one line. */
 export type LayerPart = { kind: "node" | "line"; id: string };
@@ -69,6 +77,15 @@ interface Level {
   /** The splits that give plates here. */
   can: Record<LayerSplit, boolean>;
   lines: { id: string; n: string }[];
+  /** Floor tracks into a fold, by the plates they join: to its stop when apart or shut, to the
+   * station itself when landed. */
+  joins: Join[];
+}
+
+interface Join {
+  parts: string[];
+  apart: MetroTrack[];
+  landed: MetroTrack[];
 }
 
 /** Room round a plate's stations, so names show. */
@@ -209,7 +226,7 @@ function shutFloor(
   byFold: ReadonlyMap<string, readonly string[]>,
   stops: ReadonlyMap<string, SceneStation>,
   mids: ReadonlyMap<string, readonly [number, number]>,
-): MetroScene {
+): { floor: MetroScene; joins: Join[] } {
   const hidden = new Map<string, string>();
   for (const [k, ids] of byFold) for (const id of ids) hidden.set(id, k);
   const lineOfFold = new Map([...stops].map(([k, s]) => [k, lineOf(s)]));
@@ -220,6 +237,9 @@ function shutFloor(
     if (isCapsule(stop)) return [{ ...stop, x, cap: [x, x], y }];
     return [{ ...stop, x, y }];
   });
+  const byId = new Map(all.st.map((s) => [s.id, s]));
+  const joins = new Map<string, Join>();
+  const seen = new Set<string>();
   const tr = all.tr.flatMap((r) => {
     const ka = r.a ? hidden.get(r.a) : undefined;
     const kb = r.b ? hidden.get(r.b) : undefined;
@@ -231,7 +251,31 @@ function shutFloor(
       void [who, late, dot, cond, condGlyph, cat, lab, mv, dots, task];
       return [bare];
     }
-    return [r];
+    // Across a fold's edge (lead into core offer): off the floor, into its join.
+    const key = [ka, kb].filter(Boolean).sort().join("|");
+    const join = joins.get(key) ?? {
+      parts: [...new Set([ka, kb])].flatMap((k) => (k ? [`node:${k}`] : [])),
+      apart: [],
+      landed: [],
+    };
+    joins.set(key, join);
+    const at = (id: string | undefined, o: number | undefined): Point | undefined => {
+      const s = id ? byId.get(id) : undefined;
+      return s ? [s.x ?? 0, s.y + (o ?? r.o ?? 0)] : undefined;
+    };
+    const pa = r.pa ?? at(r.a, r.oa);
+    const pc = r.pc ?? at(r.b, r.ob);
+    if (pa && pc) join.landed.push({ ...r, pa, pc });
+    // apart: the flat map's shut route, a bare track to the stacked stop
+    const stopAt = (k: string) => mids.get(k) as Point | undefined;
+    const sa = ka ? stopAt(ka) : at(r.a, 0);
+    const sc = kb ? stopAt(kb) : at(r.b, 0);
+    const near = `${ka ?? r.a}>${kb ?? r.b}`;
+    if (sa && sc && ka !== kb && !seen.has(near)) {
+      seen.add(near);
+      join.apart.push({ ...(r.l ? { l: r.l } : {}), ...(r.w ? { w: r.w } : {}), pa: sa, pc: sc });
+    }
+    return [];
   });
   const inBox = (x: number, y: number, k: string) => {
     const o = all.opened?.find((p) => p.grp === k);
@@ -240,7 +284,7 @@ function shutFloor(
     return x >= l && x <= rr && y >= t && y <= b;
   };
   const folded = (x: number, y: number) => [...byFold.keys()].some((k) => inBox(x, y, k));
-  return {
+  const floor: MetroScene = {
     ...all,
     ...(frame.x0 === undefined ? {} : { x0: frame.x0 }),
     ...(frame.w === undefined ? {} : { w: frame.w }),
@@ -253,6 +297,7 @@ function shutFloor(
     folds: (all.folds ?? []).filter((f) => !byFold.has(f.grp)),
     opened: (all.opened ?? []).filter((o) => !byFold.has(o.grp)),
   };
+  return { floor, joins: [...joins.values()] };
 }
 
 /**
@@ -325,6 +370,7 @@ async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit): Promi
   });
   let cut: Omit<Plate, "z">[] = [];
   let floor: MetroScene = { ...frame, still: true, click: false };
+  let joins: Join[] = [];
   if (split === "folds" && can.folds) {
     const mids = new Map<string, readonly [number, number]>();
     cut = [...byFold].flatMap(([id, ids]) => {
@@ -352,7 +398,9 @@ async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit): Promi
         },
       ];
     });
-    floor = { ...shutFloor(all, frame, byFold, stops, mids), still: true, click: false };
+    const shut = shutFloor(all, frame, byFold, stops, mids);
+    floor = { ...shut.floor, still: true, click: false };
+    joins = shut.joins;
   } else if (split === "lines" && can.lines) {
     cut = [...byLine].map(([id, ids]) => {
       const scene = band(focusScene(flat, only(ids)));
@@ -404,7 +452,7 @@ async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit): Promi
   const lines = Object.entries(all.lines ?? {})
     .filter(([id]) => all.st.some((s) => lineOf(s) === id))
     .map(([id, l]) => ({ id, n: l.n }));
-  return { floor, plates, split, can, lines };
+  return { floor, plates, split, can, lines, joins };
 }
 
 /** Perspective on `.mlay-view` (px) and its origin's height (share of the box). */
@@ -534,6 +582,8 @@ export interface MetroLayersProps {
   shut?: readonly string[] | undefined;
   /** No Shut or Lift without it. */
   onShut?: ((shut: string[]) => void) | undefined;
+  /** The page's key: its skeleton draws this view's last first fit (`ghost.ts`). */
+  ghost?: string | undefined;
   className?: string | undefined;
 }
 
@@ -595,6 +645,22 @@ const Stage = memo(function Stage({
   return (
     <>
       <div className="mlay-floor">
+        {/* under the floor's stops: each join to its stop (apart, or its plate shut), or into the
+            station itself (landed) */}
+        {level.joins.map((j) => {
+          const sh = j.parts.some((k) => shut.has(k));
+          const bare = { ...level.floor, st: [], chips: [], frames: [], folds: [], opened: [] };
+          return [
+            <div key={`${j.parts}-a`} className={cx("mlay-join", sh ? "on" : "apart")}>
+              <MetroSvg scene={{ ...bare, tr: j.apart }} still bare />
+            </div>,
+            sh ? null : (
+              <div key={`${j.parts}-l`} className="mlay-join landed">
+                <MetroSvg scene={{ ...bare, tr: j.landed }} still bare />
+              </div>
+            ),
+          ];
+        })}
         <MetroSvg scene={level.floor} still bare />
       </div>
       {level.plates.map((p) => {
@@ -691,6 +757,7 @@ export function MetroLayers({
   onSplit,
   shut: shutList,
   onShut,
+  ghost,
   className,
 }: MetroLayersProps) {
   const shutKey = (shutList ?? []).join(",");
@@ -839,6 +906,58 @@ export function MetroLayers({
     [fly, rects, w, h, box],
   );
 
+  // What the skeleton draws next time: the fit a load lands on, once its flight ends; a hand on
+  // the camera first keeps the last one.
+  const touched = useRef(false);
+  const keepGhost = () => {
+    const key = ghost;
+    if (!key || !level) return;
+    const [bw, bh] = box;
+    touched.current = false;
+    window.setTimeout(() => {
+      const c = cam.current;
+      const at = viewEl.current?.getBoundingClientRect();
+      if (touched.current || !at) return;
+      const shapes = [
+        layerShapes(
+          level.floor,
+          (x, y) => toView(c, w, h, box, x - (level.floor.x0 ?? 0), y - (level.floor.y0 ?? 0), 0),
+          c.k,
+        ),
+        ...level.plates
+          .filter((p) => !shut.has(partKey(p.part)))
+          .map((p) =>
+            layerShapes(
+              p.scene,
+              (x, y) =>
+                toView(
+                  c,
+                  w,
+                  h,
+                  box,
+                  p.box.left + x - (p.scene.x0 ?? 0),
+                  p.box.top + y - (p.scene.y0 ?? 0),
+                  p.z * c.e,
+                ),
+              c.k,
+            ),
+          ),
+      ];
+      saveGhost(key, {
+        kind: "layers",
+        bw,
+        bh,
+        top: Math.round(at.top),
+        left: Math.round(at.left),
+        vw: innerWidth,
+        faces: shapes.map((s) => s.face),
+        tr: shapes.flatMap((s) => s.tr),
+        st: shapes.flatMap((s) => s.st),
+        names: shapes.flatMap((s) => s.names),
+      });
+    }, 900);
+  };
+
   // A new level or box: frame it at the pose last asked for (landed stays landed).
   const first = useRef(true);
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new level mounts a new stage.
@@ -852,6 +971,7 @@ export function MetroLayers({
       place();
       setApart(p.e > 0.5);
     } else poseTo(p);
+    keepGhost();
   }, [level, box]);
 
   useEffect(() => () => run.current?.stop(), []);
@@ -882,6 +1002,7 @@ export function MetroLayers({
     if (!el) return;
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
+      touched.current = true;
       run.current?.stop();
       const r = el.getBoundingClientRect();
       const mouse = e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 50);
@@ -904,6 +1025,7 @@ export function MetroLayers({
 
   const down = (e: PointerEvent<HTMLDivElement>) => {
     if ((e.target as Element).closest(".mlay-act, .mlay-knob, .mlay-bar")) return;
+    touched.current = true;
     run.current?.stop();
     ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     dragged.current = false;
@@ -1078,7 +1200,10 @@ export function MetroLayers({
               { value: "flat", label: "Together" },
               { value: "apart", label: "Apart" },
             ]}
-            onChange={(v) => poseTo(v === "flat" ? FLAT : APART)}
+            onChange={(v) => {
+              touched.current = true;
+              poseTo(v === "flat" ? FLAT : APART);
+            }}
           />
           <Button
             tone="quiet"
@@ -1116,7 +1241,7 @@ export function MetroLayers({
         {failed ? (
           <p className="mlay-fail">This floor could not be drawn: {failed}</p>
         ) : !f || !level ? (
-          <MetroSkeleton label="Lifting the layers" />
+          <MetroSkeleton label="Lifting the layers" ghost={ghost} />
         ) : (
           <div
             ref={stage}

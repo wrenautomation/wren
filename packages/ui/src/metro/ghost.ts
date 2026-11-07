@@ -61,17 +61,17 @@ const INDEX = `${PREFIX}index`;
 const KEEP = 16;
 
 /** The last ghost drawn for this page, or null (none yet, or storage blocked). */
-export function readGhost(key: string | undefined): Ghost | null {
+export function readGhost(key: string | undefined): Ghost | LayersGhost | null {
   if (!key) return null;
   try {
     const raw = localStorage.getItem(PREFIX + key);
-    return raw ? (JSON.parse(raw) as Ghost) : null;
+    return raw ? (JSON.parse(raw) as Ghost | LayersGhost) : null;
   } catch {
     return null;
   }
 }
 
-export function saveGhost(key: string, g: Ghost) {
+export function saveGhost(key: string, g: Ghost | LayersGhost) {
   try {
     const was = JSON.parse(localStorage.getItem(INDEX) ?? "[]") as string[];
     const keys = [key, ...was.filter((k) => k !== key)];
@@ -81,4 +81,52 @@ export function saveGhost(key: string, g: Ghost) {
   } catch {
     // storage full or blocked: the skeleton falls back to its sketch
   }
+}
+
+/**
+ * The Layers view's ghost: floor and plates as it last stood at its first fit, every point put
+ * through the camera (view px), so the 3D view lands on it too.
+ */
+export interface LayersGhost {
+  kind: "layers";
+  /** The view's box and its place in the window, at window width `vw`. */
+  bw: number;
+  bh: number;
+  top: number;
+  left: number;
+  vw: number;
+  /** Faces, the floor first: polygon points. */
+  faces: string[];
+  tr: [string, number][];
+  st: string[];
+  names: string[];
+}
+
+type See = (x: number, y: number) => readonly [number, number];
+const poly = (see: See, x: number, y: number, w: number, h: number) =>
+  [see(x, y), see(x + w, y), see(x + w, y + h), see(x, y + h)]
+    .map(([a, b]) => `${r1(a)},${r1(b)}`)
+    .join(" ");
+
+/** One scene's shapes through `see` (scene px to view px); `k`: the stroke scale. */
+export function layerShapes(
+  scene: MetroScene,
+  see: See,
+  k: number,
+): Pick<LayersGhost, "tr" | "st" | "names"> & { face: string } {
+  const g = ghostOf(scene);
+  const ends = trackEnds(scene);
+  const tr: LayersGhost["tr"] = scene.tr.flatMap((r): LayersGhost["tr"] => {
+    const e = ends(r);
+    if (!e || r.stub) return [];
+    const pts = routeOf(r, e[0], e[1]).map(([x, y]) => see(x, y));
+    const d = pts.map(([x, y], i) => `${i ? "L" : "M"}${r1(x)} ${r1(y)}`).join("");
+    return [[d, Math.max(1.5, (r.k ? 3 : 6) * k)]];
+  });
+  return {
+    face: poly(see, g.x0, g.y0, g.w, g.h),
+    tr,
+    st: g.st.map(([x, y, w, h]) => poly(see, x, y, w, h)),
+    names: g.names.map(([x, y, w]) => poly(see, x, y, w, 7)),
+  };
 }
