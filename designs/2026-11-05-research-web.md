@@ -147,3 +147,18 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Looks: Relief (quarter-step contours), Peaks (lit cones, height by square root of findings kept), Towers (equal-width columns, height linear), Bubbles (flat discs, area), Pins (head by claims backed), Ridges (profile lines), Treemap (kind blocks, cells by area), Heat (shaded field), Coins (one coin per finding, to 10), Zoom (discs that rise into peaks).
   - The session's choices, not William's: the ten looks, their scales, and one shared layout for all. Treemap and Bubbles are flat, so drag pans.
   - Open: William picks a look, or a merge. The winner then gets its own spacing and label rules before WA-1106.
+- 11-06: William on round 9: Towers and Coins fine; Heat interesting, the eye follows its flow; Bubbles too flat; Pins good as a stacked deck of the page cards; Relief, Peaks, Ridges, Treemap and Zoom out. The page previews, thumbnails and icons of round 6 must come back. Hollow numbered circles look weak. Polish hierarchy and alignment.
+- 11-06: round 10 of artifact `LdYvUurK` (WA-1155). Seven looks: Towers, Coins, Heat, Heat + towers, Heat + coins, Decks, Heat + decks.
+  - Media: the top sources get a preview card (video thumbnail with a play mark, page image, else the best page's title in full). The next ones get a chip with a thumbnail or icon. On a phone: 1 card and 2 chips.
+  - Numbers are plain figures. Hollow circles are gone from the map, the list and the panel.
+  - Heat gets equal-heat lines at 5 levels. Decks: up to 5 page cards a source, the best page's image in front, a ring for a source that backs a claim.
+  - Page images: the mock fetched og:image for 124 top pages; 49 have one. The engine does not store them yet.
+  - The session's choices, not William's: the seven looks, the card and chip counts, the island names.
+- 11-06: William asked where the kinds come from ("practitioner", "vendor"). They are the engine's closed `SOURCE_CLASSES` set, William's pick on 10-28 (research-engine.md). The agent writes the class when it reads a page; where none, the judge's CLASS guess fills in. In the WA-1133 run the agent classed 109 of 120 read pages.
+  - Gaps found: no class for research papers (papers split over primary_data 36, other 10, survey 4); docs and help pages fall into vendor; the set mixes who speaks with the type of evidence.
+  - Options put to William (hard to change: the class feeds counts across runs):
+    - A: keep the keys, rename only the shown words. Cheap; the gaps stay.
+    - B: add `paper` and `docs` classes. Fixes the two gaps; keeps the mixed axis.
+    - C (recommended): one axis, who speaks: research, person, company, forum, press, public body, other. The type of evidence stays in the judge's `format`. Old keys map on read, so old runs still count.
+    - D: the agent names islands per run. Rejected: counts would not add up across runs.
+  - Round 10 previews C's names: Research, People, Companies, Forums, Press, Other. The engine is unchanged until William picks.
