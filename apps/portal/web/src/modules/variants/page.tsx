@@ -86,7 +86,11 @@ interface SubjectView {
     createdAt: string;
     closedAt?: string | null;
     goodRate: number | null;
-    samples: (Sample & { change: string | null; parentId?: number | null })[];
+    samples: (Sample & {
+      change: string | null;
+      name?: string | null;
+      parents?: { id: number; took: string | null }[];
+    })[];
   }[];
   leaders: { sample: number; strength: number; se: number }[];
   live?: Live;

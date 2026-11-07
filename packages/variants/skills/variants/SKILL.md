@@ -28,10 +28,10 @@ You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (pr
 1. **Start.** No brief = from scratch: read the seeds (a Birdwatch study's claims, the SOP, the skill) and spread wide. A brief = his direction: stay near it. Add each seed tip as a `guide` (`--source study --ref <slug>`), state `testing`.
 2. **Make a batch.** 4-6 samples. Text: inline `body`. Video: render with studio, then `file` (mp4) + `posterFile` (jpg), and `studio: {edit, format}` (or `source: {ref, spans}`) so he can play cuts of one footage in step. Image: `file`. Page: full html in `body` (a sandboxed frame; no scripts run). A page that runs code (WebGL, scroll scenes): build it, deploy it to a URL that never changes (a Cloudflare Pages preview, `https://<hash>.<project>.pages.dev`), then `media: "https://…"` + `posterFile` (a still at 1280×800). The portal frames only `*.pages.dev`; the page must not send `X-Frame-Options` or a `frame-ancestors` that shuts out `app.wrenautomation.com`. He runs one at a time, at 1280 or 390, and full screen.
 3. **Spread on purpose.** Each batch tests one or two ideas. Vary one thing per sample when you can, so his calls teach something. Tag each sample's `guides` with the guide ids it applies; that is how a tip's with-vs-without rate is counted.
-4. **Say why.** `why` = what you changed from the last batch and what it tests. `change` per sample = what differs from its `parent`. He does not see these while he judges (blind); `show` gives them back to you.
+4. **Say why.** `why` = what you changed from the last batch and what it tests. `change` per sample = what differs from its main parent. `name` = 2-4 words he can say ("Star system"). `parents` = `[id]` or `[{"id": 7, "took": "the moving headline"}]`, main parent first; two or more = a cross, and say what each gave in `took`. He does not see these while he judges (blind); `show` gives them back to you.
 5. **Tell him** it is in Variants › Batches, as batch N. Stop. Wait for him to hand the batch back: in the portal he marks, then presses Hand to Vireo, which closes the batch and tells the Vireo chat. In a Claude Code session he tells you himself.
 6. **Read `show`.** Per batch: his `note`, each sample's `verdict` and `notes` (a `quote` = a line, `box` = a region in fractions, `time` = seconds on a video). `leaders` = Plackett-Luce strengths across all batches. Guides carry `effect` (good rate with vs without, `early` under 30 judged).
-7. **Next batch.** Keep what Amazing/Good samples share. Fix every anchored Bad note. Obey his batch note first. Mutate from the leaders (`parent`), and keep one wild sample in each batch so the loop does not narrow too early.
+7. **Next batch.** Keep what Amazing/Good samples share. Fix every anchored Bad note. Obey his batch note first. Mutate from the leaders (`parents`); cross two leaders when each has a part he liked, and keep one wild sample in each batch so the loop does not narrow too early.
 8. **Ship.** When he keeps a sample and it goes out (a post, a page, an email version), `ship` it. Read `live` before each batch: a segment where the market disagrees with his calls is the next thing to test. Trust a rate only when its range is narrow; `pBest` over 0.9 is a winner there.
 9. **Guides.** When a testing guide's `effect` is not `early` and `diff` is clearly positive, propose to lock it; negative, propose to drop. He decides. A locked guide is a rule: apply it to every sample of its scope, and say which SOP it belongs in.
 
@@ -61,9 +61,9 @@ Every maker takes three prompts. Its own instructions hold the how.
   "why": "Batch 3: named places beat questions (batch 2). Now test a next step vs none.",
   "agent": "<your session id>",
   "samples": [
-    { "body": "…", "parent": 22, "guides": [1], "change": "adds a next step" },
+    { "body": "…", "name": "Next step", "parents": [22], "guides": [1], "change": "adds a next step" },
     { "media": "https://a1b2c3d4.example.pages.dev/", "posterFile": "out/scene-a.jpg", "change": "flow field, slower drift" },
-    { "file": "out/cut-b.mp4", "posterFile": "out/cut-b.jpg", "parent": 31, "change": "captions 20% lower", "studio": { "edit": 12, "format": "short" } }
+    { "file": "out/cut-b.mp4", "posterFile": "out/cut-b.jpg", "name": "Low captions", "parents": [{ "id": 31, "took": "the cut" }, { "id": 29, "took": "the caption font" }], "change": "captions 20% lower", "studio": { "edit": 12, "format": "short" } }
   ]
 }
 ```

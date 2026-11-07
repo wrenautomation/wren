@@ -12,6 +12,7 @@ import {
   type Call,
   G,
   isGood,
+  nameLines,
   strong,
   TH,
   type TNode,
@@ -34,15 +35,6 @@ const drop = (x1: number, y1: number, x2: number, y2: number, g: number) =>
     : `M${f1(x1)} ${f1(y1)}C${f1(x1)} ${f1(y1 + g * 0.55)} ${f1(x2)} ${f1(y1 + g * 0.45)} ${f1(x2)} ${f1(y1 + g)}V${f1(y2)}`;
 const HH = (v: Call | "root") => (v === "root" ? 6 : TH[v][1] / 2);
 const HW = (v: Call) => TH[v][0] / 2;
-function wrap(name: string, max: number) {
-  if (name.length <= max) return [name];
-  const w = name.split(" ");
-  let a = w[0] ?? "";
-  let i = 1;
-  while (i < w.length - 1 && `${a} ${w[i]}`.length <= max) a += ` ${w[i++]}`;
-  return i < w.length ? [a, w.slice(i).join(" ")] : [a];
-}
-
 const Lock = () => (
   <svg width="11" height="12" viewBox="0 0 11 12" aria-hidden="true">
     <path
@@ -380,24 +372,27 @@ function TreeSvg({
         t.S.flatMap((c) => {
           // what changed, on the selected path only
           if (c.v === "open" || !path.has(c.id)) return [];
-          const pid = c.p[0];
-          const pn = pid != null ? (t.byId.get(pid) ?? null) : null;
-          const label = pn ? c.delta : "new seed";
-          if (!label) return [];
-          const a = t.pos(pn);
-          const b = t.pos(c);
-          const right = b.x >= a.x;
-          return [
-            <text
-              key={`el${c.id}`}
-              className="vt-el vt-halo"
-              x={f1(b.x - (b.x - a.x) * 0.3 + (right ? 9 : -9))}
-              y={f1(b.y - G.GEN * 0.42)}
-              textAnchor={right ? "start" : "end"}
-            >
-              {label}
-            </text>,
-          ];
+          // main edge: what it took, else the idea; a cross edge only when the agent said what it took
+          const ends: [TNode | null, string | null | undefined][] = c.p.length
+            ? c.p.map((id, i) => [t.byId.get(id) ?? null, c.took[id] ?? (i === 0 ? c.delta : null)])
+            : [[null, "new seed"]];
+          return ends.flatMap(([pn, label], i) => {
+            if (!label || (i > 0 && !path.has(pn?.id ?? -1))) return [];
+            const a = t.pos(pn);
+            const b = t.pos(c);
+            const right = b.x >= a.x;
+            return [
+              <text
+                key={`el${c.id}-${pn?.id ?? 0}`}
+                className="vt-el vt-halo"
+                x={f1(b.x - (b.x - a.x) * 0.3 + (right ? 9 : -9))}
+                y={f1(b.y - G.GEN * 0.42)}
+                textAnchor={right ? "start" : "end"}
+              >
+                {label}
+              </text>,
+            ];
+          });
         })}
       <g transform={`translate(${f1(root.x)} ${f1(root.y)})`}>
         <circle r="6" fill="var(--ui-ink)" />
@@ -605,7 +600,7 @@ function Thumb({ s, sel, clip }: { s: TNode; sel: boolean; clip: string }) {
 function Name({ t, s, sel }: { t: Tree; s: TNode; sel: boolean }) {
   const pad = sel ? 5 : s.v === "amazing" ? 4 : 0;
   const cls = `vt-nl vt-halo${strong(s) ? " k" : ""}`;
-  const ls = wrap(s.name, 11);
+  const ls = nameLines(s.name);
   if (t.tkids(s.id).length) {
     // edges leave from below: name to the right, or left, or under when neither side has room
     const me = t.pos(s);
@@ -621,7 +616,7 @@ function Name({ t, s, sel }: { t: Tree; s: TNode; sel: boolean }) {
       );
     const side = free(1) >= need ? 1 : free(-1) >= need ? -1 : 0;
     const x = side * (HW(s.v) + pad + 6);
-    const y = side ? (ls.length > 1 ? -2.5 : 4) : HH(s.v) + pad + 14;
+    const y = side ? 4 - ((ls.length - 1) * 13) / 2 : HH(s.v) + pad + 14;
     return (
       <text className={cls} y={y} textAnchor={side < 0 ? "end" : "start"}>
         {ls.map((l, i) => (
@@ -836,7 +831,14 @@ function SampleDetail({
           {s.p.length ? (
             s.p.flatMap((id) => {
               const x = t.byId.get(id);
-              return x ? [<LinkTo key={id} s={x} onGo={onGo} />] : [];
+              if (!x) return [];
+              const took = s.took[id];
+              return [
+                <span key={id} className="vt-from">
+                  <LinkTo s={x} onGo={onGo} />
+                  {took && <span className="vt-hint">took {took}</span>}
+                </span>,
+              ];
             })
           ) : (
             <span className="vt-v q">{s.r === 1 ? "Seed from the brief" : "New seed"}</span>

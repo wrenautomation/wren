@@ -10,7 +10,10 @@ export type Call = "amazing" | "good" | "bad" | "grew" | "unmarked" | "open";
 
 export interface TreeSample extends Sample {
   change: string | null;
-  parentId?: number | null | undefined;
+  /** the agent's short name; null falls back to the idea's first clause */
+  name?: string | null | undefined;
+  /** main parent first; two or more = a cross. took = what the child kept from that parent */
+  parents?: readonly { id: number; took: string | null }[] | undefined;
 }
 export interface TreeBatch {
   id: number;
@@ -35,6 +38,8 @@ export interface TNode {
   v: Call;
   /** p[0] the tree parent; more = a cross */
   p: number[];
+  /** per parent id: what this child took from it, in the agent's words */
+  took: Record<number, string>;
   name: string;
   /** what changed from the parent: the idea after its first clause */
   delta: string | null;
@@ -80,6 +85,19 @@ export const VERD: Record<Call, string> = {
 const STOP = new Set(
   "a an the at of on in to for from with and or under over into by as its their".split(" "),
 );
+/** a name in whole words, at most 3 lines: 11 chars a line, wider when it needs more */
+export function nameLines(name: string): string[] {
+  const max = Math.max(11, Math.ceil(name.length / 3));
+  const out: string[] = [];
+  for (const w of name.split(/\s+/)) {
+    const last = out[out.length - 1];
+    if (last !== undefined && `${last} ${w}`.length <= max) out[out.length - 1] = `${last} ${w}`;
+    else out.push(w);
+  }
+  return out;
+}
+const nameW = (s: TNode) => Math.max(...nameLines(s.name).map((l) => l.length));
+
 /** Short name from the idea's first clause: up to 5 words, cut at a joining word after three,
  * never ending on one. */
 export function shortName(text: string | null, fallback: string): string {
@@ -121,11 +139,10 @@ export function treeOf(batches: readonly TreeBatch[], guides: readonly TreeGuide
   const bs = [...batches].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
   const openIds = new Set(bs.filter((b) => b.state === "open").map((b) => b.id));
   // blind: an open batch shows no parents (the API strips them too)
-  const parentOf = new Map<number, number>();
+  const parentsOf = new Map<number, readonly { id: number; took: string | null }[]>();
   for (const b of bs)
-    if (!openIds.has(b.id))
-      for (const s of b.samples) if (s.parentId != null) parentOf.set(s.id, s.parentId);
-  const grown = new Set(parentOf.values());
+    if (!openIds.has(b.id)) for (const s of b.samples) parentsOf.set(s.id, s.parents ?? []);
+  const grown = new Set([...parentsOf.values()].flatMap((ps) => ps.map((p) => p.id)));
   const S: TNode[] = bs.flatMap((b, bi) => {
     const open = openIds.has(b.id);
     return [...b.samples]
@@ -133,14 +150,17 @@ export function treeOf(batches: readonly TreeBatch[], guides: readonly TreeGuide
       .map((s, i) => {
         const letter = open ? String.fromCharCode(65 + i) : null;
         const v: Call = open ? "open" : (s.verdict ?? (grown.has(s.id) ? "grew" : "unmarked"));
-        const p = parentOf.get(s.id);
+        const ps = open ? [] : (parentsOf.get(s.id) ?? []);
         return {
           id: s.id,
           r: bi + 1,
           batchId: b.id,
           v,
-          p: p != null ? [p] : [],
-          name: open ? `Sample ${letter}` : shortName(s.change ?? s.body, `Sample ${s.id}`),
+          p: ps.map((x) => x.id),
+          took: Object.fromEntries(ps.flatMap((x) => (x.took ? [[x.id, x.took]] : []))),
+          name: open
+            ? `Sample ${letter}`
+            : s.name?.trim() || shortName(s.change ?? s.body, `Sample ${s.id}`),
           delta: open ? null : deltaOf(s.change),
           change: open ? null : s.change,
           notes: open ? [] : s.notes.flatMap((n) => (n.text ? [n.text] : [])),
@@ -204,7 +224,12 @@ function layout(S: TNode[], rounds: TRound[]) {
     return n;
   };
   /** room a leaf takes, in columns: wide enough for its snapshot */
-  const room = (s: TNode) => (strong(s) ? 2.4 : s.v === "unmarked" ? 1.45 : 1.15);
+  // a long name widens its leaf
+  const room = (s: TNode) =>
+    Math.max(
+      strong(s) ? 2.4 : s.v === "unmarked" ? 1.45 : 1.15,
+      strong(s) ? nameW(s) * 0.17 + 0.6 : 0,
+    );
   const loose = (s: TNode) => prim(s) === 0 && !strong(s) && !tkids(s.id).length;
   // lines from the brief keep a clear column; loose seeds pack to the sides
   const X = new Map<number, number>();

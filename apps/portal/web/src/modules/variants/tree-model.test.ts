@@ -15,7 +15,7 @@ const sample = (
   keptAt: null,
   notes: [],
   change,
-  parentId,
+  parents: parentId != null ? [{ id: parentId, took: null }] : [],
 });
 const batch = (id: number, day: number, samples: TreeSample[], state = "closed"): TreeBatch => ({
   id,
@@ -132,5 +132,44 @@ describe("treeOf", () => {
     );
     expect(t.rounds[0]?.locks).toEqual(["Type is the hero"]);
     expect(t.rounds[1]?.locks).toEqual([]);
+  });
+});
+
+describe("lineage", () => {
+  it("draws a cross, uses the agent's name and what each parent gave", () => {
+    const child: TreeSample = {
+      ...sample(3, "good", "Warm grid: the grid in warm light"),
+      name: "Index, warm",
+      parents: [
+        { id: 1, took: "the palette" },
+        { id: 2, took: null },
+      ],
+    };
+    const t = treeOf(
+      [
+        batch(1, 1, [sample(1, null, "Warm: light"), sample(2, null, "Grid: columns")]),
+        batch(2, 2, [child]),
+      ],
+      [],
+    );
+    const c = t.byId.get(3);
+    expect(c?.p).toEqual([1, 2]);
+    expect(c?.name).toBe("Index, warm");
+    expect(c?.took).toEqual({ 1: "the palette" });
+    // both parents grew a batch
+    expect(t.byId.get(1)?.v).toBe("grew");
+    expect(t.byId.get(2)?.v).toBe("grew");
+  });
+
+  it("hides names and parents while a batch is open", () => {
+    const open: TreeSample = {
+      ...sample(3, null, null),
+      name: "Leak",
+      parents: [{ id: 1, took: "x" }],
+    };
+    const t = treeOf([batch(1, 1, [sample(1, null, "Seed: a")]), batch(2, 2, [open], "open")], []);
+    expect(t.byId.get(3)?.name).toBe("Sample A");
+    expect(t.byId.get(3)?.p).toEqual([]);
+    expect(t.byId.get(1)?.v).toBe("unmarked");
   });
 });

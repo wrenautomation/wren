@@ -38,10 +38,11 @@ Other derived fields:
 Layout rules found on prod (names hit siblings):
 
 - Names draw in one top layer after all nodes, so no sibling covers one.
-- Width per leaf: 2.4 columns if strong, 1.45 if unmarked, else 1.15. A strong parent gets 1.4 more for its name.
+- Width per leaf: 2.4 columns if strong, 1.45 if unmarked, else 1.15. A strong parent gets 1.4 more for its name. A long name widens a strong leaf (0.17 a character of its widest line).
+- Names wrap in whole words, 11 characters a line, wider so a name never takes more than about 3 lines. Never cut (show the whole text).
 - Name side: right if the free space to the next node fits it, else left, else under.
 
-## Open: what the schema should hold (William's call)
+## Schema: lineage (William chose B, 11-06; built in Vireo 0.3.0)
 
 The artifact also draws crosses (a child of two parents) and short names the agent picked. Vireo stores one `parent_id` and no name. Options:
 
@@ -54,11 +55,18 @@ The artifact also draws crosses (a child of two parents) and short names the age
 
 Ranked by: integrity in a public npm product, blind holds (a name or edge must hide while open, like `change`), then query cost.
 
-**Recommend B.** Vireo is sold on its own; its data must be checked by the database, not by each reader. The `took` per edge is the fact the tree's detail panel shows today from the next batch's `why`, which is per batch, not per edge. Blind: `name` and `lineage` rows hide while the batch is open, the same seam as `change`.
+**Chose B.** Vireo is sold on its own; its data must be checked by the database, not by each reader. The `took` per edge is the fact the tree's detail panel shows today from the next batch's `why`, which is per batch, not per edge. Blind: `name` and `lineage` rows hide while the batch is open, the same seam as `change`.
+
+Built (Vireo 0.3.0, WA-1154):
+- `vireo.lineage(child_id, parent_id, position, took)`, PK (child, parent), FKs cascade, no self link. `samples.name varchar(60)`.
+- Migration 0001 copies each old `parent_id` to a row at position 0 (dangling and self links dropped); 0002 drops `parent_id`.
+- `add` takes `parents: [id | {id, took}]`; the old `parent` key is refused with the new shape named. A parent must be a sample of the same subject.
+- Tree: `p[0]` is the tree parent, more parents draw as dashed crosses. A main edge shows `took`, else the idea's delta. A cross edge shows its `took` only on the selected path. The name is the agent's, else the short name from `change`.
+- Wren's subject read blanks `change`, `name` and `parents` while a batch is open.
 
 ## Proof
 
-- Unit: `tree-model.test.ts` (empty subject, blind batch, grew/unmarked, bad parents and cycles, all-bad round, 40 loose plus 20 open samples in frame, lock rounds).
+- Unit: `tree-model.test.ts` (crosses with took and names, blind names and parents, empty subject, blind batch, grew/unmarked, bad parents and cycles, all-bad round, 40 loose plus 20 open samples in frame, lock rounds).
 - Story shots at 390 and 1280, light and dark. Box-fit: 1 finding, a shell button also on the Subjects list story (not this change).
 
 ## Follow-ups

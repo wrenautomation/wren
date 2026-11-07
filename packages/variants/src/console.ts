@@ -1,6 +1,6 @@
 /**
  * VariantsConsole: the portal's Variants app. Reads the queue blind (no change notes,
- * parents, guides or agent), signs media for the player, writes William's calls and notes.
+ * names, parents, guides or agent), signs media for the player, writes William's calls and notes.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import {
@@ -101,7 +101,7 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
               why: b.state === "open" ? null : b.why,
               samples: await Promise.all(
                 b.samples.map((x) =>
-                  media(b.state === "open" ? { ...x, change: null, parentId: null } : x),
+                  media(b.state === "open" ? { ...x, change: null, name: null, parents: [] } : x),
                 ),
               ),
             })),

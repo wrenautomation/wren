@@ -56,8 +56,10 @@ const row = (
   look: Look | Look[],
   verdict: V,
   change: string,
-  parentId: number | null = null,
+  parent: number | number[] | null = null,
   note?: string,
+  /** what it took from each parent, by parent id; a name the agent gave */
+  x: { took?: Record<number, string>; name?: string } = {},
 ) => ({
   id,
   body: null,
@@ -69,7 +71,8 @@ const row = (
   keptAt: id === 13 ? ago(3) : null,
   notes: note ? [{ id: id * 10, anchor: null, tone: null, text: note }] : [],
   change,
-  parentId,
+  name: x.name ?? null,
+  parents: ([] as number[]).concat(parent ?? []).map((id) => ({ id, took: x.took?.[id] ?? null })),
 });
 
 const SUBJECT = {
@@ -175,9 +178,25 @@ export const TREE_SUBJECT = {
           7,
           "This is the one.",
         ),
-        row(14, ["film", "type"], "amazing", "Type and reel: kinetic type over a muted reel.", 7),
+        row(
+          14,
+          ["film", "type"],
+          "amazing",
+          "Type and reel: kinetic type over a muted reel.",
+          [7, 9],
+          undefined,
+          { took: { 7: "the moving headline", 9: "a muted reel" } },
+        ),
         row(15, "type", "good", "Type on a curve: the headline set on a slow curve.", 7),
-        row(16, ["grid", "type"], "good", "Grid and type: the grid with the kinetic headline.", 8),
+        row(
+          16,
+          ["grid", "type"],
+          "good",
+          "Grid and type: the grid with the kinetic headline.",
+          [8, 7],
+          undefined,
+          { name: "Index with type", took: { 7: "the headline" } },
+        ),
         row(17, "terminal", "bad", "Terminal intro: the page types itself in.", null, "A gimmick."),
         row(18, "3d", "bad", "Desk, flat light: less geometry.", 12),
       ],
@@ -193,7 +212,8 @@ export const TREE_SUBJECT = {
       samples: [19, 20, 21, 22, 23, 24].map((id) => ({
         ...row(id, "type", null, ""),
         change: null,
-        parentId: null,
+        name: null,
+        parents: [],
       })),
     },
   ],
@@ -272,7 +292,8 @@ export const NOTES_ONLY = {
       samples: [121, 122, 123, 124, 125, 126, 127].map((id) => ({
         ...row(id, "film", null, ""),
         change: null,
-        parentId: null,
+        name: null,
+        parents: [],
       })),
     },
   ],
