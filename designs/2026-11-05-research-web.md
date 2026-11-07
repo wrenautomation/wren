@@ -162,3 +162,4 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
     - C (recommended): one axis, who speaks: research, person, company, forum, press, public body, other. The type of evidence stays in the judge's `format`. Old keys map on read, so old runs still count.
     - D: the agent names islands per run. Rejected: counts would not add up across runs.
   - Round 10 previews C's names: Research, People, Companies, Forums, Press, Other. The engine is unchanged until William picks.
+- 11-06: William picked C for source kinds: one axis, who speaks (research, person, company, forum, press, public body, other). The judge's `format` keeps the type of evidence. Old keys map on read. Engine change next. Round 10 published to `LdYvUurK` (version 5).
