@@ -1,9 +1,10 @@
 /**
  * One sample, drawn by kind, with its anchors: tap a line (text), drag a box (image, page, paused
- * video), mark a moment (video). An anchor opens the note strip: good here, bad here, why.
- * Boxes are fractions of the shown frame, so they hold at any width.
+ * video), flag a moment in the video's bar (press at the start, press again at the end). An anchor
+ * opens the note: works or breaks, and why. Boxes are fractions of the shown frame, so they hold
+ * at any width.
  */
-import { Button, cx, Input } from "@wren/ui";
+import { Button, cx, Icon, Input, tipProps, VIDEO_BUTTON, Video, type VideoMark } from "@wren/ui";
 import type { Verdict } from "@wrenautomation/vireo/calls";
 import type { Source } from "@wrenautomation/vireo/sync";
 import { type PointerEvent, type ReactNode, useRef, useState } from "react";
@@ -124,7 +125,15 @@ function BoxLayer({
   );
 }
 
-/** The note strip under a sample while an anchor waits for its call. */
+/** A note's call on its part: works or breaks. */
+const TONES = [
+  { v: "good", label: "Works", icon: "check", on: "bg-(--ui-good-tint) text-(--ui-good-ink)" },
+  { v: "bad", label: "Breaks", icon: "close", on: "bg-(--ui-bad-tint) text-(--ui-bad)" },
+] as const;
+const TONE_CHIP =
+  "inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-(--ui-leaf-chip) border-0 bg-(--ui-fill) px-2.5 text-[13px] font-semibold text-(--ui-ink-2) transition-colors hover:text-(--ui-ink) pointer-coarse:h-11";
+
+/** The note on a waiting anchor: where, works or breaks, why. Enter saves, Esc drops it. */
 function NoteStrip({
   anchor,
   onSave,
@@ -136,45 +145,52 @@ function NoteStrip({
 }) {
   const [text, setText] = useState("");
   const [tone, setTone] = useState<Note["tone"]>(null);
-  const save = (t: Note["tone"]) => onSave(t, text);
+  const ready = !!tone || !!text.trim();
+  const save = () => ready && onSave(tone, text);
   return (
-    <div className="mt-2 flex flex-col gap-2 rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-tile) p-2.5">
-      <div className="text-[12px] text-(--ui-ink-2)">{anchorLabel(anchor)}</div>
-      {/* edit-ok: lives only with its pending anchor, which a reload drops */}
-      <Input
-        autoFocus
-        value={text}
-        placeholder="Why? (optional)"
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") save(tone);
-          if (e.key === "Escape") onCancel();
-        }}
-      />
-      <div className="flex flex-wrap gap-2">
-        <Button
-          size="dense"
-          tone={tone === "good" ? "primary" : "secondary"}
-          onClick={() => (text ? save("good") : setTone("good"))}
-        >
-          Good here
-        </Button>
-        <Button
-          size="dense"
-          tone={tone === "bad" ? "primary" : "secondary"}
-          onClick={() => (text ? save("bad") : setTone("bad"))}
-        >
-          Bad here
-        </Button>
-        <span className="flex-1" />
-        <Button size="dense" tone="quiet" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button size="dense" onClick={() => save(tone)} disabled={!tone && !text.trim()}>
+    <fieldset aria-label="New note" className="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0">
+      <p className="m-0 text-[12.5px] text-(--ui-ink-2) wrap-anywhere">
+        Note on {anchorLabel(anchor)}
+      </p>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {TONES.map((x) => (
+          <button
+            key={x.v}
+            type="button"
+            aria-pressed={tone === x.v}
+            onClick={() => setTone(tone === x.v ? null : x.v)}
+            className={cx(TONE_CHIP, tone === x.v && x.on)}
+          >
+            <Icon name={x.icon} size={13} />
+            {x.label}
+          </button>
+        ))}
+        {/* edit-ok: lives only with its pending anchor, which a reload drops */}
+        <Input
+          autoFocus
+          aria-label="Why"
+          value={text}
+          placeholder="Why? Optional"
+          className="h-8 min-h-8 min-w-40 flex-1 py-1 pointer-coarse:h-11"
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") save();
+            if (e.key === "Escape") onCancel();
+          }}
+        />
+        <Button size="dense" tone="primary" onClick={save} disabled={!ready}>
           Save
         </Button>
+        <Button
+          size="dense"
+          tone="quiet"
+          onClick={onCancel}
+          {...tipProps("Drop this note", { keys: "Esc" })}
+        >
+          Cancel
+        </Button>
       </div>
-    </div>
+    </fieldset>
   );
 }
 
@@ -219,16 +235,18 @@ function VideoBody({
   sample,
   boxing,
   live,
+  held,
   onAnchor,
 }: {
   sample: Sample;
   boxing: boolean;
   live: Box | undefined;
+  /** A moment waiting for its note: dashed on the scrubber. */
+  held: { start: number; end?: number } | undefined;
   onAnchor: (a: Anchor) => void;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const cut = useTogether(sample.id, ref, sample.source?.spans ?? null);
-  const [dur, setDur] = useState(0);
   const [start, setStart] = useState<number | null>(null);
   const [t, setT] = useState(0);
   const now = () => ref.current?.currentTime ?? 0;
@@ -240,102 +258,59 @@ function VideoBody({
     .filter((n) => n.anchor?.type === "time" && n.anchor.box && near(n.anchor))
     .map((n) => ({ box: (n.anchor as { box: Box }).box, tone: n.tone, live: false }))
     .concat(live ? [{ box: live, tone: null, live: true }] : []);
+  const marks: VideoMark[] = moments.map((n) => {
+    const a = n.anchor as { start: number; end?: number };
+    return { id: n.id, start: a.start, end: a.end, tone: n.tone };
+  });
+  if (start != null) marks.push({ id: "flag", start, end: Math.max(t, start), live: true });
+  else if (held) marks.push({ id: "held", start: held.start, end: held.end, live: true });
+  // first press: the start; second: the end (a moment alone when under 0.2s apart)
+  const flag = () => {
+    if (start == null) return setStart(now());
+    const end = now();
+    onAnchor(end > start + 0.2 ? { type: "time", start, end } : { type: "time", start });
+    setStart(null);
+  };
   if (!sample.mediaUrl) return <Missing />;
   return (
-    <div>
-      <div className="relative overflow-hidden rounded-(--ui-radius) bg-black">
-        {/* biome-ignore lint/a11y/useMediaCaption: our own drafts under review, no captions yet */}
-        <video
-          ref={ref}
-          src={sample.mediaUrl}
-          poster={sample.posterUrl ?? undefined}
-          controls={!boxing}
-          playsInline
-          preload="metadata"
-          className="block aspect-video w-full"
-          onLoadedMetadata={(e) => setDur(e.currentTarget.duration)}
-          onTimeUpdate={(e) => setT(e.currentTarget.currentTime)}
-          onSeeked={(e) => setT(e.currentTarget.currentTime)}
-        />
-        {cut && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/60 text-[13px] font-semibold text-white">
-            Cut here
-          </div>
-        )}
-        <BoxLayer
-          on={boxing}
-          boxes={shownBoxes}
-          onBox={(box) => {
-            ref.current?.pause();
-            onAnchor({ type: "time", start: now(), box });
-          }}
-        />
-      </div>
-      {dur > 0 && (
-        <div className="relative mt-1.5 h-2 rounded-full bg-(--ui-tile)">
-          {moments.map((n) => {
-            const a = n.anchor as { start: number; end?: number };
-            return (
-              <button
-                type="button"
-                key={n.id}
-                aria-label={`Go to ${clock(a.start)}`}
-                className={cx(
-                  "absolute top-0 h-2 min-w-1.5 rounded-full",
-                  n.tone === "bad"
-                    ? "bg-(--ui-bad)"
-                    : n.tone === "good"
-                      ? "bg-(--ui-good)"
-                      : "bg-(--ui-accent)",
-                )}
-                style={{
-                  left: `${(a.start / dur) * 100}%`,
-                  width: `${(((a.end ?? a.start) - a.start) / dur) * 100}%`,
-                }}
-                onClick={() => {
-                  if (ref.current) ref.current.currentTime = a.start;
-                }}
-              />
-            );
+    <Video
+      ref={ref}
+      src={sample.mediaUrl}
+      poster={sample.posterUrl}
+      marks={marks}
+      locked={boxing}
+      onTime={setT}
+      frame={
+        <>
+          {cut && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/60 text-[13px] font-semibold text-white">
+              Cut here
+            </div>
+          )}
+          <BoxLayer
+            on={boxing}
+            boxes={shownBoxes}
+            onBox={(box) => {
+              ref.current?.pause();
+              onAnchor({ type: "time", start: now(), box });
+            }}
+          />
+        </>
+      }
+      tools={
+        <button
+          type="button"
+          className={VIDEO_BUTTON}
+          aria-pressed={start != null}
+          onClick={flag}
+          {...tipProps(start == null ? "Mark a moment" : `End the moment from ${clock(start)}`, {
+            as: "name",
           })}
-        </div>
-      )}
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        {start == null ? (
-          <Button size="dense" icon="flag" onClick={() => setStart(now())}>
-            Mark moment
-          </Button>
-        ) : (
-          <>
-            <Button
-              size="dense"
-              tone="primary"
-              onClick={() => {
-                const end = now();
-                onAnchor(
-                  end > start + 0.2 ? { type: "time", start, end } : { type: "time", start },
-                );
-                setStart(null);
-              }}
-            >
-              End at here ({clock(start)} →)
-            </Button>
-            <Button
-              size="dense"
-              onClick={() => {
-                onAnchor({ type: "time", start });
-                setStart(null);
-              }}
-            >
-              Just {clock(start)}
-            </Button>
-          </>
-        )}
-        <span className="text-[12px] text-(--ui-ink-3)">
-          Play, then mark where it works or breaks.
-        </span>
-      </div>
-    </div>
+        >
+          <Icon name="flag" size={15} />
+        </button>
+      }
+    />
   );
 }
 
@@ -371,7 +346,15 @@ export function SampleBody({
   if (kind === "text")
     return <TextBody body={sample.body ?? ""} notes={sample.notes} onLine={onAnchor} />;
   if (kind === "video")
-    return <VideoBody sample={sample} boxing={boxing} live={live} onAnchor={onAnchor} />;
+    return (
+      <VideoBody
+        sample={sample}
+        boxing={boxing}
+        live={live}
+        held={pending?.type === "time" ? pending : undefined}
+        onAnchor={onAnchor}
+      />
+    );
   if (kind === "image")
     return sample.mediaUrl ? (
       <div className="relative overflow-hidden rounded-(--ui-radius) bg-(--ui-tile)">

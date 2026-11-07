@@ -10,6 +10,7 @@ import { Button, Tag } from "./controls.js";
 import { useLoad } from "./data/query.js";
 import { cx } from "./format.js";
 import { Icon } from "./icons.js";
+import { Video } from "./video.js";
 
 export const Answer = createContext<AgentThreadProps["onAnswer"]>(() => {});
 
@@ -193,8 +194,7 @@ function FilePreview({ path, read }: { path: string; read: (path: string) => Pro
   return (
     <figure className="ui-rise m-0 grid max-w-[min(100%,28rem)] justify-items-start gap-1.5">
       {blob.type.startsWith("video/") ? (
-        // biome-ignore lint/a11y/useMediaCaption: the agent's own clip, no track to give
-        <video src={src} controls preload="metadata" className={cx(media, "bg-black")} />
+        <Video src={src} className="w-full" />
       ) : (
         <a href={src} target="_blank" rel="noreferrer noopener" className="block">
           <img

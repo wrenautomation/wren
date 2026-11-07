@@ -143,6 +143,8 @@ import {
   Users,
   UserX,
   Video,
+  Volume2,
+  VolumeX,
   Workflow,
   X,
   Zap,
@@ -264,6 +266,9 @@ const ICONS = {
   click: MousePointerClick,
   form: ClipboardList,
   video: Video,
+  // A video's bar (video.tsx).
+  sound: Volume2,
+  muted: VolumeX,
   // A row's action icons, by what the action does (row-acts.tsx VERBS). A DM is Instagram's paper
   // plane, apart from a reply's arrow.
   dm: Send,

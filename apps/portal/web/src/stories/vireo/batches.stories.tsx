@@ -16,6 +16,24 @@ export const Batch = pageAt("/variants/batches?batch=6", { me: ADMIN });
 /** An open batch, marked here: blind, in queue order. */
 export const Open = pageAt("/variants/batches?batch=7", { me: ADMIN });
 
+/** Flag a moment in the video's bar (press, press again), then its note: Works, why, Save. */
+export const Mark = pageAt("/variants/batches?batch=7", {
+  me: ADMIN,
+  check: async (page) => {
+    const p = within(page);
+    const late = { timeout: 8000 };
+    const [flag] = await p.findAllByRole("button", { name: "Mark a moment" }, late);
+    if (!flag) throw new Error("no flag");
+    await userEvent.click(flag);
+    await userEvent.click(p.getByRole("button", { name: /^End the moment/ }));
+    const note = await p.findByRole("group", { name: "New note" });
+    await userEvent.click(within(note).getByRole("button", { name: "Works" }));
+    await userEvent.type(within(note).getByRole("textbox", { name: "Why" }), "Clear open");
+    await userEvent.click(within(note).getByRole("button", { name: "Save" }));
+    await p.findByText(/Clear open/, {}, late);
+  },
+});
+
 /** page samples that run code: each still waits behind a glass play mark */
 export const Pages = pageAt("/variants/batches?batch=9", { me: ADMIN });
 
@@ -29,7 +47,7 @@ export const Hand: StoryObj = tidy(
         const late = { timeout: 8000 };
         await userEvent.click(await p.findByRole("button", { name: "Hand to Vireo" }, late));
         const chat = await p.findByRole("complementary", { name: "Agent" }, late);
-        await within(chat).findAllByText(/^Batch 7 of promo-cut/, {}, late);
+        await within(chat).findAllByText(/^Batch 3 of promo-cut/, {}, late);
         await within(chat).findByText("Vireo", {}, late);
       },
     });

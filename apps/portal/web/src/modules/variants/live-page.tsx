@@ -3,7 +3,7 @@
  * (vireo D8). One frame runs at a time, so a batch of scenes never shares the GPU and a scroll
  * scene never traps the list; the rest show their still. Stage: the card over the whole window.
  */
-import { Button, cx, Icon, Seg } from "@wren/ui";
+import { Button, cx, Icon, PLAY_MARK, Seg } from "@wren/ui";
 import {
   createContext,
   type ReactNode,
@@ -137,8 +137,8 @@ export function LivePage({
                   onClick={() => run(true)}
                   className="group absolute inset-0 flex cursor-pointer items-center justify-center outline-none"
                 >
-                  <span className="flex size-14 items-center justify-center rounded-full bg-black/30 text-white shadow-[0_2px_12px_rgb(0_0_0/0.25)] ring-1 ring-white/35 backdrop-blur-md transition-[background-color,transform] duration-150 group-hover:scale-105 group-hover:bg-black/45 group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-(--ui-focus) group-active:scale-95">
-                    <Icon name="play" size={22} />
+                  <span className={PLAY_MARK}>
+                    <Icon name="play" size={22} className="translate-x-px" />
                   </span>
                 </button>
               </>

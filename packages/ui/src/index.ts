@@ -27,7 +27,7 @@ export {
   useHeld,
   useLastWrite,
 } from "./action.js";
-export type { LinkPreview } from "./agent-cards.js";
+export { type LinkPreview, Say as AgentSay } from "./agent-cards.js";
 export { type AgentChatRow, AgentChats, AgentChatsMenu } from "./agent-chats.js";
 export {
   type AgentCommand,
@@ -614,6 +614,7 @@ export {
   type TimelineSpec,
   TimelineSwitch,
 } from "./timeline.js";
+export { PLAY_MARK, VIDEO_BUTTON, Video, type VideoMark, videoClock } from "./video.js";
 export {
   orList,
   sayFilter,
