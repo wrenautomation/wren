@@ -163,3 +163,8 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
     - D: the agent names islands per run. Rejected: counts would not add up across runs.
   - Round 10 previews C's names: Research, People, Companies, Forums, Press, Other. The engine is unchanged until William picks.
 - 11-06: William picked C for source kinds: one axis, who speaks (research, person, company, forum, press, public body, other). The judge's `format` keeps the type of evidence. Old keys map on read. Engine change next. Round 10 published to `LdYvUurK` (version 5).
+- 11-06: William: "type of evidence and who made it are both important". C becomes two closed fields, option 1 of 3 (not chosen: 2, evidence from the judge's `format` with new values, which mixes shape and evidence again; 3, one combined key, up to 49 crumbs).
+  - `speaker` on a document: research, person, company, forum, press, public_body, other. Islands and the echo warning use it.
+  - `evidence` on a finding, else its document's: data, study, account, analysis, report, promo, other. Facet `needs` names evidence.
+  - `format` stays the judge's shape label (video, article, paper ...) for previews and icons.
+  - The agent writes both; the judge guesses both. Old `class` records map on read: practitioner to person + account, vendor to company + promo, news to press + report, forum to forum, survey to study, primary_data to data; old primary_data and survey speakers go to research when the page is a paper, else company.
