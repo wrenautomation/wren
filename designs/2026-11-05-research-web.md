@@ -168,3 +168,16 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - `evidence` on a finding, else its document's: data, study, account, analysis, report, promo, other. Facet `needs` names evidence.
   - `format` stays the judge's shape label (video, article, paper ...) for previews and icons.
   - The agent writes both; the judge guesses both. Old `class` records map on read: practitioner to person + account, vendor to company + promo, news to press + report, forum to forum, survey to study, primary_data to data; old primary_data and survey speakers go to research when the page is a paper, else company.
+- 11-06: round 11 of artifact `LdYvUurK` (version 6, WA-1157 mock). William: space needs a procedural layout; URLs and decks must not clutter.
+  - Options for spacing, ranked by no overlap, fill of the stage, stable kind places, cost:
+    - Fixed slot grid (round 10). Cheap; empty bands and caption clashes when kinds are missing.
+    - Treemap of kinds. Fills the stage; loses the island read and the tilt.
+    - rbush index for label collision. Not needed at about 100 symbols; a plain list is fast enough.
+    - Chosen: d3-force for islands, then greedy placement in rank order for cards, names and island captions, as map engines place symbols.
+  - Islands: present kinds in reading order on a grid shaped like the stage, set square to the screen at the preset turn. Collide holds a gap for the caption. A gentle squeeze of the long side, checked every 10 ticks, brings the layout to the stage's shape; a hard squeeze flipped it.
+  - Cards: a budget in rank order (16 wide, 6 phone; 40 and 12 zoomed in). A card that would cover a placed card is skipped.
+  - Names: text only. Six spots around a mark, four around a card; first clear spot wins; no spot, no name. A picked source always gets its name. Placement runs again when the view settles. The Perf box is an obstacle.
+  - Looks: six, all on heat ground: three from round 10 (towers, coins, decks) and three hybrids with the source's card on its mark (card towers, card coins, card stacks).
+  - Pictures, no letters: thumbnail or og image, then a page shot (PDF first page), then site icons from four sources (globe rejected), then a drawn format glyph. Reddit icons need sign-in, so subreddits show the Reddit logo.
+  - Speaker islands and evidence tags preview option 1; the mock maps them from the old class and format.
+  - The session's choices, not William's: the budgets, the spot lists, the squeeze rule.
