@@ -420,6 +420,8 @@ export function FocusPage({
   const atView = "view" in at;
   // The saved view on screen, or the one these parts came from (`sv`).
   const svId = atView ? at.view : Number(props.params.get("sv")) || null;
+  // its layout, drawn by its skeleton next time (packages/ui metro/ghost.ts)
+  const ghostKey = `focus:${JSON.stringify(at)}`;
   const saved = svId === null ? null : (views.lines.find((v) => v.id === svId) ?? null);
   const asked = useMemo(
     () => (atView ? (saved ? viewPartsOf(saved) : null) : at.parts),
@@ -564,6 +566,7 @@ export function FocusPage({
           intro={false}
           bare
           className="metro-fit"
+          ghost={ghostKey}
         />
         <div className="grid gap-4 text-[14px] sm:grid-cols-2">
           {focus.part?.kind === "flow" ? null : (

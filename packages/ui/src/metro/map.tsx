@@ -35,6 +35,7 @@ import { cx } from "../format.js";
 import { MetroSvg } from "./draw.js";
 import { type FocusSpec, focusScene, nameOf, partsOfSpec, specKey } from "./focus.js";
 import { autoZoom, type MetroZoom, viewZoom } from "./fold.js";
+import { ghostOf, saveGhost } from "./ghost.js";
 import { METRO_MARKS } from "./glide.js";
 import { MARK_GLYPH, MARK_WORD } from "./marks.js";
 import { MetroSkeleton } from "./skeleton.js";
@@ -87,6 +88,8 @@ export interface MetroMapProps {
   /** The first-load draw-in. Default: on. Off for stories and tests. Never on a fold. */
   intro?: boolean | undefined;
   className?: string | undefined;
+  /** The page's key: its layout is kept in this browser, and its skeleton draws it next time. */
+  ghost?: string | undefined;
   /** More controls beside the depth buttons. */
   children?: ReactNode;
 }
@@ -207,6 +210,19 @@ export function MetroMap(props: MetroMapProps) {
     () => (base && focus ? focusScene(base, focus) : (base ?? EMPTY)),
     [base, focus],
   );
+  // What this page's skeleton draws next time: off the first paint's path.
+  useEffect(() => {
+    const key = props.ghost;
+    if (!key || !now) return;
+    const t = window.setTimeout(() => {
+      const at = svg.current?.getBoundingClientRect();
+      saveGhost(key, {
+        ...ghostOf(scene),
+        ...(at ? { top: Math.round(at.top), vw: innerWidth } : {}),
+      });
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [props.ghost, now, scene]);
   const full = useMemo(() => fullDepth(zoom.nodes), [zoom]);
   // Warm one step in and one out while idle, so a zoom step draws at once. The zoom keeps what
   // it lays out (`viewZoom` caches by open set), so this reads the same cache and draws nothing.
@@ -565,7 +581,7 @@ export function MetroMap(props: MetroMapProps) {
             <div ref={old} className="metro-old" aria-hidden="true" />
           </div>
         ) : (
-          <MetroSkeleton label="Drawing your map" />
+          <MetroSkeleton label="Drawing your map" ghost={props.ghost} />
         )}
       </div>
     </div>

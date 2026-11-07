@@ -11,8 +11,10 @@ import { animate } from "motion";
 import { useReducedMotion } from "motion/react";
 import {
   type CSSProperties,
+  type MouseEvent,
   memo,
   type PointerEvent,
+  type RefObject,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -26,6 +28,7 @@ import { Icon } from "../icons.js";
 import { MetroSvg } from "./draw.js";
 import { type FocusSpec, focusScene } from "./focus.js";
 import type { MetroZoom } from "./fold.js";
+import { labelBoxes, markerBox } from "./geometry.js";
 import { MetroSkeleton } from "./skeleton.js";
 import { isCapsule, isMark, type MetroScene, type SceneStation } from "./types.js";
 
@@ -52,7 +55,12 @@ interface Plate {
   z: number;
   /** It holds parts of its own: it can be the floor. */
   deep: boolean;
+  /** The lift/shut toggle on the floor: centre, size, and whether it draws its own stacked glyph. */
+  knob: Knob;
 }
+
+/** On the floor, in floor px. `glyph`: the floor has no stop here (a line), so the knob draws one. */
+type Knob = { x: number; y: number; d: number; glyph: boolean };
 
 interface Level {
   floor: MetroScene;
@@ -65,8 +73,10 @@ interface Level {
 
 /** Room round a plate's stations, so names show. */
 const PAD = { top: 62, bottom: 48, side: 64 };
+/** Room past a name's box to the plate edge. */
+const LABEL_GAP = 16;
 /** The artifact's lift; a plate whose footprint overlaps one in front of it rises a step more. */
-const LIFT = { base: 120, step: 60 } as const;
+const LIFT = { base: 120, step: 60, most: 360 } as const;
 
 const grpOf = (s: SceneStation): string | undefined =>
   "grp" in s && typeof s.grp === "string" ? s.grp : undefined;
@@ -83,8 +93,44 @@ function midOf(scene: MetroScene): readonly [number, number] {
   const ys = pts.map((p) => p[1]);
   return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
 }
-/** The boxes share some x: one in front hides the other when both lie flat. */
-const sameColumn = (a: Box, b: Box) => a.left < b.left + b.width && b.left < a.left + a.width;
+type Quad = readonly (readonly [number, number])[];
+/** Floor px → screen at the Apart turn, flat projection: enough to judge overlap. */
+const turn = (x: number, y: number, z: number): readonly [number, number] => {
+  const [cz, sz] = [Math.cos(APART.rz * RAD), Math.sin(APART.rz * RAD)];
+  const [cx, sx] = [Math.cos(APART.rx * RAD), Math.sin(APART.rx * RAD)];
+  return [x * cz - y * sz, (x * sz + y * cz) * cx - z * sx];
+};
+const RAD = Math.PI / 180;
+/** Nearer the eye = lower on screen at the Apart turn. */
+const depthOf = (p: { at: readonly [number, number] }) => turn(p.at[0], p.at[1], 0)[1];
+/** TAG: the name pill under a plate, in floor px. */
+const TAG = 34;
+type See = (x: number, y: number, z: number) => readonly [number, number];
+/** A plate's footprint with its tag, on screen. */
+const footOf = (b: Box, z: number, see: See): Quad =>
+  corners(b.left, b.top, b.width, b.height + TAG).map(([x, y]) => see(x, y, z));
+/**
+ * The tag strip alone, plus CLEAR: it must stay clear, or it reads as the front plate's name.
+ * CLEAR covers the gap between this k-1 model and the fitted camera (~15 px, Upsells anchor).
+ */
+const CLEAR = 32;
+const tagOf = (b: Box, z: number, see: See): Quad =>
+  corners(b.left, b.top + b.height, b.width, TAG + CLEAR).map(([x, y]) => see(x, y, z));
+/** `a` (in front) covers over `most` of `b`: 13 × 13 points inside `b`. */
+function hides(a: Quad, b: Quad, most = 0.08) {
+  // a grid inside b itself (bilinear): a bbox grid leaves a thin tilted tag nearly unsampled
+  const [p0, p1, p2, p3] = b as [Quad[0], Quad[0], Quad[0], Quad[0]];
+  let hit = 0;
+  for (let i = 0; i <= 12; i++)
+    for (let j = 0; j <= 12; j++) {
+      const [u, v] = [i / 12, j / 12];
+      const at = (k: 0 | 1) =>
+        (1 - v) * ((1 - u) * p0[k] + u * p1[k]) + v * ((1 - u) * p3[k] + u * p2[k]);
+      const pt = [at(0), at(1)] as const;
+      if (inQuad(pt, a)) hit++;
+    }
+  return hit / 169 > most;
+}
 
 /**
  * A plate: a focused scene cut to its stations, no stubs (the floor's rail shows where it joins),
@@ -95,15 +141,30 @@ function band(scene: MetroScene): MetroScene {
   if (!pts.length) return scene;
   const ys = pts.map((p) => p[1]);
   const half = (s: SceneStation) => (isCapsule(s) ? (s.cap[1] - s.cap[0]) / 2 : 0);
-  const x0 = Math.max(0, Math.min(...scene.st.map((s) => centreOf(s)[0] - half(s))) - PAD.side);
-  const x1 = Math.max(...scene.st.map((s) => centreOf(s)[0] + half(s))) + PAD.side;
-  const y0 = Math.max(0, Math.min(...ys) - PAD.top);
+  // names and subs under or beside a stop stay on the plate, clear of its tag
+  const names = scene.st.flatMap((s) => (isMark(s) ? labelBoxes(s) : []));
+  const x0 = Math.max(
+    0,
+    Math.min(
+      ...scene.st.map((s) => centreOf(s)[0] - half(s) - PAD.side),
+      ...names.map((b) => b.x0 - LABEL_GAP),
+    ),
+  );
+  const x1 = Math.max(
+    ...scene.st.map((s) => centreOf(s)[0] + half(s) + PAD.side),
+    ...names.map((b) => b.x1 + LABEL_GAP),
+  );
+  const y0 = Math.max(
+    0,
+    Math.min(...ys.map((y) => y - PAD.top), ...names.map((b) => b.y0 - LABEL_GAP)),
+  );
+  const y1 = Math.max(...ys.map((y) => y + PAD.bottom), ...names.map((b) => b.y1 + LABEL_GAP));
   return {
     ...scene,
     x0,
     w: x1 - x0,
     y0,
-    h: Math.max(...ys) + PAD.bottom - y0,
+    h: y1 - y0,
     tr: scene.tr.filter((r) => !r.stub),
     opened: [],
     still: true,
@@ -270,6 +331,15 @@ async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit): Promi
       const scene = band(focusScene(all, only(ids)));
       const mid = midOf(scene);
       mids.set(id, mid);
+      const stop = stops.get(id);
+      // over the floor's stacked stop: its circle plus the stack offset
+      const mb = stop && isMark(stop) ? markerBox({ ...stop, x: mid[0], y: mid[1] }) : null;
+      const knob: Knob = {
+        x: mid[0] - fx + 2.5,
+        y: (mb?.cy ?? mid[1]) - fy - 2.5,
+        d: Math.max(mb?.w ?? 28, mb?.h ?? 28) + 18,
+        glyph: false,
+      };
       return [
         {
           part: { kind: "node" as const, id },
@@ -278,6 +348,7 @@ async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit): Promi
           box: place(scene),
           at: [mid[0] - fx, mid[1] - fy] as const,
           deep: zoom.nodes.some((n) => n.parent === id),
+          knob,
         },
       ];
     });
@@ -293,6 +364,7 @@ async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit): Promi
         box,
         at: [box.left + box.width / 2, box.top + box.height / 2] as const,
         deep: zoom.nodes.some((n) => n.parent === lineNode(id)),
+        knob: { x: box.left + box.width / 2, y: box.top + box.height / 2, d: 40, glyph: true },
       };
     });
     // Lifted off the floor: the rest stays in the same frame.
@@ -313,16 +385,20 @@ async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit): Promi
   const right = Math.max(floor.w ?? 0, ...cut.map((p) => p.box.left + p.box.width + 16));
   const bottom = Math.max(floor.h, ...cut.map((p) => p.box.top + p.box.height + 16));
   floor = { ...floor, w: right, h: bottom };
-  // Front to back. A raised plate hides what stands behind it in its column, so a plate rises one
-  // step over the highest plate in front that shares its x range: back plates step up like a stair.
-  const front = [...cut].sort((a, b) => b.at[1] - a.at[1]);
-  const zs: number[] = [];
-  const plates = front.map((p, i) => {
-    const under = front
-      .slice(0, i)
-      .map((q, j) => (sameColumn(q.box, p.box) ? (zs[j] ?? LIFT.base) : 0));
-    const z = Math.max(LIFT.base, ...under.map((u) => (u ? u + LIFT.step : 0)));
-    zs.push(z);
+  // Front to back at the Apart pose. A plate rises in half steps till no plate in front hides
+  // more than a little of it, or any of its tag (spec S6 rule 5): back plates step up like a stair.
+  const front = [...cut].sort((a, b) => depthOf(b) - depthOf(a));
+  // through the view's perspective (k 1, centred): a lifted plate grows toward the eye, so a
+  // flat projection puts its tag too high (Upsells, anchor play)
+  const [fw, fh] = [floor.w ?? 960, floor.h];
+  const see: See = (x, y, z) => toView({ ...APART, k: 1, x: 0, y: 0 }, fw, fh, [fw, fh], x, y, z);
+  const placed: { q: Quad; z: number }[] = [];
+  const plates = front.map((p) => {
+    let z = LIFT.base;
+    const hid = (z: number) =>
+      placed.some((o) => hides(o.q, footOf(p.box, z, see)) || hides(o.q, tagOf(p.box, z, see), 0));
+    while (z < LIFT.base + LIFT.most && hid(z)) z += LIFT.step / 2;
+    placed.push({ q: footOf(p.box, z, see), z });
     return { ...p, z };
   });
   const lines = Object.entries(all.lines ?? {})
@@ -336,6 +412,8 @@ const PERSPECTIVE = 2200;
 const EYE_Y = 0.3;
 /** Room kept clear at the foot of the view for the hint and the plates' names (px). */
 const FOOT = 36;
+/** Room over the top plate: its acts (26 + 10 astride) and the hover pull. */
+const HEAD = 44;
 
 /** Where the camera is: the turn, how far apart (0 landed, 1 apart), and the scale and shift. */
 interface Cam {
@@ -363,6 +441,50 @@ type Rect = readonly [number, number, number, number, number];
  * Scale and shift so `rects` fill the box at `pose`: corners projected as the browser does
  * (rotateZ, rotateX, scale, then the parent's perspective). Three passes: perspective is not linear.
  */
+/**
+ * A floor point (px from its corner; `up` px over it) to view px, as CSS draws it: the stage's
+ * `translate scale3d rotateX rotateZ` under the view's perspective. Fit and hover share it.
+ */
+function toView(
+  c: Pick<Cam, "rx" | "rz" | "k" | "x" | "y">,
+  w: number,
+  h: number,
+  [bw, bh]: readonly [number, number],
+  px: number,
+  py: number,
+  up: number,
+): readonly [number, number] {
+  const [cz, sz] = [Math.cos((c.rz * Math.PI) / 180), Math.sin((c.rz * Math.PI) / 180)];
+  const [cx, sx] = [Math.cos((c.rx * Math.PI) / 180), Math.sin((c.rx * Math.PI) / 180)];
+  const [x0, y0] = [px - w / 2, py - h / 2];
+  const [x1, y1] = [x0 * cz - y0 * sz, x0 * sz + y0 * cz];
+  const [X, Y, Z] = [c.k * x1, c.k * (y1 * cx - up * sx), c.k * (y1 * sx + up * cx)];
+  const at = PERSPECTIVE / (PERSPECTIVE - Z);
+  const eye = [bw / 2, bh * EYE_Y] as const;
+  return [eye[0] + (bw / 2 + c.x + X - eye[0]) * at, eye[1] + (bh / 2 + c.y + Y - eye[1]) * at];
+}
+
+const corners = (l: number, t: number, pw: number, ph: number) =>
+  [
+    [l, t],
+    [l + pw, t],
+    [l + pw, t + ph],
+    [l, t + ph],
+  ] as const;
+
+/** In a convex quad (any winding). */
+function inQuad([x, y]: readonly [number, number], q: readonly (readonly [number, number])[]) {
+  let sign = 0;
+  for (let i = 0; i < q.length; i++) {
+    const [ax, ay] = q[i] ?? [0, 0];
+    const [bx, by] = q[(i + 1) % q.length] ?? [0, 0];
+    const s = Math.sign((bx - ax) * (y - ay) - (by - ay) * (x - ax));
+    if (s && sign && s !== sign) return false;
+    sign ||= s;
+  }
+  return true;
+}
+
 function fitOf(
   w: number,
   h: number,
@@ -372,27 +494,12 @@ function fitOf(
   fill = 0.94,
 ): Pick<Cam, "k" | "x" | "y"> {
   if (!bw || !bh) return { k: 0.6, x: 0, y: 0 };
-  const [cz, sz] = [Math.cos((pose.rz * Math.PI) / 180), Math.sin((pose.rz * Math.PI) / 180)];
-  const [cx, sx] = [Math.cos((pose.rx * Math.PI) / 180), Math.sin((pose.rx * Math.PI) / 180)];
-  const eye = [bw / 2, bh * EYE_Y] as const;
   const boxAt = (k: number, dx: number, dy: number) => {
-    const pts = rects.flatMap(([l, t, pw, ph, up]) =>
-      [
-        [l, t],
-        [l + pw, t],
-        [l + pw, t + ph],
-        [l, t + ph],
-      ].map(([px = 0, py = 0]) => [px - w / 2, py - h / 2, up * pose.e] as const),
+    const flat = rects.flatMap(([l, t, pw, ph, up]) =>
+      corners(l, t, pw, ph).map(([px, py]) =>
+        toView({ ...pose, k, x: dx, y: dy }, w, h, [bw, bh], px, py, up * pose.e),
+      ),
     );
-    const flat = pts.map(([px, py, up]) => {
-      const [x1, y1] = [px * cz - py * sz, px * sz + py * cz];
-      const [X, Y, Z] = [k * x1, k * (y1 * cx - up * sx), k * (y1 * sx + up * cx)];
-      const at = PERSPECTIVE / (PERSPECTIVE - Z);
-      return [
-        eye[0] + (bw / 2 + dx + X - eye[0]) * at,
-        eye[1] + (bh / 2 + dy + Y - eye[1]) * at,
-      ] as const;
-    });
     const xs = flat.map((p) => p[0]);
     const ys = flat.map((p) => p[1]);
     return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
@@ -402,11 +509,11 @@ function fitOf(
   let y = 0;
   for (let i = 0; i < 3; i++) {
     const b = boxAt(k, x, y);
-    k *= Math.min((bw * fill) / (b.x1 - b.x0), ((bh - FOOT) * fill) / (b.y1 - b.y0));
+    k *= Math.min((bw * fill) / (b.x1 - b.x0), ((bh - FOOT - HEAD) * fill) / (b.y1 - b.y0));
     k = Math.min(2.5, Math.max(0.2, k));
     const c = boxAt(k, x, y);
     x += bw / 2 - (c.x0 + c.x1) / 2;
-    y += (bh - FOOT) / 2 - (c.y0 + c.y1) / 2;
+    y += HEAD + (bh - FOOT - HEAD) / 2 - (c.y0 + c.y1) / 2;
   }
   return { k, x, y };
 }
@@ -432,20 +539,59 @@ export interface MetroLayersProps {
 
 const partKey = (p: LayerPart) => `${p.kind}:${p.id}`;
 
+/** A plate in hand rises this far (px): `.mlay-slot.hot { --pull }`. */
+const PULL = 40;
+/** A plate falls onto its knob, or rises off it (ms). Matches `.mlay-plate`'s transition. */
+const SHUT_MS = 280;
+/** Out of hand only after this long outside: a pass over a gap or an edge keeps it. */
+const LEAVE_MS = 100;
+
 /** The floor and its plates: drawn once per level. Moving the camera never draws them again. */
 const Stage = memo(function Stage({
   level,
+  root,
   onPlate,
   open,
   shut,
   onShut,
+  still,
+  release,
 }: {
   level: Level;
+  root: RefObject<HTMLDivElement | null>;
+  /** Drops the plate in hand. */
+  release: () => void;
   onPlate: (p: Plate, how: "open" | "stack") => void;
   open: boolean;
   shut: ReadonlySet<string>;
   onShut: ((key: string) => void) | null;
+  still: boolean;
 }) {
+  const slotOf = (key: string) =>
+    root.current?.querySelector(`.mlay-slot[data-part="${CSS.escape(key)}"]`) ?? null;
+  // Shut: fall onto the knob, then shut.
+  const fall = (key: string) => {
+    const el = slotOf(key);
+    release();
+    if (still || !el) return onShut?.(key);
+    el.classList.add("closing");
+    window.setTimeout(() => onShut?.(key), SHUT_MS);
+  };
+  // Lift: a slot that leaves `shut` starts on its knob and rises.
+  const was = useRef(shut);
+  useLayoutEffect(() => {
+    const up = [...was.current].filter((k) => !shut.has(k));
+    was.current = shut;
+    for (const k of shut) slotOf(k)?.classList.remove("closing");
+    if (still) return;
+    for (const k of up) {
+      const el = slotOf(k);
+      if (!el) continue;
+      el.classList.add("closing");
+      el.getBoundingClientRect();
+      requestAnimationFrame(() => el.classList.remove("closing"));
+    }
+  });
   return (
     <>
       <div className="mlay-floor">
@@ -454,6 +600,7 @@ const Stage = memo(function Stage({
       {level.plates.map((p) => {
         const key = partKey(p.part);
         const down = shut.has(key);
+        const k = p.knob;
         return (
           <div
             key={key}
@@ -461,20 +608,34 @@ const Stage = memo(function Stage({
             data-part={key}
             style={{ "--zn": p.z } as CSSProperties}
           >
+            {/* the floor's stacked stop: lifts or shuts its plate */}
+            {onShut ? (
+              <button
+                type="button"
+                className={cx("mlay-knob", k.glyph && "glyph")}
+                style={{ left: k.x - k.d / 2, top: k.y - k.d / 2, width: k.d, height: k.d }}
+                aria-expanded={!down}
+                aria-label={down ? `Lift ${p.label}` : `Fold ${p.label}`}
+                title={down ? `Lift ${p.label}` : `Fold ${p.label}`}
+                onClick={() => (down ? onShut(key) : fall(key))}
+              >
+                {k.glyph ? <Icon name="stack" size={16} /> : null}
+              </button>
+            ) : null}
             {/* One dashed line from its stop up to the plate. */}
             <i className="mlay-drop" style={{ left: p.at[0], top: p.at[1] }} aria-hidden="true" />
-            {/* shut: an anchor on its stop; its Lift pin sits in the flat overlay */}
-            {down ? (
-              <i
-                className="mlay-at"
-                data-at={key}
-                style={{ left: p.at[0], top: p.at[1] }}
-                aria-hidden="true"
-              />
-            ) : null}
-            <div className="mlay-plate" style={p.box} inert={down || undefined}>
-              {/* still hit box: the face lifts on hover, the pointer stays on this */}
-              <i className="mlay-pad" aria-hidden="true" />
+            <div
+              className="mlay-plate"
+              style={
+                {
+                  ...p.box,
+                  "--ox": `${k.x - p.box.left}px`,
+                  "--oy": `${k.y - p.box.top}px`,
+                } as CSSProperties
+              }
+              inert={down || undefined}
+            >
+              {/* No pointer hits here but the acts: hover and click come from the camera math. */}
               <div className="mlay-face">
                 <button
                   type="button"
@@ -502,9 +663,9 @@ const Stage = memo(function Stage({
                       className="mlay-act"
                       aria-label={`Shut ${p.label}`}
                       title="Shut onto its stop"
-                      onClick={() => onShut(key)}
+                      onClick={() => fall(key)}
                     >
-                      <Icon name="arrowDown" size={14} />
+                      <Icon name="close" size={14} />
                     </button>
                   ) : null}
                 </div>
@@ -542,7 +703,6 @@ export function MetroLayers({
   const still = useReducedMotion() ?? false;
   const viewEl = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
-  const pins = useRef<HTMLDivElement>(null);
   const cam = useRef<Cam>({ ...APART, k: 0.6, x: 0, y: 0 });
   const run = useRef<{ stop: () => void } | null>(null);
   // The pose last asked for: a resize mid-flight keeps to it.
@@ -552,6 +712,20 @@ export function MetroLayers({
   const dragged = useRef(false);
   const ptrs = useRef(new Map<number, { x: number; y: number }>());
   const grab = useRef<{ x: number; y: number; cam: Cam; pan: boolean; d?: number } | null>(null);
+  // The plate in hand: a class on its slot, set straight on the DOM (no render per hover).
+  const hand = useRef<{ key: string | null; t: number }>({ key: null, t: 0 });
+  const setHand = useCallback((key: string | null) => {
+    const h = hand.current;
+    window.clearTimeout(h.t);
+    h.t = 0;
+    if (h.key === key) return;
+    const at = (k: string) =>
+      stage.current?.querySelector(`.mlay-slot[data-part="${CSS.escape(k)}"]`);
+    if (h.key) at(h.key)?.classList.remove("hot");
+    if (key) at(key)?.classList.add("hot");
+    h.key = key;
+  }, []);
+  const release = useCallback(() => setHand(null), [setHand]);
   const live = useRef({ onFloor, onOpen, onShut, shut });
   live.current = { onFloor, onOpen, onShut, shut };
   // One handler for the life of the stage, so a shut never draws the floor again.
@@ -579,22 +753,6 @@ export function MetroLayers({
   const w = f?.w ?? 960;
   const h = f?.h ?? 400;
 
-  // Each Lift pin onto its stop's place on screen: flat, upright, over every plate.
-  const pinAll = useCallback(() => {
-    const host = pins.current;
-    const el = stage.current;
-    const v = viewEl.current?.getBoundingClientRect();
-    if (!host || !el || !v) return;
-    for (const b of host.children) {
-      if (!(b instanceof HTMLElement)) continue;
-      const r = el
-        .querySelector(`[data-at="${CSS.escape(b.dataset.at ?? "")}"]`)
-        ?.getBoundingClientRect();
-      b.hidden = !r;
-      if (r) b.style.transform = `translate(${r.left - v.left}px, ${r.top - v.top}px)`;
-    }
-  }, []);
-
   // The camera goes straight to the stage's style, once a frame: no React render while it moves.
   const place = useCallback(() => {
     frame.current = 0;
@@ -605,8 +763,7 @@ export function MetroLayers({
     el.style.setProperty("--e", String(c.e));
     el.style.setProperty("--k", String(c.k));
     el.classList.toggle("landed", c.e < 0.02);
-    pinAll();
-  }, [pinAll]);
+  }, []);
   const soon = useCallback(() => {
     frame.current ||= requestAnimationFrame(place);
   }, [place]);
@@ -617,7 +774,8 @@ export function MetroLayers({
       [0, 0, w, h, 0],
       ...(level?.plates ?? []).map(
         ({ box: b, z, part }) =>
-          [b.left, b.top, b.width, b.height, shut.has(partKey(part)) ? 0 : z] as const,
+          // + the hover pull: a plate in hand still fits
+          [b.left, b.top, b.width, b.height, shut.has(partKey(part)) ? 0 : z + PULL] as const,
       ),
     ],
     [w, h, level, shut],
@@ -657,9 +815,16 @@ export function MetroLayers({
           soon();
         },
       });
-      run.current = a;
+      // A stop (wheel, drag, unmount) ends the move too: else `.moving` stays and kills the hover.
+      run.current = {
+        stop: () => {
+          a.stop();
+          stage.current?.classList.remove("moving");
+        },
+      };
+      const me = run.current;
       a.then(() => {
-        if (run.current === a) end();
+        if (run.current === me) end();
       });
     },
     [place, soon, still],
@@ -688,10 +853,6 @@ export function MetroLayers({
       setApart(p.e > 0.5);
     } else poseTo(p);
   }, [level, box]);
-
-  // A shut or a lift adds or drops a pin: place them before paint.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `shutKey` and `level` change the pins.
-  useLayoutEffect(pinAll, [pinAll, shutKey, level]);
 
   useEffect(() => () => run.current?.stop(), []);
 
@@ -742,7 +903,7 @@ export function MetroLayers({
   }, [zoomAt, soon]);
 
   const down = (e: PointerEvent<HTMLDivElement>) => {
-    if ((e.target as Element).closest(".mlay-act, .mlay-lift, .mlay-bar")) return;
+    if ((e.target as Element).closest(".mlay-act, .mlay-knob, .mlay-bar")) return;
     run.current?.stop();
     ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     dragged.current = false;
@@ -829,6 +990,43 @@ export function MetroLayers({
     [w, h, box, fly],
   );
 
+  /**
+   * Hover by the camera's math, not the DOM: Chrome's 3D hit test drops a still pointer while a
+   * face lifts. In hand while the pointer is on its plate at rest, lifted, or between; out 100 ms
+   * after it leaves them all. Another plate at rest takes hand at once; the higher one wins.
+   */
+  const hover = (e: PointerEvent<HTMLDivElement>) => {
+    const v = viewEl.current?.getBoundingClientRect();
+    const c = cam.current;
+    const el = stage.current;
+    const busy = dragged.current && grab.current;
+    if (!level || !v || !el || busy || c.e < 0.02 || el.classList.contains("opening"))
+      return setHand(null);
+    const cur = hand.current.key;
+    if (cur && (e.target as Element).closest(".mlay-acts")) return setHand(cur);
+    const pt = [e.clientX - v.left, e.clientY - v.top] as const;
+    const on = (p: Plate, lift: number) =>
+      inQuad(
+        pt,
+        corners(p.box.left, p.box.top, p.box.width, p.box.height).map(([x, y]) =>
+          toView(c, w, h, box, x, y, p.z * c.e + lift),
+        ),
+      );
+    const up = level.plates.filter((p) => !shut.has(partKey(p.part)));
+    const mine = up.find((p) => partKey(p.part) === cur);
+    if (mine && (on(mine, 0) || on(mine, PULL / 2) || on(mine, PULL))) return setHand(cur);
+    const next = up.filter((p) => on(p, 0)).sort((a, b) => b.z - a.z || b.at[1] - a.at[1])[0];
+    if (next) return setHand(partKey(next.part));
+    if (cur && !hand.current.t) hand.current.t = window.setTimeout(release, LEAVE_MS);
+  };
+  // A click on the view opens the plate in hand (keyboard: its own button).
+  const click = (e: MouseEvent<HTMLDivElement>) => {
+    if ((e.target as Element).closest(".mlay-act, .mlay-knob, .mlay-bar, .mlay-open")) return;
+    const k = hand.current.key;
+    const p = k ? level?.plates.find((q) => partKey(q.part) === k) : undefined;
+    if (p) pick(p, onOpen ? "open" : "stack");
+  };
+
   const crumbs = crumbsOf(zoom.nodes, floor);
   const lineName = floor?.kind === "line" ? level?.lines.find((l) => l.id === floor.id)?.n : null;
 
@@ -894,11 +1092,24 @@ export function MetroLayers({
           </Button>
         </div>
       </div>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: the camera surface; each plate and knob is a button for keys */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: keys open a plate by its own button */}
       <div
         ref={view}
         className="mlay-view"
-        onPointerDown={down}
-        onPointerMove={move}
+        onPointerDown={(e) => {
+          down(e);
+          hover(e);
+        }}
+        onPointerMove={(e) => {
+          move(e);
+          hover(e);
+        }}
+        onPointerLeave={() => {
+          if (hand.current.key && !hand.current.t)
+            hand.current.t = window.setTimeout(release, LEAVE_MS);
+        }}
+        onClick={click}
         onPointerUp={up}
         onPointerCancel={up}
       >
@@ -914,33 +1125,16 @@ export function MetroLayers({
           >
             <Stage
               level={level}
+              root={stage}
               onPlate={pick}
               open={!!onOpen}
               shut={shut}
               onShut={onShut ? toggle : null}
+              still={still}
+              release={release}
             />
           </div>
         )}
-        {onShut && level ? (
-          <div ref={pins} className="mlay-pins">
-            {level.plates
-              .filter((p) => shut.has(partKey(p.part)))
-              .map((p) => (
-                <button
-                  key={partKey(p.part)}
-                  type="button"
-                  className="mlay-lift"
-                  data-at={partKey(p.part)}
-                  aria-label={`Lift ${p.label}`}
-                  title={`Lift ${p.label}`}
-                  onClick={() => toggle(partKey(p.part))}
-                >
-                  <Icon name="stack" size={14} />
-                  <span>{p.label}</span>
-                </button>
-              ))}
-          </div>
-        ) : null}
         <p className="mlay-hint">
           {level && !level.plates.length
             ? "Nothing to split at this level."

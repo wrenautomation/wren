@@ -128,3 +128,5 @@ Not built yet (William, 11-06: "close and open everything and zoom into subviews
 - Phone: Layers at whole-map level is small; a line or fold floor is the way in. A phone-first Layers waits on use.
 - Out of scope, from the fresh-eye review: phone header height, flat map framing on a phone, a 24 px inset round the big map, the chat button over the phone nav and dim in dark.
 - Follow-up task: remove `column` from schema, store, pipeline (convert.ts, metro.ts columnIndex), lab, `DEFAULT_COLUMNS`, `zonesOf`.
+
+Behaviour spec and checks for the Layers look: `designs/2026-11-07-layers-spec.md`.

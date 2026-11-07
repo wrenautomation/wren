@@ -878,6 +878,10 @@
   background-size: 16px 16px;
   animation: metro-skeleton-in 0.25s ease-out 150ms backwards;
 }
+/* A ghost: the frame lays it out as the map (`.metro-fill .metro-stage`, `.metro-fit .mm`). */
+.metro-skeleton.ghosted {
+  display: flex;
+}
 .metro-skeleton-art {
   display: block;
   max-width: none;
@@ -1048,23 +1052,22 @@
   transform-style: preserve-3d;
   pointer-events: none;
 }
-.mlay-stage:not(.landed) .mlay-slot:has(.mlay-plate:hover) {
+/* In hand (JS sets `.hot` on enter, drops it 100 ms after leave): one plate at a time. */
+.mlay-stage:not(.landed, .moving, .opening) .mlay-slot.hot,
+.mlay-stage:not(.landed, .moving, .opening) .mlay-slot:has(:focus-visible) {
   --pull: 40;
 }
-/* The plate holds still: its hit box never moves under the pointer. Only the face lifts. */
+/* No pointer hits on a plate but its acts: hover and click come from the camera's math
+   (MetroLayers `hover`), since Chrome's 3D hit test drops a still pointer while a face lifts. */
 .mlay-plate {
   position: absolute;
-  pointer-events: auto;
+  pointer-events: none;
   transform-style: preserve-3d;
   transform: translateZ(calc(var(--zn) * var(--e) * 1px));
+  transform-origin: var(--ox) var(--oy);
   transition:
-    transform 0.25s var(--ui-ease),
-    opacity 0.35s var(--ui-ease);
-}
-.mlay-pad {
-  position: absolute;
-  inset: 0;
-  border-radius: 12px;
+    transform 0.28s var(--ui-ease),
+    opacity 0.28s var(--ui-ease);
 }
 .mlay-face {
   position: absolute;
@@ -1074,23 +1077,42 @@
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--ui-active) 45%, transparent),
     0 24px 40px -18px rgb(30 20 60 / 0.45);
+  pointer-events: none;
   transform: translateZ(calc(var(--pull) * 1px));
   transition:
     transform 0.25s var(--ui-ease),
     box-shadow 0.25s var(--ui-ease);
 }
-.mlay-plate:hover .mlay-face,
+.mlay-view:has(.mlay-slot.hot) {
+  cursor: pointer;
+}
+/* A plate in hand is in front of every knob. */
+.mlay-stage:has(.mlay-slot.hot) .mlay-knob {
+  pointer-events: none;
+}
+.mlay-slot.hot .mlay-face,
 .mlay-plate:focus-within .mlay-face {
   box-shadow:
     0 0 0 1.5px var(--ui-active),
     0 30px 50px -18px rgb(30 20 60 / 0.5);
 }
 /* One plate in hand: the others step back, its name takes the accent. */
-.mlay-stage:not(.landed, .opening):has(.mlay-plate:hover) .mlay-plate:not(:hover) {
+.mlay-stage:not(.landed, .opening):has(.mlay-slot.hot) .mlay-slot:not(.hot) .mlay-plate {
   opacity: 0.6;
 }
-.mlay-plate:hover .mlay-tag {
+.mlay-slot.hot .mlay-tag {
   color: var(--ui-active);
+}
+/* Shut: the plate falls onto its knob; lift plays it back. */
+.mlay-slot.closing {
+  --pull: 0;
+}
+.mlay-stage .mlay-slot.closing .mlay-plate {
+  transform: translateZ(0) scale(0.1);
+  opacity: 0;
+}
+.mlay-slot.closing .mlay-drop {
+  height: 0;
 }
 .mlay-open {
   display: block;
@@ -1123,30 +1145,35 @@
   white-space: nowrap;
   pointer-events: none;
 }
-/* Plate actions: icon buttons astride its top-right corner, off its stops; shown in hand. */
-/* Screen size at any zoom: scaled against the camera, never under 1. */
+/* Plate actions: icon buttons astride its top-right corner, shown only in hand (hidden ones
+   take no clicks). Screen size at any zoom: scaled against the camera, never under 1. */
 .mlay-acts {
   position: absolute;
-  top: -13px;
-  right: -13px;
+  top: -10px;
+  right: -10px;
   transform: scale(max(1, calc(1 / var(--k, 1))));
   transform-origin: top right;
   display: flex;
   gap: 4px;
   opacity: 0;
-  transition: opacity 0.2s var(--ui-ease);
+  visibility: hidden;
+  transition:
+    opacity 0.2s var(--ui-ease),
+    visibility 0s linear 0.2s;
 }
-.mlay-plate:hover .mlay-acts,
+.mlay-slot.hot .mlay-acts,
 .mlay-plate:focus-within .mlay-acts {
   opacity: 1;
+  visibility: visible;
+  transition: opacity 0.2s var(--ui-ease);
 }
 @media (hover: none) {
   .mlay-acts {
     opacity: 1;
+    visibility: visible;
   }
 }
-.mlay-act,
-.mlay-lift {
+.mlay-act {
   display: grid;
   place-items: center;
   width: 26px;
@@ -1170,44 +1197,40 @@
   color: var(--ui-active);
 }
 .mlay-act:focus-visible,
-.mlay-lift:focus-visible {
+.mlay-knob:focus-visible {
   outline: 2px solid var(--ui-active);
   outline-offset: 1px;
 }
-/* Lift pins: flat over the stage, each on its shut plate's stop (JS places it). */
-.mlay-pins {
+/* The knob: the floor's stacked stop is the lift and shut toggle. In the floor's plane, so it
+   turns and zooms with the map. No ring: the stacked glyph says it opens. */
+.mlay-knob {
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.mlay-lift {
-  position: absolute;
-  left: 0;
-  top: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  width: auto;
-  padding: 0 10px 0 7px;
-  margin: -13px 0 0 -13px;
-  font: 600 12px var(--ui-font);
-  white-space: nowrap;
-  box-shadow:
-    0 0 0 1.5px color-mix(in srgb, var(--ui-active) 70%, transparent),
-    0 4px 10px -4px rgb(30 20 60 / 0.35);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   color: var(--ui-active);
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translateZ(1px);
+  transition:
+    box-shadow 0.2s var(--ui-ease),
+    background 0.2s var(--ui-ease);
 }
-.mlay-view:has(.mlay-stage.opening) .mlay-pins {
-  opacity: 0;
+.mlay-knob:hover {
+  background: color-mix(in srgb, var(--ui-ink) 6%, transparent);
 }
-.mlay-at {
-  position: absolute;
-  width: 0;
-  height: 0;
+/* A line has no stop on the floor: the knob draws the stacked glyph. */
+.mlay-knob.glyph {
+  background: var(--ui-paper);
+  box-shadow:
+    0 0 0 1px var(--ui-hair),
+    0 2px 6px -2px rgb(30 20 60 / 0.25);
 }
-.mlay-lift:hover {
-  background: var(--ui-active);
-  color: var(--ui-paper);
+.mlay-stage.landed .mlay-knob {
+  visibility: hidden;
 }
 .mlay-slot.shut .mlay-plate,
 .mlay-slot.shut .mlay-drop {
@@ -1221,7 +1244,7 @@
   border-left: 1px dashed color-mix(in srgb, var(--ui-active) 70%, transparent);
   transform-origin: 0 0;
   transform: rotateX(90deg);
-  transition: height 0.25s var(--ui-ease);
+  transition: height 0.28s var(--ui-ease);
 }
 /* While the camera moves, JS sets each frame: no easing behind it. */
 .mlay-stage.moving .mlay-plate,
@@ -1235,7 +1258,8 @@
 /* Opening a plate: the rest fade while the camera comes down onto it. */
 .mlay-stage.opening .mlay-floor,
 .mlay-stage.opening .mlay-slot:not(.chosen) > *,
-.mlay-stage.opening .chosen .mlay-tag {
+.mlay-stage.opening .chosen .mlay-tag,
+.mlay-stage.opening .chosen .mlay-knob {
   opacity: 0.08;
   transition: opacity 0.35s var(--ui-ease);
 }
@@ -1260,7 +1284,8 @@
   .mlay-plate,
   .mlay-face,
   .mlay-drop,
-  .mlay-acts {
+  .mlay-acts,
+  .mlay-knob {
     transition: none;
   }
 }

@@ -159,6 +159,8 @@ function partOf(v: string | null): LayerPart | null {
   const m = v?.match(/^(node|line):(.+)$/);
   return m ? { kind: m[1] as "node" | "line", id: m[2] as string } : null;
 }
+/** The URL params a Map layout hangs on: one ghost per set. */
+const GHOST_KEYS = ["sv", "focus", "draft", "history"] as const;
 const partParam = (p: LayerPart | null) => (p ? `${p.kind}:${p.id}` : null);
 
 /** The flat map's focus from `focus=`: the part as the map's spec, and its name. */
@@ -216,6 +218,8 @@ export function MapPage({
   lit?: string | null;
 }) {
   const window = windowOf(props.params.get("window"));
+  // What the layout hangs on: the skeleton draws this page's last one (packages/ui metro/ghost.ts).
+  const ghostKey = `map?${GHOST_KEYS.map((k) => props.params.get(k) ?? "").join("&")}`;
   const wren = props.client === WREN.id;
   const client = wren ? null : props.client;
   const at = atOf(props.client);
@@ -593,7 +597,7 @@ export function MapPage({
             <LoadFailed error={read.error} onRetry={read.retry} what="map" />
           </div>
         ) : !read.data || waiting ? (
-          <MetroSkeleton label="Reading your map" />
+          <MetroSkeleton label="Reading your map" ghost={ghostKey} className="metro-fill" />
         ) : !data ? (
           <NoShape mayStart={mayEdit} at={at} onStarted={read.retry} />
         ) : (
@@ -644,6 +648,7 @@ export function MapPage({
                   intro={false}
                   bare
                   className="metro-fill"
+                  ghost={ghostKey}
                 />
               </div>
             ) : shown ? (
