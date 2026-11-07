@@ -1334,7 +1334,7 @@ export const MapViewsMenu = mapAt("/", {
   },
 });
 
-/** Layers, one plate shut (`shut=`): only its stop on the floor, with Lift. */
+/** Layers, one plate shut (`shut=`): its Lift mark on its stop, no plate. */
 export const LayersShut = mapAt("/?look=layers&shut=node%3Aaudit%40", {
   answers: bigAnswers(SHARED),
   check: async (page) => {

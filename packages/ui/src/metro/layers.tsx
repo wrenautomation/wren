@@ -22,6 +22,7 @@ import {
 } from "react";
 import { Button, Seg } from "../controls.js";
 import { cx } from "../format.js";
+import { Icon } from "../icons.js";
 import { MetroSvg } from "./draw.js";
 import { type FocusSpec, focusScene } from "./focus.js";
 import type { MetroZoom } from "./fold.js";
@@ -462,37 +463,52 @@ const Stage = memo(function Stage({
           >
             {/* One dashed line from its stop up to the plate. */}
             <i className="mlay-drop" style={{ left: p.at[0], top: p.at[1] }} aria-hidden="true" />
+            {/* shut: an anchor on its stop; its Lift pin sits in the flat overlay */}
+            {down ? (
+              <i
+                className="mlay-at"
+                data-at={key}
+                style={{ left: p.at[0], top: p.at[1] }}
+                aria-hidden="true"
+              />
+            ) : null}
             <div className="mlay-plate" style={p.box} inert={down || undefined}>
-              <button
-                type="button"
-                className="mlay-open"
-                aria-label={open ? `Open ${p.label}` : `${p.label}: stack it here`}
-                onClick={() => onPlate(p, open ? "open" : "stack")}
-              >
-                <MetroSvg scene={p.scene} still bare />
-              </button>
-              <div className="mlay-tag">
-                <span>{p.label}</span>
-                {onShut ? (
-                  <button
-                    type="button"
-                    className="mlay-shut"
-                    aria-label={`Shut ${p.label}`}
-                    onClick={() => onShut(key)}
-                  >
-                    Shut
-                  </button>
-                ) : null}
-                {open && p.deep ? (
-                  <button
-                    type="button"
-                    className="mlay-stack"
-                    aria-label={`${p.label}: stack it here`}
-                    onClick={() => onPlate(p, "stack")}
-                  >
-                    Stack here
-                  </button>
-                ) : null}
+              {/* still hit box: the face lifts on hover, the pointer stays on this */}
+              <i className="mlay-pad" aria-hidden="true" />
+              <div className="mlay-face">
+                <button
+                  type="button"
+                  className="mlay-open"
+                  aria-label={open ? `Open ${p.label}` : `${p.label}: stack it here`}
+                  onClick={() => onPlate(p, open ? "open" : "stack")}
+                >
+                  <MetroSvg scene={p.scene} still bare />
+                </button>
+                <div className="mlay-acts">
+                  {open && p.deep ? (
+                    <button
+                      type="button"
+                      className="mlay-act"
+                      aria-label={`${p.label}: stack it here`}
+                      title="Stack here"
+                      onClick={() => onPlate(p, "stack")}
+                    >
+                      <Icon name="stack" size={14} />
+                    </button>
+                  ) : null}
+                  {onShut ? (
+                    <button
+                      type="button"
+                      className="mlay-act"
+                      aria-label={`Shut ${p.label}`}
+                      title="Shut onto its stop"
+                      onClick={() => onShut(key)}
+                    >
+                      <Icon name="arrowDown" size={14} />
+                    </button>
+                  ) : null}
+                </div>
+                <div className="mlay-tag">{p.label}</div>
               </div>
             </div>
           </div>
@@ -526,6 +542,7 @@ export function MetroLayers({
   const still = useReducedMotion() ?? false;
   const viewEl = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
+  const pins = useRef<HTMLDivElement>(null);
   const cam = useRef<Cam>({ ...APART, k: 0.6, x: 0, y: 0 });
   const run = useRef<{ stop: () => void } | null>(null);
   // The pose last asked for: a resize mid-flight keeps to it.
@@ -562,6 +579,22 @@ export function MetroLayers({
   const w = f?.w ?? 960;
   const h = f?.h ?? 400;
 
+  // Each Lift pin onto its stop's place on screen: flat, upright, over every plate.
+  const pinAll = useCallback(() => {
+    const host = pins.current;
+    const el = stage.current;
+    const v = viewEl.current?.getBoundingClientRect();
+    if (!host || !el || !v) return;
+    for (const b of host.children) {
+      if (!(b instanceof HTMLElement)) continue;
+      const r = el
+        .querySelector(`[data-at="${CSS.escape(b.dataset.at ?? "")}"]`)
+        ?.getBoundingClientRect();
+      b.hidden = !r;
+      if (r) b.style.transform = `translate(${r.left - v.left}px, ${r.top - v.top}px)`;
+    }
+  }, []);
+
   // The camera goes straight to the stage's style, once a frame: no React render while it moves.
   const place = useCallback(() => {
     frame.current = 0;
@@ -570,8 +603,10 @@ export function MetroLayers({
     const c = cam.current;
     el.style.transform = `translate(${c.x}px, ${c.y}px) scale3d(${c.k}, ${c.k}, ${c.k}) rotateX(${c.rx}deg) rotateZ(${c.rz}deg)`;
     el.style.setProperty("--e", String(c.e));
+    el.style.setProperty("--k", String(c.k));
     el.classList.toggle("landed", c.e < 0.02);
-  }, []);
+    pinAll();
+  }, [pinAll]);
   const soon = useCallback(() => {
     frame.current ||= requestAnimationFrame(place);
   }, [place]);
@@ -654,6 +689,10 @@ export function MetroLayers({
     } else poseTo(p);
   }, [level, box]);
 
+  // A shut or a lift adds or drops a pin: place them before paint.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `shutKey` and `level` change the pins.
+  useLayoutEffect(pinAll, [pinAll, shutKey, level]);
+
   useEffect(() => () => run.current?.stop(), []);
 
   const view = useCallback((el: HTMLDivElement | null) => {
@@ -703,7 +742,7 @@ export function MetroLayers({
   }, [zoomAt, soon]);
 
   const down = (e: PointerEvent<HTMLDivElement>) => {
-    if ((e.target as Element).closest(".mlay-stack, .mlay-shut, .mlay-bar")) return;
+    if ((e.target as Element).closest(".mlay-act, .mlay-lift, .mlay-bar")) return;
     run.current?.stop();
     ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     dragged.current = false;
@@ -821,22 +860,6 @@ export function MetroLayers({
           ) : null}
         </nav>
         <div className="mlay-ctl">
-          {/* Shut plates: each lies on its stop; Lift brings it up. In the bar: a plate in front can hide its stop. */}
-          {onShut && level
-            ? level.plates
-                .filter((p) => shut.has(partKey(p.part)))
-                .map((p) => (
-                  <Button
-                    key={partKey(p.part)}
-                    tone="quiet"
-                    size="dense"
-                    icon="up"
-                    onClick={() => toggle(partKey(p.part))}
-                  >
-                    Lift {p.label}
-                  </Button>
-                ))
-            : null}
           {onSplit && level?.can.folds && level.can.lines ? (
             <Seg
               label="Split by"
@@ -898,6 +921,26 @@ export function MetroLayers({
             />
           </div>
         )}
+        {onShut && level ? (
+          <div ref={pins} className="mlay-pins">
+            {level.plates
+              .filter((p) => shut.has(partKey(p.part)))
+              .map((p) => (
+                <button
+                  key={partKey(p.part)}
+                  type="button"
+                  className="mlay-lift"
+                  data-at={partKey(p.part)}
+                  aria-label={`Lift ${p.label}`}
+                  title={`Lift ${p.label}`}
+                  onClick={() => toggle(partKey(p.part))}
+                >
+                  <Icon name="stack" size={14} />
+                  <span>{p.label}</span>
+                </button>
+              ))}
+          </div>
+        ) : null}
         <p className="mlay-hint">
           {level && !level.plates.length
             ? "Nothing to split at this level."
