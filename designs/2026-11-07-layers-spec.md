@@ -53,6 +53,7 @@ Code: `packages/ui/src/metro/layers.tsx`, `metro.css` (`.mlay-*`). Stories: `Wre
 
 1. A click on a plate (not on an act or a knob) settles the camera on it, in Layers: it turns top-down and fits that plate and the plates lifted above it. The rest fade to 15 %. The look never changes and nothing is laid out again.
 2. Out: Esc, a click on empty space, Fit all, or Together/Apart. The camera goes back to the last pose, fitted to all.
+4. Settled, the view has no perspective (camera `o` 1). Chrome draws a layer under any perspective at scale 1, so text past zoom 1 blurs (seen in GPU Chrome, 11-08). The fly eases perspective out; a turn drag eases it back in as the tilt grows.
 3. The flat focus view (`focus=` from Layers, its "Layers › part" bar) is gone.
 
 ### S8 Nest (WA-1198)
@@ -65,7 +66,7 @@ Code: `packages/ui/src/metro/layers.tsx`, `metro.css` (`.mlay-*`). Stories: `Wre
 
 ### S5 Camera
 
-Drag turns, tilt drives apart; release under 16° snaps flat. Wheel or pinch zooms at the pointer. Trackpad scroll, shift-drag or right-drag pans. Together lands plates on their place; Apart lifts them. Fit all frames the floor and every plate. Pointer down on a knob, an act or the bar never starts a drag.
+Phone (view under 640 px wide): the fit stops at zoom 0.75 so names read, as the flat map shows labels at real size. A map wider than the view shows its left side and pans; Fit all still shows all. The view clips with `overflow: clip`: focus on an off-screen plate must not scroll it. Drag turns, tilt drives apart; release under 16° snaps flat. Wheel or pinch zooms at the pointer. Trackpad scroll, shift-drag or right-drag pans. Together lands plates on their place; Apart lifts them. Fit all frames the floor and every plate. Pointer down on a knob, an act or the bar never starts a drag.
 
 ### S6 Overlap rules (at rest, Apart, Fit all, 1280 × 860 and 390 × 844)
 
@@ -78,7 +79,7 @@ Drag turns, tilt drives apart; release under 16° snaps flat. Wheel or pinch zoo
 
 ### S7 Look
 
-Resolution judged only in GPU Chrome: 12 px tag text and stop names sharp at k ≥ 0.6. Dark: plate paper, accent ring and drop follow tokens. Phone 390: acts always show, bar wraps, no page scroll.
+Resolution judged only in GPU Chrome (new headless Chrome, `channel: "chromium"`, runs on the Mac's GPU with no window): 12 px tag text and stop names sharp at k ≥ 0.6. Dark: plate paper, accent ring and drop follow tokens. Phone 390: acts always show, bar wraps, no page scroll.
 
 ## Checks (harness `layers-check.mjs`)
 

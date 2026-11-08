@@ -1044,7 +1044,8 @@
   position: relative;
   flex: 1;
   min-height: 420px;
-  overflow: hidden;
+  /* clip, not hidden: focus on a plate off screen must not scroll it (the camera owns the shift) */
+  overflow: clip;
   perspective: 2200px;
   perspective-origin: 50% 30%;
   touch-action: none;

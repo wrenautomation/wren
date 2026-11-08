@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Layers behaviour checks (designs/2026-11-07-layers-spec.md): hover, shut, lift, overlap.
-// GPU Chrome, headed off screen (headless draws 3D text jagged and hit-tests the same).
+// GPU Chrome with no window: new headless (channel chromium) runs on the GPU; the old headless shell draws 3D text jagged.
 // Usage (from apps/portal): node scripts/layers-check.mjs [--sb http://localhost:52772] [--w 1280,390] [story ids...]
 import { createRequire } from "node:module";
 
@@ -20,7 +20,10 @@ const ids = argv.length
   : [...SHAPES.map((s) => `wren-map-offer-shapes--${s}`), "wren-map-layers--default"];
 
 const fails = [];
-const fail = (where, id, detail) => fails.push({ where, id, ...detail });
+const fail = (where, id, detail) => {
+  fails.push({ where, id, ...detail });
+  console.log("FAIL", where, id, JSON.stringify(detail)); // live, survives a crash
+};
 const pause = (p, ms) => p.waitForTimeout(ms);
 
 /** Projected quads (corner markers put in each box) of faces and tags; stop-name centres. */
@@ -294,7 +297,7 @@ async function shutLift(p, id) {
   await pause(p, 600);
 }
 
-const b = await chromium.launch({ headless: false, args: ["--window-position=-2400,-2400"] });
+const b = await chromium.launch({ headless: true, channel: "chromium" });
 for (const id of ids)
   for (const W of WIDTHS) {
     const at = `${id}@${W}`;

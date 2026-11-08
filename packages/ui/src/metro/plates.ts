@@ -544,6 +544,11 @@ const EYE_Y = 0.3;
 const FOOT = 36;
 /** Room over the top plate: its acts (26 + 10 astride) and the hover pull. */
 const HEAD = 44;
+/** A view narrower than this (a phone) keeps names readable: the fit stops at `READ_K` and pans. */
+const NARROW = 640;
+const READ_K = 0.75;
+/** Its start's inset from the left edge when the map is wider than the view. */
+const START_IN = 24;
 
 /** Where the camera is: the turn, how far apart (0 landed, 1 apart), and the scale and shift. */
 export interface Cam {
@@ -553,8 +558,16 @@ export interface Cam {
   k: number;
   x: number;
   y: number;
+  /**
+   * 0 under the view's perspective, 1 straight down with none. Chrome draws a layer under any
+   * perspective at scale 1, so text blurs past k 1; a settled plate goes to 1 to stay sharp.
+   */
+  o?: number;
 }
-export type Pose = Pick<Cam, "rx" | "rz" | "e">;
+export type Pose = Pick<Cam, "rx" | "rz" | "e" | "o">;
+
+/** The view's `perspective` for `o`. */
+export const perspectiveOf = (o = 0) => (o >= 1 ? "none" : `${PERSPECTIVE / (1 - o)}px`);
 
 export const FLAT: Pose = { rx: 0, rz: 0, e: 0 };
 /** Apart: the artifact's pose. */
@@ -576,7 +589,7 @@ export type Rect = readonly [number, number, number, number, number];
  * `translate scale3d rotateX rotateZ` under the view's perspective. Fit and hover share it.
  */
 export function toView(
-  c: Pick<Cam, "rx" | "rz" | "k" | "x" | "y">,
+  c: Pick<Cam, "rx" | "rz" | "k" | "x" | "y" | "o">,
   w: number,
   h: number,
   [bw, bh]: readonly [number, number],
@@ -589,7 +602,8 @@ export function toView(
   const [x0, y0] = [px - w / 2, py - h / 2];
   const [x1, y1] = [x0 * cz - y0 * sz, x0 * sz + y0 * cz];
   const [X, Y, Z] = [c.k * x1, c.k * (y1 * cx - up * sx), c.k * (y1 * sx + up * cx)];
-  const at = PERSPECTIVE / (PERSPECTIVE - Z);
+  // perspective PERSPECTIVE / (1 - o): none at o 1
+  const at = PERSPECTIVE / (PERSPECTIVE - Z * (1 - (c.o ?? 0)));
   const eye = [bw / 2, bh * EYE_Y] as const;
   return [eye[0] + (bw / 2 + c.x + X - eye[0]) * at, eye[1] + (bh / 2 + c.y + Y - eye[1]) * at];
 }
@@ -625,6 +639,8 @@ export function fitOf(
   pose: Pose,
   [bw, bh]: readonly [number, number],
   fill = 0.94,
+  /** On a narrow view, stop at a readable scale and show the start of `rects[0]`. */
+  read = false,
 ): Pick<Cam, "k" | "x" | "y"> {
   if (!bw || !bh) return { k: 0.6, x: 0, y: 0 };
   const boxAt = (k: number, dx: number, dy: number) => {
@@ -643,10 +659,19 @@ export function fitOf(
   for (let i = 0; i < 3; i++) {
     const b = boxAt(k, x, y);
     k *= Math.min((bw * fill) / (b.x1 - b.x0), ((bh - FOOT - HEAD) * fill) / (b.y1 - b.y0));
-    k = Math.min(2.5, Math.max(0.2, k));
+    k = Math.min(2.5, Math.max(read && bw < NARROW ? READ_K : 0.2, k));
     const c = boxAt(k, x, y);
-    x += bw / 2 - (c.x0 + c.x1) / 2;
-    y += HEAD + (bh - FOOT - HEAD) / 2 - (c.y0 + c.y1) / 2;
+    const midY = HEAD + (bh - FOOT - HEAD) / 2;
+    const [l, t, , ph, up] = rects[0] ?? [0, 0, 0, 0, 0];
+    if (c.x1 - c.x0 > bw) {
+      // wider than the view: its left side sits at the left edge, its middle at mid height
+      const at = (py: number) => toView({ ...pose, k, x, y }, w, h, [bw, bh], l, py, up * pose.e);
+      x += START_IN - Math.min(at(t)[0], at(t + ph)[0]);
+      y += midY - at(t + ph / 2)[1];
+    } else {
+      x += bw / 2 - (c.x0 + c.x1) / 2;
+      y += midY - (c.y0 + c.y1) / 2;
+    }
   }
   return { k, x, y };
 }

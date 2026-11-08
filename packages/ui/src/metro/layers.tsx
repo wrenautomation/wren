@@ -44,6 +44,7 @@ import {
   levelOf,
   type Plate,
   type Pose,
+  perspectiveOf,
   type Rect,
   SNAP_FLAT,
   toView,
@@ -352,6 +353,8 @@ export function MetroLayers({
     el.style.setProperty("--e", String(c.e));
     el.style.setProperty("--k", String(c.k));
     el.classList.toggle("landed", c.e < 0.02);
+    const v = viewEl.current;
+    if (v) v.style.perspective = perspectiveOf(c.o);
   }, []);
   const soon = useCallback(() => {
     frame.current ||= requestAnimationFrame(place);
@@ -394,6 +397,7 @@ export function MetroLayers({
         k: from.k * (to.k / from.k) ** t,
         x: from.x + (to.x - from.x) * t,
         y: from.y + (to.y - from.y) * t,
+        o: (from.o ?? 0) + ((to.o ?? 0) - (from.o ?? 0)) * t,
       });
       const a = animate(0, 1, {
         type: "spring",
@@ -452,9 +456,10 @@ export function MetroLayers({
         stage.current
           ?.querySelector(`.mlay-slot[data-part="${CSS.escape(partKey(p.part))}"]`)
           ?.classList.add("chosen");
-      const top: Pose = { rx: 0, rz: 0, e: cam.current.e };
+      // straight down, no perspective: sharp text at any zoom
+      const top: Pose = { rx: 0, rz: 0, e: cam.current.e, o: 1 };
       const at: Rect[] = plates.map((p) => [p.box.left, p.box.top, p.box.width, p.box.height, p.z]);
-      fly({ ...top, ...fitOf(w, h, at, top, box, 0.9) });
+      fly({ ...top, ...fitOf(w, h, at, top, box, 0.9, true) });
     },
     [treeUp, mark, fly, w, h, box],
   );
@@ -462,7 +467,7 @@ export function MetroLayers({
   const unsettle = useCallback(() => {
     const back = settled.current?.back;
     mark(null);
-    if (back) fly({ ...back, ...fitOf(w, h, rects(), back, box) });
+    if (back) fly({ ...back, ...fitOf(w, h, rects(), back, box, undefined, true) });
   }, [mark, fly, rects, w, h, box]);
   // A lift or a shut while settled: fit again; its own plate shut lets go.
   // biome-ignore lint/correctness/useExhaustiveDependencies: only a change in what is up moves it.
@@ -485,7 +490,7 @@ export function MetroLayers({
     (p: Pose, done?: () => void) => {
       mark(null);
       flat.current = p.e < 0.5;
-      fly({ ...p, ...fitOf(w, h, rects(), p, box) }, done);
+      fly({ ...p, ...fitOf(w, h, rects(), p, box, undefined, true) }, done);
     },
     [fly, rects, w, h, box, mark],
   );
@@ -552,7 +557,7 @@ export function MetroLayers({
     const p = flat.current || !level.plates.length ? FLAT : APART;
     if (first.current) {
       first.current = false;
-      cam.current = { ...p, ...fitOf(w, h, rects(), p, box) };
+      cam.current = { ...p, ...fitOf(w, h, rects(), p, box, undefined, true) };
       place();
       setApart(p.e > 0.5);
     } else poseTo(p);
@@ -660,7 +665,9 @@ export function MetroLayers({
     } else {
       // Turn; the plates come apart as it tilts, and land as it flattens.
       const rx = Math.max(0, Math.min(75, c.rx - (e.clientY - g.y) * 0.2));
-      cam.current = { ...c, rx, rz: c.rz + (e.clientX - g.x) * 0.25, e: apartAt(rx) };
+      // a settled (flat, no perspective) camera takes it back as it tilts
+      const o = (c.o ?? 0) * Math.max(0, 1 - rx / SNAP_FLAT);
+      cam.current = { ...c, rx, rz: c.rz + (e.clientX - g.x) * 0.25, e: apartAt(rx), o };
     }
     soon();
   };
@@ -677,7 +684,13 @@ export function MetroLayers({
     const rest = APART;
     const rz = Math.abs(c.rz - rest.rz) < 12 ? rest.rz : c.rz;
     flat.current = false;
-    fly({ ...c, rz, e: 1, ...(c.e < 1 ? fitOf(w, h, rects(), { ...c, rz, e: 1 }, box) : {}) });
+    fly({
+      ...c,
+      rz,
+      e: 1,
+      o: 0,
+      ...(c.e < 1 ? fitOf(w, h, rects(), { ...c, rz, e: 1, o: 0 }, box, undefined, true) : {}),
+    });
   };
 
   const pick = useCallback(

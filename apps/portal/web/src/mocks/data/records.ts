@@ -134,8 +134,16 @@ export function recordsAnswers(
   OWN = own;
   MADE = made;
   // The console serves Wren's own and every client's component records; channels serve their own.
+  // Products with rows but no records page (pipeline: the Map) count too.
+  const prefix = (record: string) => record.split(".")[0] ?? "";
   const products = [
-    ...new Set(["console", "email", "sms", ...PAGES.map((p) => p.record.split(".")[0] ?? "")]),
+    ...new Set([
+      "console",
+      "email",
+      "sms",
+      ...PAGES.map((p) => prefix(p.record)),
+      ...Object.keys(own).map(prefix),
+    ]),
   ];
   const out: Answers = {};
   for (const product of products) {
