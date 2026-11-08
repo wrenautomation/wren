@@ -1,6 +1,6 @@
 import { checkWorkflows } from "@wren/core/workflows";
 import { describe, expect, it } from "vitest";
-import { flow, grown, shape, withPain, withStudy } from "../test/fixtures.js";
+import { flow, grown, shape, withPain } from "../test/fixtures.js";
 import { graphOf } from "./convert.js";
 import { soundShapes } from "./journeys.js";
 import type { ShapeBody, ShapeNode } from "./model.js";
@@ -231,15 +231,6 @@ describe("soundShapes", () => {
     expect(kept.map((f) => f.id)).toEqual(["shape.v2"]);
     expect(logged).toHaveLength(1);
     expect(logged[0]).toMatch(/^shape\.v1 left out: /);
-  });
-
-  it("keeps a shape whose find station names a study, not an SOP", () => {
-    const logged: string[] = [];
-    const kept = soundShapes([shapeWorkflow(3, graphOf(withStudy()), "wren")], [], [], (m) =>
-      logged.push(m),
-    );
-    expect(kept.map((f) => f.id)).toEqual(["shape.v3"]);
-    expect(logged).toEqual([]);
   });
 
   it("keeps a shape with a sourced out line that joins a hub track (the pain points line)", () => {

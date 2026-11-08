@@ -682,25 +682,9 @@ export const withFilms = (): MetroBody => {
   return b;
 };
 
-/** The films map plus a study line: find (the study's pages) → extract → call. */
-export const withStudy = (slug = "placements"): MetroBody => {
-  const b = withFilms();
-  b.lines.push({ id: "study", label: "Study", tier: "content", colour: 4 });
-  b.stations.push(
-    { id: "sfind", label: "Find", kind: "find", line: "study", study: slug },
-    { id: "sextract", label: "Extract", kind: "extract", line: "study" },
-    { id: "scall", label: "Call", kind: "call", line: "study" },
-  );
-  b.tracks.push(
-    { id: "sfind_to_sextract", from: "sfind", to: "sextract", line: "study", by: "system" },
-    { id: "sextract_to_scall", from: "sextract", to: "scall", line: "study", by: "system" },
-  );
-  return b;
-};
-
 /** The metro body with a pain points line: a sourced out line that joins the hub's react track. */
 export const withPain = (source = "import:12"): MetroBody => {
-  const b = withStudy();
+  const b = withFilms();
   b.lines.push({
     id: "pain",
     label: "Pain points",

@@ -118,14 +118,12 @@ export function factsOf(data: Record<string, unknown>): CauseFacts {
   // A group's entered event carries its id as `segment`.
   const group = textOf(data.group) ?? textOf(data.segment);
   const sop = textOf(data.sop);
-  const study = textOf(data.study);
   if (entry) f.entry = entry;
   if (channel) f.channel = channel;
   if (campaign) f.campaign = campaign;
   if (source) f.source = source;
   if (group) f.group = group;
   if (sop) f.sop = sop;
-  if (study) f.study = study;
   return f;
 }
 
@@ -224,7 +222,7 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
     if (!Number.isSafeInteger(document) || document <= 0) return null;
     const { body } = loaded;
     const cause = factsOf(e.data);
-    const { sop, study } = cause;
+    const { sop } = cause;
     const stamp = now().toISOString();
     return atomic(db, async (tx) => {
       const open = await openDocument(tx, document, version);
@@ -252,8 +250,8 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
           skipped: passedThrough(body, path),
         };
       }
-      // Only the newest version opens, and only from the find of the SOP or study the cause names.
-      if (version !== loaded.newest || !(sop || study)) return null;
+      // Only the newest version opens, and only from the find of the SOP the cause names.
+      if (version !== loaded.newest || !sop) return null;
       const src = liveSources(body).find(
         (s) => s.via === "found" && foundBy(s, cause) && sourceEdge(body, s.id, to),
       );
@@ -268,12 +266,8 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
           node: to,
           trail: [{ edge: edge.id, from: src.id, to, at: stamp }],
           entry: src.id,
-          // The SOP or study is the line: a renamed find station must not let a document in again.
-          entryRef: {
-            subject: e.subject,
-            cause: causeOf(e, now()),
-            ...(study ? { study } : { sop }),
-          },
+          // The SOP is the line: a renamed find station must not let a document in again.
+          entryRef: { subject: e.subject, cause: causeOf(e, now()), sop },
           openedAt: now(),
           movedAt: now(),
         })

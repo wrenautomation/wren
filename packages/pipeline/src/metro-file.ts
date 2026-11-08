@@ -123,7 +123,6 @@ const STATION: Schema = {
   template: "text",
   platform: "text",
   sop: "text",
-  study: "text",
   planned: "true",
   attach: "attaches",
 };

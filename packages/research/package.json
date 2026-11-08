@@ -20,7 +20,6 @@
     "./schema": "./src/schema.ts",
     "./signals": "./src/signals/collectors.ts",
     "./social-schema": "./src/social-schema.ts",
-    "./studies": "./src/studies/index.ts",
     "./sops": "./src/sops/index.ts",
     "./enrichment": "./src/enrichment/index.ts",
     "./restate": "./src/restate/index.ts"

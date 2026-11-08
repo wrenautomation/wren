@@ -196,16 +196,12 @@ describe("triggers", () => {
     expect(LOGIC.filter((l) => !l.ready).map((l) => l.id)).toEqual([]);
   });
 
-  it("found names an SOP or a study, one of them", () => {
+  it("found names an SOP", () => {
     const found = (w: Record<string, string>) =>
       logicProblems("e_0", { id: "e_0", uses: "trigger.found", with: w });
     expect(found({ sop: "launch-films" })).toEqual([]);
-    expect(found({ study: "recruiting-repeat" })).toEqual([]);
-    expect(found({ sop: "launch-films", study: "recruiting-repeat" })).toEqual([
-      "e_0: Found names an SOP and a study. Name one.",
-    ]);
     expect(found({})).toHaveLength(1);
-    expect(found({ study: "Bad Slug" })).toHaveLength(1);
+    expect(found({ study: "recruiting-repeat" })).toHaveLength(1);
   });
 
   it("source hears its own list only and checks the list id", () => {

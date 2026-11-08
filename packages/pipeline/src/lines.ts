@@ -6,19 +6,15 @@
  * ended at the station it is at. A document at a line's last station closes there when that job
  * ends: nothing moves, so no event says it.
  *
- * A line is an SOP's (its find takes Learn items tagged with it or asked into it) or a study's (its
- * find takes the pages the study read). A job ends when its row is there:
- *   read     SOP: a Wren item on the document is read (`read_at`). Study: the study read it, so
- *            its pages arrive with read ended.
- *   extract  SOP: the document has a breakdown's fact finding. Study: the study's claims step on
- *            the page is final (no claims is an answer).
+ * A line is an SOP's: its find takes Learn items tagged with it or asked into it. A job ends when
+ * its row is there:
+ *   read     a Wren item on the document is read (`read_at`).
+ *   extract  the document has a breakdown's fact finding.
  *   call     his console or CLI call on the whole document (`doc:<id>`): a mark (star, save, SOP
- *            add) is no call, and a fact call tunes the standard only. Study: also when every
- *            claim of the study on the page has his call; a page with no claims has nothing to
- *            call and ends at once.
+ *            add) is no call, and a fact call tunes the standard only.
  *   measure  never yet
  *
- * Wren's workspace only: Learn items, studies, their documents and his calls are Wren's for now.
+ * Wren's workspace only: Learn items, their documents and his calls are Wren's for now.
  * Pure of Restate: the worker's `MapLineFeed` loop sends the fires.
  */
 
@@ -47,19 +43,15 @@ interface LinePass {
 
 const docSubject = (document: number) => `doc:${document}`;
 
-/** What a line is: an SOP's or a study's. The instance keeps it in `entry_ref`. */
-type Line = { sop: string } | { study: string };
+/** What a line is: an SOP's. The instance keeps it in `entry_ref`. */
+type Line = { sop: string };
 
-const lineOf = (ref: Record<string, unknown> | null): Line | null => {
-  if (typeof ref?.study === "string") return { study: ref.study };
-  if (typeof ref?.sop === "string") return { sop: ref.sop };
-  return null;
-};
-const lineKey = (l: Line) => ("study" in l ? `study:${l.study}` : `sop:${l.sop}`);
+const lineOf = (ref: Record<string, unknown> | null): Line | null =>
+  typeof ref?.sop === "string" ? { sop: ref.sop } : null;
 
 /**
  * The documents a find takes that its line has not had: Wren items tagged with the SOP or asked
- * into it, or the pages the study read. Neither an instance for this line (any status: a line
+ * into it. Neither an instance for this line (any status: a line
  * takes a document once) nor an arrival at the find's targets in this version, so a refused move
  * is not told again.
  */
@@ -72,22 +64,15 @@ async function newDocuments(
     sql`, `,
   );
   const { line } = p;
-  const found =
-    "study" in line
-      ? sql`select distinct s.document_id as document from study_steps s
-          join studies y on y.id = s.study_id
-          where y.slug = ${line.study} and s.step = 'read' and s.outcome = 'ok'
-            and s.document_id is not null`
-      : sql`select distinct i.document_id as document from learn.items i
-          where i.client = ${WREN}
-            and (exists (select 1 from learn.item_tags t where t.item_id = i.id and t.tag = ${line.sop})
-              or exists (select 1 from learn.sop_sources x where x.item_id = i.id
-                and x.sop = ${line.sop}))`;
-  const [field, name] = "study" in line ? ["study", line.study] : ["sop", line.sop];
+  const found = sql`select distinct i.document_id as document from learn.items i
+    where i.client = ${WREN}
+      and (exists (select 1 from learn.item_tags t where t.item_id = i.id and t.tag = ${line.sop})
+        or exists (select 1 from learn.sop_sources x where x.item_id = i.id
+          and x.sop = ${line.sop}))`;
   const rows = (await db.execute(sql`
     select f.document from (${found}) f
     where not exists (select 1 from pipeline.instances j where j.subject_kind = 'document'
-        and j.document_id = f.document and j.entry_ref->>${field} = ${name})
+        and j.document_id = f.document and j.entry_ref->>'sop' = ${line.sop})
       and not exists (select 1 from events e where e.subject = 'doc:' || f.document
         and e.workflow = ${p.workflow} and e.node in (${nodes}))
     order by 1
@@ -95,45 +80,26 @@ async function newDocuments(
   return rows.map((r) => Number(r.document));
 }
 
-/** Of `docs` on `line`, the ones whose job has ended. */
-async function ended(db: Db, line: Line, job: string, docs: number[]): Promise<Set<number>> {
+/** Of `docs`, the ones whose job has ended. */
+async function ended(db: Db, job: string, docs: number[]): Promise<Set<number>> {
   if (docs.length === 0) return new Set();
   const ids = sql`array[${sql.join(
     docs.map((d) => sql`${d}`),
     sql`, `,
   )}]::int[]`;
-  const study = "study" in line ? line.study : null;
-  // His call on the whole document ends the call on either kind of line.
-  const docCall = sql`select substr(c.subject, 5)::int as document from decision_calls c
-    where c.kind = 'document' and c.source in ('console', 'cli') and c.subject = any(
-      select 'doc:' || d from unnest(${ids}) d)`;
   let q: ReturnType<typeof sql> | null = null;
   if (job === "read")
-    q = study
-      ? sql`select unnest(${ids}) as document`
-      : sql`select distinct i.document_id as document from learn.items i
-          where i.client = ${WREN} and i.read_at is not null and i.document_id = any(${ids})`;
+    q = sql`select distinct i.document_id as document from learn.items i
+      where i.client = ${WREN} and i.read_at is not null and i.document_id = any(${ids})`;
   else if (job === "extract")
-    q = study
-      ? sql`select distinct s.document_id as document from study_steps s
-          join studies y on y.id = s.study_id
-          where y.slug = ${study} and s.step = 'claims' and s.outcome <> 'failed'
-            and s.document_id = any(${ids})`
-      : sql`select distinct f.document_id as document from findings f
-          where f.kind = 'fact' and f.fact_key not like 'doc:%/study:%'
-            and f.document_id = any(${ids})`;
+    // `doc:N/study:…` facts: claims of the retired `wren study` (WA-1193), not breakdowns
+    q = sql`select distinct f.document_id as document from findings f
+      where f.kind = 'fact' and f.fact_key not like 'doc:%/study:%'
+        and f.document_id = any(${ids})`;
   else if (job === "call")
-    q = study
-      ? sql`${docCall} union
-          select s.document_id from study_steps s join studies y on y.id = s.study_id
-          where y.slug = ${study} and s.step = 'claims' and s.outcome <> 'failed'
-            and s.document_id = any(${ids})
-            and not exists (select 1 from findings f where f.kind = 'fact'
-              and f.document_id = s.document_id
-              and f.fact_key like 'doc:' || s.document_id || '/study:' || ${study} || '/%'
-              and not exists (select 1 from decision_calls c
-                where c.kind = 'finding' and c.subject = f.fact_key))`
-      : docCall;
+    q = sql`select substr(c.subject, 5)::int as document from decision_calls c
+      where c.kind = 'document' and c.source in ('console', 'cli') and c.subject = any(
+        select 'doc:' || d from unnest(${ids}) d)`;
   if (!q) return new Set();
   const rows = (await db.execute(q)) as unknown as { document: number }[];
   return new Set(rows.map((r) => Number(r.document)));
@@ -155,16 +121,14 @@ export async function linePass(db: Db, now: Date, limit = 200): Promise<LinePass
     const body = runOf(newest.body);
     const workflow = shapeFlowId(newest.number);
     for (const s of liveSources(body)) {
-      const line: Line | null =
-        s.via !== "found" ? null : s.study ? { study: s.study } : s.sop ? { sop: s.sop } : null;
-      if (!line) continue;
+      if (s.via !== "found" || !s.sop) continue;
+      const line: Line = { sop: s.sop };
       const moveNodes = body.edges
         .filter((e) => e.kind === "flow" && e.from === s.id)
         .map((e) => `m_${e.to}`);
       if (moveNodes.length === 0) continue;
       const docs = await newDocuments(db, { line, workflow, moveNodes, limit });
       if (docs.length === limit) more = true;
-      const ref = "study" in line ? line.study : line.sop;
       for (const document of docs) {
         found++;
         fires.push({
@@ -173,7 +137,7 @@ export async function linePass(db: Db, now: Date, limit = 200): Promise<LinePass
           event: {
             subject: docSubject(document),
             kind: "doc",
-            data: { document, ...line, cause: { kind: "found", ref, at } },
+            data: { document, ...line, cause: { kind: "found", ref: line.sop, at } },
           },
         });
       }
@@ -191,27 +155,24 @@ export async function linePass(db: Db, now: Date, limit = 200): Promise<LinePass
     .from(instances)
     .where(and(eq(instances.subjectKind, "document"), eq(instances.status, "open")));
   const bodies = new Map<number, ShapeBody | null>();
-  // One read per line and job: a job ends by the line's own rows.
-  const byJob = new Map<string, { line: Line; job: string; js: typeof open }>();
+  // One read per job: a job ends by its own rows.
+  const byJob = new Map<string, { job: string; js: typeof open }>();
   for (const j of open) {
-    const line = lineOf(j.ref);
-    if (j.node === null || j.document === null || !line) continue;
+    if (j.node === null || j.document === null || !lineOf(j.ref)) continue;
     if (!bodies.has(j.version))
       bodies.set(j.version, (await versionOf(db, j.version))?.body ?? null);
     const body = bodies.get(j.version);
     const n = body ? nodeOf(body, j.node) : undefined;
     if (n?.kind !== "job") continue;
-    const key = `${lineKey(line)} ${n.job}`;
-    const group = byJob.get(key) ?? { line, job: n.job, js: [] };
+    const group = byJob.get(n.job) ?? { job: n.job, js: [] };
     group.js.push(j);
-    byJob.set(key, group);
+    byJob.set(n.job, group);
   }
   let done = 0;
   let closed = 0;
-  for (const { line, job, js } of byJob.values()) {
+  for (const { job, js } of byJob.values()) {
     const over = await ended(
       db,
-      line,
       job,
       js.map((j) => j.document ?? 0),
     );

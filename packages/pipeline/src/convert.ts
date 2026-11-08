@@ -414,7 +414,6 @@ export function graphOf(metro: MetroBody): ShapeBody {
       name: s.label,
       via: "found",
       ...(s.sop !== undefined ? { sop: s.sop } : {}),
-      ...(s.study !== undefined ? { study: s.study } : {}),
     });
     lowered.add(s.id);
   }

@@ -21,8 +21,6 @@ export interface CauseFacts {
   group?: string;
   /** The SOP a content line's find tagged the document with. */
   sop?: string;
-  /** The study whose read brought the document to a content line. */
-  study?: string;
 }
 
 /** The entry a journey has when no source claims it. */
@@ -31,9 +29,8 @@ export const MANUAL = "manual";
 const same = (a: string | undefined, b: string | undefined) =>
   a !== undefined && b !== undefined && a.toLowerCase() === b.toLowerCase();
 
-/** Does a found source take this cause: the same study, or the same SOP? */
-export const foundBy = (s: SourceNode, c: CauseFacts): boolean =>
-  s.study ? c.study === s.study : !!s.sop && c.sop === s.sop;
+/** Does a found source take this cause: the same SOP? */
+export const foundBy = (s: SourceNode, c: CauseFacts): boolean => !!s.sop && c.sop === s.sop;
 
 /** Does this cause belong to this source? A `manual` source only matches by id. */
 function matches(s: SourceNode, c: CauseFacts): boolean {

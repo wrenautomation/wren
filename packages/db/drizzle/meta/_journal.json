@@ -2640,6 +2640,13 @@
       "when": 1794161035636,
       "tag": "0377_folders",
       "breakpoints": true
+    },
+    {
+      "idx": 378,
+      "version": "7",
+      "when": 1794164339897,
+      "tag": "0378_retire_studies",
+      "breakpoints": true
     }
   ]
 }
