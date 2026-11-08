@@ -174,7 +174,7 @@ export function ButtonLink({
 }
 
 /**
- * The artifact's chip (`.pt`). `needs` marks what waits on you (red); `accent` what changed; `warn`
+ * The artifact's chip (`.pt`). `needs` marks what waits on you (raspberry); `accent` what changed; `warn`
  * what is late or held; `green` a result; `bad` what failed; `neutral` the rest.
  * A `<b>` inside is a count: bold, in ink.
  */

@@ -33,6 +33,7 @@
   --ui-good: #17803d;
   --ui-good-ink: #136b33;
   --ui-bad: #c31c15;
+  --ui-needs: #ad1457; /* waits on you: raspberry, apart from failed red and late amber */
   --ui-warn: #b7791f; /* late or held: the amber status tone */
   --ui-warn-ink: #895911; /* amber small text */
   --ui-shade: #0e0e0e; /* what shadows and the scrim are made of */
@@ -123,8 +124,11 @@
     var(--ui-warn) 9%,
     transparent
   ); /* under what is late or held */
-  --ui-needs: var(--ui-bad); /* waits on you: red, one hue with what failed */
-  --ui-needs-tint: var(--ui-bad-tint);
+  --ui-needs-tint: color-mix(
+    in srgb,
+    var(--ui-needs) 9%,
+    transparent
+  ); /* under what waits on you */
   /* A terminal block: dark in both looks, so commands read apart from words */
   /* by day a soft charcoal, not black on white; at night a well just under the paper */
   --ui-term: light-dark(#3b3942, #121116);

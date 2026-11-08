@@ -20,6 +20,7 @@ export const TEXTS = [
   "good-ink",
   "warn-ink",
   "bad",
+  "needs",
 ] as const;
 
 /** Where text sits. A see-through ground is laid on paper, and on canvas too where noted. */
@@ -41,6 +42,8 @@ export const GROUNDS = [
   "bad-tint",
   "warn-tint",
   "warn-tint/canvas",
+  "needs-tint",
+  "needs-tint/canvas",
 ] as const;
 
 /** Pairs outside the grid: text on a filled ground. */
@@ -88,6 +91,7 @@ const MADE: Theme = {
   "good-tint": "color-mix(in srgb, var(--ui-good) 10%, transparent)",
   "bad-tint": "color-mix(in srgb, var(--ui-bad) 6%, transparent)",
   "warn-tint": "color-mix(in srgb, var(--ui-warn) 9%, transparent)",
+  "needs-tint": "color-mix(in srgb, var(--ui-needs) 9%, transparent)",
   "chart-1": "var(--ui-accent)",
   "chart-2": "#d4592a",
   "chart-3": "#14916a",

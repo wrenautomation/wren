@@ -446,7 +446,7 @@ function Tile({
       className={cn(
         TILE,
         "text-(--ui-ink) no-underline outline-none transition-[background-color] duration-200 hover:bg-(--ui-accent-wash) focus-visible:bg-(--ui-accent-wash) motion-reduce:transition-none",
-        // Waiting on you: a red rule and wash, so it reads before the outcome tiles.
+        // Waiting on you: a raspberry rule and wash, so it reads before the outcome tiles.
         tile.needs &&
           (s?.value ?? 0) > 0 &&
           "bg-(--ui-needs-tint) shadow-[inset_0_3px_0_var(--ui-needs)] hover:bg-(--ui-needs-tint)",

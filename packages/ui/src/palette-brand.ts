@@ -92,7 +92,16 @@ export type Ground = (typeof GROUNDS)[number] | "accent";
  * Text colors in the order they're stepped. The accent goes first: the tints it makes are
  * grounds for the rest.
  */
-const STEPPED: Token[] = ["accent", "ink", "ink-2", "ink-3", "good-ink", "warn-ink", "bad"];
+const STEPPED: Token[] = [
+  "accent",
+  "ink",
+  "ink-2",
+  "ink-3",
+  "good-ink",
+  "warn-ink",
+  "bad",
+  "needs",
+];
 
 export interface ContrastLine {
   text: Token;
@@ -107,6 +116,8 @@ export interface ContrastLine {
 /** The green a good result shows in, and the amber a wait shows in, harmonized toward the brand. */
 const GREEN = 0xff2e7d32;
 const AMBER = 0xffb7791f;
+/** What waits on you: raspberry, apart from the error red. */
+const ROSE = 0xffad1457;
 const BLACK = 0xff000000;
 const WHITE = 0xffffffff;
 
@@ -135,6 +146,7 @@ export function brandTheme(brand: BrandInput): { theme: Theme; report: ContrastL
   const s = new SCHEMES[brand.variant](Hct.fromInt(source), dark, brand.contrast);
   const good = Blend.harmonize(GREEN, source);
   const warn = Blend.harmonize(AMBER, source);
+  const needs = Blend.harmonize(ROSE, source);
   const c: Partial<Record<Token, number>> = {
     canvas: s.surface,
     paper: dark ? s.surfaceContainer : s.surfaceContainerLowest,
@@ -147,6 +159,7 @@ export function brandTheme(brand: BrandInput): { theme: Theme; report: ContrastL
     good,
     "good-ink": TonalPalette.fromInt(good).tone(dark ? 80 : 30),
     bad: s.error,
+    needs: TonalPalette.fromInt(needs).tone(dark ? 80 : 40),
     warn,
     "warn-ink": TonalPalette.fromInt(warn).tone(dark ? 80 : 35),
     shade: s.shadow,
