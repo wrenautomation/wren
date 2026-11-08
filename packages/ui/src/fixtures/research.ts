@@ -198,6 +198,16 @@ export const ORDER_RUN: ResearchRun = {
   ],
   sources: ORDER_SOURCES,
   href: "#research/r-52",
+  asks: [
+    {
+      ask: "Compare order page tools on pickup slots",
+      why: "Claim 3 names the gap; no source priced the tools.",
+    },
+    {
+      ask: "Find what bakeries pay per order on their own page",
+      why: "Fees hold only for marketplaces (claim 2).",
+    },
+  ],
 };
 
 /** The same run part way: pages still come in, no review yet. */
@@ -209,6 +219,7 @@ export const LIVE_RUN: ResearchRun = {
   pages: 11,
   live: true,
   claims: [],
+  asks: undefined,
   sources: ORDER_SOURCES.slice(0, 8).map((s) => ({
     ...s,
     cut: 0,
@@ -330,7 +341,13 @@ export const CHANNEL_RUN: ResearchRun = {
 export const REEL_READ: SourceRead = {
   by: "Mara Bakes",
   meta: "Reel · 0:48 · read Nov 5",
-  asks: ["Research the whole channel", "Research how small bakeries set prices"],
+  asks: [
+    { ask: "Research the whole channel", why: "One reel; the channel has 40 more on pricing." },
+    {
+      ask: "Research how small bakeries set prices",
+      why: "Her loaf price sits 30% over the town's.",
+    },
+  ],
   source: {
     id: "reel",
     name: "How I price a sourdough loaf",

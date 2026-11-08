@@ -188,6 +188,13 @@ export const Answered: Story = {
     const open = await c.findByRole("region", { name: "Claim 2" });
     await expect(within(open).getByText(/27% of each marketplace order/)).toBeVisible();
     await expect(row).toHaveAttribute("aria-pressed", "true");
+    // a next ask carries its why as the tip and goes as his turn
+    const ask = c.getByRole("button", { name: "Compare order page tools on pickup slots" });
+    await expect(ask).toHaveAttribute("title", expect.stringMatching(/Claim 3/));
+    await userEvent.click(ask);
+    await waitFor(() =>
+      expect(c.getAllByText("Compare order page tools on pickup slots").length).toBe(2),
+    );
   },
 };
 

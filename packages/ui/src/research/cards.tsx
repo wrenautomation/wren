@@ -11,6 +11,7 @@ import {
   type Claim,
   claimLine,
   count,
+  type NextAsk,
   type Pick,
   type ResearchRun,
   type ResearchSource,
@@ -293,7 +294,23 @@ function SourceDetail({
 }
 
 /** A run in a chat: its counts, its graph, its claims. A row or a circle picks; the pick opens. */
-export function RunCard({ run }: { run: ResearchRun }) {
+type OnAsk = ((text: string) => void) | undefined;
+
+/** The agent's next asks; the why rides as the tip. */
+function Asks({ asks, onAsk }: { asks: readonly NextAsk[] | undefined; onAsk: OnAsk }) {
+  if (!asks?.length || !onAsk) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {asks.map((a) => (
+        <Button key={a.ask} tone="quiet" size="dense" title={a.why} onClick={() => onAsk(a.ask)}>
+          {a.ask}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+export function RunCard({ run, onAsk }: { run: ResearchRun; onAsk?: OnAsk }) {
   const [picked, setPicked] = useState<Pick | null>(null);
   const [point, setPoint] = useState<Pick | null>(null);
   const lit = point ?? picked;
@@ -379,28 +396,23 @@ export function RunCard({ run }: { run: ResearchRun }) {
           ))}
         </div>
       </details>
+      <Asks asks={run.asks} onAsk={onAsk} />
     </article>
   );
 }
 
-/** One source read on its own: no run, no claims. `asks` are the wider jobs it can start. */
+/** One source read on its own: no run, no claims. `asks` = the wider jobs it can start. */
 export interface SourceRead {
   source: ResearchSource;
   /** Who made it, what it is, how long. */
   by: string;
   meta: string;
-  asks?: readonly string[] | undefined;
+  asks?: readonly NextAsk[] | undefined;
   /** The run that holds it, when one does. */
   href?: string | undefined;
 }
 
-export function SourceCard({
-  read,
-  onAsk,
-}: {
-  read: SourceRead;
-  onAsk?: ((text: string) => void) | undefined;
-}) {
+export function SourceCard({ read, onAsk }: { read: SourceRead; onAsk?: OnAsk }) {
   const s = read.source;
   return (
     <article aria-label={`Birdwatch source: ${s.name}`} className={CARD}>
@@ -423,15 +435,7 @@ export function SourceCard({
           <FindingLine key={f.text} text={f.text} at={f.at} />
         ))}
       </ul>
-      {read.asks?.length && onAsk ? (
-        <div className="flex flex-wrap gap-2">
-          {read.asks.map((a) => (
-            <Button key={a} tone="quiet" size="dense" onClick={() => onAsk(a)}>
-              {a}
-            </Button>
-          ))}
-        </div>
-      ) : null}
+      <Asks asks={read.asks} onAsk={onAsk} />
     </article>
   );
 }

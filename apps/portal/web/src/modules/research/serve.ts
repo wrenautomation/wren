@@ -118,6 +118,18 @@ export interface RunView {
   findings: RunFinding[];
   timeline: Moment[];
   spend: { source: string; op: string; calls: number; failed: number; usd: number }[];
+  /** Agent's next asks (birdwatch 0.47.0): newest first, at most 3. Absent from older serves. */
+  asks?: RunAsk[];
+}
+
+export interface RunAsk {
+  id: string;
+  ask: string;
+  why: string;
+  at: string;
+  from: string;
+  /** The agent's id. */
+  by: string;
 }
 
 /** One dot of the research web (engine `engine/web.ts`): positions are the engine's, fixed. */

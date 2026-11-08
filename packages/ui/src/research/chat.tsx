@@ -9,7 +9,8 @@ import { RunCard, SourceCard, type SourceRead } from "./cards.js";
 import type { ResearchRun } from "./model.js";
 
 function RunView({ data }: { data: unknown }) {
-  return <RunCard run={data as ResearchRun} />;
+  const say = useContext(Say);
+  return <RunCard run={data as ResearchRun} onAsk={say} />;
 }
 
 function SourceView({ data }: { data: unknown }) {

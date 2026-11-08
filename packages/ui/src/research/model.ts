@@ -42,6 +42,13 @@ export interface ResearchRun {
   sources: readonly ResearchSource[];
   /** The run's page in Research. */
   href?: string | undefined;
+  asks?: readonly NextAsk[] | undefined;
+}
+
+/** A next job the agent suggests (WA-1175); a click sends `ask` as his turn. */
+export interface NextAsk {
+  ask: string;
+  why?: string | undefined;
 }
 
 /** What a hover or a click holds: a claim or a source. */

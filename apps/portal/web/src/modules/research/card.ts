@@ -6,6 +6,7 @@
 import {
   type IconName,
   money,
+  type NextAsk,
   type ResearchRun,
   type ResearchSource,
   type SourceRead,
@@ -98,7 +99,15 @@ export function runCard(view: RunView, row: RunRow | null): ResearchRun {
     claims: [],
     sources: sourcesOf(view),
     href: hrefOf(view.run),
+    asks: asksOf(view),
   };
+}
+
+/** The agent's asks; `extra` = fixed ones the card adds, dropped when the agent named the same. */
+function asksOf(view: RunView, extra: string[] = []): NextAsk[] {
+  const got = (view.asks ?? []).map((a) => ({ ask: a.ask, why: a.why }));
+  const named = new Set(got.map((a) => a.ask.toLowerCase()));
+  return [...got, ...extra.filter((e) => !named.has(e.toLowerCase())).map((ask) => ({ ask }))];
 }
 
 const MEDIA: Record<string, string> = { video: "Video", pdf: "PDF" };
@@ -114,7 +123,7 @@ export function sourceRead(view: RunView): SourceRead | null {
     by: d.channel ?? host(d.url),
     meta: `${MEDIA[d.media] ?? "Page"} · ${usd(view)}`,
     href: hrefOf(view.run),
-    // the wider job a channel's one item opens; the card sends it as his turn
-    ...(d.channel ? { asks: ["Research the whole channel"] } : {}),
+    // a channel's one item always opens the whole channel
+    asks: asksOf(view, d.channel ? ["Research the whole channel"] : []),
   };
 }

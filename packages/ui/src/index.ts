@@ -435,7 +435,7 @@ export {
   SourceCard as ResearchSourceCard,
   type SourceRead,
 } from "./research/cards.js";
-export type { ResearchRun, ResearchSource } from "./research/model.js";
+export type { NextAsk, ResearchRun, ResearchSource } from "./research/model.js";
 export { RowActions, rowActsOf } from "./row-acts.js";
 export {
   Age,

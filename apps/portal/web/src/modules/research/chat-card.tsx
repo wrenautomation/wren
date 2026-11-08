@@ -37,7 +37,7 @@ function RunRef({ data }: { data: unknown }) {
   return one ? (
     <ResearchSourceCard read={one} onAsk={say} />
   ) : (
-    <ResearchRunCard run={runCard(got.data, row)} />
+    <ResearchRunCard run={runCard(got.data, row)} onAsk={say} />
   );
 }
 

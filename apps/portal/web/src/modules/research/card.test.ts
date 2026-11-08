@@ -37,4 +37,23 @@ describe("a run as its chat card", () => {
     expect(read?.source.name).toBe(d.title);
     expect(read?.source.findings.length).toBe(one.findings.filter((f) => f.kept).length);
   });
+
+  it("shows the agent's next asks with their why; a channel ask joins once", () => {
+    const by = { at: "2026-11-07T00:00:00Z", from: "stop", by: "agent-1" };
+    const view: RunView = {
+      ...RESEARCH_VIEW,
+      asks: [{ id: "a1", ask: "Research the whole channel", why: "40 more reels", ...by }],
+    };
+    expect(runCard(view, null).asks).toEqual([
+      { ask: "Research the whole channel", why: "40 more reels" },
+    ]);
+    expect(runCard(RESEARCH_VIEW, null).asks).toEqual([]);
+    const [d] = view.documents;
+    if (!d) throw new Error("the fixture has a page");
+    const one: RunView = { ...view, queries: [], documents: [{ ...d, channel: "Mara Bakes" }] };
+    expect(sourceRead(one)?.asks).toEqual([
+      { ask: "Research the whole channel", why: "40 more reels" },
+    ]);
+    expect(sourceRead({ ...one, asks: [] })?.asks).toEqual([{ ask: "Research the whole channel" }]);
+  });
 });
