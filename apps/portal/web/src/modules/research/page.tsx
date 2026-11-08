@@ -125,6 +125,7 @@ export function HistoryPage({ params, team }: PageProps) {
       from={r.parent ? (askOf.get(r.parent) ?? r.parent) : null}
       to={href(here, { run: r.run, open: null }, params)}
       picked={pick.picked(r.run)}
+      anyPicked={picked.size > 0}
       onPick={(range) => pick.toggle(r.run, range)}
       folders={folders}
       filed={filed}
@@ -185,6 +186,7 @@ function RunItem({
   from,
   to,
   picked,
+  anyPicked,
   onPick,
   folders,
   filed,
@@ -193,6 +195,7 @@ function RunItem({
   from: string | null;
   to: string;
   picked: boolean;
+  anyPicked: boolean;
   onPick: (range: boolean) => void;
   folders: readonly FolderNode[] | null;
   filed: ReturnType<typeof useFolders>;
@@ -206,7 +209,13 @@ function RunItem({
         checked={picked}
         onChange={() => {}}
         onClick={(e) => onPick(e.shiftKey)}
-        className="flex-none self-start mt-[3px]"
+        className={cx(
+          // gutter box, as the rows part: hover, focus or any pick shows it; touch always
+          "mt-[3px] flex-none self-start transition-opacity duration-150 focus-visible:opacity-100 pointer-coarse:opacity-100",
+          anyPicked
+            ? "opacity-100"
+            : "opacity-0 group-hover/run:opacity-100 group-focus-within/run:opacity-100",
+        )}
       />
       <a href={to} className="min-w-0 flex-1 no-underline focus-visible:outline-offset-2">
         <span className="block text-[13.5px]/[1.4] font-medium wrap-anywhere text-(--ui-ink)">
