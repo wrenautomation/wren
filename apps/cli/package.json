@@ -14,6 +14,7 @@
     "test:integration": "vitest run test/integration"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1136.0",
     "@duckdb/node-api": "1.5.6-r.1",
     "@restatedev/restate-sdk-clients": "1.17.1",
     "@wren/agent": "workspace:*",
@@ -47,9 +48,9 @@
     "@wren/watch": "workspace:*",
     "@wren/worker": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
-    "@wrenautomation/birdwatch": "0.47.0",
-    "@wrenautomation/models": "0.38.0",
-    "@wrenautomation/read": "0.38.0",
+    "@wrenautomation/birdwatch": "0.49.0",
+    "@wrenautomation/models": "0.49.0",
+    "@wrenautomation/read": "0.49.0",
     "@wrenautomation/vireo": "0.5.1",
     "commander": "15.0.0",
     "drizzle-orm": "0.45.2",

@@ -16,11 +16,9 @@ import { basename, join } from "node:path";
 import type { LlmClient } from "@wren/llm";
 import type { Model } from "@wrenautomation/models";
 import type { Ear } from "@wrenautomation/models/hear";
-import type { Fetched, VideoRead, WatchOptions } from "@wrenautomation/read/video";
-import { readAudio, readVideo, readYoutube } from "@wrenautomation/read/video";
+import type { Fetched, MediaStore, VideoRead, WatchOptions } from "@wrenautomation/read/video";
+import { keptRead, mediaKey, readAudio, readVideo, readYoutube } from "@wrenautomation/read/video";
 import { expandCites, numberCites } from "./cites.js";
-
-export { CACHE_PREFIX, s3MediaStore } from "./media-store.js";
 
 export { expandCites, numberCites };
 
@@ -61,6 +59,7 @@ export function toSource(read: VideoRead, priority = DEFAULT_PRIORITY): Source {
  * A YouTube video's captions and chapters through `yt-dlp` (`ytDlp` is the command, split on
  * spaces: `uvx yt-dlp`), plus what it showed on screen when a video model is given (`geminiVideo`):
  * `readYoutube`, filed with the SOP's priority. `ear` hears the audio when captions 429 or are missing.
+ * `store` keeps the read: a URL is read once (WA-1184).
  */
 export const youtubeSource = async (
   url: string,
@@ -71,25 +70,36 @@ export const youtubeSource = async (
     fetchFn?: typeof fetch;
     ear?: Ear | undefined;
     ffmpeg?: string | undefined;
+    store?: MediaStore | undefined;
   } = {},
 ): Promise<Source> => {
-  const { ffmpeg, ...rest } = opts;
+  const { ffmpeg, store, ...rest } = opts;
+  const key = mediaKey(url);
+  // with the screen: its own read, apart from a captions-only one (birdwatch's key)
+  const kept = key && opts.video ? `${key}.screen` : key;
   return toSource(
-    await readYoutube(url, { ytDlp, ...rest, ...(ffmpeg ? { ffmpeg } : {}) }),
+    await keptRead(store, kept, () =>
+      readYoutube(url, { ytDlp, ...rest, ...(ffmpeg ? { ffmpeg } : {}) }),
+    ),
     priority,
   );
 };
 
 /**
  * Any other video (Instagram reel, TikTok, X), watched (`readVideo`): the caption, then its
- * Speech, On screen and Cuts. The file: the store's copy, else `mediaUrl`, else yt-dlp.
+ * Speech, On screen and Cuts. The file: the store's copy, else `mediaUrl`, else yt-dlp. A kept
+ * read skips all of it.
  */
 export const videoSource = async (
   url: string,
   ytDlp: string,
   priority = DEFAULT_PRIORITY,
   opts: Omit<WatchOptions, "ytDlp"> & Fetched,
-): Promise<Source> => toSource(await readVideo(url, { ...opts, ytDlp }), priority);
+): Promise<Source> =>
+  toSource(
+    await keptRead(opts.store, mediaKey(url), () => readVideo(url, { ...opts, ytDlp })),
+    priority,
+  );
 
 /**
  * A podcast episode heard from its audio file (`readAudio`): cut by ffmpeg, each clip

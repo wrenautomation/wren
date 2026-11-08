@@ -7,8 +7,9 @@ import type { Settings } from "@wren/config";
 import type { Db } from "@wren/db";
 import { judges, type VideoReader } from "@wren/learn";
 import { type LlmClient, loadLlmEnv, makeLlm } from "@wren/llm";
-import { audioSource, s3MediaStore, videoSource, youtubeSource } from "@wren/research/sops";
+import { audioSource, videoSource, youtubeSource } from "@wren/research/sops";
 import type { Model } from "@wrenautomation/models";
+import { s3MediaStore } from "@wrenautomation/read/s3";
 import type { VideoMeta } from "@wrenautomation/read/video";
 import { geminiModel, needGemini, watchEyes } from "./video-watch.js";
 
@@ -37,7 +38,7 @@ export function learnReaders(settings: Settings, rootDir: string) {
       return probe;
     };
     const watching = async () => ({ ...watchEyes(settings, rootDir), video: await gemini() });
-    // A video downloads once (WA-1029): the media bucket's cache/, on the Mac's AWS chain.
+    // A video downloads and reads once (WA-1029, WA-1184): the media bucket's cache/, on the Mac's AWS chain.
     const store = settings.mediaBucket ? s3MediaStore(settings.mediaBucket) : undefined;
     return async ({ url, kind, title, creator, mediaUrl, text, publishedAt }) => {
       const youtube = /^https:\/\/youtube\.com\//.test(url);
@@ -61,6 +62,7 @@ export function learnReaders(settings: Settings, rootDir: string) {
             : youtube
               ? await youtubeSource(url, settings.ytDlp, undefined, {
                   ...(await watching()),
+                  ...(store ? { store } : {}),
                 })
               : await videoSource(url, settings.ytDlp, undefined, {
                   ...(await watching()),
