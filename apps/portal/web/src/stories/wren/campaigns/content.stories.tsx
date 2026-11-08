@@ -84,8 +84,11 @@ export const StudioPick = tidy(
       expect(view.queryByText(test)).toBeNull();
       await expect(view.getByRole("button", { name: `Approve ${tiktok}` })).toBeDisabled();
       expect(view.queryByText(/ selected$/)).toBeNull();
-      // the toast fades in
-      const undo = await within(document.body).findByRole("button", { name: /undo/i });
+      // its own toast fades in (an earlier hold's toast can still show)
+      const line = await within(document.body).findByText(/Approved: 2 ideas/, {}, LONG);
+      const toast = line.closest<HTMLElement>("[data-sonner-toast]");
+      if (!toast) throw new Error("the line sits in a toast");
+      const undo = within(toast).getByRole("button", { name: /undo/i });
       await waitFor(() => expect(undo).toBeVisible());
     },
   }),
