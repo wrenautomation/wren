@@ -148,6 +148,7 @@ function NameBox({ start, onDone }: { start: string; onDone: (name: string | nul
   return (
     <div className="flex items-center gap-2 rounded-[8px] bg-(--ui-fill) py-1 pr-1.5 pl-7">
       <Icon name="folder" size={15} className="flex-none text-(--ui-ink-2)" />
+      {/* edit-ok: a folder name, saved on Enter and on blur */}
       <input
         // biome-ignore lint/a11y/noAutofocus: the box opens on a click that asked for it
         autoFocus

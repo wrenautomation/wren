@@ -2,7 +2,7 @@
  * The folder tree's writes (designs/2026-11-08-folders.md). Each write: one transaction, one
  * advisory lock, the whole tree read under it (dozens of rows), checks in code.
  */
-import { type Db, setAuditActor, type Tx } from "@wren/db";
+import { atomic, type Db, setAuditActor, type Tx } from "@wren/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { filed, folders, ITEM_KINDS, type ItemKind } from "./schema.js";
 
@@ -59,7 +59,7 @@ const FOLDER_COLS = { id: folders.id, parent: folders.parentId, name: folders.na
 export function folderTree(db: Db) {
   /** One write: the lock, the actor, the tree as it stands. */
   const write = <T>(by: string, fn: (tx: Tx, all: Map<number, Folder>) => Promise<T>) =>
-    db.transaction(async (tx) => {
+    atomic(db, async (tx) => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext('folders.tree'))`);
       await setAuditActor(tx, by);
       const rows = await tx.select(FOLDER_COLS).from(folders);
