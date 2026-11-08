@@ -28,6 +28,7 @@ const sonnerStyles: Plugin = {
  * The database client never reaches the browser: postgres.js needs Node's Buffer, and the app dies
  * on load (a blank page). A web import of a core file that takes a value from the `@wren/db` root
  * pulls it in; import from a db-free subpath (`@wren/db/isolation`) or split the file.
+ * The Restate SDK neither: 2.2 MB on every page load (WA-1187). Import from a Restate-free subpath.
  */
 const serverOnly: Plugin = {
   name: "server-only",
@@ -35,7 +36,8 @@ const serverOnly: Plugin = {
   transform(_, id) {
     if (
       /\/node_modules\/(\.pnpm\/postgres@[^/]+\/node_modules\/)?postgres\//.test(id) ||
-      /\/packages\/db\/src\/index\.ts$/.test(id)
+      /\/packages\/db\/src\/index\.ts$/.test(id) ||
+      /\/node_modules\/(\.pnpm\/[^/]+\/node_modules\/)?@restatedev\/restate-sdk\//.test(id)
     )
       this.error(`${id} is server-only, yet the portal web imports it`);
   },

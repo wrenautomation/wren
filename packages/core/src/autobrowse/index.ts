@@ -5,26 +5,4 @@
 
 export * from "./autobrowse.js";
 export * from "./do.js";
-
-export type Platform =
-  | "linkedin"
-  | "reddit"
-  | "youtube"
-  | "x"
-  | "instagram"
-  | "threads"
-  | "facebook"
-  | "tiktok"
-  | "google_business";
-export const PLATFORMS: readonly Platform[] = [
-  "linkedin",
-  "reddit",
-  "youtube",
-  "x",
-  "instagram",
-  "threads",
-  "facebook",
-  "tiktok",
-  "google_business",
-];
-export type FetchedWith = "api" | "browser";
+export * from "./platforms.js";

@@ -230,3 +230,9 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
     - Chosen: A. Wheel zoom needs ctrl or cmd, so the chat still scrolls.
   - Deleted: `packages/ui/src/research/{cards,chat,graph,layout,model}`. One source read alone stays a findings list (`SourceCard`).
   - Stories `research-chat--…`: `scope`, `one-source`, `default`, `live`, `empty`, `loading`, `failed`, `worst-case`.
+- 11-08: the graph loads on first draw; no server SDK in the web bundle (WA-1187).
+  - The page and chat cards import `RunGraph`, `RunCard`, `SourceCard` through `modules/research/run-lazy.tsx` (React `lazy`). The chunk is 73 kB plus 29 kB CSS.
+  - `studio-common.ts` pulled `@wren/core/autobrowse` and so `do.ts` and `@restatedev/restate-sdk` into the main chunk. The platform list moved to `@wren/core/autobrowse/platforms`. The vite `serverOnly` guard now fails the build on the Restate SDK.
+  - Main chunk: 5.47 MB (1.84 MB gzip) to 3.13 MB (960 kB gzip).
+  - Measured locally, one run of 3.2 MB from serve: first node at 0.5 s, 290 ms script, longest task 144 ms. Layout and view switches: no long task. Ten view toggles: DOM and heap flat.
+  - Not done: per-page lazy modules; elk (3 MB) is already its own chunk.

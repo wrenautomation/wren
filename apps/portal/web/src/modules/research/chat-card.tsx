@@ -4,10 +4,10 @@
  * follows the ledger live (designs/2026-11-05-research-web.md, Log 11-05).
  */
 import { AgentSay, type AgentViews, LoadFailed, Loading } from "@wren/ui";
-import { RunCard, SourceCard } from "@wren/ui/research/run";
 import { useContext, useState } from "react";
 import { useCall } from "../../load.js";
 import { runCard, runOf, sourceRead } from "./card.js";
+import { RunCard, SourceCard } from "./run-lazy.js";
 import { runsOf, useLive, viewOf } from "./serve.js";
 
 function RunRef({ data }: { data: unknown }) {

@@ -4,7 +4,7 @@
  * New row, the compose view and the waiting table never keep their own copies.
  */
 
-import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
+import { PLATFORMS, type Platform } from "@wren/core/autobrowse/platforms";
 import { THREAD_MAX, THREAD_MIN } from "@wren/starling-core/thread";
 import { PLATFORM_SPECS } from "@wren/starling-inbound/write";
 import type { IconName } from "@wren/ui";

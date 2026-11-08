@@ -17,7 +17,7 @@ import {
   Seg,
   StateMark,
 } from "@wren/ui";
-import { type LayId, RunGraph } from "@wren/ui/research/run";
+import type { LayId } from "@wren/ui/research/run";
 import { type ReactNode, useMemo, useState } from "react";
 import { embedOf, embedSite, youtubeId } from "../../embeds.js";
 import { useCall } from "../../load.js";
@@ -27,6 +27,7 @@ import { href, navigate, useRoute } from "../../route.js";
 import { QUIET } from "../work/bits.js";
 import { RowsPanel } from "../work/rows-panel.js";
 import { runGraphOf } from "./graph.js";
+import { RunGraph } from "./run-lazy.js";
 import {
   type Moment,
   pageOf,

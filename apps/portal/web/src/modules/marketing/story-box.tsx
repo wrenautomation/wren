@@ -6,7 +6,7 @@
  * `storyClips` through the console.
  */
 
-import type { Platform } from "@wren/core/autobrowse";
+import type { Platform } from "@wren/core/autobrowse/platforms";
 import { ACTIONS, Button, cx, messageOf, Section } from "@wren/ui";
 import { useState } from "react";
 import { uploadMedia } from "../../api.js";

@@ -34,6 +34,7 @@
     "./draft-models": "./src/draft-models.ts",
     "./autobrowse": "./src/autobrowse/index.ts",
     "./autobrowse/box": "./src/autobrowse/box.ts",
+    "./autobrowse/platforms": "./src/autobrowse/platforms.ts",
     "./autobrowse/ingress": "./src/autobrowse/ingress.ts",
     "./testing": "./src/testing.ts",
     "./wire": "./src/wire.ts",
