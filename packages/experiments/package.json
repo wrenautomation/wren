@@ -12,7 +12,7 @@
     "test:unit": "vitest run src"
   },
   "dependencies": {
-    "@wrenautomation/vireo": "0.5.1",
+    "@wrenautomation/vireo": "0.5.2",
     "zod": "4.6.5"
   },
   "devDependencies": {

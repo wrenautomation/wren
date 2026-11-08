@@ -174,11 +174,11 @@ export function ButtonLink({
 }
 
 /**
- * The artifact's chip (`.pt`). `accent` marks what needs you or what changed; `warn` what waits on
- * someone (the nav's counts' amber); `green` a result; `bad` what failed; `neutral` the rest.
+ * The artifact's chip (`.pt`). `needs` marks what waits on you (red); `accent` what changed; `warn`
+ * what is late or held; `green` a result; `bad` what failed; `neutral` the rest.
  * A `<b>` inside is a count: bold, in ink.
  */
-export type TagTone = "neutral" | "accent" | "warn" | "green" | "bad";
+export type TagTone = "neutral" | "accent" | "needs" | "warn" | "green" | "bad";
 
 const TAG =
   "h-auto w-auto max-w-full gap-1.5 [--ui-gap:6px] px-2.5 py-[3px] border-0 rounded-(--ui-leaf-chip) text-[12.5px]/[1.55] font-semibold whitespace-nowrap overflow-visible [&_b]:font-semibold";
@@ -188,6 +188,8 @@ const TAG_TONE: Record<TagTone, string> = {
   warn: "bg-[color-mix(in_srgb,var(--ui-warn)_15%,transparent)] text-[color-mix(in_srgb,var(--ui-warn)_70%,var(--ui-ink))]",
   green:
     "bg-[color-mix(in_srgb,var(--ui-good)_13%,transparent)] text-[color-mix(in_srgb,var(--ui-good)_65%,var(--ui-ink))]",
+  needs:
+    "bg-[color-mix(in_srgb,var(--ui-needs)_12%,transparent)] text-[color-mix(in_srgb,var(--ui-needs)_75%,var(--ui-ink))]",
   bad: "bg-[color-mix(in_srgb,var(--ui-bad)_12%,transparent)] text-[color-mix(in_srgb,var(--ui-bad)_75%,var(--ui-ink))]",
 };
 const DOT = "before:size-1.5 before:rounded-full before:bg-current before:content-['']";

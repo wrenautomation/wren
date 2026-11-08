@@ -1149,7 +1149,7 @@ const PROMO_ROWS = [
   },
 ] as const;
 const PROMO_STATE: Record<string, { label: string; tone: "neutral" | "warn" | "green" }> = {
-  draft: { label: "Waiting on you", tone: "warn" },
+  draft: { label: "Waiting on you", tone: "needs" },
   approved: { label: "Scheduled", tone: "green" },
   publishing: { label: "Posting", tone: "neutral" },
   published: { label: "Posted", tone: "green" },

@@ -51,7 +51,7 @@
     "@wrenautomation/birdwatch": "0.49.0",
     "@wrenautomation/models": "0.49.0",
     "@wrenautomation/read": "0.49.0",
-    "@wrenautomation/vireo": "0.5.1",
+    "@wrenautomation/vireo": "0.5.2",
     "commander": "15.0.0",
     "drizzle-orm": "0.45.2",
     "playwright": "1.63.0",

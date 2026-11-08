@@ -330,7 +330,7 @@ Source: `records.tsx`, `list-bar.tsx`, `fields.tsx`, `card-grid.tsx`.
 - **Empty:** hair box (artifact `.stt`), corners 6 and 14, no ground, 13.5 px ink-2. It says what will fill the list.
 - **Keys:** arrows and J/K move. A approve, E edit, S skip. `[` `]` panels. `?` lists keys. G then a letter goes to a page. Command-K opens the palette. Arrows are left to menus, listboxes, dialogs, sliders, tab lists and radio groups.
 
-**The Needs You Rule.** What waits on the viewer leads, reads heavier, and counts in amber. What is for info reads quieter.
+**The Needs You Rule.** What waits on the viewer leads, reads heavier, and counts in red (`--ui-needs`, one hue with `--ui-bad`). Amber (`--ui-warn`) is for late or held. What is for info reads quieter.
 
 **The Number Link Rule.** Every number links to the rows behind it.
 

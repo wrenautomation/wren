@@ -87,6 +87,8 @@ export const TOKENS = [
   "good-tint",
   "bad-tint",
   "warn-tint",
+  "needs",
+  "needs-tint",
   "scrim",
   "graph",
   "radius-panel",

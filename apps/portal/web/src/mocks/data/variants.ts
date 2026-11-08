@@ -283,7 +283,7 @@ const SUBJECT = {
   ],
 };
 
-/** Every batch, newest first: the three open ones blind, then closed ones with calls and ideas. */
+/** Every batch, newest first: the three open ones blind, one replaced before he marked it, then closed ones. */
 const openRow = (o: typeof VIDEO | typeof PAGE | typeof COPY) => ({
   id: o.batch.id,
   why: null,
@@ -299,6 +299,20 @@ const BATCHES = [
   openRow(PAGE),
   openRow(VIDEO),
   openRow(COPY),
+  // replaced: batch 3 came before he marked it, so it no longer waits on him
+  {
+    ...openRow(VIDEO),
+    id: 10,
+    n: 2,
+    createdAt: ago(3),
+    samples: VIDEO.samples.map((x, i) => ({
+      ...x,
+      id: 60 + i,
+      ...call(i === 0 ? "good" : null),
+      notes: [],
+      change: null,
+    })),
+  },
   {
     id: 6,
     n: 2,

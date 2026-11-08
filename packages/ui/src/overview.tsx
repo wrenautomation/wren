@@ -446,10 +446,10 @@ function Tile({
       className={cn(
         TILE,
         "text-(--ui-ink) no-underline outline-none transition-[background-color] duration-200 hover:bg-(--ui-accent-wash) focus-visible:bg-(--ui-accent-wash) motion-reduce:transition-none",
-        // Waiting on you: an amber rule and wash, so it reads before the outcome tiles.
+        // Waiting on you: a red rule and wash, so it reads before the outcome tiles.
         tile.needs &&
           (s?.value ?? 0) > 0 &&
-          "bg-(--ui-warn-tint) shadow-[inset_0_3px_0_var(--ui-warn)] hover:bg-(--ui-warn-tint)",
+          "bg-(--ui-needs-tint) shadow-[inset_0_3px_0_var(--ui-needs)] hover:bg-(--ui-needs-tint)",
       )}
     >
       <span className="text-[12.5px] text-(--ui-ink-3)">
@@ -465,7 +465,7 @@ function Tile({
           <span
             className={cn(
               "text-[24px] font-semibold tracking-[-0.02em] tabular-nums",
-              tile.needs && (s.value ?? 0) > 0 && "text-(--ui-warn-ink)",
+              tile.needs && (s.value ?? 0) > 0 && "text-(--ui-needs)",
               s.value === null && "text-[15px] leading-6 font-normal text-(--ui-ink-2)",
             )}
           >

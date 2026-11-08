@@ -88,10 +88,11 @@ function BatchList({ rows, params }: { rows: Row[]; params: URLSearchParams }) {
   );
   const pick = params.get("subject") ?? "";
   const shown = pick ? rows.filter((r) => r.subject.slug === pick) : rows;
-  // open batches wait on him: they lead (DESIGN.md, Needs You)
+  // only a subject's newest open batch waits on him (vireo's queue); it leads (DESIGN.md, Needs You)
+  const waits = waitingOf(rows);
   const tiers = [
-    { needs: true, rows: shown.filter((r) => r.state === "open") },
-    { needs: false, rows: shown.filter((r) => r.state !== "open") },
+    { needs: true, rows: shown.filter((r) => waits.has(r.id)) },
+    { needs: false, rows: shown.filter((r) => !waits.has(r.id)) },
   ].filter((t) => t.rows.length);
   usePageContext(`in view: every Variants batch${pick ? ` of ${pick}` : ""}, newest first`);
   if (!rows.length)
@@ -126,7 +127,7 @@ function BatchList({ rows, params }: { rows: Row[]; params: URLSearchParams }) {
           </li>,
           ...t.rows.map((r) => (
             <li key={r.id}>
-              <BatchRow row={r} />
+              <BatchRow row={r} waits={waits.has(r.id)} />
             </li>
           )),
         ])}
@@ -135,7 +136,16 @@ function BatchList({ rows, params }: { rows: Row[]; params: URLSearchParams }) {
   );
 }
 
-function BatchRow({ row: r }: { row: Row }) {
+/** Ids of open batches that are their subject's newest: a newer batch replaces an unmarked one. */
+function waitingOf(rows: Row[]): Set<number> {
+  const newest = new Map<string, number>();
+  for (const r of rows) newest.set(r.subject.slug, Math.max(newest.get(r.subject.slug) ?? 0, r.n));
+  return new Set(
+    rows.filter((r) => r.state === "open" && r.n === newest.get(r.subject.slug)).map((r) => r.id),
+  );
+}
+
+function BatchRow({ row: r, waits }: { row: Row; waits: boolean }) {
   const open = r.state === "open";
   const kept = r.samples.filter((s) => s.keptAt).length;
   const thumbs = r.samples.filter((s) => s.posterUrl).slice(0, THUMBS);
@@ -149,7 +159,7 @@ function BatchRow({ row: r }: { row: Row }) {
         <span
           className={cx(
             "text-[14px]",
-            open ? "font-semibold text-(--ui-ink)" : "font-normal text-(--ui-ink-2)",
+            waits ? "font-semibold text-(--ui-ink)" : "font-normal text-(--ui-ink-2)",
           )}
         >
           {r.subject.name}
@@ -158,10 +168,14 @@ function BatchRow({ row: r }: { row: Row }) {
           Batch {r.n} · {dayLabel(r.createdAt)} · {r.samples.length} samples
         </span>
         <span className="flex flex-wrap items-center gap-1.5">
-          {open ? (
+          {waits ? (
             // "Needs you" says it waits; the tag adds how far he got
-            <Tag tone="warn" dot>
+            <Tag tone="needs" dot>
               {r.samples.filter((s) => s.verdict).length} of {r.samples.length} marked
+            </Tag>
+          ) : open ? (
+            <Tag>
+              Replaced · {r.samples.filter((s) => s.verdict).length} of {r.samples.length} marked
             </Tag>
           ) : (
             <>

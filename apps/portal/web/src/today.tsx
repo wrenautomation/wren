@@ -45,7 +45,7 @@ import { met, type WriteLine, writeOf } from "./write.js";
 const ROW =
   "flex min-h-11 items-center gap-3 border-b border-(--ui-hair) px-1 text-[14.5px] text-(--ui-ink) no-underline transition-colors duration-150 ease-(--ui-ease) last:border-b-0 hover:bg-(--ui-hover)";
 const COUNT =
-  "ml-auto min-w-6 rounded-full bg-(--ui-warn-tint) px-2 text-center text-[13px]/6 font-semibold text-(--ui-warn-ink) [font-variant-numeric:tabular-nums]";
+  "ml-auto min-w-6 rounded-full bg-(--ui-needs-tint) px-2 text-center text-[13px]/6 font-semibold text-(--ui-needs) [font-variant-numeric:tabular-nums]";
 const MUTED = "text-[13px] text-(--ui-ink-3)";
 
 const pathOf = (m: Module, page: string) => `/${m.id}/${page}`;

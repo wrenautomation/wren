@@ -212,8 +212,8 @@ importers:
         specifier: 0.49.0
         version: 0.49.0(@aws-sdk/client-s3@3.1136.0)
       '@wrenautomation/vireo':
-        specifier: 0.5.1
-        version: 0.5.1(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.5.2
+        version: 0.5.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       commander:
         specifier: 15.0.0
         version: 15.0.0
@@ -343,8 +343,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/watch
       '@wrenautomation/vireo':
-        specifier: 0.5.1
-        version: 0.5.1(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.5.2
+        version: 0.5.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       htmlparser2:
         specifier: 12.0.0
         version: 12.0.0
@@ -892,8 +892,8 @@ importers:
   packages/db:
     dependencies:
       '@wrenautomation/vireo':
-        specifier: 0.5.1
-        version: 0.5.1(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.5.2
+        version: 0.5.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1018,8 +1018,8 @@ importers:
   packages/experiments:
     dependencies:
       '@wrenautomation/vireo':
-        specifier: 0.5.1
-        version: 0.5.1(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.5.2
+        version: 0.5.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -2204,8 +2204,8 @@ importers:
         specifier: workspace:*
         version: link:../starling/inbound
       '@wrenautomation/vireo':
-        specifier: 0.5.1
-        version: 0.5.1(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.5.2
+        version: 0.5.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -6607,8 +6607,8 @@ packages:
       '@aws-sdk/client-s3':
         optional: true
 
-  '@wrenautomation/vireo@0.5.1':
-    resolution: {integrity: sha512-cI6QYALT6fVHF8WnWJw4ibfyiEjbk7MPnOLh9PHTkSdtz8xgsihCaXAw83FFgVBtzVKbuBoDKvhyFfOTTYoidQ==}
+  '@wrenautomation/vireo@0.5.2':
+    resolution: {integrity: sha512-rD+0rTcERJD0PYxKnv4Ds4pTe2509AQ/GA8gb9kF12/1Sz5yePKMMcy0HQsD8gk91PMKbFLXsux9PxbFkjOc2Q==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -13716,14 +13716,14 @@ snapshots:
       '@remotion/timeline-utils': 4.0.533(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@rspack/core': 1.7.11(@swc/helpers@0.5.23)
       '@rspack/plugin-react-refresh': 1.6.1(react-refresh@0.18.0)
-      css-loader: 7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32))
+      css-loader: 7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32))
       esbuild: 0.28.1
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
       react-refresh: 0.18.0
       remotion: 4.0.533(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      style-loader: 4.0.0(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32))
-      webpack: 5.105.0(esbuild@0.28.2)(postcss@8.5.32)
+      style-loader: 4.0.0(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32))
+      webpack: 5.105.0(esbuild@0.28.1)(postcss@8.5.32)
     transitivePeerDependencies:
       - '@minify-html/node'
       - '@remotion/video-matting'
@@ -15222,7 +15222,7 @@ snapshots:
     transitivePeerDependencies:
       - '@napi-rs/canvas'
 
-  '@wrenautomation/vireo@0.5.1(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
+  '@wrenautomation/vireo@0.5.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
     dependencies:
       '@aws-sdk/client-s3': 3.1136.0
       '@aws-sdk/s3-request-presigner': 3.1136.0
@@ -15880,7 +15880,7 @@ snapshots:
 
   crypto-js@4.2.0: {}
 
-  css-loader@7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32)):
+  css-loader@7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.32)
       postcss: 8.5.32
@@ -19069,7 +19069,7 @@ snapshots:
     optionalDependencies:
       '@types/node': 26.6.4
 
-  style-loader@4.0.0(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32)):
+  style-loader@4.0.0(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32)):
     dependencies:
       webpack: 5.105.0(esbuild@0.28.2)(postcss@8.5.32)
 
@@ -19151,7 +19151,7 @@ snapshots:
       - bare-abort-controller
       - react-native-b4a
 
-  terser-webpack-plugin@5.6.1(esbuild@0.28.1)(postcss@8.5.32)(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32)):
+  terser-webpack-plugin@5.6.1(esbuild@0.28.1)(postcss@8.5.32)(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32)):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
@@ -19160,6 +19160,17 @@ snapshots:
       webpack: 5.105.0(esbuild@0.28.2)(postcss@8.5.32)
     optionalDependencies:
       esbuild: 0.28.1
+      postcss: 8.5.32
+
+  terser-webpack-plugin@5.6.1(esbuild@0.28.2)(postcss@8.5.32)(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32)):
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.31
+      jest-worker: 27.5.1
+      schema-utils: 4.5.0
+      terser: 5.51.2
+      webpack: 5.105.0(esbuild@0.28.2)(postcss@8.5.32)
+    optionalDependencies:
+      esbuild: 0.28.2
       postcss: 8.5.32
 
   terser@5.51.2:
@@ -19543,6 +19554,47 @@ snapshots:
 
   webpack-sources@3.6.0: {}
 
+  webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32):
+    dependencies:
+      '@types/eslint-scope': 3.7.7
+      '@types/estree': 1.0.9
+      '@types/json-schema': 7.0.15
+      '@webassemblyjs/ast': 1.14.1
+      '@webassemblyjs/wasm-edit': 1.14.1
+      '@webassemblyjs/wasm-parser': 1.14.1
+      acorn: 8.19.0
+      acorn-import-phases: 1.0.4(acorn@8.19.0)
+      browserslist: 4.29.3
+      chrome-trace-event: 1.0.4
+      enhanced-resolve: 5.26.0
+      es-module-lexer: 2.3.2
+      eslint-scope: 5.1.1
+      events: 3.3.0
+      glob-to-regexp: 0.4.1
+      graceful-fs: 4.2.11
+      json-parse-even-better-errors: 2.3.1
+      loader-runner: 4.3.2
+      mime-types: 2.1.35
+      neo-async: 2.6.2
+      schema-utils: 4.5.0
+      tapable: 2.3.3
+      terser-webpack-plugin: 5.6.1(esbuild@0.28.1)(postcss@8.5.32)(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32))
+      watchpack: 2.5.2
+      webpack-sources: 3.6.0
+    transitivePeerDependencies:
+      - '@minify-html/node'
+      - '@swc/core'
+      - '@swc/css'
+      - '@swc/html'
+      - clean-css
+      - cssnano
+      - csso
+      - esbuild
+      - html-minifier-terser
+      - lightningcss
+      - postcss
+      - uglify-js
+
   webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32):
     dependencies:
       '@types/eslint-scope': 3.7.7
@@ -19567,7 +19619,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.5.0
       tapable: 2.3.3
-      terser-webpack-plugin: 5.6.1(esbuild@0.28.1)(postcss@8.5.32)(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32))
+      terser-webpack-plugin: 5.6.1(esbuild@0.28.2)(postcss@8.5.32)(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.32))
       watchpack: 2.5.2
       webpack-sources: 3.6.0
     transitivePeerDependencies:

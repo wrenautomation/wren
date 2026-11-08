@@ -340,7 +340,7 @@ const StepRow: ToolCallMessagePartComponent = (t) => {
     <Grow
       className={cx(
         "grid rounded-[12px] transition-colors duration-200",
-        waits && "bg-(--ui-warn-tint) px-3 py-2.5 shadow-[inset_0_0_0_1px_var(--ui-hair)]",
+        waits && "bg-(--ui-needs-tint) px-3 py-2.5 shadow-[inset_0_0_0_1px_var(--ui-hair)]",
       )}
     >
       <button
@@ -355,7 +355,7 @@ const StepRow: ToolCallMessagePartComponent = (t) => {
           className="grid size-4 flex-none place-items-center [animation:ui-fade_.2s_both]"
         >
           {waits ? (
-            <Icon name="alert" size={15} className="text-(--ui-warn)" />
+            <Icon name="alert" size={15} className="text-(--ui-needs)" />
           ) : ask?.approved === false || t.isError ? (
             <Icon name="xCircle" size={15} className="text-(--ui-bad)" />
           ) : done ? (

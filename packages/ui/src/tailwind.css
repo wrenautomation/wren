@@ -33,7 +33,7 @@
   --ui-good: #17803d;
   --ui-good-ink: #136b33;
   --ui-bad: #c31c15;
-  --ui-warn: #b7791f; /* waiting on you: needs counts, the amber status tone */
+  --ui-warn: #b7791f; /* late or held: the amber status tone */
   --ui-warn-ink: #895911; /* amber small text */
   --ui-shade: #0e0e0e; /* what shadows and the scrim are made of */
   --ui-font: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
@@ -118,7 +118,13 @@
   --ui-accent-tint: color-mix(in srgb, var(--ui-accent) 10%, transparent);
   --ui-good-tint: color-mix(in srgb, var(--ui-good) 10%, transparent);
   --ui-bad-tint: color-mix(in srgb, var(--ui-bad) 6%, transparent);
-  --ui-warn-tint: color-mix(in srgb, var(--ui-warn) 9%, transparent); /* under what waits on you */
+  --ui-warn-tint: color-mix(
+    in srgb,
+    var(--ui-warn) 9%,
+    transparent
+  ); /* under what is late or held */
+  --ui-needs: var(--ui-bad); /* waits on you: red, one hue with what failed */
+  --ui-needs-tint: var(--ui-bad-tint);
   /* A terminal block: dark in both looks, so commands read apart from words */
   /* by day a soft charcoal, not black on white; at night a well just under the paper */
   --ui-term: light-dark(#3b3942, #121116);

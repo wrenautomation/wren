@@ -697,7 +697,7 @@ function Thumb({ s, sel, clip }: { s: TNode; sel: boolean; clip: string }) {
             height={h}
             rx="6"
             fill="none"
-            stroke="var(--ui-warn)"
+            stroke="var(--ui-needs)"
             strokeWidth="1.25"
             strokeDasharray="3 2.5"
           />
@@ -960,7 +960,7 @@ function SampleDetail({
         <div className="vt-row">
           <h3>{s.name}</h3>
           <Tag>Batch {t.rounds[s.r - 1]?.num ?? s.r}</Tag>
-          <Tag tone="warn">To mark</Tag>
+          <Tag tone="needs">To mark</Tag>
         </div>
         <div>
           <div className="vt-k">What it is</div>
@@ -1109,7 +1109,7 @@ function BatchDetail({ t, n }: { t: Tree; n: number }) {
               Batch {B.num}
             </a>
           </h3>
-          <Tag tone="warn">To mark</Tag>
+          <Tag tone="needs">To mark</Tag>
           <span className="vt-hint">{B.when}</span>
         </div>
         {strip}
