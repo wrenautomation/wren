@@ -73,3 +73,11 @@ It is a Vitest test, not a `scripts/*-guard.mjs`: the place list is built by imp
   - Agent clip and Variants video: the part's own `Video` bar (WA-1172) replaces native controls in both.
 - Left, by choice: MetroMap `bare` (no dot grid) and the Map's draw-in `intro` are off in prod on purpose (MapPage doc; the ghost takes the intro's place).
 - Left, open: a research topic ask ("Research how … set prices") needs the agent's own suggestion; nothing makes one yet. Graph `ribbons` and the `Steps` long-job part have no page. Player `FileMedia` keeps native controls. Minor props no page sets: AgentThread `closed`, Rows `pick` on Today and Studio waiting, DataTable `framed`, AccountPicker unsaved.
+- 11-07, drift run-by with William (WA-1173 to WA-1176). His picks: Birdwatch writes topic asks (WA-1175); the chat locks with its reason (WA-1173); bulk pick on Studio waiting only (WA-1174). The rest was the session's call: keep a part that is a real extension or edge case, else cut.
+  - Chat lock (WA-1173, done): a fault that can never pass in this chat (no access, someone else's chat, credential stop, setup or chat gone) locks the box with its sentence; prompts and attach hide. A relay that is down was already handled: the panel shows its alert in place of the chat. Found on the way: after `/clear` the new session's empty history (404) showed "chat gone"; fixed.
+  - Steps (kept): the artifact's "Long job" (section 14); no page has a staged job outside the chat yet (import, render, send are the first callers). Its hold (`useHeld`, 600 ms) now also runs the chat's working line, so fast tool calls never flicker it.
+  - Graph `ribbons` (kept): the Map's volume view later (width = people who crossed). Built and tested; the Map runs on Orrery now, so no page to wire today.
+  - DataTable `framed` (kept): the artifact's `.tw` table (#diff), for the first compare page.
+  - AccountPicker `unsaved`: not drift. The draft and the edit form pass it; the audit read only the thread reply.
+  - Player `FileMedia` (kept native): the Player also plays YouTube and post embeds in their own controls, docks in a corner and opens Picture-in-Picture; the Video bar sits under the frame and needs height the slot does not have. One look inside the Player beats the kit's bar on files only.
+

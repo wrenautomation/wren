@@ -46,24 +46,34 @@ const FOLD_AFTER = 700;
 /** After this long the clock and "you can leave" show, ms. */
 const LONG = 10_000;
 
-/**
- * The status line. A new text waits until the shown one has had `HOLD`; then the old line fades
- * up and out while the new one fades in. Only the latest waiting text shows.
- */
-function Status({ text }: { text: string }) {
-  const [shown, setShown] = useState({ text, n: 0 });
-  const [gone, setGone] = useState<{ text: string; n: number } | null>(null);
+/** `text`, each value held at least `HOLD` ms; only the latest waiting one shows (chat `Working`). */
+export function useHeld(text: string): string {
+  const [shown, setShown] = useState(text);
   const since = useRef(0);
   useEffect(() => {
-    if (text === shown.text) return;
-    const wait = Math.max(0, since.current + HOLD - Date.now());
-    const t = setTimeout(() => {
-      since.current = Date.now();
-      setGone(shown);
-      setShown({ text, n: shown.n + 1 });
-    }, wait);
+    if (text === shown) return;
+    const t = setTimeout(
+      () => {
+        since.current = Date.now();
+        setShown(text);
+      },
+      Math.max(0, since.current + HOLD - Date.now()),
+    );
     return () => clearTimeout(t);
   }, [text, shown]);
+  return shown;
+}
+
+/** The status line: a held text; the old line fades up and out while the new one fades in. */
+function Status({ text }: { text: string }) {
+  const held = useHeld(text);
+  const [shown, setShown] = useState({ text: held, n: 0 });
+  const [gone, setGone] = useState<{ text: string; n: number } | null>(null);
+  // derived on render: the held text moved on
+  if (held !== shown.text) {
+    setGone(shown);
+    setShown({ text: held, n: shown.n + 1 });
+  }
   useEffect(() => {
     if (!gone) return;
     const t = setTimeout(() => setGone(null), FADE);
