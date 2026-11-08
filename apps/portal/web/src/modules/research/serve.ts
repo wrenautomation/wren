@@ -68,6 +68,8 @@ export interface RunDocument extends Who {
   media: string;
   date?: string;
   length?: number;
+  /** The page's picture (og:image); weaver 0.52.0. */
+  image?: string;
   chars: number;
   class?: string;
   judge?: Answers;

@@ -1471,3 +1471,4 @@ William 11-08: "rename birdwatch to weaver across the board." Engine 0.51.0.
 - No env file or prod secret had a `BIRDWATCH_*` name; this Mac's config keys were renamed by hand.
 - The agent setup is `weaver`. This Mac's session ledger (`~/.config/wren/agent-sessions.jsonl`) was rewritten so past chats stay listed.
 - Dated logs, closed tasks and this file's earlier entries keep "birdwatch": they are history.
+- 11-08: 0.52.0: a document keeps its page's picture. The html reader takes og:image (else twitter:image), absolute. New record `image` (on, image) for reads before 0.52.0; `weaver images [runs...]` writes them, one GET per page. `RunState.imageOf`; the run view sends `image` per document. Why: the portal graph's source cards (log: `2026-11-05-research-web.md`).

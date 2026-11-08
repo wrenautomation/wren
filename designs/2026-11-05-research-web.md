@@ -272,3 +272,11 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Real merged web at 1280: 1913 × 1464 at 0.55, cut at the sides, to 1461 × 2294 at 0.61, full width, 0 overlaps. Crossings 73 to 12; link median 320 to 224, p90 642 to 299. Solve about 150 ms.
   - `mergeGraphs` moved to `@wren/ui/research/run/merge`: pure, no d3, so the portal merges in its main chunk while the graph loads late.
   - Checks: `web.test.ts` (group order, pack apart and in width, merged solve) and story `research-run--several-runs` with an overlap `play`.
+- 11-08: source cards show the page's picture, as round 13 did (engine 0.52.0).
+  - William: the graph still does not look as good as round 13. Real data side by side with round 13: the same layout, but no page pictures. Round 13 drew og images and page shots that its prep fetched; prod sent `og: null`.
+  - Options, ranked by data kept in the run, then cost per view:
+    - A. The html reader keeps og:image on the document; `weaver images` backfills old reads as `image` records (latest per document wins). Chosen.
+    - B. Serve fetches og:image lazily per view, with a disk cache. No schema change, but the picture is not in the run and each new view fetches.
+    - C. A Worker proxy for og images. Spends the Worker's request cap.
+  - Backfill on this Mac: 600 html pages, 459 with a picture, 2 failed.
+  - Not done: round 13's page shots for pages with no og image (a browser render per page).

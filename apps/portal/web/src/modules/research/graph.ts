@@ -160,6 +160,7 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
       len: d.length ?? 0,
       kept: 0,
       th: null,
+      og: d.image ?? null,
       r,
       f: pf ?? "other",
       e: evOf(pc, pf),
@@ -227,7 +228,8 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
       fmt,
       icon: icon(s.site === "web" ? s.name : s.site === "youtube" ? "youtube.com" : "reddit.com"),
       thumb: best?.[0].th ?? null,
-      og: null,
+      // the most-kept page's picture, as the artifact (round 11 prep)
+      og: order.find(([p]) => p.kept && p.og)?.[0].og ?? null,
       home:
         s.site === "web"
           ? `https://${s.name}`
