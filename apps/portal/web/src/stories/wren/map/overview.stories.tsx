@@ -66,9 +66,9 @@ const calm = async (page: HTMLElement) => {
     Number.parseFloat,
   ) as [number, number, number, number];
   const [cw, ch] = [host.clientWidth - l - r, host.clientHeight - t - b];
-  // Fill: the whole map in its frame both ways, never above its real size or under 60% of it.
+  // Fill: the whole map in its frame both ways, never above its real size or under 80% of it.
   const [w, h] = [Number(svg.getAttribute("width")), Number(svg.getAttribute("height"))];
-  const fill = Math.max(Math.min(cw, ch * (w / h), w), w * 0.6);
+  const fill = Math.max(Math.min(cw, ch * (w / h), w), w * 0.8);
   await expect(Math.abs(at.width - fill)).toBeLessThan(2);
   await expect(onTop(svg)).toEqual([]);
   const box = host.getBoundingClientRect();
@@ -246,7 +246,7 @@ export const Big = mapAt("/", {
     await expect(
       svg.getBoundingClientRect().left - host.getBoundingClientRect().left,
     ).toBeGreaterThanOrEqual(12);
-    // Too wide for its 60% floor, it pans: a frame that scrolls takes focus for the arrow keys.
+    // Too wide for its 80% floor, it pans: a frame that scrolls takes focus for the arrow keys.
     // Scrolled to the far corner, the last station is in view.
     if (pans) {
       await waitFor(() => expect(host).toHaveAttribute("tabindex", "0"));

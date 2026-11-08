@@ -497,7 +497,7 @@
 }
 .metro-fill .mm {
   flex: none;
-  width: max(min(100cqw, 100cqh * var(--r, 1), var(--w, 100cqw)), var(--w, 0px) * 0.6);
+  width: max(min(100cqw, 100cqh * var(--r, 1), var(--w, 100cqw)), var(--w, 0px) * 0.8);
   height: auto;
 }
 /* One part open as the main view: to 1.2x real size, at the top like the whole map. Past that a
@@ -506,7 +506,7 @@
   padding-top: 24px;
 }
 .metro-fill[data-focus] .mm {
-  width: max(min(100cqw, 100cqh * var(--r, 1), var(--w, 100cqw) * 1.2), var(--w, 0px) * 0.6);
+  width: max(min(100cqw, 100cqh * var(--r, 1), var(--w, 100cqw) * 1.2), var(--w, 0px) * 0.8);
 }
 /* The frame fills the room it is given, so the host can centre the map in it. */
 .metro {
