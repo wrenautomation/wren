@@ -9,6 +9,8 @@ import { pageAt, shows, tidy } from "../../../mocks/page.js";
 const meta: Meta = { title: "Wren/Campaigns/Content" };
 export default meta;
 
+const LONG = { timeout: 5000 };
+
 // Studio: the desk (due cards, New, the waiting table), then compose with a line and a kind chosen.
 // The shape has two sample lines; a phone shows the same page narrower (the story tests run at 390).
 const STUDIO = studioAnswers({
@@ -50,6 +52,41 @@ export const StudioApprove = tidy(
       await expect(
         await within(document.body).findByRole("button", { name: /undo/i }),
       ).toBeVisible();
+    },
+  }),
+);
+
+/**
+ * Picked rows act together: a shift-click takes the run, Approve skips the one that lacks a field
+ * and says why, Drop takes them all, and one toast offers Undo (WA-1174).
+ */
+export const StudioPick = tidy(
+  pageAt("/campaigns/studio", {
+    me: ADMIN,
+    answers: STUDIO,
+    check: async (page) => {
+      const view = within(page);
+      const box = (title: string) => view.findByRole("checkbox", { name: `Select ${title}` }, LONG);
+      // a thread, then a run from the reply-rate post to the TikTok (rows in the server's order)
+      const thread = "1/ A one-line offer page books more calls than a seven-section one.";
+      const test =
+        "We changed one thing after the first reply-rate test: the first line. Replies doubled.";
+      const tiktok = "The offer page, cut live.";
+      await userEvent.click(await box(thread));
+      await userEvent.click(await box(test));
+      await userEvent.keyboard("{Shift>}");
+      await userEvent.click(await box(tiktok));
+      await userEvent.keyboard("{/Shift}");
+      await expect(await view.findByText("3 selected")).toBeVisible();
+      await expect(view.getByText("Approve skips 1: fill in privacy first.")).toBeVisible();
+      await userEvent.click(view.getByRole("button", { name: "Approve 2" }));
+      await waitFor(() => expect(view.queryByText(thread)).toBeNull());
+      expect(view.queryByText(test)).toBeNull();
+      await expect(view.getByRole("button", { name: `Approve ${tiktok}` })).toBeDisabled();
+      expect(view.queryByText(/ selected$/)).toBeNull();
+      // the toast fades in
+      const undo = await within(document.body).findByRole("button", { name: /undo/i });
+      await waitFor(() => expect(undo).toBeVisible());
     },
   }),
 );

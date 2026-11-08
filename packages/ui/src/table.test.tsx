@@ -60,8 +60,6 @@ function tableOf(ask: Ask = {}): ListTable {
       sort: undefined,
       group: null,
       split: -1,
-      picked: new Set(),
-      onPicked: () => {},
       ...ask,
     });
     return null;
@@ -126,21 +124,6 @@ describe("useListTable", () => {
     expect(t.sorted("city")).toBe("desc");
     expect(t.sorted("name")).toBe(false);
     expect(tableOf({ sort: "name" }).sorted("name")).toBe("asc");
-  });
-
-  it("keeps which rows are picked", () => {
-    const some = tableOf({ picked: new Set(["2"]) });
-    expect([some.all, some.some, some.picked("2"), some.picked("1")]).toEqual([
-      false,
-      true,
-      true,
-      false,
-    ]);
-    const all = tableOf({ picked: new Set(["1", "2", "3", "4"]) });
-    expect(all.all).toBe(true);
-    let next: Set<string> | null = null;
-    tableOf({ picked: new Set(["2"]), onPicked: (s) => (next = s) }).toggle("3");
-    expect([...(next ?? [])].sort()).toEqual(["2", "3"]);
   });
 });
 

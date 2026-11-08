@@ -31,7 +31,10 @@ const draft = (
   ...more,
 });
 
-/** Five ideas: a post past its slot, a thread, a carousel, a story and a post with no line. */
+/**
+ * Six ideas: a post past its slot, a thread, a carousel, a story, a post with no line and a
+ * TikTok that lacks who can see it (Approve skips it).
+ */
 export const STUDIO_WAITING = {
   ideas: [
     {
@@ -104,6 +107,12 @@ export const STUDIO_WAITING = {
           46,
         ),
       ],
+    },
+    {
+      ideaId: "i6",
+      idea: "The offer page, cut live in 60 seconds",
+      line: "signed",
+      drafts: [draft("d9", "tiktok", "The offer page, cut live.", 1, 48, { missing: ["privacy"] })],
     },
   ],
 };

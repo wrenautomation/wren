@@ -225,6 +225,43 @@ export interface RowsPick {
   count: number;
 }
 
+/**
+ * A pick over the rows shown, `keys` in drawn order. The caller holds the set (a list keeps it in
+ * the address). Shift-click: every row from the last one pressed takes that row's new state.
+ */
+export function useRowsPick(
+  keys: readonly string[],
+  picked: ReadonlySet<string>,
+  onPicked: (next: Set<string>) => void,
+): RowsPick {
+  const anchor = useRef<string | null>(null);
+  const shown = keys.filter((k) => picked.has(k)).length;
+  const all = keys.length > 0 && shown === keys.length;
+  return {
+    picked: (id) => picked.has(id),
+    toggle: (id, range) => {
+      const on = !picked.has(id);
+      const next = new Set(picked);
+      const from = range && anchor.current ? keys.indexOf(anchor.current) : -1;
+      const to = keys.indexOf(id);
+      // anchor gone (approved, filtered out): a plain toggle
+      const run =
+        from >= 0 && to >= 0 ? keys.slice(Math.min(from, to), Math.max(from, to) + 1) : [id];
+      for (const k of run) on ? next.add(k) : next.delete(k);
+      anchor.current = id;
+      onPicked(next);
+    },
+    all,
+    some: shown > 0,
+    toggleAll: () => {
+      const next = new Set(picked);
+      for (const k of keys) all ? next.delete(k) : next.add(k);
+      onPicked(next);
+    },
+    count: picked.size,
+  };
+}
+
 /** A row's actions, as `RowActions` draws them. */
 export interface RowsAct {
   main: Parameters<typeof RowActions>[0]["main"];

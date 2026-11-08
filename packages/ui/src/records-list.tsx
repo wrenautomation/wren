@@ -98,9 +98,9 @@ import {
   type RowsColumn,
   type RowsLine,
   type RowsName,
-  type RowsPick,
   type RowsWait,
   stateColor,
+  useRowsPick,
   waitFrom,
 } from "./rows.js";
 import { type ListLine, scrollerOf, useListTable } from "./table.js";
@@ -468,7 +468,7 @@ function List({
   const pages = pagesOf(page.data?.total ?? 0, size);
   const sort = ask.sort ?? meta.views.find((v) => v.id === ask.view)?.sort;
   // The rows on TanStack Table: it groups them (a group's band, or "Needs you" and "For info"),
-  // orders the columns as the address says, and keeps which rows are picked.
+  // orders the columns as the address says.
   // Columns picked in Display all show; the page's own fit the room.
   const byHand = params.has("cols");
   // Beside a phone row's name: the view's pick, else the watched wait.
@@ -484,8 +484,6 @@ function List({
     sort,
     group: grouped,
     split,
-    picked,
-    onPicked: setPicked,
   });
   const { rows, cols } = table;
   // A prose subtitle (a comment's words, a DM) previews under each row's title.
@@ -837,14 +835,11 @@ function List({
       ),
     };
   });
-  const pickOf: RowsPick = {
-    picked: table.picked,
-    toggle: (id) => table.toggle(id),
-    all: table.all,
-    some: table.some,
-    toggleAll: table.toggleAll,
-    count: picked.size,
-  };
+  const pickOf = useRowsPick(
+    rows.map((r) => String(r.id)),
+    picked,
+    setPicked,
+  );
   const actOf = (r: Row): RowsAct => {
     const replies = replyOn(r);
     const { main, more } = rowActsOf(actions, r, !!replies);

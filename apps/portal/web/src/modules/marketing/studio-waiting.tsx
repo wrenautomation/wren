@@ -1,8 +1,8 @@
 /**
  * Studio's waiting drafts, on the shared `Rows`: an idea a row (kind, words, line, platforms,
  * slot, age), a check to approve it in place with an Undo, and a click that opens its platforms
- * side by side to edit, rewrite, post now or drop. "Schedule all" saves every open card's typing
- * first. By line groups the rows under each offer line.
+ * side by side to edit, rewrite, post now or drop. Picked rows approve or drop together, with one
+ * Undo; every open card's typing saves first. By line groups the rows under each offer line.
  */
 
 import type { MetroLine } from "@wren/pipeline/metro";
@@ -39,6 +39,7 @@ import {
   useHeld,
   useNarrow,
   usePhone,
+  useRowsPick,
   useSaved,
 } from "@wren/ui";
 import {
@@ -399,6 +400,7 @@ function DraftCard({
 /** Where a draft's holds live: Approve in a row sets its ids aside here for the undo. */
 const MANY = "studio-drafts";
 const APPROVED = "Approved";
+const DROPPED = "Dropped";
 
 /** The row's age and slot as one cell's words. */
 const slotWords = (i: Waiting) => {
@@ -430,8 +432,13 @@ export function WaitingBoard(
     .filter((i) => !i.drafts.every((d) => held.ids.has(d.id)));
   const ids = ideas?.flatMap((i) => i.drafts.map((d) => d.id)) ?? [];
   const late = ideas?.filter((i) => lateSlot(i)).length ?? 0;
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const keys = ideas?.map((i) => i.ideaId) ?? [];
+  const [picks, setPicks] = useState<Set<string>>(() => new Set());
+  // only rows still shown count: an approved or filtered-out idea drops out of the pick
+  const live = new Set(keys.filter((k) => picks.has(k)));
+  const pick = useRowsPick(keys, live, setPicks);
+  const selected = ideas?.filter((i) => live.has(i.ideaId)) ?? [];
   const [flushers] = useState<Flushers>(() => new Set());
   const [open, setOpen] = useState<string | null>(null);
   const phone = usePhone();
@@ -448,37 +455,23 @@ export function WaitingBoard(
     setOpen(null);
   };
 
-  const all = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      if (!(await flushAll())) throw new Error("A draft didn't save. Fix it, then try again.");
-      await ACTIONS.run(`studio:all:${ids.join(",")}`, (requestId) =>
-        desk("approve", { ids }, requestId),
-      );
-      reload();
-    } catch (err) {
-      setError(message(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  /** A row's check: its drafts go aside for the undo, and the call goes when the time ends. */
-  const approve = async (i: Waiting) => {
+  /** A row's check, or the picked rows: their drafts go aside for the undo, the call goes when the time ends. */
+  const hold = async (what: "approve" | "reject", list: Waiting[]) => {
     setError(null);
     if (!(await flushAll())) return void setError("A draft didn't save. Fix it, then try again.");
-    const mine = i.drafts.map((d) => d.id);
-    holdWithUndo({
+    const mine = list.flatMap((i) => i.drafts.map((d) => d.id));
+    const one = list.length === 1 && list[0] ? headlineOf(list[0]).title : `${list.length} ideas`;
+    const ok = holdWithUndo({
       press: {
-        key: `held studio:approve:${mine.join(",")}`,
-        what: "approve",
-        label: "Approve",
+        key: `held studio:${what}:${mine.join(",")}`,
+        what,
+        label: what === "approve" ? "Approve" : "Drop",
         records: mine.map((id) => recordKey(MANY, id)),
       },
-      commit: (requestId) => desk("approve", { ids: mine }, requestId),
-      line: `${APPROVED}: ${headlineOf(i).title}`,
+      commit: (requestId) => desk(what, { ids: mine }, requestId),
+      line: `${what === "approve" ? APPROVED : DROPPED}: ${one}`,
     });
+    if (ok) setPicks(new Set());
   };
 
   const view = props.params.get("view") === "line" ? "line" : "table";
@@ -502,17 +495,17 @@ export function WaitingBoard(
         >
           {view === "line" ? "Table" : "By line"}
         </a>
+        {selected.length ? (
+          <PickBar
+            selected={selected}
+            shown={keys.length}
+            demo={props.demo}
+            all={pick.toggleAll}
+            hold={(what, list) => void hold(what, list)}
+            clear={() => setPicks(new Set())}
+          />
+        ) : null}
         <div className="flex items-center gap-2 max-sm:hidden">
-          {ids.length > 1 ? (
-            <Button
-              size="dense"
-              tone="quiet"
-              disabled={busy || props.demo}
-              onClick={() => void all()}
-            >
-              Schedule all
-            </Button>
-          ) : null}
           <Segmented
             label="Group the waiting drafts"
             className="w-[168px]"
@@ -551,9 +544,10 @@ export function WaitingBoard(
             columns={columns}
             name={draftName(narrow, props.lines)}
             open={{ id: open, onOpen: (i) => setOpen(i.ideaId) }}
+            pick={props.demo ? undefined : pick}
             rowProps={(i) => ({ "data-late": lateSlot(i) ? "" : undefined })}
             end={(i) => (
-              <ApproveButton idea={i} demo={props.demo} approve={() => void approve(i)} />
+              <ApproveButton idea={i} demo={props.demo} approve={() => void hold("approve", [i])} />
             )}
             group={
               groups
@@ -772,6 +766,62 @@ function columnsOf(lines: ReadonlyMap<string, MetroLine>): RowsColumn<Waiting>[]
   ];
 }
 
+/** What an idea's drafts still lack before Approve. */
+const missingOf = (i: Waiting) => [...new Set(i.drafts.flatMap((d) => d.missing ?? []))];
+
+/** "3 selected", Approve and Drop for them (Approve skips what lacks something), and a way out. */
+function PickBar({
+  selected,
+  shown,
+  demo,
+  all,
+  hold,
+  clear,
+}: {
+  selected: Waiting[];
+  shown: number;
+  demo: boolean;
+  all: () => void;
+  hold: (what: "approve" | "reject", list: Waiting[]) => void;
+  clear: () => void;
+}) {
+  const ready = selected.filter((i) => !missingOf(i).length);
+  const lacking = [...new Set(selected.flatMap(missingOf))];
+  const link =
+    "border-0 bg-transparent p-0 text-[13px] text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2";
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-[13px] max-sm:order-last max-sm:w-full sm:mr-auto">
+      <span>{selected.length} selected</span>
+      {ready.length ? (
+        <Button
+          size="dense"
+          tone="secondary"
+          disabled={demo}
+          onClick={() => hold("approve", ready)}
+        >
+          Approve {ready.length}
+        </Button>
+      ) : null}
+      <Button size="dense" tone="quiet" disabled={demo} onClick={() => hold("reject", selected)}>
+        Drop {selected.length}
+      </Button>
+      {ready.length < selected.length ? (
+        <span className="text-(--ui-ink-2)">
+          Approve skips {selected.length - ready.length}: fill in {listed(lacking)} first.
+        </span>
+      ) : null}
+      {selected.length < shown ? (
+        <button type="button" onClick={all} className={link}>
+          Select all
+        </button>
+      ) : null}
+      <button type="button" onClick={clear} className={link}>
+        Clear
+      </button>
+    </div>
+  );
+}
+
 /** A row's check: approve the idea in place; it waits on a draft that lacks something. */
 function ApproveButton({
   idea,
@@ -782,7 +832,7 @@ function ApproveButton({
   demo: boolean;
   approve: () => void;
 }) {
-  const missing = idea.drafts.flatMap((d) => d.missing ?? []);
+  const missing = missingOf(idea);
   const { title } = headlineOf(idea);
   return (
     <Button
@@ -790,7 +840,7 @@ function ApproveButton({
       size="dense"
       icon="check"
       aria-label={`Approve ${title}`}
-      title={missing.length ? `Fill in ${listed([...new Set(missing)])} first` : "Approve"}
+      title={missing.length ? `Fill in ${listed(missing)} first` : "Approve"}
       disabled={demo || missing.length > 0}
       className="text-(--ui-ink-3) hover:text-(--ui-active)"
       onClick={(e) => {

@@ -1,6 +1,16 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { walkTo } from "./records.js";
-import { drawnOf, type RowsLine, type RowsWait, statsOf, waitFrom } from "./rows.js";
+import {
+  drawnOf,
+  type RowsLine,
+  type RowsPick,
+  type RowsWait,
+  statsOf,
+  useRowsPick,
+  waitFrom,
+} from "./rows.js";
 
 const wait = (hours: number, late = false): RowsWait => ({ hours, late });
 
@@ -111,5 +121,49 @@ describe("walkTo", () => {
   it("leaves a row a fold now hides for the first row in view", () => {
     expect(walkTo(2, 1, 5, (i) => i >= 2 && i <= 3)).toBe(4);
     expect(walkTo(2, -1, 5, (i) => i >= 2)).toBe(1);
+  });
+});
+
+/** A pick over four rows, read once through a server render; `got` holds each set it hands back. */
+function pickOf(picked: string[], keys = ["1", "2", "3", "4"]) {
+  const got: string[][] = [];
+  let pick: RowsPick | null = null;
+  function Probe() {
+    pick = useRowsPick(keys, new Set(picked), (s) => got.push([...s].sort()));
+    return null;
+  }
+  renderToStaticMarkup(createElement(Probe));
+  if (!pick) throw new Error("no pick");
+  return { pick: pick as RowsPick, got };
+}
+
+describe("useRowsPick", () => {
+  it("counts the rows shown that are picked", () => {
+    const { pick } = pickOf(["2"]);
+    expect([pick.all, pick.some, pick.picked("2"), pick.picked("1"), pick.count]).toEqual([
+      false,
+      true,
+      true,
+      false,
+      1,
+    ]);
+    expect(pickOf(["1", "2", "3", "4"]).pick.all).toBe(true);
+    expect(pickOf([], []).pick.all).toBe(false);
+  });
+  it("a shift-click takes every row from the last one pressed", () => {
+    const { pick, got } = pickOf([]);
+    pick.toggle("1");
+    pick.toggle("3", true);
+    expect(got).toEqual([["1"], ["1", "2", "3"]]);
+  });
+  it("a shift-click with no row pressed yet picks one", () => {
+    const { pick, got } = pickOf([]);
+    pick.toggle("3", true);
+    expect(got).toEqual([["3"]]);
+  });
+  it("all lets go of only the rows shown", () => {
+    const { pick, got } = pickOf(["1", "2", "9"], ["1", "2"]);
+    pick.toggleAll();
+    expect(got).toEqual([["9"]]);
   });
 });

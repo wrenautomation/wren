@@ -454,6 +454,7 @@ export {
   stateColor,
   statsOf,
   type WaitStats,
+  useRowsPick,
 } from "./rows.js";
 export {
   dwellOf,

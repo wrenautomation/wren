@@ -1,10 +1,10 @@
 /**
  * Every table in the portal, on TanStack Table (designs/2026-10-16-portal-libs.md, "Table"). The
- * library keeps the state (sorting, which columns show and in what order, grouping, row
- * selection); this file draws it in the kit's look. Two shapes:
+ * library keeps the state (sorting, which columns show and in what order, grouping); picks are
+ * `useRowsPick` (rows.tsx). This file draws it in the kit's look. Two shapes:
  *
  *   `useListTable`  a record list's rows: the address says the sort, columns and group; the
- *                   server sorts and pages, so the table only groups, orders and selects.
+ *                   server sorts and pages, so the table only groups and orders.
  *   `DataTable`     a small table of facts (a template's versions, a page's numbers), drawn
  *                   whole, stacking into cards on a phone where asked.
  *
@@ -20,7 +20,6 @@ import {
   flexRender,
   type RowData,
   rowExpandingFeature,
-  rowSelectionFeature,
   rowSortingFeature,
   tableFeatures,
   useTable,
@@ -45,7 +44,6 @@ export const TABLE_FEATURES = tableFeatures({
   columnOrderingFeature,
   columnGroupingFeature,
   rowExpandingFeature,
-  rowSelectionFeature,
   groupedRowModel: createGroupedRowModel(),
   expandedRowModel: createExpandedRowModel(),
 });
@@ -60,10 +58,6 @@ export function sortingOf(sort: string | undefined): { id: string; desc: boolean
   const desc = sort.startsWith("-");
   return [{ id: desc ? sort.slice(1) : sort, desc }];
 }
-
-/** A selection as a set of row ids, and back. */
-const selectionOf = (picked: ReadonlySet<string>): Record<string, true> =>
-  Object.fromEntries([...picked].map((id) => [id, true as const]));
 
 /** One line a record list draws, in order: a group's band, a tier's band, or a row. */
 export type ListLine =
@@ -80,13 +74,6 @@ export interface ListTable {
   lines: ListLine[];
   /** Whether a column is the one the list sorts by, and which way. */
   sorted: (key: string) => false | "asc" | "desc";
-  all: boolean;
-  some: boolean;
-  /** Select every row shown, or none. */
-  toggleAll: () => void;
-  picked: (id: string) => boolean;
-  /** Select one row, or let it go. */
-  toggle: (id: string) => void;
 }
 
 /**
@@ -103,8 +90,6 @@ export function useListTable({
   sort,
   group,
   split,
-  picked,
-  onPicked,
 }: {
   meta: Pick<RecordMeta, "fields">;
   rows: Row[];
@@ -112,8 +97,6 @@ export function useListTable({
   sort: string | undefined;
   group: FieldMeta | null;
   split: number;
-  picked: ReadonlySet<string>;
-  onPicked: (next: Set<string>) => void;
 }): ListTable {
   const fields = useMemo(() => meta.fields.filter((f) => f.column || f === group), [meta, group]);
   const columns = useMemo<ColumnDef<Features, Row>[]>(
@@ -135,18 +118,12 @@ export function useListTable({
     getRowId: (r) => String(r.id),
     manualSorting: true,
     groupedColumnMode: false,
-    enableRowSelection: true,
     state: {
       sorting: sortingOf(sort),
       columnOrder: shown,
       columnVisibility: Object.fromEntries(columns.map((c) => [c.id, shown.includes(c.id ?? "")])),
       grouping,
       expanded: true,
-      rowSelection: selectionOf(picked),
-    },
-    onRowSelectionChange: (next) => {
-      const now = typeof next === "function" ? next(selectionOf(picked)) : next;
-      onPicked(new Set(Object.keys(now).filter((id) => now[id])));
     },
   });
   const byKey = new Map(fields.map((f) => [f.key, f]));
@@ -189,16 +166,6 @@ export function useListTable({
     sorted: (key) => {
       const s = sorting.find((x: { id: string }) => x.id === key);
       return s ? (s.desc ? "desc" : "asc") : false;
-    },
-    all: table.getIsAllRowsSelected(),
-    some: table.getIsSomeRowsSelected() || table.getIsAllRowsSelected(),
-    toggleAll: () => table.toggleAllRowsSelected(),
-    picked: (id) => !!table.state.rowSelection[id],
-    toggle: (id) => {
-      const next = new Set(picked);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      onPicked(next);
     },
   };
 }

@@ -1435,3 +1435,14 @@ Options put to William: 1, the brief in parts the agent reads on demand; 2, earl
 - Result on the same run: 800 KB to 30 KB. A 1-round run with 84 pages: 95 KB to 29 KB.
 - The session's choices, not William's: 15 rows in the index and 100 rows a page; the digest holds no model-written summary, only what the agent already wrote (edge whys, patterns), so it costs nothing; failed checks come first in their part; a new angle on a past run is a child run.
 - 11-06, William's correction (0.46.1): the skill said a stopped run goes on in a fresh session. William: the run's chat may hold talk that matters, so do not always start fresh. The skill now says: go on with a stopped run in its own chat when you can; compact the chat when it grows long; a fresh chat starts from `brief <run>`. A fresh session stays the default for a new run only.
+
+## 11-07: next asks on a run (WA-1175)
+
+William 11-07 (drift run-by on WA-1170): Storybook's source card shows topic asks ("Research how small bakeries set prices"); prod shows only "Research the whole channel", as no agent writes one. He chose: Birdwatch suggests them.
+
+Options:
+- A, the ledger: the agent writes up to 3 next asks per run, each with a why and its agent id, through a birdwatch command. `serve`'s run view carries them. Every surface (card, run list, a fresh chat) reads one source. Cost: an engine release and a pin bump.
+- B, the chat: the side chat's agent puts asks in its message, and the card reads that frame. No engine change. The asks are lost outside that chat, and the card has two sources.
+- C, code: wren makes asks from the run's data (channel, top claims). No agent decides, against the 10-28 rule.
+
+Chosen: A. Priorities, in order: one source for every surface; the agent decides, with a why; cost. The engine part is birdwatch dev's. Wren's part: `sourceRead` and `runCard` take the run view's asks, the why shows as the ask's tip, and a click sends the ask as his turn (as the channel ask does now).
