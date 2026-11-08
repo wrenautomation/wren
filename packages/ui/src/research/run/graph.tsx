@@ -117,11 +117,13 @@ function Graph({
   // a merged graph counts runs where one run counts rounds
   const step = stepOf(run);
   const Step = step === "run" ? "Run" : "Round";
-  const [layS, setLayS] = useState<LayId>(layP ?? "web");
+  // no claim: the web would be bare, so the searches lead
+  const bare = !run.claims.length;
+  const [layS, setLayS] = useState<LayId>(layP ?? (bare ? "tree" : "web"));
   const lay = layP ?? layS;
   const [wide, setWide] = useState(true);
   const [round, setRound] = useState(0);
-  const [tab, setTab] = useState<"c" | "q" | "d">("c");
+  const [tab, setTab] = useState<"c" | "q" | "d">(bare ? "q" : "c");
   const [pick, setPickS] = useState<Pick | null>(null);
   const [hover, setHover] = useState<Pick | null>(null);
   const [hole, setHole] = useState<string | null>(null);
@@ -566,7 +568,8 @@ function Graph({
           wide,
           shelfAt,
         });
-    wg.kept = { key, nodes: N };
+    // a copy: N is cleared on the next still draw, and a tween moves its nodes
+    wg.kept = { key, nodes: new Map([...N].map(([k, n]) => [k, { ...n }])) };
     wg.shelf = layShelf(shelf, size, wide);
     wg.at = "";
     const draw = () => {

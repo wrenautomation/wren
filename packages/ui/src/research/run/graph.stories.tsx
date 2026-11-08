@@ -30,7 +30,22 @@ const mark = async (root: HTMLElement, key: string) => {
   return el as unknown as HTMLElement;
 };
 
-export const Default: Story = { args: { run: RUN_GRAPH } };
+/** Every claim gets its own place, also after a still redraw (fonts, resize): no pile at 0,0. */
+export const Default: Story = {
+  args: { run: RUN_GRAPH },
+  play: async ({ canvasElement }) => {
+    await mark(canvasElement, "c0");
+    await document.fonts.ready;
+    // the font redraw lands after this resolves
+    await new Promise((r) => setTimeout(r, 600));
+    const at = [...canvasElement.querySelectorAll<HTMLElement>(".rg-nodes [data-n]")].map((e) => {
+      const b = e.getBoundingClientRect();
+      return `${Math.round(b.x)},${Math.round(b.y)}`;
+    });
+    expect(at.length).toBeGreaterThan(1);
+    expect(new Set(at).size).toBe(at.length);
+  },
+};
 export const Tree: Story = { args: { run: RUN_GRAPH, lay: "tree" } };
 export const Lanes: Story = { args: { run: RUN_GRAPH, lay: "lanes" } };
 export const OneRound: Story = { args: { run: RUN_GRAPH_ONE_ROUND } };
