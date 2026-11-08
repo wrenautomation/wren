@@ -77,11 +77,11 @@ export function parseWrenfile(text: string): Wrenfile {
 }
 
 /** Never proxied: this Mac's own services. Every role denies them anyway. */
-export const NO_PROXY = "localhost,127.0.0.1,::1";
+const NO_PROXY = "localhost,127.0.0.1,::1";
 /** Beyond smokescreen's own private-range deny. */
 export const DENY_RANGES = ["100.64.0.0/10"] as const;
 
-export const proxyUrl = (r: Role) => `http://127.0.0.1:${r.port}`;
+const proxyUrl = (r: Role) => `http://127.0.0.1:${r.port}`;
 
 /** The env that sends a process through a role's proxy. Node needs `NODE_USE_ENV_PROXY`. */
 export function proxyEnv(r: Role): Record<string, string> {
@@ -107,7 +107,7 @@ export function aclOf(name: string, r: Role): string {
 }
 
 /** `~/x` stays for the CLI to expand; `@/x` becomes `//<root>/x` (absolute in Claude's settings). */
-export function secretPath(s: string, root: string): string {
+function secretPath(s: string, root: string): string {
   return s.startsWith("@/") ? `/${root.replace(/\/$/, "")}/${s.slice(2)}` : s;
 }
 
@@ -145,7 +145,7 @@ export function setupEgress(w: Wrenfile, setup: string, root: string): SetupEgre
 }
 
 /** Claude runs a compound command inside the sandbox, where these CLIs lose their config and the web. */
-export const runNote = (run: readonly string[]) =>
+const runNote = (run: readonly string[]) =>
   `Shell commands run in a sandbox. ${run.map((c) => `\`${c}\``).join(", ")} run outside it only as a plain call: never in a pipe, after \`&&\` or \`;\`, or in \`$( )\`. Filter their JSON in a second call.`;
 
 type Obj = Record<string, unknown>;

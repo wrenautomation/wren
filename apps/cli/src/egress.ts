@@ -45,7 +45,7 @@ const SMOKESCREEN = {
 const HOME = homedir();
 const BIN = join(HOME, ".local/share/wren/egress", `smokescreen-${SMOKESCREEN.version}`);
 /** Per role: `<role>.acl.yaml`, `<role>.conf.yaml`, `<role>.env` (the desk's install reads it). */
-export const EGRESS_DIR = join(HOME, ".config/wren/egress");
+const EGRESS_DIR = join(HOME, ".config/wren/egress");
 const LOGS = join(HOME, "Library/Logs/wren-egress");
 const AGENTS = join(HOME, "Library/LaunchAgents");
 const LABEL = "com.wrenautomation.egress-";
@@ -53,7 +53,7 @@ const ROTATE_BYTES = 50 * 1024 * 1024;
 
 /** wren's repo dir; the workspace root is its parent. */
 const repoDir = () => resolve(process.env.WREN_ROOT ?? process.cwd());
-export const wrenfilePath = () => join(repoDir(), "Wrenfile");
+const wrenfilePath = () => join(repoDir(), "Wrenfile");
 const readWrenfile = (): Wrenfile => parseWrenfile(readFileSync(wrenfilePath(), "utf8"));
 
 /**
