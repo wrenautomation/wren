@@ -4,7 +4,15 @@
  * Port of the approved preview (artifact A5xNkRRGMoMZuH8s7mvfRL, pass 5).
  */
 import { Button, Seg, Tag } from "@wren/ui";
-import { type KeyboardEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { call } from "../../api.js";
 import { keep as keepLocal, recall } from "../../local.js";
 import { here, href, navigate } from "../../route.js";
@@ -333,76 +341,83 @@ export function SubjectTree({ subject, batches, guides, params }: TreeProps) {
 function Rail({ t }: { t: Tree }) {
   const RW = G.AX - 12;
   return (
-    <svg
-      className="vt-rail"
-      aria-hidden="true"
-      viewBox={`0 0 ${RW} ${t.height}`}
-      preserveAspectRatio="xMinYMin slice"
-      width={RW}
-      height={t.height}
-    >
-      {t.rounds.map((B) => {
-        const y = t.rowY(B.n);
-        const row = t.S.filter((s) => s.r === B.n);
-        return (
-          <g key={B.id}>
-            <text className="vt-gt" x="0" y={y - 12}>
-              Batch {B.num}
-              <tspan className="vt-gd" dx="6">
-                {B.when}
-              </tspan>
-            </text>
-            {row.slice(0, 11).map((s, i) => {
-              const x = i * 13;
-              const yy = y - 2;
-              if (s.v === "amazing" || s.v === "good")
+    <div className="vt-rail" style={{ "--rw": `${RW}px` } as CSSProperties}>
+      {/* the batch name opens the batch */}
+      {t.rounds.map((B) => (
+        <a
+          key={B.id}
+          className="vt-ga"
+          href={href("/variants/batches", { batch: B.id })}
+          style={{ top: t.rowY(B.n) - 26 }}
+        >
+          Batch {B.num}
+          <span>{B.when}</span>
+        </a>
+      ))}
+      <svg
+        aria-hidden="true"
+        viewBox={`0 0 ${RW} ${t.height}`}
+        preserveAspectRatio="xMinYMin slice"
+        width={RW}
+        height={t.height}
+      >
+        {t.rounds.map((B) => {
+          const y = t.rowY(B.n);
+          const row = t.S.filter((s) => s.r === B.n);
+          return (
+            <g key={B.id}>
+              {row.slice(0, 11).map((s, i) => {
+                const x = i * 13;
+                const yy = y - 2;
+                if (s.v === "amazing" || s.v === "good")
+                  return (
+                    <rect
+                      key={s.id}
+                      x={x}
+                      y={yy}
+                      width="10"
+                      height="10"
+                      rx="2.5"
+                      fill={s.v === "amazing" ? "var(--ui-accent)" : "var(--ui-good)"}
+                    />
+                  );
                 return (
                   <rect
                     key={s.id}
-                    x={x}
-                    y={yy}
-                    width="10"
-                    height="10"
-                    rx="2.5"
-                    fill={s.v === "amazing" ? "var(--ui-accent)" : "var(--ui-good)"}
+                    x={x + 0.5}
+                    y={yy + 0.5}
+                    width="9"
+                    height="9"
+                    rx="2.25"
+                    fill="var(--ui-paper)"
+                    stroke={
+                      s.v === "bad"
+                        ? "var(--ui-bad)"
+                        : s.v === "grew"
+                          ? "var(--ui-ink-2)"
+                          : "var(--ui-ink-3)"
+                    }
+                    strokeWidth={s.v === "grew" ? 1.25 : 1}
+                    strokeDasharray={s.v === "open" ? "2 2" : undefined}
                   />
                 );
-              return (
-                <rect
-                  key={s.id}
-                  x={x + 0.5}
-                  y={yy + 0.5}
-                  width="9"
-                  height="9"
-                  rx="2.25"
-                  fill="var(--ui-paper)"
-                  stroke={
-                    s.v === "bad"
-                      ? "var(--ui-bad)"
-                      : s.v === "grew"
-                        ? "var(--ui-ink-2)"
-                        : "var(--ui-ink-3)"
-                  }
-                  strokeWidth={s.v === "grew" ? 1.25 : 1}
-                  strokeDasharray={s.v === "open" ? "2 2" : undefined}
-                />
-              );
-            })}
-            <text className={`vt-gc${B.open ? " w" : ""}`} x="0" y={y + 24}>
-              {B.call}
-            </text>
-            {B.locks.length > 0 && (
-              <g transform={`translate(0 ${y + 33})`}>
-                <Lock />
-                <text className="vt-gl" x="15" y="10">
-                  {B.locks.length} guide{B.locks.length > 1 ? "s" : ""} locked
-                </text>
-              </g>
-            )}
-          </g>
-        );
-      })}
-    </svg>
+              })}
+              <text className={`vt-gc${B.open ? " w" : ""}`} x="0" y={y + 24}>
+                {B.call}
+              </text>
+              {B.locks.length > 0 && (
+                <g transform={`translate(0 ${y + 33})`}>
+                  <Lock />
+                  <text className="vt-gl" x="15" y="10">
+                    {B.locks.length} guide{B.locks.length > 1 ? "s" : ""} locked
+                  </text>
+                </g>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
   );
 }
 
@@ -1089,7 +1104,11 @@ function BatchDetail({ t, n }: { t: Tree; n: number }) {
     return (
       <>
         <div className="vt-row">
-          <h3>Batch {B.num}</h3>
+          <h3>
+            <a className="vt-ha" href={href("/variants/batches", { batch: B.id })}>
+              Batch {B.num}
+            </a>
+          </h3>
           <Tag tone="warn">To mark</Tag>
           <span className="vt-hint">{B.when}</span>
         </div>
@@ -1103,7 +1122,11 @@ function BatchDetail({ t, n }: { t: Tree; n: number }) {
   return (
     <>
       <div className="vt-row">
-        <h3>Batch {B.num}</h3>
+        <h3>
+          <a className="vt-ha" href={href("/variants/batches", { batch: B.id })}>
+            Batch {B.num}
+          </a>
+        </h3>
         <span className="vt-hint">{B.when}</span>
       </div>
       <div className="vt-row">

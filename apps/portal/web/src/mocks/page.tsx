@@ -34,6 +34,9 @@ function Page({ at }: { at: string }) {
   return <PortalRouter history={history} />;
 }
 
+/** Where the story's router stands now: path and query. */
+export const storyHref = () => HISTORY?.location.href ?? "";
+
 /** A page the workspace lacks redirects home and still renders: a story there tests the wrong page. */
 async function landedAt(want: string) {
   const path = want.split(/[?#]/)[0] ?? "";
