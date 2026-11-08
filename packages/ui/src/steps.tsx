@@ -47,7 +47,7 @@ const FOLD_AFTER = 700;
 const LONG = 10_000;
 
 /** `text`, each value held at least `HOLD` ms; only the latest waiting one shows (chat `Working`). */
-export function useHeld(text: string): string {
+export function useHeldLine(text: string): string {
   const [shown, setShown] = useState(text);
   const since = useRef(0);
   useEffect(() => {
@@ -66,7 +66,7 @@ export function useHeld(text: string): string {
 
 /** The status line: a held text; the old line fades up and out while the new one fades in. */
 function Status({ text }: { text: string }) {
-  const held = useHeld(text);
+  const held = useHeldLine(text);
   const [shown, setShown] = useState({ text: held, n: 0 });
   const [gone, setGone] = useState<{ text: string; n: number } | null>(null);
   // derived on render: the held text moved on

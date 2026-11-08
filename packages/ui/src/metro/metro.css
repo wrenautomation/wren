@@ -464,8 +464,27 @@
 .metro.metro-fill {
   height: 100%;
 }
+/* The page's gutter round the map, so a big one never meets the sidebar (WA-1144). The ghost
+   takes the same, so the map lands on it. */
+.metro-fill .metro-host,
+.metro-fill.metro-skeleton.ghosted,
+.metro-fill .metro-skeleton.ghosted {
+  padding: 0 var(--gut, clamp(12px, 2.5vw, 24px)) var(--gut, clamp(12px, 2.5vw, 24px));
+}
 .metro-fill .metro-host {
   overflow: auto;
+}
+/* A map that pans fades into the gutter, so a cut label reads as more to scroll. At rest the map
+   sits inside the gutter and nothing fades; a focused frame drops it for the ring. */
+.metro-fill .metro-host[tabindex]:not(:focus-visible) {
+  --fade: var(--gut, clamp(12px, 2.5vw, 24px));
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--fade),
+    #000 calc(100% - var(--fade)),
+    transparent
+  );
 }
 .metro-fill .metro-stage {
   align-self: stretch;

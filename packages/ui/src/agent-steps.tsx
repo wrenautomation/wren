@@ -12,7 +12,7 @@ import { Button } from "./controls.js";
 import { cx } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
 import { EASE } from "./motion.js";
-import { useHeld } from "./steps.js";
+import { useHeldLine } from "./steps.js";
 
 type Args = Record<string, unknown>;
 
@@ -446,7 +446,7 @@ export function Working() {
   const from = useAuiState((s) => s.message.createdAt?.getTime() ?? 0);
   const ms = useElapsed(running, from);
   // fast tool calls: each line holds a moment, no flicker
-  const now = useHeld(nowOf(parts));
+  const now = useHeldLine(nowOf(parts));
   if (!running) return null;
   return (
     <div

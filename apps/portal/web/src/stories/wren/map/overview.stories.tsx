@@ -15,7 +15,7 @@ import {
 } from "../../../mocks/data/map.js";
 import { ADMIN } from "../../../mocks/data/me.js";
 import { pageAt } from "../../../mocks/page.js";
-import { LATE, mapAt, SHARED, station, tools } from "./map-kit.js";
+import { LATE, mapAt, mapOf, SHARED, station, tools } from "./map-kit.js";
 
 const meta: Meta = { title: "Wren/Map/Overview", globals: { data: "tidy" } };
 export default meta;
@@ -60,17 +60,24 @@ const calm = async (page: HTMLElement) => {
   }, LATE)) as SVGSVGElement;
   const host = svg.closest<HTMLElement>(".metro-host") as HTMLElement;
   const at = svg.getBoundingClientRect();
+  // the frame inside the page's gutter (WA-1144)
+  const pad = getComputedStyle(host);
+  const [l, r, t, b] = [pad.paddingLeft, pad.paddingRight, pad.paddingTop, pad.paddingBottom].map(
+    Number.parseFloat,
+  ) as [number, number, number, number];
+  const [cw, ch] = [host.clientWidth - l - r, host.clientHeight - t - b];
   // Fill: the whole map in its frame both ways, never above its real size or under 60% of it.
   const [w, h] = [Number(svg.getAttribute("width")), Number(svg.getAttribute("height"))];
-  const fill = Math.max(Math.min(host.clientWidth, host.clientHeight * (w / h), w), w * 0.6);
+  const fill = Math.max(Math.min(cw, ch * (w / h), w), w * 0.6);
   await expect(Math.abs(at.width - fill)).toBeLessThan(2);
   await expect(onTop(svg)).toEqual([]);
-  const room = host.getBoundingClientRect();
+  const box = host.getBoundingClientRect();
+  const room = { left: box.left + l, right: box.right - r, top: box.top + t };
   const pans = host.scrollWidth > host.clientWidth + 1 || host.scrollHeight > host.clientHeight + 1;
-  if (at.width < host.clientWidth - 2)
+  if (at.width < cw - 2)
     await expect(Math.abs(at.left - room.left - (room.right - at.right))).toBeLessThan(2);
   // Under the title, as in the design language's "Map in the app": never down the middle of an empty frame.
-  if (at.height < host.clientHeight - 2) await expect(Math.abs(at.top - room.top)).toBeLessThan(2);
+  if (at.height < ch - 2) await expect(Math.abs(at.top - room.top)).toBeLessThan(2);
   return { svg, host, pans };
 };
 
@@ -221,7 +228,7 @@ export const Big = mapAt("/", {
   answers: bigAnswers(SHARED),
   check: async (page) => {
     await station(page, "Retainer");
-    const { host, pans } = await calm(page);
+    const { svg, host, pans } = await calm(page);
     await expect(await crossingsOfShape(SHAPE_BIG)).toBeLessThanOrEqual(CROSSINGS_PINNED.big);
     const inView = (name: string) =>
       waitFor(async () => {
@@ -235,6 +242,10 @@ export const Big = mapAt("/", {
     // It opens at the left edge: the first station is in view and nothing is scrolled away.
     await expect(host.scrollLeft).toBe(0);
     await inView("Social");
+    // the gutter: the map never meets the frame's edge
+    await expect(
+      svg.getBoundingClientRect().left - host.getBoundingClientRect().left,
+    ).toBeGreaterThanOrEqual(12);
     // Too wide for its 60% floor, it pans: a frame that scrolls takes focus for the arrow keys.
     // Scrolled to the far corner, the last station is in view.
     if (pans) {
@@ -248,8 +259,11 @@ export const Big = mapAt("/", {
 export const Phone = {
   ...mapAt("/", {
     check: async (page) => {
+      // A phone opens folded: the whole shape fits, nothing pans (WA-1144).
+      await (await mapOf(page)).findByRole("button", { name: /^Signed/ }, LATE);
+      await expect((await calm(page)).pans).toBe(false);
+      // Opened, real size: the map is wider than the phone, so it pans inside its frame.
       await station(page, "Engaged");
-      // Real size: the map is wider than the phone, so it pans inside its frame.
       const { pans } = await calm(page);
       await expect(pans).toBe(true);
       // Today sits under the Map, open.

@@ -10,7 +10,17 @@
  */
 
 import type { BlameLine, ShapeRef } from "@wren/pipeline/history";
-import { Button, ButtonLink, Icon, LoadFailed, SELECT_CLASS, Segmented, usePref } from "@wren/ui";
+import {
+  Button,
+  ButtonLink,
+  cx,
+  Icon,
+  LoadFailed,
+  SELECT_CLASS,
+  Segmented,
+  usePhone,
+  usePref,
+} from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import {
   type FocusSpec,
@@ -190,7 +200,7 @@ function FocusBar({ label, back, whole }: { label: string; back: string; whole: 
   return (
     <nav
       aria-label="Open part"
-      className="flex flex-wrap items-center gap-1 px-[clamp(12px,2.5vw,24px)] pb-2 text-[13.5px]"
+      className="flex flex-wrap items-center gap-1 px-(--gut) pb-2 text-[13.5px]"
     >
       <ButtonLink tone="quiet" size="dense" icon="back" href={back}>
         Layers
@@ -408,9 +418,11 @@ export function MapPage({
   const picker = useRef<HTMLInputElement>(null);
 
   const nodes = useMemo(() => (shown?.view ? viewTree(shown.view).nodes : []), [shown?.view]);
+  const phone = usePhone();
+  // a phone opens folded: the whole shape fits its width (WA-1144)
   const fold: Fold = useMemo(
-    () => ({ depth: kept.depth ?? 1, open: kept.open ?? {} }),
-    [kept.depth, kept.open],
+    () => ({ depth: kept.depth ?? (phone ? 0 : 1), open: kept.open ?? {} }),
+    [kept.depth, kept.open, phone],
   );
   // Layers is an experiment beside the flat map: one URL param, so a link keeps the look.
   const layers = props.params.get("look") === "layers";
@@ -422,15 +434,18 @@ export function MapPage({
   const focusParam = layers ? null : props.params.get("focus");
   const inFocus = useFocus(zoom, focusParam);
   const waiting = !!draftId && !row && !opened.error;
+  const depth = shown?.view ? (
+    <MetroDepth nodes={nodes} fold={fold} onFold={(f) => keepNow(f)} />
+  ) : null;
 
   return (
     // The map fills the first screen; Today scrolls under it.
     <section
       aria-label="Map"
-      className="flex h-[calc(100dvh-20px)] min-h-[520px] min-w-0 flex-none flex-col text-(--ui-ink)"
+      className="flex h-[calc(100dvh-20px)] min-h-[520px] min-w-0 flex-none flex-col text-(--ui-ink) [--gut:clamp(12px,2.5vw,24px)] max-[900px]:h-[calc(100dvh-var(--phone-bar,52px)-54px-env(safe-area-inset-bottom))]"
     >
       {/* The artifact's `.atop`: the title and how many people are on the map, the tools at the right. */}
-      <header className="flex flex-wrap items-end justify-between gap-2.5 px-[clamp(12px,2.5vw,24px)] pt-[18px] pb-3.5">
+      <header className="flex flex-wrap items-end justify-between gap-2.5 px-(--gut) pt-[18px] pb-3.5 max-[900px]:gap-y-3">
         <div className="mr-auto min-w-0">
           <h1 className="text-[22px]/7 font-semibold tracking-[-0.02em]">Your business</h1>
           <p className="text-[13.5px] text-(--ui-ink-2)">
@@ -439,8 +454,16 @@ export function MapPage({
               : "The map of your business."}
           </p>
         </div>
+        {depth && phone ? depth : null}
         {/* The bar: views, the look, the window, History and the depth. The rarer tools sit behind ⋯. */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* phone: one row that pans, to the screen edges */}
+        {/* --in: the first chip's ink (not its box) on the title's edge */}
+        <div
+          className={cx(
+            "flex flex-wrap items-center gap-2 max-[900px]:mx-[calc(var(--gut)*-1)] max-[900px]:w-[calc(100%+2*var(--gut))] max-[900px]:flex-nowrap max-[900px]:overflow-x-auto max-[900px]:pr-(--gut) max-[900px]:pl-(--in) max-[900px]:[scrollbar-width:none] max-[900px]:[mask-image:linear-gradient(to_right,transparent,#000_var(--in),#000_calc(100%-var(--gut)),transparent)] max-[900px]:[&>*]:shrink-0",
+            keep && shown?.view ? "[--in:calc(var(--gut)-9px)]" : "[--in:var(--gut)]",
+          )}
+        >
           {keep && shown?.view ? (
             <ViewsMenu
               views={views}
@@ -560,17 +583,17 @@ export function MapPage({
               }}
             />
           ) : null}
-          {shown?.view ? <MetroDepth nodes={nodes} fold={fold} onFold={(f) => keepNow(f)} /> : null}
+          {depth && !phone ? depth : null}
         </div>
       </header>
       {notice ? (
-        <div className="px-[clamp(12px,2.5vw,24px)] pb-2">
+        <div className="px-(--gut) pb-2">
           <Refused text={notice} />
         </div>
       ) : null}
       {data?.ghosts.length ? (
         // One quiet line, the count bar's type: the artifact draws no box over the map.
-        <p className="flex flex-wrap items-center gap-x-1 px-[clamp(12px,2.5vw,24px)] pb-2 text-[13px] text-(--ui-ink-2)">
+        <p className="flex flex-wrap items-center gap-x-1 px-(--gut) pb-2 text-[13px] text-(--ui-ink-2)">
           <span className="mr-1 size-2 rounded-full bg-(--ui-warn)" aria-hidden="true" />
           <span>The newest version dropped a part that people are still on:</span>
           {data.ghosts.map((g) => (
@@ -587,7 +610,7 @@ export function MapPage({
         </p>
       ) : null}
       {draftId && opened.error && !opened.data ? (
-        <div className="px-[clamp(12px,2.5vw,24px)] pb-2">
+        <div className="px-(--gut) pb-2">
           <LoadFailed error={opened.error} onRetry={opened.retry} what="draft" />
         </div>
       ) : null}

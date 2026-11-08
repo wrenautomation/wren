@@ -32,6 +32,7 @@ import {
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../controls.js";
 import { cx } from "../format.js";
+import { Icon } from "../icons.js";
 import { MetroSvg } from "./draw.js";
 import { type FocusSpec, focusScene, nameOf, partsOfSpec, specKey } from "./focus.js";
 import { autoZoom, type MetroZoom, viewZoom } from "./fold.js";
@@ -637,16 +638,18 @@ export function MetroDepth({ nodes, fold, onFold }: MetroDepthProps) {
         aria-label="Fold one level"
         disabled={fold.depth <= 0 && !mixed}
         onClick={() => onFold(stepDepth(nodes, fold.depth, -1))}
+        className="pointer-coarse:size-11"
       >
-        −
+        <Icon name="minus" size={14} />
       </Button>
       <Button
         size="dense"
         aria-label="Open one level"
         disabled={fold.depth >= full && !mixed}
         onClick={() => onFold(stepDepth(nodes, fold.depth, 1))}
+        className="pointer-coarse:size-11"
       >
-        +
+        <Icon name="plus" size={14} />
       </Button>
       {/* The path shows once it names a node: alone, "Map" says nothing. */}
       {crumbs.length > 0 ? (
