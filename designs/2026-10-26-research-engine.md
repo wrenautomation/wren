@@ -1448,3 +1448,15 @@ Options:
 Chosen: A. Priorities, in order: one source for every surface; the agent decides, with a why; cost. The engine part is birdwatch dev's. Wren's part: `sourceRead` and `runCard` take the run view's asks, the why shows as the ask's tip, and a click sends the ask as his turn (as the channel ask does now).
 
 Shipped in engine 0.47.0: `birdwatch add next <run> "<ask>" --why "<why>"` writes a `next` record with the agent's id. `GET /runs/:run` carries `asks: [{id, ask, why, at, from, by}]`: the latest per ask (case aside), newest first, at most 3; a fourth drops the oldest with a warning. The skill writes one to three after the stop edge, and after a pasted read. The session's choices: the name `asks` (the run row's `next` already means the next step), and latest-wins over a refusal at 3.
+
+## 11-08: birdwatch keeps videos in the media bucket (WA-1029)
+
+`youtube-see` kept downloads in a local folder only. WA-1029 AC #4: media cached in our bucket by platform and id.
+
+- Options, ranked by one implementation, the Mac's SSO credential chain, npm weight for outside users:
+  - A. Move wren's `s3MediaStore` into `@wrenautomation/read/s3`. The AWS SDK is an optional peer, loaded only there. Birdwatch puts its folder in front (`tieredStore`).
+  - B. Shell out to `aws s3 cp`. No dependency; a spawn per call; a second implementation beside wren's.
+  - C. Sign requests with aws4fetch. Tiny; env keys only, so no SSO profile on this Mac.
+  - Chosen: A. Same keys as wren's learn (`cache/<platform>/<id>`), so a video read by either downloads once.
+- `BIRDWATCH_MEDIA_BUCKET` turns it on (this Mac: `~/.config/birdwatch/config.json` vars). A failing bucket only warns; the folder still serves.
+- Follow-up at wren's next pin bump: import `@wrenautomation/read/s3`, delete `packages/research/src/sops/media-store.ts`.
