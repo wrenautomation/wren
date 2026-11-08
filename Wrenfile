@@ -25,11 +25,15 @@ secrets:
   - ~/.config/weaver
   - ~/.config/wren
   - "@/llm.env*"
+  - "@/autobrowse/.env*"
   - "@/.wrangler"
   - "@/wren/deploy/*.env"
 
 # One smokescreen per role. open: any public host. report: any public host, a miss is logged.
 # enforce: listed hosts only. Every role blocks loopback, private, link-local and CGNAT addresses.
+# gate: the key gate's port (credvault): the role's env file holds sentinels for `keys`, and the
+# gate swaps in the real key on its vendor's hosts. lock: the role's CLIs reach loopback only.
+# env: more env for the role's processes (`~/` is home).
 roles:
   agents:
     port: 4761
@@ -40,6 +44,22 @@ roles:
   weaver:
     port: 4762
     mode: open
+    gate: 4772
+    lock: true
+    keys:
+      - ANTHROPIC_API_KEY*
+      - COHERE_API_KEY*
+      - EXA_API_KEY*
+      - GEMINI_API_KEY*
+      - OPENALEX_API_KEY
+      - OPENROUTER_API_KEY*
+      - PERPLEXITY_API_KEY*
+      - RESTATE_AUTH_TOKEN
+      - SEARXNG_TOKEN
+      - TYPESAFE_API_KEY
+    plain: [NUM_*, SEARXNG_URL]
+    # weaver reads its keys from this config's env files: the role's sentinel file
+    env: { WEAVER_CONFIG: ~/.config/weaver/gated.json }
   desk:
     port: 4763
     mode: report
@@ -55,3 +75,11 @@ agents:
   vireo:
     role: agents
     run: [vireo, maker, folders]
+
+# The key gate: real values stay in these files (an earlier file wins a name); only the gate
+# reads them. A key whose vendor credvault does not know names its hosts here.
+gate:
+  sources: ["@/autobrowse/.env", "@/llm.env"]
+  hosts:
+    RESTATE_AUTH_TOKEN: [restate.wrenautomation.com]
+    SEARXNG_TOKEN: [search.wrenautomation.com]

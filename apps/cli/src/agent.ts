@@ -30,7 +30,7 @@ import {
 } from "@wren/agent";
 import { can, type MeAccess, whoFromMe } from "@wren/core/access";
 import type { Command } from "commander";
-import { egressFor, listening } from "./egress.js";
+import { egressFor, listening, lockBins } from "./egress.js";
 
 const AGENT_PORT = 4748;
 const ORIGINS = [
@@ -175,7 +175,11 @@ export function registerAgent(program: Command): void {
           egress: egressFor,
           // one dir per setup per serve: a rebuild mid-session would pull a live child's PATH
           binDirs: (s) => {
-            const dir = bins.get(s.name) ?? binDir(s, undefined, workspaceRoot());
+            let dir = bins.get(s.name);
+            if (!dir) {
+              dir = binDir(s, undefined, workspaceRoot());
+              lockBins(dir, s);
+            }
             bins.set(s.name, dir);
             return [dir];
           },

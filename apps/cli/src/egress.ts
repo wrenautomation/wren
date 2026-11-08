@@ -1,6 +1,7 @@
 /**
  * `wren egress` (designs/2026-11-08-egress.md): the Wrenfile made live on this Mac. One
- * smokescreen per role under launchd; the relay reads the file at each launch. JSON out.
+ * smokescreen per role under launchd, the key gate (credvault) for roles with keys, a Seatbelt
+ * shim per locked role; the relay reads the file at each launch. JSON out.
  */
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -10,6 +11,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   statSync,
@@ -25,6 +27,9 @@ import {
   DENY_RANGES,
   type Decision,
   decisionOf,
+  gateConfig,
+  gateDir,
+  lockProfile,
   mergeSandbox,
   parseWrenfile,
   proxyEnv,
@@ -42,8 +47,17 @@ const SMOKESCREEN = {
   asset: "smokescreen_v0.1.0_darwin_arm64.tar.gz",
   sha256: "daaec6a547288cbb65bf76c0322b1b749b276856e131d4b284655aba821ec512",
 };
+/** The key gate's pieces, pinned: mitmproxy (MIT) in a venv, credvault from npm. */
+const MITMPROXY = "12.1.2";
+const CREDVAULT = "0.15.0";
 const HOME = homedir();
-const BIN = join(HOME, ".local/share/wren/egress", `smokescreen-${SMOKESCREEN.version}`);
+const SHARE = join(HOME, ".local/share/wren/egress");
+const BIN = join(SHARE, `smokescreen-${SMOKESCREEN.version}`);
+const MITM_DIR = join(SHARE, `mitmproxy-${MITMPROXY}`);
+const CREDVAULT_DIR = join(SHARE, `credvault-${CREDVAULT}`);
+/** `egress-<role>`: runs a command as a locked role (Seatbelt + the role's proxy env). */
+const SHIMS = join(SHARE, "bin");
+const GATE = "gate";
 /** Per role: `<role>.acl.yaml`, `<role>.conf.yaml`, `<role>.env` (the desk's install reads it). */
 const EGRESS_DIR = join(HOME, ".config/wren/egress");
 const LOGS = join(HOME, "Library/Logs/wren-egress");
@@ -104,7 +118,7 @@ const xml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 function plistOf(name: string, r: Role): string {
-  const args = [
+  return plist(name, [
     BIN,
     "--config-file",
     join(EGRESS_DIR, `${name}.conf.yaml`),
@@ -115,7 +129,10 @@ function plistOf(name: string, r: Role): string {
     "--listen-port",
     String(r.port),
     ...DENY_RANGES.flatMap((d) => ["--deny-range", d]),
-  ];
+  ]);
+}
+
+function plist(name: string, args: string[]): string {
   const log = join(LOGS, `${name}.log`);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -167,6 +184,133 @@ function rotate(name: string) {
   if (existsSync(log) && statSync(log).size > ROTATE_BYTES) renameSync(log, `${log}.1`);
 }
 
+/** A stable node path (Homebrew's link), so a node upgrade does not break the job. */
+const nodeBin = () =>
+  ["/opt/homebrew/bin/node", "/usr/local/bin/node"].find((p) => existsSync(p)) ?? process.execPath;
+
+function installGate(): boolean {
+  let did = false;
+  const mitmdump = join(MITM_DIR, "bin/mitmdump");
+  if (!existsSync(mitmdump)) {
+    const uv =
+      ["/opt/homebrew/bin/uv", join(HOME, ".local/bin/uv")].find((p) => existsSync(p)) ?? "uv";
+    execFileSync(uv, ["venv", "-q", "--python", "3.12", MITM_DIR], { stdio: "inherit" });
+    const py = join(MITM_DIR, "bin/python");
+    execFileSync(uv, ["pip", "install", "-q", "--python", py, `mitmproxy==${MITMPROXY}`], {
+      stdio: "inherit",
+    });
+    did = true;
+  }
+  if (!existsSync(credvaultCli())) {
+    execFileSync(
+      "npm",
+      [
+        "install",
+        "--prefix",
+        CREDVAULT_DIR,
+        "--no-save",
+        "--ignore-scripts",
+        `credvault@${CREDVAULT}`,
+      ],
+      { stdio: "inherit" },
+    );
+    did = true;
+  }
+  return did;
+}
+const credvaultCli = () => join(CREDVAULT_DIR, "node_modules/credvault/dist/cli.js");
+
+/** The gate job restarts when its config, its pins or a source file changed. */
+async function applyGate(w: Wrenfile) {
+  const label = `${LABEL}${GATE}`;
+  const plistPath = join(AGENTS, `${label}.plist`);
+  const config = gateConfig(w, {
+    root: resolve(repoDir(), ".."),
+    mitmdump: join(MITM_DIR, "bin/mitmdump"),
+  });
+  if (!config) {
+    if (loaded(label)) launchctl("bootout", `${domain()}/${label}`);
+    rmSync(plistPath, { force: true });
+    return null;
+  }
+  const installed = installGate();
+  const configPath = join(EGRESS_DIR, "gate.json");
+  const sources = (config.sources as string[]).map((p) => [
+    p,
+    existsSync(p) ? statSync(p).mtimeMs : 0,
+  ]);
+  const changed = [
+    put(configPath, `${JSON.stringify(config, null, 2)}\n`),
+    put(join(EGRESS_DIR, "gate.sources.json"), JSON.stringify(sources)),
+    put(plistPath, plist(GATE, [nodeBin(), credvaultCli(), "gate", "--config", configPath])),
+  ].some(Boolean);
+  chmodSync(configPath, 0o600);
+  rotate(GATE);
+  const restarted = changed || installed || !loaded(label);
+  if (restarted) restart(plistPath, label);
+  const ports = Object.values(config.roles as Record<string, { port: number }>).map((r) => r.port);
+  // the gate waits for mitmdump and its CA before the ports open
+  const up = await Promise.all(ports.map((p) => waitUp(p, 60)));
+  return { restarted, installed, ports, up: up.every(Boolean), log: join(LOGS, `${GATE}.log`) };
+}
+
+/** `<role>.sb` and `egress-<role>` for each locked role; both removed for an unlocked one. */
+function applyLocks(w: Wrenfile) {
+  mkdirSync(SHIMS, { recursive: true });
+  const out = [];
+  for (const [name, r] of Object.entries(w.roles)) {
+    const sb = join(EGRESS_DIR, `${name}.sb`);
+    const shim = join(SHIMS, `egress-${name}`);
+    if (!r.lock) {
+      rmSync(sb, { force: true });
+      rmSync(shim, { force: true });
+      continue;
+    }
+    put(sb, lockProfile(w, { root: resolve(repoDir(), "..") }));
+    const env = Object.entries(proxyEnv(r))
+      .map(([k, v]) => `export ${k}='${v}'`)
+      .join("\n");
+    put(
+      shim,
+      `#!/bin/sh\n# wren egress: run a command as role ${name}: loopback only (Seatbelt), through its proxy\n${env}\nexec /usr/bin/sandbox-exec -f '${sb}' "$@"\n`,
+    );
+    chmodSync(shim, 0o755);
+    out.push({ role: name, profile: sb, shim });
+  }
+  return out;
+}
+
+/**
+ * A relay setup's bin dir: each CLI a locked role runs outside Claude's sandbox becomes a script
+ * that runs it through `egress-<role>`. Other links stay.
+ */
+export function lockBins(dir: string, setup: Setup): void {
+  if (!existsSync(wrenfilePath())) return;
+  const w = readWrenfile();
+  const a = w.agents[setup.name] ?? w.agents.default;
+  const r = a && w.roles[a.role];
+  if (!a || !r?.lock) return;
+  const shim = join(SHIMS, `egress-${a.role}`);
+  if (!existsSync(shim))
+    throw new Error(`role ${a.role} is locked but ${shim} is missing: run wren egress apply`);
+  for (const cli of a.run) {
+    const link = join(dir, cli);
+    if (!existsSync(link)) continue;
+    const real = realpathSync(link);
+    rmSync(link);
+    writeFileSync(link, `#!/bin/sh\nexec '${shim}' '${real}' "$@"\n`, { mode: 0o755 });
+  }
+}
+
+/** Polls a port until it answers; `quarters` × 250 ms. */
+async function waitUp(port: number, quarters = 12): Promise<boolean> {
+  for (let i = 0; i < quarters; i++) {
+    if (await listening(port)) return true;
+    await new Promise((t) => setTimeout(t, 250));
+  }
+  return false;
+}
+
 async function apply() {
   const w = readWrenfile();
   const installed = await install();
@@ -190,7 +334,7 @@ async function apply() {
   const removed = [];
   for (const f of readdirSync(AGENTS)) {
     const m = f.match(/^com\.wrenautomation\.egress-([a-z0-9-]+)\.plist$/);
-    if (!m?.[1] || w.roles[m[1]]) continue;
+    if (!m?.[1] || m[1] === GATE || w.roles[m[1]]) continue;
     if (loaded(`${LABEL}${m[1]}`)) launchctl("bootout", `${domain()}/${LABEL}${m[1]}`);
     rmSync(join(AGENTS, f));
     for (const x of ["acl.yaml", "conf.yaml", "env"])
@@ -198,15 +342,10 @@ async function apply() {
     removed.push(m[1]);
   }
   // launchd starts it within a second; give it three
-  const up = async (port: number) => {
-    for (let i = 0; i < 12; i++) {
-      if (await listening(port)) return true;
-      await new Promise((t) => setTimeout(t, 250));
-    }
-    return false;
-  };
-  for (const r of roles) Object.assign(r, { up: await up(r.port) });
-  return { installed, roles, removed };
+  for (const r of roles) Object.assign(r, { up: await waitUp(r.port) });
+  const gate = await applyGate(w);
+  const locks = applyLocks(w);
+  return { installed, roles, removed, gate, locks };
 }
 
 const SPAN = /^(\d+)([mhd])$/;
@@ -279,7 +418,24 @@ export function registerEgress(program: Command): void {
           misses: ds.filter((d) => d.miss).length,
         });
       }
-      print({ since, roles: out });
+      const gated = Object.entries(w.roles).filter(([, r]) => r.gate !== undefined);
+      print({
+        since,
+        roles: out,
+        gate: gated.length
+          ? {
+              job: loaded(`${LABEL}${GATE}`),
+              ports: await Promise.all(
+                gated.map(async ([role, r]) => ({
+                  role,
+                  port: r.gate,
+                  up: await listening(r.gate ?? 0),
+                })),
+              ),
+              audit: join(gateDir(), "audit.jsonl"),
+            }
+          : null,
+      });
     });
 
   egress

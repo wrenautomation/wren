@@ -6,8 +6,11 @@ import {
   aclOf,
   byHost,
   decisionOf,
+  gateConfig,
+  lockProfile,
   mergeSandbox,
   parseWrenfile,
+  proxyEnv,
   setupEgress,
   WrenfileError,
 } from "./index.js";
@@ -127,5 +130,68 @@ describe("log", () => {
       { host: "b.example.com", n: 2, denied: 1, misses: 2, last: "2026-11-08T20:00:00Z" },
       { host: "a.example.com", n: 1, denied: 0, misses: 0, last: "2026-11-08T19:00:00Z" },
     ]);
+  });
+});
+
+describe("gate and lock", () => {
+  const GATED = `${FILE.replace(
+    "web: { port: 4762, mode: open }",
+    "web: { port: 4762, mode: open, gate: 4772, lock: true, keys: [EXA_API_KEY*], plain: [NUM_*], env: { APP_CONFIG: ~/c.json } }",
+  )}
+gate:
+  sources: ["@/keys.env"]
+  hosts: { RESTATE_AUTH_TOKEN: [restate.example.com] }
+`;
+  const w = parseWrenfile(GATED);
+
+  it("sends a gated role through its gate and trusts the gate CA", () => {
+    const env = proxyEnv(w.roles.web!, "/h");
+    expect(env.HTTPS_PROXY).toBe("http://127.0.0.1:4772");
+    expect(env.NODE_EXTRA_CA_CERTS).toBe("/h/.config/wren/egress/gate/ca.pem");
+    expect(env.SSL_CERT_FILE).toBe("/h/.config/wren/egress/gate/ca-bundle.pem");
+    expect(env.APP_CONFIG).toBe("/h/c.json");
+    expect(proxyEnv(w.roles.agents!, "/h").NODE_EXTRA_CA_CERTS).toBeUndefined();
+  });
+
+  it("compiles credvault's gate config: upstream is the role's own proxy", () => {
+    expect(gateConfig(w, { root: "/w", mitmdump: "/m", home: "/h" })).toMatchObject({
+      dir: "/h/.config/wren/egress/gate",
+      sources: ["/w/keys.env"],
+      hosts: { RESTATE_AUTH_TOKEN: ["restate.example.com"] },
+      roles: {
+        web: {
+          port: 4772,
+          upstream: "http://127.0.0.1:4762",
+          keys: ["EXA_API_KEY*"],
+          plain: ["NUM_*"],
+        },
+      },
+    });
+    expect(gateConfig(parseWrenfile(FILE), { root: "/w", mitmdump: "/m" })).toBeNull();
+  });
+
+  it("locks to loopback and hides the sources and the gate CA", () => {
+    const sb = lockProfile(w, { root: "/w", home: "/h" });
+    expect(sb).toContain("(deny network-outbound)");
+    expect(sb).toContain('(allow network-outbound (remote ip "localhost:*"))');
+    expect(sb).toContain('(regex #"^/w/keys\\.env")');
+    expect(sb).toContain('(subpath "/h/.config/wren/egress/gate/ca")');
+  });
+
+  it("refuses keys with no gate, a gate with no keys, a gate port taken, a role named gate", () => {
+    const m = (text: string) => {
+      try {
+        parseWrenfile(text);
+        return "";
+      } catch (e) {
+        return (e as Error).message;
+      }
+    };
+    expect(m(GATED.replace("gate: 4772, ", ""))).toContain("keys need a gate port");
+    expect(m(GATED.replace("keys: [EXA_API_KEY*], ", ""))).toContain("a gate port with no keys");
+    expect(m(GATED.replace("gate: 4772", "gate: 4761"))).toContain("share port 4761");
+    expect(m(GATED.replace("  web:", "  gate:").replace("role: web", "role: gate"))).toContain(
+      "no role may be named gate",
+    );
   });
 });

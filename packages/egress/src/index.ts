@@ -1,8 +1,11 @@
 /**
  * The Wrenfile (designs/2026-11-08-egress.md): one policy for where this Mac's processes may
- * connect. Pure: parse, check, compile to a smokescreen ACL per role and to Claude's sandbox
- * settings per relay setup, and read smokescreen's decision log.
+ * connect. Pure: parse, check, compile to a smokescreen ACL per role, to Claude's sandbox
+ * settings per relay setup, to the key gate's config (credvault) and to a Seatbelt lock per
+ * role, and read smokescreen's decision log.
  */
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { parse, stringify } from "yaml";
 import { z } from "zod";
 
@@ -14,6 +17,8 @@ const HOST = /^(\*\.)?([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z][a-z0-9-]*[a-z0-9]$
 /** `~/…` home or `@/…` workspace root; never a bare or relative path. */
 const SECRET = /^(~|@)\/[^\s]+$/;
 const NAME = /^[a-z][a-z0-9-]*$/;
+/** An env name, or one with `*` (`EXA_API_KEY*`). */
+const ENV_GLOB = /^[A-Z*][A-Z0-9_*]*$/;
 
 const host = z.string().regex(HOST, "a host like api.example.com or *.example.com");
 const role = z
@@ -21,6 +26,24 @@ const role = z
     port: z.number().int().min(1024).max(65535),
     mode: z.enum(MODES),
     hosts: z.array(host).default([]),
+    /** The key gate's port for this role: its processes hold sentinels, the gate adds the key. */
+    gate: z.number().int().min(1024).max(65535).optional(),
+    /** Env names the role holds as sentinels. */
+    keys: z.array(z.string().regex(ENV_GLOB)).default([]),
+    /** Env names copied as they are into the role's env file (`NUM_EXA`, a URL). */
+    plain: z.array(z.string().regex(ENV_GLOB)).default([]),
+    /** Seatbelt: the role's CLIs reach loopback only and cannot read the gate's sources. */
+    lock: z.boolean().default(false),
+    /** More env for the role's processes; `~/` is home. No secrets: the file is public. */
+    env: z.record(z.string().regex(/^[A-Z][A-Z0-9_]*$/), z.string()).default({}),
+  })
+  .strict();
+/** The key gate (credvault): where the real values are, and hosts for keys with no vendor. */
+const gate = z
+  .object({
+    /** Env files with the real values; an earlier file wins a name. */
+    sources: z.array(z.string().regex(SECRET, "starts with ~/ or @/")).min(1),
+    hosts: z.record(z.string().regex(ENV_GLOB), z.array(host).min(1)).default({}),
   })
   .strict();
 const agent = z
@@ -39,19 +62,32 @@ const schema = z
     secrets: z.array(z.string().regex(SECRET, "starts with ~/ or @/")).min(1),
     roles: z.record(z.string().regex(NAME), role),
     agents: z.record(z.string().regex(NAME), agent),
+    gate: gate.optional(),
   })
   .strict()
   .superRefine((w, ctx) => {
+    // the gate's launchd job is `egress-gate`
+    if (w.roles.gate) ctx.addIssue({ code: "custom", message: "no role may be named gate" });
     if (!w.agents.default) ctx.addIssue({ code: "custom", message: "agents.default is missing" });
     for (const [name, a] of Object.entries(w.agents))
       if (!w.roles[a.role])
         ctx.addIssue({ code: "custom", message: `agents.${name}: no role ${a.role}` });
     const ports = new Map<number, string>();
     for (const [name, r] of Object.entries(w.roles)) {
-      const had = ports.get(r.port);
-      if (had)
-        ctx.addIssue({ code: "custom", message: `roles ${had} and ${name} share port ${r.port}` });
-      ports.set(r.port, name);
+      for (const port of [r.port, r.gate]) {
+        if (port === undefined) continue;
+        const had = ports.get(port);
+        if (had)
+          ctx.addIssue({ code: "custom", message: `roles ${had} and ${name} share port ${port}` });
+        ports.set(port, name);
+      }
+      if (r.keys.length && (r.gate === undefined || !w.gate))
+        ctx.addIssue({
+          code: "custom",
+          message: `roles.${name}: keys need a gate port and a top-level gate`,
+        });
+      if (r.gate !== undefined && !r.keys.length)
+        ctx.addIssue({ code: "custom", message: `roles.${name}: a gate port with no keys` });
     }
   });
 
@@ -81,11 +117,17 @@ const NO_PROXY = "localhost,127.0.0.1,::1";
 /** Beyond smokescreen's own private-range deny. */
 export const DENY_RANGES = ["100.64.0.0/10"] as const;
 
-const proxyUrl = (r: Role) => `http://127.0.0.1:${r.port}`;
+/** The gate's files (credvault): role env files, its CA and the CA bundle. */
+export const gateDir = (home = homedir()) => join(home, ".config/wren/egress/gate");
 
-/** The env that sends a process through a role's proxy. Node needs `NODE_USE_ENV_PROXY`. */
-export function proxyEnv(r: Role): Record<string, string> {
-  const url = proxyUrl(r);
+/**
+ * The env that sends a process through a role's proxy. Node needs `NODE_USE_ENV_PROXY`. A role
+ * with a gate goes through it and trusts its CA: Node adds `NODE_EXTRA_CA_CERTS`, Python and
+ * curl read the bundle (system roots + the CA) as their whole store.
+ */
+export function proxyEnv(r: Role, home = homedir()): Record<string, string> {
+  const url = `http://127.0.0.1:${r.gate ?? r.port}`;
+  const dir = gateDir(home);
   return {
     HTTPS_PROXY: url,
     HTTP_PROXY: url,
@@ -94,7 +136,69 @@ export function proxyEnv(r: Role): Record<string, string> {
     NO_PROXY,
     no_proxy: NO_PROXY,
     NODE_USE_ENV_PROXY: "1",
+    ...(r.gate === undefined
+      ? {}
+      : {
+          NODE_EXTRA_CA_CERTS: join(dir, "ca.pem"),
+          SSL_CERT_FILE: join(dir, "ca-bundle.pem"),
+          REQUESTS_CA_BUNDLE: join(dir, "ca-bundle.pem"),
+        }),
+    ...Object.fromEntries(
+      Object.entries(r.env).map(([k, v]) => [k, v.startsWith("~/") ? join(home, v.slice(2)) : v]),
+    ),
   };
+}
+
+/** `~/x` and `@/x` to absolute paths. */
+const absolute = (s: string, root: string, home: string) =>
+  s.startsWith("@/") ? join(root, s.slice(2)) : join(home, s.slice(2));
+
+/** credvault's `gate --config`: one entry per role that holds keys. */
+export function gateConfig(
+  w: Wrenfile,
+  o: { root: string; mitmdump: string; home?: string },
+): Record<string, unknown> | null {
+  if (!w.gate) return null;
+  const home = o.home ?? homedir();
+  const dir = gateDir(home);
+  const roles = Object.entries(w.roles).filter(([, r]) => r.gate !== undefined);
+  if (!roles.length) return null;
+  return {
+    dir,
+    mitmdump: o.mitmdump,
+    audit: join(dir, "audit.jsonl"),
+    keychain: { service: "credvault-gate" },
+    sources: w.gate.sources.map((s) => absolute(s, o.root, home)),
+    hosts: w.gate.hosts,
+    roles: Object.fromEntries(
+      roles.map(([name, r]) => [
+        name,
+        { port: r.gate, upstream: `http://127.0.0.1:${r.port}`, keys: r.keys, plain: r.plain },
+      ]),
+    ),
+  };
+}
+
+const sbString = (s: string) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+const sbPrefix = (p: string) => `(regex #"^${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}")`;
+
+/**
+ * The Seatbelt profile for a locked role (H2): every connection but loopback is refused, so a
+ * process that skips the proxy fails; the gate's sources and CA, and the sealed logins, cannot
+ * be read. Seatbelt cannot nest: not for a process that sandboxes itself (Chrome, claude).
+ */
+export function lockProfile(w: Wrenfile, o: { root: string; home?: string }): string {
+  const home = o.home ?? homedir();
+  const sources = (w.gate?.sources ?? []).map((s) => absolute(s, o.root, home));
+  const dirs = [join(gateDir(home), "ca"), join(home, ".config/autobrowse")];
+  return `(version 1)
+(allow default)
+(deny network-outbound)
+(allow network-outbound (remote ip "localhost:*"))
+(allow network-outbound (remote unix-socket))
+(deny file-read* file-write*
+${[...sources.map(sbPrefix), ...dirs.map((d) => `  (subpath ${sbString(d)})`)].map((l) => `  ${l.trim()}`).join("\n")})
+`;
 }
 
 /** smokescreen's ACL for one role: every caller gets the `default` rule (one process per role). */
