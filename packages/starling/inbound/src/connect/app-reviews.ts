@@ -9,7 +9,7 @@ import { SOCIAL, type SocialApp, type SocialPlatform } from "./platforms.js";
 export const SITE = "https://wrenautomation.com";
 export const PORTAL = "https://app.wrenautomation.com";
 export const PRIVACY = `${SITE}/privacy`;
-export const TERMS = `${SITE}/terms`;
+const TERMS = `${SITE}/terms`;
 export const DELETION = `${SITE}/data-deletion`;
 /** The test client reviewers sign in to (prod client `wren_test`). */
 const REVIEWER_PORTAL = "https://portal.wrenautomationreviews.com";
