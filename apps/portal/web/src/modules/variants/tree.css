@@ -595,3 +595,52 @@
 .vt-sum .vt-spread + .ui-seg {
   margin-left: 0;
 }
+
+/* Ghost before the read lands (tree-ghost.tsx): fills breathe; the tree fades in over it. */
+.vt-ghost {
+  animation: vt-breathe 1.4s ease-in-out infinite alternate;
+}
+.vt-ghost {
+  --vt-ghost: color-mix(in srgb, var(--ui-ink) 10%, transparent);
+}
+.vt-ghost-fill {
+  fill: var(--vt-ghost);
+}
+.vt-ghost-band {
+  fill: color-mix(in srgb, var(--ui-ink) 4%, transparent);
+}
+.vt-ghost-edge {
+  fill: none;
+  stroke: var(--vt-ghost);
+  stroke-width: 2;
+}
+.vt-ghost-row {
+  stroke: var(--vt-ghost);
+  stroke-dasharray: 2 4;
+}
+@keyframes vt-breathe {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.vt-in {
+  animation: vt-in 0.24s var(--ui-ease) both;
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vt-ghost,
+  .vt-in {
+    animation: none;
+  }
+}
+[data-motion="less"] .vt-ghost,
+[data-motion="less"] .vt-in {
+  animation: none;
+}

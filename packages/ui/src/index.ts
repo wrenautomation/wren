@@ -79,6 +79,7 @@ export {
   TrendChart,
 } from "./charts/index.js";
 export { Input } from "./components/ui/input.js";
+export { Skeleton } from "./components/ui/skeleton.js";
 export { Textarea } from "./components/ui/textarea.js";
 export {
   Button,

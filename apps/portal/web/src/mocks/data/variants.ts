@@ -339,13 +339,14 @@ const BATCHES = [
     createdAt: ago(9),
     goodRate: 0.67,
     subject: PAGE.subject,
-    samples: PAGE.samples.map((x, i) => ({
+    // more than a row holds: the list counts the rest
+    samples: [...PAGE.samples, ...PAGE.samples, ...PAGE.samples, ...PAGE.samples].map((x, i) => ({
       ...x,
-      id: 47 + i,
-      ...call((["amazing", "good", "okay", "bad"] as const)[i] ?? null),
+      id: 200 + i,
+      ...call((["amazing", "good", "okay", "bad"] as const)[i % 4] ?? null),
       keptAt: i === 0 ? ago(9) : null,
       change:
-        ["Parallax depth on scroll", "Film grain over a flat field", "A slow light sweep"][i] ??
+        ["Parallax depth on scroll", "Film grain over a flat field", "A slow light sweep"][i % 3] ??
         null,
     })),
   },

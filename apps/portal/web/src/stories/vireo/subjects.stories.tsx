@@ -59,6 +59,12 @@ export const Tree = pageAt("/variants/subjects?subject=3", {
   },
 });
 
+/** The subject has not come back: a ghost in the tree's shape. */
+export const TreeLoading = pageAt("/variants/subjects?subject=3", {
+  me: ADMIN,
+  answers: { "variants/subject": null },
+});
+
 /** Notes only, no calls: grew and unmarked carry the tree (prod's shape). */
 export const TreeNotes = pageAt("/variants/subjects?subject=4", { me: ADMIN });
 

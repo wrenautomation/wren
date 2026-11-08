@@ -15,7 +15,7 @@ import {
   Tag,
   TierLabel,
 } from "@wren/ui";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -46,7 +46,8 @@ const HERE = "/variants/batches";
 /** `CHIP_ON` by the address: a variant outranks CHIP's own ground and ink, cx does not merge. */
 const CHIP_SET =
   "aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:text-(--ui-active) aria-[current=page]:hover:bg-(--ui-accent-tint)";
-const THUMBS = 6;
+/** A thumb's width (w-20) plus its gap (gap-1.5). */
+const THUMB_STEP = 86;
 
 export function BatchesPage({ params }: PageProps) {
   const got = useCall("variants-batches", () => call<Row[]>("variants/batches", {}));
@@ -76,7 +77,11 @@ export function BatchesPage({ params }: PageProps) {
       setRows((rs) => (rs ?? []).map((r) => (r.id === id ? { ...r, state: "closed" } : r)));
       got.retry();
     };
-    return <BatchView row={row} patch={patch} params={params} onSent={sent} />;
+    // the subject's newest open batch, when it is not this one
+    const newer = rows.find(
+      (r) => r.subject.slug === row.subject.slug && r.state === "open" && r.n > row.n,
+    );
+    return <BatchView row={row} newer={newer} patch={patch} params={params} onSent={sent} />;
   }
   return <BatchList rows={rows} params={params} />;
 }
@@ -148,8 +153,21 @@ function waitingOf(rows: Row[]): Set<number> {
 function BatchRow({ row: r, waits }: { row: Row; waits: boolean }) {
   const open = r.state === "open";
   const kept = r.samples.filter((s) => s.keptAt).length;
-  const thumbs = r.samples.filter((s) => s.posterUrl).slice(0, THUMBS);
-  const more = r.samples.filter((s) => s.posterUrl).length - thumbs.length;
+  const posters = r.samples.filter((s) => s.posterUrl);
+  const box = useRef<HTMLSpanElement>(null);
+  const [fit, setFit] = useState(posters.length);
+  // as many as the row holds; past that the last slot says +N
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() =>
+      setFit(Math.max(1, Math.floor((el.clientWidth + 6) / THUMB_STEP))),
+    );
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const shown = posters.length > fit ? posters.slice(0, fit - 1) : posters;
+  const more = posters.length - shown.length;
   return (
     <a
       href={href(HERE, { batch: r.id })}
@@ -207,10 +225,15 @@ function BatchRow({ row: r, waits }: { row: Row; waits: boolean }) {
           </span>
         )}
       </span>
-      {thumbs.length > 0 && (
-        <span className="flex shrink-0 flex-wrap items-center gap-1.5">
-          {thumbs.map((s) => (
-            <span key={s.id} className="relative block">
+      {posters.length > 0 && (
+        <span
+          ref={box}
+          // wants every thumb; capped by the row, then counted
+          style={{ width: posters.length * THUMB_STEP - 6 }}
+          className="flex h-12 max-w-full min-w-0 shrink-0 items-center gap-1.5 @min-[720px]/main:max-w-[55%] @min-[720px]/main:justify-end"
+        >
+          {shown.map((s) => (
+            <span key={s.id} className="relative block flex-none">
               <img
                 src={s.posterUrl ?? ""}
                 alt=""
@@ -231,7 +254,11 @@ function BatchRow({ row: r, waits }: { row: Row; waits: boolean }) {
               )}
             </span>
           ))}
-          {more > 0 && <span className="text-[12px] text-(--ui-ink-3)">+{more}</span>}
+          {more > 0 && (
+            <span className="grid h-12 w-20 flex-none place-items-center rounded-[4px] bg-(--ui-fill) text-[13px] font-medium text-(--ui-ink-2) tabular-nums">
+              +{more}
+            </span>
+          )}
         </span>
       )}
     </a>
@@ -261,11 +288,13 @@ function Tally({ samples }: { samples: Sample[] }) {
 
 function BatchView({
   row: r,
+  newer,
   patch,
   params,
   onSent,
 }: {
   row: Row;
+  newer: Row | undefined;
   patch: (id: number, fn: (s: Sample) => Sample) => void;
   params: URLSearchParams;
   onSent: () => void;
@@ -274,8 +303,6 @@ function BatchView({
   usePageContext(
     `in view: batch ${r.n} of ${r.subject.slug} (${r.subject.kind}, id ${r.id}), ${open ? "open" : "closed"}, ${r.samples.length} samples`,
   );
-  const group = useMemo(() => new Together(), []);
-  const wide = WIDE_KINDS.includes(r.subject.kind);
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
@@ -314,44 +341,91 @@ function BatchView({
         )}
       </div>
       {open ? (
-        <OpenBatch id={r.id} onSent={onSent} />
+        <OpenBatch row={r} newer={newer} patch={patch} onSent={onSent} />
       ) : (
-        <TogetherProvider value={group}>
-          <div
-            className={cx(
-              "grid gap-4",
-              wide
-                ? "grid-cols-1 @min-[1000px]/main:grid-cols-2"
-                : "grid-cols-1 @min-[720px]/main:grid-cols-2",
-            )}
-          >
-            <FramesProvider ids={r.samples.map((s) => s.id)}>
-              {r.samples.map((s, i) => (
-                <SampleCard
-                  key={s.id}
-                  n={i + 1}
-                  kind={r.subject.kind}
-                  sample={s}
-                  patch={patch}
-                  closed={{ change: s.change }}
-                />
-              ))}
-            </FramesProvider>
-          </div>
-        </TogetherProvider>
+        <ReadOnly row={r} patch={patch} />
       )}
     </div>
   );
 }
 
-/** The open batch as the queue holds it: blind, in its shuffled order, with his marks so far. */
-function OpenBatch({ id, onSent }: { id: number; onSent: () => void }) {
+/** Every sample, read only. Still open (replaced): blind, no ideas. */
+function ReadOnly({
+  row: r,
+  patch,
+}: {
+  row: Row;
+  patch: (id: number, fn: (s: Sample) => Sample) => void;
+}) {
+  const group = useMemo(() => new Together(), []);
+  const wide = WIDE_KINDS.includes(r.subject.kind);
+  const blind = r.state === "open";
+  return (
+    <TogetherProvider value={group}>
+      <div
+        className={cx(
+          "grid gap-4",
+          wide
+            ? "grid-cols-1 @min-[1000px]/main:grid-cols-2"
+            : "grid-cols-1 @min-[720px]/main:grid-cols-2",
+        )}
+      >
+        <FramesProvider ids={r.samples.map((s) => s.id)}>
+          {r.samples.map((s, i) => (
+            <SampleCard
+              key={s.id}
+              n={i + 1}
+              kind={r.subject.kind}
+              sample={s}
+              patch={patch}
+              closed={{ change: blind ? null : s.change }}
+            />
+          ))}
+        </FramesProvider>
+      </div>
+    </TogetherProvider>
+  );
+}
+
+/**
+ * The open batch as the queue holds it: blind, in its shuffled order, with his marks so far. The
+ * queue holds each subject's newest only: a replaced batch shows read only.
+ */
+function OpenBatch({
+  row,
+  newer,
+  patch: patchRow,
+  onSent,
+}: {
+  row: Row;
+  newer: Row | undefined;
+  patch: (id: number, fn: (s: Sample) => Sample) => void;
+  onSent: () => void;
+}) {
+  const id = row.id;
   const got = useCall("variants-queue", () => call<Open[]>("variants/queue", {}));
   const [open, setOpen] = useState<Open | null>(null);
   useEffect(() => setOpen(got.data?.find((o) => o.batch.id === id) ?? null), [got.data, id]);
   if (got.error && !open) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading />;
-  if (!open) return <Empty title="This batch is closed">Reload to see its calls.</Empty>;
+  if (!open)
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="m-0 text-[13px] text-(--ui-ink-2)">
+          {newer ? (
+            <>
+              Batch {newer.n} replaced this one; you mark that.{" "}
+              <a href={href(HERE, { batch: newer.id })} className="text-(--ui-ink) underline">
+                Open batch {newer.n}
+              </a>
+            </>
+          ) : (
+            "This batch no longer waits on you."
+          )}
+        </p>
+        <ReadOnly row={row} patch={patchRow} />
+      </div>
+    );
   const patch = (sampleId: number, fn: (s: Sample) => Sample) =>
     setOpen((o) => o && { ...o, samples: o.samples.map((s) => (s.id === sampleId ? fn(s) : s)) });
   return <MarkBatch open={open} patch={patch} onSent={onSent} />;

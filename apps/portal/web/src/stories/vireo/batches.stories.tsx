@@ -16,6 +16,9 @@ export const Batch = pageAt("/variants/batches?batch=6", { me: ADMIN });
 /** An open batch, marked here: blind, in queue order. */
 export const Open = pageAt("/variants/batches?batch=7", { me: ADMIN });
 
+/** Open but replaced by a newer batch: view only, still blind. */
+export const Replaced = pageAt("/variants/batches?batch=10", { me: ADMIN });
+
 /** Flag a moment in the video's bar (press, press again), then its note: Works, why, Save. */
 export const Mark = pageAt("/variants/batches?batch=7", {
   me: ADMIN,

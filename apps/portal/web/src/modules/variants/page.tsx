@@ -47,6 +47,7 @@ import {
 import { callLabel, ScoreBar, VERDICT_ON, ZONE_OF } from "./score.js";
 import { FootageLanes, type SyncMode, Together, TogetherProvider } from "./together.js";
 import { SubjectTree, type TreeSteer } from "./tree.js";
+import { TreeGhost } from "./tree-ghost.js";
 
 export const TALLY = ["amazing", "good", "okay", "bad"] as const;
 export interface Open {
@@ -587,7 +588,7 @@ function SubjectDetail({
   const [guides, setGuides] = useState<Guide[]>([]);
   useEffect(() => setGuides(got.data?.guides ?? []), [got.data]);
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
-  if (!got.data) return <Loading />;
+  if (!got.data) return <TreeGhost />;
   const v = got.data;
   const setState = (g: Guide, state: Guide["state"]) => {
     setGuides((gs) => gs.map((x) => (x.id === g.id ? { ...x, state } : x)));
@@ -607,7 +608,7 @@ function SubjectDetail({
     tip.saved();
   };
   return (
-    <div className="flex flex-col gap-6">
+    <div className="vt-in flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <div>
           <Button size="dense" tone="quiet" icon="left" onClick={onBack}>
