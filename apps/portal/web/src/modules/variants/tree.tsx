@@ -69,7 +69,29 @@ export interface TreeProps {
   guides: readonly TreeGuide[];
   /** The address: `show`, `branch`, `fold` set the shape. None: the shape kept in this browser. */
   params?: URLSearchParams | undefined;
+  /** his live steers; none: no steer controls */
+  steers?: readonly TreeSteer[] | undefined;
+  /** samples a prune stops: the pruned one and what grew from it */
+  pruned?: readonly number[] | undefined;
+  /** after a steer or a lift: load the subject again */
+  onSteered?: (() => void) | undefined;
 }
+
+/** A live steer (vireo D10): his hand on what the next batch may do. */
+export interface TreeSteer {
+  id: number;
+  kind: "pin" | "prune" | "cross" | "width";
+  sampleId: number | null;
+  otherId: number | null;
+  width: string | null;
+  why: string | null;
+}
+const WIDTH_ITEMS = [
+  { value: "narrow", label: "Narrow" },
+  { value: "normal", label: "Normal" },
+  { value: "wide", label: "Wide" },
+] as const;
+type Width = (typeof WIDTH_ITEMS)[number]["value"];
 
 /** What the tree shows: all or the good line, one sample's line only, folded samples. */
 interface Shape {
@@ -101,7 +123,15 @@ function shapeOf(slug: string, params: URLSearchParams | undefined): Shape {
   }
 }
 
-export function SubjectTree({ subject, batches, guides, params }: TreeProps) {
+export function SubjectTree({
+  subject,
+  batches,
+  guides,
+  params,
+  steers,
+  pruned: prunedIds,
+  onSteered,
+}: TreeProps) {
   const full = useMemo(() => treeOf(batches, guides), [batches, guides]);
   const [shape, setShapeNow] = useState<Shape>(() => shapeOf(subject.slug, params));
   const mode = shape.mode;
@@ -148,7 +178,11 @@ export function SubjectTree({ subject, batches, guides, params }: TreeProps) {
   const s = sel != null ? (full.byId.get(sel) ?? null) : null;
   const round = s ? full.rounds[s.r - 1] : undefined;
   usePageContext(
-    `in view: ${subject.slug} generation tree${s ? `, ${s.name} selected (sample ${s.id}, batch ${round?.num})` : ""}`,
+    `in view: ${subject.slug} generation tree${s ? `, ${s.name} selected (sample ${s.id}, batch ${round?.num})` : ""}${
+      steers?.length
+        ? `; live steers: ${steers.map((x) => (x.kind === "width" ? `width ${x.width}` : x.kind === "cross" ? `cross ${x.sampleId}×${x.otherId}` : `${x.kind} ${x.sampleId}`)).join(", ")}`
+        : ""
+    }`,
   );
   // open on the selected sample, centred in the scroll box; again when the shape changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: only a new layout moves the scroll.
@@ -198,6 +232,28 @@ export function SubjectTree({ subject, batches, guides, params }: TreeProps) {
     setFocus(to.id);
     nodes.current.get(to.id)?.focus();
   };
+  const live = steers ?? [];
+  const pruned = useMemo(() => new Set(prunedIds ?? []), [prunedIds]);
+  const width = (live.find((x) => x.kind === "width")?.width ?? "normal") as Width;
+  const [crossFrom, setCrossFrom] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [refused, setRefused] = useState<string | null>(null);
+  const act = async (
+    path: "variants/steer" | "variants/unsteer",
+    body: Record<string, unknown>,
+  ) => {
+    setBusy(true);
+    setRefused(null);
+    try {
+      await call(path, body);
+      onSteered?.();
+    } catch (e) {
+      setRefused(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const nameOf = (id: number | null) => (id != null ? (full.byId.get(id)?.name ?? `#${id}`) : "");
   const keep = (n: TNode) => {
     const on = !isKept(n);
     setKept((k) => ({ ...k, [n.id]: on }));
@@ -220,6 +276,21 @@ export function SubjectTree({ subject, batches, guides, params }: TreeProps) {
         <span className="vt-fact">
           <b>{locked}</b> guides locked
         </span>
+        {steers && (
+          <span className="vt-fact vt-spread">
+            Spread
+            <Seg
+              dense
+              label="Spread"
+              items={WIDTH_ITEMS}
+              value={width}
+              onChange={(w) => {
+                if (w !== width && !busy)
+                  void act("variants/steer", { kind: "width", subject: subject.slug, width: w });
+              }}
+            />
+          </span>
+        )}
         <Seg
           dense
           label="Show"
@@ -231,6 +302,54 @@ export function SubjectTree({ subject, batches, guides, params }: TreeProps) {
           onChange={setMode}
         />
       </div>
+      {steers && (live.some((x) => x.kind !== "width") || crossFrom != null || refused) && (
+        <div className="vt-scope vt-steers">
+          {crossFrom != null && (
+            <span className="vt-fact">
+              Pick a sample to cross with <b>{nameOf(crossFrom)}</b>
+              <Button size="dense" tone="quiet" onClick={() => setCrossFrom(null)}>
+                Cancel
+              </Button>
+            </span>
+          )}
+          {live
+            .filter((x) => x.kind !== "width")
+            .map((x) => (
+              <span key={x.id} className="vt-fact" title={x.why ?? undefined}>
+                {x.kind === "pin" ? "Grow from " : x.kind === "prune" ? "Pruned " : "Cross "}
+                <button
+                  type="button"
+                  className="vt-plain"
+                  onClick={() => x.sampleId && select(x.sampleId)}
+                >
+                  <b>{nameOf(x.sampleId)}</b>
+                </button>
+                {x.kind === "cross" && (
+                  <>
+                    {" × "}
+                    <button
+                      type="button"
+                      className="vt-plain"
+                      onClick={() => x.otherId && select(x.otherId)}
+                    >
+                      <b>{nameOf(x.otherId)}</b>
+                    </button>
+                  </>
+                )}
+                <Button
+                  size="dense"
+                  tone="quiet"
+                  aria-label={`Lift: ${x.kind} ${nameOf(x.sampleId)}`}
+                  disabled={busy}
+                  onClick={() => void act("variants/unsteer", { id: x.id })}
+                >
+                  Lift
+                </Button>
+              </span>
+            ))}
+          {refused && <span className="vt-fact vt-refused">{refused}</span>}
+        </div>
+      )}
       {(branch || folded.length > 0) && (
         <div className="vt-scope">
           {branch && (
@@ -273,6 +392,7 @@ export function SubjectTree({ subject, batches, guides, params }: TreeProps) {
               onUnfold={toggleFold}
               name={subject.name}
               isKept={isKept}
+              pruned={pruned}
               nodes={nodes.current}
               onSelect={select}
               onKey={keys}
@@ -327,6 +447,24 @@ export function SubjectTree({ subject, batches, guides, params }: TreeProps) {
               onOnly={() => setShape({ ...shape, branch: shape.branch === s.id ? null : s.id })}
               folded={shape.fold.includes(s.id)}
               onFold={() => toggleFold(s.id)}
+              steer={
+                steers && {
+                  pin: live.find((x) => x.kind === "pin" && x.sampleId === s.id),
+                  prune: live.find((x) => x.kind === "prune" && x.sampleId === s.id),
+                  pruned: pruned.has(s.id),
+                  crossFrom: crossFrom != null && crossFrom !== s.id ? nameOf(crossFrom) : null,
+                  busy,
+                  set: (kind) => {
+                    if (kind === "cross") {
+                      if (crossFrom == null || crossFrom === s.id) return setCrossFrom(s.id);
+                      setCrossFrom(null);
+                      return void act("variants/steer", { kind, sample: crossFrom, other: s.id });
+                    }
+                    void act("variants/steer", { kind, sample: s.id });
+                  },
+                  lift: (id) => void act("variants/unsteer", { id }),
+                }
+              }
             />
           </div>
           <div className="vt-dl">
@@ -431,6 +569,7 @@ function TreeSvg({
   onUnfold,
   name,
   isKept,
+  pruned,
   nodes,
   onSelect,
   onKey,
@@ -446,6 +585,7 @@ function TreeSvg({
   onUnfold: (id: number) => void;
   name: string;
   isKept: (s: TNode) => boolean;
+  pruned: ReadonlySet<number>;
   nodes: Map<number, SVGGElement>;
   onSelect: (id: number) => void;
   onKey: (ev: KeyboardEvent, s: TNode) => void;
@@ -542,7 +682,7 @@ function TreeSvg({
         const what =
           s.v === "open"
             ? `${s.name}, batch ${s.r}, to mark`
-            : `${s.name}, batch ${s.r}, ${VERD[s.v]}`;
+            : `${s.name}, batch ${s.r}, ${VERD[s.v]}${pruned.has(s.id) ? ", pruned" : ""}`;
         return (
           // biome-ignore lint/a11y/useSemanticElements: an SVG node; <button> cannot live in SVG.
           <g
@@ -551,7 +691,7 @@ function TreeSvg({
               if (el) nodes.set(s.id, el);
               else nodes.delete(s.id);
             }}
-            className={`vt-n${dim ? " dim" : ""}`}
+            className={`vt-n${dim ? " dim" : ""}${pruned.has(s.id) ? " pruned" : ""}`}
             tabIndex={s.id === focus ? 0 : -1}
             role="button"
             aria-pressed={isSel}
@@ -939,6 +1079,7 @@ function SampleDetail({
   onOnly,
   folded,
   onFold,
+  steer,
 }: {
   t: Tree;
   s: TNode;
@@ -952,6 +1093,8 @@ function SampleDetail({
   onOnly: () => void;
   folded: boolean;
   onFold: () => void;
+  /** steer controls; none when the host gives no steers */
+  steer?: SteerCtl | undefined;
 }) {
   if (s.v === "open")
     return (
@@ -993,6 +1136,8 @@ function SampleDetail({
             Kept
           </Tag>
         )}
+        {steer?.pin && <Tag tone="accent">Grows next</Tag>}
+        {steer?.pruned && <Tag tone="bad">Pruned</Tag>}
       </div>
       <div>
         <div className="vt-k">Path</div>
@@ -1086,7 +1231,56 @@ function SampleDetail({
           </a>
         )}
       </div>
+      {steer && <SteerRow s={s} c={steer} />}
     </>
+  );
+}
+
+interface SteerCtl {
+  pin: TreeSteer | undefined;
+  prune: TreeSteer | undefined;
+  pruned: boolean;
+  /** a cross waits on its second sample: the first one's name */
+  crossFrom: string | null;
+  busy: boolean;
+  set: (kind: "pin" | "prune" | "cross") => void;
+  lift: (id: number) => void;
+}
+
+/** his steers on one sample: what the next batch must do with it */
+function SteerRow({ s, c }: { s: TNode; c: SteerCtl }) {
+  const cut = c.pruned && !c.prune;
+  return (
+    <div>
+      <div className="vt-k">Next batch</div>
+      <div className="vt-row">
+        {c.crossFrom && !c.pruned && (
+          <Button tone="primary" disabled={c.busy} onClick={() => c.set("cross")}>
+            Cross with {c.crossFrom}
+          </Button>
+        )}
+        <Button
+          aria-pressed={!!c.pin}
+          disabled={c.busy || c.pruned}
+          onClick={() => (c.pin ? c.lift(c.pin.id) : c.set("pin"))}
+        >
+          {c.pin ? "Growing from this" : "Always grow from this"}
+        </Button>
+        {!c.crossFrom && (
+          <Button disabled={c.busy || c.pruned} onClick={() => c.set("cross")}>
+            Cross with…
+          </Button>
+        )}
+        <Button
+          aria-pressed={!!c.prune}
+          disabled={c.busy || cut}
+          onClick={() => (c.prune ? c.lift(c.prune.id) : c.set("prune"))}
+        >
+          {c.prune ? "Pruned" : "Prune"}
+        </Button>
+        {cut && <span className="vt-hint">A sample above {s.name} is pruned.</span>}
+      </div>
+    </div>
   );
 }
 

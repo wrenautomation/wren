@@ -416,4 +416,6 @@ export const VARIANTS_ANSWERS: Answers = {
   "variants/unnote": { done: [] },
   "variants/keep": { id: 0, keptAt: null },
   "variants/close": { id: 7, subjectId: 2 },
+  "variants/steer": (b: Record<string, unknown>) => ({ id: Math.floor(Math.random() * 1e6), ...b }),
+  "variants/unsteer": { id: 0 },
 };

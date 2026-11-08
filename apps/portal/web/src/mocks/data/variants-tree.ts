@@ -89,9 +89,35 @@ const SUBJECT = {
   toPick: 6,
 };
 
+const steer = (
+  id: number,
+  kind: "pin" | "prune" | "cross" | "width",
+  o: { sample?: number; other?: number; width?: string; why?: string } = {},
+) => ({
+  id,
+  subjectId: 3,
+  kind,
+  sampleId: o.sample ?? null,
+  otherId: o.other ?? null,
+  width: o.width ?? null,
+  why: o.why ?? null,
+  by: "william@example.com",
+  createdAt: ago(1),
+  endedAt: null,
+  endedBy: null,
+});
+
 export const TREE_SUBJECT = {
   subject: SUBJECT,
   leaders: [],
+  // his hand on the tree: grow from the curve, no more 3D, try grid × curve, move far
+  steers: [
+    steer(1, "pin", { sample: 15, why: "the curve is the one" }),
+    steer(2, "prune", { sample: 12, why: "3D is too heavy" }),
+    steer(3, "cross", { sample: 8, other: 15 }),
+    steer(4, "width", { width: "wide" }),
+  ],
+  pruned: [12, 18],
   guides: [
     {
       id: 11,

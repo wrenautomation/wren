@@ -569,3 +569,29 @@
   background: var(--ui-paper);
   box-shadow: inset 0 0 0 1px var(--ui-needs);
 }
+
+/* steers: a pruned sample and what grew from it fade; nothing new grows there */
+.vt-n.pruned {
+  opacity: 0.35;
+}
+.vt-n.pruned.dim {
+  opacity: 0.2;
+}
+.vt-steers .vt-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.vt-refused {
+  color: var(--ui-bad);
+}
+.vt-sum .vt-spread {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.vt-sum .vt-spread .ui-seg,
+.vt-sum .vt-spread + .ui-seg {
+  margin-left: 0;
+}

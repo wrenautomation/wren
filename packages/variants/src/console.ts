@@ -21,6 +21,8 @@ import {
   TONES,
   VERDICTS,
   VireoError,
+  WIDTHS,
+  type Width,
 } from "@wrenautomation/vireo";
 import { z } from "zod";
 import { VARIANTS_CONSOLE_APPS, VARIANTS_CONSOLE_ROUTES } from "./console-routes.js";
@@ -215,6 +217,38 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
           throw new PortalRefusal(`one of ${GUIDE_STATES.join(", ")}`, 400);
         return v.setGuide(num(req.id, "guide"), state as (typeof GUIDE_STATES)[number], by(req));
       }),
+    /** His hand on the tree (vireo D10): pin, prune, cross, width. */
+    steer: (req: Req) =>
+      refuse(() => {
+        const why = (req.why as string | null | undefined) ?? null;
+        switch (req.kind) {
+          case "pin":
+          case "prune":
+            return v.steer({ kind: req.kind, sample: num(req.sample, "sample"), why }, by(req));
+          case "cross":
+            return v.steer(
+              {
+                kind: "cross",
+                sample: num(req.sample, "sample"),
+                other: num(req.other, "sample"),
+                why,
+              },
+              by(req),
+            );
+          case "width": {
+            const width = String(req.width);
+            if (!(WIDTHS as readonly string[]).includes(width))
+              throw new PortalRefusal(`one of ${WIDTHS.join(", ")}`, 400);
+            return v.steer(
+              { kind: "width", subject: num(req.subject, "subject"), width: width as Width, why },
+              by(req),
+            );
+          }
+          default:
+            throw new PortalRefusal("pin, prune, cross or width", 400);
+        }
+      }),
+    unsteer: (req: Req) => refuse(() => v.unsteer(num(req.id, "steer"), by(req))),
   };
 }
 
@@ -262,6 +296,15 @@ const INPUTS = {
   keep: { sample: ID, on: z.boolean().nullish() },
   guide: { text: z.string().max(2000), subject: ID.nullish(), kind: z.string().nullish() },
   setGuide: { id: ID, state: z.string() },
+  steer: {
+    kind: z.enum(["pin", "prune", "cross", "width"]),
+    sample: ID.nullish().describe("pin, prune, cross: the sample"),
+    other: ID.nullish().describe("cross: the second sample"),
+    subject: ID.nullish().describe("width: the subject"),
+    width: z.string().nullish().describe("narrow, normal or wide"),
+    why: z.string().max(2000).nullish(),
+  },
+  unsteer: { id: ID },
 } as const;
 
 export function makeVariantsConsole(db: Db, sign: Sign | null) {
@@ -285,6 +328,8 @@ export function makeVariantsConsole(db: Db, sign: Sign | null) {
     keep: h("keep"),
     guide: h("guide"),
     setGuide: h("setGuide"),
+    steer: h("steer"),
+    unsteer: h("unsteer"),
   };
   return portalService({
     name: "VariantsConsole",

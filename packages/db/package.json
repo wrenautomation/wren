@@ -21,7 +21,7 @@
     "test:unit": "vitest run src"
   },
   "dependencies": {
-    "@wrenautomation/vireo": "0.5.2",
+    "@wrenautomation/vireo": "0.6.0",
     "drizzle-orm": "0.45.2",
     "postgres": "3.4.9"
   },

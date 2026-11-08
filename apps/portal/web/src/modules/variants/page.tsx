@@ -40,7 +40,7 @@ import {
 } from "./marks.js";
 import { callLabel, ScoreBar, VERDICT_ON, ZONE_OF } from "./score.js";
 import { FootageLanes, type SyncMode, Together, TogetherProvider } from "./together.js";
-import { SubjectTree } from "./tree.js";
+import { SubjectTree, type TreeSteer } from "./tree.js";
 
 export const TALLY = ["amazing", "good", "okay", "bad"] as const;
 export interface Open {
@@ -94,6 +94,8 @@ interface SubjectView {
   }[];
   leaders: { sample: number; strength: number; se: number }[];
   live?: Live;
+  steers?: TreeSteer[];
+  pruned?: number[];
 }
 
 export const WIDE_KINDS: readonly Kind[] = ["video", "page"];
@@ -544,7 +546,15 @@ function SubjectDetail({
           <p className="m-0 max-w-[70ch] text-[13px] text-(--ui-ink-2)">{v.subject.brief}</p>
         )}
       </div>
-      <SubjectTree subject={v.subject} batches={v.batches} guides={guides} params={params} />
+      <SubjectTree
+        subject={v.subject}
+        batches={v.batches}
+        guides={guides}
+        params={params}
+        steers={v.steers ?? []}
+        pruned={v.pruned}
+        onSteered={got.retry}
+      />
       {v.live && v.live.rows.length > 0 && <LiveView live={v.live} picks={v} />}
       <section className="flex flex-col gap-2">
         <h3 className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">Guides</h3>

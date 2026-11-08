@@ -1,80 +1,50 @@
 ---
 name: variants
-description: Run William's taste loop with `wren variants`. You make a batch of samples (email copy, video cuts, images, landers), he scores them 1-10 (zones Bad, Okay, Good, Amazing) with anchored notes in the portal (Variants), you read his calls and make the next batch. Use when he says "variants", "make versions of", "iterate on", "try N cuts/openers/designs", "start from my direction", "what's winning", or adds a tip to test. Keep winners in the catalog; lock proven tips.
+description: Run William's taste loop with `wren variants`. You make a batch of samples (email copy, video cuts, images, landers), he scores them 1-10 (zones Bad, Okay, Good, Amazing) with anchored notes in the portal (Variants) and steers the tree (pin, prune, cross, width), you read his calls and make the next batch. Use when he says "variants", "make versions of", "iterate on", "try N cuts/openers/designs", "start from my direction", "what's winning", "grow from this", "kill that line", "cross these", "go wider", or adds a tip to test. Keep winners in the catalog; lock proven tips.
 ---
 
 # variants
 
-You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (prod: `node scripts/prod-wren.mjs variants …`). JSON out. The engine is vireo (`../vireo`, npm `@wrenautomation/vireo`); wren gives its db, collectors and bucket. Design: `designs/2026-11-05-variants.md`, `../vireo/designs/2026-11-05-vireo.md`.
+You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (prod: `node scripts/prod-wren.mjs variants …`; in the portal's Vireo chat: `vireo …`). JSON out. Engine: vireo (`../vireo`, npm `@wrenautomation/vireo`); wren gives its db, collectors and bucket. Design: `designs/2026-11-05-variants.md`, `../vireo/designs/2026-11-05-vireo.md` (D10: steers).
+
+## Commands
+
+```sh
+./bin/wren variants new <slug> --name "…" --kind text|image|video|page [--brief "…"] [--seed <ref>]...
+./bin/wren variants show <subject>              # read before every batch: calls, notes, leaders, guides, steers
+./bin/wren variants add <subject> batch.json    # one batch; refused if it breaks a live steer
+./bin/wren variants queue                       # what waits on William
+./bin/wren variants close <subject>:<n> --note "…"   # his guide for the next batch, given in chat
+./bin/wren variants steer pin|prune <sample> | cross <a> <b> | width <subject> narrow|normal|wide [--why "…"]
+./bin/wren variants steer list <subject> | lift <steer>
+./bin/wren variants guide add "…" [--subject s | --kind k] [--source study|sop|skill|agent --ref …]
+./bin/wren variants guide lock|drop|test <id>
+./bin/wren variants keep <sample> | catalog [--kind k]
+./bin/wren variants ship <sample> post|site|email <target> [--why …] | unship <ship> | channels
+./bin/wren variants live <subject> | collect [--ship id]
+```
 
 ## The loop
 
-```sh
-./bin/wren variants new <slug> --name "…" --kind text|image|video|page [--brief "his direction"] [--seed <study|sop|sample|file>]...
-./bin/wren variants show <subject>              # read this before every batch
-./bin/wren variants add <subject> batch.json    # one batch; files upload to the media bucket
-./bin/wren variants queue                       # what waits on William
-./bin/wren variants guide add "…" [--subject s | --kind k] [--source study|sop|skill|agent --ref …]
-./bin/wren variants guide lock|drop|test <id>
-./bin/wren variants keep <sample>               # only when he asks; he keeps in the portal
-./bin/wren variants catalog [--kind k]
-./bin/wren variants ship <sample> post|site|email <draft id | page id | template@version> [--why …]
-./bin/wren variants channels                    # each channel's target, rates, means
-./bin/wren variants unship <ship>
-./bin/wren variants live <subject>              # market numbers per segment, beside his calls
-./bin/wren variants collect [--ship id]         # read numbers now (the loop runs every 6 h)
-```
+Read the reference for a step when you reach it. Each holds the how; this page holds the order.
 
-1. **Start.** No brief = from scratch: read the seeds (a Birdwatch study's claims, the SOP, the skill) and spread wide. A brief = his direction: stay near it. Add each seed tip as a `guide` (`--source study --ref <slug>`), state `testing`.
-2. **Make a batch.** 4-6 samples. Text: inline `body`. Video: render with studio, then `file` (mp4) + `posterFile` (jpg), and `studio: {edit, format}` (or `source: {ref, spans}`) so he can play cuts of one footage in step. Image: `file`. Page: full html in `body` (a sandboxed frame; no scripts run). A page that runs code (WebGL, scroll scenes): build it, deploy it to a URL that never changes (a Cloudflare Pages preview, `https://<hash>.<project>.pages.dev`), then `media: "https://…"` + `posterFile` (a still at 1280×800). The portal frames only `*.pages.dev`; the page must not send `X-Frame-Options` or a `frame-ancestors` that shuts out `app.wrenautomation.com`. He runs one at a time, at 1280 or 390, and full screen.
-3. **Spread on purpose.** Each batch tests one or two ideas. Vary one thing per sample when you can, so his calls teach something. Tag each sample's `guides` with the guide ids it applies; that is how a tip's with-vs-without rate is counted.
-4. **Say why.** `why` = what you changed from the last batch and what it tests. `change` per sample = what differs from its main parent. `name` = 2-4 words he can say ("Star system"). `parents` = `[id]` or `[{"id": 7, "took": "the moving headline"}]`, main parent first; two or more = a cross, and say what each gave in `took`. He does not see these while he judges (blind); `show` gives them back to you.
-5. **Tell him** it is in Variants › Batches, as `<subject>` batch N (`n` from `add`; numbers count per subject). Stop. Wait for him to hand the batch back: in the portal he marks, then presses Hand to Vireo, which closes the batch and tells the Vireo chat. In a Claude Code session he tells you himself.
-6. **Read `show`.** Per batch: his `note`, each sample's `score` (1-10), its zone `verdict` (bad 1-3, okay 4-6, good 7-8, amazing 9-10) and `notes` (a `quote` = a line, `box` = a region in fractions, `time` = seconds on a video). `leaders` = Plackett-Luce strengths across all batches. Guides carry `effect` (good rate with vs without, `early` under 30 judged).
-7. **Next batch.** Keep what high scores share; within a zone, the higher score wins. Okay = no harm, no pull. Fix every anchored Bad note. Obey his batch note first. Mutate from the leaders (`parents`); cross two leaders when each has a part he liked, and keep one wild sample in each batch so the loop does not narrow too early.
-8. **Ship.** When he keeps a sample and it goes out (a post, a page, an email version), `ship` it. Read `live` before each batch: a segment where the market disagrees with his calls is the next thing to test. Trust a rate only when its range is narrow; `pBest` over 0.9 is a winner there.
-9. **Guides.** When a testing guide's `effect` is not `early` and `diff` is clearly positive, propose to lock it; negative, propose to drop. He decides. A locked guide is a rule: apply it to every sample of its scope, and say which SOP it belongs in.
-
-## Makers
-
-A maker is a setup on William's Mac that builds in the subject's project: pages, video, anything a chat cannot make. You start its runs; each run is headless (no person answers; a call no rule allows is denied). In a chat `maker` is on PATH. In Claude Code the same commands are `./bin/wren agent makers|run|runs|stop`.
-
-```sh
-maker list                                    # makers, and the subjects each serves
-maker start <maker> "<prompt>" [--model m]    # queues one run, prints its id
-maker status [run] [--wait 540]               # state, result, denied calls, session
-maker stop <run>
-```
-
-Every maker takes three prompts. Its own instructions hold the how.
-
-1. **Agree first.** Read his calls, get his guide for the next batch (the loop, steps 5 and 6). Pick the maker whose `serves` has the subject. None: tell him it needs a Claude Code session.
-2. **Brief.** `maker start <maker> "brief batch <N>, <count> samples. His guide, word for word: …"`. The maker writes the brief. Its result lists each sample: name and the one idea it tests. Show him the list.
-3. **Samples.** One run per sample: `maker start <maker> "sample <name>, batch <N>, slot <k>"`, k = 1, 2, 3… in order. Runs queue; two build at a time. Then `maker status --wait 540` until none is queued or running. Say what state they are in when he asks.
-4. **Ship.** `maker start <maker> "ship batch <N>: <names>"`. The maker deploys the preview and registers the batch (`variants add`). Tell him the batch waits on the Variants page.
-5. A failed run: read `result` and `denied`, then start it again once. A second fail: tell him what it needs. He can open a run's session in the maker's chat to talk to it.
-
-## batch.json
-
-```json
-{
-  "why": "Batch 3: named places beat questions (batch 2). Now test a next step vs none.",
-  "agent": "<your session id>",
-  "samples": [
-    { "body": "…", "name": "Next step", "parents": [22], "guides": [1], "change": "adds a next step" },
-    { "media": "https://a1b2c3d4.example.pages.dev/", "posterFile": "out/scene-a.jpg", "change": "flow field, slower drift" },
-    { "file": "out/cut-b.mp4", "posterFile": "out/cut-b.jpg", "name": "Low captions", "parents": [{ "id": 31, "took": "the cut" }, { "id": 29, "took": "the caption font" }], "change": "captions 20% lower", "studio": { "edit": 12, "format": "short" } }
-  ]
-}
-```
-
-Paths are relative to the json file. Playable: mp4 mov m4v webm jpg png gif pdf.
+| Step | Do | Read |
+|---|---|---|
+| 1 Start | New subject from his brief, or from seeds | `references/start.md` |
+| 2 Batch | 4-6 samples, each with a name, parents, change; one `why` | `references/batch.md` |
+| 3 Tree | Pick parents: mutate leaders, cross, one wild; obey his steers | `references/tree.md` |
+| 4 Hand over | Tell him `<subject>` batch N waits in Variants › Batches. Stop | — |
+| 5 Read | `show`: his scores, anchored notes, batch note, leaders, steers | `references/batch.md` |
+| 6 Guides | Propose lock or drop from `effect`; he decides | `references/guides.md` |
+| 7 Ship | A kept sample goes out; read `live` before each batch | `references/ship.md` |
+| Makers | A maker on his Mac builds pages or video for you | `references/makers.md` |
 
 ## Rules
 
-- Never judge for him. `judge <sample> <1-10|verdict|clear>` and `note` exist for tests and for his spoken calls in chat only.
-- One open batch per subject at a time. Wait for it to close.
-- His guide for the next batch is the batch `note`. Given in chat after the batch closed: `variants close <subject>:<n> --note "…"` sets it (a plain batch id also works).
-- In the portal's Vireo chat the command is `vireo <command>` (the same commands, on prod).
+- Never judge for him. `judge` and `note` exist for tests and for his spoken calls in chat only.
+- Blind: he sees no name, parent, change or why while he judges. Never put them in a sample's body.
+- One open batch per subject. A newer batch replaces an unmarked one in his queue, so wait.
+- Steers are his. Set or lift one only when he says so (chat or canvas); put his words in `--why`.
+- His batch note comes first, then live steers, then his scores, then your own ideas.
 - The repo is public: subjects and samples live in the database, never in files under `wren/`.
 - A client's subjects: `--client <id>` (their own database).
