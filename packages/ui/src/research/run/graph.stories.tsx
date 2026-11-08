@@ -8,6 +8,7 @@ import {
   RUN_GRAPH,
   RUN_GRAPH_EMPTY,
   RUN_GRAPH_ONE_ROUND,
+  RUN_GRAPH_RUNS,
   RUN_GRAPH_WORST,
 } from "../../fixtures/index.js";
 import { RunGraph } from "./graph.js";
@@ -66,6 +67,15 @@ export const Empty: Story = { args: { run: RUN_GRAPH_EMPTY } };
 export const Loading: Story = { args: { run: undefined } };
 export const Failed: Story = { args: { failed: "weaver serve stopped answering." } };
 export const WorstCase: Story = { args: { run: RUN_GRAPH_WORST } };
+
+/** Several runs: each linked group solves alone, then the groups pack in run order. */
+export const SeveralRuns: Story = {
+  args: { run: RUN_GRAPH_RUNS },
+  play: async ({ canvasElement }) => {
+    await mark(canvasElement, "c0");
+    await apart(canvasElement);
+  },
+};
 
 /** A claim opens in place into its findings; the panel shows the claim. */
 export const ClaimOpen: Story = {

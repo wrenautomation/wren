@@ -262,3 +262,13 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Measured, best of 3 under load: one real run 22 ms; all 33 real runs (107 web nodes) 142 to 89 ms; synthetic 12 runs all open (860 nodes) 6.1 to about 2.5 s.
   - Checks: `web.test.ts` (no overlap, deterministic, cache copy) and an overlap `play` on Default, ClaimOpen and SourceOpen.
   - Open: the merged graph is tall (about 1.4k × 4k px) with long links. Next: lay claims out by run sector.
+- 11-08: All runs packs each linked group apart, in run order.
+  - Real data: 33 runs, 35 claims in 9 runs, 72 sources back claims, 5 span runs. So the merged web is mostly separate groups.
+  - Options, ranked by link length, crossings, then fit at the zoom floor:
+    - A. One sim, claims anchored on a sector per run. Shared sources pull sectors together; long links stay.
+    - B. Groups (union-find on edges) solve alone, then skyline-pack to the room's aspect, then a light pull to close gaps. Chosen.
+    - Dropped: row packing (ragged rows), gravity with no repulsion (groups bend), rigid group slides (3% gain), pull at 0.1 and 0.2 (112 and 197 crossings).
+  - `pack`: gap 48 wide, 36 narrow; aim 1.2 wide, 0.6 narrow; cap 1600 wide, 900 narrow (widest that reads at the zoom floor). A phone stays one column: the pull is wide only.
+  - Real merged web at 1280: 1913 × 1464 at 0.55, cut at the sides, to 1461 × 2294 at 0.61, full width, 0 overlaps. Crossings 73 to 12; link median 320 to 224, p90 642 to 299. Solve about 150 ms.
+  - `mergeGraphs` moved to `@wren/ui/research/run/merge`: pure, no d3, so the portal merges in its main chunk while the graph loads late.
+  - Checks: `web.test.ts` (group order, pack apart and in width, merged solve) and story `research-run--several-runs` with an overlap `play`.

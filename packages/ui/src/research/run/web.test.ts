@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { RUN_GRAPH, RUN_GRAPH_WORST } from "../../fixtures/index.js";
-import { indexRun, jit } from "./model.js";
+import { indexRun, jit, type RunGraphData } from "./model.js";
 import {
   keepPlaces,
   kids,
+  linked,
+  pack,
   placesOf,
   presentSet,
   rectCollide,
@@ -40,7 +42,22 @@ const overlap = (ns: WNode[], pad: number) => {
     }
   return worst;
 };
-const solve = (run = RUN_GRAPH) => {
+// pairs from different groups closer than the gap
+const touching = (parts: WNode[][], pad: number) =>
+  parts.flatMap((g, i) =>
+    parts
+      .slice(i + 1)
+      .flatMap((h) =>
+        g.flatMap((a) =>
+          h.filter(
+            (b) =>
+              Math.abs(a.x - b.x) < (a.w + b.w) / 2 + pad &&
+              Math.abs(a.y - b.y) < (a.h + b.h) / 2 + pad,
+          ),
+        ),
+      ),
+  ).length;
+const solve = (run: RunGraphData = RUN_GRAPH) => {
   const L = indexRun(run);
   const { order, par } = presentSet(L, {
     exp: new Set(L.claims.map((c) => `c${c.i}`)),
@@ -87,6 +104,40 @@ describe("solveWeb", () => {
   it("lays the same run out the same way", () => {
     const a = solve().N;
     const b = solve().N;
+    for (const [k, n] of a) expect([b.get(k)?.x, b.get(k)?.y]).toEqual([n.x, n.y]);
+  });
+});
+
+describe("several runs", () => {
+  const merged = { ...RUN_GRAPH_WORST, runs: [{ rid: "a", t: "a" }] };
+  it("groups by edges, the group with the first claim first, claimless last", () => {
+    const g = linked(
+      ["c0", "c1", "s1", "s2", "s3"],
+      [
+        { id: "1", a: "s1", b: "c1", kind: "claim", w: 1, tree: false },
+        { id: "2", a: "s2", b: "c0", kind: "claim", w: 1, tree: false },
+      ],
+    );
+    expect(g).toEqual([["c0", "s2"], ["c1", "s1"], ["s3"]]);
+  });
+  it("packs groups apart, in order, inside the room's width", () => {
+    const parts = Array.from({ length: 9 }, (_, j) =>
+      Array.from({ length: 2 + (j % 4) * 3 }, (_, i) =>
+        node(i ? `s${j}-${i}` : `c${j}`, jit(i + j * 31) * 160, jit(i + j * 17) * 160),
+      ),
+    );
+    for (const g of parts) settle(g, true);
+    pack(parts, true);
+    expect(touching(parts, 16)).toBe(0);
+    const b = (g: WNode[]) => Math.min(...g.map((n) => n.y - n.h / 2));
+    expect(b(parts[0] as WNode[])).toBeLessThanOrEqual(b(parts[8] as WNode[]));
+    const xs = parts.flat().flatMap((n) => [n.x - n.w / 2, n.x + n.w / 2]);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeLessThanOrEqual(1600);
+  });
+  it("lays a merged graph out with no overlap, the same way each time", () => {
+    const a = solve(merged).N;
+    const b = solve(merged).N;
+    expect(overlap([...a.values()], 0)).toBe(0);
     for (const [k, n] of a) expect([b.get(k)?.x, b.get(k)?.y]).toEqual([n.x, n.y]);
   });
 });

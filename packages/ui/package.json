@@ -18,7 +18,8 @@
     "./fixtures": "./src/fixtures/index.ts",
     "./metro": "./src/metro/index.ts",
     "./metro/shapes": "./src/metro/shapes.ts",
-    "./research/run": "./src/research/run/index.ts"
+    "./research/run": "./src/research/run/index.ts",
+    "./research/run/merge": "./src/research/run/merge.ts"
   },
   "bin": {
     "wren-stories": "./.storybook/run.mjs",

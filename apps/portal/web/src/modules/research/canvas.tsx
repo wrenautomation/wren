@@ -4,8 +4,9 @@
  */
 import { LoadFailed, Loading } from "@wren/ui";
 import type { LayId } from "@wren/ui/research/run";
+import { mergeGraphs } from "@wren/ui/research/run/merge";
 import { useMemo } from "react";
-import { mergeGraphs, runGraphOf } from "./graph.js";
+import { runGraphOf } from "./graph.js";
 import { RunGraph } from "./run-lazy.js";
 import { type RunRow, useViews } from "./serve.js";
 

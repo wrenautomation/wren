@@ -336,8 +336,27 @@ export function solveWeb(o: SolveIn) {
   const cx0 = (B0.x0 + B0.x1) / 2;
   const cy0 = (B0.y0 + B0.y1) / 2;
   const nc = L.claims.length;
-  const R = 90 * Math.sqrt(nc);
   const ax = wide ? 1.5 : 0.7;
+  // several runs: each linked group solves alone, then the groups pack in run order
+  const groups = !anim && L.run.runs ? linked(order, E) : null;
+  const ring = new Map<string, readonly [number, number]>();
+  const lay = (cs: readonly string[], at: (k: string, j: number) => number) => {
+    const R = 90 * Math.sqrt(cs.length);
+    cs.forEach((k, j) => {
+      const a = at(k, j) * Math.PI * 2 - Math.PI / 2;
+      ring.set(k, [Math.cos(a) * R * ax, Math.sin(a) * R]);
+    });
+  };
+  if (groups)
+    for (const g of groups) {
+      const cs = g.filter((k) => k[0] === "c");
+      lay(cs, (_, j) => j / cs.length);
+    }
+  else
+    lay(
+      L.claims.map((c) => `c${c.i}`),
+      (k) => +k.slice(1) / nc,
+    );
   order.forEach((k, i) => {
     const n = N.get(k) as WNode;
     if (!fresh.has(n)) {
@@ -359,9 +378,7 @@ export function solveWeb(o: SolveIn) {
       n.x = p.x + Math.cos(a) * rr;
       n.y = p.y + Math.sin(a) * rr;
     } else if (k[0] === "c") {
-      const a = (+k.slice(1) / nc) * Math.PI * 2 - Math.PI / 2;
-      n.x = Math.cos(a) * R * ax;
-      n.y = Math.sin(a) * R;
+      [n.x, n.y] = ring.get(k) ?? [0, 0];
     } else {
       const g = L.byId.get(+k.slice(1));
       const cs = Object.keys(g?.s.claims ?? {})
@@ -388,8 +405,11 @@ export function solveWeb(o: SolveIn) {
     const f = p ? from.get(p) : undefined;
     from.set(n, fresh.has(n) ? (f ? [f[0], f[1]] : p ? [p.x, p.y] : [n.x, n.y]) : [n.x, n.y]);
   }
-  const links = E.map((e) => ({ source: N.get(e.a) as WNode, target: N.get(e.b) as WNode, e }));
-  type Link = (typeof links)[number];
+  const links: Link[] = E.map((e) => ({
+    source: N.get(e.a) as WNode,
+    target: N.get(e.b) as WNode,
+    e,
+  }));
   const ncOf = (e: WebEdge) => Object.keys(L.byId.get(+e.a.slice(1))?.s.claims ?? {}).length;
   const dist = (l: Link) => {
     const d = diag(l.source) + diag(l.target);
@@ -416,30 +436,19 @@ export function solveWeb(o: SolveIn) {
       }
     if (P) P.hold = 2;
   }
-  const pad = wide ? 16 : 12;
-  const sim = forceSimulation(all)
-    .force("l", forceLink<WNode, Link>(links).distance(dist).strength(strength))
-    .force(
-      "q",
-      forceManyBody<WNode>()
-        .strength((n) => ("cs".includes(n.key[0] ?? "") ? -260 : -110))
-        .distanceMax(600),
-    )
-    .force("x", forceX<WNode>(0).strength(wide ? 0.035 : 0.09))
-    .force("y", forceY<WNode>(0).strength(wide ? 0.07 : 0.03))
-    .force(
-      "ax",
-      forceX<WNode>((n) => n.ax ?? 0).strength((n) => (n.ax != null ? 0.12 : 0)),
-    )
-    .force(
-      "ay",
-      forceY<WNode>((n) => n.ay ?? 0).strength((n) => (n.ay != null ? 0.12 : 0)),
-    )
-    .force("r", rectCollide(all, pad))
-    .stop();
-  sim.alpha(anim ? 0.5 : 1);
-  // 300 from alpha 1 is d3's own end (alphaMin); past it nothing moves a pixel
-  for (let i = 0; i < (anim ? 220 : 300); i++) sim.tick();
+  if (groups) {
+    const gi = new Map(groups.flatMap((g, j) => g.map((k) => [k, j] as const)));
+    const parts = groups.map((g) => g.map((k) => N.get(k) as WNode));
+    for (const [j, ns] of parts.entries())
+      simulate(
+        ns,
+        links.filter((l) => gi.get(l.e.a) === j),
+        { dist, strength, wide, anim },
+      );
+    pack(parts, wide);
+    // a phone stays one column: there the pull's repulsion widens it past the fit
+    if (wide) compact(parts, links, { dist, strength });
+  } else simulate(all, links, { dist, strength, wide, anim });
   for (const n of all) {
     n.fx = null;
     n.fy = null;
@@ -455,4 +464,163 @@ export function solveWeb(o: SolveIn) {
   }
   const to = new Map(all.map((n) => [n, [n.x, n.y] as [number, number]]));
   return { all, from, to };
+}
+
+type Link = { source: WNode; target: WNode; e: WebEdge };
+interface SimOpt {
+  dist: (l: Link) => number;
+  strength: (l: Link) => number;
+  wide: boolean;
+  anim: boolean;
+}
+
+function simulate(all: WNode[], links: Link[], o: SimOpt) {
+  const { dist, strength, wide, anim } = o;
+  const pad = wide ? 16 : 12;
+  const sim = forceSimulation(all)
+    .force("l", forceLink<WNode, Link>(links).distance(dist).strength(strength))
+    .force("q", repel())
+    .force("x", forceX<WNode>(0).strength(wide ? 0.035 : 0.09))
+    .force("y", forceY<WNode>(0).strength(wide ? 0.07 : 0.03))
+    .force(
+      "ax",
+      forceX<WNode>((n) => n.ax ?? 0).strength((n) => (n.ax != null ? 0.12 : 0)),
+    )
+    .force(
+      "ay",
+      forceY<WNode>((n) => n.ay ?? 0).strength((n) => (n.ay != null ? 0.12 : 0)),
+    )
+    .force("r", rectCollide(all, pad))
+    .stop();
+  sim.alpha(anim ? 0.5 : 1);
+  // 300 from alpha 1 is d3's own end (alphaMin); past it nothing moves a pixel
+  for (let i = 0; i < (anim ? 220 : 300); i++) sim.tick();
+}
+
+const repel = () =>
+  forceManyBody<WNode>()
+    .strength((n) => ("cs".includes(n.key[0] ?? "") ? -260 : -110))
+    .distanceMax(600);
+
+/**
+ * Draw the packed groups together: the pull acts on each group's middle, so a group moves as
+ * one and keeps its shape; the usual forces still hold each group's nodes apart.
+ */
+export function compact(parts: WNode[][], links: Link[], o: Pick<SimOpt, "dist" | "strength">) {
+  const { dist, strength } = o;
+  const all = parts.flat();
+  const pull = (alpha: number) => {
+    for (const g of parts) {
+      let cx = 0;
+      let cy = 0;
+      for (const n of g) {
+        cx += n.x;
+        cy += n.y;
+      }
+      const k = alpha * 0.04;
+      // harder up and down: the room is wider than tall
+      const dx = (-cx / g.length) * k;
+      const dy = (-cy / g.length) * k * 1.4;
+      for (const n of g) {
+        n.vx = (n.vx ?? 0) + dx;
+        n.vy = (n.vy ?? 0) + dy;
+      }
+    }
+  };
+  const sim = forceSimulation(all)
+    .force("l", forceLink<WNode, Link>(links).distance(dist).strength(strength))
+    .force("q", repel())
+    .force("g", pull)
+    .force("r", rectCollide(all, 16))
+    .stop();
+  sim.alpha(0.5);
+  for (let i = 0; i < 160; i++) sim.tick();
+}
+
+/** Keys joined by edges, as groups; the group with the lowest run's claim comes first. */
+export function linked(order: readonly string[], E: readonly WebEdge[]) {
+  const up = new Map(order.map((k) => [k, k]));
+  const root = (k: string): string => {
+    const p = up.get(k) ?? k;
+    if (p === k) return k;
+    const r = root(p);
+    up.set(k, r);
+    return r;
+  };
+  for (const e of E) up.set(root(e.a), root(e.b));
+  const by = new Map<string, string[]>();
+  for (const k of order) {
+    const r = root(k);
+    by.set(r, [...(by.get(r) ?? []), k]);
+  }
+  // claim keys are numbered in run order; a group with no claim goes last
+  const first = (g: string[]) => Math.min(...g.filter((k) => k[0] === "c").map((k) => +k.slice(1)));
+  return [...by.values()].sort((a, b) => first(a) - first(b));
+}
+
+/**
+ * Groups in run order, each at the lowest spot it fits under a width (skyline packing); of the
+ * widths tried, the one whose box is small and nearest the room's shape wins.
+ */
+export function pack(parts: WNode[][], wide: boolean) {
+  const gap = wide ? 48 : 36;
+  // the room's shape, and the widest the fit still reads at its zoom floor (graph.tsx fitView)
+  const aim = wide ? 1.2 : 0.6;
+  const cap = wide ? 1600 : 900;
+  const bs = parts.map((p) => {
+    const b = webBox(p);
+    return { b, w: b.x1 - b.x0 + gap, h: b.y1 - b.y0 + gap };
+  });
+  const at = (W: number) => {
+    // the skyline: [x0, x1, top] runs, left to right
+    let sky: [number, number, number][] = [[0, W, 0]];
+    const xy = bs.map(({ w, h }) => {
+      let best = { x: 0, y: Infinity };
+      for (const [x] of sky) {
+        if (x + w > W + 0.5 && x > 0) continue;
+        let y = 0;
+        for (const [a, b, t] of sky) if (a < x + w && b > x) y = Math.max(y, t);
+        if (y < best.y) best = { x, y };
+      }
+      const { x, y } = best;
+      const cut: [number, number, number][] = [];
+      for (const [a, b, t] of sky) {
+        if (b <= x || a >= x + w) cut.push([a, b, t]);
+        else {
+          if (a < x) cut.push([a, x, t]);
+          if (b > x + w) cut.push([x + w, b, t]);
+        }
+      }
+      cut.push([x, x + w, y + h]);
+      sky = cut.sort((p, q) => p[0] - q[0]);
+      return best;
+    });
+    const w = Math.max(...xy.map((p, j) => p.x + (bs[j]?.w ?? 0))) - gap;
+    const h = Math.max(...xy.map((p, j) => p.y + (bs[j]?.h ?? 0))) - gap;
+    // area, times how far the shape is off the aim
+    const off = Math.max(w / h / aim, aim / (w / h));
+    return { xy, w, h, score: w * h * off };
+  };
+  const lo = Math.max(...bs.map((b) => b.w));
+  const hi = Math.max(
+    lo,
+    Math.min(
+      cap,
+      bs.reduce((s, b) => s + b.w, 0),
+    ),
+  );
+  let best = at(lo);
+  for (let i = 1; i <= 24; i++) {
+    const t = at(lo + ((hi - lo) * i) / 24);
+    if (t.score < best.score) best = t;
+  }
+  best.xy.forEach(({ x, y }, j) => {
+    const { b } = bs[j] as (typeof bs)[number];
+    const dx = x - best.w / 2 - b.x0;
+    const dy = y - best.h / 2 - b.y0;
+    for (const n of parts[j] as WNode[]) {
+      n.x += dx;
+      n.y += dy;
+    }
+  });
 }

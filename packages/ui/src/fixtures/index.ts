@@ -12,6 +12,7 @@ export {
   RUN_GRAPH,
   RUN_GRAPH_EMPTY,
   RUN_GRAPH_ONE_ROUND,
+  RUN_GRAPH_RUNS,
   RUN_GRAPH_WORST,
 } from "./run-graph.js";
 export { WORST } from "./worst.js";

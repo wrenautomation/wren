@@ -2,6 +2,8 @@
  * Synthetic weaver runs for `RunGraph`: seeded, so a story, a test and a shot see the same
  * graph. Made-up shops, sites and quotes; no real name, page or number.
  */
+
+import { mergeGraphs } from "../research/run/merge.js";
 import type {
   Evidence,
   GraphDrop,
@@ -303,3 +305,17 @@ export const RUN_GRAPH_WORST = fakeRunGraph({
   drops: 400,
   worst: true,
 });
+/** Six small runs on one graph: few shared sources, so the web packs as separate groups. */
+export const RUN_GRAPH_RUNS = mergeGraphs(
+  Array.from({ length: 6 }, (_, i) =>
+    fakeRunGraph({
+      seed: 40 + i,
+      sources: 6,
+      claims: 1 + (i % 3),
+      rounds: 2,
+      searches: 4,
+      drops: 8,
+    }),
+  ),
+  "Six runs",
+);
