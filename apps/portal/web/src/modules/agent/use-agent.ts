@@ -374,8 +374,7 @@ export function useAgent(o: {
       setError(null);
       setS((p) => said(p, text, { files: files.map((f) => f.file), page }));
       const chat = shown.current ?? undefined;
-      const content =
-        files.length || page || chat ? turnContent(text, files, page, chat) : text;
+      const content = files.length || page || chat ? turnContent(text, files, page, chat) : text;
       const l = live.current;
       if (l) return l.say(content);
       setStarting(true);

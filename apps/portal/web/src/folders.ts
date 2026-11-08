@@ -38,8 +38,7 @@ export function useFolders(kind: Kind, on = true) {
       (tree?.filed ?? []).filter((f) => f.kind === kind).map((f) => [f.ref, f.folder]),
     );
     const acts: FolderActs = {
-      make: (name, parent) =>
-        write<FolderNode>("folders/make", { name, parent }, (t) => t),
+      make: (name, parent) => write<FolderNode>("folders/make", { name, parent }, (t) => t),
       rename: (id, name) =>
         write("folders/rename", { id, name }, (t) => ({
           ...t,
