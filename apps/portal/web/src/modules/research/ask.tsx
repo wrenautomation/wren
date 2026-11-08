@@ -1,6 +1,6 @@
 /**
- * Ask birdwatch (designs/2026-11-04-multi-user-runtime.md, WA-1053): a Claude agent with the
- * birdwatch skill, on this Mac's relay. The page fills the window: past chats on the left (only
+ * Ask weaver (designs/2026-11-04-multi-user-runtime.md, WA-1053): a Claude agent with the
+ * weaver skill, on this Mac's relay. The page fills the window: past chats on the left (only
  * the asker's own), the chat on the right with the setup at its head and the model in the box.
  */
 import { AgentChats, Alert, Button, cx, Empty, Loading, Seg } from "@wren/ui";

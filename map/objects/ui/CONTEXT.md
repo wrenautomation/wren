@@ -36,11 +36,11 @@ A set has `default`, `empty`, `loading`, `failed`, `worst-case` where the part h
 | a before/after | `Diff` `diff.tsx:62` | `diff` | Tables |
 | tile sparks, trends, bars, rings | `Sparkline`, `TrendChart`, `BarsChart`, `RingChart` `charts/index.tsx:82` | `charts`, `charts-dashboard` | Charts |
 | a graph: ribbons (people as width), loops | `Graph` `graph/index.tsx:47`, `ribbonWidth` `graph/model.ts:111` | `graph-ribbons` | Motion |
-| one Birdwatch run as a graph: claim web, search tree, lanes; click a node to open it in place. Its own export `@wren/ui/research/run`; the portal maps a serve view in `modules/research/graph.ts` | `RunGraph` `research/run/graph.tsx:170` | `research-run`, `birdwatch-research--graph` | Motion |
+| one Weaver run as a graph: claim web, search tree, lanes; click a node to open it in place. Its own export `@wren/ui/research/run`; the portal maps a serve view in `modules/research/graph.ts` | `RunGraph` `research/run/graph.tsx:170` | `research-run`, `weaver-research--graph` | Motion |
 | the research web: runs, sources, claims as dots | `WebCanvas` `graph/index.tsx:36` | `graph-web` | Motion |
 | the metro map: lines, stations, tracks, zoom, focus, diff marks | `MetroMap` `metro/map.tsx:151` | `orrery`, `orrery-lab`, `orrery-money-models` | Motion |
 | the agent chat: a thread, its cards, the chat list | `AgentThread` `agent-thread.tsx:421`, `AgentChats` `agent-chats.tsx:34` | `agent-thread`, `agent-chats` | Lists and records |
-| a product's cards in the chat: a Birdwatch run as the Research page's own graph in card mode (`RunGraph card`), one source read alone. A CLI's `::view` line makes the part (`lift`, `apps/portal/web/src/modules/agent/thread.ts`); the portal's table is `modules/agent/views.ts`; the card reads by ref in `modules/research/chat-card.tsx`, data from `runGraphOf` | `RunCard`, `SourceCard` `research/run/card.tsx` | `research-chat`, `pages-agent--card` | Cards |
+| a product's cards in the chat: a Weaver run as the Research page's own graph in card mode (`RunGraph card`), one source read alone. A CLI's `::view` line makes the part (`lift`, `apps/portal/web/src/modules/agent/thread.ts`); the portal's table is `modules/agent/views.ts`; the card reads by ref in `modules/research/chat-card.tsx`, data from `runGraphOf` | `RunCard`, `SourceCard` `research/run/card.tsx` | `research-chat`, `pages-agent--card` | Cards |
 | the leaf and the sweep | `Leaf` `metro/marks.tsx:628`, `Sweep` `sweep.tsx:76` | `leaf-and-sweep` | Shapes |
 | `queue`, `form`, `shop` pages | `RecordQueue` `queue.tsx:60`, `RecordForm` `form.tsx:27`, `RecordShop` `shop.tsx:37` | no part story: their page stories | Lists and records, Cards |
 
@@ -48,12 +48,12 @@ No part story: a module's own pieces (for example `modules/marketing/pieces.tsx`
 
 ## Page stories
 
-Files in `apps/portal/web/src/stories/`, one per sidebar group, laid out as the portal's sidebar: `<client|wren>/<place>/<group>.stories.tsx`, title `Wren/<Place>/<Group>`; Birdwatch and Vireo are top-level groups. The order is `storySort` in `.storybook/preview.tsx`. Ids follow titles (`wren-map-layers--floor`). Shared helpers: `<group dir>/<source>-kit.tsx`. The guard `stories-cover.test.ts` fails on a page with no story (`designs/2026-11-05-story-parity.md`).
+Files in `apps/portal/web/src/stories/`, one per sidebar group, laid out as the portal's sidebar: `<client|wren>/<place>/<group>.stories.tsx`, title `Wren/<Place>/<Group>`; Weaver and Vireo are top-level groups. The order is `storySort` in `.storybook/preview.tsx`. Ids follow titles (`wren-map-layers--floor`). Shared helpers: `<group dir>/<source>-kit.tsx`. The guard `stories-cover.test.ts` fails on a page with no story (`designs/2026-11-05-story-parity.md`).
 
 | Folder | Shows |
 |---|---|
 | `wren/shell/` | the sidebar, the phone dock, the player |
-| `wren/agent-chat`, `birdwatch/` | the agent chat on tapes; Birdwatch's tree, sources, web |
+| `wren/agent-chat`, `weaver/` | the agent chat on tapes; Weaver's tree, sources, web |
 | `wren/map/` | Overview, Loading and empty, Panels, Focus, Layers, History, Drafts, Import and export, Offer shapes, Offers |
 | `wren/today/` | Overview (states), Approve and messages, Mail, Calendar |
 | `wren/campaigns/` | Overview, Content, Outreach, Cold email |

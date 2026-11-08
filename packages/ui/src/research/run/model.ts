@@ -1,7 +1,7 @@
 /**
- * One birdwatch run as its graph reads it (designs/2026-11-05-research-web.md, round 13): sources
+ * One weaver run as its graph reads it (designs/2026-11-05-research-web.md, round 13): sources
  * with their pages and kept findings, the run's claims, its searches and its dropped hits. The
- * portal maps `birdwatch serve`'s view into this; the graph computes nothing from the ledger.
+ * portal maps `weaver serve`'s view into this; the graph computes nothing from the ledger.
  * Short keys are the artifact's (`LdYvUurK`), kept so the port reads line for line against it.
  */
 
@@ -152,7 +152,7 @@ export interface GraphDrop {
 }
 
 export interface RunGraphData {
-  /** the run id, for `birdwatch open` */
+  /** the run id, for `weaver open` */
   rid: string;
   /** the ask, whole */
   t: string;

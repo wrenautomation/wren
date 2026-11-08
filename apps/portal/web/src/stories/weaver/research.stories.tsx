@@ -1,4 +1,4 @@
-/** Birdwatch in the portal: Live, History, one run's graph and back and forth, runs together. Fake server: `web/src/mocks/`. */
+/** Weaver in the portal: Live, History, one run's graph and back and forth, runs together. Fake server: `web/src/mocks/`. */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { HttpResponse, http, type RequestHandler, sse, type WebSocketHandler } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
@@ -10,7 +10,7 @@ import { pageAt, tidy } from "../../mocks/page.js";
 import { fakeRelay, type TapeLine } from "../../mocks/relay.js";
 import { SERVE } from "../../modules/research/serve.js";
 
-const meta: Meta = { title: "Birdwatch/Research" };
+const meta: Meta = { title: "Weaver/Research" };
 export default meta;
 
 /** The graph loads its drawing code late: a loaded Mac needs more than the 1 s default. */
@@ -100,7 +100,7 @@ export const BackAndForth = story("/research/history?run=r1&tab=talk", async (pa
 export const NoServe = story(
   "/research/history",
   async (page) => {
-    await within(page).findByText("Can't reach birdwatch serve");
+    await within(page).findByText("Can't reach weaver serve");
   },
   REFUSED,
 );
@@ -133,9 +133,9 @@ export const Chat = tidy(
       });
       await userEvent.keyboard("{Control>}j{/Control}");
       const chat = await within(page).findByRole("complementary", { name: "Agent" });
-      await within(chat).findByText("Birdwatch", {}, LATE);
+      await within(chat).findByText("Weaver", {}, LATE);
       // the page's own head carries the same name
-      expect(within(page).getAllByText("Birdwatch").length).toBeGreaterThan(1);
+      expect(within(page).getAllByText("Weaver").length).toBeGreaterThan(1);
       // a new chat has the `/` menu before its first turn: the relay keeps the last list
       await userEvent.type(within(chat).getByRole("textbox", { name: "Message" }), "/");
       await within(chat).findByRole("listbox", { name: "Commands" }, LATE);

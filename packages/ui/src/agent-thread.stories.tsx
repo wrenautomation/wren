@@ -32,13 +32,13 @@ const ANSWER = `Most coaches book through **Calendly** or **Cal.com**, linked fr
 - Cal.com: 2 of 9
 - A form, then a manual reply: 1 of 9
 
-Sources: the 9 pages the run read, in \`birdwatch show r-41\`.`;
+Sources: the 9 pages the run read, in \`weaver show r-41\`.`;
 
 const RECALL = {
   type: "tool" as const,
   id: "t1",
   name: "Bash",
-  input: { command: "birdwatch recall 'coach booking tools'", description: "Check past runs" },
+  input: { command: "weaver recall 'coach booking tools'", description: "Check past runs" },
   result: '{"runs":[{"run":"r-41","ask":"coach booking tools","kept":9}]}',
 };
 
@@ -121,7 +121,7 @@ export const Empty: Story = {
       placeholder="Ask a research question"
       welcome={{
         title: "What should I research?",
-        text: "The agent plans the research with birdwatch, runs it, and answers with sources.",
+        text: "The agent plans the research with weaver, runs it, and answers with sources.",
         suggestions: ["How do coaches book calls?", "Find cold email reply benchmarks."],
       }}
       note="Claude agent on your Claude plan · Bash, Read, Skill"
@@ -335,11 +335,11 @@ export const Steps: Story = {
           role: "assistant",
           state: "done",
           parts: [
-            STEP("s1", "birdwatch recall 'coach booking'", "Check past runs", "{}"),
+            STEP("s1", "weaver recall 'coach booking'", "Check past runs", "{}"),
             STEP("s2", "curl -sI https://northwind.example", "Read the site", "HTTP/2 200"),
             STEP("s3", "wc -w page.md", "Count words", "2140 page.md"),
             STEP("s4", "rg -c calendly pages/", "Find booking links", "6"),
-            STEP("s5", "birdwatch search r-42", "Search the web", '{"kept":9,"pages":[1,2,3]}'),
+            STEP("s5", "weaver search r-42", "Search the web", '{"kept":9,"pages":[1,2,3]}'),
             {
               type: "tool",
               id: "s6",
@@ -400,7 +400,7 @@ export const Running: Story = {
           role: "assistant",
           state: "live",
           parts: [
-            STEP("s1", "birdwatch recall 'coach booking'", "Check past runs", "{}"),
+            STEP("s1", "weaver recall 'coach booking'", "Check past runs", "{}"),
             STEP("s2", "curl -sI https://northwind.example", "Read the site", "HTTP/2 200"),
             STEP("s3", "wc -w page.md", "Count words"),
           ],
@@ -509,7 +509,7 @@ export const Failed: Story = {
           id: "a1",
           role: "assistant",
           state: "failed",
-          parts: [{ ...RECALL, result: "birdwatch: ledger locked", failed: true }],
+          parts: [{ ...RECALL, result: "weaver: ledger locked", failed: true }],
         },
       ]}
     />
@@ -553,7 +553,7 @@ export const Files: Story = {
             role: "assistant",
             state: "done",
             parts: [
-              STEP("w1", "birdwatch watch /u/ab/1/promo-cut-3.mp4", "Read the video", "{}"),
+              STEP("w1", "weaver watch /u/ab/1/promo-cut-3.mp4", "Read the video", "{}"),
               { type: "text", text: "Hook A lands first: the number is on screen by 0.8 s." },
             ],
           },

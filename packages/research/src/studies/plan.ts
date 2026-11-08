@@ -1,7 +1,7 @@
 /**
- * The study planner falcon 0.5.0 dropped (birdwatch plans and runs there now): plan an angle into
+ * The study planner falcon 0.5.0 dropped (weaver plans and runs there now): plan an angle into
  * searches, pick which pages to read, read one page into claims on every angle. A bridge, kept
- * here word for word from falcon 0.4, until `wren study` runs on birdwatch.
+ * here word for word from falcon 0.4, until `wren study` runs on weaver.
  *
  * A claim is kept only when its quote is on a page it was shown, word for word, and every number
  * in the claim is in the quote (a year may come from the page).

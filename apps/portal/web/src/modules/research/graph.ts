@@ -1,5 +1,5 @@
 /**
- * A birdwatch run view as the run graph's data (`@wren/ui/research/run`). Ported from the
+ * A weaver run view as the run graph's data (`@wren/ui/research/run`). Ported from the
  * artifact's builder (round 11 prep), so the page draws what the artifact drew. Mapped on read,
  * until the engine sends this shape itself (WA-1157).
  */

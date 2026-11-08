@@ -32,10 +32,10 @@
         "response": {
           "commands": [
             {
-              "name": "birdwatch:birdwatch",
-              "description": "(birdwatch) Research a question from the open web with birdwatch, one step per command. Use when the user says \"research &lt;topic&gt;\", \"find out &lt;question&gt;\", \"what do sources say about &lt;x&gt;\", \"look into &lt;vertical&gt;\", or wants a sourced answer. You plan, triage, review and stop; the engine searches, opens pages, extracts findings behind a quote gate, checks them, and keeps every record. Every finding is a sentence with a quote on a page the run read.",
+              "name": "weaver:weaver",
+              "description": "(weaver) Research a question from the open web with weaver, one step per command. Use when the user says \"research &lt;topic&gt;\", \"find out &lt;question&gt;\", \"what do sources say about &lt;x&gt;\", \"look into &lt;vertical&gt;\", or wants a sourced answer. You plan, triage, review and stop; the engine searches, opens pages, extracts findings behind a quote gate, checks them, and keeps every record. Every finding is a sentence with a quote on a page the run read.",
               "argumentHint": "",
-              "aliases": ["birdwatch"]
+              "aliases": ["weaver"]
             },
             {
               "name": "doctor",
@@ -354,7 +354,7 @@
       "model": "claude-sonnet-5-5",
       "permissionMode": "default",
       "slash_commands": [
-        "birdwatch:birdwatch",
+        "weaver:weaver",
         "doctor",
         "plugin-authoring",
         "agents",
@@ -392,7 +392,7 @@
       "claude_code_version": "2.1.318",
       "output_style": "default",
       "agents": ["claude", "Explore", "general-purpose", "Plan", "statusline-setup"],
-      "skills": ["birdwatch:birdwatch", "doctor", "plugin-authoring"],
+      "skills": ["weaver:weaver", "doctor", "plugin-authoring"],
       "capabilities": [
         "interrupt_receipt_v1",
         "interrupt_cancel_queued_v1",
@@ -1435,11 +1435,11 @@
             "tokens": 161,
             "skillFrontmatter": [
               {
-                "name": "birdwatch:birdwatch",
+                "name": "weaver:weaver",
                 "source": "plugin",
-                "pluginName": "birdwatch",
-                "pluginId": "birdwatch@inline",
-                "path": "/Users/you/work/wren/node_modules/.pnpm/@wrenautomation+birdwatch@0.36.1/node_modules/@wrenautomation/birdwatch/skills/birdwatch/SKILL.md",
+                "pluginName": "weaver",
+                "pluginId": "weaver@inline",
+                "path": "/Users/you/work/wren/node_modules/.pnpm/@wrenautomation+weaver@0.36.1/node_modules/@wrenautomation/weaver/skills/weaver/SKILL.md",
                 "tokens": 161
               }
             ]
@@ -1498,7 +1498,7 @@
       "model": "claude-sonnet-5-5",
       "permissionMode": "default",
       "slash_commands": [
-        "birdwatch:birdwatch",
+        "weaver:weaver",
         "doctor",
         "plugin-authoring",
         "agents",
@@ -1536,7 +1536,7 @@
       "claude_code_version": "2.1.318",
       "output_style": "default",
       "agents": ["claude", "Explore", "general-purpose", "Plan", "statusline-setup"],
-      "skills": ["birdwatch:birdwatch", "doctor", "plugin-authoring"],
+      "skills": ["weaver:weaver", "doctor", "plugin-authoring"],
       "capabilities": [
         "interrupt_receipt_v1",
         "interrupt_cancel_queued_v1",
@@ -1984,11 +1984,11 @@
             "tokens": 161,
             "skillFrontmatter": [
               {
-                "name": "birdwatch:birdwatch",
+                "name": "weaver:weaver",
                 "source": "plugin",
-                "pluginName": "birdwatch",
-                "pluginId": "birdwatch@inline",
-                "path": "/Users/you/work/wren/node_modules/.pnpm/@wrenautomation+birdwatch@0.36.1/node_modules/@wrenautomation/birdwatch/skills/birdwatch/SKILL.md",
+                "pluginName": "weaver",
+                "pluginId": "weaver@inline",
+                "path": "/Users/you/work/wren/node_modules/.pnpm/@wrenautomation+weaver@0.36.1/node_modules/@wrenautomation/weaver/skills/weaver/SKILL.md",
                 "tokens": 161
               }
             ]

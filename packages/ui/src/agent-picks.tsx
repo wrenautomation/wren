@@ -509,7 +509,7 @@ export function SlashMenu({ commands }: { commands: readonly AgentCommand[] }) {
       search: (q) => {
         const l = q.toLowerCase();
         query.current = l;
-        // a plugin skill matches on its own name too: `/bird` finds `birdwatch:birdwatch`
+        // a plugin skill matches on its own name too: `/bird` finds `weaver:weaver`
         const starts = (c: AgentCommand) =>
           c.name.toLowerCase().startsWith(l) || c.name.toLowerCase().split(":")[1]?.startsWith(l);
         return commands

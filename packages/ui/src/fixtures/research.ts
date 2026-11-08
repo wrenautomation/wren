@@ -1,4 +1,4 @@
-/** Birdwatch in the chat: one source read on its own. Made-up channel and numbers. */
+/** Weaver in the chat: one source read on its own. Made-up channel and numbers. */
 import type { NextAsk, SourceRead } from "../research/run/card.js";
 
 /** the agent's next asks under a run card */

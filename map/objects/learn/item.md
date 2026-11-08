@@ -13,7 +13,7 @@ One thing to learn from (`learn.items`), in one workspace (`client`: a client's 
 
 ## Why this shape
 
-Learn is now the breakdown core: read, break down, feed SOPs. The reader half (feeds, follows, back catalog, scores, alerts, digest, embeddings, pictures, the portal app) was cut on 2026-11-04 (WA-1067.2). It comes back as Birdwatch outputs or the brand voice under Map. A YouTube video, a reel or an episode needs yt-dlp, ffmpeg and a home IP, so it waits for the Mac (`needs_mac`). A client's items break down on its own models allowance (`judges`, `judge.ts`).
+Learn is now the breakdown core: read, break down, feed SOPs. The reader half (feeds, follows, back catalog, scores, alerts, digest, embeddings, pictures, the portal app) was cut on 2026-11-04 (WA-1067.2). It comes back as Weaver outputs or the brand voice under Map. A YouTube video, a reel or an episode needs yt-dlp, ffmpeg and a home IP, so it waits for the Mac (`needs_mac`). A client's items break down on its own models allowance (`judges`, `judge.ts`).
 
 ## Shape
 

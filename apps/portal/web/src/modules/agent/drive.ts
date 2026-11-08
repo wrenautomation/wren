@@ -70,7 +70,7 @@ export const usePageContextText = (): string | undefined =>
 
 let chatRuns: readonly string[] = [];
 
-/** The birdwatch runs the open chat's cards name, in order: Research › Live draws them. */
+/** The weaver runs the open chat's cards name, in order: Research › Live draws them. */
 export function setChatRuns(runs: readonly string[]): void {
   if (runs.length === chatRuns.length && runs.every((r, i) => r === chatRuns[i])) return;
   chatRuns = runs;

@@ -75,7 +75,7 @@ export const youtubeSource = async (
 ): Promise<Source> => {
   const { ffmpeg, store, ...rest } = opts;
   const key = mediaKey(url);
-  // with the screen: its own read, apart from a captions-only one (birdwatch's key)
+  // with the screen: its own read, apart from a captions-only one (weaver's key)
   const kept = key && opts.video ? `${key}.screen` : key;
   return toSource(
     await keptRead(store, kept, () =>

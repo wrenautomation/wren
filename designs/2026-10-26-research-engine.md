@@ -1460,3 +1460,14 @@ Shipped in engine 0.47.0: `birdwatch add next <run> "<ask>" --why "<why>"` write
   - Chosen: A. Same keys as wren's learn (`cache/<platform>/<id>`), so a video read by either downloads once.
 - `BIRDWATCH_MEDIA_BUCKET` turns it on (this Mac: `~/.config/birdwatch/config.json` vars). A failing bucket only warns; the folder still serves.
 - Follow-up at wren's next pin bump: import `@wrenautomation/read/s3`, delete `packages/research/src/sops/media-store.ts`.
+
+## 11-08: birdwatch is now weaver (WA-1190)
+
+William 11-08: "rename birdwatch to weaver across the board." Engine 0.51.0.
+
+- Package `@wrenautomation/weaver`, bin `weaver`, skill `weaver`, env `WEAVER_*`, config `~/.config/weaver/config.json`, plan ids `weaver/<kind>`, ladder caller `weaver`.
+- The npm name held 0.27.0 to 0.28.0 from the first weaver (retired at 0.29.0, above). It was the engine, sources, ledger and CLI, so the name fits; versions go on from 0.51.0. A new scope or a suffix (`weaver-engine`) was the other option: no gain, and a name William did not pick.
+- `@wrenautomation/birdwatch` is deprecated on npm and points here. No alias package: one name only.
+- No env file or prod secret had a `BIRDWATCH_*` name; this Mac's config keys were renamed by hand.
+- The agent setup is `weaver`. This Mac's session ledger (`~/.config/wren/agent-sessions.jsonl`) was rewritten so past chats stay listed.
+- Dated logs, closed tasks and this file's earlier entries keep "birdwatch": they are history.

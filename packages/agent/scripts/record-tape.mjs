@@ -14,7 +14,7 @@ import { parseArgs } from "node:util";
 const { values: o, positionals: said } = parseArgs({
   allowPositionals: true,
   options: {
-    setup: { type: "string", default: "birdwatch" },
+    setup: { type: "string", default: "weaver" },
     // the setup's own model by default, as a new chat on the page
     model: { type: "string" },
     stop: { type: "string" },

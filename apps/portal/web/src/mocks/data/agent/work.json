@@ -15,7 +15,7 @@
       "type": "user",
       "message": {
         "role": "user",
-        "content": "A test of the chat page, no research. Do these in order:\n1. Run `printf 'northwind.example 200\\nbakers.example 200\\n'` with Bash.\n2. Start `for i in 1 2 3 4 5 6; do echo \"tick $i\"; sleep 2; done` with Bash in the background.\n3. Load the birdwatch skill, but do not run it.\n4. Ask me with AskUserQuestion which site to read first: northwind.example or bakers.example.\n5. Reply with three short markdown bullets on what you did, and one line on my pick."
+        "content": "A test of the chat page, no research. Do these in order:\n1. Run `printf 'northwind.example 200\\nbakers.example 200\\n'` with Bash.\n2. Start `for i in 1 2 3 4 5 6; do echo \"tick $i\"; sleep 2; done` with Bash in the background.\n3. Load the weaver skill, but do not run it.\n4. Ask me with AskUserQuestion which site to read first: northwind.example or bakers.example.\n5. Reply with three short markdown bullets on what you did, and one line on my pick."
       },
       "parent_tool_use_id": null,
       "session_id": ""
@@ -32,10 +32,10 @@
         "response": {
           "commands": [
             {
-              "name": "birdwatch:birdwatch",
-              "description": "(birdwatch) Research a question from the open web with birdwatch, one step per command. Use when the user says \"research &lt;topic&gt;\", \"find out &lt;question&gt;\", \"what do sources say about &lt;x&gt;\", \"look into &lt;vertical&gt;\", or wants a sourced answer. You plan, triage, review and stop; the engine searches, opens pages, extracts findings behind a quote gate, checks them, and keeps every record. Every finding is a sentence with a quote on a page the run read.",
+              "name": "weaver:weaver",
+              "description": "(weaver) Research a question from the open web with weaver, one step per command. Use when the user says \"research &lt;topic&gt;\", \"find out &lt;question&gt;\", \"what do sources say about &lt;x&gt;\", \"look into &lt;vertical&gt;\", or wants a sourced answer. You plan, triage, review and stop; the engine searches, opens pages, extracts findings behind a quote gate, checks them, and keeps every record. Every finding is a sentence with a quote on a page the run read.",
               "argumentHint": "",
-              "aliases": ["birdwatch"]
+              "aliases": ["weaver"]
             },
             {
               "name": "doctor",
@@ -354,7 +354,7 @@
       "model": "claude-sonnet-5-5",
       "permissionMode": "default",
       "slash_commands": [
-        "birdwatch:birdwatch",
+        "weaver:weaver",
         "doctor",
         "plugin-authoring",
         "agents",
@@ -392,7 +392,7 @@
       "claude_code_version": "2.1.318",
       "output_style": "default",
       "agents": ["claude", "Explore", "general-purpose", "Plan", "statusline-setup"],
-      "skills": ["birdwatch:birdwatch", "doctor", "plugin-authoring"],
+      "skills": ["weaver:weaver", "doctor", "plugin-authoring"],
       "capabilities": [
         "interrupt_receipt_v1",
         "interrupt_cancel_queued_v1",
@@ -1564,7 +1564,7 @@
       "event": {
         "type": "content_block_delta",
         "index": 3,
-        "delta": { "type": "input_json_delta", "partial_json": "\": \"bir" }
+        "delta": { "type": "input_json_delta", "partial_json": "\": \"wea" }
       },
       "session_id": "00000000-0000-4000-8000-000000000001",
       "parent_tool_use_id": null,
@@ -1580,7 +1580,7 @@
       "event": {
         "type": "content_block_delta",
         "index": 3,
-        "delta": { "type": "input_json_delta", "partial_json": "dwatch:" }
+        "delta": { "type": "input_json_delta", "partial_json": "ver:" }
       },
       "session_id": "00000000-0000-4000-8000-000000000001",
       "parent_tool_use_id": null,
@@ -1596,7 +1596,7 @@
       "event": {
         "type": "content_block_delta",
         "index": 3,
-        "delta": { "type": "input_json_delta", "partial_json": "birdwat" }
+        "delta": { "type": "input_json_delta", "partial_json": "weav" }
       },
       "session_id": "00000000-0000-4000-8000-000000000001",
       "parent_tool_use_id": null,
@@ -1612,7 +1612,7 @@
       "event": {
         "type": "content_block_delta",
         "index": 3,
-        "delta": { "type": "input_json_delta", "partial_json": "ch\"}" }
+        "delta": { "type": "input_json_delta", "partial_json": "er\"}" }
       },
       "session_id": "00000000-0000-4000-8000-000000000001",
       "parent_tool_use_id": null,
@@ -1635,7 +1635,7 @@
             "type": "tool_use",
             "id": "toolu_01SmTr9buqyaYcLrNor8P6gF",
             "name": "Skill",
-            "input": { "skill": "birdwatch:birdwatch" },
+            "input": { "skill": "weaver:weaver" },
             "caller": { "type": "direct" }
           }
         ],
@@ -1860,7 +1860,7 @@
           {
             "type": "tool_result",
             "tool_use_id": "toolu_01SmTr9buqyaYcLrNor8P6gF",
-            "content": "Launching skill: birdwatch:birdwatch"
+            "content": "Launching skill: weaver:weaver"
           }
         ]
       },
@@ -1868,7 +1868,7 @@
       "session_id": "00000000-0000-4000-8000-000000000001",
       "uuid": "b9501418-05e3-4092-bc0a-cb3d6acfe4f1",
       "timestamp": "2026-11-04T23:20:27.112Z",
-      "tool_use_result": { "success": true, "commandName": "birdwatch:birdwatch" },
+      "tool_use_result": { "success": true, "commandName": "weaver:weaver" },
       "tool_result_meta": [
         {
           "id": "toolu_01SmTr9buqyaYcLrNor8P6gF",
@@ -1887,7 +1887,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Base directory for this skill: /Users/you/work/wren/node_modules/.pnpm/@wrenautomation+birdwatch@0.36.1/node_modules/@wrenautomation/birdwatch/skills/birdwatch\n\n# birdwatch\n\nYou drive. The engine is a CLI (`birdwatch`, `@wrenautomation/birdwatch`) that prints JSON and\nwrites a ledger. In the engine repo it is `node packages/birdwatch/dist/app/cli.js`; elsewhere\n`npx @wrenautomation/birdwatch`. It never decides what to search next, what to read, or when to stop: you do, in your\nown head, and you write each decision as a record with a why. The person steers you in chat;\ntheir words reach the ledger through you as `--human` records.\n\nSet `BIRDWATCH_AGENT` to your id (`claude-code`, `codex`, a name) once: every record you write\nnames it. The ledger folder is `--ledger` (before or after the command) or `BIRDWATCH_LEDGER`\n(default `./ledger`). Sources come from the environment. `~/.config/birdwatch/config.json`\nnames the env files to read keys from, so no wrapper is needed; a set variable wins.\n`birdwatch sources` lists what this machine can run. A Reddit thread and a Facebook\ngroup post open through their own readers (`reddit`, `facebook`) before the page openers. A query pinned to `reddit.com` also searches Reddit itself, signed out (it shares a daily read cap; Exa has no Reddit index). `hn` searches Hacker News (free) and reads a thread with every comment. `youtube` lists through the YouTube Data API when `YOUTUBE_API_KEY` is set (exact views, likes and comments; 10k units a day, a search costs 100, a listing 1), else through yt-dlp. A YouTube open reads the captions only, free. `youtube-see` (with `ANTHROPIC_API_KEY`) reads what a video shows, only when you name it: `open --see`. A query pinned to `linkedin.com` searches LinkedIn posts through the desk, only as the account `BIRDWATCH_ACCOUNTS` names (`linkedin=linkedin@wren`; never the bare `linkedin`, a person's own profile). **Presets** set a search's sort and window in one grammar: `latest` or `top`, `day`, `week`,\n[cut: the rest of the skill]"
+            "text": "Base directory for this skill: /Users/you/work/wren/node_modules/.pnpm/@wrenautomation+weaver@0.36.1/node_modules/@wrenautomation/weaver/skills/weaver\n\n# weaver\n\nYou drive. The engine is a CLI (`weaver`, `@wrenautomation/weaver`) that prints JSON and\nwrites a ledger. In the engine repo it is `node packages/weaver/dist/app/cli.js`; elsewhere\n`npx @wrenautomation/weaver`. It never decides what to search next, what to read, or when to stop: you do, in your\nown head, and you write each decision as a record with a why. The person steers you in chat;\ntheir words reach the ledger through you as `--human` records.\n\nSet `WEAVER_AGENT` to your id (`claude-code`, `codex`, a name) once: every record you write\nnames it. The ledger folder is `--ledger` (before or after the command) or `WEAVER_LEDGER`\n(default `./ledger`). Sources come from the environment. `~/.config/weaver/config.json`\nnames the env files to read keys from, so no wrapper is needed; a set variable wins.\n`weaver sources` lists what this machine can run. A Reddit thread and a Facebook\ngroup post open through their own readers (`reddit`, `facebook`) before the page openers. A query pinned to `reddit.com` also searches Reddit itself, signed out (it shares a daily read cap; Exa has no Reddit index). `hn` searches Hacker News (free) and reads a thread with every comment. `youtube` lists through the YouTube Data API when `YOUTUBE_API_KEY` is set (exact views, likes and comments; 10k units a day, a search costs 100, a listing 1), else through yt-dlp. A YouTube open reads the captions only, free. `youtube-see` (with `ANTHROPIC_API_KEY`) reads what a video shows, only when you name it: `open --see`. A query pinned to `linkedin.com` searches LinkedIn posts through the desk, only as the account `WEAVER_ACCOUNTS` names (`linkedin=linkedin@wren`; never the bare `linkedin`, a person's own profile). **Presets** set a search's sort and window in one grammar: `latest` or `top`, `day`, `week`,\n[cut: the rest of the skill]"
           }
         ]
       },
@@ -3193,7 +3193,7 @@
       "event": {
         "type": "content_block_delta",
         "index": 0,
-        "delta": { "type": "text_delta", "text": "birdwatch` command" }
+        "delta": { "type": "text_delta", "text": "weaver` command" }
       },
       "session_id": "00000000-0000-4000-8000-000000000001",
       "parent_tool_use_id": null,
@@ -3406,7 +3406,7 @@
         "content": [
           {
             "type": "text",
-            "text": "- Ran `printf` and got `northwind.example 200` and `bakers.example 200`.\n- Started the six-tick counter in the background (ID `bwqy5fz0r`). I haven't checked its output.\n- Loaded the birdwatch skill without running any `birdwatch` command, then asked which site to read first.\n\nYou picked northwind.example, so it goes first. I haven't read it, since this was only a chat test."
+            "text": "- Ran `printf` and got `northwind.example 200` and `bakers.example 200`.\n- Started the six-tick counter in the background (ID `bwqy5fz0r`). I haven't checked its output.\n- Loaded the weaver skill without running any `weaver` command, then asked which site to read first.\n\nYou picked northwind.example, so it goes first. I haven't read it, since this was only a chat test."
           }
         ],
         "container": null,
@@ -3547,7 +3547,7 @@
       "num_turns": 6,
       "subtype": "success",
       "api_error_status": null,
-      "result": "- Ran `printf` and got `northwind.example 200` and `bakers.example 200`.\n- Started the six-tick counter in the background (ID `bwqy5fz0r`). I haven't checked its output.\n- Loaded the birdwatch skill without running any `birdwatch` command, then asked which site to read first.\n\nYou picked northwind.example, so it goes first. I haven't read it, since this was only a chat test.",
+      "result": "- Ran `printf` and got `northwind.example 200` and `bakers.example 200`.\n- Started the six-tick counter in the background (ID `bwqy5fz0r`). I haven't checked its output.\n- Loaded the weaver skill without running any `weaver` command, then asked which site to read first.\n\nYou picked northwind.example, so it goes first. I haven't read it, since this was only a chat test.",
       "ttft_ms": 1943,
       "type": "result",
       "duration_ms": 7431,
@@ -3651,11 +3651,11 @@
             "tokens": 161,
             "skillFrontmatter": [
               {
-                "name": "birdwatch:birdwatch",
+                "name": "weaver:weaver",
                 "source": "plugin",
-                "pluginName": "birdwatch",
-                "pluginId": "birdwatch@inline",
-                "path": "/Users/you/work/wren/node_modules/.pnpm/@wrenautomation+birdwatch@0.36.1/node_modules/@wrenautomation/birdwatch/skills/birdwatch/SKILL.md",
+                "pluginName": "weaver",
+                "pluginId": "weaver@inline",
+                "path": "/Users/you/work/wren/node_modules/.pnpm/@wrenautomation+weaver@0.36.1/node_modules/@wrenautomation/weaver/skills/weaver/SKILL.md",
                 "tokens": 161
               }
             ]
@@ -3720,7 +3720,7 @@
       "model": "claude-sonnet-5-5",
       "permissionMode": "default",
       "slash_commands": [
-        "birdwatch:birdwatch",
+        "weaver:weaver",
         "doctor",
         "plugin-authoring",
         "agents",
@@ -3758,7 +3758,7 @@
       "claude_code_version": "2.1.318",
       "output_style": "default",
       "agents": ["claude", "Explore", "general-purpose", "Plan", "statusline-setup"],
-      "skills": ["birdwatch:birdwatch", "doctor", "plugin-authoring"],
+      "skills": ["weaver:weaver", "doctor", "plugin-authoring"],
       "capabilities": [
         "interrupt_receipt_v1",
         "interrupt_cancel_queued_v1",
@@ -4170,11 +4170,11 @@
             "tokens": 161,
             "skillFrontmatter": [
               {
-                "name": "birdwatch:birdwatch",
+                "name": "weaver:weaver",
                 "source": "plugin",
-                "pluginName": "birdwatch",
-                "pluginId": "birdwatch@inline",
-                "path": "/Users/you/work/wren/node_modules/.pnpm/@wrenautomation+birdwatch@0.36.1/node_modules/@wrenautomation/birdwatch/skills/birdwatch/SKILL.md",
+                "pluginName": "weaver",
+                "pluginId": "weaver@inline",
+                "path": "/Users/you/work/wren/node_modules/.pnpm/@wrenautomation+weaver@0.36.1/node_modules/@wrenautomation/weaver/skills/weaver/SKILL.md",
                 "tokens": 161
               }
             ]

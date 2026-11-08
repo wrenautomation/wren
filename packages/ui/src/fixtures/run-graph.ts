@@ -1,5 +1,5 @@
 /**
- * Synthetic birdwatch runs for `RunGraph`: seeded, so a story, a test and a shot see the same
+ * Synthetic weaver runs for `RunGraph`: seeded, so a story, a test and a shot see the same
  * graph. Made-up shops, sites and quotes; no real name, page or number.
  */
 import type {
@@ -107,7 +107,7 @@ export interface RunGraphShape {
   worst?: boolean;
 }
 
-/** One run, the shape the portal maps from a birdwatch view. */
+/** One run, the shape the portal maps from a weaver view. */
 export function fakeRunGraph(o: RunGraphShape = {}): RunGraphData {
   const r = seeded(o.seed ?? 7);
   const pickOf = <T>(xs: readonly T[]) => xs[Math.floor(r() * xs.length)] as T;

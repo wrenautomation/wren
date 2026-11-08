@@ -185,7 +185,7 @@ export function registerAgent(program: Command): void {
     .description(
       "open one session through a running relay; print what loaded and each turn's tokens",
     )
-    .argument("[setup]", "setup name", "birdwatch")
+    .argument("[setup]", "setup name", "weaver")
     .option("--port <n>", "port", String(AGENT_PORT))
     .option("--say <text...>", "turns to send", ["Reply OK only."])
     .option("--resume <session>", "resume a session")

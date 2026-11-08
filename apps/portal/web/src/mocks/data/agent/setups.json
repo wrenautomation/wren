@@ -1,12 +1,12 @@
 [
   {
-    "name": "birdwatch",
-    "title": "Birdwatch",
+    "name": "weaver",
+    "title": "Weaver",
     "app": "research",
     "model": "sonnet",
     "models": ["sonnet", "haiku", "opus", "fable"],
     "tools": ["Bash", "Read", "Skill", "AskUserQuestion"],
-    "skills": ["birdwatch:birdwatch"]
+    "skills": ["weaver:weaver"]
   },
   {
     "name": "vireo",

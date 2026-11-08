@@ -35,11 +35,11 @@ const WELCOME: Record<string, { title: string; text: string; suggestions: readon
       "Which guides are ready to lock?",
     ],
   },
-  birdwatch: {
+  weaver: {
     title: "What should I research?",
-    text: "The agent plans the research with birdwatch, runs it, and answers with sources. Each step shows as it runs. Add a file, a picture or a video and it reads that too.",
+    text: "The agent plans the research with weaver, runs it, and answers with sources. Each step shows as it runs. Add a file, a picture or a video and it reads that too.",
     suggestions: [
-      "What did the last birdwatch run find?",
+      "What did the last weaver run find?",
       "What do dental clinics pay for patient reactivation?",
       "Find benchmarks for cold email reply rates in 2026.",
       "Which CRMs do small law firms use most?",
@@ -297,7 +297,7 @@ export function AgentChat({
         preview={linkPreview}
         views={VIEWS}
         readFile={async (path) => relayFile(setup.name, await pageToken(), path)}
-        placeholder={setup.name === "birdwatch" ? "Ask a research question" : `Ask ${setup.title}`}
+        placeholder={setup.name === "weaver" ? "Ask a research question" : `Ask ${setup.title}`}
         tools={
           <>
             <AgentPick

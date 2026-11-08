@@ -1,6 +1,6 @@
 /**
- * Research: ask a Claude agent with birdwatch (this Mac's `wren agent serve`), and read birdwatch
- * runs from `birdwatch serve`, live. Wren's team only.
+ * Research: ask a Claude agent with weaver (this Mac's `wren agent serve`), and read weaver
+ * runs from `weaver serve`, live. Wren's team only.
  */
 import type { Module } from "../../module.js";
 import { AskPage } from "./ask.js";
@@ -11,14 +11,14 @@ export const research: Module = {
   id: "research",
   name: "Research",
   icon: "search",
-  product: "Birdwatch",
-  blurb: "Birdwatch runs as they go: the graph, the back and forth, and every source to check.",
+  product: "Weaver",
+  blurb: "Weaver runs as they go: the graph, the back and forth, and every source to check.",
   requires: { audience: "team" },
   pages: [
     {
       id: "ask",
       label: "Ask",
-      about: "Ask a Claude agent with birdwatch; your past chats stay on the left.",
+      about: "Ask a Claude agent with weaver; your past chats stay on the left.",
       Page: AskPage,
       fill: true,
     },

@@ -231,7 +231,7 @@ export function useAgent(o: {
 
   useEffect(() => close, [close]);
 
-  // the chat's birdwatch runs feed Research › Live; a run new to this chat brings Research there
+  // the chat's weaver runs feed Research › Live; a run new to this chat brings Research there
   const named = useRef<{ session: string | undefined; runs: readonly string[] }>({
     session: undefined,
     runs: [],

@@ -1,5 +1,5 @@
 /**
- * Birdwatch in the agent chat (WA-1123): a run draws as the Research page's own graph in card mode;
+ * Weaver in the agent chat (WA-1123): a run draws as the Research page's own graph in card mode;
  * one read source as its findings. Same data as the page (`RunGraphData`).
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -23,7 +23,7 @@ import {
 import { RunCard, type RunCardProps, SourceCard, type SourceRead } from "./card.js";
 
 export default {
-  title: "Parts/Birdwatch in the chat",
+  title: "Parts/Weaver in the chat",
   id: "research-chat",
 } satisfies Meta;
 
@@ -107,7 +107,7 @@ export const Scope: Story = {
               input: {
                 questions: [
                   {
-                    header: "Birdwatch",
+                    header: "Weaver",
                     question: "How far should I go from this reel?",
                     multiSelect: false,
                     options: [
@@ -144,7 +144,7 @@ export const OneSource: Story = {
       messages={[
         you("u1", `Just watch this one. ${REEL}`),
         reply("a1", [
-          step("t1", `birdwatch read ${REEL}`, "Watch the reel", '{"kept":7,"cut":2}'),
+          step("t1", `weaver read ${REEL}`, "Watch the reel", '{"kept":7,"cut":2}'),
           { type: "text", text: "Watched it. 7 findings kept. I started no run." },
           { type: "view", id: "v1", name: "research.source", data: REEL_READ },
         ]),
@@ -172,7 +172,7 @@ export const Default: Story = {
       messages={[
         you("u1", "How do small shops price custom cakes?"),
         reply("a1", [
-          step("t1", "birdwatch brief r-52", "Write the brief", '{"claims":7}'),
+          step("t1", "weaver brief r-52", "Write the brief", '{"claims":7}'),
           {
             type: "text",
             text: "Per serving pricing and deposits hold across most sources. Seven claims, each from more than one source.",
@@ -184,7 +184,7 @@ export const Default: Story = {
   ),
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
-    const card = await c.findByRole("article", { name: /Birdwatch run/ });
+    const card = await c.findByRole("article", { name: /Weaver run/ });
     await waitFor(() => expect(card.querySelector(".rg-nodes [data-n]")).not.toBeNull());
     const name = RUN_ASKS[0]?.ask ?? "";
     const ask = c.getByRole("button", { name });
@@ -204,7 +204,7 @@ export const Live: Story = {
         reply(
           "a1",
           [
-            step("t1", "birdwatch plan", "Plan 3 questions and 4 searches", '{"questions":3}'),
+            step("t1", "weaver plan", "Plan 3 questions and 4 searches", '{"questions":3}'),
             run({ run: RUN_GRAPH_ONE_ROUND, live: true }),
           ],
           true,
@@ -236,7 +236,7 @@ export const Failed: Story = {
     <Chat
       messages={[
         you("u1", "Open run r-52."),
-        reply("a1", [run({ failed: "birdwatch serve stopped answering." })]),
+        reply("a1", [run({ failed: "weaver serve stopped answering." })]),
       ]}
     />
   ),
@@ -253,7 +253,7 @@ export const WorstCase: Story = {
     />
   ),
   play: async ({ canvasElement }) => {
-    const card = await within(canvasElement).findByRole("article", { name: /Birdwatch run/ });
+    const card = await within(canvasElement).findByRole("article", { name: /Weaver run/ });
     await waitFor(() => expect(card.querySelector(".rg-nodes [data-n]")).not.toBeNull());
     await expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth + 1);
   },

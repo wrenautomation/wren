@@ -17,7 +17,7 @@ type ImageType = (typeof IMAGE_TYPES)[number];
 const isImage = (t: string): t is ImageType => (IMAGE_TYPES as readonly string[]).includes(t);
 /** Raw bytes; base64 stays under the API's 5 MB per image. */
 const IMAGE_CAP = 3.75 * 1024 * 1024;
-/** A PDF rides every later turn of the chat: larger ones go to disk and birdwatch reads them. */
+/** A PDF rides every later turn of the chat: larger ones go to disk and weaver reads them. */
 const PDF_CAP = 10 * 1024 * 1024;
 
 // assistant-ui reads only "*" as any file; "*/*" matches none

@@ -77,7 +77,7 @@ describe("fold", () => {
     expect(bash?.type === "tool" && bash.result).toMatch(/northwind\.example 200/);
     expect(bash?.type === "tool" && bash.inputText).toBeUndefined();
     expect(tool(s, "Skill")).toMatchObject({
-      input: { skill: expect.stringMatching(/birdwatch/) },
+      input: { skill: expect.stringMatching(/weaver/) },
     });
     expect(tool(s, "AskUserQuestion")).toMatchObject({
       ask: { allowed: true },
@@ -289,18 +289,18 @@ describe("a product's card", () => {
 
   it("a view line in a tool's output becomes a view part after it", () => {
     let s = said(EMPTY, "read this reel");
-    s = fold(s, call("t1", "birdwatch open --lines reel.txt"));
+    s = fold(s, call("t1", "weaver open --lines reel.txt"));
     s = fold(s, result("t1", step("r1")));
     expect(kinds(s)).toEqual(["tool", 'research.run {"run":"r1"}']);
   });
 
   it("one card a run in a reply: the next step moves it under itself", () => {
     let s = said(EMPTY, "read this reel");
-    s = fold(s, call("t1", "birdwatch open --lines reel.txt"));
+    s = fold(s, call("t1", "weaver open --lines reel.txt"));
     s = fold(s, result("t1", step("r1")));
-    s = fold(s, call("t2", "birdwatch add edge r1 stop --why asked"));
+    s = fold(s, call("t2", "weaver add edge r1 stop --why asked"));
     s = fold(s, result("t2", step("r1")));
-    s = fold(s, call("t3", "birdwatch brief r2"));
+    s = fold(s, call("t3", "weaver brief r2"));
     s = fold(s, result("t3", step("r2")));
     expect(kinds(s)).toEqual([
       "tool",

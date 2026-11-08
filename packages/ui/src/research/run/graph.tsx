@@ -1,5 +1,5 @@
 /**
- * `RunGraph`: one birdwatch run as a graph (designs/2026-11-05-research-web.md, round 13; the
+ * `RunGraph`: one weaver run as a graph (designs/2026-11-05-research-web.md, round 13; the
  * artifact LdYvUurK). Three layouts of the same run: the claim web, the search tree and lanes.
  * Props only: it fetches nothing.
  *
@@ -23,6 +23,7 @@ import {
   useState,
 } from "react";
 import { Empty, Loading } from "../../feedback.js";
+import { Bars } from "./bars.js";
 import {
   type Box,
   type FlatEdge,
@@ -58,7 +59,7 @@ import { capOf, kids, leftOf, presentSet, solveWeb, type WNode, webBox, webEdges
 export type { Pick } from "./panel.js";
 export { LAYS, type LayId } from "./side.js";
 
-import { cls, type Focus, Key, LAYS, type LayId, Side, Summary, Table } from "./side.js";
+import { cls, type Focus, Key, type LayId, Side, Summary, Table } from "./side.js";
 
 const SIDEW = 252;
 const PW = 380;
@@ -86,7 +87,7 @@ function mergedOpen(runs: readonly { rid: string }[], queue: Iterable<string>) {
     if (rid) by.set(rid, [...(by.get(rid) ?? []), id.slice(dot + 1)]);
   }
   return [...by]
-    .map(([rid, ids]) => `birdwatch open ${rid} ${ids.join(" ")} --why "asked to read it"`)
+    .map(([rid, ids]) => `weaver open ${rid} ${ids.join(" ")} --why "asked to read it"`)
     .join(" && ");
 }
 
@@ -135,7 +136,7 @@ function Graph({
   const [fitN, setFitN] = useState(0);
   const [tip, setTip] = useState<{ id: number; el: HTMLElement } | null>(null);
   const [copied, setCopied] = useState(false);
-  const qKey = `birdwatch-read:${L.run.rid}`;
+  const qKey = `weaver-read:${L.run.rid}`;
   const [queue, setQueue] = useState<ReadonlySet<string>>(() => {
     try {
       return new Set(JSON.parse(localStorage.getItem(qKey) || "[]") as string[]);
@@ -328,7 +329,7 @@ function Graph({
   };
   const cmd = L.run.runs
     ? mergedOpen(L.run.runs, queue)
-    : `birdwatch open ${L.run.rid} ${[...queue].join(" ")} --why "asked to read it"`;
+    : `weaver open ${L.run.rid} ${[...queue].join(" ")} --why "asked to read it"`;
 
   const toRound = (r: number) => {
     setRound(r);
@@ -1000,115 +1001,37 @@ function Graph({
 
   return (
     <div className={cls("rg", card && "card")}>
-      <div className="bar lk">
-        <span className="grp">
-          <span className="lb">Layout</span>
-          <div className="seg">
-            {LAYS.map((l, i) => (
-              <button
-                key={l.id}
-                type="button"
-                aria-pressed={l.id === lay}
-                onClick={() =>
-                  // a big merged graph mounts hundreds of marks: let React slice it
-                  startTransition(() => {
-                    if (layP == null) setLayS(l.id);
-                    onLay?.(l.id);
-                    setHover(null);
-                    setOpen(new Set());
-                    askFit(300);
-                  })
-                }
-              >
-                <i>{i + 1}</i>
-                {l.name}
-              </button>
-            ))}
-          </div>
-        </span>
-      </div>
-      {card ? null : <p className="lookcap">{LAYS.find((l) => l.id === lay)?.key}</p>}
-      <div className="bar">
-        <span className="sp" />
-        {L.rounds.length > 1 ? (
-          <span className="grp">
-            <span className="lb">{Step}</span>
-            {L.rounds.length > 8 ? (
-              <select
-                className="seg"
-                aria-label={`Up to ${step}`}
-                value={round}
-                onChange={(e) => toRound(Number(e.target.value))}
-              >
-                {[0, ...L.rounds].map((r) => (
-                  <option key={r} value={r}>
-                    {r
-                      ? `Up to ${step} ${r}${L.run.runs ? `: ${L.run.runs[r - 1]?.t ?? ""}` : ""}`
-                      : "All"}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div className="seg">
-                {[0, ...L.rounds].map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    aria-pressed={r === round}
-                    title={r && L.run.runs ? L.run.runs[r - 1]?.t : undefined}
-                    onClick={() => toRound(r)}
-                  >
-                    {r || "All"}
-                  </button>
-                ))}
-              </div>
-            )}
-          </span>
-        ) : null}
-        <span className="grp">
-          <button
-            type="button"
-            className="btn"
-            aria-label="Zoom out"
-            onClick={() =>
-              stageRef.current &&
-              zoomRef.current &&
-              select(stageRef.current)
-                .transition()
-                .duration(250)
-                .call(zoomRef.current.scaleBy, 1 / 1.4)
-            }
-          >
-            −
-          </button>
-          <button
-            type="button"
-            className="btn"
-            aria-label="Zoom in"
-            onClick={() =>
-              stageRef.current &&
-              zoomRef.current &&
-              select(stageRef.current).transition().duration(250).call(zoomRef.current.scaleBy, 1.4)
-            }
-          >
-            +
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => {
-              setHole(null);
-              setExp(new Set());
-              setLift(new Set());
-              setMore(new Map());
-              setPick(null);
-              askFit(400);
-            }}
-          >
-            Reset
-          </button>
-        </span>
-      </div>
+      <Bars
+        L={L}
+        lay={lay}
+        round={round}
+        step={step}
+        card={card}
+        onLay={(id) =>
+          // a big merged graph mounts hundreds of marks: let React slice it
+          startTransition(() => {
+            if (layP == null) setLayS(id);
+            onLay?.(id);
+            setHover(null);
+            setOpen(new Set());
+            askFit(300);
+          })
+        }
+        toRound={toRound}
+        zoomBy={(k) =>
+          stageRef.current &&
+          zoomRef.current &&
+          select(stageRef.current).transition().duration(250).call(zoomRef.current.scaleBy, k)
+        }
+        reset={() => {
+          setHole(null);
+          setExp(new Set());
+          setLift(new Set());
+          setMore(new Map());
+          setPick(null);
+          askFit(400);
+        }}
+      />
       {card ? null : (
         <>
           <div className="runhead">

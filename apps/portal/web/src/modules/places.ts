@@ -223,7 +223,7 @@ const officePlace: Module = {
   ],
 };
 
-/** Wren's places, in sidebar order. Research is Birdwatch's own place (`./index.ts`). */
+/** Wren's places, in sidebar order. Research is Weaver's own place (`./index.ts`). */
 export const TEAM_PLACES: Module[] = [
   mapPlace,
   todayPlace,

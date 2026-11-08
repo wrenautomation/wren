@@ -1,7 +1,7 @@
 /**
- * Research reads `birdwatch serve` on this Mac (engine `packages/birdwatch/src/app/serve.ts`): the
+ * Research reads `weaver serve` on this Mac (engine `packages/weaver/src/app/serve.ts`): the
  * browser asks 127.0.0.1 itself, so Chrome asks once to let the portal reach the local network.
- * The seam is the JSON: these types copy what the page reads from birdwatch's `view.ts` (`v: 1`).
+ * The seam is the JSON: these types copy what the page reads from weaver's `view.ts` (`v: 1`).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -118,7 +118,7 @@ export interface RunView {
   findings: RunFinding[];
   timeline: Moment[];
   spend: { source: string; op: string; calls: number; failed: number; usd: number }[];
-  /** Agent's next asks (birdwatch 0.47.0): newest first, at most 3. Absent from older serves. */
+  /** Agent's next asks (weaver 0.47.0): newest first, at most 3. Absent from older serves. */
   asks?: RunAsk[];
 }
 
@@ -226,7 +226,7 @@ export function useViews(runs: readonly string[]): {
   });
   // biome-ignore lint/correctness/useExhaustiveDependencies: key is the runs, tick a live change
   useEffect(() => {
-    // read-ok: birdwatch serve on this Mac, not the portal API; a module cache, refetched per live event
+    // read-ok: weaver serve on this Mac, not the portal API; a module cache, refetched per live event
     let live = true;
     setError(null);
     const left = runs.filter((r) => !views.has(r) || stale.has(r));

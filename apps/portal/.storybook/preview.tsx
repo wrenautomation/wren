@@ -2,7 +2,7 @@
  * The portal Storybook's preview: `@wren/ui`'s frame over the app's stylesheet, and a fake server
  * (MSW) started before each story. A story's answers are `parameters.msw` (`web/src/mocks/`).
  * The `data` toolbar's Messy answers every call as prod looks (`setMessy`, mocks/api.ts).
- * The sidebar follows the portal's: Wren's places and their groups, Birdwatch, Vireo, then a
+ * The sidebar follows the portal's: Wren's places and their groups, Weaver, Vireo, then a
  * client's; the ui parts follow in ui's own groups (dev server only, main.ts). A story's id comes
  * from its title (`stories/<place>/<group>/<file>`), so it moves when the file does.
  * In kestrel's frame (`?kestrel`), Alt+click posts the element's source (`data-insp-path`,
@@ -88,7 +88,7 @@ export default {
             "Back office",
             ["Money", "Team", "Workspace"],
           ],
-          "Birdwatch",
+          "Weaver",
           "Vireo",
           ["Batches", "Projects"],
           "Client",

@@ -38,9 +38,9 @@ describe("linksIn, brackets", () => {
 });
 
 describe("steps", () => {
-  it("folds plain commands, names birdwatch", () => {
+  it("folds plain commands, names weaver", () => {
     expect(isCommand("Bash", { command: "ls -la" })).toBe(true);
-    expect(isCommand("Bash", { command: "birdwatch plan x" })).toBe(false);
+    expect(isCommand("Bash", { command: "weaver plan x" })).toBe(false);
     expect(isCommand("Read", { file_path: "/a" })).toBe(false);
   });
   it("says a result in a few words", () => {

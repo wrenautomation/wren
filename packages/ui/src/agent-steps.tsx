@@ -63,8 +63,8 @@ export const tokens = (n: number) =>
       ? `${(n / 1000).toFixed(n < 1e4 ? 1 : 0)}k`
       : `${(n / 1e6).toFixed(1)}M`;
 
-const NAMED = /^\s*birdwatch\b/;
-/** A plain shell command: it folds into the commands block. birdwatch's verbs are named steps. */
+const NAMED = /^\s*weaver\b/;
+/** A plain shell command: it folds into the commands block. weaver's verbs are named steps. */
 export const isCommand = (name: string, input: Args): boolean =>
   name === "Bash" && typeof input.command === "string" && !NAMED.test(input.command);
 

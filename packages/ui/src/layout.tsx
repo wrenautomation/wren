@@ -92,7 +92,7 @@ export function PageTitle({
 }
 
 /**
- * The product that runs a page (Birdwatch, Vireo), at the app head's right and on the chat's head.
+ * The product that runs a page (Weaver, Vireo), at the app head's right and on the chat's head.
  * Outlined, so it never reads as a status tag.
  */
 export function ProductMark({ name, className }: { name: string; className?: string }) {

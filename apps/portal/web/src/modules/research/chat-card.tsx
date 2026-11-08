@@ -1,6 +1,6 @@
 /**
- * Birdwatch's cards in the agent chat. A `view` part carries a ref (the CLI's `::view` line); the
- * card reads the run from `birdwatch serve`, so no data passes through the model and the card
+ * Weaver's cards in the agent chat. A `view` part carries a ref (the CLI's `::view` line); the
+ * card reads the run from `weaver serve`, so no data passes through the model and the card
  * follows the ledger live (designs/2026-11-05-research-web.md, Log 11-05).
  */
 import { AgentSay, type AgentViews, LoadFailed, Loading } from "@wren/ui";

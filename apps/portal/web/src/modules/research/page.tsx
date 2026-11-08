@@ -1,5 +1,5 @@
 /**
- * Research › History (designs/2026-11-05-research-web.md, 11-08): every birdwatch run as a list.
+ * Research › History (designs/2026-11-05-research-web.md, 11-08): every weaver run as a list.
  * One run opens full width as its graph (round 13: claims, sources, searches, dropped hits) and
  * the back and forth (every decision with its why and who made it). Picked runs, or all of them,
  * open on one graph. Read only: the agent and the CLI write. Live: serve sends an event per change.
@@ -63,7 +63,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 export function NoServe({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   return (
     <Empty
-      title="Can't reach birdwatch serve"
+      title="Can't reach weaver serve"
       action={
         <Button size="dense" tone="secondary" onClick={onRetry}>
           Try again
@@ -72,7 +72,7 @@ export function NoServe({ error, onRetry }: { error: unknown; onRetry: () => voi
     >
       <span className="grid gap-1">
         <span>
-          Run <code>birdwatch serve --ledger &lt;a folder&gt; --also &lt;more folders&gt;</code> on
+          Run <code>weaver serve --ledger &lt;a folder&gt; --also &lt;more folders&gt;</code> on
           this Mac. It listens on {SERVE}.
         </span>
         <span>If Chrome asks to let this site reach your local network, allow it.</span>

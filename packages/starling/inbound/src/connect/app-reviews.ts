@@ -264,7 +264,7 @@ export const REVIEWS: readonly Review[] = [
     scopes: [],
     video: ["The google-oauth screencast covers it; the form takes the same link."],
     open: [
-      "Parked (2026-11-03): with no youtube.upload there is no private-only lock to lift, and client reads fit the default quota. Birdwatch's YOUTUBE_API_KEY is in another project (646847423212): an audit of wren-social doesn't raise its quota.",
+      "Parked (2026-11-03): with no youtube.upload there is no private-only lock to lift, and client reads fit the default quota. Weaver's YOUTUBE_API_KEY is in another project (646847423212): an audit of wren-social doesn't raise its quota.",
     ],
   },
   {

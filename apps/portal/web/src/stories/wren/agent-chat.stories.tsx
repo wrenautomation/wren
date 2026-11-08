@@ -74,7 +74,7 @@ const background = (tape: TapeLine[]) => {
 };
 
 /** Tools, a command allowed, a background task and its output, a question answered, a second turn. */
-export const Work = story("/research/ask?setup=birdwatch", TAPES.work ?? [], async (page) => {
+export const Work = story("/research/ask?setup=weaver", TAPES.work ?? [], async (page) => {
   const c = within(page);
   const tape = TAPES.work ?? [];
   const [first = "", second = ""] = typedOn(tape);
@@ -89,7 +89,7 @@ export const Work = story("/research/ask?setup=birdwatch", TAPES.work ?? [], asy
     await expect(c.getByRole("button", { name: /northwind\.example/ })).toBeTruthy();
   }, LONG);
   // a plugin skill shows by its own name
-  expect(c.getByText("Load the birdwatch skill")).toBeTruthy();
+  expect(c.getByText("Load the weaver skill")).toBeTruthy();
   const task = background(tape);
   await userEvent.click(await c.findByRole("button", { name: task }, LONG));
   const out = await c.findByRole("region", { name: `Output of ${task}` }, LONG);
@@ -102,7 +102,7 @@ export const Work = story("/research/ask?setup=birdwatch", TAPES.work ?? [], asy
 });
 
 /** Stopped mid-answer: the turn ends where it was, and the next one runs. */
-export const Stop = story("/research/ask?setup=birdwatch", TAPES.stop ?? [], async (page) => {
+export const Stop = story("/research/ask?setup=weaver", TAPES.stop ?? [], async (page) => {
   const c = within(page);
   const [first = "", second = ""] = typedOn(TAPES.stop ?? []);
   await say(page, first);
@@ -113,31 +113,27 @@ export const Stop = story("/research/ask?setup=birdwatch", TAPES.stop ?? [], asy
 });
 
 /** Typed commands: two refused by the relay, the rest run; the pickers follow /model and /effort. */
-export const Commands = story(
-  "/research/ask?setup=birdwatch",
-  TAPES.commands ?? [],
-  async (page) => {
-    const c = within(page);
-    const typed = typedOn(TAPES.commands ?? []);
-    const after: Record<string, () => Promise<unknown>> = {
-      "/effort huge": () =>
-        c.findByText(/Effort is one of low, medium, high, xhigh, max\./, {}, LONG),
-      "/model gpt": () =>
-        c.findByText(/This chat offers sonnet, haiku, opus, fable, not gpt\./, {}, LONG),
-      "/context": () => c.findByText(/Context Usage/, {}, LONG),
-      "/model haiku": () => c.findByRole("button", { name: /^Model: Haiku/ }, LONG),
-      "/effort low": () => c.findByRole("button", { name: /^Effort: Low/ }, LONG),
-    };
-    for (const t of typed) {
-      await waitFor(() => expect(c.getByRole("button", { name: "Send" })).toBeTruthy(), LONG);
-      await say(page, t);
-      await after[t]?.();
-    }
-  },
-);
+export const Commands = story("/research/ask?setup=weaver", TAPES.commands ?? [], async (page) => {
+  const c = within(page);
+  const typed = typedOn(TAPES.commands ?? []);
+  const after: Record<string, () => Promise<unknown>> = {
+    "/effort huge": () =>
+      c.findByText(/Effort is one of low, medium, high, xhigh, max\./, {}, LONG),
+    "/model gpt": () =>
+      c.findByText(/This chat offers sonnet, haiku, opus, fable, not gpt\./, {}, LONG),
+    "/context": () => c.findByText(/Context Usage/, {}, LONG),
+    "/model haiku": () => c.findByRole("button", { name: /^Model: Haiku/ }, LONG),
+    "/effort low": () => c.findByRole("button", { name: /^Effort: Low/ }, LONG),
+  };
+  for (const t of typed) {
+    await waitFor(() => expect(c.getByRole("button", { name: "Send" })).toBeTruthy(), LONG);
+    await say(page, t);
+    await after[t]?.();
+  }
+});
 
 /** A stored chat, read back from the relay. */
-export const Stored = story(`/research/ask?setup=birdwatch&chat=${STORED}`, [], async (page) => {
+export const Stored = story(`/research/ask?setup=weaver&chat=${STORED}`, [], async (page) => {
   const c = within(page);
   await c.findByText(/A test of the chat page/, {}, LONG);
   await c.findByText(/42/, {}, LONG);
@@ -145,7 +141,7 @@ export const Stored = story(`/research/ask?setup=birdwatch&chat=${STORED}`, [], 
 
 /** A chat the Mac no longer holds (404): the box reads only and says why; no Retry (WA-1173). */
 export const Gone = story(
-  "/research/ask?setup=birdwatch&chat=00000000-0000-4000-8000-0000000000ff",
+  "/research/ask?setup=weaver&chat=00000000-0000-4000-8000-0000000000ff",
   [],
   async (page) => {
     const box = await within(page).findByRole("textbox", { name: "Message" }, LONG);
@@ -164,18 +160,18 @@ export const Panel = story("/research/history", [], async (page) => {
 });
 
 /**
- * A step's output names its run (`::view research.run`): the run's card, read from birdwatch
+ * A step's output names its run (`::view research.run`): the run's card, read from weaver
  * serve, once and under the last step. These frames are written by hand in the stored shape.
  */
 export const Card = (() => {
   const base = story(
-    `/research/ask?setup=birdwatch&chat=${CARDED}`,
+    `/research/ask?setup=weaver&chat=${CARDED}`,
     [],
     async (page) => {
       const c = within(page);
-      const card = await c.findByRole("article", { name: /^Birdwatch run: / }, LONG);
+      const card = await c.findByRole("article", { name: /^Weaver run: / }, LONG);
       expect(within(card).getByText("How do small bakeries find wholesale buyers?")).toBeTruthy();
-      expect(c.getAllByRole("article", { name: /^Birdwatch run: / })).toHaveLength(1);
+      expect(c.getAllByRole("article", { name: /^Weaver run: / })).toHaveLength(1);
       await c.findByText(/The review is next/, {}, LONG);
     },
     [{ session: CARDED, at: "2026-11-05T18:00:00Z", title: "Wholesale buyers", frames: CARD }],
@@ -197,7 +193,7 @@ export const Card = (() => {
  */
 export const Compacted: StoryObj = {
   ...story(
-    `/research/ask?setup=birdwatch&chat=${COMPACTED}`,
+    `/research/ask?setup=weaver&chat=${COMPACTED}`,
     [],
     async (page) => {
       const c = within(page);

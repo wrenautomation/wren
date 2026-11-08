@@ -1,5 +1,5 @@
 /**
- * Birdwatch in the chat (WA-1123): a run as the Research page's own graph, one read source as its
+ * Weaver in the chat (WA-1123): a run as the Research page's own graph, one read source as its
  * findings. One model with the page: `RunGraphData`.
  */
 import type { ReactNode } from "react";
@@ -34,7 +34,7 @@ function Head({
   return (
     <header className="flex min-w-0 items-start gap-3">
       <div className="grid min-w-0 flex-1 gap-0.5">
-        <span className="text-[12px] font-semibold text-(--ui-ink-3)">Birdwatch</span>
+        <span className="text-[12px] font-semibold text-(--ui-ink-3)">Weaver</span>
         <span className="text-[14.5px]/[1.35] font-semibold text-(--ui-ink) wrap-anywhere">
           {name}
         </span>
@@ -99,7 +99,7 @@ export function RunCard({ run, failed, href, live, asks, onAsk }: RunCardProps) 
         .join(" · ")
     : "";
   return (
-    <article aria-label={`Birdwatch run: ${run?.t ?? "loading"}`} className={CARD}>
+    <article aria-label={`Weaver run: ${run?.t ?? "loading"}`} className={CARD}>
       {run ? <Head name={run.t} meta={meta} href={href} live={live} /> : null}
       {run?.note ? <p className="m-0 text-[13px]/[1.5] text-(--ui-ink-2)">{run.note}</p> : null}
       <RunGraph run={run} failed={failed} card />
@@ -125,7 +125,7 @@ export interface SourceRead {
 export function SourceCard({ read, onAsk }: { read: SourceRead; onAsk?: OnAsk }) {
   const n = read.findings.length;
   return (
-    <article aria-label={`Birdwatch source: ${read.name}`} className={CARD}>
+    <article aria-label={`Weaver source: ${read.name}`} className={CARD}>
       <Head name={read.name} meta={`${read.by} · ${read.meta}`} href={read.href} />
       <p className="m-0 flex flex-wrap gap-x-3.5 gap-y-0.5 text-[12.5px] text-(--ui-ink-2)">
         <span>

@@ -193,7 +193,7 @@ export interface Module {
   icon: IconName;
   /** One sentence on its service card (a client's Today): what it does for the client. */
   blurb: string;
-  /** The product that runs its pages, shown at the app head: "Birdwatch". The page name stays. */
+  /** The product that runs its pages, shown at the app head: "Weaver". The page name stays. */
   product?: string;
   /** Its card's numbers, and what waits on the viewer. */
   Glance?: ComponentType<PageProps>;

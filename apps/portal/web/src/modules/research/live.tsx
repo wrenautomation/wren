@@ -39,13 +39,11 @@ export function LivePage({ params }: PageProps) {
   const ids = useMemo(() => liveRuns(rows, chat, Date.now()), [rows, chat]);
   const byRun = new Map(rows.map((r) => [r.run, r]));
   const lay = LAYS.find((l) => l === params.get("lay"));
-  usePageContext(ids.length ? `Research › Live shows birdwatch runs ${ids.join(", ")}` : undefined);
+  usePageContext(ids.length ? `Research › Live shows weaver runs ${ids.join(", ")}` : undefined);
   if (runs.error && !runs.data) return <NoServe error={runs.error} onRetry={runs.retry} />;
   if (!runs.data) return <Loading shape="cards" lines={3} heading />;
   if (!ids.length)
-    return (
-      <Empty title="No runs yet">Ask in the chat; birdwatch's runs draw here as they go.</Empty>
-    );
+    return <Empty title="No runs yet">Ask in the chat; weaver's runs draw here as they go.</Empty>;
   const from = chat.some((r) => ids.includes(r));
   return (
     <div className="grid min-w-0 gap-3">

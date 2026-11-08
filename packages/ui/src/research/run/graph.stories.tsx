@@ -1,5 +1,5 @@
 /**
- * One birdwatch run as a graph (round 13, artifact LdYvUurK): the claim web, the search tree and
+ * One weaver run as a graph (round 13, artifact LdYvUurK): the claim web, the search tree and
  * lanes. Open states are clicked in `play`, so the story runs the same code a click does.
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -13,7 +13,7 @@ import {
 import { RunGraph } from "./graph.js";
 
 export default {
-  title: "Parts/Birdwatch run graph",
+  title: "Parts/Weaver run graph",
   id: "research-run",
   component: RunGraph,
   parameters: { layout: "padded" },
@@ -36,7 +36,7 @@ export const Lanes: Story = { args: { run: RUN_GRAPH, lay: "lanes" } };
 export const OneRound: Story = { args: { run: RUN_GRAPH_ONE_ROUND } };
 export const Empty: Story = { args: { run: RUN_GRAPH_EMPTY } };
 export const Loading: Story = { args: { run: undefined } };
-export const Failed: Story = { args: { failed: "birdwatch serve stopped answering." } };
+export const Failed: Story = { args: { failed: "weaver serve stopped answering." } };
 export const WorstCase: Story = { args: { run: RUN_GRAPH_WORST } };
 
 /** A claim opens in place into its findings; the panel shows the claim. */
@@ -69,7 +69,7 @@ export const SourceOpen: Story = {
 export const ReadQueue: Story = {
   args: { run: RUN_GRAPH },
   play: async ({ canvasElement }) => {
-    localStorage.removeItem(`birdwatch-read:${RUN_GRAPH.rid}`);
+    localStorage.removeItem(`weaver-read:${RUN_GRAPH.rid}`);
     const side = canvasElement.querySelector<HTMLElement>(".rg-side");
     if (!side) return;
     const tab = [...side.querySelectorAll("button")].find((b) =>

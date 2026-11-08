@@ -5,7 +5,7 @@
     "session_id": "00000000-0000-4000-8000-000000000001",
     "message": {
       "role": "user",
-      "content": "A test of the chat page, no research. Do these in order:\n1. Run `printf 'northwind.example 200\\nbakers.example 200\\n'` with Bash.\n2. Start `for i in 1 2 3 4 5 6; do echo \"tick $i\"; sleep 2; done` with Bash in the background.\n3. Load the birdwatch skill, but do not run it.\n4. Ask me with AskUserQuestion which site to read first: northwind.example or bakers.example.\n5. Reply with three short markdown bullets on what you did, and one line on my pick."
+      "content": "A test of the chat page, no research. Do these in order:\n1. Run `printf 'northwind.example 200\\nbakers.example 200\\n'` with Bash.\n2. Start `for i in 1 2 3 4 5 6; do echo \"tick $i\"; sleep 2; done` with Bash in the background.\n3. Load the weaver skill, but do not run it.\n4. Ask me with AskUserQuestion which site to read first: northwind.example or bakers.example.\n5. Reply with three short markdown bullets on what you did, and one line on my pick."
     },
     "parent_tool_use_id": null,
     "parent_agent_id": null,
@@ -175,7 +175,7 @@
           "type": "tool_use",
           "id": "toolu_01SmTr9buqyaYcLrNor8P6gF",
           "name": "Skill",
-          "input": { "skill": "birdwatch:birdwatch" },
+          "input": { "skill": "weaver:weaver" },
           "caller": { "type": "direct" }
         }
       ],
@@ -234,7 +234,7 @@
         {
           "type": "tool_result",
           "tool_use_id": "toolu_01SmTr9buqyaYcLrNor8P6gF",
-          "content": "Launching skill: birdwatch:birdwatch"
+          "content": "Launching skill: weaver:weaver"
         }
       ]
     },
@@ -334,7 +334,7 @@
       "content": [
         {
           "type": "text",
-          "text": "- Ran `printf` and got `northwind.example 200` and `bakers.example 200`.\n- Started the six-tick counter in the background (ID `bwqy5fz0r`). I haven't checked its output.\n- Loaded the birdwatch skill without running any `birdwatch` command, then asked which site to read first.\n\nYou picked northwind.example, so it goes first. I haven't read it, since this was only a chat test."
+          "text": "- Ran `printf` and got `northwind.example 200` and `bakers.example 200`.\n- Started the six-tick counter in the background (ID `bwqy5fz0r`). I haven't checked its output.\n- Loaded the weaver skill without running any `weaver` command, then asked which site to read first.\n\nYou picked northwind.example, so it goes first. I haven't read it, since this was only a chat test."
         }
       ],
       "container": null,
