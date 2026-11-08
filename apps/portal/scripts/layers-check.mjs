@@ -250,12 +250,12 @@ async function shutLift(p, id) {
     const el = document.querySelector(s);
     return {
       shut: el.classList.contains("shut"),
-      exp: el.querySelector(".mlay-knob")?.getAttribute("aria-expanded"),
+      exp: el.querySelector(":scope > .mlay-knob")?.getAttribute("aria-expanded"),
     };
   }, sel);
   if (!after.shut || after.exp !== "false") fail("C1 not shut", id, { key, after });
   // C2: the knob lifts it, rising
-  await p.locator(`${sel} .mlay-knob`).click();
+  await p.locator(`${sel} > .mlay-knob`).click();
   const rise = [];
   for (let k = 0; k < 6; k++) {
     rise.push(
@@ -271,7 +271,7 @@ async function shutLift(p, id) {
     const el = document.querySelector(s);
     return {
       shut: el.classList.contains("shut"),
-      exp: el.querySelector(".mlay-knob")?.getAttribute("aria-expanded"),
+      exp: el.querySelector(":scope > .mlay-knob")?.getAttribute("aria-expanded"),
       o: Number(getComputedStyle(el.querySelector(".mlay-plate")).opacity),
     };
   }, sel);
@@ -281,16 +281,16 @@ async function shutLift(p, id) {
   // C3: knob of a lifted plate folds it, when the knob shows (a plate over it hides it: S6 rule 6)
   await p.mouse.move(2, 2);
   await pause(p, 200);
-  const k = await p.locator(`${sel} .mlay-knob`).boundingBox();
+  const k = await p.locator(`${sel} > .mlay-knob`).boundingBox();
   const covered = (await scan(p)).some((pl) =>
     inside([k.x + k.width / 2, k.y + k.height / 2], pl.face),
   );
   if (covered) return console.log(id, "C3 skipped: knob under a plate");
-  await p.locator(`${sel} .mlay-knob`).click({ force: true });
+  await p.locator(`${sel} > .mlay-knob`).click({ force: true });
   await pause(p, 600);
   const folded = await p.evaluate((s) => document.querySelector(s).classList.contains("shut"), sel);
   if (!folded) fail("C3 knob did not fold", id, { key });
-  await p.locator(`${sel} .mlay-knob`).click({ force: true });
+  await p.locator(`${sel} > .mlay-knob`).click({ force: true });
   await pause(p, 600);
 }
 

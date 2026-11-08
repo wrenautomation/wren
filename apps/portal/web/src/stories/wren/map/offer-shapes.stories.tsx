@@ -1,18 +1,16 @@
 /**
  * Offer shapes from Orrery (WA-1160): the artifact's funnels and every money-model play
  * (`packages/ui/src/metro/money-models.ts`, sops/money-models), drawn by the Map's own parts.
- * Flat or Layers, as on the Map; a plate's Open makes its part the main flat view.
+ * Flat or Layers, as on the Map; in Layers a plate's own folds lift plates over it.
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Button, SELECT_CLASS, Seg } from "@wren/ui";
+import { SELECT_CLASS, Seg } from "@wren/ui";
 import {
-  type FocusSpec,
   type LayerFloor,
   type LayerSplit,
   MetroLayers,
   MetroMap,
   type MetroView,
-  partFocus,
   viewZoom,
 } from "@wren/ui/metro";
 import { GROWTH_RETAINER, GYM_MODEL, MONEY_STAGES, SAMPLE_VIEWS } from "@wren/ui/metro/shapes";
@@ -29,21 +27,29 @@ type Play = { view: MetroView; note?: string };
 type Look = "flat" | "layers";
 
 /** One play at a time, full size: pick it, then Flat or Layers. */
-function Board({ goal, plays }: { goal: string; plays: readonly Play[] }) {
+function Board({
+  goal,
+  plays,
+  start = "flat",
+}: {
+  goal: string;
+  plays: readonly Play[];
+  start?: Look;
+}) {
   const [at, setAt] = useState(0);
-  const [look, setLook] = useState<Look>("flat");
+  const [look, setLook] = useState<Look>(start);
   const [floor, setFloor] = useState<LayerFloor>(null);
   const [split, setSplit] = useState<LayerSplit>("folds");
   const [shut, setShut] = useState<string[]>([]);
-  const [open, setOpen] = useState<{ spec: FocusSpec; label: string } | null>(null);
+  const [lift, setLift] = useState<string[]>([]);
   const play = plays[at] ?? plays[0];
   const zoom = useMemo(() => (play ? viewZoom(play.view) : null), [play]);
-  // plate keys and focus belong to one play
+  // plate keys belong to one play
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new play clears them.
   useEffect(() => {
     setFloor(null);
     setShut([]);
-    setOpen(null);
+    setLift([]);
   }, [at]);
   if (!play || !zoom) return null;
   return (
@@ -69,25 +75,8 @@ function Board({ goal, plays }: { goal: string; plays: readonly Play[] }) {
             { value: "layers", label: "Layers" },
           ]}
           value={look}
-          onChange={(l) => {
-            setLook(l);
-            setOpen(null);
-          }}
+          onChange={setLook}
         />
-        {open && look === "flat" ? (
-          <span className="flex items-center gap-1 text-[13.5px]">
-            <Button tone="quiet" size="dense" icon="back" onClick={() => setLook("layers")}>
-              Layers
-            </Button>
-            <span aria-hidden="true" className="text-(--ui-ink-3)">
-              ›
-            </span>
-            <span className="font-semibold">{open.label}</span>
-            <Button tone="quiet" size="dense" onClick={() => setOpen(null)}>
-              Whole map
-            </Button>
-          </span>
-        ) : null}
       </header>
       <p className="m-0 max-w-prose text-sm text-(--ui-ink-2)">{play.note ?? goal}</p>
       <div className="relative min-h-0 flex-1">
@@ -98,30 +87,22 @@ function Board({ goal, plays }: { goal: string; plays: readonly Play[] }) {
             onFloor={(f) => {
               setFloor(f);
               setShut([]);
+              setLift([]);
             }}
-            onOpen={(p, label) =>
-              partFocus(zoom, p).then((spec) => {
-                setOpen({ spec, label });
-                setLook("flat");
-              })
-            }
             split={split}
             onSplit={(s) => {
               setSplit(s);
               setShut([]);
+              setLift([]);
             }}
             shut={shut}
             onShut={setShut}
+            lift={lift}
+            onLift={setLift}
             className="h-full"
           />
         ) : (
-          <MetroMap
-            key={at}
-            view={play.view}
-            focus={open?.spec ?? null}
-            intro={false}
-            className="metro-fill h-full"
-          />
+          <MetroMap key={at} view={play.view} intro={false} className="metro-fill h-full" />
         )}
       </div>
     </div>
@@ -184,4 +165,39 @@ export const WholeModel: Story = {
     />
   ),
   play: drawn,
+};
+
+/**
+ * Nested plates (spec S8): a retainer's offer holds Onboarding and the Monthly lap. Each is a knob
+ * on the offer's plate; a click lifts it one step over the offer, and its x shuts it.
+ */
+export const Nested: Story = {
+  render: () => (
+    <Board
+      goal="A plate's own folds lift plates over it."
+      plays={[{ view: GROWTH_RETAINER }]}
+      start="layers"
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const ui = within(canvasElement);
+    const late = { timeout: 10_000 };
+    const knob = await ui.findByRole("button", { name: "Lift Monthly lap" }, late);
+    await expect(knob).toHaveAttribute("aria-expanded", "false");
+    await expect(knob.closest(".mlay-face")).not.toBeNull();
+    // keys: the offer's face is not in hand, so focus the knob itself
+    knob.focus();
+    await userEvent.keyboard("{Enter}");
+    const up = await ui.findByRole("button", { name: "Fold Monthly lap" }, late);
+    await expect(up).toHaveAttribute("aria-expanded", "true");
+    await expect(canvasElement.querySelector('.mlay-slot[data-part="node:loop"]')).not.toHaveClass(
+      "shut",
+    );
+    // − shuts the deepest level first
+    await userEvent.click(ui.getByRole("button", { name: "Shut one level" }));
+    await waitFor(
+      () => expect(ui.getByRole("button", { name: "Lift Monthly lap" })).toBeInTheDocument(),
+      late,
+    );
+  },
 };

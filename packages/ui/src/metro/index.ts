@@ -88,7 +88,7 @@ export {
   XferLabel,
 } from "./marks.js";
 export { type Frame, layoutView, type PlaceBox, type Placed, placeMetro, STEP } from "./place.js";
-export { type LayerFloor, type LayerPart, type LayerSplit, partFocus } from "./plates.js";
+export type { LayerFloor, LayerPart, LayerSplit } from "./plates.js";
 export { MetroSkeleton } from "./skeleton.js";
 export {
   type BadgeStation,

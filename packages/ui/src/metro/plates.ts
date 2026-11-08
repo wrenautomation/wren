@@ -2,10 +2,10 @@
  * Layers' plate model (layers.tsx draws it): which plates a level holds, the floor with its folds
  * shut, the joins, and the camera's projection. Pure: no React.
  */
-import { allOpen, type FoldNode, pathTo } from "@wrenautomation/orrery";
+import { type FoldNode, pathTo } from "@wrenautomation/orrery";
 import { type FocusSpec, focusScene } from "./focus.js";
 import type { MetroZoom } from "./fold.js";
-import { labelBoxes, markerBox } from "./geometry.js";
+import { chipBox, labelBoxes, markerBox, pillBox } from "./geometry.js";
 import {
   isCapsule,
   isMark,
@@ -40,9 +40,13 @@ export interface Plate {
   deep: boolean;
   /** The lift/shut toggle on the floor: centre, size, and whether it draws its own stacked glyph. */
   knob: Knob;
+  /** The plate it stands on (`kind:id`); null on the floor. */
+  parent: string | null;
+  /** 1 on the floor, 2 on a plate, … */
+  depth: number;
 }
 
-/** On the floor, in floor px. `glyph`: the floor has no stop here (a line), so the knob draws one. */
+/** In floor px (a nested knob too: its parent plate subtracts its own box). `glyph`: the floor has no stop here (a line), so the knob draws one. */
 type Knob = { x: number; y: number; d: number; glyph: boolean };
 
 export interface Level {
@@ -69,6 +73,8 @@ const PAD = { top: 62, bottom: 48, side: 64 };
 const LABEL_GAP = 16;
 /** The artifact's lift; a plate whose footprint overlaps one in front of it rises a step more. */
 const LIFT = { base: 120, step: 60, most: 360 } as const;
+/** Fold levels a floor opens; deeper folds stay stops on their plate. */
+const DEEP = 4;
 
 const grpOf = (s: SceneStation): string | undefined =>
   "grp" in s && typeof s.grp === "string" ? s.grp : undefined;
@@ -94,7 +100,7 @@ const turn = (x: number, y: number, z: number): readonly [number, number] => {
 };
 const RAD = Math.PI / 180;
 /** Nearer the eye = lower on screen at the Apart turn. */
-const depthOf = (p: { at: readonly [number, number] }) => turn(p.at[0], p.at[1], 0)[1];
+const depthAt = (p: { at: readonly [number, number] }) => turn(p.at[0], p.at[1], 0)[1];
 /** TAG: the name pill under a plate, in floor px. */
 const TAG = 34;
 type See = (x: number, y: number, z: number) => readonly [number, number];
@@ -133,8 +139,26 @@ function band(scene: MetroScene): MetroScene {
   if (!pts.length) return scene;
   const ys = pts.map((p) => p[1]);
   const half = (s: SceneStation) => (isCapsule(s) ? (s.cap[1] - s.cap[0]) / 2 : 0);
-  // names and subs under or beside a stop stay on the plate, clear of its tag
-  const names = scene.st.flatMap((s) => (isMark(s) ? labelBoxes(s) : []));
+  // names and subs under or beside a stop stay on the plate, clear of its tag; so do a track's
+  // chip and person pill (draw.tsx places them the same way)
+  const byId = new Map(scene.st.map((s) => [s.id, s]));
+  const end = (id: string | undefined, p: Point | undefined) => {
+    const s = id ? byId.get(id) : undefined;
+    return p ?? (s ? centreOf(s) : undefined);
+  };
+  const onTracks = scene.tr.flatMap((r) => {
+    const [a, c] = [end(r.a, r.pa), end(r.b, r.pc)];
+    if (r.stub || !a || !c) return [];
+    const mid: Point = [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2];
+    const back: Point | undefined = r.back ? [mid[0], Math.max(a[1], c[1]) + r.back] : undefined;
+    return [
+      ...(r.cond && !r.condShared
+        ? [chipBox(...(r.cat ?? back ?? mid), r.cond, r.condGlyph ?? null)]
+        : []),
+      ...(r.who && r.who !== "auto" && !r.dot ? [pillBox(r.at ?? mid, r.who, r.bdy)] : []),
+    ];
+  });
+  const names = [...scene.st.flatMap((s) => (isMark(s) ? labelBoxes(s) : [])), ...onTracks];
   const x0 = Math.max(
     0,
     Math.min(
@@ -181,15 +205,6 @@ function underOf(zoom: MetroZoom, kids: ReadonlySet<string>) {
   };
 }
 
-/** What the flat map focuses to open a part: a line as is, a node as its stations, all open. */
-export async function partFocus(zoom: MetroZoom, part: LayerPart): Promise<FocusSpec> {
-  if (part.kind === "line") return { kind: "line", id: part.id };
-  const scene = await zoom.scene(allOpen(zoom.nodes));
-  const under = underOf(zoom, new Set([part.id]));
-  const ids = scene.st.filter((s) => under(s)).map((s) => s.id);
-  return ids.length ? only(ids) : { kind: "station", id: part.id };
-}
-
 /**
  * The open layout with each fold shut in place, as the artifact's floor: its stations go, one
  * stacked stop stands at their middle, and the rail runs on through it. Nothing else moves, so a
@@ -201,6 +216,8 @@ function shutFloor(
   byFold: ReadonlyMap<string, readonly string[]>,
   stops: ReadonlyMap<string, SceneStation>,
   mids: ReadonlyMap<string, readonly [number, number]>,
+  /** Each station's own (deepest) fold: a nested fold's tracks never stay as the rail. */
+  own?: ReadonlyMap<string, string>,
 ): { floor: MetroScene; joins: Join[] } {
   const hidden = new Map<string, string>();
   for (const [k, ids] of byFold) for (const id of ids) hidden.set(id, k);
@@ -221,7 +238,8 @@ function shutFloor(
     if (!ka && !kb) return [r];
     // Inside a fold, only its own rail stays, bare: the stop sits on it.
     if (ka && ka === kb) {
-      if (r.k || r.l !== lineOfFold.get(ka)) return [];
+      const nested = own && [r.a, r.b].some((id) => id && own.get(id) !== ka);
+      if (r.k || r.l !== lineOfFold.get(ka) || nested) return [];
       const { who, late, dot, cond, condGlyph, cat, lab, mv, dots, task, ...bare } = r;
       void [who, late, dot, cond, condGlyph, cat, lab, mv, dots, task];
       return [bare];
@@ -258,7 +276,24 @@ function shutFloor(
     const [l, t, rr, b] = o.box ?? [o.cap[0], o.y - 30, o.cap[1], o.y + 30];
     return x >= l && x <= rr && y >= t && y <= b;
   };
-  const folded = (x: number, y: number) => [...byFold.keys()].some((k) => inBox(x, y, k));
+  // a chip or frame goes with the station nearest it (a lap's chip has no opened box)
+  const nearest = (x: number, y: number) => {
+    let best: SceneStation | undefined;
+    let d = Number.POSITIVE_INFINITY;
+    for (const s of all.st) {
+      const [sx, sy] = centreOf(s);
+      const e = Math.hypot(sx - x, sy - y);
+      if (e < d) [best, d] = [s, e];
+    }
+    return best;
+  };
+  const middle = (pts: readonly Point[]): [number, number] => {
+    const xs = pts.map((p) => p[0]);
+    const ys = pts.map((p) => p[1]);
+    return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
+  };
+  const folded = (x: number, y: number) =>
+    [...byFold.keys()].some((k) => inBox(x, y, k)) || hidden.has(nearest(x, y)?.id ?? "");
   const floor: MetroScene = {
     ...all,
     ...(frame.x0 === undefined ? {} : { x0: frame.x0 }),
@@ -266,7 +301,8 @@ function shutFloor(
     ...(frame.y0 === undefined ? {} : { y0: frame.y0 }),
     h: frame.h,
     st: [...all.st.filter((s) => !hidden.has(s.id)), ...stations],
-    tr,
+    // a lap's ring has no station ends: it goes with the fold round its middle
+    tr: tr.filter((r) => r.a || r.b || !r.pts?.length || !folded(...middle(r.pts))),
     chips: (all.chips ?? []).filter((c) => !folded(c.x, c.y)),
     frames: (all.frames ?? []).filter((f) => !folded(f.x + f.w / 2, f.y + f.h / 2)),
     folds: (all.folds ?? []).filter((f) => !byFold.has(f.grp)),
@@ -297,20 +333,49 @@ export async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit)
     outside ? !outside.has(s.id) : at?.kind === "line" ? lineOf(s) === at.id : true;
   const flat = await zoom.scene(open);
   const ours = flat.st.filter(mine);
-  // The shut folds here: each a stacked stop, each a plate.
+  // The shut folds, depth by depth: each a stacked stop, each a plate. One layout opens them all.
   const stops = new Map<string, SceneStation>();
-  for (const s of ours) {
+  const parentOf = new Map<string, string | null>();
+  const depthOf = new Map<string, number>();
+  const shutIn = (scene: MetroScene, s: SceneStation) => {
     const k = grpOf(s);
-    if (k && !flat.st.some((m) => isMark(m) && m.g === k)) stops.set(k, s);
+    return k && !stops.has(k) && !scene.st.some((m) => isMark(m) && m.g === k) ? k : undefined;
+  };
+  for (const s of ours) {
+    const k = shutIn(flat, s);
+    if (!k) continue;
+    stops.set(k, s);
+    parentOf.set(k, null);
+    depthOf.set(k, 1);
   }
-  const kids = [...stops.keys()];
-  // One layout opens every fold at once: each plate is a cut of it.
-  const all = kids.length ? await zoom.scene(new Set([...open, ...kids])) : flat;
-  const under = underOf(zoom, new Set(kids));
-  const byFold = new Map<string, string[]>();
+  let all = flat;
+  let opened = open;
+  let last = [...stops.keys()];
+  for (let d = 1; last.length; d++) {
+    opened = new Set([...opened, ...last]);
+    all = await zoom.scene(opened);
+    if (d >= DEEP) break;
+    const upTo = underOf(zoom, new Set(last));
+    const next: string[] = [];
+    for (const s of all.st) {
+      const k = shutIn(all, s);
+      const p = k ? upTo(s) : undefined;
+      if (!k || !p) continue;
+      stops.set(k, s);
+      parentOf.set(k, p);
+      depthOf.set(k, d + 1);
+      next.push(k);
+    }
+    last = next;
+  }
+  const folds = [...stops.keys()];
+  const kidsOf = (k: string | null) => folds.filter((f) => parentOf.get(f) === k);
+  // Each station's own fold: the deepest one over it.
+  const under = underOf(zoom, new Set(folds));
   const foldOf = new Map<string, string>();
+  // every recorded fold is open in `all`: a station named for one is its lap ring
   for (const s of all.st) {
-    const k = stops.has(s.id) ? undefined : under(s);
+    const k = stops.has(s.id) ? s.id : under(s);
     if (k) foldOf.set(s.id, k);
   }
   // An exit follows its source: it is in the fold when every track into it starts there.
@@ -320,7 +385,15 @@ export async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit)
     const k = from[0];
     if (k && from.every((f) => f === k)) foldOf.set(s.id, k);
   }
-  for (const [id, k] of foldOf) byFold.set(k, [...(byFold.get(k) ?? []), id]);
+  const own = new Map<string, string[]>();
+  for (const [id, k] of foldOf) own.set(k, [...(own.get(k) ?? []), id]);
+  const treeOf = (k: string): string[] => [...(own.get(k) ?? []), ...kidsOf(k).flatMap(treeOf)];
+  const byFold = new Map(
+    kidsOf(null).flatMap((k): [string, string[]][] => {
+      const ids = treeOf(k);
+      return ids.length ? [[k, ids]] : [];
+    }),
+  );
   // By line: each line's own stops; the hub stays on the floor.
   const byLine = new Map<string, string[]>();
   for (const s of ours) {
@@ -348,33 +421,55 @@ export async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit)
   let joins: Join[] = [];
   if (split === "folds" && can.folds) {
     const mids = new Map<string, readonly [number, number]>();
-    cut = [...byFold].flatMap(([id, ids]) => {
-      const scene = band(focusScene(all, only(ids)));
+    // Children first: a plate shuts its own folds at their middles, as the floor does.
+    const plateOf = (k: string): Omit<Plate, "z">[] => {
+      const kids = kidsOf(k).filter((c) => treeOf(c).length);
+      const below = kids.flatMap(plateOf);
+      const sub = focusScene(all, only(treeOf(k)));
+      const inner = new Map(kids.map((c) => [c, treeOf(c)]));
+      const shut = inner.size ? shutFloor(sub, sub, inner, stops, mids, foldOf) : null;
+      const scene = band(
+        shut
+          ? { ...shut.floor, tr: [...shut.floor.tr, ...shut.joins.flatMap((j) => j.apart)] }
+          : sub,
+      );
       const mid = midOf(scene);
-      mids.set(id, mid);
-      const stop = stops.get(id);
-      // over the floor's stacked stop: its circle plus the stack offset
+      mids.set(k, mid);
+      const stop = stops.get(k);
+      // over the stacked stop: its circle plus the stack offset
       const mb = stop && isMark(stop) ? markerBox({ ...stop, x: mid[0], y: mid[1] }) : null;
-      const knob: Knob = {
-        x: mid[0] - fx + 2.5,
-        y: (mb?.cy ?? mid[1]) - fy - 2.5,
-        d: Math.max(mb?.w ?? 28, mb?.h ?? 28) + 18,
-        glyph: false,
-      };
+      const parent = parentOf.get(k);
       return [
         {
-          part: { kind: "node" as const, id },
-          label: zoom.nodes.find((n) => n.id === id)?.label ?? id,
+          part: { kind: "node" as const, id: k },
+          label: zoom.nodes.find((n) => n.id === k)?.label ?? k,
           scene,
           box: place(scene),
           at: [mid[0] - fx, mid[1] - fy] as const,
-          deep: zoom.nodes.some((n) => n.parent === id),
-          knob,
+          deep: zoom.nodes.some((n) => n.parent === k),
+          knob: {
+            x: mid[0] - fx + 2.5,
+            y: (mb?.cy ?? mid[1]) - fy - 2.5,
+            d: Math.max(mb?.w ?? 28, mb?.h ?? 28) + 18,
+            glyph: false,
+          },
+          parent: parent ? `node:${parent}` : null,
+          depth: depthOf.get(k) ?? 1,
         },
+        ...below,
       ];
-    });
-    const shut = shutFloor(all, frame, byFold, stops, mids);
-    floor = { ...shut.floor, still: true, click: false };
+    };
+    cut = [...byFold.keys()].flatMap(plateOf);
+    const shut = shutFloor(all, frame, byFold, stops, mids, foldOf);
+    // nested folds' outlines live on their plates, not the floor
+    const gone = (g: string) => stops.has(g);
+    floor = {
+      ...shut.floor,
+      folds: (shut.floor.folds ?? []).filter((f) => !gone(f.grp)),
+      opened: (shut.floor.opened ?? []).filter((o) => !gone(o.grp)),
+      still: true,
+      click: false,
+    };
     joins = shut.joins;
   } else if (split === "lines" && can.lines) {
     cut = [...byLine].map(([id, ids]) => {
@@ -388,6 +483,8 @@ export async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit)
         at: [box.left + box.width / 2, box.top + box.height / 2] as const,
         deep: zoom.nodes.some((n) => n.parent === lineNode(id)),
         knob: { x: box.left + box.width / 2, y: box.top + box.height / 2, d: 40, glyph: true },
+        parent: null,
+        depth: 1,
       };
     });
     // Lifted off the floor: the rest stays in the same frame.
@@ -408,22 +505,32 @@ export async function levelOf(zoom: MetroZoom, at: LayerFloor, want: LayerSplit)
   const right = Math.max(floor.w ?? 0, ...cut.map((p) => p.box.left + p.box.width + 16));
   const bottom = Math.max(floor.h, ...cut.map((p) => p.box.top + p.box.height + 16));
   floor = { ...floor, w: right, h: bottom };
-  // Front to back at the Apart pose. A plate rises in half steps till no plate in front hides
-  // more than a little of it, or any of its tag (spec S6 rule 5): back plates step up like a stair.
-  const front = [...cut].sort((a, b) => depthOf(b) - depthOf(a));
+  // Front to back at the Apart pose, among plates on one parent. A plate rises in half steps till
+  // no sibling in front hides more than a little of it, or any of its tag (spec S6 rule 5): back
+  // plates step up like a stair. A nested plate starts one lift over its parent.
   // through the view's perspective (k 1, centred): a lifted plate grows toward the eye, so a
   // flat projection puts its tag too high (Upsells, anchor play)
   const [fw, fh] = [floor.w ?? 960, floor.h];
   const see: See = (x, y, z) => toView({ ...APART, k: 1, x: 0, y: 0 }, fw, fh, [fw, fh], x, y, z);
-  const placed: { q: Quad; z: number }[] = [];
-  const plates = front.map((p) => {
-    let z = LIFT.base;
-    const hid = (z: number) =>
-      placed.some((o) => hides(o.q, footOf(p.box, z, see)) || hides(o.q, tagOf(p.box, z, see), 0));
-    while (z < LIFT.base + LIFT.most && hid(z)) z += LIFT.step / 2;
-    placed.push({ q: footOf(p.box, z, see), z });
-    return { ...p, z };
-  });
+  const zOf = new Map<string | null, number>([[null, 0]]);
+  const plates: Plate[] = [];
+  for (const d of [...new Set(cut.map((p) => p.depth))].sort((a, b) => a - b)) {
+    const row = cut.filter((p) => p.depth === d);
+    for (const parent of new Set(row.map((p) => p.parent))) {
+      const base = (zOf.get(parent) ?? 0) + LIFT.base;
+      const placed: Quad[] = [];
+      const front = row.filter((p) => p.parent === parent).sort((a, b) => depthAt(b) - depthAt(a));
+      for (const p of front) {
+        let z = base;
+        const hid = (z: number) =>
+          placed.some((q) => hides(q, footOf(p.box, z, see)) || hides(q, tagOf(p.box, z, see), 0));
+        while (z < base + LIFT.most && hid(z)) z += LIFT.step / 2;
+        placed.push(footOf(p.box, z, see));
+        zOf.set(`${p.part.kind}:${p.part.id}`, z);
+        plates.push({ ...p, z });
+      }
+    }
+  }
   const lines = Object.entries(all.lines ?? {})
     .filter(([id]) => all.st.some((s) => lineOf(s) === id))
     .map(([id, l]) => ({ id, n: l.n }));

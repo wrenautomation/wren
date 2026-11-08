@@ -3,7 +3,8 @@
  * as the artifact's "Layers (3D)". The floor is one level with its folds shut: each fold a stacked
  * stop. Each fold's inside floats on a plate over its stop, on one dashed drop line. "Together"
  * lands the plates onto their stops: the fold, as a move. By line, each line is a plate over its
- * own place. A plate opens as the main flat view, or becomes the floor.
+ * own place. A plate's own folds are knobs on it: each lifts a plate over it (spec S8). A click on
+ * a plate settles the camera on it (S4b); Stack here makes it the floor.
  * CSS 3D over `MetroSvg`: no new renderer, text stays vector. Camera springs: `motion`.
  */
 import { animate } from "motion";
@@ -53,14 +54,15 @@ export interface MetroLayersProps {
   zoom: MetroZoom;
   floor: LayerFloor;
   onFloor: (floor: LayerFloor) => void;
-  /** Open a part as the main flat view. No button without it. */
-  onOpen?: ((part: LayerPart, label: string) => void) | undefined;
   split?: LayerSplit | undefined;
   onSplit?: ((split: LayerSplit) => void) | undefined;
-  /** Plates shut on their stop, as `kind:id`. */
+  /** Floor plates shut on their stop, as `kind:id`: they start lifted. */
   shut?: readonly string[] | undefined;
   /** No Shut or Lift without it. */
   onShut?: ((shut: string[]) => void) | undefined;
+  /** Nested plates lifted over their parent, as `kind:id`: they start shut. */
+  lift?: readonly string[] | undefined;
+  onLift?: ((lift: string[]) => void) | undefined;
   /** The page's key: its skeleton draws this view's last first fit (`ghost.ts`). */
   ghost?: string | undefined;
   className?: string | undefined;
@@ -80,9 +82,8 @@ const Stage = memo(function Stage({
   level,
   root,
   onPlate,
-  open,
-  shut,
-  onShut,
+  down,
+  onToggle,
   still,
   release,
 }: {
@@ -90,28 +91,33 @@ const Stage = memo(function Stage({
   root: RefObject<HTMLDivElement | null>;
   /** Drops the plate in hand. */
   release: () => void;
-  onPlate: (p: Plate, how: "open" | "stack") => void;
-  open: boolean;
-  shut: ReadonlySet<string>;
-  onShut: ((key: string) => void) | null;
+  onPlate: (p: Plate, how: "settle" | "stack") => void;
+  /** Plates not up: shut, or on a plate that is. */
+  down: ReadonlySet<string>;
+  onToggle: ((key: string) => void) | null;
   still: boolean;
 }) {
   const slotOf = (key: string) =>
     root.current?.querySelector(`.mlay-slot[data-part="${CSS.escape(key)}"]`) ?? null;
-  // Shut: fall onto the knob, then shut.
+  const kidsOf = (key: string) => level.plates.filter((q) => q.parent === key);
+  const treeOf = (key: string): string[] => [
+    key,
+    ...kidsOf(key).flatMap((q) => treeOf(partKey(q.part))),
+  ];
+  // Shut: it and every plate on it fall onto their knobs, then shut.
   const fall = (key: string) => {
-    const el = slotOf(key);
     release();
-    if (still || !el) return onShut?.(key);
-    el.classList.add("closing");
-    window.setTimeout(() => onShut?.(key), SHUT_MS);
+    const els = treeOf(key).flatMap((k) => (down.has(k) ? [] : [slotOf(k)]));
+    if (still || !els.every(Boolean)) return onToggle?.(key);
+    for (const el of els) el?.classList.add("closing");
+    window.setTimeout(() => onToggle?.(key), SHUT_MS);
   };
-  // Lift: a slot that leaves `shut` starts on its knob and rises.
-  const was = useRef(shut);
+  // Lift: a slot that leaves `down` starts on its knob and rises.
+  const was = useRef(down);
   useLayoutEffect(() => {
-    const up = [...was.current].filter((k) => !shut.has(k));
-    was.current = shut;
-    for (const k of shut) slotOf(k)?.classList.remove("closing");
+    const up = [...was.current].filter((k) => !down.has(k));
+    was.current = down;
+    for (const k of down) slotOf(k)?.classList.remove("closing");
     if (still) return;
     for (const k of up) {
       const el = slotOf(k);
@@ -121,13 +127,42 @@ const Stage = memo(function Stage({
       requestAnimationFrame(() => el.classList.remove("closing"));
     }
   });
+  const zOf = new Map(level.plates.map((p) => [partKey(p.part), p.z]));
+  /** The stacked stop that lifts or shuts `q`: on the floor, or on its parent's face. */
+  const knob = (q: Plate, on: Plate | null) => {
+    if (!onToggle) return null;
+    const key = partKey(q.part);
+    const k = q.knob;
+    const isDown = down.has(key);
+    const name = `${isDown ? "Lift" : "Fold"} ${q.label}`;
+    return (
+      <button
+        key={`knob-${key}`}
+        type="button"
+        className={cx("mlay-knob", k.glyph && "glyph", on && "inner")}
+        data-knob={key}
+        style={{
+          left: k.x - k.d / 2 - (on?.box.left ?? 0),
+          top: k.y - k.d / 2 - (on?.box.top ?? 0),
+          width: k.d,
+          height: k.d,
+        }}
+        aria-expanded={!isDown}
+        aria-label={name}
+        title={name}
+        onClick={() => (isDown ? onToggle(key) : fall(key))}
+      >
+        {k.glyph ? <Icon name="stack" size={16} /> : null}
+      </button>
+    );
+  };
   return (
     <>
       <div className="mlay-floor">
         {/* under the floor's stops: each join to its stop (apart, or its plate shut), or into the
             station itself (landed) */}
         {level.joins.map((j) => {
-          const sh = j.parts.some((k) => shut.has(k));
+          const sh = j.parts.some((k) => down.has(k));
           const bare = { ...level.floor, st: [], chips: [], frames: [], folds: [], opened: [] };
           return [
             <div key={`${j.parts}-a`} className={cx("mlay-join", sh ? "on" : "apart")}>
@@ -144,29 +179,18 @@ const Stage = memo(function Stage({
       </div>
       {level.plates.map((p) => {
         const key = partKey(p.part);
-        const down = shut.has(key);
+        const isDown = down.has(key);
         const k = p.knob;
         return (
           <div
             key={key}
-            className={cx("mlay-slot", down && "shut")}
+            className={cx("mlay-slot", isDown && "shut")}
             data-part={key}
-            style={{ "--zn": p.z } as CSSProperties}
+            style={
+              { "--zn": p.z, "--kz": p.parent ? (zOf.get(p.parent) ?? 0) : 0 } as CSSProperties
+            }
           >
-            {/* the floor's stacked stop: lifts or shuts its plate */}
-            {onShut ? (
-              <button
-                type="button"
-                className={cx("mlay-knob", k.glyph && "glyph")}
-                style={{ left: k.x - k.d / 2, top: k.y - k.d / 2, width: k.d, height: k.d }}
-                aria-expanded={!down}
-                aria-label={down ? `Lift ${p.label}` : `Fold ${p.label}`}
-                title={down ? `Lift ${p.label}` : `Fold ${p.label}`}
-                onClick={() => (down ? onShut(key) : fall(key))}
-              >
-                {k.glyph ? <Icon name="stack" size={16} /> : null}
-              </button>
-            ) : null}
+            {p.parent ? null : knob(p, null)}
             {/* One dashed line from its stop up to the plate. */}
             <i className="mlay-drop" style={{ left: p.at[0], top: p.at[1] }} aria-hidden="true" />
             <div
@@ -178,20 +202,21 @@ const Stage = memo(function Stage({
                   "--oy": `${k.y - p.box.top}px`,
                 } as CSSProperties
               }
-              inert={down || undefined}
+              inert={isDown || undefined}
             >
-              {/* No pointer hits here but the acts: hover and click come from the camera math. */}
+              {/* No pointer hits here but the acts and knobs: hover and click come from the camera math. */}
               <div className="mlay-face">
                 <button
                   type="button"
                   className="mlay-open"
-                  aria-label={open ? `Open ${p.label}` : `${p.label}: stack it here`}
-                  onClick={() => onPlate(p, open ? "open" : "stack")}
+                  aria-label={`Look at ${p.label}`}
+                  onClick={() => onPlate(p, "settle")}
                 >
                   <MetroSvg scene={p.scene} still bare />
                 </button>
+                {kidsOf(key).map((q) => knob(q, p))}
                 <div className="mlay-acts">
-                  {open && p.deep ? (
+                  {p.deep ? (
                     <button
                       type="button"
                       className="mlay-act"
@@ -202,7 +227,7 @@ const Stage = memo(function Stage({
                       <Icon name="stack" size={14} />
                     </button>
                   ) : null}
-                  {onShut ? (
+                  {onToggle ? (
                     <button
                       type="button"
                       className="mlay-act"
@@ -231,17 +256,30 @@ export function MetroLayers({
   zoom,
   floor,
   onFloor,
-  onOpen,
   split = "folds",
   onSplit,
   shut: shutList,
   onShut,
+  lift: liftList,
+  onLift,
   ghost,
   className,
 }: MetroLayersProps) {
   const shutKey = (shutList ?? []).join(",");
   const shut = useMemo(() => new Set(shutKey ? shutKey.split(",") : []), [shutKey]);
+  const liftKey = (liftList ?? []).join(",");
+  const lift = useMemo(() => new Set(liftKey ? liftKey.split(",") : []), [liftKey]);
   const [level, setLevel] = useState<Level | null>(null);
+  // Down: a floor plate in `shut`, a nested one not in `lift`, or any plate on a down one.
+  const down = useMemo(() => {
+    const byKey = new Map((level?.plates ?? []).map((p) => [partKey(p.part), p]));
+    const up = (key: string): boolean => {
+      const p = byKey.get(key);
+      if (!p) return false;
+      return p.parent === null ? !shut.has(key) : lift.has(key) && up(p.parent);
+    };
+    return new Set([...byKey.keys()].filter((k) => !up(k)));
+  }, [level, shut, lift]);
   const [failed, setFailed] = useState<string | null>(null);
   const [box, setBox] = useState<[number, number]>([0, 0]);
   // The view switch: set when a move ends, never per frame.
@@ -272,12 +310,17 @@ export function MetroLayers({
     h.key = key;
   }, []);
   const release = useCallback(() => setHand(null), [setHand]);
-  const live = useRef({ onFloor, onOpen, onShut, shut });
-  live.current = { onFloor, onOpen, onShut, shut };
+  const live = useRef({ onFloor, onShut, onLift, shut, lift, level });
+  live.current = { onFloor, onShut, onLift, shut, lift, level };
   // One handler for the life of the stage, so a shut never draws the floor again.
   const toggle = useCallback((key: string) => {
-    const { onShut: on, shut: now } = live.current;
-    on?.(now.has(key) ? [...now].filter((k) => k !== key) : [...now, key]);
+    const { onShut: toShut, onLift: toLift, shut: sh, lift: li, level: lv } = live.current;
+    const p = lv?.plates.find((q) => partKey(q.part) === key);
+    const flip = (set: ReadonlySet<string>) =>
+      set.has(key) ? [...set].filter((k) => k !== key) : [...set, key];
+    if (!p) return;
+    if (p.parent === null) toShut?.(flip(sh));
+    else toLift?.(flip(li));
   }, []);
 
   const key = `${floor?.kind ?? ""}:${floor?.id ?? ""}:${split}`;
@@ -321,10 +364,10 @@ export function MetroLayers({
       ...(level?.plates ?? []).map(
         ({ box: b, z, part }) =>
           // + the hover pull: a plate in hand still fits
-          [b.left, b.top, b.width, b.height, shut.has(partKey(part)) ? 0 : z + PULL] as const,
+          [b.left, b.top, b.width, b.height, down.has(partKey(part)) ? 0 : z + PULL] as const,
       ),
     ],
-    [w, h, level, shut],
+    [w, h, level, down],
   );
 
   /** Spring the camera to `to`; `done` runs when it lands. */
@@ -376,13 +419,75 @@ export function MetroLayers({
     [place, soon, still],
   );
 
+  // Settled (spec S4b): the camera looks down on one plate and the plates up on it; the rest fade.
+  const settled = useRef<{ key: string; back: Cam } | null>(null);
+  /** `key` and the plates up on it. */
+  const treeUp = useCallback(
+    (key: string): Plate[] => {
+      const p = level?.plates.find((q) => partKey(q.part) === key);
+      if (!p || down.has(key)) return [];
+      return [
+        p,
+        ...(level?.plates ?? [])
+          .filter((q) => q.parent === key)
+          .flatMap((q) => treeUp(partKey(q.part))),
+      ];
+    },
+    [level, down],
+  );
+  /** Marks the settled plates; null clears. */
+  const mark = useCallback((key: string | null) => {
+    const el = stage.current;
+    for (const n of el?.querySelectorAll(".mlay-slot.chosen") ?? []) n.classList.remove("chosen");
+    el?.classList.toggle("settled", !!key);
+    if (!key) settled.current = null;
+  }, []);
+  const settle = useCallback(
+    (key: string) => {
+      const plates = treeUp(key);
+      if (!plates.length) return;
+      settled.current = { key, back: settled.current?.back ?? { ...cam.current } };
+      mark(key);
+      for (const p of plates)
+        stage.current
+          ?.querySelector(`.mlay-slot[data-part="${CSS.escape(partKey(p.part))}"]`)
+          ?.classList.add("chosen");
+      const top: Pose = { rx: 0, rz: 0, e: cam.current.e };
+      const at: Rect[] = plates.map((p) => [p.box.left, p.box.top, p.box.width, p.box.height, p.z]);
+      fly({ ...top, ...fitOf(w, h, at, top, box, 0.9) });
+    },
+    [treeUp, mark, fly, w, h, box],
+  );
+  /** Back to the pose before it settled, fitted to all. */
+  const unsettle = useCallback(() => {
+    const back = settled.current?.back;
+    mark(null);
+    if (back) fly({ ...back, ...fitOf(w, h, rects(), back, box) });
+  }, [mark, fly, rects, w, h, box]);
+  // A lift or a shut while settled: fit again; its own plate shut lets go.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only a change in what is up moves it.
+  useEffect(() => {
+    const s = settled.current;
+    if (!s) return;
+    if (down.has(s.key)) unsettle();
+    else settle(s.key);
+  }, [down]);
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && settled.current) unsettle();
+    };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [unsettle]);
+
   /** A pose, framed so every box shows. */
   const poseTo = useCallback(
     (p: Pose, done?: () => void) => {
+      mark(null);
       flat.current = p.e < 0.5;
       fly({ ...p, ...fitOf(w, h, rects(), p, box) }, done);
     },
-    [fly, rects, w, h, box],
+    [fly, rects, w, h, box, mark],
   );
 
   // What the skeleton draws next time: the fit a load lands on, once its flight ends; a hand on
@@ -404,7 +509,7 @@ export function MetroLayers({
           c.k,
         ),
         ...level.plates
-          .filter((p) => !shut.has(partKey(p.part)))
+          .filter((p) => !down.has(partKey(p.part)))
           .map((p) =>
             layerShapes(
               p.scene,
@@ -442,6 +547,7 @@ export function MetroLayers({
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new level mounts a new stage.
   useLayoutEffect(() => {
     if (!level || !box[0]) return;
+    mark(null);
     // Nothing lifts at this level: it lies flat.
     const p = flat.current || !level.plates.length ? FLAT : APART;
     if (first.current) {
@@ -502,7 +608,7 @@ export function MetroLayers({
     return () => el.removeEventListener("wheel", wheel);
   }, [zoomAt, soon]);
 
-  const down = (e: PointerEvent<HTMLDivElement>) => {
+  const press = (e: PointerEvent<HTMLDivElement>) => {
     if ((e.target as Element).closest(".mlay-act, .mlay-knob, .mlay-bar")) return;
     touched.current = true;
     run.current?.stop();
@@ -575,34 +681,26 @@ export function MetroLayers({
   };
 
   const pick = useCallback(
-    (p: Plate, how: "open" | "stack") => {
+    (p: Plate, how: "settle" | "stack") => {
       if (dragged.current) return;
-      if (how === "stack" || !live.current.onOpen) return live.current.onFloor(p.part);
-      // Fly down onto the plate, top-down, till it fills the view; then it opens flat.
-      const top: Pose = { rx: 0, rz: 0, e: cam.current.e };
-      const rect: Rect = [p.box.left, p.box.top, p.box.width, p.box.height, p.z];
-      const el = stage.current;
-      el?.classList.add("opening");
-      el?.querySelector(`[data-part="${CSS.escape(partKey(p.part))}"]`)?.classList.add("chosen");
-      fly({ ...top, ...fitOf(w, h, [rect], top, box, 0.98) }, () =>
-        live.current.onOpen?.(p.part, p.label),
-      );
+      if (how === "stack") return live.current.onFloor(p.part);
+      settle(partKey(p.part));
     },
-    [w, h, box, fly],
+    [settle],
   );
 
   /**
    * Hover by the camera's math, not the DOM: Chrome's 3D hit test drops a still pointer while a
    * face lifts. In hand while the pointer is on its plate at rest, lifted, or between; out 100 ms
-   * after it leaves them all. Another plate at rest takes hand at once; the higher one wins.
+   * after it leaves them all. Another plate at rest takes hand at once; the higher one wins, and a
+   * plate on top of the one in hand takes it from it.
    */
   const hover = (e: PointerEvent<HTMLDivElement>) => {
     const v = viewEl.current?.getBoundingClientRect();
     const c = cam.current;
     const el = stage.current;
     const busy = dragged.current && grab.current;
-    if (!level || !v || !el || busy || c.e < 0.02 || el.classList.contains("opening"))
-      return setHand(null);
+    if (!level || !v || !el || busy || c.e < 0.02) return setHand(null);
     const cur = hand.current.key;
     if (cur && (e.target as Element).closest(".mlay-acts")) return setHand(cur);
     const pt = [e.clientX - v.left, e.clientY - v.top] as const;
@@ -613,19 +711,69 @@ export function MetroLayers({
           toView(c, w, h, box, x, y, p.z * c.e + lift),
         ),
       );
-    const up = level.plates.filter((p) => !shut.has(partKey(p.part)));
+    const up = level.plates.filter((p) => !down.has(partKey(p.part)));
     const mine = up.find((p) => partKey(p.part) === cur);
-    if (mine && (on(mine, 0) || on(mine, PULL / 2) || on(mine, PULL))) return setHand(cur);
     const next = up.filter((p) => on(p, 0)).sort((a, b) => b.z - a.z || b.at[1] - a.at[1])[0];
+    const over = next && mine && next.depth > mine.depth;
+    if (mine && !over && (on(mine, 0) || on(mine, PULL / 2) || on(mine, PULL))) return setHand(cur);
     if (next) return setHand(partKey(next.part));
     if (cur && !hand.current.t) hand.current.t = window.setTimeout(release, LEAVE_MS);
   };
-  // A click on the view opens the plate in hand (keyboard: its own button).
+  // A click on the view: a knob on the plate in hand lifts or shuts, else it settles on the plate
+  // (keys: their own buttons). On empty space it lets go.
   const click = (e: MouseEvent<HTMLDivElement>) => {
     if ((e.target as Element).closest(".mlay-act, .mlay-knob, .mlay-bar, .mlay-open")) return;
+    if (dragged.current) return;
     const k = hand.current.key;
     const p = k ? level?.plates.find((q) => partKey(q.part) === k) : undefined;
-    if (p) pick(p, onOpen ? "open" : "stack");
+    const v = viewEl.current?.getBoundingClientRect();
+    if (!p || !v || !level) return settled.current ? unsettle() : undefined;
+    // Chrome's 3D hit test can miss a knob on a lifted face: find it by the camera's math too.
+    const c = cam.current;
+    const pt = [e.clientX - v.left, e.clientY - v.top] as const;
+    const kid = level.plates.find((q) => {
+      if (q.parent !== k) return false;
+      const d = q.knob.d;
+      const at = corners(q.knob.x - d / 2, q.knob.y - d / 2, d, d).map(([x, y]) =>
+        toView(c, w, h, box, x, y, p.z * c.e + PULL),
+      );
+      return inQuad(pt, at);
+    });
+    if (kid) {
+      const btn = stage.current?.querySelector<HTMLButtonElement>(
+        `.mlay-knob[data-knob="${CSS.escape(partKey(kid.part))}"]`,
+      );
+      return btn?.click();
+    }
+    pick(p, "settle");
+  };
+
+  /** −/+ by level (spec S8.4): + lifts the shallowest level that is down under up parents; − shuts
+   * the deepest level up. Floor plates go through `shut`, nested ones through `lift`. */
+  const plates = level?.plates ?? [];
+  const parentUp = (p: Plate) => p.parent === null || !down.has(p.parent);
+  const liftable = plates.filter((p) => down.has(partKey(p.part)) && parentUp(p));
+  const liftAt = Math.min(...liftable.map((p) => p.depth));
+  const upNow = plates.filter((p) => !down.has(partKey(p.part)));
+  const shutAt = Math.max(...upNow.map((p) => p.depth));
+  const stepUp = () => {
+    const keys = liftable.filter((p) => p.depth === liftAt).map((p) => partKey(p.part));
+    if (liftAt === 1) onShut?.([...shut].filter((k) => !keys.includes(k)));
+    else onLift?.([...new Set([...lift, ...keys])]);
+  };
+  const stepDown = () => {
+    const keys = upNow.filter((p) => p.depth === shutAt).map((p) => partKey(p.part));
+    const go = () =>
+      shutAt === 1
+        ? onShut?.([...new Set([...shut, ...keys])])
+        : onLift?.([...lift].filter((k) => !keys.includes(k)));
+    release();
+    const els = keys.map((k) =>
+      stage.current?.querySelector(`.mlay-slot[data-part="${CSS.escape(k)}"]`),
+    );
+    if (still) return go();
+    for (const el of els) el?.classList.add("closing");
+    window.setTimeout(go, SHUT_MS);
   };
 
   const crumbs = crumbsOf(zoom.nodes, floor);
@@ -659,6 +807,28 @@ export function MetroLayers({
           ) : null}
         </nav>
         <div className="mlay-ctl">
+          {onShut && plates.length ? (
+            <fieldset className="metro-depth" aria-label="Lift by level">
+              <Button
+                size="dense"
+                aria-label="Shut one level"
+                disabled={!upNow.length}
+                onClick={stepDown}
+                className="pointer-coarse:size-11"
+              >
+                <Icon name="minus" size={14} />
+              </Button>
+              <Button
+                size="dense"
+                aria-label="Lift one level"
+                disabled={!liftable.length || (liftAt > 1 && !onLift)}
+                onClick={stepUp}
+                className="pointer-coarse:size-11"
+              >
+                <Icon name="plus" size={14} />
+              </Button>
+            </fieldset>
+          ) : null}
           {onSplit && level?.can.folds && level.can.lines ? (
             <Seg
               label="Split by"
@@ -688,7 +858,8 @@ export function MetroLayers({
             tone="quiet"
             size="dense"
             onClick={() => {
-              const c = cam.current;
+              const c = settled.current?.back ?? cam.current;
+              mark(null);
               fly({ ...c, ...fitOf(w, h, rects(), c, box) });
             }}
           >
@@ -702,7 +873,7 @@ export function MetroLayers({
         ref={view}
         className="mlay-view"
         onPointerDown={(e) => {
-          down(e);
+          press(e);
           hover(e);
         }}
         onPointerMove={(e) => {
@@ -731,9 +902,8 @@ export function MetroLayers({
               level={level}
               root={stage}
               onPlate={pick}
-              open={!!onOpen}
-              shut={shut}
-              onShut={onShut ? toggle : null}
+              down={down}
+              onToggle={onShut ? toggle : null}
               still={still}
               release={release}
             />
@@ -742,7 +912,7 @@ export function MetroLayers({
         <p className="mlay-hint">
           {level && !level.plates.length
             ? "Nothing to split at this level."
-            : "Drag to turn. Scroll to move, pinch to zoom. Point at a plate to raise it, click to open it."}
+            : "Drag to turn. Scroll to move, pinch to zoom. Click a plate to look at it, Esc to step back."}
         </p>
       </div>
     </div>

@@ -1078,6 +1078,7 @@
   box-shadow:
     0 0 0 1px var(--ui-hair),
     0 30px 60px -30px rgb(30 20 60 / 0.35);
+  transition: opacity 0.35s var(--ui-ease);
 }
 .mlay-floor svg,
 .mlay-plate svg {
@@ -1112,8 +1113,8 @@
   pointer-events: none;
 }
 /* In hand (JS sets `.hot` on enter, drops it 100 ms after leave): one plate at a time. */
-.mlay-stage:not(.landed, .moving, .opening) .mlay-slot.hot,
-.mlay-stage:not(.landed, .moving, .opening) .mlay-slot:has(:focus-visible) {
+.mlay-stage:not(.landed, .moving) .mlay-slot.hot,
+.mlay-stage:not(.landed, .moving) .mlay-slot:has(.mlay-open:focus-visible) {
   --pull: 40;
 }
 /* No pointer hits on a plate but its acts: hover and click come from the camera's math
@@ -1145,9 +1146,16 @@
 .mlay-view:has(.mlay-slot.hot) {
   cursor: pointer;
 }
-/* A plate in hand is in front of every knob. */
-.mlay-stage:has(.mlay-slot.hot) .mlay-knob {
+/* A plate in hand is in front of every floor knob. */
+.mlay-stage:has(.mlay-slot.hot) .mlay-slot > .mlay-knob {
   pointer-events: none;
+}
+/* A knob on a plate takes clicks only while that plate is in hand (the view's math backs it). */
+.mlay-knob.inner {
+  pointer-events: none;
+}
+.mlay-slot.hot .mlay-knob.inner {
+  pointer-events: auto;
 }
 .mlay-slot.hot .mlay-face,
 .mlay-plate:focus-within .mlay-face {
@@ -1156,7 +1164,7 @@
     0 30px 50px -18px rgb(30 20 60 / 0.5);
 }
 /* One plate in hand: the others step back, its name takes the accent. */
-.mlay-stage:not(.landed, .opening):has(.mlay-slot.hot) .mlay-slot:not(.hot) .mlay-plate {
+.mlay-stage:not(.landed, .settled):has(.mlay-slot.hot) .mlay-slot:not(.hot) .mlay-plate {
   opacity: 0.6;
 }
 .mlay-slot.hot .mlay-tag {
@@ -1167,7 +1175,7 @@
   --pull: 0;
 }
 .mlay-stage .mlay-slot.closing .mlay-plate {
-  transform: translateZ(0) scale(0.1);
+  transform: translateZ(calc(var(--kz, 0) * var(--e) * 1px)) scale(0.1);
   opacity: 0;
 }
 .mlay-slot.closing .mlay-drop {
@@ -1276,7 +1284,8 @@
   transform: translateZ(1px);
   transition:
     box-shadow 0.2s var(--ui-ease),
-    background 0.2s var(--ui-ease);
+    background 0.2s var(--ui-ease),
+    opacity 0.35s var(--ui-ease);
 }
 .mlay-knob:hover {
   background: color-mix(in srgb, var(--ui-ink) 6%, transparent);
@@ -1295,32 +1304,36 @@
 .mlay-slot.shut .mlay-drop {
   display: none;
 }
-/* From its stop on the floor up to the plate: the artifact's `.drop`. */
+/* From its stop up to the plate: the artifact's `.drop`. A nested plate's stop is on its parent,
+   `--kz` high. */
 .mlay-drop {
   position: absolute;
   width: 0;
-  height: calc((var(--zn) * var(--e) + var(--pull)) * 1px);
+  height: calc(((var(--zn) - var(--kz, 0)) * var(--e) + var(--pull)) * 1px);
   border-left: 1px dashed color-mix(in srgb, var(--ui-active) 70%, transparent);
   transform-origin: 0 0;
-  transform: rotateX(90deg);
-  transition: height 0.28s var(--ui-ease);
+  transform: translateZ(calc(var(--kz, 0) * var(--e) * 1px)) rotateX(90deg);
+  transition:
+    height 0.28s var(--ui-ease),
+    opacity 0.35s var(--ui-ease);
 }
 /* While the camera moves, JS sets each frame: no easing behind it. */
-.mlay-stage.moving .mlay-plate,
-.mlay-stage.moving .mlay-face,
-.mlay-stage.moving .mlay-drop {
+.mlay-stage.moving .mlay-face {
   transition: none;
+}
+/* the settle fade still runs */
+.mlay-stage.moving .mlay-plate,
+.mlay-stage.moving .mlay-drop {
+  transition: opacity 0.35s var(--ui-ease);
 }
 .mlay-stage.landed .mlay-drop {
   visibility: hidden;
 }
-/* Opening a plate: the rest fade while the camera comes down onto it. */
-.mlay-stage.opening .mlay-floor,
-.mlay-stage.opening .mlay-slot:not(.chosen) > *,
-.mlay-stage.opening .chosen .mlay-tag,
-.mlay-stage.opening .chosen .mlay-knob {
-  opacity: 0.08;
-  transition: opacity 0.35s var(--ui-ease);
+/* Settled on a plate (spec S4b): it and the plates up on it stay; the rest fade. */
+.mlay-stage.settled .mlay-floor,
+.mlay-stage.settled .mlay-slot:not(.chosen) > *,
+.mlay-stage.settled .mlay-slot.chosen > .mlay-knob {
+  opacity: 0.15;
 }
 .mlay-hint {
   position: absolute;

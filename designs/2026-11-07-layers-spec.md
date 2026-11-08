@@ -49,6 +49,20 @@ Code: `packages/ui/src/metro/layers.tsx`, `metro.css` (`.mlay-*`). Stories: `Wre
 3. Stack here (layers icon act) makes the part the floor. Shown only when the part holds parts.
 4. Touch (no hover): acts always show; a tap on a plate opens it.
 
+### S4b Settle (WA-1198, replaces S4.1)
+
+1. A click on a plate (not on an act or a knob) settles the camera on it, in Layers: it turns top-down and fits that plate and the plates lifted above it. The rest fade to 15 %. The look never changes and nothing is laid out again.
+2. Out: Esc, a click on empty space, Fit all, or Together/Apart. The camera goes back to the last pose, fitted to all.
+3. The flat focus view (`focus=` from Layers, its "Layers › part" bar) is gone.
+
+### S8 Nest (WA-1198)
+
+1. One layout per floor opens every fold under it, at every depth. Each plate is a cut of it, so a lift or a shut never moves another plate.
+2. A plate's own folds show on it as stacked stops, with the rail through them. Each is a knob: a click lifts that fold's plate over its parent plate, one step (120) higher. A click on a lifted plate's knob, or its x, shuts it. A shut plate takes every plate above it down too.
+3. Top-level plates start lifted (`shut=` lists the shut ones). Nested plates start shut (`lift=` lists the lifted ones).
+4. The bar's − and + work in Layers: + lifts every plate one level deeper; − shuts the deepest lifted level, then the top level.
+5. Hover: the highest plate under the pointer is in hand. A nested knob takes clicks while its parent is in hand.
+
 ### S5 Camera
 
 Drag turns, tilt drives apart; release under 16° snaps flat. Wheel or pinch zooms at the pointer. Trackpad scroll, shift-drag or right-drag pans. Together lands plates on their place; Apart lifts them. Fit all frames the floor and every plate. Pointer down on a knob, an act or the bar never starts a drag.
@@ -82,6 +96,18 @@ Resolution judged only in GPU Chrome: 12 px tag text and stop names sharp at k �
 | E1 | Page and console errors over the run | 0 |
 
 Stories run: all 6 `wren-map-offer-shapes--*` (every play in each select), and Map Layers. Widths 1280 and 390.
+
+## Decision: nesting and open (WA-1198, 11-08)
+
+William: opening a plate "does a animation into a weird quick switch into the flat view"; the subview's expand and collapse "are all glitchy and not functional"; Delivery inside Core offer should expand "into a second layer on top of the first ... (nested)". Cause, seen in recorded frames: the camera fills the screen with the plate, the whole flat map shows for ~200 ms, then the flat map fades to the part at a smaller size. The subview forced every fold open, so its fold buttons redrew nothing.
+
+| Option | For | Against |
+|---|---|---|
+| **A. Nest in Layers; open settles the camera, stays in Layers** | One renderer, one camera, no handoff; nesting as he drew it | Larger rework of `plates.ts` and `layers.tsx` |
+| B. Keep the flat subview; morph the plate into it; fix its folds; one extra lift level | Smaller | Two renderers still meet; nesting one level only |
+| C. Drop the fly; Layers opens flat with a fade | Smallest | Layers stays a one-level overview |
+
+Chosen: A (William, 11-08).
 
 ## Decision: where Lift lives
 

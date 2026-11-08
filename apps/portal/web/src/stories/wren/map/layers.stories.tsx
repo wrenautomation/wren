@@ -7,9 +7,9 @@ import { LATE, mapAt, SHARED } from "./map-kit.js";
 const meta: Meta = { title: "Wren/Map/Layers", globals: { data: "tidy" } };
 export default meta;
 
-/** A plate's button: "Open <part>", and nothing else on the page. */
+/** A plate's button: "Look at <part>", and nothing else on the page. */
 const plateName = (name: string, el: Element) =>
-  name.startsWith("Open ") && el.classList.contains("mlay-open");
+  name.startsWith("Look at ") && el.classList.contains("mlay-open");
 
 /** Layers (an experiment): the whole map at the bottom, each part on a plate over its place. */
 export const Default = mapAt("/?look=layers", {
@@ -50,17 +50,19 @@ export const Floor = mapAt("/?look=layers&floor=line:growth", {
   },
 });
 
-/** Open: the camera comes down onto a plate, then the flat map shows only that part. */
-export const Open = mapAt("/?look=layers", {
+/** Settle: the camera looks down on a plate and stays in Layers; Esc steps back. */
+export const Settle = mapAt("/?look=layers", {
   answers: bigAnswers(SHARED),
   check: async (page) => {
     const [plate] = await within(page).findAllByRole("button", { name: plateName }, LATE);
     // plates take no pointer hits (the camera's math does): the keys' way in
     (plate as HTMLElement).focus();
     await userEvent.keyboard("{Enter}");
-    const bar = await within(page).findByRole("navigation", { name: "Open part" }, LATE);
-    await expect(within(bar).getByRole("link", { name: "Layers" })).toBeVisible();
-    await expect(within(bar).getByRole("link", { name: "Whole map" })).toBeVisible();
+    await waitFor(() => expect(page.querySelector(".mlay-stage.settled")).not.toBeNull(), LATE);
+    await expect(page.querySelector(".mlay-slot.chosen")).not.toBeNull();
+    await expect(within(page).queryByRole("navigation", { name: "Open part" })).toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(page.querySelector(".mlay-stage.settled")).toBeNull(), LATE);
   },
 });
 
