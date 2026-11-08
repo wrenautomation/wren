@@ -1,5 +1,5 @@
 {
-  "id": "abd5f2db-4b7a-46ff-83a7-4d5f8414b72e",
+  "id": "74055558-02f3-473e-95c2-e7e05be9b5ef",
   "prevId": "58a5497f-3222-4181-aa5b-d7d638f61b43",
   "version": "7",
   "dialect": "postgresql",
@@ -43778,8 +43778,8 @@
         }
       },
       "foreignKeys": {
-        "filed_folder_id_folders_id_fk": {
-          "name": "filed_folder_id_folders_id_fk",
+        "fk_filed_folder": {
+          "name": "fk_filed_folder",
           "tableFrom": "filed",
           "tableTo": "folders",
           "schemaTo": "folders",
@@ -43792,8 +43792,8 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "filed_subject_id_subjects_id_fk": {
-          "name": "filed_subject_id_subjects_id_fk",
+        "fk_filed_subject": {
+          "name": "fk_filed_subject",
           "tableFrom": "filed",
           "tableTo": "subjects",
           "schemaTo": "vireo",
@@ -43808,8 +43808,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "filed_kind_ref_pk": {
-          "name": "filed_kind_ref_pk",
+        "pk_filed": {
+          "name": "pk_filed",
           "columns": [
             "kind",
             "ref"
@@ -43833,7 +43833,7 @@
         "id": {
           "name": "id",
           "type": "serial",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true
         },
         "parent_id": {
@@ -43880,8 +43880,8 @@
         }
       },
       "foreignKeys": {
-        "folders_parent_id_folders_id_fk": {
-          "name": "folders_parent_id_folders_id_fk",
+        "fk_folders_parent": {
+          "name": "fk_folders_parent",
           "tableFrom": "folders",
           "tableTo": "folders",
           "schemaTo": "folders",
@@ -43895,7 +43895,14 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "pk_folders": {
+          "name": "pk_folders",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {
         "uq_folders_name": {
           "name": "uq_folders_name",

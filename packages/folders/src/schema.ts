@@ -5,8 +5,8 @@
 import { subjects } from "@wrenautomation/vireo/schema";
 import { sql } from "drizzle-orm";
 import {
-  type AnyPgColumn,
   check,
+  foreignKey,
   index,
   integer,
   pgSchema,
@@ -27,14 +27,16 @@ export type ItemKind = (typeof ITEM_KINDS)[number];
 export const folders = foldersSchema.table(
   "folders",
   {
-    id: serial("id").primaryKey(),
+    id: serial("id").notNull(),
     /** null: top level. Drop moves children up, so no cascade. */
-    parentId: integer("parent_id").references((): AnyPgColumn => folders.id),
+    parentId: integer("parent_id"),
     name: text("name").notNull(),
     madeBy: text("made_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_folders" }),
+    foreignKey({ columns: [t.parentId], foreignColumns: [t.id], name: "fk_folders_parent" }),
     index("ix_folders_parent").on(t.parentId),
     // one name per level, top level too
     unique("uq_folders_name").on(t.parentId, t.name).nullsNotDistinct(),
@@ -49,18 +51,22 @@ export const filed = foldersSchema.table(
   {
     kind: varchar("kind", { length: 8, enum: ITEM_KINDS }).notNull(),
     ref: text("ref").notNull(),
-    folderId: integer("folder_id")
-      .notNull()
-      .references(() => folders.id),
+    folderId: integer("folder_id").notNull(),
     /** kind subject only: the DB refuses a subject that does not exist; a deleted one leaves. */
-    subjectId: integer("subject_id")
-      .generatedAlwaysAs(sql`case when kind = 'subject' then ref::integer end`)
-      .references(() => subjects.id, { onDelete: "cascade" }),
+    subjectId: integer("subject_id").generatedAlwaysAs(
+      sql`case when kind = 'subject' then ref::integer end`,
+    ),
     filedBy: text("filed_by").notNull(),
     filedAt: timestamp("filed_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    primaryKey({ columns: [t.kind, t.ref] }),
+    primaryKey({ columns: [t.kind, t.ref], name: "pk_filed" }),
+    foreignKey({ columns: [t.folderId], foreignColumns: [folders.id], name: "fk_filed_folder" }),
+    foreignKey({
+      columns: [t.subjectId],
+      foreignColumns: [subjects.id],
+      name: "fk_filed_subject",
+    }).onDelete("cascade"),
     index("ix_filed_folder").on(t.folderId),
     index("ix_filed_subject").on(t.subjectId),
     check("ck_filed_ref", sql`length(${t.ref}) between 1 and 120`),
