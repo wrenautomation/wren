@@ -143,6 +143,18 @@ export const Stored = story(`/research/ask?setup=birdwatch&chat=${STORED}`, [], 
   await c.findByText(/42/, {}, LONG);
 });
 
+/** A chat the Mac no longer holds (404): the box reads only and says why; no Retry (WA-1173). */
+export const Gone = story(
+  "/research/ask?setup=birdwatch&chat=00000000-0000-4000-8000-0000000000ff",
+  [],
+  async (page) => {
+    const box = await within(page).findByRole("textbox", { name: "Message" }, LONG);
+    await waitFor(() => expect(box).toBeDisabled(), LONG);
+    await expect(box).toHaveAttribute("placeholder", expect.stringMatching(/Start a new chat/));
+    await expect(within(page).queryByRole("button", { name: "Retry" })).toBeNull();
+  },
+);
+
 /** The side panel on a page past Ask: its Chats menu lists the stored chats. */
 export const Panel = story("/research/runs", [], async (page) => {
   const c = within(page);

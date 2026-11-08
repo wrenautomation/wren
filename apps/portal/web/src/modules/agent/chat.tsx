@@ -288,6 +288,7 @@ export function AgentChat({
         running={a.running}
         starting={a.starting}
         error={a.error}
+        closed={a.closed}
         onSend={(text, files) => a.send(text, files, sendPage)}
         files={{ accept: ACCEPT, ready: a.ready }}
         context={sendPage ? { label: sendPage, onDrop: () => setDropped(sendPage) } : null}

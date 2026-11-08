@@ -86,6 +86,8 @@ export interface AgentChat {
   /** The last chat still shows while the picked one reads: dim it. */
   stale: boolean;
   error: { text: string; retry?: (() => void) | undefined } | null;
+  /** Why this chat can never send (no access, gone): the box reads only (AgentThread `closed`). */
+  closed: string | null;
   session: string | undefined;
   /** From init: true on the Claude plan, false on an API key; unknown before the first turn. */
   plan: boolean | undefined;
@@ -130,7 +132,7 @@ export function useAgent(o: {
 }): AgentChat {
   const [s, setS] = useState<ThreadState>(EMPTY);
   const [starting, setStarting] = useState(false);
-  const [error, setError] = useState<AgentChat["error"]>(null);
+  const [error, setError] = useState<Fault | null>(null);
   const live = useRef<Live | null>(null);
   const [status, setStatus] = useState<AgentStatusInfo>({});
   // the model's own effort, seen while no effort is picked
@@ -174,7 +176,11 @@ export function useAgent(o: {
     const c = closeText(e);
     // the page shows one sentence; the console keeps the cause
     console.error("agent:", e);
-    setError({ text: c.text, retry: c.retry ? () => again.current(...last.current) : undefined });
+    setError({
+      text: c.text,
+      retry: c.retry ? () => again.current(...last.current) : undefined,
+      lock: c.lock,
+    });
   }, []);
 
   // bumped on each close: a socket that finishes opening after its chat was left shuts at once
@@ -315,8 +321,9 @@ export function useAgent(o: {
               void measure(q, setStatus);
               const c = typedNow.current;
               typedNow.current = null;
-              // `/clear`: the CLI's new session starts empty, as in the terminal
-              if (c?.cleared) setS(EMPTY);
+              // `/clear`: the CLI's new session starts empty, as in the terminal; it is the one
+              // shown, so its stored read (nothing yet: 404) never locks the box
+              if (c?.cleared) setS({ ...EMPTY, session: shown.current ?? undefined });
               if (c && (c.name === "model" || c.name === "effort"))
                 void settingsNow(q).then((now) => now && onCommand.current?.(c.name, now));
             }
@@ -398,15 +405,17 @@ export function useAgent(o: {
     setS((p) => answered(p, id, allow, answers));
   }, []);
 
+  const fault: Fault | null =
+    error ??
+    (stored.error && s.session !== o.session ? storedError(stored.error, stored.retry) : null);
   return {
     messages: s.messages,
     running: s.running,
     starting,
     loading: !!o.session && s.session !== o.session && !s.messages.length && !stored.error,
     stale: !!o.session && s.session !== o.session && !!s.messages.length,
-    error:
-      error ??
-      (stored.error && s.session !== o.session ? storedError(stored.error, stored.retry) : null),
+    error: fault?.lock ? null : fault,
+    closed: fault?.lock ? fault.text : null,
     session: s.session ?? o.session ?? undefined,
     plan: s.plan,
     status: withFresh(
@@ -620,7 +629,9 @@ async function measure(q: Query, set: (f: (s: AgentStatusInfo) => AgentStatusInf
   }));
 }
 
-const storedError = (e: unknown, retry: () => void) => {
+type Fault = NonNullable<AgentChat["error"]> & { lock?: true | undefined };
+
+const storedError = (e: unknown, retry: () => void): Fault => {
   const c = closeText(e);
-  return { text: c.text, retry: c.retry ? retry : undefined };
+  return { text: c.text, retry: c.retry ? retry : undefined, lock: c.lock };
 };

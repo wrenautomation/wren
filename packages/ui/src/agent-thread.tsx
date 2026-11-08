@@ -486,7 +486,8 @@ export function AgentThread(p: AgentThreadProps) {
                       ) : null}
                     </div>
                     <ThreadPrimitive.Empty>
-                      {p.welcome ? <Welcome {...p.welcome} /> : null}
+                      {/* closed: no prompts to send; the box says why */}
+                      {p.welcome && !p.closed ? <Welcome {...p.welcome} /> : null}
                     </ThreadPrimitive.Empty>
                     <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-[linear-gradient(transparent,var(--ui-paper)_28px)] pt-7 pb-1">
                       <div className={cx(COLUMN, "relative")}>
@@ -501,7 +502,7 @@ export function AgentThread(p: AgentThreadProps) {
                           closed={p.closed}
                           placeholder={p.placeholder}
                           tools={p.tools}
-                          files={!!p.files}
+                          files={!!p.files && !p.closed}
                           context={p.context}
                           commands={p.commands}
                         />
@@ -935,7 +936,7 @@ function Composer({
           disabled={!!closed}
           placeholder={closed ?? placeholder ?? "Ask the agent"}
           aria-label="Message"
-          className="w-full resize-none border-0 bg-transparent px-4 pt-3.5 pb-1.5 text-[14.5px]/[1.5] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) disabled:cursor-not-allowed"
+          className="w-full resize-none border-0 bg-transparent px-4 pt-3.5 pb-1.5 text-[14.5px]/[1.5] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) disabled:cursor-not-allowed disabled:placeholder:text-(--ui-ink-2)"
         >
           <MessageInput rows={1} maxRows={12} />
         </ComposerPrimitive.Input>

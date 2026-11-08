@@ -518,7 +518,8 @@ export function cut(s0: ThreadState): ThreadState {
 }
 
 /** Why a session ended, as one sentence, and whether Retry can help. Codes: relay.ts CLOSE. */
-export function closeText(e: unknown): { text: string; retry: boolean } {
+/** `lock`: this chat can never send again (AgentThread `closed`): no Retry, the box reads only. */
+export function closeText(e: unknown): { text: string; retry: boolean; lock?: true } {
   const msg = e instanceof Error ? e.message : String(e);
   const m = /code (\d+)(?::\s*(.*))?/.exec(msg);
   const code = m ? Number(m[1]) : null;
@@ -531,19 +532,24 @@ export function closeText(e: unknown): { text: string; retry: boolean } {
   switch (code) {
     case 4401:
       return /not your session/.test(why)
-        ? { text: "This chat belongs to someone else.", retry: false }
-        : { text: "You don't have access to this agent.", retry: false };
+        ? { text: "This chat belongs to someone else.", retry: false, lock: true }
+        : { text: "You don't have access to this agent.", retry: false, lock: true };
     case 4403:
       return {
         text: "The agent stopped: it was about to show a credential. Start a new chat.",
         retry: false,
+        lock: true,
       };
     case 4404:
-      return { text: "This agent setup doesn't exist on this Mac.", retry: false };
+      return { text: "This agent setup doesn't exist on this Mac.", retry: false, lock: true };
     case 4400:
       return { text: `This setup can't start${why ? `: ${why}` : "."}`, retry: false };
     case 404:
-      return { text: "This chat isn't on this Mac anymore.", retry: false };
+      return {
+        text: "This chat isn't on this Mac anymore. Start a new chat.",
+        retry: false,
+        lock: true,
+      };
     case 4429:
       return { text: "Too many chats are open on this Mac. Close one, then retry.", retry: true };
     case 4500:

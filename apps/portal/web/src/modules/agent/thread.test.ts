@@ -381,19 +381,27 @@ describe("closeText", () => {
   const closed = (code: number, why = "") =>
     new Error(`WebSocket closed abnormally with code ${code}: ${why}`);
   it.each([
-    [new Error("WebSocket connection error"), /isn't running/, true],
-    [closed(4401, "not your session"), /someone else/, false],
-    [closed(4401, "not allowed to open this setup"), /don't have access/, false],
-    [closed(4403, "credential"), /credential/, false],
-    [closed(4404), /doesn't exist/, false],
-    [closed(4400, "connection terminal is not built (WA-1051)"), /terminal is not built/, false],
-    [closed(4429), /Too many/, true],
-    [closed(4500, "claude exit 1"), /unexpectedly/, true],
-    [closed(1006), /closed/, true],
-  ])("%s", (e, text, retry) => {
+    [new Error("WebSocket connection error"), /isn't running/, true, undefined],
+    [closed(4401, "not your session"), /someone else/, false, true],
+    [closed(4401, "not allowed to open this setup"), /don't have access/, false, true],
+    [closed(4403, "credential"), /credential/, false, true],
+    [closed(4404), /doesn't exist/, false, true],
+    // a pick can fix it: the box stays open
+    [
+      closed(4400, "connection terminal is not built (WA-1051)"),
+      /terminal is not built/,
+      false,
+      undefined,
+    ],
+    [new Error("relay 404: code 404"), /Start a new chat/, false, true],
+    [closed(4429), /Too many/, true, undefined],
+    [closed(4500, "claude exit 1"), /unexpectedly/, true, undefined],
+    [closed(1006), /closed/, true, undefined],
+  ])("%s", (e, text, retry, lock) => {
     const c = closeText(e);
     expect(c.text).toMatch(text);
     expect(c.retry).toBe(retry);
+    expect(c.lock).toBe(lock);
   });
 });
 
