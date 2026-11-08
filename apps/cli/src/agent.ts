@@ -30,6 +30,7 @@ import {
 } from "@wren/agent";
 import { can, type MeAccess, whoFromMe } from "@wren/core/access";
 import type { Command } from "commander";
+import { egressFor, listening } from "./egress.js";
 
 const AGENT_PORT = 4748;
 const ORIGINS = [
@@ -102,6 +103,18 @@ const allSetups = (): readonly Setup[] => [
   ...hostSetups(resolve(workspaceRoot(), HOST_SETUPS), SETUPS),
 ];
 
+/** Roles the setups use whose proxy does not answer. */
+async function proxiesDown(): Promise<string[]> {
+  const ports = new Map<string, number>();
+  for (const s of allSetups()) {
+    const port = Number(new URL(egressFor(s)?.env.HTTPS_PROXY ?? "http://x:0").port);
+    if (port) ports.set(s.name, port);
+  }
+  const down = [];
+  for (const [name, port] of ports) if (!(await listening(port))) down.push(name);
+  return down;
+}
+
 export function registerAgent(program: Command): void {
   const agent = program
     .command("agent")
@@ -159,6 +172,7 @@ export function registerAgent(program: Command): void {
             // chats compact where this Mac's terminal does
             compact: compactOf(readJson(join(homedir(), ".claude", "settings.json"))),
           },
+          egress: egressFor,
           // one dir per setup per serve: a rebuild mid-session would pull a live child's PATH
           binDirs: (s) => {
             const dir = bins.get(s.name) ?? binDir(s, undefined, workspaceRoot());
@@ -173,6 +187,12 @@ export function registerAgent(program: Command): void {
           );
           // a setup or CLI change shows in the / menu at the next serve, before any chat
           void r.prime();
+          void proxiesDown().then((down) => {
+            if (down.length)
+              console.error(
+                `wren agent: egress proxy down for ${down.join(", ")}: its sessions cannot connect; run wren egress apply`,
+              );
+          });
         });
         const quit = () => void r.close().then(() => process.exit(0));
         process.on("SIGINT", quit);

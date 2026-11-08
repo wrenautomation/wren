@@ -5,7 +5,7 @@ import { existsSync, globSync, readdirSync, readFileSync } from "node:fs";
 
 const LAYERS = [
   // What everything stands on: no product knowledge.
-  "agent auth config connectors core db experiments llm notes offers research sites ui video",
+  "agent auth config connectors core db egress experiments llm notes offers research sites ui video",
   // Starling's shared contract: what its channels and both sides speak.
   "starling-core",
   // One vendor or one outside system behind an interface.

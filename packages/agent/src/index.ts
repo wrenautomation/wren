@@ -10,6 +10,7 @@ export {
   type Credential,
   compactOf,
   type Launch,
+  type LaunchEgress,
   LaunchError,
   type LaunchOptions,
   LEAN_ENV,

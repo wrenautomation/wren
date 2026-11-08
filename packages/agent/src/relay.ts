@@ -20,7 +20,14 @@ import { createInterface } from "node:readline";
 import { type WebSocket, WebSocketServer } from "ws";
 import { commandsFor, commandsIn, EFFORTS, inbound, modeAllowed, outbound } from "./filter.js";
 import { credentialBreach } from "./guard.js";
-import { type Credential, LaunchError, type LaunchOptions, launch, setupCwd } from "./launch.js";
+import {
+  type Credential,
+  type LaunchEgress,
+  LaunchError,
+  type LaunchOptions,
+  launch,
+  setupCwd,
+} from "./launch.js";
 import { RUN_ENV, type Run } from "./runs.js";
 import { type CommandStore, type Ledger, memoryCommands, memoryLedger } from "./sessions.js";
 import type { Setup } from "./setup.js";
@@ -59,6 +66,8 @@ export interface RelayOptions {
   launch: Omit<LaunchOptions, "resume" | "model">;
   /** The setup's CLI dirs, put before PATH (bins.ts). */
   binDirs?: (setup: Setup) => readonly string[];
+  /** The Wrenfile's sandbox and proxy for a setup, read at each launch so an edit needs no restart. */
+  egress?: (setup: Setup) => LaunchEgress | undefined;
   /** Live children at once; each `claude` holds a few hundred MB. */
   maxSessions?: number;
   /** Headless runs at once; default one less than `maxSessions`, so a chat can still open. */
@@ -308,12 +317,14 @@ export function relay(o: RelayOptions): {
     const mine = o.uploads && kind !== "probe" ? uploadDir(o.uploads, who) : undefined;
     // made before spawn: --add-dir needs it, and a file sent mid-chat reads without a restart
     if (mine) mkdirSync(mine, { recursive: true, mode: 0o700 });
+    const egress = o.egress?.(setup);
     const l = launch(setup, o.credential, {
       ...o.launch,
       resume,
       ...pick,
       owner,
       ...(binDirs ? { binDirs } : {}),
+      ...(egress ? { egress } : {}),
       ...(mine ? { addDirs: [mine] } : {}),
     });
     // a run never starts runs: no token for a headless child

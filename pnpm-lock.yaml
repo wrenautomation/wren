@@ -130,6 +130,9 @@ importers:
       '@wren/delivery':
         specifier: workspace:*
         version: link:../../packages/delivery
+      '@wren/egress':
+        specifier: workspace:*
+        version: link:../../packages/egress
       '@wren/experiments':
         specifier: workspace:*
         version: link:../../packages/experiments
@@ -1017,6 +1020,22 @@ importers:
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/egress:
+    dependencies:
+      yaml:
+        specifier: 2.9.1
+        version: 2.9.1
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
       typescript:
         specifier: 5.9.3
         version: 5.9.3

@@ -45,6 +45,7 @@ import { registerDelivery } from "./delivery.js";
 import { registerDlq } from "./dlq.js";
 import { registerDossier } from "./dossier.js";
 import { registerDrafts } from "./drafts.js";
+import { registerEgress } from "./egress.js";
 import { registerEmail } from "./email.js";
 import { registerEnrich } from "./enrich.js";
 import { registerFeatures } from "./features.js";
@@ -394,6 +395,7 @@ tokens
   .action(async () => console.log(JSON.stringify(await renewal().sync(), null, 2)));
 
 registerAgent(program);
+registerEgress(program);
 
 program.parseAsync().catch((err: unknown) => {
   console.error(err instanceof Error ? err.message : String(err));

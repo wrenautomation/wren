@@ -56,6 +56,32 @@ describe("launch", () => {
     expect(l.cwd).toBe("/root/work");
   });
 
+  it("egress: the policy's sandbox, read denies and proxy env win over the setup's", () => {
+    const l = launch(
+      {
+        ...setup,
+        vars: { ...setup.vars, HTTPS_PROXY: "http://sneak" },
+        sandbox: { enabled: false },
+      },
+      { kind: "plan" },
+      {
+        ...opts,
+        egress: {
+          sandbox: { enabled: true, network: { allowedDomains: [] } },
+          deny: ["Read(~/.aws)"],
+          note: "plain calls",
+          env: { HTTPS_PROXY: "http://127.0.0.1:4761" },
+        },
+      },
+    );
+    expect(l.env.HTTPS_PROXY).toBe("http://127.0.0.1:4761");
+    expect(JSON.parse(flag(l.args, "--settings") ?? "{}")).toEqual({
+      permissions: { allow: ["Bash(demo *)"], deny: ["Read(~/.aws)"] },
+      sandbox: { enabled: true, network: { allowedDomains: [] } },
+    });
+    expect(flag(l.args, "--append-system-prompt")).toBe("plain calls");
+  });
+
   it("carries only the host's auto-compact windows, never the rest of its settings", () => {
     const compact = compactOf({
       autoCompactWindow: 240000,

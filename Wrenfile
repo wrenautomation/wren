@@ -1,0 +1,57 @@
+# Wrenfile: where each process on this Mac may connect (designs/2026-11-08-egress.md).
+# `wren egress check` shows what it compiles to; `wren egress apply` puts the proxies live.
+# The relay reads it at each agent launch. Public repo: no client names, no secrets.
+version: 1
+
+# No agent shell may read these, and no agent may Read them. `~/` home, `@/` workspace root.
+secrets:
+  - ~/.aws
+  - ~/.ssh
+  - ~/.gnupg
+  - ~/.netrc
+  - ~/.npmrc
+  - ~/.docker/config.json
+  - ~/.wrangler
+  - ~/Library/Keychains
+  - ~/.config/anthropic
+  - ~/.config/autobrowse
+  - ~/.config/gcloud
+  - ~/.config/gh
+  - ~/.config/internships
+  - ~/.config/metered
+  - ~/.config/rclone
+  - ~/.config/restate
+  - ~/.config/solana
+  - ~/.config/weaver
+  - ~/.config/wren
+  - "@/llm.env*"
+  - "@/.wrangler"
+  - "@/wren/deploy/*.env"
+
+# One smokescreen per role. open: any public host. report: any public host, a miss is logged.
+# enforce: listed hosts only. Every role blocks loopback, private, link-local and CGNAT addresses.
+roles:
+  agents:
+    port: 4761
+    mode: report
+    hosts:
+      - api.anthropic.com
+      - mcp-proxy.anthropic.com
+  weaver:
+    port: 4762
+    mode: open
+  desk:
+    port: 4763
+    mode: report
+
+# Relay sessions per setup. role: the proxy for claude and its CLIs. run: CLIs that run outside
+# the sandbox. hosts: what the sandboxed shell may reach. default: any setup not named here.
+agents:
+  default:
+    role: agents
+  weaver:
+    role: weaver
+    run: [weaver, folders]
+  vireo:
+    role: agents
+    run: [vireo, maker, folders]

@@ -44,6 +44,15 @@ export const LEAN_ENV: Readonly<Record<string, string>> = {
 /** `key` carries the client's key for one session; never the shared model-keys file. */
 export type Credential = { kind: "plan" } | { kind: "key"; key: string };
 
+/** `@wren/egress` `SetupEgress`, its sandbox already merged with the setup's own. */
+export interface LaunchEgress {
+  sandbox: Readonly<Record<string, unknown>>;
+  deny: readonly string[];
+  env: Readonly<Record<string, string>>;
+  /** Added to the system prompt: how to call the CLIs that run outside the sandbox. */
+  note?: string | undefined;
+}
+
 export interface Launch {
   command: string;
   args: string[];
@@ -75,6 +84,8 @@ export interface LaunchOptions {
   addDirs?: readonly string[];
   /** Where auto-compact fires, as the host's terminal has it (`compactOf`). */
   compact?: CompactSettings | undefined;
+  /** The Wrenfile's word for this setup (designs/2026-11-08-egress.md); none = no sandbox or proxy added. */
+  egress?: LaunchEgress | undefined;
   command?: string;
 }
 
@@ -130,13 +141,19 @@ export function launch(setup: Setup, cred: Credential, o: LaunchOptions): Launch
   if (o.binDirs?.length) env.PATH = [...o.binDirs, env.PATH ?? ""].filter(Boolean).join(":");
   for (const [k, v] of Object.entries(setup.vars ?? {})) if (!blocked.has(k)) env[k] = v;
   Object.assign(env, LEAN_ENV);
+  // after vars: a setup cannot point its child past the proxy
+  if (o.egress) Object.assign(env, o.egress.env);
   if (cred.kind === "key") env.ANTHROPIC_API_KEY = cred.key;
 
   const settings: Record<string, unknown> = {
     ...o.compact,
-    permissions: { allow: [...setup.allow] },
+    permissions: {
+      allow: [...setup.allow],
+      ...(o.egress?.deny.length ? { deny: [...o.egress.deny] } : {}),
+    },
   };
-  if (setup.sandbox) settings.sandbox = setup.sandbox;
+  const sandbox = o.egress?.sandbox ?? setup.sandbox;
+  if (sandbox) settings.sandbox = sandbox;
   if (o.secretHook)
     settings.hooks = {
       PreToolUse: [
@@ -172,7 +189,8 @@ export function launch(setup: Setup, cred: Credential, o: LaunchOptions): Launch
     );
   // variadic flag: a --flag must follow it
   for (const d of o.addDirs ?? []) args.push("--add-dir", d);
-  if (setup.append) args.push("--append-system-prompt", setup.append);
+  const append = [setup.append, o.egress?.note].filter(Boolean).join("\n\n");
+  if (append) args.push("--append-system-prompt", append);
   if (o.resume) args.push("--resume", o.resume);
 
   return { command: o.command ?? "claude", args, env, cwd: setupCwd(setup, o.root) };
