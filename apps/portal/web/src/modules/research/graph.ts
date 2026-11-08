@@ -36,7 +36,7 @@ export const kindOf = (c: string | null, f: string | null, h: string): Speaker =
               : f === "video"
                 ? "person"
                 : "other";
-export const evOf = (c: string | null, f: string | null): Evidence =>
+const evOf = (c: string | null, f: string | null): Evidence =>
   c === "primary_data"
     ? "data"
     : c === "survey" || f === "paper"

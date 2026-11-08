@@ -75,7 +75,7 @@ const GL: Record<string, ReactNode> = {
   ),
 };
 
-export function Glyph({ f }: { f: string }) {
+function Glyph({ f }: { f: string }) {
   const k = f === "post" ? "thread" : f === "directory" ? "list" : f;
   return (
     <svg
@@ -92,7 +92,7 @@ export function Glyph({ f }: { f: string }) {
   );
 }
 
-export const Mag = () => (
+const Mag = () => (
   <svg
     className="ic g"
     viewBox="0 0 16 16"
@@ -132,7 +132,7 @@ export function Img({ src, className }: { src: string; className?: string }) {
   );
 }
 
-export const evTitle = (c: number[]) =>
+const evTitle = (c: number[]) =>
   EV_ORDER.map((e, i) => (c[i] ? `${c[i]} ${EVIDENCE[e].toLowerCase()}` : ""))
     .filter(Boolean)
     .join(", ");

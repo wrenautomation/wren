@@ -172,7 +172,7 @@ export interface WNode {
   free: boolean;
 }
 
-export const diag = (o: { w: number; h: number }) => Math.hypot(o.w, o.h);
+const diag = (o: { w: number; h: number }) => Math.hypot(o.w, o.h);
 
 export function webBox(os: Iterable<WNode>) {
   let x0 = 1e9;
@@ -189,7 +189,7 @@ export function webBox(os: Iterable<WNode>) {
 }
 
 /** Rectangles push apart along their shallow axis. Returns the hits it found. */
-export function rectCollide(ns: WNode[], pad: number) {
+function rectCollide(ns: WNode[], pad: number) {
   const f = () => {
     let hit = 0;
     for (let i = 0; i < ns.length; i++)

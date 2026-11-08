@@ -1,6 +1,5 @@
 /** Loading a portal call into a component: a TanStack Query read (`@wren/ui` data layer). */
 import { dropCached, nameScope, type Patch, readCached, useLoad, writeThrough } from "@wren/ui";
-import { useEffect, useState } from "react";
 import { ApiError } from "./api.js";
 
 export type Load<T> = {
@@ -62,16 +61,3 @@ export function useCall<T>(
  */
 export const readCall = <T>(key: string, fn: () => Promise<T>, freshMs?: number): Promise<T> =>
   readCached(PORTAL, key, () => fn().catch(asApiError), freshMs);
-
-/**
- * `value` once it has held still for `ms`: a search box's words, so a read goes per pause, not
- * per key. The first value counts at once.
- */
-export function useSettled<T>(value: T, ms = 250): T {
-  const [settled, setSettled] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setSettled(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
-  return settled;
-}
