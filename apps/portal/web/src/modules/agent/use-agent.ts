@@ -14,6 +14,7 @@ import {
 } from "@wren/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { socketToken } from "../../api.js";
+import { navigate } from "../../route.js";
 import {
   type FreshMeter,
   openSetup,
@@ -23,6 +24,7 @@ import {
   relayHistory,
   turns,
 } from "./connect.js";
+import { runsNamed, setChatRuns } from "./drive.js";
 import { readyFile, turnContent, type Wire } from "./files.js";
 import {
   answered,
@@ -35,6 +37,8 @@ import {
   said,
   type ThreadState,
 } from "./thread.js";
+
+const LIVE = "/research/live";
 
 /** The page's sign-in token; a local run has none and the dev Worker answers for "dev". */
 export const pageToken = async () => (await socketToken()) ?? "dev";
@@ -226,6 +230,21 @@ export function useAgent(o: {
   }, [o.session, stored.data, stored.placeholder]);
 
   useEffect(() => close, [close]);
+
+  // the chat's birdwatch runs feed Research › Live; a run new to this chat brings Research there
+  const named = useRef<{ session: string | undefined; runs: readonly string[] }>({
+    session: undefined,
+    runs: [],
+  });
+  useEffect(() => {
+    const runs = runsNamed(s.messages);
+    const was = named.current;
+    named.current = { session: s.session, runs };
+    setChatRuns(runs);
+    const fresh = was.session === s.session && runs.some((r) => !was.runs.includes(r));
+    const at = location.pathname;
+    if (fresh && at.startsWith("/research") && at !== LIVE) navigate(LIVE);
+  }, [s.messages, s.session]);
 
   // the model picked mid-chat goes to the live session at once
   useEffect(() => {

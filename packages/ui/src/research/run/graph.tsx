@@ -13,7 +13,15 @@ import { easeCubicOut } from "d3-ease";
 import { select } from "d3-selection";
 import { type Timer, timer } from "d3-timer";
 import { type ZoomBehavior, type ZoomTransform, zoom, zoomIdentity } from "d3-zoom";
-import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  startTransition,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Empty, Loading } from "../../feedback.js";
 import {
   type Box,
@@ -41,6 +49,7 @@ import {
   pl,
   type RunGraphData,
   SPEAKERS,
+  stepOf,
 } from "./model.js";
 import { PanelBody, type PanelCtx, type Pick } from "./panel.js";
 import { type Hit, type Ident, pkey, same, toggled, webIdent, webPick } from "./picks.js";
@@ -68,6 +77,19 @@ export interface RunGraphProps {
   card?: boolean | undefined;
 }
 
+// merged drop ids are "k.id": one open per run
+function mergedOpen(runs: readonly { rid: string }[], queue: Iterable<string>) {
+  const by = new Map<string, string[]>();
+  for (const id of queue) {
+    const dot = id.indexOf(".");
+    const rid = runs[Number(id.slice(0, dot)) - 1]?.rid;
+    if (rid) by.set(rid, [...(by.get(rid) ?? []), id.slice(dot + 1)]);
+  }
+  return [...by]
+    .map(([rid, ids]) => `birdwatch open ${rid} ${ids.join(" ")} --why "asked to read it"`)
+    .join(" && ");
+}
+
 export function RunGraph({ run, failed, lay, onLay, card }: RunGraphProps) {
   if (failed)
     return (
@@ -91,6 +113,9 @@ function Graph({
   card?: boolean | undefined;
 }) {
   const L = useMemo(() => indexRun(run), [run]);
+  // a merged graph counts runs where one run counts rounds
+  const step = stepOf(run);
+  const Step = step === "run" ? "Run" : "Round";
   const [layS, setLayS] = useState<LayId>(layP ?? "web");
   const lay = layP ?? layS;
   const [wide, setWide] = useState(true);
@@ -136,7 +161,10 @@ function Graph({
     fitB: null as { x0: number; y0: number; x1: number; y1: number } | null,
     tw: null as Timer | null,
     born: new Map<string, number>(),
+    // the web as last solved, so a trip to another layout and back skips the solve
+    kept: null as { key: string; nodes: Map<string, WNode> } | null,
   }).current;
+  const shown = useRef<string[]>([]);
   const pend = useRef<{
     anim: boolean;
     fk: string | null;
@@ -298,7 +326,14 @@ function Graph({
       /* private mode */
     }
   };
-  const cmd = `birdwatch open ${L.run.rid} ${[...queue].join(" ")} --why "asked to read it"`;
+  const cmd = L.run.runs
+    ? mergedOpen(L.run.runs, queue)
+    : `birdwatch open ${L.run.rid} ${[...queue].join(" ")} --why "asked to read it"`;
+
+  const toRound = (r: number) => {
+    setRound(r);
+    if (pick?.t === "s" && r && (L.byId.get(pick.id)?.s.r ?? 0) > r) setPick(null);
+  };
 
   // a click opens or closes a web node and picks it
   const toggleNode = (key: string, onShelf: boolean) => {
@@ -462,6 +497,7 @@ function Graph({
     };
     wg.tw?.stop();
     if (lay !== "web" || !pres || !shelf) {
+      if (wg.nodes.size) wg.kept = { key: wg.kept?.key ?? "", nodes: new Map(wg.nodes) };
       wg.nodes.clear();
       wg.fitB = null;
       boxes.clear();
@@ -506,18 +542,30 @@ function Graph({
       fresh.add(n);
       if (anim) wg.born.set(k, now);
     }
-    const { all, from, to } = solveWeb({
-      L,
-      N,
-      order,
-      par,
-      E: wE,
-      fresh,
-      anim,
-      fk: p.fk,
-      wide,
-      shelfAt,
-    });
+    const key = `${wide}|${order.join(" ")}`;
+    const back = !anim && wg.kept?.key === key ? wg.kept.nodes : null;
+    if (back)
+      for (const n of fresh)
+        Object.assign(n, { x: back.get(n.key)?.x ?? 0, y: back.get(n.key)?.y ?? 0 });
+    const { all, from, to } = back
+      ? {
+          all: [...N.values()],
+          from: new Map<WNode, [number, number]>(),
+          to: new Map<WNode, [number, number]>(),
+        }
+      : solveWeb({
+          L,
+          N,
+          order,
+          par,
+          E: wE,
+          fresh,
+          anim,
+          fk: p.fk,
+          wide,
+          shelfAt,
+        });
+    wg.kept = { key, nodes: N };
     wg.shelf = layShelf(shelf, size, wide);
     wg.at = "";
     const draw = () => {
@@ -713,8 +761,12 @@ function Graph({
   const edges: ReactNode[] = [];
   if (lay === "web" && pres && shelf) {
     const on = new Set(pres.order);
-    const goneNow = gone.filter((k) => !on.has(k));
-    for (const k of [...pres.order, ...goneNow]) {
+    const goneNow = new Set(gone.filter((k) => !on.has(k)));
+    // the last order kept: a DOM move would drop a closing mark's transition
+    const was = shown.current.filter((k) => on.has(k) || goneNow.has(k));
+    const had = new Set(was);
+    shown.current = [...was, ...pres.order.filter((k) => !had.has(k))];
+    for (const k of shown.current) {
       const isGone = !on.has(k);
       const nk = kids(L, k).length;
       const t = k[0];
@@ -800,14 +852,16 @@ function Graph({
       <div key="rt" ref={reg("rt")} className="nd rt">
         <b>{L.run.t}</b>
         <small>
-          {pl(qs.length, "search")} · {pl(L.rounds.length, "round")}
+          {pl(qs.length, "search")} · {pl(L.rounds.length, step)}
         </small>
       </div>,
     );
     for (const row of rows) {
       marks.push(
         <div key={`rd${row.r}`} ref={reg(`rd${row.r}`)} className="nd rd">
-          <b>Round {row.r}</b>
+          <b>
+            {Step} {row.r}
+          </b>
           <small>{pl(row.qs.length, "search")}</small>
         </div>,
       );
@@ -955,13 +1009,16 @@ function Graph({
                 key={l.id}
                 type="button"
                 aria-pressed={l.id === lay}
-                onClick={() => {
-                  if (layP == null) setLayS(l.id);
-                  onLay?.(l.id);
-                  setHover(null);
-                  setOpen(new Set());
-                  askFit(300);
-                }}
+                onClick={() =>
+                  // a big merged graph mounts hundreds of marks: let React slice it
+                  startTransition(() => {
+                    if (layP == null) setLayS(l.id);
+                    onLay?.(l.id);
+                    setHover(null);
+                    setOpen(new Set());
+                    askFit(300);
+                  })
+                }
               >
                 <i>{i + 1}</i>
                 {l.name}
@@ -975,22 +1032,37 @@ function Graph({
         <span className="sp" />
         {L.rounds.length > 1 ? (
           <span className="grp">
-            <span className="lb">Round</span>
-            <div className="seg">
-              {[0, ...L.rounds].map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  aria-pressed={r === round}
-                  onClick={() => {
-                    setRound(r);
-                    if (pick?.t === "s" && r && (L.byId.get(pick.id)?.s.r ?? 0) > r) setPick(null);
-                  }}
-                >
-                  {r || "All"}
-                </button>
-              ))}
-            </div>
+            <span className="lb">{Step}</span>
+            {L.rounds.length > 8 ? (
+              <select
+                className="seg"
+                aria-label={`Up to ${step}`}
+                value={round}
+                onChange={(e) => toRound(Number(e.target.value))}
+              >
+                {[0, ...L.rounds].map((r) => (
+                  <option key={r} value={r}>
+                    {r
+                      ? `Up to ${step} ${r}${L.run.runs ? `: ${L.run.runs[r - 1]?.t ?? ""}` : ""}`
+                      : "All"}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="seg">
+                {[0, ...L.rounds].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    aria-pressed={r === round}
+                    title={r && L.run.runs ? L.run.runs[r - 1]?.t : undefined}
+                    onClick={() => toRound(r)}
+                  >
+                    {r || "All"}
+                  </button>
+                ))}
+              </div>
+            )}
           </span>
         ) : null}
         <span className="grp">
@@ -1044,9 +1116,9 @@ function Graph({
             {L.run.note ? <p>{L.run.note}</p> : null}
             <p className="mt">
               {L.run.meta ? `${L.run.meta} · ` : ""}
-              {pl(L.rounds.length, "round")} · {pl(L.run.searches.length, "search")} · {f.hits}{" "}
-              hits, {f.kept} kept, {f.read} read, {pl(f.findings, "finding")},{" "}
-              {pl(f.claims, "claim")}
+              {L.run.runs ? "" : `${pl(L.rounds.length, "round")} · `}
+              {pl(L.run.searches.length, "search")} · {f.hits} hits, {f.kept} kept, {f.read} read,{" "}
+              {pl(f.findings, "finding")}, {pl(f.claims, "claim")}
             </p>
           </div>
           <Summary
@@ -1108,7 +1180,7 @@ function Graph({
               <span>{tipN.s.name}</span>
             </b>
             <small>
-              {SPEAKERS[tipN.s.kind].one} · round {tipN.s.r} · {countOf(tipN)}
+              {SPEAKERS[tipN.s.kind].one} · {step} {tipN.s.r} · {countOf(tipN)}
             </small>
             <EvBar c={evCounts(tipN.s.fs)} />
             {(() => {

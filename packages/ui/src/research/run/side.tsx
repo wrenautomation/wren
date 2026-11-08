@@ -11,6 +11,7 @@ import {
   pl,
   SPEAKER_ORDER,
   SPEAKERS,
+  stepAt,
 } from "./model.js";
 import type { Pick } from "./panel.js";
 
@@ -38,7 +39,7 @@ export const cls = (...xs: (string | false | undefined | null)[]) => xs.filter(B
 const COLS: [string, string, boolean][] = [
   ["name", "Source", true],
   ["kind", "Kind", true],
-  ["r", "Round", false],
+  ["r", "", false],
   ["read", "Read", false],
   ["unread", "Not read", false],
   ["kept", "Findings", false],
@@ -234,7 +235,12 @@ export function Side({
       const out: ReactNode[] = [];
       if (L.rounds.length > 1 && q.r !== r0 && !chips) {
         r0 = q.r;
-        out.push(<h5 key={`r${q.r}`}>Round {q.r}</h5>);
+        out.push(
+          <h5 key={`r${q.r}`}>
+            {stepAt(L.run, q.r, true)}
+            {L.run.runs ? `: ${L.run.runs[q.r - 1]?.t ?? ""}` : ""}
+          </h5>,
+        );
       }
       out.push(
         <button
@@ -297,7 +303,7 @@ export function Side({
         {queue.size ? (
           <>
             <span>
-              <b>{pl(queue.size, "hit")}</b> to read next round
+              <b>{pl(queue.size, "hit")}</b> to read{L.run.runs ? "" : " next round"}
             </span>
             <button type="button" onClick={onCopy}>
               {copied ? "Copied" : "Copy the command"}
@@ -391,7 +397,7 @@ export function Table({
         <caption>{pl(L.nodes.length, "source")}. Pick a row to find it in the graph.</caption>
         <thead>
           <tr>
-            {COLS.map(([c, t, txt]) => (
+            {COLS.map(([c, t0, txt]) => (
               <th
                 key={c}
                 scope="col"
@@ -399,7 +405,7 @@ export function Table({
                 aria-sort={c === k ? (d > 0 ? "ascending" : "descending") : "none"}
               >
                 <button type="button" onClick={() => onSort(c)}>
-                  {t}
+                  {t0 || (L.run.runs ? "Run" : "Round")}
                   {c === k ? (d > 0 ? " ▴" : " ▾") : ""}
                 </button>
               </th>

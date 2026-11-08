@@ -16,6 +16,7 @@ import {
   SPEAKER_ORDER,
   SPEAKERS,
   type Speaker,
+  stepAt,
   unit,
 } from "./model.js";
 import { parse } from "./web.js";
@@ -245,9 +246,13 @@ export function ClaimMark({ L, i, m }: { L: Indexed; i: number; m: MarkProps }) 
   if (!c) return null;
   const fs = c.ss.flatMap((n) => n.s.fs.filter((f) => f.c === c.i));
   return (
-    <Mark className="nd cc" label={`Claim ${c.c.n}: ${c.c.head}`} m={m}>
+    <Mark
+      className="nd cc"
+      label={`Claim ${c.c.n}${c.c.run ? `, run ${c.c.run}` : ""}: ${c.c.head}`}
+      m={m}
+    >
       <span className="cn">
-        <i>{c.c.n}</i>Claim
+        <i>{c.c.n}</i>Claim{c.c.run ? ` · run ${c.c.run}` : ""}
       </span>
       <b>{c.c.head}</b>
       <small>
@@ -305,8 +310,8 @@ export function WebMark({
     const im = t === "p" ? (s.pages[b]?.th ?? s.pages[b]?.og ?? null) : null;
     const sub =
       t === "v"
-        ? `Not read · round ${pg.r}`
-        : `${nf ? pl(nf, "finding") : "No finding"} · round ${pg.r}`;
+        ? `Not read · ${stepAt(L.run, pg.r)}`
+        : `${nf ? pl(nf, "finding") : "No finding"} · ${stepAt(L.run, pg.r)}`;
     return (
       <Mark className={cls(`nd pgn k-${g.k}`, t === "v" && "ur")} label={`${pg.t} ${sub}`} m={m}>
         {im ? <Img className="pt" src={im} /> : <Glyph f={(t === "p" && s.pages[b]?.f) || s.fmt} />}
@@ -363,7 +368,7 @@ export function WebMark({
   if (t === "q") {
     const q = L.byQ.get(a);
     if (!q) return null;
-    const sub = `Search ${q.i + 1} · round ${q.r} · ${q.hits} hits, ${q.kept} kept`;
+    const sub = `Search ${q.i + 1} · ${stepAt(L.run, q.r)} · ${q.hits} hits, ${q.kept} kept`;
     return (
       <Mark className="nd sqn" label={`${q.t} ${sub}`} m={m}>
         <Mag />

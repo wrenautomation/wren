@@ -268,11 +268,6 @@ export {
   ribbonMax,
   ribbonWidth,
   type Touch,
-  WebCanvas,
-  type WebCanvasProps,
-  type WebDot,
-  type WebHandle,
-  type WebLink,
   wireLines,
 } from "./graph/index.js";
 export {

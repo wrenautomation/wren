@@ -1,9 +1,8 @@
 /**
- * Research (designs/2026-10-26-research-engine.md, 10-28 night): a birdwatch run as it goes.
- * The runs as a list; one run opens full width as its graph (designs/2026-11-05-research-web.md,
- * round 13: claims, sources, searches, dropped hits) and the back and forth (every decision with
- * its why and who made it).
- * Read only: the agent and the CLI write. Live: `birdwatch serve` sends an event per changed run.
+ * Research › History (designs/2026-11-05-research-web.md, 11-08): every birdwatch run as a list.
+ * One run opens full width as its graph (round 13: claims, sources, searches, dropped hits) and
+ * the back and forth (every decision with its why and who made it). Picked runs, or all of them,
+ * open on one graph. Read only: the agent and the CLI write. Live: serve sends an event per change.
  */
 import {
   Button,
@@ -16,6 +15,7 @@ import {
   relative,
   Seg,
   StateMark,
+  useRowsPick,
 } from "@wren/ui";
 import type { LayId } from "@wren/ui/research/run";
 import { type ReactNode, useMemo, useState } from "react";
@@ -26,8 +26,7 @@ import { PlayerSlot } from "../../player/index.js";
 import { href, navigate, useRoute } from "../../route.js";
 import { QUIET } from "../work/bits.js";
 import { RowsPanel } from "../work/rows-panel.js";
-import { runGraphOf } from "./graph.js";
-import { RunGraph } from "./run-lazy.js";
+import { RunsCanvas } from "./canvas.js";
 import {
   type Moment,
   pageOf,
@@ -39,11 +38,12 @@ import {
   runsOf,
   SERVE,
   useLive,
-  viewOf,
+  useViews,
 } from "./serve.js";
 import { host, keptBy, toneOf } from "./tree.js";
 
 type Tab = "graph" | "talk";
+type Go = (p: Record<string, string | null>) => void;
 
 const TABS = [
   { value: "graph", label: "Graph" },
@@ -82,112 +82,173 @@ export function NoServe({ error, onRetry }: { error: unknown; onRetry: () => voi
   );
 }
 
-export function RunsPage({ params }: PageProps) {
+/** `?run=` names one run, several (comma separated), or `all`. Oldest first: run 1 came first. */
+function runsIn(open: string, rows: readonly RunRow[]): string[] {
+  if (open !== "all") return open.split(",").filter(Boolean);
+  return rows
+    .slice()
+    .sort((a, b) => a.started.localeCompare(b.started))
+    .map((r) => r.run);
+}
+
+export function HistoryPage({ params }: PageProps) {
   const here = `/${useRoute().path.join("/")}`;
   const runs = useCall("research:runs", runsOf, { kept: false });
   const rows = runs.data ?? [];
   const open = params.get("run");
-  const [tick, setTick] = useState(0);
-  useLive((run) => {
-    runs.retry();
-    if (run === open) setTick((t) => t + 1);
-  });
+  const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
+  const pick = useRowsPick(
+    rows.map((r) => r.run),
+    picked,
+    (next) => setPicked(next),
+  );
+  useLive(() => runs.retry());
   const askOf = useMemo(() => new Map(rows.map((r) => [r.run, r.ask])), [rows]);
   if (runs.error && !runs.data) return <NoServe error={runs.error} onRetry={runs.retry} />;
-  if (open)
-    return (
-      <OneRun
-        key={open}
-        run={open}
-        row={rows.find((r) => r.run === open) ?? null}
-        tick={tick}
-        params={params}
-        here={here}
-      />
-    );
+  if (open && (open !== "all" || runs.data))
+    return <Opened key={open} open={open} rows={rows} params={params} here={here} />;
   if (!runs.data) return <Loading shape="rows" lines={5} />;
   if (!rows.length) return <Empty>No runs in this ledger yet.</Empty>;
+  const openRuns = (run: string) => navigate(href(here, { run, open: null, lay: null }, params));
   return (
-    <RowsPanel<RunRow>
-      rows={rows}
-      rowKey={(r) => r.run}
-      label="runs"
-      noun="run"
-      open={{
-        id: null,
-        onOpen: (r) => navigate(href(here, { run: r.run, open: null }, params)),
-      }}
-      name={{
-        label: "Run",
-        icon: "search",
-        title: (r) => r.ask || r.run,
-        href: (r) => href(here, { run: r.run, open: null }, params),
-        sub: (r) => (
-          <span className={cx("grid gap-0.5 text-[12px]", QUIET)}>
-            {r.parent ? (
-              <span className="wrap-anywhere whitespace-normal">
-                From: {askOf.get(r.parent) ?? r.parent}
+    <div className="grid min-w-0 gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="dense" tone="secondary" onClick={() => openRuns("all")}>
+          All runs on one graph
+        </Button>
+        {picked.size > 1 ? (
+          <Button
+            size="dense"
+            onClick={() => openRuns(runsIn([...picked].join(","), rows).join(","))}
+          >
+            Open {picked.size} runs together
+          </Button>
+        ) : null}
+        <span className={cx("text-[12.5px]", QUIET)}>
+          {picked.size ? `${picked.size} picked` : "Pick runs to draw them on one graph."}
+        </span>
+      </div>
+      <RowsPanel<RunRow>
+        rows={rows}
+        rowKey={(r) => r.run}
+        label="runs"
+        noun="run"
+        pick={pick}
+        open={{
+          id: null,
+          onOpen: (r) => navigate(href(here, { run: r.run, open: null }, params)),
+        }}
+        name={{
+          label: "Run",
+          icon: "search",
+          title: (r) => r.ask || r.run,
+          href: (r) => href(here, { run: r.run, open: null }, params),
+          sub: (r) => (
+            <span className={cx("grid gap-0.5 text-[12px]", QUIET)}>
+              {r.parent ? (
+                <span className="wrap-anywhere whitespace-normal">
+                  From: {askOf.get(r.parent) ?? r.parent}
+                </span>
+              ) : null}
+              <span className="tabular-nums">
+                Round {r.round} · {plural(r.hits, "hit")} · {r.kept} kept · {usd(r.usd)} ·{" "}
+                {r.updated ? relative(new Date(r.updated)) : ""}
               </span>
-            ) : null}
-            <span className="tabular-nums">
-              Round {r.round} · {plural(r.hits, "hit")} · {r.kept} kept · {usd(r.usd)} ·{" "}
-              {r.updated ? relative(new Date(r.updated)) : ""}
             </span>
-          </span>
-        ),
-      }}
-      columns={[
-        {
-          key: "state",
-          label: "State",
-          icon: "selected",
-          phone: true,
-          cell: (r) => (
-            <StateMark
-              state={
-                r.next
-                  ? { label: r.next.step, tone: "good" }
-                  : { label: "Stopped", tone: "neutral" }
-              }
-            />
           ),
-        },
-      ]}
-    />
+        }}
+        columns={[
+          {
+            key: "state",
+            label: "State",
+            icon: "selected",
+            phone: true,
+            cell: (r) => <StateMark state={stateOf(r)} />,
+          },
+        ]}
+      />
+    </div>
+  );
+}
+
+export const stateOf = (r: RunRow) =>
+  r.next
+    ? { label: r.next.step, tone: "good" as const }
+    : { label: "Stopped", tone: "neutral" as const };
+
+/** One run, or several on one graph. */
+function Opened({
+  open,
+  rows,
+  params,
+  here,
+}: {
+  open: string;
+  rows: readonly RunRow[];
+  params: URLSearchParams;
+  here: string;
+}) {
+  const ids = useMemo(() => runsIn(open, rows), [open, rows]);
+  const lay = LAYS.find((l) => l === params.get("lay"));
+  const go = (p: Record<string, string | null>) => navigate(href(here, p, params), true);
+  const back = (
+    <a
+      href={href(here, { run: null, tab: null, open: null, lay: null }, params)}
+      className="inline-flex items-center gap-1 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
+    >
+      <Icon name="back" size={14} />
+      All runs
+    </a>
+  );
+  const [one] = ids;
+  if (ids.length === 1 && one)
+    return (
+      <OneRun
+        run={one}
+        row={rows.find((r) => r.run === one) ?? null}
+        params={params}
+        go={go}
+        back={back}
+      />
+    );
+  return (
+    <div className="grid min-w-0 gap-4">
+      {back}
+      <RunsCanvas
+        runs={ids}
+        rows={rows}
+        title={open === "all" ? "All runs" : `${ids.length} runs together`}
+        lay={lay}
+        onLay={(l) => go({ lay: l })}
+      />
+    </div>
   );
 }
 
 function OneRun({
   run,
   row,
-  tick,
   params,
-  here,
+  go,
+  back,
 }: {
   run: string;
   row: RunRow | null;
-  tick: number;
   params: URLSearchParams;
-  here: string;
+  go: Go;
+  back: ReactNode;
 }) {
-  const got = useCall(`research:view:${run}:${tick}`, () => viewOf(run), { kept: false });
   const tab: Tab = params.get("tab") === "talk" ? "talk" : "graph";
   const lay = LAYS.find((l) => l === params.get("lay"));
   const card = params.get("open");
-  const go = (p: Record<string, string | null>) => navigate(href(here, p, params), true);
-  const view = got.data;
-  const graph = useMemo(() => (view ? runGraphOf(view, row) : undefined), [view, row]);
-  if (got.error && !view) return <LoadFailed error={got.error} onRetry={got.retry} />;
+  const ids = useMemo(() => [run], [run]);
+  const rows = useMemo(() => (row ? [row] : []), [row]);
+  const got = useViews(ids);
+  const view = got.views?.[0];
   return (
-    <div className={cx("grid min-w-0 gap-4", got.placeholder && "opacity-70")}>
+    <div className="grid min-w-0 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <a
-          href={href(here, { run: null, tab: null, open: null, lay: null }, params)}
-          className="inline-flex items-center gap-1 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
-        >
-          <Icon name="back" size={14} />
-          All runs
-        </a>
+        {back}
         <Seg
           label="What to show"
           items={TABS}
@@ -196,7 +257,9 @@ function OneRun({
         />
       </div>
       {tab === "graph" ? (
-        <RunGraph run={graph} lay={lay} onLay={(l) => go({ lay: l })} />
+        <RunsCanvas runs={ids} rows={rows} title="" lay={lay} onLay={(l) => go({ lay: l })} />
+      ) : got.error && !view ? (
+        <LoadFailed error={got.error} onRetry={got.retry} />
       ) : !view ? (
         <Loading lines={8} />
       ) : (
@@ -237,8 +300,6 @@ function RunHead({ view, row }: { view: RunView; row: RunRow | null }) {
     </header>
   );
 }
-
-type Go = (p: Record<string, string | null>) => void;
 
 /** What a node or row opens: a query, a hit, a page, a person, a facet. */
 function Card({ view, id, go }: { view: RunView; id: string; go: Go }) {
@@ -550,7 +611,7 @@ function PageCard({ view, d, go }: { view: RunView; d: RunDocument; go: Go }) {
 }
 
 /** A video or post in its own player, where the CSP lets one in; else nothing (the link is above). */
-export function PostEmbed(d: { id: string; url: string; title?: string | undefined }) {
+function PostEmbed(d: { id: string; url: string; title?: string | undefined }) {
   const vid = youtubeId(d.url);
   if (vid)
     return (

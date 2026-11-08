@@ -113,6 +113,8 @@ export interface GraphClaim {
   rest: string;
   findings: number;
   sources: number;
+  /** its run's place, when the graph holds several */
+  run?: number;
 }
 
 export interface GraphSearch {
@@ -171,7 +173,15 @@ export interface RunGraphData {
   sources: GraphSource[];
   searches: GraphSearch[];
   dropped: GraphDrop[];
+  /** several runs on one graph: then every `r` is a run's place here (1-based), not a round */
+  runs?: { rid: string; t: string }[];
 }
+
+/** What `r` counts: rounds of one run, or the runs of a merged graph. */
+export const stepOf = (run: RunGraphData) => (run.runs ? "run" : "round");
+/** "round 3", or "Run 3" with `cap` */
+export const stepAt = (run: RunGraphData, r: number, cap = false) =>
+  `${cap ? (run.runs ? "Run" : "Round") : stepOf(run)} ${r}`;
 
 export interface GNode {
   s: GraphSource;

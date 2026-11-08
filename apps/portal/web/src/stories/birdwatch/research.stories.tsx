@@ -1,11 +1,11 @@
-/** Birdwatch in the portal: the runs, one run's graph and back and forth, the web. Fake server: `web/src/mocks/`. */
+/** Birdwatch in the portal: Live, History, one run's graph and back and forth, runs together. Fake server: `web/src/mocks/`. */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { HttpResponse, http, type RequestHandler, sse, type WebSocketHandler } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import COMMANDS from "../../mocks/data/agent/commands.json";
 import SETUPS from "../../mocks/data/agent/setups.json";
 import { ADMIN } from "../../mocks/data/me.js";
-import { RESEARCH_ROWS, RESEARCH_VIEW, RESEARCH_WEB } from "../../mocks/data/research.js";
+import { RESEARCH_ROWS, RESEARCH_VIEW } from "../../mocks/data/research.js";
 import { pageAt, tidy } from "../../mocks/page.js";
 import { fakeRelay, type TapeLine } from "../../mocks/relay.js";
 import { SERVE } from "../../modules/research/serve.js";
@@ -13,7 +13,7 @@ import { SERVE } from "../../modules/research/serve.js";
 const meta: Meta = { title: "Birdwatch/Research" };
 export default meta;
 
-/** The graph and the web load their drawing code late: a loaded Mac needs more than the 1 s default. */
+/** The graph loads its drawing code late: a loaded Mac needs more than the 1 s default. */
 const LATE = { timeout: 8000 };
 
 const DOT =
@@ -21,9 +21,10 @@ const DOT =
 
 const SERVED = [
   http.get(`${SERVE}/runs`, () => HttpResponse.json({ v: 1, runs: RESEARCH_ROWS })),
+  // every listed run reads as the one fixture view: two runs together share all their sources
   http.get(`${SERVE}/runs/:run`, ({ params }) =>
-    params.run === RESEARCH_VIEW.run
-      ? HttpResponse.json(RESEARCH_VIEW)
+    RESEARCH_ROWS.some((r) => r.run === params.run)
+      ? HttpResponse.json({ ...RESEARCH_VIEW, run: params.run })
       : HttpResponse.json({ error: "no records" }, { status: 404 }),
   ),
   http.get(`${SERVE}/runs/:run/documents/:doc`, ({ params }) =>
@@ -35,7 +36,6 @@ const SERVED = [
       text: "Start with three cafes inside a short drive.",
     }),
   ),
-  http.get(`${SERVE}/web`, () => HttpResponse.json(RESEARCH_WEB)),
   // the graph's icons and video stills: offline, one tinted square
   ...["https://icons.duckduckgo.com/*", "https://i.ytimg.com/*"].map((u) =>
     http.get(u, () => new HttpResponse(DOT, { headers: { "content-type": "image/svg+xml" } })),
@@ -62,7 +62,7 @@ const story = (
 };
 
 /** The runs as a list: each with its ask, where it came from, and its numbers. */
-export const Runs = story("/research/runs", async (page) => {
+export const History = story("/research/history", async (page) => {
   const p = within(page);
   await p.findByRole("link", { name: /How do small bakeries find wholesale buyers/ });
   await p.findByText(/From: How do small bakeries/);
@@ -70,7 +70,7 @@ export const Runs = story("/research/runs", async (page) => {
 
 /** One run opens full width as its graph: the claims web, the shelf, the summary. */
 export const Graph = tidy(
-  story("/research/runs?run=r1", async (page) => {
+  story("/research/history?run=r1", async (page) => {
     const p = within(page);
     await p.findByRole("link", { name: "All runs" });
     await waitFor(() => expect(page.querySelector(".rg .rg-nodes [data-n]")).not.toBeNull(), LATE);
@@ -80,7 +80,7 @@ export const Graph = tidy(
 
 /** The same run as its search tree: rounds, searches, the sources each found first. */
 export const GraphTree = tidy(
-  story("/research/runs?run=r1&lay=tree", async (page) => {
+  story("/research/history?run=r1&lay=tree", async (page) => {
     await waitFor(
       () => expect(page.querySelector('.rg .rg-nodes [data-n="q0"]')).not.toBeNull(),
       LATE,
@@ -89,7 +89,7 @@ export const GraphTree = tidy(
 );
 
 /** Every decision in order, with its why and who made it; a human's steer among them. */
-export const BackAndForth = story("/research/runs?run=r1&tab=talk", async (page) => {
+export const BackAndForth = story("/research/history?run=r1&tab=talk", async (page) => {
   const p = within(page);
   await p.findByText("a vendor page");
   await p.findByText("numbers only; skip vendor pages");
@@ -98,39 +98,35 @@ export const BackAndForth = story("/research/runs?run=r1&tab=talk", async (page)
 
 /** serve is not running: the page says how to start it, never an empty list. */
 export const NoServe = story(
-  "/research/runs",
+  "/research/history",
   async (page) => {
     await within(page).findByText("Can't reach birdwatch serve");
   },
   REFUSED,
 );
 
-/** Every run on one web; a search finds a run and the side shows it, with a way into the run. */
-export const WebAll = tidy(
-  story("/research/web", async (page) => {
+/** Picked runs, or all of them, on one graph: a source both read is one node. */
+export const AllRuns = tidy(
+  story("/research/history?run=all", async (page) => {
     const p = within(page);
-    await p.findByRole("img", { name: /^Research web: 5 runs/ }, LATE);
-    await p.findByText(/5 runs · 20 queries/);
-    await userEvent.type(p.getByRole("searchbox", { name: "Find on the web" }), "croissants");
-    await userEvent.click(
-      await p.findByRole("button", { name: /What do cafes pay for wholesale croissants/ }),
-    );
-    await expect(await p.findByRole("link", { name: "Open run" })).toBeVisible();
+    await p.findByRole("link", { name: "All runs" });
+    await waitFor(() => expect(page.querySelector(".rg .rg-nodes [data-n]")).not.toBeNull(), LATE);
+    await p.findAllByText("All runs", {}, LATE);
   }),
 );
 
-/** A page picked: its video plays beside the web, its findings under it, kept or cut. */
-export const WebPicked = story("/research/web?at=m1-h00", async (page) => {
-  const p = within(page);
-  await p.findByRole("heading", { name: "How I landed 12 cafe accounts" });
-  await p.findByText("Wholesale runs at about half of retail.");
-  await p.findByRole("button", { name: "How do small bakeries find wholesale buyers?" });
-});
+/** No chat and no run going: Live draws the newest run. */
+export const Live = tidy(
+  story("/research/live", async (page) => {
+    await within(page).findByText("The newest run");
+    await waitFor(() => expect(page.querySelector(".rg .rg-nodes [data-n]")).not.toBeNull(), LATE);
+  }),
+);
 
 /** ⌘J opens the chat beside the page; its head names the product whose agent answers. */
 export const Chat = tidy(
   story(
-    "/research/runs",
+    "/research/history",
     async (page) => {
       await within(page).findByRole("link", {
         name: /How do small bakeries find wholesale buyers/,

@@ -15,6 +15,7 @@ import {
   type Indexed,
   pl,
   SPEAKERS,
+  stepAt,
   unit,
 } from "./model.js";
 import { parse } from "./web.js";
@@ -112,20 +113,20 @@ function QChip({ c, q }: { c: PanelCtx; q: GraphSearch }) {
       <i className="no q">{q.i + 1}</i>
       <span>
         {q.t}
-        <small> · round {q.r}</small>
+        <small> · {stepAt(c.L.run, q.r)}</small>
       </span>
     </button>
   );
 }
 
-const Unread = ({ s }: { s: GraphSource }) =>
+const Unread = ({ c, s }: { c: PanelCtx; s: GraphSource }) =>
   s.unread.length ? (
     <>
       <p className="lbl">Kept from a search, not read yet</p>
       <ul className="ur">
         {s.unread.map((p) => (
           <li key={p.u}>
-            <Out href={p.u}>{p.t}</Out> <small>round {p.r}</small>
+            <Out href={p.u}>{p.t}</Out> <small>{stepAt(c.L.run, p.r)}</small>
           </li>
         ))}
       </ul>
@@ -182,7 +183,7 @@ function SourcePanel({ c, n }: { c: PanelCtx; n: GNode }) {
         <p className="ct">
           <Kd k={s.kind} />
           {mix ? <span>{mix}</span> : null}
-          <span>Round {s.r}</span>
+          <span>{stepAt(c.L.run, s.r, true)}</span>
           {s.pages.length ? (
             <>
               <span>{pl(s.pages.length, u)} read</span>
@@ -225,7 +226,7 @@ function SourcePanel({ c, n }: { c: PanelCtx; n: GNode }) {
       </div>
       <div className="pb">
         {!s.pages.length ? (
-          <p className="gh">A search found this and the run kept it, but no round read it yet.</p>
+          <p className="gh">A search found this and the run kept it, but nothing read it yet.</p>
         ) : null}
         {told.map((x) => (
           <section key={x.i} className="pg">
@@ -237,7 +238,7 @@ function SourcePanel({ c, n }: { c: PanelCtx; n: GNode }) {
                   {[
                     day(x.p.d),
                     clock(x.p.len),
-                    `round ${x.p.r}`,
+                    stepAt(c.L.run, x.p.r),
                     x.p.kept ? pl(x.p.kept, "finding") : "",
                   ]
                     .filter(Boolean)
@@ -266,7 +267,7 @@ function SourcePanel({ c, n }: { c: PanelCtx; n: GNode }) {
             </>
           )
         ) : null}
-        <Unread s={s} />
+        <Unread c={c} s={s} />
       </div>
     </>
   );
@@ -360,7 +361,7 @@ function DropRow({ c, d }: { c: PanelCtx; d: GraphDrop }) {
           {d.sn ? <p>{d.sn}</p> : null}
           <p className="fm">
             <span>
-              Dropped in round {d.r}: {d.why}
+              Dropped in {stepAt(c.L.run, d.r)}: {d.why}
             </span>
             {d.f ? (
               <span>
@@ -467,7 +468,7 @@ function SearchPanel({ c, q }: { c: PanelCtx; q: GraphSearch }) {
         </div>
         {q.why ? <p className="rest">{q.why}</p> : null}
         <p className="ct">
-          <span>Round {q.r}</span>
+          <span>{stepAt(c.L.run, q.r, true)}</span>
           {q.f ? <span>{q.f}</span> : null}
           <span>
             {q.hits} hits, {q.kept} kept, {q.read} read, {pl(q.fnd, "finding")}
@@ -521,7 +522,7 @@ function PagePanel({ c, n, b }: { c: PanelCtx; n: GNode; b: number }) {
         <p className="ct">
           <Kd k={s.kind} />
           <SrcLink c={c} s={s} />
-          <span>Round {pg.r}</span>
+          <span>{stepAt(c.L.run, pg.r, true)}</span>
           <span>{fs.length ? pl(fs.length, "finding") : "No finding kept"}</span>
           <Out href={pg.u}>{s.site === "youtube" ? "Open the video" : "Open the page"}</Out>
         </p>

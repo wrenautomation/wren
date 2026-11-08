@@ -236,3 +236,15 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Main chunk: 5.47 MB (1.84 MB gzip) to 3.13 MB (960 kB gzip).
   - Measured locally, one run of 3.2 MB from serve: first node at 0.5 s, 290 ms script, longest task 144 ms. Layout and view switches: no long task. Ten view toggles: DOM and heap flat.
   - Not done: per-page lazy modules; elk (3 MB) is already its own chunk.
+- 11-08: Live and History replace Web and Runs; All runs draws every run on one graph (WA-1188).
+  - William: the web (sigma, 11-05) is ugly and duplicates runs. "Runs" is history; a live view follows the chat.
+  - Options, ranked by one drawing for every view, a live view the chat drives, cost:
+    - A. Live: the chat's runs, live, on the round 13 graph. History: the runs list. Delete the web. One drawing.
+    - B. Keep the web as the all-runs map, restyled. Two drawings of one model; the web had no design pass.
+    - C. No live page; the chat cards only. No big view while the agent works.
+    - Chosen: A, plus All runs from C's idea of a multi-run canvas: pick runs, or all, onto one graph.
+  - Merge (`mergeGraphs`): a source is one node per site and name across runs; each `r` becomes the run's place (1-based); claims, searches and drops renumber and keep `run`. The graph says "Run" where one run says "Round". A drop's id is `k.id`; the read queue copies one `birdwatch open` per run.
+  - Live: the chat's runs (`research.run` view parts), else runs not stopped and changed in 30 min, else the newest. A new run in the chat opens Live when the page is under Research.
+  - Engine 0.50.0 drops `/web`, `birdwatch web` and `engine/web.ts`. The portal drops `WebCanvas`, sigma and graphology.
+  - Build bug found: lightningcss turned `light-dark()` into `--lightningcss-light/dark` vars that nothing sets (the scheme comes from `--ui-scheme`). Every `--hair`, speaker colour and edge in the built graph was invalid; Storybook (dev, no minify) hid it. Fix: `build.cssTarget` Chrome/Edge 123, Firefox 120, Safari 17.5.
+  - Measured locally, All runs (31 runs, 587 sources, 35 claims, 29 MB of views, warm serve): first node at 1.7 s, no long task at rest. Layout switches: 54 to 87 ms. Back to the claim web was 244 ms; it now reuses the last solve.

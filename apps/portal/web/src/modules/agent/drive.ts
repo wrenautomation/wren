@@ -4,6 +4,7 @@
  * in view), and a hand-off (a turn the page sends for the person, to one setup). One store, no
  * provider: the panel may be unmounted when the page speaks.
  */
+import type { AgentMessage } from "@wren/ui";
 import { useEffect, useSyncExternalStore } from "react";
 
 export interface Hand {
@@ -66,3 +67,31 @@ export const usePageContextText = (): string | undefined =>
     () => context,
     () => undefined,
   );
+
+let chatRuns: readonly string[] = [];
+
+/** The birdwatch runs the open chat's cards name, in order: Research › Live draws them. */
+export function setChatRuns(runs: readonly string[]): void {
+  if (runs.length === chatRuns.length && runs.every((r, i) => r === chatRuns[i])) return;
+  chatRuns = runs;
+  tell();
+}
+
+export const useChatRuns = (): readonly string[] =>
+  useSyncExternalStore(
+    sub,
+    () => chatRuns,
+    () => chatRuns,
+  );
+
+/** Runs named by a thread's `research.run` view parts, first seen first. */
+export function runsNamed(messages: readonly AgentMessage[]): string[] {
+  const out = new Set<string>();
+  for (const m of messages)
+    for (const p of m.parts) {
+      const run =
+        p.type === "view" && p.name === "research.run" && (p.data as { run?: unknown })?.run;
+      if (typeof run === "string" && run) out.add(run);
+    }
+  return [...out];
+}

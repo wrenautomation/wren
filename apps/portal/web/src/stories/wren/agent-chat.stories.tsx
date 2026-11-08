@@ -156,7 +156,7 @@ export const Gone = story(
 );
 
 /** The side panel on a page past Ask: its Chats menu lists the stored chats. */
-export const Panel = story("/research/runs", [], async (page) => {
+export const Panel = story("/research/history", [], async (page) => {
   const c = within(page);
   await userEvent.click(await c.findByRole("button", { name: "Agent" }, LONG));
   await userEvent.click(await c.findByRole("button", { name: "Chats" }, LONG));

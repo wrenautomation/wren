@@ -14,5 +14,4 @@ export {
   RUN_GRAPH_ONE_ROUND,
   RUN_GRAPH_WORST,
 } from "./run-graph.js";
-export { islandsWeb } from "./web.js";
 export { WORST } from "./worst.js";

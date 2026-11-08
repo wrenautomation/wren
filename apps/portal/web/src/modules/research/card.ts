@@ -14,7 +14,7 @@ export function runOf(data: unknown): string | null {
   return typeof run === "string" && run ? run : null;
 }
 
-const hrefOf = (run: string) => `/research/runs?run=${encodeURIComponent(run)}`;
+const hrefOf = (run: string) => `/research/history?run=${encodeURIComponent(run)}`;
 
 /** `row` = the run's line in the list: its ask and start. None while the list loads. */
 export function runCard(view: RunView, row: RunRow | null): RunCardProps {

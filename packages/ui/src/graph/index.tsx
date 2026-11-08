@@ -5,7 +5,6 @@
 import { lazy, Suspense, useMemo } from "react";
 import type { GraphProps } from "./canvas.js";
 import { journeyOf, type Touch } from "./journey.js";
-import type { WebCanvasProps } from "./web-canvas.js";
 
 export type { GraphDot, GraphEdit, GraphProps } from "./canvas.js";
 export { journeyOf, type Touch } from "./journey.js";
@@ -26,24 +25,8 @@ export {
   ribbonWidth,
   wireLines,
 } from "./model.js";
-export type { WebCanvasProps, WebHandle } from "./web-canvas.js";
-export type { WebDot, WebLink } from "./web-model.js";
 
 const GraphCanvas = lazy(() => import("./canvas.js"));
-const WebCanvasLazy = lazy(() => import("./web-canvas.js"));
-
-/** A web of many dots at fixed places (sigma, WebGL): zoom shows detail by size. Its own chunk. */
-export function WebCanvas(props: WebCanvasProps) {
-  if (!props.dots.length) return <p className="text-[14px] text-(--ui-ink-2)">Nothing to draw.</p>;
-  return (
-    <Suspense
-      fallback={<div className="h-full min-h-80 w-full bg-(--ui-canvas)" aria-busy="true" />}
-    >
-      <WebCanvasLazy {...props} />
-    </Suspense>
-  );
-}
-
 export function Graph(props: GraphProps) {
   if (!props.nodes.length) return <p className="text-[14px] text-(--ui-ink-2)">Nothing to draw.</p>;
   return (

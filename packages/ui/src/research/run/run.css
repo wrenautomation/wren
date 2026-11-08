@@ -110,6 +110,20 @@
   line-height: 1.5;
   text-align: left;
 }
+.rg select.seg {
+  width: auto;
+  field-sizing: content;
+  border: 1px solid var(--hair);
+  border-radius: 7px;
+  max-width: 340px;
+  padding: 3px 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.5;
+  cursor: pointer;
+}
 .rg .seg button:hover {
   background: var(--wash);
   color: var(--ink);
@@ -1380,14 +1394,19 @@
   display: none;
 }
 .rg .nd.gone {
-  transition:
-    transform 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 0.22s;
-  opacity: 0;
+  transition: transform 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
+  /* a keyframe, not a transition: swapping off .new's pop would drop a transition */
+  animation: rg-fold 0.3s cubic-bezier(0.4, 0, 0.8, 0.6) forwards;
   pointer-events: none;
 }
 .rg .nd.new {
   animation: rg-pop 0.34s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes rg-fold {
+  to {
+    opacity: 0;
+    scale: 0.6;
+  }
 }
 @keyframes rg-pop {
   from {

@@ -178,6 +178,8 @@ export default defineConfig(({ command }) => ({
   build: {
     outDir: "../dist",
     emptyOutDir: true,
+    // light-dark() native: an older target polyfills it into vars nothing sets, so every hairline drops
+    cssTarget: ["chrome123", "edge123", "firefox120", "safari17.5"],
     rollupOptions: {
       input: {
         main: `${import.meta.dirname}/index.html`,

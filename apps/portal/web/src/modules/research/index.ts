@@ -4,15 +4,15 @@
  */
 import type { Module } from "../../module.js";
 import { AskPage } from "./ask.js";
-import { RunsPage } from "./page.js";
-import { WebPage } from "./web.js";
+import { LivePage } from "./live.js";
+import { HistoryPage } from "./page.js";
 
 export const research: Module = {
   id: "research",
   name: "Research",
   icon: "search",
   product: "Birdwatch",
-  blurb: "Birdwatch runs as they go: the tree, the back and forth, and every source to check.",
+  blurb: "Birdwatch runs as they go: the graph, the back and forth, and every source to check.",
   requires: { audience: "team" },
   pages: [
     {
@@ -23,18 +23,17 @@ export const research: Module = {
       fill: true,
     },
     {
-      id: "web",
-      label: "Web",
-      about: "Every run on one web: what was researched where, and the sources runs shared.",
-      Page: WebPage,
+      id: "live",
+      label: "Live",
+      about: "The chat's runs and runs still going, on one graph that follows them.",
+      Page: LivePage,
       wide: true,
-      fill: true,
     },
     {
-      id: "runs",
-      label: "Runs",
-      about: "Each run's tree, its decisions with their whys, and every source it found.",
-      Page: RunsPage,
+      id: "history",
+      label: "History",
+      about: "Every run: open one, pick several, or draw all of them on one graph.",
+      Page: HistoryPage,
       wide: true,
     },
   ],

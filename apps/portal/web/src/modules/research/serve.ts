@@ -3,7 +3,7 @@
  * browser asks 127.0.0.1 itself, so Chrome asks once to let the portal reach the local network.
  * The seam is the JSON: these types copy what the page reads from birdwatch's `view.ts` (`v: 1`).
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 /** `?serve=` for another port. CSP connect-src names 127.0.0.1:4747 (public/_headers). */
 export const SERVE =
@@ -132,30 +132,6 @@ export interface RunAsk {
   by: string;
 }
 
-/** One dot of the research web (engine `engine/web.ts`): positions are the engine's, fixed. */
-export interface WebNode {
-  id: string;
-  kind: "run" | "query" | "source" | "hub" | "page" | "finding";
-  label: string;
-  x: number;
-  y: number;
-  size: number;
-  run?: string;
-  group?: string;
-  url?: string;
-  read?: boolean;
-  kept?: boolean;
-  ask?: string;
-  runs?: number;
-  key?: string;
-}
-
-export interface ResearchWeb {
-  v: 1;
-  nodes: WebNode[];
-  edges: { source: string; target: string; kind: "tree" | "hub" }[];
-}
-
 export interface StoredPage {
   id: string;
   url: string;
@@ -176,11 +152,6 @@ export async function viewOf(run: string): Promise<RunView> {
   const v = await get<RunView>(`/runs/${encodeURIComponent(run)}`);
   if (v.v !== 1) throw new Error(`serve sends view v${v.v}; this page reads v1`);
   return v;
-}
-export async function webOf(): Promise<ResearchWeb> {
-  const m = await get<ResearchWeb>("/web");
-  if (m.v !== 1) throw new Error(`serve sends web v${m.v}; this page reads v1`);
-  return m;
 }
 export const pageOf = (run: string, doc: string) =>
   get<StoredPage>(`/runs/${encodeURIComponent(run)}/documents/${encodeURIComponent(doc)}`);
@@ -211,4 +182,76 @@ export function useLive(on: (run: string) => void) {
   const latest = useRef(on);
   latest.current = on;
   useEffect(() => listen((run) => latest.current(run)), []);
+}
+
+// views by run, kept across pages: Live and History draw the same runs; a changed one shows until
+// its new read lands
+const views = new Map<string, RunView>();
+const stale = new Set<string>();
+const asking = new Map<string, Promise<RunView>>();
+const FLIGHT = 6;
+
+function viewKept(run: string): Promise<RunView> {
+  const had = views.get(run);
+  if (had && !stale.has(run)) return Promise.resolve(had);
+  let p = asking.get(run);
+  if (!p) {
+    p = viewOf(run)
+      .then((v) => {
+        views.set(run, v);
+        stale.delete(run);
+        return v;
+      })
+      .finally(() => asking.delete(run));
+    asking.set(run, p);
+  }
+  return p;
+}
+
+/** Each run's view, six reads at a time; a run that changes is read again while the page is open. */
+export function useViews(runs: readonly string[]): {
+  views: RunView[] | null;
+  got: number;
+  error: unknown;
+  retry: () => void;
+} {
+  const key = runs.join(",");
+  const [tick, setTick] = useState(0);
+  const [error, setError] = useState<unknown>(null);
+  const [n, setGot] = useState(0);
+  useLive((run) => {
+    if (!runs.includes(run)) return;
+    stale.add(run);
+    setTick((t) => t + 1);
+  });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: key is the runs, tick a live change
+  useEffect(() => {
+    // read-ok: birdwatch serve on this Mac, not the portal API; a module cache, refetched per live event
+    let live = true;
+    setError(null);
+    const left = runs.filter((r) => !views.has(r) || stale.has(r));
+    const next = async () => {
+      for (let r = left.shift(); r && live; r = left.shift()) {
+        await viewKept(r);
+        if (live) setGot((n) => n + 1);
+      }
+    };
+    Promise.all(Array.from({ length: Math.min(FLIGHT, left.length) }, next)).catch((e) => {
+      if (live) setError(e);
+    });
+    return () => {
+      live = false;
+    };
+  }, [key, tick]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: n counts reads landed; the cache is outside React
+  const have = useMemo(
+    () => runs.map((r) => views.get(r)).filter((v): v is RunView => !!v),
+    [key, n],
+  );
+  return {
+    views: have.length === runs.length ? have : null,
+    got: have.length,
+    error,
+    retry: () => setTick((t) => t + 1),
+  };
 }
