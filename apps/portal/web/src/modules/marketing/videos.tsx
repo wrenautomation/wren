@@ -1148,14 +1148,15 @@ const PROMO_ROWS = [
     pick: "A carousel",
   },
 ] as const;
-const PROMO_STATE: Record<string, { label: string; tone: "neutral" | "warn" | "green" }> = {
-  draft: { label: "Waiting on you", tone: "needs" },
-  approved: { label: "Scheduled", tone: "green" },
-  publishing: { label: "Posting", tone: "neutral" },
-  published: { label: "Posted", tone: "green" },
-  failed: { label: "Failed to post", tone: "warn" },
-  rejected: { label: "Rejected", tone: "neutral" },
-};
+const PROMO_STATE: Record<string, { label: string; tone: "neutral" | "needs" | "warn" | "green" }> =
+  {
+    draft: { label: "Waiting on you", tone: "needs" },
+    approved: { label: "Scheduled", tone: "green" },
+    publishing: { label: "Posting", tone: "neutral" },
+    published: { label: "Posted", tone: "green" },
+    failed: { label: "Failed to post", tone: "warn" },
+    rejected: { label: "Rejected", tone: "neutral" },
+  };
 /** Wider pieces of one recording, not built yet (designs/2026-10-07-content-funnel.md). */
 const PROMO_LATER = [
   ["TikTok", "The vertical cut, posted as is."],
