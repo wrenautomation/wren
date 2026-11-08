@@ -41,7 +41,6 @@ const NEW_STATION = (id: string, label = "New") => ({
   label,
   kind: "att",
   line: "growth",
-  column: "sales",
   action: "other",
 });
 
@@ -301,8 +300,7 @@ describe("mergeMetro: name, frames and flows", () => {
       id,
       label: id,
       kind: "att" as const,
-      line: "growth",
-      column: "delivery" as const,
+      line: "growth" as const,
       action: "email" as const,
     });
     const addTo = (b: MetroBody, id: string): MetroBody => ({

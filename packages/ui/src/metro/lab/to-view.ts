@@ -11,15 +11,7 @@ import {
   type MetroScene,
   type Point,
 } from "../types.js";
-import {
-  DEFAULT_COLUMNS,
-  type LineTier,
-  type MetroView,
-  type ViewKind,
-  type ViewLine,
-  type ViewStation,
-  type ViewTrack,
-} from "../view.js";
+import type { LineTier, MetroView, ViewKind, ViewLine, ViewStation, ViewTrack } from "../view.js";
 
 /** A station is on a path when it is this close to it, in px. */
 const NEAR = 4;
@@ -214,13 +206,6 @@ export function sceneToView(scene: MetroScene, title = scene.title): MetroView {
     });
   }
 
-  const zones = scene.zones ?? [];
-  const columns = zones.length ? zones.map((z) => z[2]) : DEFAULT_COLUMNS;
-  const columnOf = (x: number) => {
-    const i = zones.findIndex(([a, b]) => x >= a && x < b);
-    if (i >= 0) return columns[i] as string;
-    return (x < (zones[0]?.[0] ?? 0) ? columns[0] : columns[columns.length - 1]) as string;
-  };
   const kindOf = (s: MarkStation): ViewKind => {
     if (s.t !== "par") return s.t as ViewKind;
     const ins = real.filter((l) => l.to === s.id).length;
@@ -232,7 +217,6 @@ export function sceneToView(scene: MetroScene, title = scene.title): MetroView {
     id: s.id,
     kind: kindOf(s),
     line: lineOf.get(s.id) as string,
-    column: columnOf(s.x),
     ...(s.n ? { label: s.n } : {}),
     ...(s.s ? { sub: s.s } : {}),
     ...(s.bad ? { bad: true } : {}),
@@ -255,5 +239,5 @@ export function sceneToView(scene: MetroScene, title = scene.title): MetroView {
       ...(l.plan ? { plan: true } : {}),
     };
   });
-  return { ...(title ? { title } : {}), lines: [...lines.values()], stations, tracks, columns };
+  return { ...(title ? { title } : {}), lines: [...lines.values()], stations, tracks };
 }

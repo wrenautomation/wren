@@ -43,9 +43,9 @@ describe("layoutView", () => {
       lines: [...COLD_OUTBOUND_VIEW.lines, { id: "films", tier: "content", colour: 3 }],
       stations: [
         ...COLD_OUTBOUND_VIEW.stations,
-        { id: "find", kind: "att", line: "films", column: "Marketing", icon: "search" },
-        { id: "read", kind: "att", line: "films", column: "Marketing", icon: "doc" },
-        { id: "call", kind: "att", line: "films", column: "Sales", icon: "check" },
+        { id: "find", kind: "att", line: "films", icon: "search" },
+        { id: "read", kind: "att", line: "films", icon: "doc" },
+        { id: "call", kind: "att", line: "films", icon: "check" },
       ],
       tracks: [
         ...COLD_OUTBOUND_VIEW.tracks,

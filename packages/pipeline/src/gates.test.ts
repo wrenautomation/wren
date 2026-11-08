@@ -11,7 +11,6 @@ const at = (id: string, more: Partial<MetroStation> = {}): MetroStation => ({
   label: id,
   kind: "att",
   line: "growth",
-  column: "sales",
   action: "email",
   advance: [{ trigger: "trigger.reply" }],
   ...more,
@@ -34,8 +33,8 @@ const logic = (): MetroBody => ({
     { id: "growth", label: "Growth", tier: "core", offer: "offer-a", colour: 0 },
   ],
   stations: [
-    { id: "cold", label: "Cold", kind: "att", line: "cold", column: "marketing" },
-    { id: "hub", label: "First touch", kind: "hub", column: "marketing" },
+    { id: "cold", label: "Cold", kind: "att", line: "cold" },
+    { id: "hub", label: "First touch", kind: "hub" },
     at("sent", { advance: [] }),
     at("race", { kind: "race" }),
     at("replied"),

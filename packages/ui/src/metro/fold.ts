@@ -1,6 +1,6 @@
 /**
  * Zoom as data (designs/2026-10-23-metro-fold-tree.md). A map's stations sit in a fold tree of any
- * depth (tree.ts): line · column, the shape's groups, stations side by side. A closed node draws as
+ * depth (tree.ts): line, the shape's groups, stations side by side. A closed node draws as
  * one capsule; an open one as its stations in a frame, with a tab that folds it back.
  *
  * A fold hides stations, never lines. The hub folds like any station; an exit folds with its source. Tracks
@@ -21,13 +21,7 @@ import {
   type Point,
   type SceneStation,
 } from "./types.js";
-import {
-  DEFAULT_COLUMNS,
-  type MetroView,
-  oneBand,
-  type ViewStation,
-  type ViewTrack,
-} from "./view.js";
+import type { MetroView, ViewStation, ViewTrack } from "./view.js";
 
 /** The folds a hand-composed scene reads: one flag per node, true when open. */
 export type Flags = Readonly<Record<string, boolean | undefined>>;
@@ -294,16 +288,12 @@ function foldRuns(
   view: MetroView,
   runs: ReadonlyMap<string, Run>,
 ): { view: MetroView; meta: Map<string, FoldMeta> } {
-  const columns = [...(view.columns ?? DEFAULT_COLUMNS)];
-  for (const s of view.stations) if (!columns.includes(s.column)) columns.push(s.column);
-  const byColumn = (m: readonly ViewStation[]) =>
-    [...m].sort((a, b) => columns.indexOf(a.column) - columns.indexOf(b.column));
   const groups = new Map((view.groups ?? []).map((g) => [g.id, g]));
   const into = new Map<string, string>();
   const folds = new Map<string, ViewStation>();
   const meta = new Map<string, FoldMeta>();
   for (const [k, { m, name, steps, each }] of runs) {
-    const run = byColumn(m);
+    const run = m;
     const first = run[0];
     // The fold wears its last station's kind; an exit inside counts as bad, not as the kind.
     const last = run.filter((s) => s.kind !== "exit").at(-1) ?? run.at(-1);
@@ -311,7 +301,6 @@ function foldRuns(
     // A fold that holds the hub sits on the line that leaves it, not on an entry's.
     const on = m.some((s) => s.kind === "hub") ? last : first;
     const ids = new Set(m.map((s) => s.id));
-    const spans = [...new Set(m.map((s) => s.column))].filter((c) => c !== first.column);
     const inside = view.tracks.filter((t) => ids.has(t.from) && ids.has(t.to));
     const line = view.lines.find((l) => l.id === on.line);
     const mark = capsuleMark(
@@ -341,9 +330,7 @@ function foldRuns(
       kind: last.kind,
       ...(last.icon ? { icon: last.icon } : {}),
       line: on.line,
-      column: first.column,
-      ...(spans.length ? { spans } : {}),
-      // It sits in what holds the node: a group's parent; a twin set's group; a line · column, none.
+      // It sits in what holds the node: a group's parent; a twin set's group; a line, none.
       ...(() => {
         const g = groups.has(k) ? groups.get(k)?.parent : k.includes("@") ? undefined : first.group;
         return g ? { group: g } : {};
@@ -398,7 +385,7 @@ function foldRuns(
 export const TWIN_OUTLIER = { margin: 0.25, people: 5 } as const;
 
 /**
- * Stations side by side: one template on one line in one column, a station per platform. A twin
+ * Stations side by side: one template on one line, a station per platform. A twin
  * with a diff mark (or a track with one) stays out, so a fold never hides a diff; so does a twin
  * whose stuck share departs from the others' by more than the margin.
  */
@@ -407,7 +394,7 @@ export function twinRuns(view: MetroView): Map<string, Run> {
   const sets = new Map<string, ViewStation[]>();
   for (const s of view.stations) {
     if (!s.template || s.kind === "hub" || s.kind === "exit") continue;
-    const k = `tpl:${s.template}@${s.line}@${s.column}`;
+    const k = `tpl:${s.template}@${s.line}`;
     sets.set(k, [...(sets.get(k) ?? []), s]);
   }
   const share = (m: readonly ViewStation[]) => {
@@ -468,12 +455,11 @@ interface ViewTree {
 const trees = new WeakMap<MetroView, ViewTree>();
 
 /**
- * A view's fold tree. Outermost first: line · column, the shape's groups (`parent` nests them), the
- * stations side by side. A group sits in the line · column its stations share; one that spans
+ * A view's fold tree. Outermost first: line, the shape's groups (`parent` nests them), the
+ * stations side by side. A group sits in the line its stations share; one that spans
  * several sits in the map itself. An exit folds with its source.
  */
-export function viewTree(given: MetroView): ViewTree {
-  const view = oneBand(given);
+export function viewTree(view: MetroView): ViewTree {
   const known = trees.get(view);
   if (known) return known;
   const twins = twinRuns(view);
@@ -488,22 +474,23 @@ export function viewTree(given: MetroView): ViewTree {
     return out;
   };
   const lines = new Map(view.lines.map((l) => [l.id, l]));
-  const lineCol = (s: ViewStation): FoldNode => {
+  const lineNode = (s: ViewStation): FoldNode => {
     const line = lines.get(s.line);
     const n = line?.label ?? line?.offer ?? s.line;
+    // `<line>@`: a scene tree's `<line>@<zone>` with no zone, so one prefix finds either.
     return {
-      id: `${s.line}@${s.column}`,
-      label: line?.tier === "out" || !s.column ? n : `${n} · ${s.column}`,
+      id: `${s.line}@`,
+      label: n,
     };
   };
-  // The hub joins every line, so it has no line · column: it folds only inside a group.
+  // The hub joins every line, so it has no line: it folds only inside a group.
   const leaves = view.stations.filter((s) => s.kind !== "exit" && (s.kind !== "hub" || s.group));
-  // The line · column each outermost group's stations share, if they share one.
+  // The line each outermost group's stations share, if they share one.
   const shared = new Map<string, FoldNode | null>();
   for (const s of leaves) {
     const top = s.group ? groupPath(s.group)[0] : undefined;
     if (!top || s.kind === "hub") continue;
-    const lc = lineCol(s);
+    const lc = lineNode(s);
     const was = shared.get(top);
     shared.set(top, was === undefined || was?.id === lc.id ? lc : null);
   }
@@ -518,7 +505,7 @@ export function viewTree(given: MetroView): ViewTree {
   for (const s of leaves) {
     const gp = s.group ? groupPath(s.group) : [];
     const top = gp[0];
-    const lc = top ? shared.get(top) : lineCol(s);
+    const lc = top ? shared.get(top) : lineNode(s);
     const t = twinOf.get(s.id);
     paths.set(s.id, [
       ...(lc ? [lc] : []),
@@ -568,8 +555,7 @@ function scenesOf(view: MetroView) {
 }
 
 /** Zoom for a view: each fold folds the view first, then lays it out, so a fold takes one place. */
-export function viewZoom(given: MetroView, step?: number): MetroZoom {
-  const view = oneBand(given);
+export function viewZoom(view: MetroView, step?: number): MetroZoom {
   const done = scenesOf(view);
   return {
     nodes: viewTree(view).nodes,
@@ -597,9 +583,8 @@ export function viewZoom(given: MetroView, step?: number): MetroZoom {
 /**
  * The scene of a view with these nodes open. A closed node is one station when the layout places
  * it, so it takes one step, not the room of its stations; it draws as a round capsule (side by
- * side, a stacked one). An open node in one column is a box: ELK keeps its stations together and
- * the map draws a frame round them, with a tab to fold it. One across columns keeps a faint pill
- * along its first row, with the tab under its first circle.
+ * side, a stacked one). An open node is a box: ELK keeps its stations together and the map draws
+ * a frame round them, with a tab to fold it.
  */
 export async function viewScene(
   view: MetroView,
@@ -634,20 +619,18 @@ export async function viewScene(
     else home.set(s.id, chain.get(s.id)?.at(-1));
   }
   const shown = nodes.filter((n) => shows(n.id));
-  const columns = new Map(shown.map((n) => [n.id, new Set<string>()]));
   const members = new Map(shown.map((n) => [n.id, [] as ViewStation[]]));
   for (const s of folded.view.stations)
     for (let k = home.get(s.id); k; k = by.get(k)?.parent) {
-      columns.get(k)?.add(s.column);
       members.get(k)?.push(s);
     }
   // An open lap draws its own loop: no frame, no pill.
   const laps = new Map((view.groups ?? []).filter((g) => g.lap).map((g) => [g.id, g]));
   // A whole line needs no frame: the line is its own outline.
-  const whole = new Set(view.stations.map((s) => `${s.line}@${s.column}`));
+  const whole = new Set(view.stations.map((s) => `${s.line}@`));
   const boxed = new Set(
     shown
-      .filter((n) => !laps.has(n.id) && !whole.has(n.id) && columns.get(n.id)?.size === 1)
+      .filter((n) => !laps.has(n.id) && !whole.has(n.id) && (members.get(n.id)?.length ?? 0) > 0)
       .map((n) => n.id),
   );
   const boxOf = (k: string | undefined): string | undefined => {

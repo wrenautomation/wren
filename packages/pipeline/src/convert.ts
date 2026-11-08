@@ -8,7 +8,6 @@
  */
 
 import {
-  type Column,
   DURATION,
   HUB,
   isContentKind,
@@ -21,7 +20,6 @@ import {
 } from "./metro.js";
 import { campaignsOf, DEFAULT_CAMPAIGN } from "./metro-campaigns.js";
 import {
-  type Action,
   type Advance,
   edgeIdOf,
   type Gate,
@@ -60,24 +58,12 @@ export const wireWait = (wait: string): string => {
 
 type MetroResult = { ok: true; body: MetroBody; notes: string[] } | { ok: false; errors: string[] };
 
-/** Actions that happen where people first meet the business: the marketing column. */
-const MARKETING_ACTIONS: readonly Action[] = [
-  "comment",
-  "reply",
-  "dm",
-  "email",
-  "text",
-  "cta",
-  "visit",
-];
 /** Offer lines wear line tokens `--l0` to `--l7` in turn. */
 const COLOURS = 8;
 /** The line for steps that no deal station can be reached from or reaches. */
 const UNROUTED = "unrouted";
 const UNROUTED_LABEL = "Not on an offer";
 const HUB_LABEL = "First touch";
-
-const COLUMN_ORDER: readonly Column[] = ["marketing", "sales", "delivery", "money"];
 
 /** The fields the graph model holds on each kind of node, and on an edge. Any other field is stray. */
 const NODE_FIELDS: Record<NodeKind, readonly string[]> = {
@@ -287,61 +273,17 @@ export function metroOf(graph: ShapeBody): MetroResult {
   }
   if (unrouted) lines.push({ id: unrouted, label: UNROUTED_LABEL, tier: "front" });
 
-  // Columns. Marketing actions are marketing, other steps and the deal are sales, steps after a
-  // deal are delivery, plans are money. Then lift each column so no flow edge goes left.
-  const afterDeal = new Set<string>();
-  for (const o of offers) {
-    const stack = out(o.id);
-    while (stack.length > 0) {
-      const at = stack.pop();
-      if (at === undefined || afterDeal.has(at)) continue;
-      afterDeal.add(at);
-      stack.push(...out(at));
-    }
-  }
-  const column = new Map<string, number>();
-  for (const n of held) {
-    const col: Column =
-      n.kind === "plan"
-        ? "money"
-        : n.kind === "offer"
-          ? "sales"
-          : afterDeal.has(n.id)
-            ? "delivery"
-            : MARKETING_ACTIONS.includes(n.action)
-              ? "marketing"
-              : "sales";
-    column.set(n.id, COLUMN_ORDER.indexOf(col));
-  }
-  for (
-    let again = true, rounds = 0;
-    again && rounds <= held.length * COLUMN_ORDER.length;
-    rounds++
-  ) {
-    again = false;
-    for (const e of flows) {
-      const from = column.get(e.from);
-      const to = column.get(e.to);
-      if (from !== undefined && to !== undefined && to < from) {
-        column.set(e.to, from);
-        again = true;
-      }
-    }
-  }
-  const columnOf = (id: string): Column => COLUMN_ORDER[column.get(id) ?? 0] ?? "marketing";
-
   // Stations: each source's start station, the hub, then every other node in node order.
   const stations: MetroStation[] = sources.map((s) => ({
     id: s.id,
     label: s.name,
     kind: "att",
     line: s.id,
-    column: "marketing",
   }));
-  stations.push({ id: HUB, label: HUB_LABEL, kind: "hub", column: "marketing" });
+  stations.push({ id: HUB, label: HUB_LABEL, kind: "hub" });
   for (const n of held) {
     const line = lineOf.get(n.id) ?? n.id;
-    const base = { id: n.id, label: n.name, line, column: columnOf(n.id) };
+    const base = { id: n.id, label: n.name, line };
     if (n.kind === "plan") {
       stations.push({
         ...base,
@@ -434,7 +376,7 @@ export function metroOf(graph: ShapeBody): MetroResult {
  * and tracks become edges (a back track is a loop). On a content line the find station becomes a
  * `found` source and each other station a job node, whose advance is the end of the job before it
  * (`trigger.station`). What the graph has no place for drops: the lines' tiers and colours,
- * columns, groups, frames, who moves a track.
+ * groups, frames, who moves a track.
  *
  * The output order is fixed, and a stored body must never change it: Restate replays `shape.v<n>`
  * and the workflow depends on the order of nodes and edges. Nodes: the out sources in line order,

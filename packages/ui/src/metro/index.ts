@@ -117,13 +117,12 @@ export {
   type Weight,
   type Zone,
 } from "./types.js";
-export {
-  DEFAULT_COLUMNS,
-  type LineTier,
-  type MetroView,
-  type ViewGroup,
-  type ViewKind,
-  type ViewLine,
-  type ViewStation,
-  type ViewTrack,
+export type {
+  LineTier,
+  MetroView,
+  ViewGroup,
+  ViewKind,
+  ViewLine,
+  ViewStation,
+  ViewTrack,
 } from "./view.js";

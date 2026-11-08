@@ -480,8 +480,8 @@ describe("the metro model", () => {
           id: "shared_followup",
           label: "Shared follow-up",
           stations: [
-            { id: "nudge", label: "Nudge", kind: "att", column: "sales", action: "other" },
-            { id: "check_in", label: "Check in", kind: "att", column: "sales", action: "other" },
+            { id: "nudge", label: "Nudge", kind: "att", action: "other" },
+            { id: "check_in", label: "Check in", kind: "att", action: "other" },
           ],
           tracks: [{ id: "nudge_to_check_in", from: "nudge", to: "check_in", by: "system" }],
         },

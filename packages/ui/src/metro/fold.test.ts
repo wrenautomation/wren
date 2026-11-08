@@ -14,7 +14,7 @@ import { GROWTH_RETAINER } from "./money-models.js";
 import { layoutView } from "./place.js";
 import { DIFF_VIEW, loopZoom, protocolZoom, TWINS_VIEW, ZOOM_SCENE, ZOOM_VIEW } from "./samples.js";
 import { isCapsule, isMark, type MetroScene } from "./types.js";
-import { type MetroView, oneBand } from "./view.js";
+import type { MetroView } from "./view.js";
 
 const NONE = new Set<string>();
 const at = (nodes: Parameters<typeof openSet>[0], depth: number, open = {}) =>
@@ -224,7 +224,7 @@ describe("viewScene", () => {
 });
 
 describe("side-by-side stations", () => {
-  const key = "tpl:post@so@";
+  const key = "tpl:post@so";
   const z = viewZoom(TWINS_VIEW);
   const deepest = (open: Record<string, boolean> = {}) =>
     z.scene(at(z.nodes, fullDepth(z.nodes), open));
@@ -256,7 +256,7 @@ describe("side-by-side stations", () => {
       ),
     };
     expect(
-      twinRuns(oneBand(view))
+      twinRuns(view)
         .get(key)
         ?.m.map((s) => s.id),
     ).not.toContain("px");
@@ -296,12 +296,12 @@ describe("a group of groups across lines", () => {
       { id: "gp", offer: "Retainer", tier: "core", colour: 0 },
     ],
     stations: [
-      { id: "p1", kind: "att", line: "post", column: "Marketing", label: "Draft", group: "posts" },
-      { id: "p2", kind: "att", line: "post", column: "Marketing", label: "Posted", group: "posts" },
-      { id: "a1", kind: "att", line: "ads", column: "Marketing", label: "Ad made", group: "paid" },
-      { id: "a2", kind: "att", line: "ads", column: "Marketing", label: "Ad live", group: "paid" },
-      { id: "hub", kind: "hub", line: "gp", column: "Sales", label: "First touch" },
-      { id: "pay", kind: "cash", line: "gp", column: "Money", label: "Paid" },
+      { id: "p1", kind: "att", line: "post", label: "Draft", group: "posts" },
+      { id: "p2", kind: "att", line: "post", label: "Posted", group: "posts" },
+      { id: "a1", kind: "att", line: "ads", label: "Ad made", group: "paid" },
+      { id: "a2", kind: "att", line: "ads", label: "Ad live", group: "paid" },
+      { id: "hub", kind: "hub", line: "gp", label: "First touch" },
+      { id: "pay", kind: "cash", line: "gp", label: "Paid" },
     ],
     tracks: [
       { from: "p1", to: "p2", by: "system" },
@@ -344,7 +344,6 @@ describe("the hub in a group", () => {
         id: "p1",
         kind: "att",
         line: "post",
-        column: "Marketing",
         label: "Posted",
         group: "content",
       },
@@ -352,12 +351,11 @@ describe("the hub in a group", () => {
         id: "hub",
         kind: "hub",
         line: "gp",
-        column: "Marketing",
         label: "First touch",
         group: "mkt",
       },
-      { id: "call", kind: "att", line: "gp", column: "Sales", label: "Call", group: "sales" },
-      { id: "pay", kind: "cash", line: "gp", column: "Money", label: "Paid", group: "money" },
+      { id: "call", kind: "att", line: "gp", label: "Call", group: "sales" },
+      { id: "pay", kind: "cash", line: "gp", label: "Paid", group: "money" },
     ],
     tracks: [
       { from: "p1", to: "hub", by: "system" },

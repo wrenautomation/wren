@@ -95,9 +95,9 @@ wren call PipelineConsole/shapeTag --input '{"name":"before-pricing","version":3
      input is `{ "id": "<draft id>", "ops": [ … ] }` (one op may stand alone). All ops apply, or none.
      Read the ids first: `wren get pipeline.shape shape`. The answer is `{ id, lines, warnings }`.
      Op kinds, one example each:
-     - add: `{"op":"add","on":"station","item":{"id":"call","label":"Call","kind":"time","line":"signed","column":"sales","action":"book"}}` (`on`: line, station, track or group)
+     - add: `{"op":"add","on":"station","item":{"id":"call","label":"Call","kind":"time","line":"signed","action":"book"}}` (`on`: line, station, track or group)
      - rename: `{"op":"rename","on":"station","id":"call","label":"Book a call"}` (the shape: `{"op":"rename","on":"shape","name":"…"}`)
-     - move: `{"op":"move","on":"station","id":"call","column":"delivery"}` (also a track's ends, a group's line, a line's place)
+     - move: `{"op":"move","on":"station","id":"call","line":"retain"}` (also a track's ends, a group's line, a line's place)
      - remove: `{"op":"remove","on":"track","id":"engaged_to_call"}`
      - set: `{"op":"set","on":"station","id":"call","field":"idleDays","value":5}` (`null` removes the field)
      - attach: `{"op":"attach","on":"station","id":"call","ref":{"kind":"sop","ref":"call-script"}}`

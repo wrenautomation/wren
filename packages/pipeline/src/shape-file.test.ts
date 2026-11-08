@@ -28,7 +28,6 @@ stations:
     kind: att
     label: YouTube
     line: yt
-    column: marketing
 `;
 
 describe("exportShape and parseShape", () => {

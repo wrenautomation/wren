@@ -240,9 +240,7 @@ describe("diffMetro: flows", () => {
   const second = (): MetroFlow => ({
     id: "second",
     label: "Second flow",
-    stations: [
-      { id: "a", label: "A", kind: "att", line: "growth", column: "sales", action: "other" },
-    ],
+    stations: [{ id: "a", label: "A", kind: "att", line: "growth", action: "other" }],
     tracks: [],
   });
 
@@ -277,7 +275,6 @@ describe("diffMetro: flows", () => {
       label: "More",
       kind: "att",
       line: "growth",
-      column: "delivery",
       action: "other",
     });
     expect(keys(a, added)).toEqual(["flow:shared_followup:changed"]);

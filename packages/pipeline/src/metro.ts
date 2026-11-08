@@ -45,10 +45,6 @@ export const HUB = "hub";
 const TIERS = ["out", "front", "core", "content"] as const;
 type Tier = (typeof TIERS)[number];
 
-/** Left to right on the map. A track never goes left. */
-export const COLUMNS = ["marketing", "sales", "delivery", "money"] as const;
-export type Column = (typeof COLUMNS)[number];
-
 export const STATION_KINDS = [
   "att",
   "time",
@@ -155,7 +151,6 @@ export interface MetroStation {
   kind: StationKind;
   /** Required, except on the hub (never) and on an exit (optional). */
   line?: string;
-  column: Column;
   /** Att and time stations only. The kind must equal `kindOfAction(action)`. */
   action?: Action;
   advance?: Advance[];
@@ -181,7 +176,7 @@ export interface MetroStation {
   retries?: number;
   /**
    * The job, when stations do one job side by side (the same post on five platforms): a slug. The
-   * map folds the stations of one template that sit in one column into one station, a mark each.
+   * map folds the stations of one template into one station, a mark each.
    * Lowers to nothing.
    */
   template?: string;
@@ -273,8 +268,6 @@ export const isMetro = (body: unknown): body is MetroBody =>
 /** The station kind an action gives: call, book and held take time; the rest need attention. */
 export const kindOfAction = (action: Action): "att" | "time" =>
   action === "call" || action === "book" || action === "held" ? "time" : "att";
-
-const columnIndex = (c: string): number => Math.max(0, COLUMNS.indexOf(c as Column));
 
 const isWhole = (n: unknown, min: number, max: number): n is number =>
   typeof n === "number" && Number.isInteger(n) && n >= min && n <= max;
@@ -559,9 +552,6 @@ function checkStations(
     }
     if (!STATION_KINDS.includes(s.kind)) {
       errors.push(`Station "${k}" has kind "${s.kind}". Use ${STATION_KINDS.join(", ")}.`);
-    }
-    if (!COLUMNS.includes(s.column)) {
-      errors.push(`Station "${k}" has column "${s.column}". Use ${COLUMNS.join(", ")}.`);
     }
 
     // The line: none on the hub, optional on an exit, required on the rest. Optional in a flow:
@@ -946,7 +936,7 @@ function checkLogic(
   }
 }
 
-/** Plain and xfer tracks: no loop, and never leftwards across the columns. */
+/** Plain and xfer tracks: no loop. */
 function checkOrder(
   stations: readonly MetroStation[],
   tracks: readonly MetroTrack[],
@@ -963,16 +953,6 @@ function checkOrder(
   );
   if (cycle) {
     errors.push(`Tracks form a loop: ${cycle.join(" -> ")}. Make one of them a back track.`);
-  }
-  for (const t of forward) {
-    const from = stationBy.get(t.from);
-    const to = stationBy.get(t.to);
-    if (!from || !to || !COLUMNS.includes(from.column) || !COLUMNS.includes(to.column)) continue;
-    if (columnIndex(to.column) < columnIndex(from.column)) {
-      errors.push(
-        `Track "${t.id}" goes from ${from.column} to ${to.column}. A track never goes left.`,
-      );
-    }
   }
 }
 
@@ -1067,41 +1047,31 @@ function checkFrames(
 }
 
 /**
- * Each station's place, left to right: the successor of `depthOf`. Stations go in column order,
- * then by their tracks. A station's place is the larger of one more than the largest place of the
- * stations its plain and transfer tracks come from, and one more than the largest place in every
- * earlier column; a station with neither is 0. Pure, and safe on a body that has not been checked:
- * an unknown id is skipped, a loop does not run for ever, and a track that runs left is ignored.
+ * Each station's place, left to right: the successor of `depthOf`. One more than the largest place
+ * of the stations its plain and transfer tracks come from; a station with none is 0. Pure, and safe
+ * on a body that has not been checked: an unknown id is skipped and a loop does not run for ever.
  */
 export function placesOf(body: MetroBody): Record<string, number> {
-  const columnOf = new Map(body.stations.map((s) => [s.id, columnIndex(s.column)] as const));
+  const ids = new Set(body.stations.map((s) => s.id));
   const into = new Map<string, string[]>();
   for (const t of body.tracks) {
     if (t.kind !== undefined && t.kind !== "xfer") continue;
-    if (t.from === t.to || !columnOf.has(t.from) || !columnOf.has(t.to)) continue;
+    if (t.from === t.to || !ids.has(t.from) || !ids.has(t.to)) continue;
     into.set(t.to, [...(into.get(t.to) ?? []), t.from]);
   }
   const place: Record<string, number> = {};
   const open = new Set<string>();
-  let floor = 0;
-  for (let c = 0; c < COLUMNS.length; c++) {
-    const here = body.stations.filter((s) => columnIndex(s.column) === c);
-    const visit = (id: string): number => {
-      const known = place[id];
-      if (known !== undefined) return known;
-      if (open.has(id)) return 0;
-      open.add(id);
-      let p = floor;
-      for (const from of into.get(id) ?? []) {
-        if ((columnOf.get(from) ?? 0) > c) continue;
-        p = Math.max(p, visit(from) + 1);
-      }
-      open.delete(id);
-      place[id] = p;
-      return p;
-    };
-    for (const s of here) visit(s.id);
-    if (here.length > 0) floor = Math.max(...here.map((s) => place[s.id] ?? 0)) + 1;
-  }
+  const visit = (id: string): number => {
+    const known = place[id];
+    if (known !== undefined) return known;
+    if (open.has(id)) return 0;
+    open.add(id);
+    let p = 0;
+    for (const from of into.get(id) ?? []) p = Math.max(p, visit(from) + 1);
+    open.delete(id);
+    place[id] = p;
+    return p;
+  };
+  for (const s of body.stations) visit(s.id);
   return place;
 }

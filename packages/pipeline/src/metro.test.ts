@@ -38,7 +38,6 @@ const extra = (over: Partial<MetroStation> = {}): MetroStation => ({
   label: "Extra",
   kind: "att",
   line: "growth",
-  column: "sales",
   action: "other",
   ...over,
 });
@@ -145,9 +144,7 @@ describe("checkMetro: the hub", () => {
       b.tracks = b.tracks.filter((t) => t.from !== "hub" && t.to !== "hub");
     });
     expect(none).toEqual(["The shape needs exactly one hub station, not 0."]);
-    expect(
-      says((b) => b.stations.push({ id: "hub_two", label: "H", kind: "hub", column: "marketing" })),
-    ).toEqual([
+    expect(says((b) => b.stations.push({ id: "hub_two", label: "H", kind: "hub" }))).toEqual([
       "The shape needs exactly one hub station, not 2.",
       'The hub station must have the id "hub", not "hub_two".',
     ]);
@@ -307,16 +304,13 @@ describe("checkMetro: lines", () => {
 });
 
 describe("checkMetro: stations", () => {
-  it("wants a label, a known kind and a known column", () => {
+  it("wants a label and a known kind", () => {
     expect(says((b) => b.stations.push(extra({ label: "" })))).toEqual([
       'Station "extra" needs a label.',
     ]);
     expect(says((b) => b.stations.push(extra({ kind: "box" as never })))).toContain(
       'Station "extra" has kind "box". Use att, time, cash, exit, hub, condition, race, split, join, ab, approval, link, find, read, extract, call, measure.',
     );
-    expect(says((b) => b.stations.push(extra({ column: "left" as never })))).toEqual([
-      'Station "extra" has column "left". Use marketing, sales, delivery, money.',
-    ]);
   });
 
   it("wants a line, except on the hub, and on an exit where it is optional", () => {
@@ -326,13 +320,9 @@ describe("checkMetro: stations", () => {
     expect(says((b) => b.stations.push(extra({ line: "ghost" })))).toEqual([
       'Station "extra" is on line "ghost", which does not exist.',
     ]);
+    expect(says((b) => b.stations.push({ id: "end", label: "End", kind: "exit" }))).toEqual([]);
     expect(
-      says((b) => b.stations.push({ id: "end", label: "End", kind: "exit", column: "sales" })),
-    ).toEqual([]);
-    expect(
-      says((b) =>
-        b.stations.push({ id: "end", label: "End", kind: "exit", line: "growth", column: "sales" }),
-      ),
+      says((b) => b.stations.push({ id: "end", label: "End", kind: "exit", line: "growth" })),
     ).toEqual([]);
   });
 
@@ -668,39 +658,6 @@ describe("checkMetro: order", () => {
       ),
     ).toEqual([]);
   });
-
-  it("never lets a plain or transfer track go left", () => {
-    const side =
-      (over: Partial<MetroStation> = {}) =>
-      (b: MetroBody) => {
-        b.stations.push(extra({ id: "side", column: "marketing", ...over }));
-      };
-    expect(
-      says((b) => {
-        side()(b);
-        b.tracks.push({
-          id: "signed_to_side",
-          from: "signed",
-          to: "side",
-          line: "growth",
-          by: "system",
-        });
-      }),
-    ).toEqual(['Track "signed_to_side" goes from sales to marketing. A track never goes left.']);
-    expect(
-      says((b) => {
-        side({ line: "nurture" })(b);
-        b.tracks.push({
-          id: "retain_to_side",
-          from: "retain_start",
-          to: "side",
-          line: "nurture",
-          kind: "xfer",
-          by: "system",
-        });
-      }),
-    ).toEqual(['Track "retain_to_side" goes from money to marketing. A track never goes left.']);
-  });
 });
 
 describe("checkMetro: groups", () => {
@@ -923,8 +880,8 @@ describe("checkMetro: flows", () => {
     id: "other",
     label: "Other flow",
     stations: [
-      { id: "one", label: "One", kind: "att", line: "growth", column: "sales", action: "other" },
-      { id: "two", label: "Two", kind: "att", line: "growth", column: "sales", action: "other" },
+      { id: "one", label: "One", kind: "att", line: "growth", action: "other" },
+      { id: "two", label: "Two", kind: "att", line: "growth", action: "other" },
     ],
     tracks: [{ id: "one_to_two", from: "one", to: "two", line: "growth", by: "system" }],
     ...over,
@@ -934,7 +891,6 @@ describe("checkMetro: flows", () => {
     label: id,
     kind: "link",
     line: "growth",
-    column: "delivery",
     flow,
   });
 
@@ -998,9 +954,7 @@ describe("checkMetro: flows", () => {
 
   it("holds no hub, and keeps the reserved ids", () => {
     expect(
-      says((b) =>
-        followup(b).stations.push({ id: "hub", label: "Hub", kind: "hub", column: "marketing" }),
-      ),
+      says((b) => followup(b).stations.push({ id: "hub", label: "Hub", kind: "hub" })),
     ).toEqual(['Flow "shared_followup": Station "hub" is a hub. A flow holds no hub.']);
     expect(says((b) => followup(b).stations.push(extra({ id: "hub" })))).toEqual([
       'Flow "shared_followup": Station id "hub" is reserved for the hub station.',
@@ -1016,9 +970,6 @@ describe("checkMetro: flows", () => {
     ]);
     expect(says((b) => ((followup(b).stations[0] as MetroStation).line = "ghost"))).toEqual([
       'Flow "shared_followup": Station "nudge" is on line "ghost", which does not exist.',
-    ]);
-    expect(says((b) => followup(b).stations.push(extra({ column: "nowhere" as never })))).toEqual([
-      'Flow "shared_followup": Station "extra" has column "nowhere". Use marketing, sales, delivery, money.',
     ]);
   });
 
@@ -1084,7 +1035,6 @@ describe("checkMetro: flows", () => {
           label: "Fit?",
           kind: "condition",
           line: "growth",
-          column: "delivery",
         });
         f.tracks.push({
           id: "check_in_to_fit",
@@ -1103,17 +1053,6 @@ describe("checkMetro: flows", () => {
         });
       }),
     ).toContain('Flow "shared_followup": Condition "fit" needs 2 or 3 branches, not 1.');
-  });
-
-  it("runs the order rule inside a flow: a track never goes left", () => {
-    expect(
-      says((b) => {
-        const f = followup(b);
-        (f.stations[0] as MetroStation).column = "money";
-      }),
-    ).toEqual([
-      'Flow "shared_followup": Track "nudge_to_check_in" goes from money to delivery. A track never goes left.',
-    ]);
   });
 
   it("takes no entries in a flow, because it has no hub", () => {

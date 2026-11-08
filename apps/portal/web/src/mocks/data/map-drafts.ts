@@ -192,7 +192,6 @@ const WITH_JOINED: MetroBody = {
       label: "Joined",
       kind: "att",
       line: "signed",
-      column: "sales",
       action: "other",
     },
   ],

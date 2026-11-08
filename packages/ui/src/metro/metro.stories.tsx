@@ -194,7 +194,7 @@ export const SideBySide: Story = {
     const canvas = within(canvasElement);
     expect(canvas.queryByText("Post · LinkedIn")).toBeNull();
     await expect(canvas.getByText("Post · TikTok")).toBeVisible();
-    const fold = canvasElement.querySelector<SVGElement>('[data-grp^="tpl:post@so@"]');
+    const fold = canvasElement.querySelector<SVGElement>('[data-grp="tpl:post@so"]');
     if (!fold) throw new Error("no side-by-side fold");
     expect(fold.querySelector(".stk")).not.toBeNull();
     await userEvent.click(fold);

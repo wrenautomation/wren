@@ -40,7 +40,6 @@ const NEW_STATION = {
   label: "Extra step",
   kind: "att",
   line: "growth",
-  column: "sales",
   action: "other",
 };
 
@@ -149,7 +148,6 @@ describe("add", () => {
       label: "Both ready",
       kind: "join",
       line: "growth",
-      column: "sales",
       rule: "all",
     };
     const track = (from: string) => ({
@@ -204,9 +202,9 @@ describe("rename", () => {
 });
 
 describe("move", () => {
-  it("moves a station to another line and column", () => {
-    const b = run({ op: "move", on: "station", id: "prep", line: "retain", column: "money" });
-    expect(station(b, "prep")).toMatchObject({ line: "retain", column: "money" });
+  it("moves a station to another line", () => {
+    const b = run({ op: "move", on: "station", id: "prep", line: "retain" });
+    expect(station(b, "prep")).toMatchObject({ line: "retain" });
   });
 
   it("moves a station into a group at the end, out of its old group", () => {
@@ -235,18 +233,13 @@ describe("move", () => {
     expect(group(b, "closing")?.stations).toEqual(["proposal", "signed"]);
   });
 
-  it("refuses the hub, no fields, and unknown line, column, group and station", () => {
+  it("refuses the hub, no fields, and unknown line, group and station", () => {
     const one = (op: unknown) => refusal(() => applyOp(metroShape(), op as MetroOp));
-    expect(one({ op: "move", on: "station", id: "hub", column: "sales" })).toEqual([
-      "The hub does not move.",
-    ]);
-    expect(one({ op: "move", on: "station", id: "prep" })[0]).toContain(
-      "needs line, column or group",
-    );
+    expect(one({ op: "move", on: "station", id: "hub" })).toEqual(["The hub does not move."]);
+    expect(one({ op: "move", on: "station", id: "prep" })[0]).toContain("needs line or group");
     expect(one({ op: "move", on: "station", id: "prep", line: "nope" })).toEqual([
       'There is no line "nope".',
     ]);
-    expect(one({ op: "move", on: "station", id: "prep", column: "left" })[0]).toContain("Column");
     expect(one({ op: "move", on: "station", id: "prep", group: "nope" })).toEqual([
       'There is no group "nope".',
     ]);
@@ -412,7 +405,6 @@ describe("set", () => {
     ["station", "label"],
     ["station", "attach"],
     ["station", "line"],
-    ["station", "column"],
     ["track", "from"],
     ["track", "to"],
     ["group", "label"],
@@ -611,7 +603,7 @@ describe("editMetro", () => {
         {
           op: "add",
           on: "station",
-          item: { id: "stop", label: "Stop", kind: "exit", column: "sales" },
+          item: { id: "stop", label: "Stop", kind: "exit" },
         },
       ],
       ctx(),

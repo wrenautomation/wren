@@ -26,21 +26,17 @@ stations:
     kind: att
     label: Source
     line: source
-    column: marketing
   - id: outbound
     kind: att
     label: Outbound
     line: outbound
-    column: marketing
   - id: hub
     kind: hub
     label: First touch
-    column: marketing
   - id: comment
     kind: att
     label: Comment
     line: offer
-    column: marketing
     action: comment
     advance:
       - trigger: trigger.touch
@@ -51,7 +47,6 @@ stations:
     kind: att
     label: Reply
     line: offer
-    column: marketing
     action: reply
     advance:
       - trigger: trigger.reply
@@ -59,7 +54,6 @@ stations:
     kind: time
     label: Booked call
     line: offer
-    column: sales
     action: book
     advance:
       - trigger: trigger.booking
@@ -69,14 +63,12 @@ stations:
     kind: att
     label: Offer
     line: offer
-    column: sales
     deal: true
     advance: []
   - id: plan
     kind: cash
     label: Plan
     line: offer
-    column: money
     terms: standard
     offer: growth-partner
     advance:

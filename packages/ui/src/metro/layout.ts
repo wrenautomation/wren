@@ -42,14 +42,7 @@ import {
   type Weight,
   type Zone,
 } from "./types.js";
-import {
-  DEFAULT_COLUMNS,
-  type MetroView,
-  type ViewKind,
-  type ViewLine,
-  type ViewStation,
-  type ViewTrack,
-} from "./view.js";
+import type { MetroView, ViewKind, ViewLine, ViewStation, ViewTrack } from "./view.js";
 
 /** Room the scene adds, in px. */
 export const SPACE = {
@@ -122,7 +115,6 @@ export function lineKeyOf(view: Pick<MetroView, "lines">, lineId: string): strin
 /** What the view says, read once: the same for every try. */
 interface Prep {
   view: MetroView;
-  columns: string[];
   line: Map<string, ViewLine>;
   byId: Map<string, ViewStation>;
   hub: ViewStation | undefined;
@@ -133,8 +125,6 @@ interface Prep {
 }
 
 function prepare(view: MetroView): Prep {
-  const columns = [...(view.columns ?? DEFAULT_COLUMNS)];
-  for (const s of view.stations) if (!columns.includes(s.column)) columns.push(s.column);
   const lines = [...view.lines];
   for (const s of view.stations) {
     if (s.kind !== "hub" && !lines.some((l) => l.id === s.line))
@@ -148,7 +138,6 @@ function prepare(view: MetroView): Prep {
   }
   return {
     view,
-    columns,
     line: new Map(lines.map((l) => [l.id, l])),
     byId,
     hub: view.stations.find((s) => s.kind === "hub"),
@@ -552,7 +541,7 @@ function dress(sc: MetroScene, fold: boolean): [number, number][] {
     }
     if (!best) continue;
     // A name that meets something, or sits off its first side across a track, widens its own
-    // column: room there puts it back. A name across its own station's drop stays: no room helps.
+    // gap: room there puts it back. A name across its own station's drop stays: no room helps.
     if (best.hard || (best.far && best.p !== sides[0])) bad.push([s.x, s.x]);
     if (best.p !== "up") s.p = best.p;
     names.push(...best.boxes);

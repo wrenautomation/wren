@@ -26,6 +26,8 @@ Override: the design-language artifact draws thicker rails and the column bands.
 
 `oneBand(view)` (WeakMap-memoized) sets one column and drops spans before tree, place and zoom. `column` stays in the schema, store and pipeline until a follow-up task removes it. Why: one seam changes the look today; the schema change touches convert.ts, metro.ts and the lab, and is its own step.
 
+2026-11-07, WA-1143 (William: "Migration strips it"): `column` is gone from the schema, store, pipeline, lab and view. Options were (A) keep it as an ignored optional field, (B) strip it with a migration, (C) parse it and drop it on read. B won: one shape of data, no stale path, and a body with `column` now fails as a stray field. Migration 0376 strips it from every metro station (body and flows) in `shape_versions` and `shape_drafts`; `oneBand` is deleted. `placesOf` is now the longest plain path from a source. The "a track never goes left" rule went with the columns; the loop rule stays. Fold ids stay `<line>@`, so focus links and prefix lookups keep working; twin ids are `tpl:<template>@<line>`. The sops mirror files keep `column:` until each workspace's next save.
+
 Widening: one band made the big map 5517 px wide, because the widen loop widened every slot. Now `evenX` widens only the gaps a bad span touches, and a widen that clears nothing is undone. Result 2277 px (3297 with the old columns).
 
 ### 2. Layers: how to draw 2.5D
@@ -127,6 +129,6 @@ Not built yet (William, 11-06: "close and open everything and zoom into subviews
 
 - Phone: Layers at whole-map level is small; a line or fold floor is the way in. A phone-first Layers waits on use.
 - Out of scope, from the fresh-eye review: phone header height, flat map framing on a phone, a 24 px inset round the big map, the chat button over the phone nav and dim in dark.
-- Follow-up task: remove `column` from schema, store, pipeline (convert.ts, metro.ts columnIndex), lab, `DEFAULT_COLUMNS`, `zonesOf`.
+- Done 2026-11-07 (WA-1143): `column` removed everywhere, migration 0376.
 
 Behaviour spec and checks for the Layers look: `designs/2026-11-07-layers-spec.md`.

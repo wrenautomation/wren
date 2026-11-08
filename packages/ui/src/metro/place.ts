@@ -1,6 +1,6 @@
 /**
  * The map's layout (designs/2026-10-23-metro-fold-tree.md): ELK layered with Brandes-Köpf
- * placement, the view's columns as partitions. x comes from ELK's layers, one even step apart like
+ * placement. x comes from ELK's layers, one even step apart like
  * the hand maps; y is ELK's. A back track (a loop) goes to ELK turned round, so the loop's ends stay
  * near. Each open node of the fold tree is a box: ELK keeps its stations together, and the map draws
  * a frame round them. `finishMetro` makes the scene (tracks, names, chips, rails).
@@ -18,7 +18,7 @@ import {
   tryMetro,
 } from "./layout.js";
 import type { MetroScene, Point, Zone } from "./types.js";
-import { DEFAULT_COLUMNS, type MetroView, oneBand, type ViewStation } from "./view.js";
+import type { MetroView, ViewStation } from "./view.js";
 
 /** An open node: the stations right inside it, and the open node it sits in. */
 export interface PlaceBox {
@@ -152,38 +152,11 @@ function lapRoutes(
   };
 }
 
-const columnsOf = (view: MetroView) => {
-  const columns = [...(view.columns ?? DEFAULT_COLUMNS)];
-  for (const s of view.stations) if (!columns.includes(s.column)) columns.push(s.column);
-  // A column whose stations all sit in a fold from another column has no zone: the fold holds it.
-  const held = new Set(view.stations.flatMap((s) => s.spans ?? []));
-  return columns.filter((c) => !held.has(c) || view.stations.some((s) => s.column === c));
-};
-
-/** Zones from where each column's stations landed, split halfway between neighbours. */
+/** One unnamed zone over every placed station, `pad` past each end. */
 function zonesOf(view: MetroView, pos: ReadonlyMap<string, Point>, pad = 60): Zone[] {
-  const columns = columnsOf(view);
-  const span = columns.map((c) => {
-    const xs = view.stations
-      .filter((s) => s.column === c && pos.has(s.id))
-      .map((s) => (pos.get(s.id) as Point)[0]);
-    return xs.length ? [Math.min(...xs), Math.max(...xs)] : null;
-  });
-  // An empty column takes one step after the last one.
-  let at = 0;
-  const filled = span.map((s) => {
-    const v: [number, number] = s ? [s[0] as number, s[1] as number] : [at + STEP, at + STEP];
-    at = v[1];
-    return v;
-  });
-  return columns.map((c, i) => {
-    const prev = filled[i - 1];
-    const next = filled[i + 1];
-    const cur = filled[i] as [number, number];
-    const x0 = prev ? (prev[1] + cur[0]) / 2 : cur[0] - pad;
-    const x1 = next ? (cur[1] + next[0]) / 2 : cur[1] + pad;
-    return [x0, x1, c];
-  });
+  const xs = view.stations.filter((s) => pos.has(s.id)).map((s) => (pos.get(s.id) as Point)[0]);
+  if (!xs.length) return [[-pad, pad, ""]];
+  return [[Math.min(...xs) - pad, Math.max(...xs) + pad, ""]];
 }
 
 /**
@@ -222,11 +195,7 @@ function evenX(
 }
 
 async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Map<string, Point>> {
-  const columns = columnsOf(view);
   const byId = new Map(view.stations.map((s) => [s.id, s]));
-  const partition = (column: string) => ({
-    "elk.partitioning.partition": String(Math.max(0, columns.indexOf(column))),
-  });
   // An exit hangs under its source (finishMetro puts it there), so ELK leaves it out and keeps
   // room under the source. ELK drops a node's own margins, so the source is taller instead: as
   // much above as below, so its circle stays at the centre and its rows stay straight.
@@ -243,22 +212,19 @@ async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Ma
     const l = lapOf.get(id);
     return l ? `lap:${l.id}` : id;
   };
-  const lapLeaf = (l: Lap, top: boolean): ElkNode => {
-    const first = l.stations[0] as ViewStation;
-    return {
-      id: `lap:${l.id}`,
-      width: (l.cols - 1) * STEP + 2 * LAP_END,
-      height: 2 * (LAP.gap + lapFoot(l, view)),
-      layoutOptions: { "elk.alignment": "CENTER", ...(top ? partition(first.column) : {}) },
-    };
-  };
+  const lapLeaf = (l: Lap): ElkNode => ({
+    id: `lap:${l.id}`,
+    width: (l.cols - 1) * STEP + 2 * LAP_END,
+    height: 2 * (LAP.gap + lapFoot(l, view)),
+    layoutOptions: { "elk.alignment": "CENTER" },
+  });
   /** A station's ELK node: its leaf, the lap's leaf for a lap's first station, else none. */
-  const nodeOf = (s: ViewStation, top: boolean): ElkNode[] => {
+  const nodeOf = (s: ViewStation): ElkNode[] => {
     const l = lapOf.get(s.id);
-    if (l) return l.stations[0]?.id === s.id ? [lapLeaf(l, top)] : [];
-    return [leaf(s, top)];
+    if (l) return l.stations[0]?.id === s.id ? [lapLeaf(l)] : [];
+    return [leaf(s)];
   };
-  const leaf = (s: ViewStation, top: boolean): ElkNode => {
+  const leaf = (s: ViewStation): ElkNode => {
     const { width, height } = sizeOf(s);
     const room = sources.has(s.id) ? Math.max(0, SPACE.exit + 2 * RADIUS.exit - height / 2) : 0;
     return {
@@ -268,40 +234,35 @@ async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Ma
       layoutOptions: {
         // A layer lines up its circles, whatever each label's width (ELK aligns an edge otherwise).
         "elk.alignment": "CENTER",
-        ...(top ? partition(s.column) : {}),
       },
     };
   };
-  // A box holds its stations and the boxes inside it. Only the outermost take a column.
+  // A box holds its stations and the boxes inside it.
   const inBox = new Set(boxes.flatMap((b) => b.stations));
   const kids = (parent: string | undefined) => boxes.filter((b) => b.parent === parent);
   const firstOf = (b: PlaceBox): ViewStation | undefined =>
     byId.get(b.stations[0] ?? "") ?? kids(b.id).map(firstOf).find(Boolean);
-  const box = (b: PlaceBox, top: boolean): ElkNode => {
-    const first = firstOf(b);
-    return {
-      id: `box:${b.id}`,
-      layoutOptions: {
-        "elk.padding": `[top=${PAD.top},left=${PAD.side},bottom=${PAD.side},right=${PAD.side}]`,
-        ...(top && first ? partition(first.column) : {}),
-      },
-      children: [
-        ...b.stations.flatMap((id) => {
-          const s = byId.get(id);
-          return s && !exitOf.has(id) ? nodeOf(s, false) : [];
-        }),
-        ...kids(b.id).map((k) => box(k, false)),
-      ],
-    };
-  };
+  const box = (b: PlaceBox): ElkNode => ({
+    id: `box:${b.id}`,
+    layoutOptions: {
+      "elk.padding": `[top=${PAD.top},left=${PAD.side},bottom=${PAD.side},right=${PAD.side}]`,
+    },
+    children: [
+      ...b.stations.flatMap((id) => {
+        const s = byId.get(id);
+        return s && !exitOf.has(id) ? nodeOf(s) : [];
+      }),
+      ...kids(b.id).map((k) => box(k)),
+    ],
+  });
   // Boxes take the place of their first station, so the model order (ELK's tie-break) holds.
   const topOf = new Map(
     kids(undefined).map((b) => [firstOf(b)?.id, b] as [string | undefined, PlaceBox]),
   );
   const children = view.stations.flatMap((s): ElkNode[] => {
     const b = topOf.get(s.id);
-    if (b) return [box(b, true)];
-    return inBox.has(s.id) || exitOf.has(s.id) ? [] : nodeOf(s, true);
+    if (b) return [box(b)];
+    return inBox.has(s.id) || exitOf.has(s.id) ? [] : nodeOf(s);
   });
   const ids = new Set(view.stations.filter((s) => !exitOf.has(s.id)).map((s) => s.id));
   const order = new Map(view.stations.map((s, i) => [s.id, i]));
@@ -312,7 +273,6 @@ async function elkPlace(view: MetroView, boxes: readonly PlaceBox[]): Promise<Ma
       "elk.direction": "RIGHT",
       "elk.edgeRouting": "ORTHOGONAL",
       "elk.randomSeed": "1",
-      "elk.partitioning.activate": "true",
       "elk.hierarchyHandling": "INCLUDE_CHILDREN",
       "elk.spacing.nodeNode": "24",
       "elk.layered.spacing.nodeNodeBetweenLayers": "56",
@@ -418,16 +378,15 @@ export interface Placed {
 const WIDEN = 3;
 
 /**
- * Place a view: ELK's layers one step apart in each column, moved so the map starts at the left
+ * Place a view: ELK's layers one step apart, moved so the map starts at the left
  * edge with room on top for the zone names, then made into a scene. Where a name or a chip finds
- * no room, the columns under it take a half step more and the scene is made again; after `WIDEN`
+ * no room, the gaps under it take a half step more and the scene is made again; after `WIDEN`
  * tries, chips fold to dots.
  */
 export async function placeMetro(
-  given: MetroView,
+  view: MetroView,
   o: { boxes?: readonly PlaceBox[]; step?: number } = {},
 ): Promise<Placed> {
-  const view = oneBand(given);
   const boxes = o.boxes ?? [];
   const step = o.step ?? STEP;
   const elk = await elkPlace(view, boxes);

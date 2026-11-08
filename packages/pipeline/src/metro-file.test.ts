@@ -28,7 +28,7 @@ const small = () => ({
   model: "metro",
   name: "Small",
   lines: [{ id: "social", label: "Social", tier: "out", entry: { via: "organic" } }],
-  stations: [{ id: "social", label: "Social", kind: "att", line: "social", column: "marketing" }],
+  stations: [{ id: "social", label: "Social", kind: "att", line: "social" }],
 });
 
 describe("exportMetro and parseMetroBody", () => {
@@ -225,9 +225,9 @@ describe("parseMetroBody", () => {
 
   it("refuses a missing needed field, by the item's id", () => {
     const doc = small();
-    doc.stations = [{ id: "a", label: "A", line: "social", column: "marketing" } as never];
+    doc.stations = [{ id: "a", label: "A", line: "social" } as never];
     expect(refusal(doc)).toEqual(['Station "a" has no kind.']);
-    doc.stations = [{ label: "A", kind: "att", column: "marketing" } as never];
+    doc.stations = [{ label: "A", kind: "att" } as never];
     expect(refusal(doc)).toEqual(["Station 1 has no id."]);
   });
 
@@ -272,7 +272,6 @@ describe("parseMetroBody", () => {
         id: "s",
         label: "S",
         kind: "att",
-        column: "marketing",
         advance: [
           { trigger: "trigger.reply" },
           { with: {} },
@@ -288,9 +287,7 @@ describe("parseMetroBody", () => {
       'Station "s" advance 3: with is a map of text or number values.',
     ]);
     const bad = small();
-    bad.stations = [
-      { id: "s", label: "S", kind: "att", column: "marketing", advance: "x" } as never,
-    ];
+    bad.stations = [{ id: "s", label: "S", kind: "att", advance: "x" } as never];
     expect(refusal(bad)[0]).toMatch(/^Station "s": advance is a list of triggers/);
   });
 
@@ -358,9 +355,7 @@ describe("parseMetroBody", () => {
         {
           id: "f",
           label: "F",
-          stations: [
-            { id: "s", label: "S", kind: "att", line: "social", column: "marketing", attach: [] },
-          ],
+          stations: [{ id: "s", label: "S", kind: "att", line: "social", attach: [] }],
           tracks: [],
         },
       ],
@@ -371,9 +366,7 @@ describe("parseMetroBody", () => {
       {
         id: "f",
         label: "F",
-        stations: [
-          { id: "s", label: "S", kind: "att", line: "social", column: "marketing", attach: [] },
-        ],
+        stations: [{ id: "s", label: "S", kind: "att", line: "social", attach: [] }],
         tracks: [],
       },
     ]);
@@ -438,7 +431,7 @@ describe("parseMetroBody", () => {
       {
         id: "f",
         label: "F",
-        stations: [{ id: "s", label: "S", column: "marketing" }, "x"],
+        stations: [{ id: "s", label: "S" }, "x"],
         tracks: [{ id: "t", from: "s", to: "s", by: "system", weight: "60" }],
       },
       { id: "g", label: "G", stations: "x", tracks: {} },

@@ -32,11 +32,11 @@ const metro: MetroBody = {
     { id: "web", label: "Webinar", tier: "front", offer: "starter", colour: 0 },
   ],
   stations: [
-    { id: "post", label: "Post a video", kind: "att", line: "yt", column: "marketing" },
-    { id: "hub", label: "Hub", kind: "hub", column: "marketing" },
-    { id: "reply", label: "Replied", kind: "att", line: "web", column: "sales" },
-    { id: "book", label: "Booked", kind: "time", line: "web", column: "sales" },
-    { id: "pay", label: "Paid", kind: "cash", line: "web", column: "money" },
+    { id: "post", label: "Post a video", kind: "att", line: "yt" },
+    { id: "hub", label: "Hub", kind: "hub" },
+    { id: "reply", label: "Replied", kind: "att", line: "web" },
+    { id: "book", label: "Booked", kind: "time", line: "web" },
+    { id: "pay", label: "Paid", kind: "cash", line: "web" },
   ],
   tracks: [
     track({ id: "post_to_hub", from: "post", to: "hub", owner: "Cai Moreno", promise: "1d" }),

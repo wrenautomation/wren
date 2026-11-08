@@ -2,7 +2,7 @@ import type { MetroBody } from "@wren/pipeline/metro";
 import type { MetroDiff } from "@wren/pipeline/metro-diff";
 import { describe, expect, it } from "vitest";
 import type { NodeNumbers, Person } from "./model.js";
-import { columnOf, kindOf, viewOf } from "./view.js";
+import { kindOf, viewOf } from "./view.js";
 
 const NOW = new Date("2026-10-21T12:00:00Z");
 const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 36e5).toISOString();
@@ -15,12 +15,12 @@ const metro: MetroBody = {
     { id: "web", label: "Webinar", tier: "front", offer: "starter", colour: 0 },
   ],
   stations: [
-    { id: "post", label: "Post a video", kind: "att", line: "yt", column: "marketing" },
-    { id: "hub", label: "First touch", kind: "hub", column: "marketing" },
-    { id: "reply", label: "Replied", kind: "att", line: "web", column: "sales" },
-    { id: "book", label: "Booked", kind: "time", line: "web", column: "sales" },
-    { id: "check", label: "Fits?", kind: "condition", line: "web", column: "sales" },
-    { id: "pay", label: "Paid", kind: "cash", line: "web", column: "money", planned: true },
+    { id: "post", label: "Post a video", kind: "att", line: "yt" },
+    { id: "hub", label: "First touch", kind: "hub" },
+    { id: "reply", label: "Replied", kind: "att", line: "web" },
+    { id: "book", label: "Booked", kind: "time", line: "web" },
+    { id: "check", label: "Fits?", kind: "condition", line: "web" },
+    { id: "pay", label: "Paid", kind: "cash", line: "web", planned: true },
   ],
   tracks: [
     { id: "post_to_hub", from: "post", to: "hub", line: "yt", by: "system" },
@@ -88,13 +88,12 @@ const diff = (over: Partial<MetroDiff>): MetroDiff => ({
   ...over,
 });
 
-describe("kindOf, columnOf", () => {
+describe("kindOf", () => {
   it("maps the body's names to the drawing's", () => {
     expect(kindOf({ kind: "condition" })).toBe("dec");
     expect(kindOf({ kind: "approval" })).toBe("ok");
     expect(kindOf({ kind: "cash", planned: true })).toBe("plan");
     expect(kindOf({ kind: "time" })).toBe("time");
-    expect(columnOf("money")).toBe("Money");
   });
 });
 
@@ -130,11 +129,10 @@ describe("viewOf", () => {
     expect(c.groups?.map((g) => g.note)).toEqual(["paused", "paused"]);
   });
 
-  it("maps kind, column, group and the track label", () => {
+  it("maps kind, group and the track label", () => {
     const by = (id: string) => v.stations.find((s) => s.id === id);
     expect(by("check")?.kind).toBe("dec");
     expect(by("pay")?.kind).toBe("plan");
-    expect(by("reply")?.column).toBe("Sales");
     expect(by("reply")?.group).toBe("g1");
     expect(by("post")?.group).toBeUndefined();
     expect(v.tracks[3]?.label).toBe("yes");
@@ -187,10 +185,7 @@ describe("viewOf", () => {
     const old: MetroBody = {
       ...metro,
       lines: [...metro.lines, { id: "ads", label: "Ads", tier: "out" }],
-      stations: [
-        ...metro.stations,
-        { id: "ad", label: "Ad click", kind: "att", line: "ads", column: "marketing" },
-      ],
+      stations: [...metro.stations, { id: "ad", label: "Ad click", kind: "att", line: "ads" }],
       tracks: [
         ...metro.tracks,
         { id: "ad_to_hub", from: "ad", to: "hub", line: "ads", by: "system" },

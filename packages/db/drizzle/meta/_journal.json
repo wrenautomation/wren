@@ -2626,6 +2626,13 @@
       "when": 1793925373474,
       "tag": "0375_people_step",
       "breakpoints": true
+    },
+    {
+      "idx": 376,
+      "version": "7",
+      "when": 1794110852011,
+      "tag": "0376_shape_no_column",
+      "breakpoints": true
     }
   ]
 }

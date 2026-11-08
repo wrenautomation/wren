@@ -109,7 +109,6 @@ const STATION: Schema = {
   label: "text!",
   kind: "text!",
   line: "text",
-  column: "text!",
   action: "text",
   advance: "triggers",
   research: "text",

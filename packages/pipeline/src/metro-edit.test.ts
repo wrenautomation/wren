@@ -235,7 +235,6 @@ describe("undoMetroChange", () => {
           label: "Fresh",
           kind: "att",
           line: "growth",
-          column: "sales",
           action: "other",
         });
         x.tracks.push({
@@ -263,7 +262,7 @@ describe("undoMetroChange", () => {
     it("takes a group or a frame left empty, and a frame that exits there", () => {
       const a = metroShape();
       const b = edited(a, (x) => {
-        x.stations.push({ id: "fresh", label: "Fresh", kind: "exit", column: "money" });
+        x.stations.push({ id: "fresh", label: "Fresh", kind: "exit" });
         x.groups.push({ id: "solo", label: "Solo", line: "growth", stations: ["fresh"] });
         x.frames.push(
           { id: "solo", stations: ["fresh"], trigger: { trigger: "trigger.reply" }, exit: "done" },
@@ -439,7 +438,6 @@ describe("undoMetroChange", () => {
           label: "Late",
           kind: "exit",
           line: "extra",
-          column: "money",
         });
         x.groups.push({ id: "xg", label: "Xg", line: "extra", stations: ["late"] });
         x.tracks.push(
@@ -501,8 +499,8 @@ describe("undoMetroChange: flows", () => {
     id: "second",
     label: "Second flow",
     stations: [
-      { id: "a", label: "A", kind: "att", line: "growth", column: "sales", action: "other" },
-      { id: "b", label: "B", kind: "att", line: "growth", column: "sales", action: "other" },
+      { id: "a", label: "A", kind: "att", line: "growth", action: "other" },
+      { id: "b", label: "B", kind: "att", line: "growth", action: "other" },
     ],
     tracks: [{ id: "a_to_b", from: "a", to: "b", line: "growth", by: "system" }],
   });
@@ -511,7 +509,6 @@ describe("undoMetroChange: flows", () => {
     label: id,
     kind: "link",
     line: "growth",
-    column: "delivery",
     flow,
   });
 

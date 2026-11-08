@@ -1,7 +1,7 @@
 /**
  * The Map's drawing as plain data, pure: the stored metro body plus the window's numbers and the
  * open journeys, as the `MetroView` that `MetroMap` draws. The body gives lines, stations, tracks,
- * groups and columns. Numbers give the line under a station. `waitsOf` (tasks.ts) says which person
+ * and groups. Numbers give the line under a station. `waitsOf` (tasks.ts) says which person
  * track is late, so one rule says what late is. A diff gives marks, and the older side gives back
  * what was removed, so one map shows the whole diff.
  */
@@ -57,9 +57,6 @@ const JOB_GLYPH: Record<ContentKind, IconName> = {
   measure: "chart",
 };
 
-/** "marketing" is "Marketing": the body names a column in lower case, the drawing in title case. */
-export const columnOf = (c: string): string => c.charAt(0).toUpperCase() + c.slice(1);
-
 const days = (n: number): string => String(Math.round(n * 10) / 10);
 
 function marksOf(part: MetroDiff["lines"] | undefined): Marks {
@@ -100,7 +97,6 @@ function stationOf(
     id: s.id,
     kind: kindOf(s),
     line: s.line ?? "",
-    column: columnOf(s.column),
     ...(group ? { group } : {}),
     ...(s.flow ? { flow: s.flow } : {}),
     label: s.label,

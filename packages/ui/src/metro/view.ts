@@ -48,10 +48,6 @@ export interface ViewStation {
   kind: ViewKind;
   /** The line it sits on. The hub joins every line, so its line is ignored. */
   line: string;
-  /** The column it sits in: a name from `columns`. */
-  column: string;
-  /** A fold: the other columns its stations sit in. Those columns draw no zone of their own. */
-  spans?: string[];
   /** Zoom folds a run of stations with the same group into one capsule. */
   group?: string;
   /** A lap folded (`ViewGroup.lap`): it draws as a ring. */
@@ -121,7 +117,7 @@ export interface ViewGroup {
   /** The group it sits in, for a fold tree of any depth. */
   parent?: string | undefined;
   /**
-   * A lap: the work repeats ("every 30 days"). Its stations sit in one column. They run right along
+   * A lap: the work repeats ("every 30 days"). They run right along
    * the top row and come back along the bottom one; the track from the last to the first closes the
    * loop (not a `back` track). An exit hangs under its source, so put stations with exits on the
    * bottom row. Folded, the lap is one ring.
@@ -137,26 +133,4 @@ export interface MetroView {
   stations: ViewStation[];
   tracks: ViewTrack[];
   groups?: ViewGroup[];
-  /** The columns, left to right. Default: Marketing, Sales, Delivery, Money. */
-  columns?: string[];
-}
-
-export const DEFAULT_COLUMNS = ["Marketing", "Sales", "Delivery", "Money"];
-
-const BANDED = new WeakMap<MetroView, MetroView>();
-/**
- * Columns are gone (2026-11-06, designs/2026-11-06-orrery-business-look.md): every station sits in
- * one band, so placement follows the tracks only. `column` stays in the data until the schema drops it.
- */
-export function oneBand(view: MetroView): MetroView {
-  if (view.columns?.length === 1 && view.columns[0] === "") return view;
-  const hit = BANDED.get(view);
-  if (hit) return hit;
-  const out: MetroView = {
-    ...view,
-    columns: [""],
-    stations: view.stations.map(({ spans: _, ...s }) => ({ ...s, column: "" })),
-  };
-  BANDED.set(view, out);
-  return out;
 }

@@ -14,8 +14,6 @@ import { z } from "zod";
 import { lowerable } from "./convert.js";
 import {
   type Attach,
-  COLUMNS,
-  type Column,
   checkMetro,
   HUB,
   type MetroBody,
@@ -48,7 +46,7 @@ export type MetroOp =
   | { op: "add"; on: "group"; item: MetroGroup }
   | { op: "rename"; on: "line" | "station" | "group"; id: string; label: string }
   | { op: "rename"; on: "shape"; name: string }
-  | { op: "move"; on: "station"; id: string; line?: string; column?: Column; group?: string | null }
+  | { op: "move"; on: "station"; id: string; line?: string; group?: string | null }
   | { op: "move"; on: "track"; id: string; from?: string; to?: string }
   | { op: "move"; on: "group"; id: string; line: string }
   | { op: "move"; on: "line"; id: string; before: string | null }
@@ -103,7 +101,7 @@ const renameOp = z
   .describe("Change the label of a line, station or group, or the name of the shape.");
 
 const MOVE_FIELDS = {
-  station: ["line", "column", "group"],
+  station: ["line", "group"],
   track: ["from", "to"],
   group: ["line"],
   line: ["before"],
@@ -118,7 +116,6 @@ const moveOp = z
       .string()
       .optional()
       .describe("Station or group: the line it moves to. Not used on a line."),
-    column: z.enum(COLUMNS).optional().describe("Station: the column it moves to."),
     group: z
       .string()
       .nullable()
@@ -134,7 +131,7 @@ const moveOp = z
   })
   .superRefine((v, ctx) => {
     const allowed: readonly string[] = MOVE_FIELDS[v.on];
-    for (const k of ["line", "column", "group", "from", "to", "before"] as const) {
+    for (const k of ["line", "group", "from", "to", "before"] as const) {
       if (v[k] !== undefined && !allowed.includes(k)) {
         ctx.addIssue({ code: "custom", path: [k], message: `A ${v.on} move does not take ${k}.` });
       }
@@ -147,7 +144,7 @@ const moveOp = z
     }
   })
   .describe(
-    "Move where a thing sits: a station's line, column or group; a track's ends; a group's line; a line's place in the stack.",
+    "Move where a thing sits: a station's line or group; a track's ends; a group's line; a line's place in the stack.",
   );
 
 const removeOp = z
@@ -305,13 +302,11 @@ function rename(body: MetroBody, op: Op<"rename">): MetroBody {
 function moveStation(body: MetroBody, op: Op<"move"> & { on: "station" }): MetroBody {
   const s = find(body, "station", op.id) as MetroStation;
   if (s.id === HUB || s.kind === "hub") refuse("The hub does not move.");
-  if (op.line === undefined && op.column === undefined && op.group === undefined)
-    refuse(`Move station "${op.id}" needs line, column or group.`);
+  if (op.line === undefined && op.group === undefined)
+    refuse(`Move station "${op.id}" needs line or group.`);
   const errors: string[] = [];
   if (op.line !== undefined && !body.lines.some((l) => l.id === op.line))
     errors.push(noItem("line", op.line));
-  if (op.column !== undefined && !(COLUMNS as readonly string[]).includes(op.column))
-    errors.push(`Column "${op.column}" must be one of ${COLUMNS.join(", ")}.`);
   if (typeof op.group === "string" && !body.groups.some((g) => g.id === op.group))
     errors.push(noItem("group", op.group));
   if (errors.length > 0) throw new Refused(errors);
@@ -319,7 +314,6 @@ function moveStation(body: MetroBody, op: Op<"move"> & { on: "station" }): Metro
   const moved: MetroStation = {
     ...s,
     ...(op.line !== undefined ? { line: op.line } : {}),
-    ...(op.column !== undefined ? { column: op.column } : {}),
   };
   const stations = body.stations.map((x) => (x.id === op.id ? moved : x));
   if (op.group === undefined) return { ...body, stations };
@@ -416,7 +410,7 @@ function remove(body: MetroBody, op: Op<"remove">): MetroBody {
 /** The fields each kind keeps for another op. Everything else is open to `set`. */
 const OWN_OP: Record<OpOn, Record<string, string>> = {
   line: { label: "rename", attach: "attach and detach" },
-  station: { label: "rename", attach: "attach and detach", line: "move", column: "move" },
+  station: { label: "rename", attach: "attach and detach", line: "move" },
   track: { from: "move", to: "move" },
   group: { label: "rename", attach: "attach and detach", line: "move", stations: "move" },
 };

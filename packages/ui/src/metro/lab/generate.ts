@@ -1,17 +1,10 @@
 /**
  * `funnel(n, seed, shape)`: a made-up business map of about `n` stations, the same for the same
- * seed. Outreach lines feed one hub; offer lines leave it and run left to right through the
- * columns, with decisions, person steps, failure exits and an upsell between lines. `shape` adds
+ * seed. Outreach lines feed one hub; offer lines leave it and run left to right, with decisions, person steps, failure exits and an upsell between lines. `shape` adds
  * loops (back tracks), a retainer lap and one job done side by side on each platform (template
  * stations). Synthetic names only.
  */
-import {
-  DEFAULT_COLUMNS,
-  type MetroView,
-  type ViewKind,
-  type ViewStation,
-  type ViewTrack,
-} from "../view.js";
+import type { MetroView, ViewKind, ViewStation, ViewTrack } from "../view.js";
 
 /** mulberry32: a small seeded random, so a case never changes. */
 function rand(seed: number) {
@@ -57,7 +50,6 @@ export interface Shape {
 
 export function funnel(n: number, seed = 1, shape: Shape = {}): MetroView {
   const r = rand(seed);
-  const columns = DEFAULT_COLUMNS;
   const nOut = Math.min(OUTREACH.length, 1 + Math.floor(n / 12));
   const nLines = Math.max(1, Math.min(6, Math.round(n / 10)));
   const stations: ViewStation[] = [];
@@ -68,7 +60,6 @@ export function funnel(n: number, seed = 1, shape: Shape = {}): MetroView {
     id: "hub",
     kind: "hub",
     line: "o0",
-    column: "Marketing",
     label: "First touch",
     sub: "120 / wk",
   });
@@ -78,7 +69,6 @@ export function funnel(n: number, seed = 1, shape: Shape = {}): MetroView {
       id: `o${i}a`,
       kind: "att",
       line: `o${i}`,
-      column: "Marketing",
       label: OUTREACH[i] as string,
       sub: `${20 + i * 7}`,
     });
@@ -88,7 +78,7 @@ export function funnel(n: number, seed = 1, shape: Shape = {}): MetroView {
   const nPost = Math.min(PLATFORMS.length, shape.platforms ?? 0);
   if (nPost > 1) {
     lines.push({ id: "op", tier: "out" });
-    stations.push({ id: "opw", kind: "att", line: "op", column: "Marketing", label: "Write post" });
+    stations.push({ id: "opw", kind: "att", line: "op", label: "Write post" });
     for (const [i, [key, name]] of PLATFORMS.slice(0, nPost).entries()) {
       const arrived = 30 + Math.floor(r() * 20);
       // The last platform keeps far more people stuck than the rest: the outlier.
@@ -97,7 +87,6 @@ export function funnel(n: number, seed = 1, shape: Shape = {}): MetroView {
         id: `op${key}`,
         kind: "att",
         line: "op",
-        column: "Marketing",
         label: `Post · ${name}`,
         sub: `${now} now`,
         template: "post",
@@ -110,7 +99,7 @@ export function funnel(n: number, seed = 1, shape: Shape = {}): MetroView {
     }
   }
 
-  // Share the rest across the offer lines; each line walks the columns from Sales on.
+  // Share the rest across the offer lines; one line each.
   let left = Math.max(nLines * 2, n - stations.length);
   const ends: string[] = [];
   for (let l = 0; l < nLines; l++) {
@@ -127,9 +116,6 @@ export function funnel(n: number, seed = 1, shape: Shape = {}): MetroView {
     let prev = "hub";
     for (let k = 0; k < count; k++) {
       const last = k === count - 1;
-      const col = columns[
-        Math.min(columns.length - 1, 1 + Math.floor((k / count) * (columns.length - 1)))
-      ] as string;
       const roll = r();
       const kind: ViewKind = last
         ? "cash"
@@ -145,7 +131,6 @@ export function funnel(n: number, seed = 1, shape: Shape = {}): MetroView {
         id: sid,
         kind,
         line: id,
-        column: last ? "Money" : col,
         // Steps keep their order along a line; the last is the payment.
         label: last ? "Paid" : (STEPS[Math.floor((k / count) * STEPS.length)] as string),
         sub: `${Math.floor(r() * 40) + 1}`,
@@ -167,7 +152,6 @@ export function funnel(n: number, seed = 1, shape: Shape = {}): MetroView {
           id: ex,
           kind: "exit",
           line: id,
-          column: last ? "Money" : col,
           label: "Lost",
           sub: `${Math.floor(r() * 9) + 1}`,
           bad: true,
@@ -210,7 +194,6 @@ export function funnel(n: number, seed = 1, shape: Shape = {}): MetroView {
           id: sid,
           kind,
           line: id,
-          column: "Money",
           group: `${id}-retainer`,
           label,
           sub: `${Math.floor(r() * 12) + 1}`,
@@ -230,7 +213,6 @@ export function funnel(n: number, seed = 1, shape: Shape = {}): MetroView {
         id: `${id}rx`,
         kind: "exit",
         line: id,
-        column: "Money",
         label: "Cancelled",
         sub: `${Math.floor(r() * 4) + 1}`,
         bad: true,
@@ -255,7 +237,6 @@ export function funnel(n: number, seed = 1, shape: Shape = {}): MetroView {
     lines,
     stations,
     tracks,
-    columns,
     ...(shape.retainer ? { groups: [{ id: "l0-retainer", label: "Retainer" }] } : {}),
   };
 }

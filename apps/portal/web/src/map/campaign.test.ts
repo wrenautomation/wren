@@ -91,10 +91,10 @@ describe("ctaStations", () => {
     name: "Sample",
     lines: [{ id: "web", label: "Webinar", tier: "front" }],
     stations: [
-      { id: "form", label: "Form", kind: "att", line: "web", column: "sales", action: "form" },
-      { id: "book", label: "Book", kind: "att", line: "web", column: "sales", action: "book" },
-      { id: "wait", label: "Wait", kind: "time", line: "web", column: "sales" },
-      { id: "out", label: "Out", kind: "att", line: "web", column: "sales", action: "cta" },
+      { id: "form", label: "Form", kind: "att", line: "web", action: "form" },
+      { id: "book", label: "Book", kind: "att", line: "web", action: "book" },
+      { id: "wait", label: "Wait", kind: "time", line: "web" },
+      { id: "out", label: "Out", kind: "att", line: "web", action: "cta" },
     ],
     tracks: [],
     groups: [

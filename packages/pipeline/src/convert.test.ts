@@ -56,7 +56,6 @@ const withExtras = (body: MetroBody): MetroBody => {
             label: "A",
             kind: "att",
             line: line.id,
-            column: "sales",
             action: "other",
             attach: structuredClone(ATTACH),
           },
@@ -65,7 +64,6 @@ const withExtras = (body: MetroBody): MetroBody => {
             label: "B",
             kind: "att",
             line: line.id,
-            column: "sales",
             action: "other",
           },
         ],
@@ -222,9 +220,9 @@ describe("metroOf: the model it draws", () => {
       { id: "mail", label: "Email", tier: "out", entry: { via: "outbound", channel: "email" } },
     ]);
     expect(body.stations.slice(0, 3)).toEqual([
-      { id: "yt", label: "YouTube", kind: "att", line: "yt", column: "marketing" },
-      { id: "mail", label: "Email", kind: "att", line: "mail", column: "marketing" },
-      { id: HUB, label: "First touch", kind: "hub", column: "marketing" },
+      { id: "yt", label: "YouTube", kind: "att", line: "yt" },
+      { id: "mail", label: "Email", kind: "att", line: "mail" },
+      { id: HUB, label: "First touch", kind: "hub" },
     ]);
     expect(body.tracks.slice(0, 2)).toEqual([
       { id: "yt_to_hub", from: "yt", to: HUB, line: "yt", by: "system" },
@@ -288,7 +286,7 @@ describe("metroOf: the model it draws", () => {
       colour: 0,
     });
     const deal = body.stations.find((s) => s.id === "signed");
-    expect(deal).toMatchObject({ kind: "att", deal: true, line: "signed", column: "sales" });
+    expect(deal).toMatchObject({ kind: "att", deal: true, line: "signed" });
     expect(deal?.action).toBeUndefined();
   });
 
@@ -299,7 +297,6 @@ describe("metroOf: the model it draws", () => {
       label: "Standard",
       kind: "cash",
       line: "signed",
-      column: "money",
       terms: "standard",
       offer: "offer-a",
       advance: [],
@@ -377,26 +374,6 @@ describe("metroOf: the model it draws", () => {
         .nodes.map((n) => n.id)
         .sort(),
     ).toEqual(g.nodes.map((n) => n.id).sort());
-  });
-
-  it("puts marketing actions in marketing, other steps in sales, steps after a deal in delivery", () => {
-    const g = grown([step("onboard")], [flow("signed", "onboard")]);
-    const { body } = made(g);
-    const column = (id: string) => body.stations.find((s) => s.id === id)?.column;
-    expect(column("engaged")).toBe("marketing");
-    expect(column("booked")).toBe("sales");
-    expect(column("proposal")).toBe("sales");
-    expect(column("signed")).toBe("sales");
-    expect(column("onboard")).toBe("delivery");
-    expect(column("standard")).toBe("money");
-  });
-
-  it("lifts a column so no flow edge goes left", () => {
-    // A comment step after the proposal would be marketing; the edge into it forces it to sales.
-    const g = grown([step("late", "comment")], [flow("proposal", "late"), flow("late", "signed")]);
-    const { body } = made(g);
-    expect(body.stations.find((s) => s.id === "late")?.column).toBe("sales");
-    expect(checkMetro(body, ctx())).toEqual([]);
   });
 
   it("draws a flow edge as a plain track on the end station's line, an xfer across lines", () => {
@@ -537,7 +514,7 @@ describe("lowerable", () => {
 
   it("refuses an out line with other than its own station", () => {
     const b = base();
-    b.stations.push({ id: "extra", label: "Extra", kind: "att", line: "yt", column: "marketing" });
+    b.stations.push({ id: "extra", label: "Extra", kind: "att", line: "yt" });
     expect(why(b)).toEqual([
       'Out line "yt" must hold one station, its own ("yt"), not "yt", "extra".',
     ]);
@@ -684,32 +661,21 @@ describe("placesOf", () => {
     expect(place).toMatchObject({ yt: 0, mail: 0, hub: 1, engaged: 2 });
   });
 
-  it("is column first: a later column starts past every place of an earlier one", () => {
+  it("gives a station with no in-track 0", () => {
     const m = made(shape()).body;
-    // booked is the first sales station. It is one past engaged, the last marketing place.
-    const place = placesOf(m);
-    expect(place.booked).toBe((place.engaged ?? 0) + 1);
-    // A sales station with no in-track still starts past the marketing columns.
-    m.stations.push({
-      id: "lone",
-      label: "Lone",
-      kind: "att",
-      line: "signed",
-      column: "sales",
-      action: "other",
-    });
-    expect(placesOf(m).lone).toBe((place.engaged ?? 0) + 1);
+    m.stations.push({ id: "lone", label: "Lone", kind: "att", line: "signed", action: "other" });
+    expect(placesOf(m).lone).toBe(0);
   });
 
-  it("is safe on a body that is not checked: unknown ids, a loop, a track that runs left", () => {
+  it("is safe on a body that is not checked: unknown ids, a loop, a self track", () => {
     const m: MetroBody = {
       model: "metro",
       name: "Odd",
       lines: [],
       stations: [
-        { id: "a", label: "A", kind: "att", column: "sales" },
-        { id: "b", label: "B", kind: "att", column: "marketing" },
-        { id: "c", label: "C", kind: "att", column: "sales" },
+        { id: "a", label: "A", kind: "att" },
+        { id: "b", label: "B", kind: "att" },
+        { id: "c", label: "C", kind: "att" },
       ],
       tracks: [
         { id: "ab", from: "a", to: "b", by: "system" },
@@ -723,7 +689,7 @@ describe("placesOf", () => {
     };
     const place = placesOf(m);
     expect(Object.keys(place).sort()).toEqual(["a", "b", "c"]);
-    expect(place.b).toBe(0);
+    expect(place.b).toBe((place.a ?? 0) + 1);
   });
 
   it("ignores back tracks and exit tracks", () => {

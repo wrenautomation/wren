@@ -91,14 +91,13 @@ describe("a content line", () => {
   it("holds only content stations, one find with an SOP, and no track to people", () => {
     const b = withFilms();
     b.stations.push(
-      { id: "find2", label: "Find 2", kind: "find", line: "films", column: "marketing" },
-      { id: "stray", label: "Stray", kind: "read", line: "signed", column: "sales" },
+      { id: "find2", label: "Find 2", kind: "find", line: "films" },
+      { id: "stray", label: "Stray", kind: "read", line: "signed" },
       {
         id: "note",
         label: "Note",
         kind: "att",
         line: "films",
-        column: "sales",
         action: "email",
         advance: [],
       },

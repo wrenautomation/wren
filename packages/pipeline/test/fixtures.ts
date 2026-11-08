@@ -258,17 +258,16 @@ export const metroShape = (): MetroBody => ({
     },
   ],
   stations: [
-    { id: "social", label: "Social", kind: "att", line: "social", column: "marketing" },
-    { id: "cold", label: "Cold", kind: "att", line: "cold", column: "marketing" },
-    { id: "list", label: "List", kind: "att", line: "list", column: "marketing" },
-    { id: "team", label: "Team", kind: "att", line: "team", column: "marketing" },
-    { id: "hub", label: "First touch", kind: "hub", column: "marketing" },
+    { id: "social", label: "Social", kind: "att", line: "social" },
+    { id: "cold", label: "Cold", kind: "att", line: "cold" },
+    { id: "list", label: "List", kind: "att", line: "list" },
+    { id: "team", label: "Team", kind: "att", line: "team" },
+    { id: "hub", label: "First touch", kind: "hub" },
     {
       id: "nurture_start",
       label: "Nurture start",
       kind: "att",
       line: "nurture",
-      column: "marketing",
       action: "email",
       advance: [],
       retries: 2,
@@ -278,7 +277,6 @@ export const metroShape = (): MetroBody => ({
       label: "Reply",
       kind: "att",
       line: "growth",
-      column: "marketing",
       action: "reply",
       advance: [{ trigger: "trigger.reply" }],
       research: "light",
@@ -288,34 +286,31 @@ export const metroShape = (): MetroBody => ({
         { kind: "funnel", ref: "reply-funnel", label: "Reply funnel" },
       ],
     },
-    { id: "qualify", label: "Fit?", kind: "condition", line: "growth", column: "sales" },
+    { id: "qualify", label: "Fit?", kind: "condition", line: "growth" },
     {
       id: "book",
       label: "Book",
       kind: "time",
       line: "growth",
-      column: "sales",
       action: "book",
       advance: [{ trigger: "trigger.booking", with: { on: "booked" } }],
       retries: 3,
     },
-    { id: "wait", label: "Shows up?", kind: "race", line: "growth", column: "sales" },
+    { id: "wait", label: "Shows up?", kind: "race", line: "growth" },
     {
       id: "held",
       label: "Held",
       kind: "time",
       line: "growth",
-      column: "sales",
       action: "held",
     },
-    { id: "gone", label: "No show", kind: "exit", column: "sales", failure: true },
-    { id: "fork", label: "Fork", kind: "split", line: "growth", column: "sales" },
+    { id: "gone", label: "No show", kind: "exit", failure: true },
+    { id: "fork", label: "Fork", kind: "split", line: "growth" },
     {
       id: "prep",
       label: "Prep",
       kind: "att",
       line: "growth",
-      column: "sales",
       action: "other",
     },
     {
@@ -323,17 +318,15 @@ export const metroShape = (): MetroBody => ({
       label: "Docs",
       kind: "att",
       line: "growth",
-      column: "sales",
       action: "form",
     },
-    { id: "merge", label: "Ready", kind: "join", line: "growth", column: "sales", rule: "all" },
-    { id: "test", label: "Test copy", kind: "ab", line: "growth", column: "sales" },
+    { id: "merge", label: "Ready", kind: "join", line: "growth", rule: "all" },
+    { id: "test", label: "Test copy", kind: "ab", line: "growth" },
     {
       id: "pitch_a",
       label: "Pitch A",
       kind: "att",
       line: "growth",
-      column: "sales",
       action: "email",
     },
     {
@@ -341,7 +334,6 @@ export const metroShape = (): MetroBody => ({
       label: "Pitch B",
       kind: "att",
       line: "growth",
-      column: "sales",
       action: "email",
     },
     {
@@ -349,14 +341,12 @@ export const metroShape = (): MetroBody => ({
       label: "Approve proposal",
       kind: "approval",
       line: "growth",
-      column: "sales",
     },
     {
       id: "proposal",
       label: "Proposal",
       kind: "att",
       line: "growth",
-      column: "sales",
       action: "proposal",
     },
     {
@@ -364,7 +354,6 @@ export const metroShape = (): MetroBody => ({
       label: "Signed",
       kind: "att",
       line: "growth",
-      column: "sales",
       deal: true,
       advance: [{ trigger: "trigger.document", with: { on: "signed" } }],
     },
@@ -373,7 +362,6 @@ export const metroShape = (): MetroBody => ({
       label: "Follow-up",
       kind: "link",
       line: "growth",
-      column: "delivery",
       flow: "shared_followup",
     },
     {
@@ -381,7 +369,6 @@ export const metroShape = (): MetroBody => ({
       label: "Onboard",
       kind: "att",
       line: "growth",
-      column: "delivery",
       action: "other",
     },
     {
@@ -389,7 +376,6 @@ export const metroShape = (): MetroBody => ({
       label: "Pay",
       kind: "cash",
       line: "growth",
-      column: "money",
       terms: "standard",
       offer: "offer-a",
     },
@@ -398,7 +384,6 @@ export const metroShape = (): MetroBody => ({
       label: "Retain start",
       kind: "att",
       line: "retain",
-      column: "money",
       action: "other",
     },
     {
@@ -406,12 +391,11 @@ export const metroShape = (): MetroBody => ({
       label: "Retainer",
       kind: "cash",
       line: "retain",
-      column: "money",
       terms: "retainer",
       offer: "offer-b",
       planned: true,
     },
-    { id: "done", label: "Done", kind: "exit", column: "money" },
+    { id: "done", label: "Done", kind: "exit" },
   ],
   tracks: [
     { id: "social_to_hub", from: "social", to: "hub", line: "social", by: "system" },
@@ -574,7 +558,6 @@ export const metroShape = (): MetroBody => ({
           label: "Nudge",
           kind: "att",
           line: "growth",
-          column: "delivery",
           action: "email",
           attach: [{ kind: "template", ref: "book-first/nudge" }],
         },
@@ -583,7 +566,6 @@ export const metroShape = (): MetroBody => ({
           label: "Check in",
           kind: "time",
           line: "growth",
-          column: "delivery",
           action: "call",
         },
       ],
@@ -630,7 +612,6 @@ export const metroPair = (): { a: MetroBody; b: MetroBody } => {
     label: "Fresh",
     kind: "att",
     line: "growth",
-    column: "sales",
     action: "other",
   });
   const station = (id: string) =>
@@ -675,12 +656,11 @@ export const metroPair = (): { a: MetroBody; b: MetroBody } => {
 export const withFilms = (): MetroBody => {
   const b = asMetro(shape());
   b.lines.push({ id: "films", label: "Launch films", tier: "content", colour: 3 });
-  const at = (id: string, kind: "read" | "extract" | "call", column: "marketing" | "sales") => ({
+  const at = (id: string, kind: "read" | "extract" | "call") => ({
     id,
     label: id,
     kind,
     line: "films",
-    column,
   });
   b.stations.push(
     {
@@ -688,12 +668,11 @@ export const withFilms = (): MetroBody => {
       label: "Find",
       kind: "find",
       line: "films",
-      column: "marketing",
       sop: "launch-films",
     },
-    at("read", "read", "marketing"),
-    at("extract", "extract", "marketing"),
-    at("call", "call", "sales"),
+    at("read", "read"),
+    at("extract", "extract"),
+    at("call", "call"),
   );
   b.tracks.push(
     { id: "find_to_read", from: "find", to: "read", line: "films", by: "system" },
@@ -708,9 +687,9 @@ export const withStudy = (slug = "placements"): MetroBody => {
   const b = withFilms();
   b.lines.push({ id: "study", label: "Study", tier: "content", colour: 4 });
   b.stations.push(
-    { id: "sfind", label: "Find", kind: "find", line: "study", column: "marketing", study: slug },
-    { id: "sextract", label: "Extract", kind: "extract", line: "study", column: "marketing" },
-    { id: "scall", label: "Call", kind: "call", line: "study", column: "sales" },
+    { id: "sfind", label: "Find", kind: "find", line: "study", study: slug },
+    { id: "sextract", label: "Extract", kind: "extract", line: "study" },
+    { id: "scall", label: "Call", kind: "call", line: "study" },
   );
   b.tracks.push(
     { id: "sfind_to_sextract", from: "sfind", to: "sextract", line: "study", by: "system" },
@@ -733,7 +712,6 @@ export const withPain = (source = "import:12"): MetroBody => {
     label: "Pain points",
     kind: "att",
     line: "pain",
-    column: "marketing",
   });
   b.tracks.push({ id: "pain_to_hub", from: "pain", to: "hub", line: "pain", by: "system" });
   const hubOut = b.tracks.find((t) => t.from === "hub" && t.entries);
