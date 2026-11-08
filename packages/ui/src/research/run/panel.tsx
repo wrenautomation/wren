@@ -432,6 +432,7 @@ function DropPanel({ c, g }: { c: PanelCtx; g: number }) {
           </span>
         </p>
         <input
+          // edit-ok: filter box
           className="flt"
           type="search"
           placeholder="Filter by title or site"
