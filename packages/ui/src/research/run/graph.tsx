@@ -54,7 +54,19 @@ import {
 } from "./model.js";
 import { PanelBody, type PanelCtx, type Pick } from "./panel.js";
 import { type Hit, type Ident, pkey, same, toggled, webIdent, webPick } from "./picks.js";
-import { capOf, kids, leftOf, presentSet, solveWeb, type WNode, webBox, webEdges } from "./web.js";
+import {
+  capOf,
+  keepPlaces,
+  kids,
+  leftOf,
+  placesOf,
+  presentSet,
+  settle,
+  solveWeb,
+  type WNode,
+  webBox,
+  webEdges,
+} from "./web.js";
 
 export type { Pick } from "./panel.js";
 export { LAYS, type LayId } from "./side.js";
@@ -164,8 +176,6 @@ function Graph({
     fitB: null as { x0: number; y0: number; x1: number; y1: number } | null,
     tw: null as Timer | null,
     born: new Map<string, number>(),
-    // the web as last solved, so a trip to another layout and back skips the solve
-    kept: null as { key: string; nodes: Map<string, WNode> } | null,
   }).current;
   const shown = useRef<string[]>([]);
   const pend = useRef<{
@@ -500,7 +510,6 @@ function Graph({
     };
     wg.tw?.stop();
     if (lay !== "web" || !pres || !shelf) {
-      if (wg.nodes.size) wg.kept = { key: wg.kept?.key ?? "", nodes: new Map(wg.nodes) };
       wg.nodes.clear();
       wg.fitB = null;
       boxes.clear();
@@ -545,31 +554,29 @@ function Graph({
       fresh.add(n);
       if (anim) wg.born.set(k, now);
     }
-    const key = `${wide}|${order.join(" ")}`;
-    const back = !anim && wg.kept?.key === key ? wg.kept.nodes : null;
-    if (back)
-      for (const n of fresh)
-        Object.assign(n, { x: back.get(n.key)?.x ?? 0, y: back.get(n.key)?.y ?? 0 });
-    const { all, from, to } = back
-      ? {
-          all: [...N.values()],
-          from: new Map<WNode, [number, number]>(),
-          to: new Map<WNode, [number, number]>(),
-        }
-      : solveWeb({
-          L,
-          N,
-          order,
-          par,
-          E: wE,
-          fresh,
-          anim,
-          fk: p.fk,
-          wide,
-          shelfAt,
-        });
-    // a copy: N is cleared on the next still draw, and a tween moves its nodes
-    wg.kept = { key, nodes: new Map([...N].map(([k, n]) => [k, { ...n }])) };
+    // seen before (this mount or another): its places come back; a live run's new nodes grow
+    // from their parents while the rest hold
+    const seen = anim ? null : placesOf(L.run.rid, wide, order);
+    if (seen)
+      for (const n of fresh) {
+        const at = seen.at.get(n.key);
+        if (!at) continue;
+        [n.x, n.y] = at;
+        fresh.delete(n);
+      }
+    const grow = !!seen && !seen.exact && fresh.size < N.size;
+    const moving = anim || grow;
+    let solved: ReturnType<typeof solveWeb>;
+    if (seen?.exact) {
+      const all = order.map((k) => N.get(k) as WNode);
+      // sizes may have moved since (fonts): the places stand, overlaps part
+      settle(all, wide);
+      solved = { all, from: new Map(), to: new Map() };
+    } else
+      solved = solveWeb({ L, N, order, par, E: wE, fresh, anim: moving, fk: p.fk, wide, shelfAt });
+    const { all, from, to } = solved;
+    keepPlaces(L.run.rid, wide, order, N);
+    if (!anim) wg.fitB = all.length ? webBox(all) : null;
     wg.shelf = layShelf(shelf, size, wide);
     wg.at = "";
     const draw = () => {
@@ -605,10 +612,9 @@ function Graph({
       for (const [k, b] of wg.shelf) put(k, { ...b, x: x0 + b.x, y: y0 + b.y });
     };
     const opened = p.fk && exp.has(p.fk) ? p.fk : null;
-    if (!anim || reduced()) {
+    if (!moving || reduced()) {
       draw();
-      if (!anim) wg.fitB = all.length ? webBox(all) : null;
-      else if (opened) showOpen(opened);
+      if (opened) showOpen(opened);
       return;
     }
     if (opened) showOpen(opened);

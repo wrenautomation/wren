@@ -248,3 +248,17 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Engine 0.50.0 drops `/web`, `birdwatch web` and `engine/web.ts`. The portal drops `WebCanvas`, sigma and graphology.
   - Build bug found: lightningcss turned `light-dark()` into `--lightningcss-light/dark` vars that nothing sets (the scheme comes from `--ui-scheme`). Every `--hair`, speaker colour and edge in the built graph was invalid; Storybook (dev, no minify) hid it. Fix: `build.cssTarget` Chrome/Edge 123, Firefox 120, Safari 17.5.
   - Measured locally, All runs (31 runs, 587 sources, 35 claims, 29 MB of views, warm serve): first node at 1.7 s, no long task at rest. Layout switches: 54 to 87 ms. Back to the claim web was 244 ms; it now reuses the last solve.
+- 11-08: the claim web: fast solve, kept places, no overlap (after 469a7839d, nodes piled at 0,0 on a still redraw).
+  - William asked: is the graph a composite? Close: `kids()` is the children call and `presentSet` walks it. But a run is a DAG: one source backs many claims and is found by many searches. A class tree copies shared nodes and fights React's immutable state. Kept: string keys, one dispatch per kind.
+  - Options for the solve cost, ranked by real-run time, then code risk:
+    - A. Grid collide plus a places cache. Chosen.
+    - B. A Web Worker solve. The layout goes async and the workspace package needs worker bundling. Next step if merged graphs grow.
+    - C. Precompute in weaver serve. Layout depends on DOM sizes and open state, so the server cannot know it.
+  - `rectCollide`: a uniform grid (cell = largest box + gap), 3×3 neighbours. A hit under 0.5 px is none: float error held `settle` at its full 1,100 passes. A push goes 1 px past touching, so a crowd parts in fewer passes.
+  - `settle(all, wide)` is the shared overlap pass. Sim ticks: 300 (d3's own end), was 360.
+  - `kids` is memoized per run index (WeakMap).
+  - Places cache (`placesOf`, `keepPlaces`): per run, width and node set, 48 entries. Same set: no solve, only `settle` (fonts or sizes moved). New nodes on a live run: old nodes hold, new ones grow from their parent.
+  - CSS bug: `.rg .fdn { position: relative }` beat `.rg-nodes > * { position: absolute }`. Findings sat in normal flow over the claims in every open state.
+  - Measured, best of 3 under load: one real run 22 ms; all 33 real runs (107 web nodes) 142 to 89 ms; synthetic 12 runs all open (860 nodes) 6.1 to about 2.5 s.
+  - Checks: `web.test.ts` (no overlap, deterministic, cache copy) and an overlap `play` on Default, ClaimOpen and SourceOpen.
+  - Open: the merged graph is tall (about 1.4k × 4k px) with long links. Next: lay claims out by run sector.

@@ -30,20 +30,33 @@ const mark = async (root: HTMLElement, key: string) => {
   return el as unknown as HTMLElement;
 };
 
-/** Every claim gets its own place, also after a still redraw (fonts, resize): no pile at 0,0. */
+/** Once the web is still (font redraw, open tween): no two marks share a spot or overlap. */
+const apart = async (root: HTMLElement) => {
+  await document.fonts.ready;
+  // the font redraw and the 460 ms tween land after this
+  await new Promise((r) => setTimeout(r, 700));
+  const bs = [...root.querySelectorAll<HTMLElement>(".rg-nodes [data-n]:not(.gone)")].map((e) => [
+    e.dataset.n,
+    e.getBoundingClientRect(),
+  ]) as [string, DOMRect][];
+  const hits: string[] = [];
+  bs.forEach(([ka, a], i) => {
+    for (const [kb, b] of bs.slice(i + 1)) {
+      const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (ox > 2 && oy > 2) hits.push(`${ka} ${kb}`);
+    }
+  });
+  expect(bs.length).toBeGreaterThan(1);
+  expect(hits).toEqual([]);
+};
+
+/** Every mark gets its own place, also after a still redraw (fonts, resize): no pile at 0,0. */
 export const Default: Story = {
   args: { run: RUN_GRAPH },
   play: async ({ canvasElement }) => {
     await mark(canvasElement, "c0");
-    await document.fonts.ready;
-    // the font redraw lands after this resolves
-    await new Promise((r) => setTimeout(r, 600));
-    const at = [...canvasElement.querySelectorAll<HTMLElement>(".rg-nodes [data-n]")].map((e) => {
-      const b = e.getBoundingClientRect();
-      return `${Math.round(b.x)},${Math.round(b.y)}`;
-    });
-    expect(at.length).toBeGreaterThan(1);
-    expect(new Set(at).size).toBe(at.length);
+    await apart(canvasElement);
   },
 };
 export const Tree: Story = { args: { run: RUN_GRAPH, lay: "tree" } };
@@ -65,6 +78,7 @@ export const ClaimOpen: Story = {
         /Most shops price custom cakes/,
       ),
     );
+    await apart(canvasElement);
   },
 };
 
@@ -77,6 +91,7 @@ export const SourceOpen: Story = {
     if (!src) return;
     await userEvent.click(await mark(canvasElement, `s${src.id}`));
     await waitFor(() => expect(canvasElement.querySelectorAll(".rg-nodes .open").length).toBe(2));
+    await apart(canvasElement);
   },
 };
 

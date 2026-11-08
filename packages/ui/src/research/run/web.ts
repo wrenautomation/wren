@@ -20,14 +20,23 @@ export const parse = (k: string): [string, number, number] => {
 };
 export const capOf = (wide: boolean) => (wide ? 8 : 6);
 /** The leading run of one kind: only that run pages; other kinds always show. */
-const runOf = (ks: string[]) => {
+const runOf = (ks: readonly string[]) => {
   let i = 0;
   while (i < ks.length && ks[i]?.[0] === ks[0]?.[0]) i++;
   return i;
 };
 
-/** What a node holds, in spawn order. */
-export function kids(L: Indexed, key: string): string[] {
+const KIDS = new WeakMap<Indexed, Map<string, readonly string[]>>();
+/** What a node holds, in spawn order. Once per run index: every mark asks on every render. */
+export function kids(L: Indexed, key: string): readonly string[] {
+  const m = KIDS.get(L) ?? new Map<string, readonly string[]>();
+  KIDS.set(L, m);
+  const v = m.get(key) ?? kidsOf(L, key);
+  m.set(key, v);
+  return v;
+}
+
+function kidsOf(L: Indexed, key: string): string[] {
   if (key[0] === "m") return [];
   const [t, a, b] = parse(key);
   const src = () => L.byId.get(a)?.s;
@@ -188,39 +197,115 @@ export function webBox(os: Iterable<WNode>) {
   return { x0, y0, x1, y1 };
 }
 
-/** Rectangles push apart along their shallow axis. Returns the hits it found. */
-function rectCollide(ns: WNode[], pad: number) {
+/**
+ * Rectangles push apart along their shallow axis. Returns the hits it found. A grid of the
+ * largest box: two that overlap sit in the same or a next cell, so a node meets only its
+ * neighbours. A pass that moves nothing ran on a fresh grid, so its 0 is exact.
+ */
+export function rectCollide(ns: WNode[], pad: number) {
+  const cell = new Map<number, number[]>();
+  const push = (a: WNode, b: WNode) => {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const ox = (a.w + b.w) / 2 + pad - Math.abs(dx);
+    const oy = (a.h + b.h) / 2 + pad - Math.abs(dy);
+    // under half a pixel is a touch: float error would count it forever
+    if (ox <= 0.5 || oy <= 0.5) return 0;
+    const wa = a.hold === 2 ? 0 : a.hold ? 0.1 : 1;
+    const wb = b.hold === 2 ? 0 : b.hold ? 0.1 : 1;
+    const sw = wa + wb || 2;
+    const fa = (wa || (sw === 2 ? 1 : 0)) / sw;
+    const fb = (wb || (sw === 2 ? 1 : 0)) / sw;
+    if (ox < oy) {
+      // a pixel past touching: a crowd parts in far fewer passes
+      const m = (ox + 1) * (dx < 0 ? -1 : 1);
+      a.x -= m * fa;
+      b.x += m * fb;
+    } else {
+      const m = (oy + 1) * (dy < 0 ? -1 : 1);
+      a.y -= m * fa;
+      b.y += m * fb;
+    }
+    return 1;
+  };
   const f = () => {
+    let cw = 1;
+    let ch = 1;
+    for (const n of ns) {
+      cw = Math.max(cw, n.w + pad);
+      ch = Math.max(ch, n.h + pad);
+    }
+    cell.clear();
+    // cells within ±2^20 of the origin: far past any web
+    const at = (gx: number, gy: number) => (gx + 1048576) * 2097152 + gy + 1048576;
+    const gx = new Int32Array(ns.length);
+    const gy = new Int32Array(ns.length);
+    ns.forEach((n, i) => {
+      gx[i] = Math.floor(n.x / cw);
+      gy[i] = Math.floor(n.y / ch);
+      const k = at(gx[i] as number, gy[i] as number);
+      const c = cell.get(k);
+      if (c) c.push(i);
+      else cell.set(k, [i]);
+    });
     let hit = 0;
     for (let i = 0; i < ns.length; i++)
-      for (let j = i + 1; j < ns.length; j++) {
-        const a = ns[i] as WNode;
-        const b = ns[j] as WNode;
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const ox = (a.w + b.w) / 2 + pad - Math.abs(dx);
-        const oy = (a.h + b.h) / 2 + pad - Math.abs(dy);
-        if (ox <= 0 || oy <= 0) continue;
-        hit++;
-        const wa = a.hold === 2 ? 0 : a.hold ? 0.1 : 1;
-        const wb = b.hold === 2 ? 0 : b.hold ? 0.1 : 1;
-        const sw = wa + wb || 2;
-        const fa = (wa || (sw === 2 ? 1 : 0)) / sw;
-        const fb = (wb || (sw === 2 ? 1 : 0)) / sw;
-        if (ox < oy) {
-          const m = ox * (dx < 0 ? -1 : 1);
-          a.x -= m * fa;
-          b.x += m * fb;
-        } else {
-          const m = oy * (dy < 0 ? -1 : 1);
-          a.y -= m * fa;
-          b.y += m * fb;
-        }
-      }
+      for (let ox = -1; ox <= 1; ox++)
+        for (let oy = -1; oy <= 1; oy++)
+          for (const j of cell.get(at((gx[i] as number) + ox, (gy[i] as number) + oy)) ?? [])
+            if (j > i) hit += push(ns[i] as WNode, ns[j] as WNode);
     return hit;
   };
   // d3 calls a force with alpha; the collide ignores it
   return Object.assign(f, { initialize: () => {} });
+}
+
+/** Push apart what still overlaps; held nodes give way last. */
+export function settle(all: WNode[], wide: boolean) {
+  const rc = rectCollide(all, wide ? 16 : 12);
+  let pass = 0;
+  while (pass++ < 300 && rc());
+  // still stuck between held nodes: everyone gives way evenly
+  if (pass > 300) {
+    for (const n of all) n.hold = false;
+    pass = 0;
+    while (pass++ < 800 && rc());
+  }
+}
+
+type Places = Map<string, readonly [number, number]>;
+// `${run}|${wide}|${order}` → places, oldest first; LAST: each run and width's newest key
+const SOLVED = new Map<string, Places>();
+const LAST = new Map<string, string>();
+const KEEP = 48;
+
+/**
+ * Where a run's web was last solved, across mounts: the same run, width and nodes come back as
+ * they were (exact); else its newest places, as anchors for what is new (a live run grows).
+ */
+export function placesOf(run: string, wide: boolean, order: readonly string[]) {
+  const hit = SOLVED.get(`${run}|${wide}|${order.join(" ")}`);
+  if (hit) return { at: hit, exact: true };
+  const last = LAST.get(`${run}|${wide}`);
+  const at = last ? SOLVED.get(last) : undefined;
+  return at ? { at, exact: false } : null;
+}
+
+/** Keeps a copy of each place: the nodes move on (tween, next solve) and must not drag it. */
+export function keepPlaces(
+  run: string,
+  wide: boolean,
+  order: readonly string[],
+  N: ReadonlyMap<string, WNode>,
+) {
+  const k = `${run}|${wide}|${order.join(" ")}`;
+  SOLVED.delete(k);
+  SOLVED.set(k, new Map([...N].map(([key, n]) => [key, [n.x, n.y] as const])));
+  LAST.set(`${run}|${wide}`, k);
+  for (const old of SOLVED.keys()) {
+    if (SOLVED.size <= KEEP) break;
+    SOLVED.delete(old);
+  }
 }
 
 export interface SolveIn {
@@ -353,20 +438,13 @@ export function solveWeb(o: SolveIn) {
     .force("r", rectCollide(all, pad))
     .stop();
   sim.alpha(anim ? 0.5 : 1);
-  for (let i = 0; i < (anim ? 220 : 360); i++) sim.tick();
+  // 300 from alpha 1 is d3's own end (alphaMin); past it nothing moves a pixel
+  for (let i = 0; i < (anim ? 220 : 300); i++) sim.tick();
   for (const n of all) {
     n.fx = null;
     n.fy = null;
   }
-  const rc = rectCollide(all, pad);
-  let pass = 0;
-  while (pass++ < 300 && rc());
-  // still stuck between held nodes: everyone gives way evenly
-  if (pass > 300) {
-    for (const n of all) n.hold = false;
-    pass = 0;
-    while (pass++ < 800 && rc());
-  }
+  settle(all, wide);
   for (const n of all) {
     n.ax = null;
     n.ay = null;

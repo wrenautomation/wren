@@ -1462,7 +1462,6 @@
   color: var(--ink2);
 }
 .rg .fdn {
-  position: relative;
   width: 214px;
   background: var(--paper);
   border-radius: 8px;
