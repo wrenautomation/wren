@@ -1,17 +1,15 @@
 /**
  * Research (designs/2026-10-26-research-engine.md, 10-28 night): a birdwatch run as it goes.
- * The runs on the left; the one open on the right as the tree (ask, facets, queries, follows,
- * pages, people), the back and forth (every decision with its why and who made it), and every
- * source with its link, its embed where the CSP lets one in, and the copy the run stored.
+ * The runs as a list; one run opens full width as its graph (designs/2026-11-05-research-web.md,
+ * round 13: claims, sources, searches, dropped hits) and the back and forth (every decision with
+ * its why and who made it).
  * Read only: the agent and the CLI write. Live: `birdwatch serve` sends an event per changed run.
  */
 import {
   Button,
   cx,
   Empty,
-  Graph,
   Icon,
-  Input,
   LoadFailed,
   Loading,
   money,
@@ -19,14 +17,16 @@ import {
   Seg,
   StateMark,
 } from "@wren/ui";
+import { type LayId, RunGraph } from "@wren/ui/research/run";
 import { type ReactNode, useMemo, useState } from "react";
 import { embedOf, embedSite, youtubeId } from "../../embeds.js";
-import { useCall, useSettled } from "../../load.js";
+import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { PlayerSlot } from "../../player/index.js";
 import { href, navigate, useRoute } from "../../route.js";
 import { QUIET } from "../work/bits.js";
 import { RowsPanel } from "../work/rows-panel.js";
+import { runGraphOf } from "./graph.js";
 import {
   type Moment,
   pageOf,
@@ -40,27 +40,15 @@ import {
   useLive,
   viewOf,
 } from "./serve.js";
-import { host, keptBy, toneOf, treeOf, type Zoom } from "./tree.js";
+import { host, keptBy, toneOf } from "./tree.js";
 
-type Tab = "tree" | "talk" | "sources";
-type Filter = "all" | "kept" | "read" | "dropped" | "open";
+type Tab = "graph" | "talk";
 
 const TABS = [
-  { value: "tree", label: "Tree" },
+  { value: "graph", label: "Graph" },
   { value: "talk", label: "Back and forth" },
-  { value: "sources", label: "Sources" },
 ] as const;
-const ZOOMS = [
-  { value: "pages", label: "Pages read" },
-  { value: "hits", label: "Every hit" },
-] as const;
-const FILTERS = [
-  { value: "all", label: "All" },
-  { value: "kept", label: "Kept" },
-  { value: "read", label: "Read" },
-  { value: "dropped", label: "Dropped" },
-  { value: "open", label: "Not called" },
-] as const;
+const LAYS: readonly LayId[] = ["web", "tree", "lanes"];
 const LINK = "inline-flex items-center gap-1 wrap-anywhere text-(--ui-ink) underline";
 const PRE =
   "m-0 max-h-[420px] overflow-auto border border-(--ui-hair) bg-(--ui-tile) p-2.5 text-[13px] leading-[1.55] whitespace-pre-wrap wrap-anywhere text-(--ui-ink)";
@@ -97,7 +85,7 @@ export function RunsPage({ params }: PageProps) {
   const here = `/${useRoute().path.join("/")}`;
   const runs = useCall("research:runs", runsOf, { kept: false });
   const rows = runs.data ?? [];
-  const open = params.get("run") ?? rows[0]?.run ?? null;
+  const open = params.get("run");
   const [tick, setTick] = useState(0);
   useLive((run) => {
     runs.retry();
@@ -105,74 +93,66 @@ export function RunsPage({ params }: PageProps) {
   });
   const askOf = useMemo(() => new Map(rows.map((r) => [r.run, r.ask])), [rows]);
   if (runs.error && !runs.data) return <NoServe error={runs.error} onRetry={runs.retry} />;
+  if (open)
+    return (
+      <OneRun
+        key={open}
+        run={open}
+        row={rows.find((r) => r.run === open) ?? null}
+        tick={tick}
+        params={params}
+        here={here}
+      />
+    );
+  if (!runs.data) return <Loading shape="rows" lines={5} />;
+  if (!rows.length) return <Empty>No runs in this ledger yet.</Empty>;
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 @min-[840px]/main:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
-      <div className="grid gap-3">
-        {!runs.data ? (
-          <Loading shape="rows" lines={5} />
-        ) : rows.length ? (
-          <RowsPanel<RunRow>
-            rows={rows}
-            rowKey={(r) => r.run}
-            narrow
-            label="runs"
-            noun="run"
-            open={{
-              id: open,
-              onOpen: (r) => navigate(href(here, { run: r.run, open: null }, params)),
-            }}
-            name={{
-              label: "Run",
-              icon: "search",
-              title: (r) => r.ask || r.run,
-              href: (r) => href(here, { run: r.run, open: null }, params),
-              sub: (r) => (
-                <span className={cx("grid gap-0.5 text-[12px]", QUIET)}>
-                  {r.parent ? (
-                    <span className="wrap-anywhere whitespace-normal">
-                      From: {askOf.get(r.parent) ?? r.parent}
-                    </span>
-                  ) : null}
-                  <span className="tabular-nums">
-                    Round {r.round} · {plural(r.hits, "hit")} · {r.kept} kept · {usd(r.usd)} ·{" "}
-                    {r.updated ? relative(new Date(r.updated)) : ""}
-                  </span>
-                </span>
-              ),
-            }}
-            columns={[
-              {
-                key: "state",
-                label: "State",
-                icon: "selected",
-                phone: true,
-                cell: (r) => (
-                  <StateMark
-                    state={
-                      r.next
-                        ? { label: r.next.step, tone: "good" }
-                        : { label: "Stopped", tone: "neutral" }
-                    }
-                  />
-                ),
-              },
-            ]}
-          />
-        ) : (
-          <Empty>No runs in this ledger yet.</Empty>
-        )}
-      </div>
-      {open ? (
-        <OneRun
-          key={open}
-          run={open}
-          row={rows.find((r) => r.run === open) ?? null}
-          tick={tick}
-          params={params}
-          here={here}
-        />
-      ) : null}
-    </div>
+    <RowsPanel<RunRow>
+      rows={rows}
+      rowKey={(r) => r.run}
+      label="runs"
+      noun="run"
+      open={{
+        id: null,
+        onOpen: (r) => navigate(href(here, { run: r.run, open: null }, params)),
+      }}
+      name={{
+        label: "Run",
+        icon: "search",
+        title: (r) => r.ask || r.run,
+        href: (r) => href(here, { run: r.run, open: null }, params),
+        sub: (r) => (
+          <span className={cx("grid gap-0.5 text-[12px]", QUIET)}>
+            {r.parent ? (
+              <span className="wrap-anywhere whitespace-normal">
+                From: {askOf.get(r.parent) ?? r.parent}
+              </span>
+            ) : null}
+            <span className="tabular-nums">
+              Round {r.round} · {plural(r.hits, "hit")} · {r.kept} kept · {usd(r.usd)} ·{" "}
+              {r.updated ? relative(new Date(r.updated)) : ""}
+            </span>
+          </span>
+        ),
+      }}
+      columns={[
+        {
+          key: "state",
+          label: "State",
+          icon: "selected",
+          phone: true,
+          cell: (r) => (
+            <StateMark
+              state={
+                r.next
+                  ? { label: r.next.step, tone: "good" }
+                  : { label: "Stopped", tone: "neutral" }
+              }
+            />
+          ),
+        },
+      ]}
+    />
   );
 }
 
@@ -190,22 +170,39 @@ function OneRun({
   here: string;
 }) {
   const got = useCall(`research:view:${run}:${tick}`, () => viewOf(run), { kept: false });
-  const tab = (params.get("tab") ?? "tree") as Tab;
+  const tab: Tab = params.get("tab") === "talk" ? "talk" : "graph";
+  const lay = LAYS.find((l) => l === params.get("lay"));
   const card = params.get("open");
   const go = (p: Record<string, string | null>) => navigate(href(here, p, params), true);
-  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
-  if (!got.data) return <Loading lines={8} />;
   const view = got.data;
+  const graph = useMemo(() => (view ? runGraphOf(view, row) : undefined), [view, row]);
+  if (got.error && !view) return <LoadFailed error={got.error} onRetry={got.retry} />;
   return (
     <div className={cx("grid min-w-0 gap-4", got.placeholder && "opacity-70")}>
-      <RunHead view={view} row={row} />
-      <Seg label="What to show" items={TABS} value={tab} onChange={(t) => go({ tab: t })} />
-      {tab === "tree" ? (
-        <TreeTab view={view} row={row} params={params} card={card} go={go} />
-      ) : tab === "talk" ? (
-        <Talk view={view} card={card} go={go} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <a
+          href={href(here, { run: null, tab: null, open: null, lay: null }, params)}
+          className="inline-flex items-center gap-1 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
+        >
+          <Icon name="back" size={14} />
+          All runs
+        </a>
+        <Seg
+          label="What to show"
+          items={TABS}
+          value={tab}
+          onChange={(t) => go({ tab: t, open: null })}
+        />
+      </div>
+      {tab === "graph" ? (
+        <RunGraph run={graph} lay={lay} onLay={(l) => go({ lay: l })} />
+      ) : !view ? (
+        <Loading lines={8} />
       ) : (
-        <Sources view={view} params={params} card={card} go={go} />
+        <>
+          <RunHead view={view} row={row} />
+          <Talk view={view} card={card} go={go} />
+        </>
       )}
     </div>
   );
@@ -241,45 +238,6 @@ function RunHead({ view, row }: { view: RunView; row: RunRow | null }) {
 }
 
 type Go = (p: Record<string, string | null>) => void;
-
-function TreeTab({
-  view,
-  row,
-  params,
-  card,
-  go,
-}: {
-  view: RunView;
-  row: RunRow | null;
-  params: URLSearchParams;
-  card: string | null;
-  go: Go;
-}) {
-  const zoom = (params.get("zoom") ?? "pages") as Zoom;
-  const g = useMemo(() => treeOf(view, row, zoom), [view, row, zoom]);
-  return (
-    <div className="grid min-w-0 gap-3">
-      <Seg
-        dense
-        label="How far down"
-        items={ZOOMS}
-        value={zoom}
-        onChange={(z) => go({ zoom: z })}
-      />
-      <Graph
-        nodes={g.nodes}
-        edges={g.edges}
-        label={`The run's tree: ${row?.ask ?? view.run}`}
-        name={`research-${view.run}`}
-        tools
-        selected={card}
-        onOpen={(id) => go({ open: id })}
-        onPane={() => go({ open: null })}
-      />
-      {card ? <Card view={view} id={card} go={go} /> : null}
-    </div>
-  );
-}
 
 /** What a node or row opens: a query, a hit, a page, a person, a facet. */
 function Card({ view, id, go }: { view: RunView; id: string; go: Go }) {
@@ -683,142 +641,6 @@ function Talk({ view, card, go }: { view: RunView; card: string | null; go: Go }
           },
         ]}
       />
-      {card ? <Card view={view} id={card} go={go} /> : null}
-    </div>
-  );
-}
-
-/** Every hit as a list: link, sources, the call, whether it was read. Google's results land here as ours. */
-function Sources({
-  view,
-  params,
-  card,
-  go,
-}: {
-  view: RunView;
-  params: URLSearchParams;
-  card: string | null;
-  go: Go;
-}) {
-  const filter = (params.get("hits") ?? "all") as Filter;
-  const source = params.get("source") ?? "all";
-  const [q, setQ] = useState("");
-  const asked = useSettled(q.trim().toLowerCase());
-  const names = useMemo(() => [...new Set(view.hits.flatMap((h) => h.sources))].sort(), [view]);
-  const rows = view.hits.filter(
-    (h) =>
-      (filter === "all" ||
-        (filter === "kept" && h.call?.verdict === "keep") ||
-        (filter === "dropped" && h.call?.verdict === "drop") ||
-        (filter === "read" && !!h.document) ||
-        (filter === "open" && !h.call)) &&
-      (source === "all" || h.sources.includes(source)) &&
-      (!asked || `${h.title ?? ""} ${h.url} ${h.snippet ?? ""}`.toLowerCase().includes(asked)),
-  );
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 @min-[1140px]/main:grid-cols-[minmax(0,1fr)_minmax(340px,440px)]">
-      <div className="grid min-w-0 gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Seg
-            dense
-            label="Which hits"
-            items={FILTERS}
-            value={filter}
-            onChange={(f) => go({ hits: f })}
-          />
-          <Seg
-            dense
-            label="Which source"
-            items={[
-              { value: "all", label: "Every source" },
-              ...names.map((n) => ({ value: n, label: n })),
-            ]}
-            value={source}
-            onChange={(s) => go({ source: s === "all" ? null : s })}
-          />
-          {/* edit-ok: search box */}
-          <Input
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Find in titles and links"
-            aria-label="Find in titles and links"
-            className="h-8 w-56 text-[13px]"
-          />
-        </div>
-        {rows.length ? (
-          <RowsPanel<RunHit>
-            rows={rows}
-            rowKey={(h) => h.id}
-            label="sources"
-            noun="hit"
-            open={{ id: card?.slice(2) ?? null, onOpen: (h) => go({ open: `h:${h.id}` }) }}
-            name={{
-              label: "Source",
-              icon: "link",
-              title: (h) => h.title || host(h.url),
-              weight: (h) =>
-                h.call?.verdict === "drop" ? "font-normal text-(--ui-ink-2)" : "font-medium",
-              sub: (h) => (
-                <a
-                  href={h.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className={cx("text-[12px] wrap-anywhere whitespace-normal", QUIET)}
-                >
-                  {h.url}
-                </a>
-              ),
-            }}
-            columns={[
-              {
-                key: "call",
-                label: "Call",
-                icon: "selected",
-                width: 100,
-                phone: true,
-                cell: (h) =>
-                  h.call ? (
-                    <StateMark
-                      state={{
-                        label: h.call.verdict,
-                        tone: h.call.verdict === "keep" ? "good" : "neutral",
-                      }}
-                    />
-                  ) : (
-                    <span className={QUIET}>—</span>
-                  ),
-              },
-              {
-                key: "read",
-                label: "Read",
-                icon: "read",
-                width: 70,
-                cell: (h) => (h.document ? "Yes" : ""),
-              },
-              {
-                key: "from",
-                label: "From",
-                icon: "search",
-                width: 150,
-                quiet: true,
-                cell: (h) => h.sources.join(", "),
-              },
-              {
-                key: "round",
-                label: "Round",
-                icon: "hash",
-                width: 96,
-                align: "end",
-                cell: (h) => h.round,
-              },
-            ]}
-          />
-        ) : (
-          <Empty>No hits match.</Empty>
-        )}
-      </div>
       {card ? <Card view={view} id={card} go={go} /> : null}
     </div>
   );

@@ -42,7 +42,13 @@ export const RESEARCH_VIEW: RunView = {
   v: 1,
   run: "r1",
   brief: {
+    ask: { text: "How do small bakeries find wholesale buyers?" },
     people: [{ id: "p1", name: "Maya Baker", profiles: ["https://www.youtube.com/@mayabakes"] }],
+    patterns: [
+      { text: "Samples win cafes: walking in with product beats a cold pitch.", findings: ["f1"] },
+      { text: "Start close: the first buyers sit within a short drive.", findings: ["f2"] },
+    ],
+    cost: { total: { usd: 0.42 } },
   },
   queries: [
     {

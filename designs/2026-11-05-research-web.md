@@ -210,3 +210,15 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Edges by kind: claim (speaker colour, width by weight), tree, backs (finding to claim), via and found (dashed).
   - For the portal: React Flow with d3-force, same expand model.
   - The session's choices, not William's: the page size of 8, the anchor strength, the edge kinds.
+- 11-07: round 13 on prod (WA-1182). William: polished enough; replace the run view; no drift from the artifact.
+  - Options for the port, ranked by drift from the artifact, safety, cost:
+    - A. Mount the mock's engine as is; it writes markup with innerHTML. Zero drift; run text in innerHTML is an XSS path, and the CSP refuses inline handlers.
+    - B. React draws every mark, panel, list and table; a 1:1 port of the engine moves them by ref (`style.transform`, path `d`). Same d3 force, zoom and transitions.
+    - C. React Flow (xyflow). Its own layout and pan model; the drift fixes undo round 13.
+    - D. The artifact in an iframe. No drift; no portal data, theme or links.
+    - Chosen: B. React never re-renders during a move, so the eased moves are the mock's.
+  - `@wren/ui/research/run` is its own export: d3 and the CSS load only on a page that draws the graph.
+  - The run page is a list, then one run full width: Graph (the three layouts) and Back and forth. The old tree, its elk drawing and the Sources tab are gone.
+  - The portal maps a serve view on read (`modules/research/graph.ts`, a port of the mock's builder). On the artifact's run it gives the same data, field for field; the port then draws the same web and tree, node for node.
+  - Images: a site's icon from icons.duckduckgo.com and a video still from i.ytimg.com, straight from the browser (CSP img-src). Through /media one view would cost 100+ Worker calls.
+  - Limits until WA-1157 moves the mapping into birdwatch: no page images (og), claims only from the brief's patterns.

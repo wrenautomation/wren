@@ -1446,3 +1446,5 @@ Options:
 - C, code: wren makes asks from the run's data (channel, top claims). No agent decides, against the 10-28 rule.
 
 Chosen: A. Priorities, in order: one source for every surface; the agent decides, with a why; cost. The engine part is birdwatch dev's. Wren's part: `sourceRead` and `runCard` take the run view's asks, the why shows as the ask's tip, and a click sends the ask as his turn (as the channel ask does now).
+
+Shipped in engine 0.47.0: `birdwatch add next <run> "<ask>" --why "<why>"` writes a `next` record with the agent's id. `GET /runs/:run` carries `asks: [{id, ask, why, at, from, by}]`: the latest per ask (case aside), newest first, at most 3; a fourth drops the oldest with a warning. The skill writes one to three after the stop edge, and after a pasted read. The session's choices: the name `asks` (the run row's `next` already means the next step), and latest-wins over a refusal at 3.

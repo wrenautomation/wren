@@ -1,4 +1,4 @@
-/** Birdwatch in the portal: a run's tree, sources and the web graph. Fake server: `web/src/mocks/`. */
+/** Birdwatch in the portal: the runs, one run's graph and back and forth, the web. Fake server: `web/src/mocks/`. */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { HttpResponse, http, type RequestHandler, sse, type WebSocketHandler } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
@@ -13,8 +13,11 @@ import { SERVE } from "../../modules/research/serve.js";
 const meta: Meta = { title: "Birdwatch/Research" };
 export default meta;
 
-/** The tree and the web load their drawing code late: a loaded Mac needs more than the 1 s default. */
+/** The graph and the web load their drawing code late: a loaded Mac needs more than the 1 s default. */
 const LATE = { timeout: 8000 };
+
+const DOT =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 9"><rect width="16" height="9" fill="#9aa"/></svg>';
 
 const SERVED = [
   http.get(`${SERVE}/runs`, () => HttpResponse.json({ v: 1, runs: RESEARCH_ROWS })),
@@ -33,6 +36,10 @@ const SERVED = [
     }),
   ),
   http.get(`${SERVE}/web`, () => HttpResponse.json(RESEARCH_WEB)),
+  // the graph's icons and video stills: offline, one tinted square
+  ...["https://icons.duckduckgo.com/*", "https://i.ytimg.com/*"].map((u) =>
+    http.get(u, () => new HttpResponse(DOT, { headers: { "content-type": "image/svg+xml" } })),
+  ),
   // Open and quiet: a story sends no change.
   sse(`${SERVE}/events`, () => {}),
 ];
@@ -54,19 +61,30 @@ const story = (
   };
 };
 
-/** The runs down the side; the first run's tree drawn: the ask, its facets, queries and pages. */
-export const Tree = tidy(
-  story("/research/runs", async (page) => {
+/** The runs as a list: each with its ask, where it came from, and its numbers. */
+export const Runs = story("/research/runs", async (page) => {
+  const p = within(page);
+  await p.findByRole("link", { name: /How do small bakeries find wholesale buyers/ });
+  await p.findByText(/From: How do small bakeries/);
+});
+
+/** One run opens full width as its graph: the claims web, the shelf, the summary. */
+export const Graph = tidy(
+  story("/research/runs?run=r1", async (page) => {
     const p = within(page);
-    await p.findByRole("link", { name: /How do small bakeries find wholesale buyers/ });
-    await p.findByText(/From: How do small bakeries/);
-    // The frame and the flow inside it both carry the label.
-    const [tree] = await p.findAllByLabelText(/^The run's tree: How do small bakeries/, {}, LATE);
-    if (!tree) throw new Error("no tree");
-    await waitFor(() =>
-      expect(within(tree).getByText("bakery wholesale price list margin")).toBeVisible(),
+    await p.findByRole("link", { name: "All runs" });
+    await waitFor(() => expect(page.querySelector(".rg .rg-nodes [data-n]")).not.toBeNull(), LATE);
+    await p.findAllByText(/^Samples win cafes/, {}, LATE);
+  }),
+);
+
+/** The same run as its search tree: rounds, searches, the sources each found first. */
+export const GraphTree = tidy(
+  story("/research/runs?run=r1&lay=tree", async (page) => {
+    await waitFor(
+      () => expect(page.querySelector('.rg .rg-nodes [data-n="q0"]')).not.toBeNull(),
+      LATE,
     );
-    await expect(within(tree).getByText("posts of youtube.com")).toBeVisible();
   }),
 );
 
@@ -76,19 +94,6 @@ export const BackAndForth = story("/research/runs?run=r1&tab=talk", async (page)
   await p.findByText("a vendor page");
   await p.findByText("numbers only; skip vendor pages");
   await p.findByText("the page gives no source");
-});
-
-/** Each hit with its link to check by hand, dropped ones too. */
-export const Sources = story("/research/runs?run=r1&tab=sources&hits=all", async (page) => {
-  const p = within(page);
-  await p.findByText("How I landed 12 cafe accounts");
-  await p.findByRole("link", { name: "https://www.youtube.com/watch?v=abcdefghijk" });
-  await p.findByText("Bakery software for every shop");
-  await expect(
-    p
-      .getAllByRole("link")
-      .some((a) => a.getAttribute("href")?.startsWith("https://www.reddit.com/")),
-  ).toBe(true);
 });
 
 /** serve is not running: the page says how to start it, never an empty list. */

@@ -11,11 +11,13 @@
 # blob: (img, media): the page's own bytes: a chat's file chips and the files the agent names by path,
 # read from the relay (modules/agent). Never a remote address.
 # Learn's thumbnails and audio come through our /media (src/media.ts), so img-src stays put.
+# img-src i.ytimg.com, icons.duckduckgo.com: Research's run graph draws a video's still and a site's
+# icon straight from them (modules/research/graph.ts); through /media, one view costs 100+ Worker calls.
 # A connected TikTok account's avatar is TikTok's own CDN; a post's video preview is a signed S3 link (media-src).
 # style-src hashes: the stylesheets of a site page's and a slide's preview, srcdoc frames that keep
 # this policy (test/preview-styles.test.ts names a changed one).
 /*
-  Content-Security-Policy: default-src 'self'; img-src 'self' data: blob: https://*.s3.us-east-1.amazonaws.com https://*.tiktokcdn.com https://*.tiktokcdn-us.com; media-src 'self' blob: https://*.s3.us-east-1.amazonaws.com; style-src 'self' 'sha256-3ujlhpl+EV0g5RElZhtAkAmAQtjKr3SFJ1zM+XJZslY=' 'sha256-QcvA7qH8btG+M8jA1iC9hSD+LThUanM9HZ0xqGOfTjo='; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' http://127.0.0.1:4747 http://127.0.0.1:4748 ws://127.0.0.1:4748 https://auth.wrenautomation.com https://*.s3.us-east-1.amazonaws.com https://registry.npmjs.org https://huggingface.co https://*.hf.co; frame-src 'self' https://www.youtube-nocookie.com https://www.instagram.com https://www.tiktok.com https://platform.twitter.com https://*.pages.dev; frame-ancestors 'none'; base-uri 'none'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; img-src 'self' data: blob: https://*.s3.us-east-1.amazonaws.com https://i.ytimg.com https://icons.duckduckgo.com https://*.tiktokcdn.com https://*.tiktokcdn-us.com; media-src 'self' blob: https://*.s3.us-east-1.amazonaws.com; style-src 'self' 'sha256-3ujlhpl+EV0g5RElZhtAkAmAQtjKr3SFJ1zM+XJZslY=' 'sha256-QcvA7qH8btG+M8jA1iC9hSD+LThUanM9HZ0xqGOfTjo='; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' http://127.0.0.1:4747 http://127.0.0.1:4748 ws://127.0.0.1:4748 https://auth.wrenautomation.com https://*.s3.us-east-1.amazonaws.com https://registry.npmjs.org https://huggingface.co https://*.hf.co; frame-src 'self' https://www.youtube-nocookie.com https://www.instagram.com https://www.tiktok.com https://platform.twitter.com https://*.pages.dev; frame-ancestors 'none'; base-uri 'none'; form-action 'self'
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex

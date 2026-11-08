@@ -36,6 +36,7 @@ A set has `default`, `empty`, `loading`, `failed`, `worst-case` where the part h
 | a before/after | `Diff` `diff.tsx:62` | `diff` | Tables |
 | tile sparks, trends, bars, rings | `Sparkline`, `TrendChart`, `BarsChart`, `RingChart` `charts/index.tsx:82` | `charts`, `charts-dashboard` | Charts |
 | a graph: ribbons (people as width), loops | `Graph` `graph/index.tsx:47`, `ribbonWidth` `graph/model.ts:111` | `graph-ribbons` | Motion |
+| one Birdwatch run as a graph: claim web, search tree, lanes; click a node to open it in place. Its own export `@wren/ui/research/run`; the portal maps a serve view in `modules/research/graph.ts` | `RunGraph` `research/run/graph.tsx:170` | `research-run`, `birdwatch-research--graph` | Motion |
 | the research web: runs, sources, claims as dots | `WebCanvas` `graph/index.tsx:36` | `graph-web` | Motion |
 | the metro map: lines, stations, tracks, zoom, focus, diff marks | `MetroMap` `metro/map.tsx:151` | `orrery`, `orrery-lab`, `orrery-money-models` | Motion |
 | the agent chat: a thread, its cards, the chat list | `AgentThread` `agent-thread.tsx:421`, `AgentChats` `agent-chats.tsx:34` | `agent-thread`, `agent-chats` | Lists and records |
