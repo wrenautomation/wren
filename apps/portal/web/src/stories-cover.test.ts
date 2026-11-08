@@ -24,6 +24,8 @@ type Place = { id: string; pages: { id: string; hidden?: boolean }[] };
 const pages = (places: readonly Place[]) =>
   places.flatMap((m) => {
     const first = m.pages.find((p) => !p.hidden) ?? m.pages[0];
+    // a place with no pages (the Map) is its bare address
+    if (!first) return [{ at: `/${m.id}`, bare: null }];
     return m.pages.map((p) => ({ at: `/${m.id}/${p.id}`, bare: p === first ? `/${m.id}` : null }));
   });
 const missing = (want: ReturnType<typeof pages>, have: string[]) =>

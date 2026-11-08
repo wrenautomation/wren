@@ -13,7 +13,6 @@ import { calls } from "./calls/index.js";
 import { documents } from "./documents/index.js";
 import { clientMarketing, content as oldContent } from "./marketing/index.js";
 import { CONVERSATION_TOP } from "./marketing/pages.js";
-import { offers } from "./offers/index.js";
 import { engage } from "./outreach/index.js";
 import { payments } from "./payments/index.js";
 import { clientPeople as oldClientPeople, people as oldPeople } from "./people/index.js";
@@ -107,8 +106,8 @@ const mapPlace: Module = {
   icon: "workflow",
   blurb: "What we sell and how each offer runs, on the metro map.",
   requires: TEAM,
-  find: finds(offers),
-  pages: from(offers, [{ id: "all", as: "offers" }, "terms"]),
+  // the metro map is its home (`/`); no pages under it
+  pages: [],
 };
 
 const todayPlace: Module = {

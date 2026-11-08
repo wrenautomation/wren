@@ -1,109 +1,14 @@
 /**
- * The Offers and Numbers pages' reads (`../../modules/offers`, `../../modules/numbers`, the
- * pipelines tabs) and the books pages that moved to Numbers. Synthetic: made-up offers, plans
- * and amounts. `TERMS_CALLS` keeps what "Propose version" sent, so a story can check the form.
+ * Pipeline and books reads: entries, numbers, deals, months, channels, cohorts. Synthetic:
+ * made-up offers, plans and amounts.
  */
 import type { RecorderState } from "@wren/calendar/recorder";
 import type { Row } from "@wren/core/records/serve";
 import type { Answers } from "../api.js";
 import { ago } from "./shell.js";
 
-/** The writes the terms form sent since the last `forgetTermsCalls()`. */
-export const TERMS_CALLS: Record<string, unknown>[] = [];
-export const forgetTermsCalls = () => TERMS_CALLS.splice(0);
-
 const day = (days: number) => ago(days).slice(0, 10);
 const cad = (amount: number) => ({ amount, currency: "CAD" });
-
-const terms = (
-  id: number,
-  offer: string,
-  plan: string,
-  number: number,
-  from: number,
-  state: "live" | "upcoming" | "older",
-  read: string,
-  why: string,
-): Row => ({
-  id,
-  offer,
-  plan,
-  number,
-  effectiveFrom: day(from),
-  state,
-  terms: read,
-  why,
-  createdAt: ago(Math.abs(from) + 2),
-  createdBy: "Ada North",
-});
-
-const TERMS: Row[] = [
-  terms(
-    1,
-    "starter",
-    "standard",
-    1,
-    120,
-    "older",
-    "setup 900.00 USD, 450.00 USD a month, due in 7 days",
-    "First terms.",
-  ),
-  terms(
-    2,
-    "starter",
-    "standard",
-    2,
-    30,
-    "live",
-    "setup 1,000.00 USD, 500.00 USD a month, due in 7 days",
-    "Price rose with the new scope.",
-  ),
-  terms(
-    3,
-    "starter",
-    "standard",
-    3,
-    -14,
-    "upcoming",
-    "setup 1,000.00 USD, 550.00 USD a month, due in 7 days",
-    "Hosting costs more from next month.",
-  ),
-  terms(
-    4,
-    "starter",
-    "flat",
-    1,
-    60,
-    "live",
-    "setup 2,500.00 USD, 90 days, due in 14 days",
-    "A fixed project.",
-  ),
-  terms(
-    5,
-    "growth",
-    "share",
-    1,
-    45,
-    "live",
-    "400.00 USD per unit, up to 4,000.00, due in 7 days",
-    "Pay for booked calls.",
-  ),
-];
-
-const offer = (id: string, name: string, version: number, plans: number, open: number): Row => ({
-  id,
-  name,
-  status: "live",
-  version,
-  audience: id === "starter" ? "Small trades firms" : "Local services",
-  promise: null,
-  livePlans: plans,
-  openJourneys: open,
-  hash: "9f2c41a0b7e3",
-  syncedAt: ago(20),
-  syncedBy: "Ada North",
-  why: "Synced from the registry.",
-});
 
 type SourceRow = [string, string, string, string | null, string | null, number, number, number];
 
@@ -322,8 +227,6 @@ const COHORTS: Row[] = [0, 1, 2].map((since) => ({
 
 /** The rows by record, for `recordsAnswers`. */
 export const OFFER_ROWS: Record<string, Row[]> = {
-  "pipeline.offer": [offer("starter", "Starter", 2, 2, 5), offer("growth", "Growth", 1, 1, 1)],
-  "pipeline.terms": TERMS,
   "pipeline.entry": ENTRIES,
   "pipeline.number": NUMBERS,
   "pipeline.deal": [
@@ -359,23 +262,7 @@ export const OFFER_ROWS: Record<string, Row[]> = {
   "books.cohort": COHORTS,
 };
 
-/** An offer's detail: its versions, newest first. */
-export const OFFER_DETAIL: Record<string, (row: Row) => object> = {
-  "pipeline.offer": (row) => ({
-    versions: Array.from({ length: Number(row.version) }, (_, i) => ({
-      number: Number(row.version) - i,
-      hash: "9f2c41a0b7e3",
-      why: i === 0 ? "Promise reworded." : "First version.",
-      at: ago(20 + i * 40),
-      by: "Ada North",
-    })),
-  }),
-  "pipeline.terms": () => ({
-    body: { currency: "usd", setupCents: 100_000, monthlyCents: 50_000, payDays: 7 },
-  }),
-};
-
-/** The terms form's write, as the server answers when a version is added; the calls tab's recorder. */
+/** The calls tab's recorder. */
 export const OFFER_ANSWERS: Answers = {
   "calendar/recorder": {
     recording: false,
@@ -385,8 +272,4 @@ export const OFFER_ANSWERS: Answers = {
     by: null,
     next: null,
   } satisfies RecorderState,
-  "pipeline/termsAdd": (b) => {
-    TERMS_CALLS.push(b);
-    return { offer: b.offer, plan: b.plan, version: 4, from: b.from };
-  },
 };

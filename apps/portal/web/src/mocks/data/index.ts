@@ -13,7 +13,7 @@ import { MAP_ANSWERS } from "./map.js";
 import { DRAFT_ANSWERS, draftRecords } from "./map-drafts.js";
 import { AUTO_REPLY, CADENCE, PIECES, STUDIO_WAITING } from "./marketing.js";
 import { MOVE_ROWS } from "./moves.js";
-import { OFFER_ANSWERS, OFFER_DETAIL, OFFER_ROWS } from "./offers.js";
+import { OFFER_ANSWERS, OFFER_ROWS } from "./offers.js";
 import { recordsAnswers } from "./records.js";
 import { ago, SHELL } from "./shell.js";
 import { VARIANTS_ANSWERS } from "./variants.js";
@@ -142,7 +142,7 @@ const PERSON_DETAIL = (row: Row) => ({
 const BASE: Answers = {
   ...recordsAnswers(
     { "marketing.cadence": CADENCE as unknown as Row[], ...JOURNEY_ROWS, ...OFFER_ROWS },
-    { ...JOURNEY_DETAIL, ...OFFER_DETAIL, "people.profile": PERSON_DETAIL },
+    { ...JOURNEY_DETAIL, "people.profile": PERSON_DETAIL },
     MOVE_ROWS,
   ),
   ...SHELL,

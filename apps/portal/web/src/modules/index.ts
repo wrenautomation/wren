@@ -29,6 +29,7 @@ export const appsIn = (
     const has = (c: string | undefined) => at.wren || at.team || !c || at.installed.has(c);
     if (!has(m.component)) return [];
     const pages = m.pages.filter((p) => has(p.component));
-    if (!pages.length) return [];
+    // a place with no pages by design (the Map) stays
+    if (!pages.length && m.pages.length) return [];
     return pages.length === m.pages.length ? [m] : [{ ...m, pages }];
   });

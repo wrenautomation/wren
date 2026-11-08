@@ -53,13 +53,12 @@ describe("map routes", () => {
     expect(rowOf({ kind: "plan" })).toBe("plan");
   });
 
-  it("links a step to its people, an offer to its offer too", () => {
+  it("links a step and an offer to their people", () => {
     expect(opensOf({ id: "booked", kind: "step" }, "wren", null)).toEqual([
       { label: "People", href: "/people/people?stepNode=%3Dbooked&view=journey" },
     ]);
     expect(opensOf({ id: "signed", kind: "offer" }, "wren", null).map((o) => o.href)).toEqual([
       "/people/people?stepNode=%3Dsigned&view=journey",
-      "/map/offers",
     ]);
     expect(opensOf({ id: "pay", kind: "plan" }, "client", "acme")).toEqual([
       { label: "Payments", href: "/office/pay-links?client=acme" },
@@ -82,7 +81,6 @@ describe("appsOnShape", () => {
     const on = appsOnShape(NODES, "wren");
     expect(on.get("people")?.map((n) => n.id)).toEqual(["booked", "signed"]);
     expect(on.get("office")?.map((n) => n.id)).toEqual(["pay"]);
-    expect(on.get("map")?.map((n) => n.id)).toEqual(["signed"]);
     expect(on.get("today")?.map((n) => n.id)).toEqual(["dm1"]);
     expect(on.get("campaigns")?.map((n) => n.id)).toEqual(["yt"]);
   });

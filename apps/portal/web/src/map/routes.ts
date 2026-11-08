@@ -2,7 +2,7 @@
  * Where a Map node opens: the app that manages it, one table (designs/2026-10-19-business-map.md,
  * "Map page"). A source opens Campaigns › Content for its channel, Today › DMs for an outbound DM
  * source, Ads for ads (none while ads are cut); a step and an offer open the people at that
- * node (People, "In a journey", kept to the step); an offer also opens Offers; a plan opens the
+ * node (People, "In a journey", kept to the step); a plan opens the
  * money (Pay links in a client's workspace, Money at Wren). A content line's stations open Campaigns › Content. `routes.test.ts` checks each
  * target is a real page of a real app.
  */
@@ -42,10 +42,7 @@ export const ROUTES = {
     client: [{ label: "People", app: "people", page: "people", node: true }],
   },
   offer: {
-    wren: [
-      { label: "People", app: "people", page: "people", node: true },
-      { label: "Offers", app: "map", page: "offers" },
-    ],
+    wren: [{ label: "People", app: "people", page: "people", node: true }],
     client: [{ label: "People", app: "people", page: "people", node: true }],
   },
   plan: {
