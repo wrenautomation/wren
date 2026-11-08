@@ -1,5 +1,6 @@
 /**
- * Research › History (designs/2026-11-05-research-web.md, 11-08): every weaver run as a list.
+ * Research › History (designs/2026-11-05-research-web.md, 11-08): every weaver run as a list, in
+ * folders (designs/2026-11-08-folders.md, kind "run").
  * One run opens full width as its graph (round 13: claims, sources, searches, dropped hits) and
  * the back and forth (every decision with its why and who made it). Picked runs, or all of them,
  * open on one graph. Read only: the agent and the CLI write. Live: serve sends an event per change.
@@ -7,7 +8,11 @@
 import {
   Button,
   cx,
+  dragItem,
   Empty,
+  FolderMoveMenu,
+  type FolderNode,
+  FolderTree,
   Icon,
   LoadFailed,
   Loading,
@@ -15,11 +20,13 @@ import {
   relative,
   Seg,
   StateMark,
+  UnfiledDrop,
   useRowsPick,
 } from "@wren/ui";
 import type { LayId } from "@wren/ui/research/run";
 import { type ReactNode, useMemo, useState } from "react";
 import { embedOf, embedSite, youtubeId } from "../../embeds.js";
+import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { PlayerSlot } from "../../player/index.js";
@@ -91,9 +98,10 @@ function runsIn(open: string, rows: readonly RunRow[]): string[] {
     .map((r) => r.run);
 }
 
-export function HistoryPage({ params }: PageProps) {
+export function HistoryPage({ params, team }: PageProps) {
   const here = `/${useRoute().path.join("/")}`;
   const runs = useCall("research:runs", runsOf, { kept: false });
+  const filed = useFolders("run", team);
   const rows = runs.data ?? [];
   const open = params.get("run");
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
@@ -110,6 +118,19 @@ export function HistoryPage({ params }: PageProps) {
   if (!runs.data) return <Loading shape="rows" lines={5} />;
   if (!rows.length) return <Empty>No runs in this ledger yet.</Empty>;
   const openRuns = (run: string) => navigate(href(here, { run, open: null, lay: null }, params));
+  const folders = filed.folders;
+  const row = (r: RunRow) => (
+    <RunItem
+      r={r}
+      from={r.parent ? (askOf.get(r.parent) ?? r.parent) : null}
+      to={href(here, { run: r.run, open: null }, params)}
+      picked={pick.picked(r.run)}
+      onPick={(range) => pick.toggle(r.run, range)}
+      folders={folders}
+      filed={filed}
+    />
+  );
+  const loose = folders ? rows.filter((r) => filed.folderOf(r.run) == null) : rows;
   return (
     <div className="grid min-w-0 gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -128,45 +149,90 @@ export function HistoryPage({ params }: PageProps) {
           {picked.size ? `${picked.size} picked` : "Pick runs to draw them on one graph."}
         </span>
       </div>
-      <RowsPanel<RunRow>
-        rows={rows}
-        rowKey={(r) => r.run}
-        label="runs"
-        noun="run"
-        pick={pick}
-        open={{
-          id: null,
-          onOpen: (r) => navigate(href(here, { run: r.run, open: null }, params)),
-        }}
-        name={{
-          label: "Run",
-          icon: "search",
-          title: (r) => r.ask || r.run,
-          href: (r) => href(here, { run: r.run, open: null }, params),
-          sub: (r) => (
-            <span className={cx("grid gap-0.5 text-[12px]", QUIET)}>
-              {r.parent ? (
-                <span className="wrap-anywhere whitespace-normal">
-                  From: {askOf.get(r.parent) ?? r.parent}
-                </span>
-              ) : null}
-              <span className="tabular-nums">
-                Round {r.round} · {plural(r.hits, "hit")} · {r.kept} kept · {usd(r.usd)} ·{" "}
-                {r.updated ? relative(new Date(r.updated)) : ""}
-              </span>
-            </span>
-          ),
-        }}
-        columns={[
-          {
-            key: "state",
-            label: "State",
-            icon: "selected",
-            phone: true,
-            cell: (r) => <StateMark state={stateOf(r)} />,
-          },
-        ]}
+      <div className="grid max-w-[860px] min-w-0 gap-5">
+        {folders ? (
+          <FolderTree
+            id="runs"
+            folders={folders}
+            items={rows}
+            keyOf={(r) => r.run}
+            folderOf={(r) => filed.folderOf(r.run)}
+            renderItem={row}
+            acts={filed.acts}
+            noun={(n) => (n === 1 ? "run" : "runs")}
+          />
+        ) : null}
+        <UnfiledDrop acts={filed.acts} className="grid gap-px">
+          {folders?.length && loose.length ? (
+            <h3 className="m-0 px-2.5 pb-1 text-[12px] font-medium text-(--ui-ink-3)">No folder</h3>
+          ) : null}
+          <ul className="m-0 grid list-none gap-px p-0">
+            {loose.map((r) => (
+              <li key={r.run} {...(folders ? dragItem(r.run) : {})}>
+                {row(r)}
+              </li>
+            ))}
+          </ul>
+        </UnfiledDrop>
+      </div>
+    </div>
+  );
+}
+
+/** One run: pick box, its ask (opens it), where it came from, its counts and state; ⋯ files it. */
+function RunItem({
+  r,
+  from,
+  to,
+  picked,
+  onPick,
+  folders,
+  filed,
+}: {
+  r: RunRow;
+  from: string | null;
+  to: string;
+  picked: boolean;
+  onPick: (range: boolean) => void;
+  folders: readonly FolderNode[] | null;
+  filed: ReturnType<typeof useFolders>;
+}) {
+  const ask = r.ask || r.run;
+  return (
+    <div className="group/run flex items-center gap-2.5 rounded-[8px] py-2 pr-1 pl-2.5 transition-[background-color] duration-150 hover:bg-(--ui-fill)">
+      <input
+        type="checkbox"
+        aria-label={`Pick ${ask}`}
+        checked={picked}
+        onChange={() => {}}
+        onClick={(e) => onPick(e.shiftKey)}
+        className="flex-none self-start mt-[3px]"
       />
+      <a href={to} className="min-w-0 flex-1 no-underline focus-visible:outline-offset-2">
+        <span className="block text-[13.5px]/[1.4] font-medium wrap-anywhere text-(--ui-ink)">
+          {ask}
+        </span>
+        {from ? (
+          <span className="block text-[12px] wrap-anywhere text-(--ui-ink-3)">From: {from}</span>
+        ) : null}
+        <span className="block text-[12px] text-(--ui-ink-3) tabular-nums">
+          Round {r.round} · {plural(r.hits, "hit")} · {r.kept} kept · {usd(r.usd)}
+          {r.updated ? ` · ${relative(new Date(r.updated))}` : ""}
+        </span>
+      </a>
+      <span className="flex-none text-[12.5px]">
+        <StateMark state={stateOf(r)} />
+      </span>
+      {folders ? (
+        <FolderMoveMenu
+          title={ask}
+          folders={folders}
+          current={filed.folderOf(r.run)}
+          acts={filed.acts}
+          itemKey={r.run}
+          className="opacity-0 group-hover/run:opacity-100 group-focus-within/run:opacity-100 data-[popup-open]:opacity-100 pointer-coarse:opacity-100"
+        />
+      ) : null}
     </div>
   );
 }

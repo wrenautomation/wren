@@ -2,8 +2,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { HttpResponse, http, type RequestHandler, sse, type WebSocketHandler } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import { freshStory } from "../../mocks/api.js";
 import COMMANDS from "../../mocks/data/agent/commands.json";
 import SETUPS from "../../mocks/data/agent/setups.json";
+import { resetFolders } from "../../mocks/data/folders.js";
 import { ADMIN } from "../../mocks/data/me.js";
 import { RESEARCH_ROWS, RESEARCH_VIEW } from "../../mocks/data/research.js";
 import { pageAt, tidy } from "../../mocks/page.js";
@@ -61,10 +63,27 @@ const story = (
   };
 };
 
-/** The runs as a list: each with its ask, where it came from, and its numbers. */
-export const History = story("/research/history", async (page) => {
+const folderStory = (check: (page: HTMLElement) => Promise<void>): StoryObj => ({
+  ...story("/research/history", check),
+  beforeEach: () => {
+    resetFolders();
+    freshStory();
+  },
+});
+
+/** The runs as a list: folders first (Bakeries holds a run), then the runs in no folder. */
+export const History = folderStory(async (page) => {
   const p = within(page);
+  await p.findByRole("button", { name: /^Bakeries/ }, LATE);
+  await expect(p.getByRole("heading", { name: "No folder" })).toBeTruthy();
   await p.findByRole("link", { name: /How do small bakeries find wholesale buyers/ });
+});
+
+/** A folder opened: its run shows in it, with where it came from and its numbers. */
+export const HistoryFolderOpen = folderStory(async (page) => {
+  const p = within(page);
+  await userEvent.click(await p.findByRole("button", { name: /^Bakeries/ }, LATE));
+  await p.findByRole("link", { name: /Which cafes buy pastries/ });
   await p.findByText(/From: How do small bakeries/);
 });
 

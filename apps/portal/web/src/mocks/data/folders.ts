@@ -26,6 +26,7 @@ const START = {
     { kind: "chat", ref: "00000000-0000-4000-8000-000000000001", folder: 2 },
     { kind: "subject", ref: "1", folder: 1 },
     { kind: "subject", ref: "4", folder: 4 },
+    { kind: "run", ref: "r2", folder: 1 },
   ] as Filed[],
 };
 
