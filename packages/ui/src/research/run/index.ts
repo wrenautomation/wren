@@ -1,4 +1,11 @@
 /** The run graph, its own entry: d3 and its CSS load only where a page draws it. */
+export {
+  type NextAsk,
+  RunCard,
+  type RunCardProps,
+  SourceCard,
+  type SourceRead,
+} from "./card.js";
 export { LAYS, type LayId, type Pick, RunGraph, type RunGraphProps } from "./graph.js";
 export type {
   Evidence,

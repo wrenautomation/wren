@@ -1,18 +1,41 @@
 /**
- * Birdwatch in the agent chat (WA-1123), a draft for William: the three jobs he named (read one
- * source, research its channel, a standard run) as cards made of the graph's parts.
+ * Birdwatch in the agent chat (WA-1123): a run draws as the Research page's own graph in card mode;
+ * one read source as its findings. Same data as the page (`RunGraphData`).
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { type AgentMessage, type AgentPart, AgentThread } from "../agent-thread.js";
-import { CHANNEL_RUN, LIVE_RUN, ORDER_RUN, REEL_READ, WORST_RUN } from "../fixtures/index.js";
-import { RESEARCH_VIEWS } from "./chat.js";
+import { Say } from "../../agent-cards.js";
+import {
+  type AgentMessage,
+  type AgentPart,
+  AgentThread,
+  type AgentViews,
+} from "../../agent-thread.js";
+import {
+  REEL_READ,
+  RUN_ASKS,
+  RUN_GRAPH,
+  RUN_GRAPH_EMPTY,
+  RUN_GRAPH_ONE_ROUND,
+  RUN_GRAPH_WORST,
+} from "../../fixtures/index.js";
+import { RunCard, type RunCardProps, SourceCard, type SourceRead } from "./card.js";
 
 export default {
   title: "Parts/Birdwatch in the chat",
   id: "research-chat",
 } satisfies Meta;
+
+/** the portal's views table, as `modules/research/chat-card.tsx` draws them */
+const VIEWS: AgentViews = {
+  "research.run": function RunView({ data }) {
+    return <RunCard {...(data as RunCardProps)} onAsk={useContext(Say)} />;
+  },
+  "research.source": function SourceView({ data }) {
+    return <SourceCard read={data as SourceRead} onAsk={useContext(Say)} />;
+  },
+};
 
 type Story = StoryObj;
 
@@ -43,11 +66,11 @@ const reply = (id: string, parts: AgentPart[], live = false): AgentMessage => ({
 function Chat({ messages, running = false }: { messages: AgentMessage[]; running?: boolean }) {
   const [turns, setTurns] = useState(messages);
   return (
-    <div className="h-[720px] bg-(--ui-paper)">
+    <div className="h-[880px] bg-(--ui-paper)">
       <AgentThread
         messages={turns}
         running={running}
-        views={RESEARCH_VIEWS}
+        views={VIEWS}
         onSend={(text) => setTurns((m) => [...m, you(`u${m.length}`, text)])}
         onStop={() => {}}
         onAnswer={(id, allow, answers) =>
@@ -135,103 +158,54 @@ export const OneSource: Story = {
   },
 };
 
-/** A run on the reel's whole channel: the islands are the channel, its comments, channels like it. */
-export const Channel: Story = {
-  render: () => (
-    <Chat
-      messages={[
-        you("u1", "Research the whole channel"),
-        reply("a1", [
-          step(
-            "t1",
-            "birdwatch run 'Mara Bakes: what the channel does'",
-            "Read the channel",
-            '{"run":"r-54"}',
-          ),
-          {
-            type: "text",
-            text: "The channel repeats three moves. Each one has findings from more than one video.",
-          },
-          { type: "view", id: "v1", name: "research.run", data: CHANNEL_RUN },
-        ]),
-      ]}
-    />
-  ),
-};
+const run = (data: RunCardProps): AgentPart => ({
+  type: "view",
+  id: "v1",
+  name: "research.run",
+  data: { href: "#research/runs?run=r-52", ...data },
+});
 
-/** A standard run, done. A claim row lights its sources in the graph and opens its findings. */
-export const Answered: Story = {
+/** A standard run, done: the page's graph; a next ask goes as his turn. */
+export const Default: Story = {
   render: () => (
     <Chat
       messages={[
-        you("u1", "What does online ordering cost a small bakery?"),
+        you("u1", "How do small shops price custom cakes?"),
         reply("a1", [
-          step(
-            "t1",
-            "birdwatch run 'Bakeries: what online ordering costs them'",
-            "Run the research",
-            '{"run":"r-52"}',
-          ),
+          step("t1", "birdwatch brief r-52", "Write the brief", '{"claims":7}'),
           {
             type: "text",
-            text: "Fees and stock are the two costs owners name most. Four claims hold, each from more than one source.",
+            text: "Per serving pricing and deposits hold across most sources. Seven claims, each from more than one source.",
           },
-          { type: "view", id: "v1", name: "research.run", data: ORDER_RUN },
+          run({ run: RUN_GRAPH, asks: RUN_ASKS }),
         ]),
       ]}
     />
   ),
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
-    const row = await c.findByRole("button", { name: /Claim 2: Marketplace fees/ });
-    await userEvent.click(row);
-    const open = await c.findByRole("region", { name: "Claim 2" });
-    await expect(within(open).getByText(/27% of each marketplace order/)).toBeVisible();
-    await expect(row).toHaveAttribute("aria-pressed", "true");
-    // a next ask carries its why as the tip and goes as his turn
-    const ask = c.getByRole("button", { name: "Compare order page tools on pickup slots" });
-    await expect(ask).toHaveAttribute("title", expect.stringMatching(/Claim 3/));
+    const card = await c.findByRole("article", { name: /Birdwatch run/ });
+    await waitFor(() => expect(card.querySelector(".rg-nodes [data-n]")).not.toBeNull());
+    const name = RUN_ASKS[0]?.ask ?? "";
+    const ask = c.getByRole("button", { name });
+    await expect(ask).toHaveAttribute("title", expect.stringMatching(/Claim 2/));
     await userEvent.click(ask);
-    await waitFor(() =>
-      expect(c.getAllByText("Compare order page tools on pickup slots").length).toBe(2),
-    );
+    await waitFor(() => expect(c.getAllByText(name).length).toBe(2));
   },
 };
 
-/** A source picked from the sources list: its findings, each with the claim that uses it. */
-export const SourcePicked: Story = {
-  render: () => (
-    <Chat
-      messages={[
-        you("u1", "Which source says the most?"),
-        reply("a1", [
-          { type: "text", text: "The Proof Room. Five of its findings are in a claim." },
-          { type: "view", id: "v1", name: "research.run", data: ORDER_RUN },
-        ]),
-      ]}
-    />
-  ),
-  play: async ({ canvasElement }) => {
-    const c = within(canvasElement);
-    await userEvent.click(await c.findByText("18 sources"));
-    await userEvent.click(await c.findByRole("button", { name: /The Proof Room/ }));
-    const open = await c.findByRole("region", { name: "The Proof Room" });
-    await expect(within(open).getAllByRole("button", { name: /claim \d/ }).length).toBe(5);
-  },
-};
-
-/** A run that still reads: sources fill in, no claims yet. */
+/** A run that still reads: one round so far. */
 export const Live: Story = {
   render: () => (
     <Chat
       running
       messages={[
-        you("u1", "What does online ordering cost a small bakery?"),
+        you("u1", "How do small shops price custom cakes?"),
         reply(
           "a1",
           [
-            step("t1", "birdwatch plan", "Plan 3 questions and 6 searches", '{"questions":3}'),
-            { type: "view", id: "v1", name: "research.run", data: LIVE_RUN },
+            step("t1", "birdwatch plan", "Plan 3 questions and 4 searches", '{"questions":3}'),
+            run({ run: RUN_GRAPH_ONE_ROUND, live: true }),
           ],
           true,
         ),
@@ -240,19 +214,47 @@ export const Live: Story = {
   ),
 };
 
-/** 60 sources, 9 long claims, long names: nothing leaves the card. */
+/** A run with no searches yet. */
+export const Empty: Story = {
+  render: () => (
+    <Chat
+      running
+      messages={[
+        you("u1", "How do small shops price custom cakes?"),
+        reply("a1", [run({ run: RUN_GRAPH_EMPTY, live: true })], true),
+      ]}
+    />
+  ),
+};
+
+export const Loading: Story = {
+  render: () => <Chat messages={[you("u1", "Open run r-52."), reply("a1", [run({})])]} />,
+};
+
+export const Failed: Story = {
+  render: () => (
+    <Chat
+      messages={[
+        you("u1", "Open run r-52."),
+        reply("a1", [run({ failed: "birdwatch serve stopped answering." })]),
+      ]}
+    />
+  ),
+};
+
+/** 140 sources, 5 rounds, long names: nothing leaves the card. */
 export const WorstCase: Story = {
   render: () => (
     <Chat
       messages={[
         you("u1", "Run the large one."),
-        reply("a1", [{ type: "view", id: "v1", name: "research.run", data: WORST_RUN }]),
+        reply("a1", [run({ run: RUN_GRAPH_WORST, asks: RUN_ASKS })]),
       ]}
     />
   ),
   play: async ({ canvasElement }) => {
-    const card = await within(canvasElement).findByRole("article");
-    await waitFor(() => expect(card.querySelector("svg[role=img]")).not.toBeNull());
+    const card = await within(canvasElement).findByRole("article", { name: /Birdwatch run/ });
+    await waitFor(() => expect(card.querySelector(".rg-nodes [data-n]")).not.toBeNull());
     await expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth + 1);
   },
 };

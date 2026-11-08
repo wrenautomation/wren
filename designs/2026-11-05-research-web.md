@@ -222,3 +222,11 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - The portal maps a serve view on read (`modules/research/graph.ts`, a port of the mock's builder). On the artifact's run it gives the same data, field for field; the port then draws the same web and tree, node for node.
   - Images: a site's icon from icons.duckduckgo.com and a video still from i.ytimg.com, straight from the browser (CSP img-src). Through /media one view would cost 100+ Worker calls.
   - Limits until WA-1157 moves the mapping into birdwatch: no page images (og), claims only from the brief's patterns.
+- 11-08: the chat card draws the page's graph (WA-1123). William 11-06: the chat cards reuse the graph's parts.
+  - Options, ranked by one model of a run, the same view in chat and page, chat weight:
+    - A. `RunGraph` in card mode: no run head, summary, key or table; a 460px stage; the head links the page. One model (`RunGraphData`), no new drawing code.
+    - B. Counts and claims only, plus "Open in Research". Light; no graph in the chat.
+    - C. Keep the draft card and restyle it. A second model of a run (`research/model.ts`) and a second graph; stale.
+    - Chosen: A. Wheel zoom needs ctrl or cmd, so the chat still scrolls.
+  - Deleted: `packages/ui/src/research/{cards,chat,graph,layout,model}`. One source read alone stays a findings list (`SourceCard`).
+  - Stories `research-chat--…`: `scope`, `one-source`, `default`, `live`, `empty`, `loading`, `failed`, `worst-case`.

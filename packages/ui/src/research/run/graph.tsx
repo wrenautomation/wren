@@ -64,9 +64,11 @@ export interface RunGraphProps {
   /** controlled layout, for a host that keeps it in the url */
   lay?: LayId | undefined;
   onLay?: (l: LayId) => void;
+  /** in a chat card: no run head, summary, key or table; a shorter stage */
+  card?: boolean | undefined;
 }
 
-export function RunGraph({ run, failed, lay, onLay }: RunGraphProps) {
+export function RunGraph({ run, failed, lay, onLay, card }: RunGraphProps) {
   if (failed)
     return (
       <Empty title="This run didn't load">
@@ -74,17 +76,19 @@ export function RunGraph({ run, failed, lay, onLay }: RunGraphProps) {
       </Empty>
     );
   if (!run) return <Loading shape="cards" lines={3} heading label="Loading the run" />;
-  return <Graph key={run.rid} run={run} lay={lay} onLay={onLay} />;
+  return <Graph key={run.rid} run={run} lay={lay} onLay={onLay} card={card} />;
 }
 
 function Graph({
   run,
   lay: layP,
   onLay,
+  card,
 }: {
   run: RunGraphData;
   lay?: LayId | undefined;
   onLay?: ((l: LayId) => void) | undefined;
+  card?: boolean | undefined;
 }) {
   const L = useMemo(() => indexRun(run), [run]);
   const [layS, setLayS] = useState<LayId>(layP ?? "web");
@@ -941,7 +945,7 @@ function Graph({
   const empty = !L.nodes.length && !L.run.searches.length;
 
   return (
-    <div className="rg">
+    <div className={cls("rg", card && "card")}>
       <div className="bar lk">
         <span className="grp">
           <span className="lb">Layout</span>
@@ -966,7 +970,7 @@ function Graph({
           </div>
         </span>
       </div>
-      <p className="lookcap">{LAYS.find((l) => l.id === lay)?.key}</p>
+      {card ? null : <p className="lookcap">{LAYS.find((l) => l.id === lay)?.key}</p>}
       <div className="bar">
         <span className="sp" />
         {L.rounds.length > 1 ? (
@@ -1033,23 +1037,28 @@ function Graph({
           </button>
         </span>
       </div>
-      <div className="runhead">
-        <h3>{L.run.t}</h3>
-        {L.run.note ? <p>{L.run.note}</p> : null}
-        <p className="mt">
-          {L.run.meta ? `${L.run.meta} · ` : ""}
-          {pl(L.rounds.length, "round")} · {pl(L.run.searches.length, "search")} · {f.hits} hits,{" "}
-          {f.kept} kept, {f.read} read, {pl(f.findings, "finding")}, {pl(f.claims, "claim")}
-        </p>
-      </div>
-      <Summary
-        L={L}
-        hole={hole}
-        setHole={(h) => {
-          if (pick) setPick(null);
-          setHole(h === hole ? null : h);
-        }}
-      />
+      {card ? null : (
+        <>
+          <div className="runhead">
+            <h3>{L.run.t}</h3>
+            {L.run.note ? <p>{L.run.note}</p> : null}
+            <p className="mt">
+              {L.run.meta ? `${L.run.meta} · ` : ""}
+              {pl(L.rounds.length, "round")} · {pl(L.run.searches.length, "search")} · {f.hits}{" "}
+              hits, {f.kept} kept, {f.read} read, {pl(f.findings, "finding")},{" "}
+              {pl(f.claims, "claim")}
+            </p>
+          </div>
+          <Summary
+            L={L}
+            hole={hole}
+            setHole={(h) => {
+              if (pick) setPick(null);
+              setHole(h === hole ? null : h);
+            }}
+          />
+        </>
+      )}
       {/* biome-ignore lint/a11y/useSemanticElements: a positioned stage, not a form group; it delegates the marks' clicks and keys */}
       <div
         ref={stageRef}
@@ -1112,41 +1121,43 @@ function Graph({
           {pick ? <PanelBody key={JSON.stringify(pick)} c={panelCtx} p={pick} /> : null}
         </aside>
       </div>
-      <Key lay={lay} />
-      <Table
-        L={L}
-        F={F}
-        picked={!!pick}
-        sort={sort}
-        onSort={(k) =>
-          setSort([
-            k,
-            sort[0] === k ? -sort[1] : k === "name" || k === "kind" || k === "r" ? 1 : -1,
-          ])
-        }
-        onHover={(id) => {
-          if (pick) return;
-          const h: Pick | null = id == null ? null : { t: "s", id };
-          if (!same(h, hover)) setHover(h);
-        }}
-        onPick={(n) => {
-          if (late(n)) setRound(0);
-          stageRef.current?.scrollIntoView({
-            block: "nearest",
-            behavior: reduced() ? "auto" : "smooth",
-          });
-          // a source tucked behind "+N more" opens its group first
-          if (lay === "lanes" && !n.nc && n.s.kept) setOpen((o) => new Set(o).add(`k${n.k}`));
-          if (lay === "tree") {
-            const q = L.run.searches
-              .slice()
-              .sort((a, b) => a.r - b.r || a.i - b.i)
-              .find((x) => x.ss.includes(n.id));
-            if (q) setOpen((o) => new Set(o).add(`q${q.i}`));
+      {card ? null : <Key lay={lay} />}
+      {card ? null : (
+        <Table
+          L={L}
+          F={F}
+          picked={!!pick}
+          sort={sort}
+          onSort={(k) =>
+            setSort([
+              k,
+              sort[0] === k ? -sort[1] : k === "name" || k === "kind" || k === "r" ? 1 : -1,
+            ])
           }
-          setPick({ t: "s", id: n.id }, true);
-        }}
-      />
+          onHover={(id) => {
+            if (pick) return;
+            const h: Pick | null = id == null ? null : { t: "s", id };
+            if (!same(h, hover)) setHover(h);
+          }}
+          onPick={(n) => {
+            if (late(n)) setRound(0);
+            stageRef.current?.scrollIntoView({
+              block: "nearest",
+              behavior: reduced() ? "auto" : "smooth",
+            });
+            // a source tucked behind "+N more" opens its group first
+            if (lay === "lanes" && !n.nc && n.s.kept) setOpen((o) => new Set(o).add(`k${n.k}`));
+            if (lay === "tree") {
+              const q = L.run.searches
+                .slice()
+                .sort((a, b) => a.r - b.r || a.i - b.i)
+                .find((x) => x.ss.includes(n.id));
+              if (q) setOpen((o) => new Set(o).add(`q${q.i}`));
+            }
+            setPick({ t: "s", id: n.id }, true);
+          }}
+        />
+      )}
     </div>
   );
 }

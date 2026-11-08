@@ -10,16 +10,11 @@ describe("a run as its chat card", () => {
     expect(runOf(null)).toBeNull();
   });
 
-  it("groups pages into sources and counts kept and cut findings", () => {
+  it("draws the page's graph data, links the run's page", () => {
     const row = RESEARCH_ROWS.find((r) => r.run === RESEARCH_VIEW.run) ?? null;
     const card = runCard(RESEARCH_VIEW, row);
-    expect(card.name).toBe(row?.ask);
-    expect(card.pages).toBe(RESEARCH_VIEW.documents.length);
-    expect(card.claims).toEqual([]);
-    const kept = RESEARCH_VIEW.findings.filter((f) => f.kept).length;
-    expect(card.sources.reduce((a, s) => a + s.findings.length, 0)).toBe(kept);
-    expect(card.sources.reduce((a, s) => a + s.cut, 0)).toBe(RESEARCH_VIEW.findings.length - kept);
-    expect(new Set(card.sources.map((s) => s.id)).size).toBe(card.sources.length);
+    expect(card.run?.t).toBe(row?.ask);
+    expect(card.run?.funnel.read).toBe(RESEARCH_VIEW.documents.length);
     expect(card.href).toBe(`/research/runs?run=${RESEARCH_VIEW.run}`);
   });
 
@@ -34,8 +29,9 @@ describe("a run as its chat card", () => {
       findings: RESEARCH_VIEW.findings.filter((f) => f.document === d.id),
     };
     const read = sourceRead(one);
-    expect(read?.source.name).toBe(d.title);
-    expect(read?.source.findings.length).toBe(one.findings.filter((f) => f.kept).length);
+    expect(read?.name).toBe(d.title);
+    expect(read?.findings.length).toBe(one.findings.filter((f) => f.kept).length);
+    expect(read?.cut).toBe(one.findings.filter((f) => !f.kept).length);
   });
 
   it("shows the agent's next asks with their why; a channel ask joins once", () => {

@@ -6,7 +6,7 @@
 export { LOOP_EDGES, RIBBON_EDGES, RIBBON_NODES, wideGraph } from "./graph.js";
 export { answer, fails, pending } from "./load.js";
 export { pageOf } from "./records.js";
-export { CHANNEL_RUN, LIVE_RUN, ORDER_RUN, REEL_READ, WORST_RUN } from "./research.js";
+export { REEL_READ, RUN_ASKS } from "./research.js";
 export {
   fakeRunGraph,
   RUN_GRAPH,

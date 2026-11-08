@@ -3,14 +3,8 @@
  * card reads the run from `birdwatch serve`, so no data passes through the model and the card
  * follows the ledger live (designs/2026-11-05-research-web.md, Log 11-05).
  */
-import {
-  AgentSay,
-  type AgentViews,
-  LoadFailed,
-  Loading,
-  ResearchRunCard,
-  ResearchSourceCard,
-} from "@wren/ui";
+import { AgentSay, type AgentViews, LoadFailed, Loading } from "@wren/ui";
+import { RunCard, SourceCard } from "@wren/ui/research/run";
 import { useContext, useState } from "react";
 import { useCall } from "../../load.js";
 import { runCard, runOf, sourceRead } from "./card.js";
@@ -35,9 +29,9 @@ function RunRef({ data }: { data: unknown }) {
   if (!got.data) return <Loading shape="rows" lines={3} />;
   const one = sourceRead(got.data);
   return one ? (
-    <ResearchSourceCard read={one} onAsk={say} />
+    <SourceCard read={one} onAsk={say} />
   ) : (
-    <ResearchRunCard run={runCard(got.data, row)} onAsk={say} />
+    <RunCard {...runCard(got.data, row)} onAsk={say} />
   );
 }
 

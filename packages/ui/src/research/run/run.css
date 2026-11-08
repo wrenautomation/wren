@@ -161,6 +161,11 @@
   user-select: none;
   -webkit-user-select: none;
 }
+/* in a chat card; beats the narrow 690px */
+.rg.card .rg-stage {
+  height: 460px;
+  min-height: 0;
+}
 .rg .rg-stage.drag {
   cursor: grabbing;
 }
