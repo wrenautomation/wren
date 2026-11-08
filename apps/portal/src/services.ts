@@ -58,6 +58,11 @@ import {
   DOCUMENTS_CONSOLE_WRITES,
 } from "@wren/documents/console-routes";
 import {
+  FOLDERS_CONSOLE_APPS,
+  FOLDERS_CONSOLE_ROUTES,
+  FOLDERS_CONSOLE_WRITES,
+} from "@wren/folders/console-routes";
+import {
   PAYMENTS_CONSOLE_APPS,
   PAYMENTS_CONSOLE_ROUTES,
   PAYMENTS_CONSOLE_WRITES,
@@ -184,6 +189,13 @@ export const SERVICES: Readonly<Record<string, Service>> = {
     VARIANTS_CONSOLE_ROUTES,
     VARIANTS_CONSOLE_APPS,
     VARIANTS_CONSOLE_WRITES,
+  ),
+  // One folder tree for chats, subjects and runs.
+  folders: service(
+    "FoldersConsole",
+    FOLDERS_CONSOLE_ROUTES,
+    FOLDERS_CONSOLE_APPS,
+    FOLDERS_CONSOLE_WRITES,
   ),
   // Clients' health and flags: Wren's rating, an override, a flag's owner and state.
   health: service(

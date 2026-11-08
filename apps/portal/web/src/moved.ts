@@ -104,6 +104,7 @@ export const CLIENT_MOVED: Readonly<Record<string, string>> = {
   "/reactivation/welcome": "/project/welcome",
   "/variants/catalog": "/variants/batches",
   "/variants/pick": "/variants/batches",
+  "/variants/projects": "/variants/subjects",
   "/work/contract": "/office/contract",
   "/work/deliverables": "/project/deliverables",
   "/work/needs-you": "/today/needs-you",

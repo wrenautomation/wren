@@ -63,6 +63,7 @@ export default defineConfig({
     "../pipeline/src/views.ts",
     "../connectors/src/schema.ts",
     "../documents/src/schema.ts",
+    "../folders/src/schema.ts",
   ],
   out: "./drizzle",
   casing: "snake_case",

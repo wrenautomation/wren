@@ -2,19 +2,24 @@
  * Variants, its own app (designs/2026-11-05-variants.md). `MarkBatch`: one open batch, every
  * sample whole and blind; Amazing / Good / Bad, notes on a line, a region or a moment, then Hand
  * to Vireo: the batch closes and the side chat takes a turn that points at it (`agent/drive.ts`).
- * Batches: `./batches.tsx`, the open ones marked there. Projects (a vireo subject each): batches, good rate,
+ * Batches: `./batches.tsx`, the open ones marked there. Subjects (in folders): batches, good rate,
  * guides under test. The agent writes through `wren variants`; these pages only judge.
  */
 import {
   Button,
   cx,
+  dragItem,
   Empty,
+  FolderMoveMenu,
+  type FolderNode,
+  FolderTree,
   Icon,
   LoadFailed,
   Loading,
   Seg,
   Tag,
   Textarea,
+  UnfiledDrop,
   useEdit,
 } from "@wren/ui";
 import { verdictOf } from "@wrenautomation/vireo/calls";
@@ -22,6 +27,7 @@ import { footageLength } from "@wrenautomation/vireo/sync";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { call } from "../../api.js";
+import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
@@ -458,37 +464,110 @@ export function SampleCard({
   return staged ? createPortal(card, document.body) : card;
 }
 
-export function SubjectsPage({ params }: PageProps) {
+export function SubjectsPage({ params, team }: PageProps) {
   const got = useCall("variants-subjects", () => call<SubjectRow[]>("variants/subjects", {}));
+  const filed = useFolders("subject", team);
   const pick = Number(params.get("subject")) || null;
   const setPick = (id: number | null) =>
-    navigate(href("/variants/projects", { subject: id }, params));
+    navigate(href("/variants/subjects", { subject: id }, params));
   if (pick != null) return <SubjectDetail id={pick} params={params} onBack={() => setPick(null)} />;
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading />;
   if (!got.data.length)
-    return <Empty title="No projects yet">Ask the agent in chat: “start variants for …”.</Empty>;
+    return <Empty title="No subjects yet">Ask the agent in chat: “start variants for …”.</Empty>;
+  const rows = got.data;
+  const folders = filed.folders;
+  const folderOf = (s: SubjectRow) => filed.folderOf(String(s.id));
+  const row = (s: SubjectRow) => (
+    <SubjectItem s={s} onOpen={() => setPick(s.id)} folders={folders} filed={filed} />
+  );
+  if (!folders)
+    return (
+      <ul className="m-0 grid max-w-[760px] list-none gap-px p-0">
+        {rows.map((s) => (
+          <li key={s.id}>{row(s)}</li>
+        ))}
+      </ul>
+    );
+  const loose = rows.filter((s) => folderOf(s) == null);
   return (
-    <ul className="m-0 flex list-none flex-col p-0">
-      {got.data.map((s) => (
-        <li key={s.id}>
-          <button
-            type="button"
-            onClick={() => setPick(s.id)}
-            className="flex w-full cursor-pointer items-center gap-3 border-b border-(--ui-hair) px-1 py-3 text-left hover:bg-(--ui-hover)"
-          >
-            <span className="min-w-0 flex-1">
-              <span className="block text-[14px] font-semibold text-(--ui-ink)">{s.name}</span>
-              <span className="block text-[12px] text-(--ui-ink-3)">
-                {s.kind} · {s.samples} samples · {s.kept} kept
-                {s.toPick ? ` · ${s.toPick} open` : ""}
-              </span>
-            </span>
-            <Icon name="right" size={14} />
-          </button>
-        </li>
-      ))}
-    </ul>
+    <div className="grid max-w-[760px] gap-5">
+      <FolderTree
+        id="subjects"
+        folders={folders}
+        items={rows}
+        keyOf={(s) => String(s.id)}
+        folderOf={folderOf}
+        renderItem={row}
+        acts={filed.acts}
+        noun={(n) => (n === 1 ? "subject" : "subjects")}
+      />
+      <UnfiledDrop acts={filed.acts} className="grid gap-px">
+        {folders.length > 0 && loose.length > 0 && (
+          <h3 className="m-0 px-2.5 pb-1 text-[12px] font-medium text-(--ui-ink-3)">No folder</h3>
+        )}
+        <ul className="m-0 grid list-none gap-px p-0">
+          {loose.map((s) => (
+            <li key={s.id} {...dragItem(String(s.id))}>
+              {row(s)}
+            </li>
+          ))}
+        </ul>
+      </UnfiledDrop>
+    </div>
+  );
+}
+
+/** One subject: its name and counts; with folders, its ⋯ files it. */
+function SubjectItem({
+  s,
+  onOpen,
+  folders,
+  filed,
+}: {
+  s: SubjectRow;
+  onOpen: () => void;
+  folders: readonly FolderNode[] | null;
+  filed: ReturnType<typeof useFolders>;
+}) {
+  return (
+    <div className="group/subject relative">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex w-full cursor-pointer items-center gap-3 rounded-[8px] border-0 bg-transparent py-2 pr-2.5 pl-3 text-left transition-[background-color] duration-150 hover:bg-(--ui-fill) focus-visible:outline-offset-[-2px]"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13.5px]/[1.4] font-medium wrap-anywhere text-(--ui-ink)">
+            {s.name}
+          </span>
+          <span className="block text-[12px] text-(--ui-ink-3) tabular-nums">
+            <span className="capitalize">{s.kind}</span> · {s.samples} samples · {s.kept} kept
+            {s.toPick ? ` · ${s.toPick} open` : ""}
+          </span>
+        </span>
+        <Icon
+          name="right"
+          size={14}
+          className={cx(
+            "flex-none text-(--ui-ink-3)",
+            // ⋯ takes its place on hover
+            folders &&
+              "transition-opacity duration-150 group-hover/subject:opacity-0 group-focus-within/subject:opacity-0 pointer-coarse:opacity-0",
+          )}
+        />
+      </button>
+      {folders ? (
+        <FolderMoveMenu
+          title={s.name}
+          folders={folders}
+          current={filed.folderOf(String(s.id))}
+          acts={filed.acts}
+          itemKey={String(s.id)}
+          className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/subject:opacity-100 group-focus-within/subject:opacity-100 data-[popup-open]:opacity-100 pointer-coarse:opacity-100"
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -532,7 +611,7 @@ function SubjectDetail({
       <div className="flex flex-col gap-1">
         <div>
           <Button size="dense" tone="quiet" icon="left" onClick={onBack}>
-            Projects
+            Subjects
           </Button>
         </div>
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
@@ -596,7 +675,7 @@ function SubjectDetail({
           <Textarea
             rows={1}
             {...tip.field}
-            placeholder="A tip to test on this project"
+            placeholder="A tip to test on this subject"
             className="flex-1"
           />
           <Button onClick={add} disabled={!tip.value.trim()}>

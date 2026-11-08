@@ -61,11 +61,20 @@ export async function readyFile(setup: string, token: string, file: File): Promi
   return [line(path)];
 }
 
-/** A turn on the wire: words first (the CLI titles the chat from them), then the page, then files. */
-export function turnContent(text: string, files: readonly AgentSent[], page?: string): Wire[] {
+/**
+ * A turn on the wire: words first (the CLI titles the chat from them), then the page, the chat's
+ * own id (so the agent can file it: `folders file chat`), then files.
+ */
+export function turnContent(
+  text: string,
+  files: readonly AgentSent[],
+  page?: string,
+  chat?: string,
+): Wire[] {
   return [
     ...(text ? [{ type: "text" as const, text }] : []),
     ...(page ? [{ type: "text" as const, text: `[Page: ${page}]` }] : []),
+    ...(chat ? [{ type: "text" as const, text: `[Chat: ${chat}]` }] : []),
     ...files.flatMap((f) => f.data as Wire[]),
   ];
 }

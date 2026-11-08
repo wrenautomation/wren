@@ -313,6 +313,8 @@ function userFrame(s0: ThreadState, f: Frame, t: number): ThreadState {
 
 const PAGE_LINE = /^\[Page: (.+)\]$/;
 const FILE_LINE = /^\[Attached: (.+)\]$/;
+/** The chat's own id, for the agent only. */
+const CHAT_LINE = /^\[Chat: [\w-]+\]$/;
 const baseName = (p: string) => p.split("/").pop() || p;
 
 /**
@@ -337,6 +339,7 @@ export function storedTurn(content: unknown): { parts: AgentPart[]; words: strin
       const fl = FILE_LINE.exec(t);
       open = null;
       if (pg) page = pg[1];
+      else if (CHAT_LINE.test(t)) continue;
       else if (fl) {
         const name = baseName(fl[1] ?? "");
         open = { name, kind: fileKind("", name) };

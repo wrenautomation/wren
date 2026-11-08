@@ -5,6 +5,7 @@
  */
 import { AgentChats, Alert, Button, cx, Empty, Loading, Seg } from "@wren/ui";
 import { useState } from "react";
+import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate, useRoute } from "../../route.js";
@@ -13,7 +14,7 @@ import { relaySessions, relaySetups } from "../agent/connect.js";
 import { closeText } from "../agent/thread.js";
 import { pageToken } from "../agent/use-agent.js";
 
-export function AskPage({ params, who }: PageProps) {
+export function AskPage({ params, who, team }: PageProps) {
   const here = `/${useRoute().path.join("/")}`;
   const setups = useCall("agent:setups", () => relaySetups(), { kept: false });
   const mine = (setups.data ?? []).filter((s) => s.app === "research");
@@ -23,6 +24,7 @@ export function AskPage({ params, who }: PageProps) {
   const sessions = useCall(setup ? `agent:sessions:${setup.name}` : null, async () =>
     relaySessions(setup?.name ?? "", await pageToken()),
   );
+  const filed = useFolders("chat", team);
   const go = (p: Record<string, string | null>, replace = false) =>
     navigate(href(here, p, params), replace);
   // narrow windows: the list folds so the chat keeps the screen
@@ -77,6 +79,11 @@ export function AskPage({ params, who }: PageProps) {
               open={chat}
               hrefOf={(r) => href(here, { chat: r.session }, params)}
               onOpen={(r) => navigate(href(here, { chat: r.session }, params))}
+              folders={
+                filed.folders
+                  ? { id: `chats:${setup.name}`, ...filed, folders: filed.folders }
+                  : undefined
+              }
             />
           ) : (
             <p className="m-0 px-2 text-[13px] text-(--ui-ink-3)">No chats yet.</p>

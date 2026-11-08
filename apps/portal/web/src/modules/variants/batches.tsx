@@ -98,13 +98,13 @@ function BatchList({ rows, params }: { rows: Row[]; params: URLSearchParams }) {
   if (!rows.length)
     return (
       <Empty title="No batches yet">
-        Ask the agent in chat to start a project. Its batches land here.
+        Ask the agent in chat to start a subject. Its batches land here.
       </Empty>
     );
   return (
     <div className="flex flex-col gap-3">
       {subjects.length > 1 && (
-        <nav aria-label="Project" className="-mx-1 flex gap-1 overflow-x-auto px-1">
+        <nav aria-label="Subject" className="-mx-1 flex gap-1 overflow-x-auto px-1">
           {[["", "All"] as const, ...subjects].map(([slug, name]) => (
             <a
               key={slug}

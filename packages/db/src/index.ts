@@ -76,9 +76,9 @@ export function cachedDb(databaseUrl: string, opts: Pick<DbOptions, "app"> = {})
 
 /** Apply every migration in packages/db/drizzle, then the audit layer (triggers follow the tables). Idempotent. */
 export async function migrate(db: Db): Promise<void> {
-  await drizzleMigrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
-  // vireo (variants) keeps its own journal; before audit so its tables get triggers
+  // vireo (variants) keeps its own journal; first, since folders.filed points at vireo.subjects
   await drizzleMigrate(db, { ...VIREO, migrationsFolder: VIREO_FOLDER });
+  await drizzleMigrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
   await installAudit(db);
 }
 

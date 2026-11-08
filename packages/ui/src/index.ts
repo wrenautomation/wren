@@ -28,7 +28,12 @@ export {
   useLastWrite,
 } from "./action.js";
 export { type LinkPreview, Say as AgentSay } from "./agent-cards.js";
-export { type AgentChatRow, AgentChats, AgentChatsMenu } from "./agent-chats.js";
+export {
+  type AgentChatRow,
+  AgentChats,
+  AgentChatsMenu,
+  type ChatFolders,
+} from "./agent-chats.js";
 export {
   type AgentCommand,
   AgentPick,
@@ -229,6 +234,14 @@ export {
 } from "./flow.js";
 export { type FlowEdit, FlowMap, type MapBox } from "./flow-map.js";
 export { FoldList, FoldPreview, foldOf } from "./fold.js";
+export {
+  dragItem,
+  type FolderActs,
+  FolderMoveMenu,
+  type FolderNode,
+  FolderTree,
+  UnfiledDrop,
+} from "./folders.js";
 export { RecordForm } from "./form.js";
 export { ago, cx, hostOf, initials, money, month, num, soon } from "./format.js";
 export {

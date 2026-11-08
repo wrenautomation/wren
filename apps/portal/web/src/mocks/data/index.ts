@@ -7,6 +7,7 @@ import type { Row } from "@wren/core/records/serve";
 import type { Answers } from "../api.js";
 import { APP_ANSWERS } from "./apps.js";
 import { CLIENT_PAGE_ANSWERS } from "./client-pages.js";
+import { FOLDERS_ANSWERS } from "./folders.js";
 import { JOURNEY_DETAIL, JOURNEY_ROWS, JOURNEY_WRITES } from "./journeys.js";
 import { MAP_ANSWERS } from "./map.js";
 import { DRAFT_ANSWERS, draftRecords } from "./map-drafts.js";
@@ -151,6 +152,7 @@ const BASE: Answers = {
   ...MAP_ANSWERS,
   ...OFFER_ANSWERS,
   ...VARIANTS_ANSWERS,
+  ...FOLDERS_ANSWERS,
   "console/call:Pieces.list": { pieces: PIECES },
   "console/call:ContentDesk.waiting": STUDIO_WAITING,
   "console/call:InboxDesk.autoReplies": AUTO_REPLY,

@@ -49,6 +49,7 @@ import { registerEmail } from "./email.js";
 import { registerEnrich } from "./enrich.js";
 import { registerFeatures } from "./features.js";
 import { registerFetch } from "./fetch.js";
+import { registerFolders } from "./folders.js";
 import { registerGroups } from "./groups.js";
 import { registerHealth } from "./health.js";
 import { registerHooks } from "./hooks.js";
@@ -265,6 +266,7 @@ registerAccounts(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
 registerWatch(program, withMainDb, settings, rootDir);
 registerVariants(program, withDb, settings, actor);
+registerFolders(program, withDb, actor);
 registerLearn(
   program,
   {

@@ -2633,6 +2633,13 @@
       "when": 1794110852011,
       "tag": "0376_shape_no_column",
       "breakpoints": true
+    },
+    {
+      "idx": 377,
+      "version": "7",
+      "when": 1794159199288,
+      "tag": "0377_folders",
+      "breakpoints": true
     }
   ]
 }

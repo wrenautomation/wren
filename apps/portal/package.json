@@ -29,6 +29,7 @@
     "@wren/connectors": "workspace:*",
     "@wren/delivery": "workspace:*",
     "@wren/documents": "workspace:*",
+    "@wren/folders": "workspace:*",
     "@wren/payments": "workspace:*",
     "@wren/pipeline": "workspace:*",
     "@wren/reactivation": "workspace:*",

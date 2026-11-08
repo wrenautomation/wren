@@ -30,6 +30,7 @@
     "@wren/db": "workspace:*",
     "@wren/delivery": "workspace:*",
     "@wren/documents": "workspace:*",
+    "@wren/folders": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/niches": "workspace:*",
     "@wren/offers": "workspace:*",

@@ -373,7 +373,9 @@ export function useAgent(o: {
       typedNow.current = c?.[1] ? { name: c[1], cleared: false } : null;
       setError(null);
       setS((p) => said(p, text, { files: files.map((f) => f.file), page }));
-      const content = files.length || page ? turnContent(text, files, page) : text;
+      const chat = shown.current ?? undefined;
+      const content =
+        files.length || page || chat ? turnContent(text, files, page, chat) : text;
       const l = live.current;
       if (l) return l.say(content);
       setStarting(true);

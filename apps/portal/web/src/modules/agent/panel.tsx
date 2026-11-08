@@ -16,6 +16,7 @@ import {
   SidePanel,
 } from "@wren/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
 import { keep, recall } from "../../local.js";
 import { AgentChat, ChatTitle } from "./chat.js";
@@ -183,6 +184,7 @@ function PanelChat({
   const sessions = useCall(setup ? `agent:sessions:${setup.name}` : null, async () =>
     relaySessions(setup?.name ?? "", await pageToken()),
   );
+  const filed = useFolders("chat", owner);
   if (setups.error && !setups.data) {
     const c = closeText(setups.error);
     return (
@@ -255,6 +257,11 @@ function PanelChat({
             open={chat}
             hrefOf={(r) => pageOf(r.session) ?? "#"}
             onOpen={(r) => putChat(r.session)}
+            folders={
+              filed.folders
+                ? { id: `chats:${setup.name}`, ...filed, folders: filed.folders }
+                : undefined
+            }
           />
           <PanelAct icon="plus" label="New chat" onClick={() => putChat(null)} />
           {full ? (
