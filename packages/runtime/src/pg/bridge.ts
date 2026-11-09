@@ -65,6 +65,8 @@ export function proxy(
         idemKey: null,
         runAt: new Date(),
         reply,
+        // Restate's caller may be a person or a loop; unknown here, so first in line
+        callerWaits: true,
       });
     });
     moveState?.clearAll();

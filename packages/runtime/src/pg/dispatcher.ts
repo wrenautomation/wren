@@ -12,6 +12,11 @@ export interface DispatcherOptions {
   /** Which rows this loop takes; default all. */
   lane?: Lane;
   concurrency?: number;
+  /**
+   * Set: rows a caller waits on are claimed first, and the rest take at most this many of
+   * `concurrency` (design doc "Group 4"). Unset: one claim, by run_at.
+   */
+  background?: number;
   leaseMs?: number;
   pollMs?: number;
   log?: (msg: string, err?: unknown) => void;
@@ -19,6 +24,7 @@ export interface DispatcherOptions {
 
 export class Dispatcher {
   private active = 0;
+  private activeBackground = 0;
   private kicked = false;
   private stopped = false;
   private wakeUp: (() => void) | undefined;
@@ -60,18 +66,35 @@ export class Dispatcher {
     while (!this.stopped) {
       this.kicked = false;
       const free = conc - this.active;
+      const bg = this.o.background;
       let got = 0;
       if (free > 0) {
         try {
-          const claims = await claim(this.o.sql, free, leaseMs, Date.now(), this.o.lane);
+          const lane = this.o.lane ?? {};
+          const claims =
+            bg === undefined
+              ? await claim(this.o.sql, free, leaseMs, Date.now(), lane)
+              : await claim(this.o.sql, free, leaseMs, Date.now(), { ...lane, callerWaits: true });
+          const waited = claims.length;
+          const room = bg === undefined ? 0 : Math.min(free - waited, bg - this.activeBackground);
+          if (room > 0)
+            claims.push(
+              ...(await claim(this.o.sql, room, leaseMs, Date.now(), {
+                ...lane,
+                callerWaits: false,
+              })),
+            );
           got = claims.length;
-          for (const c of claims) {
+          for (const [i, c] of claims.entries()) {
+            const isBackground = bg !== undefined && i >= waited;
             this.active++;
+            if (isBackground) this.activeBackground++;
             this.o
               .run(c)
               .catch((e: unknown) => log(`turn ${c.id} threw`, e))
               .finally(() => {
                 this.active--;
+                if (isBackground) this.activeBackground--;
                 if (this.active === 0 && this.stopped) this.idle.resolve();
                 this.kick();
               });
@@ -85,7 +108,12 @@ export class Dispatcher {
       if (this.kicked) continue;
       let wait = pollMs;
       try {
-        const due = await nextDue(this.o.sql, this.o.lane);
+        // background full: only waited rows can start, so only they set the wake time
+        const full = bg !== undefined && this.activeBackground >= bg;
+        const due = await nextDue(
+          this.o.sql,
+          full ? { ...this.o.lane, callerWaits: true } : this.o.lane,
+        );
         if (due) wait = Math.max(0, Math.min(pollMs, due.getTime() - Date.now()));
       } catch {}
       if (this.kicked || this.stopped) continue;

@@ -9,6 +9,8 @@
  * from the runtime. Helpers that take no context are not seen; pass them the context or a value.
  * A call run later inside a ctx.run (a callback a helper wraps) takes `// replay-safe: <why>` on its
  * line or the line above.
+ *
+ * Also: a context method the Postgres runtime throws 501 on (UNSUPPORTED) fails here, not in prod.
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -25,6 +27,18 @@ const files = execFileSync(
   .filter(
     (f) => f.endsWith(".ts") && !/\.test\.ts$|\.d\.ts$|\/dist\/|\/test\/|\.stories\./.test(f),
   );
+
+/** Context members `packages/runtime/src/pg/turn.ts` answers with 501. */
+const UNSUPPORTED = new Set([
+  "workflowClient",
+  "workflowSendClient",
+  "promise",
+  "cancellation",
+  "client",
+  "sendClient",
+  "scope",
+  "signal",
+]);
 
 const isFn = (n) =>
   ts.isArrowFunction(n) ||
@@ -75,11 +89,25 @@ for (const file of files) {
     return /replay-safe:/.test(lines[l]) || /replay-safe:/.test(lines[l - 1] ?? "");
   };
   /** inHandler: inside a context-taking function, and not inside one of its run callbacks. */
-  const walk = (node, inHandler) => {
+  const walk = (node, inHandler, ctxNames) => {
     let next = inHandler;
+    let names = ctxNames;
     if (isFn(node)) {
-      if (ctxParam(node, sf)) next = true;
-      else if (inHandler && isRunCallback(node)) next = false;
+      const p = ctxParam(node, sf);
+      if (p) {
+        next = true;
+        names = new Set([...ctxNames, p]);
+      } else if (inHandler && isRunCallback(node)) next = false;
+    }
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      names.has(node.expression.text) &&
+      UNSUPPORTED.has(node.name.text)
+    ) {
+      const key = `${file}:${node.name.text} (no Postgres runtime support)`;
+      const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+      found.set(key, [...(found.get(key) ?? []), line]);
     }
     if (next) {
       const kind = kindOf(node, sf);
@@ -89,17 +117,20 @@ for (const file of files) {
         found.set(key, [...(found.get(key) ?? []), line]);
       }
     }
-    ts.forEachChild(node, (c) => walk(c, next));
+    ts.forEachChild(node, (c) => walk(c, next, names));
   };
-  walk(sf, false);
+  walk(sf, false, new Set());
 }
 
 let bad = 0;
 for (const [key, lines] of found) {
   bad += lines.length;
   const i = key.lastIndexOf(":");
+  const what = key.slice(i + 1);
   console.error(
-    `${key.slice(0, i)}:${lines.join(",")} ${key.slice(i + 1)} in a handler outside ctx.run: use ctx.date / ctx.rand, wrap it in ctx.run, or mark the line "// replay-safe: <why>"`,
+    what.includes("Postgres")
+      ? `${key.slice(0, i)}:${lines.join(",")} ctx.${what}: the pg runtime throws 501; use another API or add it to packages/runtime/src/pg/turn.ts with a conformance test`
+      : `${key.slice(0, i)}:${lines.join(",")} ${what} in a handler outside ctx.run: use ctx.date / ctx.rand, wrap it in ctx.run, or mark the line "// replay-safe: <why>"`,
   );
 }
 if (bad) process.exit(1);

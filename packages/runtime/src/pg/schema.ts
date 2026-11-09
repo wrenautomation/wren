@@ -256,7 +256,13 @@ SELECT i.id,
 FROM rt.invocations i LEFT JOIN rt.invocations p ON p.id = i.parent_id;
 `;
 
-const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6];
+const V7 = `
+-- a caller waits on this row (a door call, a proxy call, a call from such a row): the Lambda
+-- lane runs these first (design doc "Group 4")
+ALTER TABLE rt.invocations ADD COLUMN caller_waits boolean NOT NULL DEFAULT false;
+`;
+
+const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7];
 
 /** Bring schema `rt` up to date. One advisory lock, so parallel starts take turns. */
 export async function migrate(sql: postgres.Sql): Promise<void> {

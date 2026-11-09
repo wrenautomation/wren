@@ -56,12 +56,15 @@ export interface Lane {
   lock?: boolean;
   /** Skip services in `rt.pg_services` (bridge lanes): the newest box runs them on pg. */
   skipPg?: boolean;
+  /** Only rows a caller waits on (true) or only the rest (false). */
+  callerWaits?: boolean;
 }
 
 const laneSql = (sql: Sql, l: Lane) => sql`
   ${l.only ? sql`AND i.service IN ${sql(l.only as string[])}` : sql``}
   ${l.except?.length ? sql`AND i.service NOT IN ${sql(l.except as string[])}` : sql``}
   ${l.skipPg ? sql`AND i.service NOT IN (SELECT service FROM rt.pg_services)` : sql``}
+  ${l.callerWaits === undefined ? sql`` : sql`AND i.caller_waits = ${l.callerWaits}`}
   ${
     l.strict && l.build
       ? l.fresh === false
@@ -123,7 +126,8 @@ export async function nextDue(sql: Sql, lane: Lane = {}): Promise<Date | null> {
 
 export async function load(sql: Sql, id: string, attempt: number): Promise<Loaded | undefined> {
   const [inv] = await sql<(Invocation & { input: Buffer })[]>`
-    SELECT id, service, handler, key, input, headers, attempt, failures, cancel, parent_id, parent_seq
+    SELECT id, service, handler, key, input, headers, attempt, failures, cancel, parent_id, parent_seq,
+      caller_waits
     FROM rt.invocations WHERE id = ${id} AND attempt = ${attempt} AND status = 'running'`;
   if (!inv) return undefined;
   const [journal, state, awk] = await Promise.all([
@@ -207,11 +211,13 @@ function writes(tx: postgres.TransactionSql, inv: Invocation, w: Writes, now: Da
   if (w.children.length) {
     const rows = w.children.map((c) => ({ ...c, input: b64(c.input) }));
     qs.push(tx`
-      INSERT INTO rt.invocations (id, service, handler, key, exclusive, input, headers, parent_id, parent_seq, run_at, idem_key)
+      INSERT INTO rt.invocations (id, service, handler, key, exclusive, input, headers, parent_id, parent_seq, run_at, idem_key, caller_waits)
       SELECT x.id, x.service, x.handler, x.key, coalesce(h.exclusive, x.key IS NOT NULL),
-        decode(x.input, 'base64'), coalesce(x.headers, '{}'), x.parent_id, x.parent_seq, x.run_at, x.idem_key
+        decode(x.input, 'base64'), coalesce(x.headers, '{}'), x.parent_id, x.parent_seq, x.run_at, x.idem_key,
+        coalesce(x.caller_waits, false)
       FROM jsonb_to_recordset(${json(rows)}::text::jsonb) AS x(id text, service text, handler text, key text,
-        input text, headers jsonb, parent_id text, parent_seq int, run_at timestamptz, idem_key text)
+        input text, headers jsonb, parent_id text, parent_seq int, run_at timestamptz, idem_key text,
+        caller_waits boolean)
       LEFT JOIN rt.handlers h ON h.service = x.service AND h.handler = x.handler
       ON CONFLICT DO NOTHING`);
     qs.push(tx`SELECT pg_notify('rt_wake', '')`);
@@ -404,6 +410,8 @@ export interface Submit {
   id: string;
   /** A Restate awakeable to resolve with the outcome (a proxy call waits on it). */
   reply?: string | null;
+  /** A caller waits on the outcome: the Lambda lane runs it first. */
+  callerWaits?: boolean;
 }
 
 /** Object state moved over from Restate. A name pg already holds keeps pg's value. */
@@ -425,10 +433,11 @@ export async function seedState(
 /** New invocation, or the one an idempotency key already made. */
 export async function submit(sql: Sql, s: Submit): Promise<{ id: string; fresh: boolean }> {
   const [row] = await sql<{ id: string }[]>`
-    INSERT INTO rt.invocations (id, service, handler, key, exclusive, input, headers, idem_key, run_at, reply)
+    INSERT INTO rt.invocations (id, service, handler, key, exclusive, input, headers, idem_key, run_at, reply, caller_waits)
     SELECT ${s.id}, ${s.service}, ${s.handler}, ${s.key},
       coalesce((SELECT exclusive FROM rt.handlers WHERE service = ${s.service} AND handler = ${s.handler}), ${s.key}::text IS NOT NULL),
-      ${Buffer.from(s.input)}, ${json(s.headers)}::text::jsonb, ${s.idemKey}, ${s.runAt}, ${s.reply ?? null}
+      ${Buffer.from(s.input)}, ${json(s.headers)}::text::jsonb, ${s.idemKey}, ${s.runAt}, ${s.reply ?? null},
+      ${s.callerWaits ?? false}
     ON CONFLICT DO NOTHING
     RETURNING id`;
   if (row) {

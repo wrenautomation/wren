@@ -34,6 +34,7 @@ const inv = (id: string, parent: string | null = null): Invocation => ({
   cancel: false,
   parent_id: parent,
   parent_seq: parent ? 0 : null,
+  caller_waits: false,
 });
 const running = (id: string, parent: string | null = null) => sql`
   INSERT INTO rt.invocations (id, service, handler, input, status, attempt, parent_id, parent_seq)

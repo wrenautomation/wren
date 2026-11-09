@@ -294,6 +294,7 @@ export async function serveDoor(o: DoorOptions): Promise<{ url: string; close():
       headers,
       idemKey: idem,
       runAt: new Date(Date.now() + delay),
+      callerWaits: !isSend && delay === 0,
     });
     if (isSend)
       return send(

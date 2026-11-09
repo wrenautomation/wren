@@ -107,7 +107,7 @@ Decided: C. Priorities, in order: no lost or doubled call, rollback per service,
 - `packages/runtime/src/pg/bridge.ts`: `proxy`, `bridgeTurn`, `replier`. `apps/worker/src/rt.ts`: the box's lanes and the Lambda turn entry.
 - **Lanes** (`Lane` in `store.ts`): `only`/`except` by service; `build` pins on first claim; `strict` skips rows of another build; `fresh: false` takes only its own build's rows; `lock: false` ignores key locks (bridge rows: Restate locks the key).
 - **Box process:** box lane (strict, `WREN_BUILD`), Lambda lane (loose: a row keeps its first ARN), bridge lane, replier. All on one direct Postgres pool (LISTEN needs a session).
-- **Lambda lane width:** 4 (`WREN_RT_LAMBDA_CONCURRENCY`), under the worker's reserved concurrency of 6, which Restate shares until phase 6. A throttled invoke (`TooManyRequestsException`: no turn began) goes back to pending at once, due in 2 s, no failure counted (`release`). Any other invoke error keeps the lease and runs again when it lapses: the turn may have begun.
+- **Lambda lane width:** 5 (`WREN_RT_LAMBDA_CONCURRENCY`; 4 before group 4), rows no caller waits on at most 3 ("Group 4"), under the worker's reserved concurrency of 6, which Restate shares until phase 6. A throttled invoke (`TooManyRequestsException`: no turn began) goes back to pending at once, due in 2 s, no failure counted (`release`). Any other invoke error keeps the lease and runs again when it lapses: the turn may have begun.
 - **Lambda turns:** the handler takes `{rt}` events beside Restate's. Postgres through PgBouncer (`prepare: false`, 2 connections).
 - **Slots:** a superseded slot keeps only its box lane, `fresh: false`. A new slot moves rows pinned to a stopped slot (two deploys ago, not `WREN_BUILD_LIVE`) to its own build, as Restate's `force` does.
 - **Proxy content type:** the proxy passes bytes through but declares `application/json`; Restate's ingress refuses JSON callers on an `octet-stream` handler (found by `bridge-pg.test.ts`).
@@ -123,6 +123,23 @@ Decided: C. Priorities, in order: no lost or doubled call, rollback per service,
 - **Door in front (V5):** each box slot runs a door at slot port + 10 (9090, 9091) on its own pool of 4. Caddy's authed default goes to `9090 9091 8080`, `lb_policy first`, active health on `/restate/health`; a door that fails it drops out, and with none up Restate's ingress serves. Caddy retries a POST only when it could not connect, so no call runs twice. The door (`restate` option) serves services in `rt.pg_services` (read every 5 s) and passes everything else to Restate's loopback ingress as it came, streamed. Ids: an awakeable id pg made (`awk.inv_…`) and an invocation pg holds are pg's; others pass. `/output` answers 470 while a call runs, as Restate does (the CLI and portal poll it); `/restate/invocation/{svc}[/{key}]/{handler}/{idem}/output|attach` looks up the idempotency key (the portal's write status), and a miss passes to Restate (a call from before the move). An old name in `RENAMED` is served direct under the new one (webhooks and Workers that still call the old name skip the proxy); a pass-through keeps the old name. `ingressPrivate` handlers get 400 (V5 adds `rt.handlers.private`). `delay` takes Restate's humantime and ISO 8601 forms; a bad one gets 400. No request timeout: a sync call waits as long as its handler. Why before the consoles move: through the proxy a portal call costs ~200–300 ms and 3 Lambda requests; direct it adds ~30 ms. Tests: `bridge-pg.test.ts` "the door in front of Restate", `pure.test.ts` parseDelay.
 - **Caddy change:** applied alone over SSM (validate, write in place, `caddy reload`), not by running all of `box-restate.sh`, which would also restart Restate on any config drift. The script now reloads Caddy when only the Caddyfile changed: a bind-mounted file replaced by `mv` is a new inode the container never sees, so it used to restart Caddy and cut calls in flight.
 - **Gaps:** a service moved between box and Lambda leaves its pinned rows in the old lane (repin by hand); Restate-side cancel of a proxy call cancels the pg row only after its turn ends; a pg-side cancel of a bridge row reaches Restate within 2 s; a flip back while pg rows are open re-runs them on Restate (flip back only when none are open); a shared proxy call before any exclusive one sees no moved state.
+
+## Group 4: portal calls beside loops (11-09)
+
+Group 4 moves the consoles, portals, desks and webhooks: calls a person waits on. On Restate today they share the worker's 6 reserved Lambda slots with loop bursts. Measured 11-02..11-09: peak concurrency 6 every day, 41–208 throttles a day, ~5–14k invokes a day, 130 ms average.
+
+| Option | How | For | Against |
+|---|---|---|---|
+| A. One lane, wider | Lambda lane width 5 | No code | A loop burst or one long turn (PostMetrics 66 s) queues portal calls, as today |
+| B. Two fixed lanes | Portal lane 2, loop lane 3 | Simple | Idle slots go unused; a portal page firing 5 calls gets 2 |
+| C. Waited rows first | Each row knows if a caller waits; one pool of 5; rows no one waits on take at most 3 | Portal always has 2 slots and can use all 5; no service list to keep | A column, a filter, a shared counter |
+| D. Consoles on the box | Box lane, in process | No cold start, no Lambda | Box CPU and memory beside Postgres; every deploy drains them; against "maximize free Lambda" |
+
+Ranked: portal P99 under load, then Lambda spend (free tier), then code size. **C.**
+
+- `rt.invocations.caller_waits`: a door call (not `/send`, no delay) and a proxy call: true. A child made by a call inherits its parent's value. A send or a delayed call: false (no one waits; a loop's wake is a delayed send, so loops are background after their first turn).
+- Two Lambda dispatchers on one `Slots` counter: waited rows up to the full width, the rest up to width − 2.
+- Width 5 (`WREN_RT_LAMBDA_CONCURRENCY`), up from 4: after group 4 Restate's Lambda share is the watchdogs, Variants/Folders and old-name proxies. A throttle still goes back to pending in 2 s.
 
 ## VPSs
 
@@ -166,3 +183,5 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 - 2026-11-09: a cancel on a bridge row goes to Restate's admin (`PATCH /invocations/{id}/cancel`), polled every 2 s while the row runs. Restate then fails the call with 409, which the row keeps.
 - 2026-11-09: kill stores its error as a jsonb object, not a JSON string, and settles attaches on the killed rows.
 - 2026-11-09: pausedUnder crosses runtimes through `idempotency_key` (a column on the `sys_invocation` view): a bridge row's Restate call carries the row id as its key.
+- 2026-11-09: group 4 runs waited rows first on one Lambda pool (C in "Group 4"), not a wider lane, fixed lanes or consoles on the box.
+- 2026-11-09: pg's ctx is typed against the SDK's contexts (tsc fails on a missing member), and the determinism guard fails on a ctx member pg answers with 501.

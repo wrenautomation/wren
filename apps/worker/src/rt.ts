@@ -170,10 +170,13 @@ export async function startRt(o: {
     run: (c) => runTurn({ sql, registry, leaseMs: LEASE_MS, log }, c),
     log,
   });
+  // under the worker's reserved concurrency (lambda_max_concurrency, 6), which Restate shares until phase 6
+  const width = Number(process.env.WREN_RT_LAMBDA_CONCURRENCY ?? 5);
   const lambdaLane = new Dispatcher({
     sql,
-    // under the worker's reserved concurrency (lambda_max_concurrency), which Restate shares until phase 6
-    concurrency: Number(process.env.WREN_RT_LAMBDA_CONCURRENCY ?? 4),
+    concurrency: width,
+    // rows a caller waits on (portal, webhooks) always keep 2 slots (design doc "Group 4")
+    background: Math.max(1, width - 2),
     leaseMs: LEASE_MS,
     lane: { only: onLambda, ...(arn() ? { build: arn() as string } : {}) },
     run: async (c) => {

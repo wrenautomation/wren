@@ -12,6 +12,7 @@
 import {
   CancelledError,
   type Duration,
+  type ObjectContext,
   Opts,
   PauseError,
   RetryableError,
@@ -20,6 +21,7 @@ import {
   serde,
   TerminalError,
   TimeoutError,
+  type WorkflowContext,
 } from "@restatedev/restate-sdk";
 import { awakeableId, childId, Rand } from "./ids.js";
 import {
@@ -65,6 +67,7 @@ export interface Invocation {
   cancel: boolean;
   parent_id: string | null;
   parent_seq: number | null;
+  caller_waits: boolean;
 }
 
 export interface Loaded {
@@ -85,6 +88,7 @@ export interface Child {
   parent_seq: number | null;
   run_at: Date;
   idem_key: string | null;
+  caller_waits: boolean;
 }
 
 /** One flush: written in one fenced transaction. */
@@ -719,6 +723,8 @@ export class Turn implements Host {
       parent_seq: parentSeq,
       run_at: new Date(Date.now() + Math.max(0, delayMs)),
       idem_key: c.idempotencyKey ?? null,
+      // a call inherits; a send or a delayed call has no one waiting
+      caller_waits: parentSeq !== null && delayMs <= 0 && this.loaded.inv.caller_waits,
     };
   }
 
@@ -882,7 +888,9 @@ export class Turn implements Host {
     );
   }
 
-  private buildContext(): Record<string | symbol, unknown> {
+  /** Every key of the SDK's contexts, or tsc fails: an SDK upgrade can't add a method pg lacks. */
+  private buildContext(): Record<keyof ObjectContext | keyof WorkflowContext, unknown> &
+    Record<string, unknown> {
     const inv = this.loaded.inv;
     const rand = new Rand(inv.id);
     const turn = this;
@@ -949,6 +957,11 @@ export class Turn implements Host {
         cancel: () => this.cancel(id),
         attach: <T>(s?: Serde<T>) => this.attach(id, s),
       }),
+      // SDK 1.17 descriptor clients, scopes and named signals: no wren service uses them
+      client: unsupported("client(descriptor)"),
+      sendClient: unsupported("sendClient(descriptor)"),
+      scope: unsupported("scope()"),
+      signal: unsupported("signal()"),
       promise: unsupported("workflow promises"),
       cancellation: unsupported("cancellation()"),
     };
