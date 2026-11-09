@@ -8,11 +8,15 @@ import * as restate from "../../src/index.js";
 import {
   Crash,
   Dispatcher,
+  fromWire,
   migrate,
   Registry,
   register,
+  remoteTurn,
   runTurn,
   serveDoor,
+  servedTurn,
+  toWire,
 } from "../../src/pg/index.js";
 
 const LEASE_MS = 400;
@@ -58,6 +62,7 @@ const POINTS = [
 ];
 
 let armed = "none";
+let wire = false; // prod's Lambda path: the box loads and finishes, the turn crosses as JSON
 let fired = false;
 let stop = async () => {};
 let ingress: clients.Ingress;
@@ -79,8 +84,14 @@ beforeAll(async () => {
     concurrency: 4,
     pollMs: 50,
     leaseMs: LEASE_MS,
-    run: (c) =>
-      runTurn({ sql, registry, leaseMs: LEASE_MS, localWaitMs: 0, crash, log: () => {} }, c),
+    run: (c) => {
+      const o = { sql, registry, leaseMs: LEASE_MS, localWaitMs: 0, crash, log: () => {} };
+      return wire
+        ? remoteTurn(sql, c, LEASE_MS, async (ask) =>
+            fromWire(toWire(await servedTurn(o, fromWire(toWire(ask))))),
+          )
+        : runTurn(o, c);
+    },
   });
   await dispatcher.start();
   const door = await serveDoor({ sql });
@@ -94,13 +105,14 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(() => stop());
 
-describe("pg crash points", () => {
+describe.each([false, true])("pg crash points, wire %s", (w) => {
   let baseline: unknown;
   for (const point of POINTS) {
     it(point, async () => {
+      wire = w;
       armed = point;
       fired = false;
-      const run = `crash-${point}`;
+      const run = `crash-${w ? "wire-" : ""}${point}`;
       const out = await ingress.objectClient(flow, run).go({ run });
       if (point === "none") baseline = out;
       else expect(fired).toBe(true);

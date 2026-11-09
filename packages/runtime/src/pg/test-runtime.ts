@@ -13,10 +13,11 @@ import postgres from "postgres";
 import { rtAdmin, rtPatch } from "./admin.js";
 import { Dispatcher } from "./dispatcher.js";
 import { serveDoor } from "./door.js";
-import { runTurn } from "./executor.js";
+import { DEFAULT_LEASE_MS, remoteTurn, servedTurn } from "./executor.js";
 import { Registry } from "./registry.js";
 import { migrate } from "./schema.js";
 import { register, setPgServices } from "./store.js";
+import { fromWire, toWire } from "./wire.js";
 
 export interface PgStateProxy {
   get<T>(name: string, serde?: Serde<T>): Promise<T | null>;
@@ -53,7 +54,11 @@ export async function startPgTestEnvironment(o: {
     concurrency: 16,
     pollMs: 50,
     lane: { only: names },
-    run: (c) => runTurn({ sql, registry, log }, c),
+    // prod's Lambda path, wire both ways: load and finish here, the turn on the "Lambda" side
+    run: (c) =>
+      remoteTurn(sql, c, DEFAULT_LEASE_MS, async (ask) =>
+        fromWire(toWire(await servedTurn({ sql, registry, log }, fromWire(toWire(ask))))),
+      ),
     log,
   });
   await dispatcher.start();

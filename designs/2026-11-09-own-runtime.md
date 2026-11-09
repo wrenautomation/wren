@@ -141,6 +141,19 @@ Ranked: portal P99 under load, then Lambda spend (free tier), then code size. **
 - Two Lambda dispatchers on one `Slots` counter: waited rows up to the full width, the rest up to width − 2.
 - Width 5 (`WREN_RT_LAMBDA_CONCURRENCY`), up from 4: after group 4 Restate's Lambda share is the watchdogs, Variants/Folders and old-name proxies. A throttle still goes back to pending in 2 s.
 
+### Lambda turns (11-09)
+
+Measured before 4c (prod, 40 calls each, a loop's `status`): pg 88 ms p50 at the client, Restate 57 ms. Inside Lambda a pg turn took 26 ms p50, a Restate turn 3 ms. The gap is Lambda's own Postgres trips through PgBouncer: `load` (2) and `finish` (2-3), about 5 ms each.
+
+Now the box loads the row, sends it in the invoke, and writes the outcome Lambda hands back (`remoteTurn` / `servedTurn`, codec `wire.ts`). Lambda goes to Postgres only for `ctx.run` results and lease renewals. Either side falls back to the old path: a loaded turn or an outcome over 5 MB (Lambda's sync cap is 6 MB), and an old Lambda build that ignores `defer`. The test runtime and a second conformance and crash pass run this path, JSON both ways.
+
+| Option | Lambda trips per read-only turn | Cost |
+|---|---|---|
+| A. Box loads and finishes (chosen) | 0 | executor split, one codec |
+| B. Lambda in the VPC, private IP to Postgres | 5, under 1 ms each | NAT for outside APIs, ~$32/mo |
+| C. Fewer trips: load as one SQL function | 3-4 | small; keeps half the gap |
+| D. Accept +30 ms | 5 | every portal call slower than today |
+
 ### Group 4 order
 
 - **4a, loops and workers** (36): the rest of the loops (SmsSend, ReachSend, SiteRollup, Reactivation...), the workers they call (ReplyLabel, MetaReplyPace, SocialPushHold, CallBriefBuild...), and the agent and ask services. 12 renames land with it (WA-1219).
@@ -202,3 +215,4 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 - 2026-11-09: group 4 in three steps (loops and workers, then webhooks and public calls, then consoles), not one deploy: each step's suite runs on pg first, and a rename's old name gets a door alias. An old name an outside caller uses (a webhook URL, a trigger, the portal Worker's `Domains/resolve`) stays in `RENAMED` for good.
 - 2026-11-09: a row pinned to a Lambda build that lacks its handler is unpinned (build cleared, run again in 2 s) until it starts or hits 30 tries; the Lambda lane reads the ARN file every 2 s, not 30 s. Found on prod: deploy.sh's `EmailQueueRerender/all` call landed between the box restart and the Lambda register, so the old build took it and failed it for good. Options weighed: register before the box restart (rejected: the box then serves old code to the new Lambda for a while), a door-side wait for register (rejected: a call from the box itself still races).
 - 2026-11-09: group 4b (webhooks and public calls, 14 services, 11 renames) keeps every old name as a door alias for good, not for one deploy: the phone and portal Workers, cal.com, the SMS provider and Stripe hold the old URLs, and a Worker on an old build still calls them. Proof: every startTestRestate suite on pg (WREN_TEST_RUNTIME=pg) and on Restate, same results; the Worker tests call the new paths.
+- 2026-11-09: a Lambda turn is loaded and finished by the box (A in "Lambda turns"), not Lambda in the VPC (NAT cost), fewer trips (keeps half the gap) or accepting +30 ms per portal call. Moved before 4c, as consoles are calls a person waits on.

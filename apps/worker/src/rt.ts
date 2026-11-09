@@ -20,12 +20,16 @@ import {
   Registry,
   register,
   release,
+  remoteTurn,
   renameService,
   replier,
   returnState,
   runTurn,
   serveDoor,
+  servedTurn,
   setPgServices,
+  type TurnAsk,
+  type TurnReply,
   takeState,
 } from "@wren/runtime/pg";
 import type { Logger } from "pino";
@@ -287,29 +291,32 @@ export async function startRt(o: {
     background: Math.max(1, width - 2),
     leaseMs: LEASE_MS,
     lane: { only: onLambda, ...(arn() ? { build: arn() as string } : {}) },
-    run: async (c) => {
-      const fn = c.build ?? arn();
-      if (!fn) throw new Error("no worker ARN yet");
-      const r = await lambda
-        .send(
-          new InvokeCommand({
-            FunctionName: fn,
-            InvocationType: "RequestResponse",
-            Payload: Buffer.from(
-              JSON.stringify({ rt: { id: c.id, attempt: c.attempt, leaseMs: LEASE_MS } }),
-            ),
-          }),
-        )
-        .catch(async (e: unknown) => {
-          // reserved concurrency full: no turn began, so the row goes back now, not at lease end
-          if ((e as { name?: string }).name !== "TooManyRequestsException") throw e;
-          await release(sql, c.id, c.attempt, THROTTLE_MS);
+    run: (c) =>
+      remoteTurn(sql, c, LEASE_MS, async (ask) => {
+        const fn = c.build ?? arn();
+        if (!fn) throw new Error("no worker ARN yet");
+        const r = await lambda
+          .send(
+            new InvokeCommand({
+              FunctionName: fn,
+              InvocationType: "RequestResponse",
+              Payload: Buffer.from(JSON.stringify({ rt: ask })),
+            }),
+          )
+          .catch(async (e: unknown) => {
+            // reserved concurrency full: no turn began, so the row goes back now, not at lease end
+            if ((e as { name?: string }).name !== "TooManyRequestsException") throw e;
+            await release(sql, c.id, c.attempt, THROTTLE_MS);
+            return null;
+          });
+        if (!r) return "released";
+        // a crashed turn keeps its lease and is claimed again when it runs out
+        if (r.FunctionError) {
+          log(`lambda turn ${c.id} #${c.attempt}: ${r.FunctionError}`);
           return null;
-        });
-      if (!r) return;
-      // a crashed turn keeps its lease and is claimed again when it runs out
-      if (r.FunctionError) log(`lambda turn ${c.id} #${c.attempt}: ${r.FunctionError}`);
-    },
+        }
+        return r.Payload ? (JSON.parse(Buffer.from(r.Payload).toString()) as TurnReply) : null;
+      }),
     log,
   });
   const bridgeLane = new Dispatcher({
@@ -372,13 +379,11 @@ export async function startRt(o: {
 }
 
 /** Lambda: one turn of a pg row, when the box's lambda lane invokes with `{rt}`. */
-export const isRtEvent = (
-  e: unknown,
-): e is { rt: { id: string; attempt: number; leaseMs: number } } =>
+export const isRtEvent = (e: unknown): e is { rt: TurnAsk } =>
   typeof e === "object" && e !== null && "rt" in e;
 
+/** One turn the box hands over: it loaded the row and writes the outcome (`remoteTurn`). */
 export function lambdaTurns(all: AnyService[], sql: postgres.Sql) {
   const registry = new Registry(all as never);
-  return (e: { rt: { id: string; attempt: number; leaseMs: number } }) =>
-    runTurn({ sql, registry, leaseMs: e.rt.leaseMs }, e.rt);
+  return (e: { rt: TurnAsk }) => servedTurn({ sql, registry }, e.rt);
 }
