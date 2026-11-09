@@ -1,7 +1,8 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FakeLlm } from "@wren/llm";
+import { git, readRecord } from "@wrenautomation/knowledge";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   addSource,
@@ -11,8 +12,27 @@ import {
   numberCites,
   readSopDir,
   sopPrompt,
+  topicDir,
   toSource,
 } from "./index.js";
+
+const WHO = { by: "test", why: "test" };
+
+/** An empty knowledge repo: git, knowledge.json, one commit. */
+async function repo(): Promise<string> {
+  const d = await mkdtemp(join(tmpdir(), "sop-"));
+  git(d, ["init", "-q", "-b", "main"]);
+  for (const [k, v] of [
+    ["user.email", "t@example.com"],
+    ["user.name", "t"],
+    ["commit.gpgsign", "false"],
+  ] as const)
+    git(d, ["config", k, v]);
+  await writeFile(join(d, "knowledge.json"), JSON.stringify({ owner: "test" }));
+  git(d, ["add", "knowledge.json"]);
+  git(d, ["commit", "-q", "-m", "init"]);
+  return d;
+}
 
 describe("sops", () => {
   let dir = "";
@@ -72,10 +92,10 @@ describe("sops", () => {
   });
 
   it("builds from notes and sources, highest priority first, keeping the current SOP in view", async () => {
-    dir = await mkdtemp(join(tmpdir(), "sop-"));
-    await addSource(dir, { name: "file-a.md", md: "---\npriority: 2\n---\nlow" });
-    await addSource(dir, { name: "file-b.md", md: "---\npriority: 9\n---\nhigh" });
-    await writeFile(join(dir, "notes.md"), "mine");
+    dir = await repo();
+    await addSource(dir, "x", { name: "file-a.md", md: "---\npriority: 2\n---\nlow" }, WHO);
+    await addSource(dir, "x", { name: "file-b.md", md: "---\npriority: 9\n---\nhigh" }, WHO);
+    await writeFile(join(topicDir(dir, "x"), "notes.md"), "mine");
     let prompt = "";
     const llm = new FakeLlm({
       respond: async (p) => {
@@ -83,30 +103,42 @@ describe("sops", () => {
         return "```markdown\n# SOP\n\n1. Do it [file-b 0:00]\n```";
       },
     });
-    expect(await buildSop(dir, llm)).toBe(
-      "# SOP\n\n1. Do it [1 0:00]\n\n## Sources\n\n1. file-b\n",
+    expect(await buildSop(dir, "x", llm, WHO)).toBe(
+      '# SOP\n\n1. Do it [1 0:00]\n\n## Sources\n\n1. file-b, "file-b"\n',
     );
+    expect(readRecord(dir, "x")?.fm).toMatchObject({ type: "guide", cites: ["file-b"] });
     expect(prompt.indexOf('file="file-b"')).toBeLessThan(prompt.indexOf('file="file-a"'));
     expect(prompt).toContain("<notes>\nmine\n</notes>");
     expect(prompt).toContain("There is no SOP.md yet");
-    const again = await readSopDir(dir);
-    expect(again.current).toContain("Do it");
+    const again = await readSopDir(dir, "x");
+    expect(again.current).toContain("Do it [file-b 0:00]");
     expect(sopPrompt({ name: "x", ...again })).toContain("There is a current SOP.md below");
-    expect(await readFile(join(dir, "notes.md"), "utf8")).toBe("mine");
+    expect(await readFile(join(topicDir(dir, "x"), "notes.md"), "utf8")).toBe("mine");
+    expect(await readFile(join(topicDir(dir, "x"), "SKILL.md"), "utf8")).toContain("render x");
+  });
+
+  it("tags a source shared by two SOPs once, in one record", async () => {
+    dir = await repo();
+    await addSource(dir, "x", { name: "file-a.md", md: '---\ntitle: "A"\n---\nbody' }, WHO);
+    await addSource(dir, "y", { name: "file-a.md", md: '---\ntitle: "A"\n---\nbody' }, WHO);
+    expect(readRecord(dir, "file-a")?.fm.tags).toEqual(["x", "y"]);
+    expect((await readSopDir(dir, "y")).sources.map((s) => s.name)).toEqual(["file-a"]);
   });
 
   it("reads calls.md and standard.md into the prompt, and keeps the notes' front matter out of it", async () => {
-    dir = await mkdtemp(join(tmpdir(), "sop-"));
-    await writeFile(join(dir, "notes.md"), "---\nkinds: film\nset: linear\n---\n# Notes\n\nmine");
+    dir = await repo();
+    const t = topicDir(dir, "x");
+    await mkdir(t, { recursive: true });
+    await writeFile(join(t, "notes.md"), "---\nkinds: film\nset: linear\n---\n# Notes\n\nmine");
     await writeFile(
-      join(dir, "calls.md"),
+      join(t, "calls.md"),
       "# Calls\n\n- Hook style: demo-first: keep 3 → rule [learn:1, learn:2, learn:3]",
     );
     await writeFile(
-      join(dir, "standard.md"),
+      join(t, "standard.md"),
       "# Standard\n\n## film (3 pieces)\n- Length (s): median 42",
     );
-    const read = await readSopDir(dir);
+    const read = await readSopDir(dir, "x");
     expect(read.notes).toBe("# Notes\n\nmine");
     const prompt = sopPrompt({ name: "x", ...read });
     expect(prompt).toContain("<notes>\n# Notes\n\nmine\n</notes>");
@@ -131,27 +163,26 @@ describe("sops", () => {
 });
 
 describe("numbered citations", () => {
-  let dir = "";
-  afterEach(() => (dir ? rm(dir, { recursive: true, force: true }) : undefined));
-  it("numbers by first use, lists each source once, and round-trips", async () => {
-    dir = await mkdtemp(join(tmpdir(), "sop-"));
-    await addSource(dir, {
-      name: "youtube-abc.md",
-      md: '---\ntitle: "Talk"\nurl: "https://y"\n---\nx',
-    });
-    await addSource(dir, { name: "file-g.md", md: '---\ntitle: "G"\n---\nx' });
+  it("numbers by first use, keeps known sources only, and round-trips", () => {
+    const known = new Set(["youtube-abc", "file-g"]);
     const long =
       "- A [file-g] [youtube-abc 1:02]\n- B [youtube-abc caption] [other-zz 3:04] [youtube-abc 5:00, 6:00]\n";
-    const short = await numberCites(dir, long);
-    expect(short).toBe(
-      '- A [1] [2 1:02]\n- B [2 caption] [other-zz 3:04] [2 5:00, 6:00]\n\n## Sources\n\n1. file-g, "G"\n2. youtube-abc, "Talk", https://y\n',
-    );
-    expect(expandCites(short)).toBe(long);
-    expect(
-      await numberCites(
-        dir,
-        `${short.split("\n## Sources")[0]}- C [file-g 0:01]\n${short.slice(short.indexOf("\n## Sources"))}`,
-      ),
-    ).toContain("- C [1 0:01]");
+    const { body, cites } = numberCites(long, [], known);
+    expect(body).toBe("- A [1] [2 1:02]\n- B [2 caption] [other-zz 3:04] [2 5:00, 6:00]\n");
+    expect(cites).toEqual(["file-g", "youtube-abc"]);
+    expect(expandCites(body, cites)).toBe(long);
+    // a prior number stays
+    expect(numberCites("- C [youtube-abc 0:01] [file-g]\n", cites, known)).toEqual({
+      body: "- C [2 0:01] [1]\n",
+      cites,
+    });
+  });
+
+  it("reads the model's own Sources list, and drops a number that names no source", () => {
+    const md = '- A [2 0:05] [9]\n\n## Sources\n\n1. file-g, "G"\n2. youtube-abc, "T"\n';
+    expect(numberCites(md, [], new Set(["youtube-abc", "file-g"]))).toEqual({
+      body: "- A [1 0:05]\n",
+      cites: ["youtube-abc"],
+    });
   });
 });

@@ -1,5 +1,5 @@
 /**
- * Money models (sops/money-models): every play from the $100M Money Models video as a metro map,
+ * Money models (knowledge guides/money-models): every play from the $100M Money Models video as a metro map,
  * one story per stage and one for the whole model. Data in `money-models.ts`.
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";

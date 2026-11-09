@@ -1,26 +1,36 @@
 /**
- * SOPs built from sources. One folder per SOP: `SOP.md` is the living doc,
- * `notes.md` holds the owner's own rules (top priority, never written by
- * code; its front matter names what the SOP governs), `calls.md` and `standard.md` are the
- * owner's keep / tune / drop calls and the measured numbers (both written by `wren sop sync`,
- * from the learn package), `sources/*.md` is ingested text, one file per YouTube video, other
- * video (Instagram reel, TikTok, X), Drive Doc or local file, with `priority` in its front matter,
- * and `points/*.md` is each source's generated list of points. `buildSop` asks one
- * model for the next SOP.md from all of it; iterating is editing notes.md, calling on
- * pieces, or editing SOP.md and building again. The videos and audio are read by
+ * SOPs built from sources, kept in the knowledge repo (`@wrenautomation/knowledge`; design:
+ * designs/2026-11-09-knowledge-repo.md). An SOP is a guide record (`guides/<name>.md`, its `[n]`
+ * cites = the nth id in `cites`); its sources are source records tagged with its name
+ * (`sources/<stem>.md`, one per YouTube video, other video, Drive Doc or file, `priority` 1-9); each
+ * source's extracted points are finding records tagged with it. `topics/<name>/` holds the rest:
+ * `notes.md` (the owner's own rules, top priority, never written by code; its front matter names
+ * what the SOP governs), `calls.md` and `standard.md` (the owner's keep / tune / drop calls and the
+ * measured numbers, written by `wren sop sync` from the learn package), refs, SKILL.md. `buildSop` asks one
+ * model for the next guide from all of it; iterating is editing notes.md, calling on
+ * pieces, or editing the guide and building again. Every record write is one commit with a by and a why. The videos and audio are read by
  * `@wrenautomation/read/video`; this file only files what it read. Nothing here touches a
  * database.
  */
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type { LlmClient } from "@wren/llm";
+import {
+  type Change,
+  loadWorking,
+  newId,
+  readRecord,
+  render,
+  write,
+} from "@wrenautomation/knowledge";
 import type { Model } from "@wrenautomation/models";
 import type { Ear } from "@wrenautomation/models/hear";
 import type { Fetched, MediaStore, VideoRead, WatchOptions } from "@wrenautomation/read/video";
 import { keptRead, mediaKey, readAudio, readVideo, readYoutube } from "@wrenautomation/read/video";
 import { expandCites, numberCites } from "./cites.js";
+import { atOf, type Point, pointsOf, pointsText, pointTitle } from "./points.js";
 
-export { expandCites, numberCites };
+export { expandCites, numberCites, type Point, pointsOf, pointsText };
 
 export const DEFAULT_PRIORITY = 5;
 
@@ -223,45 +233,79 @@ export function sopPrompt(input: SopInput): string {
 }
 
 interface SopDir {
+  root: string;
+  /** `topics/<name>/`: notes, calls, standard, counts, refs, SKILL.md. */
   dir: string;
   /** `notes.md` without its front matter (the scope lines are for `wren sop sync`, not the model). */
   notes: string;
   calls: string;
   standard: string;
+  /** The guide's body, cites in the long form; empty before the first build. */
   current: string;
+  /** The guide's cites: `[n]` in its body is the nth. */
+  cites: string[];
   sources: SopInput["sources"];
 }
 
 const FRONT_MATTER = /^---\n[\s\S]*?\n---\n?/;
 
-const priorityOf = (md: string) =>
-  Number(md.match(/^priority:\s*(\d+)\s*$/m)?.[1] ?? DEFAULT_PRIORITY);
+export const topicDir = (root: string, name: string) => join(root, "topics", name);
 
-/** One SOP's folder, read. Sources come back highest priority first, then by name. */
-export async function readSopDir(dir: string): Promise<SopDir> {
+type Loaded = ReturnType<typeof loadWorking>["docs"][number]["doc"];
+const live = (d: Loaded) => d.fm.status === "live";
+const tagged = (d: Loaded, name: string) => d.fm.tags.includes(name);
+
+/** A source record as the model reads it: what it is, then its text. */
+function sourceText(d: Loaded): string {
+  const f = d.fm as Record<string, unknown>;
+  const head = ["title", "url", "handle", "priority"]
+    .filter((k) => f[k] !== undefined)
+    .map((k) => `${k}: ${JSON.stringify(f[k])}`);
+  return `---\n${head.join("\n")}\n---\n\n${d.body}\n`;
+}
+
+/** The points a source has for this SOP, in order. */
+function pointsFor(docs: Loaded[], stem: string, name: string): Loaded[] {
+  return docs
+    .filter((d) => d.fm.type === "finding" && live(d) && d.fm.source === stem && tagged(d, name))
+    .sort((a, b) => Number(a.fm.order ?? 0) - Number(b.fm.order ?? 0));
+}
+
+const asPoint = (d: Loaded): Point => ({
+  form: d.fm.form === "passage" ? "passage" : "point",
+  section: typeof d.fm.section === "string" ? d.fm.section : null,
+  text: d.body,
+  must: d.fm.tags.includes("must"),
+});
+
+/**
+ * One SOP, read from the knowledge repo: the topic folder's files, its guide, and the live sources
+ * tagged with its name (each as its points when it has some). Highest priority first, then by name.
+ */
+export async function readSopDir(root: string, name: string): Promise<SopDir> {
+  const dir = topicDir(root, name);
   const read = (f: string) => readFile(join(dir, f), "utf8").catch(() => "");
-  const srcDir = join(dir, "sources");
-  const names = (await readdir(srcDir).catch(() => [] as string[])).filter((n) =>
-    n.endsWith(".md"),
-  );
-  const sources = await Promise.all(
-    names.map(async (name) => {
-      const stem = name.replace(/\.md$/, "");
-      const raw = await readFile(join(srcDir, name), "utf8");
-      // A curated points file stands in for the raw source when it exists.
-      const points = await readFile(join(dir, "points", name), "utf8").catch(() => "");
-      return points
-        ? { name: `points-${stem}`, priority: priorityOf(points), md: points }
-        : { name: stem, priority: priorityOf(raw), md: raw };
-    }),
-  );
+  const docs = loadWorking(root).docs.map((l) => l.doc);
+  const sources = docs
+    .filter((d) => d.fm.type === "source" && live(d) && tagged(d, name))
+    .map((d) => {
+      const priority = Number(d.fm.priority ?? DEFAULT_PRIORITY);
+      const points = pointsFor(docs, d.fm.id, name);
+      // Curated points stand in for the raw source when there are some.
+      return points.length
+        ? { name: `points-${d.fm.id}`, priority, md: pointsText(points.map(asPoint)) }
+        : { name: d.fm.id, priority, md: sourceText(d) };
+    });
   sources.sort((a, b) => b.priority - a.priority || a.name.localeCompare(b.name));
+  const guide = docs.find((d) => d.fm.type === "guide" && d.fm.id === name);
   return {
+    root,
     dir,
     notes: (await read("notes.md")).replace(FRONT_MATTER, ""),
     calls: await read("calls.md"),
     standard: await read("standard.md"),
-    current: expandCites(await read("SOP.md")),
+    current: guide ? expandCites(guide.body, guide.fm.cites) : "",
+    cites: guide?.fm.cites ?? [],
     sources,
   };
 }
@@ -280,14 +324,88 @@ names what the SOP governs (kinds post, film, reel, video; platforms; topic word
 and brands): \`wren sop sync\` measures those pieces into standard.md and rolls your calls into calls.md.
 `;
 
-/** Add a source to an SOP's folder (creating it and a notes.md stub); same name overwrites. */
-export async function addSource(dir: string, source: Source): Promise<string> {
-  await mkdir(join(dir, "sources"), { recursive: true });
+/** `toSource`'s front matter: JSON strings and bare numbers, one per line. */
+function sourceFields(md: string): { fields: Record<string, string | number>; body: string } {
+  const m = md.match(FRONT_MATTER);
+  if (!m) return { fields: {}, body: md.trim() };
+  const fields: Record<string, string | number> = {};
+  for (const line of m[0].split("\n").slice(1, -2)) {
+    const kv = line.match(/^([a-z_]+):\s*(.*)$/);
+    if (!kv?.[1]) continue;
+    const v = kv[2] ?? "";
+    fields[kv[1]] = v.startsWith('"') ? (JSON.parse(v) as string) : /^\d+$/.test(v) ? Number(v) : v;
+  }
+  return { fields, body: md.slice(m[0].length).trim() };
+}
+
+const kindOf = (stem: string, url: string | undefined) =>
+  stem.startsWith("youtube-")
+    ? "video"
+    : stem.startsWith("instagram-")
+      ? /\/reel\//.test(url ?? "")
+        ? "reel"
+        : "post"
+      : stem.startsWith("tiktok-")
+        ? "reel"
+        : stem.startsWith("x-")
+          ? "post"
+          : stem.startsWith("web-")
+            ? "page"
+            : stem.startsWith("github-")
+              ? "repo"
+              : /^(drive|file|note)-/.test(stem)
+                ? "doc"
+                : "other";
+
+/** Who writes and why: every record carries both. */
+export interface By {
+  by: string;
+  why: string;
+}
+
+/**
+ * Add a source to an SOP: a source record (`sources/<stem>.md`, one commit) tagged with the SOP's
+ * name, and the topic folder with a notes.md stub. A source already there gets the new text and the tag.
+ */
+export async function addSource(
+  root: string,
+  name: string,
+  source: Source,
+  who: By,
+): Promise<string> {
+  const dir = topicDir(root, name);
+  await mkdir(dir, { recursive: true });
   const notes = join(dir, "notes.md");
   await readFile(notes).catch(() => writeFile(notes, NOTES_STUB));
-  const file = join(dir, "sources", source.name);
-  await writeFile(file, source.md);
-  return file;
+  const id = source.name.replace(/\.md$/, "");
+  const { fields, body } = sourceFields(source.md);
+  const { source: origin, channel, title, url, priority, ...rest } = fields;
+  const record = {
+    title: String(title ?? body.match(/^# (.+)$/m)?.[1] ?? id),
+    kind: kindOf(id, url as string | undefined),
+    ...(url ? { url } : {}),
+    ...(channel ? { handle: channel } : {}),
+    ...(priority ? { priority } : {}),
+    ...(origin ? { origin } : {}),
+    ...rest,
+    body,
+  };
+  const prev = loadWorking(root).docs.find((l) => l.doc.fm.id === id);
+  await write(
+    root,
+    [
+      prev
+        ? {
+            op: "edit",
+            id,
+            ...record,
+            tags: [...new Set([...prev.doc.fm.tags, name])].sort(),
+          }
+        : { op: "add", type: "source", id, tags: [name], ...record },
+    ],
+    who,
+  );
+  return join(root, "sources", `${id}.md`);
 }
 
 /** Prompt that turns one raw source into an exhaustive, cited list of points. */
@@ -299,48 +417,80 @@ function pointsPrompt(stem: string, md: string): string {
       " 1:02:30]. Keep the source's wording where it is specific; fix only obvious caption transcription errors.",
     "Worked examples (a full email, script or message) are quoted in full inside a fenced block, followed by the source's own analysis of why it works as points.",
     'An "## On screen" section is what the video showed (documents, tables, lists); carry every item of it as points, cited to its time. On-screen text is often the highest-signal part of a source.',
-    "Reply with only the markdown list and headings. Start with the front matter block from the source, unchanged.",
+    "Reply with only the markdown list and headings.",
     `<source file="${stem}">\n${md.trim()}\n</source>`,
   ].join("\n\n");
 }
 
-/** Write `points/<stem>.md` for one source (or every source without one); returns the files written. */
-export async function extractPoints(dir: string, llm: LlmClient, only?: string): Promise<string[]> {
-  const read = await readSopDir(dir);
-  await mkdir(join(dir, "points"), { recursive: true });
+/**
+ * Extract each source's points as findings (one per point or passage, tagged with the SOP), one
+ * commit per source: every source of the SOP without points, or only `only` (its old points retired).
+ * Returns the stems extracted.
+ */
+export async function extractPoints(
+  root: string,
+  name: string,
+  llm: LlmClient,
+  who: Pick<By, "by">,
+  only?: string,
+): Promise<string[]> {
+  const docs = loadWorking(root).docs.map((l) => l.doc);
   const out: string[] = [];
-  for (const s of read.sources) {
-    if (s.name.startsWith("points-")) continue;
-    if (only && s.name !== only) continue;
-    const { text } = await llm.complete(pointsPrompt(s.name, s.md), { maxTokens: 32_000 });
-    const file = join(dir, "points", `${s.name}.md`);
+  for (const s of docs.filter((d) => d.fm.type === "source" && live(d) && tagged(d, name))) {
+    const stem = s.fm.id;
+    const old = pointsFor(docs, stem, name);
+    if (only ? stem !== only : old.length) continue;
+    const { text } = await llm.complete(pointsPrompt(stem, sourceText(s)), { maxTokens: 32_000 });
     // Models drop the stem from citations; a bare [m:ss] or [h:mm:ss] gets it back.
     const md = text
       .trim()
       .replace(/^```(?:markdown)?\n([\s\S]*?)\n```$/, "$1")
-      .replace(/\[(\d{1,2}:\d{2}(?::\d{2})?)\]/g, `[${s.name} $1]`);
-    await writeFile(file, `${md}\n`);
-    out.push(file);
+      .replace(FRONT_MATTER, "")
+      .replace(/\[(\d{1,2}:\d{2}(?::\d{2})?)\]/g, `[${stem} $1]`);
+    const points = pointsOf(md);
+    if (!points.length) throw new Error(`${stem}: the model gave no points`);
+    const changes: Change[] = [
+      // a point shared with another SOP stays live there
+      ...old.map((d): Change => {
+        const tags = d.fm.tags.filter((t) => t !== name);
+        return tags.some((t) => t !== "must")
+          ? { op: "edit", id: d.fm.id, tags }
+          : { op: "retire", id: d.fm.id };
+      }),
+      ...points.map(
+        (p, i): Change => ({
+          op: "add",
+          type: "finding",
+          id: newId(pointTitle(p, `${stem} passage`)),
+          title: pointTitle(p, stem),
+          tags: [name, ...(p.must ? ["must"] : [])],
+          source: stem,
+          ...(atOf(p.text) ? { at: atOf(p.text) } : {}),
+          form: p.form,
+          order: i + 1,
+          ...(p.section ? { section: p.section } : {}),
+          body: p.text,
+        }),
+      ),
+    ];
+    await write(root, changes, { by: who.by, why: `points extracted from ${stem} for ${name}` });
+    out.push(stem);
   }
   return out;
 }
 
-/** The folder as a Claude Code skill. SKILL.md injects SOP.md and the refs listing at load time (`!\`cmd\``), so the model never has to go read them. */
-function skillMd(name: string, dir: string, sop: string): string {
-  const purpose =
-    sop
-      .split("\n")
-      .find((l) => l.trim() && !l.startsWith("#"))
-      ?.trim() ?? name;
+/** The topic folder as a Claude Code skill. SKILL.md renders the guide and lists refs at load time (`!\`cmd\``), so the model never has to go read them. */
+function skillMd(root: string, name: string, description: string): string {
+  const dir = topicDir(root, name);
   const q = JSON.stringify(dir);
   return `---
 name: sop-${name}
-description: ${JSON.stringify(`SOP: ${purpose}`)}
+description: ${JSON.stringify(`SOP: ${description}`)}
 ---
 
 Follow this SOP start to finish. Its examples and prompts are the bar.
 
-!\`cat ${q}/SOP.md\`
+!\`knowledge --repo ${JSON.stringify(root)} render ${name}\`
 
 Reference files (designs, PDFs, images) in \`${dir}/refs/\`; open the relevant ones before writing:
 
@@ -348,33 +498,87 @@ Reference files (designs, PDFs, images) in \`${dir}/refs/\`; open the relevant o
 `;
 }
 
-/** Write SKILL.md from the folder's current SOP.md. */
-export async function writeSkill(dir: string): Promise<string> {
-  const sop = await readFile(join(dir, "SOP.md"), "utf8");
-  const file = join(dir, "SKILL.md");
-  await writeFile(file, skillMd(basename(dir), dir, sop));
+/** The first line of a guide that is not a heading: what the SOP is for. */
+const purposeOf = (body: string, name: string) =>
+  body
+    .split("\n")
+    .find((l) => l.trim() && !l.startsWith("#"))
+    ?.trim() ?? name;
+
+/** Write `topics/<name>/SKILL.md` from the guide. */
+export async function writeSkill(root: string, name: string): Promise<string> {
+  const guide = readRecord(root, name);
+  if (guide?.fm.type !== "guide") throw new Error(`${name}: no guide (sop build first)`);
+  const file = join(topicDir(root, name), "SKILL.md");
+  await mkdir(topicDir(root, name), { recursive: true });
+  await writeFile(file, skillMd(root, name, guide.fm.description ?? purposeOf(guide.body, name)));
   return file;
 }
 
-/** Build the next SOP.md from the folder; returns it. The model answers in markdown, no schema. */
-export async function buildSop(dir: string, llm: LlmClient): Promise<string> {
-  const read = await readSopDir(dir);
-  if (!read.sources.length && !read.notes.trim())
-    throw new Error(`${dir}: nothing to build from (no sources, empty notes.md)`);
-  const name = basename(dir);
-  const { text } = await llm.complete(sopPrompt({ name, ...read }), { maxTokens: 8000 });
-  const sop = await numberCites(
-    dir,
-    `${text.trim().replace(/^```(?:markdown)?\n([\s\S]*?)\n```$/, "$1")}\n`,
+/** The SOP as one markdown doc: the guide's body and its Sources list (what a playbook and a skill read). */
+export const sopText = (root: string, name: string) => render(root, name);
+
+/** Renumber a guide's cites (`wren sop cite`); false when nothing changed. */
+export async function renumberGuide(root: string, name: string, who: By): Promise<boolean> {
+  const guide = readRecord(root, name);
+  if (guide?.fm.type !== "guide") return false;
+  const known = sourceIds(root);
+  const next = numberCites(expandCites(guide.body, guide.fm.cites), guide.fm.cites, known);
+  if (next.body.trimEnd() === guide.body.trimEnd() && next.cites.join() === guide.fm.cites.join())
+    return false;
+  await write(root, [{ op: "edit", id: name, body: next.body, cites: next.cites }], who);
+  return true;
+}
+
+const sourceIds = (root: string) =>
+  new Set(
+    loadWorking(root)
+      .docs.filter((l) => l.doc.fm.type === "source")
+      .map((l) => l.doc.fm.id),
   );
-  await writeFile(join(dir, "SOP.md"), sop);
-  await writeSkill(dir);
+
+/**
+ * Build the next guide (`guides/<name>.md`, one commit) from the topic folder and the sources; then
+ * SKILL.md and counts.tsv. Returns the SOP as rendered. The model answers in markdown, no schema.
+ */
+export async function buildSop(
+  root: string,
+  name: string,
+  llm: LlmClient,
+  who: Pick<By, "by">,
+): Promise<string> {
+  const read = await readSopDir(root, name);
+  if (!read.sources.length && !read.notes.trim())
+    throw new Error(`${name}: nothing to build from (no sources, empty notes.md)`);
+  const { text } = await llm.complete(sopPrompt({ name, ...read }), { maxTokens: 8000 });
+  const { body, cites } = numberCites(
+    `${text.trim().replace(/^```(?:markdown)?\n([\s\S]*?)\n```$/, "$1")}\n`,
+    read.cites,
+    sourceIds(root),
+  );
+  const fields = {
+    title: body.match(/^# (.+)$/m)?.[1] ?? name,
+    description: purposeOf(body, name),
+    cites,
+    body,
+  };
+  await write(
+    root,
+    [
+      read.current || read.cites.length
+        ? { op: "edit", id: name, ...fields }
+        : { op: "add", type: "guide", id: name, topic: name, ...fields },
+    ],
+    { by: who.by, why: `built from notes, calls, the standard and ${read.sources.length} sources` },
+  );
+  await writeSkill(root, name);
+  const sop = render(root, name);
   // ponytail: tokens ≈ chars/4; swap in a real tokenizer if the estimate starts to matter.
-  const row = (name: string, md: string) =>
-    `${name}\t${md.split(/\s+/).filter(Boolean).length} words\t~${Math.round(md.length / 4)} tokens`;
+  const row = (n: string, md: string) =>
+    `${n}\t${md.split(/\s+/).filter(Boolean).length} words\t~${Math.round(md.length / 4)} tokens`;
   await writeFile(
-    join(dir, "counts.tsv"),
-    `${[row("SOP.md", sop), row("notes.md", read.notes), ...read.sources.map((s) => row(`sources/${s.name}.md`, s.md))].join("\n")}\n`,
+    join(read.dir, "counts.tsv"),
+    `${[row("SOP", sop), row("notes.md", read.notes), ...read.sources.map((s) => row(`sources/${s.name}.md`, s.md))].join("\n")}\n`,
   );
   return sop;
 }

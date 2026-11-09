@@ -1,13 +1,14 @@
 /**
- * `wren sop …`: SOPs built from videos, Drive Docs and files, kept as folders
- * under the SOPs directory (`SOP.md`, `notes.md`, `calls.md`, `standard.md`, `sources/`). `add` ingests
- * a source, `sync` writes the numbers and your calls from Learn, `build` writes the next SOP.md
- * on Claude Code (sync first), `ls` shows what is there, `push` hands SOP.md to the content loop
+ * `wren sop …`: SOPs built from videos, Drive Docs and files, kept in the knowledge repo
+ * (`knowledgeDir`): a guide per SOP, its sources and points as records (one commit per write, with a
+ * by and a why), `topics/<name>/` for `notes.md`, `calls.md`, `standard.md`, refs. `add` ingests
+ * a source, `sync` writes the numbers and your calls from Learn, `build` writes the next guide
+ * on Claude Code (sync first), `ls` shows what is there, `push` hands the SOP to the content loop
  * as a platform's playbook. Iterate by editing notes.md (your rules, top priority), calling on
  * pieces, and building again. Drive reads go through autobrowse's `drive` site on this machine.
  */
 import { spawnSync } from "node:child_process";
-import { copyFile, mkdir, readdir, readFile, symlink, unlink, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, symlink, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
@@ -22,12 +23,13 @@ import {
   DEFAULT_PRIORITY,
   type DriveGet,
   driveSources,
-  expandCites,
   extractPoints,
   fileSource,
-  numberCites,
   readSopDir,
+  renumberGuide,
   type Source,
+  sopText,
+  topicDir,
   videoSource,
   writeSkill,
   youtubeSource,
@@ -60,7 +62,13 @@ export function registerSop(
   settings: Settings,
   rootDir: string,
 ): void {
-  const sopsDir = resolve(rootDir, settings.sopsDir);
+  const root = resolve(rootDir, settings.knowledgeDir);
+  // every record wren writes says it came from here; the why names the command
+  const BY = "wren-sop";
+  const topics = async () =>
+    (await readdir(join(root, "topics"), { withFileTypes: true }).catch(() => []))
+      .filter((e) => e.isDirectory() && !e.name.startsWith("."))
+      .map((e) => e.name);
   const sop = program
     .command("sop")
     .description("SOPs from videos, Drive Docs and files: `sop add`, then `sop build`");
@@ -81,7 +89,7 @@ export function registerSop(
         what: string,
         opts: { account?: string; priority?: number; screen?: boolean },
       ) => {
-        const dir = join(sopsDir, name);
+        const dir = topicDir(root, name);
         const priority = opts.priority ?? DEFAULT_PRIORITY;
         let sources: Source[];
         if (YOUTUBE.test(what)) {
@@ -111,34 +119,25 @@ export function registerSop(
           console.log(to);
           return;
         }
-        for (const s of sources) console.log(await addSource(dir, s));
+        for (const s of sources)
+          console.log(await addSource(root, name, s, { by: BY, why: `sop add ${what}` }));
       },
     );
 
   sop
     .command("cite [name]")
-    .description(
-      "number the citations in SOP.md ([1 12:03]) with one Sources list; every SOP when no name",
-    )
+    .description("number the guide's citations ([1 12:03]), one cites list; every SOP when no name")
     .action(async (name?: string) => {
-      const names = name
-        ? [name]
-        : (await readdir(sopsDir, { withFileTypes: true }))
-            .filter((e) => e.isDirectory() && e.name !== "shapes")
-            .map((e) => e.name);
+      const names = name ? [name] : await topics();
       for (const n of names) {
-        const file = join(sopsDir, n, "SOP.md");
-        const md = await readFile(file, "utf8").catch(() => "");
-        if (!md) continue;
-        const next = await numberCites(join(sopsDir, n), expandCites(md));
-        if (next !== md) await writeFile(file, next);
-        console.log(`${n}${next === md ? " (same)" : ""}`);
+        const changed = await renumberGuide(root, n, { by: BY, why: "sop cite: renumbered" });
+        console.log(`${n}${changed ? "" : " (same)"}`);
       }
     });
 
   /** `standard.md` and `calls.md` from the pieces the SOP's front matter names; false when it names none. */
   const sync = async (name: string) => {
-    const dir = join(sopsDir, name);
+    const dir = topicDir(root, name);
     const notes = await readFile(join(dir, "notes.md"), "utf8").catch(() => "");
     const r = await withDb((db) => writeSopFiles(db, dir, name, notes));
     if (!r) return false;
@@ -165,7 +164,7 @@ export function registerSop(
     )
     .option("--model <name>", "the reading and breakdown model", "cohere")
     .action(async (name: string, o: { model: string }) => {
-      const notes = await readFile(join(sopsDir, name, "notes.md"), "utf8").catch(() => "");
+      const notes = await readFile(join(topicDir(root, name), "notes.md"), "utf8").catch(() => "");
       const scope = scopeOf(notes, name);
       if (!scope)
         throw new Error(
@@ -188,12 +187,11 @@ export function registerSop(
   sop
     .command("build <name>")
     .description(
-      "write the next SOP.md from notes.md, your calls, the standard and the sources, on Claude Code (prod numbers: node scripts/prod-wren.mjs sop sync <name> first)",
+      "write the next guide from notes.md, your calls, the standard and the sources, on Claude Code (prod numbers: node scripts/prod-wren.mjs sop sync <name> first)",
     )
     .option("--model <model>", "Claude Code model", "opus")
     .option("--no-sync", "skip the standard.md and calls.md rewrite first")
     .action(async (name: string, opts: { model: string; sync: boolean }) => {
-      const dir = join(sopsDir, name);
       // No database here (the Mac with Postgres down): build from the two files as they are on disk.
       if (opts.sync)
         await sync(name).catch((err: unknown) =>
@@ -202,47 +200,47 @@ export function registerSop(
           ),
         );
       const llm = modelLlm(claudeCode(opts.model, { timeoutMs: 1_800_000 }));
-      const text = await buildSop(dir, llm);
-      console.log(`${join(dir, "SOP.md")} (${text.split(/\s+/).length} words)`);
+      const text = await buildSop(root, name, llm, { by: BY });
+      console.log(`${join(root, "guides", `${name}.md`)} (${text.split(/\s+/).length} words)`);
     });
 
   sop
     .command("extract <name> [source]")
     .description(
-      "list every point a source makes into points/<source>.md (generated; your calls, not line edits, decide what is in); build then reads points instead of the raw source",
+      "list every point a source makes as findings tagged with the SOP (generated; your calls decide what is in); build then reads points instead of the raw source. Naming a source extracts it again",
     )
     .option("--model <model>", "Claude Code model", "opus")
     .action(async (name: string, source: string | undefined, opts: { model: string }) => {
       const llm = modelLlm(claudeCode(opts.model, { timeoutMs: 1_800_000 }));
-      for (const f of await extractPoints(join(sopsDir, name), llm, source)) console.log(f);
+      for (const f of await extractPoints(root, name, llm, { by: BY }, source)) console.log(f);
     });
 
   sop
     .command("link <name>")
     .description(
-      "expose the SOP folder as the Claude Code skill `sop-<name>` (symlink in ~/.claude/skills)",
+      "expose the SOP as the Claude Code skill `sop-<name>` (topics/<name>/, symlinked in ~/.claude/skills)",
     )
     .action(async (name: string) => {
-      await writeSkill(join(sopsDir, name));
+      await writeSkill(root, name);
       const to = join(homedir(), ".claude", "skills", `sop-${name}`);
       await unlink(to).catch(() => {});
-      await symlink(join(sopsDir, name), to, "dir");
+      await symlink(topicDir(root, name), to, "dir");
       console.log(to);
     });
 
   sop
     .command("push <name>")
     .description(
-      "hand SOP.md to the content loop: every draft for the platform reads it (prod: node scripts/prod-wren.mjs sop push …)",
+      "hand the SOP (the guide, rendered) to the content loop: every draft for the platform reads it (prod: node scripts/prod-wren.mjs sop push …)",
     )
     .requiredOption("--platform <platform>", PLATFORMS.join(" | "))
     .action(async (name: string, opts: { platform: string }) => {
       if (!(PLATFORMS as readonly string[]).includes(opts.platform))
         throw new Error(`platform must be one of ${PLATFORMS.join(", ")}`);
       const platform = opts.platform as Platform;
-      const text = await readFile(join(sopsDir, name, "SOP.md"), "utf8");
+      const text = sopText(root, name);
       // What it governs rides along, so a draft reads the SOP's set live (designs/2026-10-25-competitor-analyzer.md, Use).
-      const notes = await readFile(join(sopsDir, name, "notes.md"), "utf8").catch(() => "");
+      const notes = await readFile(join(topicDir(root, name), "notes.md"), "utf8").catch(() => "");
       const scope = scopeOf(notes, name);
       const { playbook, changed } = await withDb((db) =>
         pushPlaybook(db, { platform, sop: name, text, scope }),
@@ -254,17 +252,12 @@ export function registerSop(
 
   sop
     .command("ls")
-    .description(
-      "every SOP folder: sources by priority, whether SOP.md, calls.md and standard.md exist",
-    )
+    .description("every SOP: sources by priority, whether a guide, calls.md and standard.md exist")
     .action(async () => {
-      const names = (await readdir(sopsDir, { withFileTypes: true }).catch(() => []))
-        .filter((e) => e.isDirectory() && !e.name.startsWith("."))
-        .map((e) => e.name);
-      for (const name of names) {
-        const d = await readSopDir(join(sopsDir, name));
+      for (const name of await topics()) {
+        const d = await readSopDir(root, name);
         const files = [
-          d.current ? "SOP.md" : "no SOP.md",
+          d.current ? "guide" : "no guide",
           d.calls ? "calls.md" : null,
           d.standard ? "standard.md" : null,
         ].filter(Boolean);

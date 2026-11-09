@@ -60,16 +60,16 @@ describe("Learn sources", () => {
 
       const extracted: string[] = [];
       const writer = {
-        add: async (d: string, src: { name: string; md: string }) => {
-          await mkdir(join(d, "sources"), { recursive: true });
-          await writeFile(join(d, "sources", src.name), src.md);
-          return join(d, "sources", src.name);
+        add: async (sop: string, src: { name: string; md: string }) => {
+          await mkdir(join(dir, sop, "sources"), { recursive: true });
+          await writeFile(join(dir, sop, "sources", src.name), src.md);
+          return join(dir, sop, "sources", src.name);
         },
-        extract: async (_d: string, stem: string) => {
+        extract: async (_sop: string, stem: string) => {
           extracted.push(stem);
         },
       };
-      expect(await writeAsked(pg.db, dir, writer)).toEqual([
+      expect(await writeAsked(pg.db, writer)).toEqual([
         { sop: "email-infra", file: "web-news-example-short.md", error: null },
       ]);
       expect(extracted).toEqual(["web-news-example-short"]);
@@ -79,7 +79,7 @@ describe("Learn sources", () => {
       expect(
         await readFile(join(dir, "email-infra", "sources", "web-news-example-short.md"), "utf8"),
       ).toContain("four weeks");
-      expect(await writeAsked(pg.db, dir, writer)).toEqual([]);
+      expect(await writeAsked(pg.db, writer)).toEqual([]);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

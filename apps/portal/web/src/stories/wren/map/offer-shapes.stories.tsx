@@ -1,6 +1,6 @@
 /**
  * Offer shapes from Orrery (WA-1160): the artifact's funnels and every money-model play
- * (`packages/ui/src/metro/money-models.ts`, sops/money-models), drawn by the Map's own parts.
+ * (`packages/ui/src/metro/money-models.ts`, knowledge guides/money-models), drawn by the Map's own parts.
  * Flat or Layers, as on the Map; in Layers a plate's own folds lift plates over it.
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";

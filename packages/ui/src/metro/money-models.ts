@@ -1,5 +1,5 @@
 /**
- * Money models as metro views: each play from the $100M Money Models video (sops/money-models), one
+ * Money models as metro views: each play from the $100M Money Models video (knowledge guides/money-models), one
  * map each, in the SOP's stage order. Prices are the video's examples. Each choice point is one
  * A/B (`ab`) or one condition (`dec`), never a menu: the SOP's anchor rule. A line is what the buyer
  * gets: a choice of how to pay stays on its line, and only a change in what they get (a lesser offer,

@@ -48,7 +48,7 @@ const itemKindOf = (raw: string): ItemKind => {
 };
 
 import { modelLlm } from "@wren/llm";
-import { addSource, extractPoints } from "@wren/research/sops";
+import { addSource, extractPoints, topicDir } from "@wren/research/sops";
 import { claudeCode } from "@wrenautomation/models/command";
 import type { Command } from "commander";
 import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
@@ -88,14 +88,15 @@ export function registerLearn(
   /** Main, and the workspace the command works in. */
   const inWorkspace = <T>(fn: (db: Db, client: string) => Promise<T>) =>
     withDb(async (db) => fn(db, await dbs.workspace()));
-  const sopsDir = resolve(rootDir, settings.sopsDir);
+  const knowledgeDir = resolve(rootDir, settings.knowledgeDir);
   const { reader, judgeFor } = learnReaders(settings, rootDir);
   const writer = (model: string) => {
     const llm = modelLlm(claudeCode(model, { timeoutMs: 1_800_000 }));
     return {
-      add: (dir: string, source: { name: string; md: string }) => addSource(dir, source),
-      extract: async (dir: string, stem: string) => {
-        await extractPoints(dir, llm, stem);
+      add: (sop: string, source: { name: string; md: string }) =>
+        addSource(knowledgeDir, sop, source, { by: BY, why: "asked into the SOP from Learn" }),
+      extract: async (sop: string, stem: string) => {
+        await extractPoints(knowledgeDir, sop, llm, { by: BY }, stem);
       },
     };
   };
@@ -130,9 +131,7 @@ export function registerLearn(
       say(`${w.id} ${r}${broken ? " broken down" : ""} ${w.url}`);
     }
     const sops =
-      o.sops && (!o.client || o.client === WREN)
-        ? await writeAsked(db, sopsDir, writer(o.sopModel))
-        : [];
+      o.sops && (!o.client || o.client === WREN) ? await writeAsked(db, writer(o.sopModel)) : [];
     return { read: out, sops };
   };
 
@@ -487,12 +486,12 @@ export function registerLearn(
           const itemId = Number(id);
           const ask = await askSop(db, { client, itemId, sop, by: BY });
           if (o.later) return ask;
-          const done = await writeAsked(db, sopsDir, writer(o.sopModel), {
+          const done = await writeAsked(db, writer(o.sopModel), {
             itemId,
             sop: ask.sop,
           });
           return done.length
-            ? { ...done[0], folder: join(sopsDir, ask.sop) }
+            ? { ...done[0], folder: topicDir(knowledgeDir, ask.sop) }
             : {
                 asked: ask.sop,
                 note: "Not read yet: the next `learn read` writes it.",

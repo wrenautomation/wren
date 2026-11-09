@@ -1,9 +1,8 @@
 /**
- * Items into SOPs. "Add to SOP" asks. The Mac, where `../sops` lives, writes the item's stored
- * transcript into that SOP's `sources/` and extracts its points; build and push stay William's
+ * Items into SOPs. "Add to SOP" asks. The Mac, where the knowledge repo lives, writes the item's
+ * stored transcript as a source of that SOP and extracts its points; build and push stay William's
  * (`wren sop build`, `wren sop push`).
  */
-import { join } from "node:path";
 import { WREN } from "@wren/core/access";
 import type { Db } from "@wren/db";
 import { and, asc, eq, isNotNull, or, sql } from "drizzle-orm";
@@ -40,10 +39,10 @@ export async function askSop(
   return row;
 }
 
-/** What writes into a folder: `sop add`'s and `sop extract`'s, passed in by the CLI. */
+/** What writes an SOP's source and points: `sop add`'s and `sop extract`'s, passed in by the CLI. */
 interface SopWriter {
-  add(dir: string, source: { name: string; md: string }): Promise<string>;
-  extract(dir: string, stem: string): Promise<void>;
+  add(sop: string, source: { name: string; md: string }): Promise<string>;
+  extract(sop: string, stem: string): Promise<void>;
 }
 
 /**
@@ -52,7 +51,6 @@ interface SopWriter {
  */
 export async function writeAsked(
   db: Db,
-  sopsDir: string,
   writer: SopWriter,
   only?: { itemId?: number; sop?: string },
 ): Promise<Array<{ sop: string; file: string | null; error: string | null }>> {
@@ -77,16 +75,15 @@ export async function writeAsked(
   for (const { ask, item } of asked) {
     const name = item ? (item.file ?? fileOf(item.url)) : noteFile(ask);
     const md = item ? (item.transcript ?? "") : noteWords(ask);
-    const dir = join(sopsDir, ask.sop);
     let written = false;
     try {
-      await writer.add(dir, { name, md });
+      await writer.add(ask.sop, { name, md });
       written = true;
       await db
         .update(sopSources)
         .set({ state: "added", file: name, error: null, doneAt: new Date() })
         .where(eq(sopSources.id, ask.id));
-      await writer.extract(dir, name.replace(/\.md$/, ""));
+      await writer.extract(ask.sop, name.replace(/\.md$/, ""));
       await db.update(sopSources).set({ points: new Date() }).where(eq(sopSources.id, ask.id));
       out.push({ sop: ask.sop, file: name, error: null });
     } catch (err) {
