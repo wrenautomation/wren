@@ -7,6 +7,8 @@ import { gunzipSync, gzipSync } from "node:zlib";
 import type { Browser } from "playwright-core";
 
 const SETTLE_MS = 1200;
+/** WebGL and intro motion need longer than text before a poster */
+const SHOT_SETTLE_MS = 3000;
 export const PAGE_TIMEOUT_MS = 20_000;
 /** the words are the payload */
 const BLOCKED = new Set(["image", "media", "font"]);
@@ -86,11 +88,34 @@ export async function paintInBrowser(
   }
 }
 
+/** A live page's first screen as one JPEG (a poster): images on, time for WebGL to draw. */
+export async function shotInBrowser(
+  browser: Browser,
+  url: string,
+  size = { width: 1280, height: 800 },
+): Promise<Uint8Array> {
+  const context = await browser.newContext({ viewport: size, deviceScaleFactor: 1 });
+  try {
+    const page = await context.newPage();
+    try {
+      await page.goto(url, { waitUntil: "load", timeout: PAGE_TIMEOUT_MS });
+    } catch (err) {
+      // slow page: shoot what has drawn
+      if ((err as Error)?.name !== "TimeoutError") throw err;
+    }
+    await page.waitForTimeout(SHOT_SETTLE_MS);
+    return await page.screenshot({ type: "jpeg", quality: 82 });
+  } finally {
+    await context.close();
+  }
+}
+
 // --- the render Lambda's wire ---
 
 export type RenderRequest =
   | { op: "read"; url: string; userAgent: string }
-  | { op: "paint"; html: string; count: number; px: number };
+  | { op: "paint"; html: string; count: number; px: number }
+  | { op: "shot"; url: string };
 
 /** `gz`: base64 gzip of the result JSON; `error`: why there is none. */
 export type RenderResponse = { gz: string } | { error: string };
@@ -104,9 +129,13 @@ interface WireSlides {
 const b64 = (u: Uint8Array) => Buffer.from(u).toString("base64");
 const bytes = (s: string) => new Uint8Array(Buffer.from(s, "base64"));
 
-export function encodeResult(out: PageOut | SlidesOut): RenderResponse {
-  const wire: WirePage | WireSlides =
-    "images" in out ? { images: out.images.map(b64), pdf: b64(out.pdf) } : out;
+export function encodeResult(out: PageOut | SlidesOut | Uint8Array): RenderResponse {
+  const wire: WirePage | WireSlides | { jpeg: string } =
+    out instanceof Uint8Array
+      ? { jpeg: b64(out) }
+      : "images" in out
+        ? { images: out.images.map(b64), pdf: b64(out.pdf) }
+        : out;
   const gz = gzipSync(JSON.stringify(wire)).toString("base64");
   if (gz.length > MAX_RESULT_BYTES)
     return {
@@ -130,6 +159,8 @@ export type InvokeRender = (req: RenderRequest) => Promise<RenderResponse>;
 export interface RenderLambda {
   read(url: string, userAgent: string): Promise<PageOut>;
   paint(html: string, count: number, px: number): Promise<SlidesOut>;
+  /** A live page's poster (JPEG). */
+  shot(url: string): Promise<Uint8Array>;
 }
 
 /** The render Lambda by name or ARN; `invoke` is a test seam. */
@@ -140,6 +171,7 @@ export function renderLambda(fn: string, invoke: InvokeRender = awsInvoke(fn)): 
       const w = decode<WireSlides>(await invoke({ op: "paint", html, count, px }));
       return { images: w.images.map(bytes), pdf: bytes(w.pdf) };
     },
+    shot: async (url) => bytes(decode<{ jpeg: string }>(await invoke({ op: "shot", url })).jpeg),
   };
 }
 

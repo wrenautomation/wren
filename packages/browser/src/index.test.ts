@@ -28,6 +28,15 @@ describe("renderLambda wire", () => {
     expect(await lambda.paint("<div/>", 2, 1080)).toEqual({ images, pdf });
   });
 
+  it("a shot comes back as its JPEG bytes", async () => {
+    const jpeg = new Uint8Array([255, 216, 255, 224, 9]);
+    const lambda = renderLambda("fn", async (req) => {
+      expect(req).toEqual({ op: "shot", url: "https://example.test/" });
+      return encodeResult(jpeg);
+    });
+    expect(await lambda.shot("https://example.test/")).toEqual(jpeg);
+  });
+
   it("a result past the cap is an error, not a cut", async () => {
     // random bytes: gzip cannot shrink them under the cap
     const noise = randomBytes(6_000_000);

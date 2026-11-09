@@ -3,6 +3,7 @@
  * media bucket and audit actor. William judges in the portal (Variants).
  */
 import { resolve } from "node:path";
+import { renderLambda } from "@wren/browser";
 import type { Settings } from "@wren/config";
 import type { Db } from "@wren/db";
 import { checkMediaStore } from "@wren/starling-inbound";
@@ -32,6 +33,8 @@ export function registerVariants(
     by,
     withVireo: (fn) => withDb((db) => fn(variants(db), db)),
     ...(settings.mediaBucket ? { bucket: checked(settings.mediaBucket) } : {}),
+    // a live page with no poster: the render Lambda shoots one (vireo `posters`)
+    shoot: (url) => renderLambda(settings.renderFunction ?? "wren-prod-render").shot(url),
     // a batch file's `studio: {edit, format}` → the cut's footage spans
     resolve: async (raw, db) => {
       const x = raw.studio as { edit: number; format?: "long" | "short" } | undefined;

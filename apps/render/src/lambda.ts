@@ -9,6 +9,7 @@ import {
   type RenderRequest,
   type RenderResponse,
   readInBrowser,
+  shotInBrowser,
 } from "@wren/browser";
 import { chromium as playwright } from "playwright-core";
 
@@ -23,6 +24,7 @@ export async function handler(req: RenderRequest): Promise<RenderResponse> {
       return encodeResult(await readInBrowser(browser, req.url, req.userAgent));
     if (req.op === "paint")
       return encodeResult(await paintInBrowser(browser, req.html, req.count, req.px));
+    if (req.op === "shot") return encodeResult(await shotInBrowser(browser, req.url));
     return { error: `unknown op ${(req as { op?: unknown }).op}` };
   } catch (err) {
     return { error: err instanceof Error ? (err.message.split("\n")[0] ?? err.name) : String(err) };
