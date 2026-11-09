@@ -30,13 +30,15 @@ export async function register(sql: Sql, registry: Registry) {
     handler: h.name,
     object: h.object,
     exclusive: h.exclusive,
+    private: h.private,
   }));
   if (!defs.length) return;
   await sql`
-    INSERT INTO rt.handlers (service, handler, object, exclusive)
-    SELECT x.service, x.handler, x.object, x.exclusive
-    FROM jsonb_to_recordset(${json(defs)}::text::jsonb) AS x(service text, handler text, object boolean, exclusive boolean)
-    ON CONFLICT (service, handler) DO UPDATE SET object = excluded.object, exclusive = excluded.exclusive, at = now()`;
+    INSERT INTO rt.handlers (service, handler, object, exclusive, private)
+    SELECT x.service, x.handler, x.object, x.exclusive, x.private
+    FROM jsonb_to_recordset(${json(defs)}::text::jsonb) AS x(service text, handler text, object boolean, exclusive boolean, private boolean)
+    ON CONFLICT (service, handler) DO UPDATE SET object = excluded.object, exclusive = excluded.exclusive,
+      private = excluded.private, at = now()`;
 }
 
 /**
@@ -460,6 +462,7 @@ export async function renameService(sql: postgres.Sql, from: string, to: string,
 }
 
 export async function handlers(sql: Sql) {
-  return sql<{ service: string; handler: string; object: boolean; exclusive: boolean }[]>`
-    SELECT service, handler, object, exclusive FROM rt.handlers`;
+  return sql<
+    { service: string; handler: string; object: boolean; exclusive: boolean; private: boolean }[]
+  >`SELECT service, handler, object, exclusive, private FROM rt.handlers`;
 }

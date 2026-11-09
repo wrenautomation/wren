@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parseDelay } from "./door.js";
 import { awakeableId, childId, newInvocationId, parseAwakeableId, Rand } from "./ids.js";
 import { retryDelay } from "./store.js";
 import { millis } from "./turn.js";
@@ -62,5 +63,23 @@ describe("millis", () => {
     expect(millis(undefined)).toBeUndefined();
     expect(millis(1.9)).toBe(1);
     expect(millis({ minutes: 1, seconds: 2, milliseconds: 3 })).toBe(62_003);
+  });
+});
+
+describe("parseDelay", () => {
+  it("reads Restate's humantime and ISO 8601 forms", () => {
+    expect(parseDelay(null)).toBe(0);
+    expect(parseDelay("")).toBe(0);
+    expect(parseDelay("10s")).toBe(10_000);
+    expect(parseDelay("500ms")).toBe(500);
+    expect(parseDelay("1h30m")).toBe(5_400_000);
+    expect(parseDelay("2d")).toBe(172_800_000);
+    expect(parseDelay("PT10S")).toBe(10_000);
+    expect(parseDelay("PT1.5S")).toBe(1500);
+    expect(parseDelay("P1DT2H")).toBe(93_600_000);
+  });
+  it("refuses what is not a duration", () => {
+    for (const v of ["10", "abc", "10x", "-5s", "P", "PT", "1.5s"])
+      expect(parseDelay(v)).toBeNull();
   });
 });

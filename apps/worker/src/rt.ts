@@ -5,6 +5,8 @@
  *   lambda lane  other pg services, one Lambda invoke per turn, pinned to a version ARN
  *   bridge lane  rows for services still on Restate, forwarded to Restate's loopback ingress
  *   replier      resolves each finished proxy call's Restate awakeable
+ *   door         (self-hosted) Restate's ingress protocol at slot port + 10: pg services served
+ *                direct, the rest passed to Restate. Caddy puts it in front of ingress.
  */
 import { readFileSync, statSync } from "node:fs";
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
@@ -22,6 +24,7 @@ import {
   replier,
   returnState,
   runTurn,
+  serveDoor,
   setPgServices,
 } from "@wren/runtime/pg";
 import type { Logger } from "pino";
@@ -29,7 +32,8 @@ import type { AnyService } from "./services.js";
 
 /**
  * Services on the Postgres runtime. A deploy flips one; pg keeps every service registered.
- * Groups (design doc "Move plan"): 1 AuditLogSeal; 2 platform and people loops on the Lambda lane.
+ * Groups (design doc "Move plan"): 1 AuditLogSeal; 2 platform and people loops; 3 email and content
+ * loops. All on the Lambda lane.
  * The watchdogs (FailedCallAlert, LoopRevive) move last: they watch the moved loops from Restate.
  */
 export const PG_SERVICES: readonly string[] = [
@@ -46,6 +50,17 @@ export const PG_SERVICES: readonly string[] = [
   "ClientUpdateMail",
   "ClientInvoicing",
   "ClientMailTriage",
+  "EmailSend",
+  "EmailInboxRead",
+  "EmailOpenerFill",
+  "EmailBounceRead",
+  "EmailFleetDigest",
+  "EmailPlacementTest",
+  "EmailClickPull",
+  "NewsletterSync",
+  "PostPlan",
+  "PostPublish",
+  "PostMetrics",
 ];
 
 /**
@@ -110,6 +125,8 @@ export async function startRt(o: {
   /** Restate's admin, self-hosted only: a flip back returns object state through it. */
   admin?: string;
   arnPath?: string;
+  /** Port for the door; unset: no door (the tunnel host has no Caddy in front). */
+  doorPort?: number;
   log: Logger;
 }) {
   const sql = rtSql(o.databaseUrl, 12, "wren-rt-box");
@@ -200,7 +217,20 @@ export async function startRt(o: {
   repin.unref();
   await Promise.all([boxLane.start(), lambdaLane.start(), bridgeLane.start()]);
   let reply: { stop(): Promise<void> } | null = await replier({ sql, ingress: o.ingress, log });
-  o.log.info({ pg: PG_SERVICES, onBox, onLambda, build: o.build }, "rt ready");
+  // own pool: portal calls must not starve the lanes; a failed door leaves Caddy on Restate
+  const doorPort = o.doorPort;
+  const doorSql = doorPort ? rtSql(o.databaseUrl, 4, "wren-rt-door") : null;
+  const door =
+    doorPort && doorSql
+      ? await serveDoor({ sql: doorSql, port: doorPort, restate: o.ingress.url }).catch(
+          async (e: unknown) => {
+            o.log.error({ err: String(e), port: doorPort }, "rt: door failed");
+            await doorSql.end({ timeout: 5 });
+            return null;
+          },
+        )
+      : null;
+  o.log.info({ pg: PG_SERVICES, onBox, onLambda, build: o.build, door: door?.url }, "rt ready");
 
   return {
     sql,
@@ -213,6 +243,8 @@ export async function startRt(o: {
     },
     async stop() {
       clearInterval(repin);
+      await door?.close();
+      await doorSql?.end({ timeout: 5 });
       await Promise.all([boxLane.stop(), lambdaLane.stop(), bridgeLane.stop(), reply?.stop()]);
       await sql.end({ timeout: 5 });
     },

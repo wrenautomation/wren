@@ -32,6 +32,8 @@ export interface Handler {
   name: string;
   object: boolean;
   exclusive: boolean;
+  /** Not callable from the ingress (the door): only from another handler. */
+  private: boolean;
   wrapper: Wrapper;
   retry: RetryPolicy | undefined;
   serde: restate.Serde<unknown> | undefined;
@@ -42,7 +44,11 @@ type Def = {
   _kind?: string;
   service?: Record<string, unknown>;
   object?: Record<string, unknown>;
-  options?: { retryPolicy?: RetryPolicy; serde?: restate.Serde<unknown> };
+  options?: {
+    retryPolicy?: RetryPolicy;
+    serde?: restate.Serde<unknown>;
+    ingressPrivate?: boolean;
+  };
 };
 
 export const wrapperOf = (fn: unknown): Wrapper | undefined => {
@@ -69,6 +75,7 @@ export class Registry {
           name,
           object,
           exclusive: object && wrapper.kind === KIND.EXCLUSIVE,
+          private: wrapper.options?.ingressPrivate ?? d.options?.ingressPrivate ?? false,
           wrapper,
           retry: wrapper.options?.retryPolicy ?? d.options?.retryPolicy,
           serde: d.options?.serde,

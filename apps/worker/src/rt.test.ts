@@ -27,6 +27,8 @@ beforeAll(async () => {
       WREN_REPORT_TO: "r@example.test",
       WREN_REPORT_FROM: "f@example.test",
       WREN_PORTAL_ORIGIN: "https://app.example.test",
+      // a gated loop, built so the route list may name it
+      WREN_SITE_EXPORT_TOKEN: "t",
       WREN_GOOGLE_SERVICE_ACCOUNT: JSON.stringify({
         type: "service_account",
         client_email: "sender@example.test",

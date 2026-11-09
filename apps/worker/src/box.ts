@@ -51,7 +51,9 @@ const rt = process.env.WREN_DATABASE_URL
       ingress: process.env.RESTATE_TUNNEL_NAME
         ? (({ url, headers }) => ({ url, ...(headers ? { headers } : {}) }))(ingressOf(settings))
         : { url: "http://127.0.0.1:8080" },
-      ...(process.env.RESTATE_TUNNEL_NAME ? {} : { admin: "http://127.0.0.1:9070" }),
+      ...(process.env.RESTATE_TUNNEL_NAME
+        ? {}
+        : { admin: "http://127.0.0.1:9070", doorPort: boxPort() + 10 }),
       log,
     }).catch((err: unknown) => {
       log.error({ err: String(err) }, "rt start failed");

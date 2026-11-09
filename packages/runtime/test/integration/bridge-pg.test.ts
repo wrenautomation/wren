@@ -17,6 +17,7 @@ import {
   returnState,
   runTurn,
   serveDoor,
+  setPgServices,
 } from "../../src/pg/index.js";
 
 const rs = restate.service({
@@ -47,6 +48,10 @@ const echo = restate.service({
       ctx.serviceClient(rs).twice(n),
     viaOutside: async (ctx: restate.Context, s: string): Promise<string> =>
       ctx.serviceClient(outside).shout(s),
+    inside: restate.handlers.handler(
+      { ingressPrivate: true },
+      async (_ctx: restate.Context): Promise<string> => "inside",
+    ),
   },
 });
 const counter = restate.object({
@@ -74,6 +79,8 @@ const restateState = async (key: string, service = "Counter") => {
 };
 let onRestate: ReturnType<typeof clients.connect>;
 let onPg: ReturnType<typeof clients.connect>;
+/** The door in front of Restate, as on the box (phase 4). */
+let front: string;
 let sql: postgres.Sql;
 
 beforeAll(async () => {
@@ -118,10 +125,14 @@ beforeAll(async () => {
   await bridge.start();
   const reply = await replier({ sql, ingress, sweepMs: 1000, log });
   const door = await serveDoor({ sql });
+  await setPgServices(sql, ["Echo", "Counter"], "test");
+  const frontDoor = await serveDoor({ sql, restate: ingress.url });
+  front = frontDoor.url;
   onRestate = clients.connect(ingress);
   onPg = clients.connect({ url: door.url });
   stop = async () => {
     await door.close();
+    await frontDoor.close();
     await reply.stop();
     await pgLane.stop();
     await bridge.stop();
@@ -208,4 +219,109 @@ describe("restate ↔ pg", () => {
       SELECT count(*)::int AS n FROM rt.invocations WHERE reply IS NOT NULL AND replied_at IS NULL`;
     expect(rows[0]?.n).toBe(0);
   });
+});
+
+describe("the door in front of Restate", () => {
+  const post = (path: string, body?: unknown, headers: Record<string, string> = {}) =>
+    fetch(`${front}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify(body ?? null),
+    });
+  const rowsOf = async (service: string) =>
+    (
+      await sql<
+        { n: number }[]
+      >`SELECT count(*)::int AS n FROM rt.invocations WHERE service = ${service} AND reply IS NULL`
+    )[0]?.n ?? 0;
+
+  it("health answers", async () => {
+    const r = await fetch(`${front}/restate/health`);
+    expect(r.status).toBe(200);
+  });
+
+  it("a pg service is served by pg, not by its Restate proxy", async () => {
+    const before = await rowsOf("Echo");
+    const r = await post("/Echo/hi", "cy");
+    expect(await r.json()).toBe("hi cy 2");
+    expect(await rowsOf("Echo")).toBe(before + 1);
+  }, 30_000);
+
+  it("a Restate service passes through, with its headers and status", async () => {
+    const r = await post("/Rs/twice", 5);
+    expect(r.status).toBe(200);
+    expect(await r.json()).toBe(10);
+    const missing = await post("/Nowhere/x", 1);
+    expect(missing.status).toBe(404);
+    expect(
+      (
+        await sql`SELECT 1 FROM rt.invocations WHERE service IN ('Rs', 'Nowhere') AND handler IN ('x') `
+      ).length,
+    ).toBe(0);
+  }, 30_000);
+
+  it("a Restate send passes through; its attach and idempotency hold", async () => {
+    const r = await post("/Outside/shout/send?delay=1s", "yo", { "idempotency-key": "front-1" });
+    expect(r.status).toBe(202);
+    const { invocationId, status } = (await r.json()) as { invocationId: string; status: string };
+    expect(status).toBe("Accepted");
+    const again = await post("/Outside/shout/send?delay=1s", "yo", {
+      "idempotency-key": "front-1",
+    });
+    expect(((await again.json()) as { invocationId: string }).invocationId).toBe(invocationId);
+    const out = await fetch(`${front}/restate/invocation/${invocationId}/attach`);
+    expect(await out.json()).toBe("YO");
+  }, 30_000);
+
+  it("a pg send with a delay waits; its attach answers from pg", async () => {
+    const r = await post("/Echo/hi/send?delay=PT1S", "di");
+    const { invocationId } = (await r.json()) as { invocationId: string };
+    const [row] = await sql<
+      { run_at: Date }[]
+    >`SELECT run_at FROM rt.invocations WHERE id = ${invocationId}`;
+    expect((row?.run_at.getTime() ?? 0) - Date.now()).toBeGreaterThan(200);
+    const out = await fetch(`${front}/restate/invocation/${invocationId}/attach`);
+    expect(await out.json()).toBe("hi di 2");
+  }, 30_000);
+
+  it("output answers 470 while a pg call runs; by idempotency key too", async () => {
+    const r = await post("/Echo/hi/send?delay=2s", "ok", { "idempotency-key": "front-2" });
+    const { invocationId } = (await r.json()) as { invocationId: string };
+    for (const path of [invocationId, "Echo/hi/front-2"]) {
+      const early = await fetch(`${front}/restate/invocation/${path}/output`);
+      expect(early.status).toBe(470);
+    }
+    const byKey = await fetch(`${front}/restate/invocation/Echo/hi/front-2/attach`);
+    expect(await byKey.json()).toBe("hi ok 2");
+    const done = await fetch(`${front}/restate/invocation/${invocationId}/output`);
+    expect(await done.json()).toBe("hi ok 2");
+    // an object call by key and idempotency key
+    await post("/Counter/c9/add", 4, { "idempotency-key": "front-3" });
+    const obj = await fetch(`${front}/restate/invocation/Counter/c9/add/front-3/output`);
+    expect(await obj.json()).toBe(4);
+    // a Restate one by idempotency key passes through
+    const rs = await fetch(`${front}/restate/invocation/Outside/shout/front-1/output`);
+    expect(await rs.json()).toBe("YO");
+  }, 30_000);
+
+  it("refuses a private handler and a bad delay", async () => {
+    expect((await post("/Echo/inside")).status).toBe(400);
+    expect((await post("/Echo/hi/send?delay=soon", "x")).status).toBe(400);
+  });
+
+  it("a Restate awakeable id passes through; a pg one stays", async () => {
+    const r = await post("/restate/a/sign_1nope/resolve", "v");
+    expect(r.status).toBeGreaterThanOrEqual(400);
+    expect(r.status).not.toBe(502);
+  });
+
+  it("a service flipped back to Restate passes through once the door sees it", async () => {
+    await setPgServices(sql, ["Counter"], "test-2");
+    await new Promise((t) => setTimeout(t, 5_100));
+    const before = await rowsOf("Echo");
+    expect(await (await post("/Echo/hi", "fl")).json()).toBe("hi fl 2");
+    // through Restate's proxy: a proxy row with a reply, no direct row
+    expect(await rowsOf("Echo")).toBe(before);
+    await setPgServices(sql, ["Echo", "Counter"], "test-3");
+  }, 30_000);
 });

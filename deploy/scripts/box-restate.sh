@@ -58,7 +58,10 @@ EOF
 # The bearer opens the ingress, two admin reads the console needs (SQL over state,
 # the service list) and the dead-letter queue's two writes (resume or kill a paused call:
 # the bearer already reaches every handler). Every other admin call stays loopback-only:
-# CI and the desk register over SSM. /cdp is the box's browser (browserless on loopback
+# CI and the desk register over SSM. The ingress goes to the Postgres runtime's door first (one
+# per worker slot, 9090/9091, apps/worker/src/rt.ts): it serves pg services and passes the rest to
+# Restate. A door that fails its health check drops out; with none up, Restate's ingress serves.
+# Caddy retries a POST only when it could not connect, so no call runs twice. /cdp is the box's browser (browserless on loopback
 # 3000) over TLS: it checks its own token in the URL, so it sits before the bearer.
 cat > "$D/Caddyfile.new" <<EOF
 $HOST {
@@ -96,7 +99,15 @@ $HOST {
 			respond 403
 		}
 		handle {
-			reverse_proxy 127.0.0.1:8080
+			reverse_proxy 127.0.0.1:9090 127.0.0.1:9091 127.0.0.1:8080 {
+				lb_policy first
+				lb_try_duration 5s
+				lb_try_interval 250ms
+				health_uri /restate/health
+				health_interval 5s
+				health_timeout 3s
+				flush_interval -1
+			}
 		}
 	}
 	handle {

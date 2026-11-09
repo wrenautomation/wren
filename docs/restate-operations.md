@@ -32,7 +32,9 @@ restate invocations list --service Enrichment --key recruiting   # stuck work; c
 ```
 
 ```
-you / CLI / curl ──HTTPS, bearer──▶ Caddy ──▶ Restate on the box (journal, timers, object state)
+you / CLI / curl ──HTTPS, bearer──▶ Caddy ──▶ door 127.0.0.1:9090/9091 (pg services: rt.* in Postgres) ──rest──▶ Restate 8080
+                                         └── no door healthy ──▶ Restate on the box (journal, timers, object state)
+box worker ──rt lanes──▶ Lambda turns (pg services); bridge rows ──▶ Restate 8080
 Restate (box) ──box instance role──▶ Lambda wren-prod-worker
 Restate (box) ──127.0.0.1:9080/9081──▶ box worker; ──cloudflared hop 127.0.0.1:9082──▶ desk worker (Mac)
 Lambda, box ──TLS 6432──▶ PgBouncer ──▶ Postgres on EC2

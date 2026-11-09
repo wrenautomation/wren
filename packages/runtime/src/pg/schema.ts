@@ -214,7 +214,12 @@ CREATE TABLE rt.pg_services (
 );
 `;
 
-const MIGRATIONS: readonly string[] = [V1, V2, V3, V4];
+const V5 = `
+-- the door refuses a handler marked ingressPrivate, as Restate's ingress does
+ALTER TABLE rt.handlers ADD COLUMN private boolean NOT NULL DEFAULT false;
+`;
+
+const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5];
 
 /** Bring schema `rt` up to date. One advisory lock, so parallel starts take turns. */
 export async function migrate(sql: postgres.Sql): Promise<void> {
