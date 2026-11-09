@@ -90,10 +90,18 @@ export async function remoteTurn(
   c: Pick<Claim, "id" | "attempt">,
   leaseMs: number,
   call: (ask: TurnAsk) => Promise<TurnReply | string | null | undefined>,
+  time?: (phase: "load" | "call" | "finish", ms: number) => void,
 ): Promise<string> {
+  let at = performance.now();
+  const lap = (phase: "load" | "call" | "finish") => {
+    const now = performance.now();
+    time?.(phase, now - at);
+    at = now;
+  };
   const loaded = await load(sql, c.id, c.attempt);
   if (!loaded) return "gone";
   const wire = toWire(loaded);
+  lap("load");
   const reply = await call({
     id: c.id,
     attempt: c.attempt,
@@ -101,11 +109,13 @@ export async function remoteTurn(
     defer: true,
     ...(wire.length < WIRE_MAX ? { loaded: wire } : {}),
   });
+  lap("call");
   // an old Lambda build finished the turn itself and answered with its status
   if (!reply || typeof reply === "string") return reply ?? "lost";
   if (reply.finish) {
     const f = fromWire<Finish>(reply.finish);
     await finish(sql, loaded.inv, f.w, f.outcome, f.policy, leaseMs);
+    lap("finish");
   }
   return reply.status;
 }

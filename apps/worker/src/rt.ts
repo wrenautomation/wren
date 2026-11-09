@@ -182,6 +182,33 @@ export const rtSql = (url: string, max: number, app: string) =>
     connection: { application_name: app, idle_in_transaction_session_timeout: 120_000 },
   });
 
+/** Phase times (ms) per minute as p50/p90/max: where a pg call spends its time. */
+function timings(log: Logger, everyMs = 60_000) {
+  let seen = new Map<string, number[]>();
+  const tick = setInterval(() => {
+    if (!seen.size) return;
+    const out: Record<string, string> = {};
+    for (const [k, v] of seen) {
+      v.sort((a, b) => a - b);
+      const q = (p: number) =>
+        (v[Math.min(v.length - 1, Math.floor(p * v.length))] ?? 0).toFixed(1);
+      out[k] = `n${v.length} p50 ${q(0.5)} p90 ${q(0.9)} max ${q(1)}`;
+    }
+    seen = new Map();
+    log.info(out, "rt timing");
+  }, everyMs);
+  tick.unref();
+  return {
+    of: (lane: string) => (phase: string, ms: number) => {
+      const k = `${lane}.${phase}`;
+      const v = seen.get(k) ?? [];
+      if (v.length < 5_000) v.push(ms);
+      seen.set(k, v);
+    },
+    stop: () => clearInterval(tick),
+  };
+}
+
 /** The current Lambda version ARN; CI writes it at register. Read again when the file changes. */
 function arnFile(path: string) {
   let mtime = 0;
@@ -273,6 +300,7 @@ export async function startRt(o: {
         AND build NOT IN ${sql([o.build, ...(o.buildLive ? [o.buildLive] : [])])}`;
   const arn = arnFile(o.arnPath ?? "/etc/wren/worker-arn");
   const lambda = new LambdaClient({});
+  const timed = timings(o.log);
 
   const boxLane = new Dispatcher({
     sql,
@@ -281,6 +309,7 @@ export async function startRt(o: {
     lane: { only: onBox, build: o.build, strict: true },
     run: (c) => runTurn({ sql, registry, leaseMs: LEASE_MS, log }, c),
     log,
+    time: timed.of("box"),
   });
   // under the worker's reserved concurrency (lambda_max_concurrency, 6), which Restate shares until phase 6
   const width = Number(process.env.WREN_RT_LAMBDA_CONCURRENCY ?? 5);
@@ -292,32 +321,41 @@ export async function startRt(o: {
     leaseMs: LEASE_MS,
     lane: { only: onLambda, ...(arn() ? { build: arn() as string } : {}) },
     run: (c) =>
-      remoteTurn(sql, c, LEASE_MS, async (ask) => {
-        const fn = c.build ?? arn();
-        if (!fn) throw new Error("no worker ARN yet");
-        const r = await lambda
-          .send(
-            new InvokeCommand({
-              FunctionName: fn,
-              InvocationType: "RequestResponse",
-              Payload: Buffer.from(JSON.stringify({ rt: ask })),
-            }),
-          )
-          .catch(async (e: unknown) => {
-            // reserved concurrency full: no turn began, so the row goes back now, not at lease end
-            if ((e as { name?: string }).name !== "TooManyRequestsException") throw e;
-            await release(sql, c.id, c.attempt, THROTTLE_MS);
+      remoteTurn(
+        sql,
+        c,
+        LEASE_MS,
+        async (ask) => {
+          const fn = c.build ?? arn();
+          if (!fn) throw new Error("no worker ARN yet");
+          const t0 = performance.now();
+          const r = await lambda
+            .send(
+              new InvokeCommand({
+                FunctionName: fn,
+                InvocationType: "RequestResponse",
+                Payload: Buffer.from(JSON.stringify({ rt: ask })),
+              }),
+            )
+            .catch(async (e: unknown) => {
+              // reserved concurrency full: no turn began, so the row goes back now, not at lease end
+              if ((e as { name?: string }).name !== "TooManyRequestsException") throw e;
+              await release(sql, c.id, c.attempt, THROTTLE_MS);
+              return null;
+            });
+          timed.of("lambda")("invoke", performance.now() - t0);
+          if (!r) return "released";
+          // a crashed turn keeps its lease and is claimed again when it runs out
+          if (r.FunctionError) {
+            log(`lambda turn ${c.id} #${c.attempt}: ${r.FunctionError}`);
             return null;
-          });
-        if (!r) return "released";
-        // a crashed turn keeps its lease and is claimed again when it runs out
-        if (r.FunctionError) {
-          log(`lambda turn ${c.id} #${c.attempt}: ${r.FunctionError}`);
-          return null;
-        }
-        return r.Payload ? (JSON.parse(Buffer.from(r.Payload).toString()) as TurnReply) : null;
-      }),
+          }
+          return r.Payload ? (JSON.parse(Buffer.from(r.Payload).toString()) as TurnReply) : null;
+        },
+        timed.of("lambda"),
+      ),
     log,
+    time: timed.of("lambda"),
   });
   const bridgeLane = new Dispatcher({
     sql,
@@ -349,6 +387,7 @@ export async function startRt(o: {
           port: doorPort,
           restate: o.ingress.url,
           renamed: RENAMED,
+          time: timed.of("door"),
         }).catch(async (e: unknown) => {
           o.log.error({ err: String(e), port: doorPort }, "rt: door failed");
           await doorSql.end({ timeout: 5 });
@@ -370,6 +409,7 @@ export async function startRt(o: {
     async stop() {
       clearInterval(repin);
       clearInterval(retake);
+      timed.stop();
       await door?.close();
       await doorSql?.end({ timeout: 5 });
       await Promise.all([boxLane.stop(), lambdaLane.stop(), bridgeLane.stop(), reply?.stop()]);

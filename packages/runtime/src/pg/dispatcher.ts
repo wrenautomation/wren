@@ -20,6 +20,8 @@ export interface DispatcherOptions {
   leaseMs?: number;
   pollMs?: number;
   log?: (msg: string, err?: unknown) => void;
+  /** Time of each claim that took rows, for the worker's timing log. */
+  time?: (phase: "claim", ms: number) => void;
 }
 
 export class Dispatcher {
@@ -70,6 +72,7 @@ export class Dispatcher {
       let got = 0;
       if (free > 0) {
         try {
+          const t0 = performance.now();
           const lane = this.o.lane ?? {};
           const claims =
             bg === undefined
@@ -85,6 +88,7 @@ export class Dispatcher {
               })),
             );
           got = claims.length;
+          if (got) this.o.time?.("claim", performance.now() - t0);
           for (const [i, c] of claims.entries()) {
             const isBackground = bg !== undefined && i >= waited;
             this.active++;

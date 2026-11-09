@@ -30,6 +30,8 @@ export interface DoorOptions {
   restate?: string;
   /** Old service name → new: callers that still use the old name reach the new one direct. */
   renamed?: Readonly<Record<string, string>>;
+  /** Phase times of a call pg serves, for the worker's timing log. */
+  time?: (phase: "submit" | "wait", ms: number) => void;
 }
 
 /** How long the door trusts its copy of `rt.handlers` and `rt.pg_services`. */
@@ -292,24 +294,29 @@ export async function serveDoor(o: DoorOptions): Promise<{ url: string; close():
     for (const [k, v] of Object.entries(req.headers))
       if (!DROP.has(k) && typeof v === "string" && !k.startsWith("x-restateclient")) headers[k] = v;
     const idem = (req.headers["idempotency-key"] as string | undefined) ?? null;
+    const input = await body(req);
+    const t0 = performance.now();
     const { id, fresh } = await submit(sql, {
       id: newInvocationId(),
       service,
       handler,
       key,
-      input: await body(req),
+      input,
       headers,
       idemKey: idem,
       runAt: new Date(Date.now() + delay),
       callerWaits: !isSend && delay === 0,
     });
+    const t1 = performance.now();
+    o.time?.("submit", t1 - t0);
     if (isSend)
       return send(
         res,
         202,
         JSON.stringify({ invocationId: id, status: fresh ? "Accepted" : "PreviouslyAccepted" }),
       );
-    return reply(res, id);
+    await reply(res, id);
+    o.time?.("wait", performance.now() - t1);
   };
 
   const server = createServer((req, res) => {
