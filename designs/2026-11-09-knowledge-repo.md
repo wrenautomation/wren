@@ -106,3 +106,11 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
   since 2024; Velite compiles a whole site, which Quartz does). Index: drizzle on PGlite or Postgres, no
   migrations: a schema change drops and rebuilds it from git. Rows keyed by repo for the admin view. The
   lint at push and at a server hook refuses only faults the change made, so an old fault never blocks.
+- 11-09 (WA-1229): the move is done (knowledge ebd52e1; GitHub repo renamed to `wrenautomation/knowledge`,
+  `sops` is a symlink). New record type `guide`, one per SOP: the old SOP.md body, `[n]` = the nth id in its
+  `cites`; `knowledge render` adds the Sources list. Chose one guide per SOP over sections as findings: the
+  text is written whole by one model call and read whole, so one record keeps one diff per build. 38 sources
+  (copies shared by two SOPs merged into one record with both tags), 1230 findings (one per point or passage,
+  `must` tag for `- !`), 14 guides. Proof: every points file and all 14 SOPs rebuild byte-equal, blank lines
+  aside. wren `sop` writes records through the package (9a8b862e7); `knowledgeDir` replaces `sopsDir`.
+  pglite became a peer of the package (0.59.1): a pinned copy split the consumer's drizzle-orm in two.
