@@ -8,9 +8,9 @@ export const LIVE_HOOK_PATH = "/api/live/changed";
 export const LIVE_TS_HEADER = "x-wren-ts";
 /** hex HMAC-SHA256 of `<ts>.<body>` */
 export const LIVE_SIG_HEADER = "x-wren-sig";
-export const LIVE_SKEW_MS = 5 * 60_000;
-export const LIVE_TOPIC = /^[a-z0-9:_-]{1,64}$/;
-export const LIVE_TOPICS_MAX = 20;
+const LIVE_SKEW_MS = 5 * 60_000;
+const LIVE_TOPIC = /^[a-z0-9:_-]{1,64}$/;
+const LIVE_TOPICS_MAX = 20;
 const DEFAULT_URL = `https://app.wrenautomation.com${LIVE_HOOK_PATH}`;
 const TIMEOUT_MS = 2000;
 
