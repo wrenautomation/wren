@@ -1,6 +1,6 @@
 # Deploy main to production: deploy/scripts/deploy.sh, one step, independent work at once.
-# ci.yml starts it beside lint, unit and schema; deploy.sh builds, then waits for all three
-# before it changes anything live. By hand: `gh workflow run deploy.yml --ref main` (no wait).
+# ci.yml starts it beside the gates; deploy.sh builds, then waits for lint and schema
+# before it changes anything live (a newer run or 20 min ends the wait). By hand: `gh workflow run deploy.yml --ref main` (no wait).
 # Secrets (production environment): AWS_DEPLOY_ROLE_ARN,
 # LAMBDA_NAME, WREN_DATABASE_URL, RESTATE_HOST, RESTATE_AUTH_TOKEN,
 # CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, AUTH_LAMBDA_URL, AUTH_EDGE_SECRET,

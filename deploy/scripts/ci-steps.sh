@@ -43,8 +43,10 @@ ssm_run() {
 }
 
 # A newer push cancels this run's gates: cancelled fails here, and the newer run deploys.
+# A gate cancelled while queued leaves no job (11-09: 30 min hung twice), so a newer ci run on
+# main ends the wait too, and 20 min is the cap.
 await_gates() {
-  local out
+  local out t=0 newer
   while :; do
     out="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest" --jq '
       [.jobs[] | select(.name == "lint" or .name == "schema")]
@@ -55,7 +57,14 @@ await_gates() {
       pass) return 0 ;;
       fail*) echo "::error::gates: ${out#fail }"; return 1 ;;
     esac
+    if [ $((t % 30)) = 0 ]; then
+      newer="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&per_page=1" \
+        --jq ".workflow_runs[0] | select(.id != $GITHUB_RUN_ID and .run_number > ${GITHUB_RUN_NUMBER:-0}) | .id")" || newer=
+      [ -z "$newer" ] || { echo "::error::gates: run $newer is newer; it deploys"; return 1; }
+    fi
+    [ $t -lt 1200 ] || { echo "::error::gates: no lint and schema result after 20 min"; return 1; }
     sleep 2
+    t=$((t + 2))
   done
 }
 
