@@ -126,7 +126,7 @@ await live-phone live-gateway live-auth live-portal live-share
 # Fire and forget: the run lands in the runs ledger (`outreach refresh`).
 phase "queued mail"
 await templates
-curl -fsS -X POST "$RESTATE_INGRESS/QueueRefresh/all/send" \
+curl -fsS -X POST "$RESTATE_INGRESS/EmailQueueRerender/all/send" \
   -H "Authorization: Bearer $RESTATE_AUTH_TOKEN" -H "content-type: application/json" -d 'null' > /dev/null
 
 await auth-lambda listmonk

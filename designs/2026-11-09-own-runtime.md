@@ -141,6 +141,15 @@ Ranked: portal P99 under load, then Lambda spend (free tier), then code size. **
 - Two Lambda dispatchers on one `Slots` counter: waited rows up to the full width, the rest up to width − 2.
 - Width 5 (`WREN_RT_LAMBDA_CONCURRENCY`), up from 4: after group 4 Restate's Lambda share is the watchdogs, Variants/Folders and old-name proxies. A throttle still goes back to pending in 2 s.
 
+### Group 4 order
+
+- **4a, loops and workers** (36): the rest of the loops (SmsSend, ReachSend, SiteRollup, Reactivation...), the workers they call (ReplyLabel, MetaReplyPace, SocialPushHold, CallBriefBuild...), and the agent and ask services. 12 renames land with it (WA-1219).
+- **4b, webhooks and public calls**: SocialPush, CallBookings, SmsEvents, Marketing, Chat, Payments... Outside callers keep the old URLs, so their old names stay in `RENAMED` for good.
+- **4c, consoles, portals, desks**.
+- **Last**: box services, the watchdogs, EmailPostmasterPull, Variants and Folders.
+
+`Segments` → `SegmentPass` needs two deploys: the triggers say `wren_wake('Segments/fleet')`, and migrate runs before the box knows the new name. Deploy 1 renames; the door's alias carries the triggers. Deploy 2 rewrites the triggers.
+
 ## VPSs
 
 Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too small for Chromium or a Postgres replica. They stay for work that needs a non-AWS IP with port 25 or a clean search IP: probers, SearXNG. Extra use: a second SearXNG on LA (search fallback when Buffalo is rate-limited), so weaver's search does not wait on the desk's Google.
@@ -190,3 +199,4 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 - 2026-11-09: the door reads the handler from the service's kind, then `/send` after it. Found by the pg suite: `POST /Payments/send` was read as one-way to a handler `Payments` (404). Hits 8 prod handlers named `send` once they move.
 - 2026-11-09: a refusal keeps its `metadata` across the door and the bridge, as Restate's ingress does (callers read the bad field from it).
 - 2026-11-09: a turn held only by short sleeps (≤ 1 s, kept in the turn) suspends when an outside result is pending, so the result wakes it. Found by the pg suite: `call.orTimeout(1000)` always timed out, as a live turn never sees a child's end and the child's row was not written until the sleep ended. A turn held by a `ctx.run` writes its calls, cancels and wakes at once. Options weighed: a live turn that listens for its children's ends (rejected: a listener per turn, or a router in the executor, for one pattern), a short sleep never local (rejected: every plain short sleep pays a suspend).
+- 2026-11-09: group 4 in three steps (loops and workers, then webhooks and public calls, then consoles), not one deploy: each step's suite runs on pg first, and a rename's old name gets a door alias. An old name an outside caller uses (a webhook URL, a trigger, the portal Worker's `Domains/resolve`) stays in `RENAMED` for good.

@@ -55,7 +55,7 @@ Citations: `packages/core/src/segments-schema.ts:38`, `packages/core/src/segment
 |---|---|
 | People → Groups (portal) | reads, writes |
 | People → People, Add to group | writes (manual; a new name makes the group) |
-| `Segments/<key>/wake` | writes (recompute); journey moves wake it |
+| `SegmentPass/<key>/wake` | writes (recompute); journey moves wake it |
 | `wren groups` | reads, writes |
 | executor `logic.segment` ("In group") | reads |
 

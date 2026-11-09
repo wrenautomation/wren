@@ -68,7 +68,7 @@ const db = () => pg.db;
 const proofs = () =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .serviceClient<CommentProofsService>({ name: "CommentProofs" });
+    .serviceClient<CommentProofsService>({ name: "CommentLiveCheck" });
 
 beforeAll(async () => {
   pg = await startTestPostgres();

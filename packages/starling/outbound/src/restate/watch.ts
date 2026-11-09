@@ -549,7 +549,7 @@ async function watchPass(
   const reads = (await ctx.get<Record<string, number>>(READS)) ?? {};
   const checked = (await ctx.get<Record<string, number>>(HEALTH)) ?? {};
   // Our own logins: a pushed DM reads now; a platform a tab watcher is on reads cold, since the
-  // tab says when something comes in (content's `SocialPushed`, designs/2026-10-12-push-everywhere.md).
+  // tab says when something comes in (content's `SocialPushHold`, designs/2026-10-12-push-everywhere.md).
   const view: ReachView =
     scope.client || !deps.pushes
       ? { pushed: [], watched: [] }

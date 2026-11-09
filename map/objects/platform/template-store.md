@@ -39,7 +39,7 @@ Citations: `packages/core/src/templates.ts:1`, `packages/core/src/schema.ts:1063
 
 ## If you change this
 
-- **Hits:** a publish changes the next compose on that channel; queued email drafts re-render on `QueueRefresh/all`
+- **Hits:** a publish changes the next compose on that channel; queued email drafts re-render on `EmailQueueRerender/all`
 - **Hits:** a default file: the next deploy's `wren templates sync` writes it as a new `default` version, live wherever the template follows its default; a template with its own copy shows "default updated"
 - **Also hits:** reactivation keeps `COMPOSE_VERSION` as its cache key, so a prompt edit redrafts no one
 - **Does not hit:** sent messages

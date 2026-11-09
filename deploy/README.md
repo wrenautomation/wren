@@ -52,7 +52,7 @@ restate deployments register "$ARN:1" --assume-role-arn "$ROLE"
 ```
 
 Smoke: `restate services list` shows Enrichment, Resolution, EmailSend,
-EmailInboxRead, Disposition (+ EmailPostmasterPull / OpensScheduler when configured). Then
+EmailInboxRead, ReplyLabel (+ EmailPostmasterPull / OpensScheduler when configured). Then
 `pnpm wren db check` with `WREN_DATABASE_URL` pointed at the box, and one invocation:
 `curl -H "Authorization: Bearer $RESTATE_AUTH_TOKEN" https://<env>.env.us.restate.cloud:8080/EmailSend/<sender>/status`.
 

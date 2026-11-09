@@ -1,5 +1,5 @@
 /**
- * `MetaPace/<owner>:<platform>`: Meta's private replies, spaced under its cap per professional
+ * `MetaReplyPace/<owner>:<platform>`: Meta's private replies, spaced under its cap per professional
  * account (designs/2026-11-04-meta-push-flows.md). Even gaps, not a window: a burst of 15k
  * comments drains at the cap, never in a spike a spam check sees.
  */
@@ -23,7 +23,7 @@ const LAST = "last";
 export function makeMetaPace(o: { perHour?: number } = {}) {
   const perHour = o.perHour ?? PRIVATE_PER_HOUR;
   return restate.object({
-    name: "MetaPace",
+    name: "MetaReplyPace",
     handlers: {
       /** Takes the next slot: the ms to wait before the send. */
       slot: exclusiveHandler(

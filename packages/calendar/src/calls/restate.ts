@@ -1,7 +1,7 @@
 /**
  * The brief on the executor and before the call (designs/2026-10-07-close-brief-outcome.md). A booked
  * call enters `close` at `in.calls`; the `calls.brief` step builds and keeps its brief, then asks
- * `CallBriefs/send` to run `leadMinutes` before the start. That send rebuilds it and pings the
+ * `CallBriefBuild/send` to run `leadMinutes` before the start. That send rebuilds it and pings the
  * team's channel with a link, never the lead's words. A moved or cancelled call's old send skips.
  */
 
@@ -207,7 +207,7 @@ export function makeCallBriefs(deps: CallBriefsDeps) {
     return id;
   };
   return restate.service({
-    name: "CallBriefs",
+    name: "CallBriefBuild",
     handlers: {
       /** Rebuild on a person's ask (the call page's Rebuild, through EmailConsole); never pings. */
       build: serviceHandler(

@@ -1,6 +1,6 @@
 /**
  * Manual and agent moves (designs/2026-10-19-business-map.md). Each builds the executor event the
- * `Journeys` service sends at `in.<node>` of a shape workflow: the workflow's own `journey.move`
+ * `JourneyMove` service sends at `in.<node>` of a shape workflow: the workflow's own `journey.move`
  * step then writes the row. No second write path. The cause is `manual`; the operator rides in
  * `cause.ref`, because a walk's own `by` is the Restate invocation id.
  *

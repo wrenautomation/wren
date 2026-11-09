@@ -2,7 +2,7 @@
  * Comment proofs (designs/2026-10-14-comment-proof.md): what to check for a sent item, and the
  * `comment_proofs` row each check overwrites. Items are the Inbox's ids: `thread:t3_x` (our
  * Reddit comment in a thread), `onpost:9` (ours on someone's post), `comment:4` (our answer to a
- * comment). The check itself is `CommentProof` in core; the schedule is `CommentProofs`.
+ * comment). The check itself is `CommentProof` in core; the schedule is `CommentLiveCheck`.
  */
 
 import type { Queryable } from "@wren/db";

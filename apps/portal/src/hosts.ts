@@ -51,7 +51,7 @@ async function clientOfHost(
   let client: string | null = null;
   let sure = false;
   try {
-    const res = await restate(env, "Domains/resolve", { host });
+    const res = await restate(env, "DomainLookup/resolve", { host });
     if (res.ok) {
       client = ((await res.json()) as { client?: string | null }).client ?? null;
       sure = true;

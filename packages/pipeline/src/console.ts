@@ -14,12 +14,12 @@
  *   `shapeTag`: the shape's history like git (`history.ts` has what each takes and answers). A
  *   save of the shape is followed by the mirror step: the version lands as a commit in the
  *   private repo, and a failed mirror never fails the save.
- * - `journeysOpen`, `journeysMove`, `journeysDrop`, `journeysAssign`: the `Journeys` service, as the
+ * - `journeysOpen`, `journeysMove`, `journeysDrop`, `journeysAssign`: the `JourneyMove` service, as the
  *   operator.
  * - `dealsSign`: a deal's terms, once; a change needs `force` and is audited.
  * - `termsAdd`: the next version of one plan of one offer, as `wren terms add` (same checks).
  *
- * Every write goes through the store or the `Journeys` service, never a second path.
+ * Every write goes through the store or the `JourneyMove` service, never a second path.
  */
 
 import { WREN } from "@wren/core/access";

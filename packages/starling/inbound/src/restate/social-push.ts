@@ -8,9 +8,9 @@
  * `SocialPush` (service) takes what the phone Worker checked: `meta` (a Meta webhook body, its
  * entries batched), `gbp` (a Business Profile review notice), `watch` (an autobrowse tab watcher saw
  * a badge change, or says it is alive). Each entry finds its owner, `wren` or a client, and lands
- * on that owner's `SocialPushed` object, which wakes `SocialActivityRead` (and `ReachInboxRead` for our own DMs).
+ * on that owner's `SocialPushHold` object, which wakes `SocialActivityRead` (and `ReachInboxRead` for our own DMs).
  *
- * `SocialPushed/<owner>` keeps what was pushed until the pass `take`s it: posts to read now, due or
+ * `SocialPushHold/<owner>` keeps what was pushed until the pass `take`s it: posts to read now, due or
  * not, and platforms whose activity or inbox to read now. A burst is one pass. It also keeps when
  * each platform's watcher last said it was alive: `ReachInboxRead` reads a watched account cold
  * (`reach`), since the tab will say when something comes in.
@@ -61,7 +61,7 @@ interface PushedAt extends Pushed {
   account: string;
 }
 
-/** A `SocialPushed` set: one entry per platform, kind and post. */
+/** A `SocialPushHold` set: one entry per platform, kind and post. */
 export const pushKey = (p: Pushed) => `${p.platform}:${p.kind}:${p.post ?? ""}`;
 
 type Json = Record<string, unknown>;
@@ -280,7 +280,7 @@ const PUSHED = z.object({
 
 /** What one owner was pushed, kept until its pass takes it. */
 export const socialPushed = restate.object({
-  name: "SocialPushed",
+  name: "SocialPushHold",
   handlers: {
     /** Keep these and wake the owner's pass (and our reach inbox for our own DMs). */
     add: exclusiveHandler(
@@ -343,7 +343,7 @@ async function watching(ctx: restate.ObjectContext): Promise<string[]> {
   return Object.keys(alive).filter((p) => now - (alive[p] ?? 0) < WATCH_ALIVE_MS);
 }
 
-/** What `SocialPushed/wren.reach` answers. */
+/** What `SocialPushHold/wren.reach` answers. */
 export interface ReachView {
   pushed: string[];
   watched: string[];
@@ -390,7 +390,7 @@ export function makeSocialPush(deps: SocialPushDeps) {
       else by.set(owner, [...(by.get(owner) ?? []), push]);
     }
     for (const [owner, list] of by)
-      ctx.objectSendClient<SocialPushed>({ name: "SocialPushed" }, owner).add(list);
+      ctx.objectSendClient<SocialPushed>({ name: "SocialPushHold" }, owner).add(list);
     return { owners: [...by.keys()], unknown };
   }
   return restate.service({
@@ -459,7 +459,7 @@ export function makeSocialPush(deps: SocialPushDeps) {
           }
           for (const { owner, c } of by.values()) {
             const first = c[0] as CarriedComment;
-            ctx.serviceSendClient<PushedCommentsKeep>({ name: "PushedComments" }).keep({
+            ctx.serviceSendClient<PushedCommentsKeep>({ name: "PushedCommentKeep" }).keep({
               client: owner === SOCIAL_KEY ? null : owner,
               platform: first.platform,
               post: first.post,
@@ -485,7 +485,7 @@ export function makeSocialPush(deps: SocialPushDeps) {
       watch: serviceHandler(
         { input: WATCH },
         async (ctx: restate.Context, w: z.infer<typeof WATCH>): Promise<PushResult> => {
-          const to = ctx.objectSendClient<SocialPushed>({ name: "SocialPushed" }, w.owner);
+          const to = ctx.objectSendClient<SocialPushed>({ name: "SocialPushHold" }, w.owner);
           const platform = w.platform as Platform;
           if (w.kind === "alive") to.alive({ platform });
           else

@@ -37,8 +37,8 @@ Citations: `packages/starling/channels/email/src/schema.ts:306`
 | Surface | Role |
 |---|---|
 | `EmailInboxRead/{sender}` | writes |
-| `Disposition/fleet` | writes `disposition` (source llm) |
-| `EmailConsole/answers`, `/approve`, `/drop` (console; approve and drop go through `Disposition/fleet`) | reads, drives |
+| `ReplyLabel/fleet` | writes `disposition` (source llm) |
+| `EmailConsole/answers`, `/approve`, `/drop` (console; approve and drop go through `ReplyLabel/fleet`) | reads, drives |
 | `wren email reply/event` | writes operator labels |
 
 ## See

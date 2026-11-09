@@ -62,8 +62,8 @@ Restate ──loop, 9h12m later──▶ Lambda (cold start if needed)
 | Service | Key | Sleeps for | Notes |
 |---|---|---|---|
 | `EmailSend` | sender address | gap after a send (policy-drawn, seeded from the journal); 60 s tick while the window is open and nothing went; **until the next window opens** when closed | Daily cap, ramp and window are policy, per inbox. Kill switches run first every tick and pause a domain whose trailing bounces cross the line. |
-| `EmailInboxRead` | sender address | 2 min after a pass; 1 min after a failure | Reads the mailbox from its cursor. Human replies found → fires `Disposition/fleet/classify`, so replies are labelled within minutes. |
-| `Disposition` | `fleet` | on demand | One classify at a time: two inboxes finding replies in the same minute queue instead of paying the LLM twice. |
+| `EmailInboxRead` | sender address | 2 min after a pass; 1 min after a failure | Reads the mailbox from its cursor. Human replies found → fires `ReplyLabel/fleet/classify`, so replies are labelled within minutes. |
+| `ReplyLabel` | `fleet` | on demand | One classify at a time: two inboxes finding replies in the same minute queue instead of paying the LLM twice. |
 | `EmailPostmasterPull` | `fleet` | **until next local midnight**, success or failure | Re-reads the last 7 days per sending domain (Google revises late). Bound because `WREN_POSTMASTER_USER` is set. |
 | `EmailClickPull` | `fleet` | 1 hour / 10 min | Pulls the lander's `hits` from the last view id and counts the ones that came from an email link. The cursor moves in the same transaction as the counts. Bound because the export token is set. |
 | `Resolution` | `default` | on demand | One key because verifier credits are one global budget. Each domain's walk is one journaled step; a crash loses at most one domain's spend. |

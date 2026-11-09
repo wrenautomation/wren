@@ -1,6 +1,6 @@
 /**
  * Account > Domain: a client's portal on its own host (designs/2026-10-06-custom-domains.md).
- * The records to set and the live state come from Cloudflare; `Domains/resolve` tells the portal
+ * The records to set and the live state come from Cloudflare; `DomainLookup/resolve` tells the portal
  * Worker which client a host is.
  */
 
@@ -106,7 +106,7 @@ export function domainsApi(deps: DomainsDeps) {
  */
 export const makeDomainsResolver = (deps: Pick<DomainsDeps, "main">) =>
   restate.service({
-    name: "Domains",
+    name: "DomainLookup",
     handlers: {
       resolve: serviceHandler(
         { input: HOST_LOOKUP },

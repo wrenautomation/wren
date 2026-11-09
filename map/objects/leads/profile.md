@@ -44,7 +44,7 @@ Citations: `packages/core/src/profiles-schema.ts:71`, `packages/core/src/profile
 - **reads:** [[research/enrichment]] (the `web` and `linkedin` sites through `lookUpPerson`, for a research run), [[email/message]], [[sms/sms-message]], [[email/thread-event]], [[leads/touch]], [[leads/consent]], [[content/comment]] (through `profile_timeline`); the lander export, live (site visits)
 - **copies:** [[platform/hosted-form]] entries and [[platform/pay-link]] rows of a client, one `profile_events` line each in its workspace
 - **joins:** [[leads/person]] (key `person`), [[leads/lead]] (key `email`), [[leads/sent-log]] (`key_kind` + `key_value`)
-- **feeds:** [[leads/people-map]] (stage, warmth, persona per profile; mirrors traits `stage`, `warmth`), [[leads/segment]] (rules read traits and the timeline; a trait or `profile_events` write wakes `Segments`), [[leads/segment-membership]] (`trigger.trait` reads `profile_trait_events`)
+- **feeds:** [[leads/people-map]] (stage, warmth, persona per profile; mirrors traits `stage`, `warmth`), [[leads/segment]] (rules read traits and the timeline; a trait or `profile_events` write wakes `SegmentPass`), [[leads/segment-membership]] (`trigger.trait` reads `profile_trait_events`)
 - **looks-like-but-is-not:** [[leads/person]] (a human at a company, from research; a profile is anyone we hold an address for); Outreach → People (`outreach.person`, social touches) and Reactivation → People (CRM contacts), which stay and link here
 
 ## If you change this

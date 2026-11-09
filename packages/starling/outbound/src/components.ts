@@ -23,7 +23,7 @@ export const OUTREACH_COMPONENTS = [
     requires: { anyAccount: ["linkedin", "reddit"] },
     soon: ["x"],
     provides: {
-      services: ["ReachSend", "ReachInboxRead", "ReachDesk", "CommentProofs"],
+      services: ["ReachSend", "ReachInboxRead", "ReachDesk", "CommentLiveCheck"],
       loops: ["ReachSend", "ReachInboxRead"],
       // Places and threads: ReachDesk comments in a queued thread; nothing drafts new ones now.
       records: ["marketing.person", "marketing.account", "marketing.place", "marketing.thread"],

@@ -45,7 +45,13 @@ export const EMAIL_COMPONENTS = [
     settings: sequencesSettingsSchema,
     requires: { components: ["research.lead_sheet"], accounts: ["gmail"] },
     provides: {
-      services: ["EmailOpenerFill", "EmailSend", "QueueRefresh", "EmailClickPull", "EmailConsole"],
+      services: [
+        "EmailOpenerFill",
+        "EmailSend",
+        "EmailQueueRerender",
+        "EmailClickPull",
+        "EmailConsole",
+      ],
       loops: ["EmailOpenerFill", "EmailSend", "EmailClickPull"],
       records: ["email.campaign", "email.firm", "email.stall", "email.model"],
     },
@@ -143,7 +149,7 @@ export const EMAIL_COMPONENTS = [
     settings: repliesSettingsSchema,
     requires: { components: [SEQUENCES] },
     provides: {
-      services: ["EmailInboxRead", "InboxPush", "Disposition", "CallBookings"],
+      services: ["EmailInboxRead", "InboxPush", "ReplyLabel", "CallBookings"],
       loops: ["EmailInboxRead"],
       records: ["email.reply", "email.call"],
     },

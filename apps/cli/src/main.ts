@@ -299,7 +299,7 @@ const journeyWrites: PipelineWrites = {
   journeys: () =>
     clients
       .connect(ingressOf(settings))
-      .serviceClient<JourneysService>({ name: "Journeys" }) as ReturnType<
+      .serviceClient<JourneysService>({ name: "JourneyMove" }) as ReturnType<
       PipelineWrites["journeys"]
     >,
   client: () => {

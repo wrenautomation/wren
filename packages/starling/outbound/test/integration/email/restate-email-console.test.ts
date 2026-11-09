@@ -1,6 +1,6 @@
 /**
  * EmailConsole against Postgres and a Restate test environment: approve and drop reach
- * `Disposition/fleet` (a stand-in here; `invite.test.ts` covers the real one), pause and resume
+ * `ReplyLabel/fleet` (a stand-in here; `invite.test.ts` covers the real one), pause and resume
  * write the same rows as the CLI, logged as the operator. Anyone but Wren's team is refused
  * before anything moves.
  */
@@ -30,7 +30,7 @@ const outsiders = [
 
 const asked: { handler: string; key: string; req: unknown }[] = [];
 const disposition = restate.object({
-  name: "Disposition",
+  name: "ReplyLabel",
   handlers: {
     approve: async (ctx: restate.ObjectContext, req: { id: number; body: string | null }) => {
       asked.push({ handler: "approve", key: ctx.key, req });
@@ -110,7 +110,7 @@ describe("EmailConsole", () => {
     expect(await email().answers(operator)).toEqual([]);
   });
 
-  it("approve and drop go to Disposition/fleet; a refused approve reads as its reason", async () => {
+  it("approve and drop go to ReplyLabel/fleet; a refused approve reads as its reason", async () => {
     await email().approve({ ...operator, id: 1, body: "  Tuesday works.  " });
     await email().approve({ ...operator, id: 3 });
     await expect(email().approve({ ...operator, id: 2 })).rejects.toThrow("no longer open");

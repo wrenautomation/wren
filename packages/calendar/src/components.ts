@@ -79,7 +79,7 @@ export const CALENDAR_COMPONENTS = [
     ready: true,
     missing: [],
     settings: briefSettingsSchema,
-    provides: { services: ["CallBriefs"] },
+    provides: { services: ["CallBriefBuild"] },
     in: [{ id: "calls", label: "booked calls", kind: "call" }],
     out: [{ id: "ready", label: "briefs ready", kind: "call" }],
     hypothesis: {

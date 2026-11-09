@@ -67,7 +67,7 @@ export const WATCH_KEY = "daily";
 export interface ReachDeps {
   db: Db;
   /**
-   * What was pushed for our own logins (content's `SocialPushed/wren.reach`): DMs to read now,
+   * What was pushed for our own logins (content's `SocialPushHold/wren.reach`): DMs to read now,
    * and platforms a tab watcher is on, read cold. Unset: none.
    */
   pushes?: (ctx: restate.ObjectContext) => Promise<ReachView>;
@@ -205,5 +205,5 @@ export function finalRefusal(err: unknown): unknown {
   return isRefusal(err) ? new restate.TerminalError(err.message, { errorCode: err.status }) : err;
 }
 
-/** What content's `SocialPushed/wren.reach` answers. */
+/** What content's `SocialPushHold/wren.reach` answers. */
 export type ReachView = { pushed: string[]; watched: string[] };

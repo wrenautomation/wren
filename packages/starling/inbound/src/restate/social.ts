@@ -353,8 +353,8 @@ export function makeSocialActivityRead(deps: SocialActivityReadDeps) {
     // What was pushed since the last pass (designs/2026-10-12-push-everywhere.md): read now, due or not.
     const pushed: Pushed[] = await within(
       ctx,
-      ctx.objectClient<SocialPushed>({ name: "SocialPushed" }, client ?? SOCIAL_KEY).take(),
-      { ms: L.quick, call: "SocialPushed/take" },
+      ctx.objectClient<SocialPushed>({ name: "SocialPushHold" }, client ?? SOCIAL_KEY).take(),
+      { ms: L.quick, call: "SocialPushHold/take" },
     ).catch(() => []);
     const limits = await unitLimits(ctx, deps.db, "SocialActivityRead", { oneHost: true });
     const pushedPosts = new Set(
@@ -420,8 +420,8 @@ export function makeSocialActivityRead(deps: SocialActivityReadDeps) {
     if (!client && watched) {
       const beats = await within(
         ctx,
-        ctx.objectClient<SocialPushed>({ name: "SocialPushed" }, SOCIAL_KEY).watching(),
-        { ms: L.quick, call: "SocialPushed/watching" },
+        ctx.objectClient<SocialPushed>({ name: "SocialPushHold" }, SOCIAL_KEY).watching(),
+        { ms: L.quick, call: "SocialPushHold/watching" },
       ).catch((): string[] => []);
       for (const p of platforms) if (watched[p] && beats.includes(p)) alive.add(p);
     }

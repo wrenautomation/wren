@@ -19,7 +19,7 @@ He works in pieces, not platform rows: one vertical clip is Shorts, a Reel and a
 
 - `Piece {id, kind, title, text, at, branches, children}`, `Branch {id, platform, format, state, at, url, views, engaged, error}`
 - `piecesOf` (pure), `pieceRows` (last 120 days), `waitingOf` (`packages/starling/inbound/src/pieces.ts`)
-- `Pieces/wren` `list` (`packages/starling/inbound/src/restate/pieces.ts`)
+- `PieceList/wren` `list` (`packages/starling/inbound/src/restate/pieces.ts`)
 
 Citations: `packages/starling/inbound/src/pieces.ts:1`, `packages/starling/inbound/src/restate/pieces.ts:1`
 

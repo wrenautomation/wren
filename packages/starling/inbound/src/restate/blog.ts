@@ -1,5 +1,5 @@
 /**
- * `Blog/wren` (designs/2026-10-13-blog-box.md): Write's Blog box. `save` commits the post's
+ * `BlogSave/wren` (designs/2026-10-13-blog-box.md): Write's Blog box. `save` commits the post's
  * Markdown file to the lander repo (a draft builds in dev only; published, the push deploys it
  * within minutes) and keeps its row. `audience` says who the email would reach; `email` reads
  * the live post's issue (/blog/<slug>.json) and hands it to `Newsletter`, which sends each
@@ -89,7 +89,7 @@ export function makeBlog(deps: BlogDeps) {
   };
 
   return restate.object({
-    name: "Blog",
+    name: "BlogSave",
     handlers: {
       /** Posts, newest first, with whether each is live and mailed. */
       posts: sharedHandler({ input: NO_INPUT }, async (ctx: restate.ObjectSharedContext) => {

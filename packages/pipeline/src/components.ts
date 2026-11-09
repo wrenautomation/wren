@@ -25,7 +25,7 @@ export const PIPELINE_COMPONENTS = [
     for: "client",
     ready: true,
     provides: {
-      services: ["PipelineConsole", "Journeys"],
+      services: ["PipelineConsole", "JourneyMove"],
       records: [
         OFFER_RECORD,
         SHAPE_RECORD,

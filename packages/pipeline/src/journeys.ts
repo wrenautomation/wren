@@ -182,7 +182,7 @@ const lockPerson = (tx: Queryable, profile: number) =>
 
 /**
  * Close an open journey as dropped and give back the event that tells the executor
- * (`Journeys/drop` sends it at `in.dropped`). Null when it is not open. The event leaves from the
+ * (`JourneyMove/drop` sends it at `in.dropped`). Null when it is not open. The event leaves from the
  * newest version's workflow: the journey's own may have left the list.
  */
 export async function dropJourney(

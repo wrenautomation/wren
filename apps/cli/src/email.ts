@@ -178,7 +178,7 @@ export function registerEmail(
     .action(async () => {
       const out = await clients
         .connect(ingressOf(settings))
-        .serviceClient<QueueRefresh>({ name: "QueueRefresh" })
+        .serviceClient<QueueRefresh>({ name: "EmailQueueRerender" })
         .all();
       for (const [niche, s] of Object.entries(out))
         console.log(

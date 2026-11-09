@@ -1,6 +1,6 @@
 /**
  * `ListToJourney/all`: a person added to a list that a live sourced source of the shape takes
- * people from is told to the executor as a `trigger.source` fire, and the shape opens a journey. A tail loop (like `Segments`): a cursor per workspace and list keeps it one fire per
+ * people from is told to the executor as a `trigger.source` fire, and the shape opens a journey. A tail loop (like `SegmentPass`): a cursor per workspace and list keeps it one fire per
  * member. Start it with `POST ListToJourney/all/start`.
  */
 

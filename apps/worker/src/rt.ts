@@ -34,7 +34,7 @@ import type { AnyService } from "./services.js";
 /**
  * Services on the Postgres runtime. A deploy flips one; pg keeps every service registered.
  * Groups (design doc "Move plan"): 1 AuditLogSeal; 2 platform and people loops; 3 email and content
- * loops. All on the Lambda lane.
+ * loops; 4a the other loops and workers. All on the Lambda lane.
  * The watchdogs (FailedCallAlert, LoopRevive) move last: they watch the moved loops from Restate.
  */
 export const PG_SERVICES: readonly string[] = [
@@ -62,17 +62,67 @@ export const PG_SERVICES: readonly string[] = [
   "PostPlan",
   "PostPublish",
   "PostMetrics",
+  // 4a
+  "InboxPush",
+  "Newsletter",
+  "ListmonkMail",
+  "ListmonkIntake",
+  "ClientReport",
+  "ProfileResearch",
+  "AutoReply",
+  "KeywordDm",
+  "SmsSend",
+  "SmsUpkeep",
+  "Broadcast",
+  "PeopleMap",
+  "ReachSend",
+  "ReachInboxRead",
+  "SiteRollup",
+  "Reactivation",
+  "CrmRun",
+  "ConnectorSync",
+  "Tokens",
+  "SetupAgent",
+  "DraftAsk",
+  "Ask",
+  "MailReply",
+  "SocialInbox",
+  "ReplyLabel",
+  "MetaReplyPace",
+  "SocialPushHold",
+  "EmailQueueRerender",
+  "PieceList",
+  "BlogSave",
+  "CommentLiveCheck",
+  "PushedCommentKeep",
+  "JourneyMove",
+  "CallBriefBuild",
+  "DomainLookup",
+  "SegmentPass",
 ];
 
 /**
  * Old name → new, for pg services only (WA-1219: a rename lands with the move). Restate keeps a
- * proxy under the old name: its scheduled calls and state reach the new one. Drop an entry once
- * Restate holds nothing under the old name.
+ * proxy under the old name: its scheduled calls and state reach the new one; the door serves it too.
+ * Drop an entry once Restate holds nothing under the old name and no outside caller uses it
+ * (a webhook URL, a trigger, the portal Worker: those stay).
  */
 export const RENAMED: Readonly<Record<string, string>> = {
   AuditSeal: "AuditLogSeal",
   Judge: "NextStepDecide",
   SegmentsHourly: "SegmentsRefresh",
+  Disposition: "ReplyLabel",
+  MetaPace: "MetaReplyPace",
+  SocialPushed: "SocialPushHold",
+  QueueRefresh: "EmailQueueRerender",
+  Pieces: "PieceList",
+  Blog: "BlogSave",
+  CommentProofs: "CommentLiveCheck",
+  PushedComments: "PushedCommentKeep",
+  Journeys: "JourneyMove",
+  CallBriefs: "CallBriefBuild",
+  Domains: "DomainLookup",
+  Segments: "SegmentPass",
 };
 
 const LEASE_MS = 60_000;

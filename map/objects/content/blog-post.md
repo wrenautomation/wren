@@ -19,7 +19,7 @@ The lander's Markdown file is the post, so the site, its RSS and the newsletter'
 
 - `blog_posts`: `slug` key, title, description, body, date, draft, published_at, emailed_at, commit_sha, from_ref (`packages/starling/inbound/src/schema.ts`)
 - `slugOf`, `blogFile`, `blogProblem`, `keepBlogRow` (`packages/starling/inbound/src/blog.ts`). The GitHub contents helper (`githubRepo`, `GithubFiles`: read, write, lastCommit) is core's `packages/core/src/github.ts`; the shape's git mirror uses it too ([[platform/shape]])
-- `Blog/wren`: posts, save (`from`: absent keeps `from_ref`, null clears it), audience, email (`packages/starling/inbound/src/restate/blog.ts`)
+- `BlogSave/wren`: posts, save (`from`: absent keeps `from_ref`, null clears it), audience, email (`packages/starling/inbound/src/restate/blog.ts`)
 
 Citations: `packages/starling/inbound/src/blog.ts:1`, `packages/core/src/github.ts:17`, `packages/starling/inbound/src/restate/blog.ts:1`
 

@@ -46,7 +46,7 @@ const calls: { enrollmentId: number; body: string; campaign: string | null }[] =
 let script: Array<() => Out> = [];
 /** Journaled, so a replay neither asks twice nor answers twice. */
 const disposition = restate.object({
-  name: "Disposition",
+  name: "ReplyLabel",
   handlers: {
     followUp: async (
       ctx: restate.ObjectContext,

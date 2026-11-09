@@ -1,6 +1,6 @@
 /**
  * Hand moves, the numbers views and the pipeline records, on a real Postgres
- * (designs/2026-10-19-business-map.md): a move is the event `Journeys` sends, walked here on the
+ * (designs/2026-10-19-business-map.md): a move is the event `JourneyMove` sends, walked here on the
  * real store and steps, no Restate. One shape per database, so the tests run in order and later
  * ones build on the journeys of earlier ones. Synthetic data only.
  */

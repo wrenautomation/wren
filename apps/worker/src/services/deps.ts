@@ -667,9 +667,9 @@ export async function buildDeps(
       ),
     // Pushes and tab watchers on our logins (designs/2026-10-12-push-everywhere.md).
     pushes: (ctx: ObjectContext) =>
-      within(ctx, ctx.objectClient<SocialPushed>({ name: "SocialPushed" }, SOCIAL_KEY).reach(), {
+      within(ctx, ctx.objectClient<SocialPushed>({ name: "SocialPushHold" }, SOCIAL_KEY).reach(), {
         ms: LIMITS.quick,
-        call: "SocialPushed/reach",
+        call: "SocialPushHold/reach",
       }),
     postedAt: async (p: "reddit" | "linkedin") => {
       const [r] = await db

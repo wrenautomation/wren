@@ -96,7 +96,7 @@ export function makeDisposition(deps: DispositionDeps) {
     return owner && deps.clientInvites ? deps.clientInvites(owner.client) : null;
   };
   return restate.object({
-    name: "Disposition",
+    name: "ReplyLabel",
     handlers: {
       /** Only EmailInboxRead fires it, when a pass finds human replies. */
       classify: exclusiveHandler(

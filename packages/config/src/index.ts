@@ -375,7 +375,7 @@ export const settingsSchema = z.object({
     .enum(["true", "false", "1", "0"])
     .default("false")
     .transform((v) => v === "true" || v === "1"),
-  /** `MetaPace`: private replies an hour per account (Meta's cap is 750). */
+  /** `MetaReplyPace`: private replies an hour per account (Meta's cap is 750). */
   metaPrivatePerHour: z.coerce.number().int().positive().max(750).default(600),
   /** Our Instagram account's id: a Meta webhook naming it wakes our own loops. */
   metaIgId: z

@@ -540,7 +540,7 @@ local.call = async (i) => {
     // Studio's reads: what waits on him, and every piece with where it went.
     if (service === "ContentDesk" && handler === "waiting")
       return { ideas: await waitingIdeas(main) };
-    if (service === "Pieces" && handler === "list")
+    if (service === "PieceList" && handler === "list")
       return { pieces: piecesOf(await pieceRows(main, "localhost")) };
   } catch (err) {
     if (err instanceof PortalRefusal) throw err;

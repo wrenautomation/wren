@@ -2,7 +2,7 @@
  * Write's Blog box (designs/2026-10-13-blog-box.md): a post for wrenautomation.com/blog in
  * Markdown. Save as draft or Publish commits it to the lander repo; a published post goes up a
  * few minutes later. Then Email sends it to everyone signed up, once each, after a test if he
- * wants one. `Blog/wren` through the console.
+ * wants one. `BlogSave/wren` through the console.
  */
 
 import {
@@ -46,7 +46,7 @@ interface Audience {
 }
 
 const blog = <T,>(handler: string, input: Record<string, unknown> = {}) =>
-  deskCall<T>("Blog", handler, input, "wren");
+  deskCall<T>("BlogSave", handler, input, "wren");
 const message = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
 const SNIPPET = 155;
 

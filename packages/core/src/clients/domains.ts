@@ -142,7 +142,7 @@ export async function listDomains(main: Queryable, clientId: string): Promise<Cl
     .orderBy(asc(clientDomains.createdAt));
 }
 
-/** `Domains/resolve`'s input: the host the portal Worker was asked for. */
+/** `DomainLookup/resolve`'s input: the host the portal Worker was asked for. */
 export const HOST_LOOKUP = z.object({ host: z.string().max(253).describe("The request's host") });
 
 /** The client a live host belongs to, or null. The portal Worker pins requests to it. */

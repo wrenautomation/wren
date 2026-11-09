@@ -92,7 +92,7 @@ const askReach = restate.service({
     reach: async (ctx: restate.Context) =>
       ctx
         .objectClient<{ reach: (c: restate.ObjectContext) => Promise<unknown> }>(
-          { name: "SocialPushed" },
+          { name: "SocialPushHold" },
           SOCIAL_KEY,
         )
         .reach(),

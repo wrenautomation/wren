@@ -36,7 +36,7 @@ Citations: `packages/starling/outbound/src/email/outreach/templates.ts:47`, `aut
 ## If you change this
 
 - **Hits:** publishing a version changes every future draft; adding a `{key}` needs the facts view to supply it or drafts are refused. Editing a `.email` file changes the default: the next deploy's sync makes it live wherever the template follows its default
-- **Also hits:** queued, untouched, unstarted messages: deploy calls `QueueRefresh/all`, which re-renders them (`packages/starling/outbound/src/email/restate/queue-refresh.ts:1`)
+- **Also hits:** queued, untouched, unstarted messages: deploy calls `EmailQueueRerender/all`, which re-renders them (`packages/starling/outbound/src/email/restate/queue-refresh.ts:1`)
 - **Does not hit:** sent, hand-edited or person-approved messages; a sequence once a step went out
 
 ## Surfaces

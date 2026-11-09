@@ -151,7 +151,7 @@ function restateChannels(
   const by = viewer && !isDemo(viewer) ? (viewer.email ?? null) : null;
   const disposition = () =>
     ctx.objectClient<Disposition>(
-      { name: "Disposition" },
+      { name: "ReplyLabel" },
       client ? clientKey(client, FLEET) : FLEET,
     );
   const ok = (o: Outcome) => {

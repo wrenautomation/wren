@@ -1,8 +1,8 @@
 /**
  * KeywordDm (designs/2026-10-11-comment-keywords.md): a comment that says a keyword gets the
  * keyword's DM through Meta's private reply, then its public reply when it has one. `SocialActivityRead`
- * (or `PushedComments`) catches the comments and sends each hit here; the portal adds and removes
- * keywords. 11-04 (designs/2026-11-04-meta-push-flows.md): each DM waits its `MetaPace` slot; a
+ * (or `PushedCommentKeep`) catches the comments and sends each hit here; the portal adds and removes
+ * keywords. 11-04 (designs/2026-11-04-meta-push-flows.md): each DM waits its `MetaReplyPace` slot; a
  * keyword with a button sends it on the DM, and `tap` sends the follow-up.
  */
 
@@ -178,7 +178,7 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
           }
           // Under Meta's cap per account: a burst waits its turn, evenly spaced.
           const wait = await ctx
-            .objectClient<MetaPace>({ name: "MetaPace" }, paceKey(req.client, c.platform))
+            .objectClient<MetaPace>({ name: "MetaReplyPace" }, paceKey(req.client, c.platform))
             .slot();
           if (wait > 0) await ctx.sleep(wait);
           // Its links carry utm tags like every marketing DM (designs/2026-10-14-customerio-audit.md, B4).

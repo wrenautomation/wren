@@ -231,7 +231,7 @@ const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl
 const inbox = (sender: string) =>
   ingress().objectClient<EmailInboxRead>({ name: "EmailInboxRead" }, sender);
 const disposition = () =>
-  ingress().objectClient<Disposition>({ name: "Disposition" }, DISPOSITION_KEY);
+  ingress().objectClient<Disposition>({ name: "ReplyLabel" }, DISPOSITION_KEY);
 const postmasterClient = () =>
   ingress().objectClient<EmailPostmasterPull>({ name: "EmailPostmasterPull" }, POSTMASTER_KEY);
 const clicks = () => ingress().objectClient<EmailClickPull>({ name: "EmailClickPull" }, CLICKS_KEY);

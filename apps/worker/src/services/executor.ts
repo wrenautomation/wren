@@ -149,7 +149,7 @@ export function executorServices(deps: Deps): AnyService[] {
           queue: (ask, delayMs, key) =>
             ingressSend(
               ingressOf(settings),
-              { service: "CallBriefs", handler: "send" },
+              { service: "CallBriefBuild", handler: "send" },
               key,
               ask,
               delayMs,

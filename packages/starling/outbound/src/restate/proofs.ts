@@ -1,5 +1,5 @@
 /**
- * `CommentProofs` (designs/2026-10-14-comment-proof.md): each sent comment checked at 2 minutes,
+ * `CommentLiveCheck` (designs/2026-10-14-comment-proof.md): each sent comment checked at 2 minutes,
  * an hour and a day (`scheduleProofs`, called by the send handlers), or now by hand. A check
  * reads through the desk (`siteProof`), keeps its shot, overwrites the item's `comment_proofs`
  * row and appends to its checks. The hour's check that is not live goes to Discord once. A used
@@ -15,7 +15,7 @@ import { type KeepShot, type Proof, siteProof } from "@wren/starling-core";
 import { z } from "zod";
 import { HAND_ROUND, keepProof, PROOF_ROUNDS, proofTarget, warningOf } from "../proofs.js";
 
-export const PROOFS_SERVICE = { name: "CommentProofs" } as const;
+export const PROOFS_SERVICE = { name: "CommentLiveCheck" } as const;
 
 export interface ProofsDeps {
   db: Db;

@@ -2,7 +2,7 @@
  * The inbox sync as a Virtual Object keyed by sender address: one key = one
  * mailbox = one loop. Each pass reads this inbox from its cursor forward and
  * acts on what came back; a pass that found human replies hands the fleet's
- * `Disposition` object a `classify` (when an LLM is configured), so the
+ * `ReplyLabel` object a `classify` (when an LLM is configured), so the
  * operator's queue is labelled minutes after the reply lands rather than the
  * next time someone runs a command.
  *
@@ -12,7 +12,7 @@
  * than as fast as it can refuse.
  *
  * A key's scope names the database its mailbox's replies land in and the
- * `Disposition` key that labels them: Wren's own, or its client's.
+ * `ReplyLabel` key that labels them: Wren's own, or its client's.
  *
  * Gmail push: each pass keeps the mailbox's `users.watch` alive, so a change
  * reaches `InboxPush/<address>/notify` (the phone Worker's `/webhooks/gmail`)
@@ -39,7 +39,7 @@ import type { InboxReader } from "@wrenautomation/autobrowse/mail";
 import { z } from "zod";
 import type { Disposition } from "./disposition.js";
 
-/** Where one key's replies land, and which `Disposition` key labels them. */
+/** Where one key's replies land, and which `ReplyLabel` key labels them. */
 interface InboxScope {
   db: Db;
   disposition: string;
@@ -115,7 +115,7 @@ export function makeEmailInboxRead(deps: EmailInboxReadDeps) {
     });
     if (renew && until - Date.parse(outcome.now) <= DAY_MS) await renewWatch(ctx, renew, sender);
     if (deps.classify && (outcome.stats?.replies ?? 0) > 0) {
-      ctx.objectSendClient<Disposition>({ name: "Disposition" }, scope.disposition).classify();
+      ctx.objectSendClient<Disposition>({ name: "ReplyLabel" }, scope.disposition).classify();
     }
     if (deps.notifier && outcome.stats) await tell(ctx, deps.notifier, sender, outcome.stats);
     // Each person's reply: every live Reply trigger that hears email gets it.

@@ -95,7 +95,7 @@ type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 export interface ShapeDeps {
   /** The command's database: `--client`'s, else main. */
   withDb: WithDb;
-  /** The worker's `Journeys` service, for `move`. */
+  /** The worker's `JourneyMove` service, for `move`. */
   writes: PipelineWrites | undefined;
   /** Copy this workspace's missing versions to the private repo: `--client`'s, else Wren's. */
   mirror: (db: Db) => Promise<MirrorResult>;

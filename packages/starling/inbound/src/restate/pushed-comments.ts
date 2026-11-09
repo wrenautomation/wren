@@ -1,5 +1,5 @@
 /**
- * `PushedComments`: comments a Meta push carried, kept with no read (designs/2026-11-04-meta-push-flows.md).
+ * `PushedCommentKeep`: comments a Meta push carried, kept with no read (designs/2026-11-04-meta-push-flows.md).
  * The same steps as the pass's read: keep (dedupes on the comment's ref), a keyword's DM, the
  * executor's `comment` events. Only with `WREN_META_PUSH_EVENTS`; `SocialPush.meta` sends here.
  */
@@ -34,7 +34,7 @@ const KEEP = z.object({
 
 export function makePushedComments(deps: { db: Db; clientDb?: ((client: string) => Db) | null }) {
   return restate.service({
-    name: "PushedComments",
+    name: "PushedCommentKeep",
     handlers: {
       keep: serviceHandler(
         { input: KEEP, ingressPrivate: true },

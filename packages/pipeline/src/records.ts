@@ -3,7 +3,7 @@
  * deals and numbers. One workspace each: the database a type is served from (Wren's, or a
  * client's) holds the rows, so no row carries an owner.
  *
- * Served by `PipelineConsole`. Writes go through its handlers and the `Journeys` service, never
+ * Served by `PipelineConsole`. Writes go through its handlers and the `JourneyMove` service, never
  * through a record edit.
  */
 

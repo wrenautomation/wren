@@ -9,7 +9,7 @@
  *    hears it; each trait change, to a Trait changed trigger; once a day from 09:00 (New York),
  *    each date trait whose day it is, to a Date trigger.
  *
- * `Segments/fleet` (Wren's) and `Segments/<client>/fleet` run it on `wake`: a trait, an address
+ * `SegmentPass/fleet` (Wren's) and `SegmentPass/<client>/fleet` run it on `wake`: a trait, an address
  * or a segment changing wakes it at commit (`wren_wake`, migration 0252), and `SegmentsRefresh/all`
  * wakes every workspace each hour, the net under a lost wake and the timeline's changes (a Date
  * trigger fires by 10:00; designs/2026-11-01-loop-calls.md).
@@ -355,7 +355,7 @@ interface SegmentsDeps {
   clients(): Promise<string[]>;
 }
 
-const SEGMENTS = { name: "Segments" } as const;
+const SEGMENTS = { name: "SegmentPass" } as const;
 /** Wren's own pass's key; a client's is `<client>/fleet`. */
 const SEGMENTS_KEY = "fleet";
 const CURSOR = "cursor";

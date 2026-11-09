@@ -1,5 +1,5 @@
 /**
- * `Journeys`: the hand and agent moves on a journey (designs/2026-10-19-business-map.md). `open`
+ * `JourneyMove`: the hand and agent moves on a journey (designs/2026-10-19-business-map.md). `open`
  * and `move` send the shape workflow's `in.<node>` input through `Executor/emit`, cause `manual`,
  * so the workflow's own `journey.move` step writes the row: no second write path. `drop` closes the row (`dropJourney`) and tells the executor. `assign` sets who
  * works a journey, a column the executor never reads. `rebuild` recomputes a row from its events.
@@ -26,7 +26,7 @@ import {
 import { instances } from "./schema.js";
 import { Refused } from "./store.js";
 
-export const JOURNEYS = { name: "Journeys" } as const;
+export const JOURNEYS = { name: "JourneyMove" } as const;
 
 interface JourneysDeps {
   /** A workspace's database: Wren's for `null`. */

@@ -3,13 +3,13 @@
  * console, with the same acts as `wren email answers` and `wren email senders pause|resume`.
  * A campaign's kill switch and opener cap live in `campaign_controls`, read every tick, so a
  * change goes live with no deploy. Approve and drop go
- * to `Disposition/fleet`, so only its journaled steps book or send. Every handler refuses whoever
+ * to `ReplyLabel/fleet`, so only its journaled steps book or send. Every handler refuses whoever
  * `seesInternal` rejects; the Worker also keeps the writes off the demo (`console-routes.ts`).
  * The `records*` reads are a client's lead sheet (O1): its firms and stalls, from its own
  * database, for anyone who may open that client, once `research.lead_sheet` is installed.
  * With `client` set, Wren's team works that client's sequences instead (O2/O3): its campaigns'
  * kill switch and opener cap (`email.sequences`), its answers (`email.replies`, approve and
- * drop through `Disposition/<client>/replies`).
+ * drop through `ReplyLabel/<client>/replies`).
  */
 
 import type { CallBriefs } from "@wren/calendar/calls";
@@ -385,7 +385,7 @@ export function makeEmailConsole(deps: EmailConsoleDeps) {
   const api = emailConsoleApi(deps);
   // The key first: an object client is a proxy, so it must never be awaited (its `then` is a call).
   const disposition = (ctx: restate.Context, key: string) =>
-    ctx.objectClient<Disposition>({ name: "Disposition" }, key);
+    ctx.objectClient<Disposition>({ name: "ReplyLabel" }, key);
   /** Mark calls: Wren's, or the client's; `done` are the ids it changed. */
   const outcome = (ctx: restate.Context, req: CallsRequest, value: MeetingOutcome | null) =>
     answer(async () => {
@@ -519,7 +519,7 @@ export function makeEmailConsole(deps: EmailConsoleDeps) {
       callClear: serviceHandler({ input: IDS }, (ctx: restate.Context, req: CallsRequest) =>
         outcome(ctx, req, null),
       ),
-      /** Build a call's brief again now (`CallBriefs/build`). */
+      /** Build a call's brief again now (`CallBriefBuild/build`). */
       callBrief: serviceHandler({ input: IDS }, (ctx: restate.Context, req: CallsRequest) =>
         answer(async () => {
           const { client, ids } = await ctx.run("calls", async () => {
@@ -529,7 +529,7 @@ export function makeEmailConsole(deps: EmailConsoleDeps) {
           const done: string[] = [];
           for (const id of ids) {
             const b = await ctx
-              .serviceClient<CallBriefs>({ name: "CallBriefs" })
+              .serviceClient<CallBriefs>({ name: "CallBriefBuild" })
               .build({ client, id });
             if (b.built) done.push(String(id));
           }

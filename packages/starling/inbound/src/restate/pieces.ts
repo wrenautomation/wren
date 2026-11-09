@@ -1,5 +1,5 @@
 /**
- * `Pieces/wren` (designs/2026-10-13-primitives-first.md): Marketing's Today and Pieces read every
+ * `PieceList/wren` (designs/2026-10-13-primitives-first.md): Marketing's Today and Pieces read every
  * piece William made, each with its branches. Reads only; a yes goes through `marketing/approveDraft`.
  */
 
@@ -18,7 +18,7 @@ interface PiecesDeps {
 
 export function makePieces(deps: PiecesDeps) {
   return restate.object({
-    name: "Pieces",
+    name: "PieceList",
     handlers: {
       /** Every piece of the last 120 days, newest first. */
       list: sharedHandler({ input: NO_INPUT }, async (ctx: restate.ObjectSharedContext) => {

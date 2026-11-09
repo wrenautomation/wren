@@ -4,7 +4,7 @@
  * follow `--client`. Amounts are read from the database and printed; none is written here, except
  * a deal's terms (`deals sign`). The shape itself is `wren shape` (`shape.ts`).
  *
- * Moves on a journey (`open`, `move`, `drop`, `assign`, `rebuild`) go through the worker's `Journeys`
+ * Moves on a journey (`open`, `move`, `drop`, `assign`, `rebuild`) go through the worker's `JourneyMove`
  * service, so the shape's own step writes the row. Reads go to the database.
  *
  * `wren deals` is new here. The older Opportunities deals have no command, so nothing clashes.
@@ -41,7 +41,7 @@ import { type Command, InvalidArgumentError } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
-/** How the CLI reaches the worker's `Journeys` service, and the workspace it acts in. */
+/** How the CLI reaches the worker's `JourneyMove` service, and the workspace it acts in. */
 export interface PipelineWrites {
   journeys(): {
     open(req: OpenRequest): Promise<unknown>;

@@ -738,7 +738,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
   /** One check on the desk: sent, then its output polled (the reads are paced). */
   const checkNow = async (item: string): Promise<Proof> => {
     const sent = await ingress()
-      .serviceSendClient<CommentProofsService>({ name: "CommentProofs" })
+      .serviceSendClient<CommentProofsService>({ name: "CommentLiveCheck" })
       .check({ item }, clients.rpc.sendOpts({ idempotencyKey: longCallKey(`proof ${item}`) }));
     const { url, headers } = ingressOf(settings);
     return pollOutput<Proof>(sent.invocationId, {

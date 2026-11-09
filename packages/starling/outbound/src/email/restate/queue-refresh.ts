@@ -1,7 +1,7 @@
 /**
  * The queue follows the templates. Compose saves a whole sequence's text at enroll, so a
  * template edit reaches mail already queued only when that queue is re-rendered. Deploy
- * calls `QueueRefresh/all` right after it registers a new worker version: every niche's
+ * calls `EmailQueueRerender/all` right after it registers a new worker version: every niche's
  * untouched, unstarted queue takes the new words within minutes, not at the next
  * midnight top-up. Only messages whose template changed are re-rendered, so a deploy that
  * touched no template reads no facts. Refresh only: nothing is composed, approved or sent here.
@@ -25,7 +25,7 @@ const REFRESH_COMMAND = "outreach refresh";
 export function makeQueueRefresh(deps: QueueRefreshDeps) {
   const trackOpens = deps.trackOpens ?? false;
   return restate.service({
-    name: "QueueRefresh",
+    name: "EmailQueueRerender",
     handlers: {
       /** Every niche with an active sender; one journaled step and one runs row each. */
       all: serviceHandler(

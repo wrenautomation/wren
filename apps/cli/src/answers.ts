@@ -1,9 +1,9 @@
 /**
  * `wren email answers …`: William's yes on every answer to a warm reply. Code
  * proposes (a time and a drafted reply); nothing books or sends until `approve`.
- * The writes go through the worker's `Disposition` object, which holds the
+ * The writes go through the worker's `ReplyLabel` object, which holds the
  * calendar and the inboxes. With `--client`, a client's answers: its database,
- * its `Disposition/<client>/replies` (email replies installed).
+ * its `ReplyLabel/<client>/replies` (email replies installed).
  */
 
 import { ingressOf, type Settings } from "@wren/config";
@@ -28,7 +28,7 @@ export function registerAnswers(email: Command, withDb: WithDb, settings: Settin
     return clients
       .connect(ingressOf(settings))
       .objectClient<Disposition>(
-        { name: "Disposition" },
+        { name: "ReplyLabel" },
         client ? clientKey(client, "replies") : DISPOSITION_KEY,
       );
   };
