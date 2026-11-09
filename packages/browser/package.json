@@ -1,0 +1,22 @@
+{
+  "name": "@wren/browser",
+  "description": "The browser steps every lane shares: read one page, paint slides; and the render Lambda that runs them.",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run src"
+  },
+  "dependencies": {
+    "@aws-sdk/client-lambda": "3.1136.0",
+    "playwright-core": "1.63.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

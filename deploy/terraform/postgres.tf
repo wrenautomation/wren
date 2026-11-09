@@ -76,7 +76,7 @@ resource "aws_ssm_parameter" "restate" {
 # Unused since 11-09 (Redis retired, own-runtime phase 6b); kept until William says to delete it.
 resource "aws_ssm_parameter" "cache" {
   name        = "${local.ssm_root}/cache"
-  description = "JSON for the box's Redis cache: password"
+  description = "JSON for the box's Valkey cache: password" # = live; a change rewrites the value
   type        = "SecureString"
   value       = "{}"
 
@@ -265,6 +265,12 @@ data "aws_iam_policy_document" "pg" {
     sid       = "InvokeWorker"
     actions   = ["lambda:InvokeFunction"]
     resources = [aws_lambda_function.worker.arn, "${aws_lambda_function.worker.arn}:*"]
+  }
+  # Page reads and slide paints (render.tf).
+  statement {
+    sid       = "InvokeRender"
+    actions   = ["lambda:InvokeFunction"]
+    resources = [aws_lambda_function.render.arn]
   }
   # The books' day (BooksClose/all) reads kept bills back from `books/`.
   statement {

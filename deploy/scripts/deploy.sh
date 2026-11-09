@@ -42,6 +42,7 @@ jq -n --arg url "$API_URL/" --arg token "$WREN_API_TOKEN" \
   > "$RUNNER_TEMP/portal-secrets.json"
 bg worker-zip pnpm --filter @wren/worker build:lambda
 bg auth-zip pnpm --filter @wren/auth-app build:lambda
+bg render-zip pnpm --filter @wren/render build:lambda
 bg cli node apps/cli/scripts/build.mjs
 bg up-phone cf_upload phone "$RUNNER_TEMP/phone-secrets.json"
 bg up-gateway cf_upload llm-gateway
@@ -68,7 +69,12 @@ bg templates pnpm -s wren templates sync
 # The box worker's new slot takes new rows once up; Lambda rows pin to the version written below.
 # The sign-in Lambda's function URL serves $LATEST; no version to publish.
 phase "box worker and lambdas"
-await worker-zip auth-zip pgbouncer
+await worker-zip auth-zip render-zip pgbouncer
+# render: over 50 MB, so its code goes through S3 (designs/2026-11-09-render-lambda.md)
+render_key="render/$GITHUB_SHA.zip"
+aws s3 cp --only-show-errors apps/render/dist/lambda.zip "s3://$BOX_BUCKET/$render_key"
+bg render-lambda sh -c "aws lambda update-function-code --function-name wren-prod-render \
+  --s3-bucket $BOX_BUCKET --s3-key $render_key > /dev/null && aws lambda wait function-updated --function-name wren-prod-render"
 key="worker/$GITHUB_SHA.zip"
 aws s3 cp --only-show-errors apps/worker/dist/lambda.zip "s3://$BOX_BUCKET/$key"
 bg box-worker box_script worker box-worker.sh "$BOX_BUCKET" "$key"
@@ -78,7 +84,7 @@ aws lambda update-function-code --function-name "$LAMBDA_NAME" \
   --zip-file fileb://apps/worker/dist/lambda.zip --publish --output json > "$RUNNER_TEMP/publish.json"
 # A versioned ARN, whichever form the response's FunctionArn takes.
 ARN="$(jq -r .FunctionArn "$RUNNER_TEMP/publish.json" | sed -E 's/:[0-9]+$//'):$(jq -r .Version "$RUNNER_TEMP/publish.json")"
-await box-worker
+await box-worker render-lambda
 
 # The box's lambda lane (apps/worker/src/rt.ts) pins new Lambda rows to this version.
 phase "lambda version"

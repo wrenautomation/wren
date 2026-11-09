@@ -76,7 +76,7 @@ docker run -d --name wren-worker-new --restart unless-stopped --init \
   -e WREN_SSM_ROSTER_PARAM=/wren/prod/senders_config \
   -e WREN_SSM_MAILBOXES_PARAM=/wren/prod/mailboxes \
   -e WREN_SSM_BOX_PARAM=/wren/prod/box \
-  -e WREN_RENDERER=cdp \
+  -e WREN_RENDERER=lambda -e WREN_RENDER_FUNCTION=wren-prod-render \
   -e WREN_DATABASE_POOL_PORT=6432 \
   -e WREN_LOG_LEVEL=info \
   -e NODE_OPTIONS=--max-old-space-size=448 \

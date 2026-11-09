@@ -121,6 +121,12 @@ data "aws_iam_policy_document" "worker" {
     actions   = ["kms:Decrypt"]
     resources = [data.aws_kms_alias.ssm.target_key_arn]
   }
+  # Page reads and slide paints (render.tf).
+  statement {
+    sid       = "InvokeRender"
+    actions   = ["lambda:InvokeFunction"]
+    resources = [aws_lambda_function.render.arn]
+  }
   # Domain provisioning (Domain/{domain}): append to the roster, keep each new
   # inbox's password under /<name>/inboxes/, recycle itself so the fleet reloads.
   statement {

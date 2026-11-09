@@ -59,6 +59,7 @@ import {
   browserbaseRenderer,
   browserRenderer,
   cdpRenderer,
+  lambdaRenderer,
 } from "@wren/research";
 import type {
   Context,
@@ -166,13 +167,21 @@ async function playbooksOf(db: Db): Promise<{ label: string; text: string }[]> {
   return rows.map((r) => ({ label: r.sop, text: r.text }));
 }
 
-/** The render tier for this host: a local chromium, or Browserbase where none can run. */
+/** The render tier for this host: a local chromium, the render Lambda, CDP, or Browserbase. */
 function rendererFor(
   settings: Settings,
   ua: string,
   log: Logger,
 ): (() => Promise<BrowserRenderer>) | null {
   if (settings.renderer === "local") return () => browserRenderer(ua);
+  if (settings.renderer === "lambda") {
+    const fn = settings.renderFunction;
+    if (!fn) {
+      log.warn("WREN_RENDERER=lambda without WREN_RENDER_FUNCTION: no render tier");
+      return null;
+    }
+    return async () => lambdaRenderer(ua, { fn });
+  }
   if (settings.renderer === "cdp") {
     const connectUrl = settings.cdpUrl;
     if (!connectUrl) {

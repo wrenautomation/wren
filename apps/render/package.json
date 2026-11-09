@@ -1,0 +1,20 @@
+{
+  "name": "@wren/render",
+  "description": "The render Lambda: headless chromium (@sparticuz/chromium) that reads pages and paints slides for both lanes.",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build:lambda": "node scripts/build-lambda.mjs"
+  },
+  "dependencies": {
+    "@sparticuz/chromium": "153.0.0",
+    "@wren/browser": "workspace:*",
+    "playwright-core": "1.63.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "typescript": "5.9.3"
+  }
+}

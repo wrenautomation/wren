@@ -1,9 +1,10 @@
 /**
  * The slide painter: a chromium draws `slidesHtml`'s page, a 1080 square JPEG per slide (Instagram takes JPEG only) and the
  * whole page as a PDF (one square page each) for LinkedIn. A local chromium on the laptop or the
- * desk; over CDP (`WREN_CDP_URL`, browserless on the box) where none can run, the Lambda.
+ * desk; where none can run, the render Lambda (`WREN_RENDER_FUNCTION`) or a chromium over CDP.
  * Playwright loads lazily, so a host that never draws never loads it.
  */
+import { paintInBrowser, type RenderLambda, renderLambda } from "@wren/browser";
 import { SLIDE_PX } from "@wren/starling-core/slides";
 import type { SlidePainter } from "./carousel.js";
 
@@ -11,8 +12,23 @@ export class PaintUnavailable extends Error {
   override name = "PaintUnavailable";
 }
 
-/** The painter: `connectUrl` reaches a remote chromium; without it, one launches here. */
-export function slidePainter(o: { connectUrl?: string | null } = {}): SlidePainter {
+/**
+ * The painter: `lambda` paints in the render Lambda; `connectUrl` reaches a remote chromium;
+ * with neither, one launches here.
+ */
+export function slidePainter(
+  o: { connectUrl?: string | null; lambda?: string | RenderLambda } = {},
+): SlidePainter {
+  if (o.lambda) {
+    const lambda = typeof o.lambda === "string" ? renderLambda(o.lambda) : o.lambda;
+    return async (html, count) => {
+      try {
+        return await lambda.paint(html, count, SLIDE_PX);
+      } catch (err) {
+        throw new PaintUnavailable(`render Lambda: ${(err as Error).message}`, { cause: err });
+      }
+    };
+  }
   return async (html, count) => {
     let playwright: typeof import("playwright-core");
     try {
@@ -35,32 +51,7 @@ export function slidePainter(o: { connectUrl?: string | null } = {}): SlidePaint
       );
     }
     try {
-      const context = await browser.newContext({
-        viewport: { width: SLIDE_PX, height: SLIDE_PX },
-        deviceScaleFactor: 1,
-      });
-      try {
-        const page = await context.newPage();
-        await page.setContent(html, { waitUntil: "load" });
-        // Runs in the page: its fonts loaded before the shots.
-        await page.evaluate("document.fonts.ready.then(() => true)");
-        const images: Uint8Array[] = [];
-        for (let n = 1; n <= count; n++)
-          images.push(
-            await page
-              .locator(`.slide[data-n="${n}"]`)
-              .screenshot({ type: "jpeg", quality: 92, animations: "disabled" }),
-          );
-        const pdf = await page.pdf({
-          width: `${SLIDE_PX}px`,
-          height: `${SLIDE_PX}px`,
-          printBackground: true,
-          pageRanges: `1-${count}`,
-        });
-        return { images, pdf };
-      } finally {
-        await context.close();
-      }
+      return await paintInBrowser(browser, html, count, SLIDE_PX);
     } finally {
       await browser.close();
     }

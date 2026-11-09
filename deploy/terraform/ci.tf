@@ -58,7 +58,7 @@ data "aws_iam_policy_document" "ci" {
     ]
     # By name, not by reference: a targeted apply of this policy then leaves the functions alone.
     resources = [
-      for f in ["worker", "auth"] :
+      for f in ["worker", "auth", "render"] :
       "arn:aws:lambda:${var.region}:${data.aws_caller_identity.me.account_id}:function:${local.prefix}-${f}"
     ]
   }
@@ -66,6 +66,11 @@ data "aws_iam_policy_document" "ci" {
   statement {
     actions   = ["s3:PutObject"]
     resources = ["${aws_s3_bucket.backups.arn}/worker/*"]
+  }
+  # The render Lambda's zip (over 50 MB): CI puts it, Lambda reads it with CI's grant.
+  statement {
+    actions   = ["s3:PutObject", "s3:GetObject"]
+    resources = ["${aws_s3_bucket.backups.arn}/render/*"]
   }
   statement {
     actions = ["ssm:SendCommand"]

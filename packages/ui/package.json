@@ -80,7 +80,7 @@
     "@tanstack/react-table": "9.2.4",
     "@tanstack/react-virtual": "3.14.13",
     "@wren/core": "workspace:*",
-    "@wrenautomation/orrery": "0.61.0",
+    "@wrenautomation/orrery": "0.62.0",
     "@xyflow/react": "12.12.0",
     "class-variance-authority": "0.7.1",
     "cmdk": "1.1.1",

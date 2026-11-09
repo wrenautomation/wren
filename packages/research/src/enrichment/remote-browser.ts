@@ -8,6 +8,7 @@
  * forces: a remote browser serves one default context, so isolation between
  * URLs is a fresh page plus cleared cookies rather than a fresh context.
  */
+import { type RenderLambda, renderLambda } from "@wren/browser";
 import type { BrowserRenderer, RenderedPage, Renderer } from "./render.js";
 import { RenderUnavailable } from "./render.js";
 
@@ -148,4 +149,22 @@ export async function browserbaseRenderer(
     connectUrl: session.connectUrl,
     ...(opts.connect ? { connect: opts.connect } : {}),
   });
+}
+
+/** The render tier in the render Lambda (`@wren/browser`): one chromium per URL, nothing held open. */
+export function lambdaRenderer(
+  userAgent: string,
+  opts: { fn: string; lambda?: RenderLambda },
+): BrowserRenderer {
+  const lambda = opts.lambda ?? renderLambda(opts.fn);
+  return {
+    render: async (url) => {
+      try {
+        return await lambda.read(url, userAgent);
+      } catch (err) {
+        throw new RenderUnavailable(`render Lambda: ${(err as Error).message}`, { cause: err });
+      }
+    },
+    close: async () => {},
+  };
 }

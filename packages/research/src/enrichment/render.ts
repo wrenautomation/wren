@@ -14,6 +14,7 @@
  * (designs/2026-10-18-fetch-ladder.md). What it learns goes to the domain's memory.
  */
 import { createHash } from "node:crypto";
+import { readInBrowser } from "@wren/browser";
 import { type Company, companies, inPlay } from "@wren/core";
 import type { SiteClient, SiteMethod } from "@wren/core/autobrowse";
 import { atomic, type Queryable } from "@wren/db";
@@ -57,8 +58,6 @@ const blockedDoc = or(
 );
 /** `ladderLimit` default: `web GET /fetch` calls per render run. */
 export const DEFAULT_LADDER_LIMIT = 40;
-const SETTLE_MS = 1200;
-const PAGE_TIMEOUT_MS = 20_000;
 const DEFAULT_JITTER: readonly [number, number] = [1.0, 3.0];
 
 export interface RenderedPage {
@@ -103,29 +102,7 @@ export async function browserRenderer(userAgent: string): Promise<BrowserRendere
       { cause: err },
     );
   }
-  const render: Renderer = async (url) => {
-    const context = await browser.newContext({ userAgent });
-    try {
-      await context.route("**/*", (route) =>
-        ["image", "media", "font"].includes(route.request().resourceType())
-          ? route.abort()
-          : route.continue(),
-      );
-      const page = await context.newPage();
-      let statusCode: number | null = null;
-      try {
-        const resp = await page.goto(url, { waitUntil: "load", timeout: PAGE_TIMEOUT_MS });
-        statusCode = resp?.status() ?? null;
-        await page.waitForTimeout(SETTLE_MS);
-      } catch (err) {
-        if (!(err instanceof playwright.errors.TimeoutError)) throw err;
-        // slow site: take whatever has rendered so far
-      }
-      return { html: await page.content(), finalUrl: page.url(), statusCode };
-    } finally {
-      await context.close();
-    }
-  };
+  const render: Renderer = (url) => readInBrowser(browser, url, userAgent);
   return { render, close: () => browser.close() };
 }
 
