@@ -234,6 +234,8 @@ export class Turn implements Host {
   private flushing: Promise<unknown> = Promise.resolve();
   private poisoned = false;
   private localWork = 0;
+  /** Short sleeps waited inside the turn; part of localWork. */
+  private localSleeps = new Set<Leaf<unknown>>();
   private waiting = new Set<Durable<unknown>>();
   private remote = new Set<Leaf<unknown>>();
   private progress = 0;
@@ -400,10 +402,22 @@ export class Turn implements Host {
   }
 
   private check() {
-    if (this.closed || this.localWork > 0) return;
+    if (this.closed) return;
     for (const d of this.waiting) if (d.settled) this.waiting.delete(d);
     if (this.waiting.size === 0) return;
     const blocked = [...this.remote].filter((l) => !l.settled);
+    if (this.localWork > 0) {
+      // only short sleeps hold it and an outside result is pending (a call under orTimeout): suspend,
+      // so that result wakes it; a live turn never sees a child's end
+      const sleepsOnly = this.localWork === this.localSleeps.size;
+      if (!sleepsOnly || blocked.length === 0) {
+        // a run holds it: calls, cancels and wakes go out now, as on Restate
+        const b = this.buf;
+        if (b.children.length || b.awakes.length || b.cancels.length) void this.flush();
+        return;
+      }
+      blocked.push(...this.localSleeps);
+    }
     if (this.cancelPending && blocked.length) return this.deliverCancel(blocked);
     let wakeAt: number | null = null;
     for (const l of blocked)
@@ -663,8 +677,11 @@ export class Turn implements Host {
     if (left <= 0) leaf.resolve(undefined);
     else if (left <= this.localWaitMs) {
       this.localWork++;
+      leaf.wakeAt = wakeAt;
+      this.localSleeps.add(leaf as Leaf<unknown>);
       setTimeout(() => {
         this.localWork--;
+        this.localSleeps.delete(leaf as Leaf<unknown>);
         leaf.resolve(undefined);
         this.queueCheck();
       }, left).unref();

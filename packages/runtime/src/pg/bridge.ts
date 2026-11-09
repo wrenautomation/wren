@@ -82,7 +82,10 @@ export function proxy(
     }
     const r = JSON.parse(Buffer.from(bytes).toString()) as Reply;
     if (r.ok) return Buffer.from(r.value, "base64");
-    throw new sdk.TerminalError(r.error.message, { errorCode: r.error.code ?? 500 });
+    throw new sdk.TerminalError(r.error.message, {
+      errorCode: r.error.code ?? 500,
+      ...(r.error.metadata ? { metadata: r.error.metadata } : {}),
+    });
   };
   // bytes pass through as they are; the content type is JSON, which every caller sends
   const raw: sdk.Serde<Uint8Array> = {
@@ -287,12 +290,16 @@ export async function bridgeTurn(
         return "done";
       }
       // 4xx/5xx with a JSON body is the handler's TerminalError; anything else retries
-      let err: { message?: string; code?: number } | undefined;
+      let err: { message?: string; code?: number; metadata?: Record<string, string> } | undefined;
       try {
         err = JSON.parse(Buffer.from(body).toString());
       } catch {}
       if (!err?.message) throw new Error(`restate attach ${res.status}`);
-      const error = { message: err.message, code: err.code ?? res.status };
+      const error = {
+        message: err.message,
+        code: err.code ?? res.status,
+        ...(err.metadata && Object.keys(err.metadata).length ? { metadata: err.metadata } : {}),
+      };
       await finish(o.sql, inv, null, { type: "done", error }, undefined, o.leaseMs);
       return "done";
     }

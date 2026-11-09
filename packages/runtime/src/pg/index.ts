@@ -17,4 +17,5 @@ export { DEFAULT_LEASE_MS, type ExecutorOptions, runTurn } from "./executor.js";
 export { Registry } from "./registry.js";
 export { migrate } from "./schema.js";
 export { type Claim, type Lane, register, release, renameService, setPgServices } from "./store.js";
+export { type PgTestEnvironment, startPgTestEnvironment } from "./test-runtime.js";
 export { Crash, type Outcome } from "./turn.js";

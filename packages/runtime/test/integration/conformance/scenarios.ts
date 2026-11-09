@@ -168,6 +168,15 @@ function build(restate: typeof Sdk) {
         ]);
         return [x, y, first];
       },
+      /** A call raced against a timer short enough to wait inside the turn: the call still starts. */
+      callWithin: async (ctx: Sdk.Context, { run }: R) => {
+        try {
+          return await ctx.serviceClient(kid).child({ run }).orTimeout(1000);
+        } catch (err) {
+          if (err instanceof restate.TimeoutError) return "timed out";
+          throw err;
+        }
+      },
       wait: async (ctx: Sdk.Context, { run, timeout }: R & { timeout?: number }) => {
         const { id, promise } = ctx.awakeable<string>();
         await ctx.run("hand out", () => handed.set(run, id));
@@ -400,6 +409,11 @@ export function conformance(name: string, rt: Runtime, start: StartHarness) {
       await until(() => handed.has(no));
       await h.ingress.rejectAwakeable(handed.get(no) as string, "nope");
       expect(await rejected).toBe("rejected: nope");
+    });
+
+    it("a call under a short orTimeout answers before the timer", async () => {
+      const run = runId("within");
+      expect(await svc().callWithin({ run })).toBe(`child of ${run}`);
     });
 
     it("orTimeout ends a wait", async () => {

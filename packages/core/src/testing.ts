@@ -1,6 +1,7 @@
 import type { Queryable } from "@wren/db";
-import { selfRemoving } from "@wren/db/testing";
+import { selfRemoving, startTestPostgres } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
+import { startPgTestEnvironment } from "@wren/runtime/pg";
 import {
   RestateContainer,
   RestateTestEnvironment,
@@ -14,6 +15,7 @@ import { EXECUTOR, type ExecutorEvent } from "./executor.js";
  *  so they are applied here. The services are reached through host.docker.internal, which skips
  *  testcontainers' sshd port-forwarding container. */
 export function startTestRestate(options: TestEnvironmentOptions): Promise<RestateTestEnvironment> {
+  if (process.env.WREN_TEST_RUNTIME === "pg") return startTestPg(options);
   return RestateTestEnvironment.start({
     serviceEndpointAccess: "docker-host",
     ...options,
@@ -29,6 +31,23 @@ export function startTestRestate(options: TestEnvironmentOptions): Promise<Resta
       return container;
     },
   });
+}
+
+/** `WREN_TEST_RUNTIME=pg`: the same suite on the pg runtime (design doc "Tests and lints first"). */
+async function startTestPg(options: TestEnvironmentOptions): Promise<RestateTestEnvironment> {
+  const db = await startTestPostgres();
+  const rt = await startPgTestEnvironment({
+    url: db.url,
+    services: options.services,
+    ...(options.disableRetries ? { disableRetries: true } : {}),
+  });
+  return {
+    ...rt,
+    async stop() {
+      await rt.stop();
+      await db.stop();
+    },
+  } as unknown as RestateTestEnvironment;
 }
 
 /** An Executor that only records what parts emit, for a test whose service sends along a workflow. */

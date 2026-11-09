@@ -26,6 +26,9 @@ const rs = restate.service({
   name: "Rs",
   handlers: {
     twice: async (_ctx: restate.Context, n: number) => n * 2,
+    refuse: async (_ctx: restate.Context): Promise<string> => {
+      throw new restate.TerminalError("no", { errorCode: 422, metadata: { field: "when" } });
+    },
     // as wren's NO_INPUT forms: Restate refuses an empty body sent with a content type
     bare: restate.handlers.handler(
       {
@@ -63,7 +66,16 @@ const echo = restate.service({
     },
     none: async () => "none",
     boom: async (_ctx: restate.Context, _: unknown): Promise<string> => {
-      throw new restate.TerminalError("nope", { errorCode: 409 });
+      throw new restate.TerminalError("nope", { errorCode: 409, metadata: { field: "who" } });
+    },
+    /** A Restate refusal's metadata reaches the pg caller through the bridge row. */
+    viaRefuse: async (ctx: restate.Context): Promise<unknown> => {
+      try {
+        return await ctx.serviceClient(rs).refuse();
+      } catch (e) {
+        const t = e as restate.TerminalError;
+        return { code: t.code, metadata: t.metadata ?? null };
+      }
     },
     viaRestate: async (ctx: restate.Context, n: number): Promise<number> =>
       ctx.serviceClient(rs).twice(n),
@@ -118,6 +130,7 @@ let onRestate: ReturnType<typeof clients.connect>;
 let onPg: ReturnType<typeof clients.connect>;
 /** The door in front of Restate, as on the box (phase 4). */
 let front: string;
+let restateUrl: string;
 let sql: postgres.Sql;
 
 beforeAll(async () => {
@@ -142,6 +155,7 @@ beforeAll(async () => {
       }),
   });
   const ingress = { url: env.baseUrl() };
+  restateUrl = env.baseUrl();
   admin = env.adminAPIBaseUrl();
   const log = () => {};
   const pgLane = new Dispatcher({
@@ -203,6 +217,23 @@ describe("restate ↔ pg", () => {
     );
     expect(String((err as Error).message)).toContain("nope");
     expect(JSON.stringify(err)).toContain("409");
+    // its metadata too, on Restate's ingress (through the proxy) and on the door (pg direct)
+    for (const base of [restateUrl, front]) {
+      const res = await fetch(`${base}/Echo/boom`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "null",
+      });
+      expect(res.status, base).toBe(409);
+      expect(await res.json(), base).toMatchObject({ message: "nope", metadata: { field: "who" } });
+    }
+  }, 30_000);
+
+  it("a Restate refusal keeps its code and metadata for the pg caller", async () => {
+    expect(await onPg.serviceClient(echo).viaRefuse()).toEqual({
+      code: 422,
+      metadata: { field: "when" },
+    });
   }, 30_000);
 
   it("a pg handler calls a Restate service through a bridge row", async () => {

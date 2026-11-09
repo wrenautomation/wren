@@ -152,6 +152,7 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 3. **Determinism lint** (`gates.sh lint`): inside a handler, `Date.now`, `new Date()`, `Math.random`, `crypto.randomUUID`, `performance.now` outside `ctx.run` fail lint; use `ctx.date` / `ctx.rand`.
 4. **Import guard:** no `@restatedev/*` import outside `packages/runtime`.
 5. **Replay check** in the runtime itself (above).
+6. **Whole suite on pg:** `WREN_TEST_RUNTIME=pg` makes `startTestRestate` start the pg runtime (`startPgTestEnvironment`: door, dispatcher, a small admin with `/query`, `PATCH`, state writes, and `stateOf`). Every package's Restate integration suite runs unchanged on it. First run (11-09): 389/428; each gap became a runtime test.
 
 ## Move plan
 
@@ -186,3 +187,6 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 - 2026-11-09: group 4 runs waited rows first on one Lambda pool (C in "Group 4"), not a wider lane, fixed lanes or consoles on the box.
 - 2026-11-09: pg's ctx is typed against the SDK's contexts (tsc fails on a missing member), and the determinism guard fails on a ctx member pg answers with 501.
 - 2026-11-09: box start takes every pg service's Restate state into pg (`takeState`, old names to new), then clears Restate's copy; again every 2 min for 30 min, as the deploy restarts the box before it registers the proxies and old-deployment calls can still write. Found: the door serves pg services direct, so a key moved only on an exclusive proxy call; 20 moved services still held state on Restate (TouchToJourney's cursors among them), and their next pg wake would have started empty. pg wins per key, not per name: a key pg holds keeps Restate's copy on Restate and logs it, so a name pg cleared never returns. Options weighed: per-name merge (rejected: brings back cleared names), lazy move in the door (rejected: every door call pays a Restate admin read), a one-off script (rejected: a later flip strands state again).
+- 2026-11-09: the door reads the handler from the service's kind, then `/send` after it. Found by the pg suite: `POST /Payments/send` was read as one-way to a handler `Payments` (404). Hits 8 prod handlers named `send` once they move.
+- 2026-11-09: a refusal keeps its `metadata` across the door and the bridge, as Restate's ingress does (callers read the bad field from it).
+- 2026-11-09: a turn held only by short sleeps (≤ 1 s, kept in the turn) suspends when an outside result is pending, so the result wakes it. Found by the pg suite: `call.orTimeout(1000)` always timed out, as a live turn never sees a child's end and the child's row was not written until the sleep ended. A turn held by a `ctx.run` writes its calls, cancels and wakes at once. Options weighed: a live turn that listens for its children's ends (rejected: a listener per turn, or a router in the executor, for one pattern), a short sleep never local (rejected: every plain short sleep pays a suspend).

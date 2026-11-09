@@ -160,7 +160,12 @@ export async function serveDoor(o: DoorOptions): Promise<{ url: string; close():
       return send(
         res,
         code,
-        JSON.stringify({ code: r.error.code ?? 500, message: r.error.message }),
+        // as Restate's ingress: the TerminalError's metadata (a refusal's field, a conflict code)
+        JSON.stringify({
+          code: r.error.code ?? 500,
+          message: r.error.message,
+          ...(r.error.metadata ? { metadata: r.error.metadata } : {}),
+        }),
       );
     }
     send(res, 200, r.result ?? new Uint8Array());
@@ -263,12 +268,14 @@ export async function serveDoor(o: DoorOptions): Promise<{ url: string; close():
     }
 
     if (parts.length < 2) return pass(req, res);
-    const tail = parts.at(-1) === "send" ? parts.slice(0, -1) : parts;
-    const handler = tail.at(-1) as string;
-    const svc = await served(parts[0] as string, handler);
+    // the handler sits by the service's kind, never by a trailing "send": a handler may be named send
+    const kind = await served(parts[0] as string, parts[1] as string);
+    if (!kind) return pass(req, res);
+    const want = kind.object ? 3 : 2;
+    const handler = (parts[want - 1] ?? "") as string;
+    const svc = kind.object ? await served(parts[0] as string, handler) : kind;
     if (!svc) return pass(req, res);
     if (req.method !== "POST") return send(res, 405, JSON.stringify({ message: "POST only" }));
-    const want = svc.object ? 3 : 2;
     const isSend = parts.length === want + 1 && parts[want] === "send";
     if (parts.length !== (isSend ? want + 1 : want))
       return send(res, 404, JSON.stringify({ message: "bad path" }));
