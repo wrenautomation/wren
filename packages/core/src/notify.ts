@@ -59,10 +59,13 @@ export class DiscordNotifier implements Notifier {
     private readonly log: (line: string) => void = console.warn,
     /** William's Discord user id: a ping @mentions him, so it reaches him under "only @mentions". */
     private readonly pingUserId?: string,
+    /** parked: routine `info` posts dropped; pings still post */
+    private readonly parked = false,
   ) {}
 
   async notify(title: string, body = "", level: NotifyLevel = "info"): Promise<boolean> {
     const loud = pings(level);
+    if (this.parked && !loud) return false;
     const mention = loud && this.pingUserId ? `<@${this.pingUserId}> ` : "";
     const text = `${mention}${MARK[level]}**${title}**${body ? `\n${body}` : ""}`.slice(
       0,
@@ -118,6 +121,7 @@ export function makeNotifier(
   opts: {
     discordWebhookUrl?: string | null;
     discordPingUserId?: string | null;
+    parked?: boolean;
     http?: typeof fetch;
   } = {},
 ): Notifier {
@@ -130,6 +134,7 @@ export function makeNotifier(
     opts.http ?? fetch,
     console.warn,
     opts.discordPingUserId?.trim() || undefined,
+    opts.parked ?? false,
   );
 }
 

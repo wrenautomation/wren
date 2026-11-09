@@ -93,4 +93,16 @@ describe("notifiers", () => {
     expect(plural(1, "reply", "replies")).toBe("1 reply");
     expect(plural(2, "reply", "replies")).toBe("2 replies");
   });
+  it("parked: drops info, still posts pings", async () => {
+    const sent: string[] = [];
+    const http = (async (_u: string, init: RequestInit) => {
+      sent.push(String(init.body));
+      return new Response(null, { status: 204 });
+    }) as unknown as typeof fetch;
+    const n = new DiscordNotifier("https://h/x", http, () => {}, undefined, true);
+    expect(await n.notify("digest")).toBe(false);
+    expect(await n.notify("reply", "", "action")).toBe(true);
+    expect(await n.notify("down", "", "warning")).toBe(true);
+    expect(sent).toHaveLength(2);
+  });
 });

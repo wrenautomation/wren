@@ -291,11 +291,13 @@ export async function buildDeps(
   const notifier = makeNotifier(settings.notify, {
     discordWebhookUrl: settings.discordWebhookUrl ?? null,
     discordPingUserId: settings.discordPingUserId ?? null,
+    parked: settings.discordParked,
   });
   const notify = settings.notify === "none" ? {} : { notifier };
   // Each sales channel pings its own Discord channel when its webhook is set; else the main one.
+  // Parked: every lane goes to the main one.
   const laneNotifier = (url: string | undefined): Notifier =>
-    settings.notify === "discord" && url
+    settings.notify === "discord" && url && !settings.discordParked
       ? makeNotifier("discord", {
           discordWebhookUrl: url,
           discordPingUserId: settings.discordPingUserId ?? null,

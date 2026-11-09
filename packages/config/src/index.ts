@@ -137,6 +137,11 @@ export const settingsSchema = z.object({
   /** Operator nudges: none | console | discord (needs the webhook URL, a secret). */
   notify: z.enum(["none", "console", "discord"]).default("none"),
   discordWebhookUrl: z.string().min(1).optional(),
+  /** Parked (11-08, William): no routine posts, every lane to the main channel; pings still post. */
+  discordParked: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
   /**
    * One Discord channel per sales channel, so each one's pings stay apart. Unset = the
    * main webhook, which keeps the digest and system pings (tokens, audit seals).
@@ -649,6 +654,7 @@ export const ENV_KEYS = {
   killSwitchOffFor: "WREN_KILL_SWITCH_OFF_FOR",
   notify: "WREN_NOTIFY",
   discordWebhookUrl: "WREN_DISCORD_WEBHOOK_URL",
+  discordParked: "WREN_DISCORD_PARKED",
   discordEmailWebhookUrl: "WREN_DISCORD_EMAIL_WEBHOOK_URL",
   discordSmsWebhookUrl: "WREN_DISCORD_SMS_WEBHOOK_URL",
   discordReachWebhookUrl: "WREN_DISCORD_REACH_WEBHOOK_URL",
