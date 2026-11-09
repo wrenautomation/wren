@@ -133,7 +133,16 @@ export function itemChanges(
     const tags = [...new Set(["learn", ...r.tags])];
     const cur = have.get(id);
     if (!cur) {
-      out.push({ op: "add", type: "source", id, origin: "learn", ...fields, tags, body });
+      out.push({
+        op: "add",
+        type: "source",
+        id,
+        origin: "learn",
+        ...fields,
+        title: String(fields.title),
+        tags,
+        body,
+      });
       continue;
     }
     const ours = cur.fm.origin === "learn";
