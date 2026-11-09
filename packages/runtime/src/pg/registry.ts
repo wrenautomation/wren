@@ -22,6 +22,7 @@ export interface Wrapper {
     input?: restate.Serde<unknown>;
     output?: restate.Serde<unknown>;
     retryPolicy?: RetryPolicy;
+    ingressPrivate?: boolean;
   };
   invoke(context: unknown, input: Uint8Array): Promise<Uint8Array>;
 }
@@ -44,7 +45,7 @@ type Def = {
   options?: { retryPolicy?: RetryPolicy; serde?: restate.Serde<unknown> };
 };
 
-const wrapperOf = (fn: unknown): Wrapper | undefined => {
+export const wrapperOf = (fn: unknown): Wrapper | undefined => {
   if (typeof fn !== "function") return undefined;
   const sym = Object.getOwnPropertySymbols(fn).find((s) => s.description === "Handler");
   return sym ? ((fn as unknown as Record<symbol, Wrapper>)[sym] as Wrapper) : undefined;

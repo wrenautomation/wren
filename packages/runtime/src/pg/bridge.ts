@@ -8,7 +8,8 @@
 import { createHash } from "node:crypto";
 import * as sdk from "@restatedev/restate-sdk";
 import type postgres from "postgres";
-import { type Claim, finish, isFenced, load, renew, submit } from "./store.js";
+import { KIND, wrapperOf } from "./registry.js";
+import { type Claim, finish, isFenced, load, renew, seedState, submit } from "./store.js";
 import type { ErrorJson } from "./turn.js";
 
 const B32 = "0123456789abcdefghjkmnpqrstvwxyz";
@@ -32,13 +33,23 @@ const KEEP = (k: string) =>
 export function proxy(def: Def, sql: () => postgres.Sql): sdk.ServiceDefinition<string, unknown> {
   const routes = (def.service ?? def.object ?? {}) as Record<string, unknown>;
   const isObject = def.object !== undefined;
-  const forward = async (ctx: sdk.Context & { key?: string }, input: Uint8Array) => {
+  const forward = async (
+    ctx: sdk.Context & { key?: string },
+    input: Uint8Array,
+    moveState?: sdk.ObjectContext,
+  ) => {
     const req = ctx.request();
     const id = proxyRowId(req.id);
     const { id: reply, promise } = ctx.awakeable<Uint8Array>(sdk.serde.binary);
     const headers: Record<string, string> = {};
     for (const [k, v] of req.headers) if (KEEP(k)) headers[k] = v;
+    // exclusive: this key's Restate state moves to pg, ordered by Restate's own key lock
+    const state: { name: string; value: Uint8Array }[] = [];
+    if (moveState)
+      for (const name of await moveState.stateKeys())
+        state.push({ name, value: (await moveState.get(name, sdk.serde.binary)) as Uint8Array });
     await ctx.run("rt submit", async () => {
+      if (state.length) await seedState(sql(), def.name, ctx.key as string, state);
       await submit(sql(), {
         id,
         service: def.name,
@@ -51,6 +62,7 @@ export function proxy(def: Def, sql: () => postgres.Sql): sdk.ServiceDefinition<
         reply,
       });
     });
+    moveState?.clearAll();
     let bytes: Uint8Array;
     try {
       bytes = await promise;
@@ -71,19 +83,56 @@ export function proxy(def: Def, sql: () => postgres.Sql): sdk.ServiceDefinition<
     serialize: (b) => b,
     deserialize: (b) => b,
   };
-  const opts = { input: raw, output: raw };
   const handlers: Record<string, unknown> = {};
-  for (const name of Object.keys(routes))
-    handlers[name] = isObject
-      ? sdk.handlers.object.shared(opts, (ctx: sdk.ObjectSharedContext, input: Uint8Array) =>
-          forward(ctx as unknown as sdk.Context & { key: string }, input),
-        )
-      : sdk.handlers.handler(opts, (ctx: sdk.Context, input: Uint8Array) => forward(ctx, input));
+  for (const [name, fn] of Object.entries(routes)) {
+    const w = wrapperOf(fn);
+    const opts = {
+      input: raw,
+      output: raw,
+      ...(w?.options?.ingressPrivate ? { ingressPrivate: true } : {}),
+    };
+    handlers[name] = !isObject
+      ? sdk.handlers.handler(opts, (ctx: sdk.Context, input: Uint8Array) => forward(ctx, input))
+      : w?.kind === KIND.EXCLUSIVE
+        ? sdk.handlers.object.exclusive(opts, (ctx: sdk.ObjectContext, input: Uint8Array) =>
+            forward(ctx as unknown as sdk.Context & { key: string }, input, ctx),
+          )
+        : sdk.handlers.object.shared(opts, (ctx: sdk.ObjectSharedContext, input: Uint8Array) =>
+            forward(ctx as unknown as sdk.Context & { key: string }, input),
+          );
+  }
   return (
     isObject
       ? sdk.object({ name: def.name, handlers: handlers as never })
       : sdk.service({ name: def.name, handlers: handlers as never })
   ) as sdk.ServiceDefinition<string, unknown>;
+}
+
+/**
+ * Flip back: object state pg holds for `service` returns to Restate (admin API), key by key, and
+ * leaves pg. Run before Restate serves the service again.
+ */
+export async function returnState(sql: postgres.Sql, admin: string, service: string) {
+  const rows = await sql<{ key: string; name: string; value: Buffer }[]>`
+    SELECT key, name, value FROM rt.state WHERE service = ${service} ORDER BY key, name`;
+  const byKey = new Map<string, Record<string, number[]>>();
+  for (const r of rows) {
+    const s = byKey.get(r.key) ?? {};
+    s[r.name] = [...r.value];
+    byKey.set(r.key, s);
+  }
+  for (const [key, state] of byKey) {
+    const res = await fetch(`${admin}/services/${encodeURIComponent(service)}/state`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ object_key: key, new_state: state }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok)
+      throw new Error(`restate state ${service}/${key}: HTTP ${res.status} ${await res.text()}`);
+    await sql`DELETE FROM rt.state WHERE service = ${service} AND key = ${key}`;
+  }
+  return byKey.size;
 }
 
 export interface Ingress {
@@ -121,7 +170,7 @@ export async function bridgeTurn(
       const res = await fetch(`${o.ingress.url}/${path}`, {
         method: "POST",
         headers: { ...h, "content-type": "application/json", "idempotency-key": inv.id },
-        body: row.input,
+        body: new Uint8Array(row.input),
         signal: AbortSignal.timeout(30_000),
       });
       if (!res.ok)

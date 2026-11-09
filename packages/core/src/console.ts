@@ -81,9 +81,12 @@ export {
 export {
   type RestateAdmin,
   type RestateAdminGet,
+  type RestateAdminPatch,
   restateAdmin,
   restateAdminGet,
+  restateAdminPatch,
   runningLoops,
+  runtimeAdmin,
 } from "./console/restate-admin.js";
 export {
   builtWords,

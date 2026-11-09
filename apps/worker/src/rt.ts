@@ -18,13 +18,15 @@ import {
   Registry,
   register,
   replier,
+  returnState,
   runTurn,
 } from "@wren/runtime/pg";
 import type { Logger } from "pino";
 import type { AnyService } from "./services.js";
 
 /** Services on the Postgres runtime. A deploy flips one; pg keeps every service registered. */
-const PG_SERVICES: readonly string[] = [];
+/** AuditSeal first: a 15-min loop, low risk, on the Lambda lane. */
+const PG_SERVICES: readonly string[] = ["AuditSeal"];
 
 const LEASE_MS = 60_000;
 
@@ -69,6 +71,8 @@ export async function startRt(o: {
   /** The slot this one replaces; it keeps finishing its own rows. */
   buildLive?: string;
   ingress: Ingress;
+  /** Restate's admin, self-hosted only: a flip back returns object state through it. */
+  admin?: string;
   arnPath?: string;
   log: Logger;
 }) {
@@ -76,6 +80,14 @@ export async function startRt(o: {
   await migrate(sql);
   const registry = new Registry(o.all as never);
   await register(sql, registry);
+  if (o.admin)
+    for (const { service } of await sql<
+      { service: string }[]
+    >`SELECT DISTINCT service FROM rt.state`)
+      if (!PG_SERVICES.includes(service)) {
+        const n = await returnState(sql, o.admin, service);
+        o.log.info({ service, keys: n }, "rt: state returned to Restate");
+      }
   const log = (m: string, e?: unknown) =>
     o.log.warn({ err: e ? String(e) : undefined }, `rt: ${m}`);
   const onBox = PG_SERVICES.filter((s) => o.box.includes(s));

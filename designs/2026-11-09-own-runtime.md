@@ -112,7 +112,10 @@ Decided: C. Priorities, in order: no lost or doubled call, rollback per service,
 - **Slots:** a superseded slot keeps only its box lane, `fresh: false`. A new slot moves rows pinned to a stopped slot (two deploys ago, not `WREN_BUILD_LIVE`) to its own build, as Restate's `force` does.
 - **Proxy content type:** the proxy passes bytes through but declares `application/json`; Restate's ingress refuses JSON callers on an `octet-stream` handler (found by `bridge-pg.test.ts`).
 - **Tests:** `bridge-pg.test.ts` (Restate container + Postgres: proxy call, no input, error code, pg → Restate bridge, every reply sent), `lanes-pg.test.ts`.
-- **Gaps:** a service moved between box and Lambda leaves its pinned rows in the old lane (repin by hand); Restate-side cancel of a proxy call cancels the pg row only after its turn ends.
+- **State move:** an exclusive proxy call reads its key's Restate state, seeds `rt.state` (`ON CONFLICT DO NOTHING`) inside the submit step, then clears Restate's. Restate's key lock orders it against calls in flight. A flip back: at start the box returns the state of each service no longer in `PG_SERVICES` (`returnState`, admin `POST /services/{svc}/state`), then deletes the rows.
+- **Admin reads (V3):** schema `rt_admin` holds views shaped like Restate's admin tables (`sys_invocation`, `state`, `sys_service`, `sys_journal`, `sys_journal_events`). ISO text timestamps; `moved_at` (a trigger on status) is `modified_at`. `runtimeAdmin(db, url, token)` in `@wren/core/console` runs each query on both runtimes and joins the rows. A patch goes to the runtime that holds the id: rt `resume` (pending now, on the newest build) and `kill` (the row and its open calls, each parent's journal entry, as `finish` ends a row). LoopRevive, FailedCallAlert, the console, PostPublish, `wren loops` and `wren dlq` all use it. Test: `core/test/integration/runtime-admin.test.ts`.
+- **First flip:** `AuditSeal` (15-min loop, Lambda lane). ClientReport was the first pick, but prod has no client reports, so it would prove nothing.
+- **Gaps:** a service moved between box and Lambda leaves its pinned rows in the old lane (repin by hand); Restate-side cancel of a proxy call cancels the pg row only after its turn ends; a flip back while pg rows are open re-runs them on Restate (flip back only when none are open); a shared proxy call before any exclusive one sees no moved state.
 
 ## VPSs
 
@@ -146,3 +149,6 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 - 2026-11-09: the door speaks Restate's ingress protocol, and SDK definitions are reused: phase 4 is a router flag, not a rewrite.
 - 2026-11-09: phase 3 = proxies + bridge rows (C above), not closed groups, a ctx wrapper or a big bang.
 - 2026-11-09: retry cap → `paused`, not a new `dead` status: same as Restate today, so the DLQ page and alerts keep their meaning.
+- 2026-11-09: admin reads through views shaped like Restate's tables, not a second query layer: the watchdog, DLQ and console keep their SQL.
+- 2026-11-09: first flip is AuditSeal, not ClientReport (no client reports in prod).
+- 2026-11-09: S3 and SSM stay (William). Postgres has no object store; credvault keeps SSM; neither runs on Restate.

@@ -14,29 +14,13 @@
 import type { Db } from "@wren/db";
 import type * as restate from "@wren/runtime";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, notInArray, sql } from "drizzle-orm";
-import type { RestateAdmin } from "./console.js";
+import type { RestateAdmin, RestateAdminPatch } from "./console.js";
 import { type DeadLetterEnd, type DeadLetterRow, deadLetters } from "./dead-letter-schema.js";
 import type { Notifier } from "./notify.js";
 import { makeLoopObject, type PassOutcome, runPass } from "./restate/loop.js";
 
 export const DEAD_LETTERS_KEY = "all";
 const DEAD_LETTERS_EVERY_MS = 10 * 60_000;
-
-/** A write to Restate's admin API: `PATCH <admin>/invocations/<id>/resume?deployment=latest`. */
-type RestateAdminPatch = (path: string) => Promise<void>;
-/** A resume or kill is one small admin write. */
-const ADMIN_PATCH_LIMIT_MS = 30_000;
-
-export const restateAdminPatch =
-  (url: string, token?: string): RestateAdminPatch =>
-  async (path) => {
-    const res = await fetch(`${url.replace(/\/$/, "")}${path}`, {
-      method: "PATCH",
-      signal: AbortSignal.timeout(ADMIN_PATCH_LIMIT_MS),
-      headers: token ? { authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) throw new Error(`restate admin ${path}: ${res.status} ${await res.text()}`);
-  };
 
 const PAUSED_SQL = `SELECT id, target, target_service_key, last_failure, invoked_by, invoked_by_target, modified_at
 FROM sys_invocation WHERE status = 'paused'`;

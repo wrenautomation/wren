@@ -7,7 +7,7 @@
 
 import { ingressOf, type Settings } from "@wren/config";
 import { release } from "@wren/core/checks";
-import { restateAdmin } from "@wren/core/console";
+import { runtimeAdmin } from "@wren/core/console";
 import { LOOP_WATCH_KEY, type LoopRevive, loopHealth } from "@wren/core/loop-watch";
 import { type Db, serializable, setAuditActor } from "@wren/db";
 import * as clients from "@wren/runtime/clients";
@@ -30,11 +30,12 @@ export function registerLoops(program: Command, withMainDb: WithDb, settings: Se
     .option("--all", "stopped loops too")
     .option("--json", "rows as JSON")
     .action(async (o: { all?: boolean; json?: boolean }) => {
-      if (!settings.restateAdminUrl) throw new Error("needs WREN_RESTATE_ADMIN_URL");
       const rows = (
-        await loopHealth(
-          restateAdmin(settings.restateAdminUrl, settings.restateAuthToken),
-          new Date(),
+        await withMainDb((db) =>
+          loopHealth(
+            runtimeAdmin(db, settings.restateAdminUrl, settings.restateAuthToken).query,
+            new Date(),
+          ),
         )
       ).filter((h) => o.all || h.health !== "stopped");
       if (o.json) return console.log(JSON.stringify(rows, null, 2));

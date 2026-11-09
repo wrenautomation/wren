@@ -9,8 +9,8 @@ import { makeAuditSeal } from "@wren/core/audit";
 import { sitesHost } from "@wren/core/autobrowse/box";
 import { makeSiteTokenRenew } from "@wren/core/autobrowse/renewal";
 import { cacheFrom } from "@wren/core/cache";
-import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
-import { makeFailedCallAlert, restateAdminPatch } from "@wren/core/dead-letters";
+import { makeConsolePortal, restateAdminGet, runtimeAdmin } from "@wren/core/console";
+import { makeFailedCallAlert } from "@wren/core/dead-letters";
 import { backendsFromEnv, deskJudge, leadFitSource, makeJudge } from "@wren/core/decide";
 import { makeLoopRevive } from "@wren/core/loop-watch";
 import { makeVaultKeyMirror } from "@wren/core/vault-keys";
@@ -46,6 +46,8 @@ export function platformServices(deps: Deps): AnyService[] {
   } = deps;
   // Redis on the box when WREN_CACHE_URL is set: one Lambda's read serves the rest.
   const cache = cacheFrom(settings.cacheUrl);
+  // both runtimes' invocations: Restate's and the pg runtime's (designs/2026-11-09-own-runtime.md)
+  const admin = runtimeAdmin(db, settings.restateAdminUrl, settings.restateAuthToken);
   // The lander's recorded views: the export lists them, the files bucket signs their chunks.
   const sessions =
     settings.siteExportToken && settings.filesBucket
@@ -84,23 +86,10 @@ export function platformServices(deps: Deps): AnyService[] {
         ? { tell: turnedOffTeller(db, bookerMailer("Wren"), settings.portalOrigin ?? undefined) }
         : {}),
     }),
-    // Files every invocation Restate paused after its retries as a dead letter; Discord hears once.
-    ...(settings.restateAdminUrl
-      ? [
-          makeFailedCallAlert({
-            main: db,
-            admin: restateAdmin(settings.restateAdminUrl, settings.restateAuthToken),
-            patch: restateAdminPatch(settings.restateAdminUrl, settings.restateAuthToken),
-            ...notify,
-          }),
-          // Wakes a loop whose chain ended; names one stuck behind a call (designs/2026-10-16-loop-watchdog.md).
-          makeLoopRevive({
-            main: db,
-            admin: restateAdmin(settings.restateAdminUrl, settings.restateAuthToken),
-            ...notify,
-          }),
-        ]
-      : []),
+    // Files every invocation paused after its retries as a dead letter; Discord hears once.
+    makeFailedCallAlert({ main: db, admin: admin.query, patch: admin.patch, ...notify }),
+    // Wakes a loop whose chain ended; names one stuck behind a call (designs/2026-10-16-loop-watchdog.md).
+    makeLoopRevive({ main: db, admin: admin.query, ...notify }),
     makeConsolePortal({
       main: db,
       mainUrl: databaseUrl,
@@ -141,9 +130,7 @@ export function platformServices(deps: Deps): AnyService[] {
           "action",
         );
       },
-      admin: settings.restateAdminUrl
-        ? restateAdmin(settings.restateAdminUrl, settings.restateAuthToken)
-        : undefined,
+      admin: admin.query,
       adminGet: settings.restateAdminUrl
         ? restateAdminGet(settings.restateAdminUrl, settings.restateAuthToken, cache)
         : undefined,

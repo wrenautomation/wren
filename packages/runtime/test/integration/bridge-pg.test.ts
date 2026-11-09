@@ -14,6 +14,7 @@ import {
   Registry,
   register,
   replier,
+  returnState,
   runTurn,
   serveDoor,
 } from "../../src/pg/index.js";
@@ -41,8 +42,29 @@ const echo = restate.service({
       ctx.serviceClient(rs).twice(n),
   },
 });
+const counter = restate.object({
+  name: "Counter",
+  handlers: {
+    add: async (ctx: restate.ObjectContext, by: number) => {
+      const n = ((await ctx.get<number>("n")) ?? 0) + by;
+      ctx.set("n", n);
+      return n;
+    },
+  },
+});
 
 let stop = async () => {};
+let admin: string;
+const restateState = async (key: string) => {
+  const res = await fetch(`${admin}/query`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({
+      query: `SELECT key, value_utf8 FROM state WHERE service_name = 'Counter' AND service_key = '${key}'`,
+    }),
+  });
+  return ((await res.json()) as { rows: { key: string; value_utf8: string }[] }).rows;
+};
 let onRestate: ReturnType<typeof clients.connect>;
 let onPg: ReturnType<typeof clients.connect>;
 let sql: postgres.Sql;
@@ -51,10 +73,10 @@ beforeAll(async () => {
   const pg = await startTestPostgres();
   sql = postgres(pg.url, { max: 8, onnotice: () => {} });
   await migrate(sql);
-  const registry = new Registry([echo, rs]);
+  const registry = new Registry([echo, rs, counter]);
   await register(sql, registry);
   const env = await RestateTestEnvironment.start({
-    services: [proxy(echo, () => sql), rs],
+    services: [proxy(echo, () => sql), proxy(counter, () => sql), rs],
     serviceEndpointAccess: "docker-host",
     container: () =>
       selfRemoving(new RestateContainer(), ["/usr/local/bin/restate-server"]).withEnvironment({
@@ -63,18 +85,19 @@ beforeAll(async () => {
       }),
   });
   const ingress = { url: env.baseUrl() };
+  admin = env.adminAPIBaseUrl();
   const log = () => {};
   const pgLane = new Dispatcher({
     sql,
     pollMs: 100,
-    lane: { only: ["Echo"] },
+    lane: { only: ["Echo", "Counter"] },
     run: (c) => runTurn({ sql, registry, log }, c),
     log,
   });
   const bridge = new Dispatcher({
     sql,
     pollMs: 100,
-    lane: { except: ["Echo"], lock: false },
+    lane: { except: ["Echo", "Counter"], lock: false },
     run: (c) => bridgeTurn({ sql, ingress, leaseMs: 60_000 }, c),
     log,
   });
@@ -123,6 +146,26 @@ describe("restate ↔ pg", () => {
       SELECT remote, status FROM rt.invocations WHERE service = 'Rs' AND handler = 'twice'`;
     expect(row?.status).toBe("done");
     expect(row?.remote).toMatch(/^inv_/);
+  }, 30_000);
+
+  it("an exclusive proxy moves its key's Restate state to pg", async () => {
+    const res = await fetch(`${admin}/services/Counter/state`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ object_key: "c1", new_state: { n: [...Buffer.from("5")] } }),
+    });
+    expect(res.ok, await res.text()).toBe(true);
+    expect(await restateState("c1")).toEqual([{ key: "n", value_utf8: "5" }]);
+    expect(await onRestate.objectClient(counter, "c1").add(2)).toBe(7);
+    expect(await onRestate.objectClient(counter, "c1").add(1)).toBe(8);
+    expect(await restateState("c1")).toEqual([]);
+  }, 30_000);
+
+  it("a flip back returns pg's state to Restate", async () => {
+    expect(await returnState(sql, admin, "Counter")).toBe(1);
+    expect(await restateState("c1")).toEqual([{ key: "n", value_utf8: "8" }]);
+    const left = await sql`SELECT 1 FROM rt.state WHERE service = 'Counter'`;
+    expect(left.length).toBe(0);
   }, 30_000);
 
   it("each proxy row is replied once", async () => {

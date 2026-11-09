@@ -352,6 +352,22 @@ export interface Submit {
   reply?: string | null;
 }
 
+/** Object state moved over from Restate. A name pg already holds keeps pg's value. */
+export async function seedState(
+  sql: Sql,
+  service: string,
+  key: string,
+  entries: { name: string; value: Uint8Array }[],
+) {
+  if (entries.length === 0) return;
+  await sql`
+    INSERT INTO rt.state (service, key, name, value)
+    SELECT ${service}, ${key}, e.name, decode(e.value, 'base64')
+    FROM jsonb_to_recordset(${json(entries.map((e) => ({ name: e.name, value: Buffer.from(e.value).toString("base64") })))}::text::jsonb)
+      AS e(name text, value text)
+    ON CONFLICT DO NOTHING`;
+}
+
 /** New invocation, or the one an idempotency key already made. */
 export async function submit(sql: Sql, s: Submit): Promise<{ id: string; fresh: boolean }> {
   const [row] = await sql<{ id: string }[]>`

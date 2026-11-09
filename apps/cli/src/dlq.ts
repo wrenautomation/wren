@@ -6,7 +6,7 @@
  */
 import { userInfo } from "node:os";
 import { ingressOf, type Settings } from "@wren/config";
-import { type RestateAdmin, restateAdmin } from "@wren/core/console";
+import { runtimeAdmin } from "@wren/core/console";
 import {
   DEAD_LETTERS_KEY,
   type DeadLetterAct,
@@ -16,7 +16,6 @@ import {
   type FailedCallAlert,
   journalOf,
   letterLine,
-  restateAdminPatch,
 } from "@wren/core/dead-letters";
 import type { Db } from "@wren/db";
 import * as clients from "@wren/runtime/clients";
@@ -30,13 +29,8 @@ const ago = (d: Date) => {
 };
 
 export function registerDlq(program: Command, withMainDb: WithDb, settings: Settings) {
-  const admin = (): { query: RestateAdmin; patch: ReturnType<typeof restateAdminPatch> } => {
-    if (!settings.restateAdminUrl) throw new Error("needs WREN_RESTATE_ADMIN_URL");
-    return {
-      query: restateAdmin(settings.restateAdminUrl, settings.restateAuthToken),
-      patch: restateAdminPatch(settings.restateAdminUrl, settings.restateAuthToken),
-    };
-  };
+  /** Restate's admin and the pg runtime's (designs/2026-11-09-own-runtime.md). */
+  const admin = (db: Db) => runtimeAdmin(db, settings.restateAdminUrl, settings.restateAuthToken);
   const loop = () =>
     clients
       .connect(ingressOf(settings))
@@ -66,14 +60,15 @@ export function registerDlq(program: Command, withMainDb: WithDb, settings: Sett
     .description("One letter, and its journal from Restate while Restate still keeps it")
     .option("--json", "as JSON")
     .action(async (id: string, o: { json?: boolean }) => {
-      const row = await withMainDb((db) => deadLetter(db, Number(id)));
-      if (!row) throw new Error(`no dead letter #${id}`);
-      const journal = settings.restateAdminUrl
-        ? await journalOf(admin().query, row.invocationId).catch((e: Error) => {
-            console.error(`journal: ${e.message} (Restate keeps it while the call is paused)`);
-            return [];
-          })
-        : [];
+      const { row, journal } = await withMainDb(async (db) => {
+        const row = await deadLetter(db, Number(id));
+        if (!row) throw new Error(`no dead letter #${id}`);
+        const journal = await journalOf(admin(db).query, row.invocationId).catch((e: Error) => {
+          console.error(`journal: ${e.message} (Restate keeps it while the call is paused)`);
+          return [];
+        });
+        return { row, journal };
+      });
       if (o.json) return console.log(JSON.stringify({ ...row, journal }, null, 2));
       console.log(letterLine(row));
       console.log(
@@ -93,10 +88,9 @@ export function registerDlq(program: Command, withMainDb: WithDb, settings: Sett
       .command(`${verb} <id>`)
       .description(what)
       .action(async (id: string) => {
-        const patch = verb === "drop" ? undefined : admin().patch;
         const row = await withMainDb((db) =>
           endDeadLetter(
-            { main: db, ...(patch ? { patch } : {}) },
+            { main: db, ...(verb === "drop" ? {} : { patch: admin(db).patch }) },
             Number(id),
             verb,
             userInfo().username,

@@ -3,6 +3,8 @@
  * service's OpenAPI), each with a deadline so a hung call never holds a pass, and which loop
  * objects are running.
  */
+import type { Db } from "@wren/db";
+import { rtAdmin, rtPatch } from "@wren/runtime/pg";
 import { type Cache, memoryCache, readThrough } from "../cache.js";
 import { LOOPS_SQL, loopsOf } from "./loops.js";
 
@@ -56,6 +58,46 @@ export const restateAdmin =
     if (!res.ok) throw new Error(`restate admin query: ${res.status} ${await res.text()}`);
     return ((await res.json()) as { rows: Record<string, unknown>[] }).rows;
   };
+
+/** A write to Restate's admin API: `PATCH <admin>/invocations/<id>/resume?deployment=latest`. */
+export type RestateAdminPatch = (path: string) => Promise<void>;
+/** A resume or kill is one small admin write. */
+const ADMIN_PATCH_LIMIT_MS = 30_000;
+
+export const restateAdminPatch =
+  (url: string, token?: string): RestateAdminPatch =>
+  async (path) => {
+    const res = await fetch(`${url.replace(/\/$/, "")}${path}`, {
+      method: "PATCH",
+      signal: AbortSignal.timeout(ADMIN_PATCH_LIMIT_MS),
+      headers: token ? { authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`restate admin ${path}: ${res.status} ${await res.text()}`);
+  };
+
+/**
+ * Both runtimes' admin (designs/2026-11-09-own-runtime.md, "Phase 3"): the same SQL answered by
+ * Restate and by the pg runtime's `rt_admin` views, rows joined; a patch goes to the runtime that
+ * holds the id. Restate absent (no admin URL): pg alone.
+ */
+export function runtimeAdmin(
+  db: Db,
+  url?: string | null,
+  token?: string,
+): { query: RestateAdmin; patch: RestateAdminPatch } {
+  const rq = url ? restateAdmin(url, token) : null;
+  const rp = url ? restateAdminPatch(url, token) : null;
+  const pq = rtAdmin(db.$client);
+  const pp = rtPatch(db.$client);
+  return {
+    query: async (q) => (await Promise.all([rq?.(q) ?? [], pq(q)])).flat(),
+    patch: async (path) => {
+      if (await pp(path)) return;
+      if (!rp) throw new Error(`no runtime holds ${path}`);
+      await rp(path);
+    },
+  };
+}
 
 /** The services with a loop object running: the Shop's "Off" for a part whose loops all stopped. */
 export const runningLoops = (admin: RestateAdmin) => async (): Promise<ReadonlySet<string>> =>

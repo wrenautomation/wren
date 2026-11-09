@@ -6,7 +6,7 @@
 
 import { asAccount, type Platform } from "@wren/core/autobrowse";
 import { DESK, restateSites } from "@wren/core/autobrowse/restate";
-import { restateAdmin } from "@wren/core/console";
+import { runtimeAdmin } from "@wren/core/console";
 import { pausedUnder } from "@wren/core/dead-letters";
 import { wrenFacts } from "@wren/core/facts";
 import { githubRepo } from "@wren/core/github";
@@ -158,9 +158,9 @@ export function contentServices(deps: Deps): AnyService[] {
       posted: postedWarm,
       clientDb,
       // A publish held by a paused desk call waits in To approve, not on the queue.
-      pausedUnder: settings.restateAdminUrl
-        ? pausedUnder(restateAdmin(settings.restateAdminUrl, settings.restateAuthToken))
-        : null,
+      pausedUnder: pausedUnder(
+        runtimeAdmin(db, settings.restateAdminUrl, settings.restateAuthToken).query,
+      ),
       ...contentNotify,
     }),
     makePostMetrics({ db, clientDb, ...contentNotify }),

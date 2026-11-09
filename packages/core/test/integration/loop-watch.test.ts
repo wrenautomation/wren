@@ -9,8 +9,7 @@ import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
 import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { restateAdmin } from "../../src/console.js";
-import { restateAdminPatch } from "../../src/dead-letters.js";
+import { restateAdmin, restateAdminPatch } from "../../src/console.js";
 import {
   type Incident,
   LOOP_WATCH_KEY,

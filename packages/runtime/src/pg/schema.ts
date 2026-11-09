@@ -129,7 +129,82 @@ CREATE INDEX invocations_unreplied ON rt.invocations (completed_at)
   WHERE reply IS NOT NULL AND replied_at IS NULL AND status IN ('done', 'killed');
 `;
 
-const MIGRATIONS: readonly string[] = [V1, V2];
+/**
+ * Phase 3: views shaped like Restate's admin SQL tables, so the watchdog, the dead-letter queue
+ * and the console read pg loops with the same queries. Timestamps as ISO text, as Restate sends.
+ */
+const V3 = `
+-- when the status last changed: Restate's modified_at (the watchdog's "stuck since", a letter's paused at)
+ALTER TABLE rt.invocations ADD COLUMN moved_at timestamptz NOT NULL DEFAULT now();
+CREATE FUNCTION rt.moved() RETURNS trigger
+LANGUAGE plpgsql AS $$ BEGIN NEW.moved_at := now(); RETURN NEW; END $$;
+CREATE TRIGGER invocations_moved BEFORE UPDATE OF status ON rt.invocations
+  FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status) EXECUTE FUNCTION rt.moved();
+
+CREATE SCHEMA rt_admin;
+CREATE FUNCTION rt_admin.iso(t timestamptz) RETURNS text
+LANGUAGE sql IMMUTABLE AS $$ SELECT to_char(t AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') $$;
+CREATE FUNCTION rt_admin.failure(e jsonb) RETURNS text
+LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN e IS NULL THEN NULL
+  ELSE '[' || coalesce(e->>'code', '500') || '] ' || coalesce(e->>'message', '') END $$;
+CREATE FUNCTION rt_admin.target(service text, key text, handler text) RETURNS text
+LANGUAGE sql IMMUTABLE AS $$ SELECT service || coalesce('/' || key, '') || '/' || handler $$;
+
+CREATE VIEW rt_admin.sys_invocation AS
+SELECT i.id,
+  rt_admin.target(i.service, i.key, i.handler) AS target,
+  i.service AS target_service_name, i.key AS target_service_key, i.handler AS target_handler_name,
+  CASE
+    WHEN i.status IN ('done', 'killed') THEN 'completed'
+    WHEN i.status <> 'pending' THEN i.status
+    WHEN i.run_at > now() AND NOT i.wake THEN 'scheduled'
+    WHEN i.exclusive AND NOT i.holds AND EXISTS (
+      SELECT 1 FROM rt.invocations h WHERE h.holds AND h.service = i.service AND h.key = i.key)
+      THEN 'pending'
+    WHEN i.failures > 0 THEN 'backing-off'
+    ELSE 'ready'
+  END AS status,
+  CASE WHEN i.parent_id IS NULL THEN 'ingress' ELSE 'service' END AS invoked_by,
+  i.parent_id AS invoked_by_id,
+  rt_admin.target(p.service, p.key, p.handler) AS invoked_by_target,
+  rt_admin.failure(i.last_failure) AS last_failure,
+  CASE WHEN i.status = 'killed' THEN 'killed' WHEN i.status = 'done' THEN
+    CASE WHEN i.error IS NULL THEN 'success' ELSE 'failure' END END AS completion_result,
+  rt_admin.failure(i.error) AS completion_failure,
+  i.attempt AS retry_count,
+  i.build AS pinned_deployment_id,
+  rt_admin.iso(i.created_at) AS created_at,
+  rt_admin.iso(i.moved_at) AS modified_at,
+  CASE WHEN i.status = 'pending' AND i.run_at > i.created_at THEN rt_admin.iso(i.run_at) END AS scheduled_at,
+  CASE WHEN i.status = 'pending' AND i.run_at > i.created_at THEN rt_admin.iso(i.run_at) END AS scheduled_start_at,
+  rt_admin.iso(i.completed_at) AS completed_at
+FROM rt.invocations i LEFT JOIN rt.invocations p ON p.id = i.parent_id;
+
+CREATE VIEW rt_admin.state AS
+SELECT service AS service_name, key AS service_key, name AS key,
+  convert_from(value, 'UTF8') AS value_utf8, value
+FROM rt.state;
+
+CREATE VIEW rt_admin.sys_service AS
+SELECT DISTINCT service AS name, bool_or(object) OVER (PARTITION BY service) AS object FROM rt.handlers;
+
+CREATE VIEW rt_admin.sys_journal AS
+SELECT invocation_id AS id, seq AS index, kind AS entry_type, name,
+  CASE WHEN error IS NOT NULL THEN '{"Failure":{"code":' || coalesce(error->>'code', '500')
+    || ',"message":' || to_json(coalesce(error->>'message', ''))::text || '}}' END AS entry_json,
+  done AS completed, rt_admin.iso(at) AS appended_at
+FROM rt.journal;
+
+-- a paused row's last failure as Restate's Paused event
+CREATE VIEW rt_admin.sys_journal_events AS
+SELECT id, 'Paused' AS event_type, rt_admin.iso(moved_at) AS appended_at,
+  json_build_object('last_failure', json_build_object(
+    'error_code', coalesce((last_failure->>'code')::int, 500),
+    'error_message', last_failure->>'message'))::text AS event_json
+FROM rt.invocations WHERE status = 'paused' AND last_failure IS NOT NULL;
+`;
+
+const MIGRATIONS: readonly string[] = [V1, V2, V3];
 
 /** Bring schema `rt` up to date. One advisory lock, so parallel starts take turns. */
 export async function migrate(sql: postgres.Sql): Promise<void> {
