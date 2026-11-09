@@ -195,6 +195,7 @@ export function contentDeskContext(deps: ContentDeskDeps) {
         main: deps.db,
         client: id,
         part: "content.planner",
+        // replay-safe: called by the metered model inside ctx.run
         now: () => new Date(),
         store: clients.keys ?? null,
         own: llmForKey,

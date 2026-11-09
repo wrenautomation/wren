@@ -454,6 +454,7 @@ export function journaledSites(
         verdict: "sent",
         id: null,
         url: null,
+        // replay-safe: act() runs inside the send ctx.run
         at: new Date().toISOString(),
         how: "answer",
         output,
@@ -475,6 +476,7 @@ export function journaledSites(
       return {
         verdict: "unknown",
         reason: err instanceof Error ? err.message : String(err),
+        // replay-safe: act() runs inside the send ctx.run
         since: new Date().toISOString(),
       };
     }

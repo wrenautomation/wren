@@ -128,6 +128,7 @@ export function crawlHandlers(enrich: EnrichmentContext) {
           async (id) => {
             const company = await companyRef(db, id);
             return atomic(db, (tx) =>
+              // replay-safe: unitBatches runs each unit inside ctx.run
               crawlCompany(tx, fetch(), company, {
                 pagesPerSite: input.pagesPerSite ?? 5,
                 extraHints: hintsFor(niche, input),
@@ -192,12 +193,14 @@ export function crawlHandlers(enrich: EnrichmentContext) {
             if (blocked.has(id) && deps.ladder) {
               const ladder = { sites: deps.ladder, budget };
               return atomic(db, (tx) =>
+                // replay-safe: unitBatches runs each unit inside ctx.run
                 climbCompany(tx, ladder, fetch(), company, robots, options),
               );
             }
             if (!withBrowser) throw new restate.TerminalError("no browser renderer configured");
             return withBrowser((browser) =>
               atomic(db, (tx) =>
+                // replay-safe: unitBatches runs each unit inside ctx.run
                 renderCompany(tx, browser.render, fetch(), company, robots, {
                   ...options,
                   ...(deps.renderJitter ? { jitter: deps.renderJitter } : {}),
