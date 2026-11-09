@@ -1,11 +1,9 @@
 #!/bin/bash
 # @unit restate: The box's own Restate server, for the pool chain.
-# @unit box-caddy: TLS in front of the Restate ingress, Listmonk and the box browser.
 # @unit desk-hop: The hop to the desk's Cloudflare Tunnel.
-# Runs ON the Postgres box (first boot, CI over SSM, or by hand over SSM): the Restate
-# server, Caddy in front of its ingress and the box's browser (/cdp), the hop to the desk's
-# Cloudflare Tunnel, and the hourly Restate backup. Idempotent: a container restarts only
-# when its config changed.
+# Runs ON the Postgres box (first boot, or by hand over SSM): the Restate server, the hop to the
+# desk's Cloudflare Tunnel, and the hourly Restate backup. Caddy is box-front-door.sh's. Idempotent:
+# a container restarts only when its config changed. Goes when Restate stops (own-runtime phase 6b).
 # Usage: box-restate.sh <region> <backups-bucket> [param]
 # The param is SecureString JSON {"token": ingress bearer, "identity_pem": request-signing key}.
 set -euo pipefail
@@ -13,18 +11,14 @@ region="$1" bucket="$2" param="${3:-/wren/prod/restate}"
 D=/var/lib/wren-pg/restate
 HOST=restate.wrenautomation.com
 DESK=desk.wrenautomation.com
-LISTS=lists.wrenautomation.com
-mkdir -p "$D/data" "$D/caddy"
+mkdir -p "$D/data"
 umask 077
 
-secrets="$(aws ssm get-parameter --region "$region" --name "$param" --with-decryption \
-  --query Parameter.Value --output text)"
-field() { python3 -c 'import json,sys; sys.stdout.write(json.loads(sys.argv[1])[sys.argv[2]])' "$secrets" "$1"; }
-field identity_pem > "$D/identity.pem.new"
-printf 'RESTATE_AUTH_TOKEN=%s\n' "$(field token)" > "$D/caddy.env.new"
-unset secrets
+aws ssm get-parameter --region "$region" --name "$param" --with-decryption \
+  --query Parameter.Value --output text \
+  | python3 -c 'import json,sys; sys.stdout.write(json.load(sys.stdin)["identity_pem"])' > "$D/identity.pem.new"
 
-# Admin, ingress and node-to-node stay on loopback; only Caddy faces out.
+# Admin, ingress and node-to-node stay on loopback; only Caddy (box-front-door.sh) faces out.
 cat > "$D/config.toml.new" <<EOF
 cluster-name = "wren"
 node-name = "box"
@@ -55,103 +49,14 @@ advertised-ingress-endpoint = "https://$HOST/"
 destination = "s3://$bucket/restate/snapshots"
 EOF
 
-# The bearer opens the ingress, two admin reads the console needs (SQL over state,
-# the service list) and the dead-letter queue's two writes (resume or kill a paused call:
-# the bearer already reaches every handler). Every other admin call stays loopback-only:
-# CI and the desk register over SSM. The ingress goes to the Postgres runtime's door first (one
-# per worker slot, 9090/9091, apps/worker/src/rt.ts): it serves pg services and passes the rest to
-# Restate. A door that fails its health check drops out; with none up, Restate's ingress serves.
-# Caddy retries a POST only when it could not connect, so no call runs twice. /cdp is the box's browser (browserless on loopback
-# 3000) over TLS: it checks its own token in the URL, so it sits before the bearer.
-cat > "$D/Caddyfile.new" <<EOF
-$HOST {
-	handle /cdp {
-		uri strip_prefix /cdp
-		reverse_proxy 127.0.0.1:3000
-	}
-	@authed header Authorization "Bearer {\$RESTATE_AUTH_TOKEN}"
-	@query {
-		method POST
-		path /admin/query
-	}
-	@services {
-		method GET
-		path /admin/services /admin/services/*
-	}
-	@letters {
-		method PATCH
-		path_regexp ^/admin/invocations/inv_\w+/(resume|kill)$
-	}
-	handle @authed {
-		handle @query {
-			uri strip_prefix /admin
-			reverse_proxy 127.0.0.1:9070
-		}
-		handle @services {
-			uri strip_prefix /admin
-			reverse_proxy 127.0.0.1:9070
-		}
-		handle @letters {
-			uri strip_prefix /admin
-			reverse_proxy 127.0.0.1:9070
-		}
-		handle /admin* {
-			respond 403
-		}
-		handle {
-			reverse_proxy 127.0.0.1:9090 127.0.0.1:9091 127.0.0.1:8080 {
-				lb_policy first
-				lb_try_duration 5s
-				lb_try_interval 250ms
-				health_uri /restate/health
-				health_interval 5s
-				health_timeout 3s
-				flush_interval -1
-			}
-		}
-	}
-	handle {
-		respond 401
-	}
-}
-EOF
-# Listmonk (box-listmonk.sh) on loopback 9000: the admin and the API, each behind its own login. The
-# worker and the CLI call the API from outside the box. Its sign-up and unsubscribe pages and its
-# tracking links stay shut: people join on the lander and leave through Wren's own link.
-cat >> "$D/Caddyfile.new" <<EOF
-
-$LISTS {
-	@public path /subscription* /api/public* /archive* /link/* /campaign/* /public/*
-	respond @public 404
-	reverse_proxy 127.0.0.1:9000
-}
-EOF
-
 # Swap a .new file in; say whether it changed.
 changed() {
   if [ -f "$1" ] && cmp -s "$1" "$1.new"; then rm "$1.new"; return 1; fi
   mv "$1.new" "$1"
 }
-# In place: the container bind-mounts this one file, and a moved-in file is a new inode it never sees.
-changed_in_place() {
-  if [ -f "$1" ] && cmp -s "$1" "$1.new"; then rm "$1.new"; return 1; fi
-  cat "$1.new" > "$1" && rm "$1.new"
-}
-restate_cfg=0 caddy_cfg=0 caddy_file=0
+restate_cfg=0
 changed "$D/identity.pem" && restate_cfg=1
 changed "$D/config.toml" && restate_cfg=1
-changed "$D/caddy.env" && caddy_cfg=1
-changed_in_place "$D/Caddyfile" && caddy_file=1
-# Only the Caddyfile changed: a graceful reload keeps calls in flight; anything else restarts.
-if [ "$caddy_file" = 1 ] && [ "$caddy_cfg" = 0 ]; then
-  if docker exec wren-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile 2>&1; then
-    echo "reloaded wren-caddy"
-  else
-    caddy_cfg=1
-  fi
-elif [ "$caddy_file" = 1 ]; then
-  caddy_cfg=1
-fi
 
 # (Re)start a container when it is missing, stopped, or its config changed.
 up() { # name changed -- docker run args
@@ -172,9 +77,6 @@ up() { # name changed -- docker run args
 up wren-restate "$restate_cfg" -- --memory 2g --memory-swap 3g --stop-timeout 60 \
   -e AWS_REGION="$region" -v "$D":/restate \
   docker.restate.dev/restatedev/restate:1.7 --config-file /restate/config.toml
-up wren-caddy "$caddy_cfg" -- --memory 128m --env-file "$D/caddy.env" \
-  -v "$D/Caddyfile":/etc/caddy/Caddyfile:ro -v "$D/caddy":/data \
-  caddy:2
 # The desk (autobrowse on the Mac) is served through its Cloudflare Tunnel as raw TCP:
 # h2c streams, so a call longer than Cloudflare's 100 s HTTP limit still finishes. The
 # server reaches it at 127.0.0.1:9082; the SDK there serves only calls this server signs.

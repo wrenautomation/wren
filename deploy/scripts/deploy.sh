@@ -64,6 +64,7 @@ phase migrate
 bg pgbouncer box_script pgbouncer box-pgbouncer.sh
 bg redis box_script redis box-redis.sh us-east-1
 bg listmonk box_script listmonk box-listmonk.sh us-east-1
+bg front-door box_script front-door box-front-door.sh us-east-1
 pnpm db:migrate
 await cli
 # templates: each changed file in packages/templates/defaults as a default version, in every database.
@@ -129,5 +130,5 @@ await templates
 curl -fsS -X POST "$RESTATE_INGRESS/EmailQueueRerender/all/send" \
   -H "Authorization: Bearer $RESTATE_AUTH_TOKEN" -H "content-type: application/json" -d 'null' > /dev/null
 
-await auth-lambda listmonk
+await auth-lambda listmonk front-door
 phase done

@@ -12,8 +12,8 @@ import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
-/** Where Listmonk posts each message: the Restate ingress on the box, which it reaches on loopback. */
-const INTAKE = "http://127.0.0.1:8080/ListmonkIntake/post";
+/** Where Listmonk posts each message: the front door's loopback port on the box (box-front-door.sh). */
+const INTAKE = "http://127.0.0.1:8090/ListmonkIntake/post";
 
 function client(settings: Settings) {
   const { listmonkUrl: url, listmonkUser: user, listmonkToken: token } = settings;
