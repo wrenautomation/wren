@@ -1492,3 +1492,23 @@ Chosen: B, plus every failed spend now keeps its HTTP `status`, so the ledger ho
 Rules (AIMD, as TCP): a new site starts at 2. A site grows by 1 after `cap` clean reads in a row while the cap held reads back; a site that never queued never grows. A 429 halves it (min 1), once per burst: reads that started before the cut do not cut again. Max 8 per site, 16 reads at once in all. YouTube is fixed at 2. A 429 counts from a numeric `status` or "HTTP 429" in the error, up the causes. The limiter is `p-limit` (one per site, its concurrency set as the cap moves); the AIMD rules are ours, as no maintained npm package does adaptive per-key caps.
 
 Overlap: `open --extract` starts each page's extract as soon as its document is written, 8 model calls at a time, under the extract step (its own `done`). The agent still picks what to read and judges the findings after; it uses this where it would run `extract` next anyway. Gain: up to the read time, most on video runs, where the yt-dlp line is the long read.
+
+## 11-09: page text out of the ledger (engine 0.56.0)
+
+William 11-09: "pages should be moved to s3 or at least a db … adapter style where we always fetch by id … bigger docs in a bucket vs smaller ones stored directly in a db."
+
+Found: the ledger is 58 MB; documents are 21 MB of it (1,059 lines). Page text p50 12 KB, p90 42 KB, p99 132 KB, max 338 KB. Pages over 8 KB hold 93% of document bytes. Every whole-ledger scan parsed all of it, though only a run's own view needs text.
+
+Options:
+- A. A content-addressed page store for every size. A document line keeps `page` (sha256 of the text); the text sits gzipped at `<ledger>/pages/<aa>/<sha>.txt.gz`, with a copy in the media bucket (`pages/<sha>.txt.gz`). One read path: fetch by hash.
+- B. William's split: text under N KB stays inline, larger text goes to the bucket. Two read paths and a threshold to tune; at these sizes a local read costs the same either way, and the inline half still loads on every scan.
+- C. The whole ledger in a database (Postgres TOAST splits large values on its own). The right home if the ledger joins the second-brain store; a server on the Mac's path for every command today, and the records' file audit trail is lost.
+
+Chosen: A. Priorities: scans never load page text; one code path; no new server; the store sits behind a `PageStore` port (get, put by hash), so a DB backend (C) can replace the folder without a record change. B's "fetch by id" is kept; its size split is not, because it adds a path and saves nothing here.
+
+- `FilesLedger` leaves page text out on parse and fills it only in `trace` (one run) and in a `scan` that returns documents. Cross-run scans of hits, findings and spends read no pages.
+- A missing page throws with the document id: no silent empty text.
+- The far store (S3, `WEAVER_MEDIA_BUCKET`) is a copy: writes go to the folder, then the bucket; a bucket miss on read fills the folder. A bucket failure warns.
+- Same text, same hash: a page read twice is stored once.
+- `weaver pages [--quiet <min>]` moves old lines' text into the store. Each page is read back and compared before its file is rewritten. Files changed in the last 10 min, or during the pass, wait for a later pass.
+- `pages/` stays in the tasks repo for now, so a clone works without AWS. Gitignore it once the bucket is the only copy anyone needs.
