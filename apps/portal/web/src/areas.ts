@@ -15,7 +15,7 @@ export interface Area {
 }
 
 /** The places in sidebar order, each in its area. A workspace without one skips it. */
-export const PLACES = [
+const PLACES = [
   { label: "Map", app: "map", area: "fixed" },
   { label: "Today", app: "today", area: "fixed" },
   { label: "Project", app: "project", area: "fixed" },
