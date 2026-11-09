@@ -267,7 +267,7 @@ registerReach(program, withMainDb, settings);
 registerAccounts(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
 registerWatch(program, withMainDb, settings, rootDir);
-registerVariants(program, withDb, settings, actor);
+registerVariants(program, withDb, settings, actor, rootDir);
 registerFolders(program, withDb, actor);
 registerLearn(
   program,

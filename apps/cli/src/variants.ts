@@ -2,11 +2,13 @@
  * `wren variants`: vireo's commands (`@wrenautomation/vireo/cli`) on wren's db, collectors,
  * media bucket and audit actor. William judges in the portal (Variants).
  */
+import { resolve } from "node:path";
 import type { Settings } from "@wren/config";
 import type { Db } from "@wren/db";
 import { checkMediaStore } from "@wren/starling-inbound";
 import { FPS, getEdit, keepSegments, shortCutsOver } from "@wren/starling-studio";
 import { variants } from "@wren/variants";
+import { promoteVerdicts } from "@wren/variants/knowledge";
 import type { Source } from "@wrenautomation/vireo";
 import { registerCommands } from "@wrenautomation/vireo/cli";
 import { type Bucket, s3Bucket } from "@wrenautomation/vireo/media";
@@ -19,6 +21,7 @@ export function registerVariants(
   withDb: WithDb,
   settings: Settings,
   by: string,
+  rootDir: string,
 ): void {
   const v = program
     .command("variants")
@@ -35,6 +38,25 @@ export function registerVariants(
       return x ? { source: await studioSource(db as unknown as Db, x) } : {};
     },
   });
+  v.command("promote")
+    .description(
+      "kept samples and locked tips as verdict records in the knowledge repo; un-keep, unlock or drop retires. One commit; a rerun is a no-op",
+    )
+    .option("--why <text>", "why, on the commit", "Vireo's kept samples and locked tips")
+    .action(async (o: { why: string }) =>
+      console.log(
+        JSON.stringify(
+          await withDb((db) =>
+            promoteVerdicts(db, resolve(rootDir, settings.knowledgeDir), {
+              by: "wren-variants",
+              why: o.why,
+            }),
+          ),
+          null,
+          2,
+        ),
+      ),
+    );
 }
 
 /** The bucket, after one check that the laptop's AWS session can write (with the login hint). */

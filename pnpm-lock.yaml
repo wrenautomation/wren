@@ -2214,6 +2214,9 @@ importers:
       '@wren/starling-inbound':
         specifier: workspace:*
         version: link:../starling/inbound
+      '@wrenautomation/knowledge':
+        specifier: 0.60.0
+        version: 0.60.0(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/vireo':
         specifier: 0.12.0
         version: 0.12.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)

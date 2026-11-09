@@ -135,3 +135,10 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
   body follow it only where Learn made the record (`origin: learn`). On an SOP's record they fill gaps, so a
   guide's source never loses its text. One commit; a rerun is a no-op. Run: 573 items, 568 sources added,
   5 SOP sources merged.
+- 11-09 (WA-1230, step 3c): Vireo verdicts. `wren variants promote`: a kept sample (the catalog) and a
+  locked tip → a `verdict` (`from: vireo`, `ref` = batch ref or `guide:<id>`), with score, zone, notes,
+  lineage, the batch's why; a tip carries its with-vs-without good rate. Scores stay hot in Postgres.
+  One keep or lock = one record, keyed by sample + `keptAt` (guide + `decidedAt`); un-keep, unlock or drop
+  retires it, a re-keep is a new record (the store never revives a retired one). Code lives in wren's
+  host (`@wren/variants/knowledge`), not in Vireo: Vireo stays free of a knowledge dependency, and the
+  host already reads prod. Prod today: 0 kept, 0 locked (25 tips testing), so the first run writes none.
