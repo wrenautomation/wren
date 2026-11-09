@@ -173,11 +173,14 @@ export function restateSide(services: AnyService[], sql: () => postgres.Sql): An
   });
 }
 
-/** Postgres for the runtime. No prepared statements: Lambda goes through PgBouncer (transaction mode). */
-export const rtSql = (url: string, max: number, app: string) =>
+/**
+ * Postgres for the runtime. `direct` (the box, port 5432): prepared statements, so the claim's
+ * plan (1.5 ms) is made once. Lambda goes through PgBouncer (transaction mode): none.
+ */
+export const rtSql = (url: string, max: number, app: string, direct = false) =>
   postgres(url, {
     max,
-    prepare: false,
+    prepare: direct,
     onnotice: () => {},
     connection: { application_name: app, idle_in_transaction_session_timeout: 120_000 },
   });
@@ -241,7 +244,7 @@ export async function startRt(o: {
   doorPort?: number;
   log: Logger;
 }) {
-  const sql = rtSql(o.databaseUrl, 12, "wren-rt-box");
+  const sql = rtSql(o.databaseUrl, 12, "wren-rt-box", true);
   await migrate(sql);
   const registry = new Registry(o.all as never);
   await register(sql, registry);
@@ -379,7 +382,7 @@ export async function startRt(o: {
   let reply: { stop(): Promise<void> } | null = await replier({ sql, ingress: o.ingress, log });
   // own pool: portal calls must not starve the lanes; a failed door leaves Caddy on Restate
   const doorPort = o.doorPort;
-  const doorSql = doorPort ? rtSql(o.databaseUrl, 4, "wren-rt-door") : null;
+  const doorSql = doorPort ? rtSql(o.databaseUrl, 4, "wren-rt-door", true) : null;
   const door =
     doorPort && doorSql
       ? await serveDoor({

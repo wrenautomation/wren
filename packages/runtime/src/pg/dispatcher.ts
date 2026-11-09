@@ -72,25 +72,7 @@ export class Dispatcher {
       let got = 0;
       if (free > 0) {
         try {
-          const t0 = performance.now();
-          const lane = this.o.lane ?? {};
-          const claims =
-            bg === undefined
-              ? await claim(this.o.sql, free, leaseMs, Date.now(), lane)
-              : await claim(this.o.sql, free, leaseMs, Date.now(), { ...lane, callerWaits: true });
-          const waited = claims.length;
-          const room = bg === undefined ? 0 : Math.min(free - waited, bg - this.activeBackground);
-          if (room > 0)
-            claims.push(
-              ...(await claim(this.o.sql, room, leaseMs, Date.now(), {
-                ...lane,
-                callerWaits: false,
-              })),
-            );
-          got = claims.length;
-          if (got) this.o.time?.("claim", performance.now() - t0);
-          for (const [i, c] of claims.entries()) {
-            const isBackground = bg !== undefined && i >= waited;
+          const start = (c: Claim, isBackground: boolean) => {
             this.active++;
             if (isBackground) this.activeBackground++;
             this.o
@@ -102,6 +84,26 @@ export class Dispatcher {
                 if (this.active === 0 && this.stopped) this.idle.resolve();
                 this.kick();
               });
+          };
+          const t0 = performance.now();
+          const lane = this.o.lane ?? {};
+          const first =
+            bg === undefined
+              ? await claim(this.o.sql, free, leaseMs, Date.now(), lane)
+              : await claim(this.o.sql, free, leaseMs, Date.now(), { ...lane, callerWaits: true });
+          if (first.length) this.o.time?.("claim", performance.now() - t0);
+          // waited rows start before the background claim
+          for (const c of first) start(c, false);
+          got = first.length;
+          const room =
+            bg === undefined ? 0 : Math.min(free - first.length, bg - this.activeBackground);
+          if (room > 0) {
+            const rest = await claim(this.o.sql, room, leaseMs, Date.now(), {
+              ...lane,
+              callerWaits: false,
+            });
+            for (const c of rest) start(c, true);
+            got += rest.length;
           }
         } catch (e) {
           log("claim failed", e);
