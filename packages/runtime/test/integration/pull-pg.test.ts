@@ -8,6 +8,7 @@ import { claim, submit } from "../../src/pg/store.js";
 
 let sql: postgres.Sql;
 let base = "";
+let drain = () => {};
 let stop = async () => {};
 beforeAll(async () => {
   const pg = await startTestPostgres();
@@ -20,6 +21,7 @@ beforeAll(async () => {
     pull: { pulled: ["desk"], leaseMs: 2_000 },
   });
   base = door.url;
+  drain = door.drain;
   stop = async () => {
     await door.close();
     await sql.end({ timeout: 5 });
@@ -162,5 +164,13 @@ describe("pulled services", () => {
     expect(await take(0)).toEqual([]);
     const bridge = await claim(sql, 10, 60_000, Date.now(), { lock: false, skipPg: true });
     expect(bridge.map((c) => c.id)).toEqual(["inv_pull0000000000000000000001"]);
+  });
+
+  it("a drained door fails its health check and still serves calls", async () => {
+    const health = () => fetch(`${base}/restate/health`).then((r) => r.status);
+    expect(await health()).toBe(200);
+    drain();
+    expect(await health()).toBe(503);
+    expect((await rt("claim", { services: ["desk"] })).status).toBe(200);
   });
 });

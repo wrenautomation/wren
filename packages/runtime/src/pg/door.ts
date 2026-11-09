@@ -91,7 +91,9 @@ const send = (
   res.end(data);
 };
 
-export async function serveDoor(o: DoorOptions): Promise<{ url: string; close(): Promise<void> }> {
+export async function serveDoor(
+  o: DoorOptions,
+): Promise<{ url: string; close(): Promise<void>; drain(): void }> {
   const sql = o.sql;
   type Kind = { object: boolean; exclusive: Map<string, boolean>; private: Set<string> };
   let kinds = new Map<string, Kind>();
@@ -128,6 +130,7 @@ export async function serveDoor(o: DoorOptions): Promise<{ url: string; close():
     return hit();
   };
 
+  let draining = false;
   // one LISTEN for every waiting call
   const waiters = new Map<string, Set<() => void>>();
   const listener = await sql.listen("rt_done", (id) => {
@@ -258,6 +261,8 @@ export async function serveDoor(o: DoorOptions): Promise<{ url: string; close():
     if (pull && (await pullRoute(pull, parts, req, res, body, send))) return;
     if (parts[0] === "restate") {
       if (parts[1] === "health" && parts.length === 2) {
+        // a drained door fails its check: Caddy sends new calls to the newest one
+        if (draining) return send(res, 503, JSON.stringify({ message: "draining" }));
         await sql`SELECT 1`;
         return send(res, 200, "{}");
       }
@@ -356,6 +361,10 @@ export async function serveDoor(o: DoorOptions): Promise<{ url: string; close():
   const { port } = server.address() as AddressInfo;
   return {
     url: `http://${o.host ?? "127.0.0.1"}:${port}`,
+    /** Health answers 503 from now on; calls in flight, and any still sent here, are served. */
+    drain: () => {
+      draining = true;
+    },
     close: async () => {
       server.closeAllConnections();
       await new Promise<void>((r) => server.close(() => r()));

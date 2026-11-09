@@ -476,6 +476,8 @@ export async function startRt(o: {
       clearInterval(repin);
       clearInterval(retake);
       boxLane.setLane({ only: onBox, build: o.build, strict: true, fresh: false });
+      // Caddy takes the first healthy door: new calls, and the desk's `/rt` pulls, go to the newest
+      door?.drain();
       await Promise.all([lambdaLane.stop(), bridgeLane.stop(), reply?.stop()]);
       reply = null;
     },
