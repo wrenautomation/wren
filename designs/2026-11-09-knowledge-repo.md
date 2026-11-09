@@ -65,12 +65,13 @@ knowledge/
   direction/             dated direction docs
 ```
 
-Frontmatter on every record: `id` (ULID), `type`, `title`, `by` (agent id or `william`), `why`, `cites`
+Frontmatter on every record: `id` (readable: a source keeps its natural id, `youtube-uSTGNHGFOAo`; a new
+one is a title slug plus 6 random characters), `type`, `title`, `by` (agent id or `william`), `why`, `cites`
 (ids), `version`, `status` (live | retired), `created`, `updated`. A changed record bumps `version`;
 git keeps every past one. Stale marks live only in the index, so the index never writes a file.
 
-Writers: agents through a CLI (`knowledge add|promote|retire|cite|sync|lint`, JSON out, `--by` and `--why`
-required), William by hand or through Claude Code. Promotion is an agent step: it cites the evidence
+Writers: agents through the `knowledge` CLI (`add|edit|retire|apply`, then `show|find|stale|lint|sync|push`;
+JSON in and out, `--by` and `--why` required), William by hand or through Claude Code. Promotion is an agent step: it cites the evidence
 and says why.
 
 Views: `topics/*/SOP.md` and the `sop-*` skills built from rules; Quartz for reading and sharing (custom
@@ -98,3 +99,10 @@ deleting it is one step. The admin view reads one index over all repos, keyed by
    multi-repo view, Forgejo per client.
 
 Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
+
+## Log
+
+- 11-09 (WA-1228): `@wrenautomation/knowledge` in engine. Parser: gray-matter + zod (mddb has had no release
+  since 2024; Velite compiles a whole site, which Quartz does). Index: drizzle on PGlite or Postgres, no
+  migrations: a schema change drops and rebuilds it from git. Rows keyed by repo for the admin view. The
+  lint at push and at a server hook refuses only faults the change made, so an old fault never blocks.
