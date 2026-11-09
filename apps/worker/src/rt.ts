@@ -218,7 +218,7 @@ export const RENAMED: Readonly<Record<string, string>> = {
  * registers they are in `rt.pg_services`: the door queues their calls as rows and the bridge
  * leaves them; a row Restate already runs ends there.
  */
-export const PULLED: readonly string[] = ["desk", "claude", "studio", "calls"];
+const PULLED: readonly string[] = ["desk", "claude", "studio", "calls"];
 
 const LEASE_MS = 60_000;
 /** The last slot sees it was superseded within 30 s of this one's register (`watchSuperseded`). */
