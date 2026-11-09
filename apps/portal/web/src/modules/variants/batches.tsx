@@ -50,10 +50,46 @@ const CHIP_SET =
 const THUMB_STEP = 86;
 
 export function BatchesPage({ params }: PageProps) {
-  const got = useCall("variants-batches", () => call<Row[]>("variants/batches", {}));
+  const got = useCall("variants-batches", () => call<Row[]>("variants/batches", {}), {
+    pollMs: POLL_MS,
+  });
   const [rows, setRows] = useState<Row[] | null>(null);
-  useEffect(() => setRows(got.data), [got.data]);
+  // a read with new batches or samples while he marks one: held behind a bar, not swapped in
+  const [fresh, setFresh] = useState<Row[] | null>(null);
   const id = Number(params.get("batch")) || null;
+  // set by Send: the next read is taken whole (the closed batch's why)
+  const take = useRef(false);
+  // read, not a dependency: his own marks must not trigger a merge
+  const shown = useRef(rows);
+  shown.current = rows;
+  useEffect(() => {
+    const next = got.data;
+    if (!next) return;
+    const rows = shown.current;
+    // a batch open in front of him keeps its marks; a read with new batches or samples waits
+    const held = id !== null && !take.current && !!rows?.some((r) => r.id === id);
+    if (held && shapeOf(rows ?? []) !== shapeOf(next)) return setFresh(next);
+    take.current = false;
+    setFresh(null);
+    if (!held) setRows(next);
+  }, [got.data, id]);
+  const bar = fresh && (
+    <div
+      role="status"
+      className="mb-3 flex items-center justify-between gap-3 rounded-md bg-(--ui-accent-tint) px-3 py-2 text-[13px]"
+    >
+      <span>{freshLine(rows ?? [], fresh)}</span>
+      <Button
+        size="dense"
+        onClick={() => {
+          setRows(fresh);
+          setFresh(null);
+        }}
+      >
+        Show
+      </Button>
+    </div>
+  );
   if (got.error && !rows) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!rows) return <Loading shape="rows" lines={4} />;
   if (id != null) {
@@ -75,15 +111,34 @@ export function BatchesPage({ params }: PageProps) {
     // closed now: the agent's why shows; a fresh read brings it
     const sent = () => {
       setRows((rs) => (rs ?? []).map((r) => (r.id === id ? { ...r, state: "closed" } : r)));
+      take.current = true;
       got.retry();
     };
     // the subject's newest open batch, when it is not this one
     const newer = rows.find(
       (r) => r.subject.slug === row.subject.slug && r.state === "open" && r.n > row.n,
     );
-    return <BatchView row={row} newer={newer} patch={patch} params={params} onSent={sent} />;
+    return (
+      <>
+        {bar}
+        <BatchView row={row} newer={newer} patch={patch} params={params} onSent={sent} />
+      </>
+    );
   }
   return <BatchList rows={rows} params={params} />;
+}
+
+/** New batches show on their own while he is away from one; the Vireo agent adds them. */
+const POLL_MS = 15_000;
+/** What a read adds: batches and samples, not his marks on them. */
+const shapeOf = (rows: Row[]) => rows.map((r) => `${r.id}:${r.state}:${r.samples.length}`).join();
+function freshLine(now: Row[], next: Row[]): string {
+  const had = new Set(now.map((r) => r.id));
+  const added = next.filter((r) => !had.has(r.id));
+  const [one] = added;
+  if (one && added.length === 1) return `New batch: ${one.subject.name} ${one.n}`;
+  if (added.length) return `${added.length} new batches`;
+  return "This batch changed";
 }
 
 function BatchList({ rows, params }: { rows: Row[]; params: URLSearchParams }) {

@@ -46,12 +46,13 @@ const asApiError = (err: unknown): never => {
 export function useCall<T>(
   key: string | null,
   fn: (before: T | undefined) => Promise<T>,
-  o: { kept?: boolean } = {},
+  o: { kept?: boolean; pollMs?: number } = {},
 ): Load<T> {
   return useLoad<T>(
     key,
     (before) => fn(before).catch(asApiError),
     o.kept === false ? undefined : PORTAL,
+    o.pollMs ? { pollMs: o.pollMs } : {},
   ) as Load<T>;
 }
 

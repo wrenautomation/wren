@@ -197,7 +197,7 @@ export function useLoad<T>(
   key: string | null,
   fn: (before: T | undefined) => Promise<T>,
   scope?: object,
-  o: { freshMs?: number } = {},
+  o: { freshMs?: number; pollMs?: number } = {},
 ): Load<T> {
   // No scope: this component's own reads, shared with nobody.
   const own = useRef<object | null>(null);
@@ -217,6 +217,8 @@ export function useLoad<T>(
       },
       placeholderData: keepPreviousData,
       ...(o.freshMs ? { staleTime: o.freshMs } : {}),
+      // read again on a timer; TanStack skips it while the tab is hidden
+      ...(o.pollMs ? { refetchInterval: o.pollMs } : {}),
       // A component's own reads go with it; a scope's stay for the next page that asks.
       ...(scope ? {} : { gcTime: 60_000 }),
       meta: { keep: nameOf(where).keep },
