@@ -52,7 +52,7 @@ type Def = {
   };
 };
 
-export const wrapperOf = (fn: unknown): Wrapper | undefined => {
+const wrapperOf = (fn: unknown): Wrapper | undefined => {
   if (typeof fn !== "function") return undefined;
   const sym = Object.getOwnPropertySymbols(fn).find((s) => s.description === "Handler");
   return sym ? ((fn as unknown as Record<symbol, Wrapper>)[sym] as Wrapper) : undefined;

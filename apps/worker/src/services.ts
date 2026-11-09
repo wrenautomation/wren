@@ -39,7 +39,7 @@ export interface Services {
  * The pool chain: research and mailbox checks, waiting on sites and mail servers far longer
  * than it computes. Lambda bills every second of that wait, so the box runs it (`box.ts`).
  */
-export const POOL_CHAIN = ["LeadPoolFill", "CompanySiteFind", "CompanyEnrich", "LeadVerify"];
+const POOL_CHAIN = ["LeadPoolFill", "CompanySiteFind", "CompanyEnrich", "LeadVerify"];
 /**
  * The box lane (`rt.ts`): the chain; the page archive, which moves rows out of its own disk;
  * the books' day and the triage, which wait on the model and the Mac's desk.

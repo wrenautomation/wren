@@ -34,7 +34,7 @@ interface Configurable<C> {
  *  its volumes the moment it exits, and it kills itself after `lifetime` (30 minutes unless a
  *  caller says more). `entrypoint` and `command` are the image's own, since the lifetime runs in
  *  front of them. */
-export function selfRemoving<C extends Configurable<C>>(
+function selfRemoving<C extends Configurable<C>>(
   container: C,
   entrypoint: string[],
   command: string[] = [],
