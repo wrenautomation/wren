@@ -38,7 +38,7 @@ import type { AnyService } from "./services.js";
 /**
  * Services on the Postgres runtime. A deploy flips one; pg keeps every service registered.
  * Groups (design doc "Move plan"): 1 AuditLogSeal; 2 platform and people loops; 3 email and content
- * loops; 4a the other loops and workers; 4b webhooks and public calls. All on the Lambda lane.
+ * loops; 4a the other loops and workers; 4b webhooks and public calls; 4c consoles, portals, desks. All on the Lambda lane.
  * The watchdogs (FailedCallAlert, LoopRevive) move last: they watch the moved loops from Restate.
  */
 export const PG_SERVICES: readonly string[] = [
@@ -118,6 +118,35 @@ export const PG_SERVICES: readonly string[] = [
   "ConnectorCallback",
   "MailCallback",
   "SocialCallback",
+  // 4c: consoles, portals, desks, account access
+  "AccountsConsole",
+  "BillingConsole",
+  "BooksConsole",
+  "CalendarConsole",
+  "DocumentsConsole",
+  "EmailConsole",
+  "HealthConsole",
+  "MarketingConsole",
+  "PaymentsConsole",
+  "PeopleConsole",
+  "PipelineConsole",
+  "SitesConsole",
+  "SmsConsole",
+  "TemplatesConsole",
+  "VoiceConsole",
+  "WatchConsole",
+  "ConsolePortal",
+  "DeliveryPortal",
+  "ReactivationPortal",
+  "InboxDesk",
+  "ReachDesk",
+  "SmsDesk",
+  "SocialDesk",
+  "VideoDesk",
+  "Sites",
+  "Connectors",
+  "MailAccess",
+  "SocialAccess",
 ];
 
 /**
