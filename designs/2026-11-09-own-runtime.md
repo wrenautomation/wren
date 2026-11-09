@@ -225,6 +225,19 @@ Also: wakes post to the slot's own loopback door (no bearer). The hourly lag ala
 
 Transition: the build live before this deploy finds supersession through Restate's admin, so it does not stand down by itself. After the deploy: wait until no open `rt.invocations` row carries its build, stop `wren-worker-old`, then stop `wren-restate`, `wren-redis` and `wren-desk-hop` and remove their crons. Their data dirs stay (deleting is William's call). `rt.pg_services` is unused; dropping it waits on his yes. The `cache` SSM param is unused and stays for the same reason.
 
+## Phase 7: the door's wire shape (11-09)
+
+The door speaks Restate's ingress shape: `POST /<Service>/<key>/<handler>` (`/send` for async, `Idempotency-Key`), plus `/restate/health` and `/restate/invocation/.../output`. Callers: portal and phone Workers, the CLI, the desk's pull, conformance tests. Options:
+
+| Option | How | For | Against |
+|---|---|---|---|
+| A. Keep all | No change | Zero work | `/restate/` paths name a product we no longer run |
+| **B. Keep the call shape, plain names for the rest (picked)** | `/health` and `/calls/{id}/output` (+ by service/handler/key) beside the `/restate/` ones; our callers move; old paths stay for the Restate client and autobrowse's npm Restate option | No caller breaks; the official client and conformance tests still work; the brand leaves our code | Two paths for three routes |
+| C. Own REST (`POST /v1/calls {service,key,handler,body}`) | New shape, old dropped | Fully ours; room for versions | Breaks every caller and the conformance suite for no new ability |
+| D. RPC framework (Connect/gRPC) | Typed stubs | Typed clients | New toolchain; Workers and curl lose plain HTTP |
+
+Ranked: no caller breaks, the runtime keeps a tested contract, plain names. The call shape `/<Service>/<key>/<handler>` is plain HTTP RPC, not a Restate tie. The real tie is the SDK's programming model (ctx.run, objects, awakeables) that `@wren/runtime` implements; it stays while the conformance suite holds.
+
 ## VPSs
 
 Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too small for Chromium or a Postgres replica. They stay for work that needs a non-AWS IP with port 25 or a clean search IP: probers, SearXNG. Extra use: a second SearXNG on LA (search fallback when Buffalo is rate-limited), so weaver's search does not wait on the desk's Google.
@@ -286,3 +299,4 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 - 2026-11-09: phase 5 live: the desk pulls (autobrowse 696e197). Restate's queue is 3 loop wakes. Phase 6's front door is A, slim Caddy under `api.wrenautomation.com` ("Phase 6" table): Cloudflare Tunnel has no slot failover and a 100 s response limit.
 - 2026-11-09: phase 6b. A slot learns it is superseded from `rt.box_builds` (A in "Phase 6b"), not an advisory lock, a CI push or LISTEN/NOTIFY. Restate, Redis and the desk hop stop after the old slot drains; their data stays. The lag alarm reads Postgres from CI. Env names keep "RESTATE"; rename later.
 - 2026-11-09: wren's Restate names go: `WREN_API_URL` and `WREN_API_TOKEN` (portal and phone Workers, deploy, CLI, config, weaver 0.61.0), after the host they reach. Two phases: new names beside the old in SSM, GitHub `production` and the egress gate, then the old go once the deploy proves the new. Caddy reads its bearer from the box env, so `/wren/prod/restate` is unused (kept until William says to delete it). Kept: the door's `/restate/...` paths (it speaks Restate's ingress protocol) and autobrowse's `RESTATE_*` names (autobrowse on npm still runs on a Restate for other operators; wren's door is one such ingress).
+- 2026-11-09: the door keeps the `/<Service>/<key>/<handler>` call shape and gains plain `/health` and `/calls/.../output` paths beside the `/restate/` ones (B in "Phase 7"), not an own REST shape or an RPC framework. Ranked: no caller breaks, a tested contract, plain names. Restate's data dir (252M) stays; its readable rows go to an archive schema before any delete.
