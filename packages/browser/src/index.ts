@@ -11,7 +11,7 @@ export const PAGE_TIMEOUT_MS = 20_000;
 /** the words are the payload */
 const BLOCKED = new Set(["image", "media", "font"]);
 /** Lambda's sync response cap is 6 MB; room for the JSON around it */
-export const MAX_RESULT_BYTES = 5_800_000;
+const MAX_RESULT_BYTES = 5_800_000;
 
 export interface PageOut {
   html: string;
