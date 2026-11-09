@@ -21,6 +21,7 @@ import {
   replier,
   returnState,
   runTurn,
+  setPgServices,
 } from "@wren/runtime/pg";
 import type { Logger } from "pino";
 import type { AnyService } from "./services.js";
@@ -37,6 +38,8 @@ const PG_SERVICES: readonly string[] = ["AuditLogSeal"];
 const RENAMED: Readonly<Record<string, string>> = { AuditSeal: "AuditLogSeal" };
 
 const LEASE_MS = 60_000;
+/** The last slot sees it was superseded within 30 s of this one's register (`watchSuperseded`). */
+const OLD_SLOT_MS = 120_000;
 
 /** The Restate side: each pg service becomes a proxy of the same name. */
 export function restateSide(services: AnyService[], sql: () => postgres.Sql): AnyService[] {
@@ -90,10 +93,11 @@ export async function startRt(o: {
   await migrate(sql);
   const registry = new Registry(o.all as never);
   await register(sql, registry);
+  await setPgServices(sql, PG_SERVICES, o.build);
   // a failed rename must not stop the box: rows left under the old name take the bridge lane
   for (const [from, to] of Object.entries(RENAMED))
     try {
-      const moved = await renameService(sql, from, to);
+      const moved = await renameService(sql, from, to, OLD_SLOT_MS);
       if (moved.rows || moved.state) o.log.info({ from, to, ...moved }, "rt: renamed");
     } catch (e) {
       o.log.error({ err: String(e), from, to }, "rt: rename failed");
@@ -153,7 +157,7 @@ export async function startRt(o: {
     sql,
     concurrency: 40,
     leaseMs: LEASE_MS,
-    lane: { except: PG_SERVICES, lock: false },
+    lane: { except: PG_SERVICES, lock: false, skipPg: true },
     run: (c) => bridgeTurn({ sql, ingress: o.ingress, leaseMs: LEASE_MS }, c),
     log,
   });

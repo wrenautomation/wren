@@ -52,11 +52,14 @@ export interface Lane {
   /** false: only rows already pinned to `build` (a superseded slot finishing its own). */
   fresh?: boolean;
   lock?: boolean;
+  /** Skip services in `rt.pg_services` (bridge lanes): the newest box runs them on pg. */
+  skipPg?: boolean;
 }
 
 const laneSql = (sql: Sql, l: Lane) => sql`
   ${l.only ? sql`AND i.service IN ${sql(l.only as string[])}` : sql``}
   ${l.except?.length ? sql`AND i.service NOT IN ${sql(l.except as string[])}` : sql``}
+  ${l.skipPg ? sql`AND i.service NOT IN (SELECT service FROM rt.pg_services)` : sql``}
   ${
     l.strict && l.build
       ? l.fresh === false
@@ -416,13 +419,27 @@ export async function resolveAwakeable(
     SELECT rt.wake(invocation_id, ${new Date(now)}) FROM ins`;
 }
 
+/** The newest box's pg services, for every bridge lane's `skipPg`. */
+export async function setPgServices(sql: postgres.Sql, services: readonly string[], build: string) {
+  await sql.begin(async (tx) => {
+    await tx`DELETE FROM rt.pg_services`;
+    for (const s of services)
+      await tx`INSERT INTO rt.pg_services (service, build) VALUES (${s}, ${build})`;
+  });
+}
+
 /**
  * A renamed service: its open rows (unpinned: old builds don't know the new name) and its state
  * move to `to`; its handler rows go. A state key `to` already holds stays under `from`.
+ * `holdMs`: no moved row is due (or its lease free) before then, so a slot running an older build
+ * (one without `skipPg`) sees it was superseded before it could take one.
  */
-export async function renameService(sql: postgres.Sql, from: string, to: string) {
+export async function renameService(sql: postgres.Sql, from: string, to: string, holdMs = 0) {
   return sql.begin(async (tx) => {
-    const rows = await tx`UPDATE rt.invocations SET service = ${to}, build = NULL
+    const rows = await tx`UPDATE rt.invocations SET service = ${to}, build = NULL,
+        run_at = greatest(run_at, now() + ${holdMs} * interval '1 millisecond'),
+        lease_until = CASE WHEN status = 'running'
+          THEN greatest(lease_until, now() + ${holdMs} * interval '1 millisecond') ELSE lease_until END
       WHERE service = ${from} AND status NOT IN ('done', 'killed')`;
     const state = await tx`UPDATE rt.state s SET service = ${to} WHERE s.service = ${from}
       AND NOT EXISTS (SELECT 1 FROM rt.state n WHERE n.service = ${to} AND n.key = s.key AND n.name = s.name)`;

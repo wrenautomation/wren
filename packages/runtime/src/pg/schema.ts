@@ -204,7 +204,17 @@ SELECT id, 'Paused' AS event_type, rt_admin.iso(moved_at) AS appended_at,
 FROM rt.invocations WHERE status = 'paused' AND last_failure IS NOT NULL;
 `;
 
-const MIGRATIONS: readonly string[] = [V1, V2, V3];
+const V4 = `
+-- the services the newest box runs on pg; every bridge lane skips them, so a slot that has not
+-- yet seen it was superseded never sends a newly moved or renamed service back to Restate
+CREATE TABLE rt.pg_services (
+  service text PRIMARY KEY,
+  build text NOT NULL,
+  at timestamptz NOT NULL DEFAULT now()
+);
+`;
+
+const MIGRATIONS: readonly string[] = [V1, V2, V3, V4];
 
 /** Bring schema `rt` up to date. One advisory lock, so parallel starts take turns. */
 export async function migrate(sql: postgres.Sql): Promise<void> {
