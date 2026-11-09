@@ -1,5 +1,4 @@
-import { type ReactNode, useState } from "react";
-import { RingChart } from "../../charts/index.js";
+import type { ReactNode } from "react";
 import { Ico, vars } from "./marks.js";
 import {
   cap,
@@ -44,26 +43,48 @@ const val = (n: GNode, k: string): string | number =>
               ? n.s.kept
               : n.s.used;
 
-/** A share ring: one arc per part, the total in the middle; the legend beside it takes the clicks. */
-/** The chart kit's ring: a slice under the pointer or picked shows its share in the middle. */
-function Donut({
-  slices,
-  total,
-  hot,
-  onHot,
-  onPick,
+/** One row a part: its bar is its findings on one scale, the dark share those in claims. */
+function Yield({
+  rows,
+  max,
+  lg,
 }: {
-  slices: { key: string; value: number; color: string }[];
-  total: number;
-  hot: string | null;
-  onHot: (k: string | null) => void;
-  onPick: (k: string) => void;
+  rows: { key: string; label: string; n?: number; v: number; u: number; cls: string; o?: number }[];
+  max: number;
+  lg: (k: string) => object;
 }) {
-  const lit = slices.find((x) => x.key === hot);
   return (
-    <div className="shr" aria-hidden="true">
-      <RingChart slices={slices} hot={hot} onHot={onHot} onPick={onPick} size={92} />
-      <b>{lit && total ? `${Math.round((lit.value / total) * 100)}%` : total}</b>
+    <div className="yd">
+      {rows.map((x) => (
+        <button
+          key={x.key}
+          type="button"
+          className={`yr ${x.cls}`}
+          style={x.o != null ? vars({ "--o": x.o }) : undefined}
+          {...lg(x.key)}
+        >
+          <span className="yl">
+            <i />
+            {x.label}
+            {x.n != null ? <em>{x.n}</em> : null}
+          </span>
+          <span className="yb" aria-hidden="true">
+            <span style={{ width: `${max ? (x.v / max) * 100 : 0}%` }}>
+              <i style={{ width: `${x.v ? (x.u / x.v) * 100 : 0}%` }} />
+            </span>
+          </span>
+          <span className="yn">
+            {x.v ? (
+              <>
+                <b>{x.v}</b>
+                {x.u ? ` · ${x.u} in claims` : ""}
+              </>
+            ) : (
+              "none"
+            )}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }
@@ -84,15 +105,12 @@ export function Summary({
   const ev = evCounts(L.nodes.flatMap((n) => n.s.fs));
   const tot = ev.reduce((a, b) => a + b, 0);
   const noC = L.nodes.filter((n) => n.s.kept && !n.nc);
-  const [hov, setHov] = useState<string | null>(null);
-  const lit = hov ?? hole;
+  const sum = (k: string, f: "kept" | "used") =>
+    L.nodes.reduce((a, n) => a + (n.k === k ? n.s[f] : 0), 0);
+  const inC = evCounts(L.nodes.flatMap((n) => n.s.fs.filter((x) => x.c >= 0)));
   const lg = (k: string) => ({
     "aria-pressed": hole === k,
     onClick: () => setHole(k),
-    onMouseEnter: () => setHov(k),
-    onMouseLeave: () => setHov(null),
-    onFocus: () => setHov(k),
-    onBlur: () => setHov(null),
   });
   const H = ({ h, v, t }: { h: string; v: number; t: string }) => (
     <button type="button" aria-pressed={hole === h} onClick={() => setHole(h)}>
@@ -102,61 +120,45 @@ export function Summary({
   );
   return (
     <div className="rg-sum">
-      <div className="sm rs">
-        <Donut
-          slices={ks.map(([k, n]) => ({ key: `k:${k}`, value: n, color: `var(--c-${k})` }))}
-          total={L.nodes.length}
-          hot={lit?.startsWith("k:") ? lit : null}
-          onHot={setHov}
-          onPick={setHole}
+      <div className="sm ys">
+        <p>
+          Who speaks <small>{pl(L.nodes.length, "source")}; bar: findings, dark: in claims</small>
+        </p>
+        <Yield
+          lg={lg}
+          max={Math.max(1, ...ks.map(([k]) => sum(k, "kept")))}
+          rows={ks.map(([k, n]) => ({
+            key: `k:${k}`,
+            label: SPEAKERS[k].many,
+            n,
+            v: sum(k, "kept"),
+            u: sum(k, "used"),
+            cls: `kd k-${k}`,
+          }))}
         />
-        <div>
-          <p>
-            Who speaks <small>{pl(L.nodes.length, "source")}</small>
-          </p>
-          <div className="lg">
-            {ks.map(([k, n]) => (
-              <button key={k} type="button" className={`kd k-${k}`} {...lg(`k:${k}`)}>
-                <i />
-                {SPEAKERS[k].many} <em>{n}</em>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
-      <div className="sm rs">
-        <Donut
-          slices={EV_ORDER.flatMap((e, i) =>
+      <div className="sm ys">
+        <p>
+          Evidence <small>{pl(tot, "finding")}, strong to weak</small>
+        </p>
+        <Yield
+          lg={lg}
+          max={Math.max(1, ...ev)}
+          rows={EV_ORDER.flatMap((e, i) =>
             ev[i]
               ? [
                   {
                     key: `e:${e}`,
-                    value: ev[i] ?? 0,
-                    color: `color-mix(in srgb, var(--ink) ${Math.round((EV_ALPHA[i] ?? 1) * 100)}%, var(--paper))`,
+                    label: EVIDENCE[e],
+                    v: ev[i] ?? 0,
+                    u: inC[i] ?? 0,
+                    cls: "ev",
+                    o: EV_ALPHA[i] ?? 1,
                   },
                 ]
               : [],
           )}
-          total={tot}
-          hot={lit?.startsWith("e:") ? lit : null}
-          onHot={setHov}
-          onPick={setHole}
         />
-        <div>
-          <p>
-            Evidence <small>{pl(tot, "finding")}, strong to weak</small>
-          </p>
-          <div className="lg">
-            {EV_ORDER.map((e, i) =>
-              ev[i] ? (
-                <button key={e} type="button" className="ev" {...lg(`e:${e}`)}>
-                  <i style={vars({ "--o": EV_ALPHA[i] ?? 1 })} />
-                  {EVIDENCE[e]} <em>{ev[i]}</em>
-                </button>
-              ) : null,
-            )}
-          </div>
-        </div>
       </div>
       <div className="sm hl">
         <p>
@@ -176,10 +178,29 @@ export function Summary({
   );
 }
 
+/** A chevron for fold and unfold buttons. */
+export const Chev = ({ dir }: { dir: "l" | "r" }) => (
+  <svg
+    viewBox="0 0 16 16"
+    width="14"
+    height="14"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.6}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    {dir === "l" ? <path d="M10 3.5 5.5 8l4.5 4.5" /> : <path d="M6 3.5 10.5 8 6 12.5" />}
+  </svg>
+);
+
 export function Side({
   r,
   L,
   chips,
+  fold,
+  onFold,
   tab,
   setTab,
   pick,
@@ -194,6 +215,9 @@ export function Side({
   r: React.RefObject<HTMLDivElement | null>;
   L: Indexed;
   chips: boolean;
+  /** folded to a rail: counts only */
+  fold: boolean;
+  onFold: () => void;
   tab: "c" | "q" | "d";
   setTab: (t: "c" | "q" | "d") => void;
   pick: Pick | null;
@@ -216,6 +240,42 @@ export function Side({
       if (e.pointerType === "mouse") onHover(p);
     },
   });
+  if (fold)
+    return (
+      <div ref={r} className="rg-side fold">
+        <button
+          type="button"
+          className="unf"
+          aria-label="Show the list"
+          title="Show the list"
+          onClick={onFold}
+        >
+          <Chev dir="r" />
+        </button>
+        {(
+          [
+            ["c", "Claims", L.claims.length],
+            ["q", "Searches", L.run.searches.length],
+            ["d", "Dropped", L.run.dropped.length],
+          ] as const
+        ).map(([k, t, n]) => (
+          <button
+            key={k}
+            type="button"
+            className="ft"
+            aria-label={`${t}: ${n}`}
+            title={t}
+            onClick={() => {
+              setTab(k);
+              onFold();
+            }}
+          >
+            <b>{n}</b>
+            <small>{t}</small>
+          </button>
+        ))}
+      </div>
+    );
   let list: ReactNode;
   if (tab === "c")
     list = L.claims.map(({ c, ss }) => (
@@ -317,14 +377,27 @@ export function Side({
     );
   return (
     <div ref={r} className={cls("rg-side", chips && "chips")} onPointerLeave={() => onHover(null)}>
-      <div className="tabs" role="tablist">
-        <T k="c" t="Claims" n={L.claims.length} />
-        {chips && L.run.runs ? (
-          <T k="q" t="Runs" n={L.run.runs.length} />
-        ) : (
-          <T k="q" t="Searches" n={L.run.searches.length} />
+      <div className="srow">
+        <div className="tabs" role="tablist">
+          <T k="c" t="Claims" n={L.claims.length} />
+          {chips && L.run.runs ? (
+            <T k="q" t="Runs" n={L.run.runs.length} />
+          ) : (
+            <T k="q" t="Searches" n={L.run.searches.length} />
+          )}
+          <T k="d" t="Dropped" n={L.run.dropped.length} />
+        </div>
+        {chips ? null : (
+          <button
+            type="button"
+            className="fo"
+            aria-label="Hide the list"
+            title="Hide the list"
+            onClick={onFold}
+          >
+            <Chev dir="l" />
+          </button>
         )}
-        <T k="d" t="Dropped" n={L.run.dropped.length} />
       </div>
       <div className="rg-ls">{list}</div>
       <div className="qbar" hidden={!queue.size}>

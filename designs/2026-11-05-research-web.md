@@ -315,3 +315,11 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - A search now opens to its dropped hits only: its kept sources are on the map already.
   - Cost: the worst fixture lays 180 nodes, not 139; the solve takes about 30% longer (2.2 s to 2.9 s for both test runs in vitest).
   - All runs keeps its shelf: 469 sources at once is too many to draw.
+- 11-09: the panel reads as a feed; sidebars fold; bars replace the rings; focus dims less.
+  - William: the right panel "all looks the same… visuals first, frames first"; the side lists "take up a lot of space"; the rings "don't tell me anything"; the focus blackout is "too extreme".
+  - Panel: every source, page and dropped hit leads with a 16:9 frame. The picture when there is one (video thumbnail, og:image); else the site's icon on its kind's tint. A search's kept sources are a 2-column tile grid; its dropped hits are rows with a small frame, the kind, the host and a subject-score meter. Section heads carry counts.
+  - Dropped hits get a YouTube thumbnail from the URL and a site icon (`GraphDrop.th`, `ic`). Pages have no picture for a plain hit; a thumbnail per hit would need a GET per hit (cost, ToS), so no.
+  - Fold: the left list folds to a 44 px rail of counts (a count opens its tab); the right panel hides to an edge tab and keeps the pick. A new pick shows the panel again. The fold is kept in localStorage; the fit uses the room left.
+  - Rings out: Who speaks and Evidence are now one row a part: count, a bar of findings on one scale, the dark share in claims. A ring showed only shares of the source count; the rows show what each part gave the answer.
+  - Focus: the rest drops to 50% and 35% saturation, lines to 0.16 (was 20% and 0.06).
+  - Fix: the stage clips instead of hiding overflow, so a focused control can no longer scroll it sideways (the read-queue story showed it 95 px off).

@@ -51,10 +51,12 @@ import {
 
 export type { Pick } from "./panel.js";
 
-import { cls, type Focus, Key, Side, Summary, Table } from "./side.js";
+import { Chev, cls, type Focus, Key, Side, Summary, Table } from "./side.js";
 
 const SIDEW = 252;
 const PW = 380;
+/** the sidebars' fold, kept across runs */
+const FOLD = "weaver-graph-fold";
 const reduced = () =>
   typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -108,6 +110,22 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
   const [wide, setWide] = useState(true);
   const [round, setRound] = useState(0);
   const [tab, setTab] = useState<"c" | "q" | "d">("q");
+  const [fold, setFold] = useState<{ l: boolean; r: boolean }>(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(FOLD) || "{}") as { l?: unknown; r?: unknown };
+      return { l: v.l === true, r: v.r === true };
+    } catch {
+      return { l: false, r: false };
+    }
+  });
+  const foldTo = (k: "l" | "r") =>
+    setFold((f) => {
+      const n = { ...f, [k]: !f[k] };
+      try {
+        localStorage.setItem(FOLD, JSON.stringify(n));
+      } catch {}
+      return n;
+    });
   const [pick, setPickS] = useState<Pick | null>(null);
   const [hover, setHover] = useState<Pick | null>(null);
   const [hole, setHole] = useState<string | null>(null);
@@ -162,8 +180,8 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
   });
   const T = useRef<ZoomTransform>(zoomIdentity);
   const zoomRef = useRef<ZoomBehavior<HTMLDivElement, unknown> | null>(null);
-  const live = useRef({ pick, wide, merged: !!L.run.runs });
-  live.current = { pick, wide, merged: !!L.run.runs };
+  const live = useRef({ pick, wide, fold, merged: !!L.run.runs });
+  live.current = { pick, wide, fold, merged: !!L.run.runs };
 
   const reg = (k: string) => {
     let f = regs.get(k);
@@ -270,6 +288,8 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     setPickS(p);
     setHover(null);
     setTip(null);
+    // a new pick shows its panel again
+    if (p && live.current.fold.r) foldTo("r");
     if (p?.t === "c") setTab("c");
     if (p?.t === "q") setTab("q");
     if (p?.t === "D") setTab("d");
@@ -355,11 +375,11 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     const st = stageRef.current;
     const W = st?.clientWidth ?? 0;
     const H = st?.clientHeight ?? 0;
-    const { pick: p, wide: w } = live.current;
-    const l = w ? SIDEW + 34 : 12;
+    const { pick: p, wide: w, fold: fo } = live.current;
+    const l = w ? (fo.l ? 60 : SIDEW + 34) : 12;
     const t = w ? 18 : (sideRef.current?.scrollHeight ?? 0) + 8;
-    const r = W - 18 - (w && p ? PW : 0);
-    const b = H - 18 - (w || !p ? 0 : (panelRef.current?.offsetHeight ?? 0));
+    const r = W - 18 - (w && p && !fo.r ? PW : 0);
+    const b = H - 18 - (w || !p || fo.r ? 0 : (panelRef.current?.offsetHeight ?? 0));
     return { l, t, r, b, w: r - l, h: b - t };
   };
   const go = (t: ZoomTransform, ms: number) => {
@@ -800,6 +820,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     L,
     pick: (p, center) => setPick(p, center),
     close: () => setPick(null),
+    min: () => foldTo("r"),
     queue,
     toggleQ,
     dq,
@@ -860,7 +881,13 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
       {/* biome-ignore lint/a11y/useSemanticElements: a positioned stage, not a form group; it delegates the marks' clicks and keys */}
       <div
         ref={stageRef}
-        className={cls("rg-stage", F && "fx", pick && "open")}
+        className={cls(
+          "rg-stage",
+          F && "fx",
+          pick && "open",
+          wide && fold.l && "fold-l",
+          fold.r && "fold-r",
+        )}
         role="group"
         aria-label="The run as a web: each search a card with its answer, lines from each search to every source it found."
         onClick={onStageClick}
@@ -879,6 +906,8 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
           r={sideRef}
           L={L}
           chips={!wide}
+          fold={wide && fold.l}
+          onFold={() => foldTo("l")}
           tab={tab}
           setTab={setTab}
           pick={pick}
@@ -915,6 +944,12 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
               return fq ? <q>{fq.q}</q> : null;
             })()}
           </div>
+        ) : null}
+        {pick && fold.r ? (
+          <button type="button" className="rg-reopen" onClick={() => foldTo("r")}>
+            <Chev dir="l" />
+            <span>Show the panel</span>
+          </button>
         ) : null}
         <aside ref={panelRef} className="rg-panel" aria-label="Detail" aria-live="polite">
           {pick ? <PanelBody key={JSON.stringify(pick)} c={panelCtx} p={pick} /> : null}

@@ -149,6 +149,10 @@ export interface GraphDrop {
   /** the judge's format and its share */
   f: [string, number] | null;
   k: Speaker;
+  /** video thumbnail */
+  th?: string | null;
+  /** site icon */
+  ic?: string | null;
 }
 
 export interface RunGraphData {

@@ -291,6 +291,8 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
         s: subject != null ? Math.round(subject * 100) : null,
         f: f ? [FMT[f[0]] ?? f[0].replace(/_/g, " "), Math.round(f[1] * 100)] : null,
         k: kindOf(c, f?.[0] ?? null, host(h.url)),
+        th: ((yt) => (yt ? thumb(yt) : null))(ytOf(h.url)),
+        ic: icon(host(h.url)),
       };
     });
   const claims = pats.map((p, i) => {

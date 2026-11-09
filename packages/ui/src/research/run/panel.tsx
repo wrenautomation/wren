@@ -1,6 +1,6 @@
 /** The detail panel: a source, claim, search, page, finding or the dropped hits. */
-import { useDeferredValue } from "react";
-import { Ico, Kd } from "./marks.js";
+import { useDeferredValue, useState } from "react";
+import { Glyph, Ico, Kd } from "./marks.js";
 import {
   atQuote,
   cap,
@@ -16,9 +16,11 @@ import {
   type Indexed,
   pl,
   SPEAKERS,
+  type Speaker,
   stepAt,
   unit,
 } from "./model.js";
+import { Chev, cls } from "./side.js";
 import { parse } from "./web.js";
 
 export type Pick =
@@ -32,6 +34,8 @@ export interface PanelCtx {
   L: Indexed;
   pick: (p: Pick, center?: boolean) => void;
   close: () => void;
+  /** hide the panel to a tab; the pick stays */
+  min: () => void;
   queue: ReadonlySet<string>;
   toggleQ: (id: string) => void;
   dq: string;
@@ -53,9 +57,97 @@ const Out = ({
 );
 
 const X = ({ c }: { c: PanelCtx }) => (
-  <button type="button" className="x" aria-label="Close" onClick={c.close}>
-    ×
-  </button>
+  <>
+    <button
+      type="button"
+      className="x mn"
+      aria-label="Hide the panel"
+      title="Hide the panel"
+      onClick={c.min}
+    >
+      <Chev dir="r" />
+    </button>
+    <button type="button" className="x" aria-label="Close" onClick={c.close}>
+      ×
+    </button>
+  </>
+);
+
+/** A media frame: the picture when there is one, else the site's mark on its kind's tint. */
+function Frame({
+  img,
+  icon,
+  fmt,
+  kind,
+  len,
+  sm,
+}: {
+  img?: string | null | undefined;
+  icon?: string | null | undefined;
+  fmt: string;
+  kind: Speaker;
+  len?: number;
+  sm?: boolean;
+}) {
+  const [bad, setBad] = useState(false);
+  const [ibad, setIbad] = useState(false);
+  return (
+    <span className={cls("fr", `k-${kind}`, sm && "sm")}>
+      {img && !bad ? (
+        <img
+          className="pic"
+          src={img}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setBad(true)}
+        />
+      ) : (
+        <span className="pst">
+          {icon && !ibad ? (
+            <img
+              className="ic"
+              src={icon}
+              alt=""
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={() => setIbad(true)}
+            />
+          ) : (
+            <Glyph f={fmt} />
+          )}
+        </span>
+      )}
+      {len ? <i className="len">{clock(len)}</i> : null}
+    </span>
+  );
+}
+
+const picOf = (s: GraphSource) => s.thumb ?? s.og;
+
+/** A source as a tile: its frame first, then its name, kind and yield. */
+function Tile({ c, n }: { c: PanelCtx; n: GNode }) {
+  const s = n.s;
+  return (
+    <button type="button" className="tile" onClick={() => c.pick({ t: "s", id: s.id }, true)}>
+      <Frame img={picOf(s)} icon={s.icon} fmt={s.fmt} kind={s.kind} />
+      <b>{s.name}</b>
+      <small>
+        <Kd k={s.kind} />
+        <span>
+          {s.pages.length ? (s.kept ? pl(s.kept, "finding") : "no finding") : "not read yet"}
+        </span>
+      </small>
+    </button>
+  );
+}
+
+const Tiles = ({ c, ns }: { c: PanelCtx; ns: GNode[] }) => (
+  <div className="tiles">
+    {ns.map((n) => (
+      <Tile key={n.id} c={c} n={n} />
+    ))}
+  </div>
 );
 
 function Tag({ c, i }: { c: PanelCtx; i: number }) {
@@ -226,15 +318,21 @@ function SourcePanel({ c, n }: { c: PanelCtx; n: GNode }) {
         ) : null}
       </div>
       <div className="pb">
+        {picOf(s) ? <Frame img={picOf(s)} icon={s.icon} fmt={s.fmt} kind={s.kind} /> : null}
         {!s.pages.length ? (
           <p className="gh">A search found this and the run kept it, but nothing read it yet.</p>
         ) : null}
         {told.map((x) => (
           <section key={x.i} className="pg">
             <a className="pgh" href={x.p.u} target="_blank" rel="noopener">
-              {x.p.th ? (
-                <img className="th" referrerPolicy="no-referrer" src={x.p.th} alt="" />
-              ) : null}
+              <Frame
+                img={x.p.th ?? x.p.og}
+                icon={s.icon}
+                fmt={x.p.f || s.fmt}
+                kind={s.kind}
+                len={x.p.len}
+                sm
+              />
               <span>
                 <b>{x.p.t}</b>
                 <small>
@@ -276,25 +374,6 @@ function SourcePanel({ c, n }: { c: PanelCtx; n: GNode }) {
   );
 }
 
-function SourceRow({ c, n, sub }: { c: PanelCtx; n: GNode; sub: string }) {
-  const s = n.s;
-  return (
-    <section className="pg">
-      <button type="button" className="pgh" onClick={() => c.pick({ t: "s", id: s.id }, true)}>
-        {s.thumb ? (
-          <img className="th" referrerPolicy="no-referrer" src={s.thumb} alt="" />
-        ) : (
-          <Ico s={s} />
-        )}
-        <span>
-          <b>{s.name}</b>
-          <small>{sub}</small>
-        </span>
-      </button>
-    </section>
-  );
-}
-
 function ClaimPanel({ c, i }: { c: PanelCtx; i: number }) {
   const cl = c.L.claims[i];
   if (!cl) return null;
@@ -329,16 +408,11 @@ function ClaimPanel({ c, i }: { c: PanelCtx; i: number }) {
                 className="pgh"
                 onClick={() => c.pick({ t: "s", id: s.id }, true)}
               >
-                {s.thumb ? (
-                  <img className="th" referrerPolicy="no-referrer" src={s.thumb} alt="" />
-                ) : (
-                  <Ico s={s} />
-                )}
+                <Frame img={picOf(s)} icon={s.icon} fmt={s.fmt} kind={s.kind} sm />
                 <span>
                   <b>{s.name}</b>
                   <small>
-                    {SPEAKERS[s.kind].one} · {pl(fs.length, "finding")} for this claim, {s.kept}{" "}
-                    kept
+                    <Kd k={s.kind} /> · {pl(fs.length, "finding")} for this claim, {s.kept} kept
                   </small>
                 </span>
               </button>
@@ -359,14 +433,27 @@ function DropRow({ c, d }: { c: PanelCtx; d: GraphDrop }) {
   const art = d.f && /^[aeiou]/i.test(d.f[0]) ? "an" : "a";
   return (
     <div className="dr">
+      <Frame img={d.th} icon={d.ic} fmt={d.f?.[0] ?? "article"} kind={d.k} sm />
       <details>
         <summary>
           <b>{d.t}</b>
           <small>
-            {d.h}
-            {d.f ? ` · reads as ${art} ${d.f[0]}` : ""}
-            {d.s != null ? ` · ${d.s}% on the subject` : ""}
+            <Kd k={d.k} />
+            <span>{d.h}</span>
+            {d.f ? (
+              <span>
+                reads as {art} {d.f[0]}
+              </span>
+            ) : null}
           </small>
+          {d.s != null ? (
+            <span className="sc" title={`${d.s}% on the subject, by the judge`}>
+              <span className="tr">
+                <i style={{ width: `${d.s}%` }} />
+              </span>
+              <em>{d.s}% on the subject</em>
+            </span>
+          ) : null}
         </summary>
         <div className="db">
           {d.sn ? <p>{d.sn}</p> : null}
@@ -488,17 +575,18 @@ function SearchPanel({ c, q }: { c: PanelCtx; q: GraphSearch }) {
       </div>
       <div className="pb">
         {!ss.length ? <p className="gh">The run kept no hit from this search.</p> : null}
-        {ss.map((n) => (
-          <SourceRow
-            key={n.id}
-            c={c}
-            n={n}
-            sub={`${SPEAKERS[n.s.kind].one} · ${n.s.pages.length ? `${pl(n.s.kept, "finding")} kept` : "not read yet"}`}
-          />
-        ))}
+        {ss.length ? (
+          <h5 className="sh">
+            Kept <em>{ss.length}</em>
+          </h5>
+        ) : null}
+        <Tiles c={c} ns={ss} />
         {dr.length ? (
           <>
-            <p className="lbl">Dropped from this search · {dr.length}</p>
+            <h5 className="sh">
+              Dropped <em>{dr.length}</em>
+              <small>Most on the subject first. Mark any to read anyway.</small>
+            </h5>
             {dr.map((d) => (
               <DropRow key={d.id} c={c} d={d} />
             ))}
@@ -604,14 +692,7 @@ function RunPanel({ c, r }: { c: PanelCtx; r: number }) {
         ))}
         {ns.length ? <p className="lbl">Sources · {ns.length}</p> : null}
         {!qs.length && !ns.length ? <p className="gh">This run has no search yet.</p> : null}
-        {ns.map((n) => (
-          <SourceRow
-            key={n.id}
-            c={c}
-            n={n}
-            sub={`${SPEAKERS[n.s.kind].one} · ${pl(n.s.kept, "finding")}`}
-          />
-        ))}
+        <Tiles c={c} ns={ns} />
       </div>
     </>
   );

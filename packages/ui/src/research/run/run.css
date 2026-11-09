@@ -181,7 +181,8 @@
   height: min(800px, 86vh);
   min-height: 580px;
   background: var(--canvas);
-  overflow: hidden;
+  /* clip, not hidden: a focused control can not scroll the stage sideways */
+  overflow: clip;
   touch-action: pan-y;
   cursor: grab;
   user-select: none;
@@ -1135,6 +1136,7 @@
   cursor: pointer;
   transition:
     opacity 0.16s,
+    filter 0.16s,
     box-shadow 0.5s,
     color 0.5s,
     background-color 0.5s;
@@ -1160,11 +1162,13 @@
   stroke: var(--k);
   stroke-opacity: 0.45;
 }
+/* 11-09: softer: the rest stays legible, the lit set leads by color */
 .rg .rg-stage.fx .nd:not(.on) {
-  opacity: 0.2;
+  opacity: 0.5;
+  filter: saturate(0.35);
 }
 .rg .rg-stage.fx .e {
-  stroke-opacity: 0.06;
+  stroke-opacity: 0.16;
 }
 .rg .rg-stage.fx .e.on {
   stroke-opacity: 0.9;
@@ -1172,7 +1176,7 @@
 .rg .rg-stage.fx .lh,
 .rg .rg-stage.fx .more,
 .rg .rg-stage.fx .ag {
-  opacity: 0.45;
+  opacity: 0.6;
 }
 .rg .nd.late,
 .rg .e.late {
@@ -1712,27 +1716,82 @@
   margin-left: 4px;
   font-size: 12px;
 }
-.rg .sm.rs {
+/* 11-09: yield rows in place of the rings: what each kind and evidence type gave */
+.rg .yd {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.rg .yr {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 112px minmax(40px, 1fr) 112px;
+  gap: 10px;
   align-items: center;
+  width: 100%;
+  padding: 2px 5px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--ink2);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
 }
-.rg .shr {
-  position: relative;
-  width: 92px;
-  height: 92px;
+.rg .yr:hover,
+.rg .yr[aria-pressed="true"] {
+  background: var(--wash);
+  color: var(--ink);
 }
-.rg .shr b {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
-  font-size: 17px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+.rg .yr .yl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.rg .yr .yl em {
+  font-style: normal;
+  color: var(--ink3);
   font-variant-numeric: tabular-nums;
+}
+.rg .yr.ev .yl i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--ink);
+  opacity: var(--o);
+}
+.rg .yr .yb {
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  overflow: hidden;
+}
+.rg .yr .yb > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--k, var(--ink3)) 38%, var(--paper));
+  overflow: hidden;
+}
+.rg .yr .yb i {
+  display: block;
+  height: 100%;
+  background: var(--k, var(--ink2));
+}
+.rg .yr.ev .yb > span {
+  background: var(--hair);
+}
+.rg .yr .yn {
+  font-size: 11.5px;
+  color: var(--ink3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rg .yr .yn b {
+  font-weight: 600;
   color: var(--ink);
 }
 .rg .lg {
@@ -1937,4 +1996,299 @@
 .rg button.more {
   border: 0;
   font-family: inherit;
+}
+/* 11-09: the panel as a feed: a frame first on every source, page and hit */
+.rg .rg-panel .sh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  margin: 18px 0 10px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+}
+.rg .rg-panel .sh em {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--ink3);
+}
+.rg .rg-panel .sh small {
+  flex-basis: 100%;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--ink3);
+}
+.rg .fr {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--k, var(--ink3)) 13%, var(--paper));
+  outline: 1px solid color-mix(in srgb, var(--k, var(--ink3)) 20%, transparent);
+  outline-offset: -1px;
+}
+.rg .fr.sm {
+  flex: none;
+  width: 104px;
+  border-radius: 6px;
+}
+.rg .fr .pic {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.rg .fr .pst {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--k, var(--ink3));
+}
+.rg .fr .pst .ic {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+}
+.rg .fr.sm .pst .ic {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+}
+.rg .fr .pst small {
+  max-width: 86%;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+  color: color-mix(in srgb, var(--k, var(--ink3)) 65%, var(--ink));
+}
+.rg .fr .len {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 0.72);
+  color: #fff;
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.rg .rg-panel .pb > .fr {
+  margin-top: 14px;
+}
+.rg .rg-panel .tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 12px;
+}
+.rg .rg-panel .tile {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rg .rg-panel .tile b {
+  display: block;
+  margin-top: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.rg .rg-panel .tile small {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px 7px;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--ink3);
+}
+.rg .rg-panel .tile:hover .pic {
+  transform: scale(1.04);
+}
+.rg .rg-panel .tile:hover b {
+  text-decoration: underline;
+}
+.rg .rg-panel .tile:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+.rg .rg-panel .dr summary small {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px 7px;
+}
+.rg .rg-panel .dr .sc {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--ink3);
+}
+.rg .rg-panel .dr .sc .tr {
+  flex: none;
+  width: 56px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--hair2);
+  overflow: hidden;
+}
+.rg .rg-panel .dr .sc .tr i {
+  display: block;
+  height: 100%;
+  background: var(--ink2);
+}
+.rg .rg-panel .dr .sc em {
+  font-style: normal;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rg .fr .pic {
+    transition: none;
+  }
+}
+/* 11-09: both sidebars fold away; the left to a rail of counts, the right to a tab */
+.rg .rg-side .srow {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.rg .rg-side .fo,
+.rg .rg-side .unf {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--hair);
+  border-radius: 7px;
+  background: var(--paper);
+  color: var(--ink2);
+  cursor: pointer;
+}
+.rg .rg-side .fo:hover,
+.rg .rg-side .unf:hover {
+  color: var(--ink);
+  background: var(--wash);
+}
+.rg .rg-side.fold {
+  width: 44px;
+  padding: 12px 0 0 10px;
+  gap: 6px;
+  background: none;
+  pointer-events: none;
+}
+.rg .rg-side.fold > * {
+  pointer-events: auto;
+}
+.rg .rg-side.fold .ft {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 44px;
+  padding: 5px 0 4px;
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+.rg .rg-side.fold .ft:hover {
+  background: var(--wash);
+}
+.rg .rg-side.fold .ft b {
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.rg .rg-side.fold .ft small {
+  font-size: 9.5px;
+  color: var(--ink3);
+}
+.rg .rg-panel .x.mn {
+  right: 42px;
+  display: grid;
+  place-items: center;
+}
+.rg .rg-panel .hd {
+  padding-right: 64px;
+}
+.rg .rg-stage.open.fold-r .rg-panel {
+  transform: translateX(104%);
+}
+.rg .rg-reopen {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  z-index: 3001;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border: 1px solid var(--hair);
+  border-right: 0;
+  border-radius: 9px 0 0 9px;
+  background: var(--paper);
+  box-shadow: var(--lift);
+  color: var(--ink2);
+  font: inherit;
+  font-size: 12px;
+  writing-mode: vertical-rl;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+.rg .rg-reopen svg {
+  transform: rotate(90deg);
+}
+.rg .rg-reopen:hover {
+  color: var(--ink);
+}
+@container rg (width < 820px) {
+  .rg .rg-stage.open.fold-r .rg-panel {
+    transform: translateY(104%);
+  }
+  .rg .rg-reopen {
+    top: auto;
+    bottom: 12px;
+    right: 12px;
+    padding: 7px 12px;
+    border: 1px solid var(--hair);
+    border-radius: 999px;
+    writing-mode: horizontal-tb;
+    transform: none;
+  }
+  .rg .rg-reopen svg {
+    transform: rotate(90deg);
+  }
+}
+.rg .rg-panel .dr .fr.sm {
+  width: 88px;
+}
+.rg .rg-panel .dr .sc em {
+  white-space: nowrap;
+}
+.rg .rg-panel .tile .pst .ic {
+  width: 32px;
+  height: 32px;
+}
+@container rg (width < 820px) {
+  .rg .yr {
+    grid-template-columns: 104px minmax(40px, 1fr) auto;
+  }
 }

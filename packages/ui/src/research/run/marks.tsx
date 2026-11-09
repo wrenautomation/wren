@@ -79,7 +79,7 @@ const GL: Record<string, ReactNode> = {
   ),
 };
 
-function Glyph({ f }: { f: string }) {
+export function Glyph({ f }: { f: string }) {
   const k = f === "post" ? "thread" : f === "directory" ? "list" : f;
   return (
     <svg

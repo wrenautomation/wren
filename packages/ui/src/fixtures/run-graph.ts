@@ -226,6 +226,8 @@ export function fakeRunGraph(o: RunGraphShape = {}): RunGraphData {
   const dropped: GraphDrop[] = Array.from({ length: o.drops ?? 36 }, (_, i) => {
     const q = pickOf(searches);
     const h = `${pickOf(WORDS).toLowerCase()}${pickOf(ENDS).toLowerCase()}${i}.example`;
+    const f: GraphDrop["f"] =
+      r() < 0.3 ? null : [pickOf(["article", "video", "sales_page"]), Math.round(r() * 100)];
     return {
       id: `h${i}`,
       t: long(`${pickOf(WORDS)} ${pickOf(FACETS)} guide ${i + 1}`),
@@ -236,8 +238,10 @@ export function fakeRunGraph(o: RunGraphShape = {}): RunGraphData {
       q: [q.i],
       sn: long("A short snippet the search returned for this page."),
       s: r() < 0.2 ? null : Math.floor(r() * 100),
-      f: r() < 0.3 ? null : [pickOf(["article", "video", "sales_page"]), Math.round(r() * 100)],
+      f,
       k: pickOf(KINDS),
+      th: f?.[0] === "video" ? thumb(Math.floor(r() * 360)) : null,
+      ic: null,
     };
   });
 
