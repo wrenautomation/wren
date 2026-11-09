@@ -8,6 +8,7 @@ import { Durable } from "./pg/promise.js";
 const ours = (xs: readonly unknown[]) =>
   xs.find((x): x is Durable<unknown> => x instanceof Durable);
 
+export type RestatePromise<T> = sdk.RestatePromise<T>;
 export const RestatePromise: typeof sdk.RestatePromise = {
   resolve: (v: unknown) => (v instanceof Durable ? v : sdk.RestatePromise.resolve(v)),
   reject: (r: sdk.TerminalError) => sdk.RestatePromise.reject(r),
