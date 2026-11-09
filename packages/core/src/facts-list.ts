@@ -8,8 +8,6 @@
 export const FACT_MAX = 300;
 /** Facts in a list, at most. */
 export const FACTS_CAP = 40;
-/** Where the list is edited in the portal (Marketing → Facts). */
-export const FACTS_PAGE = "/campaigns/facts";
 /** How the guard's reason for a dropped draft starts (`droppedWhy`): the page links it here. */
 export const FACTS_DROP = "made things up: ";
 

@@ -1,4 +1,4 @@
-/** Campaigns › Content: plan, Studio, posts, voice and facts. Fake server: `web/src/mocks/`. */
+/** Campaigns › Content: Studio and posts. Fake server: `web/src/mocks/`. */
 import type { Meta } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ANSWERS } from "../../../mocks/data/index.js";
@@ -24,9 +24,6 @@ const SAMPLE_POST = [
   "The ones that book calls list one.",
   "Last month I rebuilt an offer page down to a single line: who it is for, what changes in 30 days, the price. Three fewer sections.",
 ].join("\n\n");
-
-// Content's Plan: what the week still asks for.
-export const Plan = pageAt("/campaigns/plan", { me: ADMIN });
 
 export const Studio = pageAt("/campaigns/studio", {
   me: ADMIN,
@@ -125,7 +122,6 @@ export const StudioCompose = pageAt(
 
 export const Content = pageAt("/campaigns/content", { me: ADMIN });
 
-export const Facts = pageAt("/campaigns/facts", { me: ADMIN });
 
 export const Drafts = pageAt("/campaigns/drafts", {
   me: ADMIN,

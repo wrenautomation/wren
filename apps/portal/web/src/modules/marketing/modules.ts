@@ -17,7 +17,7 @@ import { withThread } from "./thread-context.js";
 const P = MARKETING_PAGES;
 
 /**
- * Content (designs/2026-10-14-content-types.md): Plan is the day, Studio makes and finishes,
+ * Content (designs/2026-10-14-content-types.md): Studio makes and finishes,
  * Posts is what went out. The rest opens from a link.
  */
 export const content: Module = {
@@ -25,9 +25,9 @@ export const content: Module = {
   name: "Content",
   component: "marketing.stats",
   icon: "megaphone",
-  blurb: "Every platform's posts: plan, make, and how each did.",
+  blurb: "Every platform's posts: make them, and how each did.",
   requires: { audience: "team" },
-  pages: [P.plan, P.studio, P.content, P.facts, P.drafts, P.write, P.videos],
+  pages: [P.studio, P.content, P.drafts, P.write, P.videos],
 };
 
 const VERDICTS = new Set(["marketing.approveDraft", "marketing.redraft", "marketing.rejectDraft"]);

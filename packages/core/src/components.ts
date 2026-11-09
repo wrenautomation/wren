@@ -275,7 +275,7 @@ export interface Component {
    */
   wrenSettings: boolean;
   /**
-   * Its own editor in the portal ("/marketing/facts"), or null: the Shop links there, and Loops →
+   * Its own editor page in the portal, or null: the Shop links there, and Loops →
    * Settings leaves it out, so its changes keep one history.
    */
   editor: string | null;

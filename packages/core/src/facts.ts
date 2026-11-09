@@ -18,7 +18,6 @@ import {
   DEFAULT_FACTS,
   FACT_MAX,
   FACTS_CAP,
-  FACTS_PAGE,
   factsOf,
   factsProblem,
   factsText,
@@ -90,7 +89,6 @@ export const FACTS_COMPONENTS = [
     for: "wren",
     ready: true,
     settings: factsSettingsSchema,
-    editor: FACTS_PAGE,
     provides: { records: [FACTS_RECORD] },
     hypothesis: {
       from: "Wren's LinkedIn comments, 2026-10-07",

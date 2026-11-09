@@ -54,7 +54,7 @@ describe("movedTo", () => {
   });
 
   it("leaves every live address alone", () => {
-    expect(movedTo("/campaigns/plan", WREN)).toBeNull();
+    expect(movedTo("/campaigns/studio", WREN)).toBeNull();
     expect(movedTo("/today/approve", CLIENT)).toBeNull();
     expect(movedTo("/campaigns/engage", WREN)).toBeNull();
     expect(movedTo("/map/station/booked", WREN)).toBeNull();
@@ -68,8 +68,8 @@ describe("who is at Wren", () => {
     expect(atWrenOf(true, null)).toBe(true);
     expect(atWrenOf(true, "acme")).toBe(false);
     expect(atWrenOf(false, null)).toBe(false);
-    expect(namedIn("/campaigns/plan?client=acme")).toBe("acme");
-    expect(namedIn("/campaigns/plan?view=all")).toBeNull();
+    expect(namedIn("/campaigns/studio?client=acme")).toBe("acme");
+    expect(namedIn("/campaigns/studio?view=all")).toBeNull();
   });
 });
 

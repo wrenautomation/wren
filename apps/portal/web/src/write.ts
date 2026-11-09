@@ -1,10 +1,10 @@
 /**
- * Today's Write list: the content plan's goals (`modules/marketing/plan.tsx`) as one line per
+ * Today's Write list: the content plan's goals (`modules/marketing/cadence.ts`) as one line per
  * platform, with today's quota and how much of it went out. The quota is the plan's own: a goal's
  * `daily`, else one for a weekly goal that still lacks or made one today. Pure, so it tests
  * without a page.
  */
-import type { Goal } from "./modules/marketing/plan.js";
+import type { Goal } from "./modules/marketing/cadence.js";
 
 /** Named platforms, in the order they show. YouTube means its long-form goals only. */
 const WRITE_ORDER = ["youtube", "linkedin", "reddit", "instagram", "facebook"] as const;

@@ -3,7 +3,7 @@
  * Synthetic data only.
  */
 import type { Piece } from "@wren/starling-inbound/pieces";
-import type { Goal } from "../../modules/marketing/plan.js";
+import type { Goal } from "../../modules/marketing/cadence.js";
 import { ago } from "./shell.js";
 
 const branch = (

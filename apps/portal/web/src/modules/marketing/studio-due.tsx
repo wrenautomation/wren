@@ -9,7 +9,7 @@ import type { MetroLine } from "@wren/pipeline/metro";
 import { cx, Icon, LoadFailed, Loading } from "@wren/ui";
 import type { ApiError } from "../../api.js";
 import { href } from "../../route.js";
-import { type Due, placeName } from "./plan.js";
+import { type Due, placeName } from "./cadence.js";
 import { offeredFor } from "./studio-common.js";
 import { LineMark } from "./studio-lines.js";
 

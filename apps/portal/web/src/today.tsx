@@ -7,7 +7,6 @@
 import {
   AppCard,
   AppGrid,
-  cx,
   Icon,
   type IconName,
   LoadFailed,
@@ -35,7 +34,7 @@ import { useAccount } from "./modules/account/load.js";
 import { SetupNow } from "./modules/account/Now.js";
 import { SetupCard } from "./modules/account/SetupCard.js";
 import { atOf } from "./modules/deals/board.js";
-import { goalsOf, makeAt, usePlan } from "./modules/marketing/plan.js";
+import { goalsOf, makeAt, usePlan } from "./modules/marketing/cadence.js";
 import type { Move, Moves } from "./moves.js";
 import { href, navigate } from "./route.js";
 import { useFolds } from "./use-folds.js";
@@ -224,8 +223,6 @@ function NeedsYou({
   );
 }
 
-const MORE = cx("text-[13px] underline", MUTED);
-
 /** A quota as words: "1 of 3 today". */
 const quotaLine = (l: WriteLine) => `${Math.min(l.have, l.want)} of ${l.want} today`;
 
@@ -238,7 +235,7 @@ function WriteMark({ l }: { l: WriteLine }) {
 
 /** Where to make the next piece for a platform's line. */
 const writeAt = (l: WriteLine) =>
-  l.id === "autopilot" ? "/campaigns/plan" : makeAt(l.next.piece, [l.next]).href;
+  l.id === "autopilot" ? "/campaigns/studio" : makeAt(l.next.piece, [l.next]).href;
 
 const MET = "met";
 
@@ -265,11 +262,6 @@ function WriteList({ narrow }: { narrow: boolean }) {
       title="Write"
       note="Today's quota, by platform"
       count={plan.data && !plan.error ? short.length : undefined}
-      actions={
-        <a className={MORE} href="/campaigns/plan">
-          Plan
-        </a>
-      }
     >
       {plan.error ? <LoadFailed error={plan.error} onRetry={plan.retry} what="list" /> : null}
       {plan.error ? null : !plan.data ? (

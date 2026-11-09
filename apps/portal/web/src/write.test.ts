@@ -1,6 +1,6 @@
 /** Today's Write list: platforms in order, the quota, met ones folded, the rest on Autopilot. */
 import { describe, expect, it } from "vitest";
-import type { Goal } from "./modules/marketing/plan.js";
+import type { Goal } from "./modules/marketing/cadence.js";
 import { met, wantOf, writeOf } from "./write.js";
 
 let n = 0;

@@ -9,11 +9,9 @@ import { COMMENT_ACTIONS, COMMENT_ASK, THREAD_VIEW_ACTIONS } from "./comments.js
 import { askedReplyExtras, conversationExtras, conversationReply } from "./conversation.js";
 import { dmExtras } from "./dms.js";
 import { DRAFT_ACTIONS, POST_ACTIONS } from "./drafts.js";
-import { FactsPage } from "./facts.js";
 import { withShape } from "./fields.js";
 import { INBOX_ACTIONS } from "./inbox.js";
 import { AUDIENCE_ACTIONS } from "./places.js";
-import { PlanPage } from "./plan.js";
 import { postExtras } from "./posts.js";
 import { withSiblings } from "./siblings.js";
 import { StudioPage, WritePage } from "./studio.js";
@@ -118,12 +116,6 @@ export const CONVERSATION_TOP = {
 export const MARKETING_PAGES = {
   inbox: { id: "inbox", ...INBOX_PAGE },
   approve: APPROVAL_PAGE,
-  plan: {
-    id: "plan",
-    label: "Plan",
-    about: "What to make today, what waits on you, and what went out.",
-    Page: PlanPage,
-  },
   studio: {
     id: "studio",
     label: "Studio",
@@ -215,13 +207,7 @@ export const MARKETING_PAGES = {
     actions: VIDEO_ACTIONS,
     extras: videoExtras,
   }),
-  // What every draft may claim; the guard's drop reason on a draft links here.
-  facts: {
-    id: "facts",
-    label: "Facts",
-    about: "What drafts may say about you and Wren.",
-    Page: FactsPage,
-  },
+
   followers: {
     id: "followers",
     label: "Followers",

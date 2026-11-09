@@ -10,6 +10,9 @@ export const MOVED: Readonly<Record<string, string>> = {
   "/account/people": "/office/team",
   "/calendar/calls": "/today/calls",
   "/calls/calls": "/campaigns/calls",
+  // Plan and Facts are gone (WA-1207, WA-1208).
+  "/campaigns/facts": "/campaigns/studio",
+  "/campaigns/plan": "/campaigns/studio",
   "/campaigns/variants": "/variants/batches",
   "/calendar/recordings": "/today/recordings",
   "/calendar/schedule": "/today/calendar",
@@ -35,7 +38,7 @@ export const MOVED: Readonly<Record<string, string>> = {
   "/marketing/followers": "/campaigns/followers",
   "/marketing/inbox": "/today/messages",
   "/marketing/invites": "/campaigns/invites",
-  "/marketing/more": "/campaigns/plan",
+  "/marketing/more": "/campaigns/studio",
   "/money/overview": "/office/money",
   "/outbound/campaigns": "/campaigns/email-campaigns",
   "/outbound/overview": "/campaigns/email",

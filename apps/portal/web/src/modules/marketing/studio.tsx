@@ -13,7 +13,7 @@ import { cx, Icon, PageHeader } from "@wren/ui";
 import { useEffect } from "react";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
-import { dueOf, goalsOf, usePlan } from "./plan.js";
+import { dueOf, goalsOf, usePlan } from "./cadence.js";
 import { chosen, makeOf, offeredFor, pick, studioHref } from "./studio-common.js";
 import { Compose } from "./studio-compose.js";
 import { DueCards, EYEBROW, NewRow } from "./studio-due.js";
@@ -140,17 +140,9 @@ function StudioHome(props: PageProps) {
         {plan.data && n === 0 ? null : (
           <section aria-labelledby="studio-due" className="grid min-w-0 gap-2.5">
             {/* A phone's head already says what is due: the label stays for a screen reader. */}
-            <div className="flex items-baseline gap-3 max-sm:contents">
-              <h2 id="studio-due" className={cx(EYEBROW, "max-sm:sr-only")}>
-                Still due this week
-              </h2>
-              <a
-                href="/campaigns/plan"
-                className="text-[13px] font-medium text-(--ui-link) no-underline hover:underline max-sm:hidden"
-              >
-                Open the plan
-              </a>
-            </div>
+            <h2 id="studio-due" className={cx(EYEBROW, "max-sm:sr-only")}>
+              Still due this week
+            </h2>
             <DueCards
               due={due}
               lines={byId}

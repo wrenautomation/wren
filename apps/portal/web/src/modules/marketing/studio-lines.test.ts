@@ -4,7 +4,7 @@ vi.stubGlobal("location", new URL("http://localhost:8803/"));
 const { metroFor } = await import("../../mocks/data/journeys.js");
 const { CADENCE } = await import("../../mocks/data/marketing.js");
 const { STUDIO_GRAPH, STUDIO_WAITING } = await import("../../mocks/data/studio.js");
-const { dueOf } = await import("./plan.js");
+const { dueOf } = await import("./cadence.js");
 const { headlineOf, lateSlot, waited } = await import("./studio-common.js");
 
 type Idea = Parameters<typeof lateSlot>[0];

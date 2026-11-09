@@ -163,11 +163,7 @@ const campaignsPlace: Module = {
       ],
       top: [CONVERSATION_TOP],
     },
-    ...from(
-      oldContent,
-      ["plan", "studio", "content", { id: "facts", label: "Voice and facts" }],
-      "Content",
-    ),
+    ...from(oldContent, ["studio", "content"], "Content"),
     ...from(oldContent, [
       { id: "drafts", lights: "studio" },
       { id: "videos", lights: "studio" },
