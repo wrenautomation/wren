@@ -301,7 +301,7 @@ function BatchView({
 }) {
   const open = r.state === "open";
   usePageContext(
-    `in view: batch ${r.n} of ${r.subject.slug} (${r.subject.kind}, id ${r.id}), ${open ? "open" : "closed"}, ${r.samples.length} samples`,
+    `in view: batch ${r.subject.slug}:${r.n} (${r.subject.kind}, id ${r.id}), ${open ? "open" : "closed"}, ${r.samples.length} samples`,
   );
   return (
     <div className="flex flex-col gap-4">

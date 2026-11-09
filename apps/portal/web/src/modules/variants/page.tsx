@@ -127,7 +127,7 @@ export function MarkBatch({
     .map(([t, n]) => `${n} ${t}`)
     .join(", ");
   usePageContext(
-    `in view: ${open.subject.slug} (${open.subject.kind}), batch ${open.batch.n} (id ${open.batch.id}), ${judged} of ${open.samples.length} marked`,
+    `in view: ${open.subject.slug} (${open.subject.kind}), batch ${open.subject.slug}:${open.batch.n} (id ${open.batch.id}), ${judged} of ${open.samples.length} marked`,
   );
   const wide = WIDE_KINDS.includes(open.subject.kind);
   const group = useMemo(() => new Together(), []);

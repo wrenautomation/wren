@@ -1,6 +1,6 @@
 ---
 name: variants
-description: Run William's taste loop with `wren variants`. You make a batch of samples (email copy, video cuts, images, landers), he scores them 1-10 (zones Bad, Okay, Good, Amazing) with anchored notes in the portal (Variants) and steers the tree (pin, prune, cross, width), you read his calls and make the next batch. Use when he says "variants", "make versions of", "iterate on", "try N cuts/openers/designs", "start from my direction", "what's winning", "grow from this", "kill that line", "cross these", "go wider", or adds a tip to test. Keep winners in the catalog; lock proven tips.
+description: Run William's taste loop with `wren variants`. You make a batch of samples (email copy, video cuts, images, landers), he scores them 1-10 (zones Bad, Okay, Good, Amazing) with anchored notes in the portal (Variants) and steers the tree (pin, prune, cross, width), you read his calls and make the next batch. Use when he says "variants", "make versions of", "iterate on", "try N cuts/openers/designs", "start from my direction", "what's winning", "grow from this", "add these to the current batch", "kill that line", "cross these", "go wider", or adds a tip to test. Keep winners in the catalog; lock proven tips.
 ---
 
 # variants
@@ -12,8 +12,10 @@ You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (pr
 ```sh
 ./bin/wren variants new <slug> --name "…" --kind text|image|video|page [--brief "…"] [--seed <ref>]...
 ./bin/wren variants show <subject>              # read before every batch: calls, notes, leaders, guides, steers
-./bin/wren variants add <subject> batch.json    # one batch; refused if it breaks a live steer
-./bin/wren variants queue                       # what waits on William
+./bin/wren variants add <subject> batch.json    # a new batch; refused if it breaks a live steer
+./bin/wren variants append <subject>:<n> more.json   # more samples in that open batch, same JSON
+./bin/wren variants merge <subject>:<m> <subject>:<n>   # m should have been an append: its samples join n, m goes
+./bin/wren variants queue [<subject> | <subject>:<n>]   # what waits on William
 ./bin/wren variants close <subject>:<n> --note "…"   # his guide for the next batch, given in chat
 ./bin/wren variants steer pin|prune <sample> | cross <a> <b> | width <subject> narrow|normal|wide [--why "…"]
 ./bin/wren variants steer list <subject> | lift <steer>
@@ -33,7 +35,7 @@ Read the reference for a step when you reach it. Each holds the how; this page h
 | 1 Start | New subject from his brief, or from seeds | `references/start.md` |
 | 2 Batch | 4-6 samples, each with a name, parents, change; one `why` | `references/batch.md` |
 | 3 Tree | Pick parents: mutate leaders, cross, one wild; obey his steers | `references/tree.md` |
-| 4 Hand over | Tell him `<subject>` batch N waits in Variants › Batches. Stop | — |
+| 4 Hand over | Tell him `<subject>:<n>` waits in Variants › Batches. Stop | — |
 | 5 Read | `show`: his scores, anchored notes, batch note, leaders, steers | `references/batch.md` |
 | 6 Guides | Propose lock or drop from `effect`; he decides | `references/guides.md` |
 | 7 Ship | A kept sample goes out; read `live` before each batch | `references/ship.md` |
@@ -43,7 +45,8 @@ Read the reference for a step when you reach it. Each holds the how; this page h
 
 - Never judge for him. `judge` and `note` exist for tests and for his spoken calls in chat only.
 - Blind: he sees no name, parent, change or why while he judges. Never put them in a sample's body.
-- One open batch per subject. A newer batch replaces an unmarked one in his queue, so wait.
+- Name a batch `<subject>:<n>` (its number within the subject) in notes and messages. The global id is secondary; outputs lead with the ref.
+- One open batch per subject. "Add it to the current batch" means `append`, never `add`: a new batch replaces an unmarked one in his queue. A closed batch takes no more samples; make a new one.
 - Steers are his. Set or lift one only when he says so (chat or canvas); put his words in `--why`.
 - His batch note comes first, then live steers, then his scores, then your own ideas.
 - The repo is public: subjects and samples live in the database, never in files under `wren/`.

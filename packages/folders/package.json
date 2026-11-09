@@ -20,7 +20,7 @@
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
-    "@wrenautomation/vireo": "0.6.1",
+    "@wrenautomation/vireo": "0.9.0",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"
   },

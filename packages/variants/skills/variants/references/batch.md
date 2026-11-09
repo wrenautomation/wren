@@ -18,7 +18,7 @@ Paths are relative to the json file. Playable: mp4 mov m4v webm jpg png gif pdf.
 
 ## Fields
 
-- `why`: what you changed from the last batch and what it tests. Cite batches by their number ("batch 2").
+- `why`: what you changed from the last batch and what it tests. Cite batches by their number within the subject ("batch 2"); outside the subject, `<subject>:<n>`. An `append` takes the same JSON; its `why` says what the new samples add.
 - `name`: 2-4 words he can say ("Star system").
 - `parents`: `[id]` or `[{"id": 7, "took": "the moving headline"}]`, main parent first. Two or more = a cross; say what each gave in `took`. See `tree.md`.
 - `change`: what differs from the main parent.

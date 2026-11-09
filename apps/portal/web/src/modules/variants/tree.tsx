@@ -159,7 +159,7 @@ export function SubjectTree({
   const s = sel != null ? (full.byId.get(sel) ?? null) : null;
   const round = s ? full.rounds[s.r - 1] : undefined;
   usePageContext(
-    `in view: ${subject.slug} generation tree${s ? `, ${s.name} selected (sample ${s.id}, batch ${round?.num})` : ""}${
+    `in view: ${subject.slug} generation tree${s ? `, ${s.name} selected (sample ${s.id}, batch ${subject.slug}:${round?.num})` : ""}${
       steers?.length
         ? `; live steers: ${steers.map((x) => (x.kind === "width" ? `width ${x.width}` : x.kind === "cross" ? `cross ${x.sampleId}×${x.otherId}` : `${x.kind} ${x.sampleId}`)).join(", ")}`
         : ""
