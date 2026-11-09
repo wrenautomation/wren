@@ -64,7 +64,6 @@
         "WREN_LISTMONK_URL": "container:listmonk",
         "WREN_DOCUMENSO_URL": "container:documenso-app",
         "WREN_PIXEL_BASE_URL": "worker:pixel",
-        "WREN_API_URL": "restate",
         "LAMBDA_URL": "lambda:auth"
       },
       "imports": {
