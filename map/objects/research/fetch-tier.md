@@ -31,15 +31,15 @@ Citations: `packages/research/src/schema.ts:89`, `packages/research/src/fetch/ti
 
 ## If you change this
 
-- **Hits:** `crawlCompany` (`packages/research/src/enrichment/crawler.ts:214`); `climbCompany`, `renderCompany` and `selectRenderTargets` (`packages/research/src/enrichment/render.ts:363`, `:258`, `:535`); the `Enrichment.crawl` and `Enrichment.render` handlers (`packages/research/src/restate/enrichment-crawl.ts:157`)
+- **Hits:** `crawlCompany` (`packages/research/src/enrichment/crawler.ts:214`); `climbCompany`, `renderCompany` and `selectRenderTargets` (`packages/research/src/enrichment/render.ts:363`, `:258`, `:535`); the `CompanyEnrich.crawl` and `CompanyEnrich.render` handlers (`packages/research/src/restate/enrichment-crawl.ts:157`)
 - **Does not hit:** a client's database (main only); `/read` and studies (they never look at it)
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `Enrichment.crawl` | reads |
-| `Enrichment.render` | reads and writes |
+| `CompanyEnrich.crawl` | reads |
+| `CompanyEnrich.render` | reads and writes |
 
 ## See
 

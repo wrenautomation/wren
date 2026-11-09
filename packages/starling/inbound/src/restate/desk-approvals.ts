@@ -73,8 +73,8 @@ const SETTLE_POST = z.looseObject({
   by: z.string().describe("Who decides"),
 });
 
-/** `Content/publish` as the core serves it. `verifyOnly` asks the stored verdict and never writes. */
-type ContentPublish = {
+/** `ContentPublish/publish` as the core serves it. `verifyOnly` asks the stored verdict and never writes. */
+type PublishCall = {
   publish: (
     ctx: restate.Context,
     req: {
@@ -99,7 +99,7 @@ async function askVerdict(
   ask: { post: Post; client: string | null; account: string | null; sendKey: string },
 ): Promise<Published | null> {
   try {
-    const got = await ctx.serviceClient<ContentPublish>({ name: "Content" }).publish({
+    const got = await ctx.serviceClient<PublishCall>({ name: "ContentPublish" }).publish({
       platform,
       post: ask.post,
       ...(ask.client ? { client: ask.client } : {}),
@@ -241,7 +241,7 @@ export function approvalsHandlers(desk: ContentDeskContext) {
           await afterPublish(
             ctx,
             { db, client, posted: deps.posted },
-            ctx.serviceClient<ReplyService>({ name: "Content" }),
+            ctx.serviceClient<ReplyService>({ name: "ContentPublish" }),
             {
               draftId: req.id,
               platform: waiting.platform,

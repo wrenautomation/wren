@@ -13,7 +13,7 @@ describe("dead letters", () => {
     const [p, ...rest] = pausedOf([
       {
         id: "inv_1",
-        target: "Content/comments",
+        target: "ContentPublish/comments",
         target_service_key: "wren",
         last_failure: "",
         invoked_by: "ingress",
@@ -24,7 +24,7 @@ describe("dead letters", () => {
     expect(rest).toEqual([]);
     expect(p).toEqual({
       invocationId: "inv_1",
-      target: "Content/comments",
+      target: "ContentPublish/comments",
       key: "wren",
       error: null,
       invokedBy: "ingress",
@@ -69,7 +69,7 @@ describe("dead letters", () => {
       }),
     ).toBe(true);
     // Same transport error on a wren service: wren is down, that pings.
-    expect(deskUnreachable({ target: "Content/comments", error: reset })).toBe(false);
+    expect(deskUnreachable({ target: "ContentPublish/comments", error: reset })).toBe(false);
     // The desk answered with its own error: a real failure.
     expect(
       deskUnreachable({ target: "desk/call", error: "[500] gmail: connection reset by peer" }),
@@ -93,7 +93,7 @@ describe("dead letters", () => {
     const admin = async (q: string) => {
       asked.push(q);
       if (q.includes("WHERE id IN"))
-        return [{ id: "inv_root", target: "Content/publish", status: "suspended" }];
+        return [{ id: "inv_root", target: "ContentPublish/publish", status: "suspended" }];
       const parents = [
         ...(/invoked_by_id IN \(([^)]*)\)/.exec(q)?.[1] ?? "").matchAll(/'(\w+)'/g),
       ].map((m) => m[1] as string);
@@ -114,7 +114,7 @@ describe("dead letters", () => {
     // Across runtimes: a pg bridge row's Restate twin is found by its idempotency key.
     tree.inv_sites = [];
     tree.twin_of_inv_root = [
-      { id: "inv_twin", target: "Content/publish", status: "suspended", parent: "" },
+      { id: "inv_twin", target: "ContentPublish/publish", status: "suspended", parent: "" },
     ];
     tree.inv_twin = [{ id: "inv_desk2", target: "desk/call", status: "paused", parent: "" }];
     expect(await pausedUnder(admin)("inv_root")).toBe("desk/call: connection reset");

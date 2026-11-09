@@ -39,7 +39,7 @@ import type { AnyService } from "./services.js";
  * Services on the Postgres runtime. A deploy flips one; pg keeps every service registered.
  * Groups (design doc "Move plan"): 1 AuditLogSeal; 2 platform and people loops; 3 email and content
  * loops; 4a the other loops and workers; 4b webhooks and public calls; 4c consoles, portals, desks;
- * 4d the box services (box lane), the watchdogs (read both runtimes' admin), the rest. Content last.
+ * 4d the box services (box lane), the watchdogs (read both runtimes' admin), the rest; 4e ContentPublish.
  */
 export const PG_SERVICES: readonly string[] = [
   "AuditLogSeal",
@@ -165,6 +165,8 @@ export const PG_SERVICES: readonly string[] = [
   "VariantsCollect",
   "VariantsConsole",
   "FoldersConsole",
+  // 4e: posts, reads, replies, metrics per platform
+  "ContentPublish",
 ];
 
 /**
@@ -207,6 +209,8 @@ export const RENAMED: Readonly<Record<string, string>> = {
   Resolution: "LeadVerify",
   Discovery: "CompanySiteFind",
   Enrichment: "CompanyEnrich",
+  // 4e: dead-letter and timeout rows, and calls already queued, name it
+  Content: "ContentPublish",
 };
 
 const LEASE_MS = 60_000;

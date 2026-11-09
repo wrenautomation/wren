@@ -195,7 +195,7 @@ export function makePostMetrics(deps: PostMetricsDeps) {
   const L = limitsWith(deps.limits);
   return makeLoopObject("PostMetrics", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
-    const content = ctx.serviceClient<ContentService>({ name: "Content" });
+    const content = ctx.serviceClient<ContentService>({ name: "ContentPublish" });
     const owner = clientOfKey(ctx.key);
     const client = owner?.client ?? null;
     if (client) {
@@ -240,7 +240,7 @@ export function makePostMetrics(deps: PostMetricsDeps) {
             })),
             ...(client ? { client } : {}),
           }),
-          { ms: L.batch, call: "Content/metricsMany", group: platform },
+          { ms: L.batch, call: "ContentPublish/metricsMany", group: platform },
         );
         for (const m of got ?? []) batched.set(`${platform}:${m.id}`, m);
       } catch (err) {
@@ -273,7 +273,7 @@ export function makePostMetrics(deps: PostMetricsDeps) {
           m ??= await limits.within(
             `metrics ${post}`,
             content.metrics({ platform: draft.platform, id, ...(client ? { client } : {}) }),
-            { ms: L.read, call: "Content/metrics", group: draft.platform },
+            { ms: L.read, call: "ContentPublish/metrics", group: draft.platform },
           );
         } catch (err) {
           if (!(err instanceof restate.TerminalError) || (err.code !== 501 && err.code !== 502))
@@ -301,7 +301,7 @@ export function makePostMetrics(deps: PostMetricsDeps) {
                 read: m?.read,
                 ...(client ? { client } : {}),
               }),
-              { ms: L.read, call: "Content/insights", group: draft.platform },
+              { ms: L.read, call: "ContentPublish/insights", group: draft.platform },
             );
         } catch (err) {
           if (!(err instanceof restate.TerminalError)) throw err;
@@ -340,7 +340,7 @@ export function makePostMetrics(deps: PostMetricsDeps) {
       ? []
       : await within(ctx, content.platforms(), {
           ms: L.quick,
-          call: "Content/platforms",
+          call: "ContentPublish/platforms",
         }).catch((err: unknown) => {
           if (!(err instanceof restate.TerminalError)) throw err;
           return [] as Platform[];
@@ -356,7 +356,7 @@ export function makePostMetrics(deps: PostMetricsDeps) {
         const r = await limits.within(
           unit,
           content.reportDays({ platform, after: after ?? null }),
-          { ms: L.read, call: "Content/reportDays", group: platform },
+          { ms: L.read, call: "ContentPublish/reportDays", group: platform },
         );
         if (!r?.rows.length) ctx.set(`${REPORTS_QUIET}${platform}`, now.toISOString());
         if (!r) continue;
@@ -380,7 +380,7 @@ export function makePostMetrics(deps: PostMetricsDeps) {
         try {
           const a = await limits.within(unit, content.accountInsights({ platform }), {
             ms: L.read,
-            call: "Content/accountInsights",
+            call: "ContentPublish/accountInsights",
             group: platform,
           });
           if (!a) continue;

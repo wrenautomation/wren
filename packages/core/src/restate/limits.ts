@@ -45,7 +45,7 @@ const STRIKES = 3;
 
 /** One call a pass stopped waiting on. */
 export interface TimedOut {
-  /** What was called: `Content/metrics`. */
+  /** What was called: `ContentPublish/metrics`. */
   call: string;
   /** What it was for: a post, a person, a platform; null when the call is the pass's own. */
   unit: string | null;
@@ -82,7 +82,7 @@ type Waitable<T> = restate.RestatePromise<T> &
 
 interface WithinOpts {
   ms: number;
-  /** What is called, for the stat and the error: `Content/metrics`. */
+  /** What is called, for the stat and the error: `ContentPublish/metrics`. */
   call: string;
   unit?: string | null;
   /** Leave the call running past the limit (a write that may still land). Default: cancel it. */

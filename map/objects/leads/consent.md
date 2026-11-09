@@ -52,8 +52,8 @@ Two one-step sources confirm without a click (`giveConsent`), and neither lifts 
 
 | Surface | Role |
 |---|---|
-| `Marketing{signUp,confirm,prefs,set}` | writes |
-| `Ads.leadConsents`, an SMS keyword through `SmsEvents.ingest` | writes |
+| `SignupForm{signUp,confirm,prefs,set}` | writes |
+| `Ads.leadConsents`, an SMS keyword through `SmsWebhookIntake.ingest` | writes |
 | `Newsletter{send}`, `wren newsletter` | sends, writes `sent` and a `marketing_sends` row |
 | Account > Messaging (`delivery/messaging*`) | writes `message_settings` |
 | console records `marketing.subscriber`, `marketing.topic` | read |

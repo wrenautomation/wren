@@ -17,7 +17,7 @@ import { markPublished, noteOnDraft } from "../queue.js";
 /** A first comment is a nicety: waited on this long, then noted on the draft. */
 const COMMENT_WAIT_MS = LIMITS.read;
 
-/** `Content/reply` as the core serves it: given a send key it answers a `Delivery`. */
+/** `ContentPublish/reply` as the core serves it: given a send key it answers a `Delivery`. */
 export type ReplyService = {
   reply: (
     ctx: restate.Context,
@@ -97,7 +97,7 @@ export async function afterPublish(
         ...(p.sendKey ? { sendKey: `${p.sendKey} comment` } : {}),
       }),
       // A write: left running past the wait, since it may still land.
-      { ms: COMMENT_WAIT_MS, call: "Content/reply", unit: p.draftId, keep: true },
+      { ms: COMMENT_WAIT_MS, call: "ContentPublish/reply", unit: p.draftId, keep: true },
     ).then(
       (got) => (isDelivery(got) ? notedOf(got) : null),
       (err: unknown) => errorText(err),

@@ -38,6 +38,6 @@ Citations: `packages/starling/inbound/src/social/keywords.ts`, `packages/starlin
 | Surface | Role |
 |---|---|
 | `SocialActivityRead` pass | catches, sends each hit to `KeywordDm.send` |
-| `KeywordDm.send` (ingress-private) | DM via `Content.privateReply` as `private:<comment id>`, then `Content.reply` if set as `comment:<comment id>`, each through `sendAtMostOnce` ([[content/send-attempt]]). Sent: hit `sent`. Unsure, not sent or Meta's no: hit `failed` with why; no reply after a DM that may not have gone |
+| `KeywordDm.send` (ingress-private) | DM via `ContentPublish.privateReply` as `private:<comment id>`, then `ContentPublish.reply` if set as `comment:<comment id>`, each through `sendAtMostOnce` ([[content/send-attempt]]). Sent: hit `sent`. Unsure, not sent or Meta's no: hit `failed` with why; no reply after a DM that may not have gone |
 | Marketing → Comment keywords | New keyword, Delete, edit DM, reply, on/off |
 | Marketing → Keyword DMs | the log, Failed view |

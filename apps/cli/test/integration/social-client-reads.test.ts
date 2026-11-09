@@ -21,7 +21,7 @@ import { clientRoute } from "@wren/starling-conversations/inbox";
 import { makeAutoReply } from "@wren/starling-conversations/restate";
 import { comments } from "@wren/starling-conversations/schema";
 import { fakeContentChannel } from "@wren/starling-core";
-import { type Channels, makeContent } from "@wren/starling-core/service";
+import { type Channels, makeContentPublish } from "@wren/starling-core/service";
 import { addIdea, clientContent, contentDrafts } from "@wren/starling-inbound";
 import {
   businessProfileContent,
@@ -126,7 +126,7 @@ beforeAll(async () => {
   env = await startTestRestate({
     services: [
       executor.service,
-      makeContent(() => ({}), {
+      makeContentPublish(() => ({}), {
         channels: async (_ctx, client): Promise<Channels> => {
           const c = await clientContent(pg.db, client, "content.social");
           if (c.kind !== "work") return {};

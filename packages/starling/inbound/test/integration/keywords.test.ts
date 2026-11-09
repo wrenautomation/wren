@@ -68,7 +68,7 @@ const answer = (req: Ask, out: unknown, handler = "privateReply") => {
   return { kind: "sent", out };
 };
 const fakeContent = restate.service({
-  name: "Content",
+  name: "ContentPublish",
   handlers: {
     privateReply: async (_ctx: restate.Context, req: Ask) => {
       asked.push({ handler: "privateReply", ...req });

@@ -12,7 +12,7 @@ beforeAll(async () => {
 afterAll(() => pg.stop());
 
 const NOW = new Date("2026-10-11T12:00:00Z");
-const paused = (id: string, target = "Content/comments") => ({
+const paused = (id: string, target = "ContentPublish/comments") => ({
   id,
   target,
   target_service_key: null,

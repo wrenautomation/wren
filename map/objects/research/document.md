@@ -40,16 +40,16 @@ Citations: `packages/research/src/schema.ts:41`, `packages/research/src/enrichme
 ## If you change this
 
 - **Hits:** crawler and renderer (`packages/research/src/enrichment/crawler.ts:214`, `render.ts:258`, `render.ts:363`); email scan (`packages/research/src/enrichment/email-scan.ts`); extraction (`packages/research/src/enrichment/extraction.ts`); contacts stage (`packages/research/src/enrichment/contacts.ts:265`); the archive (`packages/research/src/pages.ts`)
-- **Seam:** `Enrichment.render` calls autobrowse's `web GET /fetch` (`src/reach/ladder.ts`) through read's `fetchLadder` (`@wrenautomation/read/fetch`, `LadderClient`); tier and block names are its contract (`effects/CONTEXT.md`, outside the tree)
+- **Seam:** `CompanyEnrich.render` calls autobrowse's `web GET /fetch` (`src/reach/ladder.ts`) through read's `fetchLadder` (`@wrenautomation/read/fetch`, `LadderClient`); tier and block names are its contract (`effects/CONTEXT.md`, outside the tree)
 - **Does not hit:** discovery (it decides the domain before any page is stored)
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `Enrichment.crawl` | write; reads the memory, skips `dead` and remembered domains |
-| `Enrichment.render` | write; shells through the box browser, blocked companies through `web GET /fetch` (`ladder` dep, `ladderLimit`) |
-| `Enrichment.scan/contacts/extract` | read |
+| `CompanyEnrich.crawl` | write; reads the memory, skips `dead` and remembered domains |
+| `CompanyEnrich.render` | write; shells through the box browser, blocked companies through `web GET /fetch` (`ladder` dep, `ladderLimit`) |
+| `CompanyEnrich.scan/contacts/extract` | read |
 | `PageHtmlArchive.loop` (box), `wren pages archive` | moves html to S3 |
 
 ## See

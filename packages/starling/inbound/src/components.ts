@@ -49,7 +49,7 @@ export const CONTENT_COMPONENTS = [
     requires: { anyAccount: [...POSTING_ACCOUNTS] },
     provides: {
       services: [
-        "Content",
+        "ContentPublish",
         "ContentDesk",
         "PostPublish",
         "PostMetrics",

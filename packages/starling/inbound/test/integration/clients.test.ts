@@ -19,7 +19,7 @@ import { FakeLlm } from "@wren/llm";
 import * as clients from "@wren/runtime/clients";
 import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { fakeContentChannel } from "@wren/starling-core";
-import { type Channels, makeContent, SENDS_OFF } from "@wren/starling-core/service";
+import { type Channels, makeContentPublish, SENDS_OFF } from "@wren/starling-core/service";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clientContent, clientPlan } from "../../src/clients.js";
@@ -105,7 +105,7 @@ beforeAll(async () => {
   env = await startTestRestate({
     services: [
       executor.service,
-      makeContent(() => ({}), {
+      makeContentPublish(() => ({}), {
         channels: async (_ctx, client) => channels[client] ?? {},
         sends: async (client) => {
           const c = await findClient(pg.db, client);
@@ -245,7 +245,7 @@ describe("posting per client", () => {
     // The Content service refuses a client's post outright while its sends are off.
     await expect(
       ingress()
-        .serviceClient<ReturnType<typeof makeContent>>({ name: "Content" })
+        .serviceClient<ReturnType<typeof makeContentPublish>>({ name: "ContentPublish" })
         .publish({ platform: "linkedin", post: { text: "x" }, client: "kappa" } as never),
     ).rejects.toThrow(SENDS_OFF);
 

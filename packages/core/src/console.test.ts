@@ -161,7 +161,7 @@ describe("ConsolePortal loops", () => {
         generation: 2,
         last: {
           ...pass("2026-01-02T09:00:00.000Z", 1, "boom"),
-          timeouts: [{ call: "Content/metrics", unit: "post 1", ms: 300_000, held: true }],
+          timeouts: [{ call: "ContentPublish/metrics", unit: "post 1", ms: 300_000, held: true }],
         },
       }),
     ];
@@ -175,7 +175,7 @@ describe("ConsolePortal loops", () => {
         error: "boom",
         nextAt: null,
         delayMs: 60_000,
-        timeouts: [{ call: "Content/metrics", unit: "post 1", ms: 300_000, held: true }],
+        timeouts: [{ call: "ContentPublish/metrics", unit: "post 1", ms: 300_000, held: true }],
       },
     ]);
   });

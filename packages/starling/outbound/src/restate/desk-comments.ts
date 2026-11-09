@@ -153,7 +153,7 @@ export function commentsHandlers(desk: DeskContext) {
         );
         const text = (req.body ?? plan?.comment.draft ?? "").trim();
         if (!plan || plan.account || !text) return { armed: false };
-        return ctx.serviceClient<ContentReply>({ name: "Content" }).arm({
+        return ctx.serviceClient<ContentReply>({ name: "ContentPublish" }).arm({
           platform: plan.comment.platform,
           commentId: plan.comment.ref,
           postId: plan.comment.post,
@@ -191,7 +191,7 @@ export function commentsHandlers(desk: DeskContext) {
             send: () =>
               sendAcross<{ ref: string | null }>((k) =>
                 ctx
-                  .serviceClient<ContentReply>({ name: "Content" })
+                  .serviceClient<ContentReply>({ name: "ContentPublish" })
                   .privateReply({ platform: c.platform, commentId: c.ref, text: body, ...k }),
               ),
             landed: (tx, sent) =>

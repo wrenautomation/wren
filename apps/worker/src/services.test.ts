@@ -70,7 +70,7 @@ afterEach(async () => {
   while (closers.length) await closers.pop()?.();
 });
 
-/** Build the worker's services from env alone (no database is reached) and return the Content handlers. */
+/** Build the worker's services from env alone (no database is reached) and return the ContentPublish handlers. */
 async function contentOf(env: Record<string, string>) {
   const rootDir = mkdtempSync(join(tmpdir(), "wren-services-"));
   const settings = loadSettings(
@@ -80,7 +80,7 @@ async function contentOf(env: Record<string, string>) {
   const { log, lines } = logOf();
   const built = await buildServices(settings, log, { rootDir });
   closers.push(() => built.close());
-  const svc = built.services.find((s) => s.name === "Content");
+  const svc = built.services.find((s) => s.name === "ContentPublish");
   const handlers = svc ? (svc as unknown as { service: Handlers }).service : null;
   return { handlers, lines };
 }
@@ -211,7 +211,7 @@ describe("servicesFor: which side serves the pool chain", () => {
     "BooksClose",
     "MyMailTriage",
     "SocialActivityRead",
-    "Content",
+    "ContentPublish",
   ].map((name) => ({
     name,
   })) as never[];
@@ -222,7 +222,7 @@ describe("servicesFor: which side serves the pool chain", () => {
   });
 
   it("Lambda drops the chain once the box hosts it", () => {
-    expect(names(servicesFor(all, "lambda", "box"))).toEqual(["EmailSend", "Content"]);
+    expect(names(servicesFor(all, "lambda", "box"))).toEqual(["EmailSend", "ContentPublish"]);
   });
 
   it("Lambda serves everything until then", () => {
@@ -250,8 +250,8 @@ describe("handler forms", () => {
     "SmsDesk/start": "sends",
     "SmsApplicationFollowUp/applied": "sends",
     "SmsConsole/reply": "sends",
-    "Content/publish": "posts",
-    "Content/reply": "posts",
+    "ContentPublish/publish": "posts",
+    "ContentPublish/reply": "posts",
     "ReachDesk/reply": "sends",
     "ReachDesk/enroll": "sends",
     "SignupForm/signUp": "sends",

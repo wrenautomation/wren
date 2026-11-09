@@ -65,7 +65,7 @@ export const PLATFORM = {
     SetupAgent: "a done-for-you setup step, run by autobrowse do in the account owner's autobrowse",
     AccountsConsole: "a client's accounts, setups and vendor modes",
     PeopleConsole: "People in every workspace: records, groups, Describe group, broadcasts",
-    Segments:
+    SegmentPass:
       "a workspace's groups kept true; entries, exits, traits and dates told to the executor",
     SegmentsRefresh: "wakes every workspace's groups pass every 15 minutes",
     PeopleMap: "a workspace's people map: each person's stage, warmth and persona rebuilt",
@@ -91,8 +91,11 @@ export const PLATFORM = {
     ClientInvoicing:
       "Wren's own billing: the month's invoices made and mailed, money in read from Wise and matched",
     BillingConsole: "money in by bank transfer: put a credit on an invoice, or set it aside",
-    Webhooks:
+    WebhookSend:
       "a client's own URLs hear its events: subscriptions, signed deliveries, the retry ladder",
+    VariantsConsole: "the taste loop: batches, his marks and notes, guides, the catalog, ships",
+    VariantsCollect: "every 6 h: each shipped sample's market numbers per segment",
+    FoldersConsole: "Wren's folder tree: make, rename, move, drop, file",
   },
   records: {
     "console.ask": "every question asked of Claude Code",

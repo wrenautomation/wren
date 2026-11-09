@@ -125,7 +125,7 @@ export async function journalOf(
   }));
 }
 
-/** How deep `pausedUnder` looks: Content → sites → desk is three calls. */
+/** How deep `pausedUnder` looks: ContentPublish → sites → desk is three calls. */
 const PAUSED_DEPTH = 5;
 
 /**

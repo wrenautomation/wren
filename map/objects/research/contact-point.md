@@ -36,7 +36,7 @@ Citations: `packages/research/src/schema.ts:257`
 
 | Surface | Role |
 |---|---|
-| `Enrichment.contacts` (pool stage after `scan`) | writes |
+| `CompanyEnrich.contacts` (pool stage after `scan`) | writes |
 | `own_contact_points` view | every reader's entry |
 | `SmsDesk.lift`, `wren sms lift` | read phones |
 | `lead_sheet`, `wren email sheet` | read phone, socials, LinkedIn fallbacks |

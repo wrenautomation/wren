@@ -122,7 +122,7 @@ describe("ListmonkIntake and ListmonkMail", () => {
     expect(mail?.subject).toBe("A new post");
     expect(mail?.text).toContain("Plain words");
     expect(mail?.headers?.map(([k]) => k.toLowerCase())).toContain("list-unsubscribe");
-    expect(await issueSends(pg.db, `${TOPIC}:a-new-post`)).toBe(1);
+    await expect.poll(() => issueSends(pg.db, `${TOPIC}:a-new-post`), { timeout: 10_000 }).toBe(1); // recorded a step after the send
   });
 
   it("does nothing for a repeat of the same message or a second message to the same address", async () => {
@@ -133,7 +133,7 @@ describe("ListmonkIntake and ListmonkMail", () => {
     await post(message({ email: ANA, recipient: "r-2" }));
     await settle(() => false, 12);
     expect(sent).toHaveLength(1);
-    expect(await issueSends(pg.db, `${TOPIC}:a-new-post`)).toBe(1);
+    await expect.poll(() => issueSends(pg.db, `${TOPIC}:a-new-post`), { timeout: 10_000 }).toBe(1); // recorded a step after the send
   });
 
   it("sends nothing to a withdrawn address or one that never signed up", async () => {
@@ -158,7 +158,9 @@ describe("ListmonkIntake and ListmonkMail", () => {
     await post(message({ email: ANA, tags: [`wren-topic:${TOPIC}`] }));
     await settle((n) => n >= 1);
     expect(sent).toHaveLength(1);
-    expect(await issueSends(pg.db, `${TOPIC}:a-new-post-c0ffee00`)).toBe(1);
+    await expect
+      .poll(() => issueSends(pg.db, `${TOPIC}:a-new-post-c0ffee00`), { timeout: 10_000 })
+      .toBe(1); // recorded a step after the send
   });
 });
 

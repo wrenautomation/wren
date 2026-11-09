@@ -52,6 +52,10 @@ describe("route list", () => {
     expect(new Set(PG_SERVICES).size).toBe(PG_SERVICES.length);
   });
 
+  it("every built service is on pg (phase 4 done: Restate keeps proxies only)", () => {
+    expect(all.map((s) => s.name).filter((n) => !PG_SERVICES.includes(n))).toEqual([]);
+  });
+
   it("a rename goes from a name no service has to a pg service", () => {
     const names = new Set(all.map((s) => s.name));
     for (const [from, to] of Object.entries(RENAMED)) {

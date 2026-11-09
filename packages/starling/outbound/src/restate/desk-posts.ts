@@ -124,7 +124,7 @@ export function postsHandlers(desk: DeskContext) {
               } else
                 await sendAcross((k) =>
                   ctx
-                    .serviceClient<ContentReply>({ name: "Content" })
+                    .serviceClient<ContentReply>({ name: "ContentPublish" })
                     .reply({ platform: post.platform, commentId: post.ref, text: body, ...k }),
                 );
               return { ref: null };

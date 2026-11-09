@@ -42,7 +42,7 @@ Citations: `packages/core/src/schema.ts:219`
 | Surface | Role |
 |---|---|
 | `wren email import` | writes |
-| `Discovery.verify`, `Resolution.verifyLeads` | move status |
+| `CompanySiteFind.verify`, `LeadVerify.verifyLeads` | move status |
 | `LeadPoolFill` | drives the above |
 | compose | reads `verified` |
 | `wren email sheet --niche <n> [--csv]` | reads `lead_sheet` |

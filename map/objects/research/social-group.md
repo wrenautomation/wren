@@ -34,7 +34,7 @@ Citations: `packages/research/src/social-schema.ts`, `packages/research/src/enri
 
 ## If you change this
 
-- **Hits:** `fb-groups.ts`, `Enrichment.fbGroups`, the pool's `fbGroups` stage, `postFacts` (a group post under 90 days can feed `post.*` facts only if it carries `published_at`; it carries none)
+- **Hits:** `fb-groups.ts`, `CompanyEnrich.fbGroups`, the pool's `fbGroups` stage, `postFacts` (a group post under 90 days can feed `post.*` facts only if it carries `published_at`; it carries none)
 - **Does not hit:** compose, Resolution
 
 ## Surfaces

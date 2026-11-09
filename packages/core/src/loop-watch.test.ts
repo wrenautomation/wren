@@ -61,10 +61,10 @@ describe("healthOf", () => {
   });
 
   it("stuck: the pass waits on a paused call, or nothing moved past the stall limit", () => {
-    const paused = call("paused", -1, "Content/publish");
+    const paused = call("paused", -1, "ContentPublish/publish");
     const h = healthOf(view({ open: [call("suspended", -1)], waitsOn: [paused] }), at(0));
     expect(h).toMatchObject({ health: "stuck", blocker: paused });
-    expect(h.why).toContain("Content/publish, paused");
+    expect(h.why).toContain("ContentPublish/publish, paused");
     const quiet = healthOf(
       view({ open: [call("suspended", -50)], waitsOn: [call("running", -46, "desk/call")] }),
       at(0),
@@ -152,7 +152,7 @@ describe("planWatch", () => {
   });
 
   it("stuck: told once with its blocker, never woken", () => {
-    const blocker = call("paused", -1, "Content/publish");
+    const blocker = call("paused", -1, "ContentPublish/publish");
     let incidents: Record<string, Incident> = {};
     const titles: string[] = [];
     for (const min of [0, 10, 20]) {

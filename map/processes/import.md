@@ -39,7 +39,7 @@ Identity constraints must never decide what gets stored: a clash is recorded as 
 |---|---|
 | `wren email import` / `import-people` / `wren fetch` | runs |
 | `wren email screen` / `contacts` | rerun steps 5–6 |
-| `Discovery.discover` | runs the batch form |
+| `CompanySiteFind.discover` | runs the batch form |
 
 ## See
 

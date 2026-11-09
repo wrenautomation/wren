@@ -133,7 +133,7 @@ export function deskContext(deps: ReachDeps) {
         send: async () => {
           // The key crosses to `Content`, which runs the write under it and answers a Delivery.
           await sendAcross((k) =>
-            ctx.serviceClient<ContentReply>({ name: "Content" }).reply({
+            ctx.serviceClient<ContentReply>({ name: "ContentPublish" }).reply({
               platform,
               commentId: target,
               // LinkedIn names a member comment by its post and its bare id.

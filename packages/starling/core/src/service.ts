@@ -216,7 +216,7 @@ const UPDATE = ONE_POST.extend({
   }),
 });
 
-export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) {
+export function makeContentPublish(channelsFor: ChannelsFor, clients?: ContentClients) {
   /** Wren's channel, or a client's on its own login (`client`). */
   const pick = async (
     ctx: restate.Context,
@@ -247,7 +247,7 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
     if (!on) throw new restate.TerminalError(SENDS_OFF, { errorCode: 403 });
   };
   return restate.service({
-    name: "Content",
+    name: "ContentPublish",
     handlers: {
       platforms: serviceHandler(
         { input: NO_INPUT },
@@ -612,4 +612,4 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
     },
   });
 }
-export type Content = ReturnType<typeof makeContent>;
+export type ContentPublish = ReturnType<typeof makeContentPublish>;

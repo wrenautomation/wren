@@ -27,7 +27,7 @@ Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monore
 | draft | `messages.state = draft`; a `content_drafts` row. |
 | enrollment | `enrollments`: one email sequence per company. SMS has no table; a contact's `state` becomes `enrolled`. |
 | campaign | worker `Campaign` (a niche's templates + sequences + plan, `apps/worker/src/services/deps.ts:402`); a Meta campaign id in `ad_launches`; the 10DLC campaign that `WREN_SMS_LIVE` stands for. |
-| verification | `verifications` rows (address verdicts); `Discovery.verify` (does this domain belong to this company); `Resolution.verifyLeads`. |
+| verification | `verifications` rows (address verdicts); `CompanySiteFind.verify` (does this domain belong to this company); `LeadVerify.verifyLeads`. |
 | sync | loop handler `sync` = one pass now (`packages/core/src/restate/loop.ts`); `syncInbox` = read a mailbox; `inbox_syncs` / `open_syncs` / `click_syncs` = cursors. |
 | template | a row of `templates` ([[platform/template-store]]): email, text, DM or prompt, versions in `template_versions`; before 2026-10-06 an `.email` file, an `sms_templates` or `reach_templates` row; `Template` = the parsed tree. |
 | sender | a roster `Sender` (an inbox address); `SmsSend` (the SMS loop object); `enrollments.sender` (the address chosen at compose). |

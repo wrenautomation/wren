@@ -39,7 +39,7 @@ Citations: `packages/starling/inbound/src/media.ts:45`
 | `wren content add` | uploads |
 | `ContentDesk.attach` (`attachFile`, `packages/starling/inbound/src/attach.ts`) | stores a draft field's file: thumbnail, Reel cover, subtitles; magic bytes checked, 2 MB |
 | `marketing.draft`/`approval`/`post` loads (`shapeView`) | sign a GET per stored field file |
-| `Content.publish` | signs |
+| `ContentPublish.publish` | signs |
 
 ## See
 

@@ -64,7 +64,7 @@ interface SocialInboxDeps {
 }
 
 type Fn<I, O> = (ctx: unknown, req: I) => Promise<O>;
-/** `Content/reply`: given a send key it answers a `Delivery`, which `sendAcross` unwraps. */
+/** `ContentPublish/reply`: given a send key it answers a `Delivery`, which `sendAcross` unwraps. */
 type ContentReply = {
   reply: Fn<
     {
@@ -270,7 +270,7 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
             send: async () => {
               // The key crosses to `Content`, which runs the write under it and answers a Delivery.
               await sendAcross((k) =>
-                ctx.serviceClient<ContentReply>({ name: "Content" }).reply({
+                ctx.serviceClient<ContentReply>({ name: "ContentPublish" }).reply({
                   platform: plan.platform,
                   commentId: plan.ref,
                   text: req.body,

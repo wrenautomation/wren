@@ -13,7 +13,7 @@ A post on wrenautomation.com/blog written in Write's Blog box: the `blog_posts` 
 
 ## Why this shape
 
-The lander's Markdown file is the post, so the site, its RSS and the newsletter's `/blog/<slug>.json` all read one source (designs/2026-10-11-newsletter.md). Wren commits that file through GitHub's contents API with a token for the lander repo only (`WREN_LANDER_GITHUB_TOKEN`); a push to main deploys it. The row is what Write lists and Plan's `newsletter` goal counts (`published_at`, first time up; a draft clears it). `emailed_at` is set when `Blog.email` hands the live issue to `Newsletter` (designs/2026-10-13-blog-box.md). `from_ref` (migration 0257, `video:<id>`) says which long video it was written from, so Pieces nests it there; blog posts have no idea row to carry a `ref`, so this one column is the exception to "no parent columns" (designs/2026-10-14-content-types.md).
+The lander's Markdown file is the post, so the site, its RSS and the newsletter's `/blog/<slug>.json` all read one source (designs/2026-10-11-newsletter.md). Wren commits that file through GitHub's contents API with a token for the lander repo only (`WREN_LANDER_GITHUB_TOKEN`); a push to main deploys it. The row is what Write lists and Plan's `newsletter` goal counts (`published_at`, first time up; a draft clears it). `emailed_at` is set when `BlogSave.email` hands the live issue to `Newsletter` (designs/2026-10-13-blog-box.md). `from_ref` (migration 0257, `video:<id>`) says which long video it was written from, so Pieces nests it there; blog posts have no idea row to carry a `ref`, so this one column is the exception to "no parent columns" (designs/2026-10-14-content-types.md).
 
 ## Shape
 

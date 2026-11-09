@@ -107,7 +107,7 @@ const replies: {
   recheck?: boolean;
 }[] = [];
 const fakeContent = restate.service({
-  name: "Content",
+  name: "ContentPublish",
   handlers: {
     reply: async (
       _ctx: restate.Context,

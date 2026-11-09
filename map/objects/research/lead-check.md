@@ -37,7 +37,7 @@ Citations: `packages/starling/channels/email/src/schema.ts:664`, `packages/starl
 
 | Surface | Role |
 |---|---|
-| `Enrichment.profiles`, `wren enrich profiles` | write, per firm after each person |
+| `CompanyEnrich.profiles`, `wren enrich profiles` | write, per firm after each person |
 | `wren enrich checks --niche <n>` | writes, backfill (`apps/cli/src/enrich.ts:207`) |
 | `wren email sheet` | reads through `lead_sheet` |
 | compose | reads (skips the wrong person) |

@@ -17,7 +17,7 @@ import type { ObjectContext } from "@wren/runtime";
 import { makeDraftAsk } from "@wren/starling-acts/restate";
 import { markAnswered } from "@wren/starling-conversations";
 import { makeAutoReply, makeChat, makeInboxDesk } from "@wren/starling-conversations/restate";
-import { makeContent } from "@wren/starling-core/service";
+import { makeContentPublish } from "@wren/starling-core/service";
 import { isGoogleMailbox } from "@wren/starling-email/access/access";
 import { slidePainter } from "@wren/starling-inbound";
 import { liveConnections, loginOf } from "@wren/starling-inbound/connect";
@@ -89,7 +89,7 @@ export function contentServices(deps: Deps): AnyService[] {
   // Bound with no channel of Wren's too: a client's connected accounts post and read through it.
   const content = contentFor(settings, log, db);
   services.push(
-    makeContent(
+    makeContentPublish(
       content ?? (() => ({})),
       contentClientsFor(settings, db, clientDb, keys, socialApi),
     ),

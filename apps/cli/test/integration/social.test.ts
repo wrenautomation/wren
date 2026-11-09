@@ -23,7 +23,7 @@ import { parkUnsure, redditPlaces, redditRequirements, sendAttempts } from "@wre
 import { answerComment, planAnswer } from "@wren/starling-conversations";
 import { comments, reachContacts, reachMessages } from "@wren/starling-conversations/schema";
 import { type ActivityRow, type ContentChannel, fakeContentChannel } from "@wren/starling-core";
-import { makeContent } from "@wren/starling-core/service";
+import { makeContentPublish } from "@wren/starling-core/service";
 import {
   addIdea,
   COMMENTS_SOP,
@@ -115,7 +115,7 @@ beforeAll(async () => {
   env = await startTestRestate({
     services: [
       fakeExecutor,
-      makeContent(() => channels),
+      makeContentPublish(() => channels),
       socialPushed,
       fakeReachInboxRead,
       askReach,

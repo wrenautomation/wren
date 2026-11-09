@@ -485,7 +485,7 @@ export function makePostPublish(deps: PostPublishDeps) {
     try {
       const got = await within(ctx, call, {
         ms: publishWaitMs,
-        call: "Content/publish",
+        call: "ContentPublish/publish",
         unit: p.draftId,
         keep: true,
       });
@@ -513,7 +513,7 @@ export function makePostPublish(deps: PostPublishDeps) {
     now: Date,
     o: { db: Db; client: string | null; notifier?: Notifier | undefined },
   ): Promise<PassOutcome<PublishStats>> {
-    const content = ctx.serviceClient<ContentService>({ name: "Content" });
+    const content = ctx.serviceClient<ContentService>({ name: "ContentPublish" });
     const stats: PublishStats = { published: [], failed: [], remaining: 0 };
     /** Platforms whose browser was busy this pass: their other drafts wait for the next. */
     const busy = new Set<Platform>();

@@ -39,7 +39,7 @@ Citations: `packages/starling/channels/sms/src/schema.ts:200`
 |---|---|
 | `SmsSend/fleet` | writes sends; each sent step leaves its cadence node on the executor (`stepped`) |
 | `Executor` (`sms.touch`) | writes the next step, due now, when its wait ends |
-| `SmsEvents.ingest` | writes inbound and receipts |
+| `SmsWebhookIntake.ingest` | writes inbound and receipts |
 | `SmsDesk.reply` | writes manual |
 | `SmsUpkeep/daily` | labels, queues reminders |
 

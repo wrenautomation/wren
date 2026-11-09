@@ -136,7 +136,7 @@ const postId = (platform: string, tag: number | "found" | "late"): string =>
     : `${platform}-${tag}`;
 
 const fakeContent = restate.service({
-  name: "Content",
+  name: "ContentPublish",
   handlers: {
     publish: async (
       ctx: restate.Context,
@@ -1284,14 +1284,17 @@ describe("content loop", () => {
     const pass = await look();
     expect(pass.stats?.looked.map((l) => l.platform)).toEqual(["x"]);
     expect(pass.stats?.failed).toMatchObject([
-      { platform: "x", error: expect.stringContaining("Content/metrics gave no answer in 2 s") },
+      {
+        platform: "x",
+        error: expect.stringContaining("ContentPublish/metrics gave no answer in 2 s"),
+      },
     ]);
     const met = clients
       .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
       .objectClient<Met>({ name: "PostMetrics" }, METRICS_KEY);
     // LoopRevive reads it off the loop's state: the call, and the post it was for.
     expect((await met.status()).last).toMatchObject({
-      timeouts: [{ call: "Content/metrics", unit: "metrics x:x-1", ms: 1_500 }],
+      timeouts: [{ call: "ContentPublish/metrics", unit: "metrics x:x-1", ms: 1_500 }],
     });
   });
 

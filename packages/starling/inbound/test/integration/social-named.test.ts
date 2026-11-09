@@ -12,7 +12,7 @@ import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
 import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { type ContentChannel, fakeContentChannel } from "@wren/starling-core";
-import { makeContent } from "@wren/starling-core/service";
+import { makeContentPublish } from "@wren/starling-core/service";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { addIdea, contentDrafts } from "../../src/index.js";
 import type { SocialStats } from "../../src/restate/social.js";
@@ -62,7 +62,7 @@ beforeAll(async () => {
       fakeExecutor,
       fakeDesk,
       fakeReachInboxRead,
-      makeContent(() => channels),
+      makeContentPublish(() => channels),
       socialPushed,
       makeSocialPush({ db: pg.db, ours: {} }),
       makeSocialActivityRead({

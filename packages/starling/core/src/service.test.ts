@@ -4,7 +4,7 @@ import { NotSent, SendUnknown, type SendVerdict, SentFound } from "@wren/core/se
 import * as restate from "@wren/runtime";
 import { describe, expect, it } from "vitest";
 import { fakeContentChannel, gapStateOf } from "./index.js";
-import { journaledHost, makeContent } from "./service.js";
+import { journaledHost, makeContentPublish } from "./service.js";
 
 const HANG = Symbol("hang");
 
@@ -86,7 +86,7 @@ describe("Content.arm", () => {
     let stop = true;
     const x = { ...fakeContentChannel("x"), reply: () => reply(stop)() };
     const h = (
-      makeContent((_ctx, o) => {
+      makeContentPublish((_ctx, o) => {
         seen.push(o?.arm);
         return { x: x as never };
       }) as unknown as {
@@ -105,7 +105,7 @@ describe("Content.arm", () => {
 
 describe("Content service", () => {
   const linkedin = fakeContentChannel("linkedin");
-  const svc = makeContent(() => ({ linkedin }));
+  const svc = makeContentPublish(() => ({ linkedin }));
   const h = (
     svc as unknown as { service: Record<string, (ctx: unknown, req?: unknown) => Promise<unknown>> }
   ).service;
@@ -143,7 +143,7 @@ describe("Content service", () => {
     expect(await h.audience?.(ctx, { platform: "linkedin" })).toMatchObject({ followers: 42 });
     const { activity: _a, audience: _b, ...bare } = fakeContentChannel("x");
     const hx = (
-      makeContent(() => ({ x: bare })) as unknown as {
+      makeContentPublish(() => ({ x: bare })) as unknown as {
         service: Record<string, (ctx: unknown, req?: unknown) => Promise<unknown>>;
       }
     ).service;
@@ -176,7 +176,7 @@ describe("Content service", () => {
     ).toMatchObject({ rows: [{ id: "p1", day: "2026-10-05" }], cursor: "2026-10-06T00:00:00Z" });
     const { insights: _i, accountInsights: _a, reportDays: _r, ...bare } = fakeContentChannel("x");
     const hx = (
-      makeContent(() => ({ x: bare })) as unknown as {
+      makeContentPublish(() => ({ x: bare })) as unknown as {
         service: Record<string, (ctx: unknown, req?: unknown) => Promise<unknown>>;
       }
     ).service;
@@ -191,7 +191,7 @@ describe("Content service", () => {
       e.journaled = journaled;
       const ch = { ...fakeContentChannel("linkedin"), publish: () => Promise.reject(e) };
       return (
-        makeContent(() => ({ linkedin: ch })) as unknown as {
+        makeContentPublish(() => ({ linkedin: ch })) as unknown as {
           service: Record<string, (ctx: unknown, req?: unknown) => Promise<unknown>>;
         }
       ).service.publish?.(ctx, { platform: "linkedin", post: { text: "hi" } });
@@ -210,7 +210,7 @@ describe("Content service", () => {
     expect(out).toMatchObject({ kind: "sent", out: { id: expect.any(String) } });
     const typed = (error: Error) =>
       (
-        makeContent(() => ({
+        makeContentPublish(() => ({
           linkedin: { ...ch, publish: () => Promise.reject(error) },
         })) as unknown as {
           service: Record<string, (ctx: unknown, req?: unknown) => Promise<unknown>>;
@@ -241,7 +241,7 @@ describe("Content service", () => {
     e.journaled = true;
     const ch = { ...fakeContentChannel("linkedin"), publish: () => Promise.reject(e) };
     const svc2 = (
-      makeContent(() => ({ linkedin: ch })) as unknown as {
+      makeContentPublish(() => ({ linkedin: ch })) as unknown as {
         service: Record<string, (ctx: unknown, req?: unknown) => Promise<unknown>>;
       }
     ).service;
@@ -272,7 +272,7 @@ describe("Content service", () => {
     };
     const run = async (verdict: SendVerdict, verifyOnly: boolean) => {
       const c = ctxOf(() => verdict);
-      const content = makeContent((cx) => {
+      const content = makeContentPublish((cx) => {
         const sites = restateSites(cx, { caller: "test", service: DESK });
         return {
           linkedin: {

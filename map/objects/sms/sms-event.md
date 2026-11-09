@@ -30,14 +30,14 @@ Citations: `packages/starling/channels/sms/src/schema.ts:300`
 
 ## If you change this
 
-- **Hits:** `events.ts:256`, `push.ts`, `webhook.ts`, `restate/index.ts` (`SmsEvents.ingest`), `apps/phone/src/worker.ts`, `telnyx.ts` (body shape)
+- **Hits:** `events.ts:256`, `push.ts`, `webhook.ts`, `restate/index.ts` (`SmsWebhookIntake.ingest`), `apps/phone/src/worker.ts`, `telnyx.ts` (body shape)
 - **Does not hit:** the send tick
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `SmsEvents.ingest` (from the phone Worker) | writes |
+| `SmsWebhookIntake.ingest` (from the phone Worker) | writes |
 | phone app reply alerts (`SmsDesk.subscribe`, `sw.js`) | reads |
 
 ## See

@@ -35,7 +35,7 @@ interface KeywordDmDeps {
   clientDb?: (client: string) => Db;
 }
 
-/** `Content/privateReply` and `reply` given a send key: each answers a `Delivery`, which `sendAcross` unwraps. */
+/** `ContentPublish/privateReply` and `reply` given a send key: each answers a `Delivery`, which `sendAcross` unwraps. */
 type ContentSend = {
   [K in "privateReply" | "reply"]: (
     ctx: restate.Context,
@@ -161,7 +161,7 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
             await ctx.run("failed", () => failHit(db, req.hit, why));
             return { state: "failed" };
           };
-          const content = ctx.serviceClient<ContentSend>({ name: "Content" });
+          const content = ctx.serviceClient<ContentSend>({ name: "ContentPublish" });
           let c: Awaited<ReturnType<typeof planPrivateReply>>;
           try {
             c = await ctx.run("plan", async () => {
@@ -284,7 +284,7 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
               campaign: "keyword",
             }),
           );
-          const content = ctx.serviceClient<ContentSend>({ name: "Content" });
+          const content = ctx.serviceClient<ContentSend>({ name: "ContentPublish" });
           try {
             await sendAtMostOnce(ctx, db, {
               item: `followup:${id}`,

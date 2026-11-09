@@ -36,10 +36,10 @@ Citations: `packages/research/src/schema.ts:68`
 
 | Surface | Role |
 |---|---|
-| `Enrichment.scan/contacts/extract/pick/opener` | write |
+| `CompanyEnrich.scan/contacts/extract/pick/opener` | write |
 | `wren email size <dir> --niche <n>` | write `firmographics` from PPP loans (`packages/research/src/companies/ppp-size.ts:139`) |
 | `wren video demo render` | write `video` ([[reactivation/demo-video]]) |
-| `Enrichment.applyExtractions/applyPicks` | read, set `applied_at` |
+| `CompanyEnrich.applyExtractions/applyPicks` | read, set `applied_at` |
 
 ## See
 

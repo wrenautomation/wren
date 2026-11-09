@@ -320,7 +320,7 @@ export function makeSocialActivityRead(deps: SocialActivityReadDeps) {
   const L = limitsWith(deps.limits);
   return makeLoopObject("SocialActivityRead", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
-    const content = ctx.serviceClient<ContentReads>({ name: "Content" });
+    const content = ctx.serviceClient<ContentReads>({ name: "ContentPublish" });
     const client = clientOfKey(ctx.key)?.client ?? null;
     let db = deps.db;
     let platforms = deps.platforms;
@@ -448,7 +448,7 @@ export function makeSocialActivityRead(deps: SocialActivityReadDeps) {
           const rows = await limits.within(
             `activity ${platform}`,
             content.activity({ platform, ...(since ? { q: { since } } : {}), ...mine }),
-            { ms: L.read, call: "Content/activity", group: platform },
+            { ms: L.read, call: "ContentPublish/activity", group: platform },
           );
           if (rows?.length) {
             heard.push({ platform, rows });
@@ -531,7 +531,7 @@ export function makeSocialActivityRead(deps: SocialActivityReadDeps) {
           const got = await limits.within(
             unit,
             content.commentCounts({ platform, ids: ids.slice(i, i + MANY_POSTS), ...mine }),
-            { ms: L.read, call: "Content/commentCounts", group: platform },
+            { ms: L.read, call: "ContentPublish/commentCounts", group: platform },
           );
           for (const [id, n] of Object.entries(got ?? {})) probed[`${platform}:${id}`] = n;
         } catch (err) {
@@ -556,7 +556,7 @@ export function makeSocialActivityRead(deps: SocialActivityReadDeps) {
         const got = await limits.within(
           `comments ${key}`,
           content.comments({ platform: p.platform, id: p.id, ...mine }),
-          { ms: L.read, call: "Content/comments", group: p.platform },
+          { ms: L.read, call: "ContentPublish/comments", group: p.platform },
         );
         const rows = await ctx.run(`comments ${key}`, () => keepPostComments(db, p, got));
         kept.push(...rows);
@@ -602,7 +602,7 @@ export function makeSocialActivityRead(deps: SocialActivityReadDeps) {
         const rows = await limits.within(
           `reviews ${platform}`,
           content.reviews({ platform, ...mine }),
-          { ms: L.read, call: "Content/reviews", group: platform },
+          { ms: L.read, call: "ContentPublish/reviews", group: platform },
         );
         if (rows?.length)
           kept.push(
@@ -669,7 +669,7 @@ export function makeSocialActivityRead(deps: SocialActivityReadDeps) {
         const a = await limits.within(
           `audience ${platform}`,
           content.audience({ platform, ...mine }),
-          { ms: L.read, call: "Content/audience", group: platform },
+          { ms: L.read, call: "ContentPublish/audience", group: platform },
         );
         if (a && (await ctx.run(`keep day ${platform}`, () => keepDay(db, platform, day, a))))
           stats.audience.push(platform);
@@ -697,7 +697,7 @@ export function makeSocialActivityRead(deps: SocialActivityReadDeps) {
         const rows = await limits.within(
           `following ${platform}`,
           content.following({ platform, ...mine }),
-          { ms: L.batch, call: "Content/following", group: platform },
+          { ms: L.batch, call: "ContentPublish/following", group: platform },
         );
         if (!rows) return;
         const k = await ctx.run(`keep following ${platform}`, () =>
@@ -710,7 +710,7 @@ export function makeSocialActivityRead(deps: SocialActivityReadDeps) {
         const rows = await limits.within(
           `posts ${platform}`,
           content.list({ platform, q: { limit: SITE_POSTS }, ...mine }),
-          { ms: L.batch, call: "Content/list", group: platform },
+          { ms: L.batch, call: "ContentPublish/list", group: platform },
         );
         const k = await ctx.run(`keep posts ${platform}`, () =>
           keepSitePosts(db, platform, rows, now),
@@ -721,7 +721,7 @@ export function makeSocialActivityRead(deps: SocialActivityReadDeps) {
         const rows = await limits.within(
           `own comments ${platform}`,
           content.ownComments({ platform, ...mine }),
-          { ms: L.batch, call: "Content/ownComments", group: platform },
+          { ms: L.batch, call: "ContentPublish/ownComments", group: platform },
         );
         if (!rows) return;
         stats.ownComments += await ctx.run(`keep own comments ${platform}`, () =>
@@ -809,7 +809,7 @@ export function makeSocialDesk(deps: { db: Db; zone: string }) {
           const post = await ctx.run("post", () => postOfComment(deps.db, req.id));
           if (!post) return { read: false, kept: 0 };
           const got = await ctx
-            .serviceClient<ContentReads>({ name: "Content" })
+            .serviceClient<ContentReads>({ name: "ContentPublish" })
             .comments({ platform: post.platform, id: post.id });
           const kept = await ctx.run("keep", () => keepPostComments(deps.db, post, got ?? []));
           if (kept.length) {
@@ -835,7 +835,7 @@ export function makeSocialDesk(deps: { db: Db; zone: string }) {
         async (ctx: restate.Context, req: { platform: Platform }) => {
           const day = dayOf(new Date(await ctx.date.now()), deps.zone);
           const a = await ctx
-            .serviceClient<ContentReads>({ name: "Content" })
+            .serviceClient<ContentReads>({ name: "ContentPublish" })
             .audience({ platform: req.platform });
           if (!a) throw new restate.TerminalError(`${req.platform} reads no follower count`);
           await ctx.run("keep day", () => keepDay(deps.db, req.platform, day, a, true));

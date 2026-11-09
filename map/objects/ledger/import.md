@@ -37,7 +37,7 @@ Citations: `packages/core/src/schema.ts:49`, `:72`
 | Surface | Role |
 |---|---|
 | `wren email import`, `import-people`, `wren fetch` then import | write |
-| `Discovery.discover` | writes |
+| `CompanySiteFind.discover` | writes |
 
 ## See
 

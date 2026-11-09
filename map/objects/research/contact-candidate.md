@@ -39,7 +39,7 @@ Citations: `packages/starling/channels/email/src/schema.ts:85`
 
 | Surface | Role |
 |---|---|
-| `Resolution.build/queue/resolve` | write |
+| `LeadVerify.build/queue/resolve` | write |
 | `wren email contacts` (listed contacts) | write |
 | `runVerification` (lead verdict) | settles linked candidates |
 | `LeadPoolFill` (free verifier only) | drives |

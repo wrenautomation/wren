@@ -67,7 +67,7 @@ export function swapsHandlers(desk: ContentDeskContext) {
       ): Promise<{ done: number[] }> => {
         const { db } = await scopeOf(ctx);
         const client = clientOfKey(ctx.key)?.client ?? null;
-        const content = ctx.serviceClient<ContentUpdate>({ name: "Content" });
+        const content = ctx.serviceClient<ContentUpdate>({ name: "ContentPublish" });
         const done: number[] = [];
         for (const id of req.ids) {
           const plan = await ctx.run(`plan swap ${id}`, () => verdictOf(() => planSwap(db, id)));

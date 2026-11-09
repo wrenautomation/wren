@@ -39,7 +39,7 @@ Citations: `packages/starling/channels/email/src/schema.ts:120`
 
 | Surface | Role |
 |---|---|
-| `Discovery.verify`, `Resolution.resolve/verifyLeads` | write |
+| `CompanySiteFind.verify`, `LeadVerify.resolve/verifyLeads` | write |
 | compose (through `leads.status`) | reads indirectly |
 
 ## See
