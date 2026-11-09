@@ -35,11 +35,13 @@ describe("variants live", () => {
     await v.newSubject({ slug: "hero", name: "Hero cut", kind: "video", by: "me" });
     await expect(
       v.addBatch("hero", {
+        title: "Bad source",
         why: "bad source",
         samples: [{ body: "x", source: { ref: "studio:1", spans: [{ s: 3, e: 1 }] } }],
       }),
     ).rejects.toThrow(/source/);
     const b = await v.addBatch("hero", {
+      title: "Two cold opens",
       why: "Long cold open vs straight start",
       agent: "test",
       samples: [

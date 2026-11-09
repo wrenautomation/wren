@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 export function Rename({
   value,
   label,
+  field,
   max,
   blank = false,
   save,
@@ -13,6 +14,8 @@ export function Rename({
   value: string;
   /** what is renamed, e.g. "subject": button "Rename subject", field "Subject name" */
   label: string;
+  /** the field's name when not "<Label> name" */
+  field?: string;
   max: number;
   /** a blank name clears it (a sample's); else blank is no change */
   blank?: boolean;
@@ -44,9 +47,10 @@ export function Rename({
 
   if (draft != null)
     return (
+      // edit-ok: a name, saved on Enter and on blur
       <Input
         autoFocus
-        aria-label={`${label[0]?.toUpperCase()}${label.slice(1)} name`}
+        aria-label={field ?? `${label[0]?.toUpperCase()}${label.slice(1)} name`}
         value={draft}
         maxLength={max}
         onChange={(e) => setDraft(e.target.value)}

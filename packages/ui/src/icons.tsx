@@ -124,6 +124,7 @@ import {
   Sparkles,
   Split,
   SquareArrowOutUpRight,
+  SquareDashed,
   SquareKanban,
   SquarePlus,
   SquareTerminal,
@@ -191,6 +192,8 @@ const ICONS = {
   note: StickyNote,
   inbox: Inbox,
   target: Target,
+  /** a part of an image, page or frame */
+  area: SquareDashed,
   megaphone: Megaphone,
   billboard: Presentation,
   bolt: Zap,

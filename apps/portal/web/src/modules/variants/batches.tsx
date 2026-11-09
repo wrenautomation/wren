@@ -33,6 +33,8 @@ interface Row {
   id: number;
   /** number within its subject */
   n: number;
+  /** One line he sees: what the batch is. Null on a batch made before titles */
+  title: string | null;
   /** Null while open: the agent's reason stays hidden until he hands it back. */
   why: string | null;
   note: string | null;
@@ -237,6 +239,7 @@ function BatchRow({ row: r, waits }: { row: Row; waits: boolean }) {
         >
           {r.subject.name}
         </span>
+        {r.title && <span className="text-[13px] text-(--ui-ink-2)">{r.title}</span>}
         <span className="text-[12px] text-(--ui-ink-3) tabular-nums">
           Batch {r.n} · {dayLabel(r.createdAt)} · {r.samples.length} samples
         </span>
@@ -379,6 +382,21 @@ function BatchView({
             save={(to) => call("variants/rename", { subject: r.subject.id, name: to })}
           >
             {(n) => <h2 className={cx(PAGE_TITLE, "m-0 text-(--ui-ink)")}>{n}</h2>}
+          </Rename>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Rename
+            value={r.title ?? ""}
+            label="batch"
+            field="Batch title"
+            max={120}
+            save={(to) => call("variants/rename", { batch: r.id, name: to })}
+          >
+            {(t) => (
+              <p className={cx("m-0 text-[15px]", t ? "text-(--ui-ink)" : "text-(--ui-ink-3)")}>
+                {t || "No title"}
+              </p>
+            )}
           </Rename>
         </div>
         {r.subject.brief && <p className="m-0 text-[13px] text-(--ui-ink-2)">{r.subject.brief}</p>}

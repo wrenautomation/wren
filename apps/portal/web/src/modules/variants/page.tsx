@@ -51,7 +51,7 @@ import { TreeGhost } from "./tree-ghost.js";
 
 export const TALLY = ["amazing", "good", "okay", "bad"] as const;
 export interface Open {
-  batch: { id: number; n: number; createdAt: string; note: string | null };
+  batch: { id: number; n: number; title: string | null; createdAt: string; note: string | null };
   subject: { id: number; slug: string; name: string; kind: Kind; brief: string | null };
   samples: Sample[];
 }
@@ -162,8 +162,8 @@ export function MarkBatch({
       handToChat(
         "vireo",
         none
-          ? `Batch ${open.batch.n} of ${open.subject.slug}\nNone of these: all ${open.samples.length} marked bad and closed. Read my notes, then tell me what you see.`
-          : `Batch ${open.batch.n} of ${open.subject.slug}\nMarked and closed: ${tally || "no calls"}${judged < open.samples.length ? `, ${open.samples.length - judged} unmarked` : ""}. Read my calls and notes, then tell me what you see.`,
+          ? `Batch ${open.batch.n} of ${open.subject.slug}${open.batch.title ? `: ${open.batch.title}` : ""}\nNone of these: all ${open.samples.length} marked bad and closed. Read my notes, then tell me what you see.`
+          : `Batch ${open.batch.n} of ${open.subject.slug}${open.batch.title ? `: ${open.batch.title}` : ""}\nMarked and closed: ${tally || "no calls"}${judged < open.samples.length ? `, ${open.samples.length - judged} unmarked` : ""}. Read my calls and notes, then tell me what you see.`,
       );
       onSent();
     } catch (e) {
@@ -175,8 +175,8 @@ export function MarkBatch({
   return (
     <div className="flex flex-col gap-4 @min-[720px]/main:pb-24">
       <p className="m-0 text-[12px] text-(--ui-ink-3)">
-        {open.samples.length} samples, shown blind in random order. Mark what's good or bad; tap a
-        line, drag a box or mark a moment to say where.
+        {open.samples.length} samples, shown blind in random order. Mark what's good or bad. To say
+        where, tap a line, mark an area or mark a moment.
         {open.samples.some((s) => open.subject.kind === "page" && s.mediaUrl) &&
           " One page runs at a time."}
       </p>
@@ -367,10 +367,11 @@ export function SampleCard({
           <Button
             size="dense"
             tone={boxing ? "primary" : "quiet"}
-            icon="target"
+            icon="area"
+            aria-pressed={boxing}
             onClick={() => setBoxing((b) => !b)}
           >
-            {boxing ? "Drag a box" : "Box"}
+            {boxing ? "Drag over a part" : "Mark an area"}
           </Button>
         )}
         <Button size="dense" tone="quiet" icon="pin" onClick={keep}>

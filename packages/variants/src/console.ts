@@ -67,6 +67,7 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
             batch: {
               id: o.batch.id,
               n: o.batch.n,
+              title: o.batch.title,
               createdAt: o.batch.createdAt,
               note: o.batch.note,
             },
@@ -130,6 +131,7 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
               f.batches.map(async (b) => ({
                 id: b.id,
                 n: b.n,
+                title: b.title,
                 why: b.state === "open" ? null : b.why,
                 note: b.note,
                 state: b.state,
@@ -202,14 +204,20 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
     close: (req: Req) =>
       refuse(() => v.closeBatch(num(req.batch, "batch"), (req.note as string) ?? null, by(req))),
     keep: (req: Req) => refuse(() => v.keep(num(req.sample, "sample"), req.on !== false, by(req))),
-    // a subject's shown name (slug stays) or a sample's; one of the two
+    // a subject's shown name (slug stays), a batch's title or a sample's name; one of the three
     rename: (req: Req) =>
-      refuse(() => {
-        if ((req.subject == null) === (req.sample == null))
-          throw new PortalRefusal("a subject or a sample", 400);
-        return req.subject != null
-          ? v.renameSubject(num(req.subject, "subject"), String(req.name ?? ""), by(req))
-          : v.renameSample(num(req.sample, "sample"), (req.name as string | null) ?? null, by(req));
+      refuse<unknown>(() => {
+        if ([req.subject, req.batch, req.sample].filter((x) => x != null).length !== 1)
+          throw new PortalRefusal("a subject, a batch or a sample", 400);
+        if (req.subject != null)
+          return v.renameSubject(num(req.subject, "subject"), String(req.name ?? ""), by(req));
+        if (req.batch != null)
+          return v.renameBatch(num(req.batch, "batch"), String(req.name ?? ""), by(req));
+        return v.renameSample(
+          num(req.sample, "sample"),
+          (req.name as string | null) ?? null,
+          by(req),
+        );
       }),
     guide: (req: Req) =>
       refuse(() =>
@@ -306,8 +314,13 @@ const INPUTS = {
   keep: { sample: ID, on: z.boolean().nullish() },
   rename: {
     subject: ID.nullish(),
+    batch: ID.nullish(),
     sample: ID.nullish(),
-    name: z.string().max(120).nullish().describe("Blank clears a sample's name"),
+    name: z
+      .string()
+      .max(120)
+      .nullish()
+      .describe("A batch's title, or a name; blank clears a sample's name"),
   },
   guide: { text: z.string().max(2000), subject: ID.nullish(), kind: z.string().nullish() },
   setGuide: { id: ID, state: z.string() },

@@ -37,7 +37,7 @@ export const Mark = pageAt("/variants/batches?batch=7", {
   },
 });
 
-/** Rename the subject in place: Rename, a new name, Enter; the title shows it. */
+/** Rename the subject and the batch title in place: Rename, a new name, Enter; each shows it. */
 export const Rename = pageAt("/variants/batches?batch=6", {
   me: ADMIN,
   check: async (page) => {
@@ -49,6 +49,11 @@ export const Rename = pageAt("/variants/batches?batch=6", {
     await userEvent.clear(field);
     await userEvent.type(field, "Spring opener{Enter}");
     await p.findByRole("heading", { name: "Spring opener" });
+    await userEvent.click(p.getByRole("button", { name: "Rename batch" }));
+    const title = p.getByRole("textbox", { name: "Batch title" });
+    await userEvent.clear(title);
+    await userEvent.type(title, "Openers that name a street{Enter}");
+    await p.findByText("Openers that name a street");
   },
 });
 

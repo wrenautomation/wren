@@ -4,6 +4,7 @@
 
 ```json
 {
+  "title": "Openers with a next step",
   "why": "Batch 3: named places beat questions (batch 2). Now test a next step vs none.",
   "agent": "<your session id>",
   "samples": [
@@ -18,6 +19,7 @@ Paths are relative to the json file. Playable: mp4 mov m4v webm jpg png gif pdf.
 
 ## Fields
 
+- `title`: one line he sees on the batch, also while he judges: what the batch is ("Openers with a next step"), up to 120 characters. Never the idea under test, a hint of a winner, or a sample's name. `append` keeps it; he can rename it.
 - `why`: what you changed from the last batch and what it tests. Cite batches by their number within the subject ("batch 2"); outside the subject, `<subject>:<n>`. An `append` takes the same JSON; its `why` says what the new samples add.
 - `name`: 2-4 words he can say ("Star system").
 - `parents`: `[id]` or `[{"id": 7, "took": "the moving headline"}]`, main parent first. Two or more = a cross; say what each gave in `took`. See `tree.md`.

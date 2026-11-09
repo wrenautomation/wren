@@ -28,7 +28,7 @@ const clip = (i: number) => ({
 const base = { media: null, poster: null, keptAt: null, notes: [] as unknown[] };
 
 const VIDEO = {
-  batch: { id: 7, n: 3, createdAt: ago(0.1), note: null },
+  batch: { id: 7, n: 3, title: "Result-first cuts, three takes", createdAt: ago(0.1), note: null },
   subject: {
     id: 2,
     slug: "promo-cut",
@@ -78,7 +78,13 @@ const scene = (i: number) => ({
   posterUrl: `/variants/scene-${i}.svg`,
 });
 const PAGE = {
-  batch: { id: 9, n: 2, createdAt: ago(0.05), note: null },
+  batch: {
+    id: 9,
+    n: 2,
+    title: "Hero backgrounds, motion vs still",
+    createdAt: ago(0.05),
+    note: null,
+  },
   subject: {
     id: 3,
     slug: "hero-background",
@@ -107,7 +113,7 @@ const PAGE = {
 };
 
 const COPY = {
-  batch: { id: 8, n: 4, createdAt: ago(0.3), note: null },
+  batch: { id: 8, n: 4, title: "Openers with a next step", createdAt: ago(0.3), note: null },
   subject: {
     id: 1,
     slug: "opener",
@@ -286,6 +292,7 @@ const SUBJECT = {
 /** Every batch, newest first: the three open ones blind, one replaced before he marked it, then closed ones. */
 const openRow = (o: typeof VIDEO | typeof PAGE | typeof COPY) => ({
   id: o.batch.id,
+  title: o.batch.title as string | null,
   why: null,
   note: null,
   n: o.batch.n,
@@ -304,6 +311,7 @@ const BATCHES = [
     ...openRow(VIDEO),
     id: 10,
     n: 2,
+    title: "Result-first cuts",
     createdAt: ago(3),
     samples: VIDEO.samples.map((x, i) => ({
       ...x,
@@ -316,6 +324,7 @@ const BATCHES = [
   {
     id: 6,
     n: 2,
+    title: "Openers that name a place",
     why: "Claims only, each opener names a real place",
     note: "The place works. Cut the question at the end.",
     state: "closed",
@@ -353,6 +362,7 @@ const BATCHES = [
   {
     id: 3,
     n: 1,
+    title: "Result vs setup openings",
     why: "Open on the result vs the setup",
     note: "Result first. Captions too low.",
     state: "closed",
@@ -420,7 +430,7 @@ export const VARIANTS_ANSWERS: Answers = {
   "variants/steer": (b: Record<string, unknown>) => ({ id: Math.floor(Math.random() * 1e6), ...b }),
   "variants/unsteer": { id: 0 },
   "variants/rename": (b: Record<string, unknown>) => ({
-    id: b.subject ?? b.sample,
+    id: b.subject ?? b.batch ?? b.sample,
     name: b.name ?? null,
   }),
 };

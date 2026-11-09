@@ -214,7 +214,7 @@ if (args.json) {
     );
   if (shown.length < rows.length) console.log(`… ${rows.length - shown.length} more rows`);
   console.log(
-    "skipped: deploy current (Restate registers a Lambda version, not a commit; its admin API is on the box) · last green gate (no local record)",
+    "skipped: deploy current (the live build is in prod rt.box_builds, not readable here) · last green gate (no local record)",
   );
 }
 if (below.length) {

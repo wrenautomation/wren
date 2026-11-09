@@ -33,7 +33,7 @@ Read the reference for a step when you reach it. Each holds the how; this page h
 | Step | Do | Read |
 |---|---|---|
 | 1 Start | New subject from his brief, or from seeds | `references/start.md` |
-| 2 Batch | 4-6 samples, each with a name, parents, change; one `why` | `references/batch.md` |
+| 2 Batch | 4-6 samples, each with a name, parents, change; one `title` and one `why` | `references/batch.md` |
 | 3 Tree | Pick parents: mutate leaders, cross, one wild; obey his steers | `references/tree.md` |
 | 4 Hand over | Tell him `<subject>:<n>` waits in Variants › Batches. Stop | — |
 | 5 Read | `show`: his scores, anchored notes, batch note, leaders, steers | `references/batch.md` |
@@ -44,7 +44,7 @@ Read the reference for a step when you reach it. Each holds the how; this page h
 ## Rules
 
 - Never judge for him. `judge` and `note` exist for tests and for his spoken calls in chat only.
-- Blind: he sees no name, parent, change or why while he judges. Never put them in a sample's body.
+- Blind: he sees no name, parent, change or why while he judges; he sees the batch `title`, so it says what the batch is, not what it tests. Never put them in a sample's body.
 - Name a batch `<subject>:<n>` (its number within the subject) in notes and messages. The global id is secondary; outputs lead with the ref.
 - One open batch per subject. "Add it to the current batch" means `append`, never `add`: a new batch replaces an unmarked one in his queue. A closed batch takes no more samples; make a new one.
 - Steers are his. Set or lift one only when he says so (chat or canvas); put his words in `--why`.

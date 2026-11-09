@@ -17,6 +17,7 @@ describe("variants loop", () => {
     await v.newSubject({ slug: "opener", name: "Opener email", kind: "text", by: "me" });
     const tip = await v.addGuide({ text: "Name their tool in line one", subject: "opener" });
     const b = await v.addBatch("opener", {
+      title: "Two openers",
       why: "Try a named-tool opener against a question opener",
       agent: "test",
       samples: [
@@ -49,14 +50,15 @@ describe("variants loop", () => {
 
     // the Batches page: newest first; an open batch hides what each sample tests
     const b2 = await v.addBatch("opener", {
+      title: "Named-tool openers",
       why: "Named tools, three ways",
       agent: "test",
       samples: [{ body: "Your Acme CRM, one idea.", change: "short" }],
     });
     const rows = await variantsConsoleApi(db).batches();
-    expect(rows.map((r) => [r.id, r.state, r.why])).toEqual([
-      [b2.batch, "open", null],
-      [b.batch, "closed", "Try a named-tool opener against a question opener"],
+    expect(rows.map((r) => [`opener:${r.n}`, r.state, r.title, r.why])).toEqual([
+      [b2.batch, "open", "Named-tool openers", null],
+      [b.batch, "closed", "Two openers", "Try a named-tool opener against a question opener"],
     ]);
     expect(rows[0]?.samples[0]?.change).toBeNull();
     expect(rows[1]?.samples.map((s) => s.change)).toEqual(["named tool", "question", "plain"]);

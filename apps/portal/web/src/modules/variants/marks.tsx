@@ -1,5 +1,5 @@
 /**
- * One sample, drawn by kind, with its anchors: tap a line (text), drag a box (image, page, paused
+ * One sample, drawn by kind, with its anchors: tap a line (text), mark an area (image, page, paused
  * video), flag a moment in the video's bar (press at the start, press again at the end). An anchor
  * opens the note: works or breaks, and why. Boxes are fractions of the shown frame, so they hold
  * at any width.
@@ -50,8 +50,8 @@ export const anchorLabel = (a: Anchor | null): string =>
     : a.type === "quote"
       ? `“${a.exact.length > 60 ? `${a.exact.slice(0, 60)}…` : a.exact}”`
       : a.type === "box"
-        ? "Region"
-        : `${clock(a.start)}${a.end != null ? `–${clock(a.end)}` : ""}${a.box ? " · region" : ""}`;
+        ? "Area"
+        : `${clock(a.start)}${a.end != null ? `–${clock(a.end)}` : ""}${a.box ? " · area" : ""}`;
 
 const TONE_LINE = { good: "bg-(--ui-good-tint)", bad: "bg-(--ui-bad-tint)" } as const;
 const TONE_EDGE = { good: "border-(--ui-good)", bad: "border-(--ui-bad)" } as const;
