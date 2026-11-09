@@ -114,3 +114,17 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
   `must` tag for `- !`), 14 guides. Proof: every points file and all 14 SOPs rebuild byte-equal, blank lines
   aside. wren `sop` writes records through the package (9a8b862e7); `knowledgeDir` replaces `sopsDir`.
   pglite became a peer of the package (0.59.1): a pinned copy split the consumer's drizzle-orm in two.
+- 11-09 (WA-1230, step 3a): Weaver findings in. Options: A) every kept finding promoted by code, B) an agent
+  picks findings one by one, C) the repo keeps pointers to the ledger only. Picked A. Priorities: 1) every
+  record traces to a quote (the extract's quote gate already holds it, and a failed check writes a drop, so
+  "kept" is the trust bar), 2) keep data, 3) no agent judgment on a fixed step (10-28 rule). B costs a model
+  pass over 4,917 findings for a filter the gate already did; C leaves the repo blind to search and links.
+  `weaver promote [runs]` (engine 0.60.0): a read page → a source, a kept finding → a finding (quote, page,
+  at, run, ledger id, the check's word, class, the ask), a pattern → a new record type `pattern` that cites
+  its findings and keeps `sites`. Chose a type over a finding with no source (breaks the finding's one-source
+  rule) or a rule (a rule is a procedure line). One source per URL: `sourceId(url)` in the package
+  (`youtube-<v>`, `instagram-<code>`, `reddit-<post>`, `hn-<item>`, `x-<status>`, `arxiv-<id>`, else
+  `web-<host+path>`), plus a lookup by `urlKey` so a SOP's copy merges. Page text stays in Weaver's page
+  store (hot data, S3); a source keeps `textSha256`. Ids end in the ledger id's tail: a rerun is a no-op and
+  retires a finding dropped since. One commit per run. Backfill: 39 runs, 32 commits, 4,917 findings, 854
+  sources, 54 patterns, lint clean. The skill runs `promote` after a run's stop edge.
