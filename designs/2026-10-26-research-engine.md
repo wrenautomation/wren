@@ -1474,3 +1474,21 @@ William 11-08: "rename birdwatch to weaver across the board." Engine 0.51.0.
 - 11-08: 0.52.0: a document keeps its page's picture. The html reader takes og:image (else twitter:image), absolute. New record `image` (on, image) for reads before 0.52.0; `weaver images [runs...]` writes them, one GET per page. `RunState.imageOf`; the run view sends `image` per document. Why: the portal graph's source cards (log: `2026-11-05-research-web.md`).
 - 11-09: 0.53.0: queries search 4 side by side; Google (by browser) runs only when a query has under 5 unique URLs from the other searchers. Data: the architecture run spent 20 of 33 min on Google desk searches, 10 of 21 failed; over 17 runs Google made 339 calls, 77 OK, 66 min, 5 findings no other searcher had. Writes stay in query order. Answers William's "parallelize ingestion": reads were under 1 min of that run; search was the wait.
 - 11-09: 0.54.0: `weaver serve` keeps parsed ledger files (by size and mtime), each run's trace, the whole-ledger scans and the recall index while nothing under them changed. A run view took about 20 s (58 MB ledger, full scans in `brief`); now 1.3 s cold, 0.05 s cached, about 0.6 s after a live append. The portal reads a run again when a change lands during its read.
+
+## 11-09: per-site read caps, read and extract overlap (engine 0.55.0)
+
+William 11-09: "The overall cap off of just youtube 429 doesn't make sense. Caps should be per site … a lookup table … that auto increments until we start hitting 429s and rolls back. Youtube could be locked." Also yes to the read and extract overlap.
+
+Found: reads had one cap of 4 for every site, set after 4 YouTube reads drew 429s (11-03). yt-dlp already reads YouTube one at a time, 3 s apart, so that cap held back every other site and gave YouTube nothing.
+
+Options for where each site's learned cap lives:
+- A. Memory, per command. Each `open` starts every site at 2. No store; but each command learns again and probes a busy site into 429s again.
+- B. A small table per machine (`~/.local/state/weaver/sites.json`), kept across runs. Learns once; one file; two runs at once merge by row, last write wins.
+- C. Replay the ledger's open spends at each step start. No new store, audited; a scan of every run's spends per command (the ledger is 58 MB), and the limiter tied to the record schema.
+- D. A fixed table in config. No learning, which William ruled out.
+
+Chosen: B, plus every failed spend now keeps its HTTP `status`, so the ledger holds the evidence and C stays possible. Priorities: no repeat 429s on the home IP; speed; no ledger scan per command.
+
+Rules (AIMD, as TCP): a new site starts at 2. A site grows by 1 after `cap` clean reads in a row while the cap held reads back; a site that never queued never grows. A 429 halves it (min 1), once per burst: reads that started before the cut do not cut again. Max 8 per site, 16 reads at once in all. YouTube is fixed at 2. A 429 counts from a numeric `status` or "HTTP 429" in the error, up the causes. The limiter is `p-limit` (one per site, its concurrency set as the cap moves); the AIMD rules are ours, as no maintained npm package does adaptive per-key caps.
+
+Overlap: `open --extract` starts each page's extract as soon as its document is written, 8 model calls at a time, under the extract step (its own `done`). The agent still picks what to read and judges the findings after; it uses this where it would run `extract` next anyway. Gain: up to the read time, most on video runs, where the yt-dlp line is the long read.
