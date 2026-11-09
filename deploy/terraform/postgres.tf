@@ -59,7 +59,8 @@ resource "aws_ssm_parameter" "box" {
   }
 }
 
-# The front door's bearer (deploy/scripts/box-front-door.sh), as JSON {token}. Set by hand. Its
+# Unused since 11-09: the front door reads WREN_API_TOKEN from the box env (WA-1217). Kept until
+# William says to delete it. Was the front door's bearer, as JSON {token}. Its
 # name and description are Restate's (retired 11-09); a description change would rewrite the value.
 resource "aws_ssm_parameter" "restate" {
   name        = "${local.ssm_root}/restate"

@@ -64,7 +64,7 @@ afterAll(async () => {
 
 const desk = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .serviceClient<ReturnType<typeof makeVideoDesk>>({ name: "VideoDesk" });
 
 const track = { path: "/rec/main.mp4", durationS: 120, width: 1920, height: 1080, fps: 30 };

@@ -38,7 +38,7 @@ const operator = { viewer: { email: "op@example.test", operator: true } };
 const REFUSED = /that's for Wren's team|no access|read-only/;
 let env: TestRuntime;
 let pg: TestPostgres;
-const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const ingress = () => clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const consolePortal = () => ingress().serviceClient<Console>({ name: "ConsolePortal" });
 const tickOf = (key: string) => ingress().objectClient<Tick>({ name: "Tick" }, key);
 

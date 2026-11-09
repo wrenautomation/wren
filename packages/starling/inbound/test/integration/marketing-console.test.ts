@@ -117,7 +117,7 @@ const api = () =>
   marketingConsoleApi({ db: pg.db, open: (c) => open(c.id), records: CONTENT_RECORDS });
 const svc = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .serviceClient<MarketingConsoleService>({ name: "MarketingConsole" });
 const states = async (db: Db) =>
   (await db.select({ text: contentDrafts.text, status: contentDrafts.status }).from(contentDrafts))

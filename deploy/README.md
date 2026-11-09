@@ -40,7 +40,7 @@ Then push to `main`: CI's first deploy starts Caddy, PgBouncer, Listmonk and a w
 (`deploy/scripts/deploy.sh`). The worker migrates schema `rt` and registers its handlers itself.
 
 Smoke: `pnpm wren db check` with `WREN_DATABASE_URL` pointed at the box, and one call through the door:
-`curl -H "Authorization: Bearer $RESTATE_AUTH_TOKEN" https://api.wrenautomation.com/EmailSend/<sender>/status`.
+`curl -H "Authorization: Bearer $WREN_API_TOKEN" https://api.wrenautomation.com/EmailSend/<sender>/status`.
 
 ## CI (GitHub → Lambda)
 
@@ -53,8 +53,8 @@ Lambda version and hands its ARN to the box (`/etc/wren/worker-arn`). Repo secre
 | `AWS_DEPLOY_ROLE_ARN` | `ci_role_arn` |
 | `LAMBDA_NAME` | `lambda_name` |
 | `WREN_DATABASE_URL` | `database_url` |
-| `RESTATE_HOST` | `api.wrenautomation.com`, the front door (`restate.` is the old alias, still served) |
-| `RESTATE_AUTH_TOKEN` | the door's bearer: `token` in `/wren/prod/restate` |
+| `WREN_API_HOST` | `api.wrenautomation.com`, the front door (`restate.` is the old alias, still served) |
+| `WREN_API_TOKEN` | the door's bearer (production environment); Caddy reads it from SSM `/wren/prod/box` |
 | `WREN_DISCORD_WEBHOOK_URL` | the ops webhook, for `runtime-lag-check.yml` |
 | `TURBO_API`, `TURBO_TOKEN` | the remote cache's URL and token (env-2 holds both; `turbo-cache.tf`). push-secrets refuses to drop a name SSM holds that the file lacks; `WREN_SSM_DROP=A,B` drops on purpose |
 

@@ -80,7 +80,7 @@ const throws = makeLoopObject("Throws", async (ctx: restate.ObjectContext) => {
 });
 
 let env: TestRuntime;
-const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const ingress = () => clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const admin = () => env.admin.query;
 /** One pass now, as its loop state keeps it (`timeouts` rides there, for LoopRevive). */
 const sync = async (key: string): Promise<PassOutcome<Stats>> => {

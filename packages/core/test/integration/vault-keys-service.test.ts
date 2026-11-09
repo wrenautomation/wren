@@ -90,7 +90,7 @@ afterAll(async () => {
 
 const vault = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<ReturnType<typeof makeVaultKeyMirror>>({ name: "VaultKeyMirror" }, "box");
 const mirrored = async () =>
   (await pg.db.select().from(vaultKeys).orderBy(vaultKeys.address)).map((r) => [

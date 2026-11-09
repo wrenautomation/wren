@@ -8,8 +8,7 @@ export function json(body: unknown, status = 200): Response {
   });
 }
 
-const ingress = (env: Env, path: string) =>
-  `${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/${path}`;
+const ingress = (env: Env, path: string) => `${env.WREN_API_URL.replace(/\/+$/, "")}/${path}`;
 
 /**
  * A POST to `<service>/<handler>` on the ingress, its answer passed through. With an idempotency
@@ -27,7 +26,7 @@ export async function forward(
       method: "POST",
       headers: {
         "content-type": "application/json",
-        ...(env.RESTATE_AUTH_TOKEN ? { authorization: `Bearer ${env.RESTATE_AUTH_TOKEN}` } : {}),
+        ...(env.WREN_API_TOKEN ? { authorization: `Bearer ${env.WREN_API_TOKEN}` } : {}),
         ...(idempotencyKey ? { "idempotency-key": idempotencyKey } : {}),
       },
       body,

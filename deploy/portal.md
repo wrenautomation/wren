@@ -44,7 +44,7 @@ role. Secrets:
 |---|---|---|
 | SSM `/wren/prod/env` | `WREN_AUTH_SECRET`, `WREN_AUTH_EDGE_SECRET`, `WREN_AUTH_GOOGLE_CLIENT_ID/_SECRET`, `WREN_AUTH_MICROSOFT_CLIENT_ID/_SECRET` | `deploy/prod.env` via `push-secrets.sh` |
 | auth Worker | `LAMBDA_URL`, `EDGE_SECRET` | GitHub `AUTH_LAMBDA_URL`, `AUTH_EDGE_SECRET` |
-| portal Worker | `RESTATE_INGRESS_URL`, `RESTATE_AUTH_TOKEN`, `LAMBDA_URL`, `EDGE_SECRET` | `https://$RESTATE_HOST:8080/`, `RESTATE_AUTH_TOKEN`, `AUTH_LAMBDA_URL`, `AUTH_EDGE_SECRET` |
+| portal Worker | `WREN_API_URL`, `WREN_API_TOKEN`, `LAMBDA_URL`, `EDGE_SECRET` | `https://$WREN_API_HOST:8080/`, `WREN_API_TOKEN`, `AUTH_LAMBDA_URL`, `AUTH_EDGE_SECRET` |
 | portal Worker | `LIVE_HOOK_SECRET` (designs/2026-11-08-live-topics.md) | GitHub `LIVE_HOOK_SECRET`; = `WREN_LIVE_SECRET` in SSM, which writers (Lambda, CLI) sign with |
 | SSM `/wren/prod/env` | `WREN_CLOUDFLARE_SAAS_TOKEN` (SSL and Certificates: Edit), `WREN_CLOUDFLARE_ZONE_ID`, `WREN_CUSTOM_DOMAIN_TARGET` | `deploy/prod.env` via `push-secrets.sh`; the zone side once: `deploy/scripts/custom-domains.sh` |
 

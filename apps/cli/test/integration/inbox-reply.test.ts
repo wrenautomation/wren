@@ -92,7 +92,7 @@ beforeEach(async () => {
 
 const desk = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .serviceClient<ReturnType<typeof makeInboxDesk>>({ name: "InboxDesk" });
 const as = (email: string) => ({ viewer: { email } });
 const rowOf = async (id: string) =>

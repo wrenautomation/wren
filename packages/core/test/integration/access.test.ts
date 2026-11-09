@@ -57,7 +57,7 @@ let pg: TestPostgres;
 let env: TestRuntime;
 const portal = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .serviceClient<Console>({ name: "ConsolePortal" });
 
 beforeAll(async () => {

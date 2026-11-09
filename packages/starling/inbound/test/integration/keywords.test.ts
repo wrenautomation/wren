@@ -216,7 +216,7 @@ describe("KeywordDm.send", () => {
     const hits = await catchKeywords(pg.db, [ok, no]);
     expect(hits).toHaveLength(2);
     const w = clients
-      .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+      .connect(ingressOf({ apiUrl: env.baseUrl() }))
       .serviceClient<typeof watch>({ name: "Watch" });
     expect(await w.send(hits[0]?.id ?? 0)).toEqual({ state: "sent" });
     expect(await w.send(hits[1]?.id ?? 0)).toEqual({ state: "failed" });
@@ -267,7 +267,7 @@ describe("KeywordDm.send", () => {
     const id = await comment({ body: `kw${ref} please`, author: `by_${ref}`, ref });
     const [h] = await catchKeywords(pg.db, [id]);
     const w = clients
-      .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+      .connect(ingressOf({ apiUrl: env.baseUrl() }))
       .serviceClient<typeof watch>({ name: "Watch" });
     const state = await w.send(h?.id ?? 0);
     const [row] = await pg.db

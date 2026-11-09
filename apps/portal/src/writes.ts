@@ -50,7 +50,7 @@ export function writeTarget(path: string): { svc: string; route: string } | null
 }
 
 const authOf = (env: Env): Record<string, string> =>
-  env.RESTATE_AUTH_TOKEN ? { authorization: `Bearer ${env.RESTATE_AUTH_TOKEN}` } : {};
+  env.WREN_API_TOKEN ? { authorization: `Bearer ${env.WREN_API_TOKEN}` } : {};
 
 /** A failure as the person may read it: its first line, no tokens. */
 export function reasonOf(failure: string): string {
@@ -71,7 +71,7 @@ export async function readWrite(
   route: string,
   key: string,
 ): Promise<WriteState | null> {
-  const url = `${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/restate/invocation/${svc}/${route}/${encodeURIComponent(key)}/output`;
+  const url = `${env.WREN_API_URL.replace(/\/+$/, "")}/restate/invocation/${svc}/${route}/${encodeURIComponent(key)}/output`;
   let res: Response;
   try {
     res = await fetch(url, { headers: authOf(env) });

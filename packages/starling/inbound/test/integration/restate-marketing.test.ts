@@ -75,7 +75,7 @@ beforeEach(async () => {
 
 const mk = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .serviceClient<Marketing>({ name: "SignupForm" });
 const ADDRESS = "ana@firm.example";
 const signUp = (over: Record<string, string> = {}) =>

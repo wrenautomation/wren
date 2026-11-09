@@ -53,7 +53,7 @@
       "env": {
         "WREN_DATABASE_URL": "container:postgres",
         "WREN_DATABASE_POOL_PORT": "container:pgbouncer",
-        "WREN_RESTATE_INGRESS_URL": "restate",
+        "WREN_API_URL": "restate",
         "WREN_SMTP_PROBE_URL": "container:vps-prober",
         "WREN_CDP_URL": "container:browser",
         "WREN_MEDIA_BUCKET": "s3:media",
@@ -64,7 +64,7 @@
         "WREN_LISTMONK_URL": "container:listmonk",
         "WREN_DOCUMENSO_URL": "container:documenso-app",
         "WREN_PIXEL_BASE_URL": "worker:pixel",
-        "RESTATE_INGRESS_URL": "restate",
+        "WREN_API_URL": "restate",
         "LAMBDA_URL": "lambda:auth"
       },
       "imports": {

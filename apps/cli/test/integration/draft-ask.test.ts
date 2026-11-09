@@ -87,7 +87,7 @@ beforeEach(async () => {
 
 const desk = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .serviceClient<ReturnType<typeof makeDraftAsk>>({ name: "DraftAsk" });
 
 async function post(text: string) {

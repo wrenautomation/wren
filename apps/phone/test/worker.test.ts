@@ -81,8 +81,8 @@ beforeEach(async () => {
     ASSETS: { fetch: async () => new Response("<html>app</html>") } as unknown as Fetcher,
     AUTH_ORIGIN: AUTH,
     TELNYX_PUBLIC_KEY: b64(pub),
-    RESTATE_INGRESS_URL: "https://restate.test/",
-    RESTATE_AUTH_TOKEN: "rt",
+    WREN_API_URL: "https://restate.test/",
+    WREN_API_TOKEN: "rt",
   };
   vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
     if (url === `${AUTH}/api/auth/jwks`) {

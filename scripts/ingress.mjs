@@ -16,7 +16,7 @@ if (!path) {
 const res = await fetch(`${ingress}/${path}`, {
   method: "POST",
   headers: {
-    authorization: `Bearer ${process.env.RESTATE_AUTH_TOKEN}`,
+    authorization: `Bearer ${process.env.WREN_API_TOKEN}`,
     ...(body ? { "content-type": "application/json" } : {}),
   },
   body: body ?? undefined,

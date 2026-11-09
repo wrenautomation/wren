@@ -63,7 +63,7 @@ const notifier = {
 
 let env: TestRuntime;
 let pg: TestPostgres;
-const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const ingress = () => clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const admin = () => env.admin.query;
 type Watch = ReturnType<typeof makeLoopRevive>;
 const watch = () => ingress().objectClient<Watch>({ name: "LoopRevive" }, LOOP_WATCH_KEY);

@@ -32,7 +32,7 @@ function rooms() {
 const env = (over: Partial<Env> = {}): Env => ({
   ASSETS: {} as Fetcher,
   DEMO_HOST: "demo.test",
-  RESTATE_INGRESS_URL: "https://restate.test/",
+  WREN_API_URL: "https://restate.test/",
   LIVE_HOOK_SECRET: SECRET,
   ...over,
 });

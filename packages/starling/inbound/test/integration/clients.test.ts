@@ -151,7 +151,7 @@ afterAll(async () => {
   await pg?.stop();
 });
 
-const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const ingress = () => clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const loop = <S>(name: string, key: string) =>
   ingress().objectClient<{ sync: () => Promise<unknown> }>({ name }, key).sync() as Promise<
     PassOutcome<S>

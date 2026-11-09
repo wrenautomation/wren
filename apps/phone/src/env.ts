@@ -30,6 +30,6 @@ export interface Env {
   /** The lander's export token (its `EXPORT_TOKEN`, wren's `WREN_SITE_EXPORT_TOKEN`): it signs each application push. Unset = refused. */
   SITE_EXPORT_TOKEN?: string;
   /** Restate Cloud ingress, e.g. https://<env>.env.<region>.restate.cloud:8080 */
-  RESTATE_INGRESS_URL: string;
-  RESTATE_AUTH_TOKEN?: string;
+  WREN_API_URL: string;
+  WREN_API_TOKEN?: string;
 }

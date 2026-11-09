@@ -26,7 +26,7 @@ const env = (over: { [K in keyof Env]?: Env[K] | undefined } = {}): Env =>
     ASSETS: { fetch: async () => new Response("app") } as unknown as Fetcher,
     DEMO_HOST: "demo.wren.test",
     APP_HOST: "app.wren.test",
-    RESTATE_INGRESS_URL: "https://restate.test:8080/",
+    WREN_API_URL: "https://restate.test:8080/",
     AUTH_ORIGIN: AUTH,
     LAMBDA_URL: LAMBDA,
     EDGE_SECRET: "edge",

@@ -228,7 +228,7 @@ beforeEach(async () => {
     values ('linkedin', 'linkedin@wren', 'wren-automation', 'paused', 'test', '2026-09-01')`);
 });
 
-const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const ingress = () => clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const sync = async () => {
   const w = ingress().objectClient<ReturnType<typeof makeReachInboxRead>>(
     { name: "ReachInboxRead" },

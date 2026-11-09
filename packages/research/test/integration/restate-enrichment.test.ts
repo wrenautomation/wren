@@ -117,7 +117,7 @@ beforeEach(async () => {
 const db = () => pg.db;
 const client = (key = ALL_NICHES) =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<CompanyEnrich>({ name: "CompanyEnrich" }, key);
 const finishedRuns = () => db().select().from(runs).orderBy(runs.startedAt);
 

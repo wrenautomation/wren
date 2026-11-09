@@ -88,7 +88,7 @@ beforeEach(() => {
   id = `acme${n}`;
 });
 
-const connect = () => ingress.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const connect = () => ingress.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const loop = (key = id) => connect().objectClient<Reactivation>({ name: "Reactivation" }, key);
 const running = (object: string, mailbox: string) =>
   connect().objectClient<StandIn>({ name: object }, `${id}/${mailbox}`).running();

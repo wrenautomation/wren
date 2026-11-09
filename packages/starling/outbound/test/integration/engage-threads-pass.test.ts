@@ -170,7 +170,7 @@ afterAll(async () => {
 
 const pass = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<ReturnType<typeof makeReachInboxRead>>({ name: "ReachInboxRead" }, "wren")
     .sync() as Promise<PassOutcome<WatchStats>>;
 const rows = async () =>

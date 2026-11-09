@@ -126,7 +126,7 @@ beforeEach(async () => {
 
 const cal = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .serviceClient<ClientCalendar>({ name: "ClientBookingPage" });
 const later = (list: string[], ms: number) =>
   list.find((s) => new Date(s).getTime() > Date.now() + ms) as string;
@@ -233,7 +233,7 @@ describe("ClientBookingPage", () => {
 describe("the client's Calendar app", () => {
   const owner = { email: "owner@acme.example" };
   const app = () =>
-    clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() })).serviceClient<{
+    clients.connect(ingressOf({ apiUrl: env.baseUrl() })).serviceClient<{
       range: (ctx: unknown, req: unknown) => Promise<{ calls: { id: number }[] }>;
       recordsList: (ctx: unknown, req: unknown) => Promise<{ rows: { id: number }[] }>;
       noShow: (ctx: unknown, req: unknown) => Promise<{ changed: number; done: number[] }>;

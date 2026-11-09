@@ -32,7 +32,7 @@ Every loop is a Restate Virtual Object with `start | stop | status | sync`
 (one pass now). From the CLI where one exists, or curl:
 
 ```sh
-H="Authorization: Bearer $RESTATE_AUTH_TOKEN"     # in .env
+H="Authorization: Bearer $WREN_API_TOKEN"     # in .env
 U=https://201m2vp6sq3x11xdaatsmjej302.env.us.restate.cloud:8080
 curl -X POST -H "$H" $U/PostPublish/default/status
 curl -X POST -H "$H" $U/AdSpendGuard/default/sync

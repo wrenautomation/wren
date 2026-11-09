@@ -112,7 +112,7 @@ beforeEach(async () => {
 
 const cal = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .serviceClient<Calendar>({ name: "BookingPage" });
 const slots = async () => (await cal().slots({} as never)).slots;
 const book = (start: string, email = "ana@firm.example", sig?: string) =>
@@ -242,7 +242,7 @@ describe("BookingPage", () => {
 describe("CalendarConsole", () => {
   const viewer = { email: "admin@wren.example", operator: true };
   const console_ = () =>
-    clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() })).serviceClient<{
+    clients.connect(ingressOf({ apiUrl: env.baseUrl() })).serviceClient<{
       noShow: (ctx: unknown, req: unknown) => Promise<{ changed: number; done: number[] }>;
       cancel: (ctx: unknown, req: unknown) => Promise<{ cancelled: number }>;
       range: (

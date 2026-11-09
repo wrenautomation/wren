@@ -39,7 +39,7 @@ beforeEach(() => truncate(pg.db, ["discovery_attempts", "imports", "companies", 
 
 const client = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<CompanySiteFind>({ name: "CompanySiteFind" }, "sec_ria");
 
 describe("CompanySiteFind", () => {

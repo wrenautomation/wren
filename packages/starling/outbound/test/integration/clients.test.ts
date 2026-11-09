@@ -184,7 +184,7 @@ afterAll(async () => {
   await pg?.stop();
 });
 
-const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const ingress = () => clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const watch = (key: string) =>
   ingress()
     .objectClient<ReturnType<typeof makeReachInboxRead>>({ name: "ReachInboxRead" }, key)

@@ -94,7 +94,7 @@ beforeEach(async () => {
 
 const desk = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .serviceClient<ReturnType<typeof makeInboxDesk>>({ name: "InboxDesk" });
 const as = (email: string) => ({ viewer: { email } });
 const BY = "workflow:follow_up.touches/email4";

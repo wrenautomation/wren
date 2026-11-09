@@ -71,12 +71,12 @@ Total ≈ $27/month.
 
 ## Operating
 
-### The door (any HTTP client; the bearer is `RESTATE_AUTH_TOKEN`, an old name kept)
+### The door (any HTTP client; the bearer is `WREN_API_TOKEN`, an old name kept)
 
 No input: send no body and no content type. A body: `content-type: application/json`. A handler with an input schema refuses an empty body typed as JSON; `ingressOf` and `scripts/ingress.mjs` already send nothing for no input.
 
 ```sh
-H="Authorization: Bearer $RESTATE_AUTH_TOKEN"     # in wren/.env
+H="Authorization: Bearer $WREN_API_TOKEN"     # in wren/.env
 U=https://api.wrenautomation.com
 
 curl -X POST -H "$H" $U/EmailSend/alice@example.com/status
@@ -208,8 +208,8 @@ that sees a newer build stands down within 10 s. A failed new build hands back: 
 slot and it writes itself as newest again.
 
 GitHub environment `production` secrets: `AWS_DEPLOY_ROLE_ARN`,
-`LAMBDA_NAME`, `WREN_DATABASE_URL`, `RESTATE_HOST` (the door's host, an old name),
-`RESTATE_AUTH_TOKEN`. Mirror: `deploy/github-secrets.env`.
+`LAMBDA_NAME`, `WREN_DATABASE_URL`, `WREN_API_HOST` (the door's host, an old name),
+`WREN_API_TOKEN`. Mirror: `deploy/github-secrets.env`.
 
 ### Changing env vars
 

@@ -47,11 +47,11 @@ async function call(env: Env, route: string, client: string, input: Record<strin
   const { client: _c, viewer: _v, website: _w, human: _h, ...rest } = input;
   let res: Response;
   try {
-    res = await fetch(`${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/ClientBookingPage/${route}`, {
+    res = await fetch(`${env.WREN_API_URL.replace(/\/+$/, "")}/ClientBookingPage/${route}`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        ...(env.RESTATE_AUTH_TOKEN ? { authorization: `Bearer ${env.RESTATE_AUTH_TOKEN}` } : {}),
+        ...(env.WREN_API_TOKEN ? { authorization: `Bearer ${env.WREN_API_TOKEN}` } : {}),
       },
       body: JSON.stringify({ ...rest, client }),
     });

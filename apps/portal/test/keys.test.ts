@@ -13,7 +13,7 @@ const env = (over: { [K in keyof Env]?: Env[K] | undefined } = {}): Env =>
   ({
     ASSETS: { fetch: async () => new Response("app") } as unknown as Fetcher,
     DEMO_HOST: "demo.test",
-    RESTATE_INGRESS_URL: "https://restate.test:8080/",
+    WREN_API_URL: "https://restate.test:8080/",
     AUTH_ORIGIN: "https://auth.test",
     LAMBDA_URL: "https://lambda.test/",
     EDGE_SECRET: "edge-s3cret",

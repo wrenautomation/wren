@@ -171,7 +171,16 @@ const loaded = (label: string) => {
 
 function restart(plist: string, label: string) {
   if (loaded(label)) launchctl("bootout", `${domain()}/${label}`);
-  launchctl("bootstrap", domain(), plist);
+  // bootout returns before the job is gone; bootstrap fails (5: I/O error) until it is
+  for (let i = 0; ; i++) {
+    try {
+      launchctl("bootstrap", domain(), plist);
+      return;
+    } catch (e) {
+      if (i >= 20) throw e;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+    }
+  }
 }
 
 const envText = (r: Role) =>

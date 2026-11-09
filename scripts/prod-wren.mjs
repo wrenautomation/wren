@@ -20,7 +20,7 @@ if (missing.length) {
 // Prod's verifier, contact fetcher and placement seeds when the shell sets none: without them the CLI falls back to the fake
 // verifier, whose verdicts the movers stage refuses.
 const OPTIONAL = [
-  "RESTATE_AUTH_TOKEN",
+  "WREN_API_TOKEN",
   "WREN_VERIFIER",
   "WREN_SMTP_PROBE_URL",
   "WREN_SMTP_PROBE_TOKEN",
@@ -73,7 +73,7 @@ const env = {
   ),
   ...process.env,
   ...Object.fromEntries(KEYS.map((k) => [k, prod[k]])),
-  WREN_RESTATE_INGRESS_URL: ingress,
+  WREN_API_URL: ingress,
 };
 const r = spawnSync(join(root, "bin/wren"), process.argv.slice(2), { env, stdio: "inherit" });
 process.exit(r.status ?? 1);

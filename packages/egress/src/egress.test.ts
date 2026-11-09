@@ -140,7 +140,7 @@ describe("gate and lock", () => {
   )}
 gate:
   sources: ["@/keys.env"]
-  hosts: { RESTATE_AUTH_TOKEN: [restate.example.com] }
+  hosts: { WREN_API_TOKEN: [restate.example.com] }
 `;
   const w = parseWrenfile(GATED);
 
@@ -157,7 +157,7 @@ gate:
     expect(gateConfig(w, { root: "/w", mitmdump: "/m", home: "/h" })).toMatchObject({
       dir: "/h/.config/wren/egress/gate",
       sources: ["/w/keys.env"],
-      hosts: { RESTATE_AUTH_TOKEN: ["restate.example.com"] },
+      hosts: { WREN_API_TOKEN: ["restate.example.com"] },
       roles: {
         web: {
           port: 4772,

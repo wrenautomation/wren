@@ -137,7 +137,7 @@ beforeEach(() => {
  */
 const UNTIL = { timeout: 60_000, interval: 200 };
 
-const connect = () => ingress.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const connect = () => ingress.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const loop = (key = id) => connect().objectClient<Reactivation>({ name: "Reactivation" }, key);
 const mailbox = (object: string, key: string) =>
   connect().objectClient<StandIn>({ name: object }, key);

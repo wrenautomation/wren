@@ -39,12 +39,12 @@ export async function payRoute(req: Request, env: Env, site: Site): Promise<Resp
   const signature = req.headers.get("stripe-signature");
   let res: Response;
   try {
-    res = await fetch(`${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/PaymentLinkSend/stripe`, {
+    res = await fetch(`${env.WREN_API_URL.replace(/\/+$/, "")}/PaymentLinkSend/stripe`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
         "idempotency-key": await deliveryKey(m[1], raw, signature),
-        ...(env.RESTATE_AUTH_TOKEN ? { authorization: `Bearer ${env.RESTATE_AUTH_TOKEN}` } : {}),
+        ...(env.WREN_API_TOKEN ? { authorization: `Bearer ${env.WREN_API_TOKEN}` } : {}),
       },
       body: JSON.stringify({
         client: m[1],

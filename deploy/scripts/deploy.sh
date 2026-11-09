@@ -13,14 +13,14 @@ set -euo pipefail
 . deploy/scripts/ci-steps.sh
 phase() { echo "::notice::$(date -u +%T) $*"; }
 
-# RESTATE_HOST: the runtime's door (api.wrenautomation.com, Caddy on 443, box-front-door.sh).
+# WREN_API_HOST: the runtime's door (api.wrenautomation.com, Caddy on 443, box-front-door.sh).
 # Old name, kept until the env names move.
-RESTATE_INGRESS="https://$RESTATE_HOST"
+API_URL="https://$WREN_API_HOST"
 
 # Everything that changes nothing live starts now: the two Lambda bundles, the CLI bundle
 # (templates sync runs it), and a not-yet-live version of each Cloudflare Worker.
 # After the gates: the box's pgbouncer, listmonk and front door, beside the migrations.
-# Phone: the ingress follows RESTATE_HOST like the portal's; its other secrets (Telnyx, cal.com,
+# Phone: the ingress follows WREN_API_HOST like the portal's; its other secrets (Telnyx, cal.com,
 # Gmail push, credential links) are set by hand and kept: --secrets-file is additive.
 # LLM gateway: its keys are Worker secrets, set by scripts/llm-gateway-keys.mjs; a deploy keeps them.
 # Share (autobrowse traces ingest): ADMIN_TOKEN is a kept Worker secret. It serves no prod path,
@@ -30,14 +30,14 @@ RESTATE_INGRESS="https://$RESTATE_HOST"
 # listmonk: the newsletter (designs/2026-10-21-esign-and-newsletter.md); no SSM param
 # /wren/prod/listmonk yet: the script says so and skips. Unchanged: left running.
 phase start
-jq -n --arg url "$RESTATE_INGRESS/" --arg token "$RESTATE_AUTH_TOKEN" \
-  '{RESTATE_INGRESS_URL: $url, RESTATE_AUTH_TOKEN: $token}' > "$RUNNER_TEMP/phone-secrets.json"
+jq -n --arg url "$API_URL/" --arg token "$WREN_API_TOKEN" \
+  '{WREN_API_URL: $url, WREN_API_TOKEN: $token}' > "$RUNNER_TEMP/phone-secrets.json"
 jq -n --arg url "$LAMBDA_URL" --arg edge "$EDGE_SECRET" '{LAMBDA_URL: $url, EDGE_SECRET: $edge}' \
   > "$RUNNER_TEMP/auth-secrets.json"
 # LIVE_HOOK_SECRET: writers' signed "this changed" (src/topics.ts); = WREN_LIVE_SECRET in SSM.
-jq -n --arg url "$RESTATE_INGRESS/" --arg token "$RESTATE_AUTH_TOKEN" \
+jq -n --arg url "$API_URL/" --arg token "$WREN_API_TOKEN" \
   --arg lambda "$LAMBDA_URL" --arg edge "$EDGE_SECRET" --arg live "${LIVE_HOOK_SECRET:-}" \
-  '{RESTATE_INGRESS_URL: $url, RESTATE_AUTH_TOKEN: $token, LAMBDA_URL: $lambda, EDGE_SECRET: $edge}
+  '{WREN_API_URL: $url, WREN_API_TOKEN: $token, LAMBDA_URL: $lambda, EDGE_SECRET: $edge}
    + (if $live == "" then {} else {LIVE_HOOK_SECRET: $live} end)' \
   > "$RUNNER_TEMP/portal-secrets.json"
 bg worker-zip pnpm --filter @wren/worker build:lambda
@@ -100,8 +100,8 @@ await live-phone live-gateway live-auth live-portal live-share
 # Fire and forget: the run lands in the runs ledger (`outreach refresh`).
 phase "queued mail"
 await templates
-curl -fsS -X POST "$RESTATE_INGRESS/EmailQueueRerender/all/send" \
-  -H "Authorization: Bearer $RESTATE_AUTH_TOKEN" -H "content-type: application/json" -d 'null' > /dev/null
+curl -fsS -X POST "$API_URL/EmailQueueRerender/all/send" \
+  -H "Authorization: Bearer $WREN_API_TOKEN" -H "content-type: application/json" -d 'null' > /dev/null
 
 await auth-lambda listmonk front-door
 phase done

@@ -50,7 +50,7 @@ let acme: Db;
 const wren = new FakeProvider();
 const theirs = new FakeProvider();
 const open = (id: string) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${id}`));
-const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const ingress = () => clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
 // OPEN is Tue 14:00 ET; the call is Wed 14:30 ET, booked Sunday.
 const CALL = {
   uid: "c1",

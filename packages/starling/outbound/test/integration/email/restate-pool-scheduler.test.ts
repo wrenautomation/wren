@@ -137,7 +137,7 @@ beforeEach(async () => {
 type Pool = ReturnType<typeof makeLeadPoolFill>;
 const client = (key = "sec_ria") =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<Pool>({ name: "LeadPoolFill" }, key);
 const sync = (key?: string) => client(key).sync() as Promise<PassOutcome<FeedStats>>;
 

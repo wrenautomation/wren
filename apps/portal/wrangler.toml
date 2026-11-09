@@ -1,5 +1,5 @@
-# Deploy: see deploy/portal.md. Nothing secret lives here: RESTATE_INGRESS_URL,
-# RESTATE_AUTH_TOKEN, LAMBDA_URL, EDGE_SECRET are secrets (deploy.yml); the account id comes from
+# Deploy: see deploy/portal.md. Nothing secret lives here: WREN_API_URL,
+# WREN_API_TOKEN, LAMBDA_URL, EDGE_SECRET are secrets (deploy.yml); the account id comes from
 # CLOUDFLARE_ACCOUNT_ID.
 name = "wren-portal"
 main = "src/worker.ts"

@@ -85,7 +85,7 @@ beforeEach(async () => {
   });
 });
 
-const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const ingress = () => clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
 
 /** An approved email broadcast to two people who said yes, one who didn't. */
 async function approved(): Promise<number> {

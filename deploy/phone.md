@@ -25,7 +25,7 @@ the custom domain and the secrets below. Since 2026-10-01 its own passkeys are g
 the KV `wren-phone-creds`, the `SESSION_SECRET` / `SETUP_TOKEN` secrets and their
 `WREN_PHONE_*` lines in `deploy/prod.env` are unused and can be deleted.
 
-CI writes `RESTATE_INGRESS_URL` and `RESTATE_AUTH_TOKEN` from `RESTATE_HOST` on each deploy
+CI writes `WREN_API_URL` and `WREN_API_TOKEN` from `WREN_API_HOST` on each deploy
 (since 2026-10-06; before that they were set by hand and still named Restate Cloud). The rest by hand,
 from `apps/phone/`:
 
@@ -147,5 +147,5 @@ Rotate: the same two steps, `subscriptions update ... --push-endpoint`. Each
     curl -s -X POST https://phone.wrenautomation.com/links -d '{}'             # 401: unsigned
     curl -s -X POST https://phone.wrenautomation.com/calendar/slots -d '{}'    # open times
 
-Local: `npx wrangler dev` with `.dev.vars` (RESTATE_INGRESS_URL). The app only
+Local: `npx wrangler dev` with `.dev.vars` (WREN_API_URL). The app only
 signs in on a `phone.` host, so locally every call is 401. Tests: `pnpm --filter @wren/phone test:unit`.

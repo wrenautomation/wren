@@ -22,7 +22,7 @@ const rt = await startRt({
   build: "dev",
   doorPort: PORT,
   // the CLI sends this bearer when set (`ingressOf`)
-  ...(settings.restateAuthToken ? { doorBearer: settings.restateAuthToken } : {}),
+  ...(settings.apiToken ? { doorBearer: settings.apiToken } : {}),
   log,
 });
 log.info({ door: rt.doorUrl, ...built.summary }, "worker listening");

@@ -56,7 +56,7 @@ afterAll(async () => {
 
 const renewal = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<ReturnType<typeof makeSiteTokenRenew>>({ name: "SiteTokenRenew" }, "box");
 const open = () =>
   env.admin.query(

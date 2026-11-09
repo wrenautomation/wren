@@ -47,9 +47,9 @@ export const settingsSchema = z.object({
    * they set session parameters (the audit actor) a pooled connection can't keep.
    */
   databasePoolPort: z.coerce.number().int().positive().optional(),
-  restateIngressUrl: z.string().url().default("http://127.0.0.1:8080"),
+  apiUrl: z.string().url().default("http://127.0.0.1:8080"),
   /** Bearer for the ingress (Restate Cloud API key); unset for a local Restate. */
-  restateAuthToken: z.string().min(1).optional(),
+  apiToken: z.string().min(1).optional(),
   /**
    * The lake's data: Parquet files under `s3://<bucket>/` or a local dir (`wren lake`,
    * designs/2026-10-11-lake.md). Unset, `wren lake` refuses.
@@ -567,14 +567,14 @@ export const settingsSchema = z.object({
 export type Settings = z.infer<typeof settingsSchema>;
 
 /** The ingress connection: `clients.connect(ingressOf(settings))`; the bearer rides along when set. */
-export function ingressOf(s: Pick<Settings, "restateIngressUrl" | "restateAuthToken">): {
+export function ingressOf(s: Pick<Settings, "apiUrl" | "apiToken">): {
   url: string;
   headers?: Record<string, string>;
   serde: typeof INGRESS_JSON;
 } {
   return {
-    url: s.restateIngressUrl,
-    ...(s.restateAuthToken ? { headers: { Authorization: `Bearer ${s.restateAuthToken}` } } : {}),
+    url: s.apiUrl,
+    ...(s.apiToken ? { headers: { Authorization: `Bearer ${s.apiToken}` } } : {}),
     serde: INGRESS_JSON,
   };
 }
@@ -604,8 +604,8 @@ export const INGRESS_JSON = {
 export const ENV_KEYS = {
   databaseUrl: "WREN_DATABASE_URL",
   databasePoolPort: "WREN_DATABASE_POOL_PORT",
-  restateIngressUrl: "WREN_RESTATE_INGRESS_URL",
-  restateAuthToken: "RESTATE_AUTH_TOKEN",
+  apiUrl: "WREN_API_URL",
+  apiToken: "WREN_API_TOKEN",
   lakePath: "WREN_LAKE_PATH",
   lakeCatalogUrl: "WREN_LAKE_CATALOG_URL",
   lakeTrackPath: "WREN_LAKE_TRACK_PATH",

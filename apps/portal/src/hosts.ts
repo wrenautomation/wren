@@ -29,11 +29,11 @@ const MISS_CACHE_SECONDS = 30;
 const ownDomain = (appHost: string) => appHost.slice(appHost.indexOf(".") + 1);
 
 const restate = (env: Env, path: string, body: unknown) =>
-  fetch(`${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/${path}`, {
+  fetch(`${env.WREN_API_URL.replace(/\/+$/, "")}/${path}`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      ...(env.RESTATE_AUTH_TOKEN ? { authorization: `Bearer ${env.RESTATE_AUTH_TOKEN}` } : {}),
+      ...(env.WREN_API_TOKEN ? { authorization: `Bearer ${env.WREN_API_TOKEN}` } : {}),
     },
     body: JSON.stringify(body),
   });

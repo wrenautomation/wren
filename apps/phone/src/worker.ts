@@ -118,13 +118,12 @@ function json(body: unknown, status = 200): Response {
 function restateHeaders(env: Env, extra: Record<string, string> = {}): Record<string, string> {
   return {
     "content-type": "application/json",
-    ...(env.RESTATE_AUTH_TOKEN ? { authorization: `Bearer ${env.RESTATE_AUTH_TOKEN}` } : {}),
+    ...(env.WREN_API_TOKEN ? { authorization: `Bearer ${env.WREN_API_TOKEN}` } : {}),
     ...extra,
   };
 }
 
-const ingress = (env: Env, path: string) =>
-  `${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/${path}`;
+const ingress = (env: Env, path: string) => `${env.WREN_API_URL.replace(/\/+$/, "")}/${path}`;
 
 /** `<client>` from `/webhooks/<site>/<client>`; null when the path is not one. */
 const clientIn = (pathname: string, site: string): string | null => {

@@ -65,17 +65,14 @@ const page = (body: string, status: number) =>
 
 async function call(env: Env, handler: string, body: unknown): Promise<Answer> {
   try {
-    const res = await fetch(
-      `${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/DocumentSign/${handler}`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          ...(env.RESTATE_AUTH_TOKEN ? { authorization: `Bearer ${env.RESTATE_AUTH_TOKEN}` } : {}),
-        },
-        body: JSON.stringify(body),
+    const res = await fetch(`${env.WREN_API_URL.replace(/\/+$/, "")}/DocumentSign/${handler}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(env.WREN_API_TOKEN ? { authorization: `Bearer ${env.WREN_API_TOKEN}` } : {}),
       },
-    );
+      body: JSON.stringify(body),
+    });
     if (res.ok) return (await res.json()) as Answer;
   } catch {}
   return { status: 503, html: goneHtml(404) };

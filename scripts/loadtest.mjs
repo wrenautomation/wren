@@ -185,7 +185,7 @@ try {
     HOME: process.env.HOME,
     WREN_ENV_FILE: "none",
     WREN_DATABASE_URL: dbUrl,
-    WREN_RESTATE_INGRESS_URL: ingress,
+    WREN_API_URL: ingress,
     WREN_LOG_LEVEL: "warn",
     WREN_WORKER_PORT: String(WORKER_PORT),
     AWS_EC2_METADATA_DISABLED: "true",

@@ -144,8 +144,8 @@ const DEV_VARS = {
   WREN_DEV_EMAIL: process.env.WREN_DEV_EMAIL ?? "william@wrenautomation.com",
   // Local is no client's host.
   APP_HOST: "",
-  RESTATE_INGRESS_URL: process.env.WREN_DEV_INGRESS ?? "https://api.wrenautomation.com",
-  RESTATE_AUTH_TOKEN: process.env.RESTATE_AUTH_TOKEN ?? "",
+  WREN_API_URL: process.env.WREN_DEV_INGRESS ?? "https://api.wrenautomation.com",
+  WREN_API_TOKEN: process.env.WREN_API_TOKEN ?? "",
 };
 const worker = () =>
   cloudflare({

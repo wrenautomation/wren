@@ -82,8 +82,8 @@ const deployOf = (live: string): Deploy => ({
   APP_HOST: "app.example.test",
   DEMO_HOST: "demo.example.test",
   AUTH_ORIGIN: AUTH,
-  RESTATE_INGRESS_URL: "https://restate.test:8080/",
-  RESTATE_AUTH_TOKEN: "rt",
+  WREN_API_URL: "https://restate.test:8080/",
+  WREN_API_TOKEN: "rt",
 });
 let deploy = deployOf(TAB_BUILD);
 

@@ -500,17 +500,17 @@ type Desk = ReturnType<typeof makeContentDesk>;
 type Sched = ReturnType<typeof makePostPublish>;
 const desk = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<Desk>({ name: "ContentDesk" }, DESK_KEY);
 const sched = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<Sched>({ name: "PostPublish" }, SCHEDULER_KEY);
 const sync = () => sched().sync() as Promise<PassOutcome<PublishStats>>;
 type Met = ReturnType<typeof makePostMetrics>;
 const look = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<Met>({ name: "PostMetrics" }, METRICS_KEY)
     .sync() as Promise<PassOutcome<MetricsStats>>;
 
@@ -696,7 +696,7 @@ describe("content loop", () => {
     const second = await sync();
     expect(second.stats?.posting).toHaveLength(1);
     expect(hung).toHaveLength(1);
-    const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+    const ingress = clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
     await ingress.resolveAwakeable(hung[0] as string, "late");
     const third = await sync();
     expect(third.stats?.published).toMatchObject([{ platform: "x", url: "https://x.test/p/late" }]);
@@ -714,7 +714,7 @@ describe("content loop", () => {
     hang.add("x");
     await approveDrafts(pg.db, [x.id], { now: new Date() });
     expect((await sync()).stats?.posting).toHaveLength(1);
-    const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+    const ingress = clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
     await ingress.resolveAwakeable(hung[0] as string, "refused");
     const after = await sync();
     expect(after.stats?.failed).toMatchObject([
@@ -745,7 +745,7 @@ describe("content loop", () => {
     // Parked once: the next pass does not park it again.
     expect((await sync()).stats?.unsure).toBeUndefined();
     // The retry in the dead-letter queue lets the call answer: published, the ledger sent.
-    const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+    const ingress = clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
     await ingress.resolveAwakeable(hung[0] as string, "late");
     const settled = await sync();
     expect(settled.stats?.published).toMatchObject([{ platform: "x" }]);
@@ -770,7 +770,7 @@ describe("content loop", () => {
     expect(await settle(li.id, "dropped")).toMatchObject({ outcome: "dropped" });
     // The next pass stops looking at LinkedIn and cancels its call; X is still looked at.
     expect((await sync()).stats?.posting?.map((w) => w.platform)).toEqual(["x"]);
-    const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+    const ingress = clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
     for (const id of hung) await ingress.resolveAwakeable(id, "refused").catch(() => undefined);
     const after = await sync();
     expect(after.stats?.failed).toMatchObject([{ platform: "x" }]);
@@ -905,7 +905,7 @@ describe("content loop", () => {
   }
   const settle = (id: string, outcome: "posted" | "again" | "dropped") =>
     clients
-      .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+      .connect(ingressOf({ apiUrl: env.baseUrl() }))
       .serviceClient<typeof settleForward>({ name: "SettleForward" })
       .settle({ id, outcome, by: "william" });
 
@@ -1289,7 +1289,7 @@ describe("content loop", () => {
       },
     ]);
     const met = clients
-      .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+      .connect(ingressOf({ apiUrl: env.baseUrl() }))
       .objectClient<Met>({ name: "PostMetrics" }, METRICS_KEY);
     // LoopRevive reads it off the loop's state: the call, and the post it was for.
     expect((await met.status()).last).toMatchObject({
@@ -1526,7 +1526,7 @@ describe("daily drafts (PostPlan with draft on)", () => {
   type Plan = ReturnType<typeof makePostPlan>;
   const planner = () =>
     clients
-      .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+      .connect(ingressOf({ apiUrl: env.baseUrl() }))
       .objectClient<Plan>({ name: "PostPlan" }, PLANNER_KEY);
   const settings = {
     platforms: ["linkedin", "reddit"],

@@ -226,7 +226,7 @@ beforeEach(async () => {
   reader.mail.clear();
 });
 const db = () => pg.db;
-const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const ingress = () => clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const inbox = (sender: string) =>
   ingress().objectClient<EmailInboxRead>({ name: "EmailInboxRead" }, sender);
 const disposition = () =>

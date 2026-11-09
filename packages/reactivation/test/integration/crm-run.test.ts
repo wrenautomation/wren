@@ -111,7 +111,7 @@ beforeEach(async () => {
   await runCrmImport(pg.db, new CrmCsvSource(f, "export.csv", new TextEncoder().encode(CSV)));
 });
 
-const connect = () => ingress.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const connect = () => ingress.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const crmRun = (key: string) => connect().objectClient<CrmRunObject>({ name: "CrmRun" }, key);
 
 describe("CrmRun", () => {

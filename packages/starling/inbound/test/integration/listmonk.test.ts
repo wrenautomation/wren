@@ -99,7 +99,7 @@ const message = (o: { email: string; recipient?: string; campaign?: string; tags
 
 const post = (m: ReturnType<typeof message>) =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .serviceClient<ListmonkIntake>({ name: "ListmonkIntake" })
     .post(m);
 

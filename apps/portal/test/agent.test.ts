@@ -15,8 +15,8 @@ const env = (): Env => ({
   ASSETS: { fetch: async () => new Response("app") } as unknown as Fetcher,
   DEMO_HOST: "demo.test",
   APP_HOST: "app.test",
-  RESTATE_INGRESS_URL: "https://restate.test:8080/",
-  RESTATE_AUTH_TOKEN: "rt",
+  WREN_API_URL: "https://restate.test:8080/",
+  WREN_API_TOKEN: "rt",
   AUTH_ORIGIN: "https://auth.test",
 });
 

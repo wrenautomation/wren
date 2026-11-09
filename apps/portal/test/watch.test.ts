@@ -24,8 +24,8 @@ const INGRESS = "https://restate.test:8080/";
 const env = (over: Partial<Env> = {}): Env => ({
   ASSETS: {} as Fetcher,
   DEMO_HOST: "demo.test",
-  RESTATE_INGRESS_URL: INGRESS,
-  RESTATE_AUTH_TOKEN: "tok",
+  WREN_API_URL: INGRESS,
+  WREN_API_TOKEN: "tok",
   ...over,
 });
 

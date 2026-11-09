@@ -21,8 +21,8 @@ which:
 
 ```sh
 WREN_DATABASE_URL=…                     # deploy/terraform: tofu output -raw database_url
-WREN_RESTATE_INGRESS_URL=https://201m2vp6sq3x11xdaatsmjej302.env.us.restate.cloud:8080
-RESTATE_AUTH_TOKEN=…                    # the Restate Cloud API key; the CLI sends it as the bearer
+WREN_API_URL=https://201m2vp6sq3x11xdaatsmjej302.env.us.restate.cloud:8080
+WREN_API_TOKEN=…                    # the Restate Cloud API key; the CLI sends it as the bearer
 ```
 
 `walkthrough/demos/prod.sh <command>` sets the first two for one command

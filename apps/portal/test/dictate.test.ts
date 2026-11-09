@@ -41,7 +41,7 @@ async function token() {
 const env = (over: Partial<Env> = {}): Env => ({
   ASSETS: { fetch: async () => new Response("app") } as unknown as Fetcher,
   DEMO_HOST: "demo.test",
-  RESTATE_INGRESS_URL: "https://restate.test:8080/",
+  WREN_API_URL: "https://restate.test:8080/",
   AUTH_ORIGIN: AUTH,
   DICTATE_URL: "https://speech.test/v1/audio/transcriptions",
   DICTATE_MODEL: "whisper-test",

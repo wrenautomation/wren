@@ -97,7 +97,7 @@ beforeEach(async () => {
 });
 const db = () => pg.db;
 const client = () => {
-  const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+  const ingress = clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
   const object = ingress.objectClient<LeadVerify>({ name: "LeadVerify" }, RESOLUTION_KEY);
   const via = ingress.serviceClient<typeof inside>({ name: "ResolveInside" });
   return {

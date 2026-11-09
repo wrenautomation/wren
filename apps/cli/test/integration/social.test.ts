@@ -172,7 +172,7 @@ beforeEach(async () => {
   };
 });
 
-const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const ingress = () => clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const watch = () =>
   ingress().objectClient<ReturnType<typeof makeSocialActivityRead>>(
     { name: "SocialActivityRead" },

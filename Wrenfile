@@ -54,7 +54,7 @@ roles:
       - OPENALEX_API_KEY
       - OPENROUTER_API_KEY*
       - PERPLEXITY_API_KEY*
-      - RESTATE_AUTH_TOKEN
+      - WREN_API_TOKEN
       - SEARXNG_TOKEN
       - TYPESAFE_API_KEY
     plain: [NUM_*, SEARXNG_URL]
@@ -81,6 +81,6 @@ agents:
 gate:
   sources: ["@/autobrowse/.env", "@/llm.env"]
   hosts:
-    RESTATE_AUTH_TOKEN: [api.wrenautomation.com, restate.wrenautomation.com]
-    DESK_DOOR_TOKEN: [api.wrenautomation.com, restate.wrenautomation.com]
+    WREN_API_TOKEN: [api.wrenautomation.com]
+    DESK_DOOR_TOKEN: [api.wrenautomation.com]
     SEARXNG_TOKEN: [search.wrenautomation.com]

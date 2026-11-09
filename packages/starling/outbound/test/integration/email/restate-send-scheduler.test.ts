@@ -89,7 +89,7 @@ beforeEach(async () => {
 const db = () => pg.db;
 const client = (sender: string) =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<EmailSend>({ name: "EmailSend" }, sender);
 
 async function enrollOne(domain: string, email: string, sender: string) {
@@ -197,7 +197,7 @@ describe("EmailSend", () => {
 
     // The queued call lands on the new code: no `start`, and it sends.
     await clients
-      .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+      .connect(ingressOf({ apiUrl: env.baseUrl() }))
       .serviceClient<typeof queued>({ name: "QueuedLoop" })
       .send({ key: SENDER_OLD, generation: 3 });
     let after = await client(SENDER_OLD).status();

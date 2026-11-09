@@ -196,7 +196,7 @@ beforeEach(async () => {
   deskDeps.google = googleLlm;
 });
 
-const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const ingress = () => clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const svc = () => ingress().serviceClient<MarketingConsoleService>({ name: "MarketingConsole" });
 const desk = () => ingress().serviceClient<ReturnType<typeof makeInboxDesk>>({ name: "InboxDesk" });
 const api = () => marketingConsoleApi({ db: pg.db, open: (c) => open(c.id), records });

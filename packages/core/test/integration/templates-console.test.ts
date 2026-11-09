@@ -40,7 +40,7 @@ beforeEach(() => truncate(pg.db, ["templates", "template_versions"]));
 
 type Call = (ctx: unknown, req: Record<string, unknown>) => Promise<Record<string, unknown>>;
 const svc = () =>
-  clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() })).serviceClient<{
+  clients.connect(ingressOf({ apiUrl: env.baseUrl() })).serviceClient<{
     list: Call;
     detail: Call;
     preview: Call;

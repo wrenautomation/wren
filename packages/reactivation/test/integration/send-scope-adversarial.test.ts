@@ -106,7 +106,7 @@ const stateOf = async (db: Db, enrollment: number) =>
   )[0]?.state;
 const scheduler = (key: string) =>
   ingress
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<EmailSend>({ name: "EmailSend" }, key);
 
 describe("a client mailbox's send loop", () => {

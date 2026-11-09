@@ -212,7 +212,7 @@ afterAll(async () => {
   await pg?.stop();
 });
 
-const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const ingress = () => clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const inbox = () =>
   ingress().serviceClient<ReturnType<typeof makeSocialInbox>>({ name: "SocialInbox" });
 const console_ = () =>

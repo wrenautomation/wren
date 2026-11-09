@@ -103,7 +103,7 @@ afterAll(async () => {
 type Out = PassOutcome<PostmasterStats & { not_verified: string[] }>;
 const pull = (key: string) =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<EmailPostmasterPull>({ name: "EmailPostmasterPull" }, key)
     .sync() as Promise<Out>;
 const days = (id: string) =>

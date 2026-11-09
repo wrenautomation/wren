@@ -120,7 +120,7 @@ afterAll(async () => {
 
 const sync = (key: string) =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<ReturnType<typeof makeLeadPoolFill>>({ name: "LeadPoolFill" }, key)
     .sync() as Promise<PassOutcome<FeedStats>>;
 

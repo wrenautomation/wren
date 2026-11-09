@@ -30,7 +30,7 @@ let env: TestRuntime;
 const provider = new FakeProvider();
 const n = notes();
 const mailed: { to: string; subject: string; text: string }[] = [];
-const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const ingress = () => clients.connect(ingressOf({ apiUrl: env.baseUrl() }));
 
 /** The site: one old application (texts start after it) and the pushed ones. */
 const apps: FormApplication[] = [];

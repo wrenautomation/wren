@@ -73,7 +73,7 @@ beforeEach(async () => {
 type EmailConsole = ReturnType<typeof makeEmailConsole>;
 const email = () =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .serviceClient<EmailConsole>({ name: "EmailConsole" });
 
 describe("EmailConsole", () => {

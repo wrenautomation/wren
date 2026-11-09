@@ -3,14 +3,14 @@ import { INGRESS_JSON, ingressOf } from "./index.js";
 
 describe("ingressOf", () => {
   it("is the URL alone locally and carries the bearer for Restate Cloud", () => {
-    expect(ingressOf({ restateIngressUrl: "http://127.0.0.1:8080" })).toEqual({
+    expect(ingressOf({ apiUrl: "http://127.0.0.1:8080" })).toEqual({
       url: "http://127.0.0.1:8080",
       serde: INGRESS_JSON,
     });
     expect(
       ingressOf({
-        restateIngressUrl: "https://x.env.us.restate.cloud:8080",
-        restateAuthToken: "k",
+        apiUrl: "https://x.env.us.restate.cloud:8080",
+        apiToken: "k",
       }),
     ).toEqual({
       url: "https://x.env.us.restate.cloud:8080",

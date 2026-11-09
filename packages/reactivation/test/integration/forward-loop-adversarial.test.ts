@@ -154,7 +154,7 @@ beforeEach(async () => {
     values (${enr?.id}, 'reply', 'interested', 'llm', ${JANE}, 'Re: umbrella', 'Yes please.', now())`);
 });
 
-const connect = () => ingress.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
+const connect = () => ingress.connect(ingressOf({ apiUrl: env.baseUrl() }));
 const loop = () => connect().objectClient<Reactivation>({ name: "Reactivation" }, id);
 const addClient = (stages: Record<string, boolean>) =>
   pg.db.insert(clients).values({

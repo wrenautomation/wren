@@ -91,7 +91,7 @@ beforeEach(async () => {
 
 const client = (profileId: number) =>
   clients
-    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .connect(ingressOf({ apiUrl: env.baseUrl() }))
     .objectClient<ProfileResearch>({ name: "ProfileResearch" }, String(profileId));
 
 /** Jane, known by a work email: the firm comes from its domain. */

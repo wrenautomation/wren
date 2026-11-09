@@ -9,9 +9,9 @@
 #   127.0.0.1:8090: the same door for callers on the box (Listmonk's postback), no bearer, loopback only.
 #   lists.wrenautomation.com: Listmonk (box-listmonk.sh).
 # Design: designs/2026-11-09-own-runtime.md, "Phase 6: one front door".
-# Usage: box-front-door.sh <region> [param]. The param is SecureString JSON {"token": the bearer}.
+# Usage: box-front-door.sh <region> [param]. The param: the box env, SecureString JSON; WREN_API_TOKEN is the bearer.
 set -euo pipefail
-region="$1" param="${2:-/wren/prod/restate}"
+region="$1" param="${2:-/wren/prod/box}"
 D=/var/lib/wren-pg/front-door
 mkdir -p "$D/caddy"
 umask 077
@@ -21,7 +21,7 @@ if [ ! -e "$D/caddy/caddy" ] && [ -d /var/lib/wren-pg/restate/caddy/caddy ]; the
 fi
 
 token="$(aws ssm get-parameter --region "$region" --name "$param" --with-decryption \
-  --query Parameter.Value --output text | python3 -c 'import json,sys; sys.stdout.write(json.load(sys.stdin)["token"])')"
+  --query Parameter.Value --output text | python3 -c 'import json,sys; sys.stdout.write(json.load(sys.stdin)["WREN_API_TOKEN"])')"
 printf 'DOOR_TOKEN=%s\n' "$token" > "$D/door.env.new"
 unset token
 
