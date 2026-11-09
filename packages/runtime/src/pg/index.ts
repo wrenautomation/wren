@@ -2,7 +2,15 @@
 
 export { default as postgres } from "postgres";
 export { rtAdmin, rtPatch } from "./admin.js";
-export { bridgeTurn, type Ingress, proxy, proxyRowId, replier, returnState } from "./bridge.js";
+export {
+  bridgeTurn,
+  type Ingress,
+  proxy,
+  proxyRowId,
+  replier,
+  returnState,
+  takeState,
+} from "./bridge.js";
 export { Dispatcher, type DispatcherOptions } from "./dispatcher.js";
 export { type DoorOptions, serveDoor } from "./door.js";
 export { DEFAULT_LEASE_MS, type ExecutorOptions, runTurn } from "./executor.js";

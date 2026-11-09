@@ -142,6 +142,66 @@ export async function returnState(sql: postgres.Sql, admin: string, service: str
   return byKey.size;
 }
 
+/**
+ * Box start: object state Restate still holds for a pg service (`from`, its Restate name) moves to
+ * `to` in pg, then leaves Restate. The door serves pg services direct, so only this moves a key no
+ * Restate caller touches. A key pg already holds is pg's: Restate's copy stays and is reported, so
+ * a name pg cleared never comes back.
+ * Safe beside a proxy call on the same key: Restate never writes these services' state again (only
+ * proxies serve them), and a proxy moves the same values the same way. Runs before the lanes start;
+ * an old slot's turn on a key with no pg state yet can still race it (that turn began without the
+ * key's state either way).
+ */
+export async function takeState(sql: postgres.Sql, admin: string, from: string, to = from) {
+  const res = await fetch(`${admin}/query`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({
+      query: `SELECT service_key, key, value FROM state WHERE service_name = '${from.replace(/'/g, "''")}'`,
+    }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!res.ok)
+    throw new Error(`restate state query ${from}: HTTP ${res.status} ${await res.text()}`);
+  const { rows } = (await res.json()) as {
+    rows: { service_key: string; key: string; value: string }[];
+  };
+  const byKey = new Map<string, { name: string; value: Uint8Array }[]>();
+  for (const r of rows) {
+    const s = byKey.get(r.service_key) ?? [];
+    s.push({ name: r.key, value: Buffer.from(r.value, "hex") });
+    byKey.set(r.service_key, s);
+  }
+  const moved: string[] = [];
+  const kept: string[] = [];
+  for (const [key, entries] of byKey) {
+    // one statement: seeds only a key pg holds nothing for
+    const took = await sql`
+      INSERT INTO rt.state (service, key, name, value)
+      SELECT ${to}, ${key}, e.name, decode(e.value, 'base64')
+      FROM jsonb_to_recordset(${JSON.stringify(entries.map((e) => ({ name: e.name, value: Buffer.from(e.value).toString("base64") })))}::text::jsonb)
+        AS e(name text, value text)
+      WHERE NOT EXISTS (SELECT 1 FROM rt.state WHERE service = ${to} AND key = ${key})
+      ON CONFLICT DO NOTHING RETURNING name`;
+    if (!took.length) {
+      kept.push(key);
+      continue;
+    }
+    const clear = await fetch(`${admin}/services/${encodeURIComponent(from)}/state`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ object_key: key, new_state: {} }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!clear.ok)
+      throw new Error(
+        `restate state clear ${from}/${key}: HTTP ${clear.status} ${await clear.text()}`,
+      );
+    moved.push(key);
+  }
+  return { moved, kept };
+}
+
 export interface Ingress {
   url: string;
   headers?: Record<string, string>;

@@ -26,6 +26,7 @@ import {
   runTurn,
   serveDoor,
   setPgServices,
+  takeState,
 } from "@wren/runtime/pg";
 import type { Logger } from "pino";
 import type { AnyService } from "./services.js";
@@ -142,6 +143,20 @@ export async function startRt(o: {
     } catch (e) {
       o.log.error({ err: String(e), from, to }, "rt: rename failed");
     }
+  // state Restate still holds for a pg service moves in before any turn reads it
+  if (o.admin)
+    for (const [from, to] of [
+      ...PG_SERVICES.map((s) => [s, s] as const),
+      ...Object.entries(RENAMED),
+    ])
+      try {
+        const { moved, kept } = await takeState(sql, o.admin, from, to);
+        if (moved.length) o.log.info({ from, to, moved }, "rt: state taken from Restate");
+        if (kept.length)
+          o.log.warn({ from, to, kept }, "rt: Restate state kept, pg holds these keys");
+      } catch (e) {
+        o.log.error({ err: String(e), from, to }, "rt: state take failed");
+      }
   if (o.admin)
     for (const { service } of await sql<
       { service: string }[]

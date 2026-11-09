@@ -18,6 +18,7 @@ import {
   runTurn,
   serveDoor,
   setPgServices,
+  takeState,
 } from "../../src/pg/index.js";
 
 const OBJECT = { type: "object", properties: {}, additionalProperties: {} };
@@ -278,6 +279,45 @@ describe("restate ↔ pg", () => {
     expect(await restateState("c1")).toEqual([{ key: "n", value_utf8: "8" }]);
     const left = await sql`SELECT 1 FROM rt.state WHERE service = 'Counter'`;
     expect(left.length).toBe(0);
+  }, 30_000);
+
+  it("box start takes Restate's stranded state into pg; a key pg holds stays pg's", async () => {
+    const put = async (service: string, key: string, state: Record<string, string>) => {
+      const new_state = Object.fromEntries(
+        Object.entries(state).map(([k, v]) => [k, [...Buffer.from(v)]]),
+      );
+      const res = await fetch(`${admin}/services/${service}/state`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ object_key: key, new_state }),
+      });
+      expect(res.ok, await res.text()).toBe(true);
+    };
+    // under the old name: lands under the new one
+    await put("OldCounter", "c3", { n: "4", note: '"x"' });
+    expect(await takeState(sql, admin, "OldCounter", "Counter")).toEqual({
+      moved: ["c3"],
+      kept: [],
+    });
+    expect(await restateState("c3", "OldCounter")).toEqual([]);
+    // pg already holds c4: Restate's older copy is not merged in, and is not cleared
+    await sql`INSERT INTO rt.state (service, key, name, value) VALUES ('Counter', 'c4', 'n', '10')`;
+    await put("Counter", "c4", { n: "1", stale: "1" });
+    const r = await takeState(sql, admin, "Counter");
+    expect(r.kept).toEqual(["c4"]);
+    expect(new Set(r.moved)).toEqual(new Set(["c1", "c2"]));
+    expect(await restateState("c1")).toEqual([]);
+    expect(await restateState("c4")).toHaveLength(2);
+    const c4 = await sql`SELECT name FROM rt.state WHERE service = 'Counter' AND key = 'c4'`;
+    expect(c4.map((x) => x.name)).toEqual(["n"]);
+    // the door serves pg direct: each moved key carries on from its value
+    expect(await onPg.objectClient(counter, "c1").add(1)).toBe(9);
+    expect(await onPg.objectClient(counter, "c3").add(1)).toBe(5);
+    const [note] = await sql`SELECT convert_from(value, 'UTF8') v FROM rt.state
+      WHERE service = 'Counter' AND key = 'c3' AND name = 'note'`;
+    expect(note?.v).toBe('"x"');
+    // nothing left to take
+    expect(await takeState(sql, admin, "OldCounter", "Counter")).toEqual({ moved: [], kept: [] });
   }, 30_000);
 
   it("each proxy row is replied once", async () => {
