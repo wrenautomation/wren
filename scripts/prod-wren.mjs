@@ -63,7 +63,7 @@ function keystorePublic() {
   return value && /^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+$/.test(value) ? value : null;
 }
 const keystore = keystorePublic();
-const ingress = process.env.WREN_PROD_INGRESS_URL ?? "https://restate.wrenautomation.com";
+const ingress = process.env.WREN_PROD_INGRESS_URL ?? "https://api.wrenautomation.com";
 const env = {
   ...(keystore ? { WREN_KEYSTORE_PUBLIC: keystore } : {}),
   ...Object.fromEntries(

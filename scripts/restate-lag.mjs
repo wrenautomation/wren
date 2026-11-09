@@ -9,7 +9,7 @@
 // LAG_MINUTES (default 15).
 // It also watches the watchdog: `LoopRevive/all` wakes every other dead loop
 // (designs/2026-10-16-loop-watchdog.md), so its own lost chain is told here.
-const host = process.env.RESTATE_HOST ?? "restate.wrenautomation.com";
+const host = process.env.RESTATE_HOST ?? "api.wrenautomation.com";
 // Cloud's admin API is public on :9070; the box's Caddy serves its query under /admin.
 const admin = host.endsWith(".restate.cloud") ? `https://${host}:9070` : `https://${host}/admin`;
 const slackMs = Number(process.env.LAG_MINUTES ?? 15) * 60_000;

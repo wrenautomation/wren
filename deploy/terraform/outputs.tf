@@ -61,7 +61,7 @@ output "ssm_env_param" {
 
 output "cdp_url" {
   description = "WREN_CDP_URL for the worker when the browser container is on (renderer=cdp)."
-  value       = var.browser_token == "" ? "" : "wss://restate.wrenautomation.com/cdp?token=${var.browser_token}"
+  value       = var.browser_token == "" ? "" : "wss://api.wrenautomation.com/cdp?token=${var.browser_token}"
   sensitive   = true
 }
 

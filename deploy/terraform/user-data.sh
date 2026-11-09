@@ -56,7 +56,7 @@ docker run -d --name wren-pg --restart unless-stopped \
 unset PW
 
 # The render tier: browserless chromium, token-gated, when a token was provisioned. Loopback
-# only: Caddy (box-restate.sh) serves it over TLS as wss://restate.wrenautomation.com/cdp.
+# only: Caddy (box-front-door.sh) serves it over TLS as wss://api.wrenautomation.com/cdp.
 if [ -n "${browser_token_param}" ]; then
   TOKEN="$(aws ssm get-parameter --region "${region}" --name "${browser_token_param}" --with-decryption \
     --query Parameter.Value --output text)"

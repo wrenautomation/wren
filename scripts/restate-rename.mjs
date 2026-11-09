@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
-const ingress = process.env.WREN_PROD_INGRESS_URL ?? "https://restate.wrenautomation.com";
+const ingress = process.env.WREN_PROD_INGRESS_URL ?? "https://api.wrenautomation.com";
 const auth = { authorization: `Bearer ${process.env.RESTATE_AUTH_TOKEN}` };
 const BOX = "wren-prod-pg";
 const mode = process.argv.includes("--go")

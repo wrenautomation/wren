@@ -4,7 +4,7 @@ set -uo pipefail
 cd "$(dirname "$0")/../.."
 T=$(grep '^RESTATE_AUTH_TOKEN=' .env | cut -d= -f2-)
 [ -n "$T" ] || { echo "RESTATE_AUTH_TOKEN missing in .env" >&2; exit 1; }
-U=${WREN_PROD_INGRESS_URL:-https://restate.wrenautomation.com}
+U=${WREN_PROD_INGRESS_URL:-https://api.wrenautomation.com}
 for o in PostPublish/default PostMetrics/default AdSpendGuard/default EmailOpenerFill/agencies \
          LeadPoolFill/agencies EmailPostmasterPull/fleet EmailFleetDigest/fleet EmailPlacementTest/fleet; do
   printf '%-32s ' "$o"

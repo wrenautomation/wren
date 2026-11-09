@@ -14,7 +14,7 @@ set -euo pipefail
 phase() { echo "::notice::$(date -u +%T) $*"; }
 
 # RESTATE_HOST names Restate Cloud (ingress on :8080, admin API public) or the box
-# (restate.wrenautomation.com: ingress through Caddy on 443, admin on its loopback).
+# (api.wrenautomation.com: the door through Caddy on 443, box-front-door.sh; admin on loopback).
 case "$RESTATE_HOST" in
   *.restate.cloud) RESTATE_INGRESS="https://$RESTATE_HOST:8080" ;;
   *) RESTATE_INGRESS="https://$RESTATE_HOST" ;;

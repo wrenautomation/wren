@@ -81,5 +81,6 @@ agents:
 gate:
   sources: ["@/autobrowse/.env", "@/llm.env"]
   hosts:
-    RESTATE_AUTH_TOKEN: [restate.wrenautomation.com]
+    RESTATE_AUTH_TOKEN: [api.wrenautomation.com, restate.wrenautomation.com]
+    DESK_DOOR_TOKEN: [api.wrenautomation.com, restate.wrenautomation.com]
     SEARXNG_TOKEN: [search.wrenautomation.com]
