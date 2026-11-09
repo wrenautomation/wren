@@ -111,7 +111,7 @@ describe("connecting Stripe", () => {
       approves: true,
       last4: KEY.slice(-4),
     });
-    // Payments/send reads it by the row's ref.
+    // PaymentLinkSend/send reads it by the row's ref.
     expect(await stripeKeyOf({ main: pg.db, keys }, "acme", "make a link")).toBe(KEY);
     // Each read and write logged, never with the value.
     const log = await pg.db.select().from(clientSecretEvents);

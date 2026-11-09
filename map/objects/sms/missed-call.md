@@ -42,7 +42,7 @@ Citations: `packages/starling/channels/sms/src/schema.ts:555`, `packages/starlin
 
 | Surface | Role |
 |---|---|
-| Telnyx `/webhooks/telnyx/<client>` → `SmsEvents/ingestFor` | writes |
+| Telnyx `/webhooks/telnyx/<client>` → `SmsWebhookIntake/ingestFor` | writes |
 | `Executor/emit` → `sms.text_back` | writes the text back |
 | portal Texts > Missed calls (`SmsConsole.records*`) | reads |
 

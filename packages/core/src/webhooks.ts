@@ -689,7 +689,7 @@ function turnedOffMail(off: TurnedOff, portal: string): { subject: string; text:
 
 // ---- The service ----
 
-export const WEBHOOKS = { name: "Webhooks" } as const;
+export const WEBHOOKS = { name: "WebhookSend" } as const;
 
 /** An event the executor heard that a client's URL may want. */
 export interface Published {
@@ -707,7 +707,7 @@ export type WebhooksService = {
   redeliver: (ctx: restate.Context, req: { id: string }) => Promise<{ id: string }>;
 };
 
-/** Hand an event to `Webhooks/publish` from a handler: journaled, so it goes once. */
+/** Hand an event to `WebhookSend/publish` from a handler: journaled, so it goes once. */
 export function webhooksPublish(
   ctx: restate.Context,
   p: { client: string | null; event: WebhookEvent; subject: string; data: Record<string, unknown> },

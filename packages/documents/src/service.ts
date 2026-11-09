@@ -94,7 +94,7 @@ export interface DocumentsDeps
   esignRetry?: PaymentsDeps["stripeRetry"];
 }
 
-export const DOCUMENTS_SERVICE = { name: "Documents" } as const;
+export const DOCUMENTS_SERVICE = { name: "DocumentSign" } as const;
 /** Wren's own documents are under this client; its link is on Wren's site. */
 export const WREN_CLIENT = "wren";
 const WREN_HOST = "wrenautomation.com";

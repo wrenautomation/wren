@@ -878,7 +878,7 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
         answer(() => hooks.webhookRotate(req)),
       webhookTest: (_: restate.Context, req: PortalRequest & { id?: unknown }) =>
         answer(() => hooks.webhookTest(req)),
-      // Set going again here, then sent to `Webhooks/deliver`, which tries on its ladder.
+      // Set going again here, then sent to `WebhookSend/deliver`, which tries on its ladder.
       webhookRedeliver: (ctx: restate.Context, req: PortalRequest & { id?: unknown }) =>
         answer(async () => {
           const id = await hooks.webhookRedeliver(req);

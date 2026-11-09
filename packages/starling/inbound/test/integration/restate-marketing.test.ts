@@ -77,7 +77,7 @@ beforeEach(async () => {
 const mk = () =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .serviceClient<Marketing>({ name: "Marketing" });
+    .serviceClient<Marketing>({ name: "SignupForm" });
 const ADDRESS = "ana@firm.example";
 const signUp = (over: Record<string, string> = {}) =>
   mk().signUp({
@@ -98,7 +98,7 @@ const tokenOf = (m: PlainMail | undefined) => {
 const may = () =>
   mayMarket(pg.db, { channel: "email", address: ADDRESS, topic: "weekly-breakdown" });
 
-describe("Marketing", () => {
+describe("SignupForm", () => {
   it("a signup mails one confirm link, and its click confirms", async () => {
     expect(await signUp()).toEqual({ ok: true });
     expect(await signUp()).toEqual({ ok: true });

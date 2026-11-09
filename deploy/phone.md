@@ -47,7 +47,7 @@ from `apps/phone/`:
     printf %s "$DOCUMENSO_WEBHOOK_SECRET" | npx wrangler secret put DOCUMENSO_WEBHOOK_SECRET
     npx wrangler deploy
 
-The worker (Lambda) must already serve `SmsDesk` and `SmsEvents`, and migration
+The worker (Lambda) must already serve `SmsDesk` and `SmsWebhookIntake`, and migration
 `0013_sms_channel` must be applied, or the app shows errors from Restate.
 
 ## Credential links
@@ -104,23 +104,23 @@ campaign id in `WREN_TELNYX_CAMPAIGN_ID`.
 
 A client with `sms.texts`: its own messaging profile in Wren's account (the id in
 `clients.accounts.telnyx`), webhook URL `https://phone.wrenautomation.com/webhooks/telnyx/<client>`.
-Events go to `SmsEvents/ingestFor`, into its database.
+Events go to `SmsWebhookIntake/ingestFor`, into its database.
 
 ## cal.com
 
 A second webhook on Wren's cal.com (the lander's stays): `https://phone.wrenautomation.com/webhooks/calcom`,
 BOOKING_CREATED / RESCHEDULED / CANCELLED, signed with `CALCOM_WEBHOOK_SECRET`. Made 2026-10-04
-through cal.com's API with `WREN_CALCOM_API_KEY`. Each booking goes to `CallBookings/ingest`
+through cal.com's API with `WREN_CALCOM_API_KEY`. Each booking goes to `CallBookingIntake/ingest`
 (designs/2026-10-04-booking-webhook.md). Catch up with `wren email bookings sync [--since]`.
 
 A client's cal.com: webhook `https://phone.wrenautomation.com/webhooks/calcom/<client>`, same
 triggers, signed with its own secret in `CALCOM_WEBHOOK_SECRETS`. Each booking goes to
-`CallBookings/ingestFor`, into its database (designs/2026-10-04-outbound-per-client.md).
+`CallBookingIntake/ingestFor`, into its database (designs/2026-10-04-outbound-per-client.md).
 
 ## Calendar
 
 `/calendar/<handler>` (`slots`, `book`, `booking`, `reschedule`, `cancel`, POST only) is the lander's
-door to our own booking calendar (designs/2026-10-06-calendar.md). No sign-in: `Calendar` checks the
+door to our own booking calendar (designs/2026-10-06-calendar.md). No sign-in: `BookingPage` checks the
 lander's signature (`EXPORT_TOKEN`) or the call's signed link. No secret of its own here.
 
 ## Gmail push

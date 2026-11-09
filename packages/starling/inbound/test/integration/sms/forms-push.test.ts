@@ -1,5 +1,5 @@
 /**
- * The lander's push on a Restate test environment (always replaying): `SmsForms/applied` reads
+ * The lander's push on a Restate test environment (always replaying): `SmsApplicationFollowUp/applied` reads
  * the one application from the site's export and steps it now. A due applicant's first text is
  * queued at once; a repeat push is a no-op; an id the site doesn't have yet waits for the pass;
  * an applicant with no text (unticked, a country form texts skip) gets the email alone.
@@ -98,10 +98,10 @@ beforeEach(async () => {
   mailed.length = 0;
 });
 
-describe("SmsForms", () => {
+describe("SmsApplicationFollowUp", () => {
   it("a push texts a due applicant now, once", async () => {
     apps.push(application(4));
-    const forms = ingress().serviceClient<SmsFormsService>({ name: "SmsForms" });
+    const forms = ingress().serviceClient<SmsFormsService>({ name: "SmsApplicationFollowUp" });
     expect(await forms.applied({ application: 4 })).toMatchObject({ kind: "texted" });
     expect(await forms.applied({ application: 4 })).toEqual({ kind: "done" });
     const queued = await pg.db.select().from(smsMessages);
@@ -112,7 +112,7 @@ describe("SmsForms", () => {
   });
 
   it("an application not on the site yet is left to the pass", async () => {
-    const forms = ingress().serviceClient<SmsFormsService>({ name: "SmsForms" });
+    const forms = ingress().serviceClient<SmsFormsService>({ name: "SmsApplicationFollowUp" });
     expect(await forms.applied({ application: 9 })).toBeNull();
     expect(await pg.db.select().from(speedRuns)).toEqual([]);
   });
@@ -120,7 +120,7 @@ describe("SmsForms", () => {
   it("a number in a country form texts skip gets the email alone, two minutes after applying", async () => {
     // A placeholder UK mobile (Ofcom's drama range): not on the list, so no text.
     apps.push(application(6, { phone: "+44 7700 900123" }));
-    const forms = ingress().serviceClient<SmsFormsService>({ name: "SmsForms" });
+    const forms = ingress().serviceClient<SmsFormsService>({ name: "SmsApplicationFollowUp" });
     expect(await forms.applied({ application: 6 })).toMatchObject({ kind: "no_phone" });
     for (let i = 0; i < 100 && mailed.length === 0; i++)
       await new Promise((r) => setTimeout(r, 100));
@@ -135,7 +135,7 @@ describe("SmsForms", () => {
 
   it("an unticked box is recorded and gets the email, never a text", async () => {
     apps.push(application(5, { sms_consent: 0 }));
-    const forms = ingress().serviceClient<SmsFormsService>({ name: "SmsForms" });
+    const forms = ingress().serviceClient<SmsFormsService>({ name: "SmsApplicationFollowUp" });
     expect(await forms.applied({ application: 5 })).toEqual({ kind: "no_consent" });
     for (let i = 0; i < 100 && mailed.length === 0; i++)
       await new Promise((r) => setTimeout(r, 100));

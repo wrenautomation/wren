@@ -313,7 +313,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
       return { done: await declineDocs(main, ids, by(req), now) };
     },
 
-    /** Called off. The ones with a provider's envelope are listed: `Documents/cancel` calls it off too. */
+    /** Called off. The ones with a provider's envelope are listed: `DocumentSign/cancel` calls it off too. */
     void: async (req: IdsRequest, now: Date) => {
       const { client, viewer } = await pickForWrite(main, req);
       const ids = (Array.isArray(req.ids) ? req.ids : []).map((x) => docIdOf(String(x)));
@@ -324,7 +324,7 @@ export function documentsConsoleApi(deps: DocumentsConsoleDeps) {
       };
     },
 
-    /** A reminder may go: checked here, sent by `Documents/send`. */
+    /** A reminder may go: checked here, sent by `DocumentSign/send`. */
     remind: async (req: IdRequest, now: Date) => {
       const { client } = await pickForWrite(main, req);
       const d = await docOf(main, client.id, String(req.id));
@@ -444,7 +444,7 @@ const FIELDS = {
 
 export function makeDocumentsConsole(deps: DocumentsConsoleDeps) {
   const api = documentsConsoleApi(deps);
-  /** Approved documents go to `Documents/send` once the change is journaled. */
+  /** Approved documents go to `DocumentSign/send` once the change is journaled. */
   const sendAll = (
     ctx: restate.Context,
     list: readonly Pick<Doc, "id" | "status">[],

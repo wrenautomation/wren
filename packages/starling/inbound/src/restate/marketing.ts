@@ -1,5 +1,5 @@
 /**
- * `Marketing`: the lander's signup form and preference center, through the phone Worker
+ * `SignupForm`: the lander's signup form and preference center, through the phone Worker
  * (designs/2026-10-04-borrowed-ui.md, M2). The lander signs each signup after its bot check;
  * the preference center's links are signed per address, so the link is the login.
  * The confirm email is transactional mail from portal@. A client's broadcast links name the client,
@@ -151,7 +151,7 @@ export function makeMarketing(deps: {
   };
 
   return restate.service({
-    name: "Marketing",
+    name: "SignupForm",
     handlers: {
       /** The lander's form. Always `{ ok: true }`: the form never says who is on the list. */
       signUp: serviceHandler(

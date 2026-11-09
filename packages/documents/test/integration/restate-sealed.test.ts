@@ -117,7 +117,7 @@ const post = async <T>(service: string, handler: string, body: unknown): Promise
   return (await r.json()) as T;
 };
 const hook = (event: string, envelopeId: string, extra: Record<string, unknown> = {}) =>
-  post<{ ok: boolean; why?: string; ignored?: string }>("Documents", "signed", {
+  post<{ ok: boolean; why?: string; ignored?: string }>("DocumentSign", "signed", {
     event,
     createdAt: "2026-10-22T02:10:38.768Z",
     payload: {
@@ -264,7 +264,7 @@ describe("send and the webhooks", () => {
   it("the signer's page link sends the sealed PDF from the bucket", async () => {
     const d = await docById(pg.db, id);
     const token = await issueLink(pg.db, id, new Date());
-    const got = await post<Answer>("Documents", "pdf", { client: "acme", token });
+    const got = await post<Answer>("DocumentSign", "pdf", { client: "acme", token });
     expect(got.status).toBe(303);
     expect(got.location).toBe(`https://files.test/${d?.sealed?.pdf}?sig=1`);
   });
@@ -291,7 +291,7 @@ describe("send and the webhooks", () => {
     expect(await hook("DOCUMENT_COMPLETED", "envelope_unknown")).toMatchObject({ ok: false });
     expect(await hook("DOCUMENT_SENT", envelope)).toEqual({ ok: true, ignored: "DOCUMENT_SENT" });
     expect(
-      await post("Documents", "signed", { event: "DOCUMENT_COMPLETED", payload: {} }),
+      await post("DocumentSign", "signed", { event: "DOCUMENT_COMPLETED", payload: {} }),
     ).toMatchObject({ ok: false });
   });
 });

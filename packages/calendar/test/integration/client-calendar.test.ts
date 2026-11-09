@@ -128,7 +128,7 @@ beforeEach(async () => {
 const cal = () =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .serviceClient<ClientCalendar>({ name: "ClientCalendar" });
+    .serviceClient<ClientCalendar>({ name: "ClientBookingPage" });
 const later = (list: string[], ms: number) =>
   list.find((s) => new Date(s).getTime() > Date.now() + ms) as string;
 const book = async (client: string, email = "ana@firm.example") => {
@@ -147,7 +147,7 @@ const waitFor = async (ok: () => boolean) => {
   while (!ok() && Date.now() < until) await new Promise((r) => setTimeout(r, 100));
 };
 
-describe("ClientCalendar", () => {
+describe("ClientBookingPage", () => {
   it("shows the client's name and its own open times; none for a client without the part", async () => {
     const page = await cal().slots({ client: "acme" });
     expect(page).toMatchObject({

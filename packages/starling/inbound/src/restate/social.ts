@@ -347,7 +347,7 @@ export function makeSocialActivityRead(deps: SocialActivityReadDeps) {
         const account = deps.watched[p];
         if (!account) continue;
         const body = { owner: SOCIAL_KEY, platform: p };
-        desk.watch({ site: p, account, sink: { path: "/SocialPush/watch/send", body }, until });
+        desk.watch({ site: p, account, sink: { path: "/SocialPushIntake/watch/send", body }, until });
       }
     }
     // What was pushed since the last pass (designs/2026-10-12-push-everywhere.md): read now, due or not.

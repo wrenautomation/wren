@@ -159,7 +159,7 @@ async function chatRoute(
   if (!body || (body.op !== "say" && body.op !== "read"))
     return answer({ error: "say or read" }, 400);
   try {
-    const res = await ingress(env, body.op === "say" ? "Chat/say" : "Chat/read", {
+    const res = await ingress(env, body.op === "say" ? "SiteChat/say" : "SiteChat/read", {
       client: owner.client,
       key: body.key,
       body: body.body,

@@ -16,7 +16,7 @@ export const DOCUMENTS_COMPONENTS = [
     for: "client",
     ready: true,
     provides: {
-      services: ["Documents", "DocumentsConsole"],
+      services: ["DocumentSign", "DocumentsConsole"],
       records: [DOC_RECORD, TEMPLATE_RECORD],
     },
     effects: ["sends"],

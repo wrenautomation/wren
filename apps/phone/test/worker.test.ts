@@ -13,7 +13,7 @@ const HOST = "https://phone.test";
 const AUTH = "https://auth.test";
 let restateCalls: { url: string; headers: Headers; body: string }[] = [];
 let restateStatus = 200;
-/** What `SmsEvents/signer` answers; default: the path's owner, on Wren's account. */
+/** What `SmsWebhookIntake/signer` answers; default: the path's owner, on Wren's account. */
 let signer: (req: { number: string | null; client: string | null }) => unknown;
 let signerCalls = 0;
 let keys: CryptoKeyPair;
@@ -90,7 +90,7 @@ beforeEach(async () => {
       // As Better Auth publishes it: alg EdDSA (WebCrypto exports Ed25519).
       return Response.json({ keys: [{ ...jwk, alg: "EdDSA", kid: "k1" }] });
     }
-    if (url.endsWith("/SmsEvents/signer")) {
+    if (url.endsWith("/SmsWebhookIntake/signer")) {
       signerCalls += 1;
       return Response.json(signer(JSON.parse(String(init.body))));
     }
@@ -144,7 +144,7 @@ describe("telnyx webhook", () => {
     const res = await signedWebhook(body);
     expect(res.status).toBe(200);
     expect(restateCalls).toHaveLength(1);
-    expect(restateCalls[0]?.url).toBe("https://restate.test/SmsEvents/ingest/send");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/SmsWebhookIntake/ingest/send");
     expect(restateCalls[0]?.headers.get("idempotency-key")).toBe("telnyx-evt-1");
     expect(restateCalls[0]?.headers.get("authorization")).toBe("Bearer rt");
     expect(restateCalls[0]?.body).toBe(body);
@@ -153,7 +153,7 @@ describe("telnyx webhook", () => {
   it("a client's messaging profile lands through ingestFor, wrapped with its id", async () => {
     const res = await signedWebhook(body, undefined, "/webhooks/telnyx/acme");
     expect(res.status).toBe(200);
-    expect(restateCalls[0]?.url).toBe("https://restate.test/SmsEvents/ingestFor/send");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/SmsWebhookIntake/ingestFor/send");
     expect(restateCalls[0]?.headers.get("idempotency-key")).toBe("telnyx-evt-1");
     expect(JSON.parse(restateCalls[0]?.body as string)).toEqual({
       client: "acme",
@@ -222,7 +222,7 @@ describe("telnyx webhook", () => {
         acme.privateKey,
       );
       expect(res.status).toBe(200);
-      expect(restateCalls[0]?.url).toBe("https://restate.test/SmsEvents/ingestFor/send");
+      expect(restateCalls[0]?.url).toBe("https://restate.test/SmsWebhookIntake/ingestFor/send");
       expect(JSON.parse(restateCalls[0]?.body as string).client).toBe("acme");
       // The number picks the client on Wren's path too.
       restateCalls = [];
@@ -246,7 +246,7 @@ describe("telnyx webhook", () => {
 
     it("Wren's numbers still pass on Wren's key, and never on a client's", async () => {
       expect((await signedWebhook(to(WREN))).status).toBe(200);
-      expect(restateCalls[0]?.url).toBe("https://restate.test/SmsEvents/ingest/send");
+      expect(restateCalls[0]?.url).toBe("https://restate.test/SmsWebhookIntake/ingest/send");
       restateCalls = [];
       expect(
         (await signedWebhook(to(WREN), undefined, "/webhooks/telnyx", acme.privateKey)).status,
@@ -286,7 +286,7 @@ describe("telnyx webhook", () => {
       } finally {
         vi.useRealTimers();
       }
-      expect(restateCalls[2]?.url).toBe("https://restate.test/SmsEvents/ingestFor/send");
+      expect(restateCalls[2]?.url).toBe("https://restate.test/SmsWebhookIntake/ingestFor/send");
       expect(restateCalls[2]?.headers.get("idempotency-key")).toBe("telnyx-evt-2");
       expect(kv.has("held:telnyx-evt-2")).toBe(false);
     });
@@ -355,7 +355,7 @@ describe("cal.com webhook", () => {
     expect((await send(booking, await sign(booking))).status).toBe(200);
     expect((await send(booking, await sign(booking))).status).toBe(200);
     expect(restateCalls).toHaveLength(2);
-    expect(restateCalls[0]?.url).toBe("https://restate.test/CallBookings/ingest/send");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/CallBookingIntake/ingest/send");
     expect(restateCalls[0]?.headers.get("idempotency-key")).toBe(
       "calcom-BOOKING_CREATED-bk-1-2026-10-06T15:00:00Z",
     );
@@ -401,7 +401,7 @@ describe("cal.com webhook", () => {
     expect((await to("/webhooks/calcom/acme", await sign(booking, "acme-secret"))).status).toBe(
       200,
     );
-    expect(restateCalls[0]?.url).toBe("https://restate.test/CallBookings/ingestFor/send");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/CallBookingIntake/ingestFor/send");
     expect(restateCalls[0]?.headers.get("idempotency-key")).toBe(
       "calcom-acme-BOOKING_CREATED-bk-1-2026-10-06T15:00:00Z",
     );
@@ -429,11 +429,11 @@ describe("Documenso webhook", () => {
     env.DOCUMENSO_WEBHOOK_SECRET = SECRET;
   });
 
-  it("forwards an event to Documents/signed, keyed by envelope + event + time", async () => {
+  it("forwards an event to DocumentSign/signed, keyed by envelope + event + time", async () => {
     expect((await send(hook)).status).toBe(200);
     expect((await send(hook)).status).toBe(200);
     expect(restateCalls).toHaveLength(2);
-    expect(restateCalls[0]?.url).toBe("https://restate.test/Documents/signed/send");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/DocumentSign/signed/send");
     expect(restateCalls[0]?.headers.get("idempotency-key")).toBe(
       "documenso-envelope_abc-DOCUMENT_COMPLETED-2026-10-22T02:10:38.768Z",
     );
@@ -493,7 +493,7 @@ describe("site application push", () => {
     const body = JSON.stringify({ application: 7, at: Date.now() });
     expect((await push(body, await sign(body))).status).toBe(200);
     expect(restateCalls).toHaveLength(1);
-    expect(restateCalls[0]?.url).toBe("https://restate.test/SmsForms/applied/send");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/SmsApplicationFollowUp/applied/send");
     expect(restateCalls[0]?.headers.get("idempotency-key")).toBe("site-application-7");
     expect(JSON.parse(restateCalls[0]?.body ?? "{}")).toEqual({ application: 7 });
   });
@@ -556,10 +556,10 @@ describe("linq webhook", () => {
     expect(restateCalls).toHaveLength(0);
   });
 
-  it("forwards a signed event to SmsEvents/ingest, keyed by its webhook id", async () => {
+  it("forwards a signed event to SmsWebhookIntake/ingest, keyed by its webhook id", async () => {
     env.LINQ_WEBHOOK_SECRET = SECRET;
     expect((await send(body)).status).toBe(200);
-    expect(restateCalls[0]?.url).toBe("https://restate.test/SmsEvents/ingest/send");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/SmsWebhookIntake/ingest/send");
     expect(restateCalls[0]?.headers.get("idempotency-key")).toBe("linq-msg_1");
     expect(restateCalls[0]?.body).toBe(body);
   });
@@ -681,7 +681,7 @@ describe("the lander's marketing calls", () => {
   it("pass to the Marketing service as they are, without a sign-in", async () => {
     const res = await post("/marketing/prefs", { token: "t" });
     expect(res.status).toBe(200);
-    expect(restateCalls[0]?.url).toBe("https://restate.test/Marketing/prefs");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/SignupForm/prefs");
     expect(restateCalls[0]?.headers.get("authorization")).toBe("Bearer rt");
   });
 
@@ -702,7 +702,7 @@ describe("the lander's calendar calls", () => {
   it("pass to the Calendar service as they are, its five handlers only", async () => {
     const res = await post("/calendar/book", { offer: "intro" });
     expect(res.status).toBe(200);
-    expect(restateCalls[0]?.url).toBe("https://restate.test/Calendar/book");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/BookingPage/book");
     expect((await post("/calendar/remind", {})).status).toBe(404);
     expect((await call("/calendar/slots")).status).toBe(405);
     expect(restateCalls).toHaveLength(1);
@@ -714,7 +714,7 @@ describe("the door", () => {
 
   it("passes a hook's JSON or form to the Executor and answers its status", async () => {
     vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
-      if (url.endsWith("/SmsEvents/signer")) {
+      if (url.endsWith("/SmsWebhookIntake/signer")) {
         signerCalls += 1;
         return Response.json(signer(JSON.parse(String(init.body))));
       }
@@ -1008,7 +1008,7 @@ describe("meta webhooks", () => {
   it("forwards a body signed by either app secret, keyed by its digest", async () => {
     expect((await send(body, await hmac("app-secret", body))).status).toBe(200);
     expect((await send(body, await hmac("ig-secret", body))).status).toBe(200);
-    expect(restateCalls[0]?.url).toBe("https://restate.test/SocialPush/meta/send");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/SocialPushIntake/meta/send");
     expect(restateCalls[0]?.body).toBe(body);
     const key = restateCalls[0]?.headers.get("idempotency-key") ?? "";
     expect(key).toMatch(/^meta-[0-9a-f]{64}$/);
@@ -1041,7 +1041,7 @@ describe("business profile push", () => {
 
   it("sends the decoded notice keyed by Pub/Sub's message id", async () => {
     expect((await post("/webhooks/gbp?token=gt", push(note))).status).toBe(200);
-    expect(restateCalls[0]?.url).toBe("https://restate.test/SocialPush/gbp/send");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/SocialPushIntake/gbp/send");
     expect(restateCalls[0]?.headers.get("idempotency-key")).toBe("gbp-pm-9");
     expect(JSON.parse(restateCalls[0]?.body ?? "{}")).toEqual(note);
   });

@@ -70,7 +70,7 @@ const deps = (): DocumentsDeps => ({
   stripeRetry: { maxRetryDuration: 4_000, initialRetryInterval: 50, maxRetryInterval: 200 },
 });
 const call = async (handler: string): Promise<Answer> => {
-  const r = await fetch(`${env.baseUrl()}/Documents/${handler}`, {
+  const r = await fetch(`${env.baseUrl()}/DocumentSign/${handler}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ client: "acme", token, bot: true }),

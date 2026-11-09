@@ -129,7 +129,7 @@ export const CONTENT_COMPONENTS = [
       services: [
         "SocialActivityRead",
         "SocialDesk",
-        "SocialPush",
+        "SocialPushIntake",
         "SocialPushHold",
         "InboxDesk",
         "AutoReply",

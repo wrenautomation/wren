@@ -149,7 +149,7 @@ export const EMAIL_COMPONENTS = [
     settings: repliesSettingsSchema,
     requires: { components: [SEQUENCES] },
     provides: {
-      services: ["EmailInboxRead", "InboxPush", "ReplyLabel", "CallBookings"],
+      services: ["EmailInboxRead", "InboxPush", "ReplyLabel", "CallBookingIntake"],
       loops: ["EmailInboxRead"],
       records: ["email.reply", "email.call"],
     },
@@ -229,7 +229,7 @@ export const EMAIL_COMPONENTS = [
     requires: { components: [] },
     provides: {
       services: [
-        "Marketing",
+        "SignupForm",
         "Newsletter",
         "EmailBounceRead",
         "ListmonkIntake",

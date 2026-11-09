@@ -3,41 +3,41 @@
  * and the door Telnyx webhooks come in by.
  *
  * - `/webhooks/telnyx`: signature checked here, then handed to Restate
- *   (`SmsEvents/ingest/send`) with the event id as the idempotency key, so a
+ *   (`SmsWebhookIntake/ingest/send`) with the event id as the idempotency key, so a
  *   webhook Telnyx sends twice is applied once. Restate down = held (below).
  * - `/webhooks/calcom`: cal.com's booking webhook, HMAC checked against
- *   `CALCOM_WEBHOOK_SECRET`, then `CallBookings/ingest/send` keyed by trigger + uid +
+ *   `CALCOM_WEBHOOK_SECRET`, then `CallBookingIntake/ingest/send` keyed by trigger + uid +
  *   start. Unsigned = 401, PING = 200 and goes no further, Restate down = held.
  * - `/webhooks/documenso`: Documenso's e-signature events (designs/2026-10-21-esign-and-newsletter.md).
  *   The `X-Documenso-Secret` header is checked against `DOCUMENSO_WEBHOOK_SECRET`, then
- *   `Documents/signed/send` keyed by envelope + event + time, so a repeat is applied once.
+ *   `DocumentSign/signed/send` keyed by envelope + event + time, so a repeat is applied once.
  *   Unset secret = 503, wrong = 401, Restate down = held.
  * - `/webhooks/telnyx/<client>`, `/webhooks/calcom/<client>`: the same for a client's
- *   messaging profile and cal.com, into its database (`SmsEvents/ingestFor`,
- *   `CallBookings/ingestFor`). A client's cal.com signs with its own secret, from
+ *   messaging profile and cal.com, into its database (`SmsWebhookIntake/ingestFor`,
+ *   `CallBookingIntake/ingestFor`). A client's cal.com signs with its own secret, from
  *   `CALCOM_WEBHOOK_SECRETS`; a client with none there is 404.
  * - Telnyx, either path: the event's number picks whose account signed it
- *   (`SmsEvents/signer`). A client on its own Telnyx account is checked against its saved
+ *   (`SmsWebhookIntake/signer`). A client on its own Telnyx account is checked against its saved
  *   public key and lands only in its database; Wren's numbers and clients on Wren's account
  *   against `TELNYX_PUBLIC_KEY`. A path naming someone other than the number's owner is 401.
  * - `/webhooks/linq`: Linq's (iMessage), Standard Webhooks signature against
- *   `LINQ_WEBHOOK_SECRET`, then `SmsEvents/ingest/send` keyed by the event id.
+ *   `LINQ_WEBHOOK_SECRET`, then `SmsWebhookIntake/ingest/send` keyed by the event id.
  * - `/webhooks/gmail`: Gmail's push through Pub/Sub, `?token=` checked against
  *   `GMAIL_PUSH_TOKEN`, then `InboxPush/<address>/notify/send` keyed by Pub/Sub's message
  *   id: the mailbox's inbox loop runs a pass now.
  * - `/webhooks/meta`: Meta's webhooks (Page feed and messages, Instagram). GET answers the
  *   handshake against `META_WEBHOOK_TOKEN`; POST is checked against the app secret, then
- *   `SocialPush/meta/send` keyed by the body's digest (designs/2026-10-12-push-everywhere.md).
+ *   `SocialPushIntake/meta/send` keyed by the body's digest (designs/2026-10-12-push-everywhere.md).
  * - `/webhooks/site`: the lander's push of one site application (`{application, at}`), hex HMAC
  *   of the body in `x-wren-signature-256` against `SITE_EXPORT_TOKEN` (the lander's
- *   `EXPORT_TOKEN`), `at` within 5 minutes, then `SmsForms/applied/send` keyed by the
+ *   `EXPORT_TOKEN`), `at` within 5 minutes, then `SmsApplicationFollowUp/applied/send` keyed by the
  *   application: its first text runs now, not on the 30-minute pass. Restate down = held.
  * - Held (WA-1061): Telnyx, Linq, cal.com, Documenso and the lander retry for minutes only. With
  *   Restate down, the event goes to KV under its idempotency key and the sender gets 200; the
  *   cron (`replayHeld`, every 2 min) sends it on under the same key. Gmail, Business Profile
  *   and Meta retry for days: Restate down = 502.
  * - `/webhooks/gbp`: Business Profile's review notices through Pub/Sub, `?token=` checked against
- *   `GBP_PUSH_TOKEN`, then `SocialPush/gbp/send` keyed by Pub/Sub's message id.
+ *   `GBP_PUSH_TOKEN`, then `SocialPushIntake/gbp/send` keyed by Pub/Sub's message id.
  * - `/api/<handler>`: Wren's operators only, by the token from Wren's sign-in
  *   (auth.wrenautomation.com, any method incl. passkeys); forwarded to the `SmsDesk`
  *   service. Only the handlers the app needs are open; enroll and lift stay on the CLI.
@@ -50,10 +50,10 @@
  *   (autobrowse designs/2026-10-12-papers.md). The Mac mints an empty one; the phone page seals a photo
  *   under the fragment's key and posts ciphertext; the Mac takes it once, signed.
  * - `/marketing/<handler>`: the lander's signup form and preference center, forwarded to the
- *   `Marketing` service. No sign-in: a signup carries the lander's signature and a
+ *   `SignupForm` service. No sign-in: a signup carries the lander's signature and a
  *   preference change its signed link, both checked by the service.
  * - `/calendar/<handler>`: our booking calendar (designs/2026-10-06-calendar.md), forwarded to
- *   the `Calendar` service. No sign-in: a booking carries the lander's signature, a move or a
+ *   the `BookingPage` service. No sign-in: a booking carries the lander's signature, a move or a
  *   cancel its signed link, both checked by the service.
  * - everything else: the static app in public/.
  *
@@ -137,7 +137,7 @@ const clientIn = (pathname: string, site: string): string | null => {
 const forwarded = (raw: string, client: string | null) =>
   client ? `{"client":${JSON.stringify(client)},"body":${raw}}` : raw;
 
-/** Whose account signed a webhook, as `SmsEvents/signer` answers (starling-sms signer.ts). */
+/** Whose account signed a webhook, as `SmsWebhookIntake/signer` answers (starling-sms signer.ts). */
 type Signer =
   | { ok: true; client: string | null; publicKey: string | null }
   | { ok: false; why: string };
@@ -160,7 +160,7 @@ async function signerOf(
   if (kept && Date.now() - kept.at < SIGNER_TTL_MS) return kept.answer;
   let answer: Signer;
   try {
-    const res = await fetch(ingress(env, "SmsEvents/signer"), {
+    const res = await fetch(ingress(env, "SmsWebhookIntake/signer"), {
       method: "POST",
       headers: restateHeaders(env),
       body: JSON.stringify({ number, client }),
@@ -232,7 +232,7 @@ async function telnyxEvent(
   const client = who.client;
   return forward(
     env,
-    `SmsEvents/${client ? "ingestFor" : "ingest"}/send`,
+    `SmsWebhookIntake/${client ? "ingestFor" : "ingest"}/send`,
     `telnyx-${id}`,
     forwarded(raw, client),
     replay,
@@ -241,7 +241,7 @@ async function telnyxEvent(
 
 /**
  * A Linq webhook (iMessage, RCS, SMS on Wren's Linq line): Standard Webhooks signature against
- * `LINQ_WEBHOOK_SECRET`, then `SmsEvents/ingest/send` keyed by Linq's event id. Wren's only:
+ * `LINQ_WEBHOOK_SECRET`, then `SmsWebhookIntake/ingest/send` keyed by Linq's event id. Wren's only:
  * no client is on Linq yet.
  */
 async function linqWebhook(req: Request, env: Env): Promise<Response> {
@@ -257,7 +257,7 @@ async function linqWebhook(req: Request, env: Env): Promise<Response> {
     rawBody: raw,
   });
   if (!verdict.ok) return json({ error: verdict.reason }, 401);
-  return forward(env, "SmsEvents/ingest/send", `linq-${id}`, raw);
+  return forward(env, "SmsWebhookIntake/ingest/send", `linq-${id}`, raw);
 }
 
 /** Hex HMAC-SHA256 of the raw body, as cal.com signs it; `crypto.subtle.verify` compares in constant time. */
@@ -277,7 +277,7 @@ async function hmacSigned(secret: string, raw: string, signature: string | null)
 }
 
 /**
- * cal.com's booking webhook: signature checked here, then `CallBookings/ingest/send` keyed
+ * cal.com's booking webhook: signature checked here, then `CallBookingIntake/ingest/send` keyed
  * by trigger + uid + start, so a delivery cal.com repeats is applied once. PING stops here.
  */
 async function calcomWebhook(req: Request, env: Env, client: string | null): Promise<Response> {
@@ -311,7 +311,7 @@ async function calcomWebhook(req: Request, env: Env, client: string | null): Pro
   if (typeof uid !== "string" || uid === "") return json({ error: "no booking uid" }, 400);
   return forward(
     env,
-    `CallBookings/${client ? "ingestFor" : "ingest"}/send`,
+    `CallBookingIntake/${client ? "ingestFor" : "ingest"}/send`,
     `calcom-${client ? `${client}-` : ""}${trigger}-${uid}-${String(body.payload?.startTime ?? "")}`,
     forwarded(raw, client),
   );
@@ -319,7 +319,7 @@ async function calcomWebhook(req: Request, env: Env, client: string | null): Pro
 
 /**
  * Documenso's webhook: the shared secret in `X-Documenso-Secret` checked here, then
- * `Documents/signed/send` keyed by envelope, event and time. Documents ignores an event it has no
+ * `DocumentSign/signed/send` keyed by envelope, event and time. Documents ignores an event it has no
  * use for and an envelope it did not make.
  */
 async function documensoWebhook(req: Request, env: Env): Promise<Response> {
@@ -344,7 +344,7 @@ async function documensoWebhook(req: Request, env: Env): Promise<Response> {
   }
   return forward(
     env,
-    "Documents/signed/send",
+    "DocumentSign/signed/send",
     `documenso-${envelope}-${body.event}-${String(body.createdAt ?? "")}`,
     raw,
   );
@@ -405,7 +405,7 @@ async function digest(raw: string): Promise<string> {
 /**
  * Meta's webhooks (designs/2026-10-12-push-everywhere.md). GET is the subscription's handshake:
  * `hub.challenge` back when `hub.verify_token` matches. POST is signed with the app secret, or the
- * Instagram app's for Instagram Login; the body goes whole to `SocialPush/meta`, keyed by its
+ * Instagram app's for Instagram Login; the body goes whole to `SocialPushIntake/meta`, keyed by its
  * digest (Meta sends no event id and batches entries).
  */
 async function metaWebhook(req: Request, env: Env): Promise<Response> {
@@ -429,12 +429,12 @@ async function metaWebhook(req: Request, env: Env): Promise<Response> {
   let signed = false;
   for (const s of secrets) if (await hmacSigned(s, raw, sig)) signed = true;
   if (!signed) return json({ error: "bad signature" }, 401);
-  return toRestate(env, "SocialPush/meta/send", `meta-${await digest(raw)}`, raw);
+  return toRestate(env, "SocialPushIntake/meta/send", `meta-${await digest(raw)}`, raw);
 }
 
 /**
  * Business Profile's Pub/Sub push: `?token=` checked against `GBP_PUSH_TOKEN`, then the decoded
- * notification (`{type, review?, location}`) to `SocialPush/gbp`, keyed by Pub/Sub's message id.
+ * notification (`{type, review?, location}`) to `SocialPushIntake/gbp`, keyed by Pub/Sub's message id.
  */
 async function gbpWebhook(req: Request, env: Env): Promise<Response> {
   if (!env.GBP_PUSH_TOKEN) return json({ error: "webhooks off: no GBP_PUSH_TOKEN" }, 503);
@@ -453,7 +453,7 @@ async function gbpWebhook(req: Request, env: Env): Promise<Response> {
   }
   if (typeof id !== "string" || id === "" || !note || typeof note !== "object")
     return json({ error: "not a Pub/Sub push" }, 400);
-  return toRestate(env, "SocialPush/gbp/send", `gbp-${id}`, JSON.stringify(note));
+  return toRestate(env, "SocialPushIntake/gbp/send", `gbp-${id}`, JSON.stringify(note));
 }
 
 /** A site push older (or newer) than this is refused: a replayed body goes nowhere. */
@@ -485,7 +485,7 @@ async function siteWebhook(req: Request, env: Env): Promise<Response> {
   }
   return forward(
     env,
-    "SmsForms/applied/send",
+    "SmsApplicationFollowUp/applied/send",
     `site-application-${id}`,
     JSON.stringify({ application: id }),
   );
@@ -983,11 +983,11 @@ export default {
     }
     if (pathname.startsWith("/marketing/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);
-      return lander(req, env, "Marketing", MARKETING_HANDLERS, pathname.slice(11));
+      return lander(req, env, "SignupForm", MARKETING_HANDLERS, pathname.slice(11));
     }
     if (pathname.startsWith("/calendar/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);
-      return lander(req, env, "Calendar", CALENDAR_HANDLERS, pathname.slice(10));
+      return lander(req, env, "BookingPage", CALENDAR_HANDLERS, pathname.slice(10));
     }
     if (pathname.startsWith("/api/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);

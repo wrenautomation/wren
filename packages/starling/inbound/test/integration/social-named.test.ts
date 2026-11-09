@@ -112,7 +112,7 @@ const sync = () =>
     )
     .sync() as Promise<PassOutcome<SocialStats>>;
 const push = () =>
-  ingress().serviceClient<ReturnType<typeof makeSocialPush>>({ name: "SocialPush" });
+  ingress().serviceClient<ReturnType<typeof makeSocialPush>>({ name: "SocialPushIntake" });
 
 async function published(id: string, days: number) {
   const idea = await addIdea(pg.db, `idea ${id}`, "cli");

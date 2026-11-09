@@ -34,7 +34,7 @@ import type { AnyService } from "./services.js";
 /**
  * Services on the Postgres runtime. A deploy flips one; pg keeps every service registered.
  * Groups (design doc "Move plan"): 1 AuditLogSeal; 2 platform and people loops; 3 email and content
- * loops; 4a the other loops and workers. All on the Lambda lane.
+ * loops; 4a the other loops and workers; 4b webhooks and public calls. All on the Lambda lane.
  * The watchdogs (FailedCallAlert, LoopRevive) move last: they watch the moved loops from Restate.
  */
 export const PG_SERVICES: readonly string[] = [
@@ -99,6 +99,21 @@ export const PG_SERVICES: readonly string[] = [
   "CallBriefBuild",
   "DomainLookup",
   "SegmentPass",
+  // 4b: webhooks and public calls
+  "SocialPushIntake",
+  "CallBookingIntake",
+  "SmsWebhookIntake",
+  "SmsApplicationFollowUp",
+  "SignupForm",
+  "SiteChat",
+  "PaymentLinkSend",
+  "BookingPage",
+  "ClientBookingPage",
+  "DocumentSign",
+  "WebhookSend",
+  "ConnectorCallback",
+  "MailCallback",
+  "SocialCallback",
 ];
 
 /**
@@ -123,6 +138,18 @@ export const RENAMED: Readonly<Record<string, string>> = {
   CallBriefs: "CallBriefBuild",
   Domains: "DomainLookup",
   Segments: "SegmentPass",
+  // 4b: the phone and portal Workers called these; a Worker on an old build still does. Kept for good
+  SocialPush: "SocialPushIntake",
+  CallBookings: "CallBookingIntake",
+  SmsEvents: "SmsWebhookIntake",
+  SmsForms: "SmsApplicationFollowUp",
+  Marketing: "SignupForm",
+  Chat: "SiteChat",
+  Payments: "PaymentLinkSend",
+  Calendar: "BookingPage",
+  ClientCalendar: "ClientBookingPage",
+  Documents: "DocumentSign",
+  Webhooks: "WebhookSend",
 };
 
 const LEASE_MS = 60_000;

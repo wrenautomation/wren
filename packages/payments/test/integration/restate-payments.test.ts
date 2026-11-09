@@ -88,7 +88,7 @@ const deps = (): PaymentsDeps => ({
 const payments = () =>
   restateClients
     .connect({ url: env.baseUrl() })
-    .serviceClient<PaymentsService>({ name: "Payments" });
+    .serviceClient<PaymentsService>({ name: "PaymentLinkSend" });
 const until = async (ok: () => boolean, ms = 5_000) => {
   for (const end = Date.now() + ms; Date.now() < end; )
     if (ok()) return;
@@ -147,7 +147,7 @@ beforeEach(() => {
   heard.length = 0;
 });
 
-describe("Payments/send", () => {
+describe("PaymentLinkSend/send", () => {
   it("Stripe's 5xx and a dropped connection: retried with the same key, sent once", async () => {
     const l = await emailLink("Filter swap");
     // Past the SDK's own two retries, so Restate's step retries too.
@@ -192,7 +192,7 @@ describe("Payments/send", () => {
   }, 30_000);
 });
 
-describe("Payments/stripe", () => {
+describe("PaymentLinkSend/stripe", () => {
   const evt = (id: string, type: string, object: Record<string, unknown>) =>
     JSON.stringify({ id, type, created: 1_790_000_000, livemode: false, data: { object } });
   const hook = (raw: string) =>

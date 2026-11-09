@@ -638,7 +638,7 @@ describe("comment guide", () => {
 describe("SocialPushed for ReachInboxRead", () => {
   type Reach = { pushed: string[]; watched: string[] };
   const push = () =>
-    ingress().serviceClient<ReturnType<typeof makeSocialPush>>({ name: "SocialPush" });
+    ingress().serviceClient<ReturnType<typeof makeSocialPush>>({ name: "SocialPushIntake" });
   const reach = () =>
     ingress().serviceClient<{ reach: () => Promise<Reach> }>({ name: "AskReach" }).reach();
 

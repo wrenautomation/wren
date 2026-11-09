@@ -1,10 +1,10 @@
 /**
  * Text-to-pay on Restate (designs/2026-10-07-forms-and-pay.md, "Flow").
  *
- * - `Payments/send`: an approved link becomes a Stripe Payment Link on the client's key, then a
+ * - `PaymentLinkSend/send`: an approved link becomes a Stripe Payment Link on the client's key, then a
  *   text through `SmsDesk.reply` as kind `pay` (it waits for the window) or an email from the
  *   client's name when its sends flag is on.
- * - `Payments/stripe`: Stripe's webhook as the portal Worker passes it (the raw body and
+ * - `PaymentLinkSend/stripe`: Stripe's webhook as the portal Worker passes it (the raw body and
  *   `Stripe-Signature`), checked with the client's own signing secret, kept once by its event id
  *   and applied in any order (`./states.ts`). Then the thread's paid mark is worked out again
  *   and the executor hears each change (paid, refunded, failed) once ever.
@@ -112,7 +112,7 @@ export async function stripeStep<T extends object>(
   }
 }
 
-export const PAYMENTS = { name: "Payments" } as const;
+export const PAYMENTS = { name: "PaymentLinkSend" } as const;
 /** The signing secret's name in the key store, beside the client's `STRIPE_SECRET_KEY`. */
 export const WEBHOOK_SECRET = "STRIPE_WEBHOOK_SECRET";
 /** Who reads a key when Payments does: the event says so. */

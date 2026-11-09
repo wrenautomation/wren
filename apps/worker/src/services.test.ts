@@ -233,12 +233,13 @@ describe("servicesFor: which side serves the pool chain", () => {
 describe("handler forms", () => {
   /** Public handlers that take no schema, and why. */
   const NO_SCHEMA: Record<string, string> = {
-    "SmsEvents/ingest": "the carrier's webhook: its payload is the carrier's shape, not a form",
-    "CallBookings/ingest": "cal.com's webhook: its payload is cal.com's shape, not a form",
-    "SmsEvents/ingestFor": "a client's carrier webhook, wrapped by the phone Worker",
-    "CallBookings/ingestFor": "a client's cal.com webhook, wrapped by the phone Worker",
-    "Chat/say": "the site bubble, wrapped by the portal Worker; the store checks every field",
-    "Chat/read": "the site bubble, wrapped by the portal Worker; the store checks the key",
+    "SmsWebhookIntake/ingest":
+      "the carrier's webhook: its payload is the carrier's shape, not a form",
+    "CallBookingIntake/ingest": "cal.com's webhook: its payload is cal.com's shape, not a form",
+    "SmsWebhookIntake/ingestFor": "a client's carrier webhook, wrapped by the phone Worker",
+    "CallBookingIntake/ingestFor": "a client's cal.com webhook, wrapped by the phone Worker",
+    "SiteChat/say": "the site bubble, wrapped by the portal Worker; the store checks every field",
+    "SiteChat/read": "the site bubble, wrapped by the portal Worker; the store checks the key",
     "Executor/hook": "the door: any sender's payload, wrapped with its token by the phone Worker",
   };
   const EFFECTS: Record<string, string> = {
@@ -247,13 +248,13 @@ describe("handler forms", () => {
     "SmsDesk/enroll": "sends",
     "SmsDesk/reply": "sends",
     "SmsDesk/start": "sends",
-    "SmsForms/applied": "sends",
+    "SmsApplicationFollowUp/applied": "sends",
     "SmsConsole/reply": "sends",
     "Content/publish": "posts",
     "Content/reply": "posts",
     "ReachDesk/reply": "sends",
     "ReachDesk/enroll": "sends",
-    "Marketing/signUp": "sends",
+    "SignupForm/signUp": "sends",
   };
   type Options = { input?: unknown; ingressPrivate?: boolean; metadata?: { effect?: string } };
   const optionsOf = (fn: object): Options => {

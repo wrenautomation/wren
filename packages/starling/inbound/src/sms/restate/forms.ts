@@ -1,5 +1,5 @@
 /**
- * `SmsForms`: a site application, pushed. The lander posts each one to the phone Worker, which
+ * `SmsApplicationFollowUp`: a site application, pushed. The lander posts each one to the phone Worker, which
  * checks its signature and calls `applied` here (keyed by the application, so a repeat is one
  * call). That runs the form step now (form.ts): the run and contact are recorded, and the first
  * text is queued when it's due, else `first` is sent to run again at that moment. A queued text
@@ -39,7 +39,7 @@ import {
   type SendMail,
 } from "../form-after.js";
 
-export const FORMS_SERVICE = { name: "SmsForms" } as const;
+export const FORMS_SERVICE = { name: "SmsApplicationFollowUp" } as const;
 /** A step that couldn't tell (a lookup, the booking check, a mail send) tries again this soon. */
 const AGAIN_MS = 5 * 60 * 1000;
 /** Then the pass takes over. */

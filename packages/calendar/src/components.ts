@@ -33,7 +33,7 @@ export const CALENDAR_COMPONENTS = [
     settings: calendarSettingsSchema,
     effects: ["sends"],
     provides: {
-      services: ["Calendar", "ClientCalendar", "CalendarConsole"],
+      services: ["BookingPage", "ClientBookingPage", "CalendarConsole"],
       records: ["calendar.booking", "calendar.recording"],
     },
     out: [

@@ -40,7 +40,7 @@ export function makeChat(deps: ChatDeps) {
     return deps.clientDb(client);
   };
   return restate.service({
-    name: "Chat",
+    name: "SiteChat",
     handlers: {
       /** A visitor's message: kept, with what's new since `after`; the key once, on a new thread. */
       say: async (ctx: restate.Context, req: Req): Promise<Answer> =>

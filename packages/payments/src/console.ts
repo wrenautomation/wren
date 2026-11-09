@@ -471,7 +471,7 @@ const MONEY = {
 
 export function makePaymentsConsole(deps: PaymentsConsoleDeps) {
   const api = paymentsConsoleApi(deps);
-  /** Approved links go to `Payments/send` once the change is journaled. */
+  /** Approved links go to `PaymentLinkSend/send` once the change is journaled. */
   const sendAll = (ctx: restate.Context, links: readonly PayLink[]) => {
     for (const l of links)
       if (l.status === "sending")

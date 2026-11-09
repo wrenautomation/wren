@@ -79,7 +79,7 @@ export const SITES_COMPONENTS = [
     ready: false,
     missing: ["No client site carries the tag yet"],
     effects: ["sends"],
-    provides: { services: ["Chat"] },
+    provides: { services: ["SiteChat"] },
     hypothesis: {
       from: "The product audit, 2026-10-07",
       guesses: [

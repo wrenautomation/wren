@@ -20,8 +20,8 @@ A lead who books from an email's link must stop getting mail, and the booking mu
 - `uid` (unique), `state` (booked | cancelled), `start`, `email`, `name`, `offer`, `code`, `message_id`, `enrollment_id` (both nullable), `booked_at` (`schema.ts:639`)
 - how the call went, for every source (our calendar's too, on its mirror): `outcome` (`MEETING_OUTCOMES` in `@wren/core/calls`: won, not_yet, no_show, not_fit, checked), `outcome_reason`, `outcome_at`, `outcome_by`. `setCallOutcome` marks only a booked call that has started (`calls/outcome.ts:36`); `markOutcome` audits it and emits `outcomeEmits` on the executor: won leaves `close` and enters `onboarding` (queue only), not_yet leaves by `later` to keep warm (`calls/outcome.ts:79`)
 - every booking write emits `bookingEmit` into `close` at `in.calls`, one arrival per call and start (`calls/restate.ts:32`); its brief is [[email/call-brief]]
-- in: `CallBookings/ingest` (`calendar/src/calls/call-bookings.ts`), fed by the phone Worker's `/webhooks/calcom` (`apps/phone/src/worker.ts:114`); `wren email bookings sync [--since]` (`apps/cli/src/email.ts`)
-- a client's cal.com: `CallBookings/ingestFor {client, body}` (`calendar/src/calls/call-bookings.ts:37`), same rules, into its database
+- in: `CallBookingIntake/ingest` (`calendar/src/calls/call-bookings.ts`), fed by the phone Worker's `/webhooks/calcom` (`apps/phone/src/worker.ts:114`); `wren email bookings sync [--since]` (`apps/cli/src/email.ts`)
+- a client's cal.com: `CallBookingIntake/ingestFor {client, body}` (`calendar/src/calls/call-bookings.ts:37`), same rules, into its database
 - each booking, move or cancel also fires the executor's Booking triggers (`bookingFired`, the `fire` dep; [[platform/executor]])
 - `call_invites` is the other source of "booked": a slot William approved from a reply
 

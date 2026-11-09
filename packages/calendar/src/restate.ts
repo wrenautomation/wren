@@ -1,9 +1,9 @@
 /**
  * Booking (designs/2026-10-06-calendar.md), two services over one set of steps:
  *
- * - `Calendar`: Wren's own, public through the phone Worker's `/calendar/<handler>` door. The
+ * - `BookingPage`: Wren's own, public through the phone Worker's `/calendar/<handler>` door. The
  *   lander signs each booking after its bot check (`bookSig`).
- * - `ClientCalendar`: a client's, reached only by the portal Worker (ingress auth) from the
+ * - `ClientBookingPage`: a client's, reached only by the portal Worker (ingress auth) from the
  *   client's booking page, each call naming its client. The client is read fresh every call:
  *   the part installed, its settings, its Google account, its sends flag, its live host.
  *
@@ -59,8 +59,8 @@ const DAY = 24 * HOUR;
 const CAPPED = { maxRetryAttempts: 3 } as const;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const CALENDAR_SERVICE = { name: "Calendar" } as const;
-const CLIENT_CALENDAR_SERVICE = { name: "ClientCalendar" } as const;
+const CALENDAR_SERVICE = { name: "BookingPage" } as const;
+const CLIENT_CALENDAR_SERVICE = { name: "ClientBookingPage" } as const;
 
 export type SendMail = (m: { to: string; subject: string; text: string }) => Promise<void>;
 
@@ -183,7 +183,7 @@ const SOURCE_KEYS = [
   "page",
 ] as const;
 
-/** What `Calendar`, `ClientCalendar` and `CalendarConsole` do to a booking. */
+/** What `BookingPage`, `ClientBookingPage` and `CalendarConsole` do to a booking. */
 export function calendarFlows(deps: CalendarDeps) {
   const { db } = deps;
   const client = deps.client ?? null;

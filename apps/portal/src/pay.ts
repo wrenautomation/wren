@@ -1,7 +1,7 @@
 /**
  * Stripe's webhook for pay links (designs/2026-10-07-forms-and-pay.md): `POST
  * /__pay/stripe/<client>` on the app host. The body goes on byte for byte with its
- * `Stripe-Signature` to `Payments/stripe`, which checks it with that client's signing secret.
+ * `Stripe-Signature` to `PaymentLinkSend/stripe`, which checks it with that client's signing secret.
  * Stripe gets the status the service answers: 2xx kept, 400 a bad signature, 5xx retried.
  *
  * The call carries an idempotency key from the body and its signature, so one delivery posted
@@ -39,7 +39,7 @@ export async function payRoute(req: Request, env: Env, site: Site): Promise<Resp
   const signature = req.headers.get("stripe-signature");
   let res: Response;
   try {
-    res = await fetch(`${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/Payments/stripe`, {
+    res = await fetch(`${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/PaymentLinkSend/stripe`, {
       method: "POST",
       headers: {
         "content-type": "application/json",

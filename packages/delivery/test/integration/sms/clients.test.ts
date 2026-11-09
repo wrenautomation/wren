@@ -185,7 +185,7 @@ describe("texts per client", () => {
       text: "STOP",
       at: OPEN.toISOString(),
     };
-    const svc = ingress().serviceClient<SmsEventsService>({ name: "SmsEvents" });
+    const svc = ingress().serviceClient<SmsEventsService>({ name: "SmsWebhookIntake" });
     expect(await svc.ingestFor({ client: "acme", body: ev })).toMatchObject({ duplicate: false });
     expect(await acme.select().from(smsEvents)).toHaveLength(1);
     expect(await pg.db.select().from(smsEvents)).toEqual([]);

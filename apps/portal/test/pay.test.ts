@@ -37,7 +37,7 @@ beforeEach(() => {
   answer = () => Response.json({ status: 200, result: "paid" });
   vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = input instanceof Request ? input.url : String(input);
-    if (url.endsWith("/Domains/resolve")) return Response.json({ client: null });
+    if (url.endsWith("/DomainLookup/resolve")) return Response.json({ client: null });
     const key = new Headers(init?.headers).get("idempotency-key");
     calls.push({ url, body: JSON.parse(String(init?.body ?? "{}")), key });
     return answer();
@@ -45,11 +45,11 @@ beforeEach(() => {
 });
 
 describe("Stripe's webhook at the edge", () => {
-  it("passes the raw body and signature to Payments/stripe", async () => {
+  it("passes the raw body and signature to PaymentLinkSend/stripe", async () => {
     const res = await hook();
     expect(res.status).toBe(200);
     expect(calls).toHaveLength(1);
-    expect(calls[0]?.url).toBe("https://restate.test:8080/Payments/stripe");
+    expect(calls[0]?.url).toBe("https://restate.test:8080/PaymentLinkSend/stripe");
     expect(calls[0]?.body).toEqual({ client: "acme", raw: RAW, signature: "t=1,v1=ab" });
   });
 
@@ -73,6 +73,6 @@ describe("Stripe's webhook at the edge", () => {
   it("takes POST only, on the app host only", async () => {
     expect((await hook("app.wren.test", "GET")).status).toBe(405);
     await hook("demo.wren.test");
-    expect(calls.some((c) => c.url.endsWith("/Payments/stripe"))).toBe(false);
+    expect(calls.some((c) => c.url.endsWith("/PaymentLinkSend/stripe"))).toBe(false);
   });
 });

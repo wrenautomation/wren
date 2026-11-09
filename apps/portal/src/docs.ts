@@ -1,7 +1,7 @@
 /**
  * The signing page's paths (designs/2026-10-09-documents.md, "Signing page"), no sign-in:
  *
- * - `GET /o/d/<token>`: the document, rendered by `Documents/serve`. A bot's fetch (a texting
+ * - `GET /o/d/<token>`: the document, rendered by `DocumentSign/serve`. A bot's fetch (a texting
  *   app's link preview) is served but never counted as an open.
  * - `POST /o/d/<token>`: sign or decline, after Turnstile. Urlencoded, from the page's own form.
  * - `GET /o/d/<token>/pdf`: the signed copy, or the document as sent.
@@ -65,14 +65,17 @@ const page = (body: string, status: number) =>
 
 async function call(env: Env, handler: string, body: unknown): Promise<Answer> {
   try {
-    const res = await fetch(`${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/Documents/${handler}`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...(env.RESTATE_AUTH_TOKEN ? { authorization: `Bearer ${env.RESTATE_AUTH_TOKEN}` } : {}),
+    const res = await fetch(
+      `${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/DocumentSign/${handler}`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...(env.RESTATE_AUTH_TOKEN ? { authorization: `Bearer ${env.RESTATE_AUTH_TOKEN}` } : {}),
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    });
+    );
     if (res.ok) return (await res.json()) as Answer;
   } catch {}
   return { status: 503, html: goneHtml(404) };

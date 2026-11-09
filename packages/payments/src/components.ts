@@ -18,7 +18,7 @@ export const PAYMENTS_COMPONENTS = [
     missing: ["The worker can't save a client's Stripe key yet"],
     requires: { accounts: ["stripe"] },
     provides: {
-      services: ["Payments", "PaymentsConsole", "StripeReconcile"],
+      services: ["PaymentLinkSend", "PaymentsConsole", "StripeReconcile"],
       // Once a day, recent links held against Stripe: what a dropped webhook missed heals.
       loops: ["StripeReconcile"],
       records: [LINK_RECORD],

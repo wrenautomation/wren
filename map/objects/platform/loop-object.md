@@ -37,7 +37,7 @@ Citations: `packages/core/src/restate/loop.ts:366`, `packages/starling/outbound/
 ## If you change this
 
 - **Hits:** every loop above; `walkthrough/demos/01-loops.sh`; `docs/restate-operations.md`; [[platform/loop-watch]] (reads `loop` state and `last.delayMs`, sends `wake`)
-- **Does not hit:** plain services (`Discovery`, `Enrichment`, `Resolution`, `Content`, `Ads`, `SmsDesk`, `SmsEvents`, `ContentDesk`, `ReplyLabel`)
+- **Does not hit:** plain services (`Discovery`, `Enrichment`, `Resolution`, `Content`, `Ads`, `SmsDesk`, `SmsWebhookIntake`, `ContentDesk`, `ReplyLabel`)
 
 ## Surfaces
 

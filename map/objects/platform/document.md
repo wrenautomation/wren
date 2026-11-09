@@ -9,7 +9,7 @@ entity: packages/documents/src/schema.ts:128
 
 # document
 
-Documents and e-sign: a contract, proposal or estimate from the client's template, sent by text or email, signed on a page under the client's host by a typed name, an email and a consent box (`signing: own`), or sealed by Documenso (`signing: sealed`). Tables `docs`, `doc_templates`, `doc_events`, `doc_counters`; services `Documents`, `DocumentsConsole`; its own Documents app (Documents, Templates); Send estimate on a texting thread.
+Documents and e-sign: a contract, proposal or estimate from the client's template, sent by text or email, signed on a page under the client's host by a typed name, an email and a consent box (`signing: own`), or sealed by Documenso (`signing: sealed`). Tables `docs`, `doc_templates`, `doc_events`, `doc_counters`; services `DocumentSign`, `DocumentsConsole`; its own Documents app (Documents, Templates); Send estimate on a texting thread.
 
 ## Why this shape
 

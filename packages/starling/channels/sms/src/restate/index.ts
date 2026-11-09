@@ -13,7 +13,7 @@
  *   queues day-before reminders for booked
  *   calls (reminders.ts), labels new replies and runs the health checks; once
  *   a fleet day, one summary line.
- * - `SmsForms`: the lander's push of one site application (forms.ts): its first text
+ * - `SmsApplicationFollowUp`: the lander's push of one site application (forms.ts): its first text
  *   now or when due, then the email and the 10-minute check.
  *
  * A client's texts (`sms.texts`) run as `SmsSend/<client>/fleet` and
@@ -268,7 +268,7 @@ export function makeSmsEvents(
   },
 ) {
   return restate.service({
-    name: "SmsEvents",
+    name: "SmsWebhookIntake",
     options: WEBHOOK_SERVICE,
     handlers: {
       /**

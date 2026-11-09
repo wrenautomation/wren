@@ -44,7 +44,7 @@ export function makeCallBookings(deps: {
     return done;
   };
   return restate.service({
-    name: "CallBookings",
+    name: "CallBookingIntake",
     options: WEBHOOK_SERVICE,
     handlers: {
       ingest: (ctx: restate.Context, body: unknown): Promise<BookingOutcome | null> =>

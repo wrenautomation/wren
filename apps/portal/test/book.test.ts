@@ -44,7 +44,7 @@ beforeEach(() => {
   restateStatus = 200;
   vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = input instanceof Request ? input.url : String(input);
-    if (url.endsWith("/Domains/resolve")) {
+    if (url.endsWith("/DomainLookup/resolve")) {
       const { host } = JSON.parse(String(init?.body));
       return Response.json({ client: host === HOST ? "acme" : null });
     }
@@ -80,8 +80,8 @@ describe("a client's booking page", () => {
     await post(HOST, "/__book/slots", { client: "other", tag: "consult" });
     await post("app.wren.test", "/c/acme/__book/slots", { client: "other" });
     expect(calls.map((c) => [c.url, c.body.client])).toEqual([
-      ["https://restate.test:8080/ClientCalendar/slots", "acme"],
-      ["https://restate.test:8080/ClientCalendar/slots", "acme"],
+      ["https://restate.test:8080/ClientBookingPage/slots", "acme"],
+      ["https://restate.test:8080/ClientBookingPage/slots", "acme"],
     ]);
     expect((await post(HOST, "/c/acme/__book/slots", {})).status).toBe(404);
     expect((await post("app.wren.test", "/__book/slots", {})).status).toBe(404);

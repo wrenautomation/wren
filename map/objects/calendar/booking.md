@@ -36,7 +36,7 @@ Citations: `packages/calendar/src/schema.ts:75`, `packages/calendar/src/book.ts:
 ## If you change this
 
 - **Hits:** client booking pages (`apps/portal/src/book.ts`, `web/book.html`, `web/src/book.tsx`), the preview's in-process page (`apps/portal/scripts/preview.ts`), the client login's grants (`CLIENT_SCHEMAS`), the lander (`../lander/functions/api/{slots,book,booking}.ts`, `functions/_shared/calendar.ts` signs `bookSig` the same way), the phone Worker's handler list, `call_bookings` via the mirror, SmsUpkeep reminders, `apps/portal/web/src/modules/calendar`
-- **Does not hit:** cal.com's webhook path (`CallBookings/ingest`); the lander's `/api/calcom` Discord ping
+- **Does not hit:** cal.com's webhook path (`CallBookingIntake/ingest`); the lander's `/api/calcom` Discord ping
 
 ## Surfaces
 

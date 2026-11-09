@@ -114,7 +114,7 @@ beforeEach(async () => {
 const cal = () =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .serviceClient<Calendar>({ name: "Calendar" });
+    .serviceClient<Calendar>({ name: "BookingPage" });
 const slots = async () => (await cal().slots({} as never)).slots;
 const book = (start: string, email = "ana@firm.example", sig?: string) =>
   cal().book({
@@ -134,7 +134,7 @@ const calls = () =>
 const later = (list: string[], ms: number) =>
   list.find((s) => new Date(s).getTime() > Date.now() + ms) as string;
 
-describe("Calendar", () => {
+describe("BookingPage", () => {
   it("books a signed slot end to end, and refuses it twice or unsigned", async () => {
     const open = await slots();
     expect(open.length).toBeGreaterThan(100);

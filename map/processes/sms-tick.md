@@ -37,7 +37,7 @@ At least once (2026-11-04): intent before act, a lost answer sent once more unde
 | Surface | Role |
 |---|---|
 | `wren sms lift/enroll/queue/threads/numbers` | drives |
-| `SmsSend`, `SmsEvents`, `SmsDesk`, `SmsUpkeep` | run |
+| `SmsSend`, `SmsWebhookIntake`, `SmsDesk`, `SmsUpkeep` | run |
 | phone PWA | reads, replies |
 
 ## See

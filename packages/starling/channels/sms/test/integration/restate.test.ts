@@ -113,7 +113,7 @@ describe("sms on restate", () => {
       text: "hi, who is this?",
       at: OPEN.toISOString(),
     } as never;
-    const svc = ingress().serviceClient<SmsEventsService>({ name: "SmsEvents" });
+    const svc = ingress().serviceClient<SmsEventsService>({ name: "SmsWebhookIntake" });
     const first = await svc.ingest(ev);
     const again = await svc.ingest(ev);
     expect(first).toMatchObject({ duplicate: false });
@@ -125,7 +125,7 @@ describe("sms on restate", () => {
   });
 
   it("junk webhooks are terminal, not retried forever", async () => {
-    const svc = ingress().serviceClient<SmsEventsService>({ name: "SmsEvents" });
+    const svc = ingress().serviceClient<SmsEventsService>({ name: "SmsWebhookIntake" });
     await expect(svc.ingest(null)).rejects.toThrow();
   });
 
@@ -281,7 +281,7 @@ describe("sms on restate", () => {
 
   it("a 10DLC webhook attaches a US number at once, without waiting for the watch", async () => {
     await numbers(pg.db, provider, ["+13125550111"], "2026-09-01", { registered: false });
-    const svc = ingress().serviceClient<SmsEventsService>({ name: "SmsEvents" });
+    const svc = ingress().serviceClient<SmsEventsService>({ name: "SmsWebhookIntake" });
     const update = (id: string, type: string) =>
       svc.ingest({ kind: "ignored", eventId: id, type } as never);
     provider.registration.campaignState = { status: "pending", raw: "MNO_PENDING", detail: null };

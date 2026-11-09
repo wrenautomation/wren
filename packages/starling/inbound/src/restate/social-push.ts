@@ -5,7 +5,7 @@
  * so a repeated or reordered push changes nothing, and the slow pass is the net for a lost one.
  * A tap on a keyword DM's button (`kw:<hit>`) sends that keyword's follow-up.
  *
- * `SocialPush` (service) takes what the phone Worker checked: `meta` (a Meta webhook body, its
+ * `SocialPushIntake` (service) takes what the phone Worker checked: `meta` (a Meta webhook body, its
  * entries batched), `gbp` (a Business Profile review notice), `watch` (an autobrowse tab watcher saw
  * a badge change, or says it is alive). Each entry finds its owner, `wren` or a client, and lands
  * on that owner's `SocialPushHold` object, which wakes `SocialActivityRead` (and `ReachInboxRead` for our own DMs).
@@ -394,7 +394,7 @@ export function makeSocialPush(deps: SocialPushDeps) {
     return { owners: [...by.keys()], unknown };
   }
   return restate.service({
-    name: "SocialPush",
+    name: "SocialPushIntake",
     options: WEBHOOK_SERVICE,
     handlers: {
       /** A Meta webhook body, signature checked by the phone Worker. */

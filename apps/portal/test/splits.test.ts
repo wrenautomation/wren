@@ -45,7 +45,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = input instanceof Request ? input.url : String(input);
     const body = JSON.parse(String(init?.body ?? "{}"));
-    if (url.endsWith("/Domains/resolve"))
+    if (url.endsWith("/DomainLookup/resolve"))
       return Response.json({ client: body.host === HOST ? "acme" : null });
     calls.push({ url, body });
     if (url.endsWith("/Sites/serveForm")) {

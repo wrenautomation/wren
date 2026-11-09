@@ -5,7 +5,7 @@
  *   `/__book/<handler>`. The host names the client.
  * - On the app host, for a client with no live domain: the same under `/c/<client>/`.
  *
- * The page is `web/book.html`. Its API goes to `ClientCalendar/<handler>` through ingress with
+ * The page is `web/book.html`. Its API goes to `ClientBookingPage/<handler>` through ingress with
  * the client pinned here, never by the browser. A booking passes a honeypot, then Turnstile when
  * TURNSTILE_SECRET is set (its site key rides on the slots answer). Wren's own `/book/<offer>`
  * lives on the lander and never comes here.
@@ -47,7 +47,7 @@ async function call(env: Env, route: string, client: string, input: Record<strin
   const { client: _c, viewer: _v, website: _w, human: _h, ...rest } = input;
   let res: Response;
   try {
-    res = await fetch(`${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/ClientCalendar/${route}`, {
+    res = await fetch(`${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/ClientBookingPage/${route}`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
