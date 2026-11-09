@@ -11,6 +11,7 @@ import { decodeHtml as decode } from "@wren/core/html";
 import { gate, meter } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
+import { sourceId } from "@wrenautomation/knowledge";
 import { type Fetcher, PoliteFetcher } from "@wrenautomation/read/fetch";
 import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { needsMac, youtubeId } from "./links.js";
@@ -116,18 +117,8 @@ const yaml = (fields: Record<string, string | number | null | undefined>) =>
     .map(([k, v]) => `${k}: ${typeof v === "string" ? JSON.stringify(v) : v}`)
     .join("\n")}\n---\n\n`;
 
-/** The file an item becomes under an SOP's `sources/`: the `sop add` name for a video, else host and path. */
-export function fileOf(url: string): string {
-  const u = new URL(url);
-  const yt = youtubeId(u);
-  if (yt) return `youtube-${yt}.md`;
-  const slug = `${u.hostname}${u.pathname}`
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80);
-  return `web-${slug || "page"}.md`;
-}
+/** The file an item becomes: its knowledge source id (`sourceId`, one id per URL for every writer). */
+export const fileOf = (url: string): string => `${sourceId(url)}.md`;
 
 /** An article's transcript: front matter as `sop add` writes it, then its text. */
 export function articleMd(p: {

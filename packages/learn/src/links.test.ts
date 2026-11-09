@@ -98,6 +98,7 @@ describe("reading", () => {
   it("names a source file as sop add does, and reads front matter back", () => {
     expect(fileOf("https://youtube.com/watch?v=abc123XYZ_-")).toBe("youtube-abc123XYZ_-.md");
     expect(fileOf("https://blog.example.com/p/a-post")).toBe("web-blog-example-com-p-a-post.md");
+    expect(fileOf("https://www.instagram.com/reel/DeCOSeGxPY-/")).toBe("instagram-DeCOSeGxPY-.md");
     const md = articleMd({
       url: "https://blog.example.com/p/a-post",
       title: 'A "quoted" post',

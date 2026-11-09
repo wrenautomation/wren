@@ -1085,6 +1085,9 @@ importers:
       '@wren/runtime':
         specifier: workspace:*
         version: link:../runtime
+      '@wrenautomation/knowledge':
+        specifier: 0.60.0
+        version: 0.60.0(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/read':
         specifier: 0.51.0
         version: 0.51.0(@aws-sdk/client-s3@3.1136.0)
@@ -1326,8 +1329,8 @@ importers:
         specifier: workspace:*
         version: link:../runtime
       '@wrenautomation/knowledge':
-        specifier: 0.59.1
-        version: 0.59.1(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.60.0
+        version: 0.60.0(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/models':
         specifier: 0.51.0
         version: 0.51.0
@@ -6581,8 +6584,8 @@ packages:
     engines: {node: '>=24'}
     hasBin: true
 
-  '@wrenautomation/knowledge@0.59.1':
-    resolution: {integrity: sha512-lJIu1fvluSYpzYPISFfhs3WWMkLShzUXB/gUfJK1U6JhKl9kXmy2EwrAM0G9BfqgOhCo18Mrqi3zdLMVEfa9BA==}
+  '@wrenautomation/knowledge@0.60.0':
+    resolution: {integrity: sha512-t+4zPkfaQJEOr7FXd7YmRO0HZMIAl6VPJlXd0ubzbcPxkIEqAMo7eYJSuhoj/GoMNMHeNGP+AuiTKdwKiXYWyg==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
@@ -15229,7 +15232,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@wrenautomation/knowledge@0.59.1(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
+  '@wrenautomation/knowledge@0.60.0(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
     dependencies:
       '@electric-sql/pglite': 0.5.15
       commander: 15.0.0
