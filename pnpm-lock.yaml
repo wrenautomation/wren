@@ -1375,6 +1375,9 @@ importers:
       '@restatedev/restate-sdk-tunnel':
         specifier: 1.17.1
         version: 1.17.1(@restatedev/restate-sdk@1.17.1)
+      postgres:
+        specifier: 3.4.9
+        version: 3.4.9
     devDependencies:
       '@wren/db':
         specifier: workspace:*

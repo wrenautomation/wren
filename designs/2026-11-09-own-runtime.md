@@ -56,7 +56,7 @@ desk (Mac) ──HTTPS long-poll /claim?service=desk──▶ door              
 - **Determinism check at replay.** Each journal entry stores its kind and name. A replay that asks for a different kind or name at that seq fails the invocation as non-deterministic (as Restate does) and never runs side effects out of order.
 - **Steps that write Postgres** get `ctx.run(name, fn, { tx })`: the step's rows and its journal row commit in one transaction. Outside calls stay at-least-once, as today (`2026-11-04-at-least-once.md`).
 - **One writer per key:** the dispatcher claims an exclusive handler only when no other exclusive invocation of that object key is running (partial unique index on running rows per object key). Shared handlers skip the check.
-- **Retries:** exponential backoff from `initialRetryInterval`, cap `maxRetryAttempts` / `maxRetryDuration`, then status `dead`. `TerminalError` never retries. The dead-letter page reads `rt.invocations where status='dead'`.
+- **Retries:** the handler's `retryPolicy`, else Restate's default (500 ms × 2, max 1 min, 70 tries). At the cap: `paused` (default) or `killed` (`onMaxAttempts: "kill"`). `TerminalError` never retries. The dead-letter page reads `rt.invocations where status='paused'`.
 - **Timers:** `run_at`. `sleep` and `send({delay})` set it.
 - **Idempotency keys:** unique `(target, idem_key)`; a repeat returns the first result.
 - **Builds:** an invocation pins the Lambda version it started on (as `box-slot.ts` pins today); new invocations take the latest. Old versions are deleted when no invocation pins them.
@@ -64,6 +64,22 @@ desk (Mac) ──HTTPS long-poll /claim?service=desk──▶ door              
 - **Door:** replaces `restate.wrenautomation.com` ingress (same paths: `/Service/key/handler`, `/send`, admin under `/admin`, bearer checked by Caddy). Sync calls wait on the result via LISTEN.
 - **Cache:** `readThrough` / `invalidate` over `rt.cache`. Redis removed.
 - **Browser:** Chromium runs inside Lambda (`@sparticuz/chromium`) for headless renders; browserless leaves the box.
+
+## Phase 2 as built (`packages/runtime/src/pg`)
+
+- **The door speaks Restate's ingress protocol.** `@restatedev/restate-sdk-clients`, `scripts/ingress.mjs` and the portal call it unchanged: `/{svc}[/{key}]/{handler}[/send?delay=Nms]`, `idempotency-key`, `/restate/a/{id}/resolve|reject`, `/restate/invocation/{id}/attach|output`.
+- **SDK definitions are reused.** `service()` / `object()` from the SDK give the handler wrapper, kind, serdes and retry policy. The runtime calls `wrapper.invoke(ctx, bytes)` with its own context. No second definition API.
+- **A turn replays.** Each context op takes the next seq. A kind or name mismatch at a seq pauses the invocation (code 570); it never runs side effects out of order.
+- **Writes are buffered.** State writes, child calls and sends flush in one fenced transaction with each run result, or with the outcome. Flushes are serial, so the journal stays a prefix.
+- **Fence.** Each flush and finish starts with `rt.fence(id, attempt, lease)`. A turn whose lease another worker took fails with RT001 and writes nothing.
+- **Runs.** A run with a retry cap retries in process while the delay is ≤ 2 s. A longer delay journals the try count and ends the turn as `later`. A run with no cap fails the attempt (invocation retry), as Restate does.
+- **Sleep.** `wake_at` is journaled. Waits ≤ 1 s stay in process; longer ones suspend the turn with `run_at = wake_at`.
+- **Suspend.** When no local work is left and the handler awaits an unsettled durable, the turn suspends. A child's finish or an awakeable resolve wakes the parent (`rt.wake`, NOTIFY `rt_wake`).
+- **Clock rule.** Times that decide "due" (sleep, delayed send, retry) use the worker's clock, passed in. Leases use the Postgres clock.
+- **Cancel.** Delivered once, at the next suspension point: blocked remote awaits reject with `CancelledError` (journaled), children are cancelled. An invocation cancelled before its first op ends `CancelledError` at once.
+- **Combinators.** `all/race/any/allSettled` journal the deciding index; replay reads it, so the result never depends on timing.
+- **Ids and random.** Child id = sha256(parent, seq). `ctx.rand` is xoshiro256** seeded from the invocation id.
+- **Not built (no wren call site):** workflows, `ctx.attach`, durable promises.
 
 ## VPSs
 
@@ -94,3 +110,5 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 - 2026-11-09: off Restate and Redis, onto Postgres (William).
 - 2026-11-09: own runtime (B), Restate's shape, compute on Lambda (William's "maximize free lambda"; DBOS cannot push to Lambda).
 - 2026-11-09: tests and lints land before the first move (William).
+- 2026-11-09: the door speaks Restate's ingress protocol, and SDK definitions are reused: phase 4 is a router flag, not a rewrite.
+- 2026-11-09: retry cap → `paused`, not a new `dead` status: same as Restate today, so the DLQ page and alerts keep their meaning.
