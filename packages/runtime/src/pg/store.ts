@@ -491,6 +491,24 @@ export async function result(sql: Sql, id: string) {
   return r;
 }
 
+/**
+ * Why a call still open is being tried again: the deepest failing call in its tree, 3 levels down
+ * (the portal's write status). Undefined when none is retrying.
+ */
+export async function retrying(sql: Sql, id: string) {
+  const [r] = await sql<{ failures: number; message: string }[]>`
+    WITH RECURSIVE tree AS (
+      SELECT id, failures, last_failure, run_at, 0 AS depth FROM rt.invocations WHERE id = ${id}
+      UNION ALL
+      SELECT c.id, c.failures, c.last_failure, c.run_at, t.depth + 1
+      FROM rt.invocations c JOIN tree t ON c.parent_id = t.id
+      WHERE t.depth < 3 AND c.status NOT IN ('done', 'killed'))
+    SELECT failures, last_failure->>'message' AS message FROM tree
+    WHERE failures > 0 AND last_failure->>'message' IS NOT NULL
+    ORDER BY depth DESC, run_at DESC LIMIT 1`;
+  return r ? { count: r.failures, reason: r.message } : undefined;
+}
+
 export async function resolveAwakeable(
   sql: Sql,
   a: {

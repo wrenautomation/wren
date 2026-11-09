@@ -159,7 +159,12 @@ export async function readWrite(
   }
   // 470: Restate has it and it hasn't finished.
   if (res.status === 470) {
-    const retry = await retryOf(env, svc, route, key);
+    // the pg door says why in its 470; Restate's admin API for a call Restate holds
+    const r = (body as { retry?: { count?: unknown; reason?: unknown } } | null)?.retry;
+    const retry =
+      r && typeof r.reason === "string" && Number(r.count) > 0
+        ? { count: Number(r.count), reason: reasonOf(r.reason) }
+        : await retryOf(env, svc, route, key);
     return retry ? { state: "sending", retry } : { state: "sending" };
   }
   if (res.ok) return { state: "sent", answer: body };

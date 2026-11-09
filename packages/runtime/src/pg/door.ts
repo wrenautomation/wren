@@ -3,7 +3,7 @@
  * `@restatedev/restate-sdk-clients`, the CLI and the portal call it unchanged.
  *   POST /{svc}[/{key}]/{handler}[/send[?delay=10s]]    header idempotency-key
  *   POST /restate/a/{id}/resolve | /reject   (also /restate/awakeables/...)
- *   GET  /restate/invocation/{id}/attach | /output    (output: 470 while it runs, as Restate)
+ *   GET  /restate/invocation/{id}/attach | /output    (output: 470 while it runs, as Restate; + `retry`)
  *   GET  /restate/invocation/{svc}[/{key}]/{handler}/{idempotency-key}/attach | /output
  *   GET  /restate/health
  *   POST /rt/register | claim | renew | finish   pulled services (`pull.ts`)
@@ -20,7 +20,7 @@ import type { AddressInfo } from "node:net";
 import type postgres from "postgres";
 import { newInvocationId, parseAwakeableId } from "./ids.js";
 import { pullRoute } from "./pull.js";
-import { handlers, resolveAwakeable, result, submit } from "./store.js";
+import { handlers, resolveAwakeable, result, retrying, submit } from "./store.js";
 
 export interface DoorOptions {
   sql: postgres.Sql;
@@ -176,8 +176,15 @@ export async function serveDoor(
   const reply = async (res: ServerResponse, id: string, wait = true) => {
     if (!wait) {
       const now = await result(sql, id);
-      if (now && now.status !== "done" && now.status !== "killed")
-        return send(res, 470, JSON.stringify({ message: "not ready" }));
+      if (now && now.status !== "done" && now.status !== "killed") {
+        // past Restate's 470: why it is being tried again, if it is
+        const retry = await retrying(sql, id);
+        return send(
+          res,
+          470,
+          JSON.stringify({ message: "not ready", ...(retry ? { retry } : {}) }),
+        );
+      }
     }
     const r = await settled(id);
     if (!r) return send(res, 404, JSON.stringify({ message: `no invocation ${id}` }));

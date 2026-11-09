@@ -10,12 +10,13 @@ import {
 import { sql } from "drizzle-orm";
 import { EXECUTOR, type ExecutorEvent } from "./executor.js";
 
-/** Restate for one test file, sized for tests: one partition and a 64 MiB RocksDB take a container
+/** The pg runtime for one test file (prod runs on it since own-runtime phase 5);
+ *  `WREN_TEST_RUNTIME=restate` for Restate, until it stops (phase 6b). Restate is sized for tests: one partition and a 64 MiB RocksDB take a container
  *  from about 630 MB to 230 MB. A custom container skips the helper's own replay and retry flags,
  *  so they are applied here. The services are reached through host.docker.internal, which skips
  *  testcontainers' sshd port-forwarding container. */
 export function startTestRestate(options: TestEnvironmentOptions): Promise<RestateTestEnvironment> {
-  if (process.env.WREN_TEST_RUNTIME === "pg") return startTestPg(options);
+  if (process.env.WREN_TEST_RUNTIME !== "restate") return startTestPg(options);
   return RestateTestEnvironment.start({
     serviceEndpointAccess: "docker-host",
     ...options,
@@ -33,7 +34,7 @@ export function startTestRestate(options: TestEnvironmentOptions): Promise<Resta
   });
 }
 
-/** `WREN_TEST_RUNTIME=pg`: the same suite on the pg runtime (design doc "Tests and lints first"). */
+/** The same suite on the pg runtime (design doc "Tests and lints first"). */
 async function startTestPg(options: TestEnvironmentOptions): Promise<RestateTestEnvironment> {
   const db = await startTestPostgres();
   const rt = await startPgTestEnvironment({

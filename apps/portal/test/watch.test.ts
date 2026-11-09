@@ -100,6 +100,20 @@ describe("readWrite", () => {
     expect(sql[2]).toContain("invoked_by_id IN ('inv_2child')");
   });
 
+  it("the pg door's 470 carries the reason: no admin query, tokens still hidden", async () => {
+    const asked = restate(() =>
+      Response.json(
+        { message: "not ready", retry: { count: 2, reason: "token=abc123 refused\nat x" } },
+        { status: 470 },
+      ),
+    );
+    expect(await readWrite(env(), "MarketingConsole", "inboxReply", KEY)).toEqual({
+      state: "sending",
+      retry: { count: 2, reason: "token=[hidden] refused" },
+    });
+    expect(asked.filter((a) => a.sql)).toEqual([]);
+  });
+
   it("sending with nothing failing, or the admin API down, has no reason and still answers", async () => {
     restate(() => new Response(null, { status: 470 }), [[{ id: "inv_1", retry_count: 0 }], []]);
     expect(await readWrite(env(), "MarketingConsole", "inboxReply", KEY)).toEqual({

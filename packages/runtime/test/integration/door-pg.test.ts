@@ -26,11 +26,27 @@ const box = sdk.object({
   },
 });
 
+// a call whose child keeps failing: the output's 470 names the child's error
+const leaf = sdk.service({
+  name: "Leaf",
+  handlers: {
+    boom: async (_ctx: sdk.Context) => {
+      throw new Error("leaf down: token=abc");
+    },
+  },
+});
+const top = sdk.service({
+  name: "Top",
+  handlers: {
+    run: async (ctx: sdk.Context) => ctx.serviceClient(leaf).boom(),
+  },
+});
+
 let base = "";
 let stop = async () => {};
 beforeAll(async () => {
   const pg = await startTestPostgres();
-  const rt = await startPgTestEnvironment({ url: pg.url, services: [mail, box] });
+  const rt = await startPgTestEnvironment({ url: pg.url, services: [mail, box, leaf, top] });
   base = rt.baseUrl();
   stop = async () => {
     await rt.stop();
@@ -66,5 +82,30 @@ describe("a handler named send", () => {
   it("a path too long or too short for the kind is a 404", async () => {
     expect((await post("/Mail/send/other", "x")).status).toBe(404);
     expect((await post("/Box/send", "x")).status).toBe(404);
+  });
+});
+
+describe("output while a call is tried again", () => {
+  it("answers 470 with the deepest failing call's count and error", async () => {
+    const r = await post("/Top/run/send", null);
+    const { invocationId } = (await r.json()) as { invocationId: string };
+    let body: { message?: string; retry?: { count: number; reason: string } } = {};
+    for (let i = 0; i < 100 && !body.retry; i++) {
+      const out = await fetch(`${base}/restate/invocation/${invocationId}/output`);
+      expect(out.status).toBe(470);
+      body = (await out.json()) as typeof body;
+      if (!body.retry) await new Promise((ok) => setTimeout(ok, 50));
+    }
+    expect(body.message).toBe("not ready");
+    expect(body.retry?.count).toBeGreaterThan(0);
+    expect(body.retry?.reason).toContain("leaf down");
+  }, 30_000);
+
+  it("a call that is not failing has no retry", async () => {
+    const r = await post("/Mail/send/send?delay=2s", "late");
+    const { invocationId } = (await r.json()) as { invocationId: string };
+    const out = await fetch(`${base}/restate/invocation/${invocationId}/output`);
+    expect(out.status).toBe(470);
+    expect(await out.json()).toEqual({ message: "not ready" });
   });
 });
