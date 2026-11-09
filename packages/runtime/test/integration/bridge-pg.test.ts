@@ -55,12 +55,12 @@ const counter = restate.object({
 
 let stop = async () => {};
 let admin: string;
-const restateState = async (key: string) => {
+const restateState = async (key: string, service = "Counter") => {
   const res = await fetch(`${admin}/query`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({
-      query: `SELECT key, value_utf8 FROM state WHERE service_name = 'Counter' AND service_key = '${key}'`,
+      query: `SELECT key, value_utf8 FROM state WHERE service_name = '${service}' AND service_key = '${key}'`,
     }),
   });
   return ((await res.json()) as { rows: { key: string; value_utf8: string }[] }).rows;
@@ -76,7 +76,12 @@ beforeAll(async () => {
   const registry = new Registry([echo, rs, counter]);
   await register(sql, registry);
   const env = await RestateTestEnvironment.start({
-    services: [proxy(echo, () => sql), proxy(counter, () => sql), rs],
+    services: [
+      proxy(echo, () => sql),
+      proxy(counter, () => sql),
+      proxy(counter, () => sql, "OldCounter"),
+      rs,
+    ],
     serviceEndpointAccess: "docker-host",
     container: () =>
       selfRemoving(new RestateContainer(), ["/usr/local/bin/restate-server"]).withEnvironment({
@@ -161,8 +166,23 @@ describe("restate ↔ pg", () => {
     expect(await restateState("c1")).toEqual([]);
   }, 30_000);
 
+  it("a renamed service: the old name's proxy moves its state and calls to the new one", async () => {
+    const res = await fetch(`${admin}/services/OldCounter/state`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ object_key: "c2", new_state: { n: [...Buffer.from("3")] } }),
+    });
+    expect(res.ok, await res.text()).toBe(true);
+    const old = onRestate.objectClient({ name: "OldCounter" } as unknown as typeof counter, "c2");
+    expect(await old.add(1)).toBe(4);
+    expect(await restateState("c2", "OldCounter")).toEqual([]);
+    expect(await onRestate.objectClient(counter, "c2").add(1)).toBe(5);
+    const rows = await sql`SELECT DISTINCT service FROM rt.invocations WHERE key = 'c2'`;
+    expect(rows.map((r) => r.service)).toEqual(["Counter"]);
+  }, 30_000);
+
   it("a flip back returns pg's state to Restate", async () => {
-    expect(await returnState(sql, admin, "Counter")).toBe(1);
+    expect(await returnState(sql, admin, "Counter")).toBe(2);
     expect(await restateState("c1")).toEqual([{ key: "n", value_utf8: "8" }]);
     const left = await sql`SELECT 1 FROM rt.state WHERE service = 'Counter'`;
     expect(left.length).toBe(0);

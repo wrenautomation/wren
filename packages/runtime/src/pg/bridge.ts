@@ -30,7 +30,12 @@ const KEEP = (k: string) =>
   !/^(authorization|cookie|host|content-length|connection|x-restate)/i.test(k);
 
 /** A Restate definition with `def`'s name and handlers that forward each call to the pg runtime. */
-export function proxy(def: Def, sql: () => postgres.Sql): sdk.ServiceDefinition<string, unknown> {
+/** `as`: the Restate name, when the service was renamed; its state and callers move to `def.name`. */
+export function proxy(
+  def: Def,
+  sql: () => postgres.Sql,
+  as: string = def.name,
+): sdk.ServiceDefinition<string, unknown> {
   const routes = (def.service ?? def.object ?? {}) as Record<string, unknown>;
   const isObject = def.object !== undefined;
   const forward = async (
@@ -103,8 +108,8 @@ export function proxy(def: Def, sql: () => postgres.Sql): sdk.ServiceDefinition<
   }
   return (
     isObject
-      ? sdk.object({ name: def.name, handlers: handlers as never })
-      : sdk.service({ name: def.name, handlers: handlers as never })
+      ? sdk.object({ name: as, handlers: handlers as never })
+      : sdk.service({ name: as, handlers: handlers as never })
   ) as sdk.ServiceDefinition<string, unknown>;
 }
 

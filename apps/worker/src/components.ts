@@ -54,7 +54,7 @@ export const PLATFORM = {
     Tokens: "who an AI tool's access token acts as, for the portal's agent door",
     Executor: "events along every workflow's routed wires, and the door's webhooks",
     ExecutorClock: "a Schedule trigger node's clock: ticks each slot into its workflow",
-    AuditSeal: "seals the audit log every write lands in",
+    AuditLogSeal: "seals the audit log every write lands in",
     SiteTokenRenew: "renews every site's tokens, for content and ads alike",
     VaultKeyMirror:
       "mirrors the operator's API keys from autobrowse's vault; rotate, revoke, mark spent",

@@ -6,7 +6,7 @@
 import { userInfo } from "node:os";
 import { ingressOf, loadEnvFile, loadSettings } from "@wren/config";
 import { WREN } from "@wren/core/access";
-import { type AuditSeal, SEALER_KEY } from "@wren/core/audit";
+import { type AuditLogSeal, SEALER_KEY } from "@wren/core/audit";
 import { RENEWAL_KEY, type SiteTokenRenew } from "@wren/core/autobrowse/renewal";
 import { type Client, clientUrl, getClient, listClients } from "@wren/core/clients";
 import { githubRepo } from "@wren/core/github";
@@ -213,10 +213,12 @@ audit
     if (Object.values(checks).some((c) => c.broken)) process.exitCode = 1;
   });
 const sealer = () =>
-  clients.connect(ingressOf(settings)).objectClient<AuditSeal>({ name: "AuditSeal" }, SEALER_KEY);
+  clients
+    .connect(ingressOf(settings))
+    .objectClient<AuditLogSeal>({ name: "AuditLogSeal" }, SEALER_KEY);
 const sealing = audit
   .command("sealer")
-  .description("AuditSeal: seals main and every client database every 15 minutes");
+  .description("AuditLogSeal: seals main and every client database every 15 minutes");
 sealing
   .command("status")
   .action(async () => console.log(JSON.stringify(await sealer().status(), null, 2)));

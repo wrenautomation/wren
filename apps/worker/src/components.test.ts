@@ -149,7 +149,7 @@ describe("the component inventory", () => {
   });
 
   it("foundations know the shapes, never a part's package", () => {
-    const FOUNDATIONS = ["db", "config", "core", "ui", "llm"];
+    const FOUNDATIONS = ["db", "config", "core", "ui", "llm", "runtime"];
     const leaks = FOUNDATIONS.flatMap((p) => {
       const pkg = JSON.parse(
         readFileSync(resolve(__dirname, `../../../packages/${p}/package.json`), "utf8"),

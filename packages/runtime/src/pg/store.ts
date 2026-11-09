@@ -416,6 +416,21 @@ export async function resolveAwakeable(
     SELECT rt.wake(invocation_id, ${new Date(now)}) FROM ins`;
 }
 
+/**
+ * A renamed service: its open rows (unpinned: old builds don't know the new name) and its state
+ * move to `to`; its handler rows go. A state key `to` already holds stays under `from`.
+ */
+export async function renameService(sql: postgres.Sql, from: string, to: string) {
+  return sql.begin(async (tx) => {
+    const rows = await tx`UPDATE rt.invocations SET service = ${to}, build = NULL
+      WHERE service = ${from} AND status NOT IN ('done', 'killed')`;
+    const state = await tx`UPDATE rt.state s SET service = ${to} WHERE s.service = ${from}
+      AND NOT EXISTS (SELECT 1 FROM rt.state n WHERE n.service = ${to} AND n.key = s.key AND n.name = s.name)`;
+    await tx`DELETE FROM rt.handlers WHERE service = ${from}`;
+    return { rows: rows.count, state: state.count };
+  });
+}
+
 export async function handlers(sql: Sql) {
   return sql<{ service: string; handler: string; object: boolean; exclusive: boolean }[]>`
     SELECT service, handler, object, exclusive FROM rt.handlers`;

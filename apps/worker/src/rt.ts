@@ -17,6 +17,7 @@ import {
   proxy,
   Registry,
   register,
+  renameService,
   replier,
   returnState,
   runTurn,
@@ -25,16 +26,25 @@ import type { Logger } from "pino";
 import type { AnyService } from "./services.js";
 
 /** Services on the Postgres runtime. A deploy flips one; pg keeps every service registered. */
-/** AuditSeal first: a 15-min loop, low risk, on the Lambda lane. */
-const PG_SERVICES: readonly string[] = ["AuditSeal"];
+/** AuditLogSeal first: a 15-min loop, low risk, on the Lambda lane. */
+const PG_SERVICES: readonly string[] = ["AuditLogSeal"];
+
+/**
+ * Old name → new, for pg services only (WA-1219: a rename lands with the move). Restate keeps a
+ * proxy under the old name: its scheduled calls and state reach the new one. Drop an entry once
+ * Restate holds nothing under the old name.
+ */
+const RENAMED: Readonly<Record<string, string>> = { AuditSeal: "AuditLogSeal" };
 
 const LEASE_MS = 60_000;
 
 /** The Restate side: each pg service becomes a proxy of the same name. */
 export function restateSide(services: AnyService[], sql: () => postgres.Sql): AnyService[] {
-  return services.map((s) =>
-    PG_SERVICES.includes(s.name) ? (proxy(s as never, sql) as unknown as AnyService) : s,
-  );
+  return services.flatMap((s) => {
+    if (!PG_SERVICES.includes(s.name)) return [s];
+    const olds = Object.keys(RENAMED).filter((o) => RENAMED[o] === s.name);
+    return [s.name, ...olds].map((as) => proxy(s as never, sql, as) as unknown as AnyService);
+  });
 }
 
 /** Postgres for the runtime. No prepared statements: Lambda goes through PgBouncer (transaction mode). */
@@ -80,6 +90,14 @@ export async function startRt(o: {
   await migrate(sql);
   const registry = new Registry(o.all as never);
   await register(sql, registry);
+  // a failed rename must not stop the box: rows left under the old name take the bridge lane
+  for (const [from, to] of Object.entries(RENAMED))
+    try {
+      const moved = await renameService(sql, from, to);
+      if (moved.rows || moved.state) o.log.info({ from, to, ...moved }, "rt: renamed");
+    } catch (e) {
+      o.log.error({ err: String(e), from, to }, "rt: rename failed");
+    }
   if (o.admin)
     for (const { service } of await sql<
       { service: string }[]

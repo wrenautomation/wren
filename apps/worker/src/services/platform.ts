@@ -5,7 +5,7 @@
 import { BOOKS_CONSOLE_VIEWS } from "@wren/books";
 import { landerVisitLines } from "@wren/calendar/calls";
 import { ingressOf } from "@wren/config";
-import { makeAuditSeal } from "@wren/core/audit";
+import { makeAuditLogSeal } from "@wren/core/audit";
 import { sitesHost } from "@wren/core/autobrowse/box";
 import { makeSiteTokenRenew } from "@wren/core/autobrowse/renewal";
 import { cacheFrom } from "@wren/core/cache";
@@ -66,7 +66,7 @@ export function platformServices(deps: Deps): AnyService[] {
     makeVaultKeyMirror({ db, host: sitesHost(settings.autobrowseInstanceId), ...notify }),
   );
   // The audit log's seals in every database, every 15 minutes; off until `wren audit sealer start`.
-  services.push(makeAuditSeal({ main: db, open: openClient, ...notify }));
+  services.push(makeAuditLogSeal({ main: db, open: openClient, ...notify }));
   services.push(
     // Judge (designs/2026-11-04-loops.md): drafted comments and lead fits judged every 10 minutes by
     // Claude Code on the desk, each answer logged beside his call; other kinds on WREN_DECIDE's chain.

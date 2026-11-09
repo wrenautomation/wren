@@ -4,7 +4,7 @@ import { startTestPostgres } from "@wren/db/testing";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { migrate } from "../../src/pg/index.js";
-import { claim, type Lane, nextDue, submit } from "../../src/pg/store.js";
+import { claim, type Lane, nextDue, renameService, submit } from "../../src/pg/store.js";
 
 let sql: postgres.Sql;
 let stop = async () => {};
@@ -69,5 +69,35 @@ describe("lanes", () => {
       { status: string }[]
     >`SELECT status FROM rt.invocations WHERE id = ${other}`;
     expect(row?.status).toBe("pending");
+  });
+});
+
+describe("rename", () => {
+  it("open rows and state move to the new name, unpinned; done rows, clashing state and other services stay", async () => {
+    const open = await add("OldName", "arn:1");
+    const done = await add("OldName");
+    await sql`UPDATE rt.invocations SET status = 'done' WHERE id = ${done}`;
+    const other = await add("OtherName");
+    await sql`INSERT INTO rt.state (service, key, name, value) VALUES
+      ('OldName', 'k', 'a', '\\x01'), ('OldName', 'k', 'b', '\\x02'), ('NewName', 'k', 'b', '\\x03')`;
+    await sql`INSERT INTO rt.handlers (service, handler, object, exclusive) VALUES ('OldName', 'h', true, true)`;
+    expect(await renameService(sql, "OldName", "NewName")).toEqual({ rows: 1, state: 1 });
+    const rows = await sql<{ id: string; service: string; build: string | null }[]>`
+      SELECT id, service, build FROM rt.invocations WHERE id IN (${open}, ${done}, ${other}) ORDER BY id`;
+    expect(rows).toEqual([
+      { id: open, service: "NewName", build: null },
+      { id: done, service: "OldName", build: null },
+      { id: other, service: "OtherName", build: null },
+    ]);
+    const state =
+      await sql`SELECT service, name, value FROM rt.state WHERE key = 'k' ORDER BY service, name`;
+    expect(state.map((r) => `${r.service}.${r.name}=${r.value[0]}`)).toEqual([
+      "NewName.a=1",
+      "NewName.b=3",
+      "OldName.b=2",
+    ]);
+    expect((await sql`SELECT 1 FROM rt.handlers WHERE service = 'OldName'`).length).toBe(0);
+    expect((await take({ only: ["NewName"] })).map((c) => c.id)).toEqual([open]);
+    expect(await renameService(sql, "OldName", "NewName")).toEqual({ rows: 0, state: 0 });
   });
 });
