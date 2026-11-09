@@ -302,7 +302,7 @@ else two days), doubled each time, up to 30 days. After 4 risky verdicts in a ro
 per address, leads and candidates alike (`verification/retry.ts`).
 
 The handshake itself is not wren's: it lives in **mailifier**
-(github.com/wrenautomation/mailifier, `npm i mailifier`), and wren plugs it into
+(github.com/WilliamJin123/mailifier, `npm i mailifier`), and wren plugs it into
 the `EmailVerifier` port in one file, `verification/mailifier.ts`. Port 25 is
 closed from Lambda and AWS refused to open it on EC2, so the prober
 is that package's own server on a RackNerd VPS (192.255.226.241, Ubuntu 24.04,
