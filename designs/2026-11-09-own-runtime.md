@@ -1,6 +1,6 @@
 # Own runtime on Postgres: off Restate, off Redis
 
-2026-11-09. Status: options, waiting on William's pick. Evidence: `sops/direction/2026-11-08-architecture-simplicity.md` (weaver study, running).
+2026-11-09. Status: options, waiting on William's pick. Evidence: `sops/direction/2026-11-08-architecture-simplicity.md` (weaver run 01M6Z964RDSCJGPPFEG6Z3RXT5, 96 findings): Postgres queues fit up to low millions of jobs a day; outside calls stay at-least-once in any runtime; Redis is the weakest part of this stack; move browserless off the t4g.small.
 
 William, 11-08/09: "moving away from restate, leaning down our architecture, building our own systems (message queues, caches, durable workflows with retries, DLQs, save points, porting autobrowse)."
 
