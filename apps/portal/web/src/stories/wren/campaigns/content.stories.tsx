@@ -122,7 +122,6 @@ export const StudioCompose = pageAt(
 
 export const Content = pageAt("/campaigns/content", { me: ADMIN });
 
-
 export const Drafts = pageAt("/campaigns/drafts", {
   me: ADMIN,
   check: shows("Drafts", "Redraft"),
