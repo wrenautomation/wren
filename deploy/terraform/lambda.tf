@@ -199,10 +199,12 @@ resource "aws_lambda_function" "worker" {
         ])
         WREN_SSM_ROSTER_PARAM    = aws_ssm_parameter.roster.name
         WREN_SSM_MAILBOXES_PARAM = aws_ssm_parameter.mailboxes.name
-        WREN_RENDERER            = var.browser_token == "" ? "browserbase" : "cdp"
-        WREN_LOG_LEVEL           = "info"
-        WREN_MEDIA_BUCKET        = aws_s3_bucket.media.bucket
-        WREN_FILES_BUCKET        = aws_s3_bucket.files.bucket
+        # the render Lambda (render.tf); browserless leaves the box after a week of good renders
+        WREN_RENDERER        = "lambda"
+        WREN_RENDER_FUNCTION = aws_lambda_function.render.function_name
+        WREN_LOG_LEVEL       = "info"
+        WREN_MEDIA_BUCKET    = aws_s3_bucket.media.bucket
+        WREN_FILES_BUCKET    = aws_s3_bucket.files.bucket
         # Postgres through PgBouncer on the box (deploy/scripts/box-pgbouncer.sh); the CLI stays on 5432.
         WREN_DATABASE_POOL_PORT = "6432"
         # The Watch's triage, on Spine: Cohere Command A on our credits (designs/2026-10-05-workflows.md, Costs).
