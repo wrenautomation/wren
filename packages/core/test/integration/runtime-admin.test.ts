@@ -1,5 +1,5 @@
 // A loop on the Postgres runtime (designs/2026-11-09-own-runtime.md, "Phase 3") seen through the
-// same admin SQL as Restate: the watchdog's health, a dead letter's failure and journal, kill, resume.
+// admin SQL in Restate's dialect: the watchdog's health, a dead letter's failure and journal, kill, resume.
 import { startTestPostgres } from "@wren/db/testing";
 import type * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
@@ -135,8 +135,10 @@ describe("rt admin", () => {
     expect(p?.status).toBe("pending");
   });
 
-  it("a query only Restate answers gives no pg rows; an id pg doesn't hold goes to Restate", async () => {
+  it("a table pg lacks gives no rows; an id pg lacks is refused", async () => {
     expect(await admin.query("SELECT id FROM sys_deployment")).toEqual([]);
-    await expect(admin.patch("/invocations/inv_nothere/kill")).rejects.toThrow(/no runtime holds/);
+    await expect(admin.patch("/invocations/inv_nothere/kill")).rejects.toThrow(
+      /no runtime row for/,
+    );
   });
 });
