@@ -297,11 +297,11 @@ export async function startRt(o: {
       ),
     log,
   });
-  // a new ARN pins new Lambda rows to it
+  // a new ARN pins new Lambda rows to it; a stat every 2 s (rows made before it ran on the old one)
   const repin = setInterval(() => {
     const a = arn();
     if (a) lambdaLane.setLane({ only: onLambda, build: a });
-  }, 30_000);
+  }, 2_000);
   repin.unref();
   await Promise.all([boxLane.start(), lambdaLane.start(), bridgeLane.start()]);
   let reply: { stop(): Promise<void> } | null = await replier({ sql, ingress: o.ingress, log });

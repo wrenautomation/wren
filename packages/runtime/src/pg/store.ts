@@ -165,6 +165,29 @@ export async function release(sql: Sql, id: string, attempt: number, delayMs: nu
 }
 
 /**
+ * A row pinned to a build without its handler (the box made it before the new build's ARN was read):
+ * unpinned and released, when nothing ran yet, so the next claim pins it to the lane's build. False:
+ * it started, or it was unpinned `UNPIN_MAX` times (a service no build has), and should fail.
+ */
+export const UNPIN_MAX = 30;
+export async function unpin(
+  sql: Sql,
+  id: string,
+  attempt: number,
+  delayMs: number,
+  message: string,
+) {
+  const r =
+    await sql`UPDATE rt.invocations i SET status = 'pending', lease_until = NULL, build = NULL,
+      failures = failures + 1, last_failure = ${json({ message })}::text::jsonb,
+      run_at = now() + ${delayMs} * interval '1 millisecond'
+    WHERE i.id = ${id} AND i.attempt = ${attempt} AND i.status = 'running' AND i.build IS NOT NULL
+      AND i.failures < ${UNPIN_MAX}
+      AND NOT EXISTS (SELECT 1 FROM rt.journal j WHERE j.invocation_id = i.id)`;
+  return r.count === 1;
+}
+
+/**
  * First in a flush that writes an attach: share-lock each target before our own fence. A target's
  * `finish` fences (row lock) first, so either it commits before our settle check reads it, or its
  * attach UPDATE runs after our row committed: no lost wake. We hold nothing while we wait.

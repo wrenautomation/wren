@@ -3,7 +3,7 @@
 import { CancelledError } from "@restatedev/restate-sdk";
 import type postgres from "postgres";
 import type { Registry } from "./registry.js";
-import { type Claim, finish, flush, isFenced, load, renew } from "./store.js";
+import { type Claim, finish, flush, isFenced, load, renew, unpin } from "./store.js";
 import { Crash, Turn, type TurnOptions, toErrorJson } from "./turn.js";
 
 export interface ExecutorOptions extends TurnOptions {
@@ -26,14 +26,9 @@ export async function runTurn(
   const inv = loaded.inv;
   const h = o.registry.get(inv.service, inv.handler);
   if (!h) {
-    await finish(
-      o.sql,
-      inv,
-      null,
-      { type: "failed", error: { message: `no handler ${inv.service}/${inv.handler} here` } },
-      undefined,
-      leaseMs,
-    );
+    const message = `no handler ${inv.service}/${inv.handler} here`;
+    if (await unpin(o.sql, inv.id, inv.attempt, 2_000, message)) return "unpinned";
+    await finish(o.sql, inv, null, { type: "failed", error: { message } }, undefined, leaseMs);
     return "failed";
   }
   if (inv.cancel && loaded.journal.length === 0) {
