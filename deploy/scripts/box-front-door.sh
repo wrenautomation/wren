@@ -2,7 +2,7 @@
 # @unit front-door: Caddy, the box's one public door: TLS, the bearer, failover between worker slots.
 # Runs ON the Postgres box (CI over SSM each deploy, or by hand). Idempotent: Caddy reloads when only
 # its Caddyfile changed (calls in flight keep going), restarts when its env changed.
-#   api.wrenautomation.com (restate. is the old name, kept until every caller moves): the bearer, then
+#   api.wrenautomation.com (restate. retired 11-09, WA-1217): the bearer, then
 #     the door of the newest worker slot (9090/9091, apps/worker/src/rt.ts). A door that fails its
 #     health check drops out (a superseded slot drains). POSTs retry only when Caddy could not connect,
 #     so no call runs twice. /cdp: the box browser; it checks its own token, so it sits before the bearer.
@@ -38,7 +38,7 @@ cat > "$D/Caddyfile.new" <<'EOF'
 	}
 }
 
-api.wrenautomation.com, restate.wrenautomation.com {
+api.wrenautomation.com {
 	handle /cdp {
 		uri strip_prefix /cdp
 		reverse_proxy 127.0.0.1:3000
