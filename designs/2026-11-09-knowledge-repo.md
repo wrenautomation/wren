@@ -128,3 +128,10 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
   store (hot data, S3); a source keeps `textSha256`. Ids end in the ledger id's tail: a rerun is a no-op and
   retires a finding dropped since. One commit per run. Backfill: 39 runs, 32 commits, 4,917 findings, 854
   sources, 54 patterns, lint clean. The skill runs `promote` after a run's stop edge.
+- 11-09 (WA-1230, step 3b): Learn's items in. `wren learn promote`: each item → a source named by
+  `sourceId` (caption and transcript as the body; breakdown, stats, score, triage, saves, moments as fields).
+  Player state and the signed media URL stay in Postgres; the embedding is rebuilt from text. Who owns what:
+  Learn's own fields (`learnItem`, `breakdown`, `stats` …) follow the item on any record; title, URL and the
+  body follow it only where Learn made the record (`origin: learn`). On an SOP's record they fill gaps, so a
+  guide's source never loses its text. One commit; a rerun is a no-op. Run: 573 items, 568 sources added,
+  5 SOP sources merged.

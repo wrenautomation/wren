@@ -26,6 +26,7 @@ import {
   listItems,
   needsMac,
   pageFetcher,
+  promoteItems,
   readItem,
   readVideo,
   recordFactCall,
@@ -421,6 +422,20 @@ export function registerLearn(
             return { tried: todo.length, done };
           }),
         ),
+    );
+
+  learn
+    .command("promote")
+    .description(
+      "every item of the workspace as a source record in the knowledge repo: caption and transcript, breakdown, score, saves. One commit; a rerun edits only what changed",
+    )
+    .option("--why <text>", "why, on the commit", "Learn's items as sources")
+    .action(async (o: { why: string }) =>
+      json(
+        await inWorkspace((db, client) =>
+          promoteItems(db, knowledgeDir, client, { by: "wren-learn", why: o.why }),
+        ),
+      ),
     );
 
   learn

@@ -5,6 +5,7 @@ export * from "./film.js";
 export * from "./findings.js";
 export * from "./items.js";
 export * from "./judge.js";
+export * from "./knowledge.js";
 export * from "./learnback.js";
 export * from "./links.js";
 export * from "./read.js";
