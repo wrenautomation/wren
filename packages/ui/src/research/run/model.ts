@@ -191,7 +191,7 @@ export interface GNode {
   /** claims it backs */
   nc: number;
   rank: number;
-  /** rank among the linked */
+  /** rank among the sources with findings */
   lr: number;
 }
 
@@ -225,7 +225,7 @@ export function indexRun(run: RunGraphData): Indexed {
     n.rank = i;
   });
   rank
-    .filter((n) => n.nc)
+    .filter((n) => n.s.kept)
     .forEach((n, i) => {
       n.lr = i;
     });
@@ -315,3 +315,18 @@ export const jit = (i: number) => {
   const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
   return x - Math.floor(x) - 0.5;
 };
+/** A search's answer: the best finding on the sources it found. Checked first, then in a claim, then strongest evidence. */
+export const answerOf = (L: Indexed, qi: number) => {
+  let best: { f: GraphFinding; n: GNode; score: number } | null = null;
+  for (const id of L.byQ.get(qi)?.ss ?? []) {
+    const n = L.byId.get(id);
+    for (const f of n?.s.fs ?? []) {
+      const score = (f.ok === 1 ? 0 : 100) + (f.c >= 0 ? 0 : 10) + evIndex(f.e);
+      if (n && (!best || score < best.score)) best = { f, n, score };
+    }
+  }
+  return best;
+};
+/** The sources a search found that hold a finding, and their findings. */
+export const spokesOf = (L: Indexed, qi: number) =>
+  (L.byQ.get(qi)?.ss ?? []).map((id) => L.byId.get(id)).filter((n): n is GNode => !!n?.s.kept);

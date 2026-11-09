@@ -231,7 +231,9 @@ function SourcePanel({ c, n }: { c: PanelCtx; n: GNode }) {
         {told.map((x) => (
           <section key={x.i} className="pg">
             <a className="pgh" href={x.p.u} target="_blank" rel="noopener">
-              {x.p.th ? <img className="th" src={x.p.th} alt="" /> : null}
+              {x.p.th ? (
+                <img className="th" referrerPolicy="no-referrer" src={x.p.th} alt="" />
+              ) : null}
               <span>
                 <b>{x.p.t}</b>
                 <small>
@@ -278,7 +280,11 @@ function SourceRow({ c, n, sub }: { c: PanelCtx; n: GNode; sub: string }) {
   return (
     <section className="pg">
       <button type="button" className="pgh" onClick={() => c.pick({ t: "s", id: s.id }, true)}>
-        {s.thumb ? <img className="th" src={s.thumb} alt="" /> : <Ico s={s} />}
+        {s.thumb ? (
+          <img className="th" referrerPolicy="no-referrer" src={s.thumb} alt="" />
+        ) : (
+          <Ico s={s} />
+        )}
         <span>
           <b>{s.name}</b>
           <small>{sub}</small>
@@ -322,7 +328,11 @@ function ClaimPanel({ c, i }: { c: PanelCtx; i: number }) {
                 className="pgh"
                 onClick={() => c.pick({ t: "s", id: s.id }, true)}
               >
-                {s.thumb ? <img className="th" src={s.thumb} alt="" /> : <Ico s={s} />}
+                {s.thumb ? (
+                  <img className="th" referrerPolicy="no-referrer" src={s.thumb} alt="" />
+                ) : (
+                  <Ico s={s} />
+                )}
                 <span>
                   <b>{s.name}</b>
                   <small>

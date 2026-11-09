@@ -16,7 +16,15 @@ const preview: Preview = {
     ...frame.parameters,
     options: {
       storySort: {
-        order: ["Parts", "Forms", "Lists", "Charts", ["Dashboard", "*"], "Pages", "Orrery"],
+        order: [
+          "Parts",
+          "Forms",
+          "Lists",
+          "Charts",
+          ["All charts", "Dashboard", "*"],
+          "Pages",
+          "Orrery",
+        ],
       },
     },
   },

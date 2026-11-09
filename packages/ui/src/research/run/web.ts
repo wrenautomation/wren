@@ -1,8 +1,9 @@
 /**
- * The claim web (round 13): claims and the sources that back them; any node opens in place into
- * what it holds. Pure: keys, children, edges and the solve. The stage measures and moves the DOM.
- * Keys: c claim, s source, p page, n read pages with no finding, u pages not read, v one such
- * page, f finding, x its quote, q search, d its dropped hits, h one dropped hit, m "N more".
+ * The query web (11-08): each search is a hub, its answer on the card; a source with findings
+ * links to every search that found it. Any node opens in place into what it holds. Pure: keys,
+ * children, edges and the solve. The stage measures and moves the DOM.
+ * Keys: q search, s source, p page, n read pages with no finding, u pages not read, v one such
+ * page, f finding, x its quote, d a search's dropped hits, h one dropped hit, m "N more".
  */
 import { forceLink, forceManyBody, forceSimulation, forceX, forceY } from "d3-force";
 import { type Indexed, jit } from "./model.js";
@@ -40,10 +41,6 @@ function kidsOf(L: Indexed, key: string): string[] {
   if (key[0] === "m") return [];
   const [t, a, b] = parse(key);
   const src = () => L.byId.get(a)?.s;
-  if (t === "c")
-    return (L.claims[a]?.ss ?? []).flatMap((n) =>
-      n.s.fs.map((f, fi) => (f.c === a ? `f${n.id}.${fi}` : "")).filter(Boolean),
-    );
   if (t === "s") {
     const s = src();
     if (!s) return [];
@@ -55,7 +52,6 @@ function kidsOf(L: Indexed, key: string): string[] {
       .map((i) => `p${a}.${i}`);
     if (s.pages.some((_, i) => !nf(i))) out.push(`n${a}`);
     if (s.unread.length) out.push(`u${a}`);
-    for (const qi of L.reach.get(a) ?? []) out.push(`q${qi}`);
     return out;
   }
   if (t === "p")
@@ -68,9 +64,10 @@ function kidsOf(L: Indexed, key: string): string[] {
   }
   if (t === "u") return (src()?.unread ?? []).map((_, i) => `v${a}.${i}`);
   if (t === "f") return src()?.fs[b]?.q ? [`x${a}.${b}`] : [];
+  // sources with findings are on the map already, as spokes
   if (t === "q")
     return [
-      ...(L.byQ.get(a)?.ss ?? []).map((id) => `s${id}`),
+      ...(L.byQ.get(a)?.ss ?? []).filter((id) => !L.byId.get(id)?.s.kept).map((id) => `s${id}`),
       ...((L.drops.get(a) ?? []).length ? [`d${a}`] : []),
     ];
   if (t === "d") return (L.drops.get(a) ?? []).map((i) => `h${i}`);
@@ -86,11 +83,11 @@ function shown(L: Indexed, st: WebState, k: string) {
 export const leftOf = (L: Indexed, st: WebState, k: string) =>
   runOf(kids(L, k)) - (st.more.get(k) ?? capOf(st.wide));
 
-/** The nodes on the map: the base, plus what each open node holds, breadth first. */
+/** The nodes on the map: every search, every source with a finding, plus what each open node holds, breadth first. */
 export function presentSet(L: Indexed, st: WebState) {
   const base = [
-    ...L.claims.map((c) => `c${c.i}`),
-    ...L.rank.filter((n) => n.nc || st.lift.has(n.id)).map((n) => `s${n.id}`),
+    ...L.run.searches.map((q) => `q${q.i}`),
+    ...L.rank.filter((n) => n.s.kept || st.lift.has(n.id)).map((n) => `s${n.id}`),
   ];
   const par = new Map<string, string | null>(base.map((k) => [k, null]));
   const order = [...base];
@@ -109,7 +106,7 @@ export function presentSet(L: Indexed, st: WebState) {
   return { order, par, exp, more };
 }
 
-export type EdgeKind = "claim" | "tree" | "backs" | "via" | "found";
+export type EdgeKind = "hub" | "tree" | "via" | "found";
 export interface WebEdge {
   id: string;
   a: string;
@@ -117,7 +114,7 @@ export interface WebEdge {
   kind: EdgeKind;
   w: number;
   tree: boolean;
-  /** speaker, on claim edges */
+  /** speaker, on hub edges */
   k?: string | undefined;
 }
 
@@ -140,10 +137,12 @@ export function webEdges(L: Indexed, order: string[], par: Map<string, string | 
     const [t, a, b] = parse(k);
     const s = L.byId.get(a)?.s;
     if (t === "s" && s)
-      for (const c of Object.keys(s.claims)) {
-        add(k, `c${c}`, "claim", s.claims[+c]);
-        const e = E[E.length - 1];
-        if (e?.kind === "claim" && e.a === k) e.k = L.byId.get(a)?.k;
+      for (const qi of L.reach.get(a) ?? []) {
+        const q = `q${qi}`;
+        const n = E.length;
+        add(q, k, s.kept ? "hub" : par.get(k) === q ? "tree" : "found", s.kept);
+        const e = E[n];
+        if (e?.kind === "hub") e.k = L.byId.get(a)?.k;
       }
     else if (t === "p") add(par.get(k) || `s${a}`, k, "tree");
     else if (t === "n" || t === "u") add(`s${a}`, k, "tree");
@@ -153,11 +152,7 @@ export function webEdges(L: Indexed, order: string[], par: Map<string, string | 
       if (!f) continue;
       const pk = `p${a}.${f.p}`;
       add(on.has(pk) ? pk : `s${a}`, k, on.has(pk) ? "tree" : "via");
-      if (f.c >= 0) add(k, `c${f.c}`, "backs");
     } else if (t === "x") add(`f${a}.${b}`, k, "tree");
-    else if (t === "q")
-      for (const id of L.byQ.get(a)?.ss ?? [])
-        add(k, `s${id}`, par.get(k) === `s${id}` || par.get(`s${id}`) === k ? "tree" : "found");
     else if (t === "d") add(`q${a}`, k, "tree");
     else if (t === "h" || t === "m") add(par.get(k), k, "tree");
   }
@@ -335,7 +330,7 @@ export function solveWeb(o: SolveIn) {
   const B0 = old.length ? webBox(old) : { x0: 0, y0: 0, x1: 0, y1: 0 };
   const cx0 = (B0.x0 + B0.x1) / 2;
   const cy0 = (B0.y0 + B0.y1) / 2;
-  const nc = L.claims.length;
+  const nq = L.run.searches.length;
   const ax = wide ? 1.5 : 0.7;
   // several runs: each linked group solves alone, then the groups pack in run order
   const groups = !anim && L.run.runs ? linked(order, E) : null;
@@ -349,13 +344,13 @@ export function solveWeb(o: SolveIn) {
   };
   if (groups)
     for (const g of groups) {
-      const cs = g.filter((k) => k[0] === "c");
-      lay(cs, (_, j) => j / cs.length);
+      const qs = g.filter((k) => k[0] === "q");
+      lay(qs, (_, j) => j / qs.length);
     }
   else
     lay(
-      L.claims.map((c) => `c${c.i}`),
-      (k) => +k.slice(1) / nc,
+      L.run.searches.map((q) => `q${q.i}`),
+      (_, j) => j / nq,
     );
   order.forEach((k, i) => {
     const n = N.get(k) as WNode;
@@ -377,12 +372,12 @@ export function solveWeb(o: SolveIn) {
       const rr = (diag(p) + diag(n)) * 0.36 + 26;
       n.x = p.x + Math.cos(a) * rr;
       n.y = p.y + Math.sin(a) * rr;
-    } else if (k[0] === "c") {
+    } else if (k[0] === "q") {
       [n.x, n.y] = ring.get(k) ?? [0, 0];
     } else {
-      const g = L.byId.get(+k.slice(1));
-      const cs = Object.keys(g?.s.claims ?? {})
-        .map((c) => N.get(`c${c}`))
+      // a spoke starts between the searches that found it
+      const cs = (L.reach.get(+k.slice(1)) ?? [])
+        .map((qi) => N.get(`q${qi}`))
         .filter((q): q is WNode => !!q);
       const was = o.shelfAt.get(k);
       if (cs.length) {
@@ -410,13 +405,14 @@ export function solveWeb(o: SolveIn) {
     target: N.get(e.b) as WNode,
     e,
   }));
-  const ncOf = (e: WebEdge) => Object.keys(L.byId.get(+e.a.slice(1))?.s.claims ?? {}).length;
+  // a spoke found by many searches: each pull weaker, so it settles between them
+  const hubsOf = (e: WebEdge) => L.reach.get(+e.b.slice(1))?.length ?? 1;
   const dist = (l: Link) => {
     const d = diag(l.source) + diag(l.target);
-    return l.e.kind === "claim" ? 30 + d * 0.32 : l.e.tree ? 14 + d * 0.3 : 60 + d * 0.36;
+    return l.e.kind === "hub" ? 30 + d * 0.32 : l.e.tree ? 14 + d * 0.3 : 60 + d * 0.36;
   };
   const strength = (l: Link) =>
-    l.e.kind === "claim" ? 0.5 / Math.min(ncOf(l.e), 3) : l.e.tree ? 0.7 : 0.03;
+    l.e.kind === "hub" ? 0.5 / Math.min(hubsOf(l.e), 3) : l.e.tree ? 0.7 : 0.03;
   const P = fk ? N.get(fk) : undefined;
   if (anim) {
     const need =
@@ -499,7 +495,7 @@ function simulate(all: WNode[], links: Link[], o: SimOpt) {
 
 const repel = () =>
   forceManyBody<WNode>()
-    .strength((n) => ("cs".includes(n.key[0] ?? "") ? -260 : -110))
+    .strength((n) => ("qs".includes(n.key[0] ?? "") ? -260 : -110))
     .distanceMax(600);
 
 /**
@@ -537,7 +533,7 @@ export function compact(parts: WNode[][], links: Link[], o: Pick<SimOpt, "dist" 
   for (let i = 0; i < 160; i++) sim.tick();
 }
 
-/** Keys joined by edges, as groups; the group with the lowest run's claim comes first. */
+/** Keys joined by edges, as groups; the group with the lowest run's search comes first. */
 export function linked(order: readonly string[], E: readonly WebEdge[]) {
   const up = new Map(order.map((k) => [k, k]));
   const root = (k: string): string => {
@@ -553,8 +549,8 @@ export function linked(order: readonly string[], E: readonly WebEdge[]) {
     const r = root(k);
     by.set(r, [...(by.get(r) ?? []), k]);
   }
-  // claim keys are numbered in run order; a group with no claim goes last
-  const first = (g: string[]) => Math.min(...g.filter((k) => k[0] === "c").map((k) => +k.slice(1)));
+  // search keys are numbered in run order; a group with no search goes last
+  const first = (g: string[]) => Math.min(...g.filter((k) => k[0] === "q").map((k) => +k.slice(1)));
   return [...by.values()].sort((a, b) => first(a) - first(b));
 }
 

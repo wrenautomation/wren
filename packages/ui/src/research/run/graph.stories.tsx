@@ -1,6 +1,6 @@
 /**
- * One weaver run as a graph (round 13, artifact LdYvUurK): the claim web, the search tree and
- * lanes. Open states are clicked in `play`, so the story runs the same code a click does.
+ * One weaver run as the query web (11-08): each search a hub with its answer, the sources with
+ * findings around it. Open states are clicked in `play`, so the story runs the same code a click does.
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, waitFor } from "storybook/test";
@@ -14,7 +14,7 @@ import {
 import { RunGraph } from "./graph.js";
 
 export default {
-  title: "Parts/Weaver run graph",
+  title: "Charts/Weaver run graph",
   id: "research-run",
   component: RunGraph,
   parameters: { layout: "padded" },
@@ -56,12 +56,10 @@ const apart = async (root: HTMLElement) => {
 export const Default: Story = {
   args: { run: RUN_GRAPH },
   play: async ({ canvasElement }) => {
-    await mark(canvasElement, "c0");
+    await mark(canvasElement, "q0");
     await apart(canvasElement);
   },
 };
-export const Tree: Story = { args: { run: RUN_GRAPH, lay: "tree" } };
-export const Lanes: Story = { args: { run: RUN_GRAPH, lay: "lanes" } };
 export const OneRound: Story = { args: { run: RUN_GRAPH_ONE_ROUND } };
 export const Empty: Story = { args: { run: RUN_GRAPH_EMPTY } };
 export const Loading: Story = { args: { run: undefined } };
@@ -72,34 +70,39 @@ export const WorstCase: Story = { args: { run: RUN_GRAPH_WORST } };
 export const SeveralRuns: Story = {
   args: { run: RUN_GRAPH_RUNS },
   play: async ({ canvasElement }) => {
-    await mark(canvasElement, "c0");
+    await mark(canvasElement, "q0");
     await apart(canvasElement);
   },
 };
 
-/** A claim opens in place into its findings; the panel shows the claim. */
-export const ClaimOpen: Story = {
+/** A search opens in place into the hits it kept with no finding and the hits it dropped; the panel shows the search. */
+export const SearchOpen: Story = {
   args: { run: RUN_GRAPH },
   play: async ({ canvasElement }) => {
-    await userEvent.click(await mark(canvasElement, "c0"));
+    const q = RUN_GRAPH.searches.find(
+      (x) =>
+        x.ss.some((id) => !RUN_GRAPH.sources.find((s) => s.id === id)?.kept) ||
+        RUN_GRAPH.dropped.some((d) => d.q.includes(x.i)),
+    );
+    if (!q) return;
+    await userEvent.click(await mark(canvasElement, `q${q.i}`));
     await waitFor(() => expect(canvasElement.querySelector(".rg-nodes .open")).not.toBeNull());
     await waitFor(() =>
-      expect(canvasElement.querySelector(".rg-panel")?.textContent).toMatch(
-        /Most shops price custom cakes/,
-      ),
+      expect(canvasElement.querySelector(".rg-panel")?.textContent).toContain(q.t),
     );
     await apart(canvasElement);
   },
 };
 
-/** A claim, then a source under it: two levels open. */
+/** A source with findings opens into its pages, then a page into its findings: two levels open. */
 export const SourceOpen: Story = {
   args: { run: RUN_GRAPH },
   play: async ({ canvasElement }) => {
-    await userEvent.click(await mark(canvasElement, "c0"));
-    const src = RUN_GRAPH.sources.find((s) => (s.claims[0] ?? 0) > 0);
+    const src = RUN_GRAPH.sources.find((s) => s.kept && s.pages.length);
     if (!src) return;
     await userEvent.click(await mark(canvasElement, `s${src.id}`));
+    const pi = src.pages.findIndex((_, i) => src.fs.some((f) => f.p === i));
+    await userEvent.click(await mark(canvasElement, `p${src.id}.${pi}`));
     await waitFor(() => expect(canvasElement.querySelectorAll(".rg-nodes .open").length).toBe(2));
     await apart(canvasElement);
   },

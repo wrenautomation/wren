@@ -1,7 +1,7 @@
 /**
  * `RunGraph`: one weaver run as a graph (designs/2026-11-05-research-web.md, round 13; the
- * artifact LdYvUurK). Three layouts of the same run: the claim web, the search tree and lanes.
- * Props only: it fetches nothing.
+ * artifact LdYvUurK). One layout: the query web, each search a hub with its answer, the sources
+ * that hold findings around it (11-08). Props only: it fetches nothing.
  *
  * React draws every mark, panel and list. The layouts measure the marks, then write each one's
  * transform and each edge's `d` through refs, so React never owns a position: a hover re-renders
@@ -13,32 +13,11 @@ import { easeCubicOut } from "d3-ease";
 import { select } from "d3-selection";
 import { type Timer, timer } from "d3-timer";
 import { type ZoomBehavior, type ZoomTransform, zoom, zoomIdentity } from "d3-zoom";
-import {
-  type ReactNode,
-  startTransition,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Empty, Loading } from "../../feedback.js";
 import { Bars } from "./bars.js";
-import {
-  type Box,
-  type FlatEdge,
-  flatPath,
-  laneEdges,
-  lanesOf,
-  layLanes,
-  layShelf,
-  layTree,
-  type Size,
-  shelfOf,
-  treeEdges,
-  treeOf,
-} from "./lays.js";
-import { Badge, ClaimMark, EvBar, Ico, type MarkProps, SourceMark, WebMark } from "./marks.js";
+import { type Box, layShelf, type Size, shelfOf } from "./lays.js";
+import { Badge, EvBar, Ico, type MarkProps, SourceMark, WebMark } from "./marks.js";
 import {
   countOf,
   EV_ORDER,
@@ -69,9 +48,8 @@ import {
 } from "./web.js";
 
 export type { Pick } from "./panel.js";
-export { LAYS, type LayId } from "./side.js";
 
-import { cls, type Focus, Key, type LayId, Side, Summary, Table } from "./side.js";
+import { cls, type Focus, Key, Side, Summary, Table } from "./side.js";
 
 const SIDEW = 252;
 const PW = 380;
@@ -83,9 +61,6 @@ export interface RunGraphProps {
   run?: RunGraphData | undefined;
   /** why it failed to load */
   failed?: ReactNode;
-  /** controlled layout, for a host that keeps it in the url */
-  lay?: LayId | undefined;
-  onLay?: (l: LayId) => void;
   /** in a chat card: no run head, summary, key or table; a shorter stage */
   card?: boolean | undefined;
 }
@@ -103,7 +78,7 @@ function mergedOpen(runs: readonly { rid: string }[], queue: Iterable<string>) {
     .join(" && ");
 }
 
-export function RunGraph({ run, failed, lay, onLay, card }: RunGraphProps) {
+export function RunGraph({ run, failed, card }: RunGraphProps) {
   if (failed)
     return (
       <Empty title="This run didn't load">
@@ -111,37 +86,21 @@ export function RunGraph({ run, failed, lay, onLay, card }: RunGraphProps) {
       </Empty>
     );
   if (!run) return <Loading shape="cards" lines={3} heading label="Loading the run" />;
-  return <Graph key={run.rid} run={run} lay={lay} onLay={onLay} card={card} />;
+  return <Graph key={run.rid} run={run} card={card} />;
 }
 
-function Graph({
-  run,
-  lay: layP,
-  onLay,
-  card,
-}: {
-  run: RunGraphData;
-  lay?: LayId | undefined;
-  onLay?: ((l: LayId) => void) | undefined;
-  card?: boolean | undefined;
-}) {
+function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined }) {
   const L = useMemo(() => indexRun(run), [run]);
   // a merged graph counts runs where one run counts rounds
   const step = stepOf(run);
-  const Step = step === "run" ? "Run" : "Round";
-  // no claim: the web would be bare, so the searches lead
-  const bare = !run.claims.length;
-  const [layS, setLayS] = useState<LayId>(layP ?? (bare ? "tree" : "web"));
-  const lay = layP ?? layS;
   const [wide, setWide] = useState(true);
   const [round, setRound] = useState(0);
-  const [tab, setTab] = useState<"c" | "q" | "d">(bare ? "q" : "c");
+  const [tab, setTab] = useState<"c" | "q" | "d">("q");
   const [pick, setPickS] = useState<Pick | null>(null);
   const [hover, setHover] = useState<Pick | null>(null);
   const [hole, setHole] = useState<string | null>(null);
   const [sort, setSort] = useState<[string, number]>(["kept", -1]);
   const [dq, setDq] = useState("");
-  const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const [exp, setExp] = useState<ReadonlySet<string>>(new Set());
   const [lift, setLift] = useState<ReadonlySet<number>>(new Set());
   const [more, setMore] = useState<ReadonlyMap<string, number>>(new Map());
@@ -191,8 +150,9 @@ function Graph({
   });
   const T = useRef<ZoomTransform>(zoomIdentity);
   const zoomRef = useRef<ZoomBehavior<HTMLDivElement, unknown> | null>(null);
-  const live = useRef({ pick, wide, lay });
-  live.current = { pick, wide, lay };
+  const merged = !!L.run.runs;
+  const live = useRef({ pick, wide, merged });
+  live.current = { pick, wide, merged };
 
   const reg = (k: string) => {
     let f = regs.get(k);
@@ -217,23 +177,11 @@ function Graph({
     return f;
   };
 
-  // the scenes: what each layout shows; positions come later, from the marks' sizes
+  // the scene: what the web shows; positions come later, from the marks' sizes
   const ws = { exp, lift, more, wide };
-  const pres = useMemo(
-    () => (lay === "web" ? presentSet(L, { exp, lift, more, wide }) : null),
-    [L, lay, exp, lift, more, wide],
-  );
-  const wE = useMemo(() => (pres ? webEdges(L, pres.order, pres.par) : []), [L, pres]);
-  const shelf = useMemo(
-    () => (pres ? shelfOf(L, (id) => pres.par.has(`s${id}`)) : null),
-    [L, pres],
-  );
-  const rows = useMemo(() => (lay === "tree" ? treeOf(L, open) : []), [L, lay, open]);
-  const lanes = useMemo(() => (lay === "lanes" ? lanesOf(L, open) : []), [L, lay, open]);
-  const flatE: FlatEdge[] = useMemo(
-    () => (lay === "tree" ? treeEdges(rows) : lay === "lanes" ? laneEdges(lanes) : []),
-    [lay, rows, lanes],
-  );
+  const pres = useMemo(() => presentSet(L, { exp, lift, more, wide }), [L, exp, lift, more, wide]);
+  const wE = useMemo(() => webEdges(L, pres.order, pres.par), [L, pres]);
+  const shelf = useMemo(() => shelfOf(L, (id) => pres.par.has(`s${id}`)), [L, pres]);
   const late = (n: GNode | undefined) => !!n && !!round && n.s.r > round;
 
   // focus: hover or pick lights a node and its neighbours; a summary bar lights a group
@@ -248,9 +196,7 @@ function Graph({
   // biome-ignore lint/correctness/useExhaustiveDependencies: nbrs reads wE
   const F = useMemo((): Focus | null => {
     const p = pick || hover;
-    const web = lay === "web";
-    if (p?.t === "n")
-      return { S: new Set(), C: new Set(), Q: new Set(), K: web ? nbrs(p.key) : new Set([p.key]) };
+    if (p?.t === "n") return { S: new Set(), C: new Set(), Q: new Set(), K: nbrs(p.key) };
     let f: Focus | null = null;
     if (p?.t === "c") {
       const c = L.claims[p.i];
@@ -288,9 +234,9 @@ function Graph({
         Q: new Set(),
       };
     }
-    if (f && web && p) f.K = nbrs(pkey(p));
+    if (f && p) f.K = nbrs(pkey(p));
     return f;
-  }, [pick, hover, hole, lay, L, wE]);
+  }, [pick, hover, hole, L, wE]);
   const onOf = (id: Ident) =>
     !!F &&
     (!!(id.n && F.K?.has(id.n)) ||
@@ -366,7 +312,7 @@ function Graph({
       else if (onShelf) nlift.add(+key.slice(1));
     }
     const np = presentSet(L, { exp: nexp, lift: nlift, more, wide });
-    if (closing && pres && !reduced()) {
+    if (closing && !reduced()) {
       const removed = pres.order.filter((k) => !np.par.has(k));
       setGone((g) => [...g, ...removed]);
       setTimeout(() => setGone((g) => g.filter((k) => !removed.includes(k))), 340);
@@ -400,7 +346,7 @@ function Graph({
     else sel.call(z.transform, t);
   };
   const fitView = (ms = 0) => {
-    let B = live.current.lay === "web" ? wg.fitB : null;
+    let B = wg.fitB;
     if (!B) {
       B = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
       for (const b of boxes.values()) {
@@ -416,8 +362,20 @@ function Graph({
     const bh = B.y1 - B.y0;
     let k = Math.min(1, R.w / bw, R.h / bh);
     let ty: number;
+    // one run opens readable (round 13 at 1:1): the core centered, the rims cropped
+    const read = live.current.wide && !live.current.merged ? 0.9 : 0;
     // too tall to read whole: fit the width and start at the top
     const floor = live.current.wide ? 0.55 : 0.4;
+    if (k < read) {
+      k = read;
+      go(
+        zoomIdentity
+          .translate(R.l + (R.w - bw * k) / 2 - B.x0 * k, R.t + (R.h - bh * k) / 2 - B.y0 * k)
+          .scale(k),
+        ms,
+      );
+      return;
+    }
     if (k < floor) {
       k = Math.min(1, Math.max(floor, R.w / bw));
       ty = R.t - B.y0 * k;
@@ -491,7 +449,7 @@ function Graph({
   }, []);
 
   // the layout: measure the marks, place them, draw the edges
-  const sig = [lay, wide, fonts, [...exp], [...lift], [...more], [...open]].join("|");
+  const sig = [wide, fonts, [...exp], [...lift], [...more]].join("|");
   // biome-ignore lint/correctness/useExhaustiveDependencies: sig and L name every input of the layout
   useLayoutEffect(() => {
     const p = pend.current;
@@ -509,20 +467,6 @@ function Graph({
       move(k, b);
     };
     wg.tw?.stop();
-    if (lay !== "web" || !pres || !shelf) {
-      wg.nodes.clear();
-      wg.fitB = null;
-      boxes.clear();
-      const at = lay === "tree" ? layTree(rows, size) : layLanes(L, lanes, size, wide);
-      for (const [k, b] of at) put(k, b);
-      for (const e of flatE) {
-        const A = at.get(e.a);
-        const B = at.get(e.b);
-        const path = paths.get(e.id);
-        if (A && B && path) path.setAttribute("d", flatPath(e, A, B));
-      }
-      return;
-    }
     const N = wg.nodes;
     const anim = p.anim && N.size > 0;
     const shelfAt = new Map<string, [number, number]>();
@@ -586,10 +530,10 @@ function Graph({
         const B = N.get(e.b);
         const path = paths.get(e.id);
         if (!A || !B || !path) continue;
-        if (e.kind !== "claim")
+        if (e.kind !== "hub")
           path.setAttribute("d", `M${f1(A.x)},${f1(A.y)}L${f1(B.x)},${f1(B.y)}`);
         else {
-          // claim edges bow a little, so two that share a line still read apart
+          // hub edges bow a little, so two that share a line still read apart
           const mx = (A.x + B.x) / 2 - (B.y - A.y) * 0.08;
           const my = (A.y + B.y) / 2 + (B.x - A.x) * 0.08;
           path.setAttribute(
@@ -727,15 +671,12 @@ function Graph({
     if (hover) setHover(null);
   };
   const act = (x: { el: HTMLElement; h: Hit }, toggle: boolean) => {
-    if (lay === "web" && x.h.web) return toggleNode(x.h.web, !!x.h.shelf);
+    if (x.h.web) return toggleNode(x.h.web, !!x.h.shelf);
     setPick(toggle && same(pick, x.h.pick) ? null : x.h.pick);
   };
   const onStageClick = (e: React.MouseEvent) => {
     const t = e.target as Element;
-    if (t.closest(".rg-panel,.rg-side")) return;
-    const o = t.closest("[data-open]") as HTMLElement | null;
-    if (o?.dataset.open) return setOpen(toggled(open, o.dataset.open));
-    if (t.closest(".rg-nodes a")) return;
+    if (t.closest(".rg-panel,.rg-side,.rg-nodes a")) return;
     const x = hitOf(t);
     if (!x) {
       if (pick) setPick(null);
@@ -747,18 +688,13 @@ function Graph({
     if (e.key !== "Enter" && e.key !== " ") return;
     const t = e.target as Element;
     if (t.closest("a,.rg-panel,.rg-side")) return;
-    const o = t.closest("[data-open]") as HTMLElement | null;
-    if (o?.dataset.open) {
-      e.preventDefault();
-      return setOpen(toggled(open, o.dataset.open));
-    }
     const x = hitOf(t);
     if (!x) return;
     e.preventDefault();
     act(x, false);
   };
 
-  // marks for each layout
+  // the marks
   const born = (k: string) =>
     (pend.current.anim && !wg.nodes.has(k)) || performance.now() - (wg.born.get(k) ?? -1e9) < 400;
   const srcHit = (n: GNode, web?: string, shelfIt?: boolean): Hit => ({
@@ -769,7 +705,7 @@ function Graph({
   });
   const marks: ReactNode[] = [];
   const edges: ReactNode[] = [];
-  if (lay === "web" && pres && shelf) {
+  {
     const on = new Set(pres.order);
     const goneNow = new Set(gone.filter((k) => !on.has(k)));
     // the last order kept: a DOM move would drop a closing mark's transition
@@ -812,12 +748,10 @@ function Graph({
             e.k && `k-${e.k}`,
             onOf(webIdent(e.a)) && onOf(webIdent(e.b)) && "on",
           )}
-          style={
-            e.kind === "claim" ? { strokeWidth: Math.min(5, 1.1 + 0.9 * (e.w - 1)) } : undefined
-          }
+          style={e.kind === "hub" ? { strokeWidth: Math.min(5, 1.1 + 0.9 * (e.w - 1)) } : undefined}
         />,
       );
-    // the shelf: sources whose findings back no claim, and those with none
+    // the shelf: sources with no finding
     const chip = (n: GNode, tier: "chip" | "dot") => (
       <SourceMark
         key={`sh${n.id}`}
@@ -829,25 +763,6 @@ function Graph({
         })}
       />
     );
-    if (shelf.restN) {
-      marks.push(
-        <div key="shb" ref={reg("shb")} className="lh big">
-          <b>Findings in no claim</b>
-          <span>
-            {pl(shelf.restN, "source")}, {pl(shelf.restF, "finding")}. Click one to open it.
-          </span>
-        </div>,
-      );
-      for (const g of shelf.rest) {
-        marks.push(
-          <div key={`shk${g.k}`} ref={reg(`shk${g.k}`)} className="lh">
-            <i className={`k-${g.k}`} />
-            {SPEAKERS[g.k].many} <span>{g.ns.length}</span>
-          </div>,
-        );
-        for (const n of g.ns) marks.push(chip(n, "chip"));
-      }
-    }
     for (const g of shelf.quiet) {
       marks.push(
         <div key={`shq${g.id}`} ref={reg(`shq${g.id}`)} className="lh">
@@ -856,143 +771,6 @@ function Graph({
       );
       for (const n of g.ns) marks.push(chip(n, "dot"));
     }
-  } else if (lay === "tree") {
-    const qs = L.run.searches;
-    marks.push(
-      <div key="rt" ref={reg("rt")} className="nd rt">
-        <b>{L.run.t}</b>
-        <small>
-          {pl(qs.length, "search")} · {pl(L.rounds.length, step)}
-        </small>
-      </div>,
-    );
-    for (const row of rows) {
-      marks.push(
-        <div key={`rd${row.r}`} ref={reg(`rd${row.r}`)} className="nd rd">
-          <b>
-            {Step} {row.r}
-          </b>
-          <small>{pl(row.qs.length, "search")}</small>
-        </div>,
-      );
-      for (const o of row.qs) {
-        const q = L.byQ.get(o.i);
-        if (!q) continue;
-        const sub = `${q.hits} hits · ${q.kept} kept · ${q.fnd ? pl(q.fnd, "finding") : "no finding"}`;
-        const m = mp(`q${q.i}`, { pick: { t: "q", i: q.i }, id: { q: q.i } });
-        marks.push(
-          // biome-ignore lint/a11y/useSemanticElements: positioned card, same as the marks
-          <div
-            key={`q${q.i}`}
-            ref={m.reg}
-            data-n={m.n}
-            className={cls("nd sq", m.on && "on", m.pk && "pk")}
-            role="button"
-            tabIndex={0}
-            aria-label={`Search ${q.i + 1}: ${q.t}. ${sub}`}
-          >
-            <span className="no">{q.i + 1}</span>
-            <b>{q.t}</b>
-            <small>{sub}</small>
-          </div>,
-        );
-        marks.push(
-          <div key={`cl${q.i}`} ref={reg(`cl${q.i}`)} className="cl2">
-            {o.mine.slice(0, o.cut).map((n) => (
-              <SourceMark
-                key={n.id}
-                n={n}
-                tier={n.s.kept ? "chip" : "dot"}
-                m={{
-                  ...mp(`s${n.id}`, srcHit(n), { cls: cls("in", late(n) && "late") }),
-                  reg: undefined,
-                }}
-              />
-            ))}
-            {o.mine.length > 3 ? (
-              <button type="button" className="more" data-open={`q${q.i}`}>
-                {o.open ? "Show fewer" : `+${o.mine.length - 3} more`}
-              </button>
-            ) : null}
-            {o.again ? <span className="ag">{o.again} found before</span> : null}
-            {!q.ss.length ? <span className="ag">Kept no hit</span> : null}
-          </div>,
-        );
-      }
-    }
-    for (const e of flatE)
-      edges.push(
-        <path
-          key={e.id}
-          ref={preg(e.id)}
-          className={cls(
-            "e",
-            e.t,
-            F && (e.qs ? e.qs.some((q) => F.Q.has(q)) : F.Q.has(e.q ?? -2)) && "on",
-          )}
-        />,
-      );
-  } else {
-    for (const ln of lanes) {
-      marks.push(
-        <div key={`lb${ln.k}`} ref={reg(`lb${ln.k}`)} className="lh">
-          <i className={`k-${ln.k}`} />
-          {SPEAKERS[ln.k].many}{" "}
-          <span>
-            {pl(ln.ns.length, "source")}
-            {ln.linked.length ? ` · ${ln.linked.length} back a claim` : ""}
-          </span>
-        </div>,
-      );
-      const src = (n: GNode, tier: "chip" | "dot") => (
-        <SourceMark
-          key={`s${n.id}`}
-          n={n}
-          tier={tier}
-          m={mp(`s${n.id}`, srcHit(n), { cls: cls(late(n) && "late") })}
-        />
-      );
-      for (const n of ln.linked) marks.push(src(n, "chip"));
-      if (ln.rest.length) {
-        if (ln.open) for (const n of ln.rest) marks.push(src(n, "chip"));
-        marks.push(
-          <button
-            key={`mo${ln.k}`}
-            ref={reg(`mo${ln.k}`)}
-            type="button"
-            className="more"
-            data-open={`k${ln.k}`}
-          >
-            {ln.open ? "Show fewer" : `+${ln.rest.length} with findings, in no claim`}
-          </button>,
-        );
-      }
-      for (const n of ln.quiet) marks.push(src(n, "dot"));
-    }
-    for (const c of L.claims)
-      marks.push(
-        <ClaimMark
-          key={`c${c.i}`}
-          L={L}
-          i={c.i}
-          m={mp(`c${c.i}`, { pick: { t: "c", i: c.i }, id: { n: `c${c.i}`, c: c.i } })}
-        />,
-      );
-    for (const e of flatE)
-      edges.push(
-        <path
-          key={e.id}
-          ref={preg(e.id)}
-          className={cls(
-            "e",
-            e.t,
-            e.k && `k-${e.k}`,
-            late(L.byId.get(e.s ?? -1)) && "late",
-            F?.S.has(e.s ?? -1) && F.C.has(e.c ?? -1) && "on",
-          )}
-          style={e.w ? { strokeWidth: Math.min(7, 1.2 + 1.3 * (e.w - 1)) } : undefined}
-        />,
-      );
   }
 
   const panelCtx: PanelCtx = {
@@ -1012,20 +790,8 @@ function Graph({
     <div className={cls("rg", card && "card")}>
       <Bars
         L={L}
-        lay={lay}
         round={round}
         step={step}
-        card={card}
-        onLay={(id) =>
-          // a big merged graph mounts hundreds of marks: let React slice it
-          startTransition(() => {
-            if (layP == null) setLayS(id);
-            onLay?.(id);
-            setHover(null);
-            setOpen(new Set());
-            askFit(300);
-          })
-        }
         toRound={toRound}
         zoomBy={(k) =>
           stageRef.current &&
@@ -1042,34 +808,29 @@ function Graph({
         }}
       />
       {card ? null : (
-        <>
-          <div className="runhead">
-            <h3>{L.run.t}</h3>
-            {L.run.note ? <p>{L.run.note}</p> : null}
-            <p className="mt">
-              {L.run.meta ? `${L.run.meta} · ` : ""}
-              {L.run.runs ? "" : `${pl(L.rounds.length, "round")} · `}
-              {pl(L.run.searches.length, "search")} · {f.hits} hits, {f.kept} kept, {f.read} read,{" "}
-              {pl(f.findings, "finding")}, {pl(f.claims, "claim")}
-            </p>
-          </div>
-          <Summary
-            L={L}
-            hole={hole}
-            setHole={(h) => {
-              if (pick) setPick(null);
-              setHole(h === hole ? null : h);
-            }}
-          />
-        </>
+        <p className="lookcap">
+          Each tinted card is a search and its best answer. Lines run to the sources it found that
+          hold findings; a thicker line carries more.
+        </p>
+      )}
+      {card ? null : (
+        <div className="runhead">
+          <h3>{L.run.t}</h3>
+          {L.run.note ? <p>{L.run.note}</p> : null}
+          <p className="mt">
+            {L.run.meta ? `${L.run.meta} · ` : ""}
+            {L.run.runs ? "" : `${pl(L.rounds.length, "round")} · `}
+            {pl(L.run.searches.length, "search")} · {f.hits} hits, {f.kept} kept, {f.read} read,{" "}
+            {pl(f.findings, "finding")}, {pl(f.claims, "claim")}
+          </p>
+        </div>
       )}
       {/* biome-ignore lint/a11y/useSemanticElements: a positioned stage, not a form group; it delegates the marks' clicks and keys */}
       <div
         ref={stageRef}
         className={cls("rg-stage", F && "fx", pick && "open")}
-        data-lay={lay}
         role="group"
-        aria-label="The run as a graph: claims as tinted cards, sources as cards, chips and dots, lines from each source to the claims it backs."
+        aria-label="The run as a web: each search a card with its answer, lines from each search to the sources it found that hold findings."
         onClick={onStageClick}
         onKeyDown={onStageKey}
       >
@@ -1106,7 +867,9 @@ function Graph({
         />
         {tipN ? (
           <div ref={tipRef} className={`rg-tip hc k-${tipN.k}`}>
-            {pic(tipN.s) ? <img className="th" src={pic(tipN.s) ?? ""} alt="" /> : null}
+            {pic(tipN.s) ? (
+              <img className="th" referrerPolicy="no-referrer" src={pic(tipN.s) ?? ""} alt="" />
+            ) : null}
             <b>
               <Ico s={tipN.s} />
               <span>{tipN.s.name}</span>
@@ -1125,7 +888,17 @@ function Graph({
           {pick ? <PanelBody key={JSON.stringify(pick)} c={panelCtx} p={pick} /> : null}
         </aside>
       </div>
-      {card ? null : <Key lay={lay} />}
+      {card ? null : (
+        <Summary
+          L={L}
+          hole={hole}
+          setHole={(h) => {
+            if (pick) setPick(null);
+            setHole(h === hole ? null : h);
+          }}
+        />
+      )}
+      {card ? null : <Key />}
       {card ? null : (
         <Table
           L={L}
@@ -1149,15 +922,6 @@ function Graph({
               block: "nearest",
               behavior: reduced() ? "auto" : "smooth",
             });
-            // a source tucked behind "+N more" opens its group first
-            if (lay === "lanes" && !n.nc && n.s.kept) setOpen((o) => new Set(o).add(`k${n.k}`));
-            if (lay === "tree") {
-              const q = L.run.searches
-                .slice()
-                .sort((a, b) => a.r - b.r || a.i - b.i)
-                .find((x) => x.ss.includes(n.id));
-              if (q) setOpen((o) => new Set(o).add(`q${q.i}`));
-            }
             setPick({ t: "s", id: n.id }, true);
           }}
         />

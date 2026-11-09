@@ -4,11 +4,9 @@
  * newest run. History holds every run.
  */
 import { cx, Empty, Loading } from "@wren/ui";
-import type { LayId } from "@wren/ui/research/run";
 import { useMemo } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { href, navigate, useRoute } from "../../route.js";
 import { useChatRuns, usePageContext } from "../agent/drive.js";
 import { QUIET } from "../work/bits.js";
 import { RunsCanvas } from "./canvas.js";
@@ -17,7 +15,6 @@ import { type RunRow, runsOf, useLive } from "./serve.js";
 
 /** A run not stopped counts as going while it changed this recently. */
 const FRESH = 30 * 60_000;
-const LAYS: readonly LayId[] = ["web", "tree", "lanes"];
 
 /** The chat's runs, then runs still going; with none, the newest. Oldest first. */
 function liveRuns(rows: readonly RunRow[], chat: readonly string[], now: number): string[] {
@@ -30,15 +27,13 @@ function liveRuns(rows: readonly RunRow[], chat: readonly string[], now: number)
   return [...ids].sort((a, b) => (started.get(a) ?? "").localeCompare(started.get(b) ?? ""));
 }
 
-export function LivePage({ params }: PageProps) {
-  const here = `/${useRoute().path.join("/")}`;
+export function LivePage(_: PageProps) {
   const runs = useCall("research:runs", runsOf, { kept: false });
   useLive(() => runs.retry());
   const chat = useChatRuns();
   const rows = runs.data ?? [];
   const ids = useMemo(() => liveRuns(rows, chat, Date.now()), [rows, chat]);
   const byRun = new Map(rows.map((r) => [r.run, r]));
-  const lay = LAYS.find((l) => l === params.get("lay"));
   usePageContext(ids.length ? `Research › Live shows weaver runs ${ids.join(", ")}` : undefined);
   if (runs.error && !runs.data) return <NoServe error={runs.error} onRetry={runs.retry} />;
   if (!runs.data) return <Loading shape="cards" lines={3} heading />;
@@ -68,13 +63,7 @@ export function LivePage({ params }: PageProps) {
           </ol>
         ) : null}
       </header>
-      <RunsCanvas
-        runs={ids}
-        rows={rows}
-        title={from ? "This chat's runs" : "Runs going now"}
-        lay={lay}
-        onLay={(l) => navigate(href(here, { lay: l }, params), true)}
-      />
+      <RunsCanvas runs={ids} rows={rows} title={from ? "This chat's runs" : "Runs going now"} />
     </div>
   );
 }

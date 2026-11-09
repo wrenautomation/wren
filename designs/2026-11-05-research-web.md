@@ -280,3 +280,15 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
     - C. A Worker proxy for og images. Spends the Worker's request cap.
   - Backfill on this Mac: 600 html pages, 459 with a picture, 2 failed.
   - Not done: round 13's page shots for pages with no og image (a browser render per page).
+- 11-08: the query web replaces the claim web; Tree and Lanes go.
+  - William: prod drew the tree, not the web he chose. He wants the fan-out searches and their answers at the center, not claims.
+  - Options, ranked by what a reader learns first, then layout cost:
+    - A. Hubs = searches, each with its best finding as the answer; spokes = sources with findings, one edge per search that reached them (weight = kept). Chosen.
+    - B. Keep claim hubs and add search hubs. Two hub kinds compete; the web doubles in links.
+    - C. Searches as a ring of labels with no answer. Shows the fan-out, hides what it found.
+  - Searches sit on a ring in run order; a source seeds at the center of its searches. A source with no finding waits on the shelf until its search opens.
+  - Claims stay in the side list and the panel. A claim pick lights its sources.
+  - Tree and Lanes removed from ui, portal routes and stories: prod had them as the default, and William called them broken.
+  - Summary bars become `RingChart` donuts (the chart kit's), with the hot slice's share in the center.
+  - CSP `img-src` takes https, so page pictures load in prod.
+  - Storybook: `Charts/All charts` shows every prebuilt chart and graph on one page; the run graph moves to `Charts/Weaver run graph`.

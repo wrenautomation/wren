@@ -97,16 +97,6 @@ export const Graph = tidy(
   }),
 );
 
-/** The same run as its search tree: rounds, searches, the sources each found first. */
-export const GraphTree = tidy(
-  story("/research/history?run=r1&lay=tree", async (page) => {
-    await waitFor(
-      () => expect(page.querySelector('.rg .rg-nodes [data-n="q0"]')).not.toBeNull(),
-      LATE,
-    );
-  }),
-);
-
 /** Every decision in order, with its why and who made it; a human's steer among them. */
 export const BackAndForth = story("/research/history?run=r1&tab=talk", async (page) => {
   const p = within(page);

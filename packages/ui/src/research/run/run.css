@@ -1068,17 +1068,6 @@
     padding-bottom: 12px;
   }
 }
-.rg .bar.lk {
-  border-bottom: 0;
-  padding-bottom: 4px;
-}
-.rg .seg button i {
-  font-style: normal;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.55;
-  margin-right: 5px;
-  font-size: 11px;
-}
 .rg .rg-side {
   position: absolute;
   left: 0;
@@ -1286,8 +1275,8 @@
   background: none;
   border: 1.5px dashed var(--k);
 }
-.rg .cc {
-  width: 214px;
+.rg .hq {
+  width: 244px;
   background: color-mix(in srgb, var(--accent) 7%, var(--paper));
   color: var(--ink);
   border-radius: 12px;
@@ -1298,7 +1287,7 @@
   font-size: 12.5px;
   line-height: 1.3;
 }
-.rg .cc .cn {
+.rg .hq .cn {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1307,7 +1296,7 @@
   color: var(--accent);
   margin-bottom: 4px;
 }
-.rg .cc .cn i {
+.rg .hq .cn i {
   display: grid;
   place-items: center;
   min-width: 18px;
@@ -1320,32 +1309,55 @@
   font-size: 10.5px;
   font-weight: 700;
 }
-.rg .cc b {
+.rg .hq b {
   display: block;
   color: var(--ink);
   font-weight: 650;
   font-size: 13px;
   overflow-wrap: anywhere;
 }
-.rg .cc small {
+.rg .hq .cn .ic {
+  width: 12px;
+  height: 12px;
+}
+.rg .hq .an {
+  margin: 6px 0 0;
+  padding-left: 8px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--ink2);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.rg .hq .an.gh {
+  border-left-color: var(--hair);
+  color: var(--ink3);
+}
+.rg .hq.na {
+  background: var(--paper);
+  box-shadow:
+    0 0 0 1px var(--hair),
+    var(--low);
+}
+.rg .hq small {
   display: block;
   margin-top: 4px;
   font-size: 11.5px;
   color: var(--ink3);
 }
-.rg .cc .spk {
+.rg .hq .spk {
   display: flex;
   flex-wrap: wrap;
   gap: 3px;
   margin-top: 7px;
 }
-.rg .cc .spk i {
+.rg .hq .spk i {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--k);
 }
-.rg .cc.open {
+.rg .hq.open {
   box-shadow:
     0 0 0 1.5px var(--accent),
     var(--lift);
@@ -1533,34 +1545,6 @@
   background: var(--canvas);
   border: 1px dashed color-mix(in srgb, var(--k, var(--ink3)) 60%, transparent);
 }
-.rg .sqn {
-  display: flex;
-  gap: 7px;
-  align-items: flex-start;
-  width: 214px;
-  padding: 6px 10px 7px 8px;
-  border-radius: 8px;
-  background: var(--paper);
-  box-shadow: 0 0 0 1px var(--hair);
-  font-size: 12px;
-  line-height: 1.28;
-}
-.rg .sqn .ic {
-  flex: none;
-  margin-top: 1px;
-  color: var(--ink3);
-}
-.rg .sqn b {
-  display: block;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-.rg .sqn small {
-  display: block;
-  color: var(--ink3);
-  font-size: 11px;
-  margin-top: 2px;
-}
 .rg .hn {
   width: 204px;
   padding: 5px 9px 6px;
@@ -1581,7 +1565,7 @@
   font-size: 10.5px;
   margin-top: 2px;
 }
-.rg .e.w-claim {
+.rg .e.w-hub {
   stroke: var(--k);
   stroke-opacity: 0.38;
 }
@@ -1589,11 +1573,6 @@
   stroke: var(--ink3);
   stroke-opacity: 0.42;
   stroke-width: 1.1;
-}
-.rg .e.w-backs {
-  stroke: var(--accent);
-  stroke-opacity: 0.55;
-  stroke-width: 1.3;
 }
 .rg .e.w-via,
 .rg .e.w-found {
@@ -1637,76 +1616,6 @@
   font-size: 14px;
   gap: 8px;
 }
-.rg .rt {
-  width: 200px;
-  background: var(--paper);
-  border-radius: 10px;
-  padding: 9px 11px;
-  box-shadow:
-    0 0 0 1px var(--hair),
-    var(--low);
-  font-size: 13px;
-  line-height: 1.3;
-  cursor: default;
-}
-.rg .rt b,
-.rg .rd b {
-  display: block;
-  font-weight: 650;
-}
-.rg .rt small,
-.rg .rd small {
-  display: block;
-  color: var(--ink3);
-  font-size: 11.5px;
-  margin-top: 2px;
-}
-.rg .rd {
-  background: var(--paper);
-  border-radius: 8px;
-  padding: 6px 10px;
-  box-shadow: 0 0 0 1px var(--hair);
-  font-size: 12.5px;
-  line-height: 1.3;
-  white-space: nowrap;
-  cursor: default;
-}
-.rg .sq {
-  width: 260px;
-  display: grid;
-  grid-template-columns: 18px 1fr;
-  gap: 1px 6px;
-  background: var(--paper);
-  border-radius: 9px;
-  padding: 7px 10px 8px 6px;
-  box-shadow: 0 0 0 1px var(--hair);
-  font-size: 12.5px;
-  line-height: 1.3;
-}
-.rg .sq .no {
-  grid-row: 1 / 3;
-  place-items: start end;
-  border-radius: 0;
-  color: var(--ink3);
-  font-weight: 650;
-  font-size: 12px;
-}
-.rg .sq b {
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-.rg .sq small {
-  color: var(--ink3);
-  font-size: 11.5px;
-}
-.rg .cl2 {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  align-items: center;
-  width: 330px;
-  padding-top: 4px;
-}
 .rg .more {
   font-size: 12px;
   color: var(--accent);
@@ -1740,41 +1649,44 @@
   display: grid;
   grid-template-columns: 1.25fr 1.25fr 1fr;
   gap: 14px 30px;
-  padding: 12px 18px 14px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--hair);
   border-bottom: 1px solid var(--hair);
 }
-.rg .sm > p {
+.rg .sm p:first-child {
   margin: 0 0 6px;
   font-size: 12.5px;
   font-weight: 650;
   color: var(--ink);
 }
-.rg .sm > p small {
+.rg .sm p:first-child small {
   font-weight: 400;
   color: var(--ink3);
   margin-left: 4px;
   font-size: 12px;
 }
-.rg .stk {
-  display: flex;
-  gap: 2px;
-  height: 10px;
-  border-radius: 3px;
-  overflow: hidden;
+.rg .sm.rs {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
 }
-.rg .stk button {
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-  background: var(--k);
-  min-width: 3px;
+.rg .shr {
+  position: relative;
+  width: 92px;
+  height: 92px;
 }
-.rg .stk.ev button {
-  background: var(--ink);
-  opacity: var(--o);
-}
-.rg .stk:has([aria-pressed="true"]) button:not([aria-pressed="true"]) {
-  filter: opacity(0.3);
+.rg .shr b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
 }
 .rg .lg {
   display: flex;
@@ -1951,11 +1863,10 @@
   .rg .cd {
     width: 150px;
   }
-  .rg .cc {
-    width: 184px;
+  .rg .hq {
+    width: 204px;
   }
-  .rg .fdn,
-  .rg .sqn {
+  .rg .fdn {
     width: 196px;
   }
   .rg .pgn,
@@ -1964,15 +1875,6 @@
   }
   .rg .qn {
     width: 206px;
-  }
-  .rg .sq {
-    width: 210px;
-  }
-  .rg .cl2 {
-    width: 230px;
-  }
-  .rg .rt {
-    width: 150px;
   }
 }
 /* glue: parts the artifact drew with its own markup */
@@ -1986,5 +1888,5 @@
 }
 .rg button.more {
   border: 0;
-  font: inherit;
+  font-family: inherit;
 }

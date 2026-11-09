@@ -16,7 +16,7 @@ import {
 } from "./web.js";
 
 const node = (key: string, x = 0, y = 0): WNode => {
-  const big = "cs".includes(key[0] ?? "");
+  const big = "qs".includes(key[0] ?? "");
   return {
     key,
     w: big ? 170 : 130,
@@ -60,7 +60,7 @@ const touching = (parts: WNode[][], pad: number) =>
 const solve = (run: RunGraphData = RUN_GRAPH) => {
   const L = indexRun(run);
   const { order, par } = presentSet(L, {
-    exp: new Set(L.claims.map((c) => `c${c.i}`)),
+    exp: new Set(L.run.searches.map((q) => `q${q.i}`)),
     lift: new Set(),
     more: new Map(),
     wide: true,
@@ -110,20 +110,20 @@ describe("solveWeb", () => {
 
 describe("several runs", () => {
   const merged = { ...RUN_GRAPH_WORST, runs: [{ rid: "a", t: "a" }] };
-  it("groups by edges, the group with the first claim first, claimless last", () => {
+  it("groups by edges, the group with the first search first, searchless last", () => {
     const g = linked(
-      ["c0", "c1", "s1", "s2", "s3"],
+      ["q0", "q1", "s1", "s2", "s3"],
       [
-        { id: "1", a: "s1", b: "c1", kind: "claim", w: 1, tree: false },
-        { id: "2", a: "s2", b: "c0", kind: "claim", w: 1, tree: false },
+        { id: "1", a: "q1", b: "s1", kind: "hub", w: 1, tree: false },
+        { id: "2", a: "q0", b: "s2", kind: "hub", w: 1, tree: false },
       ],
     );
-    expect(g).toEqual([["c0", "s2"], ["c1", "s1"], ["s3"]]);
+    expect(g).toEqual([["q0", "s2"], ["q1", "s1"], ["s3"]]);
   });
   it("packs groups apart, in order, inside the room's width", () => {
     const parts = Array.from({ length: 9 }, (_, j) =>
       Array.from({ length: 2 + (j % 4) * 3 }, (_, i) =>
-        node(i ? `s${j}-${i}` : `c${j}`, jit(i + j * 31) * 160, jit(i + j * 17) * 160),
+        node(i ? `s${j}-${i}` : `q${j}`, jit(i + j * 31) * 160, jit(i + j * 17) * 160),
       ),
     );
     for (const g of parts) settle(g, true);
@@ -156,15 +156,37 @@ describe("places", () => {
   it("gives the newest places as anchors when the nodes differ", () => {
     const { order, N } = solve();
     keepPlaces("t-grow", true, order, N);
-    expect(placesOf("t-grow", true, [...order, "c99"])).toMatchObject({ exact: false });
+    expect(placesOf("t-grow", true, [...order, "q99"])).toMatchObject({ exact: false });
     expect(placesOf("t-grow", false, order)).toBeNull();
+  });
+});
+
+describe("hubs", () => {
+  it("puts every search and every source with a finding on the map, linked to the searches that found it", () => {
+    const L = indexRun(RUN_GRAPH);
+    const { order, par } = presentSet(L, {
+      exp: new Set(),
+      lift: new Set(),
+      more: new Map(),
+      wide: true,
+    });
+    for (const q of RUN_GRAPH.searches) expect(order).toContain(`q${q.i}`);
+    const E = webEdges(L, order, par);
+    for (const s of RUN_GRAPH.sources.filter((x) => x.kept)) {
+      const qs = RUN_GRAPH.searches.filter((q) => q.ss.includes(s.id)).map((q) => `q${q.i}`);
+      expect(
+        E.filter((e) => e.b === `s${s.id}` && e.kind === "hub")
+          .map((e) => e.a)
+          .sort(),
+      ).toEqual(qs.sort());
+    }
   });
 });
 
 describe("kids", () => {
   it("computes once per run index", () => {
     const L = indexRun(RUN_GRAPH);
-    expect(kids(L, "c0")).toBe(kids(L, "c0"));
-    expect(kids(indexRun(RUN_GRAPH), "c0")).not.toBe(kids(L, "c0"));
+    expect(kids(L, "q0")).toBe(kids(L, "q0"));
+    expect(kids(indexRun(RUN_GRAPH), "q0")).not.toBe(kids(L, "q0"));
   });
 });

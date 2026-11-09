@@ -1,6 +1,7 @@
 /** The graph's marks: icons, the evidence bar, source tiers, claim cards and the web's node kinds. */
 import { type CSSProperties, type ReactNode, useState } from "react";
 import {
+  answerOf,
   atQuote,
   countOf,
   EV_ALPHA,
@@ -16,6 +17,7 @@ import {
   SPEAKER_ORDER,
   SPEAKERS,
   type Speaker,
+  spokesOf,
   stepAt,
   unit,
 } from "./model.js";
@@ -112,7 +114,13 @@ const Mag = () => (
 export function Ico({ s }: { s: GraphSource }) {
   const [bad, setBad] = useState(false);
   return s.icon && !bad ? (
-    <img className="ic" src={s.icon} alt="" onError={() => setBad(true)} />
+    <img
+      className="ic"
+      src={s.icon}
+      alt=""
+      referrerPolicy="no-referrer"
+      onError={() => setBad(true)}
+    />
   ) : (
     <Glyph f={s.fmt} />
   );
@@ -127,6 +135,7 @@ export function Img({ src, className }: { src: string; className?: string }) {
       src={src}
       alt=""
       loading="lazy"
+      referrerPolicy="no-referrer"
       style={bad ? { visibility: "hidden" } : undefined}
       onError={() => setBad(true)}
     />
@@ -157,9 +166,9 @@ export const Kd = ({ k }: { k: Speaker }) => (
 );
 
 export type Tier = "card" | "chip" | "dot";
-/** The top linked sources by rank get a card, the rest a chip; no finding is a dot. */
+/** The top sources with findings by rank get a card, the rest a chip; no finding is a dot. */
 export const tierOf = (n: GNode, wide: boolean): Tier =>
-  !n.s.kept ? "dot" : n.nc && n.lr < (wide ? 12 : 4) ? "card" : "chip";
+  !n.s.kept ? "dot" : n.lr >= 0 && n.lr < (wide ? 12 : 4) ? "card" : "chip";
 
 /** Shared by every mark you can pick: role, focus, its state classes. */
 export interface MarkProps {
@@ -241,39 +250,44 @@ export function SourceMark({ n, tier, m }: { n: GNode; tier: Tier; m: MarkProps 
   return <Mark className={cls(`nd dt k-${n.k}`, !s.pages.length && "gh")} label={label} m={m} />;
 }
 
-export function ClaimMark({ L, i, m }: { L: Indexed; i: number; m: MarkProps }) {
-  const c = L.claims[i];
-  if (!c) return null;
-  const fs = c.ss.flatMap((n) => n.s.fs.filter((f) => f.c === c.i));
+/** A search as a hub: the query, its answer, then counts, evidence and who speaks. */
+function HubMark({ L, i, m }: { L: Indexed; i: number; m: MarkProps }) {
+  const q = L.byQ.get(i);
+  if (!q) return null;
+  const ans = answerOf(L, i);
+  const sp = spokesOf(L, i).sort((a, b) => SPEAKER_ORDER.indexOf(a.k) - SPEAKER_ORDER.indexOf(b.k));
+  const sub = `${q.hits} hits · ${q.kept} kept · ${q.fnd ? pl(q.fnd, "finding") : "no finding"}`;
   return (
     <Mark
-      className="nd cc"
-      label={`Claim ${c.c.n}${c.c.run ? `, run ${c.c.run}` : ""}: ${c.c.head}`}
+      className={cls("nd hq", !ans && "na")}
+      label={`Search ${q.i + 1}: ${q.t}. ${ans ? `Answer: ${ans.f.t}` : "No answer"}. ${sub}`}
       m={m}
     >
       <span className="cn">
-        <i>{c.c.n}</i>Claim{c.c.run ? ` · run ${c.c.run}` : ""}
+        <i>{q.i + 1}</i>
+        <Mag />
+        {stepAt(L.run, q.r)}
       </span>
-      <b>{c.c.head}</b>
-      <small>
-        {c.c.findings
-          ? `${pl(c.c.findings, "finding")} · ${pl(c.ss.length, "source")}`
-          : "No checked finding backs it"}
-      </small>
-      <EvBar c={evCounts(fs)} />
-      <span className="spk">
-        {c.ss
-          .slice()
-          .sort((a, b) => SPEAKER_ORDER.indexOf(a.k) - SPEAKER_ORDER.indexOf(b.k))
-          .map((n) => (
+      <b>{q.t}</b>
+      {ans ? (
+        <p className="an">{ans.f.t}</p>
+      ) : (
+        <p className="an gh">{q.kept ? "No finding yet" : "Kept no hit"}</p>
+      )}
+      <small>{sub}</small>
+      <EvBar c={evCounts(sp.flatMap((n) => n.s.fs))} />
+      {sp.length ? (
+        <span className="spk">
+          {sp.map((n) => (
             <i key={n.id} className={`k-${n.k}`} />
           ))}
-      </span>
+        </span>
+      ) : null}
     </Mark>
   );
 }
 
-/** One node of the claim web, by its key (web.ts). */
+/** One node of the query web, by its key (web.ts). */
 export function WebMark({
   L,
   k,
@@ -300,8 +314,7 @@ export function WebMark({
         {left} more
       </Mark>
     );
-  if (t === "c") return <ClaimMark L={L} i={a} m={m} />;
-  if (t === "s" && g) return <SourceMark n={g} tier={g.nc ? tierOf(g, wide) : "chip"} m={m} />;
+  if (t === "s" && g) return <SourceMark n={g} tier={tierOf(g, wide)} m={m} />;
   if ((t === "p" || t === "v") && g) {
     const s = g.s;
     const pg = t === "p" ? s.pages[b] : s.unread[b];
@@ -365,20 +378,7 @@ export function WebMark({
       </Mark>
     );
   }
-  if (t === "q") {
-    const q = L.byQ.get(a);
-    if (!q) return null;
-    const sub = `Search ${q.i + 1} · ${stepAt(L.run, q.r)} · ${q.hits} hits, ${q.kept} kept`;
-    return (
-      <Mark className="nd sqn" label={`${q.t} ${sub}`} m={m}>
-        <Mag />
-        <span>
-          <b>{q.t}</b>
-          <small>{sub}</small>
-        </span>
-      </Mark>
-    );
-  }
+  if (t === "q") return <HubMark L={L} i={a} m={m} />;
   if (t === "d") {
     const txt = `${pl((L.drops.get(a) ?? []).length, "hit")} dropped`;
     return (

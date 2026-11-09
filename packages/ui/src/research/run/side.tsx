@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
+import { RingChart } from "../../charts/index.js";
 import { Ico, vars } from "./marks.js";
 import {
   cap,
@@ -15,24 +16,6 @@ import {
 } from "./model.js";
 import type { Pick } from "./panel.js";
 
-export type LayId = "web" | "tree" | "lanes";
-export const LAYS: { id: LayId; name: string; key: string }[] = [
-  {
-    id: "web",
-    name: "Claim web",
-    key: "Each tinted card is a claim. A source links to each claim it backs; a thicker line carries more findings. Click any node to open what it holds. Sources whose findings back no claim sit on the shelf below.",
-  },
-  {
-    id: "tree",
-    name: "Search tree",
-    key: "The run's searches, by round. Each search shows the sources it found first: the top three, the rest on a click.",
-  },
-  {
-    id: "lanes",
-    name: "Lanes",
-    key: "One lane per speaker on the left, the claims on the right. Follow a line to see who backs a claim.",
-  },
-];
 export type Focus = { S: Set<number>; C: Set<number>; Q: Set<number>; K?: Set<string> };
 export const cls = (...xs: (string | false | undefined | null)[]) => xs.filter(Boolean).join(" ");
 
@@ -60,6 +43,30 @@ const val = (n: GNode, k: string): string | number =>
               ? n.s.kept
               : n.s.used;
 
+/** A share ring: one arc per part, the total in the middle; the legend beside it takes the clicks. */
+/** The chart kit's ring: a slice under the pointer or picked shows its share in the middle. */
+function Donut({
+  slices,
+  total,
+  hot,
+  onHot,
+  onPick,
+}: {
+  slices: { key: string; value: number; color: string }[];
+  total: number;
+  hot: string | null;
+  onHot: (k: string | null) => void;
+  onPick: (k: string) => void;
+}) {
+  const lit = slices.find((x) => x.key === hot);
+  return (
+    <div className="shr" aria-hidden="true">
+      <RingChart slices={slices} hot={hot} onHot={onHot} onPick={onPick} size={92} />
+      <b>{lit && total ? `${Math.round((lit.value / total) * 100)}%` : total}</b>
+    </div>
+  );
+}
+
 export function Summary({
   L,
   hole,
@@ -76,6 +83,16 @@ export function Summary({
   const ev = evCounts(L.nodes.flatMap((n) => n.s.fs));
   const tot = ev.reduce((a, b) => a + b, 0);
   const noC = L.nodes.filter((n) => n.s.kept && !n.nc);
+  const [hov, setHov] = useState<string | null>(null);
+  const lit = hov ?? hole;
+  const lg = (k: string) => ({
+    "aria-pressed": hole === k,
+    onClick: () => setHole(k),
+    onMouseEnter: () => setHov(k),
+    onMouseLeave: () => setHov(null),
+    onFocus: () => setHov(k),
+    onBlur: () => setHov(null),
+  });
   const H = ({ h, v, t }: { h: string; v: number; t: string }) => (
     <button type="button" aria-pressed={hole === h} onClick={() => setHole(h)}>
       <b>{v}</b>
@@ -84,71 +101,60 @@ export function Summary({
   );
   return (
     <div className="rg-sum">
-      <div className="sm">
-        <p>
-          Who speaks <small>{pl(L.nodes.length, "source")}</small>
-        </p>
-        <div className="stk">
-          {ks.map(([k, n]) => (
-            <button
-              key={k}
-              type="button"
-              className={`k-${k}`}
-              style={{ flex: n }}
-              aria-label={`${SPEAKERS[k].many}: ${n}`}
-              aria-pressed={hole === `k:${k}`}
-              onClick={() => setHole(`k:${k}`)}
-            />
-          ))}
-        </div>
-        <div className="lg">
-          {ks.map(([k, n]) => (
-            <button
-              key={k}
-              type="button"
-              className={`kd k-${k}`}
-              aria-pressed={hole === `k:${k}`}
-              onClick={() => setHole(`k:${k}`)}
-            >
-              <i />
-              {SPEAKERS[k].many} <em>{n}</em>
-            </button>
-          ))}
+      <div className="sm rs">
+        <Donut
+          slices={ks.map(([k, n]) => ({ key: `k:${k}`, value: n, color: `var(--c-${k})` }))}
+          total={L.nodes.length}
+          hot={lit?.startsWith("k:") ? lit : null}
+          onHot={setHov}
+          onPick={setHole}
+        />
+        <div>
+          <p>
+            Who speaks <small>{pl(L.nodes.length, "source")}</small>
+          </p>
+          <div className="lg">
+            {ks.map(([k, n]) => (
+              <button key={k} type="button" className={`kd k-${k}`} {...lg(`k:${k}`)}>
+                <i />
+                {SPEAKERS[k].many} <em>{n}</em>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
-      <div className="sm">
-        <p>
-          Evidence <small>{pl(tot, "finding")}, strong to weak</small>
-        </p>
-        <div className="stk ev">
-          {EV_ORDER.map((e, i) =>
-            ev[i] ? (
-              <button
-                key={e}
-                type="button"
-                style={vars({ "--o": EV_ALPHA[i] ?? 1 }, { flex: ev[i] })}
-                aria-label={`${EVIDENCE[e]}: ${ev[i]}`}
-                aria-pressed={hole === `e:${e}`}
-                onClick={() => setHole(`e:${e}`)}
-              />
-            ) : null,
+      <div className="sm rs">
+        <Donut
+          slices={EV_ORDER.flatMap((e, i) =>
+            ev[i]
+              ? [
+                  {
+                    key: `e:${e}`,
+                    value: ev[i] ?? 0,
+                    color: `color-mix(in srgb, var(--ink) ${Math.round((EV_ALPHA[i] ?? 1) * 100)}%, var(--paper))`,
+                  },
+                ]
+              : [],
           )}
-        </div>
-        <div className="lg">
-          {EV_ORDER.map((e, i) =>
-            ev[i] ? (
-              <button
-                key={e}
-                type="button"
-                className="ev"
-                aria-pressed={hole === `e:${e}`}
-                onClick={() => setHole(`e:${e}`)}
-              >
-                <i style={vars({ "--o": EV_ALPHA[i] ?? 1 })} />
-                {EVIDENCE[e]} <em>{ev[i]}</em>
-              </button>
-            ) : null,
-          )}
+          total={tot}
+          hot={lit?.startsWith("e:") ? lit : null}
+          onHot={setHov}
+          onPick={setHole}
+        />
+        <div>
+          <p>
+            Evidence <small>{pl(tot, "finding")}, strong to weak</small>
+          </p>
+          <div className="lg">
+            {EV_ORDER.map((e, i) =>
+              ev[i] ? (
+                <button key={e} type="button" className="ev" {...lg(`e:${e}`)}>
+                  <i style={vars({ "--o": EV_ALPHA[i] ?? 1 })} />
+                  {EVIDENCE[e]} <em>{ev[i]}</em>
+                </button>
+              ) : null,
+            )}
+          </div>
         </div>
       </div>
       <div className="sm hl">
@@ -318,46 +324,29 @@ export function Side({
   );
 }
 
-export function Key({ lay }: { lay: LayId }) {
+export function Key() {
   const K = ({ i, t }: { i: ReactNode; t: string }) => (
     <span className="kk">
       {i}
       {t}
     </span>
   );
-  if (lay === "web")
-    return (
-      <div className="rg-key">
-        <p>
-          <K i={<i className="kcc" />} t="Claim" />
-          <K i={<i className="kc" />} t="Card: a top source that backs a claim" />
-          <K i={<i className="kch" />} t="Chip: a source with findings" />
-          <K i={<i className="kpg" />} t="Page" />
-          <K i={<i className="kfd" />} t="Finding, its bar shows how strong" />
-          <K i={<i className="kxp">+4</i>} t="What a node holds" />
-          <K i={<i className="kln" />} t="Line: thicker is more findings for that claim" />
-        </p>
-        <p className="hint">
-          Click a node to open it: a claim into its findings, a source into its pages and searches,
-          a page into its findings, a finding into its quote. Click again to close it.
-        </p>
-      </div>
-    );
   return (
     <div className="rg-key">
       <p>
-        <K i={<i className="kc" />} t="Card: a top source that backs a claim" />
-        <K i={<i className="kch" />} t="Chip: a source with findings" />
+        <K i={<i className="kcc" />} t="Search, with its best finding as the answer" />
+        <K i={<i className="kc" />} t="Card: a top source with findings" />
+        <K i={<i className="kch" />} t="Chip: another source with findings" />
         <K i={<i className="kdt" />} t="Read, no finding" />
         <K i={<i className="kdt gh" />} t="Kept, not read" />
         <K i={<i className="kev" />} t="Bar: its evidence, strong to weak" />
-        {lay !== "tree" ? (
-          <K i={<i className="kln" />} t="Line: thicker is more findings for that claim" />
-        ) : null}
+        <K i={<i className="kxp">+4</i>} t="What a node holds" />
+        <K i={<i className="kln" />} t="Line: thicker is more findings" />
       </p>
       <p className="hint">
-        Hover a node to see its neighbours. Click for detail. Drag to move. Pinch, or Ctrl and
-        scroll, to zoom.
+        A source found by several searches sits between them. Click a search to open the hits it
+        kept with no finding and the hits it dropped; a source into its pages; a page into its
+        findings; a finding into its quote. Ctrl and scroll, or pinch, to zoom.
       </p>
     </div>
   );

@@ -23,7 +23,6 @@ import {
   UnfiledDrop,
   useRowsPick,
 } from "@wren/ui";
-import type { LayId } from "@wren/ui/research/run";
 import { type ReactNode, useMemo, useState } from "react";
 import { embedOf, embedSite, youtubeId } from "../../embeds.js";
 import { useFolders } from "../../folders.js";
@@ -56,7 +55,6 @@ const TABS = [
   { value: "graph", label: "Graph" },
   { value: "talk", label: "Back and forth" },
 ] as const;
-const LAYS: readonly LayId[] = ["web", "tree", "lanes"];
 const LINK = "inline-flex items-center gap-1 wrap-anywhere text-(--ui-ink) underline";
 const PRE =
   "m-0 max-h-[420px] overflow-auto border border-(--ui-hair) bg-(--ui-tile) p-2.5 text-[13px] leading-[1.55] whitespace-pre-wrap wrap-anywhere text-(--ui-ink)";
@@ -117,7 +115,7 @@ export function HistoryPage({ params, team }: PageProps) {
     return <Opened key={open} open={open} rows={rows} params={params} here={here} />;
   if (!runs.data) return <Loading shape="rows" lines={5} />;
   if (!rows.length) return <Empty>No runs in this ledger yet.</Empty>;
-  const openRuns = (run: string) => navigate(href(here, { run, open: null, lay: null }, params));
+  const openRuns = (run: string) => navigate(href(here, { run, open: null }, params));
   const folders = filed.folders;
   const row = (r: RunRow) => (
     <RunItem
@@ -264,11 +262,10 @@ function Opened({
   here: string;
 }) {
   const ids = useMemo(() => runsIn(open, rows), [open, rows]);
-  const lay = LAYS.find((l) => l === params.get("lay"));
   const go = (p: Record<string, string | null>) => navigate(href(here, p, params), true);
   const back = (
     <a
-      href={href(here, { run: null, tab: null, open: null, lay: null }, params)}
+      href={href(here, { run: null, tab: null, open: null }, params)}
       className="inline-flex items-center gap-1 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
     >
       <Icon name="back" size={14} />
@@ -293,8 +290,6 @@ function Opened({
         runs={ids}
         rows={rows}
         title={open === "all" ? "All runs" : `${ids.length} runs together`}
-        lay={lay}
-        onLay={(l) => go({ lay: l })}
       />
     </div>
   );
@@ -314,7 +309,6 @@ function OneRun({
   back: ReactNode;
 }) {
   const tab: Tab = params.get("tab") === "talk" ? "talk" : "graph";
-  const lay = LAYS.find((l) => l === params.get("lay"));
   const card = params.get("open");
   const ids = useMemo(() => [run], [run]);
   const rows = useMemo(() => (row ? [row] : []), [row]);
@@ -332,7 +326,7 @@ function OneRun({
         />
       </div>
       {tab === "graph" ? (
-        <RunsCanvas runs={ids} rows={rows} title="" lay={lay} onLay={(l) => go({ lay: l })} />
+        <RunsCanvas runs={ids} rows={rows} title="" />
       ) : got.error && !view ? (
         <LoadFailed error={got.error} onRetry={got.retry} />
       ) : !view ? (

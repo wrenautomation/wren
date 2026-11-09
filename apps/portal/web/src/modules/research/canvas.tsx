@@ -3,7 +3,6 @@
  * History both draw through here. Several runs merge; a source two runs read links them.
  */
 import { LoadFailed, Loading } from "@wren/ui";
-import type { LayId } from "@wren/ui/research/run";
 import { mergeGraphs } from "@wren/ui/research/run/merge";
 import { useMemo } from "react";
 import { runGraphOf } from "./graph.js";
@@ -14,16 +13,12 @@ export function RunsCanvas({
   runs,
   rows,
   title,
-  lay,
-  onLay,
 }: {
   /** oldest first: run 1 is the first */
   runs: readonly string[];
   rows: readonly RunRow[];
   /** the merged graph's head */
   title: string;
-  lay?: LayId | undefined;
-  onLay?: (l: LayId) => void;
 }) {
   const got = useViews(runs);
   const byRun = useMemo(() => new Map(rows.map((r) => [r.run, r])), [rows]);
@@ -42,5 +37,5 @@ export function RunsCanvas({
         label={runs.length > 1 ? `Reading runs: ${got.got} of ${runs.length}` : "Loading the run"}
       />
     );
-  return <RunGraph run={graph} {...(lay ? { lay } : {})} {...(onLay ? { onLay } : {})} />;
+  return <RunGraph run={graph} />;
 }
