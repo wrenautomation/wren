@@ -107,5 +107,8 @@ describe("output while a call is tried again", () => {
     const out = await fetch(`${base}/restate/invocation/${invocationId}/output`);
     expect(out.status).toBe(470);
     expect(await out.json()).toEqual({ message: "not ready" });
+    const plain = await fetch(`${base}/calls/${invocationId}/output`);
+    expect(plain.status).toBe(470);
+    expect((await fetch(`${base}/health`)).status).toBe(200);
   });
 });

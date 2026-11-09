@@ -6,6 +6,7 @@
  *   GET  /restate/invocation/{id}/attach | /output    (output: 470 while it runs, as Restate; + `retry`)
  *   GET  /restate/invocation/{svc}[/{key}]/{handler}/{idempotency-key}/attach | /output
  *   GET  /restate/health
+ * Plain names, same routes: /health, /calls/... (= /restate/invocation/...), /awakeables/...
  *   POST /rt/register | claim | renew | finish   pulled services (`pull.ts`)
  * Anything else answers 404.
  */
@@ -213,6 +214,10 @@ export async function serveDoor(
     const parts = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
     const alias = parts[0] ? o.renamed?.[parts[0]] : undefined;
     if (alias) parts[0] = alias;
+    // plain names for the Restate-branded routes (lowercase: services are PascalCase)
+    if (parts[0] === "health" && parts.length === 1) parts.unshift("restate");
+    else if (parts[0] === "calls") parts.splice(0, 1, "restate", "invocation");
+    else if (parts[0] === "awakeables") parts.unshift("restate");
 
     if (pull && (await pullRoute(pull, parts, req, res, body, send))) return;
     if (parts[0] === "restate") {

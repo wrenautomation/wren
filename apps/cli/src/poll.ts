@@ -31,7 +31,7 @@ export async function pollOutput<T>(invocationId: string, o: PollOptions): Promi
   const sleep = o.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
   const every = o.everyMs ?? 5_000;
   const max = o.maxMs ?? 30 * 60_000;
-  const url = `${o.url.replace(/\/$/, "")}/restate/invocation/${encodeURIComponent(invocationId)}/output`;
+  const url = `${o.url.replace(/\/$/, "")}/calls/${encodeURIComponent(invocationId)}/output`;
   for (let waited = 0; ; waited += every) {
     const res = await get(url, { method: "GET", headers: { ...(o.headers ?? {}) } });
     if (res.status === NOT_READY) {

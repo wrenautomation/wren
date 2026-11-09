@@ -23,7 +23,7 @@ describe("pollOutput", () => {
     });
     expect(out).toEqual({ queued: 2 });
     expect(asked).toHaveLength(3);
-    expect(asked[0]?.url).toBe("https://ingress.example/restate/invocation/inv_1/output");
+    expect(asked[0]?.url).toBe("https://ingress.example/calls/inv_1/output");
     expect(asked[0]?.headers).toEqual({ Authorization: "Bearer t" });
   });
 

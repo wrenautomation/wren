@@ -484,7 +484,7 @@ describe("the app host", () => {
     expect((await status(ask)).body).toEqual({ state: "sending" });
     expect(asked[0]?.method).toBe("GET");
     expect(asked[0]?.url).toBe(
-      `https://restate.test:8080/restate/invocation/DocumentsConsole/send/${encodeURIComponent(sentKey)}/output`,
+      `https://restate.test:8080/calls/DocumentsConsole/send/${encodeURIComponent(sentKey)}/output`,
     );
     answer = Response.json({ done: ["d1"] });
     expect((await status(ask)).body).toEqual({ state: "sent", answer: { done: ["d1"] } });

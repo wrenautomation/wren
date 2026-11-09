@@ -71,7 +71,7 @@ export async function readWrite(
   route: string,
   key: string,
 ): Promise<WriteState | null> {
-  const url = `${env.WREN_API_URL.replace(/\/+$/, "")}/restate/invocation/${svc}/${route}/${encodeURIComponent(key)}/output`;
+  const url = `${env.WREN_API_URL.replace(/\/+$/, "")}/calls/${svc}/${route}/${encodeURIComponent(key)}/output`;
   let res: Response;
   try {
     res = await fetch(url, { headers: authOf(env) });
