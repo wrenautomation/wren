@@ -174,7 +174,7 @@ export interface RunGraphData {
   searches: GraphSearch[];
   dropped: GraphDrop[];
   /** several runs on one graph: then every `r` is a run's place here (1-based), not a round */
-  runs?: { rid: string; t: string }[];
+  runs?: { rid: string; t: string; note?: string }[];
 }
 
 /** What `r` counts: rounds of one run, or the runs of a merged graph. */
@@ -206,6 +206,44 @@ export interface Indexed {
   byId: Map<number, GNode>;
   byQ: Map<number, GraphSearch>;
   drops: Map<number, number[]>;
+  /** several runs only: what each run holds, for the run hubs */
+  many: Many | null;
+}
+
+/** A merged graph's runs: place → searches and kept sources; source → runs; what shows closed. */
+export interface Many {
+  qs: Map<number, number[]>;
+  src: Map<number, GNode[]>;
+  of: Map<number, number[]>;
+  /** shown while every run is closed: read by 2+ runs, or among a run's top 3 */
+  base: Set<number>;
+}
+
+/** Sources a closed run shows around its hub. */
+const RUN_TOP = 3;
+
+function manyOf(run: RunGraphData, rank: GNode[], reach: Map<number, number[]>): Many | null {
+  if (!run.runs) return null;
+  const qs = new Map<number, number[]>();
+  const rOf = new Map<number, number>();
+  for (const q of run.searches) {
+    qs.set(q.r, [...(qs.get(q.r) ?? []), q.i]);
+    rOf.set(q.i, q.r);
+  }
+  const of = new Map<number, number[]>();
+  const src = new Map<number, GNode[]>();
+  const base = new Set<number>();
+  for (const n of rank) {
+    const rs = [...new Set((reach.get(n.id) ?? []).map((qi) => rOf.get(qi) ?? 0))]
+      .filter(Boolean)
+      .sort((a, b) => a - b);
+    of.set(n.id, rs);
+    if (!n.s.kept) continue;
+    if (rs.length > 1) base.add(n.id);
+    for (const r of rs) src.set(r, [...(src.get(r) ?? []), n]);
+  }
+  for (const ns of src.values()) for (const n of ns.slice(0, RUN_TOP)) base.add(n.id);
+  return { qs, src, of, base };
 }
 
 const claimsOf = (s: GraphSource) => Object.keys(s.claims).length;
@@ -264,7 +302,16 @@ export function indexRun(run: RunGraphData): Indexed {
     byId: new Map(nodes.map((n) => [n.id, n])),
     byQ: new Map(run.searches.map((q) => [q.i, q])),
     drops,
+    many: manyOf(run, rank, reach),
   };
+}
+
+/** A long ask's head: its first question without the asides; the whole ask follows in body text. */
+export function headOf(t: string) {
+  // a period ends it only before a space: "$1.5k" and "e.g." stay
+  const m = /^.*?(?:[?;:]|\.(?=\s|$))/.exec(t.replace(/\s*\([^)]*\)/g, ""));
+  const h = m?.[0].replace(/[;:]$/, "").trim() ?? "";
+  return h && h.length <= 170 && h.length < t.length - 20 ? { t: h, ask: t } : { t, ask: "" };
 }
 
 export const pl = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : /ch$/.test(w) ? "es" : "s"}`;

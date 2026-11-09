@@ -11,6 +11,7 @@ import {
   evIndex,
   type GNode,
   type GraphSource,
+  headOf,
   type Indexed,
   pic,
   pl,
@@ -287,6 +288,43 @@ function HubMark({ L, i, m }: { L: Indexed; i: number; m: MarkProps }) {
   );
 }
 
+/** A run of several as a hub: its ask, its note, then counts, evidence and who speaks. */
+function RunMark({ L, r, m }: { L: Indexed; r: number; m: MarkProps }) {
+  const run = L.run.runs?.[r - 1];
+  if (!run || !L.many) return null;
+  const nq = L.many.qs.get(r)?.length ?? 0;
+  const sp = (L.many.src.get(r) ?? [])
+    .slice()
+    .sort((a, b) => SPEAKER_ORDER.indexOf(a.k) - SPEAKER_ORDER.indexOf(b.k));
+  const sub = `${pl(nq, "search")} · ${pl(sp.length, "source")} · ${pl(
+    sp.reduce((s, n) => s + n.s.kept, 0),
+    "finding",
+  )}`;
+  return (
+    <Mark
+      className={cls("nd hq hr", !run.note && "na")}
+      label={`Run ${r}: ${run.t}. ${run.note ? `Note: ${run.note}` : "No note"}. ${sub}`}
+      m={m}
+    >
+      <span className="cn">
+        <i>{r}</i>
+        Run {r}
+      </span>
+      <b>{headOf(run.t).t}</b>
+      {run.note ? <p className="an">{run.note}</p> : null}
+      <small>{sub}</small>
+      <EvBar c={evCounts(sp.flatMap((n) => n.s.fs))} />
+      {sp.length ? (
+        <span className="spk">
+          {sp.map((n) => (
+            <i key={n.id} className={`k-${n.k}`} />
+          ))}
+        </span>
+      ) : null}
+    </Mark>
+  );
+}
+
 /** One node of the query web, by its key (web.ts). */
 export function WebMark({
   L,
@@ -379,6 +417,7 @@ export function WebMark({
     );
   }
   if (t === "q") return <HubMark L={L} i={a} m={m} />;
+  if (t === "r") return <RunMark L={L} r={a} m={m} />;
   if (t === "d") {
     const txt = `${pl((L.drops.get(a) ?? []).length, "hit")} dropped`;
     return (

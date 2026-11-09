@@ -8,6 +8,7 @@ import {
   EVIDENCE,
   evCounts,
   type GNode,
+  headOf,
   type Indexed,
   pl,
   SPEAKER_ORDER,
@@ -235,6 +236,23 @@ export function Side({
         </small>
       </button>
     ));
+  // a phone's chips with several runs: one chip a run, not one a search
+  else if (tab === "q" && chips && L.run.runs)
+    list = L.run.runs.map((run, i) => {
+      const p: Pick = { t: "n", key: `r${i + 1}` };
+      return (
+        <button
+          key={run.rid}
+          type="button"
+          className={cls("sq", pick?.t === "n" && pick.key === p.key && "pk")}
+          aria-label={`Run ${i + 1}: ${headOf(run.t).t}`}
+          onClick={() => onPick(p)}
+        >
+          <span className="no">{i + 1}</span>
+          <b>{headOf(run.t).t}</b>
+        </button>
+      );
+    });
   else if (tab === "q") {
     let r0 = 0;
     list = L.run.searches.flatMap((q) => {
@@ -301,7 +319,11 @@ export function Side({
     <div ref={r} className={cls("rg-side", chips && "chips")} onPointerLeave={() => onHover(null)}>
       <div className="tabs" role="tablist">
         <T k="c" t="Claims" n={L.claims.length} />
-        <T k="q" t="Searches" n={L.run.searches.length} />
+        {chips && L.run.runs ? (
+          <T k="q" t="Runs" n={L.run.runs.length} />
+        ) : (
+          <T k="q" t="Searches" n={L.run.searches.length} />
+        )}
         <T k="d" t="Dropped" n={L.run.dropped.length} />
       </div>
       <div className="rg-ls">{list}</div>
@@ -324,7 +346,7 @@ export function Side({
   );
 }
 
-export function Key() {
+export function Key({ runs }: { runs: boolean }) {
   const K = ({ i, t }: { i: ReactNode; t: string }) => (
     <span className="kk">
       {i}
@@ -334,6 +356,7 @@ export function Key() {
   return (
     <div className="rg-key">
       <p>
+        {runs ? <K i={<i className="kcc" />} t="Run: its ask and its note" /> : null}
         <K i={<i className="kcc" />} t="Search, with its best finding as the answer" />
         <K i={<i className="kc" />} t="Card: a top source with findings" />
         <K i={<i className="kch" />} t="Chip: another source with findings" />
@@ -344,9 +367,10 @@ export function Key() {
         <K i={<i className="kln" />} t="Line: thicker is more findings" />
       </p>
       <p className="hint">
-        A source found by several searches sits between them. Click a search to open the hits it
-        kept with no finding and the hits it dropped; a source into its pages; a page into its
-        findings; a finding into its quote. Ctrl and scroll, or pinch, to zoom.
+        {runs ? "Click a run to open its searches. " : ""}A source found by several searches sits
+        between them. Click a search to open the hits it kept with no finding and the hits it
+        dropped; a source into its pages; a page into its findings; a finding into its quote. Ctrl
+        and scroll, or pinch, to zoom.
       </p>
     </div>
   );

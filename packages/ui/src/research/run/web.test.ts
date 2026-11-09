@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RUN_GRAPH, RUN_GRAPH_WORST } from "../../fixtures/index.js";
+import { RUN_GRAPH, RUN_GRAPH_RUNS, RUN_GRAPH_WORST } from "../../fixtures/index.js";
 import { answerOf, indexRun, jit, type RunGraphData } from "./model.js";
 import {
   keepPlaces,
@@ -139,6 +139,32 @@ describe("several runs", () => {
     const b = solve(merged).N;
     expect(overlap([...a.values()], 0)).toBe(0);
     for (const [k, n] of a) expect([b.get(k)?.x, b.get(k)?.y]).toEqual([n.x, n.y]);
+  });
+});
+
+describe("run hubs", () => {
+  const L = indexRun(RUN_GRAPH_RUNS);
+  const at = (exp: string[]) =>
+    presentSet(L, { exp: new Set(exp), lift: new Set(), more: new Map(), wide: true });
+  it("shows each run as a hub with no search while closed, its sources linked to it", () => {
+    const { order, par } = at([]);
+    expect(order.filter((k) => k[0] === "r")).toEqual(
+      (RUN_GRAPH_RUNS.runs ?? []).map((_, i) => `r${i + 1}`),
+    );
+    expect(order.some((k) => k[0] === "q")).toBe(false);
+    for (const e of webEdges(L, order, par).filter((x) => x.b[0] === "s")) expect(e.a[0]).toBe("r");
+  });
+  it("opens a run into its searches; its sources move to them, the other runs stay closed", () => {
+    const { order, par } = at(["r1"]);
+    const qs = (L.many?.qs.get(1) ?? []).map((i) => `q${i}`);
+    expect(qs.length).toBeGreaterThan(0);
+    for (const q of qs) expect(order).toContain(q);
+    const E = webEdges(L, order, par);
+    for (const e of E.filter((x) => x.b[0] === "s")) {
+      const r = e.a[0] === "r" ? +e.a.slice(1) : L.byQ.get(+e.a.slice(1))?.r;
+      if (r === 1) expect(e.a[0]).toBe("q");
+      else expect(e.a[0]).toBe("r");
+    }
   });
 });
 

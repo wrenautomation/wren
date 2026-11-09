@@ -75,6 +75,6 @@ export function mergeGraphs(gs: readonly RunGraphData[], t: string): RunGraphDat
     sources,
     searches,
     dropped,
-    runs: gs.map((g) => ({ rid: g.rid, t: g.t })),
+    runs: gs.map((g) => ({ rid: g.rid, t: g.t, note: g.note })),
   };
 }

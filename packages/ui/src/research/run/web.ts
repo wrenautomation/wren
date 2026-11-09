@@ -2,7 +2,8 @@
  * The query web (11-08): each search is a hub, its answer on the card; a source with findings
  * links to every search that found it. Any node opens in place into what it holds. Pure: keys,
  * children, edges and the solve. The stage measures and moves the DOM.
- * Keys: q search, s source, p page, n read pages with no finding, u pages not read, v one such
+ * Several runs (11-08): each run is a hub (r) that opens into its searches and the rest of its sources.
+ * Keys: r run, q search, s source, p page, n read pages with no finding, u pages not read, v one such
  * page, f finding, x its quote, d a search's dropped hits, h one dropped hit, m "N more".
  */
 import { forceLink, forceManyBody, forceSimulation, forceX, forceY } from "d3-force";
@@ -71,11 +72,18 @@ function kidsOf(L: Indexed, key: string): string[] {
       ...((L.drops.get(a) ?? []).length ? [`d${a}`] : []),
     ];
   if (t === "d") return (L.drops.get(a) ?? []).map((i) => `h${i}`);
+  if (t === "r" && L.many)
+    return [
+      ...(L.many.qs.get(a) ?? []).map((qi) => `q${qi}`),
+      ...(L.many.src.get(a) ?? []).filter((n) => !L.many?.base.has(n.id)).map((n) => `s${n.id}`),
+    ];
   return [];
 }
 
 function shown(L: Indexed, st: WebState, k: string) {
   const ks = kids(L, k);
+  // a run opens whole: its own web, as one run's page shows it
+  if (k[0] === "r") return ks;
   const r = runOf(ks);
   const lim = st.more.get(k) ?? capOf(st.wide);
   return r > lim ? [...ks.slice(0, lim), `m${k}`, ...ks.slice(r)] : ks;
@@ -83,11 +91,19 @@ function shown(L: Indexed, st: WebState, k: string) {
 export const leftOf = (L: Indexed, st: WebState, k: string) =>
   runOf(kids(L, k)) - (st.more.get(k) ?? capOf(st.wide));
 
-/** The nodes on the map: every search, every source with a finding, plus what each open node holds, breadth first. */
+/** The hubs while nothing is open: every search, or with several runs every run. */
+const hubKeys = (L: Indexed) =>
+  L.run.runs ? L.run.runs.map((_, i) => `r${i + 1}`) : L.run.searches.map((q) => `q${q.i}`);
+
+/**
+ * The nodes on the map: the hubs, every source with a finding (several runs: the shared ones and
+ * each run's top few), plus what each open node holds, breadth first.
+ */
 export function presentSet(L: Indexed, st: WebState) {
+  const keep = (id: number, kept: number) => (L.many ? L.many.base.has(id) : !!kept);
   const base = [
-    ...L.run.searches.map((q) => `q${q.i}`),
-    ...L.rank.filter((n) => n.s.kept || st.lift.has(n.id)).map((n) => `s${n.id}`),
+    ...hubKeys(L),
+    ...L.rank.filter((n) => keep(n.id, n.s.kept) || st.lift.has(n.id)).map((n) => `s${n.id}`),
   ];
   const par = new Map<string, string | null>(base.map((k) => [k, null]));
   const order = [...base];
@@ -136,14 +152,27 @@ export function webEdges(L: Indexed, order: string[], par: Map<string, string | 
   for (const k of order) {
     const [t, a, b] = parse(k);
     const s = L.byId.get(a)?.s;
-    if (t === "s" && s)
-      for (const qi of L.reach.get(a) ?? []) {
-        const q = `q${qi}`;
+    if (t === "s" && s) {
+      const link = (h: string) => {
         const n = E.length;
-        add(q, k, s.kept ? "hub" : par.get(k) === q ? "tree" : "found", s.kept);
+        add(h, k, s.kept ? "hub" : par.get(k) === h ? "tree" : "found", s.kept);
         const e = E[n];
         if (e?.kind === "hub") e.k = L.byId.get(a)?.k;
-      }
+        return E.length > n;
+      };
+      const qs = L.reach.get(a) ?? [];
+      if (!L.many) for (const qi of qs) link(`q${qi}`);
+      // several runs: to the searches of an open run, else to the run's hub
+      else
+        for (const r of L.many.of.get(a) ?? [])
+          if (
+            !qs
+              .filter((qi) => L.byQ.get(qi)?.r === r)
+              .map((qi) => link(`q${qi}`))
+              .some(Boolean)
+          )
+            link(`r${r}`);
+    } else if (t === "q") add(par.get(k), k, "tree");
     else if (t === "p") add(par.get(k) || `s${a}`, k, "tree");
     else if (t === "n" || t === "u") add(`s${a}`, k, "tree");
     else if (t === "v") add(`u${a}`, k, "tree");
@@ -330,10 +359,28 @@ export function solveWeb(o: SolveIn) {
   const B0 = old.length ? webBox(old) : { x0: 0, y0: 0, x1: 0, y1: 0 };
   const cx0 = (B0.x0 + B0.x1) / 2;
   const cy0 = (B0.y0 + B0.y1) / 2;
-  const nq = L.run.searches.length;
   const ax = wide ? 1.5 : 0.7;
-  // several runs: each linked group solves alone, then the groups pack in run order
-  const groups = !anim && L.run.runs ? linked(order, E) : null;
+  // several runs: each run's linked group solves alone, then the groups pack in run order. A
+  // source many runs read sits with the first; its lines to the others cross between groups.
+  const runOf = (k: string) =>
+    k[0] === "r"
+      ? +k.slice(1)
+      : k[0] === "q"
+        ? L.byQ.get(+k.slice(1))?.r
+        : k[0] === "s"
+          ? Math.min(...(L.reach.get(+k.slice(1)) ?? []).map((qi) => L.byQ.get(qi)?.r ?? 1e9))
+          : undefined;
+  const groups =
+    !anim && L.run.runs
+      ? linked(
+          order,
+          E.filter((e) => {
+            const a = runOf(e.a);
+            const b = runOf(e.b);
+            return a == null || b == null || a === b || !Number.isFinite(a + b);
+          }),
+        )
+      : null;
   const ring = new Map<string, readonly [number, number]>();
   const lay = (cs: readonly string[], at: (k: string, j: number) => number) => {
     const R = 90 * Math.sqrt(cs.length);
@@ -344,14 +391,13 @@ export function solveWeb(o: SolveIn) {
   };
   if (groups)
     for (const g of groups) {
-      const qs = g.filter((k) => k[0] === "q");
-      lay(qs, (_, j) => j / qs.length);
+      const hs = g.filter((k) => k[0] === "q" || k[0] === "r");
+      lay(hs, (_, j) => j / hs.length);
     }
-  else
-    lay(
-      L.run.searches.map((q) => `q${q.i}`),
-      (_, j) => j / nq,
-    );
+  else {
+    const hs = hubKeys(L);
+    lay(hs, (_, j) => j / hs.length);
+  }
   order.forEach((k, i) => {
     const n = N.get(k) as WNode;
     if (!fresh.has(n)) {
@@ -372,13 +418,15 @@ export function solveWeb(o: SolveIn) {
       const rr = (diag(p) + diag(n)) * 0.36 + 26;
       n.x = p.x + Math.cos(a) * rr;
       n.y = p.y + Math.sin(a) * rr;
-    } else if (k[0] === "q") {
+    } else if (k[0] === "q" || k[0] === "r") {
       [n.x, n.y] = ring.get(k) ?? [0, 0];
     } else {
-      // a spoke starts between the searches that found it
-      const cs = (L.reach.get(+k.slice(1)) ?? [])
-        .map((qi) => N.get(`q${qi}`))
-        .filter((q): q is WNode => !!q);
+      // a spoke starts between the hubs that found it
+      const id = +k.slice(1);
+      const qs = (L.reach.get(id) ?? []).map((qi) => N.get(`q${qi}`));
+      const cs = (
+        qs.some(Boolean) ? qs : (L.many?.of.get(id) ?? []).map((r) => N.get(`r${r}`))
+      ).filter((q): q is WNode => !!q);
       const was = o.shelfAt.get(k);
       if (cs.length) {
         n.x = cs.reduce((s, q) => s + q.x, 0) / cs.length + jit(i) * 60;
@@ -406,7 +454,8 @@ export function solveWeb(o: SolveIn) {
     e,
   }));
   // a spoke found by many searches: each pull weaker, so it settles between them
-  const hubsOf = (e: WebEdge) => L.reach.get(+e.b.slice(1))?.length ?? 1;
+  const hubsOf = (e: WebEdge) =>
+    (e.a[0] === "r" ? L.many?.of : L.reach)?.get(+e.b.slice(1))?.length ?? 1;
   const dist = (l: Link) => {
     const d = diag(l.source) + diag(l.target);
     return l.e.kind === "hub" ? 30 + d * 0.32 : l.e.tree ? 14 + d * 0.3 : 60 + d * 0.36;
@@ -438,7 +487,7 @@ export function solveWeb(o: SolveIn) {
     for (const [j, ns] of parts.entries())
       simulate(
         ns,
-        links.filter((l) => gi.get(l.e.a) === j),
+        links.filter((l) => gi.get(l.e.a) === j && gi.get(l.e.b) === j),
         { dist, strength, wide, anim },
       );
     pack(parts, wide);
@@ -495,7 +544,7 @@ function simulate(all: WNode[], links: Link[], o: SimOpt) {
 
 const repel = () =>
   forceManyBody<WNode>()
-    .strength((n) => ("qs".includes(n.key[0] ?? "") ? -260 : -110))
+    .strength((n) => ("qrs".includes(n.key[0] ?? "") ? -260 : -110))
     .distanceMax(600);
 
 /**
@@ -549,8 +598,11 @@ export function linked(order: readonly string[], E: readonly WebEdge[]) {
     const r = root(k);
     by.set(r, [...(by.get(r) ?? []), k]);
   }
-  // search keys are numbered in run order; a group with no search goes last
-  const first = (g: string[]) => Math.min(...g.filter((k) => k[0] === "q").map((k) => +k.slice(1)));
+  // run and search keys are numbered in run order; a group with no hub goes last
+  const first = (g: string[]) =>
+    Math.min(
+      ...g.map((k) => (k[0] === "r" ? +k.slice(1) : k[0] === "q" ? 1e6 + +k.slice(1) : Infinity)),
+    );
   return [...by.values()].sort((a, b) => first(a) - first(b));
 }
 

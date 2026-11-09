@@ -293,3 +293,15 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Summary bars become `RingChart` donuts (the chart kit's), with the hot slice's share in the center.
   - CSP `img-src` takes https, so page pictures load in prod.
   - Storybook: `Charts/All charts` shows every prebuilt chart and graph on one page; the run graph moves to `Charts/Weaver run graph`.
+- 11-08: All runs draws run hubs; the web opens whole; cards get full borders.
+  - Prod All runs: 333 search hubs and 469 sources, about 3600 × 10500. The fit hit its 0.55 floor and showed an empty top-left corner. Long tasks 2.2 s and 1 s.
+  - Options, ranked by what a reader learns first, then nodes drawn:
+    - A. Each run is one hub: its ask and its note. A click opens it into its searches and the rest of its sources. Chosen.
+    - B. All 333 search hubs at a tiny fit zoom. Unreadable and heavy.
+    - C. A grid of per-run clusters with their search hubs. Still 333 cards.
+  - Closed, a run shows its top 3 sources plus every source two or more runs read (51 of 469). First view: 262 nodes, longest task about 300 ms.
+  - A source links to the searches of an open run, else to the run's hub. A search or source picked in a closed run opens that run first.
+  - Fit: one run opens at 0.9 (William approved it on prod); several runs fit whole, floor 0.4, centered.
+  - Head: a short title (the ask's first question, asides cut, at most 170 chars), the whole ask in body text under it; a phone folds it under "Whole ask". 18 of 33 real asks get a short title.
+  - Phone chips in All runs: one a run (33), not one a search (333).
+  - William: a colored left edge only looks wrong. Cards, chips and the answer line lose it; a tinted card gets a whole ring in its speaker's color.

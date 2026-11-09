@@ -24,6 +24,7 @@ import {
   evCounts,
   f1,
   type GNode,
+  headOf,
   indexRun,
   pic,
   pl,
@@ -150,9 +151,8 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
   });
   const T = useRef<ZoomTransform>(zoomIdentity);
   const zoomRef = useRef<ZoomBehavior<HTMLDivElement, unknown> | null>(null);
-  const merged = !!L.run.runs;
-  const live = useRef({ pick, wide, merged });
-  live.current = { pick, wide, merged };
+  const live = useRef({ pick, wide, merged: !!L.run.runs });
+  live.current = { pick, wide, merged: !!L.run.runs };
 
   const reg = (k: string) => {
     let f = regs.get(k);
@@ -262,6 +262,20 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     if (p?.t === "c") setTab("c");
     if (p?.t === "q") setTab("q");
     if (p?.t === "D") setTab("d");
+    // several runs: a search or source in a closed run opens that run first
+    const r = !L.many
+      ? undefined
+      : p?.t === "q"
+        ? L.byQ.get(p.i)?.r
+        : p?.t === "s" && !pres.par.has(`s${p.id}`) && L.byId.get(p.id)?.s.kept
+          ? L.many.of.get(p.id)?.[0]
+          : undefined;
+    if (r && !exp.has(`r${r}`)) {
+      const np = presentSet(L, { exp: new Set(exp).add(`r${r}`), lift, more, wide });
+      pend.current = { ...pend.current, anim: true, fk: `r${r}` };
+      setExp(np.exp);
+      setMore(np.more);
+    }
     pend.current.center = center && p ? p : null;
   };
   const askFit = (ms: number) => {
@@ -360,27 +374,12 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     const R = room();
     const bw = B.x1 - B.x0;
     const bh = B.y1 - B.y0;
-    let k = Math.min(1, R.w / bw, R.h / bh);
-    let ty: number;
-    // one run opens readable (round 13 at 1:1): the core centered, the rims cropped
-    const read = live.current.wide && !live.current.merged ? 0.9 : 0;
-    // too tall to read whole: fit the width and start at the top
-    const floor = live.current.wide ? 0.55 : 0.4;
-    if (k < read) {
-      k = read;
-      go(
-        zoomIdentity
-          .translate(R.l + (R.w - bw * k) / 2 - B.x0 * k, R.t + (R.h - bh * k) / 2 - B.y0 * k)
-          .scale(k),
-        ms,
-      );
-      return;
-    }
-    if (k < floor) {
-      k = Math.min(1, Math.max(floor, R.w / bw));
-      ty = R.t - B.y0 * k;
-    } else ty = R.t + (R.h - bh * k) / 2 - B.y0 * k;
-    const tx = k * bw <= R.w ? R.l + (R.w - bw * k) / 2 - B.x0 * k : R.l - B.x0 * k;
+    // one run opens readable (round 13 at 1:1), the rims cropped; several runs fit whole. Past the
+    // floor the cards stop reading: it centers there
+    const fit = Math.min(1, R.w / bw, R.h / bh);
+    const k = live.current.wide && !live.current.merged ? Math.max(fit, 0.9) : Math.max(fit, 0.4);
+    const tx = R.l + (R.w - bw * k) / 2 - B.x0 * k;
+    const ty = R.t + (R.h - bh * k) / 2 - B.y0 * k;
     go(zoomIdentity.translate(tx, ty).scale(k), ms);
   };
   const centerOn = (b: Box | undefined) => {
@@ -402,7 +401,10 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     const R = room();
     const pad = 30;
     const t = T.current;
+    // a run opens into its own web: zoom in to read it, as one run's page opens
+    const run = key[0] === "r";
     if (
+      !run &&
       t.applyX(B.x0) >= R.l + pad &&
       t.applyX(B.x1) <= R.r - pad &&
       t.applyY(B.y0) >= R.t + pad &&
@@ -411,7 +413,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
       return;
     const k = Math.max(
       0.3,
-      Math.min(t.k, (R.w - pad * 2) / (B.x1 - B.x0), (R.h - pad * 2) / (B.y1 - B.y0)),
+      Math.min(run ? 1 : t.k, (R.w - pad * 2) / (B.x1 - B.x0), (R.h - pad * 2) / (B.y1 - B.y0)),
     );
     const cx = (B.x0 + B.x1) / 2;
     const cy = (B.y0 + B.y1) / 2;
@@ -783,6 +785,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     setDq,
   };
   const f = L.run.funnel;
+  const head = headOf(L.run.t);
   const tipN = tip ? L.byId.get(tip.id) : undefined;
   const empty = !L.nodes.length && !L.run.searches.length;
 
@@ -808,14 +811,15 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
         }}
       />
       {card ? null : (
-        <p className="lookcap">
-          Each tinted card is a search and its best answer. Lines run to the sources it found that
-          hold findings; a thicker line carries more.
-        </p>
-      )}
-      {card ? null : (
         <div className="runhead">
-          <h3>{L.run.t}</h3>
+          <h3>{head.t}</h3>
+          {head.ask && wide ? <p className="ask">{head.ask}</p> : null}
+          {head.ask && !wide ? (
+            <details className="ask">
+              <summary>Whole ask</summary>
+              <p>{head.ask}</p>
+            </details>
+          ) : null}
           {L.run.note ? <p>{L.run.note}</p> : null}
           <p className="mt">
             {L.run.meta ? `${L.run.meta} · ` : ""}
@@ -824,6 +828,13 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
             {pl(f.findings, "finding")}, {pl(f.claims, "claim")}
           </p>
         </div>
+      )}
+      {card ? null : (
+        <p className="lookcap">
+          {L.run.runs
+            ? "Each tinted card is a run: its ask and its note. Lines run to the sources it kept findings from; a source two runs read links them. Click a run to open its searches."
+            : "Each tinted card is a search and its best answer. Lines run to the sources it found that hold findings; a thicker line carries more."}
+        </p>
       )}
       {/* biome-ignore lint/a11y/useSemanticElements: a positioned stage, not a form group; it delegates the marks' clicks and keys */}
       <div
@@ -898,7 +909,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
           }}
         />
       )}
-      {card ? null : <Key />}
+      {card ? null : <Key runs={!!L.run.runs} />}
       {card ? null : (
         <Table
           L={L}

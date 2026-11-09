@@ -12,6 +12,7 @@ import {
   type GraphFinding,
   type GraphSearch,
   type GraphSource,
+  headOf,
   type Indexed,
   pl,
   SPEAKERS,
@@ -572,9 +573,54 @@ function FindingPanel({ c, n, b }: { c: PanelCtx; n: GNode; b: number }) {
   );
 }
 
+/** One run of several: its ask, its note, its searches and the sources it kept findings from. */
+function RunPanel({ c, r }: { c: PanelCtx; r: number }) {
+  const { L } = c;
+  const run = L.run.runs?.[r - 1];
+  if (!run || !L.many) return null;
+  const qs = (L.many.qs.get(r) ?? []).map((i) => L.byQ.get(i)).filter((q) => !!q);
+  const ns = L.many.src.get(r) ?? [];
+  return (
+    <>
+      <div className="ph">
+        <X c={c} />
+        <div className="hd">
+          <i className="no q">{r}</i>
+          <h4>{headOf(run.t).t}</h4>
+        </div>
+        {headOf(run.t).ask ? <p className="rest">{run.t}</p> : null}
+        {run.note ? <p className="rest">{run.note}</p> : null}
+        <p className="ct">
+          <span>{stepAt(L.run, r, true)}</span>
+          <span>
+            {pl(qs.length, "search")}, {pl(ns.length, "source")} with findings
+          </span>
+        </p>
+      </div>
+      <div className="pb">
+        {qs.length ? <p className="lbl">Searches · {qs.length}</p> : null}
+        {qs.map((q) => (
+          <QChip key={q.i} c={c} q={q} />
+        ))}
+        {ns.length ? <p className="lbl">Sources · {ns.length}</p> : null}
+        {!qs.length && !ns.length ? <p className="gh">This run has no search yet.</p> : null}
+        {ns.map((n) => (
+          <SourceRow
+            key={n.id}
+            c={c}
+            n={n}
+            sub={`${SPEAKERS[n.s.kind].one} · ${pl(n.s.kept, "finding")}`}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
 function NodePanel({ c, k }: { c: PanelCtx; k: string }) {
   const { L } = c;
   const [t, a, b] = parse(k);
+  if (t === "r") return <RunPanel c={c} r={a} />;
   const n = L.byId.get(a);
   if (t === "p" && n) return <PagePanel c={c} n={n} b={b} />;
   if ((t === "f" || t === "x") && n) return <FindingPanel c={c} n={n} b={b} />;

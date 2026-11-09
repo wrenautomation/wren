@@ -66,10 +66,12 @@ export const Loading: Story = { args: { run: undefined } };
 export const Failed: Story = { args: { failed: "weaver serve stopped answering." } };
 export const WorstCase: Story = { args: { run: RUN_GRAPH_WORST } };
 
-/** Several runs: each linked group solves alone, then the groups pack in run order. */
+/** Several runs: each run is a hub with its sources; a click opens the run into its searches. */
 export const SeveralRuns: Story = {
   args: { run: RUN_GRAPH_RUNS },
   play: async ({ canvasElement }) => {
+    await apart(canvasElement);
+    await userEvent.click(await mark(canvasElement, "r1"));
     await mark(canvasElement, "q0");
     await apart(canvasElement);
   },
