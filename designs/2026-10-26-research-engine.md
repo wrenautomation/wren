@@ -1508,7 +1508,9 @@ Chosen: A. Priorities: scans never load page text; one code path; no new server;
 
 - `FilesLedger` leaves page text out on parse and fills it only in `trace` (one run) and in a `scan` that returns documents. Cross-run scans of hits, findings and spends read no pages.
 - A missing page throws with the document id: no silent empty text.
-- The far store (S3, `WEAVER_MEDIA_BUCKET`) is a copy: writes go to the folder, then the bucket; a bucket miss on read fills the folder. A bucket failure warns.
+- The far store (S3, `WEAVER_MEDIA_BUCKET`) is a copy: writes go to the folder, then the bucket; a bucket miss on read fills the folder. A bucket failure warns once per message. Keys mirror the folder (`pages/<aa>/<sha>.txt.gz`), so `aws s3 sync` backfills or restores.
+- 0.56.2: every S3 call under weaver's egress gate failed (EPERM): the AWS SDK makes its own HTTPS agent, which ignores `HTTPS_PROXY`, and the sandbox refuses a direct connect. The video cache had the same fault since the gate came in (11-08). `s3Client()` in `@wrenautomation/read/s3` gives the SDK an agent with `proxyEnv`; the page store and the video cache both use it.
+- First move, 11-09: 1,025 document lines, 30 files. Ledger lines 57.0 MB to 36.8 MB; pages 9.5 MB gzipped, 1,044 in S3. Checked against git HEAD: 824 documents equal, 0 changed. Gotcha found: two documents with one text raced on one temp name; fixed in 0.56.1.
 - Same text, same hash: a page read twice is stored once.
 - `weaver pages [--quiet <min>]` moves old lines' text into the store. Each page is read back and compared before its file is rewritten. Files changed in the last 10 min, or during the pass, wait for a later pass.
 - `pages/` stays in the tasks repo for now, so a clone works without AWS. Gitignore it once the bucket is the only copy anyone needs.
