@@ -129,7 +129,8 @@ export async function journalOf(
 const PAUSED_DEPTH = 5;
 
 /**
- * The paused call under an invocation, itself or a call it made (to `PAUSED_DEPTH` levels): its
+ * The paused call under an invocation, itself or a call it made (to `PAUSED_DEPTH` levels; a pg
+ * bridge row's Restate twin carries its id as idempotency key, so the walk crosses runtimes): its
  * target and failure, or null when nothing under it is paused. A caller waits on a paused call
  * for good, until someone retries or kills it in the dead-letter queue.
  */
@@ -142,7 +143,7 @@ export const pausedUnder =
       const rows = await admin(
         depth === 0
           ? `SELECT id, target, status, last_failure FROM sys_invocation WHERE id IN (${list})`
-          : `SELECT id, target, status, last_failure FROM sys_invocation WHERE invoked_by_id IN (${list})`,
+          : `SELECT id, target, status, last_failure FROM sys_invocation WHERE invoked_by_id IN (${list}) OR idempotency_key IN (${list})`,
       );
       const paused = rows.find((r) => r.status === "paused");
       if (paused) {

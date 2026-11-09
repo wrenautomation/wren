@@ -19,6 +19,7 @@ conformance("restate", { sdk, clients }, async (services) => {
   const admin = env.adminAPIBaseUrl();
   return {
     ingress: clients.connect({ url: env.baseUrl() }),
+    missingId: "inv_1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     async status(id: string): Promise<Status> {
       const res = await fetch(`${admin}/query`, {
         method: "POST",

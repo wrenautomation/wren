@@ -22,6 +22,7 @@ conformance("pg", { sdk, clients }, async (services) => {
   const door = await serveDoor({ sql });
   return {
     ingress: clients.connect({ url: door.url }),
+    missingId: "inv_00000000000000000000000000",
     async status(id: string): Promise<Status> {
       const [r] = await sql<
         { status: string }[]

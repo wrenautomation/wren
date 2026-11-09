@@ -206,7 +206,11 @@ export async function startRt(o: {
     concurrency: 40,
     leaseMs: LEASE_MS,
     lane: { except: PG_SERVICES, lock: false, skipPg: true },
-    run: (c) => bridgeTurn({ sql, ingress: o.ingress, leaseMs: LEASE_MS }, c),
+    run: (c) =>
+      bridgeTurn(
+        { sql, ingress: o.ingress, leaseMs: LEASE_MS, ...(o.admin ? { admin: o.admin } : {}) },
+        c,
+      ),
     log,
   });
   // a new ARN pins new Lambda rows to it

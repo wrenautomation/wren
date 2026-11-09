@@ -160,6 +160,22 @@ export async function release(sql: Sql, id: string, attempt: number, delayMs: nu
   return r.count === 1;
 }
 
+/**
+ * First in a flush that writes an attach: share-lock each target before our own fence. A target's
+ * `finish` fences (row lock) first, so either it commits before our settle check reads it, or its
+ * attach UPDATE runs after our row committed: no lost wake. We hold nothing while we wait.
+ */
+function attachLocks(tx: postgres.TransactionSql, w: Writes | null) {
+  const targets = w
+    ? [...w.journal.values()].filter((r) => r.kind === "attach" && !r.done).map((r) => r.ref)
+    : [];
+  return targets.length
+    ? [
+        tx`SELECT 1 FROM rt.invocations WHERE id = ANY(${targets as string[]}) ORDER BY id FOR SHARE`,
+      ]
+    : [];
+}
+
 /** The statements that write one flush; run inside a transaction after `rt.fence`. */
 function writes(tx: postgres.TransactionSql, inv: Invocation, w: Writes, now: Date) {
   const qs: postgres.PendingQuery<postgres.Row[]>[] = [];
@@ -217,6 +233,20 @@ function writes(tx: postgres.TransactionSql, inv: Invocation, w: Writes, now: Da
       tx`SELECT rt.cancel(id, ${now}) FROM jsonb_array_elements_text(${json(w.cancels)}::text::jsonb) AS id`,
     );
   if (w.uncancel) qs.push(tx`UPDATE rt.invocations SET cancel = false WHERE id = ${inv.id}`);
+  // last, so a child sent in this flush exists: an attach whose target already ended (or never
+  // was: 404) settles now
+  if ([...w.journal.values()].some((r) => r.kind === "attach" && !r.done))
+    qs.push(tx`
+      WITH a AS (
+        UPDATE rt.journal j SET done = true, value = t.result, at = now(),
+          error = CASE WHEN t.id IS NULL THEN '{"message":"invocation not found","code":404}'::jsonb
+            ELSE t.error END
+        FROM rt.journal w LEFT JOIN rt.invocations t ON t.id = w.ref
+        WHERE w.invocation_id = ${inv.id} AND w.kind = 'attach' AND NOT w.done
+          AND j.invocation_id = w.invocation_id AND j.seq = w.seq
+          AND (t.id IS NULL OR t.status IN ('done', 'killed'))
+        RETURNING j.invocation_id)
+      SELECT rt.wake(invocation_id, ${now}) FROM a LIMIT 1`);
   return qs;
 }
 
@@ -229,6 +259,7 @@ export async function flush(
 ): Promise<void> {
   try {
     await sql.begin((tx) => [
+      ...attachLocks(tx, w),
       tx`SELECT rt.fence(${inv.id}, ${inv.attempt}, ${leaseMs})`,
       ...writes(tx, inv, w, new Date()),
     ]);
@@ -274,6 +305,7 @@ export async function finish(
   try {
     await sql.begin((tx) => {
       const qs: postgres.PendingQuery<postgres.Row[]>[] = [
+        ...attachLocks(tx, w),
         tx`SELECT rt.fence(${inv.id}, ${inv.attempt}, ${leaseMs})`,
         ...(w ? writes(tx, inv, w, at) : []),
       ];
@@ -286,6 +318,12 @@ export async function finish(
           UPDATE rt.invocations SET status = ${status}, result = ${result ? Buffer.from(result) : null},
             error = ${error ? json(error) : null}::text::jsonb, holds = false, lease_until = NULL, completed_at = now()
           WHERE id = ${inv.id}`);
+        qs.push(tx`
+          WITH a AS (
+            UPDATE rt.journal SET done = true, value = ${result ? Buffer.from(result) : null},
+              error = ${error ? json(error) : null}::text::jsonb, at = now()
+            WHERE kind = 'attach' AND ref = ${inv.id} AND NOT done RETURNING invocation_id)
+          SELECT rt.wake(invocation_id, ${at}) FROM (SELECT DISTINCT invocation_id FROM a) d`);
         if (inv.parent_id && inv.parent_seq !== null) {
           qs.push(tx`
             UPDATE rt.journal SET done = true, value = ${result ? Buffer.from(result) : null},

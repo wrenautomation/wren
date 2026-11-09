@@ -752,6 +752,20 @@ export class Turn implements Host {
     this.buf.awakes.push({ id, invocation: m[1] as string, seq: Number(m[2]), value, error });
   }
 
+  /** Wait on any invocation's outcome; `finish` of the target settles it (store.ts). */
+  attach<T>(target: string, s?: Serde<T>): Durable<T> {
+    const o = this.op("attach", "");
+    if (!o) return this.never();
+    const leaf = new Leaf<T>(this, o.seq, "attach");
+    if (o.row?.done) this.settleFrom(leaf, o.row, s ?? this.defaultSerde);
+    else {
+      leaf.remote = true;
+      this.remote.add(leaf as Leaf<unknown>);
+    }
+    if (!o.row) this.put({ seq: o.seq, kind: "attach", name: "", ref: target });
+    return leaf;
+  }
+
   cancel(invocationId: string) {
     const o = this.op("cancel", "");
     if (!o || o.row) return;
@@ -930,10 +944,10 @@ export class Turn implements Host {
       genericCall: <T>(c: CallArgs) => this.genericCall<T>(c),
       genericSend: (c: CallArgs) => this.genericSend(c),
       cancel: (id: string) => this.cancel(id),
-      attach: unsupported("attach"),
+      attach: <T>(id: string, s?: Serde<T>) => this.attach(id, s),
       invocation: (id: string) => ({
         cancel: () => this.cancel(id),
-        attach: unsupported("attach"),
+        attach: <T>(s?: Serde<T>) => this.attach(id, s),
       }),
       promise: unsupported("workflow promises"),
       cancellation: unsupported("cancellation()"),

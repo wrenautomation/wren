@@ -40,6 +40,10 @@ const rs = restate.service({
       },
       async (_ctx: restate.Context): Promise<string> => "bare",
     ),
+    slow: async (ctx: restate.Context): Promise<string> => {
+      await ctx.sleep(60_000);
+      return "late";
+    },
     viaPg: async (ctx: restate.Context, name: string): Promise<string> =>
       ctx.serviceClient<typeof echo>({ name: "Echo" }).hi(name),
   },
@@ -65,6 +69,19 @@ const echo = restate.service({
     // no argument, as `content.platforms()`
     viaBare: async (ctx: restate.Context): Promise<string> =>
       (ctx.serviceClient(rs).bare as unknown as () => Promise<string>)(),
+    // as `within`: wait a moment, then cancel the call and move on
+    giveUp: async (ctx: restate.Context): Promise<string> => {
+      const call = (
+        ctx.serviceClient(rs).slow as unknown as () => restate.InvocationPromise<string>
+      )();
+      try {
+        return await call.orTimeout(300);
+      } catch (err) {
+        if (!(err instanceof restate.TimeoutError)) throw err;
+        ctx.invocation(await call.invocationId).cancel();
+        return "gave up";
+      }
+    },
     viaOutside: async (ctx: restate.Context, s: string): Promise<string> =>
       ctx.serviceClient(outside).shout(s),
     inside: restate.handlers.handler(
@@ -137,7 +154,7 @@ beforeAll(async () => {
     sql,
     pollMs: 100,
     lane: { except: ["Echo", "Counter"], lock: false },
-    run: (c) => bridgeTurn({ sql, ingress, leaseMs: 60_000 }, c),
+    run: (c) => bridgeTurn({ sql, ingress, leaseMs: 60_000, admin }, c),
     log,
   });
   await pgLane.start();
@@ -197,6 +214,28 @@ describe("restate ↔ pg", () => {
 
   it("a pg handler calls a Restate handler that takes no input", async () => {
     expect(await onPg.serviceClient(echo).viaBare()).toBe("bare");
+  }, 30_000);
+
+  it("a cancelled bridge row cancels its Restate call", async () => {
+    expect(await onPg.serviceClient(echo).giveUp()).toBe("gave up");
+    let rows: { status: string; completion_result: string | null }[] = [];
+    for (let i = 0; i < 60; i++) {
+      const res = await fetch(`${admin}/query`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({
+          query: `SELECT status, completion_result FROM sys_invocation WHERE target = 'Rs/slow'`,
+        }),
+      });
+      rows = ((await res.json()) as { rows: typeof rows }).rows;
+      if (rows[0]?.status === "completed") break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    expect(rows).toEqual([{ status: "completed", completion_result: "failure" }]);
+    const [row] = await sql<{ status: string; code: number }[]>`
+      SELECT status, (error->>'code')::int AS code FROM rt.invocations
+      WHERE service = 'Rs' AND handler = 'slow'`;
+    expect(row).toEqual({ status: "done", code: 409 });
   }, 30_000);
 
   it("a pg handler calls a service pg never registered through a bridge row", async () => {

@@ -94,8 +94,13 @@ describe("dead letters", () => {
       asked.push(q);
       if (q.includes("WHERE id IN"))
         return [{ id: "inv_root", target: "Content/publish", status: "suspended" }];
-      const parent = /invoked_by_id IN \('(\w+)'\)/.exec(q)?.[1] ?? "";
-      const rows = tree[parent] ?? [];
+      const parents = [
+        ...(/invoked_by_id IN \(([^)]*)\)/.exec(q)?.[1] ?? "").matchAll(/'(\w+)'/g),
+      ].map((m) => m[1] as string);
+      const rows = parents.flatMap((p) => [
+        ...(tree[p] ?? []),
+        ...((q.includes(`idempotency_key IN (`) && tree[`twin_of_${p}`]) || []),
+      ]);
       if (q.startsWith("SELECT entry_json")) return [];
       return rows.map((r) => ({
         ...r,
@@ -106,6 +111,14 @@ describe("dead letters", () => {
     // Nothing paused under it: null, and it stops when the calls run out.
     tree.inv_sites = [];
     expect(await pausedUnder(admin)("inv_root")).toBeNull();
+    // Across runtimes: a pg bridge row's Restate twin is found by its idempotency key.
+    tree.inv_sites = [];
+    tree.twin_of_inv_root = [
+      { id: "inv_twin", target: "Content/publish", status: "suspended", parent: "" },
+    ];
+    tree.inv_twin = [{ id: "inv_desk2", target: "desk/call", status: "paused", parent: "" }];
+    expect(await pausedUnder(admin)("inv_root")).toBe("desk/call: connection reset");
+    delete tree.twin_of_inv_root;
     // An id is quoted as word characters only.
     const from = asked.length;
     await pausedUnder(admin)("inv_x'; DROP");

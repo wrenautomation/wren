@@ -14,6 +14,8 @@ export interface Harness {
   ingress: clients.Ingress;
   /** Coarse status of one invocation, from its id. */
   status(invocationId: string): Promise<Status>;
+  /** A well-formed invocation id this runtime never made. */
+  missingId: string;
   stop(): Promise<void>;
 }
 export type StartHarness = (services: Sdk.ServiceDefinition<string, unknown>[]) => Promise<Harness>;
@@ -70,6 +72,11 @@ function build(restate: typeof Sdk) {
     handlers: {
       record: async (ctx: Sdk.Context, { run }: R) => {
         await ctx.run("at", () => note(`${run}:at`, Date.now()));
+      },
+      slow: async (ctx: Sdk.Context, { run, ms }: R & { ms: number }) => {
+        await ctx.sleep(ms);
+        await ctx.run("slow", () => hit(`${run}:slow`));
+        return `slow ${run}`;
       },
       child: async (ctx: Sdk.Context, { run, fail }: R & { fail?: boolean | undefined }) => {
         await ctx.run("child", () => hit(`${run}:child`));
@@ -169,6 +176,49 @@ function build(restate: typeof Sdk) {
         } catch (err) {
           if (err instanceof restate.TimeoutError) return "timed out";
           if (err instanceof restate.TerminalError) return `rejected: ${err.message}`;
+          throw err;
+        }
+      },
+      /** PostPublish's settle: send, look for a moment, attach again later; a failed one; one that is not. */
+      attach: async (ctx: Sdk.Context, { run }: R) => {
+        const slow = await ctx.serviceSendClient(kid).slow({ run, ms: 800 }).invocationId;
+        const fail = await ctx.serviceSendClient(kid).child({ run, fail: true }).invocationId;
+        const out: string[] = [];
+        try {
+          out.push(await ctx.invocation(slow).attach<string>().orTimeout(100));
+        } catch (err) {
+          out.push(err instanceof restate.TimeoutError ? "timed out" : `other: ${err}`);
+        }
+        out.push(await ctx.invocation(slow).attach<string>());
+        out.push(await ctx.attach<string>(slow));
+        try {
+          out.push(await ctx.invocation(fail).attach<string>());
+        } catch (err) {
+          out.push(
+            err instanceof restate.TerminalError ? `failed: ${err.message}` : `other: ${err}`,
+          );
+        }
+        return out;
+      },
+      /** Attaches that race their targets' ends: a lost wake hangs. */
+      attachMany: async (ctx: Sdk.Context, { run, n }: R & { n: number }) => {
+        const ids: Sdk.InvocationId[] = [];
+        for (let i = 0; i < n; i++)
+          ids.push(await ctx.serviceSendClient(kid).child({ run: `${run}-${i}` }).invocationId);
+        const out = await restate.RestatePromise.all(
+          ids.map((id) => ctx.invocation(id).attach<string>()),
+        );
+        return out.length;
+      },
+      attachMissing: async (ctx: Sdk.Context, { missing }: { missing: string }) => {
+        try {
+          return await ctx
+            .invocation(restate.InvocationIdParser.fromString(missing))
+            .attach<string>()
+            .orTimeout(3000);
+        } catch (err) {
+          if (err instanceof restate.TimeoutError) return "missing waits";
+          if (err instanceof restate.TerminalError) return `missing: ${err.code}`;
           throw err;
         }
       },
@@ -356,6 +406,34 @@ export function conformance(name: string, rt: Runtime, start: StartHarness) {
       const run = runId("timeout");
       expect(await svc().wait({ run, timeout: 300 })).toBe("timed out");
     });
+
+    it("attach waits on a sent call's outcome, again and after it ended", async () => {
+      const run = runId("attach");
+      expect(await svc().attach({ run })).toEqual([
+        "timed out",
+        `slow ${run}`,
+        `slow ${run}`,
+        "failed: child said no",
+      ]);
+      expect(count(`${run}:slow`)).toBe(1);
+    });
+
+    it("attaches racing their targets' ends all settle", async () => {
+      const run = runId("attach-many");
+      const outs = await Promise.all(
+        Array.from({ length: 8 }, (_, i) => svc().attachMany({ run: `${run}-${i}`, n: 12 })),
+      );
+      expect(outs).toEqual(Array(8).fill(12));
+    }, 60_000);
+
+    // Restate retries the handler until it pauses; pg answers 404, so a caller can move on
+    it.runIf(name === "pg")(
+      "attach to an id the runtime never made answers 404",
+      async () => {
+        expect(await svc().attachMissing({ missing: h.missingId })).toBe("missing: 404");
+      },
+      30_000,
+    );
 
     it("a call that fails every try pauses, never drops", async () => {
       const run = runId("stuck");

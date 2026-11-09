@@ -219,7 +219,44 @@ const V5 = `
 ALTER TABLE rt.handlers ADD COLUMN private boolean NOT NULL DEFAULT false;
 `;
 
-const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5];
+const V6 = `
+-- attach: a finished invocation settles the journal rows waiting on it
+CREATE INDEX journal_attach ON rt.journal (ref) WHERE kind = 'attach' AND NOT done;
+
+-- idempotency_key, as Restate's: a bridge row's id is its Restate twin's key (dead-letters pausedUnder)
+CREATE OR REPLACE VIEW rt_admin.sys_invocation AS
+SELECT i.id,
+  rt_admin.target(i.service, i.key, i.handler) AS target,
+  i.service AS target_service_name, i.key AS target_service_key, i.handler AS target_handler_name,
+  CASE
+    WHEN i.status IN ('done', 'killed') THEN 'completed'
+    WHEN i.status <> 'pending' THEN i.status
+    WHEN i.run_at > now() AND NOT i.wake THEN 'scheduled'
+    WHEN i.exclusive AND NOT i.holds AND EXISTS (
+      SELECT 1 FROM rt.invocations h WHERE h.holds AND h.service = i.service AND h.key = i.key)
+      THEN 'pending'
+    WHEN i.failures > 0 THEN 'backing-off'
+    ELSE 'ready'
+  END AS status,
+  CASE WHEN i.parent_id IS NULL THEN 'ingress' ELSE 'service' END AS invoked_by,
+  i.parent_id AS invoked_by_id,
+  rt_admin.target(p.service, p.key, p.handler) AS invoked_by_target,
+  rt_admin.failure(i.last_failure) AS last_failure,
+  CASE WHEN i.status = 'killed' THEN 'killed' WHEN i.status = 'done' THEN
+    CASE WHEN i.error IS NULL THEN 'success' ELSE 'failure' END END AS completion_result,
+  rt_admin.failure(i.error) AS completion_failure,
+  i.attempt AS retry_count,
+  i.build AS pinned_deployment_id,
+  rt_admin.iso(i.created_at) AS created_at,
+  rt_admin.iso(i.moved_at) AS modified_at,
+  CASE WHEN i.status = 'pending' AND i.run_at > i.created_at THEN rt_admin.iso(i.run_at) END AS scheduled_at,
+  CASE WHEN i.status = 'pending' AND i.run_at > i.created_at THEN rt_admin.iso(i.run_at) END AS scheduled_start_at,
+  rt_admin.iso(i.completed_at) AS completed_at,
+  i.idem_key AS idempotency_key
+FROM rt.invocations i LEFT JOIN rt.invocations p ON p.id = i.parent_id;
+`;
+
+const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6];
 
 /** Bring schema `rt` up to date. One advisory lock, so parallel starts take turns. */
 export async function migrate(sql: postgres.Sql): Promise<void> {

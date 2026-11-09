@@ -64,17 +64,24 @@ export async function kill(sql: postgres.Sql, id: string): Promise<number> {
         SELECT id FROM rt.invocations WHERE id = ${id}
         UNION SELECT c.id FROM rt.invocations c JOIN tree t ON c.parent_id = t.id
       )
-      UPDATE rt.invocations i SET status = 'killed', error = ${KILLED}::jsonb, holds = false,
+      UPDATE rt.invocations i SET status = 'killed', error = ${KILLED}::text::jsonb, holds = false,
         lease_until = NULL, completed_at = now()
       FROM tree WHERE i.id = tree.id AND i.status NOT IN ('done', 'killed')
       RETURNING i.id, i.parent_id, i.parent_seq`;
     for (const r of ended)
       if (r.parent_id && r.parent_seq !== null) {
         await tx`
-          UPDATE rt.journal SET done = true, value = NULL, error = ${KILLED}::jsonb, at = now()
+          UPDATE rt.journal SET done = true, value = NULL, error = ${KILLED}::text::jsonb, at = now()
           WHERE invocation_id = ${r.parent_id} AND seq = ${r.parent_seq} AND NOT done`;
         await tx`SELECT rt.wake(${r.parent_id}, now())`;
       }
+    const ids = ended.map((r) => r.id);
+    if (ids.length)
+      await tx`
+        WITH a AS (
+          UPDATE rt.journal SET done = true, value = NULL, error = ${KILLED}::text::jsonb, at = now()
+          WHERE kind = 'attach' AND ref = ANY(${ids}) AND NOT done RETURNING invocation_id)
+        SELECT rt.wake(invocation_id, now()) FROM (SELECT DISTINCT invocation_id FROM a) d`;
     for (const r of ended) await tx`SELECT pg_notify('rt_done', ${r.id})`;
     await tx`SELECT pg_notify('rt_wake', '')`;
     return ended.length;

@@ -146,10 +146,15 @@ export interface Ingress {
 }
 
 const ATTACH_MS = 240_000; // under undici's 300 s headers timeout; re-attach after
+/** How often an open bridge row looks for a cancel to pass on. */
+const CANCEL_POLL_MS = 2_000;
 
-/** Run one bridge row on Restate: send (idempotent on the row id), then attach until it ends. */
+/**
+ * Run one bridge row on Restate: send (idempotent on the row id), then attach until it ends. A
+ * cancel on the row (a caller's `within` gave up) goes to Restate's admin, as Restate cancels a call.
+ */
 export async function bridgeTurn(
-  o: { sql: postgres.Sql; ingress: Ingress; leaseMs: number },
+  o: { sql: postgres.Sql; ingress: Ingress; leaseMs: number; admin?: string },
   c: Pick<Claim, "id" | "attempt">,
 ): Promise<string> {
   const loaded = await load(o.sql, c.id, c.attempt);
@@ -159,15 +164,29 @@ export async function bridgeTurn(
     SELECT key, input, remote FROM rt.invocations WHERE id = ${inv.id}`;
   if (!row) return "gone";
   let fenced = false;
+  let remote = row.remote;
   const beat = setInterval(() => {
     renew(o.sql, inv.id, inv.attempt, o.leaseMs).catch((e: unknown) => {
       if (isFenced(e)) fenced = true;
     });
   }, o.leaseMs / 3);
   beat.unref();
+  let cancelled = false;
+  const admin = o.admin;
+  const watch = admin
+    ? setInterval(() => {
+        if (cancelled || !remote) return;
+        const id = remote;
+        forwardCancel(o.sql, admin, inv.id, id)
+          .then((sent) => {
+            cancelled ||= sent;
+          })
+          .catch(() => {});
+      }, CANCEL_POLL_MS)
+    : null;
+  watch?.unref();
   const h = { ...o.ingress.headers };
   try {
-    let remote = row.remote;
     if (!remote) {
       const path = [inv.service, ...(row.key !== null ? [row.key] : []), inv.handler, "send"]
         .map(encodeURIComponent)
@@ -228,7 +247,19 @@ export async function bridgeTurn(
     return "failed";
   } finally {
     clearInterval(beat);
+    if (watch) clearInterval(watch);
   }
+}
+
+/** The row asks for a cancel: Restate's admin cancels its twin. True once Restate has it. */
+async function forwardCancel(sql: postgres.Sql, admin: string, id: string, remote: string) {
+  const [r] = await sql<{ cancel: boolean }[]>`SELECT cancel FROM rt.invocations WHERE id = ${id}`;
+  if (!r?.cancel) return false;
+  const res = await fetch(`${admin}/invocations/${encodeURIComponent(remote)}/cancel`, {
+    method: "PATCH",
+    signal: AbortSignal.timeout(10_000),
+  });
+  return res.ok || res.status === 404 || res.status === 409; // gone or done: nothing to cancel
 }
 
 /**
