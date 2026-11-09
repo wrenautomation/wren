@@ -180,7 +180,7 @@ export async function flush(
 }
 
 /** Restate's default (deploy/scripts/box-restate.sh): 500 ms × 2 up to 1 min, 70 tries, then pause. */
-export const SERVER_RETRY: {
+const SERVER_RETRY: {
   initialInterval: number;
   exponentiationFactor: number;
   maxInterval: number;

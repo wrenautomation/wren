@@ -105,7 +105,7 @@ export interface Writes {
   uncancel: boolean;
 }
 
-export const emptyWrites = (): Writes => ({
+const emptyWrites = (): Writes => ({
   journal: new Map(),
   sets: new Map(),
   clears: new Set(),
@@ -166,7 +166,7 @@ export const toErrorJson = (e: unknown): ErrorJson => {
   return { message: String(e) };
 };
 
-export const fromErrorJson = (e: ErrorJson): TerminalError => {
+const fromErrorJson = (e: ErrorJson): TerminalError => {
   if (e.code === 409 && e.message === "Cancelled") return new CancelledError();
   if (e.code === 408 && e.message === "Timeout occurred") return new TimeoutError();
   return new TerminalError(e.message, {
