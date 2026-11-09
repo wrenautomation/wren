@@ -554,6 +554,7 @@ export function makeContentPublish(channelsFor: ChannelsFor, clients?: ContentCl
             media: z.enum(["image", "video"]).nullish().describe("What it carries"),
             read: z
               .unknown()
+              .optional()
               .describe("What this look's metrics read answered, if it can be reused"),
           }),
         },
