@@ -191,6 +191,8 @@ export function useLive(on: (run: string) => void) {
 const views = new Map<string, RunView>();
 const stale = new Set<string>();
 const asking = new Map<string, Promise<RunView>>();
+// changes heard per run: a change during a read leaves the run stale for one more read
+const heardN = new Map<string, number>();
 const FLIGHT = 6;
 
 function viewKept(run: string): Promise<RunView> {
@@ -198,10 +200,11 @@ function viewKept(run: string): Promise<RunView> {
   if (had && !stale.has(run)) return Promise.resolve(had);
   let p = asking.get(run);
   if (!p) {
+    const n = heardN.get(run);
     p = viewOf(run)
       .then((v) => {
         views.set(run, v);
-        stale.delete(run);
+        if (heardN.get(run) === n) stale.delete(run);
         return v;
       })
       .finally(() => asking.delete(run));
@@ -224,6 +227,7 @@ export function useViews(runs: readonly string[]): {
   useLive((run) => {
     if (!runs.includes(run)) return;
     stale.add(run);
+    heardN.set(run, (heardN.get(run) ?? 0) + 1);
     setTick((t) => t + 1);
   });
   // biome-ignore lint/correctness/useExhaustiveDependencies: key is the runs, tick a live change
@@ -236,6 +240,7 @@ export function useViews(runs: readonly string[]): {
       for (let r = left.shift(); r && live; r = left.shift()) {
         await viewKept(r);
         if (live) setGot((n) => n + 1);
+        if (stale.has(r) && !left.includes(r)) left.push(r);
       }
     };
     Promise.all(Array.from({ length: Math.min(FLIGHT, left.length) }, next)).catch((e) => {
