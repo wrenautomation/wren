@@ -48,7 +48,10 @@ GitHub Actions (main) ──OIDC role──▶ Lambda versions, box worker, Clou
 
 The box worker is the only always-on piece of the runtime. Every loop's timer and state are rows
 in Postgres. Lambda runs only when the dispatcher invokes it, so a loop asleep for 14 hours costs
-nothing and has no process to crash. Restate and Redis ran here until 2026-11-09.
+nothing and has no process to crash. Restate and Redis ran here until 2026-11-09: their
+containers (`wren-restate`, `wren-redis`, `wren-desk-hop`) are stopped with no restart, their data
+stays in `/var/lib/wren-pg/{restate,redis}`, and their crons sit in `/etc/cron.retired`. The
+desk pulls its calls from the door, so it needs no inbound tunnel.
 
 ## AWS resources (24, all Terraform in `deploy/terraform/`)
 
