@@ -83,4 +83,4 @@ gate:
   hosts:
     WREN_API_TOKEN: [api.wrenautomation.com]
     DESK_DOOR_TOKEN: [api.wrenautomation.com]
-    SEARXNG_TOKEN: [search.wrenautomation.com]
+    SEARXNG_TOKEN: [search.wrenautomation.com, search2.wrenautomation.com]
