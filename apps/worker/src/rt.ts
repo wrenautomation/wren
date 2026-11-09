@@ -79,6 +79,9 @@ const LEASE_MS = 60_000;
 /** The last slot sees it was superseded within 30 s of this one's register (`watchSuperseded`). */
 const OLD_SLOT_MS = 120_000;
 const THROTTLE_MS = 2_000;
+/** State takes after start: 30 min covers register and the old deployment's last calls. */
+const TAKE_EVERY_MS = 120_000;
+const TAKE_REPEATS = 15;
 
 /** The Restate side: each pg service becomes a proxy of the same name. */
 export function restateSide(services: AnyService[], sql: () => postgres.Sql): AnyService[] {
@@ -143,8 +146,11 @@ export async function startRt(o: {
     } catch (e) {
       o.log.error({ err: String(e), from, to }, "rt: rename failed");
     }
-  // state Restate still holds for a pg service moves in before any turn reads it
-  if (o.admin)
+  // state Restate still holds for a pg service moves in before any turn reads it; again until the
+  // deploy has registered the proxies (it restarts the box first) and old-deployment calls are done
+  const warned = new Set<string>();
+  const take = async () => {
+    if (!o.admin) return;
     for (const [from, to] of [
       ...PG_SERVICES.map((s) => [s, s] as const),
       ...Object.entries(RENAMED),
@@ -152,11 +158,21 @@ export async function startRt(o: {
       try {
         const { moved, kept } = await takeState(sql, o.admin, from, to);
         if (moved.length) o.log.info({ from, to, moved }, "rt: state taken from Restate");
-        if (kept.length)
-          o.log.warn({ from, to, kept }, "rt: Restate state kept, pg holds these keys");
+        const fresh = kept.filter((k) => !warned.has(`${from}/${k}`));
+        for (const k of fresh) warned.add(`${from}/${k}`);
+        if (fresh.length)
+          o.log.warn({ from, to, kept: fresh }, "rt: Restate state kept, pg holds these keys");
       } catch (e) {
         o.log.error({ err: String(e), from, to }, "rt: state take failed");
       }
+  };
+  await take();
+  let takes = 0;
+  const retake = setInterval(() => {
+    if (++takes >= TAKE_REPEATS) clearInterval(retake);
+    void take();
+  }, TAKE_EVERY_MS);
+  retake.unref();
   if (o.admin)
     for (const { service } of await sql<
       { service: string }[]
@@ -262,12 +278,14 @@ export async function startRt(o: {
     /** A newer slot took over: finish this build's own box rows only. */
     async superseded() {
       clearInterval(repin);
+      clearInterval(retake);
       boxLane.setLane({ only: onBox, build: o.build, strict: true, fresh: false });
       await Promise.all([lambdaLane.stop(), bridgeLane.stop(), reply?.stop()]);
       reply = null;
     },
     async stop() {
       clearInterval(repin);
+      clearInterval(retake);
       await door?.close();
       await doorSql?.end({ timeout: 5 });
       await Promise.all([boxLane.stop(), lambdaLane.stop(), bridgeLane.stop(), reply?.stop()]);
