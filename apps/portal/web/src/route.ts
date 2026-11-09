@@ -27,12 +27,15 @@ declare module "@tanstack/react-router" {
  * A link to `path` with `params`, on top of `keep` when given. Empty values are dropped, so
  * defaults keep URLs short, and an empty param removes the kept one.
  */
+/** A query as text; ":" is legal there, so refs read `?b=opener:2`. */
+export const queryText = (q: URLSearchParams) => q.toString().replace(/%3A/gi, ":");
+
 export function href(path: string, params: Params = {}, keep?: URLSearchParams): string {
   const q = new URLSearchParams([...(keep ?? [])].filter(([, v]) => v !== ""));
   for (const [k, v] of Object.entries(params))
     if (v === null || v === undefined || v === "") q.delete(k);
     else q.set(k, String(v));
-  const s = q.toString();
+  const s = queryText(q);
   return `${path}${s ? `?${s}` : ""}`;
 }
 

@@ -1,27 +1,18 @@
 /**
- * Variants › Batches: every batch, newest first, and one batch whole (`?batch=<id>`). A closed
- * batch: his calls, notes and the idea each sample tested, read only. An open batch: marked here,
- * blind (queue order, no ideas), then handed to Vireo.
+ * Variants › Batches (vireo D11): a page of batches the server sorts and filters, and one batch
+ * whole (`?b=<subject>:<n>`). List state lives in the address: `sort`, `subject`, `folder`,
+ * `kind`, `state`, `who`. A closed batch: every call, notes and the idea each sample tested, read
+ * only. An open batch: blind, only his own marks, then handed to Vireo.
  */
-import {
-  Button,
-  CHIP,
-  cx,
-  Empty,
-  Icon,
-  LoadFailed,
-  Loading,
-  PAGE_TITLE,
-  Tag,
-  TierLabel,
-} from "@wren/ui";
+import { Button, cx, Empty, Icon, LoadFailed, Loading, PAGE_TITLE, Tag, TierLabel } from "@wren/ui";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
+import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { usePageContext } from "../agent/drive.js";
-import { dayLabel } from "../work/bits.js";
+import { dayLabel, SELECT } from "../work/bits.js";
 import { FramesProvider } from "./live-page.js";
 import { type Kind, pct, type Sample } from "./marks.js";
 import { MarkBatch, type Open, SampleCard, TALLY, WIDE_KINDS } from "./page.js";
@@ -29,188 +20,285 @@ import { Rename } from "./rename.js";
 import { VERDICT_ON, ZONE_OF } from "./score.js";
 import { Together, TogetherProvider } from "./together.js";
 
-interface Row {
+type Verdict = NonNullable<Sample["verdict"]>;
+type Counts = Record<Verdict | "unmarked", number>;
+interface Subject {
   id: number;
-  /** number within its subject */
+  slug: string;
+  name: string;
+  kind: Kind;
+  brief: string | null;
+}
+
+/** One row of the list: counts, not samples. An open batch shows only his own marks. */
+interface ListRow {
+  ref: string;
+  id: number;
   n: number;
   /** One line he sees: what the batch is. Null on a batch made before titles */
   title: string | null;
-  /** Null while open: the agent's reason stays hidden until he hands it back. */
+  /** Null while open: the agent's reason stays hidden until the batch closes. */
   why: string | null;
   note: string | null;
   state: string;
   createdAt: string;
+  subject: Subject;
+  /** open and its subject's newest */
+  waits: boolean;
+  samples: number;
+  kept: number;
+  /** open: his own marks; closed: every call */
+  marked: number;
+  judges: number | null;
   goodRate: number | null;
-  subject: { id: number; slug: string; name: string; kind: Kind; brief: string | null };
+  tally: Counts | null;
+  thumbs: { id: number; posterUrl: string | null; verdict: Verdict | null }[];
+}
+interface ListPage {
+  rows: ListRow[];
+  next: number | null;
+  waiting: number;
+}
+
+/** One batch whole. `score`, `verdict`: the mean of the calls he may see. */
+interface Whole {
+  ref: string;
+  id: number;
+  n: number;
+  title: string | null;
+  why: string | null;
+  note: string | null;
+  state: string;
+  createdAt: string;
+  subject: Subject;
+  goodRate: number | null;
+  /** who called; null while open */
+  judges: string[] | null;
+  newer: { n: number; ref: string } | null;
   samples: (Sample & { change: string | null })[];
 }
 
 const HERE = "/variants/batches";
-/** `CHIP_ON` by the address: a variant outranks CHIP's own ground and ink, cx does not merge. */
-const CHIP_SET =
-  "aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:text-(--ui-active) aria-[current=page]:hover:bg-(--ui-accent-tint)";
 /** A thumb's width (w-20) plus its gap (gap-1.5). */
 const THUMB_STEP = 86;
+const SORTS = {
+  waiting: "Waiting first",
+  newest: "Newest",
+  oldest: "Oldest",
+  subject: "By subject",
+  good: "Best good rate",
+} as const;
+const STATES = { "": "Any state", waits: "Waiting", open: "Open", closed: "Closed" } as const;
+const KIND_NAMES = { "": "Every kind", text: "Text", image: "Image", video: "Video", page: "Page" };
+const WHO = { "": "Anyone's", me: "Marked by me" } as const;
 
-export function BatchesPage({ params }: PageProps) {
+export function BatchesPage({ params, team }: PageProps) {
+  // ?batch=<id>: links made before refs; the server reads an id too
+  const ref = params.get("b") ?? params.get("batch");
+  return ref ? (
+    <OneBatch key={ref} batchRef={ref} params={params} />
+  ) : (
+    <BatchList params={params} team={team} />
+  );
+}
+
+/** The list's query from the address; a folder becomes its subjects, sub-folders included. */
+function useQuery(params: URLSearchParams, team: boolean) {
+  const filed = useFolders("subject", team);
+  const subjects = useCall("variants-subjects", () => call<Subject[]>("variants/subjects", {}));
+  const folder = Number(params.get("folder")) || null;
+  const inFolder = useMemo(() => {
+    if (folder == null || !filed.folders || !subjects.data) return null;
+    const under = new Set([folder]);
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const f of filed.folders)
+        if (f.parent != null && under.has(f.parent) && !under.has(f.id)) {
+          under.add(f.id);
+          grew = true;
+        }
+    }
+    return subjects.data
+      .filter((s) => under.has(filed.folderOf(String(s.id)) ?? -1))
+      .map((s) => s.id);
+  }, [folder, filed, subjects.data]);
+  const q = {
+    sort: params.get("sort") || "waiting",
+    subject: params.get("subject") || null,
+    kind: params.get("kind") || null,
+    state: params.get("state") || null,
+    who: params.get("who") || null,
+    ...(inFolder ? { subjects: inFolder } : {}),
+  };
+  // a folder waits for the tree and the subjects before it can ask
+  const ready = folder == null || inFolder != null;
+  return { q, ready, folders: filed.folders, subjects: subjects.data ?? [] };
+}
+
+function BatchList({ params, team }: { params: URLSearchParams; team: boolean }) {
+  const { q, ready, folders, subjects } = useQuery(params, team);
+  const key = JSON.stringify(q);
   // a Vireo write anywhere pushes "variants": new batches show without a reload
-  const got = useCall("variants-batches", () => call<Row[]>("variants/batches", {}), {
-    live: "variants",
-  });
-  const [rows, setRows] = useState<Row[] | null>(null);
-  // a read with new batches or samples while he marks one: held behind a bar, not swapped in
-  const [fresh, setFresh] = useState<Row[] | null>(null);
-  const id = Number(params.get("batch")) || null;
-  // set by Send: the next read is taken whole (the closed batch's why)
-  const take = useRef(false);
-  // read, not a dependency: his own marks must not trigger a merge
-  const shown = useRef(rows);
-  shown.current = rows;
-  useEffect(() => {
-    const next = got.data;
-    if (!next) return;
-    const rows = shown.current;
-    // a batch open in front of him keeps its marks; a read with new batches or samples waits
-    const held = id !== null && !take.current && !!rows?.some((r) => r.id === id);
-    if (held && shapeOf(rows ?? []) !== shapeOf(next)) return setFresh(next);
-    take.current = false;
-    setFresh(null);
-    if (!held) setRows(next);
-  }, [got.data, id]);
-  const bar = fresh && (
-    <div
-      role="status"
-      className="mb-3 flex items-center justify-between gap-3 rounded-md bg-(--ui-accent-tint) px-3 py-2 text-[13px]"
-    >
-      <span>{freshLine(rows ?? [], fresh)}</span>
-      <Button
-        size="dense"
-        onClick={() => {
-          setRows(fresh);
-          setFresh(null);
+  const got = useCall(
+    ready ? `variants-batches:${key}` : null,
+    () => call<ListPage>("variants/batches", q),
+    { live: "variants" },
+  );
+  // pages past the first, from Show more; held per query, so a new query starts over
+  const [extra, setExtra] = useState<{ key: string; pages: ListPage[] }>({ key, pages: [] });
+  const more = extra.key === key ? extra.pages : [];
+  const [loading, setLoading] = useState(false);
+  usePageContext(
+    `in view: Variants batches, ${SORTS[q.sort as keyof typeof SORTS] ?? q.sort}${
+      q.subject ? `, subject ${q.subject}` : ""
+    }${q.state ? `, ${q.state}` : ""}${q.kind ? `, ${q.kind}` : ""}${q.who ? ", marked by him" : ""}`,
+  );
+  const set = (k: string, v: string) => navigate(href(HERE, { [k]: v || null }, params));
+  const bar = (
+    // phone: two to a row; wider: one line that wraps
+    <div className="grid grid-cols-2 gap-2 @min-[720px]/main:flex @min-[720px]/main:flex-wrap">
+      <Pick
+        label="Sort"
+        value={q.sort}
+        options={SORTS}
+        onChange={(v) => set("sort", v === "waiting" ? "" : v)}
+      />
+      <Pick
+        label="Subject"
+        value={q.subject ?? ""}
+        options={{
+          "": "Every subject",
+          ...Object.fromEntries(subjects.map((s) => [s.slug, s.name])),
         }}
-      >
-        Show
-      </Button>
+        onChange={(v) => set("subject", v)}
+      />
+      {folders && folders.length > 0 && (
+        <Pick
+          label="Folder"
+          value={params.get("folder") ?? ""}
+          options={{
+            "": "Every folder",
+            ...Object.fromEntries(folders.map((f) => [String(f.id), f.name])),
+          }}
+          onChange={(v) => set("folder", v)}
+        />
+      )}
+      <Pick
+        label="Kind"
+        value={q.kind ?? ""}
+        options={KIND_NAMES}
+        onChange={(v) => set("kind", v)}
+      />
+      <Pick
+        label="State"
+        value={q.state ?? ""}
+        options={STATES}
+        onChange={(v) => set("state", v)}
+      />
+      <Pick label="Marked by" value={q.who ?? ""} options={WHO} onChange={(v) => set("who", v)} />
     </div>
   );
-  if (got.error && !rows) return <LoadFailed error={got.error} onRetry={got.retry} />;
-  if (!rows) return <Loading shape="rows" lines={4} />;
-  if (id != null) {
-    const row = rows.find((r) => r.id === id);
-    if (!row)
-      return (
-        <Empty title={`No batch ${id}`}>
-          <a href={HERE}>All batches</a>
-        </Empty>
-      );
-    const patch = (sampleId: number, fn: (s: Sample) => Sample) =>
-      setRows((rs) =>
-        (rs ?? []).map((r) =>
-          r.id !== id
-            ? r
-            : { ...r, samples: r.samples.map((s) => (s.id === sampleId ? { ...s, ...fn(s) } : s)) },
-        ),
-      );
-    // closed now: the agent's why shows; a fresh read brings it
-    const sent = () => {
-      setRows((rs) => (rs ?? []).map((r) => (r.id === id ? { ...r, state: "closed" } : r)));
-      take.current = true;
-      got.retry();
-    };
-    // the subject's newest open batch, when it is not this one
-    const newer = rows.find(
-      (r) => r.subject.slug === row.subject.slug && r.state === "open" && r.n > row.n,
-    );
-    return (
-      <>
-        {bar}
-        <BatchView row={row} newer={newer} patch={patch} params={params} onSent={sent} />
-      </>
-    );
-  }
-  return <BatchList rows={rows} params={params} />;
-}
-
-/** What a read adds: batches and samples, not his marks on them. */
-const shapeOf = (rows: Row[]) => rows.map((r) => `${r.id}:${r.state}:${r.samples.length}`).join();
-function freshLine(now: Row[], next: Row[]): string {
-  const had = new Set(now.map((r) => r.id));
-  const added = next.filter((r) => !had.has(r.id));
-  const [one] = added;
-  if (one && added.length === 1) return `New batch: ${one.subject.name} ${one.n}`;
-  if (added.length) return `${added.length} new batches`;
-  return "This batch changed";
-}
-
-function BatchList({ rows, params }: { rows: Row[]; params: URLSearchParams }) {
-  const subjects = useMemo(
-    () => [...new Map(rows.map((r) => [r.subject.slug, r.subject.name])).entries()],
-    [rows],
+  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
+  if (!got.data) return <Loading shape="rows" lines={4} />;
+  const pages = [got.data, ...more];
+  const rows = pages.flatMap((p) => p.rows);
+  const next = pages.at(-1)?.next ?? null;
+  const filtered = [...params.keys()].some((k) =>
+    ["subject", "folder", "kind", "state", "who"].includes(k),
   );
-  const pick = params.get("subject") ?? "";
-  const shown = pick ? rows.filter((r) => r.subject.slug === pick) : rows;
-  // only a subject's newest open batch waits on him (vireo's queue); it leads (DESIGN.md, Needs You)
-  const waits = waitingOf(rows);
-  const tiers = [
-    { needs: true, rows: shown.filter((r) => waits.has(r.id)) },
-    { needs: false, rows: shown.filter((r) => !waits.has(r.id)) },
-  ].filter((t) => t.rows.length);
-  usePageContext(`in view: every Variants batch${pick ? ` of ${pick}` : ""}, newest first`);
-  if (!rows.length)
+  if (!rows.length && !filtered)
     return (
       <Empty title="No batches yet">
         Ask the agent in chat to start a subject. Its batches land here.
       </Empty>
     );
+  // waiting first: what waits leads (DESIGN.md, Needs You); other sorts are one list
+  const tiers =
+    q.sort === "waiting"
+      ? [
+          { needs: true, n: got.data.waiting, rows: rows.filter((r) => r.waits) },
+          { needs: false, n: null, rows: rows.filter((r) => !r.waits) },
+        ].filter((t) => t.rows.length)
+      : [{ needs: null, n: null, rows }];
   return (
     <div className="flex flex-col gap-3">
-      {subjects.length > 1 && (
-        <nav aria-label="Subject" className="-mx-1 flex gap-1 overflow-x-auto px-1">
-          {[["", "All"] as const, ...subjects].map(([slug, name]) => (
-            <a
-              key={slug}
-              href={href(HERE, { subject: slug }, params)}
-              aria-current={pick === slug ? "page" : undefined}
-              className={cx(CHIP, CHIP_SET)}
-            >
-              {name}
-            </a>
-          ))}
-        </nav>
+      {bar}
+      {!rows.length ? (
+        <p className="m-0 text-[13px] text-(--ui-ink-2)">No batch matches.</p>
+      ) : (
+        <ul className="m-0 flex list-none flex-col p-0">
+          {tiers.map((t) => [
+            t.needs != null && (
+              <li
+                key={t.needs ? "needs" : "info"}
+                className="flex h-8 items-center bg-(--ui-band) px-2 text-[12px] font-semibold text-(--ui-ink-2)"
+              >
+                <TierLabel needs={t.needs} n={t.n ?? t.rows.length} />
+              </li>
+            ),
+            ...t.rows.map((r) => (
+              <li key={r.id}>
+                <BatchRow row={r} params={params} />
+              </li>
+            )),
+          ])}
+        </ul>
       )}
-      <ul className="m-0 flex list-none flex-col p-0">
-        {tiers.map((t) => [
-          <li
-            key={t.needs ? "needs" : "info"}
-            className="flex h-8 items-center bg-(--ui-band) px-2 text-[12px] font-semibold text-(--ui-ink-2)"
+      {next != null && (
+        <span>
+          <Button
+            size="dense"
+            tone="quiet"
+            disabled={loading}
+            onClick={async () => {
+              setLoading(true);
+              try {
+                const page = await call<ListPage>("variants/batches", { ...q, after: next });
+                setExtra((x) => ({ key, pages: x.key === key ? [...x.pages, page] : [page] }));
+              } finally {
+                setLoading(false);
+              }
+            }}
           >
-            <TierLabel needs={t.needs} n={t.rows.length} />
-          </li>,
-          ...t.rows.map((r) => (
-            <li key={r.id}>
-              <BatchRow row={r} waits={waits.has(r.id)} />
-            </li>
-          )),
-        ])}
-      </ul>
+            {loading ? "Loading…" : "Show more"}
+          </Button>
+        </span>
+      )}
     </div>
   );
 }
 
-/** Ids of open batches that are their subject's newest: a newer batch replaces an unmarked one. */
-function waitingOf(rows: Row[]): Set<number> {
-  const newest = new Map<string, number>();
-  for (const r of rows) newest.set(r.subject.slug, Math.max(newest.get(r.subject.slug) ?? 0, r.n));
-  return new Set(
-    rows.filter((r) => r.state === "open" && r.n === newest.get(r.subject.slug)).map((r) => r.id),
+function Pick<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T | string;
+  options: Readonly<Record<string, string>>;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <select
+      aria-label={label}
+      // a long subject name would stretch it: capped
+      className={cx(SELECT, "w-full min-w-0 @min-[720px]/main:w-auto @min-[720px]/main:max-w-64")}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      {Object.entries(options).map(([k, v]) => (
+        <option key={k} value={k}>
+          {v}
+        </option>
+      ))}
+    </select>
   );
 }
 
-function BatchRow({ row: r, waits }: { row: Row; waits: boolean }) {
+function BatchRow({ row: r, params }: { row: ListRow; params: URLSearchParams }) {
   const open = r.state === "open";
-  const kept = r.samples.filter((s) => s.keptAt).length;
-  const posters = r.samples.filter((s) => s.posterUrl);
+  const posters = r.thumbs.filter((s) => s.posterUrl);
   const box = useRef<HTMLSpanElement>(null);
   const [fit, setFit] = useState(posters.length);
   // as many as the row holds; past that the last slot says +N
@@ -224,34 +312,36 @@ function BatchRow({ row: r, waits }: { row: Row; waits: boolean }) {
     return () => ro.disconnect();
   }, []);
   const shown = posters.length > fit ? posters.slice(0, fit - 1) : posters;
-  const more = posters.length - shown.length;
+  const extra = posters.length - shown.length;
   return (
     <a
-      href={href(HERE, { batch: r.id })}
+      // the list's filters ride along, so Back returns to the same list
+      href={href(HERE, { b: r.ref }, params)}
       className="flex flex-col gap-2 border-b border-(--ui-hair) px-1 py-3 text-(--ui-ink) no-underline hover:bg-(--ui-hover) @min-[720px]/main:flex-row @min-[720px]/main:items-start @min-[720px]/main:gap-4"
     >
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span
           className={cx(
             "text-[14px]",
-            waits ? "font-semibold text-(--ui-ink)" : "font-normal text-(--ui-ink-2)",
+            r.waits ? "font-semibold text-(--ui-ink)" : "font-normal text-(--ui-ink-2)",
           )}
         >
           {r.subject.name}
         </span>
         {r.title && <span className="text-[13px] text-(--ui-ink-2)">{r.title}</span>}
         <span className="text-[12px] text-(--ui-ink-3) tabular-nums">
-          Batch {r.n} · {dayLabel(r.createdAt)} · {r.samples.length} samples
+          Batch {r.n} · {dayLabel(r.createdAt)} · {r.samples} samples
+          {r.judges != null && r.judges > 1 && ` · ${r.judges} people`}
         </span>
         <span className="flex flex-wrap items-center gap-1.5">
-          {waits ? (
+          {r.waits ? (
             // "Needs you" says it waits; the tag adds how far he got
             <Tag tone="needs" dot>
-              {r.samples.filter((s) => s.verdict).length} of {r.samples.length} marked
+              {r.marked} of {r.samples} marked
             </Tag>
           ) : open ? (
             <Tag>
-              Replaced · {r.samples.filter((s) => s.verdict).length} of {r.samples.length} marked
+              Replaced · {r.marked} of {r.samples} marked
             </Tag>
           ) : (
             <>
@@ -260,11 +350,11 @@ function BatchRow({ row: r, waits }: { row: Row; waits: boolean }) {
                   {pct(r.goodRate)} good or better
                 </span>
               )}
-              <Tally samples={r.samples} />
-              {kept > 0 && (
+              {r.tally && <Tally counts={r.tally} />}
+              {r.kept > 0 && (
                 <span className="inline-flex items-center gap-1 text-[12px] text-(--ui-ink-3)">
                   <Icon name="pin" size={12} />
-                  {kept} kept
+                  {r.kept} kept
                 </span>
               )}
             </>
@@ -278,7 +368,7 @@ function BatchRow({ row: r, waits }: { row: Row; waits: boolean }) {
         )}
         {r.note && (
           <span className="text-[13px] text-(--ui-ink)">
-            <span className="text-(--ui-ink-3)">You: </span>
+            <span className="text-(--ui-ink-3)">Note: </span>
             {r.note}
           </span>
         )}
@@ -298,7 +388,7 @@ function BatchRow({ row: r, waits }: { row: Row; waits: boolean }) {
                 loading="lazy"
                 className="block h-12 w-20 rounded-[4px] border border-(--ui-hair) bg-(--ui-tile) object-cover"
               />
-              {!open && s.verdict && (
+              {s.verdict && (
                 <span
                   role="img"
                   aria-label={s.verdict}
@@ -312,9 +402,9 @@ function BatchRow({ row: r, waits }: { row: Row; waits: boolean }) {
               )}
             </span>
           ))}
-          {more > 0 && (
+          {extra > 0 && (
             <span className="grid h-12 w-20 flex-none place-items-center rounded-[4px] bg-(--ui-fill) text-[13px] font-medium text-(--ui-ink-2) tabular-nums">
-              +{more}
+              +{extra}
             </span>
           )}
         </span>
@@ -323,10 +413,92 @@ function BatchRow({ row: r, waits }: { row: Row; waits: boolean }) {
   );
 }
 
+/** One batch by its ref. A read with new samples while he marks it waits behind a bar. */
+function OneBatch({ batchRef, params }: { batchRef: string; params: URLSearchParams }) {
+  const got = useCall(
+    `variants-batch:${batchRef}`,
+    () => call<Whole>("variants/batch", { ref: batchRef }),
+    { live: "variants" },
+  );
+  const [row, setRow] = useState<Whole | null>(null);
+  const [fresh, setFresh] = useState<Whole | null>(null);
+  // remounts the open batch's marks after Show
+  const [round, setRound] = useState(0);
+  const shown = useRef(row);
+  shown.current = row;
+  useEffect(() => {
+    const next = got.data;
+    if (!next) return;
+    const now = shown.current;
+    const held =
+      now != null &&
+      now.state === "open" &&
+      next.state === "open" &&
+      now.samples.length !== next.samples.length;
+    if (held) return setFresh(next);
+    setFresh(null);
+    setRow(next);
+  }, [got.data]);
+  if (got.error && !row)
+    return got.error.message.startsWith("no batch") ? (
+      <Empty title={`No batch ${batchRef}`}>
+        <a href={href(HERE, { b: null, batch: null }, params)}>All batches</a>
+      </Empty>
+    ) : (
+      <LoadFailed error={got.error} onRetry={got.retry} />
+    );
+  if (!row) return <Loading />;
+  const patch = (sampleId: number, fn: (s: Sample) => Sample) =>
+    setRow(
+      (r) =>
+        r && { ...r, samples: r.samples.map((s) => (s.id === sampleId ? { ...s, ...fn(s) } : s)) },
+    );
+  return (
+    <>
+      {fresh && (
+        <div
+          role="status"
+          className="mb-3 flex items-center justify-between gap-3 rounded-md bg-(--ui-accent-tint) px-3 py-2 text-[13px]"
+        >
+          <span>New samples in this batch</span>
+          <Button
+            size="dense"
+            onClick={() => {
+              setRow(fresh);
+              setFresh(null);
+              setRound((n) => n + 1);
+            }}
+          >
+            Show
+          </Button>
+        </div>
+      )}
+      <BatchView
+        key={round}
+        row={row}
+        patch={patch}
+        params={params}
+        // closed now: the agent's why and every call show; a fresh read brings them
+        onSent={() => {
+          setRow((r) => r && { ...r, state: "closed" });
+          got.retry();
+        }}
+      />
+    </>
+  );
+}
+
+const countsOf = (samples: Sample[]): Counts => ({
+  ...(Object.fromEntries(
+    TALLY.map((t) => [t, samples.filter((s) => s.verdict === t).length]),
+  ) as Record<Verdict, number>),
+  unmarked: samples.filter((s) => !s.verdict).length,
+});
+
 /** "2 amazing · 1 good · 1 okay · 3 bad", each in its call's color; unmarked last. */
-function Tally({ samples }: { samples: Sample[] }) {
-  const counts = TALLY.map((t) => [t, samples.filter((s) => s.verdict === t).length] as const);
-  const none = samples.filter((s) => !s.verdict).length;
+function Tally({ counts: c }: { counts: Counts }) {
+  const counts = TALLY.map((t) => [t, c[t]] as const);
+  const none = c.unmarked;
   return (
     <span className="flex flex-wrap items-center gap-1.5">
       {counts
@@ -346,13 +518,11 @@ function Tally({ samples }: { samples: Sample[] }) {
 
 function BatchView({
   row: r,
-  newer,
   patch,
   params,
   onSent,
 }: {
-  row: Row;
-  newer: Row | undefined;
+  row: Whole;
   patch: (id: number, fn: (s: Sample) => Sample) => void;
   params: URLSearchParams;
   onSent: () => void;
@@ -369,7 +539,7 @@ function BatchView({
             size="dense"
             tone="quiet"
             icon="left"
-            onClick={() => navigate(href(HERE, { batch: null }, params))}
+            onClick={() => navigate(href(HERE, { b: null, batch: null }, params))}
           >
             Batches
           </Button>
@@ -403,10 +573,11 @@ function BatchView({
         <p className="m-0 text-[12px] text-(--ui-ink-3)">
           Batch {r.n} · {dayLabel(r.createdAt)} · {r.samples.length} samples
           {r.goodRate != null && ` · ${pct(r.goodRate)} good or better`}
+          {r.judges && r.judges.length > 1 && ` · ${r.judges.length} people`}
         </p>
         {!open && (
           <div className="mt-1">
-            <Tally samples={r.samples} />
+            <Tally counts={countsOf(r.samples)} />
           </div>
         )}
         {r.why && (
@@ -423,7 +594,7 @@ function BatchView({
         )}
       </div>
       {open ? (
-        <OpenBatch row={r} newer={newer} patch={patch} onSent={onSent} />
+        <OpenBatch row={r} patch={patch} onSent={onSent} />
       ) : (
         <ReadOnly row={r} patch={patch} />
       )}
@@ -436,7 +607,7 @@ function ReadOnly({
   row: r,
   patch,
 }: {
-  row: Row;
+  row: Whole;
   patch: (id: number, fn: (s: Sample) => Sample) => void;
 }) {
   const group = useMemo(() => new Together(), []);
@@ -475,16 +646,15 @@ function ReadOnly({
  */
 function OpenBatch({
   row,
-  newer,
   patch: patchRow,
   onSent,
 }: {
-  row: Row;
-  newer: Row | undefined;
+  row: Whole;
   patch: (id: number, fn: (s: Sample) => Sample) => void;
   onSent: () => void;
 }) {
   const id = row.id;
+  const newer = row.newer;
   const got = useCall("variants-queue", () => call<Open[]>("variants/queue", {}));
   const [open, setOpen] = useState<Open | null>(null);
   useEffect(() => setOpen(got.data?.find((o) => o.batch.id === id) ?? null), [got.data, id]);
@@ -497,7 +667,7 @@ function OpenBatch({
           {newer ? (
             <>
               Batch {newer.n} replaced this one; you mark that.{" "}
-              <a href={href(HERE, { batch: newer.id })} className="text-(--ui-ink) underline">
+              <a href={href(HERE, { b: newer.ref })} className="text-(--ui-ink) underline">
                 Open batch {newer.n}
               </a>
             </>

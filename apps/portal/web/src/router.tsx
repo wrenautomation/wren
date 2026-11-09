@@ -31,7 +31,7 @@ import { readCall } from "./load.js";
 import { MODULES } from "./modules/index.js";
 import { atWrenOf, heldByClient, movedTo, namedIn } from "./moved.js";
 import { prefetchPage } from "./records.js";
-import { bindRouter, href, navigate, workspace } from "./route.js";
+import { bindRouter, href, navigate, queryText, workspace } from "./route.js";
 
 /** A plain left click on a link to another screen of this app, which the router handles. */
 function inApp(e: MouseEvent, here: Location = location): string | null {
@@ -165,7 +165,7 @@ function createPortalRouter(history: RouterHistory = createBrowserHistory()) {
     history,
     parseSearch: (s) => searchOf(new URLSearchParams(s)),
     stringifySearch: (search) => {
-      const s = paramsOf(search).toString();
+      const s = queryText(paramsOf(search));
       return s ? `?${s}` : "";
     },
     // The page keeps its scroll on a move and the browser restores it on back, as before.

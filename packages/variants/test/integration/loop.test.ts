@@ -55,14 +55,34 @@ describe("variants loop", () => {
       agent: "test",
       samples: [{ body: "Your Acme CRM, one idea.", change: "short" }],
     });
-    const rows = await variantsConsoleApi(db).batches();
-    expect(rows.map((r) => [`opener:${r.n}`, r.state, r.title, r.why])).toEqual([
-      [b2.batch, "open", "Named-tool openers", null],
-      [b.batch, "closed", "Two openers", "Try a named-tool opener against a question opener"],
+    const api = variantsConsoleApi(db);
+    type Req = Parameters<typeof api.batches>[0];
+    const as = (email: string, q: Record<string, unknown> = {}) =>
+      ({ viewer: { email }, ...q }) as unknown as Req;
+    const page = await api.batches(as("me", { sort: "newest" }));
+    expect(page.rows.map((r) => [r.ref, r.state, r.title, r.why, r.waits])).toEqual([
+      [b2.batch, "open", "Named-tool openers", null, true],
+      [b.batch, "closed", "Two openers", "Try a named-tool opener against a question opener", false],
     ]);
-    expect(rows[0]?.samples[0]?.change).toBeNull();
-    expect(rows[1]?.samples.map((s) => s.change)).toEqual(["named tool", "question", "plain"]);
-    expect(rows[1]?.samples.find((s) => s.id === q)?.notes).toHaveLength(1);
-    expect(rows[1]?.subject.slug).toBe("opener");
+    expect(page.waiting).toBe(1);
+    expect(page.rows[1]?.tally).toEqual({ amazing: 1, good: 0, okay: 0, bad: 1, unmarked: 1 });
+    expect((await api.batches(as("me", { state: "closed" }))).rows).toHaveLength(1);
+    expect((await api.batches(as("me", { who: "me" }))).rows.map((r) => r.ref)).toEqual([b.batch]);
+
+    // one batch by its ref: open hides what each sample tests; closed shows it
+    const open2 = await api.batch(as("me", { ref: b2.batch }));
+    expect(open2.samples[0]?.change).toBeNull();
+    const shut = await api.batch(as("me", { ref: b.batch }));
+    expect(shut.samples.map((s) => s.change)).toEqual(["named tool", "question", "plain"]);
+    expect(shut.samples.find((s) => s.id === q)?.notes).toHaveLength(1);
+    expect(shut.subject.slug).toBe("opener");
+    expect(shut.newer?.ref).toBe(b2.batch);
+
+    // a second person on the open batch: each sees only their own call
+    const [s2] = (await api.batch(as("me", { ref: b2.batch }))).samples;
+    await api.judge(as("me", { sample: s2?.id, verdict: "good" }));
+    await api.judge(as("you", { sample: s2?.id, verdict: "bad" }));
+    expect((await api.batch(as("me", { ref: b2.batch }))).samples[0]?.verdict).toBe("good");
+    expect((await api.batch(as("you", { ref: b2.batch }))).samples[0]?.verdict).toBe("bad");
   });
 });

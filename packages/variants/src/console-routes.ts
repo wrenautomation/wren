@@ -6,6 +6,7 @@ export const VARIANTS_CONSOLE_ROUTES = {
   subjects: "wren:team",
   subject: "wren:team",
   batches: "wren:team",
+  batch: "wren:team",
   catalog: "wren:team",
   judge: "wren:team",
   note: "wren:team",

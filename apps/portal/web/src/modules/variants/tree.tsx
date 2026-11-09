@@ -362,7 +362,7 @@ export function SubjectTree({
       <div className="vt-stage">
         <div className="vt-scroll" ref={scroll}>
           <div className="vt-in">
-            <Rail t={t} />
+            <Rail t={t} slug={subject.slug} />
             <TreeSvg
               t={t}
               uid={uid}
@@ -449,7 +449,7 @@ export function SubjectTree({
             />
           </div>
           <div className="vt-dl">
-            <BatchDetail t={full} n={s.r} />
+            <BatchDetail t={full} n={s.r} subject={subject.slug} />
           </div>
         </div>
       )}
@@ -457,7 +457,7 @@ export function SubjectTree({
   );
 }
 
-function Rail({ t }: { t: Tree }) {
+function Rail({ t, slug }: { t: Tree; slug: string }) {
   const RW = G.AX - 12;
   return (
     <div className="vt-rail" style={{ "--rw": `${RW}px` } as CSSProperties}>
@@ -466,7 +466,7 @@ function Rail({ t }: { t: Tree }) {
         <a
           key={B.id}
           className="vt-ga"
-          href={href("/variants/batches", { batch: B.id })}
+          href={href("/variants/batches", { b: `${slug}:${B.num}` })}
           style={{ top: t.rowY(B.n) - 26 }}
         >
           Batch {B.num}

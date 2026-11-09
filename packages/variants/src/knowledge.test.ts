@@ -1,9 +1,9 @@
-import type { GuideRow, SampleRow } from "@wrenautomation/vireo";
+import type { GuideRow } from "@wrenautomation/vireo";
 import { describe, expect, it } from "vitest";
 import { type KeptRow, keptVerdict, lockedVerdict, verdictChanges } from "./knowledge.js";
 
 const KEPT = new Date("2026-11-01T10:00:00.000Z");
-const kept = (over: Partial<SampleRow> = {}): KeptRow => ({
+const kept = (over: Partial<KeptRow["sample"]> = {}): KeptRow => ({
   sample: {
     id: 4,
     batchId: 2,
@@ -22,7 +22,7 @@ const kept = (over: Partial<SampleRow> = {}): KeptRow => ({
     keptAt: KEPT,
     createdAt: KEPT,
     ...over,
-  } as SampleRow,
+  } as KeptRow["sample"],
   subject: { slug: "hero", name: "Hero line", kind: "text" },
   batch: { n: 3, title: "Openers", why: "number vs story", note: null },
   parents: [{ id: 1, took: "the number" }],

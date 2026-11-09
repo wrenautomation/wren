@@ -8,6 +8,7 @@ import type { Db } from "@wren/db";
 import { type Change, idOf, loadWorking, write } from "@wrenautomation/knowledge";
 import {
   batches,
+  calls,
   type GuideRow,
   guideStats,
   guides,
@@ -16,6 +17,8 @@ import {
   type SampleRow,
   samples,
   subjects,
+  type Verdict,
+  verdictOf,
 } from "@wrenautomation/vireo";
 import { and, eq, inArray, isNotNull } from "drizzle-orm";
 
@@ -45,7 +48,8 @@ const firstLine = (s: string | null) =>
     ?.slice(0, 100);
 
 export interface KeptRow {
-  sample: SampleRow;
+  /** score, verdict: the mean of every person's call (Vireo D11) */
+  sample: SampleRow & { score: number | null; verdict: Verdict | null };
   subject: { slug: string; name: string; kind: string };
   batch: { n: number; title: string | null; why: string; note: string | null };
   parents: { id: number; took: string | null }[];
@@ -225,6 +229,13 @@ export async function promoteVerdicts(
   const ns = ids.length
     ? await db.select().from(notes).where(inArray(notes.sampleId, ids)).orderBy(notes.id)
     : [];
+  const cs = ids.length ? await db.select().from(calls).where(inArray(calls.sampleId, ids)) : [];
+  const pooled = (id: number) => {
+    const mine = cs.filter((c) => c.sampleId === id);
+    if (!mine.length) return { score: null, verdict: null };
+    const mean = mine.reduce((a, c) => a + c.score, 0) / mine.length;
+    return { score: Math.round(mean * 10) / 10, verdict: verdictOf(Math.round(mean)) };
+  };
 
   const locked = await db
     .select({ guide: guides, subject: subjects.slug })
@@ -240,6 +251,17 @@ export async function promoteVerdicts(
         .innerJoin(batches, and(eq(batches.id, samples.batchId), eq(batches.state, "closed")))
         .innerJoin(subjects, eq(subjects.id, samples.subjectId))
     : [];
+  const judgedCalls = judged.length
+    ? await db
+        .select()
+        .from(calls)
+        .where(
+          inArray(
+            calls.sampleId,
+            judged.map((j) => j.sample.id),
+          ),
+        )
+    : [];
   const reach = (g: GuideRow) =>
     judged
       .filter((j) =>
@@ -251,6 +273,7 @@ export async function promoteVerdicts(
     ...kept.map((k) =>
       keptVerdict({
         ...k,
+        sample: { ...k.sample, ...pooled(k.sample.id) },
         parents: ps
           .filter((p) => p.childId === k.sample.id)
           .map((p) => ({ id: p.parentId, took: p.took })),
@@ -266,7 +289,7 @@ export async function promoteVerdicts(
       }),
     ),
     ...locked.map(({ guide, subject }) => {
-      const [g] = guideStats([guide], reach(guide));
+      const [g] = guideStats([guide], reach(guide), judgedCalls);
       return lockedVerdict(g as GuideRow & { effect: unknown }, subject);
     }),
   ];

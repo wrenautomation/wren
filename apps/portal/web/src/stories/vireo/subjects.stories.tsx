@@ -53,7 +53,7 @@ export const Tree = pageAt("/variants/subjects?subject=3", {
     );
     if (!first) throw new Error("no batch link");
     const to = first.getAttribute("href") ?? "";
-    await expect(to).toMatch(/^\/variants\/batches\?batch=\d+$/);
+    await expect(to).toMatch(/^\/variants\/batches\?b=[a-z0-9-]+:\d+$/);
     await userEvent.click(first);
     await waitFor(() => expect(storyHref()).toBe(to));
   },

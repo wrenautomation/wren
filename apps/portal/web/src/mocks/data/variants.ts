@@ -1,7 +1,7 @@
 /** Variants' fake answers: a video batch and a copy batch to pick, a subject, the catalog. Synthetic. */
 
 import { TAP, type Verdict } from "@wrenautomation/vireo/calls";
-import type { Answers } from "../api.js";
+import { type Answers, refuse } from "../api.js";
 import { ago } from "./shell.js";
 import { NOTES_ONLY, TREE_SUBJECT } from "./variants-tree.js";
 
@@ -403,8 +403,90 @@ const BATCHES = [
   },
 ].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
 
+/** D11 shapes: a batch whole by ref (`slug:n`) or id, and a page of list rows. */
+type Mock = (typeof BATCHES)[number];
+const refOf = (r: Mock) => `${r.subject.slug}:${r.n}`;
+const newestOf = (r: Mock) =>
+  BATCHES.filter((x) => x.subject.id === r.subject.id).sort((x, y) => y.n - x.n)[0];
+const wholeOf = (r: Mock) => {
+  const top = newestOf(r);
+  const open = r.state === "open";
+  return {
+    ...r,
+    ref: refOf(r),
+    judges: open ? null : ["person@example.com"],
+    newer: top && top.id !== r.id ? { n: top.n, ref: refOf(top) } : null,
+  };
+};
+const VERDICTS = ["amazing", "good", "okay", "bad"] as const;
+const rowOf = (r: Mock) => {
+  const open = r.state === "open";
+  const marked = r.samples.filter((x) => x.verdict).length;
+  return {
+    ref: refOf(r),
+    id: r.id,
+    n: r.n,
+    title: r.title ?? null,
+    why: open ? null : r.why,
+    note: r.note,
+    state: r.state,
+    createdAt: r.createdAt,
+    subject: r.subject,
+    waits: open && newestOf(r)?.id === r.id,
+    samples: r.samples.length,
+    kept: r.samples.filter((x) => x.keptAt).length,
+    marked,
+    judges: open ? null : 1,
+    goodRate: r.goodRate,
+    tally: open
+      ? null
+      : {
+          ...Object.fromEntries(
+            VERDICTS.map((v) => [v, r.samples.filter((x) => x.verdict === v).length]),
+          ),
+          unmarked: r.samples.length - marked,
+        },
+    thumbs: r.samples.map((x) => ({ id: x.id, posterUrl: x.posterUrl, verdict: x.verdict })),
+  };
+};
+const listOf = (q: Record<string, unknown>) => {
+  const sort = String(q.sort ?? "waiting");
+  const rows = BATCHES.map(rowOf)
+    .filter(
+      (r) =>
+        (!q.subject || r.subject.slug === q.subject) &&
+        (!q.kind || r.subject.kind === q.kind) &&
+        (!q.subjects || (q.subjects as number[]).includes(r.subject.id)) &&
+        (!q.state || (q.state === "waits" ? r.waits : r.state === q.state)) &&
+        (!q.who || r.marked > 0),
+    )
+    .sort((a, b) =>
+      sort === "oldest"
+        ? +new Date(a.createdAt) - +new Date(b.createdAt)
+        : sort === "subject"
+          ? a.subject.name.localeCompare(b.subject.name) || b.n - a.n
+          : sort === "good"
+            ? (b.goodRate ?? -1) - (a.goodRate ?? -1)
+            : sort === "waiting"
+              ? Number(b.waits) - Number(a.waits) || +new Date(b.createdAt) - +new Date(a.createdAt)
+              : +new Date(b.createdAt) - +new Date(a.createdAt),
+    );
+  const limit = Number(q.limit ?? 30);
+  const at = Number(q.after ?? 0);
+  return {
+    rows: rows.slice(at, at + limit),
+    next: at + limit < rows.length ? at + limit : null,
+    waiting: rows.filter((r) => r.waits).length,
+  };
+};
+
 export const VARIANTS_ANSWERS: Answers = {
-  "variants/batches": BATCHES,
+  "variants/batches": (b: Record<string, unknown>) => listOf(b),
+  "variants/batch": (b: Record<string, unknown>) => {
+    const r = BATCHES.find((x) => refOf(x) === b.ref || String(x.id) === String(b.ref));
+    if (!r) return refuse(404, `no batch ${String(b.ref)}`);
+    return wholeOf(r);
+  },
   "variants/queue": [VIDEO, PAGE, COPY],
   "variants/subjects": [
     TREE_SUBJECT.subject,
@@ -420,6 +502,7 @@ export const VARIANTS_ANSWERS: Answers = {
         : SUBJECT,
   "variants/judge": (b: Record<string, unknown>) => ({
     id: b.sample,
+    by: "person@example.com",
     score: b.score,
     verdict: b.verdict,
   }),

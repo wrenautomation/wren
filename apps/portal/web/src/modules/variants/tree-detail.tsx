@@ -110,7 +110,7 @@ export function SampleDetail({
         <div className="vt-row">
           <Button
             tone="primary"
-            onClick={() => navigate(href("/variants/batches", { batch: round.id }))}
+            onClick={() => navigate(href("/variants/batches", { b: `${subject}:${round.num}` }))}
           >
             Mark batch {s.r}
           </Button>
@@ -288,7 +288,8 @@ function SteerRow({ s, c }: { s: TNode; c: SteerCtl }) {
   );
 }
 
-export function BatchDetail({ t, n }: { t: Tree; n: number }) {
+/** `subject`: its slug, for the batch address */
+export function BatchDetail({ t, n, subject }: { t: Tree; n: number; subject: string }) {
   const B = t.rounds[n - 1];
   if (!B) return null;
   const strip = (
@@ -303,7 +304,7 @@ export function BatchDetail({ t, n }: { t: Tree; n: number }) {
       <>
         <div className="vt-row">
           <h3>
-            <a className="vt-ha" href={href("/variants/batches", { batch: B.id })}>
+            <a className="vt-ha" href={href("/variants/batches", { b: `${subject}:${B.num}` })}>
               Batch {B.num}
             </a>
           </h3>
@@ -321,7 +322,7 @@ export function BatchDetail({ t, n }: { t: Tree; n: number }) {
     <>
       <div className="vt-row">
         <h3>
-          <a className="vt-ha" href={href("/variants/batches", { batch: B.id })}>
+          <a className="vt-ha" href={href("/variants/batches", { b: `${subject}:${B.num}` })}>
             Batch {B.num}
           </a>
         </h3>

@@ -15,6 +15,8 @@ import type { Db } from "@wren/db";
 import type * as restate from "@wren/runtime";
 import {
   type Anchor,
+  BATCH_SORTS,
+  type BatchSort,
   GUIDE_STATES,
   KINDS,
   type Kind,
@@ -61,7 +63,8 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
   return {
     queue: (req: Req) =>
       refuse(async () => {
-        const open = await v.queue((req.subject as string | undefined) ?? undefined);
+        // his own calls and notes only (vireo D11)
+        const open = await v.queue((req.subject as string | undefined) ?? undefined, by(req));
         return Promise.all(
           open.map(async (o) => ({
             batch: {
@@ -102,68 +105,86 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
     subject: (req: Req) =>
       refuse(async () => {
         const f = await v.feedback(num(req.id, "subject"));
+        const me = by(req);
+        // blind: an open batch shows no idea, no parent and only his own calls until it closes
+        const own = (x: (typeof f.batches)[number]["samples"][number]) => {
+          const mine = x.calls.find((c) => c.by === me);
+          return {
+            ...x,
+            change: null,
+            name: null,
+            parents: [],
+            strength: null,
+            calls: mine ? [mine] : [],
+            score: mine?.score ?? null,
+            verdict: mine?.verdict ?? null,
+            notes: x.notes.filter((n) => n.by === me),
+          };
+        };
         return {
           ...f,
           batches: await Promise.all(
-            f.batches.map(async (b) => ({
-              ...b,
-              // blind: an open batch shows no idea and no parent until it closes
-              why: b.state === "open" ? null : b.why,
-              samples: await Promise.all(
-                b.samples.map((x) =>
-                  media(b.state === "open" ? { ...x, change: null, name: null, parents: [] } : x),
-                ),
+            f.batches.map(async (b) => {
+              const open = b.state === "open";
+              return {
+                ...b,
+                why: open ? null : b.why,
+                goodRate: open ? null : b.goodRate,
+                judges: open ? [] : b.judges,
+                samples: await Promise.all(b.samples.map((x) => media(open ? own(x) : x))),
+              };
+            }),
+          ),
+        };
+      }),
+    /**
+     * A page of batches (vireo D11): filters, a sort, an offset. Open batches show only his own
+     * marks. `subjects`: the page's folder, as subject ids.
+     */
+    batches: (req: Req) =>
+      refuse(async () => {
+        const kind = KINDS.includes(req.kind as Kind) ? (req.kind as Kind) : null;
+        const sort = (BATCH_SORTS as readonly string[]).includes(String(req.sort))
+          ? (req.sort as BatchSort)
+          : null;
+        const state = ["open", "closed", "waits"].includes(String(req.state))
+          ? (req.state as "open" | "closed" | "waits")
+          : null;
+        const page = await v.batches(
+          {
+            ...(Array.isArray(req.subjects)
+              ? { subjects: req.subjects.map((x) => num(x, "subject")) }
+              : {}),
+            ...(req.subject != null ? { subject: String(req.subject) } : {}),
+            ...(kind ? { kind } : {}),
+            ...(state ? { state } : {}),
+            // "me": the login, so the page needs no email
+            ...(req.who ? { who: req.who === "me" ? by(req) : String(req.who) } : {}),
+            ...(sort ? { sort } : {}),
+            ...(req.after != null ? { after: Number(req.after) || 0 } : {}),
+            ...(req.limit != null ? { limit: Number(req.limit) || 30 } : {}),
+          },
+          by(req),
+        );
+        return {
+          ...page,
+          rows: await Promise.all(
+            page.rows.map(async (r) => ({
+              ...r,
+              thumbs: await Promise.all(
+                r.thumbs.map(async (t) => ({ ...t, posterUrl: await url(t.poster) })),
               ),
             })),
           ),
         };
       }),
-    /** Every batch of every subject, newest first, whole: each sample with its call, notes and
-     * the idea it tested. An open batch stays blind: no change notes. */
-    batches: () =>
+    /** One batch whole by `<subject>:<n>` or id; open: blind, his own marks only. */
+    batch: (req: Req) =>
       refuse(async () => {
-        const subjects = await v.listSubjects();
-        const all = await Promise.all(
-          subjects.map(async (s) => {
-            const f = await v.feedback(s.id);
-            const subject = { id: s.id, slug: s.slug, name: s.name, kind: s.kind, brief: s.brief };
-            return Promise.all(
-              f.batches.map(async (b) => ({
-                id: b.id,
-                n: b.n,
-                title: b.title,
-                why: b.state === "open" ? null : b.why,
-                note: b.note,
-                state: b.state,
-                createdAt: b.createdAt,
-                goodRate: b.goodRate,
-                subject,
-                samples: await Promise.all(
-                  // made order: #n stays the same sample on every visit
-                  [...b.samples]
-                    .sort((x, y) => x.id - y.id)
-                    .map((x) =>
-                      media({
-                        id: x.id,
-                        body: x.body,
-                        media: x.media,
-                        poster: x.poster,
-                        source: x.source,
-                        score: x.score,
-                        verdict: x.verdict,
-                        keptAt: x.keptAt,
-                        notes: x.notes,
-                        change: b.state === "open" ? null : x.change,
-                      }),
-                    ),
-                ),
-              })),
-            );
-          }),
-        );
-        return all
-          .flat()
-          .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt) || b.id - a.id);
+        const ref = String(req.ref ?? "");
+        if (!ref) throw new PortalRefusal("which batch?", 400);
+        const b = await v.batch(ref, by(req));
+        return { ...b, samples: await Promise.all(b.samples.map((x) => media(x))) };
       }),
     catalog: (req: Req) =>
       refuse(async () => {
@@ -290,7 +311,17 @@ const INPUTS = {
   queue: { subject: ID.nullish() },
   subjects: {},
   subject: { id: ID },
-  batches: {},
+  batches: {
+    subjects: z.array(ID).max(500).nullish().describe("only these subjects (a folder's)"),
+    subject: ID.nullish(),
+    kind: z.string().nullish(),
+    state: z.string().nullish().describe("open, closed or waits"),
+    who: z.string().max(320).nullish().describe('batches this person called in; "me" = the login'),
+    sort: z.string().nullish().describe(BATCH_SORTS.join(", ")),
+    after: z.number().int().min(0).nullish(),
+    limit: z.number().int().min(1).max(100).nullish(),
+  },
+  batch: { ref: ID.describe("<subject>:<n> or id") },
   catalog: { kind: z.string().nullish() },
   judge: {
     sample: ID,
@@ -348,6 +379,7 @@ export function makeVariantsConsole(db: Db, sign: Sign | null) {
     subjects: h("subjects"),
     subject: h("subject"),
     batches: h("batches"),
+    batch: h("batch"),
     catalog: h("catalog"),
     judge: h("judge"),
     note: h("note"),
