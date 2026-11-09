@@ -360,17 +360,29 @@ export function Key({ runs }: { runs: boolean }) {
         <K i={<i className="kcc" />} t="Search, with its best finding as the answer" />
         <K i={<i className="kc" />} t="Card: a top source with findings" />
         <K i={<i className="kch" />} t="Chip: another source with findings" />
-        <K i={<i className="kdt" />} t="Read, no finding" />
-        <K i={<i className="kdt gh" />} t="Kept, not read" />
+        {runs ? (
+          <>
+            <K i={<i className="kdt" />} t="Read, no finding" />
+            <K i={<i className="kdt gh" />} t="Kept, not read" />
+          </>
+        ) : (
+          <>
+            <K i={<i className="kch gy" />} t="Gray chip: not read yet" />
+            <K i={<i className="kch gy sm" />} t="Small gray chip: read, no finding" />
+          </>
+        )}
         <K i={<i className="kev" />} t="Bar: its evidence, strong to weak" />
         <K i={<i className="kxp">+4</i>} t="What a node holds" />
         <K i={<i className="kln" />} t="Line: thicker is more findings" />
       </p>
       <p className="hint">
         {runs ? "Click a run to open its searches. " : ""}A source found by several searches sits
-        between them. Click a search to open the hits it kept with no finding and the hits it
-        dropped; a source into its pages; a page into its findings; a finding into its quote. Ctrl
-        and scroll, or pinch, to zoom.
+        between them. Click a search to open{" "}
+        {runs
+          ? "the hits it kept with no finding and the hits it dropped; "
+          : "the hits it dropped; "}
+        a source into its pages; a page into its findings; a finding into its quote. Ctrl and
+        scroll, or pinch, to zoom.
       </p>
     </div>
   );

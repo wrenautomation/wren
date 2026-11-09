@@ -46,7 +46,8 @@
   box-sizing: border-box;
 }
 @media (prefers-reduced-motion: reduce) {
-  .rg .nd.new {
+  .rg .nd.new,
+  .rg .nd.got {
     animation: none;
   }
 }
@@ -1134,7 +1135,9 @@
   cursor: pointer;
   transition:
     opacity 0.16s,
-    box-shadow 0.16s;
+    box-shadow 0.5s,
+    color 0.5s,
+    background-color 0.5s;
 }
 .rg .nd:focus-visible {
   outline: 2px solid var(--accent);
@@ -1263,6 +1266,43 @@
 .rg .ch .ic {
   width: 13px;
   height: 13px;
+  transition:
+    filter 0.5s,
+    opacity 0.5s;
+}
+/* no finding yet: gray until the agent reads it; read with none: gray and smaller */
+.rg .ch.pend,
+.rg .ch.rej {
+  color: var(--ink3);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink3) 45%, var(--paper));
+}
+.rg .ch.pend .ic,
+.rg .ch.rej .ic {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+.rg .ch.rej {
+  font-size: 10.5px;
+  padding: 2px 5px;
+  gap: 4px;
+}
+.rg .ch.rej .ic {
+  width: 11px;
+  height: 11px;
+}
+/* its first finding: one ring out */
+.rg .nd.got {
+  animation: rg-got 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@keyframes rg-got {
+  from {
+    outline: 2px solid color-mix(in srgb, var(--k) 80%, transparent);
+    outline-offset: 0;
+  }
+  to {
+    outline: 2px solid transparent;
+    outline-offset: 8px;
+  }
 }
 .rg .ch b {
   font-weight: 550;
@@ -1571,6 +1611,11 @@
   stroke: var(--k);
   stroke-opacity: 0.38;
 }
+.rg .e.w-hub.dim {
+  stroke: var(--ink3);
+  stroke-opacity: 0.22;
+  stroke-dasharray: 3 4;
+}
 .rg .e.w-tree {
   stroke: var(--ink3);
   stroke-opacity: 0.42;
@@ -1787,6 +1832,13 @@
   border-radius: 3px;
   background: var(--paper);
   box-shadow: 0 0 0 1.25px color-mix(in srgb, var(--ink3) 60%, var(--paper));
+}
+.rg .kch.gy {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink3) 45%, var(--paper));
+}
+.rg .kch.gy.sm {
+  width: 12px;
+  height: 6px;
 }
 .rg .kdt {
   width: 9px;

@@ -65,10 +65,12 @@ function kidsOf(L: Indexed, key: string): string[] {
   }
   if (t === "u") return (src()?.unread ?? []).map((_, i) => `v${a}.${i}`);
   if (t === "f") return src()?.fs[b]?.q ? [`x${a}.${b}`] : [];
-  // sources with findings are on the map already, as spokes
+  // one run: every source is on the map already, as a spoke; several: those with findings
   if (t === "q")
     return [
-      ...(L.byQ.get(a)?.ss ?? []).filter((id) => !L.byId.get(id)?.s.kept).map((id) => `s${id}`),
+      ...(L.many
+        ? (L.byQ.get(a)?.ss ?? []).filter((id) => !L.byId.get(id)?.s.kept).map((id) => `s${id}`)
+        : []),
       ...((L.drops.get(a) ?? []).length ? [`d${a}`] : []),
     ];
   if (t === "d") return (L.drops.get(a) ?? []).map((i) => `h${i}`);
@@ -96,14 +98,15 @@ const hubKeys = (L: Indexed) =>
   L.run.runs ? L.run.runs.map((_, i) => `r${i + 1}`) : L.run.searches.map((q) => `q${q.i}`);
 
 /**
- * The nodes on the map: the hubs, every source with a finding (several runs: the shared ones and
- * each run's top few), plus what each open node holds, breadth first.
+ * The nodes on the map: the hubs, every source (several runs: the shared ones with findings and
+ * each run's top few), plus what each open node holds, breadth first. One run shows a source
+ * before it is read, gray, so a live web builds as the agent reads (11-08).
  */
 export function presentSet(L: Indexed, st: WebState) {
-  const keep = (id: number, kept: number) => (L.many ? L.many.base.has(id) : !!kept);
+  const keep = (id: number) => (L.many ? L.many.base.has(id) : true);
   const base = [
     ...hubKeys(L),
-    ...L.rank.filter((n) => keep(n.id, n.s.kept) || st.lift.has(n.id)).map((n) => `s${n.id}`),
+    ...L.rank.filter((n) => keep(n.id) || st.lift.has(n.id)).map((n) => `s${n.id}`),
   ];
   const par = new Map<string, string | null>(base.map((k) => [k, null]));
   const order = [...base];
@@ -132,6 +135,8 @@ export interface WebEdge {
   tree: boolean;
   /** speaker, on hub edges */
   k?: string | undefined;
+  /** a spoke to a source with no finding yet: gray */
+  dim?: boolean;
 }
 
 /** The edges are derived from what is on the map, never stored per open node. */
@@ -155,9 +160,12 @@ export function webEdges(L: Indexed, order: string[], par: Map<string, string | 
     if (t === "s" && s) {
       const link = (h: string) => {
         const n = E.length;
-        add(h, k, s.kept ? "hub" : par.get(k) === h ? "tree" : "found", s.kept);
+        add(h, k, s.kept || !L.many ? "hub" : par.get(k) === h ? "tree" : "found", s.kept);
         const e = E[n];
-        if (e?.kind === "hub") e.k = L.byId.get(a)?.k;
+        if (e?.kind === "hub") {
+          if (s.kept) e.k = L.byId.get(a)?.k;
+          else e.dim = true;
+        }
         return E.length > n;
       };
       const qs = L.reach.get(a) ?? [];

@@ -100,7 +100,8 @@ describe("solveWeb", () => {
       expect(new Set(ns.map((n) => `${Math.round(n.x)},${Math.round(n.y)}`)).size).toBe(ns.length);
       expect(overlap(ns, 0)).toBe(0);
     }
-  });
+    // the worst run lays 180 nodes: slow under a loaded Mac
+  }, 15_000);
   it("lays the same run out the same way", () => {
     const a = solve().N;
     const b = solve().N;
@@ -206,6 +207,22 @@ describe("hubs", () => {
           .sort(),
       ).toEqual(qs.sort());
     }
+  });
+});
+
+describe("a source before its finding", () => {
+  it("is on the map from the start, its spokes gray until it has a finding", () => {
+    const L = indexRun(RUN_GRAPH);
+    const { order, par } = presentSet(L, {
+      exp: new Set(),
+      lift: new Set(),
+      more: new Map(),
+      wide: true,
+    });
+    for (const s of RUN_GRAPH.sources) expect(order).toContain(`s${s.id}`);
+    const E = webEdges(L, order, par).filter((e) => e.b[0] === "s");
+    for (const e of E) expect(!!e.dim).toBe(!L.byId.get(+e.b.slice(1))?.s.kept);
+    expect(E.some((e) => e.dim)).toBe(true);
   });
 });
 

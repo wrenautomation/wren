@@ -167,9 +167,9 @@ export const Kd = ({ k }: { k: Speaker }) => (
 );
 
 export type Tier = "card" | "chip" | "dot";
-/** The top sources with findings by rank get a card, the rest a chip; no finding is a dot. */
+/** The top sources with findings by rank get a card, the rest a chip, gray while it has none. */
 export const tierOf = (n: GNode, wide: boolean): Tier =>
-  !n.s.kept ? "dot" : n.lr >= 0 && n.lr < (wide ? 12 : 4) ? "card" : "chip";
+  n.lr >= 0 && n.lr < (wide ? 12 : 4) ? "card" : "chip";
 
 /** Shared by every mark you can pick: role, focus, its state classes. */
 export interface MarkProps {
@@ -242,7 +242,11 @@ export function SourceMark({ n, tier, m }: { n: GNode; tier: Tier; m: MarkProps 
   }
   if (tier === "chip")
     return (
-      <Mark className={`nd ch k-${n.k}`} label={label} m={m}>
+      <Mark
+        className={cls(`nd ch k-${n.k}`, !s.kept && (s.pages.length ? "rej" : "pend"))}
+        label={label}
+        m={m}
+      >
         <Ico s={s} />
         <b>{s.name}</b>
         {s.kept ? <em>{s.kept}</em> : null}

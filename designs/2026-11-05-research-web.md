@@ -305,3 +305,13 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Head: a short title (the ask's first question, asides cut, at most 170 chars), the whole ask in body text under it; a phone folds it under "Whole ask". 18 of 33 real asks get a short title.
   - Phone chips in All runs: one a run (33), not one a search (333).
   - William: a colored left edge only looks wrong. Cards, chips and the answer line lose it; a tinted card gets a whole ring in its speaker's color.
+- 11-08: one run's web shows every source from the start; the shelf stays for All runs only.
+  - William: a live run should build its web as the agent reads. Sources show gray before they are read, turn to their color when kept, and a rejected source stays, gray and smaller.
+  - Options, ranked by what a live reader sees, then nodes drawn:
+    - A. Every source is a spoke from the start: a gray chip while not read, a smaller gray chip when read with no finding, its color and card or chip once it holds a finding. Chosen.
+    - B. Gray dots in the web, a chip only on a finding. Fewer pixels, but a dot carries no name, so the build reads as noise.
+    - C. Keep the shelf and fly a chip from it into the web on its first finding. The web stays small, but a reader cannot see which search found a source still waiting.
+  - A gray spoke is a dashed gray hub line with the hub's pull, so a source sits by its searches before its finding. On its first finding the line takes the speaker's color and the chip rings out once (off with reduced motion).
+  - A search now opens to its dropped hits only: its kept sources are on the map already.
+  - Cost: the worst fixture lays 180 nodes, not 139; the solve takes about 30% longer (2.2 s to 2.9 s for both test runs in vitest).
+  - All runs keeps its shelf: 469 sources at once is too many to draw.

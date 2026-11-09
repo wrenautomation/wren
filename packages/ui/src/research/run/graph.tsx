@@ -25,6 +25,7 @@ import {
   f1,
   type GNode,
   headOf,
+  type Indexed,
   indexRun,
   pic,
   pl,
@@ -92,6 +93,16 @@ export function RunGraph({ run, failed, card }: RunGraphProps) {
 
 function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined }) {
   const L = useMemo(() => indexRun(run), [run]);
+  // a live run: sources that got their first finding since the last data, to flash once
+  const prevL = useRef<Indexed | null>(null);
+  const got = useMemo(() => {
+    const p = prevL.current;
+    if (!p || p.run.rid !== L.run.rid) return new Set<number>();
+    return new Set(L.nodes.filter((n) => n.s.kept && !p.byId.get(n.id)?.s.kept).map((n) => n.id));
+  }, [L]);
+  useEffect(() => {
+    prevL.current = L;
+  }, [L]);
   // a merged graph counts runs where one run counts rounds
   const step = stepOf(run);
   const [wide, setWide] = useState(true);
@@ -731,7 +742,12 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
             k,
             { pick: webPick(k), id: webIdent(k), web: k },
             {
-              cls: cls(isOpen && "open", isGone ? "gone" : born(k) && "new", late(n) && "late"),
+              cls: cls(
+                isOpen && "open",
+                isGone ? "gone" : born(k) && "new",
+                late(n) && "late",
+                n && got.has(n.id) && "got",
+              ),
               expanded: nk ? isOpen : undefined,
               badge: <Badge open={isOpen} n={nk} />,
             },
@@ -748,9 +764,14 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
             "e",
             `w-${e.kind}`,
             e.k && `k-${e.k}`,
+            e.dim && "dim",
             onOf(webIdent(e.a)) && onOf(webIdent(e.b)) && "on",
           )}
-          style={e.kind === "hub" ? { strokeWidth: Math.min(5, 1.1 + 0.9 * (e.w - 1)) } : undefined}
+          style={
+            e.kind === "hub" && !e.dim
+              ? { strokeWidth: Math.min(5, 1.1 + 0.9 * (e.w - 1)) }
+              : undefined
+          }
         />,
       );
     // the shelf: sources with no finding
@@ -833,7 +854,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
         <p className="lookcap">
           {L.run.runs
             ? "Each tinted card is a run: its ask and its note. Lines run to the sources it kept findings from; a source two runs read links them. Click a run to open its searches."
-            : "Each tinted card is a search and its best answer. Lines run to the sources it found that hold findings; a thicker line carries more."}
+            : "Each tinted card is a search and its best answer. Lines run to every source it found: gray until the source holds a finding, then in its color; a thicker line carries more."}
         </p>
       )}
       {/* biome-ignore lint/a11y/useSemanticElements: a positioned stage, not a form group; it delegates the marks' clicks and keys */}
@@ -841,7 +862,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
         ref={stageRef}
         className={cls("rg-stage", F && "fx", pick && "open")}
         role="group"
-        aria-label="The run as a web: each search a card with its answer, lines from each search to the sources it found that hold findings."
+        aria-label="The run as a web: each search a card with its answer, lines from each search to every source it found."
         onClick={onStageClick}
         onKeyDown={onStageKey}
       >
