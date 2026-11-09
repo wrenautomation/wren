@@ -7,6 +7,7 @@ Object.assign(globalThis, {
 });
 vi.mock("./autotrack.js", () => ({ tellAutotrack: () => undefined }));
 vi.mock("./write-socket.js", () => ({ startWriteSocket: () => null }));
+vi.mock("./topic-socket.js", () => ({ startTopicSocket: () => null, onTopic: () => () => {} }));
 
 /** A token the auth host hands out, good for an hour. */
 const jwt = () =>

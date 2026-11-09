@@ -50,8 +50,9 @@ const CHIP_SET =
 const THUMB_STEP = 86;
 
 export function BatchesPage({ params }: PageProps) {
+  // a Vireo write anywhere pushes "variants": new batches show without a reload
   const got = useCall("variants-batches", () => call<Row[]>("variants/batches", {}), {
-    pollMs: POLL_MS,
+    live: "variants",
   });
   const [rows, setRows] = useState<Row[] | null>(null);
   // a read with new batches or samples while he marks one: held behind a bar, not swapped in
@@ -128,8 +129,6 @@ export function BatchesPage({ params }: PageProps) {
   return <BatchList rows={rows} params={params} />;
 }
 
-/** New batches show on their own while he is away from one; the Vireo agent adds them. */
-const POLL_MS = 15_000;
 /** What a read adds: batches and samples, not his marks on them. */
 const shapeOf = (rows: Row[]) => rows.map((r) => `${r.id}:${r.state}:${r.samples.length}`).join();
 function freshLine(now: Row[], next: Row[]): string {

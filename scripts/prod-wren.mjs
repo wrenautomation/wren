@@ -45,6 +45,8 @@ const OPTIONAL = [
   "WREN_SHAPES_GITHUB_TOKEN",
   "WREN_SHAPES_GITHUB_REPO",
   "WREN_SHAPES_GITHUB_API",
+  // Live topics: CLI writes push "this changed" to open tabs (designs/2026-11-08-live-topics.md).
+  "WREN_LIVE_SECRET",
 ];
 const isOptional = (k) => OPTIONAL.includes(k) || /^(NUM_COHERE|COHERE_)/.test(k);
 // `keys put|delete` seal with the key store's public key (designs/2026-10-07-key-store.md). It lives in

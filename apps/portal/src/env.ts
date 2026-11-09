@@ -32,6 +32,10 @@ export interface Env {
   DICTATE_KEY?: string;
   /** Each person's open writes, told to their tabs over a socket (./watch.ts). Unset = tabs poll. */
   WRITE_WATCH?: DurableObjectNamespace;
+  /** One room per site; writers' changed topics go to its tabs (./topics.ts). Unset = no push. */
+  LIVE_ROOM?: DurableObjectNamespace;
+  /** HMAC key for `/api/live/changed`, a secret; = WREN_LIVE_SECRET on the writers. Unset = 404. */
+  LIVE_HOOK_SECRET?: string;
   /** The cap on public posts per visitor (./limit.ts). Unset = no cap. */
   PUBLIC_LIMIT?: RateLimit;
   /** "1": local dev on prod data, on this machine's host only (./dev.ts). Never set on prod. */

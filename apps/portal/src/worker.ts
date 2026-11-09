@@ -8,8 +8,9 @@
  *   the email. The token marks Wren's operators: they see every client.
  * - `/api/dictate`: dictation's speech server, for a signed-in person (./dictate.ts).
  * - `/api/unfurl`: a link's preview (title, line, image, icon), for a signed-in person (./unfurl.ts).
- * - `/api/notes/live/<id>`: a note's live room, a WebSocket to its Durable Object (./live.ts).
  * - `/api/live/writes`: a person's sends as they go, a WebSocket to their `WriteWatch` (./watch.ts).
+ * - `/api/live/topics`, `/api/live/changed`: writers' signed "this changed" to the site's
+ *   `LiveRoom`, then to its tabs (./topics.ts).
  * - `/api/agent`: Wren for AI tools (the CLI and skill under `/agent/`), by a `wren_` access
  *   token (./agent.ts).
  * - `/api/<service>/<route>`: forwarded to that portal service (`./services.ts`)
@@ -49,12 +50,19 @@ import { payRoute } from "./pay.js";
 import { PULSE_MAX, PULSE_PATH, type PulseAnswer, pulseCalls } from "./pulse.js";
 import { bodyLimit, isSend, SERVICES } from "./services.js";
 import { goRoute, sitesRoute } from "./sites.js";
+import {
+  LIVE_HOOK_PATH,
+  LiveRoom,
+  TOPICS_LIVE_PATH,
+  topicsHookRoute,
+  topicsSocketRoute,
+} from "./topics.js";
 import { UNFURL_PATH, unfurl } from "./unfurl.js";
 import { WRITES_LIVE_PATH, WriteWatch, watchWrite, writesSocketRoute } from "./watch.js";
 import { REQUEST_ID, WRITE_STATUS_PATH, writeKey, writeStatus } from "./writes.js";
 
-/** The live note rooms' Durable Object (./live.ts): wrangler finds it on the main module. */
-export { WriteWatch };
+/** The Durable Objects: wrangler finds them on the main module. */
+export { LiveRoom, WriteWatch };
 
 const MAX_BODY = 16 * 1024;
 const DEMO_CACHE_SECONDS = 300;
@@ -346,6 +354,9 @@ export default {
       });
     if (pathname === WRITES_LIVE_PATH)
       return writesSocketRoute(req, env, site, (r) => viewerOf(r, env));
+    if (pathname === TOPICS_LIVE_PATH)
+      return topicsSocketRoute(req, env, site, (r) => viewerOf(r, env));
+    if (pathname === LIVE_HOOK_PATH) return topicsHookRoute(req, env, site);
     if (pathname === KEY_STAGE_PATH) return keyStage(req, env, site, (r) => viewerOf(r, env));
     if (pathname === AGENT_PATH || pathname.startsWith(`${AGENT_PATH}/`))
       return agentRoute(req, env, site);

@@ -17,7 +17,7 @@ import {
   type QueryKey,
   useQuery,
 } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { tick } from "../save/clock.js";
 
 /** A return to the tab reads again what is older than this. */
@@ -192,12 +192,14 @@ export const cachedOf = <T>(scope: object, key: string): T | undefined =>
  * answer it reads over, so a list can ask only for what changed (`./delta.ts`). A null `key`
  * reads nothing (a closed panel): no data, not loading. `freshMs` lets an answer that rarely
  * moves (a workspace's record types) skip the read on mount while it is younger than that.
+ * `on` subscribes to a push ("this changed"): each call of its `go` reads again; it returns the
+ * unsubscribe.
  */
 export function useLoad<T>(
   key: string | null,
   fn: (before: T | undefined) => Promise<T>,
   scope?: object,
-  o: { freshMs?: number; pollMs?: number } = {},
+  o: { freshMs?: number; on?: (go: () => void) => () => void } = {},
 ): Load<T> {
   // No scope: this component's own reads, shared with nobody.
   const own = useRef<object | null>(null);
@@ -217,8 +219,6 @@ export function useLoad<T>(
       },
       placeholderData: keepPreviousData,
       ...(o.freshMs ? { staleTime: o.freshMs } : {}),
-      // read again on a timer; TanStack skips it while the tab is hidden
-      ...(o.pollMs ? { refetchInterval: o.pollMs } : {}),
       // A component's own reads go with it; a scope's stay for the next page that asks.
       ...(scope ? {} : { gcTime: 60_000 }),
       meta: { keep: nameOf(where).keep },
@@ -230,6 +230,13 @@ export function useLoad<T>(
   const [answered, setAnswered] = useState(0);
   const refetch = useRef(q.refetch);
   refetch.current = q.refetch;
+  const on = useRef(o.on);
+  on.current = o.on;
+  const pushed = o.on !== undefined;
+  useEffect(() => {
+    if (key === null || !pushed) return;
+    return on.current?.(() => void refetch.current());
+  }, [key, pushed]);
   return {
     data: key === null ? null : (q.data ?? null),
     error: key === null ? null : (q.error ?? null),

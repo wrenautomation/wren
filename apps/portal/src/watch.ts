@@ -5,12 +5,12 @@
  * person's tabs over `/api/live/writes`. A tab that connects late gets every open write's last
  * state at once. Without the binding (the local preview) the route is 404 and tabs poll.
  *
- * The token rides in `Sec-WebSocket-Protocol` (`wren-writes, <token>`), as live notes do; the
- * origin must be this host.
+ * The socket's door is shared (./socket-door.ts): protocol `wren-writes, <token>`.
  */
 import { json } from "./edge.js";
 import type { Env } from "./env.js";
 import type { Site } from "./hosts.js";
+import { acceptSocket, socketDoor } from "./socket-door.js";
 import type { Viewer } from "./worker.js";
 import { REQUEST_ID, readWrite, WRITE_KEY, type WriteState, writeTarget } from "./writes.js";
 
@@ -79,33 +79,16 @@ export async function watchWrite(
   }
 }
 
-/** The socket's door: from our own page, signed in, never on the demo. */
+/** The socket: through the shared door (./socket-door.ts), to this person's watch. */
 export async function writesSocketRoute(
   req: Request,
   env: Env,
   site: Site,
   viewerOf: (req: Request) => Promise<Viewer | Response>,
 ): Promise<Response> {
-  const url = new URL(req.url);
-  if (site.kind === "demo" || !env.WRITE_WATCH) return json({ error: "not found" }, 404);
-  if ((req.headers.get("upgrade") ?? "").toLowerCase() !== "websocket")
-    return json({ error: "WebSocket only" }, 426);
-  let from = "";
-  try {
-    from = new URL(req.headers.get("origin") ?? "").host;
-  } catch {
-    // No origin: refused below.
-  }
-  if (from !== url.host) return json({ error: "wrong origin" }, 403);
-  const [proto, token] = (req.headers.get("sec-websocket-protocol") ?? "")
-    .split(",")
-    .map((s) => s.trim());
-  if (proto !== WRITES_PROTOCOL || !token) return json({ error: "Sign in." }, 401);
-  const viewer = await viewerOf(
-    new Request(req.url, { headers: { authorization: `Bearer ${token}` } }),
-  );
+  if (!env.WRITE_WATCH) return json({ error: "not found" }, 404);
+  const viewer = await socketDoor(req, site, WRITES_PROTOCOL, viewerOf);
   if (viewer instanceof Response) return viewer;
-  if ("demo" in viewer) return json({ error: "Sign in." }, 401);
   const ns = env.WRITE_WATCH;
   return ns
     .get(ns.idFromName(watchName(viewer.email, site)))
@@ -149,15 +132,9 @@ export class WriteWatch implements DurableObject {
     if (pathname === "/socket") {
       if ((req.headers.get("upgrade") ?? "").toLowerCase() !== "websocket")
         return json({ error: "WebSocket only" }, 426);
-      const pair = new WebSocketPair();
-      const [client, server] = [pair[0], pair[1]];
-      this.state.acceptWebSocket(server);
-      await this.greet(server);
-      return new Response(null, {
-        status: 101,
-        webSocket: client,
-        headers: { "sec-websocket-protocol": WRITES_PROTOCOL },
-      });
+      const { res, socket } = acceptSocket(this.state, WRITES_PROTOCOL);
+      await this.greet(socket);
+      return res;
     }
     return json({ error: "not found" }, 404);
   }

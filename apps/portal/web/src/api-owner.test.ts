@@ -7,6 +7,7 @@ Object.assign(globalThis, {
 });
 vi.mock("./autotrack.js", () => ({ tellAutotrack: () => undefined }));
 vi.mock("./write-socket.js", () => ({ startWriteSocket: () => null }));
+vi.mock("./topic-socket.js", () => ({ startTopicSocket: () => null, onTopic: () => () => {} }));
 const drop = vi.fn(async () => undefined);
 const start = vi.fn(async (_: { owner: string | null }) => undefined);
 vi.mock("@wren/ui", async (actual) => ({

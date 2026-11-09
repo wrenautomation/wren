@@ -4,7 +4,7 @@
 # Secrets (production environment): AWS_DEPLOY_ROLE_ARN, AWS_INVOKE_ROLE_ARN,
 # LAMBDA_NAME, WREN_DATABASE_URL, RESTATE_HOST, RESTATE_AUTH_TOKEN,
 # CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, AUTH_LAMBDA_URL, AUTH_EDGE_SECRET,
-# BOX_BUCKET, BOX_INSTANCE_ID.
+# LIVE_HOOK_SECRET, BOX_BUCKET, BOX_INSTANCE_ID.
 # See deploy/README.md, deploy/phone.md, deploy/portal.md, designs/2026-10-06-llm-gateway.md.
 name: deploy
 on:
@@ -43,4 +43,5 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           LAMBDA_URL: ${{ secrets.AUTH_LAMBDA_URL }}
           EDGE_SECRET: ${{ secrets.AUTH_EDGE_SECRET }}
+          LIVE_HOOK_SECRET: ${{ secrets.LIVE_HOOK_SECRET }}
           GH_TOKEN: ${{ github.token }}

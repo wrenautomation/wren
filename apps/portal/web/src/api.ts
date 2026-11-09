@@ -18,6 +18,7 @@ import {
 import { BUILD_HEADER, BUILD_META, STALE_CODE } from "../../src/build.js";
 import { isWrite } from "../../src/services.js";
 import { tellAutotrack } from "./autotrack.js";
+import { startTopicSocket } from "./topic-socket.js";
 import { startWriteSocket } from "./write-socket.js";
 
 export type {
@@ -528,6 +529,8 @@ WRITES.use({
 WRITES.start();
 // The server pushes how each send goes; asking above is the fallback.
 if (TOKEN_URL) startWriteSocket({ token, writes: WRITES });
+// Writers' "this changed": `useCall(..., {live})` reads again (./topic-socket.ts).
+if (TOKEN_URL) startTopicSocket({ token });
 // Reads the data layer starts together (a return to the tab, the network back) go as one.
 readTogether(batched);
 

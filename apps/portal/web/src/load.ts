@@ -1,6 +1,7 @@
 /** Loading a portal call into a component: a TanStack Query read (`@wren/ui` data layer). */
 import { dropCached, nameScope, type Patch, readCached, useLoad, writeThrough } from "@wren/ui";
 import { ApiError } from "./api.js";
+import { onTopic } from "./topic-socket.js";
 
 export type Load<T> = {
   data: T | null;
@@ -41,18 +42,18 @@ const asApiError = (err: unknown): never => {
  * once while it reads again. A refused read is never kept on the device. A null `key` reads
  * nothing (a closed dialog). `kept: false` keeps the answers in this component only: a preview
  * of words still being typed. `fn` gets the answer it reads over, so a list can ask only for
- * what changed.
+ * what changed. `live` names a topic: a writer's push on it reads again (./topic-socket.ts).
  */
 export function useCall<T>(
   key: string | null,
   fn: (before: T | undefined) => Promise<T>,
-  o: { kept?: boolean; pollMs?: number } = {},
+  o: { kept?: boolean; live?: string } = {},
 ): Load<T> {
   return useLoad<T>(
     key,
     (before) => fn(before).catch(asApiError),
     o.kept === false ? undefined : PORTAL,
-    o.pollMs ? { pollMs: o.pollMs } : {},
+    o.live ? { on: (go) => onTopic(o.live as string, go) } : {},
   ) as Load<T>;
 }
 

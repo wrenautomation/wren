@@ -53,6 +53,15 @@ new_sqlite_classes = ["WriteWatch"]
 tag = "v3"
 deleted_classes = ["NoteRoom"]
 
+# Live topics: one room per site; writers' signed POSTs reach its tabs (src/topics.ts).
+[[durable_objects.bindings]]
+name = "LIVE_ROOM"
+class_name = "LiveRoom"
+
+[[migrations]]
+tag = "v4"
+new_sqlite_classes = ["LiveRoom"]
+
 # One cap per visitor on public posts: forms, chat, signing, booking, AI tools (src/limit.ts).
 [[ratelimits]]
 name = "PUBLIC_LIMIT"

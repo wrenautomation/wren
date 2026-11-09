@@ -38,9 +38,11 @@ jq -n --arg url "$RESTATE_INGRESS/" --arg token "$RESTATE_AUTH_TOKEN" \
   '{RESTATE_INGRESS_URL: $url, RESTATE_AUTH_TOKEN: $token}' > "$RUNNER_TEMP/phone-secrets.json"
 jq -n --arg url "$LAMBDA_URL" --arg edge "$EDGE_SECRET" '{LAMBDA_URL: $url, EDGE_SECRET: $edge}' \
   > "$RUNNER_TEMP/auth-secrets.json"
+# LIVE_HOOK_SECRET: writers' signed "this changed" (src/topics.ts); = WREN_LIVE_SECRET in SSM.
 jq -n --arg url "$RESTATE_INGRESS/" --arg token "$RESTATE_AUTH_TOKEN" \
-  --arg lambda "$LAMBDA_URL" --arg edge "$EDGE_SECRET" \
-  '{RESTATE_INGRESS_URL: $url, RESTATE_AUTH_TOKEN: $token, LAMBDA_URL: $lambda, EDGE_SECRET: $edge}' \
+  --arg lambda "$LAMBDA_URL" --arg edge "$EDGE_SECRET" --arg live "${LIVE_HOOK_SECRET:-}" \
+  '{RESTATE_INGRESS_URL: $url, RESTATE_AUTH_TOKEN: $token, LAMBDA_URL: $lambda, EDGE_SECRET: $edge}
+   + (if $live == "" then {} else {LIVE_HOOK_SECRET: $live} end)' \
   > "$RUNNER_TEMP/portal-secrets.json"
 bg worker-zip pnpm --filter @wren/worker build:lambda
 bg auth-zip pnpm --filter @wren/auth-app build:lambda
