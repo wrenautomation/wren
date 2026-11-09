@@ -288,6 +288,7 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
     - C. Searches as a ring of labels with no answer. Shows the fan-out, hides what it found.
   - Searches sit on a ring in run order; a source seeds at the center of its searches. A source with no finding waits on the shelf until its search opens.
   - Claims stay in the side list and the panel. A claim pick lights its sources.
+  - Answers pick in run order; a finding an earlier search took counts only when none is left. Prod showed one review study on many cards.
   - Tree and Lanes removed from ui, portal routes and stories: prod had them as the default, and William called them broken.
   - Summary bars become `RingChart` donuts (the chart kit's), with the hot slice's share in the center.
   - CSP `img-src` takes https, so page pictures load in prod.

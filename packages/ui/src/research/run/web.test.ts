@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { RUN_GRAPH, RUN_GRAPH_WORST } from "../../fixtures/index.js";
-import { indexRun, jit, type RunGraphData } from "./model.js";
+import { answerOf, indexRun, jit, type RunGraphData } from "./model.js";
 import {
   keepPlaces,
   kids,
@@ -188,5 +188,23 @@ describe("kids", () => {
     const L = indexRun(RUN_GRAPH);
     expect(kids(L, "q0")).toBe(kids(L, "q0"));
     expect(kids(indexRun(RUN_GRAPH), "q0")).not.toBe(kids(L, "q0"));
+  });
+});
+
+describe("answers", () => {
+  it("gives two searches the same finding only when the later one has no other", () => {
+    const L = indexRun(RUN_GRAPH);
+    const qs = [...L.byQ.keys()].sort((a, b) => a - b);
+    const seen = new Set<unknown>();
+    for (const q of qs) {
+      const a = answerOf(L, q);
+      if (!a) continue;
+      if (seen.has(a.f)) {
+        const own = (L.byQ.get(q)?.ss ?? []).flatMap((id) => L.byId.get(id)?.s.fs ?? []);
+        expect(own.every((f) => seen.has(f))).toBe(true);
+      }
+      seen.add(a.f);
+    }
+    expect(answerOf(L, qs[0] ?? 0)).toBe(answerOf(L, qs[0] ?? 0));
   });
 });

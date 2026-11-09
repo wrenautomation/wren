@@ -315,17 +315,36 @@ export const jit = (i: number) => {
   const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
   return x - Math.floor(x) - 0.5;
 };
-/** A search's answer: the best finding on the sources it found. Checked first, then in a claim, then strongest evidence. */
-export const answerOf = (L: Indexed, qi: number) => {
-  let best: { f: GraphFinding; n: GNode; score: number } | null = null;
-  for (const id of L.byQ.get(qi)?.ss ?? []) {
-    const n = L.byId.get(id);
-    for (const f of n?.s.fs ?? []) {
-      const score = (f.ok === 1 ? 0 : 100) + (f.c >= 0 ? 0 : 10) + evIndex(f.e);
-      if (n && (!best || score < best.score)) best = { f, n, score };
+type Answer = { f: GraphFinding; n: GNode; score: number };
+const ANSWERS = new WeakMap<Indexed, Map<number, Answer>>();
+/**
+ * A search's answer: the best finding on the sources it found. Checked first, then in a claim, then
+ * strongest evidence. Searches pick in run order; a finding an earlier search took counts only when
+ * none is left, so one strong source does not repeat on every card.
+ */
+export const answerOf = (L: Indexed, qi: number): Answer | null => {
+  let all = ANSWERS.get(L);
+  if (!all) {
+    all = new Map();
+    const taken = new Set<GraphFinding>();
+    for (const q of [...L.byQ.keys()].sort((a, b) => a - b)) {
+      let best: Answer | null = null;
+      for (const id of L.byQ.get(q)?.ss ?? []) {
+        const n = L.byId.get(id);
+        for (const f of n?.s.fs ?? []) {
+          const score =
+            (taken.has(f) ? 1000 : 0) + (f.ok === 1 ? 0 : 100) + (f.c >= 0 ? 0 : 10) + evIndex(f.e);
+          if (n && (!best || score < best.score)) best = { f, n, score };
+        }
+      }
+      if (best) {
+        taken.add(best.f);
+        all.set(q, best);
+      }
     }
+    ANSWERS.set(L, all);
   }
-  return best;
+  return all.get(qi) ?? null;
 };
 /** The sources a search found that hold a finding, and their findings. */
 export const spokesOf = (L: Indexed, qi: number) =>
