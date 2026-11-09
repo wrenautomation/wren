@@ -27,22 +27,22 @@ describe("pacedWakes", () => {
     vi.useFakeTimers();
     const sent: string[] = [];
     const p = pacedWakes((s, k) => sent.push(`${s}/${k}`), { settleMs: 1000, spaceMs: 15_000 });
-    p.wake("Segments", "fleet");
-    p.wake("Segments", "fleet");
+    p.wake("SegmentPass", "fleet");
+    p.wake("SegmentPass", "fleet");
     p.wake("SmsSend", "fleet");
     vi.advanceTimersByTime(1000);
-    expect(sent).toEqual(["Segments/fleet", "SmsSend/fleet"]);
+    expect(sent).toEqual(["SegmentPass/fleet", "SmsSend/fleet"]);
     // A row a second: the second wake waits out the space, and the notices meanwhile are it.
     for (let i = 0; i < 10; i++) {
       vi.advanceTimersByTime(1000);
-      p.wake("Segments", "fleet");
+      p.wake("SegmentPass", "fleet");
     }
     expect(sent).toHaveLength(2);
     vi.advanceTimersByTime(15_000);
-    expect(sent).toEqual(["Segments/fleet", "SmsSend/fleet", "Segments/fleet"]);
+    expect(sent).toEqual(["SegmentPass/fleet", "SmsSend/fleet", "SegmentPass/fleet"]);
     // Quiet past the space: the next notice goes after the settle alone.
     vi.advanceTimersByTime(20_000);
-    p.wake("Segments", "fleet");
+    p.wake("SegmentPass", "fleet");
     vi.advanceTimersByTime(1000);
     expect(sent).toHaveLength(4);
     p.close();

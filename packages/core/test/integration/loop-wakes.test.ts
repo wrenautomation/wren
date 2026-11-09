@@ -35,8 +35,13 @@ describe("wake triggers", () => {
     const p = await resolveProfile(pg.db, [{ kind: "email", value: "wake@example.test" }], "t");
     if (!p) throw new Error("no profile");
     expect(await heardOf(() => setTraits(pg.db, p.id, { plan: "a" }, "t"))).toContain(
-      "Segments/fleet",
+      "SegmentPass/fleet",
     );
+    // migration 0379: no trigger wakes the old name
+    const old = await pg.db.execute(
+      sql`select tgname from pg_trigger where not tgisinternal and pg_get_triggerdef(oid) like '%Segments/%'`,
+    );
+    expect([...old]).toEqual([]);
     // The people map's sync shape: an upsert that finds every row as it is.
     expect(
       await heardOf(() => pg.db.execute(sql`update profile_traits set value = value`)),

@@ -2647,6 +2647,13 @@
       "when": 1794164339897,
       "tag": "0378_retire_studies",
       "breakpoints": true
+    },
+    {
+      "idx": 379,
+      "version": "7",
+      "when": 1794225270116,
+      "tag": "0379_segment_pass_wake",
+      "breakpoints": true
     }
   ]
 }
