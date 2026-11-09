@@ -9,6 +9,8 @@ import { loadSettings } from "@wren/config";
 import { loadSsmEnv, loadSsmFile } from "@wren/config/ssm";
 import { createEndpointHandler } from "@wren/runtime/lambda";
 import pino from "pino";
+import { isRtEvent, lambdaTurns, restateSide, rtSql } from "./rt.js";
+import { pooled } from "./services/deps.js";
 import { buildServices, servicesFor } from "./services.js";
 
 const ROOT = process.env.LAMBDA_TASK_ROOT ?? process.cwd();
@@ -38,7 +40,26 @@ log.info(
 // Developers > Security page. Unset means any caller Lambda's IAM lets in.
 const identityKey = process.env.WREN_RESTATE_IDENTITY_KEY;
 
-export const handler = createEndpointHandler({
-  services: servicesFor(built.services, "lambda"),
+// The Postgres runtime (rt.ts): one connection pair per instance, made on first use.
+let sql: ReturnType<typeof rtSql> | undefined;
+const db = () => {
+  if (!sql) {
+    sql = rtSql(pooled(settings), 2, "wren-rt-lambda");
+  }
+  return sql;
+};
+let turns: ReturnType<typeof lambdaTurns> | undefined;
+
+const restateHandler = createEndpointHandler({
+  services: restateSide(servicesFor(built.services, "lambda"), db),
   ...(identityKey ? { identityKeys: [identityKey] } : {}),
 });
+
+/** Restate's calls, or one pg turn when the box's lambda lane invokes with `{rt}`. */
+export const handler = (event: unknown, ctx: unknown) => {
+  if (isRtEvent(event)) {
+    turns ??= lambdaTurns(built.services, db());
+    return turns(event);
+  }
+  return (restateHandler as (e: unknown, c: unknown) => Promise<unknown>)(event, ctx);
+};

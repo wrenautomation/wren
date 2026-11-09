@@ -81,6 +81,39 @@ desk (Mac) ──HTTPS long-poll /claim?service=desk──▶ door              
 - **Ids and random.** Child id = sha256(parent, seq). `ctx.rand` is xoshiro256** seeded from the invocation id.
 - **Not built (no wren call site):** workflows, `ctx.attach`, durable promises.
 
+## Phase 3: two runtimes side by side
+
+115 call sites in 54 files call another service. Services move one at a time, so a call can cross runtimes.
+
+| Option | How | For | Against |
+|---|---|---|---|
+| A. Closed groups | Move a group only when nothing outside it calls in | No bridge code | The call graph is dense: first groups are huge; rollback is per group |
+| B. Wrap the SDK context | `@wren/runtime` wraps `ctx` so a call to a pg service becomes a `ctx.run` | Any split | Changes the journal shape of open Restate calls on a flip: replay fails |
+| **C. Proxies + bridge rows** | Restate side: a pg service is served as a **proxy** of the same name. pg side: a call to a Restate service is a **bridge row** the box forwards | Any split; journal shapes never change; flip back any time | Two small pieces of code; a crossing call takes one extra hop |
+| D. Big bang | All services at once; Restate drains | One switch | No per-service rollback; one bad handler stops everything |
+
+Decided: C. Priorities, in order: no lost or doubled call, rollback per service, Lambda cost, code size.
+
+- **Route list:** `PG_SERVICES` in `apps/worker/src/rt.ts`. A deploy flips a service. pg registers every service always, so a flip back never strands an open pg invocation.
+- **Restate → pg:** Restate serves `proxy(S)` for each pg service S (same names; object handlers shared). A proxy handler makes a Restate awakeable, writes the pg row in a `ctx.run` (id from its own invocation id: a retry makes the same row), and waits on the awakeable. Restate suspends: no Lambda time.
+- **pg → Restate:** a call or send to a Restate service is a normal child row. The box's dispatcher sees its service is not on pg and runs it as a bridge: POST to Restate's loopback ingress with `idempotency-key` = row id, then attach. The wait is on the box: free.
+- **Reply:** when a pg row with a Restate awakeable finishes, the box resolves it on Restate's ingress, then marks the row replied. A sweep retries what a crash missed.
+- **Where turns run:** box services (`BOX_SERVICES`) in the box worker; the rest in Lambda. The box invokes Lambda (`RequestResponse`, payload `{rt:{id, attempt}}`); the box's instance role already may invoke it.
+- **Builds:** a Lambda row pins the version ARN at its first claim (CI writes the new ARN to `/etc/wren/worker-arn` at register); Lambda versions are never deleted. A box row pins the box build's sha; each box slot claims only its own build, as Restate's slots do today.
+- **Ingress callers** (portal, CLI, wakes, desk) keep calling Restate: the proxy forwards. The door replaces Restate's ingress in phase 6.
+
+### Phase 3 as built
+
+- `packages/runtime/src/pg/bridge.ts`: `proxy`, `bridgeTurn`, `replier`. `apps/worker/src/rt.ts`: the box's lanes and the Lambda turn entry.
+- **Lanes** (`Lane` in `store.ts`): `only`/`except` by service; `build` pins on first claim; `strict` skips rows of another build; `fresh: false` takes only its own build's rows; `lock: false` ignores key locks (bridge rows: Restate locks the key).
+- **Box process:** box lane (strict, `WREN_BUILD`), Lambda lane (loose: a row keeps its first ARN), bridge lane, replier. All on one direct Postgres pool (LISTEN needs a session).
+- **Lambda lane width:** 4 (`WREN_RT_LAMBDA_CONCURRENCY`), under the worker's reserved concurrency of 6, which Restate shares until phase 6. A throttled invoke keeps its lease and runs again when it lapses.
+- **Lambda turns:** the handler takes `{rt}` events beside Restate's. Postgres through PgBouncer (`prepare: false`, 2 connections).
+- **Slots:** a superseded slot keeps only its box lane, `fresh: false`. A new slot moves rows pinned to a stopped slot (two deploys ago, not `WREN_BUILD_LIVE`) to its own build, as Restate's `force` does.
+- **Proxy content type:** the proxy passes bytes through but declares `application/json`; Restate's ingress refuses JSON callers on an `octet-stream` handler (found by `bridge-pg.test.ts`).
+- **Tests:** `bridge-pg.test.ts` (Restate container + Postgres: proxy call, no input, error code, pg → Restate bridge, every reply sent), `lanes-pg.test.ts`.
+- **Gaps:** a service moved between box and Lambda leaves its pinned rows in the old lane (repin by hand); Restate-side cancel of a proxy call cancels the pg row only after its turn ends.
+
 ## VPSs
 
 Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too small for Chromium or a Postgres replica. They stay for work that needs a non-AWS IP with port 25 or a clean search IP: probers, SearXNG. Extra use: a second SearXNG on LA (search fallback when Buffalo is rate-limited), so weaver's search does not wait on the desk's Google.
@@ -111,4 +144,5 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 - 2026-11-09: own runtime (B), Restate's shape, compute on Lambda (William's "maximize free lambda"; DBOS cannot push to Lambda).
 - 2026-11-09: tests and lints land before the first move (William).
 - 2026-11-09: the door speaks Restate's ingress protocol, and SDK definitions are reused: phase 4 is a router flag, not a rewrite.
+- 2026-11-09: phase 3 = proxies + bridge rows (C above), not closed groups, a ctx wrapper or a big bang.
 - 2026-11-09: retry cap → `paused`, not a new `dead` status: same as Restate today, so the DLQ page and alerts keep their meaning.

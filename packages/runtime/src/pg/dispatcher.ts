@@ -4,11 +4,13 @@
  */
 import type postgres from "postgres";
 import { deferred } from "./promise.js";
-import { type Claim, claim, nextDue } from "./store.js";
+import { type Claim, claim, type Lane, nextDue } from "./store.js";
 
 export interface DispatcherOptions {
   sql: postgres.Sql;
   run: (c: Claim) => Promise<unknown>;
+  /** Which rows this loop takes; default all. */
+  lane?: Lane;
   concurrency?: number;
   leaseMs?: number;
   pollMs?: number;
@@ -25,6 +27,12 @@ export class Dispatcher {
   private idle = deferred<void>();
 
   constructor(private o: DispatcherOptions) {}
+
+  /** Change which rows this loop takes (a superseded box slot stops taking new ones). */
+  setLane(lane: Lane) {
+    this.o = { ...this.o, lane };
+    this.kick();
+  }
 
   async start() {
     this.listener = await this.o.sql.listen("rt_wake", () => this.kick());
@@ -55,7 +63,7 @@ export class Dispatcher {
       let got = 0;
       if (free > 0) {
         try {
-          const claims = await claim(this.o.sql, free, leaseMs, Date.now());
+          const claims = await claim(this.o.sql, free, leaseMs, Date.now(), this.o.lane);
           got = claims.length;
           for (const c of claims) {
             this.active++;
@@ -77,7 +85,7 @@ export class Dispatcher {
       if (this.kicked) continue;
       let wait = pollMs;
       try {
-        const due = await nextDue(this.o.sql);
+        const due = await nextDue(this.o.sql, this.o.lane);
         if (due) wait = Math.max(0, Math.min(pollMs, due.getTime() - Date.now()));
       } catch {}
       if (this.kicked || this.stopped) continue;

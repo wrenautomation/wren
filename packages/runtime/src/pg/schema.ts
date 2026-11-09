@@ -122,7 +122,14 @@ BEGIN
 END $$;
 `;
 
-const MIGRATIONS: readonly string[] = [V1];
+/** Phase 3: Restate proxies wait on a Restate awakeable (`reply`); bridge rows keep Restate's id. */
+const V2 = `
+ALTER TABLE rt.invocations ADD COLUMN reply text, ADD COLUMN replied_at timestamptz, ADD COLUMN remote text;
+CREATE INDEX invocations_unreplied ON rt.invocations (completed_at)
+  WHERE reply IS NOT NULL AND replied_at IS NULL AND status IN ('done', 'killed');
+`;
+
+const MIGRATIONS: readonly string[] = [V1, V2];
 
 /** Bring schema `rt` up to date. One advisory lock, so parallel starts take turns. */
 export async function migrate(sql: postgres.Sql): Promise<void> {

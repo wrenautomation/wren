@@ -19,6 +19,8 @@ export interface Claim {
   attempt: number;
   service: string;
   handler: string;
+  /** Pinned code: a Lambda version ARN or a box build sha. */
+  build: string | null;
 }
 
 /** Register a process's handlers: their kind decides key locking at submit time. */
@@ -37,15 +39,50 @@ export async function register(sql: Sql, registry: Registry) {
     ON CONFLICT (service, handler) DO UPDATE SET object = excluded.object, exclusive = excluded.exclusive, at = now()`;
 }
 
+/**
+ * Which rows a dispatcher takes. `only` / `except`: by service. `build`: pinned on first claim;
+ * `strict` also skips rows pinned to another build (a box slot runs only its own code).
+ * `lock: false`: ignore key locks (bridge rows: Restate locks the key).
+ */
+export interface Lane {
+  only?: readonly string[];
+  except?: readonly string[];
+  build?: string;
+  strict?: boolean;
+  /** false: only rows already pinned to `build` (a superseded slot finishing its own). */
+  fresh?: boolean;
+  lock?: boolean;
+}
+
+const laneSql = (sql: Sql, l: Lane) => sql`
+  ${l.only ? sql`AND i.service IN ${sql(l.only as string[])}` : sql``}
+  ${l.except?.length ? sql`AND i.service NOT IN ${sql(l.except as string[])}` : sql``}
+  ${
+    l.strict && l.build
+      ? l.fresh === false
+        ? sql`AND i.build = ${l.build}`
+        : sql`AND (i.build IS NULL OR i.build = ${l.build})`
+      : sql``
+  }`;
+
 /** Claim up to `n` due invocations. FIFO per object key for exclusive handlers; one holder per key. */
-export async function claim(sql: Sql, n: number, leaseMs: number, now: number): Promise<Claim[]> {
+export async function claim(
+  sql: Sql,
+  n: number,
+  leaseMs: number,
+  now: number,
+  lane: Lane = {},
+): Promise<Claim[]> {
+  if (lane.only && lane.only.length === 0) return [];
   const at = new Date(now);
+  const lock = lane.lock ?? true;
   return sql<Claim[]>`
     WITH c AS (
       SELECT i.id FROM rt.invocations i
       WHERE ((i.status IN ('pending', 'suspended') AND i.run_at <= ${at})
              OR (i.status = 'running' AND i.lease_until < now()))
-        AND (NOT i.exclusive OR i.holds OR (
+        ${laneSql(sql, lane)}
+        AND (NOT ${lock} OR NOT i.exclusive OR i.holds OR (
           NOT EXISTS (SELECT 1 FROM rt.invocations h WHERE h.service = i.service AND h.key = i.key AND h.holds)
           AND i.id = (
             SELECT o.id FROM rt.invocations o
@@ -56,20 +93,26 @@ export async function claim(sql: Sql, n: number, leaseMs: number, now: number): 
       LIMIT ${n}
       FOR UPDATE OF i SKIP LOCKED)
     UPDATE rt.invocations i SET
-      status = 'running', attempt = i.attempt + 1, wake = false, holds = i.exclusive,
+      status = 'running', attempt = i.attempt + 1, wake = false, holds = i.exclusive AND ${lock},
       lease_until = now() + make_interval(secs => ${leaseMs / 1000}),
-      started_at = coalesce(i.started_at, now())
+      started_at = coalesce(i.started_at, now()),
+      build = coalesce(i.build, ${lane.build ?? null})
     FROM c WHERE i.id = c.id
-    RETURNING i.id, i.attempt, i.service, i.handler`;
+    RETURNING i.id, i.attempt, i.service, i.handler, i.build`;
 }
 
-/** Soonest time anything becomes claimable, for the dispatcher's sleep. */
-export async function nextDue(sql: Sql): Promise<Date | null> {
+/**
+ * Soonest future time a row of this lane becomes due, for the dispatcher's sleep. Rows due now
+ * but blocked (a key holder) are left out: the holder's finish sends NOTIFY rt_wake.
+ */
+export async function nextDue(sql: Sql, lane: Lane = {}): Promise<Date | null> {
+  if (lane.only && lane.only.length === 0) return null;
   const [r] = await sql<{ at: Date | null }[]>`
     SELECT least(
-      (SELECT min(run_at) FROM rt.invocations
-        WHERE status IN ('pending', 'suspended') AND run_at < 'infinity'), -- infinity parses to Invalid Date
-      (SELECT min(lease_until) FROM rt.invocations WHERE status = 'running')) AS at`;
+      (SELECT min(run_at) FROM rt.invocations i
+        WHERE status IN ('pending', 'suspended') AND run_at > now() AND run_at < 'infinity'
+        ${laneSql(sql, lane)}), -- infinity parses to Invalid Date
+      (SELECT min(lease_until) FROM rt.invocations i WHERE status = 'running' ${laneSql(sql, lane)})) AS at`;
   return r?.at ?? null;
 }
 
@@ -305,21 +348,25 @@ export interface Submit {
   idemKey: string | null;
   runAt: Date;
   id: string;
+  /** A Restate awakeable to resolve with the outcome (a proxy call waits on it). */
+  reply?: string | null;
 }
 
 /** New invocation, or the one an idempotency key already made. */
 export async function submit(sql: Sql, s: Submit): Promise<{ id: string; fresh: boolean }> {
   const [row] = await sql<{ id: string }[]>`
-    INSERT INTO rt.invocations (id, service, handler, key, exclusive, input, headers, idem_key, run_at)
+    INSERT INTO rt.invocations (id, service, handler, key, exclusive, input, headers, idem_key, run_at, reply)
     SELECT ${s.id}, ${s.service}, ${s.handler}, ${s.key},
       coalesce((SELECT exclusive FROM rt.handlers WHERE service = ${s.service} AND handler = ${s.handler}), ${s.key}::text IS NOT NULL),
-      ${Buffer.from(s.input)}, ${json(s.headers)}::text::jsonb, ${s.idemKey}, ${s.runAt}
+      ${Buffer.from(s.input)}, ${json(s.headers)}::text::jsonb, ${s.idemKey}, ${s.runAt}, ${s.reply ?? null}
     ON CONFLICT DO NOTHING
     RETURNING id`;
   if (row) {
     await sql`SELECT pg_notify('rt_wake', '')`;
     return { id: row.id, fresh: true };
   }
+  // same id again (a proxy's retry): the first row stands
+  if (s.idemKey === null) return { id: s.id, fresh: false };
   const [old] = await sql<{ id: string }[]>`
     SELECT id FROM rt.invocations
     WHERE service = ${s.service} AND handler = ${s.handler} AND coalesce(key, '') = ${s.key ?? ""}

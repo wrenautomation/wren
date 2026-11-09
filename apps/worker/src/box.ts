@@ -14,7 +14,8 @@ import * as restate from "@wren/runtime";
 import { connectTunnel } from "@wren/runtime/tunnel";
 import pino from "pino";
 import { type AdminQuery, boxPort, boxUrl, watchSuperseded } from "./box-slot.js";
-import { buildServices, servicesFor } from "./services.js";
+import { restateSide, startRt } from "./rt.js";
+import { BOX_SERVICES, buildServices, servicesFor } from "./services.js";
 import { startWakes } from "./wake.js";
 
 const ROOT = process.env.WREN_BUNDLE_ROOT ?? process.cwd();
@@ -37,7 +38,29 @@ const settings = loadSettings(process.env, { rootDir: ROOT });
 const log = pino({ level: settings.logLevel });
 // A mailbox walk opens its own pool (PROBE_WIDTH + 1); this one serves everything else.
 const built = await buildServices(settings, log, { rootDir: ROOT, dbPoolMax: 6 });
-const services = servicesFor(built.services, "box");
+// The Postgres runtime (rt.ts): its lanes, the bridge to Restate and the replier. No database, no rt.
+// A failed start leaves Restate serving as before: only a pg service's proxy needs it.
+const rt = process.env.WREN_DATABASE_URL
+  ? await startRt({
+      all: built.services,
+      box: BOX_SERVICES,
+      databaseUrl: process.env.WREN_DATABASE_URL,
+      build: process.env.WREN_BUILD ?? "dev",
+      ...(process.env.WREN_BUILD_LIVE ? { buildLive: process.env.WREN_BUILD_LIVE } : {}),
+      // self-hosted: Restate's ingress on loopback, past Caddy's auth
+      ingress: process.env.RESTATE_TUNNEL_NAME
+        ? (({ url, headers }) => ({ url, ...(headers ? { headers } : {}) }))(ingressOf(settings))
+        : { url: "http://127.0.0.1:8080" },
+      log,
+    }).catch((err: unknown) => {
+      log.error({ err: String(err) }, "rt start failed");
+      return null;
+    })
+  : null;
+const services = restateSide(servicesFor(built.services, "box"), () => {
+  if (!rt) throw new Error("rt needs WREN_DATABASE_URL");
+  return rt.sql;
+});
 // Rows that wake loops (designs/2026-10-11-push-not-poll.md): this box holds the LISTENs, on
 // its own connections straight to Postgres, never through PgBouncer.
 let wakes: { close(): Promise<void> } | null = null;
@@ -104,6 +127,7 @@ if (!process.env.RESTATE_TUNNEL_NAME) {
       async onSuperseded(pinned) {
         await wakes?.close();
         wakes = null;
+        await rt?.superseded();
         log.info({ deployment: reg.id, pinned }, "box superseded: serving pinned calls only");
       },
       onError: (err) => log.warn({ err: String(err) }, "box superseded check failed"),

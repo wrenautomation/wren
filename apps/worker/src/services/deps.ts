@@ -147,7 +147,7 @@ const WREN_CALL = { username: "wrenautomation", slug: "call" };
 export const BOOKS_DESK_TIMEOUT_MS = 120_000;
 
 /** Through PgBouncer on the box when a pool port is set; each client database's URL follows. */
-function pooled({ databaseUrl, databasePoolPort }: Settings): string {
+export function pooled({ databaseUrl, databasePoolPort }: Settings): string {
   if (!databasePoolPort) return databaseUrl;
   const url = new URL(databaseUrl);
   url.port = String(databasePoolPort);

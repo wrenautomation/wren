@@ -1,0 +1,242 @@
+/**
+ * Two runtimes side by side (designs/2026-11-09-own-runtime.md, "Phase 3").
+ *   Restate → pg: `proxy(def)` is served on Restate in place of a pg service; it writes the pg row
+ *     and waits on a Restate awakeable, which `replier` resolves when the row finishes.
+ *   pg → Restate: a row whose service is not on pg runs as `bridgeTurn`: send to Restate's ingress
+ *     with idempotency-key = row id, then attach. The wait is on the box.
+ */
+import { createHash } from "node:crypto";
+import * as sdk from "@restatedev/restate-sdk";
+import type postgres from "postgres";
+import { type Claim, finish, isFenced, load, renew, submit } from "./store.js";
+import type { ErrorJson } from "./turn.js";
+
+const B32 = "0123456789abcdefghjkmnpqrstvwxyz";
+/** The pg row a Restate proxy call makes: a function of the Restate invocation, so a retry finds it. */
+export const proxyRowId = (restateId: string) => {
+  const h = createHash("sha256").update(`restate/${restateId}`).digest();
+  let out = "inv_";
+  for (let i = 0; i < 26; i++) out += B32[(h[i] as number) & 31];
+  return out;
+};
+
+/** What a replier sends and a proxy reads: the row's bytes or its error, with the code kept. */
+type Reply = { ok: true; value: string } | { ok: false; error: ErrorJson };
+
+type Def = { name: string; service?: object; object?: object };
+/** Headers worth carrying into the pg row (tracing and callers' own); never auth. */
+const KEEP = (k: string) =>
+  !/^(authorization|cookie|host|content-length|connection|x-restate)/i.test(k);
+
+/** A Restate definition with `def`'s name and handlers that forward each call to the pg runtime. */
+export function proxy(def: Def, sql: () => postgres.Sql): sdk.ServiceDefinition<string, unknown> {
+  const routes = (def.service ?? def.object ?? {}) as Record<string, unknown>;
+  const isObject = def.object !== undefined;
+  const forward = async (ctx: sdk.Context & { key?: string }, input: Uint8Array) => {
+    const req = ctx.request();
+    const id = proxyRowId(req.id);
+    const { id: reply, promise } = ctx.awakeable<Uint8Array>(sdk.serde.binary);
+    const headers: Record<string, string> = {};
+    for (const [k, v] of req.headers) if (KEEP(k)) headers[k] = v;
+    await ctx.run("rt submit", async () => {
+      await submit(sql(), {
+        id,
+        service: def.name,
+        handler: req.target.handler,
+        key: isObject ? (ctx.key ?? null) : null,
+        input,
+        headers,
+        idemKey: null,
+        runAt: new Date(),
+        reply,
+      });
+    });
+    let bytes: Uint8Array;
+    try {
+      bytes = await promise;
+    } catch (e) {
+      if (e instanceof sdk.CancelledError)
+        await ctx.run("rt cancel", async () => {
+          await sql()`SELECT rt.cancel(${id}, now())`;
+        });
+      throw e;
+    }
+    const r = JSON.parse(Buffer.from(bytes).toString()) as Reply;
+    if (r.ok) return Buffer.from(r.value, "base64");
+    throw new sdk.TerminalError(r.error.message, { errorCode: r.error.code ?? 500 });
+  };
+  // bytes pass through as they are; the content type is JSON, which every caller sends
+  const raw: sdk.Serde<Uint8Array> = {
+    contentType: "application/json",
+    serialize: (b) => b,
+    deserialize: (b) => b,
+  };
+  const opts = { input: raw, output: raw };
+  const handlers: Record<string, unknown> = {};
+  for (const name of Object.keys(routes))
+    handlers[name] = isObject
+      ? sdk.handlers.object.shared(opts, (ctx: sdk.ObjectSharedContext, input: Uint8Array) =>
+          forward(ctx as unknown as sdk.Context & { key: string }, input),
+        )
+      : sdk.handlers.handler(opts, (ctx: sdk.Context, input: Uint8Array) => forward(ctx, input));
+  return (
+    isObject
+      ? sdk.object({ name: def.name, handlers: handlers as never })
+      : sdk.service({ name: def.name, handlers: handlers as never })
+  ) as sdk.ServiceDefinition<string, unknown>;
+}
+
+export interface Ingress {
+  url: string;
+  headers?: Record<string, string>;
+}
+
+const ATTACH_MS = 240_000; // under undici's 300 s headers timeout; re-attach after
+
+/** Run one bridge row on Restate: send (idempotent on the row id), then attach until it ends. */
+export async function bridgeTurn(
+  o: { sql: postgres.Sql; ingress: Ingress; leaseMs: number },
+  c: Pick<Claim, "id" | "attempt">,
+): Promise<string> {
+  const loaded = await load(o.sql, c.id, c.attempt);
+  if (!loaded) return "gone";
+  const inv = loaded.inv;
+  const [row] = await o.sql<{ key: string | null; input: Buffer; remote: string | null }[]>`
+    SELECT key, input, remote FROM rt.invocations WHERE id = ${inv.id}`;
+  if (!row) return "gone";
+  let fenced = false;
+  const beat = setInterval(() => {
+    renew(o.sql, inv.id, inv.attempt, o.leaseMs).catch((e: unknown) => {
+      if (isFenced(e)) fenced = true;
+    });
+  }, o.leaseMs / 3);
+  beat.unref();
+  const h = { ...o.ingress.headers };
+  try {
+    let remote = row.remote;
+    if (!remote) {
+      const path = [inv.service, ...(row.key !== null ? [row.key] : []), inv.handler, "send"]
+        .map(encodeURIComponent)
+        .join("/");
+      const res = await fetch(`${o.ingress.url}/${path}`, {
+        method: "POST",
+        headers: { ...h, "content-type": "application/json", "idempotency-key": inv.id },
+        body: row.input,
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!res.ok)
+        throw new Error(`restate send ${res.status}: ${(await res.text()).slice(0, 300)}`);
+      remote = ((await res.json()) as { invocationId: string }).invocationId;
+      await o.sql`UPDATE rt.invocations SET remote = ${remote} WHERE id = ${inv.id}`;
+    }
+    for (;;) {
+      if (fenced) return "fenced";
+      let res: Response;
+      try {
+        res = await fetch(`${o.ingress.url}/restate/invocation/${remote}/attach`, {
+          headers: h,
+          signal: AbortSignal.timeout(ATTACH_MS),
+        });
+      } catch (e) {
+        if ((e as Error).name === "TimeoutError") continue;
+        throw e;
+      }
+      const body = new Uint8Array(await res.arrayBuffer());
+      if (res.ok) {
+        await finish(o.sql, inv, null, { type: "done", value: body }, undefined, o.leaseMs);
+        return "done";
+      }
+      // 4xx/5xx with a JSON body is the handler's TerminalError; anything else retries
+      let err: { message?: string; code?: number } | undefined;
+      try {
+        err = JSON.parse(Buffer.from(body).toString());
+      } catch {}
+      if (!err?.message) throw new Error(`restate attach ${res.status}`);
+      const error = { message: err.message, code: err.code ?? res.status };
+      await finish(o.sql, inv, null, { type: "done", error }, undefined, o.leaseMs);
+      return "done";
+    }
+  } catch (e) {
+    if (fenced || isFenced(e)) return "fenced";
+    await finish(
+      o.sql,
+      inv,
+      null,
+      { type: "failed", error: { message: String((e as Error)?.message ?? e) } },
+      undefined,
+      o.leaseMs,
+    ).catch(() => {});
+    return "failed";
+  } finally {
+    clearInterval(beat);
+  }
+}
+
+/**
+ * Resolves the Restate awakeable of each finished proxy row, then marks it replied.
+ * NOTIFY rt_done for speed; a sweep every `sweepMs` for what a restart missed.
+ */
+export async function replier(o: {
+  sql: postgres.Sql;
+  ingress: Ingress;
+  sweepMs?: number;
+  log?: (msg: string, err?: unknown) => void;
+}): Promise<{ stop(): Promise<void> }> {
+  const log = o.log ?? ((m, e) => console.error(`rt replier: ${m}`, e ?? ""));
+  let running = false;
+  let again = false;
+  const sweep = async () => {
+    if (running) {
+      again = true;
+      return;
+    }
+    running = true;
+    try {
+      do {
+        again = false;
+        const rows = await o.sql<
+          { id: string; reply: string; result: Buffer | null; error: ErrorJson | null }[]
+        >`
+          SELECT id, reply, result, error FROM rt.invocations
+          WHERE reply IS NOT NULL AND replied_at IS NULL AND status IN ('done', 'killed')
+          ORDER BY completed_at LIMIT 100`;
+        for (const r of rows) {
+          const body: Reply = r.error
+            ? { ok: false, error: r.error }
+            : { ok: true, value: (r.result ?? Buffer.alloc(0)).toString("base64") };
+          try {
+            const res = await fetch(`${o.ingress.url}/restate/a/${r.reply}/resolve`, {
+              method: "POST",
+              headers: { ...o.ingress.headers, "content-type": "application/json" },
+              body: JSON.stringify(body),
+              signal: AbortSignal.timeout(30_000),
+            });
+            // 404: the proxy call is gone (cancelled or purged); nothing waits on it
+            if (!res.ok && res.status !== 404) {
+              log(`resolve ${r.id} → HTTP ${res.status}`);
+              continue;
+            }
+            await o.sql`UPDATE rt.invocations SET replied_at = now() WHERE id = ${r.id}`;
+          } catch (e) {
+            log(`resolve ${r.id} failed`, e);
+          }
+        }
+        if (rows.length === 100) again = true;
+      } while (again);
+    } catch (e) {
+      log("sweep failed", e);
+    } finally {
+      running = false;
+    }
+  };
+  const listener = await o.sql.listen("rt_done", () => void sweep());
+  const timer = setInterval(() => void sweep(), o.sweepMs ?? 30_000);
+  timer.unref();
+  void sweep();
+  return {
+    async stop() {
+      clearInterval(timer);
+      await listener.unlisten();
+    },
+  };
+}

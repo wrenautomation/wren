@@ -29,11 +29,12 @@ sysctl -q -p /etc/sysctl.d/90-wren-swap.conf
 # its code; one URL for every build replayed such calls on new code (journal mismatch, 10-16).
 # The live container is always `wren-worker`; the one before it, `wren-worker-old`, serves its
 # pinned calls until the next deploy replaces it.
-live_port=9080 live_dir=""
+live_port=9080 live_dir="" live_build=""
 if docker inspect wren-worker >/dev/null 2>&1; then
   live_port="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' wren-worker | sed -n 's/^WREN_BOX_PORT=//p')"
   live_port="${live_port:-9080}"
   live_dir="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app"}}{{.Source}}{{end}}{{end}}' wren-worker)"
+  live_build="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' wren-worker | sed -n 's/^WREN_BUILD=//p')"
 fi
 if [ "$live_port" = 9080 ]; then port=9081; else port=9080; fi
 dir="/opt/wren-worker-$port"
@@ -66,6 +67,8 @@ for c in wren-worker-new wren-worker-old; do
   docker rm "$c" >/dev/null 2>&1 || true
 done
 rm -rf "$dir" && mv /opt/wren-worker.new "$dir"
+# The Lambda version ARN CI publishes (deploy.sh "register"); the rt's lambda lane pins rows to it.
+mkdir -p /etc/wren
 
 docker run -d --name wren-worker-new --restart unless-stopped --init \
   --network host --memory 640m --stop-timeout 60 \
@@ -73,6 +76,8 @@ docker run -d --name wren-worker-new --restart unless-stopped --init \
   -v "$dir":/app:ro -w /app \
   -e AWS_REGION=us-east-1 \
   -e WREN_BOX_PORT="$port" \
+  -e WREN_BUILD="$key" -e WREN_BUILD_LIVE="$live_build" \
+  -v /etc/wren:/etc/wren:ro \
   -e WREN_BUNDLE_ROOT=/app \
   -e WREN_SSM_ENV_PARAM=/wren/prod/env,/wren/prod/env-2,/wren/prod/env-3,/wren/prod/keystore \
   -e WREN_SSM_ROSTER_PARAM=/wren/prod/senders_config \

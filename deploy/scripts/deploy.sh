@@ -99,7 +99,9 @@ case "$RESTATE_HOST" in
     # The watch pings Discord when Restate itself is down, which nothing inside it can.
     prune="$(base64 -w0 deploy/scripts/restate-prune.py)"
     watch="$(base64 -w0 deploy/scripts/restate-watch.py)"
-    jq -n --arg b "$body" --arg p "$prune" --arg w "$watch" '{commands: [
+    # The rt's lambda lane (apps/worker/src/rt.ts) pins new rows to this version.
+    jq -n --arg b "$body" --arg p "$prune" --arg w "$watch" --arg arn "$ARN" '{commands: [
+      "mkdir -p /etc/wren && printf %s \($arn | @sh) > /etc/wren/worker-arn.new && mv /etc/wren/worker-arn.new /etc/wren/worker-arn",
       "echo \($p) | base64 -d > /usr/local/bin/wren-restate-prune",
       "echo \($w) | base64 -d > /usr/local/bin/wren-restate-watch",
       "chmod 755 /usr/local/bin/wren-restate-prune /usr/local/bin/wren-restate-watch",
