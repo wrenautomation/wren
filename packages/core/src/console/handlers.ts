@@ -1,11 +1,14 @@
 /**
- * Handlers as records: every handler a form can call (`console.handler`), from Restate's
- * `/services`, with its input schema read from the OpenAPI into form boxes (`formOf`).
+ * Handlers as records: every handler a form can call (`console.handler`), from the worker's
+ * service definitions (`Registry.specs`), with its input schema read into form boxes (`formOf`).
  */
+import type { HandlerSpec } from "@wren/runtime/pg";
 import { defineRecord, type RecordType, status, text } from "../records.js";
-import type { RestateAdminGet } from "./restate-admin.js";
 
-/** One handler as `/services` tells it. */
+/** Every handler the worker serves; the worker passes its registry's `specs`. */
+export type HandlerList = () => readonly HandlerSpec[];
+
+/** One handler as the Call form reads it. */
 export interface HandlerRow {
   service: string;
   handler: string;
@@ -19,61 +22,28 @@ export interface HandlerRow {
   viewer: boolean;
 }
 
-const KIND_OF: Record<string, HandlerRow["kind"]> = {
-  Service: "service",
-  VirtualObject: "object",
-  Workflow: "workflow",
-};
-
 /** `*Portal` services are the apps' own backends: their pages are their form. */
 export const isPortal = (service: string) => service.endsWith("Portal");
 
-export function handlersOf(services: unknown): HandlerRow[] {
-  type H = {
-    name: string;
-    public?: boolean;
-    metadata?: Record<string, string>;
-    input_json_schema?: unknown;
-  };
-  type S = { name: string; ty: string; public?: boolean; handlers: H[] };
-  const list = (services as { services?: S[] }).services ?? [];
-  return list.flatMap((s) =>
-    s.handlers.map((h) => ({
-      service: s.name,
-      handler: h.name,
-      kind: KIND_OF[s.ty] ?? "service",
-      public: s.public !== false && h.public !== false,
-      effect: h.metadata?.effect ?? null,
-      form: h.input_json_schema !== undefined,
-      viewer: (h.input_json_schema as Schema | undefined)?.properties?.viewer !== undefined,
-    })),
-  );
+export function handlersOf(specs: readonly HandlerSpec[]): HandlerRow[] {
+  return specs.map((h) => ({
+    service: h.service,
+    handler: h.handler,
+    kind: h.kind,
+    public: h.public,
+    effect: h.metadata.effect ?? null,
+    form: h.input !== undefined,
+    viewer: (h.input as Schema | undefined)?.properties?.viewer !== undefined,
+  }));
 }
 
-/** The handler's input schema from the service's OpenAPI; null when it declares none. */
-export function inputSchemaOf(openapi: unknown, service: string, handler: string): unknown {
-  type Doc = {
-    paths?: Record<
-      string,
-      { post?: { requestBody?: { content?: Record<string, { schema?: unknown }> } } }
-    >;
-    components?: { schemas?: Record<string, unknown> };
-  };
-  const doc = openapi as Doc;
-  const call = `/restate/call/${service}/`;
-  const path = Object.keys(doc.paths ?? {}).find(
-    (p) =>
-      p.startsWith(call) &&
-      p.endsWith(`/${handler}`) &&
-      !p.slice(call.length).includes("/{idempotencyKey}"),
-  );
-  const schema = path
-    ? doc.paths?.[path]?.post?.requestBody?.content?.["application/json"]?.schema
-    : undefined;
-  const ref = (schema as { $ref?: string } | undefined)?.$ref;
-  if (ref?.startsWith("#/components/schemas/"))
-    return doc.components?.schemas?.[ref.slice("#/components/schemas/".length)] ?? null;
-  return schema ?? null;
+/** The handler's input schema; null when it declares none. */
+export function inputSchemaOf(
+  specs: readonly HandlerSpec[],
+  service: string,
+  handler: string,
+): unknown {
+  return specs.find((h) => h.service === service && h.handler === handler)?.input ?? null;
 }
 
 /** One box of a handler's form; `type` left out is a line of text, as in the ui's `FormField`. */
@@ -198,16 +168,16 @@ export function formOf(input: unknown): HandlerField[] | null {
 
 /**
  * Every handler a form can call, as a record: public ones outside the `*Portal` services.
- * Its id is "<service>/<handler>"; the detail carries the input schema from the OpenAPI.
+ * Its id is "<service>/<handler>"; the detail carries the input schema.
  */
-export const handlerRecord = (get: RestateAdminGet): RecordType =>
+export const handlerRecord = (handlerList: HandlerList): RecordType =>
   defineRecord({
     id: "console.handler",
     app: "office",
     channel: null,
     name: { one: "handler", many: "handlers" },
     rows: async () =>
-      handlersOf(await get("/services"))
+      handlersOf(handlerList())
         .filter((h) => h.public && !isPortal(h.service))
         .map((h) => ({
           id: `${h.service}/${h.handler}`,
@@ -259,9 +229,7 @@ export const handlerRecord = (get: RestateAdminGet): RecordType =>
     load: async (_db, id) => {
       const slash = id.indexOf("/");
       if (slash < 0) return null;
-      const service = id.slice(0, slash);
-      const openapi = await get(`/services/${encodeURIComponent(service)}/openapi`);
-      const input = inputSchemaOf(openapi, service, id.slice(slash + 1));
+      const input = inputSchemaOf(handlerList(), id.slice(0, slash), id.slice(slash + 1));
       return { input, form: formOf(input) };
     },
   });

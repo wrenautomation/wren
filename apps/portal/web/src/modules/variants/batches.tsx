@@ -25,6 +25,7 @@ import { dayLabel } from "../work/bits.js";
 import { FramesProvider } from "./live-page.js";
 import { type Kind, pct, type Sample } from "./marks.js";
 import { MarkBatch, type Open, SampleCard, TALLY, WIDE_KINDS } from "./page.js";
+import { Rename } from "./rename.js";
 import { VERDICT_ON, ZONE_OF } from "./score.js";
 import { Together, TogetherProvider } from "./together.js";
 
@@ -370,7 +371,16 @@ function BatchView({
             Batches
           </Button>
         </span>
-        <h2 className={cx(PAGE_TITLE, "m-0 mt-1 text-(--ui-ink)")}>{r.subject.name}</h2>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <Rename
+            value={r.subject.name}
+            label="subject"
+            max={120}
+            save={(to) => call("variants/rename", { subject: r.subject.id, name: to })}
+          >
+            {(n) => <h2 className={cx(PAGE_TITLE, "m-0 text-(--ui-ink)")}>{n}</h2>}
+          </Rename>
+        </div>
         {r.subject.brief && <p className="m-0 text-[13px] text-(--ui-ink-2)">{r.subject.brief}</p>}
         <p className="m-0 text-[12px] text-(--ui-ink-3)">
           Batch {r.n} · {dayLabel(r.createdAt)} · {r.samples.length} samples

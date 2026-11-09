@@ -9,11 +9,10 @@ import { ingressOf } from "@wren/config";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { keyId } from "../../src/key-id.js";
 import { vaultKeys } from "../../src/keys-schema.js";
-import { startTestRestate } from "../../src/testing.js";
+import { startTestRuntime, type TestRuntime } from "../../src/testing.js";
 import { type KeyRow, makeVaultKeyMirror } from "../../src/vault-keys.js";
 
 const calls: string[] = [];
@@ -76,10 +75,10 @@ const desk = restate.service({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [sites, desk, makeVaultKeyMirror({ db: pg.db, limitMs: 5_000 })],
     alwaysReplay: true,
   });

@@ -262,7 +262,17 @@ const V7 = `
 ALTER TABLE rt.invocations ADD COLUMN caller_waits boolean NOT NULL DEFAULT false;
 `;
 
-const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7];
+const V8 = `
+-- each box build that started (apps/worker/src/box-slot.ts): the newest takes new rows; an older
+-- one sees it was superseded and finishes only the rows pinned to it. rt.pg_services is unused
+-- from here (the bridge to Restate is gone); dropping it waits on William's yes.
+CREATE TABLE rt.box_builds (
+  build text PRIMARY KEY,
+  started_at timestamptz NOT NULL DEFAULT now()
+);
+`;
+
+const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8];
 
 /** Bring schema `rt` up to date. One advisory lock, so parallel starts take turns. */
 export async function migrate(sql: postgres.Sql): Promise<void> {

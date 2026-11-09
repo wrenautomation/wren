@@ -16,12 +16,11 @@ import { setWrenSettings } from "@wren/core/clients";
 import { resolveObjects } from "@wren/core/objects";
 import type { PassOutcome } from "@wren/core/restate";
 import { companies, people } from "@wren/core/schema";
-import { segmentOf, startTestRestate } from "@wren/core/testing";
+import { segmentOf, startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { DEFAULT_POLICY } from "@wren/starling-acts";
 import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { eq, inArray, sql } from "drizzle-orm";
@@ -142,7 +141,7 @@ const llm = new FakeLlm({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 const db = () => pg.db;
 beforeAll(async () => {
   pg = await startTestPostgres();
@@ -181,7 +180,7 @@ beforeAll(async () => {
       facts: async () => ["I built an interview reminder tool for recruiters."],
     },
   };
-  env = await startTestRestate({
+  env = await startTestRuntime({
     // A sent comment schedules its proof checks (2 minutes on: none fire in a test).
     services: [
       fakeContent,

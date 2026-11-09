@@ -31,7 +31,7 @@ export function recordTypes(): RecordType[] {
         sessions: { site: { baseUrl: "", exportToken: "" }, signGet: async () => "" },
       }),
       admin: async () => [],
-      adminGet: async () => ({}),
+      handlerList: () => [],
       components: COMPONENTS,
       workflows: WORKFLOWS,
     }),

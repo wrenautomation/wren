@@ -6,11 +6,10 @@
 
 import { ingressOf } from "@wren/config";
 import type { PassOutcome } from "@wren/core/restate";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { seedObjects, startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { type ContentChannel, fakeContentChannel } from "@wren/starling-core";
 import { makeContentPublish } from "@wren/starling-core/service";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -54,10 +53,10 @@ const fakeDesk = restate.service({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       fakeExecutor,
       fakeDesk,

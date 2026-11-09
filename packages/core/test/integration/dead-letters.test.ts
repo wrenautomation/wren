@@ -1,7 +1,7 @@
-/** The dead-letter queue: a sweep files Restate's paused calls, tells once, closes what left. */
+/** The dead-letter queue: a sweep files the runtime's paused calls, tells once, closes what left. */
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { RestateAdmin } from "../../src/console.js";
+import type { AdminQuery } from "../../src/console.js";
 import { deadLetterList, deadLetterPass, endDeadLetter } from "../../src/dead-letters.js";
 import type { Notifier } from "../../src/notify.js";
 
@@ -23,7 +23,7 @@ const paused = (id: string, target = "ContentPublish/comments") => ({
 });
 
 /** Restate as the sweep sees it: the paused rows, and one journal failure per call. */
-function fakeAdmin(rows: () => Record<string, unknown>[]): RestateAdmin {
+function fakeAdmin(rows: () => Record<string, unknown>[]): AdminQuery {
   return async (q) =>
     q.includes("sys_journal")
       ? [
@@ -112,7 +112,7 @@ describe("deadLetterPass", () => {
       "dropped",
     );
     await expect(endDeadLetter({ main: pg.db }, await of("inv_e"), "kill", "ada")).rejects.toThrow(
-      /WREN_RESTATE_ADMIN_URL/,
+      /needs the runtime admin/,
     );
   });
 });

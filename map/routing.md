@@ -34,7 +34,7 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 | `calendar/` | our own booking calendar: bookings, slots, the lander's /book page |
 | `voice/` | the phone agent, in development: calls, timed turns, consent to AI calls |
 | `ui/` | the portal's look: area → screen → `@wren/ui` part → its story → the `DESIGN.md` section (`objects/ui/CONTEXT.md`) |
-| `platform/` | what everything stands on: settings, niches, offers, loop objects, Restate services, schema, worker, CLI, phone |
+| `platform/` | what everything stands on: settings, niches, offers, loop objects, runtime services, schema, worker, CLI, phone |
 
 ## Colliding names (short form; full list in CONTEXT.md)
 
@@ -44,7 +44,7 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 - **campaign**: a niche's email operation (`Campaign` in the worker), a Meta campaign object, an SMS 10DLC registration.
 - **sync**: the loop handler `sync` (one pass now) vs the mailbox read `syncInbox` vs the `inbox_syncs` cursor.
 - **signals**: dated findings from the collectors ([[research/signal]]) vs the lander's visitor events and replay vs `crm run`'s hiring stage.
-- **worker**: `apps/worker` (Restate endpoint on Lambda) vs `apps/phone` and `deploy/pixel` (Cloudflare Workers).
+- **worker**: `apps/worker` (the runtime host: box worker and Lambda lane) vs `apps/phone` and `deploy/pixel` (Cloudflare Workers).
 
 ## Route by task
 

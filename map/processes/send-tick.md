@@ -37,7 +37,7 @@ Intent before act, so a crash costs at most one message. At least once (2026-11-
 | Surface | Role |
 |---|---|
 | `EmailSend/{sender}` | runs |
-| Restate ingress (`docs/restate-operations.md`), `walkthrough/demos/01-loops.sh` | drives |
+| Restate ingress (`docs/operations.md`), `walkthrough/demos/01-loops.sh` | drives |
 
 ## See
 

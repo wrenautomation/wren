@@ -8,11 +8,10 @@
 import { ingressOf, loadSettings } from "@wren/config";
 import { addClient, updateClient } from "@wren/core/clients";
 import { clientOfKey } from "@wren/core/restate";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as ingress from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { ConsoleTransport, SendPolicy } from "@wren/starling-email";
 import { type EmailSend, makeEmailSend, NO_SCOPE, oneScope } from "@wren/starling-outbound/email";
 import { sql } from "drizzle-orm";
@@ -36,7 +35,7 @@ const block = (extra: Record<string, unknown>) => ({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let acmeDb: Db;
 const transport = new ConsoleTransport({ write: () => {} });
 
@@ -59,7 +58,7 @@ beforeAll(async () => {
     policy: OPEN,
     fleet: { senders: [ANN], domainFleet: [ANN], fromNames: {}, signatureHtml: {}, pages: {} },
   });
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeEmailSend({
         transport,

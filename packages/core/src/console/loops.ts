@@ -19,7 +19,7 @@ import {
 import type { TimedOut } from "../restate/limits.js";
 import type { PassOutcome } from "../restate/loop.js";
 import type { SentEvent } from "../schema.js";
-import type { RestateAdmin } from "./restate-admin.js";
+import type { AdminQuery } from "./runtime-admin.js";
 
 /** One loop object: a key of a service whose state has `running`. */
 export interface LoopRow {
@@ -112,7 +112,7 @@ export function loopsOf(rows: Record<string, unknown>[]): LoopRow[] {
  * Every loop as a record. Its id is "<service>/<key>"; `console.startLoop` and
  * `console.stopLoop` call `setLoop` with its service and key.
  */
-export const loopRecord = (admin: RestateAdmin): RecordType =>
+export const loopRecord = (admin: AdminQuery): RecordType =>
   defineRecord({
     id: "console.loop",
     app: "office",

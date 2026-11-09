@@ -9,7 +9,6 @@ import { ingressOf } from "@wren/config";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { BROADCAST, type BroadcastObject, makeBroadcast } from "../../src/broadcast-run.js";
 import {
@@ -22,10 +21,10 @@ import { giveConsent } from "../../src/marketing.js";
 import { resolveProfile } from "../../src/profiles.js";
 import { topics } from "../../src/schema.js";
 import { addMembers, saveSegment } from "../../src/segments.js";
-import { startTestRestate } from "../../src/testing.js";
+import { startTestRuntime, type TestRuntime } from "../../src/testing.js";
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 const sent: string[] = [];
 const mail: BroadcastMail = {
   domain: "wren.example",
@@ -48,7 +47,7 @@ const teller = restate.service({
 
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeBroadcast({ main: pg.db, clientDb: () => pg.db, mail: async () => mail }),
       teller,

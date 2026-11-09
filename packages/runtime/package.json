@@ -6,11 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./clients": "./src/clients.ts",
-    "./lambda": "./src/lambda.ts",
-    "./node": "./src/node.ts",
-    "./pg": "./src/pg/index.ts",
-    "./testing": "./src/testing.ts",
-    "./tunnel": "./src/tunnel.ts"
+    "./pg": "./src/pg/index.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -20,8 +16,6 @@
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",
     "@restatedev/restate-sdk-clients": "1.17.1",
-    "@restatedev/restate-sdk-testcontainers": "1.17.1",
-    "@restatedev/restate-sdk-tunnel": "1.17.1",
     "postgres": "3.4.9"
   },
   "devDependencies": {

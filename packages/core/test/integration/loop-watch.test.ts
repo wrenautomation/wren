@@ -7,9 +7,7 @@ import { ingressOf } from "@wren/config";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { restateAdmin, restateAdminPatch } from "../../src/console.js";
 import {
   type Incident,
   LOOP_WATCH_KEY,
@@ -19,7 +17,7 @@ import {
   makeLoopRevive,
 } from "../../src/loop-watch.js";
 import { makeLoopObject, type PassOutcome, setLastPass } from "../../src/restate/loop.js";
-import { startTestRestate } from "../../src/testing.js";
+import { startTestRuntime, type TestRuntime } from "../../src/testing.js";
 
 const HOUR = 3_600_000;
 const pass = async (ctx: restate.ObjectContext): Promise<PassOutcome<{ n: number }>> => {
@@ -63,17 +61,17 @@ const notifier = {
   },
 };
 
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let pg: TestPostgres;
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
-const admin = () => restateAdmin(env.adminAPIBaseUrl());
+const admin = () => env.admin.query;
 type Watch = ReturnType<typeof makeLoopRevive>;
 const watch = () => ingress().objectClient<Watch>({ name: "LoopRevive" }, LOOP_WATCH_KEY);
 const check = () => watch().sync() as Promise<PassOutcome<LoopRevivePass>>;
 
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       tick,
       flaky,
@@ -107,7 +105,7 @@ describe("LoopRevive", () => {
     const [next] = await admin()(
       `SELECT id FROM sys_invocation WHERE target_service_name = 'Tick' AND status = 'scheduled'`,
     );
-    await restateAdminPatch(env.adminAPIBaseUrl())(`/invocations/${String(next?.id)}/kill`);
+    await env.admin.patch(`/invocations/${String(next?.id)}/kill`);
     expect((await until(healthOf("Tick/a"), is("dead")))?.health).toBe("dead");
 
     notes.length = 0;

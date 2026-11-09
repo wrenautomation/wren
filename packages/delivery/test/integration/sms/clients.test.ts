@@ -9,7 +9,7 @@ import { runs } from "@wren/core";
 import { addClient, addOperator } from "@wren/core/clients";
 import { saveBusinessFact } from "@wren/core/custom-fields";
 import type { PassOutcome } from "@wren/core/restate";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import {
@@ -19,7 +19,6 @@ import {
   smsConsoleApi,
 } from "@wren/delivery/sms";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { clientSms, DEFAULT_HEALTH, FakeBookings, FakeProvider } from "@wren/starling-sms";
 import {
   makeSmsDesk,
@@ -46,7 +45,7 @@ import {
 } from "../../../../starling/channels/sms/test/integration/fixtures.js";
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let acme: Db;
 const wren = new FakeProvider();
 const theirs = new FakeProvider();
@@ -96,7 +95,7 @@ beforeAll(async () => {
       forClient: null,
     }),
   };
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeSmsEvents(deps),
       makeSmsDesk(deps),

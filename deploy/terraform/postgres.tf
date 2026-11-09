@@ -59,8 +59,8 @@ resource "aws_ssm_parameter" "box" {
   }
 }
 
-# The self-hosted Restate server (deploy/scripts/box-restate.sh): the ingress bearer Caddy
-# checks and the key the server signs calls with, as JSON {token, identity_pem}. Set by hand.
+# The front door's bearer (deploy/scripts/box-front-door.sh), as JSON {token}. Set by hand. Its
+# name and description are Restate's (retired 11-09); a description change would rewrite the value.
 resource "aws_ssm_parameter" "restate" {
   name        = "${local.ssm_root}/restate"
   description = "JSON for the box's Restate server: token (ingress bearer), identity_pem (request-signing key)"
@@ -72,8 +72,7 @@ resource "aws_ssm_parameter" "restate" {
   }
 }
 
-# The box's Redis cache (deploy/scripts/box-redis.sh), as JSON {password}. Set by hand; the
-# worker's WREN_CACHE_URL (env-2) carries the same password and the cert's fingerprint.
+# Unused since 11-09 (Redis retired, own-runtime phase 6b); kept until William says to delete it.
 resource "aws_ssm_parameter" "cache" {
   name        = "${local.ssm_root}/cache"
   description = "JSON for the box's Redis cache: password"
@@ -118,15 +117,8 @@ resource "aws_security_group" "pg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  ingress {
-    description = "redis cache (TLS, password, client pins the cert)"
-    from_port   = 6380
-    to_port     = 6380
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  # Caddy: Restate's ingress over TLS (bearer-checked) and the browser at /cdp (its own
-  # token; browserless binds loopback 3000); 80 answers ACME and redirects.
+  # Caddy, the front door (box-front-door.sh): the runtime's door over TLS (bearer-checked) and
+  # the browser at /cdp; 80 answers ACME and redirects. Description kept: a change re-adds the rule.
   dynamic "ingress" {
     for_each = [80, 443]
     content {
@@ -225,7 +217,7 @@ locals {
     # The box worker runs with the Lambda's env, roster and mailboxes, plus its own.
     [aws_ssm_parameter.env.arn, aws_ssm_parameter.env_2.arn, aws_ssm_parameter.env_3.arn, aws_ssm_parameter.keystore.arn],
     [aws_ssm_parameter.roster.arn, aws_ssm_parameter.mailboxes.arn, aws_ssm_parameter.box.arn],
-    [aws_ssm_parameter.restate.arn, aws_ssm_parameter.cache.arn, aws_ssm_parameter.listmonk.arn],
+    [aws_ssm_parameter.restate.arn, aws_ssm_parameter.listmonk.arn],
   )
 }
 
@@ -267,13 +259,7 @@ data "aws_iam_policy_document" "pg" {
     actions   = ["s3:PutObject", "s3:ListBucket"]
     resources = [aws_s3_bucket.backups.arn, "${aws_s3_bucket.backups.arn}/*"]
   }
-  # The Restate server reads its partition snapshots back on start.
-  statement {
-    sid       = "ReadRestateSnapshots"
-    actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.backups.arn}/restate/*"]
-  }
-  # The Restate server on this box invokes the worker, as Restate Cloud's invoker role did.
+  # The box worker's lambda lane runs turns on the Lambda (apps/worker/src/rt.ts).
   statement {
     sid       = "InvokeWorker"
     actions   = ["lambda:InvokeFunction"]
@@ -347,8 +333,6 @@ resource "aws_instance" "pg" {
     db_name             = var.name
     db_user             = var.name
     pg_image            = "postgres:17"
-    restate_param       = aws_ssm_parameter.restate.name
-    restate_script      = file("${path.module}/../scripts/box-restate.sh")
   })
 
   tags = { Name = "${local.prefix}-pg" }

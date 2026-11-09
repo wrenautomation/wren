@@ -5,7 +5,7 @@ import { loadSettings } from "@wren/config";
 import type * as restate from "@wren/runtime";
 import type { Logger } from "pino";
 import { afterEach, describe, expect, it } from "vitest";
-import { BOX_SERVICES, buildServices, POOL_CHAIN, servicesFor } from "./services.js";
+import { buildServices } from "./services.js";
 
 /** A logger that keeps every line; pino's shape is all the worker uses. */
 function logOf() {
@@ -200,33 +200,6 @@ describe("contentFor: reddit", () => {
     expect(services).toEqual([{ name: "desk" }]);
     expect(new Set(calls.map((c) => c.service))).toEqual(new Set(["desk"]));
     expect(runs).toEqual([]);
-  });
-});
-
-describe("servicesFor: which side serves the pool chain", () => {
-  const all = [
-    "EmailSend",
-    ...POOL_CHAIN,
-    "PageHtmlArchive",
-    "BooksClose",
-    "MyMailTriage",
-    "SocialActivityRead",
-    "ContentPublish",
-  ].map((name) => ({
-    name,
-  })) as never[];
-  const names = (s: { name: string }[]) => s.map((x) => x.name);
-
-  it("the box serves the chain, the page archive, the books, the Monitor and SocialActivityRead", () => {
-    expect(names(servicesFor(all, "box"))).toEqual(BOX_SERVICES);
-  });
-
-  it("Lambda drops the chain once the box hosts it", () => {
-    expect(names(servicesFor(all, "lambda", "box"))).toEqual(["EmailSend", "ContentPublish"]);
-  });
-
-  it("Lambda serves everything until then", () => {
-    expect(servicesFor(all, "lambda", undefined)).toHaveLength(all.length);
   });
 });
 

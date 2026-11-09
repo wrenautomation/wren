@@ -1,10 +1,10 @@
 #!/bin/bash
-# @unit listmonk: Newsletter lists and campaigns; posts each message to Restate.
+# @unit listmonk: Newsletter lists and campaigns; posts each message to the runtime.
 # Runs ON the Postgres box (CI sends it over SSM): Listmonk on 127.0.0.1:9000, the newsletter's lists,
 # subscribers and campaigns (designs/2026-10-21-esign-and-newsletter.md). It keeps its own database
 # and login on the box Postgres. It never sends mail: its postback messenger posts each message to
-# the Restate ingress on loopback (settings: `wren listmonk setup`). Caddy serves it at
-# lists.wrenautomation.com (box-restate.sh). Same config and running: left alone.
+# the front door on loopback, 127.0.0.1:8090 (settings: `wren listmonk setup`). Caddy serves it at
+# lists.wrenautomation.com (box-front-door.sh). Same config and running: left alone.
 # CI logs are public: never print a password.
 # Usage: box-listmonk.sh <region> [param]
 # The param is SecureString JSON {"admin_user", "admin_password", "db_password"}. Missing: skipped.

@@ -68,18 +68,6 @@ variable "lambda_timeout_s" {
   default     = 900
 }
 
-variable "restate_trust_policy" {
-  description = "The IAM trust policy JSON Restate Cloud shows under Developers > Security > AWS Lambda for this environment. Empty = no invoker role yet."
-  type        = string
-  default     = ""
-}
-
-variable "restate_identity_key" {
-  description = "Restate Cloud's request-identity public key (publickeyv1_...), from the same page. Empty = not enforced."
-  type        = string
-  default     = ""
-}
-
 variable "github_repo" {
   description = "owner/name; CI on its main branch may update the Lambda's code."
   type        = string

@@ -202,6 +202,15 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
     close: (req: Req) =>
       refuse(() => v.closeBatch(num(req.batch, "batch"), (req.note as string) ?? null, by(req))),
     keep: (req: Req) => refuse(() => v.keep(num(req.sample, "sample"), req.on !== false, by(req))),
+    // a subject's shown name (slug stays) or a sample's; one of the two
+    rename: (req: Req) =>
+      refuse(() => {
+        if ((req.subject == null) === (req.sample == null))
+          throw new PortalRefusal("a subject or a sample", 400);
+        return req.subject != null
+          ? v.renameSubject(num(req.subject, "subject"), String(req.name ?? ""), by(req))
+          : v.renameSample(num(req.sample, "sample"), (req.name as string | null) ?? null, by(req));
+      }),
     guide: (req: Req) =>
       refuse(() =>
         v.addGuide({
@@ -295,6 +304,11 @@ const INPUTS = {
     note: z.string().max(8000).nullish().describe("Guide note for the next batch"),
   },
   keep: { sample: ID, on: z.boolean().nullish() },
+  rename: {
+    subject: ID.nullish(),
+    sample: ID.nullish(),
+    name: z.string().max(120).nullish().describe("Blank clears a sample's name"),
+  },
   guide: { text: z.string().max(2000), subject: ID.nullish(), kind: z.string().nullish() },
   setGuide: { id: ID, state: z.string() },
   steer: {
@@ -327,6 +341,7 @@ export function makeVariantsConsole(db: Db, sign: Sign | null) {
     unnote: h("unnote"),
     close: h("close"),
     keep: h("keep"),
+    rename: h("rename"),
     guide: h("guide"),
     setGuide: h("setGuide"),
     steer: h("steer"),

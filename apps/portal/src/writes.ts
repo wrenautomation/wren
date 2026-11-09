@@ -40,8 +40,6 @@ export type WriteState =
 
 /** A write's key as `writeKey` makes it: checked before it goes in a query. */
 export const WRITE_KEY = /^portal:[0-9a-f]{64}$/;
-const NAME = /^[A-Za-z0-9_]{1,100}$/;
-const INVOCATION = /^inv_[0-9A-Za-z]{1,100}$/;
 
 /** The service and handler a write path runs as, or null when it isn't a write. */
 export function writeTarget(path: string): { svc: string; route: string } | null {
@@ -51,37 +49,8 @@ export function writeTarget(path: string): { svc: string; route: string } | null
   return { svc: svc.name, route };
 }
 
-/**
- * Restate's admin API (SQL over `sys_invocation`). `RESTATE_ADMIN_URL` when set; else Restate
- * Cloud's own port (9070) on the ingress host, or `/admin` on the ingress origin, which is how
- * the box's Caddy serves it (docs/restate-operations.md). Same bearer as the ingress.
- */
-export function adminUrl(env: Env): string {
-  if (env.RESTATE_ADMIN_URL) return env.RESTATE_ADMIN_URL.replace(/\/+$/, "");
-  const u = new URL(env.RESTATE_INGRESS_URL);
-  return u.hostname.endsWith(".restate.cloud") ? `https://${u.hostname}:9070` : `${u.origin}/admin`;
-}
-
 const authOf = (env: Env): Record<string, string> =>
   env.RESTATE_AUTH_TOKEN ? { authorization: `Bearer ${env.RESTATE_AUTH_TOKEN}` } : {};
-
-type InvocationRow = {
-  id?: unknown;
-  retry_count?: unknown;
-  last_failure?: unknown;
-  modified_at?: unknown;
-};
-
-async function query(env: Env, sql: string): Promise<InvocationRow[]> {
-  const res = await fetch(`${adminUrl(env)}/query`, {
-    method: "POST",
-    headers: { ...authOf(env), "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ query: sql }),
-  });
-  if (!res.ok) throw new Error(`admin ${res.status}`);
-  const { rows } = (await res.json()) as { rows?: unknown };
-  return Array.isArray(rows) ? (rows as InvocationRow[]) : [];
-}
 
 /** A failure as the person may read it: its first line, no tokens. */
 export function reasonOf(failure: string): string {
@@ -92,50 +61,9 @@ export function reasonOf(failure: string): string {
   return clean;
 }
 
-const COLS = "id, retry_count, last_failure, modified_at";
-const quoted = (ids: string[]) => ids.map((i) => `'${i}'`).join(", ");
-
 /**
- * Why a write still going is being tried again: the invocation under `key`, then what it called,
- * three levels down. The deepest call that failed and is trying again names the reason. Null
- * when nothing is retrying, or the admin API can't say. Every value in the SQL is checked first.
- */
-export async function retryOf(
-  env: Env,
-  svc: string,
-  route: string,
-  key: string,
-): Promise<WriteRetry | null> {
-  if (!WRITE_KEY.test(key) || !NAME.test(svc) || !NAME.test(route)) return null;
-  try {
-    let level = await query(
-      env,
-      `SELECT ${COLS} FROM sys_invocation WHERE target_service_name = '${svc}' AND target_handler_name = '${route}' AND idempotency_key = '${key}'`,
-    );
-    let best: WriteRetry | null = null;
-    for (let depth = 0; level.length; depth++) {
-      const failing = level
-        .filter((r) => Number(r.retry_count) > 0 && typeof r.last_failure === "string")
-        .sort((a, b) => String(b.modified_at ?? "").localeCompare(String(a.modified_at ?? "")));
-      const top = failing[0];
-      if (top)
-        best = { count: Number(top.retry_count), reason: reasonOf(String(top.last_failure)) };
-      const ids = level.map((r) => String(r.id ?? "")).filter((i) => INVOCATION.test(i));
-      if (!ids.length || depth === 3) break;
-      level = await query(
-        env,
-        `SELECT ${COLS} FROM sys_invocation WHERE invoked_by_id IN (${quoted(ids.slice(0, 50))})`,
-      );
-    }
-    return best?.reason ? best : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * How the write under `key` to `svc/route` went, from Restate's own record; while it is still
- * going, why it is being tried again (if it is). Null: Restate can't say now.
+ * How the write under `key` to `svc/route` went, from the runtime's record (the door); while it
+ * is still going, why it is being tried again (the door's 470 says). Null: it can't say now.
  */
 export async function readWrite(
   env: Env,
@@ -157,15 +85,12 @@ export async function readWrite(
   } catch {
     body = text;
   }
-  // 470: Restate has it and it hasn't finished.
+  // 470: the runtime has it and it hasn't finished; the body says why it is trying again
   if (res.status === 470) {
-    // the pg door says why in its 470; Restate's admin API for a call Restate holds
     const r = (body as { retry?: { count?: unknown; reason?: unknown } } | null)?.retry;
-    const retry =
-      r && typeof r.reason === "string" && Number(r.count) > 0
-        ? { count: Number(r.count), reason: reasonOf(r.reason) }
-        : await retryOf(env, svc, route, key);
-    return retry ? { state: "sending", retry } : { state: "sending" };
+    return r && typeof r.reason === "string" && Number(r.count) > 0
+      ? { state: "sending", retry: { count: Number(r.count), reason: reasonOf(r.reason) } }
+      : { state: "sending" };
   }
   if (res.ok) return { state: "sent", answer: body };
   if (res.status === 404) return { state: "unknown" };

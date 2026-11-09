@@ -6,12 +6,11 @@
  */
 
 import { ingressOf } from "@wren/config";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import type { Context } from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { markAnswered } from "@wren/starling-conversations";
 import {
   askFollowEmail,
@@ -63,11 +62,11 @@ const llm = new FakeLlm({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let s: InboxSeed;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeInboxDesk({
         db: pg.db,

@@ -5,12 +5,12 @@ import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { migrate, Registry, runTurn } from "../../src/pg/index.js";
 import {
+  boxStarted,
   claim,
   type Lane,
+  newestBox,
   nextDue,
   release,
-  renameService,
-  setPgServices,
   submit,
   UNPIN_MAX,
 } from "../../src/pg/store.js";
@@ -81,51 +81,20 @@ describe("lanes", () => {
   });
 });
 
-describe("rename", () => {
-  it("open rows and state move to the new name, unpinned; done rows, clashing state and other services stay", async () => {
-    const open = await add("OldName", "arn:1");
-    const done = await add("OldName");
-    await sql`UPDATE rt.invocations SET status = 'done' WHERE id = ${done}`;
-    const other = await add("OtherName");
-    await sql`INSERT INTO rt.state (service, key, name, value) VALUES
-      ('OldName', 'k', 'a', '\\x01'), ('OldName', 'k', 'b', '\\x02'), ('NewName', 'k', 'b', '\\x03')`;
-    await sql`INSERT INTO rt.handlers (service, handler, object, exclusive) VALUES ('OldName', 'h', true, true)`;
-    expect(await renameService(sql, "OldName", "NewName", 60_000)).toEqual({ rows: 1, state: 1 });
-    const rows = await sql<{ id: string; service: string; build: string | null }[]>`
-      SELECT id, service, build FROM rt.invocations WHERE id IN (${open}, ${done}, ${other}) ORDER BY id`;
-    expect(rows).toEqual([
-      { id: open, service: "NewName", build: null },
-      { id: done, service: "OldName", build: null },
-      { id: other, service: "OtherName", build: null },
-    ]);
-    const state =
-      await sql`SELECT service, name, value FROM rt.state WHERE key = 'k' ORDER BY service, name`;
-    expect(state.map((r) => `${r.service}.${r.name}=${r.value[0]}`)).toEqual([
-      "NewName.a=1",
-      "NewName.b=3",
-      "OldName.b=2",
-    ]);
-    expect((await sql`SELECT 1 FROM rt.handlers WHERE service = 'OldName'`).length).toBe(0);
-    // held: an older slot's bridge can't take it before it sees it was superseded
-    expect((await take({ only: ["NewName"] })).length).toBe(0);
-    const later = await claim(sql, 50, 60_000, Date.now() + 61_000, { only: ["NewName"] });
-    expect(later.map((c) => c.id)).toEqual([open]);
-    expect(await renameService(sql, "OldName", "NewName")).toEqual({ rows: 0, state: 0 });
+describe("box builds", () => {
+  it("the build that started last is the newest; a restart of an older one takes it back", async () => {
+    expect(await newestBox(sql)).toBeUndefined();
+    await boxStarted(sql, "build-1");
+    await new Promise((r) => setTimeout(r, 5));
+    await boxStarted(sql, "build-2");
+    expect(await newestBox(sql)).toBe("build-2");
+    await new Promise((r) => setTimeout(r, 5));
+    await boxStarted(sql, "build-1");
+    expect(await newestBox(sql)).toBe("build-1");
   });
 });
 
-describe("pg services", () => {
-  it("a bridge lane with skipPg leaves the newest box's pg services alone", async () => {
-    const onPg = await add("MovedSvc");
-    const onRestate = await add("StaysSvc");
-    await setPgServices(sql, ["MovedSvc"], "build-2");
-    const got = (await take({ except: ["OtherSvc"], lock: false, skipPg: true })).map((c) => c.id);
-    expect(got).toContain(onRestate);
-    expect(got).not.toContain(onPg);
-    await setPgServices(sql, [], "build-3");
-    expect((await take({ only: ["MovedSvc"], skipPg: true })).map((c) => c.id)).toEqual([onPg]);
-  });
-
+describe("release", () => {
   it("release gives a claim back unrun: pending, no failure, due after the delay; a stale attempt is refused", async () => {
     const id = await add("Throttled");
     const [c] = await take({ only: ["Throttled"] });

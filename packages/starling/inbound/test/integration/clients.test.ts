@@ -10,14 +10,13 @@ import { ingressOf } from "@wren/config";
 import type { Platform } from "@wren/core/autobrowse";
 import { addClient, findClient, sendsOn, updateClient } from "@wren/core/clients";
 import type { PassOutcome } from "@wren/core/restate";
-import { executorRecorder, startTestRestate } from "@wren/core/testing";
+import { executorRecorder, startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { vendorUsage } from "@wren/core/vendor-schema";
 import { setManaged } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { fakeContentChannel } from "@wren/starling-core";
 import { type Channels, makeContentPublish, SENDS_OFF } from "@wren/starling-core/service";
 import { eq, sql } from "drizzle-orm";
@@ -58,7 +57,7 @@ const lambdaReddit = () => channels.lambda?.reddit as ReturnType<typeof fakeCont
 const EVERY_DAY = { linkedin: [{ hour: 9, minute: 0 }], reddit: [{ hour: 10, minute: 0 }] };
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let kappa: Db;
 let lambda: Db;
 const executor = executorRecorder();
@@ -102,7 +101,7 @@ beforeAll(async () => {
     await setManaged(pg.db, { client, vendor: "models", perDay: 100, capCents: 500, by: "test" });
   kappa = open("kappa");
   lambda = open("lambda");
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       executor.service,
       makeContentPublish(() => ({}), {

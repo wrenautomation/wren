@@ -1,6 +1,6 @@
 /**
  * `wren loops …`: every self-rescheduling loop's health (designs/2026-10-16-loop-watchdog.md),
- * read from Restate's admin SQL (`WREN_RESTATE_ADMIN_URL`), and the `LoopRevive` loop that wakes a
+ * read from the runtime's admin views over `rt` (`runtimeAdmin`), and the `LoopRevive` loop that wakes a
  * dead one and names a stuck one; the units its passes hold (Checks' `unit_holds`). `--json`, so
  * an agent reads what a person does.
  */
@@ -31,12 +31,7 @@ export function registerLoops(program: Command, withMainDb: WithDb, settings: Se
     .option("--json", "rows as JSON")
     .action(async (o: { all?: boolean; json?: boolean }) => {
       const rows = (
-        await withMainDb((db) =>
-          loopHealth(
-            runtimeAdmin(db, settings.restateAdminUrl, settings.restateAuthToken).query,
-            new Date(),
-          ),
-        )
+        await withMainDb((db) => loopHealth(runtimeAdmin(db).query, new Date()))
       ).filter((h) => o.all || h.health !== "stopped");
       if (o.json) return console.log(JSON.stringify(rows, null, 2));
       for (const h of rows) {
@@ -85,6 +80,18 @@ export function registerLoops(program: Command, withMainDb: WithDb, settings: Se
         }),
       );
       console.log(`released ${done.map((r) => r.id).join(", ") || "none"}`);
+    });
+
+  cmd
+    .command("cancel <invocation>")
+    .description(
+      "Cancel a running call (an inv_ id): its handler sees a cancel at its next await, and its children stop with it",
+    )
+    .action(async (id: string) => {
+      await withMainDb((db) =>
+        runtimeAdmin(db).patch(`/invocations/${encodeURIComponent(id)}/cancel`),
+      );
+      console.log(`cancel sent to ${id}`);
     });
 
   const w = cmd

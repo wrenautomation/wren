@@ -9,12 +9,11 @@
 import { addClient, addOperator, clients } from "@wren/core/clients";
 import type { Fired } from "@wren/core/executor";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as restateClients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { smsContacts } from "@wren/starling-sms/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -25,7 +24,7 @@ import { createLink, keepStripeLink, linkById, markSent } from "../../src/store.
 import { type Fetch, signFor } from "../../src/stripe.js";
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let acme: Db;
 const open = (c: { id: string }) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${c.id}`));
 let keys: ReturnType<typeof pgKeyStore>;
@@ -134,7 +133,7 @@ beforeAll(async () => {
     { viewer: { email: "ada@example.test", operator: true } as never, client: "acme", keyRef },
     NOW,
   );
-  env = await startTestRestate({ services: [makePayments(deps()), ear], alwaysReplay: true });
+  env = await startTestRuntime({ services: [makePayments(deps()), ear], alwaysReplay: true });
 }, 180_000);
 afterAll(async () => {
   await env?.stop();

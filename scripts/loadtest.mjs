@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * One load test, start to verdict, on a throwaway stack: Postgres and Restate in Docker, the
- * worker from source, the scenario's synthetic seed, then k6. Nothing reaches prod: the worker
+ * One load test, start to verdict, on a throwaway stack: Postgres in Docker, the worker from
+ * source (the runtime and its door, apps/worker/src/main.ts), the scenario's synthetic seed, then k6. Nothing reaches prod: the worker
  * gets no .env (WREN_ENV_FILE=none), no AWS credentials, no webhooks.
  *
  *   node scripts/loadtest.mjs <scenario> [--vus 100] [--firms 66000] [--keep | --up]
@@ -23,7 +23,6 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { connect } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
@@ -54,7 +53,6 @@ const out = join(repo, "loadtest/results");
 mkdirSync(out, { recursive: true });
 
 const PG = "wren-load-pg";
-const RS = "wren-load-restate";
 const sh = (cmd, a, o = {}) => execFileSync(cmd, a, { encoding: "utf8", ...o }).trim();
 const docker = (...a) => sh("docker", a);
 const portOf = (c, p) => Number(docker("port", c, String(p)).split("\n")[0].split(":").pop());
@@ -69,13 +67,6 @@ async function until(what, ok, tries = 60) {
   throw new Error(`${what} never came up`);
 }
 
-const listens = (port) =>
-  new Promise((ok) => {
-    const c = connect(port, "127.0.0.1");
-    c.once("connect", () => ok(c.end() && true));
-    c.once("error", () => ok(false));
-  });
-
 const psql = (q) =>
   docker("exec", PG, "psql", "-qAtX", "-v", "ON_ERROR_STOP=1", "-U", "wren", "-d", "wren", "-c", q);
 
@@ -84,7 +75,7 @@ const psql = (q) =>
  * and each container. Which one is pinned says where the ceiling is.
  */
 function sample() {
-  const seen = { worker: [], postgres: [], restate: [] };
+  const seen = { worker: [], postgres: [] };
   const tick = () => {
     try {
       const pid = sh("pgrep", ["-f", "apps/worker/src/main.ts|src/main.ts"]).split("\n").pop();
@@ -97,10 +88,9 @@ function sample() {
         "--format",
         "{{.Name}} {{.CPUPerc}}",
         PG,
-        RS,
       ).split("\n")) {
-        const [c, v] = line.split(" ");
-        seen[c === PG ? "postgres" : "restate"].push(Number.parseFloat(v));
+        const [, v] = line.split(" ");
+        seen.postgres.push(Number.parseFloat(v));
       }
     } catch {}
   };
@@ -115,7 +105,7 @@ function sample() {
               max: Math.round(Math.max(...xs)),
             }
           : null;
-      return { worker: of(seen.worker), postgres: of(seen.postgres), restate: of(seen.restate) };
+      return { worker: of(seen.worker), postgres: of(seen.postgres) };
     },
   };
 }
@@ -136,7 +126,7 @@ function topQueries() {
 
 const WORKER_PORT = 19080;
 let worker;
-/** The stack gone: whatever holds the worker's port (a kept run's too), and both containers. */
+/** The stack gone: whatever holds the worker's port (a kept run's too), and the container. */
 function down() {
   try {
     if (worker?.pid) process.kill(keep ? -worker.pid : worker.pid, "SIGTERM");
@@ -145,11 +135,9 @@ function down() {
     for (const pid of sh("lsof", ["-ti", `tcp:${WORKER_PORT}`, "-sTCP:LISTEN"]).split("\n"))
       if (pid) process.kill(Number(pid), "SIGTERM");
   } catch {}
-  for (const c of [PG, RS]) {
-    try {
-      docker("rm", "-f", c);
-    } catch {}
-  }
+  try {
+    docker("rm", "-f", PG);
+  } catch {}
 }
 
 if (args.includes("--down")) {
@@ -159,7 +147,7 @@ if (args.includes("--down")) {
 
 try {
   down();
-  console.log("stack: postgres, restate");
+  console.log("stack: postgres");
   docker(
     "run",
     "-d",
@@ -184,27 +172,12 @@ try {
     "-c",
     "shared_preload_libraries=pg_stat_statements",
   );
-  docker(
-    "run",
-    "-d",
-    "--name",
-    RS,
-    "--add-host",
-    "host.docker.internal:host-gateway",
-    "-p",
-    "127.0.0.1::8080",
-    "-p",
-    "127.0.0.1::9070",
-    "restatedev/restate:1.7.10",
-  );
   const pgPort = portOf(PG, 5432);
-  const ingress = `http://127.0.0.1:${portOf(RS, 8080)}`;
-  const admin = `http://127.0.0.1:${portOf(RS, 9070)}`;
+  const ingress = `http://127.0.0.1:${WORKER_PORT}`;
   const dbUrl = `postgresql://wren:wren@127.0.0.1:${pgPort}/wren`;
   await until("postgres", () =>
     docker("exec", PG, "pg_isready", "-U", "wren").includes("accepting"),
   );
-  await until("restate", async () => (await fetch(`${admin}/health`)).ok);
 
   // The worker's env from nothing: the shell's PATH and HOME, then the load stack's own.
   const env = {
@@ -213,7 +186,6 @@ try {
     WREN_ENV_FILE: "none",
     WREN_DATABASE_URL: dbUrl,
     WREN_RESTATE_INGRESS_URL: ingress,
-    WREN_RESTATE_ADMIN_URL: admin,
     WREN_LOG_LEVEL: "warn",
     WREN_WORKER_PORT: String(WORKER_PORT),
     AWS_EC2_METADATA_DISABLED: "true",
@@ -252,17 +224,10 @@ try {
     stdio: ["ignore", log, log],
     detached: keep,
   });
-  // The endpoint speaks HTTP/2 cleartext, which fetch can't: a connect means it listens.
-  await until("worker", () => listens(WORKER_PORT), 240);
-  const reg = await fetch(`${admin}/deployments`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ uri: `http://host.docker.internal:${WORKER_PORT}`, force: true }),
-  });
-  if (!reg.ok) throw new Error(`register: ${reg.status} ${await reg.text()}`);
+  await until("worker", async () => (await fetch(`${ingress}/restate/health`)).ok, 240);
 
   if (up) {
-    console.log(`up: ingress ${ingress}, admin ${admin}, db ${dbUrl}; worker pid ${worker.pid}`);
+    console.log(`up: door ${ingress}, db ${dbUrl}; worker pid ${worker.pid}`);
     console.log(`psql: docker exec -it ${PG} psql -U wren`);
     worker.unref();
     process.exit(0);
@@ -303,7 +268,7 @@ try {
   verdict(summary, code, profile);
   if (stress) await breakingPoint(summary, samples, join(out, `${stamp}-${name}.stress.json`));
   if (keep) {
-    console.log(`kept: ingress ${ingress}, admin ${admin}, db ${dbUrl}; worker pid ${worker.pid}`);
+    console.log(`kept: door ${ingress}, db ${dbUrl}; worker pid ${worker.pid}`);
     console.log("stop: node scripts/loadtest.mjs --down");
     worker.unref();
     process.exit(code ?? 1);
@@ -332,9 +297,7 @@ function verdict(path, code, profile) {
   }
   const c = profile.cpu;
   const pct = (x) => (x ? `${x.avg}% avg, ${x.max}% max` : "-");
-  console.log(
-    `cpu: worker ${pct(c.worker)}; postgres ${pct(c.postgres)}; restate ${pct(c.restate)}`,
-  );
+  console.log(`cpu: worker ${pct(c.worker)}; postgres ${pct(c.postgres)}`);
   for (const q of profile.queries.slice(0, 3))
     console.log(
       `db: ${q.total_ms} ms total, ${q.calls} calls, ${q.mean_ms} ms mean: ${q.query.slice(0, 100)}`,

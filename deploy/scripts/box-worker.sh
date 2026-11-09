@@ -1,13 +1,11 @@
 #!/bin/bash
-# @unit worker: The pool chain's waiting-heavy services, on the box.
+# @unit worker: The runtime (apps/worker/src/rt.ts), on the box: its lanes and its door.
 # Runs ON the Postgres box (CI sends it over SSM): install a worker bundle and
-# (re)start the pool chain's worker. Usage: box-worker.sh <bucket> <key>
-# The container registers itself with the box's Restate server (loopback only), or dials
-# Restate Cloud's tunnel when /wren/prod/box names one.
+# (re)start the worker. Usage: box-worker.sh <bucket> <key>
 set -euo pipefail
 bucket="$1" key="$2"
 
-# Headroom beside Postgres, Restate and the browser on a 4 GB box: a 2 GB swap file on the
+# Headroom beside Postgres and the browser on a 4 GB box: a 2 GB swap file on the
 # data volume (the 8 GB root has no room for it). Swap is the crash buffer, not memory to
 # scale on: swappiness 10 keeps Postgres' pages in RAM until a spike, and a box that lives
 # in swap gets a bigger instance. The Lambda has no swap; it scales by memory size.
@@ -25,10 +23,10 @@ echo "vm.swappiness = 10" > /etc/sysctl.d/90-wren-swap.conf
 sysctl -q -p /etc/sysctl.d/90-wren-swap.conf
 
 # Two slots (apps/worker/src/box-slot.ts): the new build starts beside the live one, on the
-# other port, so it is a new Restate deployment. A call pinned to the live build finishes on
-# its code; one URL for every build replayed such calls on new code (journal mismatch, 10-16).
+# other port, and takes every new row. A row pinned to the live build finishes on its code; one
+# build for every row replayed such rows on new code (journal mismatch, 10-16).
 # The live container is always `wren-worker`; the one before it, `wren-worker-old`, serves its
-# pinned calls until the next deploy replaces it.
+# pinned rows until the next deploy replaces it.
 live_port=9080 live_dir="" live_build=""
 if docker inspect wren-worker >/dev/null 2>&1; then
   live_port="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' wren-worker | sed -n 's/^WREN_BOX_PORT=//p')"
@@ -44,8 +42,8 @@ rm -rf /opt/wren-worker.new && mkdir -p /opt/wren-worker.new
 python3 -m zipfile -e /tmp/wren-worker.zip /opt/wren-worker.new
 rm -f /tmp/wren-worker.zip
 
-# The same bundle and script as the running worker: leave it be. A restart cuts any call
-# mid-run, and Restate can leave such a call stuck, holding its object's lock.
+# The same bundle and script as the running worker: leave it be. A restart cuts any turn
+# mid-run; it runs again only when its lease ends.
 script="$(sha256sum "$0" | cut -c1-64)"
 if [ -n "$live_dir" ] && [ "$(cat /opt/wren-worker.script 2>/dev/null)" = "$script" ] &&
   diff -rq "$live_dir" /opt/wren-worker.new >/dev/null 2>&1 &&
@@ -55,13 +53,8 @@ if [ -n "$live_dir" ] && [ "$(cat /opt/wren-worker.script 2>/dev/null)" = "$scri
   exit 0
 fi
 
-# The slot's build from two deploys ago: calls still pinned to it replay on this build.
-q="select count(*) as n from sys_invocation i join sys_deployment d on d.id = i.pinned_deployment_id where i.status <> 'completed' and d.endpoint = 'http://127.0.0.1:$port/'"
-left="$(curl -sS -m 30 -X POST http://127.0.0.1:9070/query -H content-type:application/json -H accept:application/json \
-  -d "$(python3 -c 'import json,sys; print(json.dumps({"query": sys.argv[1]}))' "$q")" |
-  python3 -c 'import json,sys; print(json.load(sys.stdin)["rows"][0]["n"])' 2>/dev/null || echo "?")"
-echo "slot $port: $left calls still pinned to its last build"
-# stop, not rm -f: SIGTERM lets it drain in-flight invocations first.
+# The slot's build from two deploys ago: rows still pinned to it replay on this build (rt.ts).
+# stop, not rm -f: SIGTERM lets it finish turns in flight first.
 for c in wren-worker-new wren-worker-old; do
   docker stop "$c" >/dev/null 2>&1 || true
   docker rm "$c" >/dev/null 2>&1 || true
@@ -89,19 +82,20 @@ docker run -d --name wren-worker-new --restart unless-stopped --init \
   -e NODE_OPTIONS=--max-old-space-size=448 \
   node:22-slim node app/box.mjs >/dev/null
 
-# Up = registered with Restate. CI logs are public: print names and messages only.
+# Up = its lanes and door run ("box ready"). CI logs are public: print names and messages only.
 brief='import json,sys
 for l in sys.stdin:
     try: j=json.loads(l)
     except ValueError: continue
-    e=(j.get("err") or {}).get("message","")
-    print(j.get("msg",""), j.get("deployment",""), ",".join(j.get("services",[])), e[:200])'
+    e=j.get("err") or ""
+    e=e.get("message","") if isinstance(e,dict) else str(e)
+    print(j.get("msg",""), j.get("port",""), j.get("door",""), e[:200])'
 for _ in $(seq 1 30); do
   sleep 2
   if docker logs wren-worker-new 2>&1 | grep -q '"box ready"'; then
     docker logs wren-worker-new 2>&1 | grep '"box ready"' | tail -1 | python3 -c "$brief"
-    # The live build becomes the old one: it never restarts on its own (a restart would
-    # register its code over this build's), and the next deploy removes it.
+    # The live build becomes the old one: it never restarts on its own (a restart would make it
+    # the newest build again, rt.box_builds), and the next deploy removes it.
     if docker inspect wren-worker >/dev/null 2>&1; then
       docker update --restart=no wren-worker >/dev/null
       docker rename wren-worker wren-worker-old
@@ -118,8 +112,8 @@ for _ in $(seq 1 30); do
   [ "$(docker inspect -f '{{.State.Running}}' wren-worker-new)" = true ] || break
 done
 docker logs --tail 40 wren-worker-new 2>&1 | python3 -c "$brief"
-# The new build never came up: the live one keeps the services. A restart registers it again
-# in case the new one got as far as registering.
+# The new build never came up: the live one keeps the rows. A restart makes it the newest build
+# again, in case the new one got as far as starting (it then stood down).
 docker rm -f wren-worker-new >/dev/null 2>&1 || true
 docker restart wren-worker >/dev/null 2>&1 || true
 exit 1

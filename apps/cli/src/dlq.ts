@@ -1,7 +1,7 @@
 /**
- * `wren dlq …`: the dead-letter queue (designs/2026-10-11-dead-letters.md). Every Restate
+ * `wren dlq …`: the dead-letter queue (designs/2026-10-11-dead-letters.md). Every runtime
  * invocation that used up its retries and paused, filed by the `DeadLetterFile` loop. Reads go to
- * the database; `retry` and `kill` go to Restate's admin API (`WREN_RESTATE_ADMIN_URL`).
+ * the database; `retry` and `kill` patch its `rt.invocations` row (`runtimeAdmin`).
  * `--json` everywhere, so an agent reads the same rows a person does.
  */
 import { userInfo } from "node:os";
@@ -30,7 +30,7 @@ const ago = (d: Date) => {
 
 export function registerDlq(program: Command, withMainDb: WithDb, settings: Settings) {
   /** Restate's admin and the pg runtime's (designs/2026-11-09-own-runtime.md). */
-  const admin = (db: Db) => runtimeAdmin(db, settings.restateAdminUrl, settings.restateAuthToken);
+  const admin = (db: Db) => runtimeAdmin(db);
   const loop = () =>
     clients
       .connect(ingressOf(settings))

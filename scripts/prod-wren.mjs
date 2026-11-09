@@ -74,8 +74,6 @@ const env = {
   ...process.env,
   ...Object.fromEntries(KEYS.map((k) => [k, prod[k]])),
   WREN_RESTATE_INGRESS_URL: ingress,
-  // The admin API rides the same host under /admin with the same bearer: `dlq retry|kill` and `loops` need it.
-  WREN_RESTATE_ADMIN_URL: process.env.WREN_RESTATE_ADMIN_URL ?? `${ingress}/admin`,
 };
 const r = spawnSync(join(root, "bin/wren"), process.argv.slice(2), { env, stdio: "inherit" });
 process.exit(r.status ?? 1);

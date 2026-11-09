@@ -8,10 +8,9 @@ import { ingressOf } from "@wren/config";
 import { clients as clientRows } from "@wren/core/clients";
 import { linkKey, mayMarket, signLink, signupSig } from "@wren/core/marketing";
 import { topics } from "@wren/core/schema";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import type { PlainMail } from "@wren/starling-email/send/gmail";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { type Marketing, makeMarketing } from "../../src/restate/marketing.js";
@@ -19,13 +18,13 @@ import { type Marketing, makeMarketing } from "../../src/restate/marketing.js";
 const SHARED = "test-shared-secret";
 const sent: PlainMail[] = [];
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres();
   await pg.db
     .insert(clientRows)
     .values({ id: "acme", name: "Acme Dental", database: "wren_client_acme" });
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeMarketing({
         db: pg.db,

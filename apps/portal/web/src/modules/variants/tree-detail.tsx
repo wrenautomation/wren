@@ -1,7 +1,9 @@
 /** The tree's detail panel: one sample (path, parents, keep, steers) and its batch. */
 import { Button, Tag } from "@wren/ui";
+import { call } from "../../api.js";
 import { href, navigate } from "../../route.js";
 import { handToChat } from "../agent/drive.js";
+import { Rename } from "./rename.js";
 import type { TreeSteer } from "./tree.js";
 import { type Call, type TNode, type Tree, VERD } from "./tree-model.js";
 
@@ -121,7 +123,15 @@ export function SampleDetail({
     <>
       <Poster s={s} />
       <div className="vt-row">
-        <h3>{s.name}</h3>
+        <Rename
+          value={s.name}
+          label="sample"
+          max={60}
+          blank
+          save={(to) => call("variants/rename", { sample: s.id, name: to || null })}
+        >
+          {(n) => <h3>{n || `Sample ${s.id}`}</h3>}
+        </Rename>
         <Tag>Batch {t.rounds[s.r - 1]?.num ?? s.r}</Tag>
         <Tag tone={tone(s.v)}>{VERD[s.v]}</Tag>
         {kept && (

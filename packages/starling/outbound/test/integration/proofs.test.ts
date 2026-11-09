@@ -10,10 +10,9 @@ import { ingressOf } from "@wren/config";
 import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import type { Notifier } from "@wren/core/notify";
 import { resolveObjects } from "@wren/core/objects";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import type { Proof } from "@wren/starling-core";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -63,7 +62,7 @@ const notifier: Notifier = {
 };
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 const db = () => pg.db;
 const proofs = () =>
   clients
@@ -72,7 +71,7 @@ const proofs = () =>
 
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeCommentProofs({
         db: pg.db,

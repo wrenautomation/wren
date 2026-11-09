@@ -2,15 +2,6 @@
 
 export { default as postgres } from "postgres";
 export { rtAdmin, rtPatch } from "./admin.js";
-export {
-  bridgeTurn,
-  type Ingress,
-  proxy,
-  proxyRowId,
-  replier,
-  returnState,
-  takeState,
-} from "./bridge.js";
 export { Dispatcher, type DispatcherOptions } from "./dispatcher.js";
 export { type DoorOptions, serveDoor } from "./door.js";
 export {
@@ -20,9 +11,9 @@ export {
   runTurn,
   servedTurn,
 } from "./executor.js";
-export { Registry } from "./registry.js";
+export { type HandlerSpec, Registry } from "./registry.js";
 export { migrate } from "./schema.js";
-export { type Claim, type Lane, register, release, renameService, setPgServices } from "./store.js";
+export { boxStarted, type Claim, type Lane, newestBox, register, release } from "./store.js";
 export { type PgTestEnvironment, startPgTestEnvironment } from "./test-runtime.js";
 export { Crash, type Outcome } from "./turn.js";
 export { fromWire, type TurnAsk, type TurnReply, toWire } from "./wire.js";

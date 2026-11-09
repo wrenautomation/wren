@@ -1,41 +1,22 @@
 import type { Queryable } from "@wren/db";
-import { selfRemoving, startTestPostgres } from "@wren/db/testing";
+import { startTestPostgres } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
-import { startPgTestEnvironment } from "@wren/runtime/pg";
-import {
-  RestateContainer,
-  RestateTestEnvironment,
-  type TestEnvironmentOptions,
-} from "@wren/runtime/testing";
+import { type PgTestEnvironment, startPgTestEnvironment } from "@wren/runtime/pg";
 import { sql } from "drizzle-orm";
 import { EXECUTOR, type ExecutorEvent } from "./executor.js";
 
-/** The pg runtime for one test file (prod runs on it since own-runtime phase 5);
- *  `WREN_TEST_RUNTIME=restate` for Restate, until it stops (phase 6b). Restate is sized for tests: one partition and a 64 MiB RocksDB take a container
- *  from about 630 MB to 230 MB. A custom container skips the helper's own replay and retry flags,
- *  so they are applied here. The services are reached through host.docker.internal, which skips
- *  testcontainers' sshd port-forwarding container. */
-export function startTestRestate(options: TestEnvironmentOptions): Promise<RestateTestEnvironment> {
-  if (process.env.WREN_TEST_RUNTIME !== "restate") return startTestPg(options);
-  return RestateTestEnvironment.start({
-    serviceEndpointAccess: "docker-host",
-    ...options,
-    container: () => {
-      const container = selfRemoving(new RestateContainer(), [
-        "/usr/local/bin/restate-server",
-      ]).withEnvironment({
-        RESTATE_DEFAULT_NUM_PARTITIONS: "1",
-        RESTATE_ROCKSDB_TOTAL_MEMORY_SIZE: "64MiB",
-      });
-      if (options.alwaysReplay) container.alwaysReplay();
-      if (options.disableRetries) container.disableRetries();
-      return container;
-    },
-  });
+/** The runtime for one test file: its own database and door (designs/2026-11-09-own-runtime.md). */
+export type TestRuntime = PgTestEnvironment;
+
+export interface TestRuntimeOptions {
+  services: readonly unknown[];
+  /** A failed handler ends on its first error. */
+  disableRetries?: boolean;
+  /** Restate's flag; no effect on the pg runtime. */
+  alwaysReplay?: boolean;
 }
 
-/** The same suite on the pg runtime (design doc "Tests and lints first"). */
-async function startTestPg(options: TestEnvironmentOptions): Promise<RestateTestEnvironment> {
+export async function startTestRuntime(options: TestRuntimeOptions): Promise<TestRuntime> {
   const db = await startTestPostgres();
   const rt = await startPgTestEnvironment({
     url: db.url,
@@ -48,7 +29,7 @@ async function startTestPg(options: TestEnvironmentOptions): Promise<RestateTest
       await rt.stop();
       await db.stop();
     },
-  } as unknown as RestateTestEnvironment;
+  };
 }
 
 /** An Executor that only records what parts emit, for a test whose service sends along a workflow. */

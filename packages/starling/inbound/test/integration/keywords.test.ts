@@ -6,7 +6,7 @@
 import { ingressOf } from "@wren/config";
 import { editRecord } from "@wren/core/edits";
 import { serveRecords } from "@wren/core/records/serve";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import {
   commentObjects,
   seedObjects,
@@ -15,7 +15,6 @@ import {
 } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { sendAttempt, sendAttempts } from "@wren/starling-acts";
 import { comments } from "@wren/starling-conversations/schema";
 import { eq } from "drizzle-orm";
@@ -91,10 +90,10 @@ const watch = restate.service({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeKeywordDm({ db: pg.db }),
       makeMetaPace({ perHour: 3_600_000 }),

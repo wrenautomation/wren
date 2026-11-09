@@ -2,12 +2,11 @@
 
 import { ingressOf } from "@wren/config";
 import { type Company, companies, imports, leads, people, runs } from "@wren/core";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { createDb } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import {
   contactCandidates,
   type VerificationResult,
@@ -66,11 +65,11 @@ const inside = restate.service({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 const verifier = new MapVerifier();
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeLeadVerify({
         db: pg.db,

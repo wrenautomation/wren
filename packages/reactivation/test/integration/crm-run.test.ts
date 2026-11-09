@@ -7,11 +7,10 @@
 import { ingressOf } from "@wren/config";
 import type { SiteClient } from "@wren/core/autobrowse";
 import { clients } from "@wren/core/clients";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm, type LlmClient } from "@wren/llm";
 import * as ingress from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { FakeVerifier, type LocalCheckerLike } from "@wren/starling-email";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -57,10 +56,10 @@ const sitesFor = (client: string, scope: CrmRunScope): SiteClient => {
 const llm = new FakeLlm({ respond: () => JSON.stringify({ sentences: [] }) });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeCrmRun({
         main: pg.db,

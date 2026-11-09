@@ -36,9 +36,9 @@ import { installsOf, readPlan, templatesNow } from "../../template-install.js";
 import { flowsWith, isMade, madeBase, type Workflow } from "../../workflows.js";
 import { COMPONENT, componentRecord } from "../components.js";
 import { checkRecord, executionRecordOf, holdRecord, nowAtLabels } from "../executions.js";
-import { handlerRecord } from "../handlers.js";
+import { type HandlerList, handlerRecord } from "../handlers.js";
 import { eventRecord, LOOPS_SQL, loopRecord, loopsOf } from "../loops.js";
-import { type RestateAdmin, type RestateAdminGet, runningLoops } from "../restate-admin.js";
+import { type AdminQuery, runningLoops } from "../runtime-admin.js";
 import { settingRecord } from "../settings.js";
 
 /** One of the access types (`./access-records.ts`), served to anyone signed in there. */
@@ -52,10 +52,10 @@ export interface ConsoleDeps {
   views: readonly string[];
   /** Views of costs and spend: for whoever holds `money` at Wren. */
   moneyViews?: readonly string[];
-  /** Absent, `loops` refuses: this worker can't see Restate's state. */
-  admin?: RestateAdmin | undefined;
+  /** Absent, `loops` refuses: this worker can't see the runtime's state. */
+  admin?: AdminQuery | undefined;
   /** Absent, `call` refuses and there is no handler list. */
-  adminGet?: RestateAdminGet | undefined;
+  handlerList?: HandlerList | undefined;
   /** The team's record types; the loops join them when there's an admin. */
   records?: readonly RecordType[];
   /** Every component, for the catalog and installs (`COMPONENTS` in the worker). */
@@ -79,14 +79,14 @@ export interface ConsoleDeps {
 export function consoleTypes({
   records = [],
   admin,
-  adminGet,
+  handlerList,
   components = [],
   workflows = [],
   edge,
 }: {
   records?: readonly RecordType[];
-  admin?: RestateAdmin | undefined;
-  adminGet?: RestateAdminGet | undefined;
+  admin?: AdminQuery | undefined;
+  handlerList?: HandlerList | undefined;
   components?: readonly Component[];
   workflows?: readonly Workflow[];
   edge?: EdgePush | undefined;
@@ -94,7 +94,7 @@ export function consoleTypes({
   return [
     ...records,
     ...(admin ? [loopRecord(admin)] : []),
-    ...(adminGet ? [handlerRecord(adminGet)] : []),
+    ...(handlerList ? [handlerRecord(handlerList)] : []),
     teamRecord,
     changeRecord,
     settingRecord(components),
@@ -126,7 +126,7 @@ export function consoleContext({
   views,
   moneyViews = [],
   admin,
-  adminGet,
+  handlerList,
   records = [],
   mainUrl,
   components = [],
@@ -153,7 +153,7 @@ export function consoleContext({
       await handle.close();
     }
   };
-  const types = consoleTypes({ records, admin, adminGet, components, workflows, edge });
+  const types = consoleTypes({ records, admin, handlerList, components, workflows, edge });
   const team = (req: PortalRequest) => {
     if (!seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);
   };
@@ -276,17 +276,17 @@ export function consoleContext({
       ),
     ];
   };
-  /** Restate's admin for Wren's team; refused before any read, so a refusal never lands in a journaled step. */
-  const adminFor = (req: PortalRequest): RestateAdmin => {
+  /** The runtime admin for Wren's team; refused before any read, so a refusal never lands in a journaled step. */
+  const adminFor = (req: PortalRequest): AdminQuery => {
     team(req);
-    if (!admin) throw new PortalRefusal("this worker has no Restate admin URL", 503);
+    if (!admin) throw new PortalRefusal("this worker has no runtime admin", 503);
     return admin;
   };
   return {
     main,
     mainUrl,
     admin,
-    adminGet,
+    handlerList,
     components,
     workflows,
     asked,

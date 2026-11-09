@@ -9,13 +9,12 @@
 import { ingressOf } from "@wren/config";
 import { addClient, addMember, addOperator, updateClient } from "@wren/core/clients";
 import { flags } from "@wren/core/schema";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { setManaged } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { readFunnel } from "../../src/funnel.js";
@@ -38,7 +37,7 @@ const llm = new FakeLlm({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let kappa: Db;
 let lambda: Db;
 const open = (id: string) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${id}`));
@@ -95,7 +94,7 @@ beforeAll(async () => {
   await addOperator(pg.db, "op@example.test");
   kappa = open("kappa");
   lambda = open("lambda");
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeContentDesk({
         db: pg.db,

@@ -10,10 +10,9 @@ import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { decideFindings, queueProfileResearch } from "@wren/core/profile-findings";
 import { resolveProfile } from "@wren/core/profiles";
 import { profileFindings, profileLookups } from "@wren/core/profiles-schema";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -64,10 +63,10 @@ const web = fakeSites({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [makeProfileResearch({ db: pg.db, sites: web.sites, timezone: "America/Chicago" })],
     alwaysReplay: true,
   });

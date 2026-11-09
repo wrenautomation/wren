@@ -8,7 +8,7 @@
 import { createHash } from "node:crypto";
 import { addClient, addOperator, updateClient } from "@wren/core/clients";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { smsContacts } from "@wren/starling-sms/schema";
@@ -19,7 +19,7 @@ import { type Answer, type DocumentsDeps, makeDocuments } from "../../src/servic
 import { docById, docEventsOf, issueLink, SEALED_CONSENT_VERSION } from "../../src/store.js";
 
 let pg: TestPostgres;
-let env: Awaited<ReturnType<typeof startTestRestate>>;
+let env: Awaited<ReturnType<typeof startTestRuntime>>;
 const open = (c: { id: string }) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${c.id}`));
 const ADA = { viewer: { email: "ada@example.test", operator: true } as never, client: "acme" };
 const SIGNED = new TextEncoder().encode("%PDF-1.7 signed copy");
@@ -169,7 +169,7 @@ beforeAll(async () => {
   await open({ id: "acme" })
     .insert(smsContacts)
     .values({ e164: "+12125550143", sourceKind: "form", basis: "opt_in", name: "Sam Rivera" });
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [makeDocuments(deps()), makeDocumentsConsole({ ...deps(), sealed: true })],
     alwaysReplay: true,
   });

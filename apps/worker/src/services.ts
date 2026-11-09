@@ -36,15 +36,13 @@ export interface Services {
 }
 
 /**
- * The pool chain: research and mailbox checks, waiting on sites and mail servers far
- * longer than it computes. Lambda bills every second of that wait, so with
- * `WREN_POOL_CHAIN_HOST=box` the Postgres box serves it (`box.ts`), next to the data.
- * Restate keeps each service on one deployment: whichever side serves it, the other skips it.
+ * The pool chain: research and mailbox checks, waiting on sites and mail servers far longer
+ * than it computes. Lambda bills every second of that wait, so the box runs it (`box.ts`).
  */
 export const POOL_CHAIN = ["LeadPoolFill", "CompanySiteFind", "CompanyEnrich", "LeadVerify"];
 /**
- * Everything the box serves: the chain; the page archive, which moves rows out of
- * its own disk; and the books' day, which waits on the model and the Mac's desk.
+ * The box lane (`rt.ts`): the chain; the page archive, which moves rows out of its own disk;
+ * the books' day and the triage, which wait on the model and the Mac's desk.
  */
 export const BOX_SERVICES = [
   ...POOL_CHAIN,
@@ -53,16 +51,6 @@ export const BOX_SERVICES = [
   "MyMailTriage",
   "SocialActivityRead",
 ];
-
-export function servicesFor(
-  all: AnyService[],
-  here: "box" | "lambda",
-  chainHost = process.env.WREN_POOL_CHAIN_HOST,
-): AnyService[] {
-  const inChain = (s: AnyService) => BOX_SERVICES.includes(s.name);
-  if (here === "box") return all.filter(inChain);
-  return chainHost === "box" ? all.filter((s) => !inChain(s)) : all;
-}
 
 /** Every domain's services, in the order they are served; a new domain is one file and one row. */
 const DOMAINS: ((deps: Deps) => AnyService[])[] = [
@@ -91,8 +79,12 @@ export async function buildServices(
   opts: BuildOptions,
 ): Promise<Services> {
   const services: AnyService[] = [];
-  const deps = await buildDeps(settings, log, opts, (service) =>
-    services.some((x) => x.name === service),
+  const deps = await buildDeps(
+    settings,
+    log,
+    opts,
+    (service) => services.some((x) => x.name === service),
+    () => services,
   );
   for (const domain of DOMAINS) services.push(...domain(deps));
   const {

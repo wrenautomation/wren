@@ -10,7 +10,7 @@ import { runs } from "@wren/core";
 import type { Platform } from "@wren/core/autobrowse";
 import type { PassOutcome } from "@wren/core/restate";
 import type { Delivery } from "@wren/core/send-verdict";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import {
   commentObjects,
   seedObjects,
@@ -21,7 +21,6 @@ import {
 import { FakeLlm } from "@wren/llm";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { RESEND_MARK, sendAttempt, sendsToResend } from "@wren/starling-acts";
 import type { Post, Published } from "@wren/starling-core";
 import type { LoopCampaign } from "@wren/starling-core/campaigns";
@@ -409,10 +408,10 @@ const settleForward = restate.service({
   },
 });
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       fakeContent,
       settleForward,

@@ -6,11 +6,10 @@
 
 import { ingressOf, loadSettings } from "@wren/config";
 import { clients } from "@wren/core/clients";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as ingress from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import {
   ConsoleTransport,
   FakeVerifier,
@@ -59,10 +58,10 @@ const standIn = (name: string) =>
 type StandIn = ReturnType<typeof standIn>;
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres({ own: true });
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeReactivation({
         main: pg.db,

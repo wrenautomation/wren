@@ -13,7 +13,7 @@
 import type { Db } from "@wren/db";
 import type * as restate from "@wren/runtime";
 import { inArray } from "drizzle-orm";
-import { LOOPS_SQL, type LoopRow, loopsOf, type RestateAdmin } from "./console.js";
+import { type AdminQuery, LOOPS_SQL, type LoopRow, loopsOf } from "./console.js";
 import { deadLetters } from "./dead-letter-schema.js";
 import type { Notifier, NotifyLevel } from "./notify.js";
 import type { TimedOut } from "./restate/limits.js";
@@ -282,7 +282,7 @@ const callOf = (r: Record<string, unknown>): OpenCall => ({
  * Every loop Restate still serves, with the calls on its key that are not done and what the
  * lock holder waits on. A `running` key left by a retired service is skipped.
  */
-async function readLoopViews(admin: RestateAdmin): Promise<LoopView[]> {
+async function readLoopViews(admin: AdminQuery): Promise<LoopView[]> {
   const [stateRows, openRows, serviceRows] = await Promise.all([
     admin(LOOPS_SQL),
     admin(OPEN_SQL),
@@ -331,7 +331,7 @@ WHERE status <> 'completed' AND invoked_by_id IN (${holders.map((id) => `'${id}'
 }
 
 /** Every loop's health now, trouble first. */
-export async function loopHealth(admin: RestateAdmin, now: Date): Promise<LoopHealth[]> {
+export async function loopHealth(admin: AdminQuery, now: Date): Promise<LoopHealth[]> {
   const rank: Record<Health, number> = { stuck: 0, dead: 1, alive: 2, stopped: 3 };
   return (await readLoopViews(admin))
     .map((v) => healthOf(v, now))
@@ -340,7 +340,7 @@ export async function loopHealth(admin: RestateAdmin, now: Date): Promise<LoopHe
 
 interface LoopReviveDeps {
   main: Db;
-  admin: RestateAdmin;
+  admin: AdminQuery;
   notifier?: Notifier;
 }
 

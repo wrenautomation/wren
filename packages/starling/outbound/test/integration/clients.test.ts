@@ -9,7 +9,7 @@ import { ingressOf } from "@wren/config";
 import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { addClient, updateClient } from "@wren/core/clients";
 import { type PassOutcome, within } from "@wren/core/restate";
-import { executorRecorder, startTestRestate } from "@wren/core/testing";
+import { executorRecorder, startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { vendorUsage } from "@wren/core/vendor-schema";
 import { setManaged } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
@@ -17,7 +17,6 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import {
   addAccount,
   clientReach,
@@ -91,7 +90,7 @@ const sites: SiteClient = {
 };
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let kappa: Db;
 let lambda: Db;
 const executor = executorRecorder();
@@ -168,7 +167,7 @@ beforeAll(async () => {
     }),
     clients: { clientDb: open, llm: null },
   };
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       executor.service,
       makeReachInboxRead(deps),

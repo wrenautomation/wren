@@ -69,7 +69,7 @@ Verify:
 3. `WREN_OPEN_TRACKING=true`
 
 All three in `deploy/prod.env`, pushed with `deploy/scripts/push-secrets.sh`; the worker
-reads them at cold start (`docs/restate-operations.md` → Changing env vars).
+reads them at cold start (`docs/operations.md` → Changing env vars).
 
 Only drafts composed **after** the flag is on carry a token, and only
 tokened messages carry a pixel: an approved draft never changes shape

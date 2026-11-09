@@ -12,7 +12,7 @@ import { ingressOf } from "@wren/config";
 import { draftTurns, editsFor, keepSentEdit } from "@wren/core/ask";
 import { recordDraft } from "@wren/core/draft-record";
 import { resolveObjects } from "@wren/core/objects";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import {
   commentObjects,
   seedObjects,
@@ -22,7 +22,6 @@ import {
 } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { addAccount } from "@wren/starling-acts";
 import { makeDraftAsk } from "@wren/starling-acts/restate";
 import { addProspects, contactByHandle, receive } from "@wren/starling-conversations";
@@ -58,10 +57,10 @@ const fakeClaude = restate.service({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [fakeClaude, makeDraftAsk(pg.db, deskKinds, deskDrafts)],
     alwaysReplay: true,
   });

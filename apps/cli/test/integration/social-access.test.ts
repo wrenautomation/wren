@@ -17,14 +17,13 @@ import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import { clientSecrets } from "@wren/core/keys-schema";
 import { PortalRefusal, type Viewer } from "@wren/core/portal";
 import { dbSendJournal } from "@wren/core/send-journal";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { touches } from "@wren/core/touches-schema";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { parkUnsure, sendAttempt } from "@wren/starling-acts";
 import { markAnswered } from "@wren/starling-conversations";
 import { makeInboxDesk } from "@wren/starling-conversations/restate";
@@ -125,7 +124,7 @@ const products = { "marketing.stats": {}, "content.social": {}, "content.posting
 const at = () => new Date();
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let kappa: Db;
 /** What the client's desk was asked to settle: a post of its own that may have gone out. */
 const settled: { key: string; id: string; outcome: string; by: string }[] = [];
@@ -180,7 +179,7 @@ beforeAll(async () => {
   });
   kappa = open("kappa");
   access = accessOf();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       fakeDesk,
       makeSocialInbox({

@@ -10,14 +10,12 @@ import { ingressOf } from "@wren/config";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { holdsOn } from "../../src/checks.js";
-import { restateAdmin } from "../../src/console.js";
 import { CallTimeout, limitStage, type TimedOut, unitLimits } from "../../src/restate/limits.js";
 import { makeLoopObject, type PassOutcome, setLastPass } from "../../src/restate/loop.js";
-import { startTestRestate } from "../../src/testing.js";
+import { startTestRuntime, type TestRuntime } from "../../src/testing.js";
 
 const LIMIT_MS = 1000;
 
@@ -81,9 +79,9 @@ const throws = makeLoopObject("Throws", async (ctx: restate.ObjectContext) => {
   throw new Error("replayed failure");
 });
 
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
-const admin = () => restateAdmin(env.adminAPIBaseUrl());
+const admin = () => env.admin.query;
 /** One pass now, as its loop state keeps it (`timeouts` rides there, for LoopRevive). */
 const sync = async (key: string): Promise<PassOutcome<Stats>> => {
   const o = ingress().objectClient<typeof limited>({ name: "Limited" }, key);
@@ -93,7 +91,7 @@ const sync = async (key: string): Promise<PassOutcome<Stats>> => {
 
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({ services: [echo, limited, throws] });
+  env = await startTestRuntime({ services: [echo, limited, throws] });
 });
 afterAll(async () => {
   await env?.stop();

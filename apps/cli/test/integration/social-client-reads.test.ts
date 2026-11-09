@@ -12,11 +12,10 @@ import { addClient, addMember, findClient, sendsOn, updateClient } from "@wren/c
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import type { Viewer } from "@wren/core/portal";
 import type { PassOutcome } from "@wren/core/restate";
-import { executorRecorder, startTestRestate } from "@wren/core/testing";
+import { executorRecorder, startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { seedObjects, startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { clientRoute } from "@wren/starling-conversations/inbox";
 import { makeAutoReply } from "@wren/starling-conversations/restate";
 import { comments } from "@wren/starling-conversations/schema";
@@ -93,7 +92,7 @@ const fetch = async (url: string, init?: RequestInit): Promise<Response> => {
 };
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let omicron: Db;
 const executor = executorRecorder();
 const open = (id: string) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${id}`));
@@ -123,7 +122,7 @@ beforeAll(async () => {
   await addMember(pg.db, "omicron", AMY, { role: "owner" });
   omicron = open("omicron");
   api = access();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       executor.service,
       makeContentPublish(() => ({}), {

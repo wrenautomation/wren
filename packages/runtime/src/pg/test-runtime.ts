@@ -1,13 +1,9 @@
 /**
- * The pg runtime in the shape of `RestateTestEnvironment` (designs/2026-11-09-own-runtime.md,
- * "Tests and lints first"): an integration suite written for Restate runs unchanged on pg.
+ * The pg runtime for an integration suite (designs/2026-11-09-own-runtime.md, "Tests and lints first").
  *   baseUrl()          the door, serving every given service
- *   adminAPIBaseUrl()  Restate's admin subset tests use: POST /query (rt_admin views),
- *                      PATCH /invocations/{id}/{resume|kill|cancel}, POST /services/{svc}/state
- *   stateOf(svc, key)  Restate's StateProxy (get, getAll, set, setAll) on rt.state
+ *   admin              admin SQL on the rt_admin views; PATCH-style /invocations/{id}/{resume|kill|cancel}
+ *   stateOf(svc, key)  get, getAll, set, setAll on rt.state
  */
-import { createServer } from "node:http";
-import type { AddressInfo } from "node:net";
 import { type Serde, serde as serdes } from "@restatedev/restate-sdk";
 import postgres from "postgres";
 import { rtAdmin, rtPatch } from "./admin.js";
@@ -16,7 +12,7 @@ import { serveDoor } from "./door.js";
 import { DEFAULT_LEASE_MS, remoteTurn, servedTurn } from "./executor.js";
 import { Registry } from "./registry.js";
 import { migrate } from "./schema.js";
-import { register, setPgServices } from "./store.js";
+import { register } from "./store.js";
 import { fromWire, toWire } from "./wire.js";
 
 export interface PgStateProxy {
@@ -28,7 +24,11 @@ export interface PgStateProxy {
 
 export interface PgTestEnvironment {
   baseUrl(): string;
-  adminAPIBaseUrl(): string;
+  admin: {
+    query(q: string): Promise<Record<string, unknown>[]>;
+    /** False when the path names no rt row. */
+    patch(path: string): Promise<boolean>;
+  };
   stateOf(service: { name: string }, key: string): PgStateProxy;
   stop(): Promise<void>;
 }
@@ -47,7 +47,6 @@ export async function startPgTestEnvironment(o: {
     for (const h of registry.list()) h.retry = { maxAttempts: 1, onMaxAttempts: "kill" };
   await register(sql, registry);
   const names = [...registry.services.keys()];
-  await setPgServices(sql, names, "test");
   const log = () => {};
   const dispatcher = new Dispatcher({
     sql,
@@ -63,41 +62,6 @@ export async function startPgTestEnvironment(o: {
   });
   await dispatcher.start();
   const door = await serveDoor({ sql });
-  const query = rtAdmin(sql);
-  const patch = rtPatch(sql);
-  const admin = createServer(async (req, res) => {
-    const chunks: Buffer[] = [];
-    for await (const c of req) chunks.push(c as Buffer);
-    const body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString()) : {};
-    const path = new URL(req.url ?? "/", "http://x").pathname;
-    const send = (code: number, v: unknown) => {
-      res.writeHead(code, { "content-type": "application/json" });
-      res.end(JSON.stringify(v));
-    };
-    try {
-      if (req.method === "POST" && path === "/query")
-        return send(200, { rows: await query(body.query as string) });
-      if (req.method === "PATCH" && (await patch(path))) return send(200, {});
-      const state = /^\/services\/([^/]+)\/state$/.exec(path);
-      if (req.method === "POST" && state) {
-        const service = decodeURIComponent(state[1] as string);
-        const key = body.object_key as string;
-        const entries = Object.entries((body.new_state ?? {}) as Record<string, number[]>);
-        await sql.begin(async (tx) => {
-          await tx`DELETE FROM rt.state WHERE service = ${service} AND key = ${key}`;
-          for (const [name, bytes] of entries)
-            await tx`INSERT INTO rt.state (service, key, name, value)
-              VALUES (${service}, ${key}, ${name}, ${Buffer.from(bytes)})`;
-        });
-        return send(202, {});
-      }
-      send(404, { message: `pg test admin: no ${req.method} ${path}` });
-    } catch (e) {
-      send(500, { message: (e as Error).message });
-    }
-  });
-  await new Promise<void>((ok) => admin.listen(0, "127.0.0.1", ok));
-  const adminUrl = `http://127.0.0.1:${(admin.address() as AddressInfo).port}`;
   const json = serdes.json as Serde<unknown>;
   const stateOf = ({ name: service }: { name: string }, key: string): PgStateProxy => ({
     async get<T>(name: string, s?: Serde<T>) {
@@ -129,11 +93,10 @@ export async function startPgTestEnvironment(o: {
   });
   return {
     baseUrl: () => door.url,
-    adminAPIBaseUrl: () => adminUrl,
+    admin: { query: rtAdmin(sql), patch: rtPatch(sql) },
     stateOf,
     async stop() {
       await door.close();
-      await new Promise<void>((ok) => admin.close(() => ok()));
       await dispatcher.stop();
       await sql.end({ timeout: 5 });
     },

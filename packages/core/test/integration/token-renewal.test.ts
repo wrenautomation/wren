@@ -9,7 +9,6 @@ import { ingressOf } from "@wren/config";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -17,9 +16,8 @@ import {
   RENEWAL_COMMAND,
   type RenewReport,
 } from "../../src/autobrowse/renewal.js";
-import { restateAdmin } from "../../src/console.js";
 import { runs } from "../../src/schema.js";
-import { startTestRestate } from "../../src/testing.js";
+import { startTestRuntime, type TestRuntime } from "../../src/testing.js";
 
 const LIMIT_MS = 1_000;
 const DAY_MS = 86_400_000;
@@ -43,10 +41,10 @@ const sites = restate.service({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [sites, makeSiteTokenRenew({ db: pg.db, limitMs: LIMIT_MS })],
     alwaysReplay: true,
   });
@@ -61,7 +59,7 @@ const renewal = () =>
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
     .objectClient<ReturnType<typeof makeSiteTokenRenew>>({ name: "SiteTokenRenew" }, "box");
 const open = () =>
-  restateAdmin(env.adminAPIBaseUrl())(
+  env.admin.query(
     `SELECT id FROM sys_invocation WHERE target_service_name = 'sites' AND status <> 'completed'`,
   );
 

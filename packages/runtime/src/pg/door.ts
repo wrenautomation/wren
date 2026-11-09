@@ -7,15 +7,9 @@
  *   GET  /restate/invocation/{svc}[/{key}]/{handler}/{idempotency-key}/attach | /output
  *   GET  /restate/health
  *   POST /rt/register | claim | renew | finish   pulled services (`pull.ts`)
- * With `restate` set (phase 4): services not in `rt.pg_services`, and ids pg does not hold, pass
- * through to Restate's ingress as they are, so the door can front all ingress.
+ * Anything else answers 404.
  */
-import {
-  createServer,
-  request as httpRequest,
-  type IncomingMessage,
-  type ServerResponse,
-} from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import type postgres from "postgres";
 import { newInvocationId, parseAwakeableId } from "./ids.js";
@@ -28,8 +22,6 @@ export interface DoorOptions {
   host?: string;
   /** Checked when set; in prod Caddy checks it in front. */
   bearer?: string;
-  /** Restate's ingress: what pg does not serve goes there. Unset: pg serves every registered service. */
-  restate?: string;
   /** Old service name → new: callers that still use the old name reach the new one direct. */
   renamed?: Readonly<Record<string, string>>;
   /** Services an outside worker claims over `/rt/*` (autobrowse's desk); unset: no pull routes. */
@@ -38,7 +30,7 @@ export interface DoorOptions {
   time?: (phase: "submit" | "wait", ms: number) => void;
 }
 
-/** How long the door trusts its copy of `rt.handlers` and `rt.pg_services`. */
+/** How long the door trusts its copy of `rt.handlers`. */
 const FRESH_MS = 5_000;
 
 const MS = { ms: 1, s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 } as const;
@@ -97,7 +89,6 @@ export async function serveDoor(
   const sql = o.sql;
   type Kind = { object: boolean; exclusive: Map<string, boolean>; private: Set<string> };
   let kinds = new Map<string, Kind>();
-  let onPg = new Set<string>();
   let at = 0;
   const refresh = async () => {
     const next = new Map<string, Kind>();
@@ -111,23 +102,14 @@ export async function serveDoor(
       if (h.private) s.private.add(h.handler);
       next.set(h.service, s);
     }
-    const pg = o.restate
-      ? new Set(
-          (await sql<{ service: string }[]>`SELECT service FROM rt.pg_services`).map(
-            (r) => r.service,
-          ),
-        )
-      : null;
     kinds = next;
-    if (pg) onPg = pg;
     at = Date.now();
   };
-  /** The service's kinds when pg serves it here; undefined: pass through (or unknown). */
+  /** The service's kinds; undefined: not registered. A handler not seen yet: read again first. */
   const served = async (service: string, handler: string) => {
     if (Date.now() - at > FRESH_MS) await refresh();
-    const hit = () => (!o.restate || onPg.has(service) ? kinds.get(service) : undefined);
-    if (hit() && !hit()?.exclusive.has(handler)) await refresh();
-    return hit();
+    if (kinds.get(service) && !kinds.get(service)?.exclusive.has(handler)) await refresh();
+    return kinds.get(service);
   };
 
   let draining = false;
@@ -204,40 +186,8 @@ export async function serveDoor(
     send(res, 200, r.result ?? new Uint8Array());
   };
 
-  /** Restate's ingress answers this one, as it came. */
-  const pass = (req: IncomingMessage, res: ServerResponse) =>
-    new Promise<void>((done) => {
-      if (!o.restate) {
-        send(res, 404, JSON.stringify({ message: "not found" }));
-        return done();
-      }
-      const headers = { ...req.headers };
-      delete headers.host;
-      delete headers.connection;
-      const up = httpRequest(
-        new URL(req.url ?? "/", o.restate),
-        { method: req.method ?? "GET", headers },
-        (r) => {
-          res.writeHead(r.statusCode ?? 502, r.headers);
-          r.pipe(res);
-          r.on("end", done);
-          r.on("error", () => {
-            res.destroy();
-            done();
-          });
-        },
-      );
-      up.on("error", (e) => {
-        if (!res.headersSent) send(res, 502, JSON.stringify({ message: `restate: ${e.message}` }));
-        else res.destroy();
-        done();
-      });
-      // a caller that leaves stops the wait upstream
-      res.on("close", () => {
-        if (!res.writableFinished) up.destroy();
-      });
-      req.pipe(up);
-    });
+  const notFound = (res: ServerResponse) =>
+    send(res, 404, JSON.stringify({ message: "not found" }));
 
   const held = async (id: string) =>
     (await sql`SELECT 1 FROM rt.invocations WHERE id = ${id}`).length > 0;
@@ -261,7 +211,6 @@ export async function serveDoor(
       return send(res, 401, JSON.stringify({ message: "unauthorized" }));
     const url = new URL(req.url ?? "/", "http://door");
     const parts = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
-    // a pass-through keeps the old name: req.url is not changed
     const alias = parts[0] ? o.renamed?.[parts[0]] : undefined;
     if (alias) parts[0] = alias;
 
@@ -280,7 +229,7 @@ export async function serveDoor(
         (parts[3] === "resolve" || parts[3] === "reject")
       ) {
         const a = parseAwakeableId(parts[2]);
-        if (!a) return pass(req, res);
+        if (!a) return notFound(res);
         const b = await body(req);
         await resolveAwakeable(sql, {
           id: parts[2],
@@ -296,21 +245,20 @@ export async function serveDoor(
         req.method === "GET" &&
         (op === "attach" || op === "output")
       ) {
-        // not in pg: Restate's (a call from before the move, or a service still there)
         const id = await named(parts.slice(2, -1));
-        return id ? reply(res, id, op === "attach") : pass(req, res);
+        return id ? reply(res, id, op === "attach") : notFound(res);
       }
-      return pass(req, res);
+      return notFound(res);
     }
 
-    if (parts.length < 2) return pass(req, res);
+    if (parts.length < 2) return notFound(res);
     // the handler sits by the service's kind, never by a trailing "send": a handler may be named send
     const kind = await served(parts[0] as string, parts[1] as string);
-    if (!kind) return pass(req, res);
+    if (!kind) return notFound(res);
     const want = kind.object ? 3 : 2;
     const handler = (parts[want - 1] ?? "") as string;
     const svc = kind.object ? await served(parts[0] as string, handler) : kind;
-    if (!svc) return pass(req, res);
+    if (!svc) return notFound(res);
     if (req.method !== "POST") return send(res, 405, JSON.stringify({ message: "POST only" }));
     const isSend = parts.length === want + 1 && parts[want] === "send";
     if (parts.length !== (isSend ? want + 1 : want))

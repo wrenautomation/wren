@@ -25,5 +25,5 @@ walkthrough/demos/01-loops.sh                      # every loop on Restate Cloud
 walkthrough/demos/02-content-dry.sh                # one idea through the local stack (needs a model key)
 ```
 
-Reference: `../README.md`, `../docs/restate-operations.md` (what is live),
+Reference: `../README.md`, `../docs/operations.md` (what is live),
 `../designs/` (why).

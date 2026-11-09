@@ -7,19 +7,18 @@
 import { ingressOf } from "@wren/config";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { grants } from "../../src/clients/schema.js";
 import { saveLive, writeDefault } from "../../src/templates.js";
 import { approvalId, makeTemplatesConsole, templateAt } from "../../src/templates-console.js";
-import { startTestRestate } from "../../src/testing.js";
+import { startTestRuntime, type TestRuntime } from "../../src/testing.js";
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({ services: [makeTemplatesConsole({ db: pg.db })] });
+  env = await startTestRuntime({ services: [makeTemplatesConsole({ db: pg.db })] });
   await pg.db.execute(sql`
     INSERT INTO operators (email, role) VALUES ('admin@example.test', 'admin'),
       ('viewer@example.test', 'viewer'), ('mail@example.test', 'viewer')`);

@@ -78,10 +78,6 @@ export async function pullRoute(
       for (const d of defs)
         await tx`INSERT INTO rt.handlers (service, handler, object, exclusive, private)
           VALUES (${d.service}, ${d.handler}, false, false, ${d.private})`;
-      // from now on the door queues its calls and the bridge leaves its rows
-      for (const s of services)
-        await tx`INSERT INTO rt.pg_services (service, build) VALUES (${s.name}, 'pulled')
-          ON CONFLICT (service) DO NOTHING`;
     });
     send(res, 200, JSON.stringify({ handlers: defs.length }));
     return true;

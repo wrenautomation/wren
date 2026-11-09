@@ -37,6 +37,21 @@ export const Mark = pageAt("/variants/batches?batch=7", {
   },
 });
 
+/** Rename the subject in place: Rename, a new name, Enter; the title shows it. */
+export const Rename = pageAt("/variants/batches?batch=6", {
+  me: ADMIN,
+  check: async (page) => {
+    const p = within(page);
+    await userEvent.click(
+      await p.findByRole("button", { name: "Rename subject" }, { timeout: 8000 }),
+    );
+    const field = p.getByRole("textbox", { name: "Subject name" });
+    await userEvent.clear(field);
+    await userEvent.type(field, "Spring opener{Enter}");
+    await p.findByRole("heading", { name: "Spring opener" });
+  },
+});
+
 /** page samples that run code: each still waits behind a glass play mark */
 export const Pages = pageAt("/variants/batches?batch=9", { me: ADMIN });
 

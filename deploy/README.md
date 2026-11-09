@@ -1,41 +1,34 @@
 # Deploy
 
-Restate → AWS Lambda (the worker) → Postgres, all but the Lambda in Docker on one EC2 box.
-Since 2026-10-06 Restate runs on the box (`deploy/scripts/box-restate.sh`, `https://restate.wrenautomation.com`);
-the Restate Cloud steps below are the way back. Why and how: `designs/2026-10-05-restate-self-host.md`.
-Everything here is general wren infrastructure; nothing knows about niches or channels.
+The worker (apps/worker) on one EC2 box beside Postgres, with AWS Lambda for overflow turns. Since 2026-11-09
+the durable runtime is our own, on Postgres (schema `rt`, `designs/2026-11-09-own-runtime.md`); Restate and Redis
+are retired. Everything here is general wren infrastructure; nothing knows about niches or channels.
 
 ```
-Restate (box)  --instance role-->  Lambda wren-prod-worker  --TLS-->  EC2 wren-prod-pg :5432
-       ^                                          |                                |
-  restate CLI / ingress                     SSM /wren/prod/env                nightly pg_dump → S3
+callers --TLS+bearer--> Caddy (api.wrenautomation.com) --> worker slot door :9090/:9091 --> Postgres rt.*
+                                                                 |  lambda lane (instance role)
+                                                                 v
+                                                     Lambda wren-prod-worker   SSM /wren/prod/env
 ```
 
-Region `us-east-1`: Restate Cloud runs there; every journal entry is a round trip.
+Region `us-east-1`. Nightly pg_dump to S3.
 
 ## One-time setup (you)
 
 1. **AWS account.** Create an IAM user for yourself with admin, then locally: `aws configure`
    (region `us-east-1`). Verify: `aws sts get-caller-identity`.
-2. **Restate Cloud.** `restate cloud login`, create an environment in region `us`, then
-   `restate cloud env configure`. In the web UI, Developers > Security > AWS Lambda: copy the
-   IAM trust policy and the request-identity public key. If the UI does not show a trust
-   policy, use the one `@restatedev/restate-cdk` generates (principal account `654654156625`,
-   `aws:PrincipalArn` = `arn:aws:iam::654654156625:role/RestateCloud`, `sts:ExternalId` = your
-   env id, plus an `sts:TagSession` statement for the same account). The identity key is
-   optional on Lambda: IAM already restricts who can invoke.
-3. **Render tier.** Default: browserless chromium on the Postgres box (`browser_token` in
+2. **Render tier.** Default: browserless chromium on the Postgres box (`browser_token` in
    tfvars; nothing to sign up for). Or Browserbase (an API key and project id; leave
    `browser_token` empty) if the box is too small for a browser.
-4. **Secrets file.** `cp deploy/prod.env.example deploy/prod.env` and fill it (gitignored).
-5. **Provider cache.** The AWS provider is 766 MB. `~/.tofurc` sets `plugin_cache_dir = "~/Library/Caches/wren_automation/tofu-plugins"`, so wren, autobrowse and every worktree share one copy.
+3. **Secrets file.** `cp deploy/prod.env.example deploy/prod.env` and fill it (gitignored).
+4. **Provider cache.** The AWS provider is 766 MB. `~/.tofurc` sets `plugin_cache_dir = "~/Library/Caches/wren_automation/tofu-plugins"`, so wren, autobrowse and every worktree share one copy.
 
 ## First deploy
 
 ```sh
 pnpm --filter @wren/worker build:lambda            # apps/worker/dist/lambda.zip
 cd deploy/terraform
-cp terraform.tfvars.example terraform.tfvars       # pg_password, restate_trust_policy, restate_identity_key
+cp terraform.tfvars.example terraform.tfvars       # pg_password
 tofu init && tofu apply                            # ~3 min; the box initialises itself on first boot
 tofu output -raw database_url                      # → WREN_DATABASE_URL in deploy/prod.env
 cd ..
@@ -43,34 +36,26 @@ scripts/push-secrets.sh                            # deploy/prod.env → SSM /wr
 WREN_DATABASE_URL="$(cd terraform && tofu output -raw database_url)" pnpm db:migrate
 ```
 
-Register the worker with Restate Cloud (CI does this on every push afterwards):
+Then push to `main`: CI's first deploy starts Caddy, PgBouncer, Listmonk and a worker slot on the box
+(`deploy/scripts/deploy.sh`). The worker migrates schema `rt` and registers its handlers itself.
 
-```sh
-ARN=$(cd deploy/terraform && tofu output -raw lambda_arn)
-ROLE=$(cd deploy/terraform && tofu output -raw restate_invoker_role_arn)
-restate deployments register "$ARN:1" --assume-role-arn "$ROLE"
-```
-
-Smoke: `restate services list` shows Enrichment, Resolution, EmailSend,
-EmailInboxRead, ReplyLabel (+ EmailPostmasterPull / OpensScheduler when configured). Then
-`pnpm wren db check` with `WREN_DATABASE_URL` pointed at the box, and one invocation:
-`curl -H "Authorization: Bearer $RESTATE_AUTH_TOKEN" https://<env>.env.us.restate.cloud:8080/EmailSend/<sender>/status`.
+Smoke: `pnpm wren db check` with `WREN_DATABASE_URL` pointed at the box, and one call through the door:
+`curl -H "Authorization: Bearer $RESTATE_AUTH_TOKEN" https://api.wrenautomation.com/EmailSend/<sender>/status`.
 
 ## CI (GitHub → Lambda)
 
 `.github/workflows/deploy.yml` runs as a `ci` job on `main`, beside lint, unit and schema. It bundles and uploads
 not-live Worker versions while they run, then waits for all three (`await_gates`) before it migrates, publishes a
-Lambda version and registers it. Repo secrets, from `tofu output` and the Restate UI:
+Lambda version and hands its ARN to the box (`/etc/wren/worker-arn`). Repo secrets, from `tofu output`:
 
 | secret | value |
 |---|---|
 | `AWS_DEPLOY_ROLE_ARN` | `ci_role_arn` |
-| `AWS_INVOKE_ROLE_ARN` | `restate_invoker_role_arn` |
 | `LAMBDA_NAME` | `lambda_name` |
 | `WREN_DATABASE_URL` | `database_url` |
-| `RESTATE_HOST` | `<env id>.env.us.restate.cloud`, or `restate.wrenautomation.com` once self-hosted (CI then registers over SSM) |
-| `RESTATE_AUTH_TOKEN` | an API key from Developers > API keys, or the box's `token` in `/wren/prod/restate` |
-| `WREN_DISCORD_WEBHOOK_URL` | the ops webhook, for `restate-lag.yml` |
+| `RESTATE_HOST` | `api.wrenautomation.com`, the front door (`restate.` is the old alias, still served) |
+| `RESTATE_AUTH_TOKEN` | the door's bearer: `token` in `/wren/prod/restate` |
+| `WREN_DISCORD_WEBHOOK_URL` | the ops webhook, for `runtime-lag-check.yml` |
 | `TURBO_API`, `TURBO_TOKEN` | the remote cache's URL and token (env-2 holds both; `turbo-cache.tf`). push-secrets refuses to drop a name SSM holds that the file lacks; `WREN_SSM_DROP=A,B` drops on purpose |
 
 If the deploy job fails at `configure-aws-credentials` with "Not authorized to perform
@@ -88,7 +73,7 @@ later release) so the version still serving does not break.
 
 - Logs: `aws logs tail /aws/lambda/wren-prod-worker --follow`.
 - Change a secret: edit `deploy/prod.env`, `deploy/scripts/push-secrets.sh`. The env is read at cold
-  start, and Restate calls a published version, so a config change on `$LATEST` does not recycle it:
+  start, and the box calls a published version, so a config change on `$LATEST` does not recycle it:
   the change lands at the next CI deploy (a new version) or when Lambda retires the old instances (hours).
   push-secrets overwrites the whole parameter: diff SSM against prod.env first, or a key set only in
   SSM (e.g. `WREN_NEW_OPENERS_PER_DAY`) is dropped. It reads the file through `scripts/secrets.mjs`
@@ -116,13 +101,11 @@ later release) so the version still serving does not break.
   (encrypted, unverified). Move to a VPC + NAT when the bill justifies it.
 - Secrets live in one SSM SecureString the Lambda role alone can read; never in Terraform state
   except `pg_password` (state is local and gitignored).
-- The Restate invoker role can only invoke this function; the CI role can only replace its code.
+- Only the box role invokes this function; the CI role can only replace its code.
 - The browser container listens on loopback 3000 only. Caddy serves it over TLS at
-  `wss://restate.wrenautomation.com/cdp`, outside the bearer: browserless checks its own token
+  `wss://api.wrenautomation.com/cdp`, outside the bearer: browserless checks its own token
   in the URL. It renders public web pages and nothing else.
 
 ## Later
 
-- Self-hosted Restate on Kubernetes when Cloud's free tier is outgrown: the Lambda becomes a
-  Deployment serving `apps/worker/src/main.ts`; nothing else changes.
 - State backend to S3 the day a second operator or environment exists.

@@ -8,7 +8,7 @@
 
 import { addClient, addOperator } from "@wren/core/clients";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { paymentsConsoleApi } from "@wren/payments/console";
@@ -22,7 +22,7 @@ import { type Answer, type DocumentsDeps, makeDocuments } from "../../src/servic
 import { docById, issueLink, markSent, signDoc } from "../../src/store.js";
 
 let pg: TestPostgres;
-let env: Awaited<ReturnType<typeof startTestRestate>>;
+let env: Awaited<ReturnType<typeof startTestRuntime>>;
 const open = (c: { id: string }) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${c.id}`));
 let keys: ReturnType<typeof pgKeyStore>;
 const KEY = "rk_test_fixture00000000";
@@ -133,7 +133,7 @@ beforeAll(async () => {
     })
   ).ref;
   await paymentsConsoleApi(deps()).connect({ ...ADA, keyRef }, now);
-  env = await startTestRestate({ services: [makeDocuments(deps())], alwaysReplay: true });
+  env = await startTestRuntime({ services: [makeDocuments(deps())], alwaysReplay: true });
 }, 180_000);
 afterAll(async () => {
   await env?.stop();

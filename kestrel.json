@@ -38,8 +38,8 @@
       },
       "vendors": {
         "restate": {
-          "title": "Restate Cloud",
-          "description": "Durable execution: journals every service call and invokes the worker."
+          "title": "Runtime door",
+          "description": "Durable execution on Postgres (rt schema), reached through Restate's ingress protocol."
         },
         "ssm": {
           "title": "AWS SSM",
@@ -54,8 +54,6 @@
         "WREN_DATABASE_URL": "container:postgres",
         "WREN_DATABASE_POOL_PORT": "container:pgbouncer",
         "WREN_RESTATE_INGRESS_URL": "restate",
-        "WREN_RESTATE_ADMIN_URL": "restate",
-        "WREN_CACHE_URL": "container:redis",
         "WREN_SMTP_PROBE_URL": "container:vps-prober",
         "WREN_CDP_URL": "container:browser",
         "WREN_MEDIA_BUCKET": "s3:media",

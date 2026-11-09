@@ -7,11 +7,10 @@
 import { ingressOf } from "@wren/config";
 import { leads, people, runs } from "@wren/core";
 import type { SiteClient } from "@wren/core/autobrowse";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_HASH } from "../../src/enrichment/crawler.js";
@@ -43,7 +42,7 @@ const ROECO_VERDICT =
   '{"emails": [{"email": "jane@roeco.example", "classification": "person", "person_name": "Jane A. Roe"}, {"email": "info@roeco.example", "classification": "role"}], "best_send_to": "jane@roeco.example"}';
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 const fetcher = new FakeFetcher({
   "https://roeco.example": ROECO_HOME,
   "https://roeco.example/team": ROECO_TEAM,
@@ -91,7 +90,7 @@ const ladder: SiteClient = {
 
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeCompanyEnrich({
         db: pg.db,

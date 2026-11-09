@@ -46,7 +46,7 @@ pnpm wren fetch get firm-feed && pnpm wren email import <file> --format sec-firm
 
 then the research chain (`LeadPoolFill/{niche}/start`; `WREN_POOL_MODEL_STAGES`
 is the spend knob: `none` | `pick` | `all`). Verification (MillionVerifier)
-stays by hand: it spends credits. `../docs/restate-operations.md` "Feeding
+stays by hand: it spends credits. `../docs/operations.md` "Feeding
 the pool" has every stage as a curl.
 
 ## Reviewing copy by hand

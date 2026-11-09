@@ -7,10 +7,9 @@
  */
 
 import { ingressOf } from "@wren/config";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { DEFAULT_HEALTH, FakeProvider, FORM_SEQUENCES } from "@wren/starling-sms";
 import { smsMessages, speedRuns } from "@wren/starling-sms/schema";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -27,7 +26,7 @@ import type { FormApplication } from "../../../src/sms/form.js";
 import { makeSmsForms, type SmsFormsService } from "../../../src/sms/restate/forms.js";
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 const provider = new FakeProvider();
 const n = notes();
 const mailed: { to: string; subject: string; text: string }[] = [];
@@ -56,7 +55,7 @@ const fetch = (async (input: string | URL | Request) => {
 
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeSmsForms({
         db: pg.db,

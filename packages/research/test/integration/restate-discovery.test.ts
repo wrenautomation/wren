@@ -2,17 +2,16 @@
 
 import { ingressOf } from "@wren/config";
 import { companies, runs } from "@wren/core";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { type CompanySiteFind, makeCompanySiteFind } from "../../src/restate/discovery.js";
 import { FakeFetcher } from "./fixtures.js";
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 const fetcher = new FakeFetcher({
   "https://zorbelwealth.com":
     "<html><head><title>Zorbel Wealth</title></head><body><p>Zorbel Wealth LLC — fiduciary advice</p></body></html>",
@@ -20,7 +19,7 @@ const fetcher = new FakeFetcher({
 
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeCompanySiteFind({
         db: pg.db,

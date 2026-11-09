@@ -13,7 +13,7 @@ The one way a recurring job runs: a Restate Virtual Object from `makeLoopObject`
 
 ## Why this shape
 
-Restate owns the timer, so a worker dying or a laptop closing loses nothing; the delayed `loop` fires when the deployment is back (`packages/starling/outbound/src/email/restate/send-scheduler.ts:1`). Each pass is one journaled step that opens a run row; a stage failure is recorded on the row and in `last`, never thrown at the loop (`loop.ts:1`). A loop with an event source is woken (`wake`) and polls only as a net: Gmail push, or a row queued in its table (`wren_wake`, migration 0235); the pattern per new loop is `designs/2026-10-11-push-not-poll.md`. Every call a pass waits on has a time limit, so a call Restate paused never holds the key's lock: past it the unit is skipped and the pass goes on (`designs/2026-10-16-loop-watchdog.md`). A failure notice names the root cause and the table (`errorText`, `loop.ts:88`), never the SQL or its params, so one failure is one notice. `docs/restate-operations.md:363` still names the old path.
+Restate owns the timer, so a worker dying or a laptop closing loses nothing; the delayed `loop` fires when the deployment is back (`packages/starling/outbound/src/email/restate/send-scheduler.ts:1`). Each pass is one journaled step that opens a run row; a stage failure is recorded on the row and in `last`, never thrown at the loop (`loop.ts:1`). A loop with an event source is woken (`wake`) and polls only as a net: Gmail push, or a row queued in its table (`wren_wake`, migration 0235); the pattern per new loop is `designs/2026-10-11-push-not-poll.md`. Every call a pass waits on has a time limit, so a call Restate paused never holds the key's lock: past it the unit is skipped and the pass goes on (`designs/2026-10-16-loop-watchdog.md`). A failure notice names the root cause and the table (`errorText`, `loop.ts:88`), never the SQL or its params, so one failure is one notice. `docs/operations.md:363` still names the old path.
 
 ## Shape
 
@@ -36,14 +36,14 @@ Citations: `packages/core/src/restate/loop.ts:366`, `packages/starling/outbound/
 
 ## If you change this
 
-- **Hits:** every loop above; `walkthrough/demos/01-loops.sh`; `docs/restate-operations.md`; [[platform/loop-watch]] (reads `loop` state and `last.delayMs`, sends `wake`)
+- **Hits:** every loop above; `walkthrough/demos/01-loops.sh`; `docs/operations.md`; [[platform/loop-watch]] (reads `loop` state and `last.delayMs`, sends `wake`)
 - **Does not hit:** plain services (`CompanySiteFind`, `CompanyEnrich`, `LeadVerify`, `Content`, `Ads`, `SmsDesk`, `SmsWebhookIntake`, `ContentDesk`, `ReplyLabel`)
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `wren content|ads|sms|social ... start/stop/status` (CLI over ingress); email loops by ingress only (`docs/restate-operations.md`) | drives |
+| `wren content|ads|sms|social ... start/stop/status` (CLI over ingress); email loops by ingress only (`docs/operations.md`) | drives |
 | Restate (box) | schedules |
 | `wren loops` + `LoopRevive/all` ([[platform/loop-watch]]): health per loop, dead ones woken | reads, drives |
 | `ConsolePortal/loops` (admin SQL over `state` + `sys_invocation`; needs `WREN_RESTATE_ADMIN_URL`), `/setLoop` (`stop`, or `start` with no body so stored settings stay) | reads, drives |

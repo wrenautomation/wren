@@ -20,7 +20,6 @@
     "db:migrate": "pnpm --filter @wren/db migrate",
     "loadtest": "node scripts/loadtest.mjs",
     "worker": "pnpm --filter @wren/worker dev",
-    "register": "./scripts/register-worker.sh",
     "wren": "./bin/wren",
     "storybook": "pnpm --filter @wren/portal storybook",
     "offers:export": "pnpm --filter @wren/offers export",

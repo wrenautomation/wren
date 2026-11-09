@@ -1,10 +1,10 @@
 import type { Db } from "@wren/db";
 import { TerminalError } from "@wren/runtime";
+import type { HandlerSpec } from "@wren/runtime/pg";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { memoryCache } from "./cache.js";
 import { operators } from "./clients/index.js";
 import { defineComponent } from "./components.js";
 import {
@@ -18,7 +18,6 @@ import {
   loopsOf,
   makeConsolePortal,
   nowAtLabels,
-  restateAdminGet,
   SHOWCASE_LOOKS,
   settingShown,
   toCsv,
@@ -291,7 +290,6 @@ describe("ConsolePortal records", () => {
   });
 });
 
-const handler = (name: string, more: Record<string, unknown> = {}) => ({ name, ...more });
 const SCHEMA = { type: "object", properties: { limit: { type: "integer" } } };
 /** A portal-style input: `call` fills the viewer. */
 const ASKS = {
@@ -300,41 +298,27 @@ const ASKS = {
   required: ["id"],
 };
 
-const SERVICES = {
-  services: [
-    {
-      name: "Widgets",
-      ty: "VirtualObject",
-      handlers: [
-        handler("launch", { metadata: { effect: "spends" }, input_json_schema: SCHEMA }),
-        handler("status", { ty: "Shared" }),
-        handler("loop", { public: false }),
-      ],
-    },
-    { name: "Tally", ty: "Service", handlers: [handler("count", { input_json_schema: SCHEMA })] },
-    { name: "Inbox", ty: "Service", handlers: [handler("approve", { input_json_schema: ASKS })] },
-    { name: "WidgetsPortal", ty: "Service", handlers: [handler("view")] },
-    { name: "Hidden", ty: "Service", public: false, handlers: [handler("any")] },
-  ],
-};
+/** The worker's handlers as `Registry.specs` gives them. */
+const spec = (service: string, handler: string, more: Partial<HandlerSpec> = {}): HandlerSpec => ({
+  service,
+  handler,
+  kind: "service",
+  public: true,
+  metadata: {},
+  ...more,
+});
+const SERVICES: HandlerSpec[] = [
+  spec("Widgets", "launch", { kind: "object", metadata: { effect: "spends" }, input: SCHEMA }),
+  spec("Widgets", "status", { kind: "object" }),
+  spec("Widgets", "loop", { kind: "object", public: false }),
+  spec("Tally", "count", { input: SCHEMA }),
+  spec("Inbox", "approve", { input: ASKS }),
+  spec("WidgetsPortal", "view"),
+  spec("Hidden", "any", { public: false }),
+];
 
 describe("ConsolePortal handlers", () => {
-  const get = async (path: string) =>
-    path === "/services"
-      ? SERVICES
-      : {
-          paths: {
-            "/restate/call/Widgets/{key}/launch": {
-              post: {
-                requestBody: {
-                  content: { "application/json": { schema: { $ref: "#/components/schemas/L" } } },
-                },
-              },
-            },
-            "/restate/call/Widgets/{key}/launch/send": { post: {} },
-          },
-          components: { schemas: { L: SCHEMA } },
-        };
+  const list = () => SERVICES;
   const ran: Record<string, unknown>[] = [];
   const db = {
     ...noSaved,
@@ -346,11 +330,11 @@ describe("ConsolePortal handlers", () => {
       },
     }),
   } as unknown as Db;
-  const calls = consoleApi({ main: db, views: [], adminGet: get });
+  const calls = consoleApi({ main: db, views: [], handlerList: list });
   const all = handlersOf(SERVICES);
   const ask = { viewer: operator, service: "Tally", handler: "count", input: { limit: 2 } };
 
-  it("reads kind, public, effect and form from /services", () => {
+  it("reads kind, public, effect and form from the specs", () => {
     expect(all.find((h) => h.handler === "launch")).toEqual({
       service: "Widgets",
       handler: "launch",
@@ -371,7 +355,7 @@ describe("ConsolePortal handlers", () => {
     const [type] = await calls.recordsTypes({ viewer: operator });
     expect(type).toMatchObject({ id: "console.handler" });
     // The rows and the detail as records-serve reads them; its SQL over them needs Postgres.
-    const record = handlerRecord(get);
+    const record = handlerRecord(list);
     const rows = (await record.rows?.(db)) ?? [];
     expect(rows.map((r) => r.id).sort()).toEqual([
       "Inbox/approve",
@@ -388,14 +372,16 @@ describe("ConsolePortal handlers", () => {
       input: SCHEMA,
       form: [{ field: "limit", label: "Limit", type: "number", optional: true }],
     });
-    expect(inputSchemaOf(await get("/services/Widgets/openapi"), "Widgets", "status")).toBeNull();
+    expect(inputSchemaOf(SERVICES, "Widgets", "status")).toBeNull();
   });
 
   it("refuses anyone but the operator, a Portal, a private or unknown handler", async () => {
     for (const viewer of [{ demo: true as const }, { email: "amy@acme.test" }])
       expect(() => calls.reader({ ...ask, viewer })).toThrow(PortalRefusal);
     expect(() => calls.reader({ ...ask, asClient: true })).toThrow(PortalRefusal);
-    expect(() => consoleApi({ main, views: [] }).reader(ask)).toThrow("no Restate admin URL");
+    expect(() => consoleApi({ main, views: [] }).reader(ask)).toThrow(
+      "this worker serves no handlers",
+    );
     const status = (f: () => unknown) => {
       try {
         f();
@@ -459,7 +445,7 @@ describe("ConsolePortal.call", () => {
     // Their grants: none past the role.
     execute: async () => [],
   } as unknown as Db;
-  const portal = makeConsolePortal({ main: db, views: [], adminGet: async () => SERVICES });
+  const portal = makeConsolePortal({ main: db, views: [], handlerList: () => SERVICES });
   const call = (
     portal as unknown as { service: Record<string, (c: unknown, r: unknown) => Promise<unknown>> }
   ).service.call;
@@ -504,32 +490,6 @@ describe("ConsolePortal.call", () => {
     const ask = { viewer: operator, service: "Tally", handler: "count", input: {} };
     await expect(call?.(ctx, ask)).rejects.toThrow("bad input");
     expect(ran.at(-1)).toMatchObject({ close: { stats: { error: "bad input" } } });
-  });
-});
-
-describe("restateAdminGet", () => {
-  it("keeps each path 5 minutes, and never a failure", async () => {
-    let t = 0;
-    const fetch = vi
-      .fn()
-      .mockResolvedValueOnce(new Response("down", { status: 503 }))
-      .mockResolvedValue(new Response("{}"));
-    vi.stubGlobal("fetch", fetch);
-    const get = restateAdminGet(
-      "https://admin.example.test/",
-      "tok",
-      memoryCache(() => t),
-    );
-    await expect(get("/services")).rejects.toThrow("503");
-    await get("/services");
-    await get("/services");
-    expect(fetch).toHaveBeenCalledTimes(2);
-    expect(fetch.mock.calls[0]?.[0]).toBe("https://admin.example.test/services");
-    t = 5 * 60_000;
-    fetch.mockResolvedValue(new Response("{}"));
-    await get("/services");
-    expect(fetch).toHaveBeenCalledTimes(3);
-    vi.unstubAllGlobals();
   });
 });
 

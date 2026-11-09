@@ -3,12 +3,11 @@
 import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import type { PostmasterClient } from "@wren/starling-email";
 import { transitionMessage } from "@wren/starling-email";
 import {
@@ -163,10 +162,10 @@ const seedGmail: SiteClient = {
 };
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeEmailInboxRead({
         reader,

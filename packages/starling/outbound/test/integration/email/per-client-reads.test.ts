@@ -8,7 +8,7 @@
 import { ingressOf, loadSettings } from "@wren/config";
 import { addClient } from "@wren/core/clients";
 import type { PassOutcome } from "@wren/core/restate";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { vendorModes, vendorUsage } from "@wren/core/vendor-schema";
 import { clearMode, gate, ownBucket, setOwnLogin, vendorOf } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
@@ -29,7 +29,6 @@ import {
 } from "@wren/research/signals";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { SendPolicy } from "@wren/starling-email/send/policy";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { emailConsoleApi } from "../../../src/email/restate/console.js";
@@ -77,7 +76,7 @@ const fakes = [
 ];
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let gamma: Db;
 const open = (c: { database: string }) => cachedDb(clientDatabaseUrl(pg.url, c.database));
 const SHEET = { "research.lead_sheet": { verificationsPerDay: 0 } };
@@ -96,7 +95,7 @@ beforeAll(async () => {
   });
   await addClient(pg.db, pg.url, { id: "delta", name: "Delta", products: SHEET });
   gamma = open({ database: "wren_client_gamma" });
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       ...fakes,
       makeLeadPoolFill({

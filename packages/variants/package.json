@@ -22,7 +22,7 @@
     "@wren/runtime": "workspace:*",
     "@wren/sites": "workspace:*",
     "@wren/starling-inbound": "workspace:*",
-    "@wrenautomation/vireo": "0.10.0",
+    "@wrenautomation/vireo": "0.11.0",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"
   },

@@ -9,14 +9,13 @@ import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
 import { addClient } from "@wren/core/clients";
 import type { PassOutcome } from "@wren/core/restate";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sharedPages } from "@wren/research/enrichment";
 import { documents } from "@wren/research/schema";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { verifications } from "@wren/starling-email/schema";
 import { SendPolicy } from "@wren/starling-email/send/policy";
 import { sharedVerdicts } from "@wren/starling-email/verification/shared";
@@ -65,7 +64,7 @@ const fakes = [
 ];
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let acme: Db;
 const open = (c: { database: string }) => cachedDb(clientDatabaseUrl(pg.url, c.database));
 
@@ -84,7 +83,7 @@ beforeAll(async () => {
   });
   await addClient(pg.db, pg.url, { id: "beta", name: "Beta", products: {} });
   acme = open({ database: "wren_client_acme" });
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       ...fakes,
       makeLeadPoolFill({

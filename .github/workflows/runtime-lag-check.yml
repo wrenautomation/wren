@@ -1,0 +1,22 @@
+# Hourly, from outside the box: rows the runtime left late or stuck, and a watchdog with no next
+# check, go to Discord (scripts/runtime-lag-check.mjs). psql is on the runner image.
+# Secrets (production environment): WREN_DATABASE_URL, WREN_DISCORD_WEBHOOK_URL.
+name: runtime-lag-check
+on:
+  schedule: [{ cron: "17 * * * *" }]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lag:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v5
+        with: { sparse-checkout: scripts/runtime-lag-check.mjs, sparse-checkout-cone-mode: false }
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - run: node scripts/runtime-lag-check.mjs
+        env:
+          WREN_DATABASE_URL: ${{ secrets.WREN_DATABASE_URL }}
+          WREN_DISCORD_WEBHOOK_URL: ${{ secrets.WREN_DISCORD_WEBHOOK_URL }}

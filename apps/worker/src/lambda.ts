@@ -1,17 +1,14 @@
 /**
- * The same services as `main.ts`, served to Restate Cloud from AWS Lambda.
- * Cold start: pull the secret env from SSM, build the services, hand the
- * handler to Restate. Every invocation is one journaled step or handler turn;
- * the pool is per Lambda instance and stays small.
+ * The Lambda lane of the runtime (`rt.ts`): the box invokes with `{rt}`, one handler turn each.
+ * Cold start: pull the secret env from SSM, build the services. The pool is per instance and small.
  */
 
 import { loadSettings } from "@wren/config";
 import { loadSsmEnv, loadSsmFile } from "@wren/config/ssm";
-import { createEndpointHandler } from "@wren/runtime/lambda";
 import pino from "pino";
-import { isRtEvent, lambdaTurns, restateSide, rtSql } from "./rt.js";
+import { isRtEvent, lambdaTurns, rtSql } from "./rt.js";
 import { pooled } from "./services/deps.js";
-import { buildServices, servicesFor } from "./services.js";
+import { buildServices } from "./services.js";
 
 const ROOT = process.env.LAMBDA_TASK_ROOT ?? process.cwd();
 
@@ -36,30 +33,14 @@ log.info(
   "lambda ready",
 );
 
-// Restate Cloud signs every request; the public key comes from the environment's
-// Developers > Security page. Unset means any caller Lambda's IAM lets in.
-const identityKey = process.env.WREN_RESTATE_IDENTITY_KEY;
-
-// The Postgres runtime (rt.ts): one connection pair per instance, made on first use.
+// One connection pair per instance, made on first use; through PgBouncer.
 let sql: ReturnType<typeof rtSql> | undefined;
-const db = () => {
-  if (!sql) {
-    sql = rtSql(pooled(settings), 2, "wren-rt-lambda");
-  }
-  return sql;
-};
 let turns: ReturnType<typeof lambdaTurns> | undefined;
 
-const restateHandler = createEndpointHandler({
-  services: restateSide(servicesFor(built.services, "lambda"), db),
-  ...(identityKey ? { identityKeys: [identityKey] } : {}),
-});
-
-/** Restate's calls, or one pg turn when the box's lambda lane invokes with `{rt}`. */
-export const handler = (event: unknown, ctx: unknown) => {
-  if (isRtEvent(event)) {
-    turns ??= lambdaTurns(built.services, db());
-    return turns(event);
-  }
-  return (restateHandler as (e: unknown, c: unknown) => Promise<unknown>)(event, ctx);
+/** One pg turn; any other event is refused (only the box's role may invoke). */
+export const handler = (event: unknown) => {
+  if (!isRtEvent(event)) throw new Error("not an rt turn");
+  sql ??= rtSql(pooled(settings), 2, "wren-rt-lambda");
+  turns ??= lambdaTurns(built.services, sql);
+  return turns(event);
 };

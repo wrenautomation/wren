@@ -158,9 +158,7 @@ export function contentServices(deps: Deps): AnyService[] {
       posted: postedWarm,
       clientDb,
       // A publish held by a paused desk call waits in To approve, not on the queue.
-      pausedUnder: pausedUnder(
-        runtimeAdmin(db, settings.restateAdminUrl, settings.restateAuthToken).query,
-      ),
+      pausedUnder: pausedUnder(runtimeAdmin(db).query),
       ...contentNotify,
     }),
     makePostMetrics({ db, clientDb, ...contentNotify }),

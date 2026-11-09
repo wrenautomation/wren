@@ -2,27 +2,24 @@
 # The deploy, run by .github/workflows/deploy.yml in one step: background work (`bg`) dies
 # with the step that starts it, so every phase shares this shell. Helpers: ci-steps.sh.
 # The order that matters:
-#   build and upload (not live) → the gates pass → migrate → publish the Lambda
-#   → register it with Restate (Cloud or the box) → Cloudflare goes live.
+#   build and upload (not live) → the gates pass → migrate → the box worker, publish the Lambda
+#   → hand the box the Lambda version → Cloudflare goes live.
 # ci.yml starts this job beside lint, unit and schema: the builds and not-live uploads run while
 # they check. Nothing touches the box, the database or live traffic before all three pass.
-#   pgbouncer → the box's pool-chain worker → register;  pgbouncer + redis → publish the Lambda.
+#   pgbouncer → the box worker (the runtime, apps/worker/src/rt.ts) → publish the Lambda.
 # The phone, sign-in, portal and LLM gateway Workers upload a version early and take traffic
-# only after Restate registers, all four within seconds.
+# only after the box has the new Lambda version, all four within seconds.
 set -euo pipefail
 . deploy/scripts/ci-steps.sh
 phase() { echo "::notice::$(date -u +%T) $*"; }
 
-# RESTATE_HOST names Restate Cloud (ingress on :8080, admin API public) or the box
-# (api.wrenautomation.com: the door through Caddy on 443, box-front-door.sh; admin on loopback).
-case "$RESTATE_HOST" in
-  *.restate.cloud) RESTATE_INGRESS="https://$RESTATE_HOST:8080" ;;
-  *) RESTATE_INGRESS="https://$RESTATE_HOST" ;;
-esac
+# RESTATE_HOST: the runtime's door (api.wrenautomation.com, Caddy on 443, box-front-door.sh).
+# Old name, kept until the env names move.
+RESTATE_INGRESS="https://$RESTATE_HOST"
 
 # Everything that changes nothing live starts now: the two Lambda bundles, the CLI bundle
 # (templates sync runs it), and a not-yet-live version of each Cloudflare Worker.
-# After the gates: the box's pgbouncer, redis and listmonk, beside the migrations.
+# After the gates: the box's pgbouncer, listmonk and front door, beside the migrations.
 # Phone: the ingress follows RESTATE_HOST like the portal's; its other secrets (Telnyx, cal.com,
 # Gmail push, credential links) are set by hand and kept: --secrets-file is additive.
 # LLM gateway: its keys are Worker secrets, set by scripts/llm-gateway-keys.mjs; a deploy keeps them.
@@ -30,7 +27,6 @@ esac
 # so its failure only warns (cf_soft): the first CI run proves the token can bind R2.
 # Portal: LAMBDA_URL, EDGE_SECRET: a client's own host redeems sign-ins at the auth Lambda.
 # pgbouncer: before the box worker and the Lambda, which may connect through it (WREN_DATABASE_POOL_PORT).
-# redis: before the Lambda, which reads through it (WREN_CACHE_URL). Unchanged: left running.
 # listmonk: the newsletter (designs/2026-10-21-esign-and-newsletter.md); no SSM param
 # /wren/prod/listmonk yet: the script says so and skips. Unchanged: left running.
 phase start
@@ -62,7 +58,6 @@ fi
 
 phase migrate
 bg pgbouncer box_script pgbouncer box-pgbouncer.sh
-bg redis box_script redis box-redis.sh us-east-1
 bg listmonk box_script listmonk box-listmonk.sh us-east-1
 bg front-door box_script front-door box-front-door.sh us-east-1
 pnpm db:migrate
@@ -70,8 +65,7 @@ await cli
 # templates: each changed file in packages/templates/defaults as a default version, in every database.
 bg templates pnpm -s wren templates sync
 
-# Restate keeps a service on the deployment that last offered it, and this Lambda build
-# leaves the pool chain out (WREN_POOL_CHAIN_HOST=box): the box worker restarts before registering.
+# The box worker's new slot takes new rows once up; Lambda rows pin to the version written below.
 # The sign-in Lambda's function URL serves $LATEST; no version to publish.
 phase "box worker and lambdas"
 await worker-zip auth-zip pgbouncer
@@ -80,39 +74,18 @@ aws s3 cp --only-show-errors apps/worker/dist/lambda.zip "s3://$BOX_BUCKET/$key"
 bg box-worker box_script worker box-worker.sh "$BOX_BUCKET" "$key"
 bg auth-lambda sh -c 'aws lambda update-function-code --function-name wren-prod-auth \
   --zip-file fileb://apps/auth/dist/lambda.zip > /dev/null && aws lambda wait function-updated --function-name wren-prod-auth'
-await redis
 aws lambda update-function-code --function-name "$LAMBDA_NAME" \
   --zip-file fileb://apps/worker/dist/lambda.zip --publish --output json > "$RUNNER_TEMP/publish.json"
 # A versioned ARN, whichever form the response's FunctionArn takes.
 ARN="$(jq -r .FunctionArn "$RUNNER_TEMP/publish.json" | sed -E 's/:[0-9]+$//'):$(jq -r .Version "$RUNNER_TEMP/publish.json")"
 await box-worker
 
-phase register
-case "$RESTATE_HOST" in
-  *.restate.cloud)
-    npx -y @restatedev/restate deployments register -y "$ARN" --assume-role-arn "$INVOKE_ROLE" ;;
-  *)
-    # The box's own role invokes the Lambda; its admin API answers on loopback only.
-    # Discovery invokes the new version, which may still be pending: retry while it warms.
-    # (No `aws lambda wait`: the CI role has no GetFunctionConfiguration.)
-    # First, drop deployments nothing uses: Restate caps them all at 30.4 MiB.
-    body="$(jq -nc --arg arn "$ARN" '{arn: $arn}')"
-    # The watch pings Discord when Restate itself is down, which nothing inside it can.
-    prune="$(base64 -w0 deploy/scripts/restate-prune.py)"
-    watch="$(base64 -w0 deploy/scripts/restate-watch.py)"
-    # The rt's lambda lane (apps/worker/src/rt.ts) pins new rows to this version.
-    jq -n --arg b "$body" --arg p "$prune" --arg w "$watch" --arg arn "$ARN" '{commands: [
-      "mkdir -p /etc/wren && printf %s \($arn | @sh) > /etc/wren/worker-arn.new && mv /etc/wren/worker-arn.new /etc/wren/worker-arn",
-      "echo \($p) | base64 -d > /usr/local/bin/wren-restate-prune",
-      "echo \($w) | base64 -d > /usr/local/bin/wren-restate-watch",
-      "chmod 755 /usr/local/bin/wren-restate-prune /usr/local/bin/wren-restate-watch",
-      "echo \"17 * * * * root /usr/local/bin/wren-restate-prune >> /var/log/wren-restate-prune.log 2>&1\" > /etc/cron.d/wren-restate-prune",
-      "echo \"*/5 * * * * root /usr/local/bin/wren-restate-watch >> /var/log/wren-restate-watch.log 2>&1\" > /etc/cron.d/wren-restate-watch",
-      "/usr/local/bin/wren-restate-prune || true",
-      "for i in $(seq 1 50); do curl -sS --fail-with-body -X POST http://127.0.0.1:9070/deployments -H content-type:application/json -d \($b | @sh) -o /tmp/register.out && exit 0; head -c 400 /tmp/register.out; sleep 2; done; exit 1"]}' \
-      > "$RUNNER_TEMP/register.json"
-    ssm_run register "$RUNNER_TEMP/register.json" ;;
-esac
+# The box's lambda lane (apps/worker/src/rt.ts) pins new Lambda rows to this version.
+phase "lambda version"
+jq -n --arg arn "$ARN" '{commands: [
+  "mkdir -p /etc/wren && printf %s \($arn | @sh) > /etc/wren/worker-arn.new && mv /etc/wren/worker-arn.new /etc/wren/worker-arn"]}' \
+  > "$RUNNER_TEMP/lambda-version.json"
+ssm_run lambda-version "$RUNNER_TEMP/lambda-version.json"
 
 phase "cloudflare live"
 await up-phone up-gateway up-auth up-portal up-share

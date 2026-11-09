@@ -1,6 +1,6 @@
 # How to walk this map
 
-Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monorepo (pnpm + turbo): Restate (self-hosted on the box) calls a Lambda (`apps/worker`), which runs every channel's services over Postgres 17 (Drizzle). Deps point down: `config` ← `db` ← `core` ← `research`, `starling/*`, `starling/channels/*` (sms included); `niches` sits on the channels; `books` sits on `core`, `db` and `llm`; `cli` and `worker` sit on everything; `llm` and `offers` are leaves. Channels never import each other.
+Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monorepo (pnpm + turbo): our own runtime on Postgres (`@wren/runtime`, the box worker since 2026-11-09; Restate before) calls a Lambda (`apps/worker`), which runs every channel's services over Postgres 17 (Drizzle). Deps point down: `config` ← `db` ← `core` ← `research`, `starling/*`, `starling/channels/*` (sms included); `niches` sits on the channels; `books` sits on `core`, `db` and `llm`; `cli` and `worker` sit on everything; `llm` and `offers` are leaves. Channels never import each other.
 
 ## Walk
 
@@ -36,8 +36,8 @@ Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monore
 | document | `documents` (a company's web page, `packages/research/src/schema.ts:31`) vs `books.documents` (a vendor email or PDF, `packages/books/src/schema.ts:99`). |
 | account | `books.accounts` (the chart, `packages/books/src/schema.ts:34`); `clients.accounts` (a client's ids, jsonb, `packages/core/src/clients/schema.ts:26`); autobrowse accounts (logins, not in this repo). |
 | line | `books.lines` (one side of a journal entry) vs `books.bill_lines` (a bill's printed items); a metro map line (`lines` in a metro body, [[platform/shape]]). |
-| sites | autobrowse's Restate service, not in this repo. Every platform and Meta call goes through it (`packages/core/src/autobrowse/restate.ts:30`). Reddit does not. |
-| worker | `apps/worker` (Node/Lambda Restate endpoint); `apps/phone` (Cloudflare Worker, SMS inbox + webhooks); `deploy/pixel` (Cloudflare Worker, open pixel). |
+| sites | autobrowse's service on the same runtime, not in this repo. Every platform and Meta call goes through it (`packages/core/src/autobrowse/restate.ts:30`). Reddit does not. |
+| worker | `apps/worker` (the runtime host: box worker + Lambda lane); `apps/phone` (Cloudflare Worker, SMS inbox + webhooks); `deploy/pixel` (Cloudflare Worker, open pixel). |
 | executor | the layer that runs each workflow move: events, retries, timed waits; Restate `Executor` and `ExecutorClock`, views `executor_events` and `executions`. Called "spine" until 2026-10-25; dated designs keep the old word. The metro map lowers to the NFA graph, and the executor runs it. |
 | signals | [[research/signal]]: dated findings from the collectors (`packages/research/src/signals/`); the lander's Signals: visitor events, funnel and replay (designs/2026-10-06-signals.md); `crm run`'s `signals` stage: CRM firms hiring (`packages/reactivation/src/signals.ts`). |
 | change | `changes` (one record edit with before and after, [[platform/edits]]) vs `audit_changes` and the `console.change` record (trigger audit of every row, [[platform/audit-log]]). |
@@ -45,4 +45,4 @@ Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monore
 
 ## What the map is not
 
-Not a spec (those are `designs/`), not an ops runbook (`docs/restate-operations.md`), not a tutorial (`walkthrough/`). When a card wants to explain behaviour, it points at the file that owns it.
+Not a spec (those are `designs/`), not an ops runbook (`docs/operations.md`), not a tutorial (`walkthrough/`). When a card wants to explain behaviour, it points at the file that owns it.

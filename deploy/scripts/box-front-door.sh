@@ -15,7 +15,7 @@ region="$1" param="${2:-/wren/prod/restate}"
 D=/var/lib/wren-pg/front-door
 mkdir -p "$D/caddy"
 umask 077
-# Certificates and ACME account from the old home (box-restate.sh), so none is issued again.
+# Certificates and ACME account from the old home (Restate's, before 11-09), so none is issued again.
 if [ ! -e "$D/caddy/caddy" ] && [ -d /var/lib/wren-pg/restate/caddy/caddy ]; then
   cp -a /var/lib/wren-pg/restate/caddy/. "$D/caddy/"
 fi
@@ -25,10 +25,9 @@ token="$(aws ssm get-parameter --region "$region" --name "$param" --with-decrypt
 printf 'DOOR_TOKEN=%s\n' "$token" > "$D/door.env.new"
 unset token
 
-# RESTATE: the 8080 fallback and the three /admin routes go when Restate stops (phase 6b).
 cat > "$D/Caddyfile.new" <<'EOF'
 (door) {
-	reverse_proxy 127.0.0.1:9090 127.0.0.1:9091 127.0.0.1:8080 {
+	reverse_proxy 127.0.0.1:9090 127.0.0.1:9091 {
 		lb_policy first
 		lb_try_duration 5s
 		lb_try_interval 250ms
@@ -45,37 +44,8 @@ api.wrenautomation.com, restate.wrenautomation.com {
 		reverse_proxy 127.0.0.1:3000
 	}
 	@authed header Authorization "Bearer {$DOOR_TOKEN}"
-	@query {
-		method POST
-		path /admin/query
-	}
-	@services {
-		method GET
-		path /admin/services /admin/services/*
-	}
-	@letters {
-		method PATCH
-		path_regexp ^/admin/invocations/inv_\w+/(resume|kill)$
-	}
 	handle @authed {
-		handle @query {
-			uri strip_prefix /admin
-			reverse_proxy 127.0.0.1:9070
-		}
-		handle @services {
-			uri strip_prefix /admin
-			reverse_proxy 127.0.0.1:9070
-		}
-		handle @letters {
-			uri strip_prefix /admin
-			reverse_proxy 127.0.0.1:9070
-		}
-		handle /admin* {
-			respond 403
-		}
-		handle {
-			import door
-		}
+		import door
 	}
 	handle {
 		respond 401
@@ -113,7 +83,7 @@ changed_in_place "$D/Caddyfile" && file_changed=1
 
 mounted="$(docker inspect -f '{{range .Mounts}}{{.Source}} {{end}}' wren-caddy 2>/dev/null || true)"
 running="$(docker inspect -f '{{.State.Running}}' wren-caddy 2>/dev/null || true)"
-# A first run here (Caddy still on box-restate.sh's files) or a new env: restart on these files.
+# A first run here or a new env: restart on these files.
 if [ "$running" != true ] || [ "$env_changed" = 1 ] || [[ "$mounted" != *"$D/Caddyfile"* ]]; then
   docker stop wren-caddy >/dev/null 2>&1 || true
   docker rm wren-caddy >/dev/null 2>&1 || true

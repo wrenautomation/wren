@@ -29,7 +29,7 @@ Citations: `apps/cli/src/main.ts:118`
 
 ## If you change this
 
-- **Hits:** `README.md`, `walkthrough/*.md`, `docs/restate-operations.md` (commands quoted), `scripts/gates.sh` (`cli` check)
+- **Hits:** `README.md`, `walkthrough/*.md`, `docs/operations.md` (commands quoted), `scripts/gates.sh` (`cli` check)
 - **Does not hit:** the worker
 
 ## Surfaces

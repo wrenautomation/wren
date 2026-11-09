@@ -52,7 +52,7 @@
     "@wrenautomation/autobrowse": "0.8.4",
     "@wrenautomation/models": "0.51.0",
     "@wrenautomation/read": "0.51.0",
-    "@wrenautomation/vireo": "0.10.0",
+    "@wrenautomation/vireo": "0.11.0",
     "@wrenautomation/weaver": "0.51.0",
     "commander": "15.0.0",
     "drizzle-orm": "0.45.2",

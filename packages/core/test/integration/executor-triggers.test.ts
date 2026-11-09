@@ -10,7 +10,6 @@ import { ingressOf } from "@wren/config";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { clients as clientRows } from "../../src/clients/schema.js";
@@ -26,7 +25,7 @@ import {
   replyFired,
 } from "../../src/executor.js";
 import { workflowInstalls, workflowSaves } from "../../src/schema.js";
-import { startTestRestate } from "../../src/testing.js";
+import { startTestRuntime, type TestRuntime } from "../../src/testing.js";
 import { defineWorkflow, type WorkflowEdits } from "../../src/workflows.js";
 
 // The trigger wiring on bare slot times; the epsilon has its own tests.
@@ -98,14 +97,14 @@ const probe = restate.service({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const call = () => ingress().serviceClient<typeof probe>({ name: "Probe" });
 
 beforeAll(async () => {
   pg = await startTestPostgres();
   const deps = { main: pg.db, workflows: [FLOW], components: [] };
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeExecutor({ ...deps, clientDb: () => pg.db, steps: {}, rule: async () => false }),
       makeExecutorClock(deps),

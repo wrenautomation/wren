@@ -7,11 +7,10 @@
 
 import { ingressOf } from "@wren/config";
 import { serveRecords } from "@wren/core/records/serve";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { markAnswered } from "@wren/starling-conversations";
 import { askFollowEmail, conversationOf } from "@wren/starling-conversations/inbox";
 import { makeInboxDesk } from "@wren/starling-conversations/restate";
@@ -64,11 +63,11 @@ const disposition = restate.object({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let s: InboxSeed;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeInboxDesk({ db: pg.db, draftDm, markAnswered, senderName: "Will" }),
       disposition,

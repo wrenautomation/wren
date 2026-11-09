@@ -8,10 +8,9 @@ import { ingressOf } from "@wren/config";
 import { makeExecutor } from "@wren/core/executor";
 import type { PassOutcome } from "@wren/core/restate";
 import { events } from "@wren/core/schema";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { SMS_COMPONENTS, TOUCH } from "../../src/components.js";
@@ -48,7 +47,7 @@ import {
 } from "./fixtures.js";
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 const provider = new FakeProvider();
 const n = notes();
 // Tue 14:00 ET: inside every window, pinned so quiet hours never fail the suite at night.
@@ -72,7 +71,7 @@ beforeAll(async () => {
     llm: null,
     clock: () => OPEN,
   };
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeSmsSend(deps),
       makeSmsEvents(deps),

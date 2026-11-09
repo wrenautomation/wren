@@ -2,13 +2,11 @@
 
 import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
-import { restateAdmin } from "@wren/core/console";
 import { LOOP } from "@wren/core/restate";
-import { executorRecorder, startTestRestate } from "@wren/core/testing";
+import { executorRecorder, startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { enrollments } from "@wren/starling-email/schema";
 import { SendPolicy } from "@wren/starling-email/send/policy";
 import { ConsoleTransport } from "@wren/starling-email/send/transport";
@@ -52,7 +50,7 @@ const FLEET: Fleet = {
 };
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 const transport = new ConsoleTransport({ write: () => {} });
 const executor = executorRecorder();
 let scheduler: EmailSend;
@@ -75,7 +73,7 @@ beforeAll(async () => {
         : oneScope({ db: pg.db, policy: OPEN, fleet: FLEET })(key),
     tickMs: 5_000,
   });
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [executor.service, scheduler, queued],
     alwaysReplay: true,
   });
@@ -212,7 +210,7 @@ describe("EmailSend", () => {
     expect(after.last?.stats?.sent).toBe(1);
     expect((await messagesOf(db(), mine))[0]?.state).toBe("sent");
     // The chain goes on: its next `loop` waits on a timer.
-    const next = await restateAdmin(env.adminAPIBaseUrl())(
+    const next = await env.admin.query(
       `SELECT id FROM sys_invocation WHERE target_service_name = 'EmailSend' AND target_service_key = '${SENDER_OLD}' AND target_handler_name = 'loop' AND status = 'scheduled'`,
     );
     expect(next).toHaveLength(1);

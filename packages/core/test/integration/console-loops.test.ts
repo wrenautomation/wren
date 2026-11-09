@@ -11,13 +11,12 @@ import { clientDatabaseUrl, createDatabase, createDb } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import type * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { addOperator, findClient } from "../../src/clients/index.js";
-import { type LoopRow, makeConsolePortal, restateAdmin } from "../../src/console.js";
+import { type LoopRow, makeConsolePortal } from "../../src/console.js";
 import { makeLoopObject, type PassOutcome, setLastPass } from "../../src/restate/loop.js";
-import { startTestRestate } from "../../src/testing.js";
+import { startTestRuntime, type TestRuntime } from "../../src/testing.js";
 
 const HOUR = 3_600_000;
 const tick = makeLoopObject("Tick", async (ctx: restate.ObjectContext) => {
@@ -37,7 +36,7 @@ type Console = ReturnType<typeof makeConsolePortal>;
 const operator = { viewer: { email: "op@example.test", operator: true } };
 /** The guard's refusal, or the handler's own when the guard lets the role through. */
 const REFUSED = /that's for Wren's team|no access|read-only/;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let pg: TestPostgres;
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const consolePortal = () => ingress().serviceClient<Console>({ name: "ConsolePortal" });
@@ -46,14 +45,14 @@ const tickOf = (key: string) => ingress().objectClient<Tick>({ name: "Tick" }, k
 beforeAll(async () => {
   pg = await startTestPostgres({ own: true });
   await addOperator(pg.db, "op@example.test");
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       tick,
       makeConsolePortal({
         main: pg.db,
         mainUrl: pg.url,
         views: [],
-        admin: async (query) => restateAdmin(env.adminAPIBaseUrl())(query),
+        admin: (query) => env.admin.query(query),
       }),
     ],
     alwaysReplay: true,

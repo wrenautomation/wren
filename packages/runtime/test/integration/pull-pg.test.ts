@@ -1,10 +1,9 @@
 // Pulled services (designs/2026-11-09-own-runtime.md, "Phase 5"): autobrowse's desk claims its
-// calls over the door; nothing changes until it registers; a row Restate runs stays on the bridge.
+// calls over the door; its handlers are unknown until it registers.
 import { startTestPostgres } from "@wren/db/testing";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { migrate, serveDoor } from "../../src/pg/index.js";
-import { claim, submit } from "../../src/pg/store.js";
 
 let sql: postgres.Sql;
 let base = "";
@@ -14,10 +13,8 @@ beforeAll(async () => {
   const pg = await startTestPostgres();
   sql = postgres(pg.url, { max: 6, onnotice: () => {} });
   await migrate(sql);
-  // Restate here is a closed port: a call that passes through answers 502
   const door = await serveDoor({
     sql,
-    restate: "http://127.0.0.1:1",
     pull: { pulled: ["desk"], leaseMs: 2_000 },
   });
   base = door.url;
@@ -54,8 +51,8 @@ const take = async (waitMs = 3_000) =>
 const b64 = (v: unknown) => Buffer.from(JSON.stringify(v)).toString("base64");
 
 describe("pulled services", () => {
-  it("before the desk registers, its calls pass through to Restate", async () => {
-    expect((await post("/desk/status/send", { site: "x" })).status).toBe(502);
+  it("before the desk registers, its calls are unknown", async () => {
+    expect((await post("/desk/status/send", { site: "x" })).status).toBe(404);
     expect(await sql`SELECT 1 FROM rt.invocations WHERE service = 'desk'`).toHaveLength(0);
   });
 
@@ -66,9 +63,9 @@ describe("pulled services", () => {
       services: [{ name: "desk", handlers: [{ name: "status" }, { name: "call" }] }],
     });
     expect(ok).toEqual({ status: 200, body: { handlers: 2 } });
-    expect(await sql`SELECT build FROM rt.pg_services WHERE service = 'desk'`).toEqual([
-      { build: "pulled" },
-    ]);
+    expect(
+      await sql`SELECT handler FROM rt.handlers WHERE service = 'desk' ORDER BY handler`,
+    ).toEqual([{ handler: "call" }, { handler: "status" }]);
     expect((await rt("claim", { services: ["Other"] })).body.calls).toEqual([]);
   });
 
@@ -147,23 +144,6 @@ describe("pulled services", () => {
       error: { message: "cancelled", code: 409 },
       terminal: true,
     });
-  });
-
-  it("a row Restate runs is never pulled; the bridge lane ends it", async () => {
-    await submit(sql, {
-      id: "inv_pull0000000000000000000001",
-      service: "desk",
-      handler: "call",
-      key: null,
-      input: new Uint8Array(),
-      headers: {},
-      idemKey: null,
-      runAt: new Date(0),
-    });
-    await sql`UPDATE rt.invocations SET remote = 'inv_restate' WHERE id = 'inv_pull0000000000000000000001'`;
-    expect(await take(0)).toEqual([]);
-    const bridge = await claim(sql, 10, 60_000, Date.now(), { lock: false, skipPg: true });
-    expect(bridge.map((c) => c.id)).toEqual(["inv_pull0000000000000000000001"]);
   });
 
   it("a drained door fails its health check and still serves calls", async () => {

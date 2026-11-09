@@ -9,12 +9,11 @@
 import { ingressOf } from "@wren/config";
 import { addClient, addMember, updateClient } from "@wren/core/clients";
 import { EXECUTOR, type ExecutorService } from "@wren/core/executor";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { cachedDb, clientAdminUrl, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { makeCalendarConsole } from "../../src/console.js";
@@ -47,7 +46,7 @@ const OPEN = {
   days: 3,
 };
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let acme: Db;
 const open = (c: { database: string }) => cachedDb(clientDatabaseUrl(pg.url, c.database));
 
@@ -105,7 +104,7 @@ beforeAll(async () => {
       ctx.serviceSendClient<ExecutorService>(EXECUTOR).fire(req);
     },
   };
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [makeClientCalendar(deps), makeCalendarConsole({ wren, clients: deps }), executor],
     alwaysReplay: true,
   });

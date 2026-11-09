@@ -23,6 +23,7 @@ export interface Wrapper {
     output?: restate.Serde<unknown>;
     retryPolicy?: RetryPolicy;
     ingressPrivate?: boolean;
+    metadata?: Record<string, string>;
   };
   invoke(context: unknown, input: Uint8Array): Promise<Uint8Array>;
 }
@@ -57,6 +58,19 @@ export const wrapperOf = (fn: unknown): Wrapper | undefined => {
   return sym ? ((fn as unknown as Record<symbol, Wrapper>)[sym] as Wrapper) : undefined;
 };
 
+/** One handler as the console's Call form reads it (was Restate's admin `/services` + OpenAPI). */
+export interface HandlerSpec {
+  service: string;
+  handler: string;
+  kind: "service" | "object";
+  /** Callable through the door. */
+  public: boolean;
+  /** The handler's `metadata` option (`effect`: spends, sends, posts). */
+  metadata: Readonly<Record<string, string>>;
+  /** Input JSON schema, when its serde declares one (`serde.schema(zod)`). */
+  input?: unknown;
+}
+
 export class Registry {
   private handlers = new Map<string, Handler>();
   readonly services = new Map<string, { object: boolean }>();
@@ -86,6 +100,21 @@ export class Registry {
 
   list(): Handler[] {
     return [...this.handlers.values()];
+  }
+
+  /** Every handler with its kind, visibility, metadata and input schema. */
+  specs(): HandlerSpec[] {
+    return this.list().map((h) => {
+      const schema = (h.wrapper.options?.input ?? h.serde)?.jsonSchema;
+      return {
+        service: h.service,
+        handler: h.name,
+        kind: h.object ? "object" : "service",
+        public: !h.private,
+        metadata: h.wrapper.options?.metadata ?? {},
+        ...(schema === undefined ? {} : { input: schema }),
+      };
+    });
   }
 
   get(service: string, handler: string): Handler | undefined {

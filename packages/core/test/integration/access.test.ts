@@ -6,7 +6,7 @@
 import { ingressOf } from "@wren/config";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
+import type { HandlerSpec } from "@wren/runtime/pg";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -18,7 +18,7 @@ import {
 } from "../../src/clients/index.js";
 import { makeConsolePortal } from "../../src/console.js";
 import { defineRecord, text } from "../../src/records.js";
-import { startTestRestate } from "../../src/testing.js";
+import { startTestRuntime, type TestRuntime } from "../../src/testing.js";
 
 type Console = ReturnType<typeof makeConsolePortal>;
 const as = (email: string) => ({ viewer: { email } });
@@ -43,14 +43,18 @@ const spend = defineRecord({
   views: [{ id: "all", label: "All" }],
 });
 /** One public handler that sends: an effect. */
-const SERVICES = {
-  services: [
-    { name: "Mailer", ty: "Service", handlers: [{ name: "send", metadata: { effect: "sends" } }] },
-  ],
-};
+const SERVICES: HandlerSpec[] = [
+  {
+    service: "Mailer",
+    handler: "send",
+    kind: "service",
+    public: true,
+    metadata: { effect: "sends" },
+  },
+];
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 const portal = () =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
@@ -68,7 +72,7 @@ beforeAll(async () => {
   await set(OPERATOR, { role: "operator" });
   await set(SCOPED, { role: "operator", clients: ["beta"] });
   await set(TEAM_VIEWER, { role: "viewer" });
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeConsolePortal({
         main: pg.db,
@@ -76,7 +80,7 @@ beforeAll(async () => {
         views: [],
         moneyViews: ["books_test_view"],
         records: [spend],
-        adminGet: async () => SERVICES,
+        handlerList: () => SERVICES,
       }),
     ],
     alwaysReplay: true,

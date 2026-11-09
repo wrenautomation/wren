@@ -10,11 +10,10 @@ import { briefStep, type SendAsk } from "@wren/calendar/calls";
 import { briefSettingsOf } from "@wren/calendar/calls/settings";
 import { ingressOf } from "@wren/config";
 import { makeExecutor } from "@wren/core/executor";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { defineWorkflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { EMAIL_COMPONENTS } from "@wren/starling-email/components";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -30,7 +29,7 @@ const sent: Mail[] = [];
 const host = new FakeHost();
 const leads = { day: 24 * 3_600_000, hour: 3_600_000 };
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 /** The brief sends the step queued: what, how far ahead, its key. */
 const queued: { ask: SendAsk; delayMs: number; key: string }[] = [];
 const CLOSE = defineWorkflow({
@@ -72,7 +71,7 @@ beforeAll(async () => {
     },
     leads,
   };
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeCalendar(deps),
       makeCalendarConsole({ wren: deps }),

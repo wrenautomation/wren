@@ -14,7 +14,7 @@ loop.
 | Secrets | one SSM SecureString `/wren/prod/env`, loaded at cold start |
 | Sites / posting | autobrowse's box (`i-0416f466bb82982eb`), woken by wren before a `sites` call |
 
-≈ $15/month. Full table: `../docs/restate-operations.md`.
+≈ $15/month. Full table: `../docs/operations.md`.
 
 ## A change gets there by push
 

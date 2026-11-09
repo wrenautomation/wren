@@ -1,5 +1,5 @@
-// The route list (designs/2026-11-09-own-runtime.md, "Phase 3"): what a deploy flips must name
-// built services, and both runtimes must take every service the worker builds.
+// The route list (designs/2026-11-09-own-runtime.md): the box lane and the renames name built
+// services, and the runtime registers every one.
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,11 +7,8 @@ import { loadSettings } from "@wren/config";
 import { Registry } from "@wren/runtime/pg";
 import type { Logger } from "pino";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PG_SERVICES, RENAMED, restateSide } from "./rt.js";
-import { type AnyService, buildServices } from "./services.js";
-
-type Def = { name: string; service?: object; object?: object };
-const handlersOf = (d: Def) => Object.keys(d.service ?? d.object ?? {}).sort();
+import { RENAMED } from "./rt.js";
+import { type AnyService, BOX_SERVICES, buildServices } from "./services.js";
 
 let all: AnyService[] = [];
 let close = async () => {};
@@ -46,42 +43,21 @@ beforeAll(async () => {
 afterAll(() => close());
 
 describe("route list", () => {
-  it("every pg service is built, once (Postmaster only with its own login)", () => {
+  it("every box service is built", () => {
     const names = new Set(all.map((s) => s.name));
-    expect(PG_SERVICES.filter((s) => !names.has(s))).toEqual(["EmailPostmasterPull"]);
-    expect(new Set(PG_SERVICES).size).toBe(PG_SERVICES.length);
+    expect(BOX_SERVICES.filter((s) => !names.has(s))).toEqual([]);
   });
 
-  it("every built service is on pg (phase 4 done: Restate keeps proxies only)", () => {
-    expect(all.map((s) => s.name).filter((n) => !PG_SERVICES.includes(n))).toEqual([]);
-  });
-
-  it("a rename goes from a name no service has to a pg service", () => {
+  it("a rename goes from a name no service has to a built service", () => {
     const names = new Set(all.map((s) => s.name));
     for (const [from, to] of Object.entries(RENAMED)) {
       expect(names.has(from), from).toBe(false);
-      expect(PG_SERVICES, to).toContain(to);
+      expect(names.has(to), to).toBe(true);
     }
   });
 
-  it("the pg runtime registers every built service", () => {
+  it("the runtime registers every built service, each name once", () => {
     const r = new Registry(all as never);
     expect(r.services.size).toBe(all.length);
-  });
-
-  it("Restate serves each pg service and each old name as a proxy with the same handlers", () => {
-    const out = restateSide(all, () => {
-      throw new Error("no database in this test");
-    }) as unknown as Def[];
-    const names = out.map((s) => s.name);
-    expect(new Set(names).size).toBe(names.length);
-    expect(out.length).toBe(all.length + Object.keys(RENAMED).length);
-    const byName = new Map((all as unknown as Def[]).map((s) => [s.name, s]));
-    for (const d of out) {
-      const target = byName.get(RENAMED[d.name] ?? d.name) as Def;
-      expect(handlersOf(d), d.name).toEqual(handlersOf(target));
-      const proxied = PG_SERVICES.includes(target.name);
-      expect(d !== (target as unknown), d.name).toBe(proxied);
-    }
   });
 });

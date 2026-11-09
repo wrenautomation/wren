@@ -8,8 +8,7 @@ import { ingressOf } from "@wren/config";
 import { makeAuditLogSeal } from "@wren/core/audit";
 import { sitesHost } from "@wren/core/autobrowse/box";
 import { makeSiteTokenRenew } from "@wren/core/autobrowse/renewal";
-import { cacheFrom } from "@wren/core/cache";
-import { makeConsolePortal, restateAdminGet, runtimeAdmin } from "@wren/core/console";
+import { makeConsolePortal, runtimeAdmin } from "@wren/core/console";
 import { makeDeadLetterFile } from "@wren/core/dead-letters";
 import { backendsFromEnv, deskJudge, leadFitSource, makeNextStepDecide } from "@wren/core/decide";
 import { makeLoopRevive } from "@wren/core/loop-watch";
@@ -19,6 +18,7 @@ import { engagementOf, postUpdate } from "@wren/delivery";
 import { s3Files } from "@wren/delivery/files";
 import { makeLlm } from "@wren/llm";
 import { leadOffers } from "@wren/offers";
+import { type HandlerSpec, Registry } from "@wren/runtime/pg";
 import { EMAIL_CONSOLE_VIEWS, EMAIL_COST_VIEWS } from "@wren/starling-email/views";
 import { policyFrom as reachPolicyFrom } from "@wren/starling-outbound";
 import { commentSource } from "@wren/starling-outbound/decide";
@@ -42,12 +42,12 @@ export function platformServices(deps: Deps): AnyService[] {
     openClient,
     policy,
     roster,
+    served,
     settings,
   } = deps;
-  // Redis on the box when WREN_CACHE_URL is set: one Lambda's read serves the rest.
-  const cache = cacheFrom(settings.cacheUrl);
-  // both runtimes' invocations: Restate's and the pg runtime's (designs/2026-11-09-own-runtime.md)
-  const admin = runtimeAdmin(db, settings.restateAdminUrl, settings.restateAuthToken);
+  const admin = runtimeAdmin(db);
+  // every built service's handlers, read once on the first Call form
+  let specs: HandlerSpec[] | undefined;
   // The lander's recorded views: the export lists them, the files bucket signs their chunks.
   const sessions =
     settings.siteExportToken && settings.filesBucket
@@ -131,9 +131,7 @@ export function platformServices(deps: Deps): AnyService[] {
         );
       },
       admin: admin.query,
-      adminGet: settings.restateAdminUrl
-        ? restateAdminGet(settings.restateAdminUrl, settings.restateAuthToken, cache)
-        : undefined,
+      handlerList: () => (specs ??= new Registry(served()).specs()),
     }),
   );
   return services;

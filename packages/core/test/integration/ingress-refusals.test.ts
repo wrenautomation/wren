@@ -7,9 +7,9 @@ import * as restate from "@wren/runtime";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { answer } from "../../src/portal.js";
 import { PortalRefusal, staleRefusal } from "../../src/refusal.js";
-import { startTestRestate } from "../../src/testing.js";
+import { startTestRuntime } from "../../src/testing.js";
 
-let env: Awaited<ReturnType<typeof startTestRestate>>;
+let env: Awaited<ReturnType<typeof startTestRuntime>>;
 let runs = 0;
 const probe = restate.service({
   name: "RefusalProbe",
@@ -28,7 +28,7 @@ const probe = restate.service({
 });
 
 beforeAll(async () => {
-  env = await startTestRestate({ services: [probe] });
+  env = await startTestRuntime({ services: [probe] });
 });
 afterAll(async () => {
   await env?.stop();

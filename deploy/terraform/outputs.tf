@@ -45,11 +45,6 @@ output "lambda_name" {
   value = aws_lambda_function.worker.function_name
 }
 
-output "restate_invoker_role_arn" {
-  description = "--assume-role-arn for `restate deployments register`"
-  value       = one(aws_iam_role.restate_invoker[*].arn)
-}
-
 output "ci_role_arn" {
   description = "GitHub secret AWS_DEPLOY_ROLE_ARN"
   value       = aws_iam_role.ci.arn

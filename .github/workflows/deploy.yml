@@ -1,7 +1,7 @@
 # Deploy main to production: deploy/scripts/deploy.sh, one step, independent work at once.
 # ci.yml starts it beside lint, unit and schema; deploy.sh builds, then waits for all three
 # before it changes anything live. By hand: `gh workflow run deploy.yml --ref main` (no wait).
-# Secrets (production environment): AWS_DEPLOY_ROLE_ARN, AWS_INVOKE_ROLE_ARN,
+# Secrets (production environment): AWS_DEPLOY_ROLE_ARN,
 # LAMBDA_NAME, WREN_DATABASE_URL, RESTATE_HOST, RESTATE_AUTH_TOKEN,
 # CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, AUTH_LAMBDA_URL, AUTH_EDGE_SECRET,
 # LIVE_HOOK_SECRET, BOX_BUCKET, BOX_INSTANCE_ID.
@@ -33,10 +33,8 @@ jobs:
         env:
           WREN_DATABASE_URL: ${{ secrets.WREN_DATABASE_URL }}
           LAMBDA_NAME: ${{ secrets.LAMBDA_NAME }}
-          INVOKE_ROLE: ${{ secrets.AWS_INVOKE_ROLE_ARN }}
           BOX_BUCKET: ${{ secrets.BOX_BUCKET }}
           BOX_INSTANCE_ID: ${{ secrets.BOX_INSTANCE_ID }}
-          RESTATE_HOST_SCHEME: https
           RESTATE_HOST: ${{ secrets.RESTATE_HOST }}
           RESTATE_AUTH_TOKEN: ${{ secrets.RESTATE_AUTH_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

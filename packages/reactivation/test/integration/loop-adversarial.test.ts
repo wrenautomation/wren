@@ -10,12 +10,11 @@ import { ingressOf, loadSettings } from "@wren/config";
 import { clients } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject } from "@wren/core/restate";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as ingress from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import {
   ConsoleTransport,
   FakeVerifier,
@@ -97,10 +96,10 @@ const notifier: Notifier = {
 };
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres({ own: true });
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeReactivation({
         main: breakable(pg.db, () => registryDown),

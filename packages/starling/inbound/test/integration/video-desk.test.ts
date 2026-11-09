@@ -8,11 +8,10 @@
  */
 
 import { ingressOf } from "@wren/config";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { getEdit, setRendered } from "@wren/starling-studio/edit";
 import { videoEdits } from "@wren/starling-studio/schema";
 import { eq } from "drizzle-orm";
@@ -50,10 +49,10 @@ const fakeStudio = () =>
     },
   });
 
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [fakeClaude, fakeStudio(), makeVideoDesk(pg.db)],
     alwaysReplay: true,
   });

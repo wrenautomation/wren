@@ -13,10 +13,9 @@ import { journaledSites } from "@wren/core/autobrowse/restate";
 import { foldRows } from "@wren/core/records";
 import type { PassOutcome } from "@wren/core/restate";
 import { dbSendJournal } from "@wren/core/send-journal";
-import { executorRecorder, startTestRestate } from "@wren/core/testing";
+import { executorRecorder, startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { addAccount, DEFAULT_POLICY, setAccountState } from "@wren/starling-acts";
 import { COMMENTS_FLOW } from "@wren/starling-conversations";
 import { COMMENT_FOLD } from "@wren/starling-conversations/records";
@@ -137,7 +136,7 @@ const sites: SiteClient = {
 };
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 /** Whether the fake desk answers its status ask. */
 let deskUp = true;
 const executor = executorRecorder();
@@ -146,7 +145,7 @@ beforeAll(async () => {
   const a = await addAccount(pg.db, { platform: "reddit", account: "reddit@test", now });
   await setAccountState(pg.db, a.id, "warming", { reason: null, now });
   await pg.db.execute(`update reach_accounts set handle = 'wren_test' where id = '${a.id}'`);
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       executor.service,
       makeReachInboxRead({

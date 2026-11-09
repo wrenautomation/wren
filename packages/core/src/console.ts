@@ -64,6 +64,7 @@ export {
 export {
   formOf,
   type HandlerField,
+  type HandlerList,
   type HandlerRow,
   handlerRecord,
   handlersOf,
@@ -79,15 +80,11 @@ export {
   type SetLoopRequest,
 } from "./console/loops.js";
 export {
-  type RestateAdmin,
-  type RestateAdminGet,
-  type RestateAdminPatch,
-  restateAdmin,
-  restateAdminGet,
-  restateAdminPatch,
+  type AdminPatch,
+  type AdminQuery,
   runningLoops,
   runtimeAdmin,
-} from "./console/restate-admin.js";
+} from "./console/runtime-admin.js";
 export {
   builtWords,
   settingRecord,

@@ -1,5 +1,5 @@
 /**
- * The Call form over Restate's handlers: the read the call journals, the handler it names and
+ * The Call form over the worker's handlers: the read the call journals, the handler it names and
  * whether this teammate may call it, and the runs row around the call.
  */
 import { serializable, setAuditActor } from "@wren/db";
@@ -25,16 +25,15 @@ function names(v: unknown, id: string): boolean {
 }
 
 export function callsHandlers(ctx: ConsoleContext) {
-  const { main, adminGet, team, rowAt, verbAt, typesFor } = ctx;
+  const { main, handlerList, team, rowAt, verbAt, typesFor } = ctx;
   return {
     /** The loop `req` names, if `loops` listed it; anything else names no loop. */
     /** The read `call` journals: the handler `req` names, as a list of 0 or 1. Refused before it, as `adminFor` is. */
     reader(req: CallRequest): () => Promise<HandlerRow[]> {
       team(req);
-      const get = adminGet;
-      if (!get) throw new PortalRefusal("this worker has no Restate admin URL", 503);
+      if (!handlerList) throw new PortalRefusal("this worker serves no handlers", 503);
       return async () =>
-        handlersOf(await get("/services")).filter(
+        handlersOf(handlerList()).filter(
           (h) => h.service === req.service && h.handler === req.handler,
         );
     },

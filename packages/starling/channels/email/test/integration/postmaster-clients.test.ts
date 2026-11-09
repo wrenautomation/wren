@@ -8,11 +8,10 @@ import { ingressOf, loadSettings } from "@wren/config";
 import { addClient } from "@wren/core/clients";
 import type { PassOutcome } from "@wren/core/restate";
 import { addAccount, markStep } from "@wren/core/setup";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PostmasterClient, PostmasterStats } from "../../src/inbox/postmaster.js";
 import {
@@ -48,7 +47,7 @@ const postmaster: PostmasterClient = {
 };
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 const open = (id: string) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${id}`));
 
 /** A domain account for the client, with Postmaster marked verified when `ok`. */
@@ -83,7 +82,7 @@ beforeAll(async () => {
   await domain("kappa", "kappa-two.test", false);
   await domain("lambda", "lambda-mail.test", true);
   await domain("nu", "nu-mail.test", false);
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeEmailPostmasterPull({
         db: pg.db,

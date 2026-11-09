@@ -50,16 +50,6 @@ export const settingsSchema = z.object({
   restateIngressUrl: z.string().url().default("http://127.0.0.1:8080"),
   /** Bearer for the ingress (Restate Cloud API key); unset for a local Restate. */
   restateAuthToken: z.string().min(1).optional(),
-  /** Restate's admin API (port 9070): the console reads loop state here. Unset, the Loops read refuses. */
-  restateAdminUrl: z.string().url().optional(),
-  /**
-   * The shared cache: Redis on the box, `rediss://default:<pw>@<host>:6380/?fp=<sha256>`
-   * (`@wren/core/cache`). Unset, each process keeps its own in memory.
-   */
-  cacheUrl: z
-    .string()
-    .regex(/^rediss?:\/\//)
-    .optional(),
   /**
    * The lake's data: Parquet files under `s3://<bucket>/` or a local dir (`wren lake`,
    * designs/2026-10-11-lake.md). Unset, `wren lake` refuses.
@@ -616,8 +606,6 @@ export const ENV_KEYS = {
   databasePoolPort: "WREN_DATABASE_POOL_PORT",
   restateIngressUrl: "WREN_RESTATE_INGRESS_URL",
   restateAuthToken: "RESTATE_AUTH_TOKEN",
-  restateAdminUrl: "WREN_RESTATE_ADMIN_URL",
-  cacheUrl: "WREN_CACHE_URL",
   lakePath: "WREN_LAKE_PATH",
   lakeCatalogUrl: "WREN_LAKE_CATALOG_URL",
   lakeTrackPath: "WREN_LAKE_TRACK_PATH",

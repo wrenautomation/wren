@@ -14,11 +14,10 @@ import { resolveObjects } from "@wren/core/objects";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import type { PassOutcome } from "@wren/core/restate";
 import { askPublish, saveDraft } from "@wren/core/templates";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { seedObjects, startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { parkUnsure, redditPlaces, redditRequirements, sendAttempts } from "@wren/starling-acts";
 import { answerComment, planAnswer } from "@wren/starling-conversations";
 import { comments, reachContacts, reachMessages } from "@wren/starling-conversations/schema";
@@ -109,10 +108,10 @@ const sink = (into: string[]): Notifier => ({
 });
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       fakeExecutor,
       makeContentPublish(() => channels),

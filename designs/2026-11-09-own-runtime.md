@@ -206,6 +206,25 @@ Ranked: 1) no lost or doubled calls during a deploy, 2) fewer services to run, 3
 
 Order: the 3 Restate wakes fire → drop the proxies, the bridge lane and the door's pass-through → Caddy loses 8080 and admin → stop Restate and Redis (only Restate's admin cache used it) → autobrowse drops its Restate endpoint and the desk tunnel. Browserless and `/cdp` go with Chromium in Lambda.
 
+## Phase 6b: Restate and Redis gone (11-09)
+
+The worker, tests, portal and deploy carry no Restate server. What stays from Restate: the SDK's service definitions (the registry reads them), its ingress protocol (the door speaks it), the `inv_` ids and the admin views' table shapes. Env names `RESTATE_HOST`, `RESTATE_AUTH_TOKEN`, `WREN_RESTATE_INGRESS_URL` and SSM `/wren/prod/restate` (the door's bearer) keep their names; a rename is its own change.
+
+A slot learns it is superseded without Restate's admin. Options:
+
+| Option | How | For | Against |
+|---|---|---|---|
+| **A. `rt.box_builds` (picked)** | Each slot upserts its build with a start time; the newest started build takes new rows; each slot polls every 10 s and stands down when newer exists | One table, no new channel; a failed new build hands back by restarting the live slot (it re-upserts as newest) | Up to 10 s of two fresh lanes (safe: rows are leased) |
+| B. Advisory lock | The live slot holds a session lock; the new one takes it | Instant | The lock moves only when the old connection drops: the old slot must die first, so no overlap and a gap |
+| C. deploy.sh tells the old slot | CI posts "stand down" to the old door | No poll | A CI run that dies mid-deploy leaves two fresh slots for good |
+| D. LISTEN/NOTIFY | The new slot notifies | Fast | A notify lost across a reconnect is lost; still needs A's table as truth |
+
+Ranked: no lost or doubled calls during a deploy, no state outside Postgres, no reliance on CI finishing. A keeps all three.
+
+Also: wakes post to the slot's own loopback door (no bearer). The hourly lag alarm (`runtime-lag-check.yml`) reads `rt.invocations` with psql from CI: late rows, rows with a dead lease, and LoopRevive's next check. The load test runs on the door. Local dev: `pnpm --filter @wren/worker dev` serves every service and the door on 8080; compose runs Postgres only. Terraform loses the Restate Cloud invoker role, its variables and output, the Redis port, the Restate snapshot read and the identity key. The box role keeps `lambda:InvokeFunction` (the lambda lane).
+
+Transition: the build live before this deploy finds supersession through Restate's admin, so it does not stand down by itself. After the deploy: wait until no open `rt.invocations` row carries its build, stop `wren-worker-old`, then stop `wren-restate`, `wren-redis` and `wren-desk-hop` and remove their crons. Their data dirs stay (deleting is William's call). `rt.pg_services` is unused; dropping it waits on his yes. The `cache` SSM param is unused and stays for the same reason.
+
 ## VPSs
 
 Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too small for Chromium or a Postgres replica. They stay for work that needs a non-AWS IP with port 25 or a clean search IP: probers, SearXNG. Extra use: a second SearXNG on LA (search fallback when Buffalo is rate-limited), so weaver's search does not wait on the desk's Google.
@@ -265,3 +284,4 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 - 2026-11-09: group 4e, `Content` → `ContentPublish` (WA-1219's last rename). Every Restate service is now on pg; Restate keeps only proxies, old names and the bridge to autobrowse. The component list gained SegmentPass, WebhookSend, VariantsConsole, VariantsCollect and FoldersConsole (the inventory test caught them). Proof: every startTestRestate suite on pg and on Restate, same results; listmonk's test now waits for its send record (a step after the send; it raced under load).
 - 2026-11-09: phase 5 is C, the desk pulls over the door ("Phase 5" table), not an npm extract of the runtime. Ranked: no lost or doubled sends, Restate gone, least new protocol, no new public package or credential, repos import nothing from each other. The send journal already keeps the desk's writes once, so a per-step journal on the Mac buys little.
 - 2026-11-09: phase 5 live: the desk pulls (autobrowse 696e197). Restate's queue is 3 loop wakes. Phase 6's front door is A, slim Caddy under `api.wrenautomation.com` ("Phase 6" table): Cloudflare Tunnel has no slot failover and a 100 s response limit.
+- 2026-11-09: phase 6b. A slot learns it is superseded from `rt.box_builds` (A in "Phase 6b"), not an advisory lock, a CI push or LISTEN/NOTIFY. Restate, Redis and the desk hop stop after the old slot drains; their data stays. The lag alarm reads Postgres from CI. Env names keep "RESTATE"; rename later.

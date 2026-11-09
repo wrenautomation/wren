@@ -10,14 +10,13 @@ import { addClient, addMember, updateClient } from "@wren/core/clients";
 import { addGrant } from "@wren/core/grants";
 import type { MailSender } from "@wren/core/mailbox";
 import { whoIs } from "@wren/core/portal";
-import { startTestRestate } from "@wren/core/testing";
+import { startTestRuntime, type TestRuntime } from "@wren/core/testing";
 import { setManaged } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import type { Context } from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
-import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { markAnswered } from "@wren/starling-conversations";
 import {
   conversationOf,
@@ -131,7 +130,7 @@ const CY = "cy@kappa.example.test"; // kappa's viewer, texts only
 const LEE = "lee@lambda.example.test"; // lambda's owner
 
 let pg: TestPostgres;
-let env: RestateTestEnvironment;
+let env: TestRuntime;
 let kappa: Db;
 let lambda: Db;
 let k: InboxSeed;
@@ -171,7 +170,7 @@ beforeAll(async () => {
   k = await seedInbox(kappa);
   l = await seedInbox(lambda);
   w = await seedInbox(pg.db);
-  env = await startTestRestate({
+  env = await startTestRuntime({
     services: [
       makeInboxDesk(Object.assign(deskDeps, { db: pg.db, clientDb: open })),
       makeMarketingConsole({ db: pg.db, open: (c) => open(c.id), records }),

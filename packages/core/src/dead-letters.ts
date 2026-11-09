@@ -14,7 +14,7 @@
 import type { Db } from "@wren/db";
 import type * as restate from "@wren/runtime";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, notInArray, sql } from "drizzle-orm";
-import type { RestateAdmin, RestateAdminPatch } from "./console.js";
+import type { AdminPatch, AdminQuery } from "./console.js";
 import { type DeadLetterEnd, type DeadLetterRow, deadLetters } from "./dead-letter-schema.js";
 import type { Notifier } from "./notify.js";
 import { makeLoopObject, type PassOutcome, runPass } from "./restate/loop.js";
@@ -83,7 +83,7 @@ export function pausedFailureOf(eventJson: unknown): string | null {
  * that never reached its handler (the deployment unreachable) has no failed entry, only the
  * `Paused` event's last failure.
  */
-async function journalFailure(admin: RestateAdmin, id: string): Promise<string | null> {
+async function journalFailure(admin: AdminQuery, id: string): Promise<string | null> {
   const rows = await admin(
     `SELECT entry_json FROM sys_journal WHERE id = '${safeId(id)}' AND entry_json LIKE '%"Failure"%' ORDER BY index DESC LIMIT 1`,
   );
@@ -111,7 +111,7 @@ export function deskUnreachable(l: Pick<DeadLetterRow, "target" | "error">): boo
 
 /** Every entry of an invocation's journal: type, name, and a failure when one is there. */
 export async function journalOf(
-  admin: RestateAdmin,
+  admin: AdminQuery,
   id: string,
 ): Promise<{ index: number; type: string; name: string; failure: string | null }[]> {
   const rows = await admin(
@@ -135,7 +135,7 @@ const PAUSED_DEPTH = 5;
  * for good, until someone retries or kills it in the dead-letter queue.
  */
 export const pausedUnder =
-  (admin: RestateAdmin) =>
+  (admin: AdminQuery) =>
   async (invocationId: string): Promise<string | null> => {
     let ids = [safeId(invocationId)].filter(Boolean);
     for (let depth = 0; depth <= PAUSED_DEPTH && ids.length; depth++) {
@@ -171,8 +171,8 @@ export function letterLine(l: Pick<DeadLetterRow, "id" | "target" | "key" | "err
 
 interface DeadLetterDeps {
   main: Db;
-  admin: RestateAdmin;
-  patch?: RestateAdminPatch;
+  admin: AdminQuery;
+  patch?: AdminPatch;
   /** Where new letters are told, and the loop's own failures. */
   notifier?: Notifier;
 }
@@ -320,7 +320,7 @@ export async function endDeadLetter(
   if (row.endedAt) throw new Error(`#${id} already ended: ${row.end} by ${row.endedBy}`);
   const verb = ADMIN[act];
   if (verb) {
-    if (!deps.patch) throw new Error(`${act} needs the Restate admin URL (WREN_RESTATE_ADMIN_URL)`);
+    if (!deps.patch) throw new Error(`${act} needs the runtime admin`);
     await deps.patch(`/invocations/${encodeURIComponent(row.invocationId)}/${verb}`);
   }
   const [ended] = await deps.main

@@ -1,5 +1,5 @@
 /**
- * Sends told live: the state of a write and why Restate is trying it again, the watch that
+ * Sends told live: the state of a write and why the runtime is trying it again, the watch that
  * pushes each change to a person's tabs, and the socket's door.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -16,7 +16,7 @@ import {
   watchName,
   writesSocketRoute,
 } from "../src/watch.js";
-import { adminUrl, readWrite, reasonOf, retryOf } from "../src/writes.js";
+import { readWrite, reasonOf } from "../src/writes.js";
 
 const KEY = `portal:${"a".repeat(64)}`;
 const INGRESS = "https://restate.test:8080/";
@@ -29,24 +29,9 @@ const env = (over: Partial<Env> = {}): Env => ({
   ...over,
 });
 
-type Asked = { url: string; sql?: string };
-
-/** Restate as a fake: the output read answers `output`, each admin query the next of `rows`. */
-function restate(output: () => Response, rows: unknown[][] | "down" = []) {
-  const asked: Asked[] = [];
-  let n = 0;
-  vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = String(input);
-    if (url.endsWith("/query")) {
-      const sql = (JSON.parse(String(init?.body)) as { query: string }).query;
-      asked.push({ url, sql });
-      if (rows === "down") return new Response("no", { status: 503 });
-      return Response.json({ rows: rows[n++] ?? [] });
-    }
-    asked.push({ url });
-    return output();
-  });
-  return asked;
+/** The door as a fake: the output read answers `output`. */
+function restate(output: () => Response) {
+  vi.stubGlobal("fetch", async () => output());
 }
 
 afterEach(() => vi.unstubAllGlobals());
@@ -70,38 +55,8 @@ describe("readWrite", () => {
     expect(await readWrite(env(), "DocumentsConsole", "send", KEY)).toBeNull();
   });
 
-  it("while it sends, says why Restate is trying again: the deepest call that is failing", async () => {
-    const asked = restate(
-      () => new Response(null, { status: 470 }),
-      [
-        [{ id: "inv_1top", retry_count: 0, last_failure: null }],
-        [
-          {
-            id: "inv_2child",
-            retry_count: 3,
-            last_failure:
-              "[500] LinkedIn answered 400: object is required\n    at post (linkedin.ts:40)",
-            modified_at: "2026-10-15T10:00:00Z",
-          },
-        ],
-        [],
-      ],
-    );
-    expect(await readWrite(env(), "MarketingConsole", "inboxReply", KEY)).toEqual({
-      state: "sending",
-      retry: { count: 3, reason: "[500] LinkedIn answered 400: object is required" },
-    });
-    const sql = asked.filter((a) => a.sql).map((a) => a.sql);
-    expect(asked.find((a) => a.sql)?.url).toBe("https://restate.test:8080/admin/query");
-    expect(sql[0]).toContain(
-      `target_service_name = 'MarketingConsole' AND target_handler_name = 'inboxReply' AND idempotency_key = '${KEY}'`,
-    );
-    expect(sql[1]).toContain("invoked_by_id IN ('inv_1top')");
-    expect(sql[2]).toContain("invoked_by_id IN ('inv_2child')");
-  });
-
-  it("the pg door's 470 carries the reason: no admin query, tokens still hidden", async () => {
-    const asked = restate(() =>
+  it("the door's 470 carries the reason, tokens hidden", async () => {
+    restate(() =>
       Response.json(
         { message: "not ready", retry: { count: 2, reason: "token=abc123 refused\nat x" } },
         { status: 470 },
@@ -111,37 +66,17 @@ describe("readWrite", () => {
       state: "sending",
       retry: { count: 2, reason: "token=[hidden] refused" },
     });
-    expect(asked.filter((a) => a.sql)).toEqual([]);
   });
 
-  it("sending with nothing failing, or the admin API down, has no reason and still answers", async () => {
-    restate(() => new Response(null, { status: 470 }), [[{ id: "inv_1", retry_count: 0 }], []]);
+  it("sending with nothing failing has no reason", async () => {
+    restate(() => new Response(null, { status: 470 }));
     expect(await readWrite(env(), "MarketingConsole", "inboxReply", KEY)).toEqual({
       state: "sending",
     });
-    restate(() => new Response(null, { status: 470 }), "down");
+    restate(() => Response.json({ retry: { count: 0, reason: "x" } }, { status: 470 }));
     expect(await readWrite(env(), "MarketingConsole", "inboxReply", KEY)).toEqual({
       state: "sending",
     });
-  });
-
-  it("never puts an unchecked value in the query", async () => {
-    const asked = restate(() => new Response(null, { status: 470 }), [[]]);
-    expect(
-      await retryOf(env(), "MarketingConsole", "inboxReply", "portal:x' OR 1=1 --"),
-    ).toBeNull();
-    expect(await retryOf(env(), "Bad'Name", "inboxReply", KEY)).toBeNull();
-    expect(asked).toEqual([]);
-    // A child id that isn't Restate's shape stops the walk.
-    const more = restate(
-      () => new Response(null, { status: 470 }),
-      [[{ id: "inv_1'; drop", retry_count: 1, last_failure: "boom" }]],
-    );
-    expect(await retryOf(env(), "MarketingConsole", "inboxReply", KEY)).toEqual({
-      count: 1,
-      reason: "boom",
-    });
-    expect(more.filter((a) => a.sql)).toHaveLength(1);
   });
 
   it("a reason is one line, short, with tokens hidden", () => {
@@ -149,16 +84,6 @@ describe("readWrite", () => {
     expect(reasonOf("auth failed: Bearer abc.def")).toBe("auth failed: Bearer [hidden]");
     expect(reasonOf(`id ${"x".repeat(50)} bad`)).toBe("id [hidden] bad");
     expect(reasonOf("y ".repeat(200))).toBe("y ".repeat(200).trim());
-  });
-
-  it("finds the admin API: set, Restate Cloud's port, or /admin on the box", () => {
-    expect(adminUrl(env({ RESTATE_ADMIN_URL: "https://admin.test/" }))).toBe("https://admin.test");
-    expect(adminUrl(env({ RESTATE_INGRESS_URL: "https://abc.env.us.restate.cloud:8080" }))).toBe(
-      "https://abc.env.us.restate.cloud:9070",
-    );
-    expect(adminUrl(env({ RESTATE_INGRESS_URL: "https://restate.box.test" }))).toBe(
-      "https://restate.box.test/admin",
-    );
   });
 });
 
@@ -205,10 +130,7 @@ describe("WriteWatch", () => {
   it("reads a send with backoff and pushes each change, the retry reason too", async () => {
     let now = 1_000_000;
     let output = () => new Response(null, { status: 470 });
-    let rows: unknown[][] = [];
-    vi.stubGlobal("fetch", async (input: RequestInfo | URL) =>
-      String(input).endsWith("/query") ? Response.json({ rows: rows.shift() ?? [] }) : output(),
-    );
+    vi.stubGlobal("fetch", async () => output());
     const d = doState();
     const watch = new WriteWatch(d.state, env(), () => now);
     const tab = socket();
@@ -236,8 +158,9 @@ describe("WriteWatch", () => {
     const w = d.data.get("w:req-00001") as Watch;
     expect(w.wait).toBeLessThanOrEqual(MAX_MS);
 
-    // Restate starts retrying: the tab hears why.
-    rows = [[{ id: "inv_a", retry_count: 2, last_failure: "LinkedIn is down" }], []];
+    // The runtime starts retrying: the tab hears why.
+    output = () =>
+      Response.json({ retry: { count: 2, reason: "LinkedIn is down" } }, { status: 470 });
     now += 2 * FIRST_MS;
     await watch.alarm();
     expect(tab.heard.at(-1)).toMatchObject({
