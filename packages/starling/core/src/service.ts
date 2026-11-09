@@ -10,12 +10,13 @@
  * through its vendor gate. A post or a reply for a client also waits on its live flag: until an
  * admin turns its posting on, the service refuses it (designs/2026-10-07-per-client-runs.md).
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { PLATFORMS, type Platform, SiteCallError } from "@wren/core/autobrowse";
 import { ArmedStop, isRefusal } from "@wren/core/autobrowse/restate";
 import { isVendorStop } from "@wren/core/metered";
 import { NO_INPUT, serviceHandler } from "@wren/core/restate";
 import { type Delivery, deliveryOf, isSendOutcome, terminalOf } from "@wren/core/send-verdict";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 import type {
   AccountInsights,

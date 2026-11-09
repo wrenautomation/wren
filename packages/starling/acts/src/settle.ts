@@ -4,8 +4,9 @@
  * he asks for it again, or he drops it: it did not go out and he does not want it sent. The
  * ledger flips here; what "sent" or "dropped" means for the item is its kind's word (`ItemKinds`).
  */
-import type { ObjectContext } from "@restatedev/restate-sdk";
+
 import { atomic, type Queryable } from "@wren/db";
+import type { ObjectContext } from "@wren/runtime";
 import { type ItemKinds, itemOf } from "./item-kinds.js";
 import { ReachRefusal } from "./refusal.js";
 import { forgetUnsure, sendAttempt, settleSent } from "./send-attempts.js";

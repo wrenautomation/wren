@@ -1,7 +1,8 @@
 /** Enrichment handlers that crawl, render and scan sites and extract from them. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { exclusiveHandler } from "@wren/core/restate";
 import { atomic } from "@wren/db";
+import * as restate from "@wren/runtime";
 import type { RobotsCache } from "@wrenautomation/read/fetch";
 import { z } from "zod";
 import {

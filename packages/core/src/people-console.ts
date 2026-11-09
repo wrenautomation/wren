@@ -11,8 +11,9 @@
  * approve), declined, canceled, restored, tested. Approve and Restore tell the `Broadcast` object
  * when to run; a test goes to one address on our own domain. Nothing else here sends.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { atomic, type Db, snapshot } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { mayApprove, WREN } from "./access.js";

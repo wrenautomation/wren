@@ -3,14 +3,15 @@
  * preference center's changes land as the person's own. Unsigned or forged calls move nothing. A
  * client's link opens that client's database and names the client.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { clients as clientRows } from "@wren/core/clients";
 import { linkKey, mayMarket, signLink, signupSig } from "@wren/core/marketing";
 import { topics } from "@wren/core/schema";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import type { PlainMail } from "@wren/starling-email/send/gmail";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { type Marketing, makeMarketing } from "../../src/restate/marketing.js";

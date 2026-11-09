@@ -3,7 +3,7 @@
  * Wren's rating and an override on a client's health; raise, take, assign, address and clear a
  * flag. Reading is the console's records (`./records.ts`). The demo changes nothing.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import {
   answer,
   isDemo,
@@ -14,6 +14,7 @@ import {
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { atomic, type Db, setAuditActor, type Tx } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { z } from "zod";
 import { HEALTH_CONSOLE_APPS, HEALTH_CONSOLE_ROUTES } from "./console-routes.js";
 import { addressFlag, clearFlag, FlagRefusal, ownFlag, raiseFlag } from "./flags.js";

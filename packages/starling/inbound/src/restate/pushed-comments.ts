@@ -3,10 +3,11 @@
  * The same steps as the pass's read: keep (dedupes on the comment's ref), a keyword's DM, the
  * executor's `comment` events. Only with `WREN_META_PUSH_EVENTS`; `SocialPush.meta` sends here.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { executorEmit } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { COMMENTS_FLOW, COMMENTS_FROM, commentEvent } from "@wren/starling-conversations";
 import type { CommentRow } from "@wren/starling-core";
 import { z } from "zod";

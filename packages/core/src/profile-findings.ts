@@ -7,8 +7,9 @@
  * person. Keeping a handle adds its `handle:<platform>` key to the profile, so a key another
  * profile holds merges the two the way every key write does.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { atomic, type Queryable } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { resolveProfile } from "./profiles.js";
 import {

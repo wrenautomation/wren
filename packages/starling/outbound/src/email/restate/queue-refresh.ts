@@ -6,10 +6,11 @@
  * midnight top-up. Only messages whose template changed are re-rendered, so a deploy that
  * touched no template reads no facts. Refresh only: nothing is composed, approved or sent here.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { finishRun, openRun } from "@wren/core";
 import { NO_INPUT, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import type { RefreshStats } from "../outreach/refresh.js";
 import { type Campaign, refreshCampaign } from "./compose-scheduler.js";
 

@@ -1,9 +1,10 @@
 /** Enrichment handlers that search: the ad library, Exa and trigger events. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { runScreen } from "@wren/core";
 import { bucketOf } from "@wren/core/limits";
 import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
 import { meter } from "@wren/core/vendors";
+import * as restate from "@wren/runtime";
 import {
   AD_LIBRARY_COMMAND,
   type AdLibraryStats,

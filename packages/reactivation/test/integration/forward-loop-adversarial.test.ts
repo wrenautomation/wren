@@ -4,15 +4,16 @@
  * operator's notices name no contact, and a forward that keeps failing is one
  * warning. A failing test here is a bug, marked "Was a bug:".
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as ingress from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { clients } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
 import { startTestRestate } from "@wren/core/testing";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
+import * as ingress from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import {
   ConsoleTransport,
   FakeVerifier,

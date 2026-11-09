@@ -2,11 +2,12 @@
  * `LoopRevive` against a real Restate: a loop whose next call was killed is dead, woken once and
  * told once; a loop whose pass waits on a call Restate paused is stuck, told once and left alone.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { restateAdmin } from "../../src/console.js";
 import { restateAdminPatch } from "../../src/dead-letters.js";

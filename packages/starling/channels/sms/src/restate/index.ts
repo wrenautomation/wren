@@ -22,7 +22,7 @@
  * its database and numbers, refused unless `sms.texts` is installed. Wren's own numbers,
  * forms and the phone app's push stay Wren's.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { recordedRun } from "@wren/core";
 import { findClient } from "@wren/core/clients";
 import { executorEmit, type FireTriggers, replyFired } from "@wren/core/executor";
@@ -45,6 +45,7 @@ import {
 import { cadenceId } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import * as restate from "@wren/runtime";
 import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { z } from "zod";
 import type { Bookings } from "../bookings.js";

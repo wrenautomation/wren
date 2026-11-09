@@ -17,9 +17,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
+    "@wren/runtime": "workspace:*",
     "@wren/sites": "workspace:*",
     "@wren/starling-inbound": "workspace:*",
     "@wrenautomation/vireo": "0.10.0",

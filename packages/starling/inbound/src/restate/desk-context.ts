@@ -1,5 +1,5 @@
 /** The content desk's context, built once per desk: the scope a call drafts in and the drafting steps every group shares. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { finishRun, openRun } from "@wren/core";
 import type { byOf } from "@wren/core/ask";
 import type { Platform } from "@wren/core/autobrowse";
@@ -11,6 +11,7 @@ import { clientOfKey } from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
 import type { Db, Queryable } from "@wren/db";
 import { type LlmClient, llmForKey, type Tracer } from "@wren/llm";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 import type { SlidePainter } from "../carousel.js";
 import { clientContent, clientPlan } from "../clients.js";

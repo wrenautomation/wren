@@ -31,7 +31,6 @@
   "dependencies": {
     "@aws-sdk/client-s3": "3.1136.0",
     "@aws-sdk/s3-request-presigner": "3.1136.0",
-    "@restatedev/restate-sdk": "1.17.1",
     "@wren/books": "workspace:*",
     "@wren/config": "workspace:*",
     "@wren/core": "workspace:*",
@@ -39,13 +38,12 @@
     "@wren/documents": "workspace:*",
     "@wren/offers": "workspace:*",
     "@wren/pipeline": "workspace:*",
+    "@wren/runtime": "workspace:*",
     "@wren/starling-sms": "workspace:*",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"
   },
   "devDependencies": {
-    "@restatedev/restate-sdk-clients": "1.17.1",
-    "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@testcontainers/postgresql": "12.1.0",
     "typescript": "5.9.3",
     "vitest": "5.0.1"

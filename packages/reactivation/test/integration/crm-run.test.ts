@@ -3,14 +3,15 @@
  * model and sites made for the client it names (so its own keys apply), its ledger in the
  * client's database. Synthetic data only, no network.
  */
-import * as ingress from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import type { SiteClient } from "@wren/core/autobrowse";
 import { clients } from "@wren/core/clients";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm, type LlmClient } from "@wren/llm";
+import * as ingress from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { FakeVerifier, type LocalCheckerLike } from "@wren/starling-email";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

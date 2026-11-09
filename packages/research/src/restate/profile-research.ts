@@ -7,11 +7,12 @@
  * has one attempt, so a replay never buys the same read twice. Google and the LinkedIn account
  * spend from the same day budgets as `enrich profiles` (`profile_lookups` count in both).
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { finishRun, openRun } from "@wren/core";
 import type { SiteClient } from "@wren/core/autobrowse";
 import { exclusiveHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 import { keepingAnswers } from "../findings.js";
 import { googleLimits } from "../limits.js";

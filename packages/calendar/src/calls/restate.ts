@@ -4,7 +4,7 @@
  * `CallBriefs/send` to run `leadMinutes` before the start. That send rebuilds it and pings the
  * team's channel with a link, never the lead's words. A moved or cancelled call's old send skips.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { MeetingOutcome } from "@wren/core/calls";
 import { type ExecutorEvent, executorEmit, type Fired, type Step } from "@wren/core/executor";
 import { aboutOf } from "@wren/core/logic";
@@ -12,6 +12,7 @@ import type { Notifier } from "@wren/core/notify";
 import { serviceHandler } from "@wren/core/restate";
 import { atomic, type Db, setAuditActor } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import * as restate from "@wren/runtime";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { callBookings } from "../schema.js";

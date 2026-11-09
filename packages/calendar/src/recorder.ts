@@ -3,8 +3,9 @@
  * Restate service `calls`; no import from that repo. Each call waits a few seconds and is
  * cancelled past that, so a sleeping Mac answers "no answer" and never starts late.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { PortalRefusal } from "@wren/core/portal";
+import * as restate from "@wren/runtime";
 
 const CALL_RECORDER = { name: "calls" } as const;
 

@@ -6,8 +6,8 @@
  * to some verbs and apps.
  */
 import { createHash, randomBytes } from "node:crypto";
-import * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { APPS, type Cap, PERMISSIONS, type Permission } from "./access.js";

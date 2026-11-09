@@ -4,8 +4,9 @@
  * goes to the worker's log, a copy outside Postgres: a log rewritten by someone
  * who could also rewrite the seals still no longer matches it.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { clientDatabases, type Db, sealAudit } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import type { Notifier } from "./notify.js";
 import { makeLoopObject, type PassOutcome, runPass } from "./restate/index.js";
 

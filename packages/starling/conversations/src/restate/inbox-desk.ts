@@ -4,7 +4,7 @@
  * through each channel's own desk, so its checks (opt-outs, caps, the text window, the live gates)
  * still run.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { can, type Who, WREN } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
 import { businessFactLines } from "@wren/core/custom-fields";
@@ -15,6 +15,7 @@ import { clientKey, errorText, PORTAL_FIELDS, serviceHandler } from "@wren/core/
 import { gate } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { type LlmClient, llmForKey } from "@wren/llm";
+import * as restate from "@wren/runtime";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { ChatRefusal, replyChat } from "../chat/store.js";

@@ -3,8 +3,9 @@
  * (delivery, and one per product) picks the client here, so a login only ever
  * reaches its own clients. The edge Worker sets the viewer; the browser can't.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { actingAs, type Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import {
   type Cap,

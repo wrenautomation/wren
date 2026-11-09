@@ -2,7 +2,7 @@
  * VariantsConsole: the portal's Variants app. Reads the queue blind (no change notes,
  * names, parents, guides or agent), signs media for the player, writes William's calls and notes.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import {
   answer,
   PortalRefusal,
@@ -12,6 +12,7 @@ import {
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import {
   type Anchor,
   GUIDE_STATES,

@@ -10,7 +10,7 @@
  */
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
-import * as restate from "@restatedev/restate-sdk";
+import * as restate from "@wren/runtime";
 
 /** autobrowse's `SendVerdict` (`src/sites/verdict.ts`); no import from that repo. */
 export type SendVerdict =

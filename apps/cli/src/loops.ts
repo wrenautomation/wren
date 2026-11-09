@@ -4,12 +4,13 @@
  * dead one and names a stuck one; the units its passes hold (Checks' `unit_holds`). `--json`, so
  * an agent reads what a person does.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
+
 import { ingressOf, type Settings } from "@wren/config";
 import { release } from "@wren/core/checks";
 import { restateAdmin } from "@wren/core/console";
 import { LOOP_WATCH_KEY, type LoopRevive, loopHealth } from "@wren/core/loop-watch";
 import { type Db, serializable, setAuditActor } from "@wren/db";
+import * as clients from "@wren/runtime/clients";
 import type { Command } from "commander";
 import { sql } from "drizzle-orm";
 

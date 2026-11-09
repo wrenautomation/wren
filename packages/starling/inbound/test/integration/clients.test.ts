@@ -5,8 +5,7 @@
  * land in its own database. Two clients never mix; no login, no About or a gate saying no stops
  * them and says why. Synthetic clients and posts only.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import type { Platform } from "@wren/core/autobrowse";
 import { addClient, findClient, sendsOn, updateClient } from "@wren/core/clients";
@@ -17,6 +16,8 @@ import { setManaged } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { fakeContentChannel } from "@wren/starling-core";
 import { type Channels, makeContent, SENDS_OFF } from "@wren/starling-core/service";
 import { eq, sql } from "drizzle-orm";

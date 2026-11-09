@@ -15,8 +15,9 @@
  * trigger fires by 10:00; designs/2026-11-01-loop-calls.md).
  * Nothing fires on history: a workspace's first pass starts at its newest rows.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Db, Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { sql } from "drizzle-orm";
 import { broadcastUses } from "./broadcasts.js";
 import { executorFire, type Fired } from "./executor.js";

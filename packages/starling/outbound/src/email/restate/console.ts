@@ -11,7 +11,7 @@
  * kill switch and opener cap (`email.sequences`), its answers (`email.replies`, approve and
  * drop through `Disposition/<client>/replies`).
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import type { CallBriefs } from "@wren/calendar/calls";
 import { markOutcome } from "@wren/calendar/calls";
 import { CALL_OUTCOME } from "@wren/calendar/calls/settings";
@@ -45,6 +45,7 @@ import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, type Queryable, serializable, setAuditActor, snapshot } from "@wren/db";
 import { DOSSIER, LEAD_SHEET } from "@wren/research/components";
 import { dossierBrief, dossiers } from "@wren/research/dossier";
+import type * as restate from "@wren/runtime";
 import { pause, resolveTarget, resume } from "@wren/starling-email";
 import { EMAIL_CONSOLE_APPS, EMAIL_CONSOLE_ROUTES } from "@wren/starling-email/console-routes";
 import { firmRecord, stallRecord } from "@wren/starling-email/records";

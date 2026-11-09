@@ -2,10 +2,11 @@
  * `VariantsCollect/all`: vireo's collect over wren's collectors every 6 hours,
  * so a post's daily metrics land within a quarter day. `wren variants collect` runs one pass.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { variants } from "./index.js";
 
 const EVERY_MS = 6 * 3_600_000;

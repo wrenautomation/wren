@@ -3,7 +3,7 @@
  * people from is told to the executor as a `trigger.source` fire, and the shape opens a journey. A tail loop (like `Segments`): a cursor per workspace and list keeps it one fire per
  * member. Start it with `POST ListToJourney/all/start`.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { executorFire, type Fired } from "@wren/core/executor";
 import {
   clientKey,
@@ -14,6 +14,7 @@ import {
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { type SourceCursors, sourcedPass } from "@wren/pipeline/sourced";
+import type * as restate from "@wren/runtime";
 
 const SOURCED_FEED = { name: "ListToJourney" } as const;
 const CURSORS = "cursors";

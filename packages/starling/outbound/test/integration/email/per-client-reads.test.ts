@@ -4,9 +4,7 @@
  * `research.signals`, on its own firms; its buckets count main's reads too; the firm page shows
  * the dossier from its own database with `research.dossier`. Synthetic firms only.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf, loadSettings } from "@wren/config";
 import { addClient } from "@wren/core/clients";
 import type { PassOutcome } from "@wren/core/restate";
@@ -29,6 +27,9 @@ import {
   signalPlan,
   signalSettingsOf,
 } from "@wren/research/signals";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { SendPolicy } from "@wren/starling-email/send/policy";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { emailConsoleApi } from "../../../src/email/restate/console.js";

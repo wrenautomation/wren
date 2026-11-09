@@ -8,10 +8,11 @@
  * `companies_scanned` is 0. Free throughout: DoH, one homepage fetch per
  * candidate, a deterministic ownership gate. No model, no credits.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { type Company, companies, finishRun, openRun } from "@wren/core";
 import { exclusiveHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import type { Fetcher } from "@wrenautomation/read/fetch";
 import { eq } from "drizzle-orm";
 import { z } from "zod";

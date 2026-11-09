@@ -3,9 +3,10 @@
  * account is watched; a thread is queued and the reads pass woken to draft it; a post is read
  * once and drafted now, waiting in Engage like any other.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { byOf } from "@wren/core/ask";
 import { serviceHandler } from "@wren/core/restate";
+import * as restate from "@wren/runtime";
 import { ReachRefusal } from "@wren/starling-acts";
 import { sql } from "drizzle-orm";
 import { z } from "zod";

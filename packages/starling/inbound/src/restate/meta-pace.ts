@@ -3,8 +3,9 @@
  * account (designs/2026-11-04-meta-push-flows.md). Even gaps, not a window: a burst of 15k
  * comments drains at the cap, never in a spike a spam check sees.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { exclusiveHandler, NO_INPUT } from "@wren/core/restate";
+import * as restate from "@wren/runtime";
 
 /** Default: under Meta's 750 an hour, with margin. */
 export const PRIVATE_PER_HOUR = 600;

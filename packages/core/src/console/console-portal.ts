@@ -2,7 +2,7 @@
  * `makeConsolePortal`: the ConsolePortal service over `consoleApi`, each handler behind the
  * portal's guard; a component change journals its loops' starts and stops.
  */
-import * as restate from "@restatedev/restate-sdk";
+import * as restate from "@wren/runtime";
 import { accessHandlers } from "../access-console.js";
 import { ASK, type AskService, ask, type QuestionRequest } from "../ask.js";
 import type { LoopKey } from "../components.js";

@@ -38,7 +38,7 @@
  * dead-letter queue lets it answer, and the answer settles the row and the ledger. A person's
  * word in To approve ends the look and cancels the call.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { capWaitMs, type Platform } from "@wren/core/autobrowse";
 import { sendsOn } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
@@ -54,6 +54,7 @@ import {
 } from "@wren/core/restate";
 import { type Delivery, isDelivery } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import {
   claimSend,
   forgetUnsure,

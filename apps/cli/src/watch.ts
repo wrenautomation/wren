@@ -1,8 +1,9 @@
 /** `wren monitor`: the Monitor's loop on the Postgres box. Its mail and rules live in the Inbox app. */
-import * as clients from "@restatedev/restate-sdk-clients";
+
 import { ingressOf, type Settings } from "@wren/config";
 import type { Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
+import * as clients from "@wren/runtime/clients";
 import { mail, sortAgain } from "@wren/watch";
 import { WATCH_KEY, type Watch } from "@wren/watch/restate";
 import type { Command } from "commander";

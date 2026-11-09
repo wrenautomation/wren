@@ -6,12 +6,13 @@
  * can't be read: it is skipped, and Account → Messaging says so. No workspace's or mailbox's
  * failure stops another's.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { bounceMailboxes, noteBounceSender } from "@wren/core/bounces";
 import type { Mailbox } from "@wren/core/mailbox";
 import { readMessageSettings } from "@wren/core/message-settings";
 import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { type BounceReadStats, readBounces } from "../inbox/marketing-bounces.js";
 
 const BOUNCES_COMMAND = "marketing bounces read";

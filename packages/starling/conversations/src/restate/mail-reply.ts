@@ -5,12 +5,12 @@
  * are off. Kept first as `sending`, so a reply that fails says so in the thread.
  */
 import { randomUUID } from "node:crypto";
-import * as restate from "@restatedev/restate-sdk";
 import { findClient, sendsOn } from "@wren/core/clients";
 import { noRawKeys } from "@wren/core/key-refs";
 import type { MailSender, Replied } from "@wren/core/mailbox";
 import { errorText, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { SENDS_OFF } from "@wren/starling-core/service";
 import { z } from "zod";
 import {

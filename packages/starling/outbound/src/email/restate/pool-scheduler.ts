@@ -50,7 +50,7 @@
  * passes in a row is held (`unit_holds`, stage `loop.lead-pool-fill/<key>`), then tried again
  * after its hold.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { finishRun, openRun } from "@wren/core";
 import { findClient } from "@wren/core/clients";
 import { bucketOf } from "@wren/core/limits";
@@ -90,6 +90,7 @@ import {
   SIGNALS_COMPONENT,
   SIGNALS_LIMIT,
 } from "@wren/research/signals";
+import * as restate from "@wren/runtime";
 import type { RecontactPolicy } from "@wren/starling-email";
 import { untilNextLocalDay } from "@wren/starling-email/restate";
 import { verifications } from "@wren/starling-email/schema";

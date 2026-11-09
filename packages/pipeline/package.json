@@ -57,11 +57,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/offers": "workspace:*",
     "@wren/research": "workspace:*",
+    "@wren/runtime": "workspace:*",
     "drizzle-orm": "0.45.2",
     "ml-matrix": "6.15.0",
     "yaml": "2.9.1",

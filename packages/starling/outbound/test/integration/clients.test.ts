@@ -4,9 +4,7 @@
  * gate; two clients never mix; no login or a gate saying no stops them; a sort uses the client's
  * database. Synthetic logins and threads only.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { addClient, updateClient } from "@wren/core/clients";
@@ -17,6 +15,9 @@ import { setManaged } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import {
   addAccount,
   clientReach,

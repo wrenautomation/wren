@@ -1,10 +1,11 @@
 /** ContentDesk handlers that add, draft, redraft and write posts. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { finishRun, openRun } from "@wren/core";
 import { byOf } from "@wren/core/ask";
 import type { Platform } from "@wren/core/autobrowse";
 import { PLATFORMS } from "@wren/core/autobrowse";
 import { clientOfKey, exclusiveHandler, sharedHandler } from "@wren/core/restate";
+import * as restate from "@wren/runtime";
 import type { Media } from "@wren/starling-core";
 import { z } from "zod";
 import { checkDraft, type DraftCheck } from "../check.js";

@@ -20,11 +20,12 @@
  * pitch its offer and the people in its segment, under its `email.opener` cap. Each enrollment
  * carries its campaign. The default runs as before on what is left, stamped null.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Company } from "@wren/core";
 import { type Notifier, plural } from "@wren/core/notify";
 import { clientOfKey, makeLoopObject, runPass, stoppedPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { capLeft, type LoopCampaign } from "@wren/starling-core/campaigns";
 import type { SharedSuppressions } from "@wren/starling-email";
 import { AUDIENCES, type Audience, type RecontactPolicy } from "@wren/starling-email";

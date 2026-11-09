@@ -6,11 +6,12 @@
  * `ingestFor` is a client's cal.com, by its own webhook, into its database (O4). A call booked
  * or moved enters the `close` workflow, whose brief step builds its pre-call brief.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { findClient } from "@wren/core/clients";
 import { executorEmit, type FireTriggers } from "@wren/core/executor";
 import { WEBHOOK_SERVICE } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import {
   applyBooking,
   type BookingEvent,

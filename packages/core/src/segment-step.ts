@@ -3,8 +3,9 @@
  * about in a People group now? Yes or no; skip when no person is found. A client's workflow
  * checks the client's own database (`open`).
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { sql } from "drizzle-orm";
 import type { ExecutorEvent, Step, StepAt } from "./executor.js";
 import { personOf } from "./message-step.js";

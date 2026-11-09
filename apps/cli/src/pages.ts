@@ -2,11 +2,12 @@
  * `wren pages`: crawled page HTML, inline in Postgres or archived to the pages
  * bucket. `archive` drives `PageHtmlArchive/all` on the Postgres box.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
+
 import { ingressOf, type Settings } from "@wren/config";
 import type { Db } from "@wren/db";
 import { pageCounts } from "@wren/research/pages";
 import { PAGE_ARCHIVE_KEY, type PageHtmlArchive } from "@wren/research/restate";
+import * as clients from "@wren/runtime/clients";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

@@ -3,7 +3,7 @@
  * client's https URL hears the events it picks, signed; a secret shows once. Without --client,
  * Wren's own. Redeliver goes through Restate, so the ladder and the log are the worker's.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
+
 import { ingressOf, type Settings } from "@wren/config";
 import { getClient } from "@wren/core/clients";
 import { WEBHOOK_EVENTS } from "@wren/core/webhook-events";
@@ -20,6 +20,7 @@ import {
   type WebhooksService,
 } from "@wren/core/webhooks";
 import type { Db } from "@wren/db";
+import * as clients from "@wren/runtime/clients";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

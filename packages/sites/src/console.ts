@@ -11,7 +11,7 @@
  * list on its host (`records*`), kept to that client; a yes on a client's page checks the
  * client's approver, as every client publish does.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { mayApprove, WREN } from "@wren/core/access";
 import { type Client, clients, findClient } from "@wren/core/clients";
 import { wrenFacts } from "@wren/core/facts";
@@ -44,6 +44,7 @@ import { staleRefusal } from "@wren/core/refusal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
 import { OFFER_IDS, OFFERS, offerFor } from "@wren/offers";
+import type * as restate from "@wren/runtime";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "./console-routes.js";

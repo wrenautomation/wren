@@ -4,8 +4,9 @@
  * ./portal.ts. The sandbox is synthetic: no people, no accounts, sends off for good (a check on
  * `clients` holds it), so nothing there contacts anyone.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { atomic, type Db, dropDatabase, setAuditActor } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 import { MEMBER_GRANTS, type RoleId, TEAM_GRANTS, WREN } from "./access.js";
 import { addClient, findClient } from "./clients/index.js";

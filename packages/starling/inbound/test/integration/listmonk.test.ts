@@ -5,13 +5,14 @@
  * nothing. The hourly sync puts confirmed people on the list and takes a Listmonk unsubscribe back
  * into Wren. Synthetic data only; no network.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { giveConsent, issueSends, mayMarket, withdrawConsent } from "@wren/core/marketing";
 import { topics } from "@wren/core/schema";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import type { FetchLike } from "@wren/starling-email/fetch-like";
 import type { PlainMail } from "@wren/starling-email/send/gmail";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

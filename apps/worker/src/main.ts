@@ -1,7 +1,7 @@
 /** Restate endpoint on Node: serves every channel's services on :9080. */
 
-import { serve } from "@restatedev/restate-sdk/node";
 import { loadEnvFile, loadSettings } from "@wren/config";
+import { serve } from "@wren/runtime/node";
 import pino from "pino";
 import { buildServices } from "./services.js";
 

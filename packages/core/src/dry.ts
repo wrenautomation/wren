@@ -6,7 +6,7 @@
  * kind, else down every branch. Nothing leaves this process.
  */
 
-import * as restate from "@restatedev/restate-sdk";
+import * as restate from "@wren/runtime";
 import { CODE_STEPS } from "./code-step.js";
 import type { Component, Effect, Port } from "./components.js";
 import {

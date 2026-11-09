@@ -1,13 +1,14 @@
 /** The E7 virtual objects: inbox sync per sender, disposition on demand, the daily Postmaster pull, the opens pull, the placement checks. */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import type { PostmasterClient } from "@wren/starling-email";
 import { transitionMessage } from "@wren/starling-email";
 import {

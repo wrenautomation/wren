@@ -18,11 +18,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/research": "workspace:*",
+    "@wren/runtime": "workspace:*",
     "@wren/sites": "workspace:*",
     "@wren/starling-acts": "workspace:*",
     "@wren/starling-core": "workspace:*",

@@ -4,12 +4,6 @@
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type {
-  Context,
-  ObjectContext,
-  ServiceDefinition,
-  VirtualObjectDefinition,
-} from "@restatedev/restate-sdk";
 import {
   AllBookings,
   CALENDAR_SCOPE,
@@ -66,6 +60,12 @@ import {
   browserRenderer,
   cdpRenderer,
 } from "@wren/research";
+import type {
+  Context,
+  ObjectContext,
+  ServiceDefinition,
+  VirtualObjectDefinition,
+} from "@wren/runtime";
 import { ArmedLlm, savedArms } from "@wren/starling-acts";
 import { autoReplyFire } from "@wren/starling-conversations/restate";
 import type { DmPlatform } from "@wren/starling-conversations/schema";

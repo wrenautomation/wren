@@ -5,8 +5,9 @@
  * `PeopleMap/<client>/fleet` run it on `wake`; row triggers wake it at commit. The warm gate never
  * waits on it: it reads live.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import {
   type HotMark,
   hotMark,

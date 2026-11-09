@@ -1,8 +1,9 @@
 /** ContentDesk handlers that change a draft in place: fields, promotion, funnel, attachments, text. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { finishRun, openRun } from "@wren/core";
 import { byOf } from "@wren/core/ask";
 import { exclusiveHandler, PORTAL_FIELDS } from "@wren/core/restate";
+import * as restate from "@wren/runtime";
 import { SHAPES } from "@wren/starling-core/shapes";
 import { z } from "zod";
 import { ATTACH_MAX_BYTES, attachFile, attachUpload } from "../attach.js";

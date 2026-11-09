@@ -4,11 +4,12 @@
  * inbox is read through the Mac's desk, and waiting there costs nothing. Mail sends no notices:
  * what needs William shows in the Inbox app, and an inbox it couldn't read shows on the loop.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { executorEmit } from "@wren/core/executor";
 import type { Mailbox } from "@wren/core/mailbox";
 import { makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { type ReadStats, readMail, relinkMail } from "./read.js";
 import { mailEvent } from "./triage.js";
 

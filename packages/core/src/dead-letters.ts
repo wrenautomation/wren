@@ -10,8 +10,9 @@
  * What is not a letter: a handler's terminal error goes back to whoever called it, and a
  * executor step's error waits on its event (`failedRuns`, Replay). Both already have an owner.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, notInArray, sql } from "drizzle-orm";
 import type { RestateAdmin } from "./console.js";
 import { type DeadLetterEnd, type DeadLetterRow, deadLetters } from "./dead-letter-schema.js";

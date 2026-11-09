@@ -5,12 +5,13 @@
  * it paid; the rest wait in To approve. Wise's `balances#credit` webhook needs a token that can
  * write subscriptions, and ours is read only: so it polls.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import type { FireTriggers } from "@wren/core/executor";
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, runPass } from "@wren/core/restate";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { amount } from "../contract.js";
 import { billMonth } from "../index.js";
 import type { PortalMail } from "../watch.js";

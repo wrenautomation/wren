@@ -2,9 +2,10 @@
  * `Pieces/wren` (designs/2026-10-13-primitives-first.md): Marketing's Today and Pieces read every
  * piece William made, each with its branches. Reads only; a yes goes through `marketing/approveDraft`.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { NO_INPUT, sharedHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { pieceRows, piecesOf } from "../pieces.js";
 
 const PIECES_KEY = "wren";

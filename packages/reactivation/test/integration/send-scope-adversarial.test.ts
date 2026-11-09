@@ -4,14 +4,15 @@
  * address to Wren's. Whose mail goes out, from which database, and does the
  * loop stop the moment the client can't send.
  */
-import * as ingress from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf, loadSettings } from "@wren/config";
 import { addClient, updateClient } from "@wren/core/clients";
 import { clientOfKey } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import * as ingress from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { ConsoleTransport, SendPolicy } from "@wren/starling-email";
 import { type EmailSend, makeEmailSend, NO_SCOPE, oneScope } from "@wren/starling-outbound/email";
 import { sql } from "drizzle-orm";

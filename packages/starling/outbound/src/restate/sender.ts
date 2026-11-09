@@ -3,7 +3,7 @@
  * steps in `ctx.run`, platform calls as journaled calls to the Mac's desk. Next pass after the
  * gap when it sent, five minutes when nothing could go. Off until `wren reach queue start`.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { finishRun, openRun } from "@wren/core";
 import { executorEmit } from "@wren/core/executor";
 import {
@@ -16,6 +16,7 @@ import {
   stoppedPass,
 } from "@wren/core/restate";
 import { cadenceId } from "@wren/core/workflows";
+import * as restate from "@wren/runtime";
 import { clientReach, clientSends, syncLogins } from "@wren/starling-acts";
 import { reachLead } from "../follow.js";
 import { nextDue, type RecheckAsks, type TickStats, tick } from "../tick.js";

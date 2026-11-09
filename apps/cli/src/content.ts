@@ -5,12 +5,12 @@
  */
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
-import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
 import { setWrenSettings } from "@wren/core/clients";
 import { REJECT_NOTE_MAX, REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import type { Db } from "@wren/db";
+import * as clients from "@wren/runtime/clients";
 import { isStoredMedia, isUrl, type Media } from "@wren/starling-core";
 import { coerceField, fieldViews } from "@wren/starling-core/shapes";
 import {

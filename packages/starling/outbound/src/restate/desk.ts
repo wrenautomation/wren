@@ -3,7 +3,7 @@
  * threads, comments, invites, posts, schedules), each one journaled. One context built once
  * (`desk-context.ts`), and one file per handler group that takes it: `desk-<group>.ts`.
  */
-import * as restate from "@restatedev/restate-sdk";
+import * as restate from "@wren/runtime";
 import type { ReachDeps } from "./deps.js";
 import { accountsHandlers } from "./desk-accounts.js";
 import { commentsHandlers } from "./desk-comments.js";

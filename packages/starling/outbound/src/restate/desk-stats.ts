@@ -1,7 +1,8 @@
 /** `ReachDesk`'s numbers: the draft models' scorecard and the reach stats. */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Scorecard } from "@wren/core/draft-models";
 import { serviceHandler } from "@wren/core/restate";
+import * as restate from "@wren/runtime";
 import { platformOf } from "@wren/starling-acts";
 import { type ReachStats, reachStats } from "@wren/starling-conversations";
 import { z } from "zod";

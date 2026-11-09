@@ -8,13 +8,14 @@
  * Nothing here reads a token or an env value: config arrives as booleans and modes, and every
  * line from autobrowse or a platform is scrubbed of anything that looks like a key.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Platform } from "@wren/core/autobrowse";
 import { RENEWAL_COMMAND } from "@wren/core/autobrowse/renewal";
 import type { SitesHost } from "@wren/core/autobrowse/restate";
 import { looksLikeKey } from "@wren/core/key-refs";
 import { draftEvents, runs } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import { PLATFORM_SPECS } from "../platforms.js";
 import { contentDrafts, socialDays } from "../schema.js";

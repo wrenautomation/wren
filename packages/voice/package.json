@@ -20,12 +20,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@restatedev/restate-sdk": "1.17.1",
     "@wren/calendar": "workspace:*",
     "@wren/config": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
+    "@wren/runtime": "workspace:*",
     "@wren/starling-sms": "workspace:*",
     "@wrenautomation/models": "0.51.0",
     "drizzle-orm": "0.45.2",

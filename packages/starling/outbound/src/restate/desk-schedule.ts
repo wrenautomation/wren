@@ -1,6 +1,7 @@
 /** `ReachDesk`'s schedule: drafted comments onto spaced slots, and off them. */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { serviceHandler } from "@wren/core/restate";
+import type * as restate from "@wren/runtime";
 import { z } from "zod";
 import { allCommentsSettings } from "../reach-posts/settings.js";
 import { type Slotted, schedulePosts, scheduleThreads, unschedule } from "../scheduled.js";

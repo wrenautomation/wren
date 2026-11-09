@@ -9,7 +9,7 @@
  * changed something; `reject` and `restore` are his no and its undo. `propose` is a change said in a
  * sentence on the storyboard (designs/2026-10-15-storyboard.md); Apply is `set` with its patch.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { finishRun, openRun } from "@wren/core";
 import { byOf, CLAUDE, type ClaudeService } from "@wren/core/ask";
 import { terminalOf } from "@wren/core/portal";
@@ -18,6 +18,7 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
 import { livePrompt } from "@wren/core/templates/defaults";
 import { atomic, type Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { CHANGE, proposeChange } from "@wren/starling-studio/change";
 import {
   getEdit,

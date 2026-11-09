@@ -5,9 +5,10 @@
  * `wren email clicks` only read them. Bound only when the lander's export credential is set; it
  * never reaches the ledger row, the journal, or a log line.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import type { FetchLike } from "../fetch-like.js";
 import { type ClickSyncStats, syncClicks } from "../inbox/click-sync.js";
 

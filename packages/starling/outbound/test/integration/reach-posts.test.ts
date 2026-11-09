@@ -8,9 +8,7 @@
  * makes things up is asked for again, then dropped; redraft rewrites queued drafts from the kept
  * post.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { siteCallErrorFrom } from "@wren/core/autobrowse/restate";
@@ -21,6 +19,9 @@ import { companies, people } from "@wren/core/schema";
 import { segmentOf, startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { DEFAULT_POLICY } from "@wren/starling-acts";
 import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { eq, inArray, sql } from "drizzle-orm";

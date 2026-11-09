@@ -1,8 +1,8 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type * as restate from "@restatedev/restate-sdk";
 import { loadSettings } from "@wren/config";
+import type * as restate from "@wren/runtime";
 import type { Logger } from "pino";
 import { afterEach, describe, expect, it } from "vitest";
 import { BOX_SERVICES, buildServices, POOL_CHAIN, servicesFor } from "./services.js";

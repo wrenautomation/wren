@@ -10,7 +10,7 @@
  * `drop` are William's: only his approve books or sends. A client's replies
  * never get Wren's calendar.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { recordedRun } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
 import type { Notifier } from "@wren/core/notify";
@@ -23,6 +23,7 @@ import {
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient, Tracer } from "@wren/llm";
+import * as restate from "@wren/runtime";
 import { type DispositionStats, runDisposition } from "@wren/starling-conversations/email";
 import { z } from "zod";
 import {

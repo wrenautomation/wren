@@ -15,12 +15,13 @@
  * is held (`unit_holds`, stage `loop.email-placement-test/fleet`). A seed that times out twice in
  * a pass with nothing answered is left out for the rest of it, its checks not blamed.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { isRefusal } from "@wren/core/autobrowse/restate";
 import { type Notifier, plural } from "@wren/core/notify";
 import { CallTimeout, errorText, makeLoopObject, runPass, unitLimits } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import {
   evaluatePlacement,
   parseAuthResults,

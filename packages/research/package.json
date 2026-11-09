@@ -32,10 +32,10 @@
   "dependencies": {
     "@aws-sdk/client-s3": "3.1136.0",
     "@duckdb/node-api": "1.5.6-r.1",
-    "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
+    "@wren/runtime": "workspace:*",
     "@wrenautomation/models": "0.51.0",
     "@wrenautomation/read": "0.51.0",
     "csv-parse": "7.0.2",
@@ -47,8 +47,6 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
-    "@restatedev/restate-sdk-clients": "1.17.1",
-    "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@testcontainers/postgresql": "12.1.0",
     "@wren/config": "workspace:*",
     "typescript": "5.9.3",

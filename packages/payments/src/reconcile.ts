@@ -7,9 +7,10 @@
  * adding events an endpoint is missing: one Wren registered, or one the client pasted (found by
  * its URL). Where the key can't, the client gets a note in their payments settings.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
+import type * as restate from "@wren/runtime";
 import type { PayAccount, PayLink } from "./schema.js";
 import { type PaymentsDeps, settleLink, stripeKeyOf, tellChanges, webhookUrl } from "./service.js";
 import { step } from "./states.js";

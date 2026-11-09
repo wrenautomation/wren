@@ -7,7 +7,7 @@
  * flag. Its Inbox: the client's own threads through InboxDesk, with the client set to the one
  * the guard opened. Wren's own Marketing is the console's.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { mayApprove } from "@wren/core/access";
 import type { Client } from "@wren/core/clients";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
@@ -44,6 +44,7 @@ import {
 } from "@wren/core/records/serve";
 import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { SETTLE_OUTCOMES, type SettleOutcome } from "@wren/starling-acts";
 import type { ReplyOption } from "@wren/starling-conversations/inbox";
 import { clientRoutes, withRoutes } from "@wren/starling-conversations/inbox";

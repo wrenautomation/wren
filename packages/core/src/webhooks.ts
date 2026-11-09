@@ -6,8 +6,8 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { lookup as dnsLookup, type LookupAddress } from "node:dns";
 import { request } from "node:https";
-import * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { listMembers, normalEmail } from "./clients/index.js";

@@ -6,7 +6,6 @@
  * so their preference center reads and changes that client's database.
  */
 import { timingSafeEqual } from "node:crypto";
-import * as restate from "@restatedev/restate-sdk";
 import { findClient } from "@wren/core/clients";
 import {
   askConsent,
@@ -28,6 +27,7 @@ import {
 import { serviceHandler } from "@wren/core/restate";
 import { FREQUENCIES, type Frequency, topics } from "@wren/core/schema";
 import type { Db, Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import type { PlainMail } from "@wren/starling-email/send/gmail";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";

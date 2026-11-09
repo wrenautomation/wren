@@ -2,9 +2,10 @@
  * `ReachDesk`'s Reddit handlers: watch, skip or move a place; comment in or skip a queued thread.
  * The RedditReads loop that found places and drafted threads is cut (2026-11-04 stripdown).
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { byOf } from "@wren/core/ask";
 import { serviceHandler } from "@wren/core/restate";
+import * as restate from "@wren/runtime";
 import { ReachRefusal, recordLanded } from "@wren/starling-acts";
 import {
   isSendNotSent,

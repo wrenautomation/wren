@@ -3,11 +3,12 @@
  * `deskContext(deps)`, the closures they all use (one invite, the terminal map of a refusal,
  * the clock, a client's database, the sender's nudge, one comment answered).
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { byOf } from "@wren/core/ask";
 import { rejectWhy } from "@wren/core/draft-record";
 import { sendAcross } from "@wren/core/send-verdict";
 import type { Db, Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { listAccounts, ReachRefusal, recordLanded } from "@wren/starling-acts";
 import { isSendUnsure, type Landed, sendAtMostOnce, sendError } from "@wren/starling-acts/restate";
 import { answerFor, checkThread, contactById, planAnswer } from "@wren/starling-conversations";

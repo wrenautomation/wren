@@ -6,8 +6,9 @@
  * ref. Its answer goes back through `agentDone`: done moves the run on; anything else says why and
  * waits on Wren's team.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 import { DoFailed, restateDo } from "./autobrowse/do.js";
 import type { Wake } from "./autobrowse/restate.js";

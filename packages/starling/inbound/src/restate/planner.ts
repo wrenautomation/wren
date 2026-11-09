@@ -24,7 +24,7 @@
  * Its block (`content.planner`) is the settings; its ideas are its own and its readers'
  * questions, never Wren's video chapters. Drafts wait in its To approve.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
 import type { Notifier } from "@wren/core/notify";
 import {
@@ -40,6 +40,7 @@ import {
 } from "@wren/core/restate";
 import { wallClock, zonedInstant } from "@wren/core/time";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { pickAccount, ReachRefusal } from "@wren/starling-acts";
 import { capLeft, type LoopCampaign } from "@wren/starling-core/campaigns";
 import { eq } from "drizzle-orm";

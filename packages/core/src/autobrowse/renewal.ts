@@ -7,8 +7,9 @@
  * wake the host, call `renew`, post what happened, then sleep a day, so a
  * refused token waits at most a day even when nothing called it.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import type { Notifier } from "../notify.js";
 import { errorText, makeLoopObject, type PassOutcome, runPass, within } from "../restate/index.js";
 import { SITES, type SitesHost } from "./restate.js";

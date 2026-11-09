@@ -1,9 +1,10 @@
 /** Enrichment handlers that read YouTube, Instagram and Facebook groups. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { runScreen } from "@wren/core";
 import { bucketOf } from "@wren/core/limits";
 import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
 import type { Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { SOCIAL, socialSettingsSchema } from "../components.js";
 import {
   countFbGroupsUnit,

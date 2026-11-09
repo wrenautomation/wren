@@ -3,8 +3,9 @@
  * which names the owner from the host. `say` keeps a visitor's message; `read` hands back what's
  * new. A refusal comes back as `{ status, error }` for the Worker to answer with.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { type ChatLine, ChatRefusal, readChat, say } from "../chat/store.js";
 
 interface ChatDeps {

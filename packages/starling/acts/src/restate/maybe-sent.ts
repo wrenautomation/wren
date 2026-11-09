@@ -4,11 +4,12 @@
  * The send runs under the ledger row's key, and autobrowse says whether it went out. Unsure ends
  * the invocation terminally, so Restate neither retries nor pauses it.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { SiteCallError } from "@wren/core/autobrowse";
 import { isRefusal } from "@wren/core/autobrowse/restate";
 import { sendOnce } from "@wren/core/maybe-sent";
 import { atomic, type Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { ReachRefusal } from "../refusal.js";
 import {
   claimSend,

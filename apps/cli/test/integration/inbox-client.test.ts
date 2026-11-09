@@ -4,9 +4,7 @@
  * on the client's database. Its access grants decide each step, its approver decides whether a
  * reply waits. Two clients and Wren never mix. Synthetic clients and threads only.
  */
-import type { Context } from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { addClient, addMember, updateClient } from "@wren/core/clients";
 import { addGrant } from "@wren/core/grants";
@@ -17,6 +15,9 @@ import { setManaged } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import type { Context } from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { markAnswered } from "@wren/starling-conversations";
 import {
   conversationOf,

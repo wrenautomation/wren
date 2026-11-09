@@ -5,8 +5,7 @@
  * gate. A promo of its YouTube post: its approver's, on its own gate and logins, drafts that wait
  * in its To approve and link its own video straight. Synthetic clients and drafts only.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { addClient, addMember, addOperator, updateClient } from "@wren/core/clients";
 import { flags } from "@wren/core/schema";
@@ -15,6 +14,8 @@ import { setManaged } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { readFunnel } from "../../src/funnel.js";

@@ -4,7 +4,7 @@
  * `ConnectorSync/<link>` the hourly read, one at a time per link so a rotating refresh token
  * never races itself.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { WREN } from "@wren/core/access";
 import type { FireTriggers } from "@wren/core/executor";
 import { noRawKeys } from "@wren/core/key-refs";
@@ -21,6 +21,7 @@ import {
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 import { CONNECTOR_APPS, type ConnectorApp } from "./apps.js";
 import type { ConnectorAccess } from "./connectors.js";

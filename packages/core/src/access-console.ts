@@ -4,8 +4,9 @@
  * the person fresh and writes in one transaction audited as theirs. The routes need only `read`;
  * what each may do is checked here, on what it names.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { type Db, type Queryable, serializable, setAuditActor } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import {
   can,
   isChannel,

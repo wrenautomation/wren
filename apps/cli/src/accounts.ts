@@ -4,10 +4,11 @@
  * account a draft goes out as, as the draft box's picker sets it. API keys are accounts too:
  * `keys` lists the operator's and each client's, `key rotate|revoke|spend` act on the operator's.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
+
 import { ingressOf, type Settings } from "@wren/config";
 import { dollars, keyAccounts, VAULT_KEYS_KEY, type VaultKeyMirror } from "@wren/core/vault-keys";
 import type { Db } from "@wren/db";
+import * as clients from "@wren/runtime/clients";
 import { pickAccount } from "@wren/starling-acts";
 import { movePlace, policyFrom } from "@wren/starling-outbound";
 import { accountRecordOf } from "@wren/starling-outbound/records";

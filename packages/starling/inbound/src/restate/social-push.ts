@@ -15,7 +15,7 @@
  * each platform's watcher last said it was alive: `ReachInboxRead` reads a watched account cold
  * (`reach`), since the tab will say when something comes in.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Platform } from "@wren/core/autobrowse";
 import {
   clientKey,
@@ -25,6 +25,7 @@ import {
   WEBHOOK_SERVICE,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import type { CommentRow } from "@wren/starling-core";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";

@@ -4,8 +4,9 @@
  * ones on the type for one request, as fields `x_<key>` a person edits in place. Business facts
  * are an owner's `{biz.<key>}` for copy.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import {

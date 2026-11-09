@@ -1,12 +1,13 @@
 /** The Resolution virtual object: build → queue → resolve on a stub verifier, journaled per domain. */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { type Company, companies, imports, leads, people, runs } from "@wren/core";
 import { startTestRestate } from "@wren/core/testing";
 import { createDb } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import {
   contactCandidates,
   type VerificationResult,

@@ -3,8 +3,7 @@
  * reads only its own sending domains its setup verified, into its own database; two clients never
  * mix; no domain or none verified stops the pass and says why. Synthetic domains only.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf, loadSettings } from "@wren/config";
 import { addClient } from "@wren/core/clients";
 import type { PassOutcome } from "@wren/core/restate";
@@ -12,6 +11,8 @@ import { addAccount, markStep } from "@wren/core/setup";
 import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PostmasterClient, PostmasterStats } from "../../src/inbox/postmaster.js";
 import {

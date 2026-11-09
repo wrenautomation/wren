@@ -20,8 +20,6 @@
     "templates:export": "tsx scripts/gallery-export.ts"
   },
   "dependencies": {
-    "@restatedev/restate-sdk": "1.17.1",
-    "@restatedev/restate-sdk-tunnel": "1.17.1",
     "@wren/books": "workspace:*",
     "@wren/calendar": "workspace:*",
     "@wren/config": "workspace:*",
@@ -38,6 +36,7 @@
     "@wren/pipeline": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/research": "workspace:*",
+    "@wren/runtime": "workspace:*",
     "@wren/sites": "workspace:*",
     "@wren/starling-acts": "workspace:*",
     "@wren/starling-conversations": "workspace:*",
@@ -53,8 +52,8 @@
     "@wren/starling-tiktok": "workspace:*",
     "@wren/starling-x": "workspace:*",
     "@wren/starling-youtube": "workspace:*",
-    "@wren/voice": "workspace:*",
     "@wren/variants": "workspace:*",
+    "@wren/voice": "workspace:*",
     "@wren/watch": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
     "@wrenautomation/read": "0.51.0",

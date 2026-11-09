@@ -1,7 +1,8 @@
 /** `ReachDesk`'s contacts: finds, one added, the list, enrich, enroll, and the sequence templates. */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Found, Profile } from "@wren/core/outreach";
 import { NO_INPUT, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
+import * as restate from "@wren/runtime";
 import { accountById, listAccounts, platformOf, ReachRefusal } from "@wren/starling-acts";
 import {
   type AddStats,

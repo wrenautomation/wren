@@ -8,8 +8,9 @@
  * Only the newest `schedule` counts: each bumps a generation, and a run from an older one ends.
  * All the logic is in `./broadcasts.ts`.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 import {
   broadcastById,

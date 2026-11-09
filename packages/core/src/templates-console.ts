@@ -5,8 +5,9 @@
  * move. Every write checks `act` at the template's own app and channel (`templateAt`). Publishing
  * copy that sends waits in To approve; only a signed-in person approves. Wren's own database.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { z } from "zod";
 import { type App, type Target, WREN } from "./access.js";
 import {

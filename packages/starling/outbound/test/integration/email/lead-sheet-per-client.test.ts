@@ -4,9 +4,7 @@
  * ledger in the client's database; verdicts and pages are shared through main; the
  * Pipeline reads come from the client's database once the component is installed.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
 import { addClient } from "@wren/core/clients";
@@ -16,6 +14,9 @@ import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sharedPages } from "@wren/research/enrichment";
 import { documents } from "@wren/research/schema";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { verifications } from "@wren/starling-email/schema";
 import { SendPolicy } from "@wren/starling-email/send/policy";
 import { sharedVerdicts } from "@wren/starling-email/verification/shared";

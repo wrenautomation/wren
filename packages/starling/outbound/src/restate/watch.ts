@@ -7,7 +7,7 @@
  * invites) is swept for accepts and stale invites, then topped up (invites.ts). Last, DM drafts
  * for threads waiting on William and accepted invites (drafts.ts), at most 30 a day.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { type CapHolds, capHeld, capWaitMs, holdCap, liveHolds } from "@wren/core/autobrowse";
 import { sendsOn } from "@wren/core/clients";
 import { executorEmit, replyFired } from "@wren/core/executor";
@@ -26,6 +26,7 @@ import {
 } from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
 import { COLD_EVERY_MS, warmEveryMs } from "@wren/core/warm";
+import type * as restate from "@wren/runtime";
 import {
   clientReach,
   type HealthStats,

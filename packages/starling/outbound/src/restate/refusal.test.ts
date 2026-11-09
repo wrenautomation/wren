@@ -1,5 +1,5 @@
-import * as restate from "@restatedev/restate-sdk";
 import { SiteCallError } from "@wren/core/autobrowse";
+import * as restate from "@wren/runtime";
 import { describe, expect, it } from "vitest";
 import { finalRefusal } from "./index.js";
 

@@ -8,7 +8,7 @@
  * marks itself done, so a failed send is tried again next hour and a sent one
  * never repeats.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { why } from "@wren/core/access";
 import { type ClientMember, clientMembers, clients } from "@wren/core/clients";
 import type { Fired, FireTriggers } from "@wren/core/executor";
@@ -19,6 +19,7 @@ import { clientMailAlerts } from "@wren/core/setup-alerts";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { offerFor } from "@wren/offers";
+import type * as restate from "@wren/runtime";
 import {
   and,
   asc,

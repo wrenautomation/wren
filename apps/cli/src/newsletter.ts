@@ -3,10 +3,11 @@
  * on its topic. `send` reads the post from the lander (/blog/<slug>.json), shows who would get it,
  * and with `--yes` hands it to the `Newsletter` object, which sends each one once.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
+
 import { ingressOf, type Settings } from "@wren/config";
 import { issueAudience, issueSends, mayMarket, saveTopic } from "@wren/core/marketing";
 import type { Db } from "@wren/db";
+import * as clients from "@wren/runtime/clients";
 import { issueTag, listmonk } from "@wren/starling-inbound/listmonk";
 import type { Newsletter } from "@wren/starling-inbound/restate";
 import type { Command } from "commander";

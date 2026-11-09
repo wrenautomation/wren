@@ -15,7 +15,7 @@
  * webhooks out hear them. A deposit is a pay link made on the client's Stripe key when the
  * signer asks for it.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { type Client, clientMembers, findClient, sendsOn } from "@wren/core/clients";
 import { customFacts } from "@wren/core/custom-fields";
 import type { Fired, FireTriggers } from "@wren/core/executor";
@@ -34,6 +34,7 @@ import {
   markSent as markPaySent,
 } from "@wren/payments/store";
 import { stripeApi } from "@wren/payments/stripe";
+import * as restate from "@wren/runtime";
 import type { SmsDeskService } from "@wren/starling-sms/restate";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";

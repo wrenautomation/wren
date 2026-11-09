@@ -1,7 +1,8 @@
 /** `ReachDesk`'s LinkedIn invites: the pass, the proposed, his yes and no, a withdrawal. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { byOf } from "@wren/core/ask";
 import { NO_INPUT, serviceHandler } from "@wren/core/restate";
+import * as restate from "@wren/runtime";
 import { accountById, listAccounts, ReachRefusal } from "@wren/starling-acts";
 import { contactById } from "@wren/starling-conversations";
 import { z } from "zod";

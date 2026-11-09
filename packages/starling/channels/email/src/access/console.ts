@@ -4,7 +4,7 @@
  * their admin the consent link, and check. `MailCallback/land` is where Google and Microsoft send
  * the person back: public, its authority the one-time state it carries.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { WREN } from "@wren/core/access";
 import { executorEmit } from "@wren/core/executor";
 import {
@@ -22,6 +22,7 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { accountsOf, checkNow, type Setup, type SetupEmit, startSetup } from "@wren/core/setup";
 import { clientAccounts } from "@wren/core/setup-schema";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { domainOf, type MailAccessApi, wantOf } from "./access.js";

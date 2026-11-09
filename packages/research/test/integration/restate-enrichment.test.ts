@@ -3,14 +3,15 @@
  * apply → pick → apply, then the render tier. alwaysReplay re-runs the journal
  * after every step, so any non-determinism outside ctx.run fails loudly.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { leads, people, runs } from "@wren/core";
 import type { SiteClient } from "@wren/core/autobrowse";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_HASH } from "../../src/enrichment/crawler.js";

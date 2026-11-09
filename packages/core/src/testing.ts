@@ -1,11 +1,11 @@
-import * as restate from "@restatedev/restate-sdk";
+import type { Queryable } from "@wren/db";
+import { selfRemoving } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
 import {
   RestateContainer,
   RestateTestEnvironment,
   type TestEnvironmentOptions,
-} from "@restatedev/restate-sdk-testcontainers";
-import type { Queryable } from "@wren/db";
-import { selfRemoving } from "@wren/db/testing";
+} from "@wren/runtime/testing";
 import { sql } from "drizzle-orm";
 import { EXECUTOR, type ExecutorEvent } from "./executor.js";
 

@@ -3,7 +3,7 @@
  * delayed to its slot. The call checks the slot is still its own before it sends.
  */
 
-import * as restate from "@restatedev/restate-sdk";
+import * as restate from "@wren/runtime";
 import type { Slotted } from "../scheduled.js";
 
 /** Who a scheduled send is by, on the draft record and the touch. */

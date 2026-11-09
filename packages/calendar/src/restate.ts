@@ -22,12 +22,13 @@
  * Google and mail are capped at three tries each and never undo a booking: the row is the call.
  * Texts go through SmsUpkeep's reminder pass, which reads these calls next to cal.com's.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { type Client, findClient, isLive, listDomains, sendsOn } from "@wren/core/clients";
 import { executorEmit, type FireTriggers } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
 import { canonicalZone } from "@wren/core/time";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import {

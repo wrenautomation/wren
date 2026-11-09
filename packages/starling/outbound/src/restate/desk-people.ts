@@ -1,7 +1,8 @@
 /** `ReachDesk`'s People: a person drafted, messaged, followed or invited, and a DM from an Engage row. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { byOf } from "@wren/core/ask";
 import { errorText, serviceHandler } from "@wren/core/restate";
+import * as restate from "@wren/runtime";
 import { reachContacts } from "@wren/starling-conversations/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";

@@ -11,7 +11,7 @@
  * - `remind`: the same message again with a new link. `void`: the link stops working.
  * - `templateSave`, `templateArchive`: the client's templates.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { mayApprove } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
 import { customFacts } from "@wren/core/custom-fields";
@@ -44,6 +44,7 @@ import {
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { snapshot } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { toPhoneE164 } from "@wren/starling-sms";
 import { smsContacts } from "@wren/starling-sms/schema";
 import { and, eq, inArray, isNull } from "drizzle-orm";

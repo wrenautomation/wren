@@ -3,7 +3,7 @@
  * (`clientDeps`: its logins' rows, its keys), the channels an account sends through
  * (`channelsFor`), the wake to the watch, and a site's refusal that never retries.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Platform as ContentPlatform, SiteClient } from "@wren/core/autobrowse";
 import { isRefusal } from "@wren/core/autobrowse/restate";
 import type { FireTriggers } from "@wren/core/executor";
@@ -15,6 +15,7 @@ import type { OutreachChannel } from "@wren/core/outreach";
 import { clientKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { type LlmClient, llmForKey } from "@wren/llm";
+import * as restate from "@wren/runtime";
 import type {
   ClientReach,
   Platform,

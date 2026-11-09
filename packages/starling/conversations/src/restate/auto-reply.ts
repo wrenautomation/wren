@@ -4,7 +4,7 @@
  * queue behind the first, which finds the draft already waiting. Auto is held: it drafts like
  * Suggest and says so.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { findClient } from "@wren/core/clients";
 import { businessFactLines } from "@wren/core/custom-fields";
 import type { Fired, FireTriggers } from "@wren/core/executor";
@@ -14,6 +14,7 @@ import { clientKey, errorText } from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { type LlmClient, llmForKey } from "@wren/llm";
+import * as restate from "@wren/runtime";
 import {
   AUTO_BY,
   AUTO_HELD,

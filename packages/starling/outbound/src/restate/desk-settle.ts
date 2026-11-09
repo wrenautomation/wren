@@ -2,11 +2,12 @@
  * `ReachDesk/settleSend`: a person's word on a send autobrowse could not call
  * (designs/2026-10-16-maybe-sent.md).
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { byOf } from "@wren/core/ask";
 import { executorEmit } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
 import { cadenceId } from "@wren/core/workflows";
+import type * as restate from "@wren/runtime";
 import {
   dropItem,
   itemOf,

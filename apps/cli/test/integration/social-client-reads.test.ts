@@ -5,8 +5,7 @@
  * `comments` while Wren runs no channel of its own, and an answer to a review goes out through
  * the client's Profile. Synthetic clients and ids only; no network.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { asAccount, type Platform, type SiteClient } from "@wren/core/autobrowse";
 import { addClient, addMember, findClient, sendsOn, updateClient } from "@wren/core/clients";
@@ -16,6 +15,8 @@ import type { PassOutcome } from "@wren/core/restate";
 import { executorRecorder, startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { seedObjects, startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { clientRoute } from "@wren/starling-conversations/inbox";
 import { makeAutoReply } from "@wren/starling-conversations/restate";
 import { comments } from "@wren/starling-conversations/schema";

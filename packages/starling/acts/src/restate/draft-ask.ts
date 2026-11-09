@@ -6,7 +6,7 @@
  * `undo` puts back what the last change replaced. Nothing sends. While the Mac is off an ask
  * waits in Restate.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { finishRun, openRun } from "@wren/core";
 import { byOf, CLAUDE, type ClaudeService, type DraftTurn, draftAnswerOf } from "@wren/core/ask";
 import { PortalRefusal, terminalOf } from "@wren/core/portal";
@@ -15,6 +15,7 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
 import { livePrompt } from "@wren/core/templates/defaults";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { pickAccount } from "../draft-accounts.js";

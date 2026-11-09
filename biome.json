@@ -52,7 +52,7 @@
               "options": {
                 "paths": {
                   "@wren/reactivation": "A foundation never imports a product: move the shared part down into the foundation (designs/2026-09-29-client-reactivation.md, Layers).",
-                  "lucide-react": "Name the icon in packages/ui/src/icons.tsx and draw it with <Icon name=\u2026/>: one registry, so an icon changes in one place.",
+                  "lucide-react": "Name the icon in packages/ui/src/icons.tsx and draw it with <Icon name=…/>: one registry, so an icon changes in one place.",
                   "sonner": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md).",
                   "@base-ui/react": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md).",
                   "cmdk": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md)."
@@ -61,6 +61,10 @@
                   {
                     "group": ["@wren/reactivation/*", "@base-ui/react/*"],
                     "message": "A foundation never imports a product: move the shared part down into the foundation (designs/2026-09-29-client-reactivation.md, Layers). The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md)."
+                  },
+                  {
+                    "group": ["@restatedev/**"],
+                    "message": "Import the durable runtime from @wren/runtime (designs/2026-11-09-own-runtime.md): one door, so the move off Restate is one package."
                   }
                 ]
               }
@@ -78,7 +82,7 @@
               "level": "error",
               "options": {
                 "paths": {
-                  "lucide-react": "Name the icon in packages/ui/src/icons.tsx and draw it with <Icon name=\u2026/>: one registry, so an icon changes in one place.",
+                  "lucide-react": "Name the icon in packages/ui/src/icons.tsx and draw it with <Icon name=…/>: one registry, so an icon changes in one place.",
                   "sonner": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md).",
                   "@base-ui/react": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md).",
                   "cmdk": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md)."
@@ -87,6 +91,10 @@
                   {
                     "group": ["@base-ui/react/*"],
                     "message": "The kit is the one door to its vendors: import the part from @wren/ui (designs/2026-10-11-design-kits.md)."
+                  },
+                  {
+                    "group": ["@restatedev/**"],
+                    "message": "Import the durable runtime from @wren/runtime (designs/2026-11-09-own-runtime.md): one door, so the move off Restate is one package."
                   }
                 ]
               }
@@ -104,9 +112,15 @@
               "level": "error",
               "options": {
                 "paths": {
-                  "lucide-react": "Name the icon in packages/ui/src/icons.tsx and draw it with <Icon name=\u2026/>: one registry, so an icon changes in one place.",
+                  "lucide-react": "Name the icon in packages/ui/src/icons.tsx and draw it with <Icon name=…/>: one registry, so an icon changes in one place.",
                   "sonner": "Import toast from ./toast.js (or say from ./action.js): one door, so every toast obeys the tab's showing rule."
-                }
+                },
+                "patterns": [
+                  {
+                    "group": ["@restatedev/**"],
+                    "message": "Import the durable runtime from @wren/runtime (designs/2026-11-09-own-runtime.md): one door, so the move off Restate is one package."
+                  }
+                ]
               }
             }
           }
@@ -143,6 +157,16 @@
         "rules": {
           "suspicious": {
             "noUndeclaredEnvVars": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/runtime/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": "off"
           }
         }
       }

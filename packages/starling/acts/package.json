@@ -13,10 +13,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
+    "@wren/runtime": "workspace:*",
     "@wren/starling-reddit": "workspace:*",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"

@@ -1,6 +1,7 @@
 /** `ReachDesk`'s accounts: the list, one added, its state, its health now. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { serviceHandler } from "@wren/core/restate";
+import * as restate from "@wren/runtime";
 import {
   ACCOUNT_STATES,
   type AccountState,

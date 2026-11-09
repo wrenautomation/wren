@@ -7,9 +7,7 @@
  * save and a changed send kept as before and after, read back per kind into the next ask. His
  * past decisions on comments: the same few-shot the comment drafters read, in a comment's ask.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { draftTurns, editsFor, keepSentEdit } from "@wren/core/ask";
 import { recordDraft } from "@wren/core/draft-record";
@@ -22,6 +20,9 @@ import {
   type TestPostgres,
   truncate,
 } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { addAccount } from "@wren/starling-acts";
 import { makeDraftAsk } from "@wren/starling-acts/restate";
 import { addProspects, contactByHandle, receive } from "@wren/starling-conversations";

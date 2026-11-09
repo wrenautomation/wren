@@ -12,7 +12,7 @@
  * for the stored verdict under the post's send key, Wren's or a client's, and reads no words.
  * Found runs the after-publish. Else the person's word: posted, again, or dropped.
  */
-import * as restate from "@restatedev/restate-sdk";
+import * as restate from "@wren/runtime";
 import { approvalsHandlers } from "./desk-approvals.js";
 import { type ContentDeskDeps, contentDeskContext } from "./desk-context.js";
 import { draftingHandlers } from "./desk-drafting.js";

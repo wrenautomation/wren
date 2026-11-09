@@ -3,13 +3,14 @@
  * posts are read when a notification names them, else on the net, one a pass. Without a beat the
  * clock reads them as before.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import type { PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { seedObjects, startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { type ContentChannel, fakeContentChannel } from "@wren/starling-core";
 import { makeContent } from "@wren/starling-core/service";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

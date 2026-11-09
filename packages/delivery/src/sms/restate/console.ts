@@ -5,10 +5,9 @@
  * journaled and leaves from the client's `SmsSend/<client>/fleet`. The Worker keeps the write
  * off the demo (`../console-routes.ts`).
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { outcomeIn } from "@wren/core/calls";
 import type { Client } from "@wren/core/clients";
-
 import {
   answer,
   PortalRefusal,
@@ -32,6 +31,7 @@ import {
 } from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { atomic, type Db, setAuditActor, snapshot } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { TEXTS } from "@wren/starling-sms";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/starling-sms/console-routes";
 import { SMS_RECORDS } from "@wren/starling-sms/records";

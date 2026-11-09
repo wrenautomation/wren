@@ -1,9 +1,10 @@
 /** `ReachDesk`'s comments: answered in their thread, read again, armed, DMed, dropped. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { byOf } from "@wren/core/ask";
 import { executorEmit } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";
+import * as restate from "@wren/runtime";
 import { listAccounts, pickAccount, recordLanded } from "@wren/starling-acts";
 import { sendAtMostOnce } from "@wren/starling-acts/restate";
 import {

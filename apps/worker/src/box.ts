@@ -8,10 +8,10 @@
  */
 
 import http2 from "node:http2";
-import * as restate from "@restatedev/restate-sdk";
-import { connectTunnel } from "@restatedev/restate-sdk-tunnel";
 import { ingressOf, loadSettings } from "@wren/config";
 import { loadSsmEnv, loadSsmFile } from "@wren/config/ssm";
+import * as restate from "@wren/runtime";
+import { connectTunnel } from "@wren/runtime/tunnel";
 import pino from "pino";
 import { type AdminQuery, boxPort, boxUrl, watchSuperseded } from "./box-slot.js";
 import { buildServices, servicesFor } from "./services.js";

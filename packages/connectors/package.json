@@ -15,9 +15,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
+    "@wren/runtime": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"

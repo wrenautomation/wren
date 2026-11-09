@@ -2,9 +2,7 @@
  * Comment keywords against Postgres: which kept comments a keyword catches, once per comment and
  * per person, narrowest keyword first; the log's views; edits as changes. Synthetic rows only.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { editRecord } from "@wren/core/edits";
 import { serveRecords } from "@wren/core/records/serve";
@@ -15,6 +13,9 @@ import {
   startTestPostgres,
   type TestPostgres,
 } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { sendAttempt, sendAttempts } from "@wren/starling-acts";
 import { comments } from "@wren/starling-conversations/schema";
 import { eq } from "drizzle-orm";

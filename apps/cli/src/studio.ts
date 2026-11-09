@@ -7,11 +7,11 @@ import { existsSync } from "node:fs";
 import { copyFile, mkdir, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
-import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
 import { fleetKeys, loadLlmEnv, makeLlm } from "@wren/llm";
+import * as clients from "@wren/runtime/clients";
 import {
   AWS_LOGIN_HINT,
   approveVideo,

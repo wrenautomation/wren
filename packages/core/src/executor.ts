@@ -7,9 +7,9 @@
  * call; every arrival is a row in `events`, so nothing enters a node twice.
  */
 
-import * as restate from "@restatedev/restate-sdk";
 import { atomic, type Db, type Queryable, type Tx } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
+import * as restate from "@wren/runtime";
 import { and, desc, eq, isNull, type SQL, sql } from "drizzle-orm";
 import { CODE_STEPS } from "./code-step.js";
 import type { Component, EventKind, LoopKey } from "./components.js";

@@ -9,11 +9,12 @@
  * address we mailed or a word anyone wrote back.
  * A digest that cannot be built is skipped, not retried into the afternoon.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { pruneRuns } from "@wren/core";
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import type { SendPolicy } from "@wren/starling-email/send/policy";
 import { zonedInstant } from "@wren/starling-email/send/tz";
 import {

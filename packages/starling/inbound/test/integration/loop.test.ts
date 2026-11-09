@@ -5,9 +5,6 @@
  * a refusal lands on the row as `failed`; a scheduled draft waits its turn.
  */
 import { randomUUID } from "node:crypto";
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { runs } from "@wren/core";
 import type { Platform } from "@wren/core/autobrowse";
@@ -22,6 +19,9 @@ import {
   truncate,
 } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { RESEND_MARK, sendAttempt, sendsToResend } from "@wren/starling-acts";
 import type { Post, Published } from "@wren/starling-core";
 import type { LoopCampaign } from "@wren/starling-core/campaigns";

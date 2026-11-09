@@ -3,14 +3,15 @@
  * replaying): the webhook ingest applies once however often it is called, the
  * desk's reply nudges the sender and the text leaves, the loops report.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { makeExecutor } from "@wren/core/executor";
 import type { PassOutcome } from "@wren/core/restate";
 import { events } from "@wren/core/schema";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { SMS_COMPONENTS, TOUCH } from "../../src/components.js";

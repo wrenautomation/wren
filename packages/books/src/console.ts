@@ -3,7 +3,7 @@
  * console: its bucket and its channel. Needs `money` at Wren (`console-routes.ts`), and refuses
  * whoever `seesInternal` rejects; the Worker keeps the write off the demo.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { CHANNELS } from "@wren/core/clients";
 import {
   answer,
@@ -15,6 +15,7 @@ import {
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, serializable, setAuditActor } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { inArray } from "drizzle-orm";
 import { z } from "zod";
 import { BOOKS_CONSOLE_APPS, BOOKS_CONSOLE_ROUTES } from "./console-routes.js";

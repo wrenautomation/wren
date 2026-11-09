@@ -6,10 +6,11 @@
  *
  * `client` is the workspace: null is Wren's. `by` is the operator, kept as the cause's `ref`.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { EXECUTOR, type ExecutorService } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { dropJourney } from "./journeys.js";

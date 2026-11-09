@@ -8,8 +8,9 @@
  * so nothing waits to settle. A new touch wakes it at commit (`wren_wake`, migration 0353); the
  * net runs every 15 minutes (designs/2026-11-01-loop-calls.md).
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import type { Db, Queryable } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { sql } from "drizzle-orm";
 import { executorFire, type Fired } from "./executor.js";
 import { makeLoopObject, runPass } from "./restate/loop.js";

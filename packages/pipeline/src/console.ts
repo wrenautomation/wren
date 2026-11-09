@@ -21,7 +21,7 @@
  *
  * Every write goes through the store or the `Journeys` service, never a second path.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { WREN } from "@wren/core/access";
 import type { Client } from "@wren/core/clients";
 import { withCustomFields } from "@wren/core/custom-fields";
@@ -53,6 +53,7 @@ import {
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, type Queryable, snapshot } from "@wren/db";
 import { OFFER_IDS, OFFERS, type Terms } from "@wren/offers";
+import type * as restate from "@wren/runtime";
 import { z } from "zod";
 import { attachShape } from "./attach.js";
 import { PIPELINE_CONSOLE_APPS, PIPELINE_CONSOLE_ROUTES } from "./console-routes.js";

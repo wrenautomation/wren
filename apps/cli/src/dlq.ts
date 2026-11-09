@@ -5,7 +5,6 @@
  * `--json` everywhere, so an agent reads the same rows a person does.
  */
 import { userInfo } from "node:os";
-import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { type RestateAdmin, restateAdmin } from "@wren/core/console";
 import {
@@ -20,6 +19,7 @@ import {
   restateAdminPatch,
 } from "@wren/core/dead-letters";
 import type { Db } from "@wren/db";
+import * as clients from "@wren/runtime/clients";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

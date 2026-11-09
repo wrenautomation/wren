@@ -10,8 +10,9 @@
  *
  * The shapes copied from autobrowse (`src/sites/keys.ts`) are by hand: wren imports nothing from it.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { atomic, type Db, type Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { and, eq, gte, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { DESK, SITES, type SitesHost } from "./autobrowse/restate.js";

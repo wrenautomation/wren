@@ -5,11 +5,12 @@
  * `ListToJourney`), with no cursor: each pass reads what has not been told (`linePass`). Start it with
  * `POST MapLineFeed/all/start`.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { executorFire, type Fired } from "@wren/core/executor";
 import { makeLoopObject, type PassOutcome, runPass, setLastPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { linePass } from "@wren/pipeline/lines";
+import type * as restate from "@wren/runtime";
 
 const LINE_FEED = { name: "MapLineFeed" } as const;
 /** Between two passes when a find has more documents to tell. */

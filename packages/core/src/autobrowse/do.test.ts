@@ -1,4 +1,4 @@
-import * as restate from "@restatedev/restate-sdk";
+import * as restate from "@wren/runtime";
 import { describe, expect, it } from "vitest";
 import { autobrowseDo, DoFailed, type DoOutcome, doServiceFor, restateDo } from "./do.js";
 

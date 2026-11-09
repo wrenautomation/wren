@@ -6,9 +6,10 @@
  * sender. A client's runs in its own database and sends from the mailbox it picked in Account →
  * Messaging, as its broadcasts do. One with no mailer yet fails the step with why; a retry sends.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Queryable } from "@wren/db";
 import { atomic } from "@wren/db/isolation";
+import * as restate from "@wren/runtime";
 import { and, eq, sql } from "drizzle-orm";
 import { mintMessageId } from "./bounces.js";
 import { checkWords, factsOf, isUnset, type MailOf, renderFor } from "./broadcasts.js";

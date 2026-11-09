@@ -3,7 +3,7 @@
  * scheduler, metrics, planner), the social inbox and desk, auto-reply, comment keywords and
  * the site chat.
  */
-import type { ObjectContext } from "@restatedev/restate-sdk";
+
 import { asAccount, type Platform } from "@wren/core/autobrowse";
 import { DESK, restateSites } from "@wren/core/autobrowse/restate";
 import { restateAdmin } from "@wren/core/console";
@@ -13,6 +13,7 @@ import { githubRepo } from "@wren/core/github";
 import { LIMITS } from "@wren/core/restate";
 import { placeIdOf } from "@wren/delivery/sms";
 import { liveCampaignsOf } from "@wren/pipeline/store";
+import type { ObjectContext } from "@wren/runtime";
 import { makeDraftAsk } from "@wren/starling-acts/restate";
 import { markAnswered } from "@wren/starling-conversations";
 import { makeAutoReply, makeChat, makeInboxDesk } from "@wren/starling-conversations/restate";

@@ -4,13 +4,14 @@
  * Inbox (SocialActivityRead calls it each pass). `send` answers a DM and `answer` a comment, each after
  * InboxDesk's gate said yes, and each refused again here while the client's sends are off.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { SiteClient } from "@wren/core/autobrowse";
 import { findClient, sendsOn } from "@wren/core/clients";
 import { noRawKeys } from "@wren/core/key-refs";
 import { clientKey, errorText, serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";
 import { atomic, type Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import {
   forgetUnsure,
   itemOf,

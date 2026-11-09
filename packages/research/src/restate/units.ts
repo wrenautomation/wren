@@ -6,10 +6,11 @@
  * re-runs that batch's finished units, so only free, idempotent work batches: a unit
  * that buys a model call or a metered read keeps `perRun: 1` and is never bought twice.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { hold, holdsOn, settle } from "@wren/core/checks";
 import { isVendorStop } from "@wren/core/vendor-stop";
 import type { Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 
 /** Units per journaled step for free work. */
 export const UNITS_PER_RUN = 20;

@@ -3,7 +3,7 @@
  * The records to set and the live state come from Cloudflare; `Domains/resolve` tells the portal
  * Worker which client a host is.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import {
   addDomain,
   type ClientDomain,
@@ -27,6 +27,7 @@ import {
   teamCan,
 } from "@wren/core/portal";
 import { serviceHandler } from "@wren/core/restate";
+import * as restate from "@wren/runtime";
 
 export interface DomainView {
   hostname: string;

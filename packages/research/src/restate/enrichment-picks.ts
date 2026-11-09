@@ -1,8 +1,9 @@
 /** Enrichment handlers that pick who to contact and what to open with. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { companies } from "@wren/core";
 import { exclusiveHandler } from "@wren/core/restate";
 import { atomic } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { backfillCallRecords } from "../enrichment/audit-backfill.js";

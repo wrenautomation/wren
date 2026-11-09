@@ -3,14 +3,15 @@
  * spend gate, progress → short delay, idle → next day, a refusing stage → retry,
  * a hung stage → cut at its wait and held on its third, and `profiles` reading compose's queue.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
 import type { LoopStatus, PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { untilNextLocalDay } from "@wren/starling-email/restate";
 import { SendPolicy } from "@wren/starling-email/send/policy";
 import { sql } from "drizzle-orm";

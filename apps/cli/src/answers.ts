@@ -5,10 +5,11 @@
  * calendar and the inboxes. With `--client`, a client's answers: its database,
  * its `Disposition/<client>/replies` (email replies installed).
  */
-import * as clients from "@restatedev/restate-sdk-clients";
+
 import { ingressOf, type Settings } from "@wren/config";
 import { clientKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as clients from "@wren/runtime/clients";
 import { DISPOSITION_KEY, type Disposition, openInvites } from "@wren/starling-outbound/email";
 import type { Command } from "commander";
 

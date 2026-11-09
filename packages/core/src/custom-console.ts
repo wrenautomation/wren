@@ -5,8 +5,9 @@
  * sit beside the records they are on: Wren's in main, a client's in its own database (`onClient`),
  * where the owner is null (the database is theirs). Business facts are main's, by owner.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { type Db, type Queryable, serializable, setAuditActor } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { can, WREN } from "./access.js";
 import { placeOf } from "./access-console.js";
 import {

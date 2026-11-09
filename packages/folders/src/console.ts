@@ -1,5 +1,5 @@
 /** FoldersConsole: the tree for every list in the portal (designs/2026-11-08-folders.md). */
-import type * as restate from "@restatedev/restate-sdk";
+
 import {
   answer,
   PortalRefusal,
@@ -9,6 +9,7 @@ import {
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { z } from "zod";
 import { FOLDERS_CONSOLE_APPS, FOLDERS_CONSOLE_ROUTES } from "./console-routes.js";
 import { FolderError, folderTree, ITEM_KINDS } from "./index.js";

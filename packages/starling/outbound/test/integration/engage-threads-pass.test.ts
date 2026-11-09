@@ -6,8 +6,7 @@
  * never ours; one person's messages fold into one row, newest first. A count that held is not
  * read again; a count that moved is. Synthetic handles and posts only.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import type { SiteClient } from "@wren/core/autobrowse";
 import { journaledSites } from "@wren/core/autobrowse/restate";
@@ -16,6 +15,8 @@ import type { PassOutcome } from "@wren/core/restate";
 import { dbSendJournal } from "@wren/core/send-journal";
 import { executorRecorder, startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { addAccount, DEFAULT_POLICY, setAccountState } from "@wren/starling-acts";
 import { COMMENTS_FLOW } from "@wren/starling-conversations";
 import { COMMENT_FOLD } from "@wren/starling-conversations/records";

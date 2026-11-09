@@ -5,12 +5,13 @@
  * `console.loop` record type, read through Postgres like any other. `addClient` makes a client
  * database from the console, team only, and finishes one a failed try left half made.
  */
-import type * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { clientDatabaseUrl, createDatabase, createDb } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import type * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { addOperator, findClient } from "../../src/clients/index.js";

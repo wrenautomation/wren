@@ -10,7 +10,7 @@
  * back to `ListmonkMail` (`./listmonk.ts`), which delivers it through `deliverIssue` below, the same
  * gate and mail the loop uses. A test still goes direct.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { mintMessageId } from "@wren/core/bounces";
 import {
   issueAudience,
@@ -23,6 +23,7 @@ import {
 import { type LinkTags, readMessageSettings, tagLinks } from "@wren/core/message-settings";
 import { exclusiveHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import type { PlainMail } from "@wren/starling-email/send/gmail";
 import { z } from "zod";
 import { startCampaign } from "../listmonk/campaign.js";

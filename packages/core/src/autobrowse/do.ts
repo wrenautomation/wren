@@ -6,7 +6,7 @@
  * Two doors, one shape: HTTP (a laptop against a local autobrowse) and the
  * `do` Restate service (the worker, through Restate, no port on the box).
  */
-import * as restate from "@restatedev/restate-sdk";
+import * as restate from "@wren/runtime";
 import type { FetchLike } from "../doh.js";
 import type { Wake } from "./restate.js";
 

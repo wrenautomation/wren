@@ -10,7 +10,7 @@
  * not wait on a machine that is off. `caller` names who asks on every call,
  * so autobrowse can say who spent a capped site's reads.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
+import * as clients from "@wren/runtime/clients";
 import { SiteCallError, type SiteClient, viaOf } from "./index.js";
 import { SITES, type SitesHost, type SitesService } from "./restate.js";
 

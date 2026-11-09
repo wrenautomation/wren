@@ -5,8 +5,9 @@
  * switches setups, and sets vendor modes. A key is never read back. Moves on a setup go onto the
  * executor (`executorEmit`) once the write is journaled.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { eq, gte, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { WREN } from "./access.js";

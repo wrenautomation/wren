@@ -5,9 +5,7 @@
  * pass that kept something (a text only when a comment asks). Then the Inbox records, mark seen,
  * a content comment's answer plan, and the comment guide.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { SiteCallError } from "@wren/core/autobrowse";
 import type { ExecutorEvent } from "@wren/core/executor";
@@ -18,6 +16,9 @@ import type { PassOutcome } from "@wren/core/restate";
 import { askPublish, saveDraft } from "@wren/core/templates";
 import { startTestRestate } from "@wren/core/testing";
 import { seedObjects, startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { parkUnsure, redditPlaces, redditRequirements, sendAttempts } from "@wren/starling-acts";
 import { answerComment, planAnswer } from "@wren/starling-conversations";
 import { comments, reachContacts, reachMessages } from "@wren/starling-conversations/schema";

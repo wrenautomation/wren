@@ -5,9 +5,7 @@
  * that remember start and stop. The question each time: is any mailbox left
  * running that shouldn't be, or stopped that should run?
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as ingress from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf, loadSettings } from "@wren/config";
 import { clients } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
@@ -15,6 +13,9 @@ import { makeLoopObject } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
+import * as ingress from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import {
   ConsoleTransport,
   FakeVerifier,

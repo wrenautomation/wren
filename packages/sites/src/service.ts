@@ -4,10 +4,11 @@
  * hosted form (designs/2026-10-07-forms-and-pay.md); `track` keeps a tracker event; `form` keeps
  * a submit and enters its page's or form's door on the executor as `form.submitted`.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { EXECUTOR, type ExecutorService } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 import { formArmToServe, specForArm } from "./form-split.js";
 import { consentVersion, formById, formOf, formToServe } from "./form-store.js";

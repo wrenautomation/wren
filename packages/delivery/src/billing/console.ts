@@ -3,7 +3,7 @@
  * on an invoice (its likeliest by default, the one To approve names) or set it aside. Reading is
  * the console's `console.credit` record. The demo changes nothing.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import {
   answer,
   isDemo,
@@ -14,6 +14,7 @@ import {
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { invoices, wiseCredits } from "../schema.js";

@@ -1,5 +1,5 @@
 /** The enrichment object's context, built once: the scope a unit runs in, the run journal, the browser pool and the model and key lookups every group shares. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { type Company, type CompanyScreen, companies, finishRun, openRun } from "@wren/core";
 import type { SiteClient } from "@wren/core/autobrowse";
 import { findClient } from "@wren/core/clients";
@@ -8,6 +8,7 @@ import { clientOfKey } from "@wren/core/restate";
 import { vendorKeys } from "@wren/core/vendor-keys";
 import type { Db, Queryable } from "@wren/db";
 import { type LlmClient, NULL_TRACER, type Tracer } from "@wren/llm";
+import * as restate from "@wren/runtime";
 import type { Fetcher } from "@wrenautomation/read/fetch";
 import { eq } from "drizzle-orm";
 import { z } from "zod";

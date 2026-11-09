@@ -4,7 +4,7 @@
  * them; Show like this writes one that shows it. Sort again re-triages what's waiting under today's
  * rules. Rules can also be written or removed by hand.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import {
   answer,
   PortalRefusal,
@@ -15,6 +15,7 @@ import {
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { atomic, type Db, setAuditActor, type Tx } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import type * as restate from "@wren/runtime";
 import { and, eq, ilike, inArray, isNull, or, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { WATCH_CONSOLE_APPS, WATCH_CONSOLE_ROUTES } from "./console-routes.js";

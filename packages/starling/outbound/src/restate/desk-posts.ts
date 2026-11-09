@@ -1,9 +1,10 @@
 /** `ReachDesk`'s posts to comment on: the comment, a like or follow, passes, skips, redrafts, the list, the pass now. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { byOf } from "@wren/core/ask";
 import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
 import { errorText, NO_INPUT, serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";
+import * as restate from "@wren/runtime";
 import { pickedAccount, recordLanded } from "@wren/starling-acts";
 import {
   isSendNotSent,

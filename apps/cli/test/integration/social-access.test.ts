@@ -8,9 +8,7 @@
  * approve until its approver settles it (designs/2026-10-16-maybe-sent.md). Synthetic clients
  * and ids only; no network.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import type { SiteClient } from "@wren/core/autobrowse";
 import { journaledSites } from "@wren/core/autobrowse/restate";
@@ -24,6 +22,9 @@ import { touches } from "@wren/core/touches-schema";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { parkUnsure, sendAttempt } from "@wren/starling-acts";
 import { markAnswered } from "@wren/starling-conversations";
 import { makeInboxDesk } from "@wren/starling-conversations/restate";

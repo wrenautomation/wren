@@ -8,7 +8,7 @@
  * footer with the one-click unsubscribe, portal@, a Message-ID the bounce reader matches.
  * `NewsletterSync`: hourly, Wren's consents to Listmonk's lists and back (`../listmonk/sync.ts`).
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { consentIdOf, emailTopics, topicConsents, withdrawConsent } from "@wren/core/marketing";
 import { tagLinks } from "@wren/core/message-settings";
 import {
@@ -19,6 +19,7 @@ import {
   serviceHandler,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 import { issueOf } from "../listmonk/campaign.js";
 import type { Listmonk } from "../listmonk/client.js";

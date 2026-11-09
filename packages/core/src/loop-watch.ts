@@ -9,8 +9,9 @@
  * The loops come from Restate's `state`, the same read as Console → Loops: a loop added later is
  * watched with no list to update. A loop's cadence is its own: the last pass's `delayMs`.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { inArray } from "drizzle-orm";
 import { LOOPS_SQL, type LoopRow, loopsOf, type RestateAdmin } from "./console.js";
 import { deadLetters } from "./dead-letter-schema.js";

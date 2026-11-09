@@ -1,4 +1,4 @@
-import type * as restate from "@restatedev/restate-sdk";
+import type * as restate from "@wren/runtime";
 import { describe, expect, it } from "vitest";
 import {
   errorText,

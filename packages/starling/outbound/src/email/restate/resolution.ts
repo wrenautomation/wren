@@ -5,10 +5,11 @@
  * journaled step over one transaction; a crash loses at most one domain's spend
  * and the promotions batch runs from journaled refs.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { finishRun, openRun } from "@wren/core";
 import { exclusiveHandler } from "@wren/core/restate";
 import { atomic, type Db, type DbHandle } from "@wren/db";
+import * as restate from "@wren/runtime";
 import type { RecontactPolicy } from "@wren/starling-email";
 import { eachConcurrently } from "@wren/starling-email";
 import type { LocalCheckerLike } from "@wren/starling-email/verification/local";

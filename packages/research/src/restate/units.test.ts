@@ -1,6 +1,6 @@
-import * as restate from "@restatedev/restate-sdk";
 import { VendorStop } from "@wren/core/vendor-stop";
 import type { Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { describe, expect, it } from "vitest";
 import { isStopReason, notHeld, type StageHolds, unitBatches } from "./units.js";
 

@@ -3,10 +3,11 @@
  * dialed, nothing booked); when it ends, `saveTest` keeps its transcript and timed turns, so the
  * Calls and Latency pages read tests and real calls the same way.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { answer, type PortalRequest, portalService, type SignedViewer } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { atomic, type Db, setAuditActor } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { z } from "zod";
 import { STAGES } from "./call.js";
 import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "./console-routes.js";

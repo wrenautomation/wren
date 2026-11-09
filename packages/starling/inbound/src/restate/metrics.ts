@@ -26,7 +26,7 @@
  * next miss, at most a day. A failed look writes no row, so the post is due every pass and
  * each would read it again (10-24: LinkedIn's new post page failed every read).
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { type CapHolds, capHeld, holdCap, liveHolds, type Platform } from "@wren/core/autobrowse";
 import type { Notifier } from "@wren/core/notify";
 import {
@@ -42,6 +42,7 @@ import {
   within,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import type {
   AccountInsights,
   Insights,

@@ -4,7 +4,7 @@
  * William's plan: $0 a call. While the Mac is off the call waits in Restate under its idempotency
  * key; this side gives up after `timeoutMs` and the next pass, asking the same key, gets the answer.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
+import * as clients from "@wren/runtime/clients";
 import { CLAUDE, type ClaudeService } from "../ask.js";
 import type { AgentAsk } from "./backends.js";
 

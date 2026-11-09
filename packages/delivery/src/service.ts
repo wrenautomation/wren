@@ -4,7 +4,7 @@
  * picks the client. Clients answer asks and decide deliverables; the rest is
  * Wren's team. The demo reads its sample and writes nothing.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { can, type Permission, type RoleId } from "@wren/core/access";
 import {
   addMember,
@@ -55,6 +55,7 @@ import {
 } from "@wren/core/records/serve";
 import { WEBHOOKS, type WebhooksService } from "@wren/core/webhooks";
 import { type Db, type Queryable, serializable, setAuditActor } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { billToOf, invoiceFile, pdfName } from "./billing/mail.js";
 import type { ReceiveDetails } from "./billing/receive.js";
 import { domainsApi } from "./domains.js";

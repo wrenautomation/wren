@@ -5,12 +5,13 @@
  * the live post's issue (/blog/<slug>.json) and hands it to `Newsletter`, which sends each
  * address once. Wren's own site only: a client's key is refused.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { byOf } from "@wren/core/ask";
 import type { GithubFiles } from "@wren/core/github";
 import { issueAudience, issueSends, mayMarket } from "@wren/core/marketing";
 import { exclusiveHandler, NO_INPUT, PORTAL_FIELDS, sharedHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 import {
   BLOG_DIR,

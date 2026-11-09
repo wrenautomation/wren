@@ -22,10 +22,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/payments": "workspace:*",
+    "@wren/runtime": "workspace:*",
     "@wren/starling-sms": "workspace:*",
     "drizzle-orm": "0.45.2",
     "pdf-lib": "1.17.1",

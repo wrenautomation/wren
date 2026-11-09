@@ -4,7 +4,7 @@
  * with one sign-in, check it and turn it off. `SocialCallback/land` is where each platform sends
  * the person back: public, its authority the one-time state it carries.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { WREN } from "@wren/core/access";
 import type { Platform, SiteClient } from "@wren/core/autobrowse";
 import type { SitesHost } from "@wren/core/autobrowse/restate";
@@ -24,6 +24,7 @@ import {
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { accountsOf, checkNow, type Setup, type SetupEmit, startSetup } from "@wren/core/setup";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 import type { SocialAccessApi } from "./access.js";
 import { SOCIAL_ACCESS_APPS, SOCIAL_ACCESS_ROUTES } from "./console-routes.js";

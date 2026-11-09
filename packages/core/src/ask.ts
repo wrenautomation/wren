@@ -9,8 +9,9 @@
  * desk call, per draft: `draftTurns` reads one draft's turns; `@wren/starling-inbound`'s `DraftAsk`
  * writes them.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Db, Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { recordDraft } from "./draft-record.js";

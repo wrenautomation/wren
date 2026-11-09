@@ -13,8 +13,9 @@
  *   Checks' `unit_holds` (7 days, one more try, then a person), not tried forever. With
  *   `oneHost` (every call goes through the desk), two timeouts in a row end the pass's calls.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import type { Queryable } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { hold, holdsOn, settle } from "../checks.js";
 
 const MIN = 60_000;

@@ -2,8 +2,9 @@
  * `wren social`: SocialActivityRead's loop on the box (designs/2026-10-06-social-inbox.md). It reads
  * comments, activity and followers on our own accounts; Marketing → Inbox is where they're worked.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
+
 import { ingressOf, type Settings } from "@wren/config";
+import * as clients from "@wren/runtime/clients";
 import {
   SOCIAL_KEY,
   type SocialActivityRead,

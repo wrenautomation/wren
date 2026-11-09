@@ -18,7 +18,7 @@
  * reaches `InboxPush/<address>/notify` (the phone Worker's `/webhooks/gmail`)
  * and runs a pass at once. While the watch lives, the loop polls only as a net.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { type FireTriggers, replyFired } from "@wren/core/executor";
 import { type Notifier, plural } from "@wren/core/notify";
 import { replyWho } from "@wren/core/reply-who";
@@ -32,6 +32,7 @@ import {
   WEBHOOK_SERVICE,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { DAY_MS, type SyncStats, syncInbox } from "@wren/starling-conversations/email";
 import type { SharedSuppressions } from "@wren/starling-email";
 import type { InboxReader } from "@wrenautomation/autobrowse/mail";

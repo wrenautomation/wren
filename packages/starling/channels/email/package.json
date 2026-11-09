@@ -29,12 +29,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@restatedev/restate-sdk": "1.17.1",
     "@wren/config": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/experiments": "workspace:*",
     "@wren/research": "workspace:*",
+    "@wren/runtime": "workspace:*",
     "@wren/starling-core": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
     "@wrenautomation/read": "0.51.0",
@@ -47,8 +47,6 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
-    "@restatedev/restate-sdk-clients": "1.17.1",
-    "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@testcontainers/postgresql": "12.1.0",
     "@types/libmime": "5.3.0",
     "@types/nodemailer": "8.0.2",

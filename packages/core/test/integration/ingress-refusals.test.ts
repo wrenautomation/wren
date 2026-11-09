@@ -3,7 +3,7 @@
  * (`answer`), and one run per idempotency key (the Worker's request id). A throwaway service, no
  * database.
  */
-import * as restate from "@restatedev/restate-sdk";
+import * as restate from "@wren/runtime";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { answer } from "../../src/portal.js";
 import { PortalRefusal, staleRefusal } from "../../src/refusal.js";

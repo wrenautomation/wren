@@ -4,13 +4,14 @@
  * his yes kept, leaves To approve, and sends itself once they have room (a delayed call to
  * `InboxDesk.release`), again later if held again. Synthetic threads only.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { markAnswered } from "@wren/starling-conversations";
 import { askFollowEmail, conversationOf } from "@wren/starling-conversations/inbox";
 import { makeInboxDesk } from "@wren/starling-conversations/restate";

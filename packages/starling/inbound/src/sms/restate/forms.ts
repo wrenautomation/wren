@@ -10,8 +10,9 @@
  * SmsUpkeep's 30-minute pass does the same for anything a push missed, so a lost push costs
  * minutes, not the applicant.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { serviceHandler, WEBHOOK_SERVICE } from "@wren/core/restate";
+import * as restate from "@wren/runtime";
 import type { FormPasses, SmsDeps } from "@wren/starling-sms/restate";
 import { FORM_WORKFLOW, speedRuns } from "@wren/starling-sms/schema";
 import { and, eq } from "drizzle-orm";

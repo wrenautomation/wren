@@ -6,12 +6,13 @@
  * (designs/2026-10-13-video-review.md): word fixes, fields and notes written, then a render; Reject
  * and Bring back. Synthetic rows only.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { getEdit, setRendered } from "@wren/starling-studio/edit";
 import { videoEdits } from "@wren/starling-studio/schema";
 import { eq } from "drizzle-orm";

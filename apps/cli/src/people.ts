@@ -8,7 +8,6 @@
  * is and whether they're warm; `refresh` runs one pass; `personas` asks a model for unknown roles.
  */
 
-import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import {
   fillPersonas,
@@ -41,6 +40,7 @@ import { bulkBackfillProfiles } from "@wren/core/profiles-bulk";
 import { linkBookers } from "@wren/core/profiles-link";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import * as clients from "@wren/runtime/clients";
 import { type Command, InvalidArgumentError } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

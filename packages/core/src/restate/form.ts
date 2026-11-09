@@ -5,7 +5,7 @@
  *
  * Each wrapper hands back the handler's own type, so typed clients see what they saw before.
  */
-import * as restate from "@restatedev/restate-sdk";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 
 /** What a press does outside wren: money, a message to a person, a public post. */

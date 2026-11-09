@@ -8,8 +8,9 @@
  * Reads only, outside Wren's own tables and lanes: the checks are free vendor reads, and nothing
  * here sends to a lead or a client, buys, or creates an account. The agent is never queued here.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { executorEmit } from "./executor.js";
 import type { Notifier } from "./notify.js";
 import { makeLoopObject, type PassOutcome, runPass } from "./restate/loop.js";

@@ -24,7 +24,7 @@
  * `SocialDesk` is Marketing → Inbox's activity actions (mark seen, mark all seen) and Followers'
  * "Read now": a follower count read once, for a platform the loop never reads one on (LinkedIn).
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import {
   type CapHolds,
   capHeld,
@@ -52,6 +52,7 @@ import {
 } from "@wren/core/restate";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import {
   COMMENTS_FLOW,
   COMMENTS_FROM,

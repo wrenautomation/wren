@@ -9,7 +9,7 @@
  *
  * Exclusive per client: two calls for one client queue, never overlap.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { recordedRun, runFeed } from "@wren/core";
 import type { SiteClient } from "@wren/core/autobrowse";
 import { type Client, findClient } from "@wren/core/clients";
@@ -18,6 +18,7 @@ import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { keepingAnswers } from "@wren/research";
 import { googleLimits } from "@wren/research/limits";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 import { type RedraftStats, redraftAwaiting } from "./compose.js";
 import { familyJudge, type SettleStats, settleMoves } from "./family.js";

@@ -5,7 +5,7 @@
  * keeps a published workflow's live wiring as a template (designs/2026-10-06-workflow-editor.md);
  * `delete-template` takes one off, refused while a client runs it live.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
+
 import { ingressOf, type Settings } from "@wren/config";
 import { type Client, getClient } from "@wren/core/clients";
 import {
@@ -22,6 +22,7 @@ import {
 } from "@wren/core/templates/install";
 import { deleteWorkflowTemplate, saveWorkflowTemplate } from "@wren/core/templates/saved";
 import type { Db } from "@wren/db";
+import * as clients from "@wren/runtime/clients";
 import { COMPONENTS } from "@wren/worker/components";
 import { SETUPS } from "@wren/worker/setups";
 import { WORKFLOWS } from "@wren/worker/workflows";

@@ -5,11 +5,12 @@
  * row and appends to its checks. The hour's check that is not live goes to Discord once. A used
  * daily cap on the public read keeps nothing: the check comes back once the cap resets.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { capWaitMs, type SiteClient } from "@wren/core/autobrowse";
 import type { Notifier } from "@wren/core/notify";
 import { serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { type KeepShot, type Proof, siteProof } from "@wren/starling-core";
 import { z } from "zod";
 import { HAND_ROUND, keepProof, PROOF_ROUNDS, proofTarget, warningOf } from "../proofs.js";

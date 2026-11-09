@@ -5,12 +5,13 @@
  * keywords. 11-04 (designs/2026-11-04-meta-push-flows.md): each DM waits its `MetaPace` slot; a
  * keyword with a button sends it on the DM, and `tap` sends the follow-up.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { byOf } from "@wren/core/ask";
 import { tagged } from "@wren/core/message-settings";
 import { errorText, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { ReachRefusal, recordLanded } from "@wren/starling-acts";
 import { isSendTaken, isSendUnsure, sendAtMostOnce, sendError } from "@wren/starling-acts/restate";
 import { planPrivateReply, turnKinds } from "@wren/starling-conversations";

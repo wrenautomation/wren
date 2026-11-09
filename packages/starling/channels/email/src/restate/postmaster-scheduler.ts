@@ -10,12 +10,13 @@
  * setup verified in Postmaster (`postmaster.verified` on its `domain` account) is read; the rest
  * are named in the pass. Wren's Postmaster login reads them: the domain is added to it.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { findClient } from "@wren/core/clients";
 import { clientOfKey, makeLoopObject, pausedPass, runPass, stoppedPass } from "@wren/core/restate";
 import { accountsOf } from "@wren/core/setup";
 import { partPaused, pausedText } from "@wren/core/setup-alerts";
 import type { Db, Queryable } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { EMAIL_COMPONENTS, INBOX_HEALTH } from "../components.js";
 import {
   type PostmasterClient,

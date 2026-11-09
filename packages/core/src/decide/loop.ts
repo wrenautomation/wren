@@ -7,8 +7,9 @@
  * Limits: at most `max` subjects and `budgetMs` a pass, each call `LIMITS.http`; 3 failures end the
  * pass, a refused key ends it at once, and the daily cap holds it.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import type { Db, Queryable } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { z } from "zod";
 import { exclusiveHandler } from "../restate/form.js";
 import { makeLoopObject, type PassOutcome, runPass } from "../restate/loop.js";

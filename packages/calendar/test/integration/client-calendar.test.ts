@@ -5,15 +5,16 @@
  * gets the invite and the client-signed mail; manage links stay with their client; the executor
  * hears each change under the client; the client's Calendar app reads and marks its own calls.
  */
-import * as restate from "@restatedev/restate-sdk";
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { addClient, addMember, updateClient } from "@wren/core/clients";
 import { EXECUTOR, type ExecutorService } from "@wren/core/executor";
 import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientAdminUrl, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { makeCalendarConsole } from "../../src/console.js";

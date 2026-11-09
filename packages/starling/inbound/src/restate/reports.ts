@@ -3,7 +3,7 @@
  * Monday or 1st at 9:00, runs it, sleeps again. A save starts a new chain; a turn from an older
  * chain does nothing, as ConnectorSync's.
  */
-import * as restate from "@restatedev/restate-sdk";
+import * as restate from "@wren/runtime";
 import {
   delayTo,
   nextRunAt,

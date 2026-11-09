@@ -1,7 +1,8 @@
 /** ContentDesk handlers for the formats beyond a post: stories, carousels and slides. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { byOf } from "@wren/core/ask";
 import { exclusiveHandler, PORTAL_FIELDS, sharedHandler } from "@wren/core/restate";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 import {
   CAROUSEL_PLATFORMS,

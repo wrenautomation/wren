@@ -7,7 +7,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, extname, join, resolve } from "node:path";
-import * as clients from "@restatedev/restate-sdk-clients";
 import {
   ALERT_KINDS,
   type AlertKind,
@@ -52,6 +51,7 @@ import { recordedRun } from "@wren/core";
 import { usageByPart } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
+import * as clients from "@wren/runtime/clients";
 import { GmailClient } from "@wren/starling-email";
 import { expandHome } from "@wrenautomation/autobrowse/google";
 import type { Command } from "commander";

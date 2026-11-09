@@ -10,7 +10,6 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import * as restate from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
 import { mayApprove } from "@wren/core/access";
@@ -46,6 +45,7 @@ import {
   skipDrafts,
 } from "@wren/reactivation";
 import { type CrmRunObject, MAX_LIMIT, type Reactivation } from "@wren/reactivation/restate";
+import * as restate from "@wren/runtime/clients";
 import { defaultLocalChecker, makeVerifier } from "@wren/starling-email";
 import type { EmailInboxRead, EmailSend } from "@wren/starling-outbound/email";
 import { PoliteFetcher, userAgent } from "@wrenautomation/read/fetch";

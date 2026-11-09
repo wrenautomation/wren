@@ -7,11 +7,11 @@
  * `SmsSend/<client>/fleet` and `SmsUpkeep/<client>/daily` (`sms.texts` installed).
  */
 import { readFile } from "node:fs/promises";
-import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { clientKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { SMS_SEQUENCES } from "@wren/niches";
+import * as clients from "@wren/runtime/clients";
 import {
   CONTACT_BASES,
   type ContactBasis,

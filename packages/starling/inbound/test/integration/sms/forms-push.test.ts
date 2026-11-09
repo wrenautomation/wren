@@ -5,11 +5,12 @@
  * an applicant with no text (unticked, a country form texts skip) gets the email alone.
  * Synthetic applicants and a fake carrier; nothing leaves.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { DEFAULT_HEALTH, FakeProvider, FORM_SEQUENCES } from "@wren/starling-sms";
 import { smsMessages, speedRuns } from "@wren/starling-sms/schema";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

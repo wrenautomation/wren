@@ -1,8 +1,9 @@
 /** ContentDesk handlers that propose a replacement post and settle it. */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { byOf } from "@wren/core/ask";
 import type { Platform } from "@wren/core/autobrowse";
 import { clientOfKey, exclusiveHandler, PORTAL_FIELDS } from "@wren/core/restate";
+import type * as restate from "@wren/runtime";
 import type { PostPatch } from "@wren/starling-core";
 import { z } from "zod";
 import { askSwap, planSwap, skipSwaps, startSwap } from "../analytics/variants.js";

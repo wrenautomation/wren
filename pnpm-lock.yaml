@@ -106,9 +106,6 @@ importers:
       '@duckdb/node-api':
         specifier: 1.5.6-r.1
         version: 1.5.6-r.1
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/agent':
         specifier: workspace:*
         version: link:../../packages/agent
@@ -160,6 +157,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../../packages/research
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
       '@wren/sites':
         specifier: workspace:*
         version: link:../../packages/sites
@@ -233,12 +233,6 @@ importers:
         specifier: 1.63.0
         version: 1.63.0
     devDependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
       esbuild:
         specifier: 0.28.2
         version: 0.28.2
@@ -508,12 +502,6 @@ importers:
 
   apps/worker:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-tunnel':
-        specifier: 1.17.1
-        version: 1.17.1(@restatedev/restate-sdk@1.17.1)
       '@wren/books':
         specifier: workspace:*
         version: link:../../packages/books
@@ -562,6 +550,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../../packages/research
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
       '@wren/sites':
         specifier: workspace:*
         version: link:../../packages/sites
@@ -706,9 +697,6 @@ importers:
       '@aws-sdk/client-s3':
         specifier: 3.1136.0
         version: 3.1136.0
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -718,6 +706,9 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@wrenautomation/read':
         specifier: 0.51.0
         version: 0.51.0(@aws-sdk/client-s3@3.1136.0)
@@ -740,9 +731,6 @@ importers:
 
   packages/calendar:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -755,6 +743,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../research
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@wren/starling-email':
         specifier: workspace:*
         version: link:../starling/channels/email
@@ -771,12 +762,6 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
@@ -808,15 +793,15 @@ importers:
 
   packages/connectors:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@wrenautomation/autobrowse':
         specifier: 0.8.4
         version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
@@ -845,18 +830,15 @@ importers:
       '@jitl/quickjs-singlefile-mjs-release-sync':
         specifier: 0.32.0
         version: 0.32.0
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
       '@typesafe-ai/sdk':
         specifier: 0.6.0
         version: 0.6.0
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@wrenautomation/models':
         specifier: 0.51.0
         version: 0.51.0
@@ -885,9 +867,6 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
@@ -940,9 +919,6 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: 3.1136.0
         version: 3.1136.0
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/books':
         specifier: workspace:*
         version: link:../books
@@ -964,6 +940,9 @@ importers:
       '@wren/pipeline':
         specifier: workspace:*
         version: link:../pipeline
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@wren/starling-sms':
         specifier: workspace:*
         version: link:../starling/channels/sms
@@ -974,12 +953,6 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
@@ -992,9 +965,6 @@ importers:
 
   packages/documents:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -1004,6 +974,9 @@ importers:
       '@wren/payments':
         specifier: workspace:*
         version: link:../payments
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@wren/starling-sms':
         specifier: workspace:*
         version: link:../starling/channels/sms
@@ -1061,15 +1034,15 @@ importers:
 
   packages/folders:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@wrenautomation/vireo':
         specifier: 0.10.0
         version: 0.10.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
@@ -1092,9 +1065,6 @@ importers:
 
   packages/learn:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -1107,6 +1077,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../research
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@wrenautomation/read':
         specifier: 0.51.0
         version: 0.51.0(@aws-sdk/client-s3@3.1136.0)
@@ -1197,15 +1170,15 @@ importers:
 
   packages/payments:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@wren/starling-sms':
         specifier: workspace:*
         version: link:../starling/channels/sms
@@ -1219,12 +1192,6 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
@@ -1237,9 +1204,6 @@ importers:
 
   packages/pipeline:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -1252,6 +1216,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../research
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1277,9 +1244,6 @@ importers:
 
   packages/reactivation:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/connectors':
         specifier: workspace:*
         version: link:../connectors
@@ -1301,6 +1265,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../research
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@wren/starling-email':
         specifier: workspace:*
         version: link:../starling/channels/email
@@ -1320,12 +1287,6 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
@@ -1347,9 +1308,6 @@ importers:
       '@duckdb/node-api':
         specifier: 1.5.6-r.1
         version: 1.5.6-r.1
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -1359,6 +1317,9 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@wrenautomation/models':
         specifier: 0.51.0
         version: 0.51.0
@@ -1387,12 +1348,6 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
@@ -1414,10 +1369,13 @@ importers:
       '@restatedev/restate-sdk-clients':
         specifier: 1.17.1
         version: 1.17.1
-    devDependencies:
       '@restatedev/restate-sdk-testcontainers':
         specifier: 1.17.1
         version: 1.17.1
+      '@restatedev/restate-sdk-tunnel':
+        specifier: 1.17.1
+        version: 1.17.1(@restatedev/restate-sdk@1.17.1)
+    devDependencies:
       '@wren/db':
         specifier: workspace:*
         version: link:../db
@@ -1430,9 +1388,6 @@ importers:
 
   packages/sites:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -1445,6 +1400,9 @@ importers:
       '@wren/offers':
         specifier: workspace:*
         version: link:../offers
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1464,9 +1422,6 @@ importers:
 
   packages/starling/acts:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../../core
@@ -1476,6 +1431,9 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../../llm
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../../runtime
       '@wren/starling-reddit':
         specifier: workspace:*
         version: link:../channels/reddit
@@ -1495,9 +1453,6 @@ importers:
 
   packages/starling/channels/email:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/config':
         specifier: workspace:*
         version: link:../../../config
@@ -1513,6 +1468,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../../../research
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../../../runtime
       '@wren/starling-core':
         specifier: workspace:*
         version: link:../../core
@@ -1544,12 +1502,6 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
@@ -1587,15 +1539,15 @@ importers:
 
   packages/starling/channels/meta:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../../../core
       '@wren/db':
         specifier: workspace:*
         version: link:../../../db
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../../../runtime
       '@wren/starling-core':
         specifier: workspace:*
         version: link:../../core
@@ -1606,12 +1558,6 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
@@ -1643,9 +1589,6 @@ importers:
 
   packages/starling/channels/sms:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/config':
         specifier: workspace:*
         version: link:../../../config
@@ -1661,6 +1604,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../../../research
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../../../runtime
       '@wren/starling-core':
         specifier: workspace:*
         version: link:../../core
@@ -1677,12 +1623,6 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
@@ -1746,9 +1686,6 @@ importers:
 
   packages/starling/conversations:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../../core
@@ -1761,6 +1698,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../../research
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../../runtime
       '@wren/sites':
         specifier: workspace:*
         version: link:../../sites
@@ -1795,12 +1735,12 @@ importers:
 
   packages/starling/core:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../../core
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../../runtime
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -1820,9 +1760,6 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: 3.1136.0
         version: 3.1136.0
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../../core
@@ -1847,6 +1784,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../../research
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../../runtime
       '@wren/sites':
         specifier: workspace:*
         version: link:../../sites
@@ -1881,12 +1821,6 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
@@ -1902,9 +1836,6 @@ importers:
 
   packages/starling/outbound:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/calendar':
         specifier: workspace:*
         version: link:../../calendar
@@ -1923,6 +1854,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../../research
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../../runtime
       '@wren/starling-acts':
         specifier: workspace:*
         version: link:../acts
@@ -1957,12 +1891,6 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1972,9 +1900,6 @@ importers:
 
   packages/starling/search:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../../core
@@ -1987,6 +1912,9 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../../llm
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../../runtime
       '@wren/sites':
         specifier: workspace:*
         version: link:../../sites
@@ -2260,15 +2188,15 @@ importers:
 
   packages/variants:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@wren/sites':
         specifier: workspace:*
         version: link:../sites
@@ -2316,9 +2244,6 @@ importers:
 
   packages/voice:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/calendar':
         specifier: workspace:*
         version: link:../calendar
@@ -2334,6 +2259,9 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@wren/starling-sms':
         specifier: workspace:*
         version: link:../starling/channels/sms
@@ -2359,9 +2287,6 @@ importers:
 
   packages/watch:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -2371,6 +2296,9 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)

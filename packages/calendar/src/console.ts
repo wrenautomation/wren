@@ -10,7 +10,7 @@
  * client's, once `calendar.booking` is installed: its calls from its own database, and its calls
  * as records (`records*`) for the client's Calendar app.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { WREN } from "@wren/core/access";
 import type { MeetingOutcome } from "@wren/core/calls";
 import {
@@ -37,6 +37,7 @@ import {
 } from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
+import * as restate from "@wren/runtime";
 import { inArray } from "drizzle-orm";
 import { z } from "zod";
 import { callsBetween, mirrorUid } from "./book.js";

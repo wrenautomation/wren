@@ -4,11 +4,12 @@
  * kept, into the client's own `watch.mail`, then onto its `mail` workflow, where triage settles it
  * by the client's rules and what shows lands in Marketing → Inbox. Headers and the preview only.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { executorEmit } from "@wren/core/executor";
 import type { Mailbox } from "@wren/core/mailbox";
 import { makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { readMail } from "./read.js";
 import { mailEvent } from "./triage.js";
 

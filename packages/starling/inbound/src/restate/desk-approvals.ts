@@ -1,10 +1,11 @@
 /** ContentDesk handlers for verdicts: approve, settle, approve a video, pick a thumbnail, reject. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { byOf } from "@wren/core/ask";
 import type { Platform } from "@wren/core/autobrowse";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import { clientKey, clientOfKey, exclusiveHandler, PORTAL_FIELDS } from "@wren/core/restate";
 import { isDelivery } from "@wren/core/send-verdict";
+import * as restate from "@wren/runtime";
 import {
   forgetUnsure,
   markResend,

@@ -10,7 +10,7 @@
  *
  * Each handler is one ledger run: opened before the first unit, closed with stats.
  */
-import * as restate from "@restatedev/restate-sdk";
+import * as restate from "@wren/runtime";
 import { type EnrichmentDeps, enrichmentContext } from "./enrichment-context.js";
 import { crawlHandlers } from "./enrichment-crawl.js";
 import { peopleHandlers } from "./enrichment-people.js";

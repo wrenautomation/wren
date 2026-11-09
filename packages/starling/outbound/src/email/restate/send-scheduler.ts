@@ -20,7 +20,6 @@
  * sending) stops its own loop.
  */
 
-import type * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
 import { executorEmit } from "@wren/core/executor";
@@ -34,6 +33,7 @@ import {
   unitOfKey,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import type { KillSwitches, SharedSuppressions } from "@wren/starling-email";
 import type { SendPolicy } from "@wren/starling-email/send/policy";
 import { seededRng } from "@wren/starling-email/send/rng";

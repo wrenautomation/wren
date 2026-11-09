@@ -3,7 +3,7 @@
  * Restate, so it is journaled, queues while the box is down, and a keyed write runs once. No port
  * on the box is ever reached from here. The `Content` service on top: `@wren/starling-core/service`.
  */
-import * as restate from "@restatedev/restate-sdk";
+import * as restate from "@wren/runtime";
 import { SCHEDULE_ZONE } from "../logic.js";
 import { CallTimeout, within } from "../restate/limits.js";
 import { type JournalRecord, openTry, type SendJournal } from "../send-journal.js";

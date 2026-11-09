@@ -1,9 +1,10 @@
 /** Enrichment handlers for people: profiles, teams and signals. */
-import * as restate from "@restatedev/restate-sdk";
+
 import { bucketOf } from "@wren/core/limits";
 import { keyedSites } from "@wren/core/metered";
 import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
 import { type Gate, gate, meter, modesOf } from "@wren/core/vendors";
+import * as restate from "@wren/runtime";
 import { z } from "zod";
 import {
   countProfileUnit,

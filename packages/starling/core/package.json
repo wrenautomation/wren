@@ -19,8 +19,8 @@
     "test:unit": "vitest run src"
   },
   "dependencies": {
-    "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
+    "@wren/runtime": "workspace:*",
     "zod": "4.6.5"
   },
   "devDependencies": {

@@ -3,8 +3,7 @@
  * loops run on its database and stop without `sms.texts`; its templates are its own; its
  * webhooks land in its database; the watch's reminder pass reads its cal.com.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { runs } from "@wren/core";
 import { addClient, addOperator } from "@wren/core/clients";
@@ -19,6 +18,8 @@ import {
   type SmsConsoleService,
   smsConsoleApi,
 } from "@wren/delivery/sms";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { clientSms, DEFAULT_HEALTH, FakeBookings, FakeProvider } from "@wren/starling-sms";
 import {
   makeSmsDesk,

@@ -7,12 +7,12 @@
  * and only when WREN_REACH_LIVE lets it.
  */
 import { readFile } from "node:fs/promises";
-import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { setWrenSettings } from "@wren/core/clients";
 import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
 import { REJECT_REASONS } from "@wren/core/reject-reasons";
 import { atomic, type Db, setAuditActor } from "@wren/db";
+import * as clients from "@wren/runtime/clients";
 import { listAccounts, PLATFORMS, platformOf, viewOf } from "@wren/starling-acts";
 import { listThreads, reachStats } from "@wren/starling-conversations";
 import { CONTACT_STATES, type ContactState } from "@wren/starling-conversations/schema";

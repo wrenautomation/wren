@@ -4,7 +4,7 @@
  * this picks the client and reads its database in a read-only transaction.
  * The demo (R15) needs no login and every answer goes through the mask.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { mayApprove } from "@wren/core/access";
 import type { Client } from "@wren/core/clients";
 import {
@@ -36,6 +36,7 @@ import {
   serveRecords,
 } from "@wren/core/records/serve";
 import { type Db, type Queryable, serializable, setAuditActor, snapshot } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { sql } from "drizzle-orm";
 import { approveDrafts, type ReviewResult, skipDrafts, unapproveDrafts } from "../approve.js";
 import { feedDelivery } from "../delivery.js";

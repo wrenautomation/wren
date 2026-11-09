@@ -5,7 +5,11 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./clients": "./src/clients.ts"
+    "./clients": "./src/clients.ts",
+    "./lambda": "./src/lambda.ts",
+    "./node": "./src/node.ts",
+    "./testing": "./src/testing.ts",
+    "./tunnel": "./src/tunnel.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -14,10 +18,11 @@
   },
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",
-    "@restatedev/restate-sdk-clients": "1.17.1"
+    "@restatedev/restate-sdk-clients": "1.17.1",
+    "@restatedev/restate-sdk-testcontainers": "1.17.1",
+    "@restatedev/restate-sdk-tunnel": "1.17.1"
   },
   "devDependencies": {
-    "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@wren/db": "workspace:*",
     "typescript": "5.9.3",
     "vitest": "5.0.1"

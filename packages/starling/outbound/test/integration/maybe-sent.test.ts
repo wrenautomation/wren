@@ -8,7 +8,7 @@
  * and a client's send on its connected account: the same verdict path, and nothing reads the
  * site for words.
  */
-import * as restate from "@restatedev/restate-sdk";
+
 import { SiteCallError } from "@wren/core/autobrowse";
 import { DESK, restateSites } from "@wren/core/autobrowse/restate";
 import { draftSteps } from "@wren/core/draft-record";
@@ -29,6 +29,7 @@ import {
   type TestPostgres,
   truncate,
 } from "@wren/db/testing";
+import * as restate from "@wren/runtime";
 import {
   addAccount,
   claimSend,

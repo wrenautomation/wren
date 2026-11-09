@@ -8,9 +8,10 @@
  * but AWS Cost Explorer bills per call, so its spend (and the KMS decrypt count beside it)
  * is taken in once a day at most.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import type { Notifier } from "@wren/core/notify";
 import { loopSettings, makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
+import type * as restate from "@wren/runtime";
 import { type BooksDay, type BooksDayDeps, booksDay } from "./daily.js";
 
 export * from "./console.js";

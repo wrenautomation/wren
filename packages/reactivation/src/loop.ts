@@ -14,7 +14,7 @@
  * Each pass does a bounded slice of each stage, so a pass fits one invocation;
  * the next pass picks up the rest.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { runFeed } from "@wren/core";
 import { type Client, findClient } from "@wren/core/clients";
 import { type Notifier, plural } from "@wren/core/notify";
@@ -33,6 +33,7 @@ import {
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import type * as restate from "@wren/runtime";
 import type { Transport } from "@wren/starling-email";
 import type { EmailInboxRead, EmailSend } from "@wren/starling-outbound/email";
 import { type FeedStats, feedDelivery } from "./delivery.js";

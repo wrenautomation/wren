@@ -5,9 +5,9 @@
  * the pool is per Lambda instance and stays small.
  */
 
-import { createEndpointHandler } from "@restatedev/restate-sdk/lambda";
 import { loadSettings } from "@wren/config";
 import { loadSsmEnv, loadSsmFile } from "@wren/config/ssm";
+import { createEndpointHandler } from "@wren/runtime/lambda";
 import pino from "pino";
 import { buildServices, servicesFor } from "./services.js";
 

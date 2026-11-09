@@ -4,10 +4,11 @@
  * pass; caught up, it looks again hourly. Served on the Postgres box next to
  * the data, so no page crosses the network twice.
  */
-import type * as restate from "@restatedev/restate-sdk";
+
 import type { Notifier } from "@wren/core/notify";
 import { loopSettings, makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type * as restate from "@wren/runtime";
 import { type ArchiveStats, archivePages, type PageStore } from "../pages.js";
 
 export const PAGE_ARCHIVE_KEY = "all";

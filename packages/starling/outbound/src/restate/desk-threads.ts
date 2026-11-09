@@ -1,7 +1,8 @@
 /** `ReachDesk`'s DM threads: the list, one thread, read, a reply queued for the sender. */
-import type * as restate from "@restatedev/restate-sdk";
+
 import { byOf } from "@wren/core/ask";
 import { serviceHandler } from "@wren/core/restate";
+import type * as restate from "@wren/runtime";
 import { ReachRefusal } from "@wren/starling-acts";
 import {
   contactById,

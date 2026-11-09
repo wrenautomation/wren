@@ -3,8 +3,7 @@
  * writes its lookup row and findings, and a rerun keeps what a person dropped. alwaysReplay
  * re-runs the journal after every step, so a read outside ctx.run fails loudly. Synthetic rows.
  */
-import * as clients from "@restatedev/restate-sdk-clients";
-import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+
 import { ingressOf } from "@wren/config";
 import { runs } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
@@ -13,6 +12,8 @@ import { resolveProfile } from "@wren/core/profiles";
 import { profileFindings, profileLookups } from "@wren/core/profiles-schema";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import * as clients from "@wren/runtime/clients";
+import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {

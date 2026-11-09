@@ -7,7 +7,6 @@
 import { randomUUID } from "node:crypto";
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
-import * as clients from "@restatedev/restate-sdk-clients";
 import { applyBooking, bookingFromList } from "@wren/calendar/calls";
 import { ingressOf, type Settings } from "@wren/config";
 import {
@@ -30,6 +29,7 @@ import {
   requireNiche,
 } from "@wren/niches";
 import { sizeFromPpp } from "@wren/research/companies";
+import * as clients from "@wren/runtime/clients";
 import {
   activePauses,
   activeSenders,
