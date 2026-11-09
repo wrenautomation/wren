@@ -222,13 +222,16 @@ export async function startRt(o: {
   const doorSql = doorPort ? rtSql(o.databaseUrl, 4, "wren-rt-door") : null;
   const door =
     doorPort && doorSql
-      ? await serveDoor({ sql: doorSql, port: doorPort, restate: o.ingress.url }).catch(
-          async (e: unknown) => {
-            o.log.error({ err: String(e), port: doorPort }, "rt: door failed");
-            await doorSql.end({ timeout: 5 });
-            return null;
-          },
-        )
+      ? await serveDoor({
+          sql: doorSql,
+          port: doorPort,
+          restate: o.ingress.url,
+          renamed: RENAMED,
+        }).catch(async (e: unknown) => {
+          o.log.error({ err: String(e), port: doorPort }, "rt: door failed");
+          await doorSql.end({ timeout: 5 });
+          return null;
+        })
       : null;
   o.log.info({ pg: PG_SERVICES, onBox, onLambda, build: o.build, door: door?.url }, "rt ready");
 

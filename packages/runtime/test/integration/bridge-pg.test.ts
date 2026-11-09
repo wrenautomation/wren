@@ -126,7 +126,11 @@ beforeAll(async () => {
   const reply = await replier({ sql, ingress, sweepMs: 1000, log });
   const door = await serveDoor({ sql });
   await setPgServices(sql, ["Echo", "Counter"], "test");
-  const frontDoor = await serveDoor({ sql, restate: ingress.url });
+  const frontDoor = await serveDoor({
+    sql,
+    restate: ingress.url,
+    renamed: { OldCounter: "Counter", Gone: "Absent" },
+  });
   front = frontDoor.url;
   onRestate = clients.connect(ingress);
   onPg = clients.connect({ url: door.url });
@@ -302,6 +306,19 @@ describe("the door in front of Restate", () => {
     // a Restate one by idempotency key passes through
     const rs = await fetch(`${front}/restate/invocation/Outside/shout/front-1/output`);
     expect(await rs.json()).toBe("YO");
+  }, 30_000);
+
+  it("an old name is served direct under the new one; an old name pg does not serve passes as it came", async () => {
+    const before = await rowsOf("OldCounter");
+    const r = await post("/OldCounter/c10/add", 6, { "idempotency-key": "front-4" });
+    expect(await r.json()).toBe(6);
+    const [row] = await sql<{ service: string; reply: unknown }[]>`
+      SELECT service, reply FROM rt.invocations WHERE idem_key = 'front-4'`;
+    expect(row).toEqual({ service: "Counter", reply: null });
+    expect(await rowsOf("OldCounter")).toBe(before);
+    const out = await fetch(`${front}/restate/invocation/OldCounter/c10/add/front-4/output`);
+    expect(await out.json()).toBe(6);
+    expect((await post("/Gone/x", 1)).status).toBe(404);
   }, 30_000);
 
   it("refuses a private handler and a bad delay", async () => {

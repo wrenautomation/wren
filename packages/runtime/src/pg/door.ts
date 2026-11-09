@@ -28,6 +28,8 @@ export interface DoorOptions {
   bearer?: string;
   /** Restate's ingress: what pg does not serve goes there. Unset: pg serves every registered service. */
   restate?: string;
+  /** Old service name → new: callers that still use the old name reach the new one direct. */
+  renamed?: Readonly<Record<string, string>>;
 }
 
 /** How long the door trusts its copy of `rt.handlers` and `rt.pg_services`. */
@@ -205,7 +207,8 @@ export async function serveDoor(o: DoorOptions): Promise<{ url: string; close():
   const named = async (p: string[]): Promise<string | undefined> => {
     if (p.length === 1) return (await held(p[0] as string)) ? p[0] : undefined;
     if (p.length !== 3 && p.length !== 4) return undefined;
-    const [service, ...rest] = p as [string, ...string[]];
+    const [asked, ...rest] = p as [string, ...string[]];
+    const service = o.renamed?.[asked] ?? asked;
     const [key, handler, idem] = rest.length === 3 ? rest : [null, ...rest];
     const svc = await served(service, handler as string);
     if (!svc || svc.object !== (key !== null)) return undefined;
@@ -220,6 +223,9 @@ export async function serveDoor(o: DoorOptions): Promise<{ url: string; close():
       return send(res, 401, JSON.stringify({ message: "unauthorized" }));
     const url = new URL(req.url ?? "/", "http://door");
     const parts = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+    // a pass-through keeps the old name: req.url is not changed
+    const alias = parts[0] ? o.renamed?.[parts[0]] : undefined;
+    if (alias) parts[0] = alias;
 
     if (parts[0] === "restate") {
       if (parts[1] === "health" && parts.length === 2) {

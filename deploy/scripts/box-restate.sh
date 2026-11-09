@@ -132,11 +132,26 @@ changed() {
   if [ -f "$1" ] && cmp -s "$1" "$1.new"; then rm "$1.new"; return 1; fi
   mv "$1.new" "$1"
 }
-restate_cfg=0 caddy_cfg=0
+# In place: the container bind-mounts this one file, and a moved-in file is a new inode it never sees.
+changed_in_place() {
+  if [ -f "$1" ] && cmp -s "$1" "$1.new"; then rm "$1.new"; return 1; fi
+  cat "$1.new" > "$1" && rm "$1.new"
+}
+restate_cfg=0 caddy_cfg=0 caddy_file=0
 changed "$D/identity.pem" && restate_cfg=1
 changed "$D/config.toml" && restate_cfg=1
 changed "$D/caddy.env" && caddy_cfg=1
-changed "$D/Caddyfile" && caddy_cfg=1
+changed_in_place "$D/Caddyfile" && caddy_file=1
+# Only the Caddyfile changed: a graceful reload keeps calls in flight; anything else restarts.
+if [ "$caddy_file" = 1 ] && [ "$caddy_cfg" = 0 ]; then
+  if docker exec wren-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile 2>&1; then
+    echo "reloaded wren-caddy"
+  else
+    caddy_cfg=1
+  fi
+elif [ "$caddy_file" = 1 ]; then
+  caddy_cfg=1
+fi
 
 # (Re)start a container when it is missing, stopped, or its config changed.
 up() { # name changed -- docker run args
