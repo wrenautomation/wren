@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useDeferredValue, useMemo, useRef } from "react";
 import { Ico, vars } from "./marks.js";
 import {
   cap,
@@ -217,7 +217,8 @@ export function Side({
   chips: boolean;
   /** folded to a rail: counts only */
   fold: boolean;
-  onFold: () => void;
+  /** none in the dock: the dock hides the pane */
+  onFold?: (() => void) | undefined;
   tab: "c" | "q" | "d";
   setTab: (t: "c" | "q" | "d") => void;
   pick: Pick | null;
@@ -267,7 +268,7 @@ export function Side({
             title={t}
             onClick={() => {
               setTab(k);
-              onFold();
+              onFold?.();
             }}
           >
             <b>{n}</b>
@@ -387,7 +388,7 @@ export function Side({
           )}
           <T k="d" t="Dropped" n={L.run.dropped.length} />
         </div>
-        {chips ? null : (
+        {chips || !onFold ? null : (
           <button
             type="button"
             className="fo"
@@ -479,17 +480,63 @@ export function Table({
   onPick: (n: GNode) => void;
 }) {
   const [k, d] = sort;
-  const rows = L.nodes.slice().sort((a, b) => {
-    const x = val(a, k);
-    const y = val(b, k);
-    return (
-      (typeof x === "string" ? x.localeCompare(String(y)) : x - (y as number)) * d ||
-      b.s.kept - a.s.kept ||
-      a.id - b.id
-    );
-  });
+  const rows = useMemo(
+    () =>
+      L.nodes.slice().sort((a, b) => {
+        const x = val(a, k);
+        const y = val(b, k);
+        return (
+          (typeof x === "string" ? x.localeCompare(String(y)) : x - (y as number)) * d ||
+          b.s.kept - a.s.kept ||
+          a.id - b.id
+        );
+      }),
+    [L, k, d],
+  );
+  // a pick paints the panel first; the rows' marks follow a frame later
+  const cb = useRef({ onHover, onPick });
+  cb.current = { onHover, onPick };
+  const f = useDeferredValue(F);
+  const pk = useDeferredValue(picked);
+  const body = useMemo(
+    () => (
+      <tbody>
+        {rows.map((n) => {
+          const on = !!f && f.S.has(n.id);
+          return (
+            <tr
+              key={n.id}
+              className={cls(`k-${n.k}`, on && "on", !!f && pk && !on && "off")}
+              onPointerOver={(e) => {
+                if (e.pointerType === "mouse") cb.current.onHover(n.id);
+              }}
+            >
+              <th scope="row">
+                <button type="button" onClick={() => cb.current.onPick(n)}>
+                  <Ico s={n.s} />
+                  <span>{n.s.name}</span>
+                </button>
+              </th>
+              <td>
+                <span className="kd">
+                  <i />
+                  {SPEAKERS[n.k].one}
+                </span>
+              </td>
+              <td className="n">{n.s.r}</td>
+              <td className="n">{n.s.pages.length}</td>
+              <td className="n">{n.s.unread.length || ""}</td>
+              <td className="n">{n.s.kept || ""}</td>
+              <td className="n">{n.s.used || ""}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    ),
+    [rows, f, pk],
+  );
   return (
-    <div className="rg-tbl" onPointerLeave={() => onHover(null)}>
+    <div className="rg-tbl" onPointerLeave={() => cb.current.onHover(null)}>
       {/* table-ok: the graph's own source table, rows light their marks; artifact LdYvUurK */}
       <table>
         <caption>{pl(L.nodes.length, "source")}. Pick a row to find it in the graph.</caption>
@@ -510,38 +557,7 @@ export function Table({
             ))}
           </tr>
         </thead>
-        <tbody>
-          {rows.map((n) => {
-            const on = !!F && F.S.has(n.id);
-            return (
-              <tr
-                key={n.id}
-                className={cls(`k-${n.k}`, on && "on", !!F && picked && !on && "off")}
-                onPointerOver={(e) => {
-                  if (e.pointerType === "mouse") onHover(n.id);
-                }}
-              >
-                <th scope="row">
-                  <button type="button" onClick={() => onPick(n)}>
-                    <Ico s={n.s} />
-                    <span>{n.s.name}</span>
-                  </button>
-                </th>
-                <td>
-                  <span className="kd">
-                    <i />
-                    {SPEAKERS[n.k].one}
-                  </span>
-                </td>
-                <td className="n">{n.s.r}</td>
-                <td className="n">{n.s.pages.length}</td>
-                <td className="n">{n.s.unread.length || ""}</td>
-                <td className="n">{n.s.kept || ""}</td>
-                <td className="n">{n.s.used || ""}</td>
-              </tr>
-            );
-          })}
-        </tbody>
+        {body}
       </table>
     </div>
   );

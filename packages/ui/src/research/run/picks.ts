@@ -1,4 +1,5 @@
 /** Picks and mark keys: what a click names, and its key in the web. */
+import type { Indexed } from "./model.js";
 import type { Pick } from "./panel.js";
 import { parse } from "./web.js";
 
@@ -39,3 +40,25 @@ export const toggled = <T>(s: ReadonlySet<T>, v: T) => {
   n.has(v) ? n.delete(v) : n.add(v);
   return n;
 };
+
+/** A detail window's tab name: what its pick shows. */
+export function titleOf(L: Indexed, p: Pick | null): string {
+  if (!p) return "Detail";
+  if (p.t === "s") return L.byId.get(p.id)?.s.name ?? "Source";
+  if (p.t === "c") {
+    const c = L.run.claims[p.i];
+    return c ? `${c.n}. ${c.head}` : "Claim";
+  }
+  if (p.t === "q") return L.byQ.get(p.i)?.t ?? "Search";
+  if (p.t === "D") return "Dropped hits";
+  const [t, a, b] = parse(p.key);
+  if (t === "r") return L.run.runs?.[a - 1]?.t ?? `Run ${a}`;
+  const n = L.byId.get(a);
+  if (t === "p") return n?.s.pages[b]?.t ?? "Page";
+  if (t === "f" || t === "x") return n ? `Finding · ${n.s.name}` : "Finding";
+  if (t === "d" || t === "h") {
+    const qi = t === "d" ? a : L.run.dropped[a]?.q[0];
+    return (qi != null && L.byQ.get(qi)?.t) || "Search";
+  }
+  return n?.s.name ?? "Detail";
+}

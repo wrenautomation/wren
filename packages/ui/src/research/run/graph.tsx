@@ -13,9 +13,18 @@ import { easeCubicOut } from "d3-ease";
 import { select } from "d3-selection";
 import { type Timer, timer } from "d3-timer";
 import { type ZoomBehavior, type ZoomTransform, zoom, zoomIdentity } from "d3-zoom";
-import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  startTransition,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Empty, Loading } from "../../feedback.js";
 import { Bars } from "./bars.js";
+import { RunDock } from "./dock.js";
 import { type Box, layShelf, type Size, shelfOf } from "./lays.js";
 import { Badge, EvBar, Ico, type MarkProps, SourceMark, WebMark } from "./marks.js";
 import {
@@ -34,7 +43,7 @@ import {
   stepOf,
 } from "./model.js";
 import { PanelBody, type PanelCtx, type Pick } from "./panel.js";
-import { type Hit, type Ident, pkey, same, toggled, webIdent, webPick } from "./picks.js";
+import { type Hit, type Ident, pkey, same, titleOf, toggled, webIdent, webPick } from "./picks.js";
 import {
   capOf,
   keepPlaces,
@@ -52,6 +61,7 @@ import {
 export type { Pick } from "./panel.js";
 
 import { Chev, cls, type Focus, Key, Side, Summary, Table } from "./side.js";
+import { curOf, useWins, type Win } from "./wins.js";
 
 const SIDEW = 252;
 const PW = 380;
@@ -148,7 +158,14 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     }
   });
 
-  const stageRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  // the stage mounts late in the dock (a pane's portal): effects key on it
+  const [stage, setStage] = useState<HTMLDivElement | null>(null);
+  const stageCb = (el: HTMLDivElement | null) => {
+    stageRef.current = el;
+    setStage(el);
+  };
   const worldRef = useRef<HTMLDivElement>(null);
   const sideRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
@@ -180,8 +197,17 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
   });
   const T = useRef<ZoomTransform>(zoomIdentity);
   const zoomRef = useRef<ZoomBehavior<HTMLDivElement, unknown> | null>(null);
-  const live = useRef({ pick, wide, fold, merged: !!L.run.runs });
-  live.current = { pick, wide, fold, merged: !!L.run.runs };
+  const dock = wide && !card;
+  // detail windows, each with its own history (wins.ts)
+  const W = useWins(L, dock, (p, center) => {
+    setPickS(p);
+    setHover(null);
+    setTip(null);
+    if (center) pend.current.center = p;
+  });
+  const { wins, dockRef, fresh } = W;
+  const live = useRef({ pick, wide, fold, merged: !!L.run.runs, dock });
+  live.current = { pick, wide, fold, merged: !!L.run.runs, dock };
 
   const reg = (k: string) => {
     let f = regs.get(k);
@@ -284,8 +310,10 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
   };
 
   // picks
-  const setPick = (p: Pick | null, center = false) => {
+  const setPick = (p: Pick | null, center = false, into: string | null = null) => {
     setPickS(p);
+    if (p) W.openIn(p, into);
+    else fresh.current = false;
     setHover(null);
     setTip(null);
     // a new pick shows its panel again
@@ -363,11 +391,14 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
       setTimeout(() => setGone((g) => g.filter((k) => !removed.includes(k))), 340);
     }
     pend.current = { ...pend.current, anim: true, fk: key };
-    setExp(np.exp);
-    setLift(nlift);
-    setMore(np.more);
     if (closing) setPick(same(pick, p) ? null : pick);
     else setPick(p);
+    // the panel paints first; the web's relayout follows as a transition
+    startTransition(() => {
+      setExp(np.exp);
+      setLift(nlift);
+      setMore(np.more);
+    });
   };
 
   // the view: fit the graph to the room the side list and panel leave
@@ -375,7 +406,8 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     const st = stageRef.current;
     const W = st?.clientWidth ?? 0;
     const H = st?.clientHeight ?? 0;
-    const { pick: p, wide: w, fold: fo } = live.current;
+    const { pick: p, wide: w, fold: fo, dock: d } = live.current;
+    if (d) return { l: 18, t: 18, r: W - 18, b: H - 18, w: W - 36, h: H - 36 };
     const l = w ? (fo.l ? 60 : SIDEW + 34) : 12;
     const t = w ? 18 : (sideRef.current?.scrollHeight ?? 0) + 8;
     const r = W - 18 - (w && p && !fo.r ? PW : 0);
@@ -455,7 +487,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
 
   // zoom, before the first layout needs it
   useLayoutEffect(() => {
-    const st = stageRef.current;
+    const st = stage;
     if (!st) return;
     const z = zoom<HTMLDivElement, unknown>()
       .scaleExtent([0.2, 3])
@@ -475,16 +507,17 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     zoomRef.current = z;
     const sel = select(st);
     sel.call(z).on("dblclick.zoom", null);
-    setWide(st.clientWidth >= 820);
+    T.current = zoomIdentity;
     return () => {
       sel.on(".zoom", null);
     };
-  }, []);
+  }, [stage]);
 
   // the layout: measure the marks, place them, draw the edges
   const sig = [wide, fonts, [...exp], [...lift], [...more]].join("|");
   // biome-ignore lint/correctness/useExhaustiveDependencies: sig and L name every input of the layout
   useLayoutEffect(() => {
+    if (!stage) return;
     const p = pend.current;
     pend.current = { ...p, anim: false, fk: null };
     const size: Size = (k) => {
@@ -611,17 +644,17 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
       if (t === 1) tw.stop();
     });
     wg.tw = tw;
-  }, [sig, L]);
+  }, [sig, L, stage]);
   useEffect(() => () => wg.tw?.stop(), [wg]);
 
   // fit after the layout, once the panel and side list are drawn
   // biome-ignore lint/correctness/useExhaustiveDependencies: fitN asks for it
   useLayoutEffect(() => {
     const ms = pend.current.fit;
-    if (ms == null) return;
+    if (ms == null || !stage) return;
     pend.current.fit = null;
     fitView(ms);
-  }, [fitN, wide, fonts]);
+  }, [fitN, wide, fonts, stage]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: a pick asks for it
   useEffect(() => {
     const c = pend.current.center;
@@ -631,18 +664,19 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     centerOn(boxes.get(k) ?? (c.t === "s" ? boxes.get(`sh${c.id}`) : undefined));
   }, [pick]);
 
-  // read-ok: font load and stage size, no portal data
-  useEffect(() => {
-    const st = stageRef.current;
-    if (!st) return;
-    const ro = new ResizeObserver(() => {
-      const w = st.clientWidth >= 820;
-      if (w !== live.current.wide) {
-        pend.current.fit = 0;
-        setWide(w);
-      } else fitRef.current(0);
-    });
-    ro.observe(st);
+  // read-ok: font load and the graph's width, no portal data
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const check = () => {
+      const w = root.clientWidth >= 820;
+      if (w === live.current.wide) return;
+      pend.current.fit = 0;
+      setWide(w);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(root);
     let alive = true;
     document.fonts?.ready.then(() => {
       if (!alive) return;
@@ -654,10 +688,35 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
       ro.disconnect();
     };
   }, []);
+  // a pane resized: the web keeps its center and zoom; it fits only the first time it has room
+  // biome-ignore lint/correctness/useExhaustiveDependencies: go reads refs only
+  useEffect(() => {
+    const st = stage;
+    if (!st) return;
+    let was = { w: st.clientWidth, h: st.clientHeight };
+    const ro = new ResizeObserver(() => {
+      const now = { w: st.clientWidth, h: st.clientHeight };
+      if (now.w === was.w && now.h === was.h) return;
+      const t = T.current;
+      if (!was.w || !was.h || t === zoomIdentity) fitRef.current(0);
+      else
+        go(
+          zoomIdentity.translate(t.x + (now.w - was.w) / 2, t.y + (now.h - was.h) / 2).scale(t.k),
+          0,
+        );
+      was = now;
+    });
+    ro.observe(st);
+    return () => ro.disconnect();
+  }, [stage]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: setPick only sets state
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && live.current.pick) setPick(null);
+      const api = dockRef.current;
+      if (e.key === "Escape") {
+        if (api?.hasMaximizedGroup()) api.exitMaximizedGroup();
+        else if (live.current.pick) setPick(null);
+      }
     };
     addEventListener("keydown", k);
     return () => removeEventListener("keydown", k);
@@ -709,13 +768,22 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
   };
   const onStageClick = (e: React.MouseEvent) => {
     const t = e.target as Element;
-    if (t.closest(".rg-panel,.rg-side,.rg-nodes a")) return;
+    if (t.closest(".rg-panel,.rg-side,.rg-reopen,.rg-nodes a")) return;
     const x = hitOf(t);
     if (!x) {
       if (pick) setPick(null);
       return;
     }
     act(x, true);
+  };
+  // a middle click opens the mark in a new window
+  const onStageAux = (e: React.MouseEvent) => {
+    if (e.button !== 1) return;
+    const x = hitOf(e.target);
+    if (!x || x.h.web) return;
+    e.preventDefault();
+    fresh.current = true;
+    setPick(x.h.pick);
   };
   const onStageKey = (e: React.KeyboardEvent) => {
     if (e.key !== "Enter" && e.key !== " ") return;
@@ -816,28 +884,140 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     }
   }
 
-  const panelCtx: PanelCtx = {
+  const ctxOf = (w: Win): PanelCtx => ({
     L,
-    pick: (p, center) => setPick(p, center),
-    close: () => setPick(null),
+    pick: (p, center) => setPick(p, center, w.id),
+    close: dock ? () => dockRef.current?.getPanel(w.id)?.api.close() : () => setPick(null),
     min: () => foldTo("r"),
+    back: w.at > 0 ? () => W.step(w.id, -1) : undefined,
+    fwd: w.at < w.hist.length - 1 ? () => W.step(w.id, 1) : undefined,
+    dock: dock
+      ? () => {
+          const c = curOf(w);
+          if (!c) return;
+          fresh.current = true;
+          setPick(c, false, w.id);
+        }
+      : undefined,
     queue,
     toggleQ,
     dq,
     setDq,
-  };
+  });
+  const aw = W.active;
+  const awCur = curOf(aw);
   const f = L.run.funnel;
   const head = headOf(L.run.t);
   const tipN = tip ? L.byId.get(tip.id) : undefined;
   const empty = !L.nodes.length && !L.run.searches.length;
 
+  const side = (
+    <Side
+      r={sideRef}
+      L={L}
+      chips={!wide}
+      fold={!dock && wide && fold.l}
+      onFold={dock ? undefined : () => foldTo("l")}
+      tab={tab}
+      setTab={setTab}
+      pick={pick}
+      F={F}
+      queue={queue}
+      cmd={cmd}
+      copied={copied}
+      onCopy={() => {
+        void navigator.clipboard?.writeText(cmd);
+        setCopied(true);
+      }}
+      onClear={clearQ}
+      onPick={(p) => setPick(same(pick, p) && !fresh.current ? null : p, true)}
+      onHover={(p) => {
+        if (pick || same(p, hover)) return;
+        setHover(p);
+      }}
+    />
+  );
+  const web = (
+    // biome-ignore lint/a11y/useSemanticElements: a positioned stage, not a form group; it delegates the marks' clicks and keys
+    <div
+      ref={stageCb}
+      className={cls(
+        "rg-stage",
+        F && "fx",
+        !dock && pick && "open",
+        !dock && wide && fold.l && "fold-l",
+        !dock && fold.r && "fold-r",
+        dock && "dk",
+      )}
+      role="group"
+      aria-label="The run as a web: each search a card with its answer, lines from each search to every source it found."
+      onClick={onStageClick}
+      onAuxClick={onStageAux}
+      onKeyDown={onStageKey}
+    >
+      <div ref={worldRef} className="rg-world">
+        <svg className="rg-edges" aria-hidden="true">
+          {edges}
+        </svg>
+        <div className="rg-nodes" onPointerOver={onNodesOver} onPointerOut={onNodesOut}>
+          {marks}
+        </div>
+      </div>
+      {empty ? <p className="rg-empty">This run has no searches yet.</p> : null}
+      {dock ? null : side}
+      {tipN ? (
+        <div ref={tipRef} className={`rg-tip hc k-${tipN.k}`}>
+          {pic(tipN.s) ? (
+            <img className="th" referrerPolicy="no-referrer" src={pic(tipN.s) ?? ""} alt="" />
+          ) : null}
+          <b>
+            <Ico s={tipN.s} />
+            <span>{tipN.s.name}</span>
+          </b>
+          <small>
+            {SPEAKERS[tipN.s.kind].one} · {step} {tipN.s.r} · {countOf(tipN)}
+          </small>
+          <EvBar c={evCounts(tipN.s.fs)} />
+          {(() => {
+            const fq = tipN.s.fs.find((x) => x.c >= 0 && x.q) || tipN.s.fs.find((x) => x.q);
+            return fq ? <q>{fq.q}</q> : null;
+          })()}
+        </div>
+      ) : null}
+      {!dock && pick && fold.r ? (
+        <button type="button" className="rg-reopen" onClick={() => foldTo("r")}>
+          <Chev dir="l" />
+          <span>Show the panel</span>
+        </button>
+      ) : null}
+      {dock ? null : (
+        <aside ref={panelRef} className="rg-panel" aria-label="Detail" aria-live="polite">
+          {pick && aw && awCur ? (
+            <PanelBody key={JSON.stringify(awCur)} c={ctxOf(aw)} p={awCur} />
+          ) : null}
+        </aside>
+      )}
+    </div>
+  );
+
   return (
-    <div className={cls("rg", card && "card")}>
+    // biome-ignore lint/a11y/noStaticElementInteractions: Alt+arrows and a mouse's side buttons step the active window's history
+    <div
+      ref={rootRef}
+      className={cls("rg", card && "card")}
+      onKeyDown={W.navKey}
+      onMouseDown={W.navMouse}
+      onMouseUp={W.navMouse}
+      onClickCapture={(e) => {
+        fresh.current = e.metaKey || e.ctrlKey;
+      }}
+    >
       <Bars
         L={L}
         round={round}
         step={step}
         toRound={toRound}
+        panes={W.panes}
         zoomBy={(k) =>
           stageRef.current &&
           zoomRef.current &&
@@ -878,83 +1058,31 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
             : "Each tinted card is a search and its best answer. Lines run to every source it found: gray until the source holds a finding, then in its color; a thicker line carries more."}
         </p>
       )}
-      {/* biome-ignore lint/a11y/useSemanticElements: a positioned stage, not a form group; it delegates the marks' clicks and keys */}
-      <div
-        ref={stageRef}
-        className={cls(
-          "rg-stage",
-          F && "fx",
-          pick && "open",
-          wide && fold.l && "fold-l",
-          fold.r && "fold-r",
-        )}
-        role="group"
-        aria-label="The run as a web: each search a card with its answer, lines from each search to every source it found."
-        onClick={onStageClick}
-        onKeyDown={onStageKey}
-      >
-        <div ref={worldRef} className="rg-world">
-          <svg className="rg-edges" aria-hidden="true">
-            {edges}
-          </svg>
-          <div className="rg-nodes" onPointerOver={onNodesOver} onPointerOut={onNodesOut}>
-            {marks}
-          </div>
-        </div>
-        {empty ? <p className="rg-empty">This run has no searches yet.</p> : null}
-        <Side
-          r={sideRef}
-          L={L}
-          chips={!wide}
-          fold={wide && fold.l}
-          onFold={() => foldTo("l")}
-          tab={tab}
-          setTab={setTab}
-          pick={pick}
-          F={F}
-          queue={queue}
-          cmd={cmd}
-          copied={copied}
-          onCopy={() => {
-            void navigator.clipboard?.writeText(cmd);
-            setCopied(true);
+      {dock ? (
+        <RunDock
+          parts={{
+            lists: side,
+            web,
+            title: (id) => titleOf(L, curOf(wins.find((w) => w.id === id))),
+            detail: (id) => {
+              const w = wins.find((x) => x.id === id);
+              const c = curOf(w);
+              return (
+                <section className="rg-panel dk" aria-label="Detail">
+                  {w && c ? <PanelBody key={JSON.stringify(c)} c={ctxOf(w)} p={c} /> : null}
+                </section>
+              );
+            },
           }}
-          onClear={clearQ}
-          onPick={(p) => setPick(same(pick, p) ? null : p, true)}
-          onHover={(p) => {
-            if (pick || same(p, hover)) return;
-            setHover(p);
-          }}
+          wins={wins}
+          onReady={W.ready}
+          onGone={W.gone}
+          onFocus={W.focus}
+          onLayout={W.bump}
         />
-        {tipN ? (
-          <div ref={tipRef} className={`rg-tip hc k-${tipN.k}`}>
-            {pic(tipN.s) ? (
-              <img className="th" referrerPolicy="no-referrer" src={pic(tipN.s) ?? ""} alt="" />
-            ) : null}
-            <b>
-              <Ico s={tipN.s} />
-              <span>{tipN.s.name}</span>
-            </b>
-            <small>
-              {SPEAKERS[tipN.s.kind].one} · {step} {tipN.s.r} · {countOf(tipN)}
-            </small>
-            <EvBar c={evCounts(tipN.s.fs)} />
-            {(() => {
-              const fq = tipN.s.fs.find((x) => x.c >= 0 && x.q) || tipN.s.fs.find((x) => x.q);
-              return fq ? <q>{fq.q}</q> : null;
-            })()}
-          </div>
-        ) : null}
-        {pick && fold.r ? (
-          <button type="button" className="rg-reopen" onClick={() => foldTo("r")}>
-            <Chev dir="l" />
-            <span>Show the panel</span>
-          </button>
-        ) : null}
-        <aside ref={panelRef} className="rg-panel" aria-label="Detail" aria-live="polite">
-          {pick ? <PanelBody key={JSON.stringify(pick)} c={panelCtx} p={pick} /> : null}
-        </aside>
-      </div>
+      ) : (
+        web
+      )}
       {card ? null : (
         <Summary
           L={L}

@@ -92,6 +92,7 @@ import {
   Newspaper,
   OctagonX,
   PanelLeft,
+  PanelRight,
   Paperclip,
   Pause,
   Pencil,
@@ -124,6 +125,7 @@ import {
   Split,
   SquareArrowOutUpRight,
   SquareKanban,
+  SquarePlus,
   SquareTerminal,
   Star,
   StickyNote,
@@ -312,6 +314,9 @@ const ICONS = {
   newFolder: FolderPlus,
   sort: ArrowDownUp,
   pip: PictureInPicture2,
+  // the run graph's dock: a detail window, a new one
+  panelRight: PanelRight,
+  newWindow: SquarePlus,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

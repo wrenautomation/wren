@@ -323,3 +323,17 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Rings out: Who speaks and Evidence are now one row a part: count, a bar of findings on one scale, the dark share in claims. A ring showed only shares of the source count; the rows show what each part gave the answer.
   - Focus: the rest drops to 50% and 35% saturation, lines to 0.16 (was 20% and 0.06).
   - Fix: the stage clips instead of hiding overflow, so a focused control can no longer scroll it sideways (the read-queue story showed it 95 px off).
+- 11-09: the wide graph is a dock (dockview 8.6.2); a detail window keeps its own history (WA-1220).
+  - William: panes "like vscode or an ide": open many windows, move, resize, fill the screen, hide them, "but also a bit more rooted in standard web UI". Most of all, the right panel must fill the view to read it whole. Also: a back button to branch from a finding and come back.
+  - Options (hard to change: every later pane feature sits on it), ranked by what a reader can do, then risk, then code we own:
+    - A. react-resizable-panels: split panes with resize and collapse. No tabs, no float, no drag to rearrange; we would build those.
+    - B. dockview-react: tabs, split, drag to rearrange, float, fill (maximize), hide a group, layout to JSON. MIT, no deps, maintained. Chosen.
+    - C. Our own panes on CSS grid: full control, every IDE behavior is ours to build and test.
+    - D. flexlayout-react: tabs, split, float and maximize too; heavier theming, a global model object that fights React state.
+  - Panes: Lists | Web | detail windows. Lists and Web hide, never close. A detail window is a tab with its own history (60 steps): a pick goes to the active window; ⌘/Ctrl-click, middle-click or the new-window button opens a new one (12 at most). Back and forward: header buttons, Alt+←/→, mouse buttons 4 and 5.
+  - Fill: the header button or a double-click on a tab; Esc restores. A filled window keeps an 860 px reading column. Float and dock-back from the header.
+  - The layout persists in localStorage; windows persist per run, and a window of another run drops on load. The web keeps its center when a pane resizes and fits only the first time it gets room.
+  - Narrow and card mode keep the overlay panel, with the same back and forward.
+  - Lag: a source click expanded the node and ran the force layout (220 ticks, 97 ms in dev) in the same commit as the panel. The relayout is now a transition after the panel paints, and the source table below defers its focus marks. Open to first paint: 170–360 ms → 40–130 ms (dev build). An early stop on the force loop does not help: free nodes never settle under 1 px per tick.
+  - Fix: a page row's frame took `flex: 1` from the row's text rule and grew to half the panel.
+  - Fix: a click on the folded panel's edge tab no longer reaches the stage and clears the pick.

@@ -542,7 +542,7 @@
   height: 18px;
   margin-top: 1px;
 }
-.rg .rg-panel .pgh > span {
+.rg .rg-panel .pgh > span:not(.fr) {
   flex: 1;
   min-width: 0;
 }
@@ -2291,4 +2291,166 @@
   .rg .yr {
     grid-template-columns: 104px minmax(40px, 1fr) auto;
   }
+}
+/* 11-09: the wide graph as a dock (dock.tsx, dockview): Lists | Web | detail windows. Flat, on the
+   graph's own tokens; the active tab reads by its paper and ink, never a stripe. */
+.rg .rg-dock {
+  position: relative;
+  height: min(860px, 88vh);
+  min-height: 580px;
+  border-top: 1px solid var(--hair);
+}
+.rg .dockview-theme-wren {
+  --dv-paneview-active-outline-color: var(--accent);
+  --dv-tabs-and-actions-container-font-size: 12.5px;
+  --dv-tabs-and-actions-container-height: 34px;
+  --dv-drag-over-background-color: color-mix(in srgb, var(--accent) 12%, transparent);
+  --dv-drag-over-border-color: var(--accent);
+  --dv-edge-dock-indicator-color: var(--accent);
+  --dv-tabs-container-scrollbar-color: var(--ink3);
+  --dv-icon-hover-background-color: var(--wash);
+  --dv-floating-box-shadow: var(--shadow);
+  --dv-floating-border: 1px solid var(--hair);
+  --dv-overlay-z-index: 999;
+  --dv-tab-font-size: inherit;
+  --dv-border-radius: 0px;
+  --dv-tab-margin: 0;
+  --dv-sash-color: transparent;
+  --dv-active-sash-color: var(--accent);
+  --dv-active-sash-transition-duration: 0.1s;
+  --dv-active-sash-transition-delay: 0.3s;
+  --dv-spacing-padding: 0px;
+  --dv-tab-border-radius: 0px;
+  --dv-sash-border-radius: 0px;
+  --dv-dropdown-border-radius: 8px;
+  --dv-tab-close-icon-size: inherit;
+  --dv-floating-group-border: none;
+  --dv-drag-over-border: none;
+  --dv-floating-group-dragging-opacity: 0.7;
+  --dv-floating-titlebar-height: 14px;
+  --dv-floating-titlebar-background-color: var(--canvas);
+  --dv-floating-titlebar-border-bottom: 1px solid var(--hair);
+  --dv-group-view-background-color: var(--paper);
+  --dv-tabs-and-actions-container-background-color: var(--canvas);
+  --dv-activegroup-visiblepanel-tab-background-color: var(--paper);
+  --dv-activegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--paper);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-tab-divider-color: var(--hair2);
+  --dv-activegroup-visiblepanel-tab-color: var(--ink);
+  --dv-activegroup-hiddenpanel-tab-color: var(--ink2);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--ink2);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--ink3);
+  --dv-separator-border: var(--hair);
+  --dv-paneview-header-border-color: var(--hair);
+  --dv-scrollbar-background-color: var(--hair);
+  height: 100%;
+  font-family: var(--ui-font);
+}
+.rg .dockview-theme-wren .dv-tabs-and-actions-container {
+  border-bottom: 1px solid var(--hair);
+}
+.rg .dockview-theme-wren .dv-tab {
+  max-width: 240px;
+  padding: 0 6px 0 12px;
+}
+.rg .dockview-theme-wren .dv-default-tab-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rg .dockview-theme-wren .dv-active-tab {
+  font-weight: 600;
+}
+.rg .dk-acts {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  padding: 0 6px;
+}
+.rg .dk-acts button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink2);
+  cursor: pointer;
+}
+.rg .dk-acts button:hover,
+.rg .dk-acts button[aria-pressed="true"] {
+  background: var(--wash);
+  color: var(--ink);
+}
+/* a pane fills its window */
+.rg .rg-dock .rg-stage.dk {
+  height: 100%;
+  min-height: 0;
+}
+.rg .rg-dock .rg-side {
+  position: static;
+  width: auto;
+  height: 100%;
+  padding: 12px 6px 0 14px;
+  box-sizing: border-box;
+  background: var(--canvas);
+}
+.rg .rg-panel.dk {
+  position: static;
+  width: auto;
+  height: 100%;
+  border-left: 0;
+  box-shadow: none;
+  transform: none;
+  transition: none;
+}
+/* the header's buttons: back, forward, then hide and close (or a new window, in the dock) */
+.rg .rg-panel .xs {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 1;
+  display: flex;
+  gap: 6px;
+}
+.rg .rg-panel .xs .x {
+  position: static;
+  display: grid;
+  place-items: center;
+}
+.rg .rg-panel .xs .x:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.rg .rg-panel .hd {
+  padding-right: 132px;
+}
+.rg .rg-panel.dk .hd {
+  padding-right: 100px;
+}
+/* a wide window (filled) keeps a reading measure: the text column stops at 860px, centered */
+.rg .rg-panel.dk .ph,
+.rg .rg-panel.dk .pb {
+  padding-inline: max(16px, calc((100% - 860px) / 2));
+}
+.rg .rg-panel.dk .xs {
+  right: max(10px, calc((100% - 880px) / 2));
+}
+.rg .btn.ib {
+  display: inline-grid;
+  place-items: center;
+  padding: 3px 6px;
+  color: var(--ink2);
+}
+.rg .btn.ib[aria-pressed="true"] {
+  background: var(--wash);
+  color: var(--ink);
+}
+.rg .btn.ib:disabled {
+  opacity: 0.4;
+  cursor: default;
 }

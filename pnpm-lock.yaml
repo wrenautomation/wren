@@ -13,6 +13,8 @@ overrides:
   '@anthropic-ai/claude-agent-sdk-darwin-arm64': '-'
   '@anthropic-ai/claude-agent-sdk-win32-x64': '-'
   '@anthropic-ai/claude-agent-sdk-win32-arm64': '-'
+  dockview: 8.6.2
+  dockview-core: 8.6.2
 
 importers:
 
@@ -2076,6 +2078,9 @@ importers:
       d3-zoom:
         specifier: 3.0.0
         version: 3.0.0
+      dockview-react:
+        specifier: 8.6.2
+        version: 8.6.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       elkjs:
         specifier: 0.12.0
         version: 0.12.0
@@ -7509,6 +7514,18 @@ packages:
   dockerode@5.0.1:
     resolution: {integrity: sha512-avsq/xk4YPIrn0CgleX5bjT9Y8IT1p9PxrNQ++RBQ2WEyFfHCTDsT9kmyxz+H/axnjAwg8wJWEIuPGOUuNupiA==}
     engines: {node: '>= 14.17'}
+
+  dockview-core@8.6.2:
+    resolution: {integrity: sha512-GeGv58jEzVm91pa7movZFhQVOOQkWWTEJu2kjae5cjXGJ763hv+leKDWWdIeF+Ox9+2CZGZq00CDLizDtc8H8A==}
+
+  dockview-react@8.6.2:
+    resolution: {integrity: sha512-zDnsnHBIPgfesCzTlKffPwMDROTb2GwvV16FSEKKnGV42ioPHitiurQAHiTzNRRRE5UBC1I6/4tFBmdUuuwydw==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  dockview@8.6.2:
+    resolution: {integrity: sha512-nv9wVNDO8/k8slAOPruFJLMMSVL32T2c3Z63NHbxw3QkHjHOkXrxf99+3Rorya+D1XCxFiD+im2c5Chg9A2N8g==}
 
   doctrine@3.0.0:
     resolution: {integrity: sha512-yS+Q5i3hBf7GBkd4KG8a7eBNNWNGLTaEwwYWUijIYM7zrlYDM0BFXHjjPWlWZ1Rg7UaddZeIDmi9jF3HmqiQ2w==}
@@ -16077,6 +16094,18 @@ snapshots:
       tar-fs: 2.1.5
     transitivePeerDependencies:
       - supports-color
+
+  dockview-core@8.6.2: {}
+
+  dockview-react@8.6.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+    dependencies:
+      dockview: 8.6.2
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+
+  dockview@8.6.2:
+    dependencies:
+      dockview-core: 8.6.2
 
   doctrine@3.0.0:
     dependencies:

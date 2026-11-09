@@ -1,5 +1,6 @@
 /** The detail panel: a source, claim, search, page, finding or the dropped hits. */
 import { useDeferredValue, useState } from "react";
+import { Icon } from "../../icons.js";
 import { Glyph, Ico, Kd } from "./marks.js";
 import {
   atQuote,
@@ -36,6 +37,11 @@ export interface PanelCtx {
   close: () => void;
   /** hide the panel to a tab; the pick stays */
   min: () => void;
+  /** this window's history: back and forward, when there is a step that way */
+  back?: (() => void) | undefined;
+  fwd?: (() => void) | undefined;
+  /** in a dock window: its tab closes it; open the pick in a new window */
+  dock?: (() => void) | undefined;
   queue: ReadonlySet<string>;
   toggleQ: (id: string) => void;
   dq: string;
@@ -57,20 +63,54 @@ const Out = ({
 );
 
 const X = ({ c }: { c: PanelCtx }) => (
-  <>
+  <div className={cls("xs", c.dock && "dk")}>
     <button
       type="button"
-      className="x mn"
-      aria-label="Hide the panel"
-      title="Hide the panel"
-      onClick={c.min}
+      className="x"
+      aria-label="Back"
+      title="Back (Alt ←)"
+      disabled={!c.back}
+      onClick={c.back}
     >
-      <Chev dir="r" />
+      <Icon name="back" size={14} />
     </button>
-    <button type="button" className="x" aria-label="Close" onClick={c.close}>
-      ×
+    <button
+      type="button"
+      className="x"
+      aria-label="Forward"
+      title="Forward (Alt →)"
+      disabled={!c.fwd}
+      onClick={c.fwd}
+    >
+      <Icon name="arrow" size={14} />
     </button>
-  </>
+    {c.dock ? (
+      <button
+        type="button"
+        className="x"
+        aria-label="Open in a new window"
+        title="Open in a new window (⌘ click)"
+        onClick={c.dock}
+      >
+        <Icon name="newWindow" size={14} />
+      </button>
+    ) : (
+      <>
+        <button
+          type="button"
+          className="x"
+          aria-label="Hide the panel"
+          title="Hide the panel"
+          onClick={c.min}
+        >
+          <Chev dir="r" />
+        </button>
+        <button type="button" className="x" aria-label="Close" onClick={c.close}>
+          ×
+        </button>
+      </>
+    )}
+  </div>
 );
 
 /** A media frame: the picture when there is one, else the site's mark on its kind's tint. */

@@ -1,5 +1,15 @@
-/** The graph's toolbar: round (or run) filter, zoom and reset. */
+/** The graph's toolbar: round (or run) filter, the dock's panes, zoom and reset. */
+import { Icon } from "../../icons.js";
 import type { Indexed } from "./model.js";
+
+/** The dock's toggles; none outside the dock. detail: null while no window is open. */
+export interface PaneBar {
+  lists: boolean;
+  detail: boolean | null;
+  onLists: () => void;
+  onDetail: () => void;
+  onLayout: () => void;
+}
 
 export interface BarsProps {
   L: Indexed;
@@ -9,9 +19,10 @@ export interface BarsProps {
   toRound: (r: number) => void;
   zoomBy: (k: number) => void;
   reset: () => void;
+  panes?: PaneBar | undefined;
 }
 
-export function Bars({ L, round, step, toRound, zoomBy, reset }: BarsProps) {
+export function Bars({ L, round, step, toRound, zoomBy, reset, panes }: BarsProps) {
   const Step = step === "run" ? "Run" : "Round";
   const runs = L.run.runs;
   return (
@@ -48,6 +59,46 @@ export function Bars({ L, round, step, toRound, zoomBy, reset }: BarsProps) {
               ))}
             </div>
           )}
+        </span>
+      ) : null}
+      {panes ? (
+        <span className="grp">
+          <button
+            type="button"
+            className="btn ib"
+            aria-pressed={panes.lists}
+            aria-label="Lists"
+            title={panes.lists ? "Hide the lists" : "Show the lists"}
+            onClick={panes.onLists}
+          >
+            <Icon name="panel" size={15} />
+          </button>
+          <button
+            type="button"
+            className="btn ib"
+            aria-pressed={!!panes.detail}
+            aria-label="Detail windows"
+            title={
+              panes.detail == null
+                ? "Pick a mark to open a window"
+                : panes.detail
+                  ? "Hide the windows"
+                  : "Show the windows"
+            }
+            disabled={panes.detail == null}
+            onClick={panes.onDetail}
+          >
+            <Icon name="panelRight" size={15} />
+          </button>
+          <button
+            type="button"
+            className="btn ib"
+            aria-label="Default layout"
+            title="Default layout"
+            onClick={panes.onLayout}
+          >
+            <Icon name="apps" size={15} />
+          </button>
         </span>
       ) : null}
       <span className="grp">
