@@ -62,7 +62,13 @@ describe("variants loop", () => {
     const page = await api.batches(as("me", { sort: "newest" }));
     expect(page.rows.map((r) => [r.ref, r.state, r.title, r.why, r.waits])).toEqual([
       [b2.batch, "open", "Named-tool openers", null, true],
-      [b.batch, "closed", "Two openers", "Try a named-tool opener against a question opener", false],
+      [
+        b.batch,
+        "closed",
+        "Two openers",
+        "Try a named-tool opener against a question opener",
+        false,
+      ],
     ]);
     expect(page.waiting).toBe(1);
     expect(page.rows[1]?.tally).toEqual({ amazing: 1, good: 0, okay: 0, bad: 1, unmarked: 1 });
