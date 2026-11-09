@@ -39,7 +39,7 @@ export const restateAdminGet = (
     });
 };
 
-/** One admin API call (LoopRevive, FailedCallAlert, Console): a hung one never holds a pass. */
+/** One admin API call (LoopRevive, DeadLetterFile, Console): a hung one never holds a pass. */
 const ADMIN_LIMIT_MS = 30_000;
 
 export const restateAdmin =

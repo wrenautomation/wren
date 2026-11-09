@@ -25,7 +25,7 @@ The model is never trusted with a number: each figure must be printed in the doc
 3. Read unread documents that have a vendor (`packages/books/src/read.ts:123`), check the reading (`packages/books/src/ground.ts:252`), save the bill (`read.ts:299`), void the bills a re-read no longer gives (`:388`), link payments (`:411`); a payment naming no invoice stays on account.
 4. Post (`packages/books/src/post.ts:105`) at the stated CAD charge, else the Bank of Canada rate (`packages/books/src/rates.ts:38`).
 5. The CLI wraps it in one `runs` row (`apps/cli/src/books.ts`).
-6. Daily, `BooksDaily/all` on the Postgres box runs steps 1-4 (`packages/books/src/daily.ts`), takes in AWS spend per service (`packages/books/src/usage.ts`), and settles alerts (`packages/books/src/alerts.ts`): raised once, cleared when gone. New ones go to Discord in one notice (`packages/books/src/restate.ts`). A mailbox it cannot reach is an alert; the others still run.
+6. Daily, `BooksClose/all` on the Postgres box runs steps 1-4 (`packages/books/src/daily.ts`), takes in AWS spend per service (`packages/books/src/usage.ts`), and settles alerts (`packages/books/src/alerts.ts`): raised once, cleared when gone. New ones go to Discord in one notice (`packages/books/src/restate.ts`). A mailbox it cannot reach is an alert; the others still run.
 
 ## If you change this
 

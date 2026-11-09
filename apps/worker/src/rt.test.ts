@@ -46,9 +46,9 @@ beforeAll(async () => {
 afterAll(() => close());
 
 describe("route list", () => {
-  it("every pg service is built, once", () => {
+  it("every pg service is built, once (Postmaster only with its own login)", () => {
     const names = new Set(all.map((s) => s.name));
-    expect(PG_SERVICES.filter((s) => !names.has(s))).toEqual([]);
+    expect(PG_SERVICES.filter((s) => !names.has(s))).toEqual(["EmailPostmasterPull"]);
     expect(new Set(PG_SERVICES).size).toBe(PG_SERVICES.length);
   });
 

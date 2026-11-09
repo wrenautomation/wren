@@ -23,8 +23,8 @@ import {
 import { YOUTUBE_READ_SCOPE, youtubeApi } from "@wren/research/enrichment";
 import { s3PageStore } from "@wren/research/pages";
 import {
-  makeDiscovery,
-  makeEnrichment,
+  makeCompanyEnrich,
+  makeCompanySiteFind,
   makePageHtmlArchive,
   makeProfileResearch,
 } from "@wren/research/restate";
@@ -32,7 +32,7 @@ import { campaignPolicy, recheckLeads } from "@wren/starling-email";
 import {
   dailyOpenerCapacity,
   makeLeadPoolFill,
-  makeResolution,
+  makeLeadVerify,
 } from "@wren/starling-outbound/email";
 import { serviceAccountToken } from "@wrenautomation/autobrowse/google";
 import { PoliteFetcher } from "@wrenautomation/read/fetch";
@@ -82,7 +82,7 @@ export function researchServices(deps: Deps): AnyService[] {
   });
   const services: AnyService[] = [
     // A dead firm site at 30s × 3 tries held one shard ~90s a page; a live one answers in seconds.
-    makeEnrichment({
+    makeCompanyEnrich({
       db,
       clientDb,
       fetcher: ua ? new PoliteFetcher(ua, { timeout: 10, retries: 2 }) : null,
@@ -148,13 +148,13 @@ export function researchServices(deps: Deps): AnyService[] {
     }),
     // Discovery probes guessed hosts, most of them parked or dead: a short timeout and
     // one try per URL, or a single company's guesses can eat a Lambda invocation.
-    makeDiscovery({
+    makeCompanySiteFind({
       db,
       clientDb,
       fetcher: ua ? new PoliteFetcher(ua, { timeout: 8, retries: 1 }) : null,
       genericWordsFor: discoveryWordsFor,
     }),
-    makeResolution({
+    makeLeadVerify({
       db,
       clientDb,
       verifier,
@@ -192,7 +192,7 @@ export function researchServices(deps: Deps): AnyService[] {
       fbGroups: true,
       exaSearch: true,
       youtubeSearch: true,
-      // Needs the fetcher (RSS) and a model; Enrichment refuses without the fetcher.
+      // Needs the fetcher (RSS) and a model; CompanyEnrich refuses without the fetcher.
       triggers: ua !== null,
       recheck: {
         horizonDays: settings.verificationHorizonDays,

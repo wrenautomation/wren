@@ -37,7 +37,7 @@ Citations: `packages/research/src/schema.ts:408`, `packages/research/src/people/
 | Surface | Role |
 |---|---|
 | `LeadPoolFill/{niche}` stage `team` (with `WREN_POOL_PROFILES`) | writes, up to 10 firms a pass, as the bucket allows |
-| `Enrichment/<niche>/team {"companyIds":[...]}` | by hand |
+| `CompanyEnrich/<niche>/team {"companyIds":[...]}` | by hand |
 
 ## See
 

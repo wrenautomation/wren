@@ -198,7 +198,7 @@ export function executorServices(deps: Deps): AnyService[] {
           runBooks: (key) =>
             ingressSend(
               ingressOf(settings),
-              { service: "BooksDaily", key: BOOKS_KEY, handler: "sync" },
+              { service: "BooksClose", key: BOOKS_KEY, handler: "sync" },
               key,
             ),
         }),

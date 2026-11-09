@@ -9,7 +9,7 @@ Checked 2026-10-03. Companion to `restate-durability.md` (why it survives crashe
 |---|---|---|---|
 | Restate server on `wren-prod-pg` (`restate:1.7` in Docker, since 2026-10-06) | every loop's journal, timers, object state; the ingress `https://restate.wrenautomation.com` (Caddy checks the bearer; admin under `/admin`) | `deploy/scripts/box-restate.sh` (not run by CI: by hand over SSM); backup to S3 hourly at :30 (a ring of 24, plus the 08:30 one by date) | this file, `designs/2026-10-05-restate-self-host.md` |
 | Lambda `wren-prod-worker` (us-east-1, Node 22 arm64, 1 GB, 15 min max) | every service except the box's; one version per push | CI `deploy.yml` | `deploy/README.md` |
-| EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17, PgBouncer (6432, transaction mode), Redis (6380, cache), browserless Chromium and the Restate server in Docker; the **box worker**: `BOX_SERVICES` (LeadPoolFill, Discovery, Enrichment, Resolution, PageHtmlArchive, Books, Watch, SocialActivityRead) on 127.0.0.1:9080 or :9081, one slot per deploy so pinned calls finish on their build (`apps/worker/src/box-slot.ts`; `WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
+| EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17, PgBouncer (6432, transaction mode), Redis (6380, cache), browserless Chromium and the Restate server in Docker; the **box worker**: `BOX_SERVICES` (LeadPoolFill, CompanySiteFind, CompanyEnrich, LeadVerify, PageHtmlArchive, BooksClose, MyMailTriage, SocialActivityRead; on the pg box lane since 4d) on 127.0.0.1:9080 or :9081, one slot per deploy so pinned calls finish on their build (`apps/worker/src/box-slot.ts`; `WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
 | RackNerd VPS (192.255.226.241, Buffalo) | mailifier SMTP prober (`probe.wrenautomation.com`) and SearXNG for the research engine (`search.wrenautomation.com`, bearer SSM `/wren/prod/searxng_token`), both behind Caddy | `deploy/scripts/deploy-vps.sh` | "Verifying addresses" and "Search" below |
 | RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`); in `WREN_SMTP_PROBE_URL`, probes once its PTR resolves | `PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-vps.sh` | "Verifying addresses" below |
 | William's Mac | autobrowse desk worker under launchd: every `sites` call (browser, logins, Chrome profiles, home IP) | `../autobrowse/deploy/desk/install.sh` | `../autobrowse/deploy/README.md` |
@@ -118,7 +118,7 @@ Admin queries go to `$U/admin/query` with the same bearer (SQL over `sys_invocat
 
 A call whose retries ran out is paused: its object stays locked and nothing moves until
 someone acts. Retries: `[default-retry-policy]` in `deploy/scripts/box-restate.sh` (500 ms, x2, 1 min
-max, 70 tries, about 1 h). Webhook services keep an idempotency key 7 days (`WEBHOOK_SERVICE`). The `FailedCallAlert/all` loop files each one every 10 minutes and tells Discord
+max, 70 tries, about 1 h). Webhook services keep an idempotency key 7 days (`WEBHOOK_SERVICE`). The `DeadLetterFile/all` loop files each one every 10 minutes and tells Discord
 once (designs/2026-10-11-dead-letters.md).
 
 ```sh
@@ -351,7 +351,7 @@ Microsoft, Proofpoint, Mimecast; `PROBE_BIG_HOST_LANES`). Measured 2026-09-25 at
 wide: ~1,000 domains an hour, VPS load near 0. A host that takes no connection on any
 MX name is left alone for an hour; probes queued behind it answer `unreachable` at once.
 A probe the client gave up on (60 s) is `risky` `timeout` and the pass goes on.
-`resolveMailboxes` walks only the person guesses someone queued (`Resolution/default/queue`).
+`resolveMailboxes` walks only the person guesses someone queued (`LeadVerify/default/queue`).
 
 Meaning of the verdicts: `valid` = the MX accepted the address and refused a random
 one; `catch_all` = it accepts anything (sendable, unproven); `invalid` = user

@@ -42,11 +42,11 @@ const stage =
   };
 const fakes = [
   restate.object({
-    name: "Discovery",
+    name: "CompanySiteFind",
     handlers: { discover: stage("discover"), verify: stage("verify") },
   }),
   restate.object({
-    name: "Enrichment",
+    name: "CompanyEnrich",
     handlers: {
       crawl: stage("crawl"),
       render: stage("render"),
@@ -59,7 +59,7 @@ const fakes = [
     },
   }),
   restate.object({
-    name: "Resolution",
+    name: "LeadVerify",
     handlers: { resolveNewDomains: stage("resolveNewDomains"), verifyLeads: stage("verifyLeads") },
   }),
 ];

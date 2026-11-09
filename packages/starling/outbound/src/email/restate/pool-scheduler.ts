@@ -37,7 +37,7 @@
  * two mailbox stages while the crawl stays off); `start({})` goes back to all.
  *
  * `LeadPoolFill/<client>/<niche|all>` is a client's pool (designs/2026-10-04-outbound-per-client.md,
- * O1): the same chain on `Discovery`/`Enrichment` keyed alike, in the client's database,
+ * O1): the same chain on `CompanySiteFind`/`CompanyEnrich` keyed alike, in the client's database,
  * sized by its `research.lead_sheet` block. Each pass reads the block from main; a client
  * gone, the demo, or the component uninstalled stops the loop. No profiles, no re-checks.
  * With `research.social` installed it also reads YouTube and Instagram for the client's firms,
@@ -46,7 +46,7 @@
  *
  * Each stage call waits at most `STAGE_WAIT_MS` (designs/2026-10-16-loop-watchdog.md). Past it
  * the call is cancelled and the stage counts as failed this pass; the rest of that object's
- * stages (`Enrichment/<key>` is one lock) wait for the next pass. A stage that times out three
+ * stages (`CompanyEnrich/<key>` is one lock) wait for the next pass. A stage that times out three
  * passes in a row is held (`unit_holds`, stage `loop.lead-pool-fill/<key>`), then tried again
  * after its hold.
  */
@@ -83,7 +83,7 @@ import {
   youtubeReadRoom,
 } from "@wren/research/enrichment";
 import { INSTAGRAM_LIMIT, YOUTUBE_LIMIT } from "@wren/research/limits";
-import type { Discovery, Enrichment } from "@wren/research/restate";
+import type { CompanyEnrich, CompanySiteFind } from "@wren/research/restate";
 import {
   anyCollectorBuilt,
   queuedFirms,
@@ -97,7 +97,7 @@ import { verifications } from "@wren/starling-email/schema";
 import type { SendPolicy } from "@wren/starling-email/send/policy";
 import { and, count, gt, ne, sql } from "drizzle-orm";
 import { nextToEnroll } from "../outreach/compose.js";
-import { RESOLUTION_KEY, type Resolution } from "./resolution.js";
+import { type LeadVerify, RESOLUTION_KEY } from "./resolution.js";
 
 const POOL_COMMAND = "pool feed";
 type ModelStages = "none" | "pick" | "all";
@@ -202,7 +202,7 @@ const DEFAULT_LIMITS: StageLimits = {
 
 /**
  * Mail servers talked to at once: half the prober's in-flight cap (PROBE_MAX_IN_FLIGHT, 64).
- * Every pass goes through Resolution/default one at a time, so two niches never stack; the
+ * Every pass goes through LeadVerify/default one at a time, so two niches never stack; the
  * other half absorbs probes a timed-out client left running on the server.
  * Each walk holds a DB connection: 32 of Postgres's 60.
  */
@@ -278,21 +278,21 @@ interface LeadPoolFillDeps {
   recheck?: { horizonDays: number; policy: (niche: string) => RecontactPolicy | undefined };
   limits?: Partial<StageLimits>;
   profiles?: ProfilesStage;
-  /** The same queue for `signals` (Enrichment's `signals`); absent = off. Runs once a collector is built. */
+  /** The same queue for `signals` (CompanyEnrich's `signals`); absent = off. Runs once a collector is built. */
   signals?: ProfilesStage;
-  /** The YouTube reader is wired (Enrichment's `youtube`): the stage runs on Wren's niches. */
+  /** The YouTube reader is wired (CompanyEnrich's `youtube`): the stage runs on Wren's niches. */
   youtube?: boolean;
-  /** autobrowse's `meta` site is wired (Enrichment's `instagram`): the stage runs on Wren's niches. */
+  /** autobrowse's `meta` site is wired (CompanyEnrich's `instagram`): the stage runs on Wren's niches. */
   instagram?: boolean;
-  /** The Mac's desk is wired (Enrichment's `adLibrary`): the stage runs on Wren's niches. */
+  /** The Mac's desk is wired (CompanyEnrich's `adLibrary`): the stage runs on Wren's niches. */
   adLibrary?: boolean;
-  /** The Mac's desk and the niche group keywords are wired (Enrichment's `fbGroups`): the stage runs on Wren's niches. */
+  /** The Mac's desk and the niche group keywords are wired (CompanyEnrich's `fbGroups`): the stage runs on Wren's niches. */
   fbGroups?: boolean;
-  /** autobrowse's `sites` service is wired (Enrichment's `exaSearch`): the stage runs on Wren's niches. */
+  /** autobrowse's `sites` service is wired (CompanyEnrich's `exaSearch`): the stage runs on Wren's niches. */
   exaSearch?: boolean;
-  /** The YouTube reader is wired (Enrichment's `youtubeSearch`): the stage runs on Wren's niches. */
+  /** The YouTube reader is wired (CompanyEnrich's `youtubeSearch`): the stage runs on Wren's niches. */
   youtubeSearch?: boolean;
-  /** The fetcher and model are wired (Enrichment's `triggers`): the stage runs on Wren's niches. */
+  /** The fetcher and model are wired (CompanyEnrich's `triggers`): the stage runs on Wren's niches. */
   triggers?: boolean;
   /** Between passes that found work. */
   busyMs?: number;
@@ -315,10 +315,11 @@ const STAGE_WAIT_MS = 60 * 60_000;
 
 /** The object and handler a stage calls, for its timeout's name. */
 function callOf(stage: Stage): { service: string; handler: string } {
-  if (stage === "discover" || stage === "verify") return { service: "Discovery", handler: stage };
-  if (stage === "resolveMailboxes") return { service: "Resolution", handler: "resolveNewDomains" };
-  if (stage === "verifyMailboxes") return { service: "Resolution", handler: "verifyLeads" };
-  return { service: "Enrichment", handler: stage };
+  if (stage === "discover" || stage === "verify")
+    return { service: "CompanySiteFind", handler: stage };
+  if (stage === "resolveMailboxes") return { service: "LeadVerify", handler: "resolveNewDomains" };
+  if (stage === "verifyMailboxes") return { service: "LeadVerify", handler: "verifyLeads" };
+  return { service: "CompanyEnrich", handler: stage };
 }
 
 /** Firms a client's signals stage considers a pass; the collectors take the due ones. */
@@ -522,9 +523,9 @@ export function makeLeadPoolFill(deps: LeadPoolFillDeps) {
     });
     if (limits.resolveMailboxes === 0) runnable.delete("resolveMailboxes");
     if (limits.verifyMailboxes === 0) runnable.delete("verifyMailboxes");
-    const discovery = ctx.objectClient<Discovery>({ name: "Discovery" }, ctx.key);
-    const enrichment = ctx.objectClient<Enrichment>({ name: "Enrichment" }, ctx.key);
-    const resolution = ctx.objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY);
+    const discovery = ctx.objectClient<CompanySiteFind>({ name: "CompanySiteFind" }, ctx.key);
+    const enrichment = ctx.objectClient<CompanyEnrich>({ name: "CompanyEnrich" }, ctx.key);
+    const resolution = ctx.objectClient<LeadVerify>({ name: "LeadVerify" }, RESOLUTION_KEY);
     const waits = await unitLimits(ctx, deps.db, "LeadPoolFill");
     const stageWaitMs = deps.stageWaitMs ?? STAGE_WAIT_MS;
     const limited = <T extends object>(stage: Stage, p: restate.InvocationPromise<T>) => {

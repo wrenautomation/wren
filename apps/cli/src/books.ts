@@ -613,11 +613,11 @@ export function registerBooks(
     });
 
   const loop = () =>
-    clients.connect(ingressOf(settings)).objectClient<Books>({ name: "BooksDaily" }, BOOKS_KEY);
+    clients.connect(ingressOf(settings)).objectClient<Books>({ name: "BooksClose" }, BOOKS_KEY);
   const daily = books
     .command("loop")
     .description(
-      "BooksDaily/all on the Postgres box: import, read, post, AWS spend and alerts, daily",
+      "BooksClose/all on the Postgres box: import, read, post, AWS spend and alerts, daily",
     );
   daily.command("status").action(async () => json(await loop().status()));
   daily

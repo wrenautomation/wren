@@ -42,7 +42,7 @@ Citations: `packages/research/src/social-schema.ts`, `packages/research/src/enri
 | Surface | Role |
 |---|---|
 | `LeadPoolFill/{niche}` stage `fbGroups` | writes, Wren's niches with `groupKeywords` |
-| `Enrichment/<niche>/fbGroups {"limit": n}` | by hand |
+| `CompanyEnrich/<niche>/fbGroups {"limit": n}` | by hand |
 | autobrowse `fb-public` `/groups` routes | read, on the Mac's desk |
 
 ## See

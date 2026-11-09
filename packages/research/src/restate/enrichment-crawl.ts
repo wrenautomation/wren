@@ -1,4 +1,4 @@
-/** Enrichment handlers that crawl, render and scan sites and extract from them. */
+/** CompanyEnrich handlers that crawl, render and scan sites and extract from them. */
 
 import { exclusiveHandler } from "@wren/core/restate";
 import { atomic } from "@wren/db";

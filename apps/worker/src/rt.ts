@@ -38,8 +38,8 @@ import type { AnyService } from "./services.js";
 /**
  * Services on the Postgres runtime. A deploy flips one; pg keeps every service registered.
  * Groups (design doc "Move plan"): 1 AuditLogSeal; 2 platform and people loops; 3 email and content
- * loops; 4a the other loops and workers; 4b webhooks and public calls; 4c consoles, portals, desks. All on the Lambda lane.
- * The watchdogs (FailedCallAlert, LoopRevive) move last: they watch the moved loops from Restate.
+ * loops; 4a the other loops and workers; 4b webhooks and public calls; 4c consoles, portals, desks;
+ * 4d the box services (box lane), the watchdogs (read both runtimes' admin), the rest. Content last.
  */
 export const PG_SERVICES: readonly string[] = [
   "AuditLogSeal",
@@ -147,6 +147,24 @@ export const PG_SERVICES: readonly string[] = [
   "Connectors",
   "MailAccess",
   "SocialAccess",
+  // 4d: the box services (box lane), the watchdogs, the executor, variants and folders
+  "LeadPoolFill",
+  "CompanySiteFind",
+  "CompanyEnrich",
+  "LeadVerify",
+  "PageHtmlArchive",
+  "BooksClose",
+  "MyMailTriage",
+  "SocialActivityRead",
+  "ContentDesk",
+  "EmailPostmasterPull",
+  "Executor",
+  "ExecutorClock",
+  "DeadLetterFile",
+  "LoopRevive",
+  "VariantsCollect",
+  "VariantsConsole",
+  "FoldersConsole",
 ];
 
 /**
@@ -183,6 +201,12 @@ export const RENAMED: Readonly<Record<string, string>> = {
   ClientCalendar: "ClientBookingPage",
   Documents: "DocumentSign",
   Webhooks: "WebhookSend",
+  // 4d: Restate holds daily wakes and the pool chain's sends under these
+  FailedCallAlert: "DeadLetterFile",
+  BooksDaily: "BooksClose",
+  Resolution: "LeadVerify",
+  Discovery: "CompanySiteFind",
+  Enrichment: "CompanyEnrich",
 };
 
 const LEASE_MS = 60_000;

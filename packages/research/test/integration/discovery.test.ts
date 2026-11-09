@@ -1,4 +1,4 @@
-/** Discovery service: attach + evidence sighting + verified stamp, claim protection, firm_facts guarantee. */
+/** CompanySiteFind service: attach + evidence sighting + verified stamp, claim protection, firm_facts guarantee. */
 import { companies, sightings } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";

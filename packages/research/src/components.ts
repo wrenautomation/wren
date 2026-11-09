@@ -77,7 +77,7 @@ export const RESEARCH_COMPONENTS = [
     for: "client",
     ready: true,
     missing: [],
-    provides: { services: ["Discovery"] },
+    provides: { services: ["CompanySiteFind"] },
     effects: ["spends"],
     out: [
       {
@@ -154,7 +154,7 @@ export const RESEARCH_COMPONENTS = [
     ready: true,
     missing: [],
     requires: { components: ["research.crawl"] },
-    provides: { services: ["Enrichment"] },
+    provides: { services: ["CompanyEnrich"] },
     effects: ["spends"],
     in: [{ id: "firms", label: "crawled companies", kind: "firm" }],
     out: [PEOPLE],
@@ -185,7 +185,7 @@ export const RESEARCH_COMPONENTS = [
     ready: true,
     missing: [],
     requires: { components: ["research.people"] },
-    provides: { services: ["Resolution"] },
+    provides: { services: ["LeadVerify"] },
     // A paid verifier when the free probes can't tell.
     effects: ["spends"],
     in: [{ id: "people", label: "people", kind: "person" }],

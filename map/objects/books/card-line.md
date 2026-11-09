@@ -40,7 +40,7 @@ Citations: `packages/books/src/schema.ts:397`, `:450`, `:803`, `packages/books/s
 |---|---|
 | `wren books card import <file>` | writes (OFX/QFX or CSV) |
 | `wren books card sort [descriptor] [vendor\|personal]` | lists what's left, or sets a rule |
-| daily `BooksDaily/all` | reads alert mail, sorts, matches |
+| daily `BooksClose/all` | reads alert mail, sorts, matches |
 | Money → Card | read |
 
 ## See

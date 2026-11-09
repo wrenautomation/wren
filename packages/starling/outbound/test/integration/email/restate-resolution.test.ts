@@ -1,4 +1,4 @@
-/** The Resolution virtual object: build → queue → resolve on a stub verifier, journaled per domain. */
+/** The LeadVerify virtual object: build → queue → resolve on a stub verifier, journaled per domain. */
 
 import { ingressOf } from "@wren/config";
 import { type Company, companies, imports, leads, people, runs } from "@wren/core";
@@ -19,9 +19,9 @@ import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { domainKnowledge } from "../../../src/email/resolution/service.js";
 import {
-  makeResolution,
+  type LeadVerify,
+  makeLeadVerify,
   RESOLUTION_KEY,
-  type Resolution,
 } from "../../../src/email/restate/resolution.js";
 
 const DOMAIN = "veloqua.example";
@@ -61,7 +61,7 @@ const inside = restate.service({
   name: "ResolveInside",
   handlers: {
     resolve: (ctx: restate.Context, input: { creditLimit?: number }) =>
-      ctx.objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY).resolve(input),
+      ctx.objectClient<LeadVerify>({ name: "LeadVerify" }, RESOLUTION_KEY).resolve(input),
   },
 });
 
@@ -72,7 +72,7 @@ beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
     services: [
-      makeResolution({
+      makeLeadVerify({
         db: pg.db,
         verifier,
         checker: passChecker,
@@ -99,7 +99,7 @@ beforeEach(async () => {
 const db = () => pg.db;
 const client = () => {
   const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
-  const object = ingress.objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY);
+  const object = ingress.objectClient<LeadVerify>({ name: "LeadVerify" }, RESOLUTION_KEY);
   const via = ingress.serviceClient<typeof inside>({ name: "ResolveInside" });
   return {
     build: object.build,
@@ -152,7 +152,7 @@ async function makeFirm(names: [string, string][], domain = DOMAIN): Promise<Com
   return company as Company;
 }
 
-describe("Resolution virtual object", () => {
+describe("LeadVerify virtual object", () => {
   it("build → queue → resolve proves the pattern and promotes leads", async () => {
     await makeFirm([
       ["Jane", "Doe"],

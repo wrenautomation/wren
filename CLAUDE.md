@@ -19,5 +19,5 @@ Shipping:
 - Env change: diff SSM first, then `deploy/scripts/push-secrets.sh` (it overwrites the whole parameter), then `gh workflow run deploy.yml --ref main`.
 
 Hard rules: repo is public (no lead data, amounts, client names, secrets; tests use synthetic data).
-Never `tofu apply -target` the Lambda. Never call `Resolution/default/resolve` by hand; queue it.
+Never `tofu apply -target` the Lambda. Never call `LeadVerify/default/resolve` by hand; queue it.
 Money and spend are William's call.

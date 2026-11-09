@@ -1,5 +1,5 @@
 /**
- * The pool-feeder over stand-in Discovery/Enrichment objects: stage order, the
+ * The pool-feeder over stand-in CompanySiteFind/CompanyEnrich objects: stage order, the
  * spend gate, progress → short delay, idle → next day, a refusing stage → retry,
  * a hung stage → cut at its wait and held on its third, and `profiles` reading compose's queue.
  */
@@ -45,14 +45,14 @@ const stage =
     return answer();
   };
 const fakeDiscovery = restate.object({
-  name: "Discovery",
+  name: "CompanySiteFind",
   handlers: {
     discover: stage("discover", () => answers.discover),
     verify: stage("verify", () => ({ companies_scanned: 0 })),
   },
 });
 const fakeEnrichment = restate.object({
-  name: "Enrichment",
+  name: "CompanyEnrich",
   handlers: {
     crawl: async (ctx: restate.ObjectContext) => {
       // A crawl Restate paused: it waits on an awakeable no one resolves.
@@ -89,7 +89,7 @@ const fakeEnrichment = restate.object({
 });
 
 const fakeResolution = restate.object({
-  name: "Resolution",
+  name: "LeadVerify",
   handlers: {
     resolveNewDomains: stage("resolveNewDomains", () => answers.resolve),
     verifyLeads: stage("verifyLeads", () => answers.verify),
@@ -290,11 +290,11 @@ describe("LeadPoolFill", () => {
     const key = "hang_ria";
     const out = await sync(key);
     const crawl = out.stats?.stages.find((s) => s.stage === "crawl");
-    expect(crawl?.error).toMatch(/Enrichment\/crawl gave no answer in 2 s/);
-    // Enrichment's lock may still be held: its later stages wait; Resolution's run.
+    expect(crawl?.error).toMatch(/CompanyEnrich\/crawl gave no answer in 2 s/);
+    // CompanyEnrich's lock may still be held: its later stages wait; LeadVerify's run.
     expect(out.stats?.stages.find((s) => s.stage === "render")).toMatchObject({
       skipped: true,
-      error: expect.stringMatching(/earlier Enrichment stage/),
+      error: expect.stringMatching(/earlier CompanyEnrich stage/),
     });
     expect(called).toEqual(
       expect.arrayContaining(["discover", "resolveNewDomains", "verifyLeads"]),
@@ -304,7 +304,7 @@ describe("LeadPoolFill", () => {
     const status = (await client(key).status()) as LoopStatus<FeedStats> & {
       last?: { timeouts?: { call: string; unit: string | null }[] };
     };
-    expect(status.last?.timeouts).toMatchObject([{ call: "Enrichment/crawl", unit: "crawl" }]);
+    expect(status.last?.timeouts).toMatchObject([{ call: "CompanyEnrich/crawl", unit: "crawl" }]);
     await sync(key);
     await sync(key);
     const held = (await client(key).status()) as typeof status;

@@ -9,7 +9,7 @@ entity: packages/core/src/dead-letter-schema.ts:26
 
 # dead-letter
 
-One Restate invocation that used up its retries and paused (`dead_letters`), filed by the `FailedCallAlert/all` loop and ended by `wren dlq retry|kill|drop`.
+One Restate invocation that used up its retries and paused (`dead_letters`), filed by the `DeadLetterFile/all` loop and ended by `wren dlq retry|kill|drop`.
 
 ## Why this shape
 
@@ -21,7 +21,7 @@ A paused call holds its object's lock and moves only when someone acts, so it mu
 - Sweep `deadLetterPass` (`dead-letters.ts:202`): SQL over `sys_invocation` where `status = 'paused'` (`:40`); the error from the journal when the row has none, else the `Paused` event's last failure; a retried letter that paused again reopens (same id); open rows no longer paused close as `cleared`; one Discord warning per batch of new letters, except desk calls Restate could not deliver (`deskUnreachable`, `:118`: the Mac asleep), posted silent
 - `pausedUnder` (`dead-letters.ts:151`): the paused call under an invocation, walking `invoked_by_id` 5 levels; the content scheduler parks a publish held by one (map/processes/content-loop.md)
 - `endDeadLetter` (`dead-letters.ts:325`): `retry` = admin `PATCH /invocations/<id>/resume?deployment=latest` (the newest code, not the deployment it was pinned to), `kill` = `/kill`, `drop` = the row only
-- Loop `FailedCallAlert/all` (`dead-letters.ts:350`), every 10 minutes; wired only when `WREN_RESTATE_ADMIN_URL` is set (`apps/worker/src/services/platform.ts:87`)
+- Loop `DeadLetterFile/all` (`dead-letters.ts:350`), every 10 minutes; wired only when `WREN_RESTATE_ADMIN_URL` is set (`apps/worker/src/services/platform.ts:87`)
 - Caddy passes exactly those two PATCH routes with the ingress bearer (`deploy/scripts/box-restate.sh:65`)
 
 Citations: `packages/core/src/dead-letter-schema.ts:26`
@@ -40,7 +40,7 @@ Citations: `packages/core/src/dead-letter-schema.ts:26`
 
 | Surface | Role |
 |---|---|
-| `FailedCallAlert/all` | writes |
+| `DeadLetterFile/all` | writes |
 | `wren dlq list|show` | reads |
 | `wren dlq retry|kill|drop` | writes, drives Restate |
 

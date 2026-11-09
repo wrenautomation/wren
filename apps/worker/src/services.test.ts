@@ -208,7 +208,7 @@ describe("servicesFor: which side serves the pool chain", () => {
     "EmailSend",
     ...POOL_CHAIN,
     "PageHtmlArchive",
-    "BooksDaily",
+    "BooksClose",
     "MyMailTriage",
     "SocialActivityRead",
     "Content",
@@ -315,7 +315,7 @@ describe("handler forms", () => {
 
   it("resolve and every loop refuse at ingress", async () => {
     const all = await handlers();
-    expect(all.get("Resolution/resolve")?.ingressPrivate).toBe(true);
+    expect(all.get("LeadVerify/resolve")?.ingressPrivate).toBe(true);
     const loops = [...all].filter(([id]) => id.endsWith("/loop"));
     expect(loops.length).toBeGreaterThan(5);
     for (const [id, o] of loops) expect(o.ingressPrivate, id).toBe(true);

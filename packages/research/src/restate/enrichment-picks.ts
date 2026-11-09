@@ -1,4 +1,4 @@
-/** Enrichment handlers that pick who to contact and what to open with. */
+/** CompanyEnrich handlers that pick who to contact and what to open with. */
 
 import { companies } from "@wren/core";
 import { exclusiveHandler } from "@wren/core/restate";

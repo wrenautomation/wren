@@ -1,5 +1,5 @@
 /**
- * Enrichment as a Restate Virtual Object keyed by population: "all" or a niche.
+ * CompanyEnrich as a Restate Virtual Object keyed by population: "all" or a niche.
  * One key → one writer, so the stages of one population serialize instead of
  * racing (this replaces the Python per-stage advisory locks). Every unit of work
  * (one company crawled, one document scanned or extracted, one company picked or
@@ -30,10 +30,10 @@ export type { ExtractInput, RenderInput, ScanInput } from "./enrichment-crawl.js
 export type { ProfilesInput, SignalsInput, TeamInput } from "./enrichment-people.js";
 export type { EmailPickInput, PickInput, TagInput } from "./enrichment-picks.js";
 
-export function makeEnrichment(deps: EnrichmentDeps) {
+export function makeCompanyEnrich(deps: EnrichmentDeps) {
   const enrich = enrichmentContext(deps);
   return restate.object({
-    name: "Enrichment",
+    name: "CompanyEnrich",
     handlers: {
       ...crawlHandlers(enrich),
       ...picksHandlers(enrich),
@@ -44,4 +44,4 @@ export function makeEnrichment(deps: EnrichmentDeps) {
   });
 }
 
-export type Enrichment = ReturnType<typeof makeEnrichment>;
+export type CompanyEnrich = ReturnType<typeof makeCompanyEnrich>;

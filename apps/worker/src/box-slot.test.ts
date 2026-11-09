@@ -103,7 +103,7 @@ describe("watchSuperseded", () => {
     watchSuperseded({
       query,
       deployment: "dp_old",
-      service: "BooksDaily",
+      service: "BooksClose",
       everyMs: 1000,
       onSuperseded,
       onError,

@@ -1,4 +1,4 @@
-/** Enrichment handlers for people: profiles, teams and signals. */
+/** CompanyEnrich handlers for people: profiles, teams and signals. */
 
 import { bucketOf } from "@wren/core/limits";
 import { keyedSites } from "@wren/core/metered";

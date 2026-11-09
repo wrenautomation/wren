@@ -1,4 +1,4 @@
-/** Enrichment handlers that search: the ad library, Exa and trigger events. */
+/** CompanyEnrich handlers that search: the ad library, Exa and trigger events. */
 
 import { runScreen } from "@wren/core";
 import { bucketOf } from "@wren/core/limits";

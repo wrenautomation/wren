@@ -1,4 +1,4 @@
-/** Enrichment handlers that read YouTube, Instagram and Facebook groups. */
+/** CompanyEnrich handlers that read YouTube, Instagram and Facebook groups. */
 
 import { runScreen } from "@wren/core";
 import { bucketOf } from "@wren/core/limits";

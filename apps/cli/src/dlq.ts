@@ -1,6 +1,6 @@
 /**
  * `wren dlq …`: the dead-letter queue (designs/2026-10-11-dead-letters.md). Every Restate
- * invocation that used up its retries and paused, filed by the `FailedCallAlert` loop. Reads go to
+ * invocation that used up its retries and paused, filed by the `DeadLetterFile` loop. Reads go to
  * the database; `retry` and `kill` go to Restate's admin API (`WREN_RESTATE_ADMIN_URL`).
  * `--json` everywhere, so an agent reads the same rows a person does.
  */
@@ -10,10 +10,10 @@ import { runtimeAdmin } from "@wren/core/console";
 import {
   DEAD_LETTERS_KEY,
   type DeadLetterAct,
+  type DeadLetterFile,
   deadLetter,
   deadLetterList,
   endDeadLetter,
-  type FailedCallAlert,
   journalOf,
   letterLine,
 } from "@wren/core/dead-letters";
@@ -34,7 +34,7 @@ export function registerDlq(program: Command, withMainDb: WithDb, settings: Sett
   const loop = () =>
     clients
       .connect(ingressOf(settings))
-      .objectClient<FailedCallAlert>({ name: "FailedCallAlert" }, DEAD_LETTERS_KEY);
+      .objectClient<DeadLetterFile>({ name: "DeadLetterFile" }, DEAD_LETTERS_KEY);
 
   const cmd = program
     .command("dlq")
@@ -104,7 +104,7 @@ export function registerDlq(program: Command, withMainDb: WithDb, settings: Sett
 
   const sweep = cmd
     .command("sweep")
-    .description("The FailedCallAlert loop: a sweep every 10 minutes");
+    .description("The DeadLetterFile loop: a sweep every 10 minutes");
   for (const [name, what] of [
     ["status", "Its last sweep"],
     ["start", "Loop: sweep, then again in 10 minutes"],

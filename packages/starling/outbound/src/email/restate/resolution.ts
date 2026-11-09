@@ -129,7 +129,7 @@ const VERIFY = z
   })
   .nullish();
 
-export function makeResolution(deps: ResolutionDeps) {
+export function makeLeadVerify(deps: ResolutionDeps) {
   const checker = deps.checker ?? defaultLocalChecker();
   const shared = sharedVerdicts(deps.db, deps.verifier);
   /** Where a call works and what it asks: Wren's on main, a client's in its database through main's verdicts. */
@@ -153,7 +153,7 @@ export function makeResolution(deps: ResolutionDeps) {
     ctx.run("finish run", () => finishRun(db, runId, stats));
 
   return restate.object({
-    name: "Resolution",
+    name: "LeadVerify",
     handlers: {
       build: exclusiveHandler(
         { input: z.looseObject({ limitPeople: z.number().nullish(), client: CLIENT }).nullish() },
@@ -337,7 +337,7 @@ export function makeResolution(deps: ResolutionDeps) {
 const verifiedRows = (s: VerificationStats) =>
   s.local_invalid + s.valid + s.invalid + s.risky + s.catch_all;
 
-export type Resolution = ReturnType<typeof makeResolution>;
+export type LeadVerify = ReturnType<typeof makeLeadVerify>;
 
 /**
  * One mailbox walk at a time, across every worker. Restate can start a retry of

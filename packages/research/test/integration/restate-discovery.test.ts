@@ -1,4 +1,4 @@
-/** The Discovery virtual object on fakes: a domainless company gets its proven domain, once. */
+/** The CompanySiteFind virtual object on fakes: a domainless company gets its proven domain, once. */
 
 import { ingressOf } from "@wren/config";
 import { companies, runs } from "@wren/core";
@@ -8,7 +8,7 @@ import * as clients from "@wren/runtime/clients";
 import type { RestateTestEnvironment } from "@wren/runtime/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { type Discovery, makeDiscovery } from "../../src/restate/discovery.js";
+import { type CompanySiteFind, makeCompanySiteFind } from "../../src/restate/discovery.js";
 import { FakeFetcher } from "./fixtures.js";
 
 let pg: TestPostgres;
@@ -22,7 +22,7 @@ beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
     services: [
-      makeDiscovery({
+      makeCompanySiteFind({
         db: pg.db,
         fetcher,
         genericWordsFor: () => new Set(["wealth", "advisors"]),
@@ -41,9 +41,9 @@ beforeEach(() => truncate(pg.db, ["discovery_attempts", "imports", "companies", 
 const client = () =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<Discovery>({ name: "Discovery" }, "sec_ria");
+    .objectClient<CompanySiteFind>({ name: "CompanySiteFind" }, "sec_ria");
 
-describe("Discovery", () => {
+describe("CompanySiteFind", () => {
   it("attaches a gated domain, records the run, and finds nothing left on the next pass", async () => {
     const [company] = await pg.db
       .insert(companies)

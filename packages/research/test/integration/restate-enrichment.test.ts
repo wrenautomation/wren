@@ -1,5 +1,5 @@
 /**
- * The Enrichment virtual object end to end on fakes: crawl → scan → extract →
+ * The CompanyEnrich virtual object end to end on fakes: crawl → scan → extract →
  * apply → pick → apply, then the render tier. alwaysReplay re-runs the journal
  * after every step, so any non-determinism outside ctx.run fails loudly.
  */
@@ -17,7 +17,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { EMPTY_HASH } from "../../src/enrichment/crawler.js";
 import type { BrowserRenderer } from "../../src/enrichment/render.js";
 import { tierMemory } from "../../src/fetch/tier-memory.js";
-import { ALL_NICHES, type Enrichment, makeEnrichment } from "../../src/restate/enrichment.js";
+import { ALL_NICHES, type CompanyEnrich, makeCompanyEnrich } from "../../src/restate/enrichment.js";
 import { documents, enrichments } from "../../src/schema.js";
 import { FakeFetcher, makeCompany } from "./fixtures.js";
 
@@ -93,7 +93,7 @@ beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
     services: [
-      makeEnrichment({
+      makeCompanyEnrich({
         db: pg.db,
         fetcher,
         llm,
@@ -119,10 +119,10 @@ const db = () => pg.db;
 const client = (key = ALL_NICHES) =>
   clients
     .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
-    .objectClient<Enrichment>({ name: "Enrichment" }, key);
+    .objectClient<CompanyEnrich>({ name: "CompanyEnrich" }, key);
 const finishedRuns = () => db().select().from(runs).orderBy(runs.startedAt);
 
-describe("Enrichment virtual object", () => {
+describe("CompanyEnrich virtual object", () => {
   it("crawl → scan → extract → apply → pick → apply, one ledger run per handler", async () => {
     const roeco = await makeCompany(db(), {
       key: null,

@@ -75,7 +75,7 @@ const LIMIT = z
   })
   .nullish();
 
-export function makeDiscovery(deps: DiscoveryDeps) {
+export function makeCompanySiteFind(deps: DiscoveryDeps) {
   const fetchHomepage = (): HomepageFetcher => {
     if (deps.fetchHomepage) return deps.fetchHomepage;
     if (!deps.fetcher) throw new restate.TerminalError("WREN_FETCH_CONTACT is not set");
@@ -152,7 +152,7 @@ export function makeDiscovery(deps: DiscoveryDeps) {
   };
 
   return restate.object({
-    name: "Discovery",
+    name: "CompanySiteFind",
     handlers: {
       discover: exclusiveHandler(
         { input: LIMIT },
@@ -188,4 +188,4 @@ export function makeDiscovery(deps: DiscoveryDeps) {
   });
 }
 
-export type Discovery = ReturnType<typeof makeDiscovery>;
+export type CompanySiteFind = ReturnType<typeof makeCompanySiteFind>;

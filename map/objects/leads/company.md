@@ -46,7 +46,7 @@ Citations: `packages/core/src/schema.ts:157`
 |---|---|
 | `wren email import` / `import-people` (CLI) | writes |
 | `wren email screen` | writes `decline_reason`, `country` |
-| `Discovery` service | writes domain fields |
+| `CompanySiteFind` service | writes domain fields |
 | `wren enrich profiles`, the `profiles` pool stage | writes `linkedin_url` |
 | `EmailOpenerFill`, `EmailSend` | read |
 | facts views | read |

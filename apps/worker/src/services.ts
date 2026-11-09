@@ -41,7 +41,7 @@ export interface Services {
  * `WREN_POOL_CHAIN_HOST=box` the Postgres box serves it (`box.ts`), next to the data.
  * Restate keeps each service on one deployment: whichever side serves it, the other skips it.
  */
-export const POOL_CHAIN = ["LeadPoolFill", "Discovery", "Enrichment", "Resolution"];
+export const POOL_CHAIN = ["LeadPoolFill", "CompanySiteFind", "CompanyEnrich", "LeadVerify"];
 /**
  * Everything the box serves: the chain; the page archive, which moves rows out of
  * its own disk; and the books' day, which waits on the model and the Mac's desk.
@@ -49,7 +49,7 @@ export const POOL_CHAIN = ["LeadPoolFill", "Discovery", "Enrichment", "Resolutio
 export const BOX_SERVICES = [
   ...POOL_CHAIN,
   "PageHtmlArchive",
-  "BooksDaily",
+  "BooksClose",
   "MyMailTriage",
   "SocialActivityRead",
 ];

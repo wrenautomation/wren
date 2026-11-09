@@ -14,7 +14,7 @@ The research chain, one bounded stage per pass, until every stage reports nothin
 
 Companies of one niche with a domain or a guessable name. `LeadPoolFill/{niche}` calls, in order, `adLibrary, exaSearch, youtubeSearch, triggers, fbGroups, discover, verify, crawl, render, scan, contacts, extract, pick, applyPicks, resolveMailboxes, verifyMailboxes, team, youtube, instagram, profiles, signals`, each one call to its own Restate object, journaled. Output is leads with `status = verified` (role inboxes and picked people) and the evidence rows beneath them.
 
-A client's pool is `LeadPoolFill/<client>/all` (or `<client>/<niche>`), started by hand like Wren's (`node scripts/ingress.mjs LeadPoolFill/<client>/all/start`). It calls `Discovery`/`Enrichment` on the same key, which work in `wren_client_<id>`, and `Resolution/default` with `client`. Each pass reads the client's `research.lead_sheet` block from main (words, crawl hints, per-pass sizes, `verificationsPerDay`); a client gone, the demo, or the component uninstalled stops the loop. No `profiles`, no re-checks for clients (`pool-scheduler.ts`, `clientPlan`). Its runs rows land in the client's database.
+A client's pool is `LeadPoolFill/<client>/all` (or `<client>/<niche>`), started by hand like Wren's (`node scripts/ingress.mjs LeadPoolFill/<client>/all/start`). It calls `CompanySiteFind`/`CompanyEnrich` on the same key, which work in `wren_client_<id>`, and `LeadVerify/default` with `client`. Each pass reads the client's `research.lead_sheet` block from main (words, crawl hints, per-pass sizes, `verificationsPerDay`); a client gone, the demo, or the component uninstalled stops the loop. No `profiles`, no re-checks for clients (`pool-scheduler.ts`, `clientPlan`). Its runs rows land in the client's database.
 
 ## Why this shape
 
@@ -56,13 +56,13 @@ Spend is opt-in by stage (`WREN_POOL_MODEL_STAGES`: none | pick | all) and the t
 | `wren email status` | reads |
 | `wren enrich profiles --niche <n>` | the `profiles` stage by hand |
 | `wren enrich signals --niche <n> [--dry]` | the `signals` stage by hand |
-| `Enrichment/<niche>/team` | the `team` stage by hand |
-| `Enrichment/<niche>/youtube` | the `youtube` stage by hand (`{"limit": n}`) |
-| `Enrichment/<niche>/instagram` | the `instagram` stage by hand (`{"limit": n}`) |
-| `Enrichment/<niche>/adLibrary` | the `adLibrary` stage by hand (`{"limit": n}` keywords) |
-| `Enrichment/<niche>/exaSearch` | the `exaSearch` stage by hand (`{"limit": n}` searches) |
-| `Enrichment/<niche>/triggers` | the `triggers` stage by hand (`{"limit": n}` words) |
-| `Enrichment/<niche>/fbGroups` | the `fbGroups` stage by hand (`{"limit": n}` searches and reads) |
+| `CompanyEnrich/<niche>/team` | the `team` stage by hand |
+| `CompanyEnrich/<niche>/youtube` | the `youtube` stage by hand (`{"limit": n}`) |
+| `CompanyEnrich/<niche>/instagram` | the `instagram` stage by hand (`{"limit": n}`) |
+| `CompanyEnrich/<niche>/adLibrary` | the `adLibrary` stage by hand (`{"limit": n}` keywords) |
+| `CompanyEnrich/<niche>/exaSearch` | the `exaSearch` stage by hand (`{"limit": n}` searches) |
+| `CompanyEnrich/<niche>/triggers` | the `triggers` stage by hand (`{"limit": n}` words) |
+| `CompanyEnrich/<niche>/fbGroups` | the `fbGroups` stage by hand (`{"limit": n}` searches and reads) |
 
 ## See
 

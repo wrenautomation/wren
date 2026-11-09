@@ -60,7 +60,7 @@ export const PLATFORM = {
       "mirrors the operator's API keys from autobrowse's vault; rotate, revoke, mark spent",
     TemplatesConsole: "the Library's templates: save, publish, approve, restore, reset",
     SetupRecheck: "checks every set-up account again on its repeat, and starts a lost one over",
-    FailedCallAlert: "files every call Restate gave up on as a dead letter and tells Discord once",
+    DeadLetterFile: "files every call Restate gave up on as a dead letter and tells Discord once",
     LoopRevive: "wakes a loop that stopped on its own and names one stuck behind a call, once each",
     SetupAgent: "a done-for-you setup step, run by autobrowse do in the account owner's autobrowse",
     AccountsConsole: "a client's accounts, setups and vendor modes",

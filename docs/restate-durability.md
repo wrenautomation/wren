@@ -66,8 +66,8 @@ Restate ──loop, 9h12m later──▶ Lambda (cold start if needed)
 | `ReplyLabel` | `fleet` | on demand | One classify at a time: two inboxes finding replies in the same minute queue instead of paying the LLM twice. |
 | `EmailPostmasterPull` | `fleet` | **until next local midnight**, success or failure | Re-reads the last 7 days per sending domain (Google revises late). Bound because `WREN_POSTMASTER_USER` is set. |
 | `EmailClickPull` | `fleet` | 1 hour / 10 min | Pulls the lander's `hits` from the last view id and counts the ones that came from an email link. The cursor moves in the same transaction as the counts. Bound because the export token is set. |
-| `Resolution` | `default` | on demand | One key because verifier credits are one global budget. Each domain's walk is one journaled step; a crash loses at most one domain's spend. |
-| `Enrichment` | population (`all` or a niche) | on demand | crawl / render / scan / extract / pick / apply. Every unit (one company, one document) is its own journaled step: replay resumes after the last finished unit, never buys a completion twice. |
+| `LeadVerify` | `default` | on demand | One key because verifier credits are one global budget. Each domain's walk is one journaled step; a crash loses at most one domain's spend. |
+| `CompanyEnrich` | population (`all` or a niche) | on demand | crawl / render / scan / extract / pick / apply. Every unit (one company, one document) is its own journaled step: replay resumes after the last finished unit, never buys a completion twice. |
 
 ## "Sleep until Monday, then send" — walked through
 
@@ -100,7 +100,7 @@ a call per minute.
 ## Limits that matter
 
 - **15-minute Lambda cap.** A handler that runs longer is killed and replayed.
-  Loops are fine (one tick is seconds). `Enrichment` over a large population
+  Loops are fine (one tick is seconds). `CompanyEnrich` over a large population
   can exceed it: pass a `limit` and call repeatedly. Nothing is lost, but one
   huge call burns replays.
 - **Journal size.** One `ctx.run` per unit means big enrichment calls write

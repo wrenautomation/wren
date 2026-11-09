@@ -10,7 +10,7 @@ import { sitesHost } from "@wren/core/autobrowse/box";
 import { makeSiteTokenRenew } from "@wren/core/autobrowse/renewal";
 import { cacheFrom } from "@wren/core/cache";
 import { makeConsolePortal, restateAdminGet, runtimeAdmin } from "@wren/core/console";
-import { makeFailedCallAlert } from "@wren/core/dead-letters";
+import { makeDeadLetterFile } from "@wren/core/dead-letters";
 import { backendsFromEnv, deskJudge, leadFitSource, makeNextStepDecide } from "@wren/core/decide";
 import { makeLoopRevive } from "@wren/core/loop-watch";
 import { makeVaultKeyMirror } from "@wren/core/vault-keys";
@@ -87,7 +87,7 @@ export function platformServices(deps: Deps): AnyService[] {
         : {}),
     }),
     // Files every invocation paused after its retries as a dead letter; Discord hears once.
-    makeFailedCallAlert({ main: db, admin: admin.query, patch: admin.patch, ...notify }),
+    makeDeadLetterFile({ main: db, admin: admin.query, patch: admin.patch, ...notify }),
     // Wakes a loop whose chain ended; names one stuck behind a call (designs/2026-10-16-loop-watchdog.md).
     makeLoopRevive({ main: db, admin: admin.query, ...notify }),
     makeConsolePortal({
