@@ -54,7 +54,10 @@ export interface Lane {
   /** false: only rows already pinned to `build` (a superseded slot finishing its own). */
   fresh?: boolean;
   lock?: boolean;
-  /** Skip services in `rt.pg_services` (bridge lanes): the newest box runs them on pg. */
+  /**
+   * Skip services in `rt.pg_services` (bridge lanes): the newest box runs them on pg. Rows with
+   * `remote` set go to bridge lanes only.
+   */
   skipPg?: boolean;
   /** Only rows a caller waits on (true) or only the rest (false). */
   callerWaits?: boolean;
@@ -63,7 +66,12 @@ export interface Lane {
 const laneSql = (sql: Sql, l: Lane) => sql`
   ${l.only ? sql`AND i.service IN ${sql(l.only as string[])}` : sql``}
   ${l.except?.length ? sql`AND i.service NOT IN ${sql(l.except as string[])}` : sql``}
-  ${l.skipPg ? sql`AND i.service NOT IN (SELECT service FROM rt.pg_services)` : sql``}
+  ${
+    // a row Restate runs (remote set) ends on the bridge, whatever pg serves now
+    l.skipPg
+      ? sql`AND (i.service NOT IN (SELECT service FROM rt.pg_services) OR i.remote IS NOT NULL)`
+      : sql`AND i.remote IS NULL`
+  }
   ${l.callerWaits === undefined ? sql`` : sql`AND i.caller_waits = ${l.callerWaits}`}
   ${
     l.strict && l.build

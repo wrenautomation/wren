@@ -6,6 +6,7 @@
  *   GET  /restate/invocation/{id}/attach | /output    (output: 470 while it runs, as Restate)
  *   GET  /restate/invocation/{svc}[/{key}]/{handler}/{idempotency-key}/attach | /output
  *   GET  /restate/health
+ *   POST /rt/register | claim | renew | finish   pulled services (`pull.ts`)
  * With `restate` set (phase 4): services not in `rt.pg_services`, and ids pg does not hold, pass
  * through to Restate's ingress as they are, so the door can front all ingress.
  */
@@ -18,6 +19,7 @@ import {
 import type { AddressInfo } from "node:net";
 import type postgres from "postgres";
 import { newInvocationId, parseAwakeableId } from "./ids.js";
+import { pullRoute } from "./pull.js";
 import { handlers, resolveAwakeable, result, submit } from "./store.js";
 
 export interface DoorOptions {
@@ -30,6 +32,8 @@ export interface DoorOptions {
   restate?: string;
   /** Old service name → new: callers that still use the old name reach the new one direct. */
   renamed?: Readonly<Record<string, string>>;
+  /** Services an outside worker claims over `/rt/*` (autobrowse's desk); unset: no pull routes. */
+  pull?: { pulled: readonly string[]; leaseMs: number };
   /** Phase times of a call pg serves, for the worker's timing log. */
   time?: (phase: "submit" | "wait", ms: number) => void;
 }
@@ -129,6 +133,23 @@ export async function serveDoor(o: DoorOptions): Promise<{ url: string; close():
   const listener = await sql.listen("rt_done", (id) => {
     for (const w of waiters.get(id) ?? []) w();
   });
+  // claims waiting for a pulled row
+  const wakes = new Set<() => void>();
+  const wakeListener = o.pull
+    ? await sql.listen("rt_wake", () => {
+        for (const w of [...wakes]) w();
+      })
+    : null;
+  const pull = o.pull
+    ? {
+        sql,
+        ...o.pull,
+        onWake: (f: () => void) => {
+          wakes.add(f);
+          return () => wakes.delete(f);
+        },
+      }
+    : null;
   const settled = async (id: string) => {
     for (;;) {
       let wake = () => {};
@@ -234,6 +255,7 @@ export async function serveDoor(o: DoorOptions): Promise<{ url: string; close():
     const alias = parts[0] ? o.renamed?.[parts[0]] : undefined;
     if (alias) parts[0] = alias;
 
+    if (pull && (await pullRoute(pull, parts, req, res, body, send))) return;
     if (parts[0] === "restate") {
       if (parts[1] === "health" && parts.length === 2) {
         await sql`SELECT 1`;
@@ -338,6 +360,7 @@ export async function serveDoor(o: DoorOptions): Promise<{ url: string; close():
       server.closeAllConnections();
       await new Promise<void>((r) => server.close(() => r()));
       await listener.unlisten();
+      await wakeListener?.unlisten();
     },
   };
 }

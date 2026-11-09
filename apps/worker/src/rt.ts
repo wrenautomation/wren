@@ -213,6 +213,13 @@ export const RENAMED: Readonly<Record<string, string>> = {
   Content: "ContentPublish",
 };
 
+/**
+ * Phase 5: services autobrowse's desk (the Mac) claims over the door's `/rt/*` routes. Once it
+ * registers they are in `rt.pg_services`: the door queues their calls as rows and the bridge
+ * leaves them; a row Restate already runs ends there.
+ */
+export const PULLED: readonly string[] = ["desk", "claude", "studio", "calls"];
+
 const LEASE_MS = 60_000;
 /** The last slot sees it was superseded within 30 s of this one's register (`watchSuperseded`). */
 const OLD_SLOT_MS = 120_000;
@@ -305,7 +312,12 @@ export async function startRt(o: {
   await migrate(sql);
   const registry = new Registry(o.all as never);
   await register(sql, registry);
-  await setPgServices(sql, PG_SERVICES, o.build);
+  // a pulled service is on pg once its worker registered (`/rt/register`); before, the bridge has it
+  const pulledLive = (
+    await sql<{ service: string }[]>`
+      SELECT DISTINCT service FROM rt.handlers WHERE service IN ${sql(PULLED as string[])}`
+  ).map((r) => r.service);
+  await setPgServices(sql, [...PG_SERVICES, ...pulledLive], o.build);
   // a failed rename must not stop the box: rows left under the old name take the bridge lane
   for (const [from, to] of Object.entries(RENAMED))
     try {
@@ -447,6 +459,7 @@ export async function startRt(o: {
           port: doorPort,
           restate: o.ingress.url,
           renamed: RENAMED,
+          pull: { pulled: PULLED, leaseMs: LEASE_MS },
           time: timed.of("door"),
         }).catch(async (e: unknown) => {
           o.log.error({ err: String(e), port: doorPort }, "rt: door failed");

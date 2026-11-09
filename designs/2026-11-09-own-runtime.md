@@ -166,6 +166,29 @@ After A (prod, p50): Lambda runs a pg turn in 2-3 ms, but the client saw 84 ms a
 
 `Segments` → `SegmentPass` needs two deploys: the triggers say `wren_wake('Segments/fleet')`, and migrate runs before the box knows the new name. Deploy 1 renames; the door's alias carries the triggers. Deploy 2 rewrites the triggers.
 
+## Phase 5: the desk pulls from the door (11-09)
+
+Measured: in prod autobrowse is only the Mac desk (`autobrowseInstanceId` unset, so every site call goes to `desk`). It serves `desk`, `claude`, `studio`, `calls`. Restate pushes calls to it through the Cloudflare Tunnel `desk.wrenautomation.com`. These four hold no object state. They make 26 `ctx.run` calls, 1 `ctx.sleep` and 2 calls to themselves (`renew`, with an idempotency key). Each irreversible write already goes through autobrowse's send journal (one file per send key, `src/sites/send-journal.ts`). That journal says whether a write went out, which a Restate journal cannot. autobrowse's box services (`sites`, `browser`, `do`, the run objects) are not in prod. They keep their local Restate (compose) for development.
+
+| | A. Desk is a pg worker | B. Desk runs turns over the door | **C. Desk pulls calls over the door** | D. Keep Restate for the desk |
+|---|---|---|---|---|
+| How | the desk runs wren's dispatcher against prod Postgres | a remote turn protocol: claim, replay, append a step, suspend | claim, renew, finish; the handler runs as a plain function | as today |
+| Restate server gone | yes | yes | yes | no |
+| New code | small in wren; autobrowse imports the runtime | the most: a second turn protocol to prove | ~3 door routes + a ~150-line puller in autobrowse | none |
+| Per-step journal on the desk | yes | yes | no: a rerun starts the handler again; the send journal keeps writes once | yes |
+| Publish / credential | npm `@wrenautomation/runtime` (public, hard to undo); a Postgres role on the Mac and 5432 open to a home IP | the same npm package | none: the desk has the box bearer already | none |
+| Inbound port | none | none | none (the desk tunnel goes) | the desk tunnel |
+
+Priorities, in order: 1) no lost or doubled sends, 2) the Restate server goes, 3) the least new protocol to own and test, 4) no new public package or credential, 5) wren and autobrowse import nothing from each other (both say so today).
+
+Picked C. A per-step journal buys the desk little: its handlers are one leg each, and its writes are already kept once by the send journal (the same guard Restate needed). C keeps the calls queued in Postgres while the Mac sleeps (no try burns: nobody claims). A, B and the design's first plan (extract to npm) all add a public package for that one gain.
+
+- **Door:** `POST /rt/register` (the desk's services and handlers into `rt.handlers` and `rt.pg_services`; only names in `PULLED`, apps/worker/src/rt.ts), `POST /rt/claim` (long-poll up to 25 s on `rt_wake`; rows of pulled services that no Restate call holds), `POST /rt/renew` (the lease; answers `cancel`), `POST /rt/finish` (a value, a `TerminalError`, or a failure with the handler's retry policy).
+- **Lanes:** pulled services are in `rt.pg_services`, so the door submits their calls as rows and the bridge skips them. A row Restate already runs (`remote` set) stays on the bridge until it ends: no pull lane takes it.
+- **Desk:** a `ctx` with `run` (with the run's retry options; at the cap a `TerminalError`, as Restate), `sleep`, `request()` (the row id and headers), and clients that call the door. A cancel aborts at the next step and finishes with 409.
+- **Cutover:** the desk's register is the switch. Until a pulled service has rows in `rt.handlers`, the box leaves it out of `rt.pg_services` and the door passes its calls to Restate, as before. Register puts it in. Back out: delete its `rt.handlers` rows and restart the box. The desk keeps Restate's endpoint until the calls Restate holds end; the tunnel and that endpoint go with phase 6.
+- **Proof:** `pull-pg.test.ts` (door routes, lanes, leases, cancel, retry to pause); autobrowse `test/door-pull.test.ts` (a plain `ctx`, run caps, clients); and one run of the real puller against the real door on a test Postgres (sync call, self-call with an idempotency key, delayed send, a 400, a call longer than its lease).
+
 ## VPSs
 
 Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too small for Chromium or a Postgres replica. They stay for work that needs a non-AWS IP with port 25 or a clean search IP: probers, SearXNG. Extra use: a second SearXNG on LA (search fallback when Buffalo is rate-limited), so weaver's search does not wait on the desk's Google.
@@ -188,7 +211,7 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 | 2 | Postgres runtime: schema, executor, journal, state, timers, retries, idempotency, awakeables | Conformance + crash suite green |
 | 3 | Dispatcher in the box worker, Lambda entry, door, admin and dead-letter reads | One report loop runs on it in prod |
 | 4 | Move services by group (router flag per service: `restate` or `pg`), box services last | All wren services on `pg` |
-| 5 | Extract to `@wrenautomation/<name>` (own repo, npm), autobrowse desk on the door | Desk calls run through Postgres |
+| 5 | The desk pulls its calls from the door ("Phase 5"); no package extract | Desk calls run through Postgres |
 | 6 | Chromium in Lambda; drop Restate server, Redis, browserless; second SearXNG on LA | Box runs Postgres, PgBouncer, box worker only |
 
 ## Decision log
@@ -223,3 +246,4 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 - 2026-11-09: group 4c (28 consoles, portals and desks) moved after the latency fix, as a person waits on each call. No renames, no awakeables; desk calls to autobrowse's `desk` cross the bridge. Proof: every startTestRestate suite on pg, same results as before (cli inbox-reply, WA-1067 drift, fails on both runtimes).
 - 2026-11-09: group 4d (17: box services, watchdogs, Executor, Variants, Folders) with 5 renames. Restate keeps daily wakes and the pool chain's sends under the old names, so all 5 stay in `RENAMED`. The box lane (BOX_SERVICES) takes the renamed names. The watchdogs now run on the runtime they watch; an outside liveness alarm comes with phase 6. Proof: every startTestRestate suite on pg and on Restate, same results as 4c.
 - 2026-11-09: group 4e, `Content` → `ContentPublish` (WA-1219's last rename). Every Restate service is now on pg; Restate keeps only proxies, old names and the bridge to autobrowse. The component list gained SegmentPass, WebhookSend, VariantsConsole, VariantsCollect and FoldersConsole (the inventory test caught them). Proof: every startTestRestate suite on pg and on Restate, same results; listmonk's test now waits for its send record (a step after the send; it raced under load).
+- 2026-11-09: phase 5 is C, the desk pulls over the door ("Phase 5" table), not an npm extract of the runtime. Ranked: no lost or doubled sends, Restate gone, least new protocol, no new public package or credential, repos import nothing from each other. The send journal already keeps the desk's writes once, so a per-step journal on the Mac buys little.
