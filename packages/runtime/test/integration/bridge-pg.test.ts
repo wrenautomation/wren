@@ -20,10 +20,26 @@ import {
   setPgServices,
 } from "../../src/pg/index.js";
 
+const OBJECT = { type: "object", properties: {}, additionalProperties: {} };
 const rs = restate.service({
   name: "Rs",
   handlers: {
     twice: async (_ctx: restate.Context, n: number) => n * 2,
+    // as wren's NO_INPUT forms: Restate refuses an empty body sent with a content type
+    bare: restate.handlers.handler(
+      {
+        input: restate.serde.schema({
+          "~standard": {
+            version: 1,
+            vendor: "test",
+            validate: (value: unknown) => ({ value }),
+            jsonSchema: { input: () => OBJECT, output: () => OBJECT },
+          },
+        }),
+        accept: "application/json",
+      },
+      async (_ctx: restate.Context): Promise<string> => "bare",
+    ),
     viaPg: async (ctx: restate.Context, name: string): Promise<string> =>
       ctx.serviceClient<typeof echo>({ name: "Echo" }).hi(name),
   },
@@ -46,6 +62,9 @@ const echo = restate.service({
     },
     viaRestate: async (ctx: restate.Context, n: number): Promise<number> =>
       ctx.serviceClient(rs).twice(n),
+    // no argument, as `content.platforms()`
+    viaBare: async (ctx: restate.Context): Promise<string> =>
+      (ctx.serviceClient(rs).bare as unknown as () => Promise<string>)(),
     viaOutside: async (ctx: restate.Context, s: string): Promise<string> =>
       ctx.serviceClient(outside).shout(s),
     inside: restate.handlers.handler(
@@ -174,6 +193,10 @@ describe("restate ↔ pg", () => {
       SELECT remote, status FROM rt.invocations WHERE service = 'Rs' AND handler = 'twice'`;
     expect(row?.status).toBe("done");
     expect(row?.remote).toMatch(/^inv_/);
+  }, 30_000);
+
+  it("a pg handler calls a Restate handler that takes no input", async () => {
+    expect(await onPg.serviceClient(echo).viaBare()).toBe("bare");
   }, 30_000);
 
   it("a pg handler calls a service pg never registered through a bridge row", async () => {

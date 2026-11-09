@@ -174,7 +174,12 @@ export async function bridgeTurn(
         .join("/");
       const res = await fetch(`${o.ingress.url}/${path}`, {
         method: "POST",
-        headers: { ...h, "content-type": "application/json", "idempotency-key": inv.id },
+        // no input: no content type, or Restate refuses the empty body
+        headers: {
+          ...h,
+          ...(row.input.length ? { "content-type": "application/json" } : {}),
+          "idempotency-key": inv.id,
+        },
         body: new Uint8Array(row.input),
         signal: AbortSignal.timeout(30_000),
       });
