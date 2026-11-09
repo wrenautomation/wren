@@ -17,6 +17,7 @@ import {
   proxy,
   Registry,
   register,
+  release,
   renameService,
   replier,
   returnState,
@@ -26,20 +27,42 @@ import {
 import type { Logger } from "pino";
 import type { AnyService } from "./services.js";
 
-/** Services on the Postgres runtime. A deploy flips one; pg keeps every service registered. */
-/** AuditLogSeal first: a 15-min loop, low risk, on the Lambda lane. */
-const PG_SERVICES: readonly string[] = ["AuditLogSeal"];
+/**
+ * Services on the Postgres runtime. A deploy flips one; pg keeps every service registered.
+ * Groups (design doc "Move plan"): 1 AuditLogSeal; 2 platform and people loops on the Lambda lane.
+ * The watchdogs (FailedCallAlert, LoopRevive) move last: they watch the moved loops from Restate.
+ */
+export const PG_SERVICES: readonly string[] = [
+  "AuditLogSeal",
+  "NextStepDecide",
+  "SiteTokenRenew",
+  "VaultKeyMirror",
+  "SetupRecheck",
+  "SegmentsRefresh",
+  "TouchToJourney",
+  "ListToJourney",
+  "MapLineFeed",
+  "StripeReconcile",
+  "ClientUpdateMail",
+  "ClientInvoicing",
+  "ClientMailTriage",
+];
 
 /**
  * Old name → new, for pg services only (WA-1219: a rename lands with the move). Restate keeps a
  * proxy under the old name: its scheduled calls and state reach the new one. Drop an entry once
  * Restate holds nothing under the old name.
  */
-const RENAMED: Readonly<Record<string, string>> = { AuditSeal: "AuditLogSeal" };
+export const RENAMED: Readonly<Record<string, string>> = {
+  AuditSeal: "AuditLogSeal",
+  Judge: "NextStepDecide",
+  SegmentsHourly: "SegmentsRefresh",
+};
 
 const LEASE_MS = 60_000;
 /** The last slot sees it was superseded within 30 s of this one's register (`watchSuperseded`). */
 const OLD_SLOT_MS = 120_000;
+const THROTTLE_MS = 2_000;
 
 /** The Restate side: each pg service becomes a proxy of the same name. */
 export function restateSide(services: AnyService[], sql: () => postgres.Sql): AnyService[] {
@@ -139,15 +162,23 @@ export async function startRt(o: {
     run: async (c) => {
       const fn = c.build ?? arn();
       if (!fn) throw new Error("no worker ARN yet");
-      const r = await lambda.send(
-        new InvokeCommand({
-          FunctionName: fn,
-          InvocationType: "RequestResponse",
-          Payload: Buffer.from(
-            JSON.stringify({ rt: { id: c.id, attempt: c.attempt, leaseMs: LEASE_MS } }),
-          ),
-        }),
-      );
+      const r = await lambda
+        .send(
+          new InvokeCommand({
+            FunctionName: fn,
+            InvocationType: "RequestResponse",
+            Payload: Buffer.from(
+              JSON.stringify({ rt: { id: c.id, attempt: c.attempt, leaseMs: LEASE_MS } }),
+            ),
+          }),
+        )
+        .catch(async (e: unknown) => {
+          // reserved concurrency full: no turn began, so the row goes back now, not at lease end
+          if ((e as { name?: string }).name !== "TooManyRequestsException") throw e;
+          await release(sql, c.id, c.attempt, THROTTLE_MS);
+          return null;
+        });
+      if (!r) return;
       // a crashed turn keeps its lease and is claimed again when it runs out
       if (r.FunctionError) log(`lambda turn ${c.id} #${c.attempt}: ${r.FunctionError}`);
     },

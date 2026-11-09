@@ -116,7 +116,7 @@ node scripts/prod-wren.mjs drafts list       # on prod
 Machine calls beside William's (designs/2026-10-16-decide.md, 2026-11-04-loops.md). The judge
 agent (Claude Code on the desk, his plan, $0) judges drafted comments (send, edit, drop) and lead
 fits, each with a one-line why and its session id; Learn items stay on `WREN_DECIDE`'s chain.
-His send, drop, star or archive is logged next to it. `Judge/wren` runs every 10 minutes; while
+His send, drop, star or archive is logged next to it. `NextStepDecide/wren` runs every 10 minutes; while
 the Mac is off, its kinds wait. The Agents page shows the same numbers.
 
 ```bash

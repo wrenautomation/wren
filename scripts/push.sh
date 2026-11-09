@@ -44,7 +44,8 @@ if [ "${1:-}" = --push ]; then
     case $out in
       *"[rejected]"* | *"fetch first"* | *"non-fast-forward"*) ;;
       *"Could not read from remote"* | *"Could not resolve host"* | *"RPC failed"* | *"early EOF"* | \
-        *"Operation timed out"* | *"Connection reset"* | *"Connection refused"* | *"returned error: 5"*) sleep 20 ;;
+        *"Operation timed out"* | *"Connection reset"* | *"Connection refused"* | *"returned error: 5"* | \
+        *"closed by remote host"*) sleep 20 ;;
       *) exit 1 ;;
     esac
   done

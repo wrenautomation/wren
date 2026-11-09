@@ -11,7 +11,7 @@ import { makeSiteTokenRenew } from "@wren/core/autobrowse/renewal";
 import { cacheFrom } from "@wren/core/cache";
 import { makeConsolePortal, restateAdminGet, runtimeAdmin } from "@wren/core/console";
 import { makeFailedCallAlert } from "@wren/core/dead-letters";
-import { backendsFromEnv, deskJudge, leadFitSource, makeJudge } from "@wren/core/decide";
+import { backendsFromEnv, deskJudge, leadFitSource, makeNextStepDecide } from "@wren/core/decide";
 import { makeLoopRevive } from "@wren/core/loop-watch";
 import { makeVaultKeyMirror } from "@wren/core/vault-keys";
 import { makeWebhooks, turnedOffTeller } from "@wren/core/webhooks";
@@ -70,7 +70,7 @@ export function platformServices(deps: Deps): AnyService[] {
   services.push(
     // Judge (designs/2026-11-04-loops.md): drafted comments and lead fits judged every 10 minutes by
     // Claude Code on the desk, each answer logged beside his call; other kinds on WREN_DECIDE's chain.
-    makeJudge({
+    makeNextStepDecide({
       main: db,
       // Lead checks last: a drafted comment comes first in a short pass.
       sources: [commentSource, leadFitSource(leadOffers())],

@@ -12,7 +12,7 @@ import { makePeopleConsole, PEOPLE_RECORDS } from "@wren/core/people/console";
 import { siteCountReader } from "@wren/core/people-map";
 import { makePeopleMap } from "@wren/core/people-map-pass";
 import { profileRecords } from "@wren/core/profile-records";
-import { makeSegments, makeSegmentsHourly } from "@wren/core/segments-pass";
+import { makeSegments, makeSegmentsRefresh } from "@wren/core/segments-pass";
 import { makeTouchToJourney } from "@wren/core/touch-feed";
 import { flowsWith } from "@wren/core/workflows";
 import { llmForKey } from "@wren/llm";
@@ -60,7 +60,7 @@ export function peopleServices(deps: Deps): AnyService[] {
           flowsWith(WORKFLOWS, editsOf(await savedWorkflows(db, client)), COMPONENTS).flows,
         clients: () => loopClients(db),
       };
-      return [makeSegments(segments), makeSegmentsHourly(segments)];
+      return [makeSegments(segments), makeSegmentsRefresh(segments)];
     })(),
     // People map: each profile's stage, warmth and persona rebuilt; the net every 30 minutes.
     // Wren's site counts come from the lander's log, 200 visitors a pass.

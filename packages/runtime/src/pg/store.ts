@@ -147,6 +147,17 @@ export async function renew(sql: Sql, id: string, attempt: number, leaseMs: numb
   await sql`SELECT rt.fence(${id}, ${attempt}, ${leaseMs})`;
 }
 
+/**
+ * Give a claim back unrun, no failure counted: the invoke was refused before any turn began
+ * (a Lambda throttle). The attempt check keeps a later claim's row safe.
+ */
+export async function release(sql: Sql, id: string, attempt: number, delayMs: number) {
+  const r = await sql`UPDATE rt.invocations SET status = 'pending', lease_until = NULL,
+      run_at = now() + ${delayMs} * interval '1 millisecond'
+    WHERE id = ${id} AND attempt = ${attempt} AND status = 'running'`;
+  return r.count === 1;
+}
+
 /** The statements that write one flush; run inside a transaction after `rt.fence`. */
 function writes(tx: postgres.TransactionSql, inv: Invocation, w: Writes, now: Date) {
   const qs: postgres.PendingQuery<postgres.Row[]>[] = [];

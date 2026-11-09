@@ -203,7 +203,7 @@ export function registerJudge(
   decide
     .command("pass")
     .description(
-      "One pass here: open comment drafts and people who wrote back, as Judge/wren runs it",
+      "One pass here: open comment drafts and people who wrote back, as NextStepDecide/wren runs it",
     )
     .option("--max <n>", "subjects at most", positive, 40)
     .option("--kind <kind>", `only this kind: ${DECISION_KINDS.join(", ")}`, kindArg)

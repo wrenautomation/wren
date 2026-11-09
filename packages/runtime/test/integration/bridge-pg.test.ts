@@ -27,6 +27,11 @@ const rs = restate.service({
       ctx.serviceClient<typeof echo>({ name: "Echo" }).hi(name),
   },
 });
+/** Restate only, unknown to the pg registry: autobrowse's `sites` seen from wren. */
+const outside = restate.service({
+  name: "Outside",
+  handlers: { shout: async (_ctx: restate.Context, s: string) => s.toUpperCase() },
+});
 const echo = restate.service({
   name: "Echo",
   handlers: {
@@ -40,6 +45,8 @@ const echo = restate.service({
     },
     viaRestate: async (ctx: restate.Context, n: number): Promise<number> =>
       ctx.serviceClient(rs).twice(n),
+    viaOutside: async (ctx: restate.Context, s: string): Promise<string> =>
+      ctx.serviceClient(outside).shout(s),
   },
 });
 const counter = restate.object({
@@ -81,6 +88,7 @@ beforeAll(async () => {
       proxy(counter, () => sql),
       proxy(counter, () => sql, "OldCounter"),
       rs,
+      outside,
     ],
     serviceEndpointAccess: "docker-host",
     container: () =>
@@ -151,6 +159,13 @@ describe("restate ↔ pg", () => {
       SELECT remote, status FROM rt.invocations WHERE service = 'Rs' AND handler = 'twice'`;
     expect(row?.status).toBe("done");
     expect(row?.remote).toMatch(/^inv_/);
+  }, 30_000);
+
+  it("a pg handler calls a service pg never registered through a bridge row", async () => {
+    expect(await onPg.serviceClient(echo).viaOutside("hey")).toBe("HEY");
+    const [row] = await sql<{ exclusive: boolean; status: string }[]>`
+      SELECT exclusive, status FROM rt.invocations WHERE service = 'Outside'`;
+    expect(row).toEqual({ exclusive: false, status: "done" });
   }, 30_000);
 
   it("an exclusive proxy moves its key's Restate state to pg", async () => {

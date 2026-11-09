@@ -67,13 +67,13 @@ export const PLATFORM = {
     PeopleConsole: "People in every workspace: records, groups, Describe group, broadcasts",
     Segments:
       "a workspace's groups kept true; entries, exits, traits and dates told to the executor",
-    SegmentsHourly: "wakes every workspace's groups pass every 15 minutes",
+    SegmentsRefresh: "wakes every workspace's groups pass every 15 minutes",
     PeopleMap: "a workspace's people map: each person's stage, warmth and persona rebuilt",
     TouchToJourney:
       "on a new touch, net every 15 min: each workspace's untold social touches told to the executor",
     ListToJourney: "people added to a list a sourced source takes people from open journeys there",
     MapLineFeed: "documents a content line finds open instances; a job that ends moves each on",
-    Judge:
+    NextStepDecide:
       "every 10 minutes: drafted comments and lead fits judged by Claude Code on the desk, each answer logged beside his call",
     ProfileResearch:
       "Research this person: Exa, Google and the account look for a profile's pages elsewhere, findings kept per profile",

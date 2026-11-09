@@ -8,6 +8,7 @@ import {
   claim,
   type Lane,
   nextDue,
+  release,
   renameService,
   setPgServices,
   submit,
@@ -122,5 +123,23 @@ describe("pg services", () => {
     expect(got).not.toContain(onPg);
     await setPgServices(sql, [], "build-3");
     expect((await take({ only: ["MovedSvc"], skipPg: true })).map((c) => c.id)).toEqual([onPg]);
+  });
+
+  it("release gives a claim back unrun: pending, no failure, due after the delay; a stale attempt is refused", async () => {
+    const id = await add("Throttled");
+    const [c] = await take({ only: ["Throttled"] });
+    expect(c?.id).toBe(id);
+    expect(await release(sql, id, (c?.attempt ?? 0) + 1, 0)).toBe(false);
+    expect(await release(sql, id, c?.attempt ?? 0, 60_000)).toBe(true);
+    const [row] =
+      await sql`SELECT status, failures, lease_until FROM rt.invocations WHERE id = ${id}`;
+    expect(row).toMatchObject({ status: "pending", failures: 0, lease_until: null });
+    expect((await take({ only: ["Throttled"] })).length).toBe(0);
+    expect((await claim(sql, 5, 60_000, Date.now() + 50_000, { only: ["Throttled"] })).length).toBe(
+      0,
+    );
+    await sql`UPDATE rt.invocations SET run_at = now() WHERE id = ${id}`;
+    const [again] = await take({ only: ["Throttled"] });
+    expect(again?.attempt).toBe((c?.attempt ?? 0) + 1);
   });
 });

@@ -10,7 +10,7 @@
  *    each date trait whose day it is, to a Date trigger.
  *
  * `Segments/fleet` (Wren's) and `Segments/<client>/fleet` run it on `wake`: a trait, an address
- * or a segment changing wakes it at commit (`wren_wake`, migration 0252), and `SegmentsHourly/all`
+ * or a segment changing wakes it at commit (`wren_wake`, migration 0252), and `SegmentsRefresh/all`
  * wakes every workspace each hour, the net under a lost wake and the timeline's changes (a Date
  * trigger fires by 10:00; designs/2026-11-01-loop-calls.md).
  * Nothing fires on history: a workspace's first pass starts at its newest rows.
@@ -422,14 +422,14 @@ export function makeSegments(d: SegmentsDeps) {
   });
 }
 
-interface SegmentsHourlyStats {
+interface SegmentsRefreshStats {
   woken: number;
 }
 
-/** `SegmentsHourly/all`: every hour, a wake to Wren's segments and every client's. */
-export function makeSegmentsHourly(d: Pick<SegmentsDeps, "main" | "clients">) {
-  return makeLoopObject("SegmentsHourly", async (ctx: restate.ObjectContext) => {
-    const outcome = (await runPass<SegmentsHourlyStats & { keys: string[] }>(ctx, d.main, {
+/** `SegmentsRefresh/all`: every hour, a wake to Wren's segments and every client's. */
+export function makeSegmentsRefresh(d: Pick<SegmentsDeps, "main" | "clients">) {
+  return makeLoopObject("SegmentsRefresh", async (ctx: restate.ObjectContext) => {
+    const outcome = (await runPass<SegmentsRefreshStats & { keys: string[] }>(ctx, d.main, {
       name: "segments net",
       ledger: { command: "segments net", argv: { daemon: true } },
       body: async () => {
@@ -438,7 +438,7 @@ export function makeSegmentsHourly(d: Pick<SegmentsDeps, "main" | "clients">) {
       },
       delayAfter: () => SEGMENTS_NET_MS,
       retryMs: SEGMENTS_NET_MS,
-    })) as PassOutcome<SegmentsHourlyStats & { keys: string[] }>;
+    })) as PassOutcome<SegmentsRefreshStats & { keys: string[] }>;
     for (const key of outcome.stats?.keys ?? []) ctx.objectSendClient<Self>(SEGMENTS, key).wake();
     return outcome;
   });

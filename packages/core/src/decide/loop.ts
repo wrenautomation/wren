@@ -1,5 +1,5 @@
 /**
- * `Judge/wren`: every 10 minutes, the subjects each source says are due get one decision each.
+ * `NextStepDecide/wren`: every 10 minutes, the subjects each source says are due get one decision each.
  * An `agent` kind goes to the judge agent (Claude Code on the desk), the rest to `WREN_DECIDE`'s chain.
  * Scored here, never inline, so no draft or score step waits on an outside API, and the Mac's reads
  * are covered as well as the worker's.
@@ -205,8 +205,8 @@ interface DecideDeps {
   backends(): BackendChoice;
 }
 
-/** `Judge/wren`: one pass every 10 minutes over Wren's own workspace. */
-export function makeJudge(d: DecideDeps) {
+/** `NextStepDecide/wren`: one pass every 10 minutes over Wren's own workspace. */
+export function makeNextStepDecide(d: DecideDeps) {
   /** One subject asked now (the people console's "Check lead"). */
   const one = exclusiveHandler(
     { input: ONE_INPUT },
@@ -227,7 +227,7 @@ export function makeJudge(d: DecideDeps) {
     },
   );
   return makeLoopObject(
-    "Judge",
+    "NextStepDecide",
     async (ctx: restate.ObjectContext) => {
       return (await runPass<DecidePassStats>(ctx, d.main, {
         name: "judge",
@@ -241,4 +241,4 @@ export function makeJudge(d: DecideDeps) {
     { extra: { one } },
   );
 }
-export type JudgeService = ReturnType<typeof makeJudge>;
+export type NextStepDecide = ReturnType<typeof makeNextStepDecide>;

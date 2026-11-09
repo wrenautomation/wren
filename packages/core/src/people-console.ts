@@ -41,7 +41,7 @@ import type { FunnelStep } from "./channel-stats-schema.js";
 import type { Client } from "./clients/schema.js";
 import { recordCall } from "./decide/calls.js";
 import { LEAD_KIND, leadSubject } from "./decide/lead-fit.js";
-import type { JudgeService } from "./decide/loop.js";
+import type { NextStepDecide } from "./decide/loop.js";
 import { PEOPLE_CONSOLE_APPS, PEOPLE_CONSOLE_ROUTES } from "./people-console-routes.js";
 import {
   accessOf,
@@ -662,7 +662,7 @@ export function makePeopleConsole(deps: PeopleConsoleDeps) {
           // Told to the judge and left: its answer lands on the profile when it is kept.
           for (const subject of got.subjects)
             ctx
-              .objectSendClient<JudgeService>({ name: "Judge" }, "wren")
+              .objectSendClient<NextStepDecide>({ name: "NextStepDecide" }, "wren")
               .one({ kind: LEAD_KIND, subject });
           return { done: got.done };
         },
