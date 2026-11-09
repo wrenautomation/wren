@@ -92,7 +92,8 @@ describe("which tables", () => {
         "watch",
         "learn",
         "calendar",
-        "variants",
+        "vireo",
+        "folders",
       ]),
     );
     for (const r of rows) {
@@ -116,7 +117,8 @@ describe("which tables", () => {
     const tables = new Set(rows.map((r) => auditName(r.s, r.t)));
     for (const table of Object.keys(AUDIT_SKIPPED)) expect(tables, table).toContain(table);
     const schemas = new Set(rows.map((r) => r.s));
-    for (const schema of Object.keys(AUDIT_SKIPPED_SCHEMAS))
+    // rt: the worker's runtime makes it at start, not a migration
+    for (const schema of Object.keys(AUDIT_SKIPPED_SCHEMAS).filter((x) => x !== "rt"))
       expect(schemas, schema).toContain(schema);
   });
 

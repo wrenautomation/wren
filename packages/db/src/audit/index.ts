@@ -71,6 +71,7 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
 export const AUDIT_SKIPPED_SCHEMAS: Readonly<Record<string, string>> = {
   drizzle: "the migration journal, already a log",
   auth: "sign-in: session tokens, password hashes and signing keys never go in a permanent log",
+  rt: "the runtime's queue, journal and state: writes every second, its own record (made at worker start)",
 };
 
 /** A table's name in the log: bare in `public`, `schema.table` elsewhere. */
