@@ -7,7 +7,7 @@
  */
 import type { ElkNode } from "elkjs/lib/elk-api.js";
 import { elkOf } from "../graph/layout.js";
-import { RADIUS, textWidth } from "./geometry.js";
+import { labelBoxes, markBoxes, RADIUS, textWidth } from "./geometry.js";
 import {
   finishMetro,
   LAP,
@@ -17,7 +17,7 @@ import {
   SPACE,
   tryMetro,
 } from "./layout.js";
-import type { MetroScene, Point, Zone } from "./types.js";
+import { isMark, type MetroScene, type Point, type Zone } from "./types.js";
 import type { MetroView, ViewStation } from "./view.js";
 
 /** An open node: the stations right inside it, and the open node it sits in. */
@@ -368,6 +368,59 @@ function framesOf(
 
 const isFrame = (f: Frame | undefined): f is Frame => !!f;
 
+/** Room around a name inside a frame; on top, room for the fold tab too (tab: frame top + 4 to + 26). */
+const NAME_PAD = { side: 8, top: 30 } as const;
+
+/**
+ * Each box's frame from the finished scene: its stops, their names and its inner frames.
+ * The finish and the widen moves stops after ELK, so a frame from ELK's points can cut one.
+ */
+function fitFrames(boxes: readonly PlaceBox[], scene: MetroScene): Map<string, Frame> {
+  const byId = new Map(scene.st.filter(isMark).map((s) => [s.id, s]));
+  const out = new Map<string, Frame>();
+  const frameOf = (b: PlaceBox): Frame | undefined => {
+    const known = out.get(b.id);
+    if (known) return known;
+    const parts: Frame[] = [];
+    for (const id of b.stations) {
+      const s = byId.get(id);
+      if (!s) continue;
+      for (const q of markBoxes(s))
+        parts.push([q.x0 - PAD.side, q.y0 - PAD.top, q.x1 + PAD.side, q.y1 + PAD.side]);
+      for (const q of labelBoxes(s))
+        parts.push([
+          q.x0 - NAME_PAD.side,
+          q.y0 - NAME_PAD.top,
+          q.x1 + NAME_PAD.side,
+          q.y1 + NAME_PAD.side,
+        ]);
+    }
+    for (const k of boxes)
+      if (k.parent === b.id) {
+        const c = frameOf(k);
+        if (c) parts.push([c[0] - PAD.side, c[1] - PAD.top, c[2] + PAD.side, c[3] + PAD.side]);
+      }
+    if (!parts.length) return undefined;
+    const f: Frame = [
+      Math.min(...parts.map((q) => q[0])),
+      Math.min(...parts.map((q) => q[1])),
+      Math.max(...parts.map((q) => q[2])),
+      Math.max(...parts.map((q) => q[3])),
+    ];
+    out.set(b.id, f);
+    return f;
+  };
+  for (const b of boxes) frameOf(b);
+  return out;
+}
+
+/** The placed scene with frames fit to it; the scene grows to hold the lowest frame. */
+function fitted(boxes: readonly PlaceBox[], scene: MetroScene): Placed {
+  const frames = fitFrames(boxes, scene);
+  const low = Math.max(0, ...[...frames.values()].map((f) => f[3] + 16));
+  return { scene: low > scene.h ? { ...scene, h: low } : scene, frames };
+}
+
 /** The placed map, and a frame for each box. */
 export interface Placed {
   scene: MetroScene;
@@ -391,7 +444,7 @@ export async function placeMetro(
   const step = o.step ?? STEP;
   const elk = await elkPlace(view, boxes);
   const extra = new Map<number, number>();
-  let last: { at: Placement; frames: Map<string, Frame>; bad: number } | undefined;
+  let last: { at: Placement; bad: number } | undefined;
   for (let i = 0; ; i++) {
     const pos = new Map(elk);
     const slots = evenX(view, pos, step, extra);
@@ -422,13 +475,12 @@ export async function placeMetro(
       bottom,
       ...(laps.length ? { route, laps } : {}),
     };
-    if (i === WIDEN) return { scene: finishMetro(view, at), frames };
+    if (i === WIDEN) return fitted(boxes, finishMetro(view, at));
     const tried = tryMetro(view, at);
-    if (!tried.bad.length) return { scene: tried.scene, frames };
+    if (!tried.bad.length) return fitted(boxes, tried.scene);
     // A widen that cleared nothing is undone: the narrower map finishes.
-    if (last && tried.bad.length >= last.bad)
-      return { scene: finishMetro(view, last.at), frames: last.frames };
-    last = { at, frames, bad: tried.bad.length };
+    if (last && tried.bad.length >= last.bad) return fitted(boxes, finishMetro(view, last.at));
+    last = { at, bad: tried.bad.length };
     // The gaps a bad span touches widen; a span with no width (a name) widens the gaps beside it.
     slots.forEach((x, k) => {
       const lo = (slots[k - 1] ?? x) + dx;
