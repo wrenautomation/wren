@@ -59,32 +59,6 @@ resource "aws_ssm_parameter" "box" {
   }
 }
 
-# Unused since 11-09: the front door reads WREN_API_TOKEN from the box env (WA-1217). Kept until
-# William says to delete it. Was the front door's bearer, as JSON {token}. Its
-# name and description are Restate's (retired 11-09); a description change would rewrite the value.
-resource "aws_ssm_parameter" "restate" {
-  name        = "${local.ssm_root}/restate"
-  description = "JSON for the box's Restate server: token (ingress bearer), identity_pem (request-signing key)"
-  type        = "SecureString"
-  value       = "{}"
-
-  lifecycle {
-    ignore_changes = [value]
-  }
-}
-
-# Unused since 11-09 (Redis retired, own-runtime phase 6b); kept until William says to delete it.
-resource "aws_ssm_parameter" "cache" {
-  name        = "${local.ssm_root}/cache"
-  description = "JSON for the box's Valkey cache: password" # = live; a change rewrites the value
-  type        = "SecureString"
-  value       = "{}"
-
-  lifecycle {
-    ignore_changes = [value]
-  }
-}
-
 # Listmonk on the box (deploy/scripts/box-listmonk.sh), as JSON {admin_user, admin_password,
 # db_password}. Set by hand. Made outside Terraform first: `tofu import aws_ssm_parameter.listmonk
 # /wren/prod/listmonk` before the apply that grants the box this read.
@@ -166,16 +140,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups" {
     }
   }
   rule {
-    id     = "expire-restate-backups"
-    status = "Enabled"
-    filter {
-      prefix = "restate/"
-    }
-    expiration {
-      days = 7
-    }
-  }
-  rule {
     id     = "expire-worker-bundles"
     status = "Enabled"
     filter {
@@ -218,7 +182,7 @@ locals {
     # The box worker runs with the Lambda's env, roster and mailboxes, plus its own.
     [aws_ssm_parameter.env.arn, aws_ssm_parameter.env_2.arn, aws_ssm_parameter.env_3.arn, aws_ssm_parameter.keystore.arn],
     [aws_ssm_parameter.roster.arn, aws_ssm_parameter.mailboxes.arn, aws_ssm_parameter.box.arn],
-    [aws_ssm_parameter.restate.arn, aws_ssm_parameter.listmonk.arn],
+    [aws_ssm_parameter.listmonk.arn],
   )
 }
 

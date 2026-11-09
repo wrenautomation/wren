@@ -15,10 +15,6 @@ region="$1" param="${2:-/wren/prod/box}"
 D=/var/lib/wren-pg/front-door
 mkdir -p "$D/caddy"
 umask 077
-# Certificates and ACME account from the old home (Restate's, before 11-09), so none is issued again.
-if [ ! -e "$D/caddy/caddy" ] && [ -d /var/lib/wren-pg/restate/caddy/caddy ]; then
-  cp -a /var/lib/wren-pg/restate/caddy/. "$D/caddy/"
-fi
 
 token="$(aws ssm get-parameter --region "$region" --name "$param" --with-decryption \
   --query Parameter.Value --output text | python3 -c 'import json,sys; sys.stdout.write(json.load(sys.stdin)["WREN_API_TOKEN"])')"
@@ -31,7 +27,7 @@ cat > "$D/Caddyfile.new" <<'EOF'
 		lb_policy first
 		lb_try_duration 5s
 		lb_try_interval 250ms
-		health_uri /restate/health
+		health_uri /health
 		health_interval 5s
 		health_timeout 3s
 		flush_interval -1
@@ -96,7 +92,7 @@ elif [ "$file_changed" = 1 ]; then
   echo "reloaded wren-caddy"
 fi
 for _ in $(seq 1 30); do
-  curl -s -o /dev/null http://127.0.0.1:8090/restate/health && break
+  curl -s -o /dev/null http://127.0.0.1:8090/health && break
   sleep 1
 done
 echo "front door up"

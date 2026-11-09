@@ -272,7 +272,12 @@ CREATE TABLE rt.box_builds (
 );
 `;
 
-const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8];
+const V9 = `
+-- the Restate bridge's skip list; unused since V8 (William's yes, 11-09)
+DROP TABLE rt.pg_services;
+`;
+
+const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8, V9];
 
 /** Bring schema `rt` up to date. One advisory lock, so parallel starts take turns. */
 export async function migrate(sql: postgres.Sql): Promise<void> {
