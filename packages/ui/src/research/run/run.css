@@ -946,46 +946,6 @@
   background: var(--paper);
   box-shadow: 0 0 0 1px var(--hair);
 }
-.rg .qbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  margin: 0 4px 12px 0;
-  padding: 9px 10px;
-  border-radius: 9px;
-  background: var(--paper);
-  box-shadow: 0 0 0 1px var(--hair);
-  color: var(--ink);
-  font-size: 12px;
-}
-.rg .qbar[hidden] {
-  display: none;
-}
-.rg .qbar span {
-  flex: 1 1 100%;
-}
-.rg .qbar b {
-  font-weight: 650;
-  color: inherit;
-  display: inline;
-}
-.rg .qbar button {
-  border: 0;
-  border-radius: 6px;
-  padding: 4px 10px;
-  cursor: pointer;
-  font-size: 12px;
-  background: var(--ink);
-  color: var(--paper);
-}
-.rg .qbar button + button {
-  background: none;
-  color: var(--ink2);
-}
-.rg .rg-side.chips .qbar {
-  margin: 8px 0 0;
-}
 .rg .rg-panel .flt {
   width: 100%;
   margin-top: 10px;
@@ -1006,9 +966,17 @@
   content-visibility: auto;
   contain-intrinsic-size: auto 52px;
 }
-.rg .rg-panel .dr details {
+/* the text column: the summary, then the page link */
+.rg .rg-panel .dr .dc {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.rg .rg-panel .dr details {
+  align-self: stretch;
 }
 .rg .rg-panel .dr summary {
   cursor: pointer;
@@ -1053,24 +1021,15 @@
   font-weight: 600;
   text-decoration: none;
 }
+/* the same link as a read page's "Open the page" */
 .rg .rg-panel .rd {
-  flex: none;
-  border: 1px solid var(--hair);
-  background: var(--paper);
-  border-radius: 7px;
-  padding: 3px 10px;
   font-size: 12px;
-  cursor: pointer;
-  color: var(--ink);
-  white-space: nowrap;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
 }
 .rg .rg-panel .rd:hover {
-  background: var(--wash);
-}
-.rg .rg-panel .rd[aria-pressed="true"] {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
+  text-decoration: underline;
 }
 @container rg (width < 820px) {
   .rg .rg-key {

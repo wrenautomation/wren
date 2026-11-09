@@ -42,8 +42,6 @@ export interface PanelCtx {
   fwd?: (() => void) | undefined;
   /** in a dock window: its tab closes it; open the pick in a new window */
   dock?: (() => void) | undefined;
-  queue: ReadonlySet<string>;
-  toggleQ: (id: string) => void;
   dq: string;
   setDq: (v: string) => void;
 }
@@ -467,61 +465,61 @@ function ClaimPanel({ c, i }: { c: PanelCtx; i: number }) {
   );
 }
 
-/** A dropped hit: what the run saw, why it said no, and the button to overrule it. */
+/** A dropped hit: what the run saw, why it said no, and the page itself. */
 function DropRow({ c, d }: { c: PanelCtx; d: GraphDrop }) {
-  const on = c.queue.has(d.id);
   const art = d.f && /^[aeiou]/i.test(d.f[0]) ? "an" : "a";
   return (
     <div className="dr">
       <Frame img={d.th} icon={d.ic} fmt={d.f?.[0] ?? "article"} kind={d.k} sm />
-      <details>
-        <summary>
-          <b>{d.t}</b>
-          <small>
-            <Kd k={d.k} />
-            <span>{d.h}</span>
-            {d.f ? (
-              <span>
-                reads as {art} {d.f[0]}
+      <div className="dc">
+        <details>
+          <summary>
+            <b>{d.t}</b>
+            <small>
+              <Kd k={d.k} />
+              <span>{d.h}</span>
+              {d.f ? (
+                <span>
+                  reads as {art} {d.f[0]}
+                </span>
+              ) : null}
+            </small>
+            {d.s != null ? (
+              <span className="sc" title={`${d.s}% on the subject, by the judge`}>
+                <span className="tr">
+                  <i style={{ width: `${d.s}%` }} />
+                </span>
+                <em>{d.s}% on the subject</em>
               </span>
             ) : null}
-          </small>
-          {d.s != null ? (
-            <span className="sc" title={`${d.s}% on the subject, by the judge`}>
-              <span className="tr">
-                <i style={{ width: `${d.s}%` }} />
-              </span>
-              <em>{d.s}% on the subject</em>
-            </span>
-          ) : null}
-        </summary>
-        <div className="db">
-          {d.sn ? <p>{d.sn}</p> : null}
-          <p className="fm">
-            <span>
-              Dropped in {stepAt(c.L.run, d.r)}: {d.why}
-            </span>
-            {d.f ? (
+          </summary>
+          <div className="db">
+            {d.sn ? <p>{d.sn}</p> : null}
+            <p className="fm">
               <span>
-                The judge read it as a {d.f[0]} ({d.f[1]}%),{" "}
-                {SPEAKERS[d.k]?.one.toLowerCase() ?? "other"} kind.
+                Dropped in {stepAt(c.L.run, d.r)}: {d.why}
               </span>
+              {d.f ? (
+                <span>
+                  The judge read it as a {d.f[0]} ({d.f[1]}%),{" "}
+                  {SPEAKERS[d.k]?.one.toLowerCase() ?? "other"} kind.
+                </span>
+              ) : null}
+            </p>
+            {d.q.length ? (
+              <div className="cl">
+                {d.q.map((i) => {
+                  const q = c.L.byQ.get(i);
+                  return q ? <QChip key={i} c={c} q={q} /> : null;
+                })}
+              </div>
             ) : null}
-            <Out href={d.u}>Open the page</Out>
-          </p>
-          {d.q.length ? (
-            <div className="cl">
-              {d.q.map((i) => {
-                const q = c.L.byQ.get(i);
-                return q ? <QChip key={i} c={c} q={q} /> : null;
-              })}
-            </div>
-          ) : null}
-        </div>
-      </details>
-      <button type="button" className="rd" aria-pressed={on} onClick={() => c.toggleQ(d.id)}>
-        {on ? "Will read" : "Read it"}
-      </button>
+          </div>
+        </details>
+        <Out href={d.u} className="rd">
+          Open the page
+        </Out>
+      </div>
     </div>
   );
 }
@@ -567,7 +565,7 @@ function DropPanel({ c, g }: { c: PanelCtx; g: number }) {
         <p className="ct">
           <span>
             {pl(n, "hit")} the run chose not to read. Most on the subject first, by the judge's
-            score. Mark any it should read anyway.
+            score.
           </span>
         </p>
         <input
@@ -625,7 +623,7 @@ function SearchPanel({ c, q }: { c: PanelCtx; q: GraphSearch }) {
           <>
             <h5 className="sh">
               Dropped <em>{dr.length}</em>
-              <small>Most on the subject first. Mark any to read anyway.</small>
+              <small>Most on the subject first.</small>
             </h5>
             {dr.map((d) => (
               <DropRow key={d.id} c={c} d={d} />

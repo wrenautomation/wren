@@ -1514,3 +1514,25 @@ Chosen: A. Priorities: scans never load page text; one code path; no new server;
 - Same text, same hash: a page read twice is stored once.
 - `weaver pages [--quiet <min>]` moves old lines' text into the store. Each page is read back and compared before its file is rewritten. Files changed in the last 10 min, or during the pass, wait for a later pass.
 - `pages/` stays in the tasks repo for now, so a clone works without AWS. Gitignore it once the bucket is the only copy anyone needs.
+
+## 11-09: hubs, links follow, open triage (engine 0.57.0, WA-1222)
+
+William 11-09: an internships-and-portfolios run missed a guide that listed 12 portfolio examples (one a product designer's site he liked). "It should have found every site example as a new thing to add to the graph and ingest as well … like real research." Also: findings said "the post says" and "a startup founder says"; name the speaker or state the principle with its source.
+
+Found (run 01M6ZAMPRBWC2Q298CC8DZKP57): the guide was dropped before any read, as a "vendor or template seller page". 155 of 184 hits (84%) were dropped before a read; top reasons were vendor page (55) and listicle (34 + 17 + 6). Three causes:
+- The skill's triage said "drop the rest (vendor pages, listicles …)", and the web plan file said "keep primary sources … over listicles".
+- No follow could reach a list's examples: `posts`, `similar`, `refs` and `citers` only.
+- Weaver threw away a page's links at open, though the read layer returns them. That also broke "keep data".
+
+Options for reaching a hub's examples:
+- A. Store each page's links on its document at open. `follow --as links` turns them into hits from the stored list: free, no fetch, works on old pages once re-read.
+- B. `follow --as links` fetches the page again and parses links on the spot. Nothing stored; a second fetch per hub, and the links the run saw are not kept.
+- C. The extract model names examples as it reads. A model call per page for a job a parser does exactly; it misses links with no words around them.
+
+Chosen: A. Priorities: keep data; no second fetch; the agent picks (triage calls each link like a search hit).
+- `Document.links`: http(s), the page itself out, one per URL, the longest anchor kept. It stays on the ledger line (not the page store): about 100 B a link.
+- `follow --as links --from <document> [--q words] [-n]`: other sites first (a hub's examples), then the page's own site, social profiles last; share, sign-in, legal, feed and asset links out. A built-in `links` source, always in reach, free.
+- `show` and `brief.unfollowed` count each page's links.
+- Triage now drops only off-topic hits before a read. Vendor pages, guides and lists stay when they may hold a fact or name examples. Web plan file v10: reads 6 → 10 a round; the listicle rule now says to follow a roundup's examples.
+- Finding sentences name the speaker (person, else publication or site) or state the principle; the extract and check prompts and the skill ban stand-ins ("the post says", "a founder says"). The extract prompt now sees the page's title and channel.
+- Wren graph: the read queue ("Read it" / "Will read", the copy-the-command bar) is gone. A dropped hit links to its page.

@@ -110,11 +110,10 @@ export const SourceOpen: Story = {
   },
 };
 
-/** The Dropped tab, one reason picked, one hit marked to read. */
-export const ReadQueue: Story = {
+/** The Dropped tab, one reason picked: each hit links to its page. */
+export const Dropped: Story = {
   args: { run: RUN_GRAPH },
   play: async ({ canvasElement }) => {
-    localStorage.removeItem(`weaver-read:${RUN_GRAPH.rid}`);
     const side = canvasElement.querySelector<HTMLElement>(".rg-side");
     if (!side) return;
     const tab = [...side.querySelectorAll("button")].find((b) =>
@@ -123,14 +122,10 @@ export const ReadQueue: Story = {
     if (tab) await userEvent.click(tab);
     const g = side.querySelector<HTMLElement>(".dg");
     if (g) await userEvent.click(g);
-    const rd = await waitFor(() => {
-      const b = canvasElement.querySelector<HTMLElement>(".rg-panel button.rd");
-      expect(b).not.toBeNull();
-      return b as HTMLElement;
+    await waitFor(() => {
+      const a = canvasElement.querySelector<HTMLAnchorElement>(".rg-panel a.rd");
+      expect(a?.textContent).toBe("Open the page");
+      expect(a?.target).toBe("_blank");
     });
-    await userEvent.click(rd);
-    await waitFor(() =>
-      expect(side.querySelector(".qbar")?.textContent).toMatch(/to read next round/),
-    );
   },
 };

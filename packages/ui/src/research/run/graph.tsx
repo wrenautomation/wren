@@ -79,19 +79,6 @@ export interface RunGraphProps {
   card?: boolean | undefined;
 }
 
-// merged drop ids are "k.id": one open per run
-function mergedOpen(runs: readonly { rid: string }[], queue: Iterable<string>) {
-  const by = new Map<string, string[]>();
-  for (const id of queue) {
-    const dot = id.indexOf(".");
-    const rid = runs[Number(id.slice(0, dot)) - 1]?.rid;
-    if (rid) by.set(rid, [...(by.get(rid) ?? []), id.slice(dot + 1)]);
-  }
-  return [...by]
-    .map(([rid, ids]) => `weaver open ${rid} ${ids.join(" ")} --why "asked to read it"`)
-    .join(" && ");
-}
-
 export function RunGraph({ run, failed, card }: RunGraphProps) {
   if (failed)
     return (
@@ -148,15 +135,6 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
   const [fonts, setFonts] = useState(0);
   const [fitN, setFitN] = useState(0);
   const [tip, setTip] = useState<{ id: number; el: HTMLElement } | null>(null);
-  const [copied, setCopied] = useState(false);
-  const qKey = `weaver-read:${L.run.rid}`;
-  const [queue, setQueue] = useState<ReadonlySet<string>>(() => {
-    try {
-      return new Set(JSON.parse(localStorage.getItem(qKey) || "[]") as string[]);
-    } catch {
-      return new Set();
-    }
-  });
 
   const rootRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -341,27 +319,6 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     pend.current.fit = ms;
     setFitN((n) => n + 1);
   };
-  const toggleQ = (id: string) => {
-    const q = toggled(queue, id);
-    setQueue(q);
-    try {
-      localStorage.setItem(qKey, JSON.stringify([...q]));
-    } catch {
-      /* private mode */
-    }
-  };
-  const clearQ = () => {
-    setQueue(new Set());
-    try {
-      localStorage.setItem(qKey, "[]");
-    } catch {
-      /* private mode */
-    }
-  };
-  const cmd = L.run.runs
-    ? mergedOpen(L.run.runs, queue)
-    : `weaver open ${L.run.rid} ${[...queue].join(" ")} --why "asked to read it"`;
-
   const toRound = (r: number) => {
     setRound(r);
     if (pick?.t === "s" && r && (L.byId.get(pick.id)?.s.r ?? 0) > r) setPick(null);
@@ -899,8 +856,6 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
           setPick(c, false, w.id);
         }
       : undefined,
-    queue,
-    toggleQ,
     dq,
     setDq,
   });
@@ -922,14 +877,6 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
       setTab={setTab}
       pick={pick}
       F={F}
-      queue={queue}
-      cmd={cmd}
-      copied={copied}
-      onCopy={() => {
-        void navigator.clipboard?.writeText(cmd);
-        setCopied(true);
-      }}
-      onClear={clearQ}
       onPick={(p) => setPick(same(pick, p) && !fresh.current ? null : p, true)}
       onHover={(p) => {
         if (pick || same(p, hover)) return;

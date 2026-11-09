@@ -205,10 +205,6 @@ export function Side({
   setTab,
   pick,
   F,
-  queue,
-  copied,
-  onCopy,
-  onClear,
   onPick,
   onHover,
 }: {
@@ -223,11 +219,6 @@ export function Side({
   setTab: (t: "c" | "q" | "d") => void;
   pick: Pick | null;
   F: Focus | null;
-  queue: ReadonlySet<string>;
-  cmd: string;
-  copied: boolean;
-  onCopy: () => void;
-  onClear: () => void;
   onPick: (p: Pick) => void;
   onHover: (p: Pick | null) => void;
 }) {
@@ -354,11 +345,8 @@ export function Side({
   else
     list = (
       <>
-        <p className="dn">
-          The run read none of these. Pick a reason to see its hits, then mark any to read.
-        </p>
+        <p className="dn">The run read none of these. Pick a reason to see its hits.</p>
         {L.why.map((g, i) => {
-          const n = g.ds.filter((d) => queue.has(d.id)).length;
           return (
             <button
               key={g.w}
@@ -367,10 +355,7 @@ export function Side({
               onClick={() => onPick({ t: "D", g: i })}
             >
               <b>{cap(g.w)}</b>
-              <small>
-                {pl(g.ds.length, "hit")}
-                {n ? ` · ${n} to read` : ""}
-              </small>
+              <small>{pl(g.ds.length, "hit")}</small>
             </button>
           );
         })}
@@ -401,21 +386,6 @@ export function Side({
         )}
       </div>
       <div className="rg-ls">{list}</div>
-      <div className="qbar" hidden={!queue.size}>
-        {queue.size ? (
-          <>
-            <span>
-              <b>{pl(queue.size, "hit")}</b> to read{L.run.runs ? "" : " next round"}
-            </span>
-            <button type="button" onClick={onCopy}>
-              {copied ? "Copied" : "Copy the command"}
-            </button>
-            <button type="button" onClick={onClear}>
-              Clear
-            </button>
-          </>
-        ) : null}
-      </div>
     </div>
   );
 }
