@@ -41,6 +41,7 @@ import {
   marksOf,
   restoreMark,
 } from "@wren/starling-studio/marks";
+import { sayPresence } from "@wren/starling-studio/presence";
 import { punctuate, unpunctuated } from "@wren/starling-studio/punctuate";
 import type { VideoEdit } from "@wren/starling-studio/schema";
 import {
@@ -109,6 +110,9 @@ const told = <T>(p: Promise<T>) =>
   p.catch((err) => {
     throw refuse(err instanceof z.ZodError ? new Error(z.prettifyError(err)) : err);
   });
+
+/** The edit pass on a video, as its cursor and its writes name it. */
+const AGENT = "agent";
 
 /** The model behind Propose stressed words and Add punctuation: the worker's (prod: the gateway). */
 type VideoModel = StressModel & { name: string };
@@ -566,6 +570,13 @@ export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
             const e = await getEdit(db, a.id).catch(() => null);
             const live = await livePrompt(db, VIDEO_EDIT_REF);
             const marks = e ? await marksOf(db, e.id, { open: true }) : [];
+            if (e)
+              await sayPresence(db, e.id, AGENT, {
+                part: marks.length ? "marks" : null,
+                doing: marks.length
+                  ? `Reads the video and ${marks.length} open mark${marks.length === 1 ? "" : "s"}`
+                  : "Reads the video for its pass",
+              });
             return {
               ...a,
               prompt: e ? editPrompt(e, { ...a, marks }, live) : null,
@@ -574,7 +585,10 @@ export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
           });
           if (!asked) return;
           const fail = (error: string) =>
-            ctx.run("save", () => finishRun(db, req.run, { error: error.slice(0, 5000) }));
+            ctx.run("save", async () => {
+              if (asked.prompt) await sayPresence(db, asked.id, AGENT, { gone: true });
+              await finishRun(db, req.run, { error: error.slice(0, 5000) });
+            });
           if (!asked.prompt) return void (await fail("the video is gone"));
           let out: Awaited<ReturnType<ClaudeService["ask"]>>;
           try {
@@ -594,6 +608,7 @@ export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
               const e = await getEdit(tx, asked.id);
               const meta = { ms: out.ms, model: out.model, prompt: asked.version };
               const done = await applyPass(tx, e, pass, { run: req.run, stats: meta });
+              await sayPresence(tx, asked.id, AGENT, { gone: true });
               if (!done.changed) return false;
               const now = await getEdit(tx, asked.id);
               if (renderRefusal(now)) return false;

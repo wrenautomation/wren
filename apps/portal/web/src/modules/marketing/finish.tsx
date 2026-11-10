@@ -51,18 +51,21 @@ import { useSteadyUrl } from "./finish-hooks.js";
 import { type Mark, type MarkBox, MarksPanel } from "./finish-marks.js";
 import { CaptionsPanel, CoverPanel, ShapesPanel, TextPanel } from "./finish-panels.js";
 import { LayoutPanel, ShortsPanel } from "./finish-parts.js";
+import { type Presence, PresenceLines } from "./finish-presence.js";
 import { previewUrl, RAW } from "./finish-preview.js";
 import { Bar, Stage, ViewSwitch } from "./finish-stage.js";
 import { Timeline } from "./finish-timeline.js";
 import { VIEWED } from "./video-patch.js";
 
 const NO_MARKS: readonly Mark[] = [];
+const NO_ONE: readonly Presence[] = [];
 
 export function Finish({
   id,
   data,
   words,
   marks = NO_MARKS,
+  presence = NO_ONE,
   act,
   at,
 }: {
@@ -71,6 +74,8 @@ export function Finish({
   words: readonly Word[];
   /** His notes for the editing agent, in time order. */
   marks?: readonly Mark[] | undefined;
+  /** Who else is on the video now: an agent that said where it is. */
+  presence?: readonly Presence[] | undefined;
   act: RecordAct;
   /** When the page's read of `data` left: a read from before his newest save never lands. */
   at?: number | undefined;
@@ -351,7 +356,15 @@ export function Finish({
         </span>
       </div>
 
+      <PresenceLines
+        presence={presence}
+        onSeek={(at) => {
+          if (playing) pause();
+          seek(at);
+        }}
+      />
       <Timeline
+        presence={presence}
         dur={dur}
         t={t}
         playing={playing}

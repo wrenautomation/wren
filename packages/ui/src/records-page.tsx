@@ -284,8 +284,22 @@ export function RecordBody({
   // biome-ignore lint/correctness/useExhaustiveDependencies: each new read sets the next one.
   useEffect(() => {
     if (!poll) return;
-    const t = setTimeout(got.retry, poll);
-    return () => clearTimeout(t);
+    // A hidden tab reads nothing; it reads once when he comes back.
+    let missed = false;
+    const t = setTimeout(() => {
+      if (document.hidden) missed = true;
+      else got.retry();
+    }, poll);
+    const back = () => {
+      if (!missed || document.hidden) return;
+      missed = false;
+      got.retry();
+    };
+    document.addEventListener("visibilitychange", back);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("visibilitychange", back);
+    };
   }, [got.data]);
   // ⌘K asks about this record; with edits, its answer lands in the Ask box here.
   useOpenRecord(`${meta.id}:${id}:${tab}:${got.data ? 1 : 0}:${editing ? 1 : 0}`, () =>

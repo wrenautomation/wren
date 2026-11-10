@@ -132,6 +132,7 @@ import { readText } from "./content.js";
 import { autobrowseDrive } from "./sop.js";
 import { registerVideoAsk } from "./video-ask.js";
 import { registerVideoMarks } from "./video-marks.js";
+import { registerVideoPresence } from "./video-presence.js";
 import {
   geminiModel,
   needGemini,
@@ -477,6 +478,7 @@ export function registerStudio(
 
   // Notes pinned to a moment or a part of the picture: Finish's Marks, from here.
   registerVideoMarks(video, withDb);
+  registerVideoPresence(video, withDb);
 
   // The storyboard and a change in a sentence: the page's Storyboard, from here.
   registerVideoAsk(video, withDb, (o) => {

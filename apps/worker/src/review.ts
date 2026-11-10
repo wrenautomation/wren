@@ -129,11 +129,6 @@ const PARKED: readonly Parked[] = [
     check: auditSize,
   },
   {
-    id: "remotion",
-    idea: "Remotion",
-    unpark: "The recorder's captures don't hold up in a sales video",
-  },
-  {
     id: "scrums",
     idea: "Simulated scrums",
     unpark: "No trigger. This review covers it",

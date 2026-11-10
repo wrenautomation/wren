@@ -35,7 +35,6 @@ describe("Friday review", () => {
       redis: "manual",
       proxies: "fired",
       "audit-partition": "fired",
-      remotion: "manual",
       scrums: "manual",
     });
   });

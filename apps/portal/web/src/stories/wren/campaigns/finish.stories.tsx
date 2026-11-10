@@ -6,7 +6,13 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { RecordAct } from "@wren/ui";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { FINISH, FINISH_MARKS, FINISH_NO_FILE, FINISH_WORDS } from "../../../mocks/data/finish.js";
+import {
+  FINISH,
+  FINISH_MARKS,
+  FINISH_NO_FILE,
+  FINISH_PRESENCE,
+  FINISH_WORDS,
+} from "../../../mocks/data/finish.js";
 import { Finish } from "../../../modules/marketing/finish.js";
 import { MARK, MARK_DONE, MARK_DROP, type Mark } from "../../../modules/marketing/finish-marks.js";
 
@@ -57,6 +63,26 @@ export const NoFile: StoryObj = {
     const view = within(canvasElement);
     await expect(await view.findByRole("button", { name: "Retry" })).toBeVisible();
     await expect(view.getByRole("button", { name: "Play" })).toBeDisabled();
+  },
+};
+
+/** Agents on the video: a line each says who, where and what; the one with a moment has a cursor. */
+export const AgentsHere: StoryObj = {
+  ...withFile,
+  render: (_a, { loaded }) => (
+    <Finish
+      id="story-here"
+      data={{ ...FINISH, source: loaded.source }}
+      words={FINISH_WORDS}
+      presence={FINISH_PRESENCE}
+      act={act}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const here = await within(canvasElement).findByRole("list", { name: "On this video now" });
+    await expect(within(here).getAllByRole("listitem")).toHaveLength(2);
+    await expect(within(here).getByText("The editing agent")).toBeVisible();
+    await expect(within(here).getByRole("button", { name: /0:04.15 to 0:06.00/ })).toBeVisible();
   },
 };
 

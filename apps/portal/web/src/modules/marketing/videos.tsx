@@ -40,6 +40,7 @@ import { PlayerSlot } from "../../player/index.js";
 import { href } from "../../route.js";
 import { Finish, type FinishData } from "./finish.js";
 import type { Mark } from "./finish-marks.js";
+import type { Presence } from "./finish-presence.js";
 import { type SopCheck, SopCheckList } from "./sop-check.js";
 import { EditorTabs, StoryboardView } from "./storyboard.js";
 import { VIEWED } from "./video-patch.js";
@@ -111,6 +112,8 @@ type Video = {
   turns: Turn[];
   /** His notes for the editing agent, pinned to a moment or a part of the picture. */
   marks?: Mark[];
+  /** Who is on the video now (content `presenceOf`). */
+  presence?: Presence[];
   /** What the finishing view draws and saves (content `finishOf`). */
   finish?: FinishData;
   /** Every video run on it, oldest first (content `videoSteps`). */
@@ -169,6 +172,8 @@ const STRESS = "marketing.videoStress";
 const PUNCTUATE = "marketing.videoPunctuate";
 const POLL_MS = 4000;
 const RENDER_POLL_MS = 15_000;
+/** A video that can be edited is read again now and then: an agent on it shows without a reload. */
+const WATCH_POLL_MS = 15_000;
 /** Before this it renders; after, the cut file and its upload are settled. */
 const EDITABLE = ["added", "edited", "rendered"];
 
@@ -1541,11 +1546,15 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (
 
 /** Read again soon while Claude works; now and then while the Mac renders (or is off). */
 const polled = (v: Video, steps: Step[]): Pick<RecordExtras, "poll"> =>
-  v.turns.some((t) => t.state === "thinking") || steps.some((t) => t.state === "running")
+  v.turns.some((t) => t.state === "thinking") ||
+  steps.some((t) => t.state === "running") ||
+  v.presence?.length
     ? { poll: POLL_MS }
     : v.render && v.render.state !== "failed"
       ? { poll: RENDER_POLL_MS }
-      : {};
+      : v.finish
+        ? { poll: WATCH_POLL_MS }
+        : {};
 
 /** The editor itself: preview, finish, agent, fields, cuts, transcript and the rest. */
 function timelineExtras(
@@ -1590,6 +1599,7 @@ function timelineExtras(
         data={v.finish}
         words={v.words}
         marks={v.marks}
+        presence={v.presence}
         act={act}
         at={readAt}
       />,

@@ -6,6 +6,7 @@ import { captionLines } from "@wren/starling-studio/finish";
 import type { Cut } from "@wren/starling-studio/schema";
 import type { FinishData, Word } from "../../modules/marketing/finish-data.js";
 import type { Mark } from "../../modules/marketing/finish-marks.js";
+import type { Presence } from "../../modules/marketing/finish-presence.js";
 
 const SAID = "One line on the page books more calls than seven sections ever did for us here";
 const DURATION_S = 8;
@@ -62,6 +63,26 @@ const mark = (m: Partial<Mark> & Pick<Mark, "id" | "start" | "text">): Mark => (
   done: null,
   ...m,
 });
+
+/** The edit pass with no moment yet, and a session agent on a range of the captions. */
+export const FINISH_PRESENCE: Presence[] = [
+  {
+    who: "agent",
+    start: null,
+    end: null,
+    part: "marks",
+    doing: "Reads the video and 3 open marks",
+    at: "2026-11-10T16:00:00.000Z",
+  },
+  {
+    who: "session-7f3a",
+    start: 4.5,
+    end: 6,
+    part: "captions",
+    doing: "Rewrites the line so it fits on a phone",
+    at: "2026-11-10T16:00:02.000Z",
+  },
+];
 
 /** Marks in time order: a part of the picture at 0 s, a range to fix, one to keep, one closed. */
 export const FINISH_MARKS: Mark[] = [

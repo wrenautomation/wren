@@ -243,3 +243,47 @@ Decisions:
 Checked: 17 unit tests (prompt, parse, close after patch), 4 stories at 390 and 1280 in both looks, the UI gate.
 
 Not checked: the store against a real database. The local dev database fails an older migration (`survey_answers` exists), so `0382` did not run here. CI's schema gate is the first run.
+
+## Build step 4 (11-10): the last of Remotion; no Raea flag
+
+- No code names Remotion. Step 1 removed the packages. This step removes the parked idea "Remotion" from the Friday review (`apps/worker/src/review.ts`): promos and edits render on our runtime.
+- The Raea draft flag is not built. Reasons:
+  - Drafts were for speed. Finish now plays the composition live, so a draft render answers no question the preview does not.
+  - Raea reads Remotion's API. Our compositions import our runtime. A flag needs an alias layer and a second render path that can drift from the export.
+  - Raea is FSL, one author, 3 weeks old. It cannot ship in the sold product.
+- If export speed becomes the limit, the next step is option E2 or a GPU engine behind the same seek protocol, not a second draft path.
+
+## Build step 5 (11-10): agent cursor
+
+Target: with Finish open, he sees which agent is on the video, on which part, at which moment, and what it does. It shows without a reload and goes when the agent leaves.
+
+Options:
+
+| Option | What | Gain | Cost |
+|---|---|---|---|
+| P1. Presence rows, read with the video | An agent writes a row per step (`wren video at`, the edit pass). The video read returns the fresh rows. The page reads again on a timer | The agent says where it is, before a write too. Rows are its path. No new transport | 4 to 15 s late. One read per open tab per interval |
+| P2. Derive from `runs` | The newest run by an agent is the cursor | No table | Shows only after a write. No moment, no "reads the video" |
+| P3. Push (Postgres NOTIFY to a stream at the door) | The page holds a stream | Instant | A long-lived connection the Lambda path does not have. A new transport for one feature |
+
+Priorities: the position is true (the agent states it), no new infrastructure, then latency. Pick P1. A person who watches an agent does not need less than 4 s.
+
+| Part | File | Does |
+|---|---|---|
+| Table | `studio/src/schema.ts` (`videoPresence`), migration `0383_video_presence` | One row per step: `who`, `anchor` (as a mark's), `part`, `doing`, `gone`, `seen_at`. Rows are kept |
+| Store | `studio/src/presence.ts` | `sayPresence`, `presenceOf`: the newest row of each `who` in the last 120 s, less those who left |
+| Pass | `inbound/src/restate/video-desk.ts` (`editing`) | Says "Reads the video and N open marks" at the start, leaves when it saves or fails |
+| CLI | `apps/cli/src/video-presence.ts` | `wren video at <id> --by <session> [--at s[-e]] [--part p] [--doing "..."] [--leave]`, `wren video here <id>` |
+| Read | `inbound/src/video.ts` | `video.presence` |
+| Portal | `finish-presence.tsx` | `PresenceLines` over the timeline (who, part, moment, what; the moment seeks). `PresenceCursors`: a line at the moment, a band across a range, one cue tint per agent |
+| Poll | `videos.tsx` (`polled`), `ui/records-page.tsx` | 4 s while someone is on the video, 15 s while a video can be edited. A hidden tab reads nothing and reads once when he comes back |
+
+Decisions:
+- No heartbeat. A row is a step the agent states. A row older than 120 s draws nothing, so a crashed agent leaves no stale cursor.
+- People write no presence. The viewer knows where he is; a second person on one video is rare. The table takes it later (`who` is an email).
+- No shared edit model. Two writers still meet at `expect` and the locks.
+- The 15 s read is new load: one video read per visible editor tab. It also brings an agent's saved changes to the page, which a reload did before.
+
+Checked: 3 unit tests (`newestPerWho`), story AgentsHere at 390 and 1280 in both looks, typecheck, the UI gate.
+
+Not checked: the store against a real database; the pass's rows in prod; a session agent that calls `wren video at` (no skill tells it to yet).
+

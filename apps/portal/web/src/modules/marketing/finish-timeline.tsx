@@ -25,6 +25,7 @@ import {
 import { drag, useWidth } from "./finish-hooks.js";
 import { type Mark, MarksLane } from "./finish-marks.js";
 import { type LayoutRange, PartsLane, type Short } from "./finish-parts.js";
+import { type Presence, PresenceCursors } from "./finish-presence.js";
 
 // --- the timeline ---------------------------------------------------------------------------
 
@@ -49,6 +50,7 @@ export function Timeline({
   preview,
   release,
   marks,
+  presence,
   pickedMark,
   onMark,
 }: {
@@ -72,6 +74,8 @@ export function Timeline({
   preview: (v: FinishEdit) => void;
   release: () => void;
   marks: readonly Mark[];
+  /** Who else is on the video now. */
+  presence: readonly Presence[];
   pickedMark: number | null;
   onMark: (m: Mark) => void;
 }) {
@@ -378,6 +382,9 @@ export function Timeline({
 
           {/* His marks for the editing agent. */}
           <MarksLane marks={marks} x={x} picked={pickedMark} onPick={onMark} />
+
+          {/* Where the agent is, under the playhead. */}
+          <PresenceCursors presence={presence} x={x} />
 
           {/* The playhead, over every row. */}
           <span

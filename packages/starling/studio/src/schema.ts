@@ -5,6 +5,7 @@
  */
 import { oneOf } from "@wren/db/columns";
 import {
+  boolean,
   foreignKey,
   index,
   integer,
@@ -235,3 +236,51 @@ export const videoMarks = pgTable(
   ],
 );
 export type VideoMark = typeof videoMarks.$inferSelect;
+
+/** The parts of an edit someone can be on: Finish's tabs, and the cuts and the sound. */
+export const PRESENCE_PARTS = [
+  "cuts",
+  "text",
+  "captions",
+  "cover",
+  "shapes",
+  "shorts",
+  "layout",
+  "marks",
+  "sound",
+] as const;
+export type PresencePart = (typeof PRESENCE_PARTS)[number];
+
+/**
+ * Where someone is on a video, one row per step (designs/2026-11-10-video-editor-pick.md, agent
+ * cursor). An agent says it before it reads or changes a part; Finish draws the newest row of each
+ * `who` while it is fresh. Rows are kept: together they are the path the agent took.
+ */
+export const videoPresence = pgTable(
+  "video_presence",
+  {
+    id: serial("id"),
+    editId: integer("edit_id").notNull(),
+    /** A person's email, or an agent's session id. */
+    who: varchar("who", { length: 320 }).notNull(),
+    /** The moment or range it is on, raw seconds; a box as on a mark. */
+    anchor: jsonb("anchor").$type<MarkAnchor>(),
+    part: varchar("part", { length: 12, enum: PRESENCE_PARTS }),
+    /** What it does there, in a sentence. */
+    doing: text("doing"),
+    /** It left: no cursor from this row on. */
+    gone: boolean("gone").notNull().default(false),
+    seenAt: timestamp("seen_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_video_presence" }),
+    foreignKey({
+      columns: [t.editId],
+      foreignColumns: [videoEdits.id],
+      name: "fk_video_presence_edit_id_video_edits",
+    }).onDelete("cascade"),
+    index("ix_video_presence_edit_seen").on(t.editId, t.seenAt),
+    oneOf("ck_video_presence_part", t.part, PRESENCE_PARTS),
+  ],
+);
+export type VideoPresence = typeof videoPresence.$inferSelect;

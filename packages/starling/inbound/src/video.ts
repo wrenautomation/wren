@@ -25,6 +25,7 @@ import {
 } from "@wren/starling-studio/finish";
 import { changedSince } from "@wren/starling-studio/hash";
 import { marksOf } from "@wren/starling-studio/marks";
+import { presenceOf } from "@wren/starling-studio/presence";
 import { unpunctuated } from "@wren/starling-studio/punctuate";
 import { type Cut, type VideoEdit, videoEdits, type Word } from "@wren/starling-studio/schema";
 import { type Storyboard, storyboardOf } from "@wren/starling-studio/storyboard";
@@ -1105,6 +1106,7 @@ export const videoRecord = (signer?: VideoSigner) => {
           promos: upload ? await promosOf(db, upload) : null,
           turns: await videoTurns(db, e.id),
           marks: await marksOf(db, e.id),
+          presence: await presenceOf(db, e.id),
           shorts: await Promise.all(
             e.shorts.map(async (s, i) => ({
               title: s.title,
