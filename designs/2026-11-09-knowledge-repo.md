@@ -171,3 +171,19 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
   typeset, animate and iOS rules are extracted and the skill is unlinked; the `ui-design` plugin left
   wj_skills (6596aeb) and the skill is now `knowledge/topics/ui-design/`. Not done: `wren sop build` still
   writes one mixed guide, and the other 13 topics keep the old shape (WA-1288).
+- 11-10 (William: app design "is like a branch or variant of the general ui … a sibling skill"; "sops should
+  have granularity on a split level so multiple skills can reference the same set of rules or subset of
+  rules"): a rule set has one owner topic and many users. `app-design` is the second topic (knowledge a5441be,
+  06a9118): its guide cites the seven `ui-design` sets and four of its own (`native` NA, `navigation` NV,
+  `motion` AM, `performance` PF; 59 lines), with proof in the simulator. Three grains of reuse: 1) a set, the
+  unit a skill loads; 2) a line, by its fixed id, for a subset (`topics/rules.mjs <set> --only SV-1..SV-6` or
+  `--except MO-5..MO-9`; a range that names no line fails); 3) a split, when a second skill often needs one
+  part of a set: lines move to the new set and keep their ids. A guide now cites every set it uses, so
+  `knowledge show <set>` lists the skills that lean on it and `knowledge stale` lists them after it changes.
+  This replaces "a guide names rule sets" in prose only. Where an own set and a shared set both speak, the
+  own set wins; where it replaces shared lines outright the skill loads the shared set without them. Options
+  weighed: copy the shared lines into each topic (drift, two ids for one rule); one flat pool of rules picked
+  by tag (no owner, and no agent knows it saw every rule for its phase); sets owned by one topic and cited
+  by any guide (picked). Line ids are unique across the repo (11 prefixes, 260 lines); a lint for that and
+  `knowledge render --lines` in place of `rules.mjs` go to WA-1288. The `app-design` plugin left wj_skills
+  (52624a2); its six how-to files are `topics/app-design/refs/`.
