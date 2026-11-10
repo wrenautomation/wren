@@ -199,9 +199,12 @@ so Claude Code can follow the SOP as a skill. A non-text source (PDF, image) lan
 `wren agent serve` runs the relay on `ws://127.0.0.1:4748`. Each session opens one unmodified `claude` on this
 Mac's Claude plan. A portal page drives it with `modules/agent/connect.ts` (designs/2026-11-04-multi-user-runtime.md).
 A setup (`packages/agent/src/setups.ts`) is one record: app, tools, skill plugin, allow rules, model.
-Setups: `research` (Weaver) and `vireo` (Vireo, plugin in `packages/variants`). A plugin is a package name or a path
-from the workspace root; its `package.json` `bin` lands on the child's PATH. The side chat opens the setup whose
-title is the page's product.
+Setups: `research` (Weaver), `vireo` (Vireo, plugin in `packages/variants`) and `orrery` (Orrery, the Map's chat:
+plugin and `shape` bin in `packages/pipeline`, reads and draft writes only). A plugin is a package name or a path
+from the workspace root (the parent of `$WREN_ROOT`, else of the cwd); its `package.json` `bin` lands on the child's
+PATH. The side chat opens the setup whose title is the page's product. The relay's launchd job
+(`com.wrenautomation.agent-serve`) runs the bundle without `bin/wren`, so it sets `WREN_ROOT` itself: without it
+path plugins, setup folders and the Wrenfile resolve from the wrong folder.
 This Mac's own setups (makers: a wide shell in one project) are `tasks/docs/agent/setups/<name>.json`, with
 `<name>.md` as the system prompt text. They open for the Mac's owner only; a setup may carry the CLI's `sandbox`
 settings (`packages/agent/src/host.ts`, designs/2026-11-05-variants.md).
