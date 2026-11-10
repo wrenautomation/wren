@@ -148,3 +148,26 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
   Options weighed: Quartz static site (free backlinks and full-text, but a separate build and look);
   Obsidian-style force graph (shows all ~7.5k records at once, unreadable at this size); the shared kit,
   starting from search or one topic and expanding cites on demand (one part, one look, reuses work).
+- 11-10 (WA-1164): the unit of the brain is a topic with three layers (William: "this split as the atomic unit
+  of our brain makes sense"). Split by how a thing changes and how it loads: a procedure (few, changes by
+  decision, loaded whole) = the topic's `guide`; rules and gates (hundreds, change one at a time, a whole set
+  loaded per phase) = `rule` records in `rules/<topic>/`, one set per record, one rule per line with a fixed id
+  (`SV-7`), its source as `[n]` or "(William)", and "Hard gate … Check:" where a script or a listed proof
+  holds it; references (thousands, change all the time, queried, never loaded whole) = `source` records
+  tagged `reference` (`kind: site` = catalog, else one example). Links point one way: a guide names rule
+  sets, a rule cites sources, a reference cites nothing above it. Options: A) one mixed guide per SOP (as
+  before: no way to replace or trace one rule), B) three layers, C) every rule as code (most design rules are
+  judgment), D) one index fetched per task (an agent never knows it saw every rule). Picked B, with C only
+  where a rule can be scripted (`topics/<topic>/checks/`). Priorities: 1) the agent sees every rule for its
+  phase, 2) each rule has a source, 3) cheap change. A rule set is one record, not one record per line: the
+  line id plus git history gives the same override trail without hundreds of files; this changes the 11-09
+  "one rule line" per record. How it evolves: a new source changes a named line with a why (two sources that
+  conflict on taste: William decides); a soft rule that fails twice in review gets a script and becomes hard;
+  a page kept from a catalog becomes its own `reference` record with `from: <catalog>`.
+  First topic: `ui-design` (knowledge 96cda95, 7f542d6). One guide (look, spec, build, break, prove, hand
+  over), seven rule sets (states, structure, craft, tells, laws, motion, art; 194 lines), checks `shoot.mjs`
+  and `tells.mjs` (Hallmark's sloplint at app scope plus the stripe search). The guides `ui-structure`,
+  `ux-laws` and `app-polish` are retired into the sets; Impeccable's craft floor, operate, polish, harden,
+  typeset, animate and iOS rules are extracted and the skill is unlinked; the `ui-design` plugin left
+  wj_skills (6596aeb) and the skill is now `knowledge/topics/ui-design/`. Not done: `wren sop build` still
+  writes one mixed guide, and the other 13 topics keep the old shape (WA-1288).
