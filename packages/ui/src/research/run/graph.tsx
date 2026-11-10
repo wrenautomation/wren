@@ -910,11 +910,11 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
         </button>
       ) : null}
       {dock ? null : (
-        <aside ref={panelRef} className="rg-panel" aria-label="Detail" aria-live="polite">
+        <section ref={panelRef} className="rg-panel" aria-label="Detail" aria-live="polite">
           {pick && aw && awCur ? (
             <PanelBody key={JSON.stringify(awCur)} c={ctxOf(aw)} p={awCur} />
           ) : null}
-        </aside>
+        </section>
       )}
     </div>
   );

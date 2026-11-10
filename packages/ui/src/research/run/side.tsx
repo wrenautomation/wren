@@ -312,10 +312,10 @@ export function Side({
       if (L.rounds.length > 1 && q.r !== r0 && !chips) {
         r0 = q.r;
         out.push(
-          <h5 key={`r${q.r}`}>
+          <p key={`r${q.r}`} className="rd">
             {stepAt(L.run, q.r, true)}
             {L.run.runs ? `: ${L.run.runs[q.r - 1]?.t ?? ""}` : ""}
-          </h5>,
+          </p>,
         );
       }
       out.push(

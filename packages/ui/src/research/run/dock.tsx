@@ -53,7 +53,46 @@ function DetailPane({ params, api }: IDockviewPanelProps<{ win: string }>) {
 const PANES = { lists: ListsPane, web: WebPane, detail: DetailPane };
 /** Lists and Web hide, never close */
 const Fixed = (p: IDockviewPanelHeaderProps) => <DockviewDefaultTab {...p} hideClose />;
-const TABS = { fixed: Fixed };
+/** A window's tab. dockview's own close is a button inside role=tab (axe nested-interactive):
+ * here a pointer-only ×, middle click, and Delete or Backspace on the focused tab. */
+function Closable(p: IDockviewPanelHeaderProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const tab = ref.current?.closest<HTMLElement>('[role="tab"]');
+    if (!tab) return;
+    tab.setAttribute("aria-keyshortcuts", "Delete");
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      e.preventDefault();
+      p.api.close();
+    };
+    tab.addEventListener("keydown", key);
+    return () => tab.removeEventListener("keydown", key);
+  }, [p.api]);
+  return (
+    <div
+      ref={ref}
+      className="dv-default-tab"
+      onAuxClick={(e) => {
+        if (e.button === 1) p.api.close();
+      }}
+    >
+      <span className="dv-default-tab-content">{p.api.title}</span>
+      <span
+        aria-hidden="true"
+        className="dv-default-tab-action"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          p.api.close();
+        }}
+      >
+        <Icon name="close" size={12} />
+      </span>
+    </div>
+  );
+}
+const TABS = { fixed: Fixed, closable: Closable };
 const THEME: DockviewTheme = { name: "wren", className: "dockview-theme-wren" };
 
 /** A group's float and fill buttons. */
@@ -233,6 +272,7 @@ export function RunDock({ parts, wins, onReady, onGone, onFocus, onLayout }: Run
           theme={THEME}
           components={PANES}
           tabComponents={TABS}
+          defaultTabComponent={Closable}
           rightHeaderActionsComponent={Acts}
           onReady={ready}
         />
