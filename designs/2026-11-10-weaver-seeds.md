@@ -139,6 +139,18 @@ Optimistic means: assume a page we read before has not changed, and use what we 
 - First: each finding row shows its lane as a word.
 - After the first runs: a lane filter and a lane table, if the lane stays. Until then, `weaver yield` shows the numbers.
 
+## Name (open, William's call)
+
+William, 11-10: "seed" is not clear. The name must say: a search guided by our own knowledge, not a raw weaver search. Not "guide": knowledge has a `guide` record type.
+
+| | Command | Query field | Lanes | Example line |
+|---|---|---|---|---|
+| **A. reference / guided (pick)** | `weaver reference` | `reference` | guided, open, both, other | `weaver reference <run> --tag web-design --why "our design references"` |
+| B. knowledge / web | `weaver from-knowledge` | `knowledge` | knowledge, web, both, other | `weaver from-knowledge <run> --tag web-design --why "…"` |
+| C. seed (today's draft) | `weaver seed` | `seed` | seeded, open, both, other | `weaver seed <run> --tag web-design --why "…"` |
+
+Pick A. Knowledge already tags these records `reference`, and the brief's part is already `references`. "Guided" against "open" says what the lane is. B is as clear, but `knowledge: web-siteinspire-com` reads badly as a field. Until William picks, the code says `seed`; the rename comes before the release.
+
 ## Non-goals
 
 - No new `reference` record kind. `kind` and tags are enough to start; WA-1164 can add one later.
@@ -176,3 +188,4 @@ Links: WA-1164 (the reference record), WA-1195 (the source walk), WA-1281 (knowl
 - 2026-11-10: first draft (a `knowledge` source, a stored lane, blind triage, a read split).
 - 2026-11-10: goldfish review: 37 findings (14 critic, 15 reader, 8 zoom-out), 24 applied, 13 rejected or merged; open: the stop rule, and who writes the step 0 seed records. Changed: the Source dropped (it sent the seed query to the web, `ports.ts:123-135`); lane derived, not stored; the routing fix for site searches; yield from `yieldRows`; keepers through the knowledge CLI; blind triage, the read split and `find --tag` cut; `shape` replaced by the record's `kind`; Non-goals, Risks and Tests added.
 - 2026-11-10: William approved E, with two conditions. Agents must reach for seeds without him naming them: the `references` layer, the skill rule and the acceptance check were added. The auto-off stop rule was dropped; yield by lane is a report only. Optimistic dedupe was added: reuse stored page text and look past kept findings. Step 0 done by the sources session.
+- 2026-11-10: William: "seed" is not clear. Three name options added; pick A (reference / guided). Open: his pick.
