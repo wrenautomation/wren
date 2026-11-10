@@ -11,6 +11,7 @@ import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { type MailSpec, VENDORS, type VendorSpec, vendorSpec } from "./chart.js";
 import { shiftDay } from "./day.js";
+import { vendorFor } from "./mailbox.js";
 import {
   billDocuments,
   bills,
@@ -359,17 +360,14 @@ export async function readCardAlerts(
   llm: LlmClient,
   opts: { runId?: string | null; tracer?: Tracer | null; card?: string } = {},
 ): Promise<AlertsRead> {
-  const todo = await db
-    .select()
-    .from(documents)
-    .where(
-      and(
-        isNull(documents.readAt),
-        isNull(documents.parentId),
-        inArray(documents.fromAddress, [...CARD_ALERTS.from]),
-      ),
-    )
-    .orderBy(asc(documents.sentAt));
+  // capture's own sender rules: a domain in `from` matches here too
+  const todo = (
+    await db
+      .select()
+      .from(documents)
+      .where(and(isNull(documents.readAt), isNull(documents.parentId), isNull(documents.vendorId)))
+      .orderBy(asc(documents.sentAt))
+  ).filter((d) => vendorFor([CARD_ALERT_SPEC], d.fromAddress ?? "", d.subject ?? ""));
   const out: AlertsRead = { read: 0, added: 0 };
   for (const doc of todo) {
     const outcome = /statement/i.test(doc.subject ?? "")
