@@ -44,11 +44,7 @@ export function useConfirm(): [
   const dialog = (
     <Dialog open={!!asked} onOpenChange={(open) => !open && settle(false)}>
       <DialogContent>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            settle(true);
-          }}
+        <div
           // the detail is the body; none: head straight onto the foot, one rule
           className={asked?.detail ? "grid gap-3.5" : "grid"}
         >
@@ -61,11 +57,11 @@ export function useConfirm(): [
             <Button tone="quiet" size="dense" onClick={() => settle(false)} autoFocus>
               Cancel
             </Button>
-            <Button tone="primary" size="dense" type="submit">
+            <Button tone="primary" size="dense" onClick={() => settle(true)}>
               {asked?.go ?? "Continue"}
             </Button>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
