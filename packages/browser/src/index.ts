@@ -10,7 +10,7 @@ const SETTLE_MS = 1200;
 /** WebGL and intro motion need longer than text before a poster */
 const SHOT_SETTLE_MS = 3000;
 const SHOT_LOAD_MS = 6000;
-export const PAGE_TIMEOUT_MS = 20_000;
+const PAGE_TIMEOUT_MS = 20_000;
 /** the words are the payload */
 const BLOCKED = new Set(["image", "media", "font"]);
 /** Lambda's sync response cap is 6 MB; room for the JSON around it */
