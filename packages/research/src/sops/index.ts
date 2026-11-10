@@ -294,7 +294,7 @@ const FRONT_MATTER = /^---\n[\s\S]*?\n---\n?/;
 const HOUSE = ["sop-making-layers", "sop-making-lines", "sop-making-sharing"];
 
 /** The sets of the `sop-making` topic, cites stripped: they number that topic's sources, not this one's. */
-export function houseRules(root: string): string {
+function houseRules(root: string): string {
   return HOUSE.map((id) =>
     readRecord(root, id)
       ?.body.replace(/ \[\d+(?: [^\]]*)?\]/g, "")
