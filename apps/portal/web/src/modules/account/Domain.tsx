@@ -13,6 +13,7 @@ import {
   Section,
   Tag,
   TextField,
+  useConfirm,
   useEditForm,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useRef } from "react";
@@ -105,6 +106,7 @@ export function Domain(props: PageProps & { bare?: boolean }) {
     call<Domains>("delivery/domains", { client: props.client, asClient: !props.team }),
   );
   const act = useAct(props, load.retry);
+  const [confirm, dialog] = useConfirm();
   const data = load.data;
   const waiting = data?.domains.some((d) => !d.live) ?? false;
   // The poll re-reads the same key, so the device keeps one answer, not one per tick.
@@ -178,11 +180,12 @@ export function Domain(props: PageProps & { bare?: boolean }) {
                     size="sm"
                     tone="quiet"
                     disabled={act.busy}
-                    onClick={() => {
-                      if (
-                        confirm(`Remove ${d.hostname}? The portal stops working there right away.`)
-                      )
-                        void act.run("removeDomain", { hostname: d.hostname });
+                    onClick={async () => {
+                      const yes = await confirm(`Remove ${d.hostname}?`, {
+                        detail: "The portal stops working there right away.",
+                        go: "Remove",
+                      });
+                      if (yes) void act.run("removeDomain", { hostname: d.hostname });
                     }}
                   >
                     Remove
@@ -202,6 +205,7 @@ export function Domain(props: PageProps & { bare?: boolean }) {
         <p className={QUIET}>Ask an owner to set up your domain.</p>
       ) : null}
       {data ? <SiteChat live={data.domains.find((d) => d.live)?.hostname ?? null} /> : null}
+      {dialog}
     </>
   );
 }

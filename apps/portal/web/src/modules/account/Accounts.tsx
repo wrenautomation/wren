@@ -20,6 +20,7 @@ import {
   soon,
   Tag,
   TextField,
+  useConfirm,
   useEditForm,
 } from "@wren/ui";
 import { useRef, useState } from "react";
@@ -82,8 +83,10 @@ function Run({
   const now = currentOf(run);
   const on = { account: a.id, setup: run.setup };
   const other = run.mode === "self" ? "for_you" : "self";
+  const [confirm, dialog] = useConfirm();
   return (
     <div className="grid gap-3">
+      {dialog}
       <p className="flex flex-wrap items-center gap-2">
         {run.name !== a.siteLabel ? <b className="font-medium">{run.name}</b> : null}
         <Tag tone={tag.tone}>{tag.label}</Tag>
@@ -159,9 +162,12 @@ function Run({
               size="dense"
               tone="quiet"
               disabled={act.busy}
-              onClick={() => {
-                if (confirm(`Switch ${run.name} to ${MODE[other].toLowerCase()}? It starts over.`))
-                  void act.run("start", { ...on, mode: other });
+              onClick={async () => {
+                const yes = await confirm(`Switch ${run.name} to ${MODE[other].toLowerCase()}?`, {
+                  detail: "It starts over.",
+                  go: "Switch",
+                });
+                if (yes) void act.run("start", { ...on, mode: other });
               }}
             >
               Switch to {MODE[other].toLowerCase()}

@@ -12,6 +12,7 @@ import {
   type RowsLine,
   type RowsProps,
   rowActsOf,
+  useConfirm,
   useNarrow,
 } from "@wren/ui";
 import { type ReactNode, useRef, useState } from "react";
@@ -55,23 +56,27 @@ export function RowDoes({
   busy?: boolean;
   lone: boolean;
 }) {
+  const [confirm, dialog] = useConfirm();
   if (does.length === 0) return null;
   const actions: Action[] = does.map((d) => ({ ...d, handler: "" }));
   const { main, more } = rowActsOf(actions, {});
   return (
-    <RowActions
-      title={title}
-      main={main}
-      more={more}
-      reply={null}
-      busy={busy}
-      lone={lone}
-      run={(a) => {
-        const d = does.find((x) => x.id === a.id);
-        if (!d || (d.confirm && !window.confirm(d.confirm))) return;
-        void d.run();
-      }}
-    />
+    <>
+      <RowActions
+        title={title}
+        main={main}
+        more={more}
+        reply={null}
+        busy={busy}
+        lone={lone}
+        run={async (a) => {
+          const d = does.find((x) => x.id === a.id);
+          if (!d || (d.confirm && !(await confirm(d.confirm, { go: d.label })))) return;
+          void d.run();
+        }}
+      />
+      {dialog}
+    </>
   );
 }
 
