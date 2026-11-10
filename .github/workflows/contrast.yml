@@ -10,7 +10,7 @@ concurrency: { group: "contrast-${{ github.ref }}", cancel-in-progress: true }
 jobs:
   contrast:
     # The Playwright image brings Chromium and its libraries (10-22: installing them took 8 min).
-    runs-on: ubuntu-24.04-arm
+    runs-on: ${{ github.event_name != 'pull_request' && vars.WORK_RUNNER || 'ubuntu-24.04-arm' }}
     container: mcr.microsoft.com/playwright:v1.63.0-noble
     services:
       postgres:
