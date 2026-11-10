@@ -20,7 +20,13 @@ const SPANS = [
     { s: 0, e: 5 },
   ],
 ];
+const CUT_NAMES = [
+  "Result first, then the before",
+  "Cold open on the client's own words, no music under the first line",
+  "Before and after in one split frame",
+];
 const clip = (i: number) => ({
+  name: CUT_NAMES[i - 1] ?? null,
   mediaUrl: `/variants/cut-${i}.mp4`,
   posterUrl: `/variants/cut-${i}.jpg`,
   source: { ref: "studio:9", spans: SPANS[i - 1] },
@@ -72,7 +78,13 @@ const VIDEO = {
 };
 
 /** Three scenes that run code, each a link (same origin here; a preview deploy in prod). */
+const SCENE_NAMES = [
+  "Panel with code paint behind the headline",
+  "Soft grid, no motion",
+  "Star field",
+];
 const scene = (i: number) => ({
+  name: SCENE_NAMES[i - 1] ?? null,
   body: null,
   mediaUrl: `/variants/scene-${i}.html`,
   posterUrl: `/variants/scene-${i}.svg`,

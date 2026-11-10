@@ -25,6 +25,8 @@ export interface Note {
 export type Kind = "text" | "image" | "video" | "page";
 export interface Sample {
   id: number;
+  /** One line: what the sample tries. Shown while blind; `change` is not. */
+  name?: string | null | undefined;
   body: string | null;
   mediaUrl: string | null;
   posterUrl: string | null;

@@ -21,7 +21,7 @@ Paths are relative to the json file. Playable: mp4 mov m4v webm jpg png gif pdf.
 
 - `title`: one line he sees on the batch, also while he judges: what the batch is ("Openers with a next step"), up to 120 characters. Never the idea under test, a hint of a winner, or a sample's name. `append` keeps it; he can rename it.
 - `why`: what you changed from the last batch and what it tests. Cite batches by their number within the subject ("batch 2"); outside the subject, `<subject>:<n>`. An `append` takes the same JSON; its `why` says what the new samples add.
-- `name`: 2-4 words he can say ("Star system").
+- `name`: one line he sees beside the sample's number while he judges, up to 60 characters: what this sample tries, in words he can say ("Panel with code paint behind the headline"). Not a verdict, a winner hint or a parent's id.
 - `parents`: `[id]` or `[{"id": 7, "took": "the moving headline"}]`, main parent first. Two or more = a cross; say what each gave in `took`. See `tree.md`.
 - `change`: what differs from the main parent.
 - `guides`: ids of the guides this sample applies.

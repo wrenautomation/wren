@@ -338,9 +338,22 @@ export function SampleCard({
       )}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[12px] font-semibold whitespace-nowrap text-(--ui-ink-3)">
-          #{n}
-          {staged && ` of ${frames?.ids.length}`}
+        {/* number + name: one header; a long name wraps under itself, actions wrap below */}
+        <span
+          className={cx(
+            "flex min-w-0 items-baseline gap-2",
+            staged ? "flex-[0_1_auto]" : "flex-[1_1_14rem]",
+          )}
+        >
+          <span className="text-[12px] font-semibold whitespace-nowrap tabular-nums text-(--ui-ink-2)">
+            #{n}
+            {staged && ` of ${frames?.ids.length}`}
+          </span>
+          {sample.name && (
+            <span className="min-w-0 text-[14px]/[1.35] font-semibold wrap-anywhere text-(--ui-ink)">
+              {sample.name}
+            </span>
+          )}
         </span>
         {staged && (
           <>
