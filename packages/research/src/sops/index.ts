@@ -1,13 +1,15 @@
 /**
  * SOPs built from sources, kept in the knowledge repo (`@wrenautomation/knowledge`; design:
- * designs/2026-11-09-knowledge-repo.md). An SOP is a guide record (`guides/<name>.md`, its `[n]`
- * cites = the nth id in `cites`); its sources are source records tagged with its name
+ * designs/2026-11-09-knowledge-repo.md). An SOP is a guide record (`guides/<name>.md`, the
+ * procedure; its `[n]` cites = the nth id in `cites`, sources first, then the rule sets it uses) plus
+ * rule sets (`rules/<name>/<set>.md`, one rule per line with a fixed id; `./sets.ts`). A guide may
+ * also cite another topic's set: one owner, many users. Its sources are source records tagged with its name
  * (`sources/<stem>.md`, one per YouTube video, other video, Drive Doc or file, `priority` 1-9); each
  * source's extracted points are finding records tagged with it. `topics/<name>/` holds the rest:
  * `notes.md` (the owner's own rules, top priority, never written by code; its front matter names
  * what the SOP governs), `calls.md` and `standard.md` (the owner's keep / tune / drop calls and the
  * measured numbers, written by `wren sop sync` from the learn package), refs, SKILL.md. `buildSop` asks one
- * model for the next guide from all of it; iterating is editing notes.md, calling on
+ * model for the next guide and its own sets from all of it, as one doc that code splits; iterating is editing notes.md, calling on
  * pieces, or editing the guide and building again. Every record write is one commit with a by and a why. The videos and audio are read by
  * `@wrenautomation/read/video`; this file only files what it read. Nothing here touches a
  * database.
@@ -17,10 +19,10 @@ import { basename, join } from "node:path";
 import type { LlmClient } from "@wren/llm";
 import {
   type Change,
+  citeLine,
   loadWorking,
   newId,
   readRecord,
-  render,
   write,
 } from "@wrenautomation/knowledge";
 import type { Model } from "@wrenautomation/models";
@@ -29,8 +31,18 @@ import type { Fetched, MediaStore, VideoRead, WatchOptions } from "@wrenautomati
 import { keptRead, mediaKey, readAudio, readVideo, readYoutube } from "@wrenautomation/read/video";
 import { expandCites, numberCites } from "./cites.js";
 import { atOf, type Point, pointsOf, pointsText, pointTitle } from "./points.js";
+import { assignIds, freePrefix, mergeDoc, prefixesIn, type SetBlock, splitDoc } from "./sets.js";
 
-export { expandCites, numberCites, type Point, pointsOf, pointsText };
+export {
+  assignIds,
+  expandCites,
+  mergeDoc,
+  numberCites,
+  type Point,
+  pointsOf,
+  pointsText,
+  splitDoc,
+};
 
 export const DEFAULT_PRIORITY = 5;
 
@@ -202,6 +214,8 @@ interface SopInput {
   /** `standard.md`: the numbers the pieces measure; empty when none. */
   standard: string;
   current: string;
+  /** Other topics' rule sets this SOP uses, as text; read only. */
+  shared?: string;
   /** Highest priority first. */
   sources: { name: string; priority: number; md: string }[];
 }
@@ -219,15 +233,18 @@ export function sopPrompt(input: SopInput): string {
     'Examples. End with an "## Examples" section holding the one or two best worked examples the sources give (a full email, script or message). Quote each one in full, in a fenced block, with the wording as the source gives it; do not shorten or improve it, only fix obvious caption transcription errors (misheard words, spelling). Under each, keep the source\'s own analysis of why it works, point by point, cited. Examples are the highest-signal part of the SOP, so pick the ones the source itself treats as best.',
     "Structure. When a source teaches its own framework (numbered parts, a formula, named stages), make that the SOP's skeleton in the source's order, with the source's names, and nest everything else under it. Cover every key point the source makes; a missed point is worse than a longer SOP.",
     "Points. A source whose text is a list of points (its file name starts with points-) is the generated extract of a raw source: every line is a point with its citation already in brackets. Take the points that serve this SOP and that the notes and calls do not contradict. Keep each point's citation as given.",
+    `Rule sets. The doc has two layers. The procedure is the steps in the order they happen; it holds no rules and points at a rule by its id ("check OF-3"). A rule that applies throughout, a check, a pattern list or a catalog goes in a rule set: a block that opens with <!-- set <set-id> <PREFIX> "<Title>" --> on its own line and closes with <!-- /set -->. One rule per top-level list item. Keep every block of the current doc, with its marker as given. A kept rule keeps its id (- **OF-3** ...) and its words unless the notes or a higher source change it; never renumber, never reuse an id. A new rule is a plain list item with no id; code numbers it. Make a new block only when the rules have a second subject another SOP could use alone: <!-- set ${input.name}-<subject> "<Title>" -->. With no block yet, put the rules in <!-- set ${input.name}-rules "Rules" -->. A set holds what a source supports: every block cites at least one source. A rule only the notes give stays out: the notes load beside the SOP.`,
+    "Shared sets. The <shared> block holds rule sets another SOP owns and this one uses. Never restate or edit them; point at their ids.",
     "Citations. After a step or rule, cite where it came from in brackets: the source file stem and, for a video, the nearest [m:ss] marker before the words, e.g. [youtube-abc123 1:02:30] or [drive-9f8e]. Notes need no citation.",
     input.current.trim()
-      ? "There is a current SOP.md below. Keep what still holds, word for word where you can. Change only what the notes or a higher-priority source contradicts, and add only what they add. Do not reword for its own sake."
-      : "There is no SOP.md yet. Start with a one-line purpose, then numbered steps in the order they happen, then the rules that apply throughout. Use the sections the material asks for, no more.",
+      ? "There is a current SOP below. Keep what still holds, word for word where you can. Change only what the notes or a higher-priority source contradicts, and add only what they add. Do not reword for its own sake."
+      : "There is no SOP yet. Start with a one-line purpose, then numbered steps in the order they happen, then the rule set. Use the sections the material asks for, no more.",
     "Reply with only the SOP markdown, starting with a level-one heading.",
     `<notes>\n${input.notes.trim() || "(none yet)"}\n</notes>`,
     `<calls>\n${input.calls.trim() || "(none yet)"}\n</calls>`,
     `<standard>\n${input.standard.trim() || "(none yet)"}\n</standard>`,
     `<current>\n${input.current.trim() || "(none yet)"}\n</current>`,
+    `<shared>\n${input.shared?.trim() || "(none)"}\n</shared>`,
     sources,
   ].join("\n\n");
 }
@@ -240,11 +257,29 @@ interface SopDir {
   notes: string;
   calls: string;
   standard: string;
-  /** The guide's body, cites in the long form; empty before the first build. */
+  /** The build doc: the guide with its own sets in place, cites in the long form; empty before the first build. */
   current: string;
-  /** The guide's cites: `[n]` in its body is the nth. */
+  /** The guide's source cites: `[n]` in its body is the nth. Its set cites follow them in the record. */
   cites: string[];
+  /** The SOP's own rule sets as stored (bodies in the long form, no title line). */
+  sets: StoredSet[];
+  /** Rule sets of other topics the guide cites. */
+  sharedIds: string[];
+  shared: string;
   sources: SopInput["sources"];
+}
+
+export interface StoredSet extends SetBlock {
+  cites: string[];
+  last: number;
+}
+
+/** A rule record's body without its `# Title` line; the title. */
+function setBody(body: string): { title: string; body: string } {
+  const m = body.match(/^# (.+)\n+/);
+  return m
+    ? { title: (m[1] as string).trim(), body: body.slice(m[0].length) }
+    : { title: "", body };
 }
 
 const FRONT_MATTER = /^---\n[\s\S]*?\n---\n?/;
@@ -298,14 +333,50 @@ export async function readSopDir(root: string, name: string): Promise<SopDir> {
     });
   sources.sort((a, b) => b.priority - a.priority || a.name.localeCompare(b.name));
   const guide = docs.find((d) => d.fm.type === "guide" && d.fm.id === name);
+  const rules = docs.filter((d) => d.fm.type === "rule" && live(d));
+  const sets = rules
+    .filter((d) => d.fm.topic === name)
+    .sort((a, b) => Number(a.fm.order ?? 0) - Number(b.fm.order ?? 0))
+    .map((d): StoredSet => {
+      const { title, body } = setBody(expandCites(d.body, d.fm.cites));
+      return {
+        id: d.fm.id,
+        prefix: String(d.fm.prefix ?? [...prefixesIn([d.body])][0] ?? ""),
+        title: title || d.fm.title,
+        body,
+        cites: d.fm.cites,
+        last: Number(d.fm.last ?? 0),
+      };
+    });
+  const isRule = new Set(rules.map((d) => d.fm.id));
+  const gone = (guide?.fm.cites ?? []).filter((c) =>
+    docs.some((d) => d.fm.id === c && d.fm.type === "rule" && !live(d)),
+  );
+  if (gone.length)
+    throw new Error(
+      `${name}: cites retired rule set ${gone.join(", ")}; drop the cite or cite its successor`,
+    );
+  const sharedIds = (guide?.fm.cites ?? []).filter(
+    (c) => isRule.has(c) && !sets.some((s) => s.id === c),
+  );
+  const shared = sharedIds
+    .map((id) => {
+      const d = rules.find((r) => r.fm.id === id) as Loaded;
+      return `<set id="${id}">\n${expandCites(d.body, d.fm.cites).trim()}\n</set>`;
+    })
+    .join("\n\n");
+  const cites = (guide?.fm.cites ?? []).filter((c) => !isRule.has(c));
   return {
     root,
     dir,
     notes: (await read("notes.md")).replace(FRONT_MATTER, ""),
     calls: await read("calls.md"),
     standard: await read("standard.md"),
-    current: guide ? expandCites(guide.body, guide.fm.cites) : "",
-    cites: guide?.fm.cites ?? [],
+    current: guide ? mergeDoc(expandCites(guide.body, guide.fm.cites), sets) : "",
+    cites,
+    sets,
+    sharedIds,
+    shared,
     sources,
   };
 }
@@ -479,54 +550,113 @@ export async function extractPoints(
   return out;
 }
 
-/** The topic folder as a Claude Code skill. SKILL.md renders the guide and lists refs at load time (`!\`cmd\``), so the model never has to go read them. */
-function skillMd(root: string, name: string, description: string): string {
+/**
+ * The topic folder as a Claude Code skill. SKILL.md renders the guide, the owner's notes and every
+ * rule set the guide cites at load time (`!\`cmd\``), so the model never has to go read them. A
+ * guide's `load` field narrows the sets to a subset by line id: `--only HK-9..HK-16` or
+ * `--except MO-5..MO-9` (`knowledge render` flags; a range goes to the set that holds its prefix).
+ */
+function skillMd(
+  root: string,
+  name: string,
+  description: string,
+  sets: { own: string[]; shared: string[]; load: string },
+): string {
   const dir = topicDir(root, name);
   const q = JSON.stringify(dir);
+  const knowledge = `knowledge --repo ${JSON.stringify(root)}`;
+  const ids = [...sets.own, ...sets.shared];
+  const rules = ids.length
+    ? `\n# Rule sets${sets.shared.length ? ` (another SOP owns ${sets.shared.join(", ")})` : ""}\n\n!\`${knowledge} render ${ids.join(" ")}${sets.load ? ` ${sets.load}` : ""}\`\n`
+    : "";
   return `---
 name: sop-${name}
 description: ${JSON.stringify(`SOP: ${description}`)}
 ---
 
-Follow this SOP start to finish. Its examples and prompts are the bar.
+Follow this SOP start to finish. Its examples and prompts are the bar. Every loaded rule line applies; the procedure names a rule by its id.
 
-!\`knowledge --repo ${JSON.stringify(root)} render ${name}\`
+!\`knowledge --repo ${JSON.stringify(root)} render ${name} | grep -v '^<!-- set '\`
 
+# The owner's notes (they beat every source)
+
+!\`awk 'NR==1 && /^---$/ {f=1; next} f && /^---$/ {f=0; next} !f' ${q}/notes.md 2>/dev/null || echo "(none)"\`
+${rules}
 Reference files (designs, PDFs, images) in \`${dir}/refs/\`; open the relevant ones before writing:
 
 !\`ls ${q}/refs 2>/dev/null || echo "(none)"\`
 `;
 }
 
-/** The first line of a guide that is not a heading: what the SOP is for. */
+/** The first line of a guide that is not a heading or a set marker: what the SOP is for. */
 const purposeOf = (body: string, name: string) =>
   body
     .split("\n")
-    .find((l) => l.trim() && !l.startsWith("#"))
+    .find((l) => l.trim() && !l.startsWith("#") && !l.startsWith("<!--"))
     ?.trim() ?? name;
 
-/** Write `topics/<name>/SKILL.md` from the guide. */
+/** Write `topics/<name>/SKILL.md` from the guide and the sets it cites. */
 export async function writeSkill(root: string, name: string): Promise<string> {
   const guide = readRecord(root, name);
   if (guide?.fm.type !== "guide") throw new Error(`${name}: no guide (sop build first)`);
+  const read = await readSopDir(root, name);
   const file = join(topicDir(root, name), "SKILL.md");
   await mkdir(topicDir(root, name), { recursive: true });
-  await writeFile(file, skillMd(root, name, guide.fm.description ?? purposeOf(guide.body, name)));
+  const load = String((guide.fm as { load?: string }).load ?? "");
+  await writeFile(
+    file,
+    skillMd(root, name, guide.fm.description ?? purposeOf(guide.body, name), {
+      own: read.sets.map((s) => s.id),
+      shared: read.sharedIds,
+      load,
+    }),
+  );
   return file;
 }
 
-/** The SOP as one markdown doc: the guide's body and its Sources list (what a playbook and a skill read). */
-export const sopText = (root: string, name: string) => render(root, name);
+/** The build doc as a reader sees it: each set under its title, no markers. */
+const readable = (doc: string) =>
+  doc
+    .replace(/^<!-- set [a-z0-9-]+(?: [A-Z]{2,3})? "([^"]*)" -->$/gm, "## $1")
+    .replace(/^<!-- (?:\/set|set [a-z0-9-]+) -->\n?/gm, "");
 
-/** Renumber a guide's cites (`wren sop cite`); false when nothing changed. */
+/**
+ * The SOP as one markdown doc (what a playbook reads): the procedure with its own rule sets in
+ * place, the shared sets it uses, the owner's notes, then one Sources list for all of it.
+ */
+export async function sopText(root: string, name: string): Promise<string> {
+  const read = await readSopDir(root, name);
+  if (!read.current) throw new Error(`${name}: no guide (sop build first)`);
+  const shared = read.shared
+    ? `\n## Shared rule sets\n\n${read.shared.replace(/^<\/?set[^>]*>\n?/gm, "").replace(/^# /gm, "### ")}\n`
+    : "";
+  const notes = read.notes.trim()
+    ? `\n## The owner's notes (they beat every source)\n\n${read.notes.trim().replace(/^# .*\n+/, "")}\n`
+    : "";
+  const { body, cites } = numberCites(
+    `${readable(read.current).trimEnd()}\n${shared}${notes}`,
+    [],
+    sourceIds(root),
+  );
+  if (!cites.length) return body;
+  const lines = cites.map((c, i) => citeLine(i + 1, c, readRecord(root, c)?.fm));
+  return `${body}\n## Sources\n\n${lines.join("\n")}\n`;
+}
+
+/** Renumber a guide's source cites (`wren sop cite`); its set cites stay. False when nothing changed. */
 export async function renumberGuide(root: string, name: string, who: By): Promise<boolean> {
   const guide = readRecord(root, name);
   if (guide?.fm.type !== "guide") return false;
   const known = sourceIds(root);
-  const next = numberCites(expandCites(guide.body, guide.fm.cites), guide.fm.cites, known);
-  if (next.body.trimEnd() === guide.body.trimEnd() && next.cites.join() === guide.fm.cites.join())
+  const setCites = guide.fm.cites.filter(
+    (c) => !known.has(c) && readRecord(root, c)?.fm.type === "rule",
+  );
+  const prior = guide.fm.cites.filter((c) => !setCites.includes(c));
+  const next = numberCites(expandCites(guide.body, guide.fm.cites), prior, known);
+  const cites = [...next.cites, ...setCites];
+  if (next.body.trimEnd() === guide.body.trimEnd() && cites.join() === guide.fm.cites.join())
     return false;
-  await write(root, [{ op: "edit", id: name, body: next.body, cites: next.cites }], who);
+  await write(root, [{ op: "edit", id: name, body: next.body, cites }], who);
   return true;
 }
 
@@ -537,9 +667,135 @@ const sourceIds = (root: string) =>
       .map((l) => l.doc.fm.id),
   );
 
+/** `OF-3` → its line, for telling which kept rules changed words. */
+const linesById = (body: string) =>
+  new Map(
+    [...body.matchAll(/^- \*\*([A-Z]{2,3}-\d+)\*\* (.*)$/gm)].map((m) => [
+      m[1] as string,
+      m[2] as string,
+    ]),
+  );
+
 /**
- * Build the next guide (`guides/<name>.md`, one commit) from the topic folder and the sources; then
- * SKILL.md and counts.tsv. Returns the SOP as rendered. The model answers in markdown, no schema.
+ * The record changes one build doc makes: the guide (procedure; cites = its sources, then its own
+ * sets, then the shared sets it used before) and one rule record per set block. `report` lists the
+ * rule lines added, reworded and dropped. Throws when a stored set is missing from the doc or a set
+ * cites no source.
+ */
+export function docChanges(
+  root: string,
+  name: string,
+  doc: string,
+  read: Pick<SopDir, "current" | "cites" | "sets" | "sharedIds">,
+): { changes: Change[]; report: string } {
+  const { guide, sets } = splitDoc(doc);
+  for (const s of read.sets)
+    if (!sets.some((x) => x.id === s.id))
+      throw new Error(
+        `${name}: the build dropped set ${s.id}; a set is retired by hand, never by a build`,
+      );
+  const known = sourceIds(root);
+  const all = loadWorking(root).docs.map((l) => l.doc);
+  const used = prefixesIn(all.filter((d) => d.fm.type === "rule").map((d) => d.body));
+  const taken = new Set(all.map((d) => d.fm.id));
+  const g = numberCites(guide, read.cites, known);
+  const title = g.body.match(/^# (.+)$/m)?.[1] ?? name;
+  const changes: Change[] = [];
+  const notes: string[] = [];
+  const liveIds = new Set<string>();
+  const dropped = new Map<string, string>();
+  sets.forEach((s, i) => {
+    const prev = read.sets.find((x) => x.id === s.id);
+    if (!prev && taken.has(s.id)) throw new Error(`${name}: set id ${s.id} is another record's`);
+    if (!prev && !s.id.startsWith(`${name}-`))
+      throw new Error(`${name}: a new set is named ${name}-<subject>, not ${s.id}`);
+    const prefix =
+      prev?.prefix || (s.prefix && !used.has(s.prefix) ? s.prefix : freePrefix(s.id, used));
+    used.add(prefix);
+    const a = assignIds(s.body, prefix, prev?.last ?? 0, prev?.body ?? "");
+    const before = linesById(prev?.body ?? "");
+    const reworded = [...linesById(a.body)]
+      .filter(([id, line]) => before.has(id) && before.get(id) !== line)
+      .map(([id]) => id);
+    for (const [word, ids] of [
+      ["added", a.added],
+      ["reworded", reworded],
+      ["dropped", a.dropped],
+    ] as const)
+      if (ids.length) notes.push(`${word} ${ids.join(" ")}`);
+    const heading = s.title || prev?.title || "Rules";
+    const n = numberCites(`# ${heading}\n\n${a.body.trim()}\n`, prev?.cites ?? [], known);
+    // an owner call ([learn:12]) is evidence too
+    if (!n.cites.length && !/\[learn:\d+/.test(n.body))
+      throw new Error(
+        `${name}: set ${s.id} cites no source or call. A rule set holds what a source or a call supports; a rule only the notes give stays in notes.md`,
+      );
+    const fields = { title: `${title}: ${heading}`, body: n.body, cites: n.cites, last: a.last };
+    for (const id of linesById(a.body).keys()) liveIds.add(id);
+    const stored = prev ? readRecord(root, s.id) : null;
+    // an unchanged set gets no edit: a new version would mark every guide that cites it stale
+    if (
+      stored &&
+      stored.body.trimEnd() === n.body.trimEnd() &&
+      stored.fm.cites.join() === n.cites.join() &&
+      stored.fm.title === fields.title &&
+      Number(stored.fm.last ?? 0) === a.last
+    )
+      return;
+    for (const id of a.dropped) dropped.set(id, s.id);
+    changes.push(
+      prev
+        ? { op: "edit", id: s.id, ...fields }
+        : { op: "add", type: "rule", id: s.id, topic: name, order: i + 1, prefix, ...fields },
+    );
+  });
+  // a rule id in prose must name a live line of a set its guide cites
+  for (const id of read.sharedIds)
+    for (const k of linesById(readRecord(root, id)?.body ?? "").keys()) liveIds.add(k);
+  const named = (body: string) => [
+    ...new Set(
+      [...body.matchAll(/\b([A-Z]{2,3})-\d+\b/g)]
+        .filter((m) => used.has(m[1] as string))
+        .map((m) => m[0]),
+    ),
+  ];
+  const dead = named(g.body).filter((id) => !liveIds.has(id));
+  if (dead.length)
+    throw new Error(
+      `${name}: the procedure names ${dead.join(", ")}, not a live line of a set it cites`,
+    );
+  for (const d of all.filter(
+    (x) => x.fm.type === "guide" && x.fm.status === "live" && x.fm.id !== name,
+  )) {
+    const hit = named(d.body).filter(
+      (id) => dropped.has(id) && d.fm.cites.includes(dropped.get(id) as string),
+    );
+    if (hit.length)
+      throw new Error(
+        `${name}: the build dropped ${hit.join(", ")}, which guide ${d.fm.id} names; edit that guide first`,
+      );
+  }
+  const guideFields = {
+    title,
+    description: purposeOf(g.body, name),
+    cites: [...g.cites, ...sets.map((s) => s.id), ...read.sharedIds],
+    body: g.body,
+  };
+  const was = readRecord(root, name);
+  if (!was) changes.push({ op: "add", type: "guide", id: name, topic: name, ...guideFields });
+  else if (
+    was.body.trimEnd() !== g.body.trimEnd() ||
+    was.fm.cites.join() !== guideFields.cites.join() ||
+    was.fm.title !== title
+  )
+    changes.push({ op: "edit", id: name, ...guideFields });
+  return { changes, report: notes.join("; ") };
+}
+
+/**
+ * Build the next SOP (the guide and its own rule sets, one commit) from the topic folder and the
+ * sources; then SKILL.md and counts.tsv. Returns the SOP as one doc. The model answers in markdown, no
+ * schema: one doc with its rule sets as marked blocks, which `docChanges` splits.
  */
 export async function buildSop(
   root: string,
@@ -550,29 +806,25 @@ export async function buildSop(
   const read = await readSopDir(root, name);
   if (!read.sources.length && !read.notes.trim())
     throw new Error(`${name}: nothing to build from (no sources, empty notes.md)`);
-  const { text } = await llm.complete(sopPrompt({ name, ...read }), { maxTokens: 8000 });
-  const { body, cites } = numberCites(
-    `${text.trim().replace(/^```(?:markdown)?\n([\s\S]*?)\n```$/, "$1")}\n`,
-    read.cites,
-    sourceIds(root),
-  );
-  const fields = {
-    title: body.match(/^# (.+)$/m)?.[1] ?? name,
-    description: purposeOf(body, name),
-    cites,
-    body,
-  };
-  await write(
-    root,
-    [
-      read.current || read.cites.length
-        ? { op: "edit", id: name, ...fields }
-        : { op: "add", type: "guide", id: name, topic: name, ...fields },
-    ],
-    { by: who.by, why: `built from notes, calls, the standard and ${read.sources.length} sources` },
-  );
+  // a set written by hand carries no `last`: a build would renumber and rewrite it
+  const byHand = read.sets.filter((s) => !s.last && /^- \*\*[A-Z]{2,3}-\d+\*\*/m.test(s.body));
+  if (byHand.length)
+    throw new Error(
+      `${name}: ${byHand.map((s) => s.id).join(", ")} written by hand; edit this topic with knowledge apply, not sop build`,
+    );
+  const { text } = await llm.complete(sopPrompt({ name, ...read }), { maxTokens: 32_000 });
+  const doc = `${text.trim().replace(/^```(?:markdown)?\n([\s\S]*?)\n```$/, "$1")}\n`;
+  // a record edited while the model wrote would be overwritten whole
+  if ((await readSopDir(root, name)).current !== read.current)
+    throw new Error(`${name}: the guide or a rule set changed during the build; build again`);
+  const { changes, report } = docChanges(root, name, doc, read);
+  if (changes.length)
+    await write(root, changes, {
+      by: who.by,
+      why: `built from notes, calls, the standard and ${read.sources.length} sources${report ? `; rules: ${report}` : ""}`,
+    });
   await writeSkill(root, name);
-  const sop = render(root, name);
+  const sop = await sopText(root, name);
   // ponytail: tokens ≈ chars/4; swap in a real tokenizer if the estimate starts to matter.
   const row = (n: string, md: string) =>
     `${n}\t${md.split(/\s+/).filter(Boolean).length} words\t~${Math.round(md.length / 4)} tokens`;

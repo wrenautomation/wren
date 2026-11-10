@@ -18,7 +18,7 @@
     "@wren/llm": "workspace:*",
     "@wren/research": "workspace:*",
     "@wren/runtime": "workspace:*",
-    "@wrenautomation/knowledge": "0.62.0",
+    "@wrenautomation/knowledge": "0.68.3",
     "@wrenautomation/read": "0.62.0",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"

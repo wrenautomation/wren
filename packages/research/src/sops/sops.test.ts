@@ -104,17 +104,64 @@ describe("sops", () => {
       },
     });
     expect(await buildSop(dir, "x", llm, WHO)).toBe(
-      '# SOP\n\n1. Do it [1 0:00]\n\n## Sources\n\n1. file-b, "file-b"\n',
+      '# SOP\n\n1. Do it [1 0:00]\n\n## The owner\'s notes (they beat every source)\n\nmine\n\n## Sources\n\n1. file-b, "file-b"\n',
     );
     expect(readRecord(dir, "x")?.fm).toMatchObject({ type: "guide", cites: ["file-b"] });
     expect(prompt.indexOf('file="file-b"')).toBeLessThan(prompt.indexOf('file="file-a"'));
     expect(prompt).toContain("<notes>\nmine\n</notes>");
-    expect(prompt).toContain("There is no SOP.md yet");
+    expect(prompt).toContain("There is no SOP yet");
     const again = await readSopDir(dir, "x");
     expect(again.current).toContain("Do it [file-b 0:00]");
-    expect(sopPrompt({ name: "x", ...again })).toContain("There is a current SOP.md below");
+    expect(sopPrompt({ name: "x", ...again })).toContain("There is a current SOP below");
     expect(await readFile(join(topicDir(dir, "x"), "notes.md"), "utf8")).toBe("mine");
     expect(await readFile(join(topicDir(dir, "x"), "SKILL.md"), "utf8")).toContain("render x");
+  });
+
+  it("splits a build doc into a guide and rule sets with fixed line ids", async () => {
+    dir = await repo();
+    await addSource(dir, "x", { name: "file-a.md", md: "---\npriority: 5\n---\nsrc" }, WHO);
+    let reply =
+      '# SOP\n\nDo the thing.\n\n1. Step [file-a]\n\n<!-- set x-rules XR "Rules" -->\n- One [file-a]\n- Two [file-a]\n<!-- /set -->\n';
+    const llm = new FakeLlm({ respond: async () => reply });
+    const first = await buildSop(dir, "x", llm, WHO);
+    expect(first).toContain("## Rules\n- **XR-1** One [1]\n- **XR-2** Two [1]");
+    expect(first).not.toContain("<!--");
+    expect(readRecord(dir, "x")?.fm.cites).toEqual(["file-a", "x-rules"]);
+    const set = readRecord(dir, "x-rules");
+    expect(set?.fm).toMatchObject({ type: "rule", topic: "x", prefix: "XR", last: 2 });
+    const read = await readSopDir(dir, "x");
+    expect(read.current).toContain('<!-- set x-rules XR "Rules" -->\n- **XR-1** One [file-a]');
+    expect(await readFile(join(topicDir(dir, "x"), "SKILL.md"), "utf8")).toContain(
+      "render x-rules`",
+    );
+    // drop XR-1, keep XR-2, add one: the new line is XR-3, never XR-1 again
+    reply =
+      '# SOP\n\nDo the thing.\n\n1. Step [file-a]\n\n<!-- set x-rules XR "Rules" -->\n- **XR-2** Two [file-a]\n- Three [file-a]\n<!-- /set -->\n';
+    await buildSop(dir, "x", llm, WHO);
+    expect(readRecord(dir, "x-rules")?.body).toContain("- **XR-2** Two [1]\n- **XR-3** Three [1]");
+    expect(readRecord(dir, "x-rules")?.fm).toMatchObject({ last: 3 });
+    // the stored doc back unchanged: no record changes, so no guide that cites the set turns stale
+    reply =
+      '# SOP\n\nDo the thing.\n\n1. Step [file-a]\n\n<!-- set x-rules XR "Rules" -->\n- **XR-2** Two [file-a]\n- **XR-3** Three [file-a]\n<!-- /set -->\n';
+    const head = git(dir, ["rev-parse", "HEAD"]);
+    await buildSop(dir, "x", llm, WHO);
+    expect(git(dir, ["rev-parse", "HEAD"])).toBe(head);
+    expect(readRecord(dir, "x-rules")?.fm.version).toBe(2);
+    // the procedure may only name a live line
+    reply =
+      '# SOP\n\nDo it. Check XR-1.\n\n<!-- set x-rules XR "Rules" -->\n- **XR-2** Two [file-a]\n- **XR-3** Three [file-a]\n<!-- /set -->\n';
+    await expect(buildSop(dir, "x", llm, WHO)).rejects.toThrow("names XR-1");
+    // XR-1 was dropped: the model may not bring the id back, or invent one
+    reply =
+      '# SOP\n\nDo it.\n\n<!-- set x-rules XR "Rules" -->\n- **XR-2** Two [file-a]\n- **XR-1** New [file-a]\n<!-- /set -->\n';
+    await expect(buildSop(dir, "x", llm, WHO)).rejects.toThrow(
+      "XR-1 is not a line of the stored set",
+    );
+    reply = "# SOP\n\nDo the thing.\n\n1. Step [file-a]\n";
+    await expect(buildSop(dir, "x", llm, WHO)).rejects.toThrow("dropped set x-rules");
+    reply =
+      '# SOP\n\nDo it.\n\n<!-- set x-rules XR "Rules" -->\n- **XR-2** Two [file-a]\n<!-- /set -->\n\n<!-- set x-bare "Bare" -->\n- No cite\n<!-- /set -->\n';
+    await expect(buildSop(dir, "x", llm, WHO)).rejects.toThrow("x-bare cites no source or call");
   });
 
   it("tags a source shared by two SOPs once, in one record", async () => {

@@ -238,7 +238,7 @@ export function registerSop(
       if (!(PLATFORMS as readonly string[]).includes(opts.platform))
         throw new Error(`platform must be one of ${PLATFORMS.join(", ")}`);
       const platform = opts.platform as Platform;
-      const text = sopText(root, name);
+      const text = await sopText(root, name);
       // What it governs rides along, so a draft reads the SOP's set live (designs/2026-10-25-competitor-analyzer.md, Use).
       const notes = await readFile(join(topicDir(root, name), "notes.md"), "utf8").catch(() => "");
       const scope = scopeOf(notes, name);

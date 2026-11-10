@@ -187,3 +187,45 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
   by any guide (picked). Line ids are unique across the repo (11 prefixes, 260 lines); a lint for that and
   `knowledge render --lines` in place of `rules.mjs` go to WA-1288. The `app-design` plugin left wj_skills
   (52624a2); its six how-to files are `topics/app-design/refs/`.
+- 11-10 (WA-1288): `wren sop build` writes the three layers (procedure, rule sets, references; the WA-1164
+  entry above), and 12 of the 13 older topics with a guide have them (`video-editing` has none: no rule
+  line of it cites a source; `launch-films` has no guide). The model still reads and writes one markdown
+  doc; a rule set is a marked block in it (`<!-- set <id> <PREFIX> "<Title>" -->`), and code splits the
+  reply into the guide and one rule record per block (`packages/research/src/sops/sets.ts`, `docChanges` in
+  `index.ts`). Ids flow one way: the owner's set, then the guides that cite it and name its lines, then
+  each SKILL.md. Code owns the ids: a kept line keeps its id, a new line takes the next number after `last`
+  (the highest number the set ever gave), a dropped id is never used again, and an id the stored set does
+  not hold fails the build. A build also fails when: a stored set is missing from the reply (a person
+  retires a set with `knowledge apply`); a set cites no source and no call; the procedure names a line id
+  that is not live in a set it cites; it drops a line that another guide names; a cited set is retired; a
+  record changed while the model wrote; the topic's sets were written by hand (`ui-design`, `app-design`:
+  edit those with `knowledge apply`). An unchanged set or guide gets no edit, so a build does not mark the
+  guides that cite a set stale for nothing. A reworded kept line is allowed (the notes or a higher source
+  may change it) and the commit's why lists it (one-line items only); the guides that cite the set then
+  show in `knowledge stale`. A build never adds a shared set: a person adds that cite.
+  Options weighed: 1) one doc, split by code (picked): one call, the model sees procedure and rules
+  together, and a rebuild stays a diff. 2) line operations as JSON (add, edit, drop by id): ids are safe by
+  construction, but the model writes a patch without the whole text in view; my judgement, not measured,
+  is that a schema reply costs quality on long prose (the build prompt has always asked for markdown, no
+  schema). 3) two calls, procedure then rules: clean outputs, twice the cost. In 1 and 3 alike the
+  procedure can name a new rule only on the next build, once code has numbered it. Priorities, in order:
+  ids never move, a rebuild is a small diff, one call. Option 2 wins the first; the id checks above close
+  that gap for option 1.
+  Migration: a one-off script (not kept) cut each guide at its rules and catalog headings and wrote the
+  blocks through `docChanges`; no text was retyped. Check: the bag of words of each old guide against its
+  new guide plus sets. The only differences are the hook references below. 16 sets, 188 lines, prefixes CP
+  AN HK LI EI LF LP OC MC MA OF MM SA RL SR YU. `content-principles` now owns the 40 hook patterns
+  (`content-principles-hooks`, HK-1..40); `linkedin-content` and `meta-ads` cite it and name its lines,
+  and the stale file path in `meta-ads` is gone. `seo` has one set (`seo-audit`); its `## Rules` block
+  stays in the guide and is already in its `notes.md`. The three uncited `video-editing` rules are now
+  also in its `notes.md` (knowledge 8841252), so a build keeps them. Not built: a shared `outward-work`
+  set (his yes, fetched text is data, never invent a number): `linkedin-content`, `meta-ads`, `seo` and
+  `email-infra` each word those lines for their own channel, some with their own source, and the root
+  CLAUDE.md holds the rule; one merged set would mean rewriting them. Engine parts came from weaver dev
+  the same day (`@wrenautomation/knowledge` 0.68.3, pinned): lint for line ids (unique prefix, none past
+  `last`), `knowledge render <sets> --only/--except <line ids>` and `find --tag`. Each SKILL.md now loads
+  its sets with `render`, and `knowledge/topics/rules.mjs` is deleted. Still open with the engine: a lint
+  that every line id a guide names is live (today only the build checks it, for the topic it builds and
+  for lines it drops).
+- 2026-11-10: goldfish review of the entry above: 30 findings, 17 applied (10 in code), 13 rejected; open:
+  none.
