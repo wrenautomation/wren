@@ -682,7 +682,7 @@ const linesById = (body: string) =>
  * rule lines added, reworded and dropped. Throws when a stored set is missing from the doc or a set
  * cites no source.
  */
-export function docChanges(
+function docChanges(
   root: string,
   name: string,
   doc: string,
