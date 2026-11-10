@@ -405,6 +405,9 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
             ...(f.cover ? { cover_url: await publicUrlOf(f.cover, o.host, "instagram") } : {}),
             ...(f.thumbOffset !== undefined ? { thumb_offset: f.thumbOffset } : {}),
             ...(f.audioName ? { audio_name: f.audioName } : {}),
+            ...(f.trial && f.trial !== "off"
+              ? { trial_params: { graduation_strategy: f.trial } }
+              : {}),
           }
         : {};
       const container = await sites.call<{ id?: string }>("meta", "POST", `/${ig}/media`, {

@@ -59,6 +59,7 @@ export function instagramWebContent(
         f.collaborators?.length && "Collaborators",
         f.audioName && "Audio name",
         f.shareToFeed === false && "Also in Feed (off)",
+        f.trial && f.trial !== "off" && "Trial reel",
       ].filter(Boolean);
       if (unsent.length)
         throw new ShapeError(`instagram: posting through the web can't set ${unsent.join(", ")}`);

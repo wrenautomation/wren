@@ -278,10 +278,20 @@ function Reel({ s, text, fields }: Post) {
   const collab = (fieldValue(fields, "collaborators") as string[] | undefined) ?? [];
   const audio = str(fieldValue(fields, "audioName"));
   const feed = on(fields, "shareToFeed");
+  const trial = str(fieldValue(fields, "trial"));
   const empty = at === undefined ? "The first frame" : `The frame at ${at} s`;
   return (
     <Pair>
-      <DeviceFrame label={feed ? "Profile grid" : "Reels tab only"} width={180}>
+      <DeviceFrame
+        label={
+          trial && trial !== "off"
+            ? "Trial: non-followers first"
+            : feed
+              ? "Profile grid"
+              : "Reels tab only"
+        }
+        width={180}
+      >
         <Art src={cover} video={videoOf(s)} at={at} ratio="aspect-[3/4]" empty={empty} />
       </DeviceFrame>
       <DeviceFrame label="Reel" width={300}>

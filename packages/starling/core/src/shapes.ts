@@ -509,6 +509,17 @@ const instagram = shape({
     },
   },
   audioName: line("Audio name", 100, { kinds: ["video"] }),
+  // Graph's trial_params; graduation has no API call, so MANUAL = his tap in the app.
+  trial: pick(
+    "Trial reel",
+    ["off", "MANUAL", "SS_PERFORMANCE"],
+    { off: "Off", MANUAL: "On, I share it", SS_PERFORMANCE: "On, shared if it does well" },
+    {
+      default: "off",
+      kinds: ["video"],
+      hint: "Non-followers see it first. Share it to followers in the app, or let Instagram do it when it performs",
+    },
+  ),
   deck: deckId(["carousel"]),
   slides: slideSet(["carousel"]),
   rendered: slideFiles(["carousel"]),

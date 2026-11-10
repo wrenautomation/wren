@@ -57,4 +57,30 @@ describe("instagram reel fields", () => {
     ).rejects.toThrow("can't set Cover, Collaborators");
     expect(calls).toEqual([]);
   });
+
+  it("a trial Reel sends its graduation strategy; Off sends none; the web refuses it", async () => {
+    const sent: Array<Record<string, unknown> | undefined> = [];
+    const sites: SiteClient = {
+      call: async (_s, _m, path, input) => {
+        if (path === "/me/accounts")
+          return { data: [{ id: "1", instagram_business_account: { id: "ig9" } }] } as never;
+        if (path === "/ig9/media") sent.push(input);
+        return { id: "c1", status_code: "FINISHED" } as never;
+      },
+      via: async () => "api",
+    };
+    const reel = (trial: string) => ({
+      text: "cap",
+      media: { kind: "video" as const, source: "s3://b/media/r.mp4" },
+      extra: { trial },
+    });
+    const ig = instagramContent(sites, { host, sleep: async () => {} });
+    await ig.publish(reel("SS_PERFORMANCE"));
+    await ig.publish(reel("off"));
+    expect(sent[0]?.trial_params).toEqual({ graduation_strategy: "SS_PERFORMANCE" });
+    expect(sent[1]).not.toHaveProperty("trial_params");
+    await expect(instagramWebContent(sites, { host }).publish(reel("MANUAL"))).rejects.toThrow(
+      "can't set Trial reel",
+    );
+  });
 });

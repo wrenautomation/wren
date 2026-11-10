@@ -674,6 +674,7 @@ const BASICS = new Set([
   "privacy",
   "madeForKids",
   "shareToFeed",
+  "trial",
 ]);
 const MEDIA = new Set(["thumbOffset", "coverMs", "captionsLanguage"]);
 type Group = "basics" | "media" | "details";

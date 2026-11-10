@@ -119,7 +119,10 @@ Unverified API projects post private only until Google's audit.
 | `thumbOffset` | Cover frame in ms (ignored with a cover) | | build |
 | `collaborators` | Collaborators | 3 usernames | build |
 | `audioName` | Audio name | | build |
-| | Location, user tags, trial reels | | not shown |
+| `trial` | Trial reel (`trial_params.graduation_strategy`): Off, MANUAL, SS_PERFORMANCE | Reels only | sent (11-09, WA-1263) |
+| | Location, user tags | | not shown |
+
+Trial reels (11-09): one pick, not a switch plus a strategy, so no state is "on with no strategy". Graph has no graduate call and no documented trial field on IG Media: the post's own field is the trial record, and insights read as for any Reel.
 
 The web composer path (no Graph) sends caption and file only; the others fail loud there.
 
