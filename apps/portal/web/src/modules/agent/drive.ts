@@ -84,6 +84,29 @@ export const useChatRuns = (): readonly string[] =>
     () => chatRuns,
   );
 
+let toolsDone = 0;
+
+/** How many tool calls of the open chat have a result: a page that shows what the chat writes reads again on each. */
+export function setChatToolsDone(count: number): void {
+  if (count === toolsDone) return;
+  toolsDone = count;
+  tell();
+}
+
+export const useChatToolsDone = (): number =>
+  useSyncExternalStore(
+    sub,
+    () => toolsDone,
+    () => toolsDone,
+  );
+
+/** Tool calls with a result, over a thread. */
+export const toolsDoneIn = (messages: readonly AgentMessage[]): number =>
+  messages.reduce(
+    (sum, m) => sum + m.parts.filter((p) => p.type === "tool" && p.result !== undefined).length,
+    0,
+  );
+
 /** Runs named by a thread's `research.run` view parts, first seen first. */
 export function runsNamed(messages: readonly AgentMessage[]): string[] {
   const out = new Set<string>();

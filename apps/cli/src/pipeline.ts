@@ -86,7 +86,8 @@ function readJson(path: string): unknown {
 const isObject = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === "object" && !Array.isArray(v);
 
-export const who = () => userInfo().username;
+/** Who writes: the OS user, or `WREN_BY` (an agent chat names itself). */
+export const who = () => process.env.WREN_BY || userInfo().username;
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
 /** Run a store call; print a refusal's reasons, one per line, and set the exit code. */

@@ -24,7 +24,7 @@ import {
   relayHistory,
   turns,
 } from "./connect.js";
-import { runsNamed, setChatRuns } from "./drive.js";
+import { runsNamed, setChatRuns, setChatToolsDone, toolsDoneIn } from "./drive.js";
 import { readyFile, turnContent, type Wire } from "./files.js";
 import {
   answered,
@@ -241,6 +241,7 @@ export function useAgent(o: {
     const was = named.current;
     named.current = { session: s.session, runs };
     setChatRuns(runs);
+    setChatToolsDone(toolsDoneIn(s.messages));
     const fresh = was.session === s.session && runs.some((r) => !was.runs.includes(r));
     const at = location.pathname;
     if (fresh && at.startsWith("/research") && at !== LIVE) navigate(LIVE);

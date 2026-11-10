@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "shape": "./bin/shape.mjs"
+  },
   "exports": {
     "./blame": "./src/blame.ts",
     "./campaign-numbers": "./src/campaign-numbers.ts",

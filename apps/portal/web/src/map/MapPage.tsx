@@ -30,6 +30,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../api.js";
 import { type PageProps, WREN } from "../module.js";
+import { useChatToolsDone, usePageContext } from "../modules/agent/drive.js";
 import { atOf } from "../modules/deals/board.js";
 import { go, href, navigate } from "../route.js";
 import { DraftBanner } from "./DraftBanner.js";
@@ -233,6 +234,28 @@ export function MapPage({
   const opened = useDraftDetail(at, draftId);
   const row = opened.data?.row ?? null;
   const against = useDiffOf(at, row ? row.base : null, row ? draftRef(row.id) : null);
+  // Orrery's chat writes to the draft: each finished step of the chat reads the draft again
+  const steps = useChatToolsDone();
+  const seen = useRef(steps);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run when the chat finishes a step
+  useEffect(() => {
+    if (seen.current === steps) return;
+    seen.current = steps;
+    if (!draftId) return;
+    opened.retry();
+    against.retry();
+  }, [steps]);
+  usePageContext(
+    [
+      client ? `client ${client}` : "Wren's own shape",
+      row
+        ? `open draft ${row.id} (${row.state}, on v${row.base})`
+        : `the live shape${newest ? ` v${newest}` : ""}, no draft open`,
+      panel ? `selected ${panel.kind} ${panel.id}` : null,
+    ]
+      .filter(Boolean)
+      .join("; "),
+  );
 
   // The two sides History draws: the Versions tab's picked pair, or the Drafts tab's compared draft.
   const pair = pairOf(picked);

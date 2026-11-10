@@ -510,7 +510,9 @@ export function App() {
       ? open.module.component
       : null;
   const action = open?.module.action;
-  const product = open ? (open.page.product ?? open.module.product) : undefined;
+  // the Map is no module: its chat is Orrery's
+  const onMap = !open && team && !!current && at.kind !== "focus";
+  const product = open ? (open.page.product ?? open.module.product) : onMap ? "Orrery" : undefined;
   const counts = open ? (waiting[open.module.id] ?? {}) : {};
   // The fixed items under the Map, what waits in each beside it; none with one app (the demo).
   // An app opened from elsewhere (a pin, ⌘K, the Map) gets a row while it is open, so its pages show.
@@ -600,7 +602,9 @@ export function App() {
   const onAsk = open?.module.id === "research" && open.page.id === "ask";
   const pageLine = open
     ? `${open.module.name} › ${open.page.label} (${location.pathname})${inView ? `; ${inView}` : ""}`
-    : undefined;
+    : onMap
+      ? `Map (${location.pathname}${location.search})${inView ? `; ${inView}` : ""}`
+      : undefined;
 
   return (
     <AppsProvider value={cards}>

@@ -75,6 +75,9 @@ agents:
   vireo:
     role: agents
     run: [vireo, maker, folders]
+  orrery:
+    role: agents
+    run: [shape, folders]
 
 # The key gate: real values stay in these files (an earlier file wins a name); only the gate
 # reads them. A key whose vendor credvault does not know names its hosts here.

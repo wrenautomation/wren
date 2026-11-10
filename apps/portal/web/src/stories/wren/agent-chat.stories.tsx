@@ -57,6 +57,10 @@ const story = (
   };
 };
 
+/** The panel's door: the sidebar's foot and a phone's top bar may both draw one. */
+const agentDoor = async (c: ReturnType<typeof within>) =>
+  (await c.findAllByRole("button", { name: "Agent" }, LONG))[0] as HTMLElement;
+
 async function say(page: HTMLElement, text: string) {
   const c = within(page);
   const box = await c.findByRole("textbox", { name: "Message" }, LONG);
@@ -157,9 +161,16 @@ export const Gone = story(
 /** The side panel on a page past Ask: its Chats menu lists the stored chats. */
 export const Panel = story("/research/history", [], async (page) => {
   const c = within(page);
-  await userEvent.click(await c.findByRole("button", { name: "Agent" }, LONG));
+  await userEvent.click(await agentDoor(c));
   await userEvent.click(await c.findByRole("button", { name: "Chats" }, LONG));
   await within(document.body).findByText("Bakery buyers", {}, LONG);
+});
+
+/** On the Map, the panel opens on Orrery: the Map's product. */
+export const OnMap = story("/", [], async (page) => {
+  const c = within(page);
+  await userEvent.click(await agentDoor(c));
+  await c.findByPlaceholderText("Ask Orrery", {}, LONG);
 });
 
 /**

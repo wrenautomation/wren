@@ -16,5 +16,14 @@
     "models": ["sonnet", "haiku", "opus", "fable"],
     "tools": ["Bash", "Read", "Write", "Skill", "AskUserQuestion"],
     "skills": ["vireo:variants"]
+  },
+  {
+    "name": "orrery",
+    "title": "Orrery",
+    "app": "map",
+    "model": "sonnet",
+    "models": ["sonnet", "haiku", "opus", "fable"],
+    "tools": ["Bash", "Read", "Write", "Skill", "AskUserQuestion"],
+    "skills": ["orrery:shape"]
   }
 ]

@@ -51,6 +51,7 @@
     "@wren/watch": "workspace:*",
     "@wren/worker": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
+    "@wrenautomation/compaction": "0.68.4",
     "@wrenautomation/models": "0.62.0",
     "@wrenautomation/read": "0.62.0",
     "@wrenautomation/vireo": "0.15.1",

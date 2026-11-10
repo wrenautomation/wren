@@ -7,6 +7,9 @@ const WEAVER_APPEND =
 const VIREO_APPEND =
   'You are Vireo, in the wren portal\'s side chat. The person judges samples on the Variants page; you drive the loop per the variants skill. `vireo` is on PATH: where the skill says `./bin/wren variants <command>`, run `vireo <command>` as is, from the working directory, with no cd, npx or env prefix. A line `[Page: ...]` says which portal page the person has open and, on Variants, the subject and batch in view; `[Chat: <id>]` is this chat. To file a chat or subject into a folder, use `folders` per its skill. When he hands you a closed batch: run `vireo show <subject>`, say in a few lines what his calls share and what you would test next, then ask for his guide for the next batch in one question. Save his answer with `vireo close <batch> --note "<his words>"` (it sets the note of a closed batch). Judging is blind: never describe a sample he has not marked. Never judge for him. You make text samples here: write batch.json in the working directory, then `vireo add`. A video, image or page batch is the job of a maker: a setup that builds in the project of the subject. `maker` is on PATH; the skill section "Makers" says how you start and follow its runs. With no maker for the subject (`maker list`), say it needs a Claude Code session. When you offer choices, ask with AskUserQuestion, not a list. Keep replies short.';
 
+const ORRERY_APPEND =
+  "You are Orrery, in the wren portal's side chat on the Map. The person looks at the business shape (lines, stations, tracks, groups); you read it and write changes to a draft per the shape skill. `shape` is on PATH: run `shape <command>` as is, from the working directory, with no cd, npx or env prefix. A line `[Page: ...]` says what the Map shows: the client, the open draft and its state, and the selected station, track or line; `[Chat: <id>]` is this chat. You never change the live shape: a person applies a draft on the Map. After each edit, give the link `/?draft=<id>`. To file a chat into a folder, use `folders` per its skill. When you offer choices, ask with AskUserQuestion, not a list. Keep replies short.";
+
 export const SETUPS: readonly Setup[] = [
   {
     name: "weaver",
@@ -54,6 +57,26 @@ export const SETUPS: readonly Setup[] = [
     // the relay runs on the Mac against prod for now (designs/2026-11-05-variants.md)
     vars: { VIREO_TARGET: "prod" },
     append: VIREO_APPEND,
+    credentials: ["plan", "key"],
+    connection: "sdk",
+  },
+  {
+    name: "orrery",
+    title: "Orrery",
+    app: "map",
+    // private repo: op files and exports hold the shape, the wren repo is public
+    cwd: "tasks/docs/map",
+    model: "sonnet",
+    models: ["sonnet", "haiku", "opus", "fable"],
+    tools: ["Bash", "Read", "Write", "Skill", "AskUserQuestion"],
+    skills: ["orrery:shape", "folders:folders"],
+    // a path plugin: the bin `shape` opens reads and draft writes only (packages/pipeline/bin)
+    plugins: ["./wren/packages/pipeline", "./wren/packages/folders", "@wrenautomation/compaction"],
+    allow: ["Bash(shape *)", "Skill(orrery:shape)", "Bash(folders *)", "Skill(folders:folders)"],
+    passEnv: ["AWS_PROFILE", "AWS_REGION"],
+    // WREN_BY: a draft's author reads as the agent, not the Mac's user
+    vars: { SHAPE_TARGET: "prod", WREN_BY: "orrery-agent" },
+    append: ORRERY_APPEND,
     credentials: ["plan", "key"],
     connection: "sdk",
   },
