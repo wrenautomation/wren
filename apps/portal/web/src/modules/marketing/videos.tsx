@@ -39,6 +39,7 @@ import type { ListPage } from "../../module.js";
 import { PlayerSlot } from "../../player/index.js";
 import { href } from "../../route.js";
 import { Finish, type FinishData } from "./finish.js";
+import type { Mark } from "./finish-marks.js";
 import { type SopCheck, SopCheckList } from "./sop-check.js";
 import { EditorTabs, StoryboardView } from "./storyboard.js";
 import { VIEWED } from "./video-patch.js";
@@ -108,6 +109,8 @@ type Video = {
   render: { state: string; why?: string } | null;
   state: string;
   turns: Turn[];
+  /** His notes for the editing agent, pinned to a moment or a part of the picture. */
+  marks?: Mark[];
   /** What the finishing view draws and saves (content `finishOf`). */
   finish?: FinishData;
   /** Every video run on it, oldest first (content `videoSteps`). */
@@ -1586,6 +1589,7 @@ function timelineExtras(
         id={String(row.id)}
         data={v.finish}
         words={v.words}
+        marks={v.marks}
         act={act}
         at={readAt}
       />,

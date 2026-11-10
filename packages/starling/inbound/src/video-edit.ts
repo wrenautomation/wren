@@ -12,6 +12,7 @@ import { barLines, VIDEO_CHECK } from "@wren/starling-studio/bar";
 import { reviewCuts } from "@wren/starling-studio/cuts";
 import { getEdit, setWords } from "@wren/starling-studio/edit";
 import { hashKey } from "@wren/starling-studio/hash";
+import { closeMarks, type Mark, marksForAgent } from "@wren/starling-studio/marks";
 import { type RenderState, type VideoEdit, videoEdits } from "@wren/starling-studio/schema";
 import { shortIssues } from "@wren/starling-studio/sentences";
 import { eq, sql } from "drizzle-orm";
@@ -40,9 +41,10 @@ export const videoEditDefault = () =>
 /** The pass's question and system prompt: the edit without its words, which the agent reads. */
 export function editPrompt(
   e: VideoEdit,
-  ask: { by: string; note: string | null },
+  ask: { by: string; note: string | null; marks?: readonly Mark[] },
   prompt: Pick<LiveTemplate, "template"> = { template: videoEditDefault() },
 ) {
+  const marks = marksForAgent(ask.marks ?? []);
   const now = {
     title: e.title,
     description: e.description,
@@ -62,31 +64,45 @@ export function editPrompt(
         after: r.after,
       })),
     rawSeconds: e.tracks.main.durationS,
+    ...(marks.length ? { marks } : {}),
   };
   // The bar is code (`@wren/starling-studio/bar`), so a live copy of the prompt never drops it.
-  const bar = `\n\nThe bar every cut, Short and title works to:\n${barLines()}`;
+  const bar = `\n\nThe bar every cut, Short and title works to:\n${barLines()}${marks.length ? MARKS_RULE : ""}`;
   const system =
     renderPrompt(prompt, { id: e.id, now: JSON.stringify(now) }).slice(0, SYSTEM_MAX - bar.length) +
     bar;
   return {
-    question: ask.note ? `${ask.by} asks for changes: ${ask.note}` : "Do your pass on this video.",
+    question: ask.note
+      ? `${ask.by} asks for changes: ${ask.note}`
+      : marks.length
+        ? `Act on the ${marks.length} open mark${marks.length === 1 ? "" : "s"} in now.marks, then do your pass on this video.`
+        : "Do your pass on this video.",
     system,
     commands: [`Bash(node scripts/prod-wren.mjs video show ${e.id})`],
   };
 }
 
+/** Said in code with the marks, like the bar: a live prompt copy can't drop it. */
+const MARKS_RULE = `
+
+Marks (now.marks) are his notes pinned to a moment (\`at\`, raw seconds, or [from, to]) and, with \`box\`, a part of the picture (fractions of the \`on\` shape's frame). Each is a change to make, or, with tone "good", a thing to keep. Act on every one you can. Close each in your answer: "marks": [{"id": <id>, "why": "<one sentence: what you changed, or why you did not>"}]. Leave out a mark you could not judge: it stays open for him.`;
+
 const FIX = z.object({ wrong: z.string().trim().min(1), right: z.string().trim().min(1) });
+const CLOSED = z.object({ id: z.number().int().positive(), why: z.string().trim().min(1) });
 const PASS = z.object({
   reply: z.string(),
   notes: z.array(z.string()).nullish(),
   words: z.array(z.unknown()).nullish(),
   patch: z.record(z.string(), z.unknown()).nullish(),
+  marks: z.array(z.unknown()).nullish(),
 });
 export interface Pass {
   reply: string;
   notes: string[];
   words: z.infer<typeof FIX>[];
   patch: Record<string, unknown> | null;
+  /** Marks it acted on, each with what it did. */
+  marks: z.infer<typeof CLOSED>[];
 }
 
 /** The agent's answer: the first JSON object in it. Words alone change nothing. */
@@ -108,18 +124,22 @@ export function passOf(text: string): Pass {
           return f.success && f.data.wrong !== f.data.right ? [f.data] : [];
         }),
         patch: patch && Object.keys(patch).length ? patch : null,
+        marks: (got.data.marks ?? []).flatMap((m) => {
+          const c = CLOSED.safeParse(m);
+          return c.success ? [c.data] : [];
+        }),
       };
     }
   } catch {
     // Not JSON: said in words.
   }
-  return { reply: text.trim(), notes: [], words: [], patch: null };
+  return { reply: text.trim(), notes: [], words: [], patch: null, marks: [] };
 }
 
 /**
  * Write a pass: each word fix (its own `video words` run, by `agent`), then the patch on the pass's
- * run. A fix that matches nothing is skipped and said; a refused patch is said on the run. Returns
- * whether anything changed, so the caller renders again.
+ * run, then the marks it closed. A fix that matches nothing is skipped and said; a refused patch is
+ * said on the run and closes no mark. Returns whether anything changed, so the caller renders again.
  */
 export async function applyPass(
   db: Queryable,
@@ -139,19 +159,29 @@ export async function applyPass(
     }
   }
   const stats = { ...o.stats, reply: pass.reply, notes: pass.notes, fixed, skipped };
+  // the mark rows carry the run (done_run); stats name the ones it said it closed
+  const marks = pass.marks.map((m) => m.id);
+  const close = () => closeMarks(db, e.id, pass.marks, { by, run: o.run });
   if (!pass.patch) {
-    await finishRun(db, o.run, stats);
+    await close();
+    await finishRun(db, o.run, { ...stats, marks });
     return { changed: fixed.length > 0, fixed, skipped, error: null };
   }
   try {
     // Read again: the word fixes moved it, and he may have edited while the agent worked.
-    await applyAnswer(db, await getEdit(db, e.id), pass.patch, { by, run: o.run, stats });
-    return { changed: true, fixed, skipped, error: null };
+    await applyAnswer(db, await getEdit(db, e.id), pass.patch, {
+      by,
+      run: o.run,
+      stats: { ...stats, marks },
+    });
   } catch (err) {
     const error = `Not written: ${(err as Error).message}`;
     await finishRun(db, o.run, { ...stats, error });
     return { changed: fixed.length > 0, fixed, skipped, error };
   }
+  // after the patch: a refused patch closes no mark
+  await close();
+  return { changed: true, fixed, skipped, error: null };
 }
 
 /** A video as a person knows it, for what a refusal says: its title, never its id. */

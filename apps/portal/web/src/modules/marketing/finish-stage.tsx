@@ -38,6 +38,7 @@ import {
   type Word,
 } from "./finish-data.js";
 import { drag, useWidth } from "./finish-hooks.js";
+import { boxDrag, type Mark, type MarkBox, MarkBoxes } from "./finish-marks.js";
 import { previewOf } from "./finish-preview.js";
 
 export const Bar = ({ children }: { children: ReactNode }) => (
@@ -105,6 +106,7 @@ export function Stage({
   onPick,
   preview,
   release,
+  marking,
 }: {
   data: FinishData;
   draw: FinishEdit;
@@ -137,6 +139,13 @@ export function Stage({
   onPick: (i: number) => void;
   preview: (v: FinishEdit) => void;
   release: () => void;
+  /** The Marks panel is open: the boxes show, and a drag on the picture draws one. */
+  marking?: {
+    marks: readonly Mark[];
+    picked: number | null;
+    draft: MarkBox | null;
+    onDraft: (b: MarkBox | null) => void;
+  } | null;
 }) {
   const [box, avail] = useWidth<HTMLDivElement>();
   const [fw, fh] = FRAME[view];
@@ -210,10 +219,10 @@ export function Stage({
       <div
         className={cx(
           "relative overflow-hidden rounded-xl bg-black shadow-[0_1px_2px_rgb(0_0_0/0.2)] transition-[width,height] duration-300 ease-(--ui-ease)",
-          centre && "cursor-grab active:cursor-grabbing",
+          marking ? "cursor-crosshair" : centre && "cursor-grab active:cursor-grabbing",
         )}
         style={{ width: w, height: h }}
-        onPointerDown={centre ? dragCrop : undefined}
+        onPointerDown={marking ? (e) => boxDrag(e, marking.onDraft) : centre ? dragCrop : undefined}
       >
         {ready ? (
           <Player
@@ -301,10 +310,24 @@ export function Stage({
             />
           );
         })}
+        {marking ? (
+          <MarkBoxes
+            marks={marking.marks}
+            view={view}
+            t={t}
+            picked={marking.picked}
+            draft={marking.draft}
+          />
+        ) : null}
       </div>
-      {centre ? (
-        <p className="m-0 mt-2 text-[12px] text-(--ui-ink-3)">Drag the picture to frame it.</p>
-      ) : null}
+      {/* always a line: a hint that comes and goes would move the timeline */}
+      <p className="m-0 mt-2 min-h-[18px] text-[12px] text-(--ui-ink-3)">
+        {marking
+          ? "Drag on the picture to mark a part of it."
+          : centre
+            ? "Drag the picture to frame it."
+            : ""}
+      </p>
     </div>
   );
 }

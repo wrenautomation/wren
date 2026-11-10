@@ -217,3 +217,29 @@ Limits:
 - A file without a seekable range (one served through a service worker) seeks to 0 on each frame. The portal has no service worker; the story uses a blob link.
 - The bed's link (`sfx/<id>.wav`) is not checked in prod.
 - Not checked: a real recording with a camera, a Short's crop, a signed link that runs out during play.
+
+## Build step 3 (11-10): marks
+
+A mark is a note pinned to a moment, a range or a part of the picture. He adds it in Finish or says it. The editing agent reads the open marks on its next pass and closes each with what it did.
+
+| Part | File | Does |
+|---|---|---|
+| Table | `studio/src/schema.ts` (`videoMarks`), migration `0382_video_marks` | One row per mark: `anchor` (start, end, box as fractions), `format`, `tone`, `text`, `by`. Closed: `done_at`, `done_by`, `done_why`, `done_run`. Removed: `removed_at`, `removed_by` |
+| Store | `studio/src/marks.ts` | `addMark`, `marksOf`, `closeMarks`, `dropMark`, `restoreMark`, `marksForAgent` (30 per pass) |
+| Pass | `inbound/src/video-edit.ts` (`MARKS_RULE`, `CLOSED`, `applyPass`) | The prompt carries the open marks and the rule, both from code. `applyPass` closes the marks the answer names, after the patch |
+| Desk | `inbound/src/restate/video-desk.ts` | `mark`, `markDone`, `markDrop` (`undo` puts one back). Each answers the full list |
+| Portal | `finish-marks.tsx` | `MarksPanel` (add, close, remove, Undo), `MarkBoxes` on the stage, `MarksLane` on the timeline. A drag on the picture makes the box |
+| CLI | `apps/cli/src/video-marks.ts` | `wren video marks`, `mark`, `done`, `unmark [--undo]`. JSON out |
+| Stories | `finish.stories.tsx` | Marks, MarksRemoved, MarksEmpty, MarksNotSaved |
+
+Decisions:
+- A mark's times are raw seconds, like cuts and sounds. A cut that moves does not move the mark.
+- A box is fractions of the frame of one shape (`format`). The stage draws it only on that shape.
+- Remove is a soft delete. The row stays (Keep data), and Undo puts the mark back as it was, open or closed.
+- The agent closes a mark only with a `why`. A mark it leaves out stays open for him.
+- Fix and Keep are kinds, not status. Each has a cue tint; red and green stay for errors and success.
+- Unsent words keep per video (`useEdit`), across a tab or page switch.
+
+Checked: 17 unit tests (prompt, parse, close after patch), 4 stories at 390 and 1280 in both looks, the UI gate.
+
+Not checked: the store against a real database. The local dev database fails an older migration (`survey_answers` exists), so `0382` did not run here. CI's schema gate is the first run.

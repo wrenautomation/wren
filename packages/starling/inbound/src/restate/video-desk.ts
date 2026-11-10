@@ -31,6 +31,16 @@ import {
 } from "@wren/starling-studio/edit";
 import { FPS } from "@wren/starling-studio/finish";
 import { RENDER_PARTS } from "@wren/starling-studio/hash";
+import {
+  addMark,
+  closeMarks,
+  dropMark,
+  MARK_WHY_MAX,
+  type MarkInput,
+  markInputSchema,
+  marksOf,
+  restoreMark,
+} from "@wren/starling-studio/marks";
 import { punctuate, unpunctuated } from "@wren/starling-studio/punctuate";
 import type { VideoEdit } from "@wren/starling-studio/schema";
 import {
@@ -194,6 +204,74 @@ export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
               setLine(db, req.id, { at: req.at, text: req.text, was: req.was }, byOf(req)).then(
                 ({ run, edit }) => answered(run, edit),
               ),
+            ),
+          ),
+      ),
+
+      /**
+       * A note pinned to a moment, a range or a part of the picture (designs/2026-11-10-video-editor-pick.md).
+       * Answers the video's marks now, so the page draws them in place.
+       */
+      mark: serviceHandler(
+        { input: z.looseObject({ ...ID, ...markInputSchema.shape }) },
+        async (ctx: restate.Context, req: One & MarkInput) =>
+          ctx.run("mark", () =>
+            told(
+              addMark(db, req.id, req, byOf(req)).then(async (mark) => ({
+                mark,
+                marks: await marksOf(db, req.id),
+              })),
+            ),
+          ),
+      ),
+
+      /** A mark closed by hand, with what was done. */
+      markDone: serviceHandler(
+        {
+          input: z.looseObject({
+            ...ID,
+            mark: z.number().int().positive(),
+            why: z.string().trim().max(MARK_WHY_MAX).nullish(),
+          }),
+        },
+        async (ctx: restate.Context, req: One & { mark: number; why?: string | null }) =>
+          ctx.run("mark done", () =>
+            told(
+              closeMarks(db, req.id, [{ id: req.mark, why: req.why ?? "" }], {
+                by: byOf(req),
+              }).then(async ({ closed }) => {
+                if (!closed.length)
+                  throw new Error("That mark is closed or gone. Reload to see it.");
+                return { marks: await marksOf(db, req.id) };
+              }),
+            ),
+          ),
+      ),
+
+      /** A mark taken back (the row stays), or with `undo`, put back as it was. */
+      markDrop: serviceHandler(
+        {
+          input: z.looseObject({
+            ...ID,
+            mark: z.number().int().positive(),
+            undo: z.boolean().optional().describe("Put a removed mark back"),
+          }),
+        },
+        async (ctx: restate.Context, req: One & { mark: number; undo?: boolean }) =>
+          ctx.run("mark drop", () =>
+            told(
+              (req.undo
+                ? restoreMark(db, req.id, req.mark)
+                : dropMark(db, req.id, req.mark, byOf(req))
+              ).then(async (moved) => {
+                if (!moved)
+                  throw new Error(
+                    req.undo
+                      ? "That mark is back already. Reload to see it."
+                      : "That mark is gone already. Reload to see the rest.",
+                  );
+                return { marks: await marksOf(db, req.id) };
+              }),
             ),
           ),
       ),
@@ -487,7 +565,12 @@ export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
             const a = row.argv as Passed;
             const e = await getEdit(db, a.id).catch(() => null);
             const live = await livePrompt(db, VIDEO_EDIT_REF);
-            return { ...a, prompt: e ? editPrompt(e, a, live) : null, version: live.version };
+            const marks = e ? await marksOf(db, e.id, { open: true }) : [];
+            return {
+              ...a,
+              prompt: e ? editPrompt(e, { ...a, marks }, live) : null,
+              version: live.version,
+            };
           });
           if (!asked) return;
           const fail = (error: string) =>

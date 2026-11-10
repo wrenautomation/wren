@@ -48,6 +48,7 @@ import {
   whatChanged,
 } from "./finish-data.js";
 import { useSteadyUrl } from "./finish-hooks.js";
+import { type Mark, type MarkBox, MarksPanel } from "./finish-marks.js";
 import { CaptionsPanel, CoverPanel, ShapesPanel, TextPanel } from "./finish-panels.js";
 import { LayoutPanel, ShortsPanel } from "./finish-parts.js";
 import { previewUrl, RAW } from "./finish-preview.js";
@@ -55,16 +56,21 @@ import { Bar, Stage, ViewSwitch } from "./finish-stage.js";
 import { Timeline } from "./finish-timeline.js";
 import { VIEWED } from "./video-patch.js";
 
+const NO_MARKS: readonly Mark[] = [];
+
 export function Finish({
   id,
   data,
   words,
+  marks = NO_MARKS,
   act,
   at,
 }: {
   id: string;
   data: FinishData;
   words: readonly Word[];
+  /** His notes for the editing agent, in time order. */
+  marks?: readonly Mark[] | undefined;
   act: RecordAct;
   /** When the page's read of `data` left: a read from before his newest save never lands. */
   at?: number | undefined;
@@ -133,6 +139,9 @@ export function Finish({
   const [panel, setPanel] = useState<Panel>("text");
   const [picked, setPicked] = useState<Picked>(null);
   const [range, setRange] = useState<[number, number] | null>(null);
+  const [pickedMark, setPickedMark] = useState<number | null>(null);
+  /** The box drawn on the picture for the next mark. */
+  const [markBox, setMarkBox] = useState<MarkBox | null>(null);
   const [t, setT] = useState(() => io.in);
   const tRef = useRef(t);
   tRef.current = t;
@@ -204,10 +213,13 @@ export function Finish({
     } else if (k === "Escape") {
       setRange(null);
       setPicked(null);
+      setPickedMark(null);
+      setMarkBox(null);
     }
   };
 
   const overlay = picked?.kind === "overlay" ? draw.overlays[picked.i] : undefined;
+  const openMarks = marks.filter((m) => !m.done).length;
   const shorts = useMemo(() => data.shorts.map(({ n: _n, ...x }) => x), [data.shorts]);
   const [shortSaid, setShortSaid] = useState<string | null>(null);
   /** The picked part as a new Short, saved at once (`wren video set shorts`). */
@@ -258,6 +270,8 @@ export function Finish({
           onView={(f) => {
             setView(f);
             setPickedShort(null);
+            // a box is fractions of one shape's frame
+            setMarkBox(null);
           }}
         />
         <SaveStatus state={s} onRetry={() => void s.retry()} idle="Changes save as you go" />
@@ -309,6 +323,11 @@ export function Finish({
         }}
         preview={preview}
         release={release}
+        marking={
+          panel === "marks"
+            ? { marks, picked: pickedMark, draft: markBox, onDraft: setMarkBox }
+            : null
+        }
       />
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -363,6 +382,15 @@ export function Finish({
         }}
         preview={preview}
         release={release}
+        marks={marks}
+        pickedMark={pickedMark}
+        onMark={(m) => {
+          if (playing) pause();
+          seek(m.start);
+          setPickedMark(m.id);
+          if (m.box && m.format !== view) setView(m.format as Format);
+          setPanel("marks");
+        }}
       />
 
       {range ? (
@@ -378,6 +406,9 @@ export function Finish({
           </Button>
           <Button size="sm" tone="quiet" onClick={() => setPanel("layout")}>
             Set the layout
+          </Button>
+          <Button size="sm" tone="quiet" onClick={() => setPanel("marks")}>
+            Mark it
           </Button>
           <Button size="sm" tone="quiet" onClick={() => setRange(null)}>
             Clear
@@ -411,7 +442,8 @@ export function Finish({
 
       <p className="m-0 text-[12px] text-(--ui-ink-3)">
         Space plays. Arrows move a frame, with Shift a second. I and O set the start and end. Drag
-        across the filmstrip to pick a part: cut it, make it a Short, or set what it shows.
+        across the filmstrip to pick a part: cut it, make it a Short, set what it shows, or mark it
+        for the editing agent.
       </p>
 
       <div className="grid gap-3 rounded-xl border border-(--ui-hair) bg-(--ui-paper) p-3">
@@ -424,6 +456,7 @@ export function Finish({
               ["shapes", "Shapes"],
               ["shorts", "Shorts"],
               ["layout", "Layout"],
+              ["marks", "Marks"],
             ] as const
           ).map(([p, label]) => (
             <button
@@ -435,6 +468,11 @@ export function Finish({
               className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-1.5 text-[13px] font-medium text-(--ui-ink-2) transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-hover) hover:text-(--ui-ink) aria-selected:bg-(--ui-fill) aria-selected:text-(--ui-ink)"
             >
               {label}
+              {p === "marks" && openMarks ? (
+                <span className="ml-1.5 text-(--ui-ink-3) [font-variant-numeric:tabular-nums]">
+                  {openMarks}
+                </span>
+              ) : null}
             </button>
           ))}
         </div>
@@ -477,6 +515,27 @@ export function Finish({
               dur={dur}
               t={t}
               range={range}
+              onSeek={(at) => {
+                if (playing) pause();
+                seek(at);
+              }}
+              act={act}
+            />
+          ) : panel === "marks" ? (
+            <MarksPanel
+              id={id}
+              marks={marks}
+              t={t}
+              range={range}
+              view={view}
+              draft={markBox}
+              onDraft={setMarkBox}
+              picked={pickedMark}
+              onPick={(m) => {
+                setPickedMark(m);
+                const on = marks.find((x) => x.id === m);
+                if (on?.box && on.format !== view) setView(on.format as Format);
+              }}
               onSeek={(at) => {
                 if (playing) pause();
                 seek(at);

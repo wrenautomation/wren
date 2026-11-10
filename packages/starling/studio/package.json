@@ -12,6 +12,7 @@
     "./compositions": "./compositions/index.tsx",
     "./player": "./frames/player.tsx",
     "./edit": "./src/edit.ts",
+    "./marks": "./src/marks.ts",
     "./change": "./src/change.ts",
     "./storyboard": "./src/storyboard.ts",
     "./sentences": "./src/sentences.ts",

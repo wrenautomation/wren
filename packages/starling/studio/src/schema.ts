@@ -4,7 +4,18 @@
  * are written by ingest only; the rest is the edit Claude Code writes through `wren video set`.
  */
 import { oneOf } from "@wren/db/columns";
-import { jsonb, pgTable, primaryKey, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import {
+  foreignKey,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  primaryKey,
+  serial,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
 import type { Captions } from "./caption-styles.js";
 import type { Crops, TextOverlay } from "./finish.js";
 import type { Music, Sound } from "./sounds.js";
@@ -162,3 +173,65 @@ export const videoEdits = pgTable(
 );
 
 export type VideoEdit = typeof videoEdits.$inferSelect;
+
+/** good: keep this. bad: change this. Vireo's note tones. */
+export const MARK_TONES = ["good", "bad"] as const;
+export type MarkTone = (typeof MARK_TONES)[number];
+/** A part of the picture: fractions 0..1 of the frame of the shape it was drawn on. */
+export interface MarkBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+/**
+ * Where a mark points: Vireo's time anchor, on the raw recording's clock (as every edit time is).
+ * `end` unset: one moment. `box`: a part of the picture, on the shape in `format`.
+ */
+export interface MarkAnchor {
+  type: "time";
+  start: number;
+  end?: number | undefined;
+  box?: MarkBox | undefined;
+}
+
+/**
+ * A note on a video, pinned to a moment, a range or a part of the picture (designs/
+ * 2026-11-10-video-editor-pick.md, marks). The person writes it in Finish or says it; the agent
+ * reads the open ones, changes the edit and closes each with what it did (`doneWhy`).
+ */
+export const videoMarks = pgTable(
+  "video_marks",
+  {
+    id: serial("id"),
+    editId: integer("edit_id").notNull(),
+    anchor: jsonb("anchor").$type<MarkAnchor>().notNull(),
+    /** The shape on screen when it was made (`long`, `vertical`, ...); a box is on its frame. */
+    format: varchar("format", { length: 12 }).notNull().default("long"),
+    tone: varchar("tone", { length: 4, enum: MARK_TONES }),
+    text: text("text").notNull(),
+    by: varchar("by", { length: 320 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Closed: the agent acted on it, or he took it back. */
+    doneAt: timestamp("done_at", { withTimezone: true }),
+    doneBy: varchar("done_by", { length: 320 }),
+    /** What was done about it, in a sentence: what the person reads under the mark. */
+    doneWhy: text("done_why"),
+    /** The `runs` row that closed it (an agent pass). */
+    doneRun: varchar("done_run", { length: 64 }),
+    /** Taken back: out of every list, kept so Undo puts it back as it was. */
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+    removedBy: varchar("removed_by", { length: 320 }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_video_marks" }),
+    foreignKey({
+      columns: [t.editId],
+      foreignColumns: [videoEdits.id],
+      name: "fk_video_marks_edit_id_video_edits",
+    }).onDelete("cascade"),
+    index("ix_video_marks_edit").on(t.editId),
+    oneOf("ck_video_marks_tone", t.tone, MARK_TONES),
+  ],
+);
+export type VideoMark = typeof videoMarks.$inferSelect;

@@ -68,8 +68,16 @@ describe("passOf", () => {
       notes: [],
       words: [],
       patch: null,
+      marks: [],
     });
     expect(passOf('{"reply": "ok", "patch": {}}').patch).toBeNull();
+  });
+
+  it("reads the marks it closed and drops one with no id or no why", () => {
+    const p = passOf(
+      '{"reply": "Done.", "marks": [{"id": 4, "why": "Cut the pause."}, {"id": 5, "why": " "}, {"why": "no id"}, "x"]}',
+    );
+    expect(p.marks).toEqual([{ id: 4, why: "Cut the pause." }]);
   });
 });
 
@@ -84,6 +92,31 @@ describe("editPrompt", () => {
     expect(p.system).toMatch(/The bar every cut[\s\S]*- private: Nothing private/);
     expect(editPrompt(e, { by: "x", note: null }).question).toBe("Do your pass on this video.");
     expect(videoEditDefault().version).toMatch(/^[0-9a-f]{12}$/);
+  });
+
+  it("carries the open marks and says how to close them", () => {
+    const mark = {
+      id: 4,
+      start: 2,
+      end: 3,
+      box: { x: 0.1, y: 0.2, w: 0.3, h: 0.4 },
+      format: "vertical",
+      tone: "bad" as const,
+      text: "Too slow here.",
+      by: "w@example.com",
+      at: "2026-11-10T15:00:00.000Z",
+      done: null,
+    };
+    const p = editPrompt(edit(), { by: "x", note: null, marks: [mark] });
+    expect(p.question).toBe(
+      "Act on the 1 open mark in now.marks, then do your pass on this video.",
+    );
+    expect(p.system).toContain(
+      '"marks":[{"id":4,"at":[2,3],"box":{"x":0.1,"y":0.2,"w":0.3,"h":0.4},"on":"vertical","tone":"bad","says":"Too slow here.","by":"w@example.com"}]',
+    );
+    expect(p.system).toContain('"marks": [{"id": <id>, "why":');
+    // no marks: the prompt says nothing about them
+    expect(editPrompt(edit(), { by: "x", note: null }).system).not.toContain("now.marks");
   });
 });
 

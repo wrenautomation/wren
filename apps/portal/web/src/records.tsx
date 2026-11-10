@@ -330,6 +330,24 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     handlerCall("VideoDesk", "propose", { id: num(id), sentence, beat: beat || null }),
   "marketing/videoLine": (id, { at, text, was }) =>
     handlerCall("VideoDesk", "line", { id: num(id), at, text, was }),
+  "marketing/videoMark": (id, { start, end, box, format, tone, text }) =>
+    handlerCall("VideoDesk", "mark", {
+      id: num(id),
+      start,
+      end: end ?? null,
+      box: box ?? null,
+      format,
+      tone: tone ?? null,
+      text,
+    }),
+  "marketing/videoMarkDone": (id, { mark, why }) =>
+    handlerCall("VideoDesk", "markDone", { id: num(id), mark: Number(mark), why: why || null }),
+  "marketing/videoMarkDrop": (id, { mark, undo }) =>
+    handlerCall("VideoDesk", "markDrop", {
+      id: num(id),
+      mark: Number(mark),
+      ...(undo === true ? { undo: true } : {}),
+    }),
   "marketing/videoCut": (id, { from, to, state }) =>
     handlerCall("VideoDesk", "cut", { id: num(id), from, to, state }),
   "marketing/videoAsk": (id, { message }) =>

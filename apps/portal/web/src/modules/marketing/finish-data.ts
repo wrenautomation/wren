@@ -145,7 +145,7 @@ export type Picked =
   | { kind: "cut"; i: number }
   | { kind: "line"; i: number }
   | null;
-export type Panel = "text" | "captions" | "cover" | "shapes" | "shorts" | "layout";
+export type Panel = "text" | "captions" | "cover" | "shapes" | "shorts" | "layout" | "marks";
 
 /** What their version changed, in words, for Keep mine or Use theirs. */
 export function whatChanged(mine: FinishEdit, theirs: FinishEdit): ReactNode {

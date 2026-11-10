@@ -1,5 +1,5 @@
 /**
- * `wren video add|list|show|set|words|stress|approve|cuts|keep|knobs|cut|studio|render|look|find|promo`: the video
+ * `wren video add|list|show|set|words|stress|approve|cuts|keep|marks|mark|done|knobs|cut|studio|render|look|find|promo`: the video
  * editor (designs/2026-10-06-video-editor.md). Claude Code edits through `show` and `set`; every
  * write leaves a runs row. Runs on William's Mac: whisper.cpp, ffmpeg (VideoToolbox), Chrome.
  */
@@ -131,6 +131,7 @@ import { desc, sql } from "drizzle-orm";
 import { readText } from "./content.js";
 import { autobrowseDrive } from "./sop.js";
 import { registerVideoAsk } from "./video-ask.js";
+import { registerVideoMarks } from "./video-marks.js";
 import {
   geminiModel,
   needGemini,
@@ -473,6 +474,9 @@ export function registerStudio(
           console.log(locked.length ? `locked: ${locked.join(", ")}` : "nothing locked");
         }),
       );
+
+  // Notes pinned to a moment or a part of the picture: Finish's Marks, from here.
+  registerVideoMarks(video, withDb);
 
   // The storyboard and a change in a sentence: the page's Storyboard, from here.
   registerVideoAsk(video, withDb, (o) => {

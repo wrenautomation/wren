@@ -24,6 +24,7 @@ import {
   pictureOf,
 } from "@wren/starling-studio/finish";
 import { changedSince } from "@wren/starling-studio/hash";
+import { marksOf } from "@wren/starling-studio/marks";
 import { unpunctuated } from "@wren/starling-studio/punctuate";
 import { type Cut, type VideoEdit, videoEdits, type Word } from "@wren/starling-studio/schema";
 import { type Storyboard, storyboardOf } from "@wren/starling-studio/storyboard";
@@ -1037,6 +1038,10 @@ export const videoRecord = (signer?: VideoSigner) => {
       "marketing.videoUndo",
       "marketing.videoWords",
       "marketing.videoLine",
+      // Marks: notes pinned to a moment or a part of the picture.
+      "marketing.videoMark",
+      "marketing.videoMarkDone",
+      "marketing.videoMarkDrop",
       "marketing.videoAgent",
       "marketing.videoStress",
       "marketing.videoPunctuate",
@@ -1053,6 +1058,9 @@ export const videoRecord = (signer?: VideoSigner) => {
       "VideoDesk/undo": "id",
       "VideoDesk/words": "id",
       "VideoDesk/line": "id",
+      "VideoDesk/mark": "id",
+      "VideoDesk/markDone": "id",
+      "VideoDesk/markDrop": "id",
       "VideoDesk/render": "id",
       "VideoDesk/edit": "id",
       "VideoDesk/reject": "id",
@@ -1096,6 +1104,7 @@ export const videoRecord = (signer?: VideoSigner) => {
           finish: await finishOf(e, sign),
           promos: upload ? await promosOf(db, upload) : null,
           turns: await videoTurns(db, e.id),
+          marks: await marksOf(db, e.id),
           shorts: await Promise.all(
             e.shorts.map(async (s, i) => ({
               title: s.title,

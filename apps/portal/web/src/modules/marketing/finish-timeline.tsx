@@ -23,6 +23,7 @@ import {
   ZOOMS,
 } from "./finish-data.js";
 import { drag, useWidth } from "./finish-hooks.js";
+import { type Mark, MarksLane } from "./finish-marks.js";
 import { type LayoutRange, PartsLane, type Short } from "./finish-parts.js";
 
 // --- the timeline ---------------------------------------------------------------------------
@@ -47,6 +48,9 @@ export function Timeline({
   onPick,
   preview,
   release,
+  marks,
+  pickedMark,
+  onMark,
 }: {
   dur: number;
   t: number;
@@ -67,6 +71,9 @@ export function Timeline({
   onPick: (p: Picked) => void;
   preview: (v: FinishEdit) => void;
   release: () => void;
+  marks: readonly Mark[];
+  pickedMark: number | null;
+  onMark: (m: Mark) => void;
 }) {
   const [frame, viewW] = useWidth<HTMLDivElement>();
   const inner = useRef<HTMLDivElement | null>(null);
@@ -368,6 +375,9 @@ export function Timeline({
 
           {/* The Shorts, and what the long video shows when. */}
           <PartsLane shorts={shorts} layout={layout} x={x} onShort={onShort} />
+
+          {/* His marks for the editing agent. */}
+          <MarksLane marks={marks} x={x} picked={pickedMark} onPick={onMark} />
 
           {/* The playhead, over every row. */}
           <span
