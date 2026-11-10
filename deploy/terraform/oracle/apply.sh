@@ -24,6 +24,8 @@ TF_VAR_private_key="$(printf %s "$OCI_API_KEY_PEM_B64" | base64 -d)"
 export TF_VAR_private_key
 export TF_VAR_ssh_public_key="$WREN_WORK_SSH_PUBLIC_KEY"
 export TF_VAR_alert_email="$AUTOBROWSE_CRED_ORACLE_USERNAME" # the budget mails the account's owner
+TF_VAR_user_data="$(cat ../../work-box/box-setup.sh)" # cloud-init: compose, runners (WA-1277)
+export TF_VAR_user_data
 
 tofu init -input=false -upgrade >/dev/null
 
