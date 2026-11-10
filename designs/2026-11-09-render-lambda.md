@@ -36,3 +36,4 @@ Ranked: no browser on the Postgres box, $0 in the free tier, both lanes served, 
 ## Decision log
 
 - 2026-11-09: A, a render Lambda both lanes invoke ("Options"), not Chromium in the worker, a capped browserless or Browserbase. Ranked: no browser on the Postgres box, $0 in the free tier, both lanes, fewest parts. William: "as long as it reasonably fits in our free plan, go for it."
+- 2026-11-09: browserless left early, not after one week (WA-1245). It had 0 sessions in 7 days, and the box disk was at 83%. The `cdp` and `browserbase` renderers are gone; `WREN_RENDERER` is `local` or `lambda`.

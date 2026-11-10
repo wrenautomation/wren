@@ -54,13 +54,7 @@ import {
 import { LANDERS_BY_NICHE, NICHES, SMS_SEQUENCES } from "@wren/niches";
 import { stripeChecks } from "@wren/payments/setups";
 import { liveCampaignsOf } from "@wren/pipeline/store";
-import {
-  type BrowserRenderer,
-  browserbaseRenderer,
-  browserRenderer,
-  cdpRenderer,
-  lambdaRenderer,
-} from "@wren/research";
+import { type BrowserRenderer, browserRenderer, lambdaRenderer } from "@wren/research";
 import type {
   Context,
   ObjectContext,
@@ -167,7 +161,7 @@ async function playbooksOf(db: Db): Promise<{ label: string; text: string }[]> {
   return rows.map((r) => ({ label: r.sop, text: r.text }));
 }
 
-/** The render tier for this host: a local chromium, the render Lambda, CDP, or Browserbase. */
+/** The render tier for this host: a local chromium or the render Lambda. */
 function rendererFor(
   settings: Settings,
   ua: string,
@@ -182,21 +176,7 @@ function rendererFor(
     }
     return async () => lambdaRenderer(ua, { fn });
   }
-  if (settings.renderer === "cdp") {
-    const connectUrl = settings.cdpUrl;
-    if (!connectUrl) {
-      log.warn("WREN_RENDERER=cdp without WREN_CDP_URL: no render tier");
-      return null;
-    }
-    return () => cdpRenderer(ua, { connectUrl });
-  }
-  const apiKey = process.env.BROWSERBASE_API_KEY;
-  const projectId = process.env.BROWSERBASE_PROJECT_ID;
-  if (!apiKey || !projectId) {
-    log.warn("WREN_RENDERER=browserbase without BROWSERBASE_API_KEY/PROJECT_ID: no render tier");
-    return null;
-  }
-  return () => browserbaseRenderer(ua, { apiKey, projectId });
+  return null;
 }
 
 export type AnyService =

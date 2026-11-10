@@ -17,9 +17,7 @@ Region `us-east-1`. Nightly pg_dump to S3.
 
 1. **AWS account.** Create an IAM user for yourself with admin, then locally: `aws configure`
    (region `us-east-1`). Verify: `aws sts get-caller-identity`.
-2. **Render tier.** Default: browserless chromium on the Postgres box (`browser_token` in
-   tfvars; nothing to sign up for). Or Browserbase (an API key and project id; leave
-   `browser_token` empty) if the box is too small for a browser.
+2. **Render tier.** The render Lambda `wren-prod-render` (render.tf); nothing to sign up for.
 3. **Secrets file.** `cp deploy/prod.env.example deploy/prod.env` and fill it (gitignored).
 4. **Provider cache.** The AWS provider is 766 MB. `~/.tofurc` sets `plugin_cache_dir = "~/Library/Caches/wren_automation/tofu-plugins"`, so wren, autobrowse and every worktree share one copy.
 
@@ -102,9 +100,6 @@ later release) so the version still serving does not break.
 - Secrets live in one SSM SecureString the Lambda role alone can read; never in Terraform state
   except `pg_password` (state is local and gitignored).
 - Only the box role invokes this function; the CI role can only replace its code.
-- The browser container listens on loopback 3000 only. Caddy serves it over TLS at
-  `wss://api.wrenautomation.com/cdp`, outside the bearer: browserless checks its own token
-  in the URL. It renders public web pages and nothing else.
 
 ## Later
 

@@ -126,14 +126,12 @@ export function contentServices(deps: Deps): AnyService[] {
       ...(voice !== null ? { voice } : {}),
       // A post field's file (thumbnail, subtitles, cover) goes up to the media bucket.
       ...(settings.mediaBucket ? { media: { bucket: settings.mediaBucket } } : {}),
-      // A carousel's slides draw on the render tier's chromium: here, the render Lambda, or over CDP.
+      // A carousel's slides draw on the render tier's chromium: here or the render Lambda.
       ...(settings.renderer === "local"
         ? { slides: slidePainter() }
         : settings.renderer === "lambda" && settings.renderFunction
           ? { slides: slidePainter({ lambda: settings.renderFunction }) }
-          : settings.renderer === "cdp" && settings.cdpUrl
-            ? { slides: slidePainter({ connectUrl: settings.cdpUrl }) }
-            : {}),
+          : {}),
     }),
     // A client's Marketing in the portal: its drafts, posts, ads and search; verdicts to its desk.
     makeMarketingConsole({

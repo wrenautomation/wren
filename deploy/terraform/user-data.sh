@@ -1,6 +1,5 @@
 #!/bin/bash
 # @unit postgres: The main database.
-# @unit browser: Headless Chromium for page renders.
 # First boot of the Postgres box (Amazon Linux 2023, ARM). Idempotent: a reboot
 # re-runs nothing here (cloud-init runs user-data once), a rebuilt instance
 # finds the data volume already initialised and mounts it as is.
@@ -54,18 +53,6 @@ docker run -d --name wren-pg --restart unless-stopped \
   -c hba_file=/tls/pg_hba.conf -c password_encryption=scram-sha-256 \
   -c shared_buffers=256MB -c max_connections=60
 unset PW
-
-# The render tier: browserless chromium, token-gated, when a token was provisioned. Loopback
-# only: Caddy (box-front-door.sh) serves it over TLS as wss://api.wrenautomation.com/cdp.
-if [ -n "${browser_token_param}" ]; then
-  TOKEN="$(aws ssm get-parameter --region "${region}" --name "${browser_token_param}" --with-decryption \
-    --query Parameter.Value --output text)"
-  docker rm -f wren-browser >/dev/null 2>&1 || true
-  docker run -d --name wren-browser --restart unless-stopped \
-    -p 127.0.0.1:3000:3000 -e TOKEN="$TOKEN" -e CONCURRENT=2 -e TIMEOUT=60000 \
-    --shm-size=512m ghcr.io/browserless/chromium:latest
-  unset TOKEN
-fi
 
 # Nightly dump to S3; the bucket's lifecycle rule expires old ones. On the 1st,
 # a second dump goes to keep/ in Deep Archive and is never expired: the history.

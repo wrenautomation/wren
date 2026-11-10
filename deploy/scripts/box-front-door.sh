@@ -5,7 +5,7 @@
 #   api.wrenautomation.com (restate. retired 11-09, WA-1217): the bearer, then
 #     the door of the newest worker slot (9090/9091, apps/worker/src/rt.ts). A door that fails its
 #     health check drops out (a superseded slot drains). POSTs retry only when Caddy could not connect,
-#     so no call runs twice. /cdp: the box browser; it checks its own token, so it sits before the bearer.
+#     so no call runs twice.
 #   127.0.0.1:8090: the same door for callers on the box (Listmonk's postback), no bearer, loopback only.
 #   lists.wrenautomation.com: Listmonk (box-listmonk.sh).
 # Design: designs/2026-11-09-own-runtime.md, "Phase 6: one front door".
@@ -35,10 +35,6 @@ cat > "$D/Caddyfile.new" <<'EOF'
 }
 
 api.wrenautomation.com {
-	handle /cdp {
-		uri strip_prefix /cdp
-		reverse_proxy 127.0.0.1:3000
-	}
 	@authed header Authorization "Bearer {$DOOR_TOKEN}"
 	handle @authed {
 		import door

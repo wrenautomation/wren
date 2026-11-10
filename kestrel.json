@@ -55,7 +55,6 @@
         "WREN_DATABASE_POOL_PORT": "container:pgbouncer",
         "WREN_API_URL": "restate",
         "WREN_SMTP_PROBE_URL": "container:vps-prober",
-        "WREN_CDP_URL": "container:browser",
         "WREN_MEDIA_BUCKET": "s3:media",
         "WREN_FILES_BUCKET": "s3:files",
         "WREN_PAGES_BUCKET": "s3:pages",

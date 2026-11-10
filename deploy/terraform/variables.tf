@@ -23,7 +23,7 @@ variable "pg_password" {
 variable "pg_instance_type" {
   # t4g.medium ran 10-06 to 10-17. Back to t4g.small (-$12/mo, William 10-17) with RocksDB at
   # 256 MB and the old worker slot stopped once drained; 2 GB swap on the data volume.
-  description = "ARM; t4g.small is 2 GB: Postgres, Restate, browserless and the box worker."
+  description = "ARM; t4g.small is 2 GB: Postgres, PgBouncer, Caddy, listmonk and the box worker."
   type        = string
   default     = "t4g.small"
 }
@@ -77,13 +77,6 @@ variable "github_repo" {
 variable "github_sub_prefix" {
   description = "The repo's OIDC sub prefix when GitHub uses immutable subjects (repo:owner@id/name@id); `gh api repos/{owner}/{repo}/actions/oidc/customization/sub` shows it. Empty = plain repo:owner/name only."
   type        = string
-  default     = ""
-}
-
-variable "browser_token" {
-  description = "Token for the browserless chromium on the Postgres box (WREN_CDP_URL carries it). Generate like pg_password. Empty = no browser container."
-  type        = string
-  sensitive   = true
   default     = ""
 }
 

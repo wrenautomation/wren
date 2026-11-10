@@ -230,12 +230,10 @@ export const settingsSchema = z.object({
   reportFrom: z.string().email().optional(),
   /** Path of the Google service-account key (domain-wide delegation), or its JSON inline. */
   googleServiceAccount: z.string().min(1).default("~/.config/wren/wren-sender.json"),
-  /** "local" launches Playwright chromium; "cdp" / "browserbase" connect to a remote one (Lambda). */
-  renderer: z.enum(["local", "cdp", "browserbase", "lambda"]).default("local"),
+  /** "local" launches Playwright chromium; "lambda" uses the render Lambda (hosts with none). */
+  renderer: z.enum(["local", "lambda"]).default("local"),
   /** The render Lambda's name for renderer=lambda (designs/2026-11-09-render-lambda.md). */
   renderFunction: z.string().min(1).optional(),
-  /** The remote chromium's DevTools URL for renderer=cdp. Carries its token: a secret. */
-  cdpUrl: z.string().min(1).optional(),
   /** Path of the sender roster (TOML). */
   sendersFile: z.string().min(1).default("senders_config.toml"),
   /** Path of the SMTP/IMAP logins (JSON, address → {smtp, imap}) for the roster's `transport = "smtp"` inboxes. A secret. */
@@ -680,7 +678,6 @@ export const ENV_KEYS = {
   reportFrom: "WREN_REPORT_FROM",
   googleServiceAccount: "WREN_GOOGLE_SERVICE_ACCOUNT",
   renderer: "WREN_RENDERER",
-  cdpUrl: "WREN_CDP_URL",
   renderFunction: "WREN_RENDER_FUNCTION",
   sendersFile: "WREN_SENDERS_FILE",
   mailboxesFile: "WREN_MAILBOXES_FILE",

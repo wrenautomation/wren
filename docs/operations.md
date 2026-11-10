@@ -9,7 +9,7 @@ how a call runs). Setup runbook: `deploy/README.md`.
 |---|---|---|---|
 | Runtime (`@wren/runtime`, tables `rt.*` in Postgres) | every loop's journal, timers and object state; the door `https://api.wrenautomation.com` (Caddy checks the bearer) | the box worker, below | this file, `designs/2026-11-09-own-runtime.md` |
 | Lambda `wren-prod-worker` (us-east-1, Node 22 arm64, 1 GB, 15 min max) | every service the box does not serve; one version per push | CI `deploy.yml` | `deploy/README.md` |
-| EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17, PgBouncer (6432, transaction mode), browserless Chromium, listmonk and Caddy in Docker; the **box worker**: the runtime's dispatcher and door, its Lambda lane, and `BOX_SERVICES` (LeadPoolFill, CompanySiteFind, CompanyEnrich, Resolution, Enrichment, Discovery, LeadVerify, PageHtmlArchive, BooksClose, BooksDaily, MyMailTriage, SocialActivityRead). Two slots, worker 9080/9081 and door 9090/9091; the new build takes new rows, the old one finishes its pinned rows (`apps/worker/src/box-slot.ts`, `rt.box_builds`) | CI over SSM (`deploy/scripts/box-worker.sh`, `box-front-door.sh`) | `deploy/README.md`, `apps/worker/src/rt.ts` |
+| EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17, PgBouncer (6432, transaction mode), listmonk and Caddy in Docker; the **box worker**: the runtime's dispatcher and door, its Lambda lane, and `BOX_SERVICES` (LeadPoolFill, CompanySiteFind, CompanyEnrich, Resolution, Enrichment, Discovery, LeadVerify, PageHtmlArchive, BooksClose, BooksDaily, MyMailTriage, SocialActivityRead). Two slots, worker 9080/9081 and door 9090/9091; the new build takes new rows, the old one finishes its pinned rows (`apps/worker/src/box-slot.ts`, `rt.box_builds`) | CI over SSM (`deploy/scripts/box-worker.sh`, `box-front-door.sh`) | `deploy/README.md`, `apps/worker/src/rt.ts` |
 | RackNerd VPS (192.255.226.241, Buffalo) | mailifier SMTP prober (`probe.wrenautomation.com`) and SearXNG for the research engine (`search.wrenautomation.com`, bearer SSM `/wren/prod/searxng_token`), both behind Caddy | `deploy/scripts/deploy-vps.sh` | "Verifying addresses" and "Search" below |
 | RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`); in `WREN_SMTP_PROBE_URL`, probes once its PTR resolves. Second SearXNG (`search2.wrenautomation.com`, same bearer): a second search IP and a fallback | `PROBE_HOST=probe2.wrenautomation.com SEARCH_HOST=search2.wrenautomation.com deploy/scripts/deploy-vps.sh` | "Verifying addresses" below |
 | William's Mac | autobrowse desk worker under launchd: every `sites` call (browser, logins, Chrome profiles, home IP). It pulls its calls from the door (`/claim`, long-poll) | `../autobrowse/deploy/desk/install.sh` | `../autobrowse/deploy/README.md` |
@@ -40,7 +40,7 @@ dispatcher ──Lambda lane, box instance role──▶ Lambda wren-prod-worker
 desk worker (Mac) ──HTTPS long-poll /claim──▶ door
 Lambda, box ──TLS 6432──▶ PgBouncer ──▶ Postgres on EC2
 CLI, migrations ──TLS 5432──▶ Postgres on EC2
-Lambda, box ──wss /cdp, token──▶ Caddy ──127.0.0.1:3000──▶ browserless
+Lambda, box ──AWS Invoke──▶ render Lambda wren-prod-render (read, paint, shot)
 Resolution (box) ──HTTPS──▶ prober (RackNerd) ──port 25──▶ mail servers
 Lambda ──Gmail API (domain-wide delegation)──▶ Gmail
 GitHub Actions (main) ──OIDC role──▶ Lambda versions, box worker, Cloudflare Workers
@@ -57,13 +57,13 @@ desk pulls its calls from the door, so it needs no inbound tunnel.
 
 | Resource | Job | ≈ cost/mo |
 |---|---|---|
-| EC2 `t4g.small` (AL2023 ARM) | Postgres, browserless, Caddy and the box worker in Docker | $12 (free trial to 2026-12-31) |
+| EC2 `t4g.small` (AL2023 ARM) | Postgres, PgBouncer, listmonk, Caddy and the box worker in Docker | $12 (free trial to 2026-12-31) |
 | EBS gp3 20 GB | DB data, survives instance rebuild | $2 |
 | Elastic IP | fixed DB address | $0 while attached |
-| Security group | 5432 (TLS Postgres), 6432 (TLS PgBouncer), 80/443 (Caddy: the door, browser at `/cdp`) only | $0 |
+| Security group | 5432 (TLS Postgres), 6432 (TLS PgBouncer), 80/443 (Caddy: the door) only | $0 |
 | S3 bucket | nightly `pg_dump -Fc`, 30-day lifecycle | pennies |
 | Lambda `wren-prod-worker` + log group | the worker | ≈ $0 at this volume |
-| SSM params `/wren/prod/{pg_password,browser_token,env}` | secrets | $0 |
+| SSM params `/wren/prod/{pg_password,env}` | secrets | $0 |
 | Lambda `wren-prod-turbo-cache` + function URL + bucket `wren-prod-turbo-cache` (30-day expiry) | turbo's shared remote cache for CI and the Mac (`deploy/terraform/turbo-cache.tf`; code `deploy/turbo-cache/deploy.sh`; Mac `node scripts/turbo-login.mjs`). Token `TURBO_TOKEN`, URL `TURBO_API`, both in env-2 and GitHub secrets. Down: turbo uses its local cache | ≈ $0.30 |
 | IAM: instance role (invokes the Lambda), Lambda role, `wren-prod-ci` + GitHub OIDC provider | who may do what | $0 |
 
@@ -274,7 +274,7 @@ The stages by hand, keyed by niche (`all` = every niche); each reports what it m
 curl -X POST -H "$H" -H 'content-type: application/json' $U/Discovery/sec_ria/discover -d '{"limit":10}'   # name → domain, DoH + homepage gate, free; one unit per company
 curl -X POST -H "$H" -H 'content-type: application/json' $U/Discovery/sec_ria/verify   -d '{"limit":10}'   # prove asserted domains, free
 curl -X POST -H "$H" $U/Enrichment/sec_ria/crawl   -d '{"limit":10}'   # homepage + contact/team pages
-curl -X POST -H "$H" $U/Enrichment/sec_ria/render  -d '{"limit":10}'   # JS shells, through the CDP box
+curl -X POST -H "$H" $U/Enrichment/sec_ria/render  -d '{"limit":10}'   # JS shells, through the render Lambda
 curl -X POST -H "$H" $U/Enrichment/sec_ria/scan    -d '{}'             # addresses in stored pages, deterministic
 curl -X POST -H "$H" $U/Enrichment/sec_ria/extract -d '{"limit":20}'   # people + roles, one model call per page (Cohere)
 curl -X POST -H "$H" $U/Enrichment/sec_ria/applyExtractions -d '{}'

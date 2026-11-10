@@ -54,11 +54,6 @@ output "ssm_env_param" {
   value = aws_ssm_parameter.env.name
 }
 
-output "cdp_url" {
-  description = "WREN_CDP_URL for the worker when the browser container is on (renderer=cdp)."
-  value       = var.browser_token == "" ? "" : "wss://api.wrenautomation.com/cdp?token=${var.browser_token}"
-  sensitive   = true
-}
 
 output "pages_bucket" {
   description = "WREN_PAGES_BUCKET: archived page HTML; goes in the box worker's /wren/prod/box env"

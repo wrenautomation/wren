@@ -1,6 +1,4 @@
-# Postgres 17 in Docker on one ARM instance — plus, when a token is set, a
-# browserless chromium beside it: the worker's render tier over CDP, at no cost
-# beyond the box (Browserbase is the alternative). Reachable from anywhere on 5432 —
+# Postgres 17 in Docker on one ARM instance (pages render in the render Lambda, render.tf). Reachable from anywhere on 5432 —
 # the Lambda has no fixed address and a NAT gateway costs more than the box —
 # so the listener is TLS-only (hostssl) with scram passwords and a long random
 # secret. Data lives on its own volume; the instance itself is disposable.
@@ -28,13 +26,6 @@ resource "aws_ssm_parameter" "pg_password" {
   name  = "${local.ssm_root}/pg_password"
   type  = "SecureString"
   value = var.pg_password
-}
-
-resource "aws_ssm_parameter" "browser_token" {
-  count = var.browser_token == "" ? 0 : 1
-  name  = "${local.ssm_root}/browser_token"
-  type  = "SecureString"
-  value = var.browser_token
 }
 
 # The SMTP prober's bearer. The prober runs off AWS (outbound port 25 is shut here);
@@ -93,7 +84,7 @@ resource "aws_security_group" "pg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   # Caddy, the front door (box-front-door.sh): the runtime's door over TLS (bearer-checked) and
-  # the browser at /cdp; 80 answers ACME and redirects. Description kept: a change re-adds the rule.
+  # 80 answers ACME and redirects. Description kept: a change re-adds the rule.
   dynamic "ingress" {
     for_each = [80, 443]
     content {
@@ -178,7 +169,6 @@ data "aws_kms_alias" "ssm" {
 locals {
   pg_parameters = concat(
     [aws_ssm_parameter.pg_password.arn],
-    aws_ssm_parameter.browser_token[*].arn,
     # The box worker runs with the Lambda's env, roster and mailboxes, plus its own.
     [aws_ssm_parameter.env.arn, aws_ssm_parameter.env_2.arn, aws_ssm_parameter.env_3.arn, aws_ssm_parameter.keystore.arn],
     [aws_ssm_parameter.roster.arn, aws_ssm_parameter.mailboxes.arn, aws_ssm_parameter.box.arn],
@@ -299,7 +289,6 @@ resource "aws_instance" "pg" {
     region              = var.region
     volume_id           = aws_ebs_volume.pg_data.id
     pw_param            = aws_ssm_parameter.pg_password.name
-    browser_token_param = var.browser_token == "" ? "" : aws_ssm_parameter.browser_token[0].name
     backups             = aws_s3_bucket.backups.bucket
     db_name             = var.name
     db_user             = var.name

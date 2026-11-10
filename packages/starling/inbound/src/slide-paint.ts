@@ -1,7 +1,7 @@
 /**
  * The slide painter: a chromium draws `slidesHtml`'s page, a 1080 square JPEG per slide (Instagram takes JPEG only) and the
  * whole page as a PDF (one square page each) for LinkedIn. A local chromium on the laptop or the
- * desk; where none can run, the render Lambda (`WREN_RENDER_FUNCTION`) or a chromium over CDP.
+ * desk; where none can run, the render Lambda (`WREN_RENDER_FUNCTION`).
  * Playwright loads lazily, so a host that never draws never loads it.
  */
 import { paintInBrowser, type RenderLambda, renderLambda } from "@wren/browser";
@@ -12,13 +12,8 @@ export class PaintUnavailable extends Error {
   override name = "PaintUnavailable";
 }
 
-/**
- * The painter: `lambda` paints in the render Lambda; `connectUrl` reaches a remote chromium;
- * with neither, one launches here.
- */
-export function slidePainter(
-  o: { connectUrl?: string | null; lambda?: string | RenderLambda } = {},
-): SlidePainter {
+/** The painter: `lambda` paints in the render Lambda; without it, one launches here. */
+export function slidePainter(o: { lambda?: string | RenderLambda } = {}): SlidePainter {
   if (o.lambda) {
     const lambda = typeof o.lambda === "string" ? renderLambda(o.lambda) : o.lambda;
     return async (html, count) => {
@@ -38,16 +33,13 @@ export function slidePainter(
     }
     let browser: Awaited<ReturnType<typeof playwright.chromium.launch>>;
     try {
-      browser = o.connectUrl
-        ? await playwright.chromium.connectOverCDP(o.connectUrl)
-        : await playwright.chromium.launch({ headless: true });
+      browser = await playwright.chromium.launch({ headless: true });
     } catch (err) {
-      // The CDP URL carries a token: never put it in the message.
       throw new PaintUnavailable(
-        o.connectUrl
-          ? `could not reach the remote browser (WREN_CDP_URL): ${(err as Error).message.split("\n")[0]}`
-          : "no chromium to draw with: `pnpm exec playwright install chromium`",
-        { cause: err },
+        "no chromium to draw with: `pnpm exec playwright install chromium`",
+        {
+          cause: err,
+        },
       );
     }
     try {

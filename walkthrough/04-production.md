@@ -10,7 +10,7 @@ loop.
 | Restate Cloud | env `wren-automation`, region `us`; the only always-on piece: every loop's timer and state |
 | Worker | AWS Lambda `wren-prod-worker` (Node 22 arm64); runs only when Restate invokes it |
 | State | Postgres 17 in Docker on one EC2 `t4g.small`, own EBS, TLS only, nightly dump → S3 |
-| Browser | browserless Chromium on the same box over CDP (`WREN_RENDERER=cdp`) |
+| Browser | the render Lambda `wren-prod-render` (`WREN_RENDERER=lambda`) |
 | Secrets | one SSM SecureString `/wren/prod/env`, loaded at cold start |
 | Sites / posting | autobrowse's box (`i-0416f466bb82982eb`), woken by wren before a `sites` call |
 
