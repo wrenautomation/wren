@@ -49,3 +49,10 @@ Reference proof run (by hand): `/private/tmp/claude-502/-Users-williamjin-Docume
   `renderWatched`, `readWatchFacts` and the Cohere and Gemini asks are falcon's
   (`@wrenautomation/falcon/video`); `watch` over a URL, `download`, `readVideo`, `readYoutube`,
   `readYoutubeByUrl`, `readAudio` and `flatPlaylist` are weaver's (`@wrenautomation/weaver/video`).
+- 2026-11-10 (WA-1279, engine 0.65.0): frames are picked, not gridded. One ffmpeg pass writes 64x36 gray
+  candidates at up to 8 a second; picks are the start, each side of a cut, a block change ≥ 0.4 since the
+  last pick (1 s apart) and a steady frame every 6 s, 300 at most. Each frame carries its why. The
+  ladder: a reel's or TikTok's open is a skim (caption, speech, cuts, picks, visual cues: cuts a minute,
+  words a second, words a cut, change picks, pointing words); `--see` reads the frames (paid, rate-limited);
+  `--frames <dir>` writes them for a session to read. Pixel change cannot tell a gesturing speaker from a
+  demo: a talking head still gets ~1 frame a second. Its saving is the skim, not the sampler.
