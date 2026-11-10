@@ -15,7 +15,8 @@ import type { SubjectView } from "../../modules/variants/page.js";
 const meta: Meta = { title: "Vireo/Chat cards", parameters: { layout: "padded" } };
 export default meta;
 
-const batch = (ref: string) => (VARIANTS_ANSWERS["variants/batch"] as (b: object) => Whole)({ ref });
+const batch = (ref: string) =>
+  (VARIANTS_ANSWERS["variants/batch"] as (b: object) => Whole)({ ref });
 const TREE = TREE_SUBJECT as unknown as SubjectView;
 /** a live read's pace in the demo */
 const STEP_MS = 700;

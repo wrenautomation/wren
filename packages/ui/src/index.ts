@@ -44,6 +44,14 @@ export {
   AgentTasks,
   type PickOption,
 } from "./agent-picks.js";
+export {
+  BusyTag,
+  CARD_SMALL,
+  type NextAsk,
+  type OnAsk,
+  ProductCard,
+  type ProductCardProps,
+} from "./agent-product-card.js";
 export { toolLine } from "./agent-steps.js";
 export {
   type AgentFile,
@@ -60,14 +68,6 @@ export {
   modelName,
   threadMessage,
 } from "./agent-thread.js";
-export {
-  ProductCard,
-  type ProductCardProps,
-  BusyTag,
-  CARD_SMALL,
-  type NextAsk,
-  type OnAsk,
-} from "./agent-product-card.js";
 export {
   Browser,
   type BrowserFolder,

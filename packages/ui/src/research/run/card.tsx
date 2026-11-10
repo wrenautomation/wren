@@ -3,7 +3,7 @@
  * findings. One model with the page: `RunGraphData`.
  */
 import type { ReactNode } from "react";
-import { ProductCard, BusyTag, type NextAsk, type OnAsk } from "../../agent-product-card.js";
+import { BusyTag, type NextAsk, type OnAsk, ProductCard } from "../../agent-product-card.js";
 import { RunGraph } from "./graph.js";
 import { pl, type RunGraphData } from "./model.js";
 
