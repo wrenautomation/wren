@@ -137,7 +137,7 @@ export const BUILTIN_FORMATS: Readonly<Record<string, SourceFormat>> = {
   },
   "google-maps": {
     name: "google-maps",
-    help: "gosom/google-maps-scraper CSV (listings -> companies, general inbox)",
+    help: "the current Maps scraper's CSV (listings -> companies, general inbox)",
     build: (p) => new GoogleMapsCsvSource(p),
     niche: null,
     columnMapped: false,

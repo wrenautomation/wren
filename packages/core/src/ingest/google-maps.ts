@@ -1,5 +1,5 @@
 /**
- * Google Maps listings, as the open-source gosom/google-maps-scraper writes them
+ * Google Maps listings, as the current Maps scraper writes them (the MIT google-maps-scraper image)
  * (its CSV download or `-results out.csv`), turned into import rows. Niche-agnostic:
  * any local-business niche (HVAC, dentists, insurance) sources the same way.
  *
@@ -8,12 +8,18 @@
  * the general inbox. Identity is domain-first; a listing with no usable website is
  * keyed `gmaps:<cid>` (the place's stable id), never by its Maps URL.
  *
- * gosom headers that alias to a person field (`title` = job title, `owner` = full
+ * Scraper headers that alias to a person field (`title` = job title, `owner` = full
  * name) are re-homed under "<header> (raw)", so no business name reads as a person.
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { extractDomain, isPlatformDomain } from "../emails.js";
+import {
+  emailDomain,
+  extractDomain,
+  isFreemail,
+  isPlatformDomain,
+  registrableDomain,
+} from "../emails.js";
 import { canonicalize, IDENTITY_KEY, type RawRow } from "./schema.js";
 import { decodeCsvBytes, type LeadSource, parseCsvRecords, rowsFromRecords } from "./sources.js";
 
@@ -40,13 +46,28 @@ function address(row: RawRow): {
   }
 }
 
-/** One gosom row -> an import row: canonical fields first, the listing riding along. */
+/**
+ * The firm's inbox from `emails`: one on its site's domain, else a free-mail one. Another
+ * domain on a firm's site is its web agency or a vendor (wpm@webmastered.com), not the firm.
+ * No site: the first. The whole cell rides along either way.
+ */
+function inbox(row: RawRow, domain: string | null): string | undefined {
+  const all = (cell(row, "emails") ?? "").split(/[,;\s]+/).filter((e) => e.includes("@"));
+  if (!domain) return all[0];
+  const site = registrableDomain(domain);
+  return (
+    all.find((e) => registrableDomain(emailDomain(e)) === site) ??
+    all.find((e) => isFreemail(emailDomain(e)))
+  );
+}
+
+/** One scraper row -> an import row: canonical fields first, the listing riding along. */
 export function mapsRow(row: RawRow): RawRow {
   const name = cell(row, "title");
   const website = cell(row, "website");
-  const email = cell(row, "emails")
-    ?.split(/[,;\s]+/)
-    .find((e) => e.includes("@"));
+  const domain = website ? extractDomain(website) : null;
+  const own = domain && !isPlatformDomain(domain) ? domain : null;
+  const email = inbox(row, own);
   const { city, state, country } = address(row);
   const geo = [city, state].filter(Boolean).join(", ");
   const out: RawRow = {
@@ -61,10 +82,8 @@ export function mapsRow(row: RawRow): RawRow {
     const aliased = Object.keys(canonicalize({ [header]: "x" })).length > 0;
     out[aliased || header in out ? `${header} (raw)` : header] = value;
   }
-  const domain = website ? extractDomain(website) : null;
   const cid = cell(row, "cid");
-  if (cid && !(domain && !isPlatformDomain(domain)))
-    out[IDENTITY_KEY] = { source_key: `gmaps:${cid}` };
+  if (cid && !own) out[IDENTITY_KEY] = { source_key: `gmaps:${cid}` };
   return out;
 }
 

@@ -38,6 +38,27 @@ describe("google-maps rows", () => {
     }
   });
 
+  it("picks the inbox on the site's domain over a web agency's", () => {
+    const emails = "team@rsmconnect.com, wpm@webmastered.com, info@acmehvac.com";
+    expect(mapsRow({ ...listing, emails }).email).toBe("info@acmehvac.com");
+    expect(mapsRow({ ...listing, emails: "wpm@webmastered.com, acmehvac@gmail.com" }).email).toBe(
+      "acmehvac@gmail.com",
+    );
+    const agency = mapsRow({ ...listing, emails: "wpm@webmastered.com" });
+    expect(agency.email).toBeUndefined();
+    expect(agency.emails).toBe("wpm@webmastered.com");
+  });
+
+  it("no website: the first email", () => {
+    const row = mapsRow({ ...listing, website: "", emails: "a@vendor.com, b@gmail.com" });
+    expect(row.email).toBe("a@vendor.com");
+  });
+
+  it("the kit's social columns ride along", () => {
+    const row = mapsRow({ ...listing, instagram: "https://instagram.com/acme", facebook: "fb" });
+    expect(row).toMatchObject({ instagram: "https://instagram.com/acme", facebook: "fb" });
+  });
+
   it("a broken address cell is kept, not fatal", () => {
     const row = mapsRow({ ...listing, complete_address: "{oops" });
     expect(row.geo).toBeUndefined();
