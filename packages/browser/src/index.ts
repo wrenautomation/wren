@@ -9,6 +9,7 @@ import type { Browser } from "playwright-core";
 const SETTLE_MS = 1200;
 /** WebGL and intro motion need longer than text before a poster */
 const SHOT_SETTLE_MS = 3000;
+const SHOT_LOAD_MS = 6000;
 export const PAGE_TIMEOUT_MS = 20_000;
 /** the words are the payload */
 const BLOCKED = new Set(["image", "media", "font"]);
@@ -97,12 +98,14 @@ export async function shotInBrowser(
   const context = await browser.newContext({ viewport: size, deviceScaleFactor: 1 });
   try {
     const page = await context.newPage();
-    try {
-      await page.goto(url, { waitUntil: "load", timeout: PAGE_TIMEOUT_MS });
-    } catch (err) {
+    await page
+      .goto(url, { waitUntil: "domcontentloaded", timeout: PAGE_TIMEOUT_MS })
       // slow page: shoot what has drawn
-      if ((err as Error)?.name !== "TimeoutError") throw err;
-    }
+      .catch((err: Error) => {
+        if (err?.name !== "TimeoutError") throw err;
+      });
+    // a looping video or stream holds `load` back for good (11-09: 20 s on every live page)
+    await page.waitForLoadState("load", { timeout: SHOT_LOAD_MS }).catch(() => {});
     await page.waitForTimeout(SHOT_SETTLE_MS);
     return await page.screenshot({ type: "jpeg", quality: 82 });
   } finally {
