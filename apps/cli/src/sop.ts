@@ -191,7 +191,8 @@ export function registerSop(
     )
     .option("--model <model>", "Claude Code model", "opus")
     .option("--no-sync", "skip the standard.md and calls.md rewrite first")
-    .action(async (name: string, opts: { model: string; sync: boolean }) => {
+    .option("--ask <text>", "one instruction for this build only (it goes in the commit's why)")
+    .action(async (name: string, opts: { model: string; sync: boolean; ask?: string }) => {
       // No database here (the Mac with Postgres down): build from the two files as they are on disk.
       if (opts.sync)
         await sync(name).catch((err: unknown) =>
@@ -200,7 +201,7 @@ export function registerSop(
           ),
         );
       const llm = modelLlm(claudeCode(opts.model, { timeoutMs: 1_800_000 }));
-      const text = await buildSop(root, name, llm, { by: BY });
+      const text = await buildSop(root, name, llm, { by: BY }, opts.ask);
       console.log(`${join(root, "guides", `${name}.md`)} (${text.split(/\s+/).length} words)`);
     });
 

@@ -229,3 +229,16 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
   for lines it drops).
 - 2026-11-10: goldfish review of the entry above: 30 findings, 17 applied (10 in code), 13 rejected; open:
   none.
+- 2026-11-10 (WA-1290): the shape is now a topic. `sop-making` (knowledge) holds the procedure for making or
+  fixing a topic and four sets: `layers` (SL, which line goes where), `lines` (RW, how a rule line is
+  written), `sharing` (SH), `skill` (SK, the SKILL.md door), plus `checks/audit.mjs` (fails a topic with
+  no rule set, no proof step or a SKILL.md that does not render; warns on rules left in steps, uncited
+  lines, long lines, sets the guide never names by id). `sop build` puts the first three sets in its
+  prompt as `<house>` rules, so a build follows the same rules a person does, and changing a house line
+  changes every later build. Lines from the notes now cite `[notes]` (they had no cite, so the audit
+  could not tell a notes rule from an unsourced one). `sop build --ask "<text>"` adds one instruction for
+  one build. Three passes ran on the 13 built topics: split deeper (rules out of steps into sets by
+  subject), point by id, and polish (a proof step, notes cites, facts and actions back to their steps,
+  one rule per line); the asks are in `topics/sop-making/refs/`. knowledge 0.68.5 lints every line id a
+  guide names (live, in a cited set), so the build's own check for its guide is gone; the check for
+  lines another guide names stays, because a write lints only the records it touches.

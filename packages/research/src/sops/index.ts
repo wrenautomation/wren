@@ -208,6 +208,8 @@ export const STYLE = `Style: short plain sentences a person would say out loud. 
 
 interface SopInput {
   name: string;
+  /** One instruction for this build only (`sop build --ask`). */
+  ask?: string;
   notes: string;
   /** `calls.md`: the owner's calls on pieces, rolled up; empty when none. */
   calls: string;
@@ -216,6 +218,8 @@ interface SopInput {
   current: string;
   /** Other topics' rule sets this SOP uses, as text; read only. */
   shared?: string;
+  /** The house rules every SOP follows: the `sop-making` rule sets, cites stripped. */
+  house?: string;
   /** Highest priority first. */
   sources: { name: string; priority: number; md: string }[];
 }
@@ -234,16 +238,19 @@ export function sopPrompt(input: SopInput): string {
     "Structure. When a source teaches its own framework (numbered parts, a formula, named stages), make that the SOP's skeleton in the source's order, with the source's names, and nest everything else under it. Cover every key point the source makes; a missed point is worse than a longer SOP.",
     "Points. A source whose text is a list of points (its file name starts with points-) is the generated extract of a raw source: every line is a point with its citation already in brackets. Take the points that serve this SOP and that the notes and calls do not contradict. Keep each point's citation as given.",
     `Rule sets. The doc has two layers. The procedure is the steps in the order they happen; it holds no rules and points at a rule by its id ("check OF-3"). A rule that applies throughout, a check, a pattern list or a catalog goes in a rule set: a block that opens with <!-- set <set-id> <PREFIX> "<Title>" --> on its own line and closes with <!-- /set -->. One rule per top-level list item. Keep every block of the current doc, with its marker as given. A kept rule keeps its id (- **OF-3** ...) and its words unless the notes or a higher source change it; never renumber, never reuse an id. A new rule is a plain list item with no id; code numbers it. Make a new block only when the rules have a second subject another SOP could use alone: <!-- set ${input.name}-<subject> "<Title>" -->. With no block yet, put the rules in <!-- set ${input.name}-rules "Rules" -->. A set holds what a source supports: every block cites at least one source. A rule only the notes give stays out: the notes load beside the SOP.`,
+    "House rules. The <house> block is how every SOP in this repo is shaped: which line goes in which layer, how a rule line is written, how sets are shared. Follow it. It never overrides the notes, the calls or a source on what the SOP says, only on its shape.",
     "Shared sets. The <shared> block holds rule sets another SOP owns and this one uses. Never restate or edit them; point at their ids.",
-    "Citations. After a step or rule, cite where it came from in brackets: the source file stem and, for a video, the nearest [m:ss] marker before the words, e.g. [youtube-abc123 1:02:30] or [drive-9f8e]. Notes need no citation.",
+    "Citations. After a step or rule, cite where it came from in brackets: the source file stem and, for a video, the nearest [m:ss] marker before the words, e.g. [youtube-abc123 1:02:30] or [drive-9f8e]. A step or rule that comes from the notes cites [notes].",
     input.current.trim()
       ? "There is a current SOP below. Keep what still holds, word for word where you can. Change only what the notes or a higher-priority source contradicts, and add only what they add. Do not reword for its own sake."
       : "There is no SOP yet. Start with a one-line purpose, then numbered steps in the order they happen, then the rule set. Use the sections the material asks for, no more.",
+    ...(input.ask ? [`This build. The owner asks, for this build only: ${input.ask}`] : []),
     "Reply with only the SOP markdown, starting with a level-one heading.",
     `<notes>\n${input.notes.trim() || "(none yet)"}\n</notes>`,
     `<calls>\n${input.calls.trim() || "(none yet)"}\n</calls>`,
     `<standard>\n${input.standard.trim() || "(none yet)"}\n</standard>`,
     `<current>\n${input.current.trim() || "(none yet)"}\n</current>`,
+    `<house>\n${input.house?.trim() || "(none)"}\n</house>`,
     `<shared>\n${input.shared?.trim() || "(none)"}\n</shared>`,
     sources,
   ].join("\n\n");
@@ -284,6 +291,19 @@ function setBody(body: string): { title: string; body: string } {
 
 const FRONT_MATTER = /^---\n[\s\S]*?\n---\n?/;
 
+const HOUSE = ["sop-making-layers", "sop-making-lines", "sop-making-sharing"];
+
+/** The sets of the `sop-making` topic, cites stripped: they number that topic's sources, not this one's. */
+export function houseRules(root: string): string {
+  return HOUSE.map((id) =>
+    readRecord(root, id)
+      ?.body.replace(/ \[\d+(?: [^\]]*)?\]/g, "")
+      .trim(),
+  )
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 export const topicDir = (root: string, name: string) => join(root, "topics", name);
 
 type Loaded = ReturnType<typeof loadWorking>["docs"][number]["doc"];
@@ -321,8 +341,14 @@ export async function readSopDir(root: string, name: string): Promise<SopDir> {
   const dir = topicDir(root, name);
   const read = (f: string) => readFile(join(dir, f), "utf8").catch(() => "");
   const docs = loadWorking(root).docs.map((l) => l.doc);
+  // a source the guide or a set of it cites is read too, tagged or not
+  const cited = new Set(
+    docs
+      .filter((d) => live(d) && (d.fm.id === name || (d.fm.type === "rule" && d.fm.topic === name)))
+      .flatMap((d) => d.fm.cites),
+  );
   const sources = docs
-    .filter((d) => d.fm.type === "source" && live(d) && tagged(d, name))
+    .filter((d) => d.fm.type === "source" && live(d) && (tagged(d, name) || cited.has(d.fm.id)))
     .map((d) => {
       const priority = Number(d.fm.priority ?? DEFAULT_PRIORITY);
       const points = pointsFor(docs, d.fm.id, name);
@@ -702,7 +728,6 @@ function docChanges(
   const title = g.body.match(/^# (.+)$/m)?.[1] ?? name;
   const changes: Change[] = [];
   const notes: string[] = [];
-  const liveIds = new Set<string>();
   const dropped = new Map<string, string>();
   sets.forEach((s, i) => {
     const prev = read.sets.find((x) => x.id === s.id);
@@ -731,7 +756,6 @@ function docChanges(
         `${name}: set ${s.id} cites no source or call. A rule set holds what a source or a call supports; a rule only the notes give stays in notes.md`,
       );
     const fields = { title: `${title}: ${heading}`, body: n.body, cites: n.cites, last: a.last };
-    for (const id of linesById(a.body).keys()) liveIds.add(id);
     const stored = prev ? readRecord(root, s.id) : null;
     // an unchanged set gets no edit: a new version would mark every guide that cites it stale
     if (
@@ -749,9 +773,7 @@ function docChanges(
         : { op: "add", type: "rule", id: s.id, topic: name, order: i + 1, prefix, ...fields },
     );
   });
-  // a rule id in prose must name a live line of a set its guide cites
-  for (const id of read.sharedIds)
-    for (const k of linesById(readRecord(root, id)?.body ?? "").keys()) liveIds.add(k);
+  // a dead line id in this guide: the write's lint refuses it (knowledge 0.68.5); other guides it does not touch
   const named = (body: string) => [
     ...new Set(
       [...body.matchAll(/\b([A-Z]{2,3})-\d+\b/g)]
@@ -759,11 +781,6 @@ function docChanges(
         .map((m) => m[0]),
     ),
   ];
-  const dead = named(g.body).filter((id) => !liveIds.has(id));
-  if (dead.length)
-    throw new Error(
-      `${name}: the procedure names ${dead.join(", ")}, not a live line of a set it cites`,
-    );
   for (const d of all.filter(
     (x) => x.fm.type === "guide" && x.fm.status === "live" && x.fm.id !== name,
   )) {
@@ -802,6 +819,7 @@ export async function buildSop(
   name: string,
   llm: LlmClient,
   who: Pick<By, "by">,
+  ask?: string,
 ): Promise<string> {
   const read = await readSopDir(root, name);
   if (!read.sources.length && !read.notes.trim())
@@ -812,7 +830,12 @@ export async function buildSop(
     throw new Error(
       `${name}: ${byHand.map((s) => s.id).join(", ")} written by hand; edit this topic with knowledge apply, not sop build`,
     );
-  const { text } = await llm.complete(sopPrompt({ name, ...read }), { maxTokens: 32_000 });
+  const { text } = await llm.complete(
+    sopPrompt({ name, ...read, house: houseRules(root), ...(ask ? { ask } : {}) }),
+    {
+      maxTokens: 32_000,
+    },
+  );
   const doc = `${text.trim().replace(/^```(?:markdown)?\n([\s\S]*?)\n```$/, "$1")}\n`;
   // a record edited while the model wrote would be overwritten whole
   if ((await readSopDir(root, name)).current !== read.current)
@@ -821,7 +844,7 @@ export async function buildSop(
   if (changes.length)
     await write(root, changes, {
       by: who.by,
-      why: `built from notes, calls, the standard and ${read.sources.length} sources${report ? `; rules: ${report}` : ""}`,
+      why: `built from notes, calls, the standard and ${read.sources.length} sources${ask ? `; asked: ${ask}` : ""}${report ? `; rules: ${report}` : ""}`,
     });
   await writeSkill(root, name);
   const sop = await sopText(root, name);
