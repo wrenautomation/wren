@@ -3,6 +3,7 @@
  * browser asks 127.0.0.1 itself, so Chrome asks once to let the portal reach the local network.
  * The seam is the JSON: these types copy what the page reads from weaver's `view.ts` (`v: 1`).
  */
+import type { Evidence, Speaker } from "@wren/ui/research/run";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 /** `?serve=` for another port. CSP connect-src names 127.0.0.1:4747 (public/_headers). */
@@ -43,6 +44,13 @@ export interface RunQuery extends Who {
   again: string[];
 }
 
+/** A value with who said it: the agent, the judge (with its probability) or a rule on the host. */
+export interface Known<T> {
+  value: T;
+  by: "agent" | "judge" | "rule";
+  p?: number;
+}
+
 export interface RunHit extends Who {
   id: string;
   round: number;
@@ -57,6 +65,9 @@ export interface RunHit extends Who {
   call?: { verdict: "keep" | "drop"; why?: string } & Who;
   judge?: Answers;
   document?: string;
+  /** weaver 0.68.0: who speaks and the evidence, best known. */
+  speaker: Known<Speaker>;
+  evidence: Known<Evidence>;
 }
 
 export interface RunDocument extends Who {
@@ -71,7 +82,8 @@ export interface RunDocument extends Who {
   /** The page's picture (og:image); weaver 0.52.0. */
   image?: string;
   chars: number;
-  class?: string;
+  speaker: Known<Speaker>;
+  evidence: Known<Evidence>;
   judge?: Answers;
   verdict?: { quality: string; gap?: string };
   person?: string;
@@ -86,7 +98,8 @@ export interface RunFinding extends Who {
   date?: string;
   kept: boolean;
   fixes?: string;
-  class?: string;
+  /** Its own evidence, else its page's. */
+  evidence: Known<Evidence>;
   /** weaver 0.67.2: only in a run with a `reference` query. */
   lane?: "guided" | "open" | "both" | "other";
   references?: string[];

@@ -93,7 +93,8 @@ export const Graph = tidy(
     const p = within(page);
     await p.findByRole("link", { name: "All runs" });
     await waitFor(() => expect(page.querySelector(".rg .rg-nodes [data-n]")).not.toBeNull(), LATE);
-    await p.findAllByText(/^Samples win cafes/, {}, LATE);
+    // the list opens on Searches
+    await p.findAllByText(/^bakery wholesale accounts first buyer/, {}, LATE);
   }),
 );
 

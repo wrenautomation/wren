@@ -611,7 +611,7 @@ function PageCard({ view, d, go }: { view: RunView; d: RunDocument; go: Go }) {
         d.media,
         d.channel,
         d.date,
-        d.class,
+        `${d.speaker.value.replace(/_/g, " ")}, ${d.evidence.value}`,
         `${d.chars.toLocaleString()} characters`,
       ]
         .filter(Boolean)
@@ -651,7 +651,7 @@ function PageCard({ view, d, go }: { view: RunView; d: RunDocument; go: Go }) {
               {f.quote ? <q className={cx("text-[12.5px] italic", QUIET)}>{f.quote}</q> : null}
               <span className="text-[12px]">
                 {f.kept ? "Kept" : "Not kept"}
-                {f.class ? ` · ${f.class}` : ""} · <Who x={f} />
+                {` · ${f.evidence.value}`} · <Who x={f} />
                 {f.checks.map((c) => (
                   <span key={c.at} className={c.ok ? undefined : "text-(--ui-bad)"}>
                     {" "}

@@ -337,3 +337,9 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Lag: a source click expanded the node and ran the force layout (220 ticks, 97 ms in dev) in the same commit as the panel. The relayout is now a transition after the panel paints, and the source table below defers its focus marks. Open to first paint: 170–360 ms → 40–130 ms (dev build). An early stop on the force loop does not help: free nodes never settle under 1 px per tick.
   - Fix: a page row's frame took `flex: 1` from the row's text rule and grew to half the panel.
   - Fix: a click on the folded panel's edge tab no longer reaches the stage and clears the pick.
+- 11-10: the engine carries the two fields (WA-1157, weaver 0.68.1, engine b286225).
+  - A `class` record holds `speaker` (a document) and `evidence` (a document or one finding). `add class <on> --speaker --evidence`. Per target and field, the latest wins.
+  - Best known, in order: the agent's word, the judge's guess (it now asks both questions), an old one-axis class mapped, a rule on the host and shape. One seam: `engine/kinds.ts`.
+  - The view sends `speaker` and `evidence` on each hit and document, and `evidence` on each finding, each with who said it (`by`, `p`). The portal's `kindOf` and `evOf` are deleted; the graph reads the view.
+  - Facet `needs` names evidence (an old class name maps). Patterns count sources per speaker and per evidence; echo = every source is a company. Promote writes both fields to the knowledge records.
+  - Old ledgers parse: the old `class` key stays readable. Old judge records with a `class` answer map too.

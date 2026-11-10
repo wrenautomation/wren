@@ -1,10 +1,9 @@
 /**
  * A weaver run view as the run graph's data (`@wren/ui/research/run`). Ported from the
- * artifact's builder (round 11 prep), so the page draws what the artifact drew. Mapped on read,
- * until the engine sends this shape itself (WA-1157).
+ * artifact's builder (round 11 prep), so the page draws what the artifact drew. Who speaks and
+ * the evidence come from the view, best known (weaver 0.68.0, WA-1157).
  */
 import type {
-  Evidence,
   GraphDrop,
   GraphPage,
   GraphSource,
@@ -14,46 +13,6 @@ import type {
 import type { RunRow, RunView } from "./serve.js";
 
 type Votes = Record<string, number> | undefined;
-
-// who speaks: a paper is research whoever posts it; a video with no class is a person
-const ACAD =
-  /(\.edu|\.ac\.[a-z]+|arxiv\.org|acm\.org|springer|ieee|hal\.science|researchgate|sciencedirect|wiley|sagepub|oup\.com|frontiersin|ncbi|doi\.org|ceur-ws|d-nb\.info|academia\.edu|computer\.org|repositum|kops\.|libres\.|mspace\.lib|monash\.edu|tuwien|ucalgary|usask|cs\.au\.dk|aviz\.fr|inria|imld\.de|cvast)/;
-const GOV =
-  /(\.gov(\.[a-z]+)?$|\.gc\.ca$|europa\.eu$|who\.int$|oecd\.org$|un\.org$|\.mil$|census\.|bls\.gov|ons\.gov)/;
-export const kindOf = (c: string | null, f: string | null, h: string): Speaker =>
-  GOV.test(h)
-    ? "public_body"
-    : f === "paper" || (ACAD.test(h) && c !== "forum")
-      ? "research"
-      : c === "primary_data" || c === "survey" || c === "vendor"
-        ? "company"
-        : c === "practitioner"
-          ? "person"
-          : c === "forum"
-            ? "forum"
-            : c === "news"
-              ? "press"
-              : f === "video"
-                ? "person"
-                : "other";
-const evOf = (c: string | null, f: string | null): Evidence =>
-  c === "primary_data"
-    ? "data"
-    : c === "survey" || f === "paper"
-      ? "study"
-      : c === "vendor"
-        ? f === "docs"
-          ? "analysis"
-          : "promo"
-        : c === "news"
-          ? "report"
-          : c === "practitioner" || c === "forum" || f === "video" || f === "thread" || f === "post"
-            ? "account"
-            : f === "docs" || f === "article"
-              ? "analysis"
-              : f === "sales_page"
-                ? "promo"
-                : "other";
 
 const FMT: Record<string, string> = { sales_page: "sales page" };
 const cap = (s: string) => (s ? (s[0]?.toUpperCase() ?? "") + s.slice(1) : s);
@@ -143,11 +102,10 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
     const h = hitBy.get(d.hit);
     const [k, l, site] = skey(d.url, d.channel ?? h?.channel);
     const s = S(k, l, site);
-    const pc = d.class ?? topK(d.judge?.class);
     const pf =
       topK(d.judge?.format) ??
       (ytOf(d.url) ? "video" : /reddit\.com/.test(d.url) ? "thread" : null);
-    const c = kindOf(pc, topK(d.judge?.format), host(d.url));
+    const c = d.speaker.value;
     s.cls[c] = (s.cls[c] ?? 0) + 1;
     if (pf) s.fmts[pf] = (s.fmts[pf] ?? 0) + 1;
     const r = h?.round ?? 1;
@@ -163,7 +121,7 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
       og: d.image ?? null,
       r,
       f: pf ?? "other",
-      e: evOf(pc, pf),
+      e: d.evidence.value,
     };
     s.pages.push(page);
     s.yts.push(ytOf(d.url));
@@ -173,7 +131,7 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
     if (h.call?.verdict !== "keep" || docOfHit.has(h.id)) continue;
     const [k, l, site] = skey(h.url, h.channel);
     const s = S(k, l, site);
-    const c = kindOf(topK(h.judge?.class), topK(h.judge?.format), host(h.url));
+    const c = h.speaker.value;
     if (!s.pages.length) s.cls[c] = (s.cls[c] ?? 0) + 0.5;
     s.r = Math.min(s.r, h.round ?? 1);
     s.unread.push({ t: h.title ?? h.url, u: h.url, r: h.round ?? 1 });
@@ -278,7 +236,6 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
     .filter((h) => h.call?.verdict === "drop")
     .map((h) => {
       const f = top(h.judge?.format);
-      const c = topK(h.judge?.class);
       const subject = h.judge?.side?.subject;
       return {
         id: h.id,
@@ -291,7 +248,7 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
         sn: h.snippet ?? "",
         s: subject != null ? Math.round(subject * 100) : null,
         f: f ? [FMT[f[0]] ?? f[0].replace(/_/g, " "), Math.round(f[1] * 100)] : null,
-        k: kindOf(c, f?.[0] ?? null, host(h.url)),
+        k: h.speaker.value,
         th: ((yt) => (yt ? thumb(yt) : null))(ytOf(h.url)),
         ic: icon(host(h.url)),
       };
