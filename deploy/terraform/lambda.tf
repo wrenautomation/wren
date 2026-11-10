@@ -203,8 +203,10 @@ resource "aws_lambda_function" "worker" {
         WREN_RENDERER        = "lambda"
         WREN_RENDER_FUNCTION = aws_lambda_function.render.function_name
         WREN_LOG_LEVEL       = "info"
-        WREN_MEDIA_BUCKET    = aws_s3_bucket.media.bucket
-        WREN_FILES_BUCKET    = aws_s3_bucket.files.bucket
+        # the door: Lambda's ingress calls (desk judge, sites); unset fell back to 127.0.0.1 (WA-1225)
+        WREN_API_URL      = "https://api.wrenautomation.com"
+        WREN_MEDIA_BUCKET = aws_s3_bucket.media.bucket
+        WREN_FILES_BUCKET = aws_s3_bucket.files.bucket
         # Postgres through PgBouncer on the box (deploy/scripts/box-pgbouncer.sh); the CLI stays on 5432.
         WREN_DATABASE_POOL_PORT = "6432"
         # The Watch's triage, on Spine: Cohere Command A on our credits (designs/2026-10-05-workflows.md, Costs).
