@@ -329,7 +329,8 @@ describe("MetroMap scale and memo", () => {
     const html = renderToStaticMarkup(
       <MetroMap view={COLD_OUTBOUND_VIEW} depth={9} intro={false} />,
     );
-    const svg = html.match(/<svg[^>]*>/)?.[0] ?? "";
+    // the map's svg, not a toolbar icon before it
+    const svg = html.slice(html.indexOf("metro-stage")).match(/<svg[^>]*>/)?.[0] ?? "";
     expect(svg).toContain(`width="${s.w}"`);
     expect(svg).toContain(`height="${s.h}"`);
   });

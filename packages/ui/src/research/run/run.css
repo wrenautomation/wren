@@ -9,7 +9,7 @@
   --ink: var(--ui-ink);
   --ink2: var(--ui-ink-2);
   --ink3: var(--ui-ink-3);
-  --accent: var(--ui-accent);
+  --accent: var(--ui-active);
   --hair: light-dark(
     color-mix(in srgb, var(--ui-ink) 11%, transparent),
     color-mix(in srgb, var(--ui-ink) 13%, transparent)

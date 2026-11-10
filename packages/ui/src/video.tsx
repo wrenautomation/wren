@@ -32,7 +32,7 @@ export const PLAY_MARK =
   "flex size-14 items-center justify-center rounded-full bg-black/30 text-white shadow-[0_2px_12px_rgb(0_0_0/0.25)] ring-1 ring-white/35 backdrop-blur-md transition-[background-color,scale] duration-150 ease-(--ui-ease) group-hover:scale-105 group-hover:bg-black/45 group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-(--ui-focus) group-active:scale-95 motion-reduce:transition-none";
 /** A bar button: the kit's quiet icon button. */
 export const VIDEO_BUTTON =
-  "inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-(--ui-leaf-button) border-0 bg-transparent text-(--ui-ink-2) transition-colors hover:bg-(--ui-hover) hover:text-(--ui-ink) aria-pressed:bg-(--ui-accent-wash) aria-pressed:text-(--ui-accent) pointer-coarse:size-11";
+  "inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-(--ui-leaf-button) border-0 bg-transparent text-(--ui-ink-2) transition-colors hover:bg-(--ui-hover) hover:text-(--ui-ink) aria-pressed:bg-(--ui-accent-wash) aria-pressed:text-(--ui-active) pointer-coarse:size-11";
 
 export function Video({
   src,
@@ -191,7 +191,7 @@ export function Video({
             e.preventDefault();
           }}
         >
-          <div className="relative h-1.5 w-full rounded-full bg-(--ui-edge) outline-offset-4 group-focus-visible:outline-2 group-focus-visible:outline-(--ui-accent)">
+          <div className="relative h-1.5 w-full rounded-full bg-(--ui-edge) outline-offset-4 group-focus-visible:outline-2 group-focus-visible:outline-(--ui-focus)">
             <div
               className="absolute inset-y-0 left-0 rounded-full bg-(--ui-ink-3)"
               style={{ width: at(t) }}
@@ -204,10 +204,10 @@ export function Video({
                 className={cx(
                   "absolute -inset-y-0.5 min-w-1.5 cursor-pointer rounded-full",
                   m.live
-                    ? "min-w-1 bg-(--ui-accent) opacity-55"
+                    ? "min-w-1 bg-(--ui-live) opacity-55"
                     : m.tone
                       ? MARK[m.tone]
-                      : "bg-(--ui-accent)",
+                      : "bg-(--ui-link)",
                 )}
                 style={{
                   left: at(m.start),
