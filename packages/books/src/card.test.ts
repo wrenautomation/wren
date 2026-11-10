@@ -41,7 +41,24 @@ describe("statements", () => {
     ]);
   });
 
-  it("reads BMO's CSV under its note, quoted commas and all", () => {
+  it("reads CIBC's headerless CSV: date, description, debit, credit, card", () => {
+    const cibc = `2026-10-03,"X CORP. PAID FEATURES, SAN FRANCISCO",13.56,,5555********1234
+2026-10-05,PAYMENT THANK YOU/PAIEMENT MERCI,,500.00,5555********1234
+2026-10-07,TOO GOOD TO GO,8.99,,5555********1234
+`;
+    expect(parseStatement(cibc)).toEqual([
+      expect.objectContaining({
+        card: "1234",
+        on: "2026-10-03",
+        amountCents: 1356,
+        description: "X CORP. PAID FEATURES, SAN FRANCISCO",
+      }),
+      expect.objectContaining({ amountCents: -50000 }),
+      expect.objectContaining({ amountCents: 899, currency: "CAD" }),
+    ]);
+  });
+
+  it("reads a CSV under a note above its header, quoted commas and all", () => {
     const lines = parseStatement(CSV);
     expect(lines).toHaveLength(4);
     expect(lines[0]).toMatchObject({

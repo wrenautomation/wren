@@ -383,7 +383,7 @@ describe("import", () => {
     ).toEqual([
       ["code", 2192, "1.37000000", "boc"],
       ["gst-paid", 110, "1.37000000", "boc"],
-      ["card-bmo", -2302, "1.37000000", "boc"],
+      ["card-cibc", -2302, "1.37000000", "boc"],
     ]);
 
     // Simplified-regime GST is part of the cost; the PDF stays with its email.
@@ -391,7 +391,7 @@ describe("import", () => {
     expect(google?.taxes).toMatchObject([{ amountCents: 500, claimable: false }]);
     expect(google?.journal.map((j) => [j.account, j.line.cadCents])).toEqual([
       ["email", 10500],
-      ["card-bmo", -10500],
+      ["card-cibc", -10500],
     ]);
     expect(google?.documents.map((d) => d.filename ?? d.subject)).toEqual([
       GOOGLE.subject,
@@ -507,7 +507,7 @@ describe("the journal", () => {
     const [card] = await pg.db
       .select({ id: accounts.id })
       .from(accounts)
-      .where(eq(accounts.key, "card-bmo"));
+      .where(eq(accounts.key, "card-cibc"));
     const refused = refusal(
       pg.db.transaction(async (tx) => {
         const [entry] = await tx
@@ -624,7 +624,7 @@ describe("review", () => {
     const id = await billId("GH-1001");
     expect((await billDetail(pg.db, id))?.journal.map((j) => j.account)).toEqual([
       "code",
-      "card-bmo",
+      "card-cibc",
     ]);
 
     answers.set(GITHUB.subject, githubBill());
@@ -640,7 +640,7 @@ describe("review", () => {
     expect(live).toEqual([
       { account: "code", cad: 2192 },
       { account: "gst-paid", cad: 110 },
-      { account: "card-bmo", cad: -2302 },
+      { account: "card-cibc", cad: -2302 },
     ]);
   });
 

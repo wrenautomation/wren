@@ -43,7 +43,7 @@ export const accounts = books.table(
   "accounts",
   {
     id: serial("id").notNull(),
-    /** The stable handle code and vendors use: `card-bmo`, `ai`. */
+    /** The stable handle code and vendors use: `card-cibc`, `ai`. */
     key: varchar("key", { length: 64 }).notNull(),
     name: text("name").notNull(),
     type: varchar("type", { length: 16, enum: ACCOUNT_TYPES }).notNull(),

@@ -15,13 +15,13 @@ interface AccountSpec {
 }
 
 /** The card every bill is paid with until statements say otherwise. */
-export const CARD = "card-bmo";
+export const CARD = "card-cibc";
 /** GST/HST paid that can be claimed back (input tax credits). */
 export const GST_PAID = "gst-paid";
 
 /** The chart of accounts. Expense accounts are the categories spend is sorted into. */
 const CHART: readonly AccountSpec[] = [
-  { key: CARD, name: "BMO Mastercard", type: "liability" },
+  { key: CARD, name: "CIBC Mastercard", type: "liability" },
   { key: GST_PAID, name: "GST/HST paid (input tax credits)", type: "asset" },
   { key: "owner", name: "Owner's equity", type: "equity" },
   { key: "ai", name: "AI models", type: "expense", t2125Line: "8810", bucket: "overhead" },

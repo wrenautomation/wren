@@ -22,8 +22,8 @@ import {
 } from "./schema.js";
 import { type DocumentStore, sha256, storeKey } from "./store.js";
 
-/** The bank's alert mail: one per purchase once William turns purchase alerts on. */
-const CARD_ALERTS: MailSpec = { from: ["bmoalerts@bmo.com"] };
+/** CIBC's alert mail, once William turns transaction alerts on. Sender unconfirmed: any cibc.com; the model keeps only mail that prints an amount. */
+const CARD_ALERTS: MailSpec = { from: ["cibc.com"] };
 /** As a vendor-less spec, so `capture` keeps it beside the bills. */
 export const CARD_ALERT_SPEC: VendorSpec = {
   key: "card-alerts",
@@ -149,9 +149,10 @@ export function csvRows(text: string): string[][] {
 }
 
 /**
- * A CSV export: the header row is found by its names (BMO puts a note above
- * it), one amount column or debit and credit. A card's lines are mostly
- * charges, so whichever sign most lines carry is a charge.
+ * A CSV export: the header row is found by its names (some banks put a note
+ * above it), one amount column or debit and credit. CIBC's has no header:
+ * date, description, debit, credit, card. A card's lines are mostly charges,
+ * so whichever sign most lines carry is a charge.
  */
 function parseCsv(text: string, card?: string): StatementLine[] {
   const rows = csvRows(text);
@@ -159,8 +160,16 @@ function parseCsv(text: string, card?: string): StatementLine[] {
   const at = rows.findIndex(
     (r) => find(r, /amount|debit/i) >= 0 && find(r, /desc|merchant|payee|name/i) >= 0,
   );
-  if (at < 0) throw new Error("no header row with an amount and a description");
-  const header = rows[at] as string[];
+  if (at < 0) {
+    // CIBC: no header, every row starts with a date
+    if (
+      rows.length &&
+      rows.every((r) => r.length >= 4 && /^\d{4}-\d{2}-\d{2}$/.test(r[0]?.trim() ?? ""))
+    )
+      rows.unshift(["Date", "Description", "Debit", "Credit", "Card"]);
+    else throw new Error("no header row with an amount and a description");
+  }
+  const header = rows[Math.max(at, 0)] as string[];
   const col = {
     day: find(header, /^(transaction )?date$|trans.*date/i),
     posted: find(header, /post/i),
@@ -174,7 +183,7 @@ function parseCsv(text: string, card?: string): StatementLine[] {
   const day = col.day >= 0 ? col.day : col.posted;
   if (day < 0) throw new Error("no date column");
   const cell = (r: string[], i: number) => (i >= 0 ? (r[i] ?? "").trim() : "");
-  const lines = rows.slice(at + 1).flatMap((r): StatementLine[] => {
+  const lines = rows.slice(Math.max(at, 0) + 1).flatMap((r): StatementLine[] => {
     const raw =
       col.amount >= 0
         ? cell(r, col.amount)

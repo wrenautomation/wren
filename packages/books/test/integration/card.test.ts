@@ -156,7 +156,7 @@ describe("card", () => {
         size: 1,
         storeKey: "a1",
         source: "mailbox",
-        fromAddress: "bmoalerts@bmo.com",
+        fromAddress: "mailbox.noreply@cibc.com",
         subject: "Purchase alert",
         text: "A purchase of $15.52 was made at X CORP on your card ending 1234.",
         sentAt: new Date("2026-10-07T15:00:00Z"),

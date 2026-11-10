@@ -32,7 +32,7 @@ async function spend(on: string, key: string, cents: number): Promise<void> {
     select e.id, a.id, x.cents, x.cents, 'CAD', 1, 'same'
     from e, books.accounts a, lateral (select case when a.key = ${key} then ${cents}::bigint
       else ${-cents}::bigint end cents) x
-    where a.key in (${key}, 'card-bmo')`);
+    where a.key in (${key}, 'card-cibc')`);
 }
 
 async function engagement(
