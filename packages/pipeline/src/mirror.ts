@@ -104,3 +104,12 @@ export async function mirrorShapes(
 export async function mirrorsOf(db: Queryable): Promise<ShapeMirror[]> {
   return db.select().from(shapeMirrors).orderBy(asc(shapeMirrors.version));
 }
+
+/** A removed workspace's file leaves the repo as one commit; its history stays in git. Null: no file. */
+export async function removeShapeMirror(
+  files: GithubFiles,
+  workspace: string,
+  why: string,
+): Promise<string | null> {
+  return files.remove(mirrorPath(workspace), `shape ${workspace}: removed (${oneLine(why)})`);
+}

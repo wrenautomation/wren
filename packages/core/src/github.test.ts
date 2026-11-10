@@ -50,6 +50,30 @@ describe("githubRepo", () => {
     expect(await repo.lastCommit("shapes/none.yaml")).toBeNull();
   });
 
+  it("removes a file as a commit with its sha; no file, no call", async () => {
+    const calls: Array<{ method: string; body?: unknown }> = [];
+    let exists = true;
+    const fake = (async (_url: string, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      calls.push({ method, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+      if (method === "GET")
+        return exists
+          ? Response.json({ content: "", sha: "f1" })
+          : new Response("", { status: 404 });
+      return Response.json({ commit: { sha: "del1" } });
+    }) as typeof fetch;
+    const repo = githubRepo({ token: "t", repo: "o/files", fetch: fake });
+    expect(await repo.remove("shapes/x.yaml", "Remove x")).toBe("del1");
+    expect(calls.at(-1)).toMatchObject({
+      method: "DELETE",
+      body: { message: "Remove x", branch: "main", sha: "f1" },
+    });
+    exists = false;
+    calls.length = 0;
+    expect(await repo.remove("shapes/x.yaml", "Remove x")).toBeNull();
+    expect(calls.map((c) => c.method)).toEqual(["GET"]);
+  });
+
   it("fails with the status and GitHub's reason", async () => {
     const fake = (async () =>
       Response.json({ message: "Bad credentials" }, { status: 401 })) as unknown as typeof fetch;

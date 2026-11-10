@@ -41,6 +41,7 @@ const fakeFiles = (): GithubFiles => ({
     return `c0ffee${commits.length}0000`;
   },
   lastCommit: async () => null,
+  remove: async () => null,
 });
 
 const program = () => {

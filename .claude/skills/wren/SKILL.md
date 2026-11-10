@@ -21,6 +21,7 @@ The repos are public, so **client names never go in git**: not in code, tests, d
 ./bin/wren clients list
 ./bin/wren clients add <id> --name "<firm>" --account linkedin=linkedin
 ./bin/wren clients set <id> --account linkedin=<account>   # "linkedin=" turns it off
+./bin/wren clients rm <id>                # dry run: what goes; --yes only on William's yes (drops its database)
 ```
 
 - `add` creates `wren_client_<id>`, migrates it and registers it.

@@ -37,6 +37,7 @@ function fakeFiles() {
       return `sha${commits.length}`;
     },
     lastCommit: async () => null,
+    remove: async () => null,
   };
   return { commits, files };
 }
@@ -316,6 +317,7 @@ describe("the mirror step", () => {
         throw new Error("repo gone");
       },
       lastCommit: async () => null,
+      remove: async () => null,
     };
     const a = pipelineConsoleApi({
       db: pg.db,

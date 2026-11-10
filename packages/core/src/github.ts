@@ -11,6 +11,8 @@ export interface GithubFiles {
   write(path: string, text: string, message: string): Promise<string | null>;
   /** The newest commit that touched `path` on the branch; null when none did. */
   lastCommit(path: string): Promise<string | null>;
+  /** Deletes `path` as a commit; answers its sha. No file there: nothing (null). */
+  remove(path: string, message: string): Promise<string | null>;
 }
 
 /**
@@ -64,6 +66,17 @@ export function githubRepo(o: {
         }),
       });
       if (!res.ok) throw await fail(res, `write ${path}`);
+      return ((await res.json()) as { commit?: { sha?: string } }).commit?.sha ?? null;
+    },
+    async remove(path, message) {
+      const now = await read(path);
+      if (!now) return null;
+      const res = await f(at(path), {
+        method: "DELETE",
+        headers: { ...headers, "content-type": "application/json" },
+        body: JSON.stringify({ message, branch, sha: now.sha }),
+      });
+      if (!res.ok) throw await fail(res, `remove ${path}`);
       return ((await res.json()) as { commit?: { sha?: string } }).commit?.sha ?? null;
     },
     async lastCommit(path) {

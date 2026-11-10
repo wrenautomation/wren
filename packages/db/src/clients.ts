@@ -87,12 +87,18 @@ export async function createDatabase(main: Db, database: string): Promise<boolea
 }
 
 /**
- * DROP DATABASE if it's there, its open connections cut. Runs on main. Only the sandbox's
- * Start over calls it (designs/2026-10-14-view-as.md): a real client's database is never dropped.
+ * DROP DATABASE if it's there, its open connections cut. Runs on main. Callers: the sandbox's
+ * Start over (designs/2026-10-14-view-as.md) and `wren clients rm`, on William's yes.
  */
 export async function dropDatabase(main: Db, database: string): Promise<void> {
   checkedDatabase(database);
   await main.execute(sql.raw(`DROP DATABASE IF EXISTS "${database}" WITH (FORCE)`));
+}
+
+/** The client's login (same name as its database), after the database is gone. */
+export async function dropClientLogin(main: Db, database: string): Promise<void> {
+  checkedDatabase(database);
+  await main.execute(sql.raw(`DROP ROLE IF EXISTS "${database}"`));
 }
 
 /** Every registered client database. Empty when the registry table is not there yet. */

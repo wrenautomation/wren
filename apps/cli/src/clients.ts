@@ -10,6 +10,7 @@ import {
   addClient,
   addMember,
   type Client,
+  clientRemoval,
   endSessions,
   findClient,
   getClient,
@@ -18,6 +19,7 @@ import {
   MEMBER_ROLES,
   type MemberRole,
   operators,
+  removeClient,
   removeMember,
   removeTeamSeat,
   setTeamSeat,
@@ -26,7 +28,9 @@ import {
   type TeamRole,
   updateClient,
 } from "@wren/core/clients";
+import { githubRepo } from "@wren/core/github";
 import type { Db } from "@wren/db";
+import { removeShapeMirror } from "@wren/pipeline/mirror";
 import { COMPONENTS } from "@wren/worker/components";
 import type { Command } from "commander";
 import { collect } from "./args.js";
@@ -116,6 +120,33 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
         await warnShared(withMainDb);
       },
     );
+
+  cmd
+    .command("rm <id>")
+    .description(
+      "Remove a client for good: its row and what cascades, its database, its shape file. Without --yes, a dry run",
+    )
+    .option("--yes", "William's yes: delete (rows, the database, the mirror file)")
+    .option("--why <text>", "kept in the audit log and the mirror commit", "removed")
+    .action(async (id: string, opts: { yes?: boolean; why: string }) => {
+      const plan = await withMainDb((db) => clientRemoval(db, settings.databaseUrl, id));
+      const mirror = `${settings.shapesGithubRepo}:shapes/${id}.yaml`;
+      const view = { id, name: plan.client.name, main: plan.main, database: plan.database, mirror };
+      if (!opts.yes) {
+        console.log(JSON.stringify({ dryRun: true, ...view }, null, 2));
+        return;
+      }
+      await withMainDb((db) => removeClient(db, id, `clients rm: ${opts.why}`));
+      const files = settings.shapesGithubToken
+        ? githubRepo({
+            token: settings.shapesGithubToken,
+            repo: settings.shapesGithubRepo,
+            api: settings.shapesGithubApi,
+          })
+        : null;
+      const commit = files ? await removeShapeMirror(files, id, opts.why) : "mirror off: no token";
+      console.log(JSON.stringify({ removed: true, ...view, mirrorCommit: commit }, null, 2));
+    });
 
   cmd.command("list").action(async () => {
     for (const c of await withMainDb((db) => listClients(db))) console.log(show(c));

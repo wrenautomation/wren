@@ -4,10 +4,14 @@
  */
 import {
   atomic,
+  clientAdminUrl,
   clientDatabaseName,
   clientDatabaseUrl,
   createDatabase,
+  createDb,
   type Db,
+  dropClientLogin,
+  dropDatabase,
   migrateClient,
   type Queryable,
   setAuditActor,
@@ -22,8 +26,10 @@ import {
   type ClientMember,
   clientMembers,
   clients,
+  grants,
   type MemberRole,
   operators,
+  roles,
   TEAM_ROLES,
   type TeamRole,
   wrenSettings,
@@ -98,6 +104,89 @@ export async function addClient(
     await registerAccounts(tx, input.id, input.accounts, by ?? "clients");
   });
   return getClient(main, input.id);
+}
+
+/** What `removeClient` takes away, counted; the dry run prints it. */
+export interface ClientRemoval {
+  client: Client;
+  /** Main's rows per table: the row, every foreign key on it (`(set null)`: kept, its link cleared), roles, grants, runtime state. */
+  main: Record<string, number>;
+  /** The client's own database and its non-empty tables. */
+  database: { name: string; rows: Record<string, number> };
+}
+
+const RUNTIME_STATE = "rt.state";
+
+/** Counts only: nothing changes. */
+export async function clientRemoval(main: Db, mainUrl: string, id: string): Promise<ClientRemoval> {
+  const client = await getClient(main, id);
+  const links = await main.execute<{ t: string; c: string; nulls: boolean }>(sql`
+    select k.conrelid::regclass::text t, a.attname c, k.confdeltype = 'n' nulls
+    from pg_constraint k join pg_attribute a on a.attrelid = k.conrelid and a.attnum = k.conkey[1]
+    where k.confrelid = 'clients'::regclass and k.contype = 'f' order by 1`);
+  const counted = [
+    ...links.map((l) => ({ ...l, label: l.nulls ? `${l.t} (set null)` : l.t })),
+    { t: "roles", c: "client", label: "roles" },
+    { t: "grants", c: "client", label: "grants" },
+  ];
+  const rows: Record<string, number> = { clients: 1 };
+  for (const { t, c, label } of counted) {
+    const [r] = await main.execute<{ n: number }>(
+      sql`select count(*)::int n from ${sql.raw(t)} where ${sql.identifier(c)} = ${id}`,
+    );
+    if (r?.n) rows[label] = r.n;
+  }
+  // checked first: a query naming a missing table fails at plan time, CASE or not
+  const [rt] = await main.execute<{ t: string | null }>(
+    sql`select to_regclass(${RUNTIME_STATE})::text t`,
+  );
+  const [state] = rt?.t
+    ? await main.execute<{ n: number }>(
+        sql`select count(*)::int n from rt.state where starts_with(key, ${`${id}/`})`,
+      )
+    : [];
+  if (state?.n) rows[RUNTIME_STATE] = state.n;
+  return {
+    client,
+    main: rows,
+    database: { name: client.database, rows: await tableRows(mainUrl, client.database) },
+  };
+}
+
+async function tableRows(mainUrl: string, database: string): Promise<Record<string, number>> {
+  const h = createDb(clientAdminUrl(mainUrl, database), { max: 1 });
+  try {
+    const rows = await h.db.execute<{ t: string; n: number }>(sql`
+      select table_schema || '.' || table_name t, (xpath('/row/n/text()', query_to_xml(
+        format('select count(*) n from %I.%I', table_schema, table_name), false, true, '')))[1]::text::int n
+      from information_schema.tables
+      where table_type = 'BASE TABLE' and table_schema not in ('pg_catalog', 'information_schema')
+      order by 1`);
+    return Object.fromEntries(rows.filter((r) => r.n > 0).map((r) => [r.t, r.n]));
+  } finally {
+    await h.close();
+  }
+}
+
+/**
+ * Takes a client off for good (`wren clients rm`, on William's yes): its registry row and all that
+ * cascades from it, its roles, grants and runtime state, then its database and login. Rows in
+ * Wren's own tables that only mention it (research, leads, past runs) stay: they are Wren's data.
+ */
+export async function removeClient(main: Db, id: string, by: string): Promise<void> {
+  const client = await getClient(main, id);
+  await atomic(main, async (tx) => {
+    await setAuditActor(tx, by);
+    await tx.delete(roles).where(eq(roles.client, id));
+    await tx.delete(grants).where(eq(grants.client, id));
+    const [rt] = await tx.execute<{ t: string | null }>(
+      sql`select to_regclass(${RUNTIME_STATE})::text t`,
+    );
+    if (rt?.t) await tx.execute(sql`delete from rt.state where starts_with(key, ${`${id}/`})`);
+    await tx.delete(clients).where(eq(clients.id, id));
+  });
+  await dropDatabase(main, client.database);
+  await dropClientLogin(main, client.database);
 }
 
 export async function listClients(main: Db): Promise<Client[]> {
