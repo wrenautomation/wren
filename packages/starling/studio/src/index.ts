@@ -133,7 +133,6 @@ export {
   twelvelabsLooker,
 } from "./look.js";
 export {
-  applyFilter,
   LOUDNESS,
   type Loudness,
   measureFilter,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyFilter, measureFilter, parseLoudnorm } from "./loudness.js";
+import { levelFilter, levelMiss, measureFilter, parseLoudnorm } from "./loudness.js";
 
 const STDERR = `[Parsed_loudnorm_0 @ 0x1]
 {
@@ -20,16 +20,16 @@ describe("loudness", () => {
     expect(measureFilter()).toBe("loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json");
   });
 
-  it("applies with what pass one measured, linear, and no offset", () => {
-    const f = applyFilter({ i: -27.52, tp: -9.31, lra: 6.4, thresh: -38.1 });
-    expect(f).toBe(
-      "loudnorm=I=-14:TP=-1.5:LRA=11:measured_I=-27.52:measured_TP=-9.31:measured_LRA=6.4:measured_thresh=-38.1:linear=true:print_format=summary",
+  it("levels with one gain and a limiter under the cap, at 192 kHz", () => {
+    expect(levelFilter(9.704, -2)).toBe(
+      "volume=9.7dB,aresample=192000,alimiter=limit=0.7943:attack=5:release=50:level=false,aresample=48000",
     );
-    expect(f).not.toContain("offset");
-    // The second try aims past -14 by what the first fell short.
-    expect(applyFilter({ i: -27.52, tp: -9.31, lra: 6.4, thresh: -38.1 }, -13.084)).toMatch(
-      /^loudnorm=I=-13\.08:TP=-1\.5:LRA=11:measured_I=-27\.52/,
-    );
+  });
+
+  it("a miss is how far outside: I past 0.5, or a peak over -1.5", () => {
+    expect(levelMiss({ i: -14.4, tp: -1.6 }, -14)).toBe(0);
+    // WA-1284: what loudnorm's own apply gave
+    expect(levelMiss({ i: -16.9, tp: -0.8 }, -14)).toBeCloseTo(2.4 + 0.7);
   });
 
   it("reads loudnorm's JSON; silence (-inf) or none is null", () => {
