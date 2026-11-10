@@ -1,7 +1,7 @@
 /**
  * The video editor (designs/2026-10-06-video-editor.md): OBS recordings in, whisper.cpp words,
- * trusted silence cuts, ffmpeg cut pass, Remotion composition. Only the CLI imports this; the
- * worker never does (Remotion must stay out of what it bundles).
+ * trusted silence cuts, ffmpeg cut pass, our frame runtime's compositions. Only the CLI imports this; the
+ * worker never does (the render engine must stay out of what it bundles).
  */
 
 export { BAR, BAR_IDS, type BarFormat, type BarRule, barLines, VIDEO_CHECK } from "./bar.js";
@@ -208,13 +208,13 @@ export {
   unpunctuated,
 } from "./punctuate.js";
 export {
-  openStudio,
+  openPreview,
   type RenderJob,
   renderAll,
   renderPromo,
   renderStill,
   renderStills,
-} from "./remotion.js";
+} from "./render.js";
 export {
   CUT_HASH,
   changedSince,

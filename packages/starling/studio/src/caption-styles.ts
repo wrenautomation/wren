@@ -9,7 +9,7 @@
  *
  * Caption styles (designs/2026-10-06-video-editor.md, step 6): how one caption word looks at a time.
  * Pure, on the frame clock: every value is a function of the seconds since the word started, so any
- * frame renders alone. The Remotion entry draws what these answer.
+ * frame renders alone. The compositions draw what these answer.
  */
 
 export const CAPTION_STYLES = ["word", "pill", "sweep", "pop", "wipe", "stress"] as const;

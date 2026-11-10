@@ -80,7 +80,8 @@
         "test/**/*.{ts,tsx}",
         "scripts/*.{mjs,ts}",
         ".storybook/vitest.config.ts",
-        "remotion/index.tsx",
+        "frames/page.tsx",
+        "frames/render.ts",
         "sfx/*.mjs"
       ]
     },

@@ -1,7 +1,7 @@
 /**
  * The edit as an OpenFilm film (designs/2026-10-24-video-film-file.md, Decision 1): `film.html`, the
  * pages it plays, and the words as WebVTT, by OpenFilm's spec (github.com/openfilm/openfilm, SPEC.md
- * §1 and Words). A pure function of the row: the row stays the source and Remotion renders it; the
+ * §1 and Words). A pure function of the row: the row stays the source and the compositions render it; the
  * film is what a person reads, diffs (`wren video history`) and opens in OpenFilm Studio.
  *
  * Clips play the raw recordings (`assets/main.*`, `assets/cam.*`) by media fragment, so every time

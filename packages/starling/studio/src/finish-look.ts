@@ -1,6 +1,6 @@
 /**
  * How text on the video, the corner camera and the captions look (finish.ts), with type imports
- * only: the Remotion entry and the Studio page both draw from these, so the preview matches the
+ * only: the compositions and the Studio page both draw from these, so the preview matches the
  * render.
  */
 import type { WordState } from "./caption-styles.js";

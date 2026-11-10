@@ -3,7 +3,7 @@
  * and Shorts: 2 to 4 words a line, one line on screen at a time. A line ends at a sentence end or a
  * pause; inside a phrase it breaks where it reads best (a comma, a small pause, never after "the"
  * or "to"). A line shows from its first word until a beat after its last, never past the speech.
- * Pure: the Remotion entry imports it as a `.ts` file.
+ * Pure: the compositions import it as a `.ts` file.
  */
 import type { Word } from "./schema.js";
 

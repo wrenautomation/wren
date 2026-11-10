@@ -19,5 +19,7 @@ runs:
           packages/starling/channels/*/node_modules
         key: modules-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.node-version', 'pnpm-lock.yaml') }}
     - if: steps.modules.outputs.cache-hit != 'true'
+      # no check here draws a video: puppeteer (under @hyperframes/engine) must not fetch Chrome
+      env: { PUPPETEER_SKIP_DOWNLOAD: "true" }
       run: pnpm install --frozen-lockfile
       shell: bash

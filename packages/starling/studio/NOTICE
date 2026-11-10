@@ -32,9 +32,9 @@ Adapted files:
     Changed: the word's own box is scored on the grid and moved above the head,
     beside it, or shrunk until 70% of it is clear; no luma, palette or zones.
 
-  remotion/index.tsx
+  compositions/index.tsx
     the caption style and big-word layers, from the components above.
-    Changed: React on Remotion's frame clock; the matte is a VP9 alpha WebM laid
+    Changed: React on our frame clock (frames/runtime.tsx); the matte is a VP9 alpha WebM laid
     over the big word with OffthreadVideo transparent.
 
 The Apache License, Version 2.0, as it appears in HyperFrames' LICENSE:
@@ -229,3 +229,6 @@ The Apache License, Version 2.0, as it appears in HyperFrames' LICENSE:
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+Used as a library, unchanged: @hyperframes/engine (Apache-2.0), the frame capture
+that frames/render.ts drives.

@@ -1,6 +1,6 @@
 /**
  * The bed's duck under speech (designs/2026-10-24-video-film-file.md, Decision 4). No imports: the
- * Remotion bundle reads this file as it is.
+ * render bundle reads this file as it is.
  */
 
 /** Speech closer than `joinS` is one stretch; the bed falls over `attackS`, comes back over `releaseS`. */

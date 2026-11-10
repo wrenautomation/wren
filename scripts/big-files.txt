@@ -8,7 +8,7 @@ packages/core/src/schema.ts
 packages/core/src/segments.ts
 packages/core/src/executor.ts
 packages/delivery/src/watch.ts
-packages/starling/studio/remotion/index.tsx
+packages/starling/studio/compositions/index.tsx
 packages/ui/src/list-bar.tsx
 packages/ui/src/metro/data.ts
 packages/ui/src/metro/samples.ts

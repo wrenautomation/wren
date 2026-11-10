@@ -1,19 +1,20 @@
 /**
  * Adapted from heygen-com/hyperframes `registry/components/caption-*` and
  * `skills/embedded-captions` @5c7f631 (Apache-2.0); changed: the caption styles and the words
- * behind the speaker drawn as React on Remotion's frame clock from `src/caption-styles.ts` (no
- * GSAP); the speaker's matte a VP9 alpha WebM per window over the big word
- * (`OffthreadVideo transparent`). See packages/starling/studio/NOTICE.
+ * behind the speaker drawn as React on our frame clock from `src/caption-styles.ts` (no GSAP);
+ * the speaker's matte a VP9 alpha WebM per window over the big word (`Video transparent`). See
+ * packages/starling/studio/NOTICE.
  *
- * Remotion compositions (designs/2026-10-06-video-editor.md, Composition). One file: Remotion's
- * bundler resolves no `.js` specifiers, so the value imports (Wren's look, for Studio's
- * placeholder, the line breakers, the caption styles) name their `.ts` files; the rest is types.
- * Props come from `longProps`, `shortProps`, `framedProps` and `thumbnailProps` through
- * `--props`; the cut files are served from the edit's folder.
+ * The compositions (designs/2026-11-10-video-editor-pick.md), on the frame runtime
+ * (`frames/runtime.tsx`). One file; esbuild bundles it for the render page, so the value imports
+ * name their `.ts` files and the rest is types. Props come from `longProps`, `shortProps`,
+ * `framedProps` and `thumbnailProps`; the cut files are served from the edit's folder.
  */
 
-import { loadFont as loadFigtree } from "@remotion/google-fonts/Figtree";
-import { loadFont as loadMono } from "@remotion/google-fonts/GeistMono";
+import "@fontsource/figtree/latin-400.css";
+import "@fontsource/figtree/latin-600.css";
+import "@fontsource/figtree/latin-700.css";
+import "@fontsource/geist-mono/latin-500.css";
 import {
   type CSSProperties,
   createContext,
@@ -25,16 +26,14 @@ import {
 import {
   AbsoluteFill,
   Audio,
-  Composition,
+  type CompositionEntry,
   Img,
-  OffthreadVideo,
-  registerRoot,
   Sequence,
   staticFile,
   useCurrentFrame,
   useVideoConfig,
-} from "remotion";
-import { DEFAULT_LOOK } from "../../../video/src/overlay.ts";
+  Video,
+} from "../frames/runtime.tsx";
 import { bigWordState, onScreen, wordState } from "../src/caption-styles.ts";
 import { lineAt, pageLines, REEL, reelLines } from "../src/captions.ts";
 import { cursorAt } from "../src/cursor.ts";
@@ -81,9 +80,8 @@ import type {
 import { verticalRect } from "../src/safe-zones.ts";
 import type { AudioProps } from "../src/sounds.ts";
 
-// The dark look's sans (`DARK_LOOK`) and the caps cards' monospace, loaded before the first frame.
-loadFigtree("normal", { weights: ["400", "600", "700"], subsets: ["latin"] });
-const { fontFamily: MONO } = loadMono("normal", { weights: ["500"], subsets: ["latin"] });
+// The caps cards' monospace. It and the dark look's sans (`DARK_LOOK`, Figtree) come from the css above.
+const MONO = "Geist Mono";
 
 type Word = LongProps["words"][number];
 type Look = LongProps["look"];
@@ -357,10 +355,10 @@ export const Long: FC<LongProps> = ({
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       {/* The recording carries the sound, so it plays under every layout. */}
-      <OffthreadVideo src={staticFile(main)} style={{ ...fill, objectFit: "contain" }} />
+      <Video src={staticFile(main)} style={{ ...fill, objectFit: "contain" }} />
       {cam && show !== "screen" ? (
         <div style={show === "cam" ? { position: "absolute", inset: 0 } : cornerCam(width, height)}>
-          <OffthreadVideo src={staticFile(cam)} muted style={fill} />
+          <Video src={staticFile(cam)} muted style={fill} />
         </div>
       ) : null}
       <Behind
@@ -369,7 +367,7 @@ export const Long: FC<LongProps> = ({
         look={look}
         draw={(file, src) => (
           <AbsoluteFill>
-            <OffthreadVideo
+            <Video
               src={staticFile(file)}
               transparent
               muted
@@ -410,7 +408,7 @@ const FaceBox: FC<{
   const [left, top, width, height] = coverRect(face.size, face.box, w, h, crop);
   return (
     <div style={{ position: "relative", width: w, height: h, overflow: "hidden" }}>
-      <OffthreadVideo
+      <Video
         src={staticFile(file)}
         muted
         transparent={!!matte}
@@ -517,7 +515,7 @@ export const Short: FC<ShortProps> = ({
     <AbsoluteFill style={{ background: look.foreground }}>
       <div style={{ position: "absolute", left: 0, right: 0, top: half ? 960 : 0, bottom: 0 }}>
         {played((from) => (
-          <OffthreadVideo
+          <Video
             src={staticFile(main)}
             trimBefore={from}
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
@@ -558,7 +556,7 @@ export const Short: FC<ShortProps> = ({
             </div>
           ) : show === "screen" && !face.file && !face.box && src === main ? (
             <AbsoluteFill>
-              <OffthreadVideo
+              <Video
                 src={staticFile(file)}
                 transparent
                 muted
@@ -612,14 +610,14 @@ export const Framed: FC<FramedProps> = ({
   const place: CSSProperties = { position: "absolute", left, top, width, height, maxWidth: "none" };
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <OffthreadVideo src={staticFile(picture.file)} muted={!own} style={place} />
+      <Video src={staticFile(picture.file)} muted={!own} style={place} />
       {own ? null : <Audio src={staticFile(main)} />}
       {/* framedProps keeps only mattes cut from the picture, so each lines up with it. */}
       <Behind
         items={behind}
         t={t}
         look={look}
-        draw={(file) => <OffthreadVideo src={staticFile(file)} transparent muted style={place} />}
+        draw={(file) => <Video src={staticFile(file)} transparent muted style={place} />}
       />
       {onScreen(captions, "short") ? (
         <ReelCaptions
@@ -666,7 +664,7 @@ export const Thumbnail: FC<ThumbnailProps> = ({ main, face, frame, text, variant
   if (variant === 2)
     return (
       <AbsoluteFill style={{ background: look.foreground }}>
-        <OffthreadVideo
+        <Video
           src={staticFile(main)}
           muted
           trimBefore={frame}
@@ -1389,7 +1387,7 @@ const TakeWindow: FC<{
   const r = w / 1000 / (lens ?? 1);
   const cursor = shot?.cursor ? cursorAt(shot.cursor, t) : null;
   const video = (
-    <OffthreadVideo
+    <Video
       src={staticFile(pane.video)}
       muted
       trimBefore={Math.max(0, Math.round(pane.at * fps))}
@@ -1791,135 +1789,37 @@ const Promo: FC<PromoProps> = ({ scenes, look, audio, finish }) => {
   );
 };
 
-const PROMO_PLACEHOLDER: PromoProps = {
-  fps: 30,
-  durationInFrames: 90,
-  width: 1920,
-  height: 1080,
-  look: DEFAULT_LOOK,
-  audio: { sounds: [], music: null },
-  lufs: -14,
-  finish: { glow: false, dither: false },
-  scenes: [
-    {
-      kind: "text",
-      lines: ["A promo", "from a script"],
-      accent: ["script"],
-      layout: "stack",
-      style: "kinetic",
-      swap: [],
-      enter: "rise",
-      from: 0,
-      frames: 90,
-    },
-  ],
+const timed = (p: { durationInFrames: number; fps: number }) => ({
+  durationInFrames: p.durationInFrames,
+  fps: p.fps,
+});
+
+/** Every composition by name. The render page and the editor's player draw from this. */
+export const COMPOSITIONS = {
+  Long: {
+    component: Long,
+    config: { width: 1920, height: 1080, fps: 30, durationInFrames: 300 },
+    metadata: timed,
+  } satisfies CompositionEntry<LongProps>,
+  Short: {
+    component: Short,
+    config: { width: 1080, height: 1920, fps: 30, durationInFrames: 300 },
+    metadata: timed,
+  } satisfies CompositionEntry<ShortProps>,
+  Framed: {
+    component: Framed,
+    config: { width: 1080, height: 1920, fps: 30, durationInFrames: 300 },
+    metadata: (p) => ({ ...timed(p), width: p.frame[0], height: p.frame[1] }),
+  } satisfies CompositionEntry<FramedProps>,
+  Thumbnail: {
+    component: Thumbnail,
+    config: { width: 1280, height: 720, fps: 30, durationInFrames: 1 },
+  } satisfies CompositionEntry<ThumbnailProps>,
+  Promo: {
+    component: Promo,
+    config: { width: 1920, height: 1080, fps: 30, durationInFrames: 90 },
+    metadata: (p) => ({ ...timed(p), width: p.width, height: p.height }),
+  } satisfies CompositionEntry<PromoProps>,
 };
 
-const PLACEHOLDER: LongProps = {
-  main: "cut-main.mp4",
-  cam: null,
-  fps: 30,
-  durationInFrames: 300,
-  words: [],
-  layout: [],
-  captions: { style: "word", long: "screen" },
-  stress: [],
-  behind: [],
-  overlays: [],
-  audio: { sounds: [], music: null },
-  look: DEFAULT_LOOK,
-};
-
-const NO_FACE: Face = { file: null, box: null, size: [1920, 1080] };
-
-const Root: FC = () => (
-  <>
-    <Composition
-      id="Long"
-      component={Long}
-      width={1920}
-      height={1080}
-      fps={30}
-      durationInFrames={300}
-      defaultProps={PLACEHOLDER}
-      calculateMetadata={({ props }) => ({
-        durationInFrames: props.durationInFrames,
-        fps: props.fps,
-      })}
-    />
-    <Composition
-      id="Short"
-      component={Short}
-      width={1080}
-      height={1920}
-      fps={30}
-      durationInFrames={300}
-      defaultProps={{
-        ...PLACEHOLDER,
-        face: NO_FACE,
-        crop: null,
-        startFrame: 0,
-        segments: [],
-        title: "",
-        card: null,
-      }}
-      calculateMetadata={({ props }) => ({
-        durationInFrames: props.durationInFrames,
-        fps: props.fps,
-      })}
-    />
-    <Composition
-      id="Framed"
-      component={Framed}
-      width={1080}
-      height={1920}
-      fps={30}
-      durationInFrames={300}
-      defaultProps={{
-        ...PLACEHOLDER,
-        format: "vertical" as const,
-        frame: [1080, 1920] as [number, number],
-        picture: { file: PLACEHOLDER.main, size: [1920, 1080], window: [656, 0, 608, 1080] },
-      }}
-      calculateMetadata={({ props }) => ({
-        durationInFrames: props.durationInFrames,
-        fps: props.fps,
-        width: props.frame[0],
-        height: props.frame[1],
-      })}
-    />
-    <Composition
-      id="Thumbnail"
-      component={Thumbnail}
-      width={1280}
-      height={720}
-      fps={30}
-      durationInFrames={1}
-      defaultProps={{
-        main: PLACEHOLDER.main,
-        face: NO_FACE,
-        frame: 0,
-        text: "Title",
-        variant: 1 as const,
-        look: PLACEHOLDER.look,
-      }}
-    />
-    <Composition
-      id="Promo"
-      component={Promo}
-      width={1920}
-      height={1080}
-      fps={30}
-      durationInFrames={90}
-      defaultProps={PROMO_PLACEHOLDER}
-      calculateMetadata={({ props }) => ({
-        durationInFrames: props.durationInFrames,
-        fps: props.fps,
-        width: props.width,
-        height: props.height,
-      })}
-    />
-  </>
-);
-
-registerRoot(Root);
+export type CompositionName = keyof typeof COMPOSITIONS;

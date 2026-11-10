@@ -1,7 +1,7 @@
 /**
  * `wren video add|list|show|set|words|stress|approve|cuts|keep|knobs|cut|studio|render|look|find|promo`: the video
  * editor (designs/2026-10-06-video-editor.md). Claude Code edits through `show` and `set`; every
- * write leaves a runs row. Runs on William's Mac: whisper.cpp, ffmpeg (VideoToolbox), Remotion.
+ * write leaves a runs row. Runs on William's Mac: whisper.cpp, ffmpeg (VideoToolbox), Chrome.
  */
 import { existsSync } from "node:fs";
 import { copyFile, mkdir, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
@@ -76,7 +76,7 @@ import {
   type OnSkip,
   obsRecordingDir,
   onCut,
-  openStudio,
+  openPreview,
   outputHashes,
   preview,
   promoProps,
@@ -880,19 +880,21 @@ export function registerStudio(
 
   video
     .command("studio <id>")
-    .description("Remotion Studio on this edit (Long: 16:9, corner cam, captions)")
+    .description(
+      "The edit live in a browser page with a scrubber (Long: 16:9, corner cam, captions)",
+    )
     .option("--still <s>", "render one frame at this cut-time second to a png instead", Number)
     .action(async (v: string, o: { still?: number }) => {
       const e = await withDb((db) => getEdit(db, id(v)));
       const props = longProps(e);
       if (o.still !== undefined) console.log(await renderStill(studioDir, e.dir, props, o.still));
-      else await openStudio(studioDir, e.dir, props);
+      else await openPreview(studioDir, e.dir, props);
     });
 
   video
     .command("render <id>")
     .description(
-      "Remotion render to <dir>/out of what changed since each output's last render: the edit's formats (long 16:9, vertical 9:16, square 1:1, portrait 4:5), Shorts 9:16, 3 thumbnails; previews and stills to S3",
+      "Render to <dir>/out of what changed since each output's last render: the edit's formats (long 16:9, vertical 9:16, square 1:1, portrait 4:5), Shorts 9:16, 3 thumbnails; previews and stills to S3",
     )
     .option("--short <n>", "only Short n", id)
     .option(

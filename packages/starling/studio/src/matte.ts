@@ -45,7 +45,7 @@ export const MATTE = {
   mergeS: 0.5,
   /** Most windows one video mattes. */
   max: 40,
-  /** Where the files go, inside the edit's folder (Remotion's public dir). */
+  /** Where the files go, inside the edit's folder (the folder a render serves). */
   dir: "matte",
 } as const;
 
@@ -344,7 +344,7 @@ export const matteFile = (w: MatteWindow) =>
 /**
  * Matte every window not already matted from these cut files, to `<dir>/matte/`, with `plan.json`
  * naming the cut versions. A cut file that changed drops every matte made from it. Answers each
- * window with its file, relative to `dir` (Remotion's public dir).
+ * window with its file, relative to `dir` (the folder a render serves).
  */
 export async function makeMattes(
   pkgDir: string,

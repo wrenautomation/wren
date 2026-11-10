@@ -160,3 +160,32 @@ What the runtime had to match:
 Engine facts: on the Mac it captures by screenshot (beginFrame is Linux only). It ran 4-5 Chrome workers on this Mac without an OOM. The capture loop, worker pool and frame merge are the engine's; the page, the frame server and the audio mix are ours.
 
 Open from the spike: fonts load from Google by `<link>` (prod: self-hosted files); a moving volume is a step per frame (fine for the ducked bed, check by ear); the live preview mode (`<video>` synced to the clock) is not built yet.
+
+## Build step 1 (11-10): Remotion is out
+
+`packages/starling/studio` renders on our runtime. No Remotion package is left in the repo.
+
+| Part | File | Does |
+|---|---|---|
+| Runtime | `frames/runtime.tsx` | The frame clock, `Sequence`, `Video`, `Audio`, `Img`. Three modes: render, play, scan |
+| Player | `frames/player.tsx` | A composition live in any page, scaled to its box. The clock is the caller's |
+| Page | `frames/page.tsx` | The page Chrome draws. `?play` makes it a preview with a scrubber |
+| Frame server | `frames/frame-server.ts` | Serves the page, the edit's folder and exact video frames. Keeps 48 chunks on disk |
+| Render script | `frames/render.ts` | `node frames/render.ts <job.json>`: bundle once, then each still and video |
+| Compositions | `compositions/index.tsx` | Was `remotion/index.tsx`. Exports `COMPOSITIONS` by name |
+| Wrapper | `src/render.ts` | Was `src/remotion.ts`. Same `renderAll`, `renderStill`, `renderStills`, `renderPromo`; `openPreview` replaces `openStudio` |
+
+Measured with the real script: Promo 115 s (Remotion 331 s), SSIM 0.997 against the spike's output, -23.7 LUFS. Long test 9 s, SSIM 0.992 against Remotion, -25.7 LUFS.
+
+Closed from the spike's open list:
+- Fonts are files in the bundle (`@fontsource/figtree`, `@fontsource/geist-mono`, latin). No network at render.
+- A moving volume is a 1 kHz envelope with straight lines between frames, multiplied into the sound. No steps.
+- The preview is built: real `<video>` and `<audio>`, moved back to the clock past 0.12 s of drift.
+
+New in the build:
+- A video renders in pieces of 1,800 frames. Each piece is encoded and its frames deleted while Chrome draws the next. A 30 minute video holds about 1 GB of frames on disk, not 13 GB.
+- A sound is one note per unbroken run of frames. It stops when its Sequence ends. The spike let it play to the file's end.
+- Output is tagged BT.709, TV range. Remotion's was untagged full range.
+- CI sets `PUPPETEER_SKIP_DOWNLOAD`: no check draws a video, so CI fetches no Chrome.
+
+Not checked: a real Long with a camera cut, a Short and a Framed render. The October edit folders are gone; the first real recording is the test.

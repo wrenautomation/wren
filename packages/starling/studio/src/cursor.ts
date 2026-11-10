@@ -1,7 +1,7 @@
 /**
  * The drawn cursor of a filmed take (designs/2026-10-24-filmed-takes.md, Cursor). The film has
  * no cursor; the hands' log does. `cursorTrack` reads the log once (in the props), `cursorAt` says
- * where the arrow is and how it looks at any second. No imports, so Remotion's bundler takes it.
+ * where the arrow is and how it looks at any second. No imports, so the render bundle takes it.
  */
 
 /** Seconds still before the arrow fades, and how long the fades take. */

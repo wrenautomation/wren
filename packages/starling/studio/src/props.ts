@@ -1,6 +1,6 @@
 /**
- * What the Remotion compositions get: the cut files (named inside the edit's folder, which Remotion
- * serves as its public dir) and the edit moved onto the cut timeline. Remotion never reads the DB.
+ * What the compositions get: the cut files (named inside the edit's folder, which the render
+ * serves) and the edit moved onto the cut timeline. A render never reads the DB.
  */
 import { basename } from "node:path";
 import { DEFAULT_LOOK, type Look } from "@wren/video";

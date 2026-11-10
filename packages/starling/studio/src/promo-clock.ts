@@ -1,6 +1,6 @@
 /**
  * The promo's clock (`./promo.ts`): easing, camera, counters, when each word and toast arrives.
- * No imports, so Remotion's bundler takes it as it is.
+ * No imports, so the render bundle takes it as it is.
  */
 
 /**

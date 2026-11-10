@@ -3,7 +3,7 @@
  * takes in the studio package, `sfx/fx/` (`sfx/make.mjs` makes them). Music beds are not ours: they live in the
  * media bucket under `sfx/`, are named in `sfx/kit.json` and pulled into the Mac's cache
  * (`wren video sfx pull`). A render copies the sounds its props name into the edit's folder,
- * Remotion's public dir.
+ * the folder a render serves.
  */
 import { copyFile, mkdir, readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
