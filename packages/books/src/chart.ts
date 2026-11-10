@@ -220,8 +220,16 @@ export const VENDORS: readonly VendorSpec[] = [
     key: "inbox-insiders",
     name: "Inbox Insiders",
     account: "email",
-    // Lead Gen Jay's shop; its mail confirms orders, the card has the charge.
-    mail: { from: ["updates.leadgenjay.com"], subject: ["order", "receipt", "invoice", "payment"] },
+    // Lead Gen Jay's shop: order mail from its domain; the monthly plans bill through its Stripe
+    // account (acct_1GVTNSBseA8zmZfH), receipts to the personal Gmail
+    mail: {
+      from: [
+        "updates.leadgenjay.com",
+        "invoice+statements+acct_1GVTNSBseA8zmZfH@stripe.com",
+        "receipts+acct_1GVTNSBseA8zmZfH@stripe.com",
+      ],
+      subject: ["order", "receipt", "invoice", "payment"],
+    },
     currency: "USD",
     cycle: "monthly",
     card: ["LEADGENJAY", "LEAD GEN JAY", "INBOX INSIDERS", "INBOXINSIDERS"],
