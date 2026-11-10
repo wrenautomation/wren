@@ -7,7 +7,7 @@ Task WA-1203. Status: agreed (William, 11-09: "This makes sense … let's go …
 Every result we trust is in one place, as a record linked to its evidence. Results come from Vireo
 winners and locked tips, Weaver findings, Orrery lanes that close, and William's own rules. Records
 are plain files: Claude Code edits them, William opens and passes them around like docs. The SOPs, the
-skills, a Quartz site and the portal's graph are views. The Voice and facts page (deleted 11-08) is
+skills and the portal's graph are views. The Voice and facts page (deleted 11-08) is
 replaced by this.
 
 ## Decision
@@ -74,8 +74,8 @@ Writers: agents through the `knowledge` CLI (`add|edit|retire|apply`, then `show
 JSON in and out, `--by` and `--why` required), William by hand or through Claude Code. Promotion is an agent step: it cites the evidence
 and says why.
 
-Views: `topics/*/SOP.md` and the `sop-*` skills built from rules; Quartz for reading and sharing (custom
-components allowed); the portal's graph and editing on the index, never a second copy of Quartz.
+Views: `topics/*/SOP.md` and the `sop-*` skills built from rules; the portal's graph and record pages
+on the index (WA-1281), drawn with the same graph kit as the Weaver run page. No Quartz (11-10).
 
 Tool skills (handoff, stageshow, variations) stay in wj_skills for now. Later they move into a
 `skills/` area here, with the plugin build compiled out.
@@ -142,3 +142,9 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
   retires it, a re-keep is a new record (the store never revives a retired one). Code lives in wren's
   host (`@wren/variants/knowledge`), not in Vireo: Vireo stays free of a knowledge dependency, and the
   host already reads prod. Prod today: 0 kept, 0 locked (25 tips testing), so the first run writes none.
+- 11-10 (WA-1281, William: "seems like we could render it the same way weaver does", my call): the second
+  brain view uses the Weaver run page's graph kit (packages/ui graph: xyflow + elk, search, facets), fed
+  by the index. Quartz dropped: a second stack and a second copy of every record for one more reader.
+  Options weighed: Quartz static site (free backlinks and full-text, but a separate build and look);
+  Obsidian-style force graph (shows all ~7.5k records at once, unreadable at this size); the shared kit,
+  starting from search or one topic and expanding cites on demand (one part, one look, reuses work).
