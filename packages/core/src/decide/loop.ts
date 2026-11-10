@@ -52,6 +52,8 @@ interface DecidePassStats {
   inputTokens: number;
   /** Why the pass ended early, or didn't run. */
   stopped: string | null;
+  /** The newest failure, kept when the pass goes on. */
+  error: string | null;
   byKind: Partial<Record<DecisionKind, number>>;
 }
 
@@ -78,6 +80,7 @@ export async function decidePass(
     usd: 0,
     inputTokens: 0,
     stopped: null,
+    error: null,
     byKind: {},
   };
   const now = o.now ?? new Date();
@@ -130,6 +133,7 @@ export async function decidePass(
           break outer;
         }
         s.failed++;
+        s.error = `${src.kind} ${sub.subject}: ${String(err).slice(0, 2000)}`;
         if (s.failed >= DECIDE_MAX_FAILURES) {
           s.stopped = `${s.failed} failures: ${String(err).slice(0, 2000)}`;
           break outer;
