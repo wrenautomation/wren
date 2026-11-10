@@ -76,7 +76,7 @@ Total ≈ $27/month.
 No input: send no body and no content type. A body: `content-type: application/json`. A handler with an input schema refuses an empty body typed as JSON; `ingressOf` and `scripts/ingress.mjs` already send nothing for no input.
 
 ```sh
-H="Authorization: Bearer $WREN_API_TOKEN"     # in wren/.env
+H="Authorization: Bearer $WREN_API_TOKEN"     # in deploy/prod.env
 U=https://api.wrenautomation.com
 
 curl -X POST -H "$H" $U/EmailSend/alice@example.com/status
