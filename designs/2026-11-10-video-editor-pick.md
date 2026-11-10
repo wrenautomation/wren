@@ -101,3 +101,40 @@ Each fact with its URL: tasks repo `docs/11-10/video-editor/` (html-editors, gpu
 
 - 11-10: options A-D compared on the priorities above. Recommend A. Raea stays for internal drafts (WA-1268). Pending William.
 - 11-10: goldfish review: 36 findings (critic 15, reader 15, zoom-out 6), 21 applied, 15 rejected or merged. Changed: Finish (the existing editor) is now the base; the Player plays the raw source so cuts show live; the license cost follows Remotion's FAQ (a fee once a client operates the editor); Lambda waits on a client; B's cost includes the row writers; Non-goals and Risks added. Open: William's pick, the fee, marks vs agent cursor, copying OpenFilm code.
+
+## William's calls (11-10) and the new base
+
+His words: "finish as our own editor makes sense, and i want a free way to sell this", "were not asking remotion btw i dont want the remotion fee", "for the base i want our own software for this, or ability to adapt since then we can wire our system into our vireo system too", "marks are enough, but maybe a cursor would be nice too", "lets do this."
+
+So option A's Remotion Player is out for the sold product. The composition uses 10 Remotion names and none of its animation math (no spring, interpolate, delayRender; all timing is our own `src/*.ts`). The base options, all free to sell:
+
+| Base | What | Gain | Cost |
+|---|---|---|---|
+| E1. Own frame runtime + HyperFrames engine | Our own small React runtime (frame clock, Sequence, Video, Audio, Img, fonts) plays the composition in Finish. Export: `@hyperframes/engine` (Apache-2.0) seeks our page through its `window.__hf` protocol, captures with Chrome beginFrame, encodes with ffmpeg; its Lambda package fans out | No port of the composition. Preview and export are one runtime we own. Apache engine, 134 contributors. Raea still drafts (same component names) | Chrome-class export speed. We own the runtime (video seek, audio mix props) |
+| E2. Own runtime + own capture | Same runtime; our own Playwright capture and ffmpeg | No dependency | We rebuild what E1 gets free: beginFrame, video frame extraction, chunking, Lambda |
+| E3. Fork OpenFilm | film.html as source | Marks and click-to-edit on day one | Every row writer moves; young fork |
+| E4. Framefields | GPU engine | Fast export | Full port to its API; no true preview in Finish; GPU host |
+
+Pick: E1. Priorities: free to sell, our own base, fastest loop with Vireo, least risk. If the engine falls short, E2 swaps in behind the same seek protocol.
+
+Marks = Vireo notes. A Vireo note already carries `box` (fractions), `time` (seconds) and `quote`. Finish writes the same note shape on an edit; the agent reads it through `wren variants show` or `wren video marks`. One mark model for both. Each agent pass on an edit can be a Vireo sample (`studio: {edit, format}` exists), so cuts are judged, kept and shipped in one loop.
+
+Agent cursor: second, after marks. It is a presence row (who, edit, time, part) that Finish polls or streams; no co-edit model.
+
+Take from the others (ideas; OpenFilm and HyperFrames code is MIT / Apache, copied with notice where it saves work):
+- OpenFilm: box and range marks, click a part to edit it, named versions, FCP/Premiere export (later).
+- WeftCut: timeline diff of an agent's change; undo per session.
+- OpenChatCut: approve or reject an agent's draft before it lands.
+- Raea: measured checks P0-P3, judge calibrated to his scores, one still for the agent (WA-1267).
+- HyperFrames: beginFrame capture, chunked Lambda render, a note pinned to a frame.
+- Framefields: beat grid and audio-reactive values for cuts on the music.
+- Compound: You and Agent on one timeline; sliders for a part's values.
+
+Build order:
+1. Spike: own runtime renders the Promo and one Long row through `@hyperframes/engine`; time and SSIM against Remotion.
+2. Runtime in Finish in place of the drawn overlay; raw source + one Sequence per kept span.
+3. Marks as Vireo notes; `wren video marks`.
+4. Remotion removed from the package; Raea draft flag.
+5. Agent cursor. Content playbook (own design doc): Vireo's locked guides and kept winners feed one guide per format for all content and ads.
+
+- 11-10: William picked Finish as the editor, no Remotion fee, own base. Pick E1. Marks first, cursor after.
