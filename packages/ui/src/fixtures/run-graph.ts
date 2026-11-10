@@ -147,6 +147,8 @@ export function fakeRunGraph(o: RunGraphShape = {}): RunGraphData {
           p,
           ok: r() < 0.9 ? 1 : 0,
           why: "The quote says it in the shop's own words.",
+          // no rng draw: the rest of the fixture stays as it was
+          l: (p + f) % 3 === 0 ? "guided" : (p + f) % 3 === 1 ? "open" : "both",
         });
       }
       pages.push({

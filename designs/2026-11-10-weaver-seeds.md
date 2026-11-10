@@ -139,7 +139,7 @@ Optimistic means: assume a page we read before has not changed, and use what we 
 - First: each finding row shows its lane as a word.
 - After the first runs: a lane filter and a lane table, if the lane stays. Until then, `weaver yield` shows the numbers.
 
-## Name (open, William's call)
+## Name (decided 11-10: A)
 
 William, 11-10: "seed" is not clear. The name must say: a search guided by our own knowledge, not a raw weaver search. Not "guide": knowledge has a `guide` record type.
 
@@ -149,7 +149,7 @@ William, 11-10: "seed" is not clear. The name must say: a search guided by our o
 | B. knowledge / web | `weaver from-knowledge` | `knowledge` | knowledge, web, both, other | `weaver from-knowledge <run> --tag web-design --why "…"` |
 | C. seed (today's draft) | `weaver seed` | `seed` | seeded, open, both, other | `weaver seed <run> --tag web-design --why "…"` |
 
-Pick A. Knowledge already tags these records `reference`, and the brief's part is already `references`. "Guided" against "open" says what the lane is. B is as clear, but `knowledge: web-siteinspire-com` reads badly as a field. Until William picks, the code says `seed`; the rename comes before the release.
+William picked A on 11-10. Knowledge already tags these records `reference`, and the brief's part is already `references`. "Guided" against "open" says what the lane is. The rest of this doc keeps "seed" as the design word; the code, CLI and skill say `reference` and `guided`.
 
 ## Non-goals
 
@@ -189,3 +189,6 @@ Links: WA-1164 (the reference record), WA-1195 (the source walk), WA-1281 (knowl
 - 2026-11-10: goldfish review: 37 findings (14 critic, 15 reader, 8 zoom-out), 24 applied, 13 rejected or merged; open: the stop rule, and who writes the step 0 seed records. Changed: the Source dropped (it sent the seed query to the web, `ports.ts:123-135`); lane derived, not stored; the routing fix for site searches; yield from `yieldRows`; keepers through the knowledge CLI; blind triage, the read split and `find --tag` cut; `shape` replaced by the record's `kind`; Non-goals, Risks and Tests added.
 - 2026-11-10: William approved E, with two conditions. Agents must reach for seeds without him naming them: the `references` layer, the skill rule and the acceptance check were added. The auto-off stop rule was dropped; yield by lane is a report only. Optimistic dedupe was added: reuse stored page text and look past kept findings. Step 0 done by the sources session.
 - 2026-11-10: William: "seed" is not clear. Three name options added; pick A (reference / guided). Open: his pick.
+- 2026-11-10: name A picked by William: `weaver reference`, field `reference`, lanes guided/open/both/other. Built and released: engine 0.67.0 (the step, routing, lanes, dedupe, brief, yield, promote, skill), 0.67.1, 0.67.2 (run view: `lane` and `references` on hits and findings).
+- 2026-11-10: first real run (`design a landing page for a small B2B service firm`, tag web-design): 1 page and 20 catalogs, 40 searches, 308 hits, $0.15. Two fixes from it, in 0.67.1: (1) the brief listed `weaver` (854) and `learn` (573) first; it now lists only tags of 30 records or fewer, the cap of one `reference` call. (2) searxng ignored `site:` on 5 hits; fetch now writes a hit that is off its query's site, then a tool `drop` call (kept in the ledger, out of triage). The sandbox reads the repo through git: no change needed.
+- 2026-11-10: wren: each finding row in the run panel shows its lane word ("From our references", "Open search", "References and open search", "Given"); absent in a run with no reference.

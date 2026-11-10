@@ -15,6 +15,7 @@ export type {
   GraphPage,
   GraphSearch,
   GraphSource,
+  Lane,
   RunGraphData,
   Speaker,
 } from "./model.js";

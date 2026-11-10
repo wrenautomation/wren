@@ -87,6 +87,9 @@ export interface RunFinding extends Who {
   kept: boolean;
   fixes?: string;
   class?: string;
+  /** weaver 0.67.2: only in a run with a `reference` query. */
+  lane?: "guided" | "open" | "both" | "other";
+  references?: string[];
   checks: ({ ok: boolean; why: string; at: string } & Who)[];
 }
 

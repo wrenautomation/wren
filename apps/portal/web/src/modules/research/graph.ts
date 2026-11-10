@@ -201,6 +201,7 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
       p,
       ok: ck ? (ck.ok ? 1 : 0) : -1,
       why: ck?.why ?? "",
+      ...(f.lane ? { l: f.lane } : {}),
     });
     s.kept++;
     pg.kept++;

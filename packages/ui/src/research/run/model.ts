@@ -27,6 +27,14 @@ export const SPEAKERS: Record<Speaker, { many: string; one: string }> = {
   other: { many: "Other", one: "Other" },
 };
 export const SPEAKER_ORDER = Object.keys(SPEAKERS) as Speaker[];
+/** Which side of a run a finding came from (weaver's lanes); absent in a run with no reference. */
+export type Lane = "guided" | "open" | "both" | "other";
+export const LANES: Record<Lane, string> = {
+  guided: "From our references",
+  open: "Open search",
+  both: "References and open search",
+  other: "Given",
+};
 export const EVIDENCE: Record<Evidence, string> = {
   data: "Data",
   study: "Study",
@@ -81,6 +89,8 @@ export interface GraphFinding {
   /** last check: 1 passed, 0 failed, -1 none */
   ok: -1 | 0 | 1;
   why: string;
+  /** lane; absent in a run with no reference */
+  l?: Lane;
 }
 
 export interface GraphSource {

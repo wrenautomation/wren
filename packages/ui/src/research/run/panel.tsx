@@ -15,6 +15,7 @@ import {
   type GraphSource,
   headOf,
   type Indexed,
+  LANES,
   pl,
   SPEAKERS,
   type Speaker,
@@ -225,6 +226,7 @@ function Finding({
       {f.q ? <blockquote>“{f.q}”</blockquote> : null}
       <p className="fm">
         <span className="ev">{EVIDENCE[f.e] ?? "Other"}</span>
+        {f.l ? <span>{LANES[f.l]}</span> : null}
         {claim ? f.c >= 0 ? <Tag c={c} i={f.c} /> : <span>In no claim</span> : null}
         {aq ? (
           <Out className="aq" href={aq}>
