@@ -75,7 +75,7 @@ import { registerSop } from "./sop.js";
 import { registerTemplates } from "./templates.js";
 import { registerTouches } from "./touches.js";
 import { registerTrain } from "./train.js";
-import { registerVariants } from "./variants.js";
+import { registerPlaybook, registerVariants } from "./variants.js";
 import { registerVideo } from "./video.js";
 import { registerWatch } from "./watch.js";
 import { registerWebhooks } from "./webhooks.js";
@@ -268,6 +268,7 @@ registerAccounts(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
 registerWatch(program, withMainDb, settings, rootDir);
 registerVariants(program, withDb, settings, actor, rootDir);
+registerPlaybook(program, withDb, settings, rootDir);
 registerFolders(program, withDb, actor);
 registerLearn(
   program,

@@ -1,7 +1,7 @@
 # Start a subject
 
 ```sh
-./bin/wren variants new <slug> --name "…" --kind text|image|video|page [--brief "his direction"] [--seed <study|sop|sample|file>]...
+./bin/wren variants new <slug> --name "…" --kind text|image|video|page --type <content type> [--brief "his direction"] [--seed <study|sop|sample|file>]...
 ```
 
 - **A brief** is his direction. Stay near it. Batch 1 spreads within it.

@@ -10,6 +10,7 @@ import { checkMediaStore } from "@wren/starling-inbound";
 import { FPS, getEdit, keepSegments, shortCutsOver } from "@wren/starling-studio";
 import { variants } from "@wren/variants";
 import { promoteVerdicts } from "@wren/variants/knowledge";
+import { contentTypesIn, pushCanon, readPlaybook } from "@wren/variants/playbook";
 import type { Source } from "@wrenautomation/vireo";
 import { registerCommands } from "@wrenautomation/vireo/cli";
 import { type Bucket, s3Bucket } from "@wrenautomation/vireo/media";
@@ -24,6 +25,7 @@ export function registerVariants(
   by: string,
   rootDir: string,
 ): void {
+  const canon = resolve(rootDir, settings.canonDir);
   const v = program
     .command("variants")
     .description(
@@ -31,6 +33,10 @@ export function registerVariants(
     );
   registerCommands(v, {
     by,
+    // the playbook's types; no Canon checkout (prod): any text
+    get contentTypes() {
+      return contentTypesIn(canon);
+    },
     withVireo: (fn) => withDb((db) => fn(variants(db), db)),
     ...(settings.mediaBucket ? { bucket: checked(settings.mediaBucket) } : {}),
     // a live page with no poster: the render Lambda shoots one (vireo `posters`)
@@ -50,7 +56,7 @@ export function registerVariants(
       console.log(
         JSON.stringify(
           await withDb((db) =>
-            promoteVerdicts(db, resolve(rootDir, settings.canonDir), {
+            promoteVerdicts(db, canon, {
               by: "wren-variants",
               why: o.why,
             }),
@@ -60,6 +66,45 @@ export function registerVariants(
         ),
       ),
     );
+}
+
+/** `wren playbook <type>`: promote first, so a lock or a keep is in what the agent reads. */
+export function registerPlaybook(
+  program: Command,
+  withDb: WithDb,
+  settings: Settings,
+  rootDir: string,
+): void {
+  program
+    .command("playbook <type>")
+    .description(
+      "Every rule for a content type: the playbook guide, the type's rule sets, proven lines with their numbers, top kept samples (Canon)",
+    )
+    .option("--json", "{type, proven, sets, references}")
+    .option("--offline", "skip promote; print the last state")
+    .action(async (type: string, o: { json?: boolean; offline?: boolean }) => {
+      const canon = resolve(rootDir, settings.canonDir);
+      let stale: string | null = o.offline ? "offline" : null;
+      if (!o.offline)
+        try {
+          const r = await withDb((db) =>
+            promoteVerdicts(db, canon, { by: "wren-playbook", why: `wren playbook ${type}` }),
+          );
+          if (r.commit) {
+            const p = pushCanon(canon);
+            if (!p.pushed)
+              stale = `promoted ${r.commit.slice(0, 7)}, push failed: ${p.error ?? "lint"}`;
+          }
+        } catch (e) {
+          stale = `promote failed: ${(e as Error).message}`;
+        }
+      const book = readPlaybook(canon, type);
+      if (o.json) console.log(JSON.stringify({ ...book, text: undefined, stale }, null, 2));
+      else {
+        if (stale) console.error(`last state (${stale})`);
+        process.stdout.write(book.text);
+      }
+    });
 }
 
 /** The bucket, after one check that the laptop's AWS session can write (with the login hint). */

@@ -10,6 +10,7 @@
     ".": "./src/index.ts",
     "./console-routes": "./src/console-routes.ts",
     "./knowledge": "./src/knowledge.ts",
+    "./playbook": "./src/playbook.ts",
     "./restate": "./src/restate.ts"
   },
   "scripts": {
@@ -24,7 +25,7 @@
     "@wren/sites": "workspace:*",
     "@wren/starling-inbound": "workspace:*",
     "@wrenautomation/knowledge": "0.68.5",
-    "@wrenautomation/vireo": "0.16.0",
+    "@wrenautomation/vireo": "0.17.0",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"
   },

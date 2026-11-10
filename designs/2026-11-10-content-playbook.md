@@ -1,6 +1,6 @@
 # Content playbook (2026-11-10)
 
-Task WA-1285 (design only; the build is its own task). Status: proposed, waits on William.
+Task WA-1285 (design), WA-1289 (build). Status: built 11-10 on option A and the two defaults below.
 
 William, 11-10: "a first class content playbook for ourselves for all content and all ads".
 
@@ -150,3 +150,14 @@ temp repo as `knowledge.test.ts` does. One run on prod's 25 testing tips writes 
   Rejected: a daily job (the Mac sleeps); freeze numbers at lock (reading the verdict is one place);
   per-type rate recompute (the line names its base instead); error text for each case; and four
   findings moot once market winners were cut.
+- 2026-11-10: built (WA-1289) on the defaults: the 12 types, and a tip on everyone reaches all 12.
+  William can still change either. Choices made in the build:
+  - The type table is the guide's `types` field (type, kind, sets), not a markdown table: code reads
+    it. Each set a row names must be in the guide's `cites`, so `knowledge lint` checks it is live.
+  - Proven set id `content-playbook-proven-<type>`, prefix `P` + the type's initials (PSV, PTH).
+  - An emptied set keeps its last cites (a live rule must cite).
+  - With no Canon checkout (prod), `variants new` takes any type; on the Mac it takes only the 12.
+  - `wren playbook` runs promote, pushes Canon when it committed, and prints the last state with
+    the reason when promote or the push fails (`--offline` skips both).
+  - Vireo 0.17.0: `subjects.content_type`, `new --type`, `vireo type <subject> <type>`.
+  - The sop-making audit warns (not fails) SL-1 for a topic that only cites other topics' sets.

@@ -10,7 +10,9 @@ You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (pr
 ## Commands
 
 ```sh
-./bin/wren variants new <slug> --name "…" --kind text|image|video|page [--brief "…"] [--seed <ref>]...
+./bin/wren playbook <type> [--json]            # every rule for the content type + proven lines + top kept samples; promotes first
+./bin/wren variants new <slug> --name "…" --kind text|image|video|page --type <content type> [--brief "…"] [--seed <ref>]...
+./bin/wren variants type <subject> <content type>   # set or fix a subject's type
 ./bin/wren variants show <subject>              # read before every batch: calls, notes, leaders, guides, steers
 ./bin/wren variants add <subject> batch.json    # a new batch; refused if it breaks a live steer
 ./bin/wren variants append <subject>:<n> more.json   # more samples in that open batch, same JSON
@@ -22,7 +24,7 @@ You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (pr
 ./bin/wren variants guide add "…" [--subject s | --kind k] [--source study|sop|skill|agent --ref …]
 ./bin/wren variants guide lock|drop|test <id>
 ./bin/wren variants keep <sample> | catalog [--kind k]
-./bin/wren variants promote          # kept samples and locked tips → verdicts in Canon
+./bin/wren variants promote          # kept samples and locked tips → verdicts and proven lines in Canon (playbook runs it)
 ./bin/wren variants ship <sample> post|site|email <target> [--why …] | unship <ship> | channels
 ./bin/wren variants live <subject> | collect [--ship id]
 ```
@@ -33,13 +35,12 @@ Read the reference for a step when you reach it. Each holds the how; this page h
 
 | Step | Do | Read |
 |---|---|---|
-| 1 Start | New subject from his brief, or from seeds | `references/start.md` |
+| 1 Start | Name the content type; read `playbook <type>` (prod: `prod-wren.mjs playbook`); new subject with `--type`, from his brief or seeds | `references/start.md` |
 | 2 Batch | 4-6 samples, each with a name, parents, change; one `title` and one `why` | `references/batch.md` |
 | 3 Tree | Pick parents: mutate leaders, cross, one wild; obey his steers | `references/tree.md` |
 | 4 Hand over | Tell him `<subject>:<n>` waits in Variants › Batches. Stop | — |
 | 5 Read | `show`: his scores, anchored notes, batch note, leaders, steers | `references/batch.md` |
 | 6 Guides | Propose lock or drop from `effect`; he decides | `references/guides.md` |
-| 6b Record | After a keep, lock, un-keep or drop: `promote` (prod: `prod-wren.mjs`), then push `canon/` | — |
 | 7 Ship | A kept sample goes out; read `live` before each batch | `references/ship.md` |
 | Makers | A maker on his Mac builds pages or video for you | `references/makers.md` |
 

@@ -21,6 +21,7 @@ import {
   verdictOf,
 } from "@wrenautomation/vireo";
 import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import { PLAYBOOK, provenChanges, reachOf, typesOf } from "./playbook.js";
 
 type Fields = Record<string, unknown>;
 export interface VerdictIn {
@@ -50,7 +51,7 @@ const firstLine = (s: string | null) =>
 export interface KeptRow {
   /** score, verdict: the mean of every person's call (Vireo D11) */
   sample: SampleRow & { score: number | null; verdict: Verdict | null };
-  subject: { slug: string; name: string; kind: string };
+  subject: { slug: string; name: string; kind: string; contentType?: string | null };
   batch: { n: number; title: string | null; why: string; note: string | null };
   parents: { id: number; took: string | null }[];
   notes: {
@@ -70,13 +71,20 @@ export function keptVerdict(r: KeptRow): VerdictIn {
   return {
     key: `sample:${s.id}:${stamp(kept)}`,
     title,
-    tags: ["vireo", r.subject.slug, r.subject.kind],
+    // a kept sample of a typed subject is a playbook reference for that type
+    tags: [
+      "vireo",
+      r.subject.slug,
+      r.subject.kind,
+      ...(r.subject.contentType ? ["reference", `content-type:${r.subject.contentType}`] : []),
+    ],
     fields: defined({
       from: "vireo",
       ref: `${r.subject.slug}:${r.batch.n}`,
       sample: s.id,
       subject: r.subject.slug,
       kind: r.subject.kind,
+      contentType: r.subject.contentType,
       score: s.score,
       zone: s.verdict,
       keptAt: stamp(kept),
@@ -179,6 +187,7 @@ export function verdictChanges(
 /** Fields a Vireo verdict may carry: one that empties (a note deleted) is dropped on edit. */
 const VIREO_FIELDS: Record<string, true> = Object.fromEntries(
   [
+    "contentType",
     "score",
     "zone",
     "name",
@@ -198,7 +207,10 @@ const VIREO_FIELDS: Record<string, true> = Object.fromEntries(
   ].map((k) => [k, true]),
 );
 
-/** Every kept sample and locked tip into the repo: one commit, or none when nothing changed. */
+/**
+ * Every kept sample and locked tip into the repo, and each locked tip into the proven set of each
+ * content type it reaches: one commit, or none when nothing changed.
+ */
 export async function promoteVerdicts(
   db: Db,
   root: string,
@@ -209,12 +221,18 @@ export async function promoteVerdicts(
   added: number;
   edited: number;
   retired: number;
+  proven: number;
   commit: string | null;
 }> {
   const kept = await db
     .select({
       sample: samples,
-      subject: { slug: subjects.slug, name: subjects.name, kind: subjects.kind },
+      subject: {
+        slug: subjects.slug,
+        name: subjects.name,
+        kind: subjects.kind,
+        contentType: subjects.contentType,
+      },
       batch: { n: batches.n, title: batches.title, why: batches.why, note: batches.note },
     })
     .from(samples)
@@ -238,7 +256,7 @@ export async function promoteVerdicts(
   };
 
   const locked = await db
-    .select({ guide: guides, subject: subjects.slug })
+    .select({ guide: guides, subject: subjects.slug, subjectType: subjects.contentType })
     .from(guides)
     .leftJoin(subjects, eq(subjects.id, guides.subjectId))
     .where(eq(guides.state, "locked"))
@@ -296,8 +314,29 @@ export async function promoteVerdicts(
   const have = new Map(
     loadWorking(root).docs.map((l) => [l.doc.fm.id, { fm: l.doc.fm as Fields, body: l.doc.body }]),
   );
-  const changes = verdictChanges(have, want);
-  const count = (op: Change["op"]) => changes.filter((c) => c.op === op).length;
+  const verdicts = verdictChanges(have, want);
+  const count = (op: Change["op"]) => verdicts.filter((c) => c.op === op).length;
+
+  // proven lines: each locked tip's verdict id (kept or just added), over the types it reaches
+  const guide = have.get(PLAYBOOK);
+  const types = guide?.fm.status === "live" ? typesOf(guide.fm) : [];
+  const verdictOfKey = new Map<string, string>();
+  for (const [id, d] of have)
+    if (d.fm.type === "verdict" && d.fm.from === "vireo" && d.fm.status === "live") {
+      const k = keyOf(d.fm);
+      if (k) verdictOfKey.set(k, id);
+    }
+  for (const c of verdicts)
+    if (c.op === "add") {
+      const k = keyOf(c as Fields);
+      if (k) verdictOfKey.set(k, c.id as string);
+    }
+  const tips = locked.flatMap(({ guide: g, subjectType }) => {
+    const verdict = verdictOfKey.get(`guide:${g.id}:${stamp(g.decidedAt)}`);
+    return verdict ? [{ verdict, text: g.text, reach: reachOf(g, subjectType, types) }] : [];
+  });
+  const proven = provenChanges(have, types, tips);
+  const changes = [...verdicts, ...proven];
   const commit = changes.length ? (await write(root, changes, who)).commit : null;
   return {
     kept: kept.length,
@@ -305,6 +344,7 @@ export async function promoteVerdicts(
     added: count("add"),
     edited: count("edit"),
     retired: count("retire"),
+    proven: proven.length,
     commit,
   };
 }
