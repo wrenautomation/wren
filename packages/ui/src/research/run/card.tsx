@@ -3,75 +3,11 @@
  * findings. One model with the page: `RunGraphData`.
  */
 import type { ReactNode } from "react";
-import { Button, Tag } from "../../controls.js";
-import { Icon } from "../../icons.js";
+import { ProductCard, BusyTag, type NextAsk, type OnAsk } from "../../agent-product-card.js";
 import { RunGraph } from "./graph.js";
 import { pl, type RunGraphData } from "./model.js";
 
-/** an agent's next ask; `why` rides as the tip */
-export interface NextAsk {
-  ask: string;
-  why?: string | undefined;
-}
-
-type OnAsk = ((text: string) => void) | undefined;
-
-const CARD =
-  "ui-rise grid w-full max-w-[44rem] min-w-0 gap-3 rounded-[12px] bg-(--ui-paper) p-3.5 shadow-[inset_0_0_0_1px_var(--ui-hair)]";
-const SMALL = "text-[12px]/[1.45] text-(--ui-ink-3)";
-
-function Head({
-  name,
-  meta,
-  href,
-  live,
-}: {
-  name: ReactNode;
-  meta: string;
-  href?: string | undefined;
-  live?: boolean | undefined;
-}) {
-  return (
-    <header className="flex min-w-0 items-start gap-3">
-      <div className="grid min-w-0 flex-1 gap-0.5">
-        <span className="text-[12px] font-semibold text-(--ui-ink-3)">Weaver</span>
-        <span className="text-[14.5px]/[1.35] font-semibold text-(--ui-ink) wrap-anywhere">
-          {name}
-        </span>
-        <span className={`${SMALL} flex flex-wrap items-center gap-x-3`}>
-          {meta}
-          {href ? (
-            <a
-              href={href}
-              className="inline-flex items-center gap-1 font-semibold text-(--ui-link) no-underline hover:underline"
-            >
-              Open in Research
-              <Icon name="arrow" size={13} />
-            </a>
-          ) : null}
-        </span>
-      </div>
-      {live ? (
-        <Tag tone="accent" busy>
-          Reading
-        </Tag>
-      ) : null}
-    </header>
-  );
-}
-
-function Asks({ asks, onAsk }: { asks: readonly NextAsk[] | undefined; onAsk: OnAsk }) {
-  if (!asks?.length || !onAsk) return null;
-  return (
-    <div className="flex flex-wrap gap-2">
-      {asks.map((a) => (
-        <Button key={a.ask} tone="quiet" size="dense" title={a.why} onClick={() => onAsk(a.ask)}>
-          {a.ask}
-        </Button>
-      ))}
-    </div>
-  );
-}
+export type { NextAsk } from "../../agent-product-card.js";
 
 export interface RunCardProps {
   /** undefined while it loads */
@@ -99,12 +35,20 @@ export function RunCard({ run, failed, href, live, asks, onAsk }: RunCardProps) 
         .join(" · ")
     : "";
   return (
-    <article aria-label={`Weaver run: ${run?.t ?? "loading"}`} className={CARD}>
-      {run ? <Head name={run.t} meta={meta} href={href} live={live} /> : null}
+    <ProductCard
+      product="Weaver"
+      what="Weaver run"
+      name={run?.t}
+      meta={meta}
+      href={href}
+      open="Open in Research"
+      status={live ? <BusyTag>Reading</BusyTag> : null}
+      asks={asks}
+      onAsk={onAsk}
+    >
       {run?.note ? <p className="m-0 text-[13px]/[1.5] text-(--ui-ink-2)">{run.note}</p> : null}
       <RunGraph run={run} failed={failed} card />
-      <Asks asks={asks} onAsk={onAsk} />
-    </article>
+    </ProductCard>
   );
 }
 
@@ -125,8 +69,16 @@ export interface SourceRead {
 export function SourceCard({ read, onAsk }: { read: SourceRead; onAsk?: OnAsk }) {
   const n = read.findings.length;
   return (
-    <article aria-label={`Weaver source: ${read.name}`} className={CARD}>
-      <Head name={read.name} meta={`${read.by} · ${read.meta}`} href={read.href} />
+    <ProductCard
+      product="Weaver"
+      what="Weaver source"
+      name={read.name}
+      meta={`${read.by} · ${read.meta}`}
+      href={read.href}
+      open="Open in Research"
+      asks={read.asks}
+      onAsk={onAsk}
+    >
       <p className="m-0 flex flex-wrap gap-x-3.5 gap-y-0.5 text-[12.5px] text-(--ui-ink-2)">
         <span>
           <b className="font-semibold text-(--ui-ink) tabular-nums">{n}</b>{" "}
@@ -151,7 +103,6 @@ export function SourceCard({ read, onAsk }: { read: SourceRead; onAsk?: OnAsk })
           </li>
         ))}
       </ul>
-      <Asks asks={read.asks} onAsk={onAsk} />
-    </article>
+    </ProductCard>
   );
 }

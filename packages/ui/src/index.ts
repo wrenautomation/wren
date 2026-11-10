@@ -61,6 +61,14 @@ export {
   threadMessage,
 } from "./agent-thread.js";
 export {
+  ProductCard,
+  type ProductCardProps,
+  BusyTag,
+  CARD_SMALL,
+  type NextAsk,
+  type OnAsk,
+} from "./agent-product-card.js";
+export {
   Browser,
   type BrowserFolder,
   BrowserRow,

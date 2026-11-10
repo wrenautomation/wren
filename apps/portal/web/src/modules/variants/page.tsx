@@ -82,7 +82,7 @@ interface Guide {
   decidedAt?: string | null;
   effect: Effect;
 }
-interface SubjectView {
+export interface SubjectView {
   subject: SubjectRow;
   guides: Guide[];
   batches: {

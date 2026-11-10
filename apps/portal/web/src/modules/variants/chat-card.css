@@ -1,0 +1,33 @@
+/* Vireo's chat cards (WA-1262). A tile takes its call's color softly; the call's badge pops in. */
+.vc-tile {
+  transition:
+    border-color 0.3s var(--ui-ease),
+    background-color 0.3s var(--ui-ease),
+    color 0.3s var(--ui-ease);
+}
+.vc-pop {
+  animation: vc-pop 0.36s var(--ui-ease) both;
+}
+@keyframes vc-pop {
+  from {
+    opacity: 0;
+    scale: 0.3;
+  }
+  65% {
+    scale: 1.18;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vc-tile {
+    transition: none;
+  }
+  .vc-pop {
+    animation: none;
+  }
+}
+[data-motion="less"] .vc-tile {
+  transition: none;
+}
+[data-motion="less"] .vc-pop {
+  animation: none;
+}

@@ -627,6 +627,85 @@ export function SubjectTree({
   );
 }
 
+/** past this height the card shows the newest rows; older ones fade out at the top */
+const CARD_MAX_H = 280;
+/** narrower, the tree scrolls sideways: its labels stay legible on a phone */
+const CARD_MIN_W = 560;
+const NO_FOLDS: ReadonlyMap<number, number> = new Map();
+
+/**
+ * The tree in the agent chat (WA-1262): the page's own model and drawing, fit to the card's width,
+ * the newest rows at the foot. A node new since the last read, or with a new call, grows in; on
+ * the first draw every row grows in turn. A tap opens the subject page.
+ */
+export function TreeCard({
+  subject,
+  batches,
+  guides,
+  pruned: prunedIds,
+  onOpen,
+}: Pick<TreeProps, "subject" | "batches" | "guides" | "pruned"> & {
+  onOpen: (sample: number) => void;
+}) {
+  const t = useMemo(() => treeOf(batches, guides), [batches, guides]);
+  const uid = useId().replace(/:/g, "");
+  const nodes = useRef(new Map<number, SVGGElement>());
+  const pruned = useMemo(() => new Set(prunedIds ?? []), [prunedIds]);
+  const seen = useRef<Map<number, Call> | null>(null);
+  // per read, not per render: a re-render must not cut a growth short
+  const fresh = useMemo(() => {
+    const was = seen.current;
+    return new Set(t.S.filter((s) => !was || was.get(s.id) !== s.v).map((s) => s.id));
+  }, [t]);
+  useEffect(() => {
+    seen.current = new Map(t.S.map((s) => [s.id, s.v]));
+  }, [t]);
+  const box = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(0);
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setW(el.clientWidth));
+    ro.observe(el);
+    setW(el.clientWidth);
+    // a phone opens on the tree's middle, where its trunk is
+    el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
+    return () => ro.disconnect();
+  }, []);
+  const tall = w > 0 && (t.height * Math.max(w, CARD_MIN_W)) / (G.W - G.AX + 24) > CARD_MAX_H;
+  const born = fresh.size === t.S.length;
+  return (
+    <div
+      ref={box}
+      className={`vt vt-card${tall ? " tall" : ""}${born ? " born" : ""}`}
+      style={{ maxHeight: CARD_MAX_H, "--vt-min-w": `${CARD_MIN_W}px` } as CSSProperties}
+    >
+      <TreeSvg
+        t={t}
+        uid={uid}
+        sel={null}
+        focus={t.first ?? t.S[0]?.id ?? null}
+        mode="all"
+        folds={NO_FOLDS}
+        onUnfold={() => {}}
+        name={subject.name}
+        isKept={(s) => s.kept}
+        pruned={pruned}
+        nodes={nodes.current}
+        onSelect={onOpen}
+        onKey={(ev, s) => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          onOpen(s.id);
+        }}
+        onTip={() => {}}
+        card
+        fresh={fresh}
+      />
+    </div>
+  );
+}
+
 function TreeSvg({
   t,
   uid,
@@ -642,6 +721,8 @@ function TreeSvg({
   onSelect,
   onKey,
   onTip,
+  card,
+  fresh,
 }: {
   t: Tree;
   uid: string;
@@ -658,6 +739,10 @@ function TreeSvg({
   onSelect: (id: number) => void;
   onKey: (ev: KeyboardEvent, s: TNode) => void;
   onTip: (id: number | null) => void;
+  /** the chat's card: cropped to the tree (no rail), a node re-mounts when its call changes */
+  card?: boolean | undefined;
+  /** nodes that grow in: new, or a new call */
+  fresh?: ReadonlySet<number> | undefined;
 }) {
   const hot = mode === "line" ? t.goodLine() : sel != null ? t.line(sel) : new Set<number>();
   const path = new Set(sel != null ? t.pathUp(sel).map((x) => x.id) : []);
@@ -680,13 +765,14 @@ function TreeSvg({
     );
   };
   const root = t.pos(null);
+  const x0 = card ? G.AX - 24 : 0;
   return (
     // biome-ignore lint/a11y/useSemanticElements: an svg tree of focusable nodes; no fieldset fits
     <svg
       role="group"
       aria-label={`Generation tree of ${name}`}
-      viewBox={`0 0 ${W} ${t.height}`}
-      width={W}
+      viewBox={`${x0} 0 ${W - x0} ${t.height}`}
+      width={W - x0}
       height={t.height}
     >
       {openRow && (
@@ -754,12 +840,13 @@ function TreeSvg({
         return (
           // biome-ignore lint/a11y/useSemanticElements: an SVG node; <button> cannot live in SVG.
           <g
-            key={s.id}
+            key={card ? `${s.id}${s.v}` : s.id}
             ref={(el) => {
               if (el) nodes.set(s.id, el);
               else nodes.delete(s.id);
             }}
-            className={`vt-n${dim ? " dim" : ""}${pruned.has(s.id) ? " pruned" : ""}`}
+            className={`vt-n${dim ? " dim" : ""}${pruned.has(s.id) ? " pruned" : ""}${fresh?.has(s.id) ? " fresh" : ""}`}
+            style={card ? ({ "--r": s.r } as CSSProperties) : undefined}
             tabIndex={s.id === focus ? 0 : -1}
             role="button"
             aria-pressed={isSel}

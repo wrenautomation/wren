@@ -61,7 +61,7 @@ interface ListPage {
 }
 
 /** One batch whole. `score`, `verdict`: the mean of the calls he may see. */
-interface Whole {
+export interface Whole {
   ref: string;
   id: number;
   n: number;
@@ -488,7 +488,7 @@ function OneBatch({ batchRef, params }: { batchRef: string; params: URLSearchPar
   );
 }
 
-const countsOf = (samples: Sample[]): Counts => ({
+export const countsOf = (samples: Sample[]): Counts => ({
   ...(Object.fromEntries(
     TALLY.map((t) => [t, samples.filter((s) => s.verdict === t).length]),
   ) as Record<Verdict, number>),
@@ -496,7 +496,7 @@ const countsOf = (samples: Sample[]): Counts => ({
 });
 
 /** "2 amazing · 1 good · 1 okay · 3 bad", each in its call's color; unmarked last. */
-function Tally({ counts: c }: { counts: Counts }) {
+export function Tally({ counts: c }: { counts: Counts }) {
   const counts = TALLY.map((t) => [t, c[t]] as const);
   const none = c.unmarked;
   return (

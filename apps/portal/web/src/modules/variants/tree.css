@@ -701,3 +701,57 @@
 [data-motion="less"] .vt-in {
   animation: none;
 }
+
+/* The chat's card (WA-1262): fit to width; past its height the newest rows show, older ones fade
+   out at the top. A new node, or a new call, grows in; the first draw grows row by row. */
+.vt-card {
+  justify-content: flex-end;
+  overflow: auto hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.vt-card::-webkit-scrollbar {
+  display: none;
+}
+.vt-card > svg {
+  display: block;
+  flex: none;
+  width: max(100%, var(--vt-min-w));
+  height: auto;
+}
+.vt-card.tall {
+  mask-image: linear-gradient(to bottom, transparent, #000 56px);
+}
+.vt-card .vt-n.fresh .vt-th {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: vt-grow 0.42s var(--ui-ease) both;
+}
+.vt-card.born .vt-n .vt-th {
+  animation-delay: calc((var(--r) - 1) * 90ms);
+}
+.vt-card.born .vt-e,
+.vt-card.born .vt-names {
+  animation: vt-in 0.5s var(--ui-ease) both;
+}
+@keyframes vt-grow {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+  60% {
+    scale: 1.08;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vt-card .vt-n.fresh .vt-th,
+  .vt-card.born .vt-e,
+  .vt-card.born .vt-names {
+    animation: none;
+  }
+}
+[data-motion="less"] .vt-card .vt-n.fresh .vt-th,
+[data-motion="less"] .vt-card.born .vt-e,
+[data-motion="less"] .vt-card.born .vt-names {
+  animation: none;
+}

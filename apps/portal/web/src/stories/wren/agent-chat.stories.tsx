@@ -8,6 +8,7 @@ import COMPACTED_CHAT from "../../mocks/data/agent/compacted.json";
 import HISTORY from "../../mocks/data/agent/history.json";
 import SETUPS from "../../mocks/data/agent/setups.json";
 import STOP from "../../mocks/data/agent/stop.json";
+import VIREO_CHAT from "../../mocks/data/agent/vireo.json";
 import WORK from "../../mocks/data/agent/work.json";
 import { ADMIN } from "../../mocks/data/me.js";
 import { RESEARCH_ROWS, RESEARCH_VIEW } from "../../mocks/data/research.js";
@@ -27,6 +28,8 @@ const STORED = "00000000-0000-4000-8000-000000000001";
 const CARDED = "00000000-0000-4000-8000-000000000002";
 
 const COMPACTED = "00000000-0000-4000-8000-000000000003";
+
+const VIREO = "00000000-0000-4000-8000-000000000004";
 
 const LONG = { timeout: 30_000 };
 
@@ -186,6 +189,24 @@ export const Card = (() => {
     parameters: { ...base.parameters, msw: [...served, ...(base.parameters?.msw ?? [])] },
   };
 })();
+
+/**
+ * Vireo's cards (WA-1262): a closed batch with its calls, an open batch to mark, a subject's
+ * tree. Each reads the page's own call from the fake server.
+ */
+export const VireoCards = story(
+  `/research/ask?setup=weaver&chat=${VIREO}`,
+  [],
+  async (page) => {
+    const c = within(page);
+    await c.findByRole("article", { name: /^Vireo batch: Openers that name a place/ }, LONG);
+    const open = await c.findByRole("article", { name: /^Vireo batch: Openers with a next step/ });
+    expect(within(open).getByText(/marked$/)).toBeTruthy();
+    const subject = await c.findByRole("article", { name: /^Vireo subject: Hero background/ });
+    await within(subject).findByRole("group", { name: /^Generation tree of / }, LONG);
+  },
+  [{ session: VIREO, at: "2026-11-09T18:00:00Z", title: "Bakery openers", frames: VIREO_CHAT }],
+);
 
 /**
  * A chat after `/compact` (a real session, scrubbed): the turns before stay, a rule marks the
