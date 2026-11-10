@@ -21,8 +21,14 @@ const PART: Record<NonNullable<Presence["part"]>, string> = {
   marks: "Marks",
   sound: "the sound",
 };
-/** Cursor tints start past the ones Fix and Keep use. */
-const tintOf = (i: number) => 5 + i;
+/**
+ * Cursor tints start past the ones Fix and Keep use. By name order, not list order: the list is
+ * newest first, so a new row would swap two agents' tints.
+ */
+const tintsOf = (presence: readonly Presence[]) => {
+  const order = presence.map((p) => p.who).sort();
+  return (who: string) => 5 + order.indexOf(who);
+};
 const nameOf = (who: string) => (who === PASS ? "The editing agent" : who);
 const when = (p: Presence) =>
   p.start === null
@@ -40,16 +46,17 @@ export function PresenceLines({
   onSeek: (t: number) => void;
 }) {
   if (!presence.length) return null;
+  const tintOf = tintsOf(presence);
   return (
     <ul aria-label="On this video now" aria-live="polite" className="m-0 grid list-none gap-1 p-0">
-      {presence.map((p, i) => {
+      {presence.map((p) => {
         const at = when(p);
         return (
           <li
             key={p.who}
             className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12.5px] text-(--ui-ink-2)"
           >
-            <TintSwatch tint={tintOf(i)} className="rounded-full" />
+            <TintSwatch tint={tintOf(p.who)} className="rounded-full" />
             <span className="font-medium text-(--ui-ink)">{nameOf(p.who)}</span>
             <span>{p.part ? `is on ${PART[p.part]}` : "is on this video"}</span>
             {at !== null && p.start !== null ? (
@@ -80,11 +87,12 @@ export function PresenceCursors({
   presence: readonly Presence[];
   x: (s: number) => number;
 }) {
+  const tintOf = tintsOf(presence);
   return (
     <>
-      {presence.map((p, i) => {
+      {presence.map((p) => {
         if (p.start === null) return null;
-        const color = tintColor(tintOf(i));
+        const color = tintColor(tintOf(p.who));
         const left = x(p.start);
         return (
           <span

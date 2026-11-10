@@ -10,6 +10,9 @@ import { PRESENCE_PARTS, type PresencePart, type VideoPresence, videoPresence } 
 
 /** A row older than this draws no cursor: the agent stopped, or forgot to leave. */
 const PRESENCE_FRESH_S = 120;
+/** The edit pass's `who`. Its model call can run past 120 s, and it always leaves (save or fail). */
+export const EDIT_PASS = "agent";
+const PASS_FRESH_S = 30 * 60;
 const PRESENCE_DOING_MAX = 200;
 
 const presenceInputSchema = z.object({
@@ -78,11 +81,25 @@ export async function presenceOf(
     .where(
       and(
         eq(videoPresence.editId, editId),
-        gte(videoPresence.seenAt, new Date(now.getTime() - PRESENCE_FRESH_S * 1000)),
+        gte(videoPresence.seenAt, new Date(now.getTime() - PASS_FRESH_S * 1000)),
       ),
     )
     .orderBy(desc(videoPresence.seenAt), desc(videoPresence.id));
-  return newestPerWho(rows).map(presenceRow);
+  const fresh = now.getTime() - PRESENCE_FRESH_S * 1000;
+  return newestPerWho(rows)
+    .filter((r) => r.who === EDIT_PASS || r.seenAt.getTime() >= fresh)
+    .map(presenceRow);
+}
+
+/** The range that holds every one of `marks` (what an agent that reads them is on); none = {}. */
+export function spanOfMarks(marks: readonly { start: number; end: number | null }[]): {
+  start?: number;
+  end?: number;
+} {
+  if (!marks.length) return {};
+  const start = Math.min(...marks.map((m) => m.start));
+  const end = Math.max(...marks.map((m) => m.end ?? m.start));
+  return end > start ? { start, end } : { start };
 }
 
 /** Rows newest first → the first of each `who`, without those whose first row says `gone`. */

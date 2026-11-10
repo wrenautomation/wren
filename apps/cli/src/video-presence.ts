@@ -4,7 +4,7 @@
  */
 
 import type { Db } from "@wren/db";
-import { presenceOf, sayPresence } from "@wren/starling-studio/presence";
+import { EDIT_PASS, presenceOf, sayPresence } from "@wren/starling-studio/presence";
 import { PRESENCE_PARTS } from "@wren/starling-studio/schema";
 import type { Command } from "commander";
 import { spanOf } from "./video-marks.js";
@@ -17,6 +17,12 @@ const idOf = (v: string) => {
   return n;
 };
 const out = (v: unknown) => console.log(JSON.stringify(v, null, 2));
+/** A session's own name for a presence row; the edit pass's name is not a session's to take. */
+export const sessionOf = (by: string) => {
+  if (by.trim() === EDIT_PASS)
+    throw new Error(`--by ${EDIT_PASS} is the edit pass's name. Pass your session id.`);
+  return by.trim();
+};
 
 export function registerVideoPresence(video: Command, withDb: WithDb): void {
   video
@@ -33,7 +39,7 @@ export function registerVideoPresence(video: Command, withDb: WithDb): void {
       (v: string, o: { by: string; at?: string; part?: string; doing?: string; leave?: boolean }) =>
         withDb(async (db) =>
           out(
-            await sayPresence(db, idOf(v), o.by, {
+            await sayPresence(db, idOf(v), sessionOf(o.by), {
               ...(o.at ? spanOf(o.at) : {}),
               part: (o.part ?? null) as (typeof PRESENCE_PARTS)[number] | null,
               doing: o.doing ?? null,

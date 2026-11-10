@@ -41,7 +41,7 @@ import {
   marksOf,
   restoreMark,
 } from "@wren/starling-studio/marks";
-import { sayPresence } from "@wren/starling-studio/presence";
+import { EDIT_PASS, sayPresence, spanOfMarks } from "@wren/starling-studio/presence";
 import { punctuate, unpunctuated } from "@wren/starling-studio/punctuate";
 import type { VideoEdit } from "@wren/starling-studio/schema";
 import {
@@ -112,7 +112,7 @@ const told = <T>(p: Promise<T>) =>
   });
 
 /** The edit pass on a video, as its cursor and its writes name it. */
-const AGENT = "agent";
+const AGENT = EDIT_PASS;
 
 /** The model behind Propose stressed words and Add punctuation: the worker's (prod: the gateway). */
 type VideoModel = StressModel & { name: string };
@@ -572,6 +572,7 @@ export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
             const marks = e ? await marksOf(db, e.id, { open: true }) : [];
             if (e)
               await sayPresence(db, e.id, AGENT, {
+                ...spanOfMarks(marks),
                 part: marks.length ? "marks" : null,
                 doing: marks.length
                   ? `Reads the video and ${marks.length} open mark${marks.length === 1 ? "" : "s"}`

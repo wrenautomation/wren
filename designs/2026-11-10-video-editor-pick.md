@@ -18,7 +18,7 @@ William, 11-10: "investigate usemotion (the html with agentation style annotatio
 - The export happens once, at the end. On the Mac for us. On a server only when a client edits.
 - We may sell it: the license allows a hosted editor for clients.
 
-Non-goals (for now): a live agent cursor, a shared co-edit model (CRDT), export to Premiere or Resolve. `expect` and locks already cover two writers.
+Non-goals (for now): a shared co-edit model (CRDT), export to Premiere or Resolve. `expect` and locks already cover two writers.
 
 ## Priorities, in order
 
@@ -265,25 +265,30 @@ Options:
 | P2. Derive from `runs` | The newest run by an agent is the cursor | No table | Shows only after a write. No moment, no "reads the video" |
 | P3. Push (Postgres NOTIFY to a stream at the door) | The page holds a stream | Instant | A long-lived connection the Lambda path does not have. A new transport for one feature |
 
-Priorities: the position is true (the agent states it), no new infrastructure, then latency. Pick P1. A person who watches an agent does not need less than 4 s.
+| P4. The commands write the row | `wren video marks`, `mark` and `done` record where the session is when it passes `--by` | True by construction. No agent must remember a second call | Covers only the commands that carry a moment |
+
+Priorities: the position is true (the agent states it), no new infrastructure, then latency. Pick P1 with P4 on the mark commands (added 11-10 after review). 4 s is my call, not measured: he watches an agent work, he does not steer it live.
 
 | Part | File | Does |
 |---|---|---|
 | Table | `studio/src/schema.ts` (`videoPresence`), migration `0383_video_presence` | One row per step: `who`, `anchor` (as a mark's), `part`, `doing`, `gone`, `seen_at`. Rows are kept |
 | Store | `studio/src/presence.ts` | `sayPresence`, `presenceOf`: the newest row of each `who` in the last 120 s, less those who left |
-| Pass | `inbound/src/restate/video-desk.ts` (`editing`) | Says "Reads the video and N open marks" at the start, leaves when it saves or fails |
-| CLI | `apps/cli/src/video-presence.ts` | `wren video at <id> --by <session> [--at s[-e]] [--part p] [--doing "..."] [--leave]`, `wren video here <id>` |
+| Pass | `inbound/src/restate/video-desk.ts` (`editing`) | Says "Reads the video and N open marks" at the start, on the range that holds the open marks. Leaves when it saves or fails. Its row stays fresh 30 min, not 120 s: the model call can run long |
+| CLI | `apps/cli/src/video-presence.ts`, `video-marks.ts` | `wren video at <id> --by <session> [--at s[-e]] [--part p] [--doing "..."] [--leave]`, `wren video here <id>`. `marks --by`, `mark --by`, `done --by` write the row themselves. `--by agent` is refused: it is the pass's name |
 | Read | `inbound/src/video.ts` | `video.presence` |
-| Portal | `finish-presence.tsx` | `PresenceLines` over the timeline (who, part, moment, what; the moment seeks). `PresenceCursors`: a line at the moment, a band across a range, one cue tint per agent |
+| Portal | `finish-presence.tsx` | `PresenceLines` over the timeline (who, part, moment, what; the moment seeks). `PresenceCursors`: a line at the moment, a band across a range, one cue tint per agent (by name order, so a new row does not swap two tints) |
 | Poll | `videos.tsx` (`polled`), `ui/records-page.tsx` | 4 s while someone is on the video, 15 s while a video can be edited. A hidden tab reads nothing and reads once when he comes back |
 
 Decisions:
-- No heartbeat. A row is a step the agent states. A row older than 120 s draws nothing, so a crashed agent leaves no stale cursor.
+- No heartbeat. A row is a step the agent states. A session's row older than 120 s draws nothing, so a crashed session leaves no stale cursor. The pass is the exception (30 min): it leaves in its save or its fail. If the worker dies in between, its line stays up to 30 min.
+- The pass has no cursor of its own while it patches: it leaves in the same transaction as its save. Its range is the marks it reads; with no open mark it shows a line and no cursor.
 - People write no presence. The viewer knows where he is; a second person on one video is rare. The table takes it later (`who` is an email).
 - No shared edit model. Two writers still meet at `expect` and the locks.
 - The 15 s read is new load: one video read per visible editor tab. It also brings an agent's saved changes to the page, which a reload did before.
 
 Checked: 3 unit tests (`newestPerWho`), story AgentsHere at 390 and 1280 in both looks, typecheck, the UI gate.
 
-Not checked: the store against a real database; the pass's rows in prod; a session agent that calls `wren video at` (no skill tells it to yet).
+Not checked: the store against a real database; the pass's rows in prod; a session agent on a video (it shows when it passes `--by` to a mark command; no skill tells it to yet). A client would see a raw session id as the name.
+
+- 2026-11-10: goldfish review (cursor): 14 findings, 7 applied (pass range, pass freshness, P4, stable tints, `agent` reserved, non-goal, the 4 s claim), 7 rejected (index exists `ix_video_presence_edit_seen`; rows are kept on purpose; first-show lag is in the P1 row; pass presence from `runs` adds a second mechanism for one writer; a row per patched part is never visible; P3 through the door does not change the pick; a cap on rows per pass has no writer that needs it); open: none.
 

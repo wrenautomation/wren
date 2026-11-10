@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { newestPerWho } from "./presence.js";
+import { newestPerWho, spanOfMarks } from "./presence.js";
 
 const row = (who: string, gone = false, n = 0) => ({ who, gone, n });
 
@@ -17,5 +17,20 @@ describe("newestPerWho", () => {
 
   it("shows one who came back after it left", () => {
     expect(newestPerWho([row("a", false, 2), row("a", true, 1)])).toEqual([row("a", false, 2)]);
+  });
+});
+
+describe("spanOfMarks", () => {
+  it("covers every mark, a moment's own time as its end", () => {
+    expect(
+      spanOfMarks([
+        { start: 4, end: 6 },
+        { start: 9, end: null },
+      ]),
+    ).toEqual({ start: 4, end: 9 });
+  });
+  it("is one moment for one moment, and nothing for no mark", () => {
+    expect(spanOfMarks([{ start: 4, end: null }])).toEqual({ start: 4 });
+    expect(spanOfMarks([])).toEqual({});
   });
 });
