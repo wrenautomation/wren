@@ -79,9 +79,6 @@ export function Player<P>(p: PlayerProps<P>): ReactElement {
   );
 }
 
-/** Every box in a composition counts its padding inside its size (the render page does the same). */
-export const STAGE_CSS = ".frame-stage, .frame-stage * { box-sizing: border-box; }";
-
 /**
  * A clock on the display's frames: `frame` moves at `fps` while `playing`, stops at the end.
  * `seek` moves it by hand.

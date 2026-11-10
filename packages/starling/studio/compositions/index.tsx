@@ -1821,5 +1821,3 @@ export const COMPOSITIONS = {
     metadata: (p) => ({ ...timed(p), width: p.width, height: p.height }),
   } satisfies CompositionEntry<PromoProps>,
 };
-
-export type CompositionName = keyof typeof COMPOSITIONS;
