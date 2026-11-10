@@ -674,6 +674,9 @@ importers:
       '@anthropic-ai/claude-agent-sdk':
         specifier: 0.3.318
         version: 0.3.318(@anthropic-ai/sdk@1.4.0(zod@4.6.5))(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(zod@4.6.5)
+      '@wrenautomation/compaction':
+        specifier: 0.68.4
+        version: 0.68.4
       '@wrenautomation/weaver':
         specifier: 0.62.0
         version: 0.62.0(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
@@ -6328,6 +6331,9 @@ packages:
     resolution: {integrity: sha512-17FRMdKyltfttDRJBBqWePjVH2fEURn/ELePC2NdDXsmGJ1uXibVHur+oID6CZMrOACpXvjovQ+l/h8mBUVJzA==}
     engines: {node: '>=24'}
     hasBin: true
+
+  '@wrenautomation/compaction@0.68.4':
+    resolution: {integrity: sha512-yAVmJnGZGgcrWqBKaB9mTuQofHSo3Uo13wSiD81klMqDT83QPyj6d7YVwIhvQxWVf3bOEs80xfrXXOBW3/tMVg==}
 
   '@wrenautomation/knowledge@0.62.0':
     resolution: {integrity: sha512-y/Gkkg/PYUbk7IrZn3NtrvxrB+eOFEzcI0Z3476YQveidzN0EkvRyjskV0VyH7/Q9AKOoGQZJ/sMJQZaHjlG5w==}
@@ -14384,6 +14390,8 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  '@wrenautomation/compaction@0.68.4': {}
 
   '@wrenautomation/knowledge@0.62.0(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
     dependencies:

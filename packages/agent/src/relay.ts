@@ -330,6 +330,8 @@ export function relay(o: RelayOptions): {
     // a run never starts runs: no token for a headless child
     const token = setup.runs && kind === "chat" ? randomUUID() + randomUUID() : undefined;
     const vars = l.env;
+    // compaction part files: under the add-dir, so the child reads them unasked
+    if (mine) vars.COMPACT_PARTS_DIR = join(mine, "compact-parts");
     if (token) {
       sessionTokens.set(token, { person, app: setup.app });
       vars[RUN_ENV.url] = `http://127.0.0.1:${(http.address() as AddressInfo).port}`;

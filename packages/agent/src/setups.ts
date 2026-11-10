@@ -19,7 +19,8 @@ export const SETUPS: readonly Setup[] = [
     tools: ["Bash", "Read", "Skill", "AskUserQuestion"],
     skills: ["weaver:weaver", "folders:folders"],
     // a path plugin: the one folder tree (designs/2026-11-08-folders.md)
-    plugins: ["@wrenautomation/weaver", "./wren/packages/folders"],
+    // compaction: ladder folds, experimental (WA-1287); COMPACT_LADDER=off in vars turns it off
+    plugins: ["@wrenautomation/weaver", "./wren/packages/folders", "@wrenautomation/compaction"],
     allow: ["Bash(weaver *)", "Skill(weaver:weaver)", "Bash(folders *)", "Skill(folders:folders)"],
     // AWS: `folders` reads prod through scripts/prod-wren.mjs
     passEnv: ["WEAVER_LEDGER", "WEAVER_ACCOUNTS", "WEAVER_JUDGE", "AWS_PROFILE", "AWS_REGION"],
@@ -39,7 +40,7 @@ export const SETUPS: readonly Setup[] = [
     tools: ["Bash", "Read", "Write", "Skill", "AskUserQuestion"],
     skills: ["vireo:variants", "folders:folders"],
     // a path plugin: wren hosts Vireo's commands (packages/variants), under the name `vireo`
-    plugins: ["./wren/packages/variants", "./wren/packages/folders"],
+    plugins: ["./wren/packages/variants", "./wren/packages/folders", "@wrenautomation/compaction"],
     allow: [
       "Bash(vireo *)",
       "Bash(maker *)",
