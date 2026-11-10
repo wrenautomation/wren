@@ -1536,3 +1536,29 @@ Chosen: A. Priorities: keep data; no second fetch; the agent picks (triage calls
 - Triage now drops only off-topic hits before a read. Vendor pages, guides and lists stay when they may hold a fact or name examples. Web plan file v10: reads 6 → 10 a round; the listicle rule now says to follow a roundup's examples.
 - Finding sentences name the speaker (person, else publication or site) or state the principle; the extract and check prompts and the skill ban stand-ins ("the post says", "a founder says"). The extract prompt now sees the page's title and channel.
 - Wren graph: the read queue ("Read it" / "Will read", the copy-the-command bar) is gone. A dropped hit links to its page.
+
+## 11-10: ScaleDown classify and extract (engine 0.66.0, WA-1273)
+
+William approved 11-10: add ScaleDown's task models (CDMs) to models. Use them only where they match what the ledger already holds: classify vs Jev, extract vs Haiku. Labels and fields only, never a quality call, never a drop. Summarize stays on Haiku.
+
+Built (`@wrenautomation/models/cdm`):
+- `scaledown()`: `classify` (labels with yes-or-no rubrics → each label's probability; text or an image/PDF), `classifyMany` (50 texts, one label set), `extract` (fields in words → exact spans with offsets). Direct API only (`api.scaledown.xyz`, `SCALEDOWN_API_KEY`): OpenRouter has extract and summarize, not classify.
+- `cdmJudge`: classify behind the `Judge` shape, one call per question. `judgeFromSpec("cdm")`.
+- `fallbackJudge(a, b)` and the spec `a+b`: b answers only where a fails. Weaver's default judge is now `jev+cdm` when both keys are set: Jev refuses past its ~30k-token state cap; classify takes 1M tokens and images.
+- Price: $0.05 per 1M input, output free. The account got 1M free tokens, not the 50M the site states.
+
+Gate (`scripts/cdm-gate.mjs`, 20 ledger documents ≤16k chars, seed 1273; `tasks/docs/research/cdm-gate/2026-11-10.json`; 159k tokens, $0.008):
+
+| | Result |
+|---|---|
+| class, agrees with Jev | 16/20; 100% where Jev's p ≥ 0.8 |
+| format, agrees with Jev | 19/20; 100% where Jev's p ≥ 0.8 |
+| extract, Haiku quotes it found | 29% |
+| extract spans Haiku also quoted | 9% (218 spans vs 61 quotes) |
+
+- The 5 misses are all on pages Jev was unsure of (p 0.54–0.73), and each is a fair borderline: Shopify's engineering blog (practitioner or vendor), a VC's blog, a product page (sales page or docs).
+- Extract finds real claims, but not the ones Haiku picked for the ask. It is a field puller (prices, names, dates), not a finding source.
+
+Decision:
+- Classify passes as Jev's fallback: past Jev's cap, on images, when Jev is down. It never replaces Jev where Jev answers.
+- Extract fails the findings gate. It stays in models as a field tool; nothing in weaver calls it.
