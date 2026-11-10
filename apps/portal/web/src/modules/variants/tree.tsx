@@ -3,10 +3,22 @@
  * strongest line in the middle. Point for a card, select to light a path; arrows walk it.
  * Port of the approved preview (artifact A5xNkRRGMoMZuH8s7mvfRL, pass 5).
  */
-import { Button, Seg, Tag } from "@wren/ui";
+import {
+  Button,
+  Icon,
+  Seg,
+  Tag,
+  useZoomStage,
+  type ZoomBox,
+  type ZoomRoom,
+  ZoomTools,
+} from "@wren/ui";
 import {
   type CSSProperties,
   type KeyboardEvent,
+  type ReactNode,
+  type Ref,
+  useEffect,
   useId,
   useLayoutEffect,
   useMemo,
@@ -44,6 +56,19 @@ const drop = (x1: number, y1: number, x2: number, y2: number, g: number) =>
     : `M${f1(x1)} ${f1(y1)}C${f1(x1)} ${f1(y1 + g * 0.55)} ${f1(x2)} ${f1(y1 + g * 0.45)} ${f1(x2)} ${f1(y1 + g)}V${f1(y2)}`;
 const HH = (v: Call | "root") => (v === "root" ? 6 : TH[v][1] / 2);
 const HW = (v: Call) => TH[v][0] / 2;
+/** the open card's width in the world */
+const CARD_W = 380;
+/** under this stage width the open card is a sheet at the stage's foot */
+const SHEET_UNDER = 640;
+/** a camera move's length */
+const MOVE_MS = 380;
+interface View {
+  x: number;
+  y: number;
+  k: number;
+  w: number;
+  h: number;
+}
 export interface TreeProps {
   subject: { slug: string; name: string; kind: string; brief: string | null };
   batches: readonly TreeBatch[];
@@ -149,10 +174,69 @@ export function SubjectTree({
   const [sel, setSel] = useState<number | null>(first);
   const [focus, setFocus] = useState<number | null>(first);
   const [tip, setTip] = useState<number | null>(null);
-  // the card sits outside the scroll box (no clip); place it by the box's scroll
-  const [view, setView] = useState<{ left: number; width: number }>({ left: 0, width: G.W });
+  // the hover card sits in the stage; place it by the camera at hover time
+  const [view, setView] = useState<View>({ x: 0, y: 0, k: 1, w: G.W, h: 600 });
+  const [open, setOpen] = useState<number | null>(null);
   const [kept, setKept] = useState<Record<number, boolean>>({});
-  const scroll = useRef<HTMLDivElement>(null);
+  const [stage, setStage] = useState<HTMLElement | null>(null);
+  const [sw, setSw] = useState(0);
+  const sheet = sw > 0 && sw < SHEET_UNDER;
+  const world = useRef<HTMLDivElement>(null);
+  const rail = useRef<HTMLDivElement>(null);
+  const card = useRef<HTMLDivElement>(null);
+  const tNow = useRef(t);
+  tNow.current = t;
+  const Z = useZoomStage(stage, {
+    extent: [0.3, 2],
+    wheel: "pan",
+    ignore: ".vt-open,.vt-tools,.vt-ga",
+    bounds: () => ({ x0: 0, y0: 0, x1: G.W, y1: tNow.current.height }),
+    onZoom: (z) => {
+      const w = world.current;
+      if (w) w.style.transform = `translate(${f1(z.x)}px,${f1(z.y)}px) scale(${z.k})`;
+      // the rail holds its x, follows the rows
+      const r = rail.current;
+      if (r) r.style.transform = `translate(0,${f1(z.y)}px) scale(${z.k})`;
+      setTip(null);
+    },
+  });
+  useEffect(() => {
+    if (!stage) return;
+    const ro = new ResizeObserver(() => setSw(stage.clientWidth));
+    ro.observe(stage);
+    setSw(stage.clientWidth);
+    return () => ro.disconnect();
+  }, [stage]);
+  /** the stage room a view may use: right of the rail, above the sheet */
+  const room = (): ZoomRoom => {
+    const W = stage?.clientWidth ?? G.W;
+    const H = stage?.clientHeight ?? 600;
+    const rw = rail.current?.getBoundingClientRect().width ?? 0;
+    const sh = sheet && open != null ? (card.current?.offsetHeight ?? 0) + 8 : 0;
+    return { l: rw + 8, t: 8, r: W - 8, b: H - sh - 8 };
+  };
+  const nodeBox = (n: TNode): ZoomBox => {
+    const p = t.pos(n);
+    const hw = Math.max(HW(n.v), 22);
+    const hh = Math.max(HH(n.v), 22);
+    return { x0: p.x - hw, y0: p.y - hh - 16, x1: p.x + hw, y1: p.y + hh + 40 };
+  };
+  /** 1:1 on the selected sample */
+  const rest = (ms = 0) => {
+    if (!stage) return;
+    const at =
+      (sel != null ? t.byId.get(sel) : null) ?? (t.first != null ? t.byId.get(t.first) : null);
+    const p = at ? t.pos(at) : t.pos(null);
+    const W = stage.clientWidth;
+    const H = stage.clientHeight;
+    // a tree that fits shows whole from the brief; a taller one centres the sample, no gap below
+    const y = t.height <= H ? 0 : Math.min(0, Math.max(H - t.height - 16, H * 0.45 - p.y));
+    // centre in the room right of the rail
+    const R = room();
+    Z.set(Math.min(0, Math.max(W - G.W - 16, (R.l + R.r) / 2 - p.x)), y, 1, ms);
+  };
+  const fitAll = () =>
+    Z.fit({ x0: G.AX - 20, y0: 0, x1: G.W, y1: t.height }, room(), { min: 0.3, ms: MOVE_MS });
   const nodes = useRef(new Map<number, SVGGElement>());
   const uid = useId().replace(/:/g, "");
   const isKept = (s: TNode) => kept[s.id] ?? s.kept;
@@ -165,16 +249,39 @@ export function SubjectTree({
         : ""
     }`,
   );
-  // open on the selected sample, centred in the scroll box; again when the shape changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only a new layout moves the scroll.
+  // open on the selected sample at 1:1; again when the shape changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only a new layout or stage moves the camera.
+  useLayoutEffect(() => rest(), [t, stage]);
+  const openNode = open != null ? (t.byId.get(open) ?? null) : null;
+  const side = openNode && t.pos(openNode).x < (G.AX + G.W) / 2 ? "right" : "left";
+  // a card opened: bring it and its sample into view at reading size
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the open card and the stage's form decide it
   useLayoutEffect(() => {
-    const el = scroll.current;
-    const at =
-      (sel != null ? t.byId.get(sel) : null) ?? (t.first != null ? t.byId.get(t.first) : null);
-    if (!el || !at) return;
-    const rw = G.AX - 12;
-    el.scrollLeft = t.pos(at).x - rw - (el.clientWidth - rw) / 2;
-  }, [t]);
+    if (!openNode) return;
+    const nb = nodeBox(openNode);
+    if (sheet) {
+      // the sheet sits at the stage foot: bring the whole stage on screen
+      stage?.scrollIntoView({
+        block: "nearest",
+        behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      });
+      return Z.bring(nb, room(), { pad: 16, min: 0.8, max: 1.25, ms: MOVE_MS });
+    }
+    const p = t.pos(openNode);
+    const h = card.current?.offsetHeight ?? 480;
+    const x0 = side === "right" ? p.x + HW(openNode.v) + 18 : p.x - HW(openNode.v) - 18 - CARD_W;
+    const y0 = p.y - HH(openNode.v) - 8;
+    Z.bring(
+      {
+        x0: Math.min(nb.x0, x0),
+        y0: Math.min(nb.y0, y0),
+        x1: Math.max(nb.x1, x0 + CARD_W),
+        y1: Math.max(nb.y1, y0 + h),
+      },
+      room(),
+      { pad: 16, min: 0.9, max: 1.25, ms: MOVE_MS },
+    );
+  }, [open, sheet]);
   const marked = full.S.filter((x) => x.v !== "grew" && x.v !== "unmarked" && x.v !== "open");
   const locked = guides.filter((g) => g.state === "locked").length;
   const select = (id: number) => {
@@ -189,6 +296,14 @@ export function SubjectTree({
     }
     setSel(id);
     setFocus(id);
+    // an open card follows a jump (a parent link, a steer chip)
+    setOpen((o) => (o != null ? id : o));
+  };
+  /** a click on a card: open it there; again: close it */
+  const pick = (id: number) => {
+    if (open === id) return setOpen(null);
+    select(id);
+    setOpen(id);
   };
   const toggleFold = (id: number) =>
     setShape({
@@ -205,13 +320,40 @@ export function SubjectTree({
     else if (ev.key === "ArrowDown") to = t.tkids(n.id).sort((a, b) => t.pos(a).x - t.pos(b).x)[0];
     else if (ev.key === "Enter" || ev.key === " ") {
       ev.preventDefault();
-      select(n.id);
+      pick(n.id);
       return;
     } else return;
     ev.preventDefault();
     if (!to) return;
     setFocus(to.id);
-    nodes.current.get(to.id)?.focus();
+    nodes.current.get(to.id)?.focus({ preventScroll: true });
+    // the camera follows the walk, at its zoom
+    const k = Z.T.current?.k ?? 1;
+    Z.bring(nodeBox(to), room(), { pad: 40, min: k, max: k, ms: 200 });
+  };
+  const stageKey = (e: KeyboardEvent<HTMLElement>) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === "Escape" && open != null) {
+      e.preventDefault();
+      const id = open;
+      setOpen(null);
+      nodes.current.get(id)?.focus({ preventScroll: true });
+      return;
+    }
+    if ((e.target as HTMLElement).closest("input, textarea, select, [contenteditable], .vt-open"))
+      return;
+    const run: Record<string, () => void> = {
+      "+": () => Z.scaleBy(1.25),
+      "=": () => Z.scaleBy(1.25),
+      "-": () => Z.scaleBy(0.8),
+      f: fitAll,
+      F: fitAll,
+      "0": () => rest(MOVE_MS),
+    };
+    const go = run[e.key];
+    if (!go) return;
+    e.preventDefault();
+    go();
   };
   const live = steers ?? [];
   const pruned = useMemo(() => new Set(prunedIds ?? []), [prunedIds]);
@@ -240,6 +382,45 @@ export function SubjectTree({
     setKept((k) => ({ ...k, [n.id]: on }));
     void call("variants/keep", { sample: n.id, on }).catch(() =>
       setKept((k) => ({ ...k, [n.id]: !on })),
+    );
+  };
+  /** the open card's body: the sample's whole detail */
+  const detail = (n0: TNode) => {
+    const n = full.byId.get(n0.id) ?? n0;
+    const r = full.rounds[n.r - 1];
+    if (!r) return null;
+    return (
+      <SampleDetail
+        t={full}
+        s={n}
+        round={r}
+        kept={isKept(n)}
+        onGo={select}
+        onKeep={() => keep(n)}
+        subject={subject.slug}
+        only={shape.branch === n.id}
+        onOnly={() => setShape({ ...shape, branch: shape.branch === n.id ? null : n.id })}
+        folded={shape.fold.includes(n.id)}
+        onFold={() => toggleFold(n.id)}
+        steer={
+          steers && {
+            pin: live.find((x) => x.kind === "pin" && x.sampleId === n.id),
+            prune: live.find((x) => x.kind === "prune" && x.sampleId === n.id),
+            pruned: pruned.has(n.id),
+            crossFrom: crossFrom != null && crossFrom !== n.id ? nameOf(crossFrom) : null,
+            busy,
+            set: (kind) => {
+              if (kind === "cross") {
+                if (crossFrom == null || crossFrom === n.id) return setCrossFrom(n.id);
+                setCrossFrom(null);
+                return void act("variants/steer", { kind, sample: crossFrom, other: n.id });
+              }
+              void act("variants/steer", { kind, sample: n.id });
+            },
+            lift: (id) => void act("variants/unsteer", { id }),
+          }
+        }
+      />
     );
   };
   return (
@@ -359,34 +540,76 @@ export function SubjectTree({
           </Button>
         </div>
       )}
-      <div className="vt-stage">
-        <div className="vt-scroll" ref={scroll}>
-          <div className="vt-in">
-            <Rail t={t} slug={subject.slug} />
-            <TreeSvg
-              t={t}
-              uid={uid}
-              sel={sel}
-              focus={focus}
-              mode={mode}
-              folds={count}
-              onUnfold={toggleFold}
-              name={subject.name}
-              isKept={isKept}
-              pruned={pruned}
-              nodes={nodes.current}
-              onSelect={select}
-              onKey={keys}
-              onTip={(id) => {
-                const el = scroll.current;
-                setTip(id);
-                if (id != null && el) setView({ left: el.scrollLeft, width: el.clientWidth });
+      <section
+        ref={setStage}
+        className="vt-stage"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: the stage takes keys to zoom and fit
+        tabIndex={0}
+        aria-label={`Generation tree of ${subject.name}. Drag to move, plus and minus zoom, F fits all.`}
+        style={{ "--th": `${t.height}px` } as CSSProperties}
+        onKeyDown={stageKey}
+        onClick={(e) => {
+          // the empty stage closes the open card
+          if (!(e.target as Element).closest("[role=button],button,a,.vt-open")) setOpen(null);
+        }}
+      >
+        <div className="vt-world vt-in" ref={world}>
+          <TreeSvg
+            t={t}
+            uid={uid}
+            sel={sel}
+            focus={focus}
+            mode={mode}
+            folds={count}
+            onUnfold={toggleFold}
+            name={subject.name}
+            isKept={isKept}
+            pruned={pruned}
+            nodes={nodes.current}
+            onSelect={pick}
+            onKey={keys}
+            onTip={(id) => {
+              const z = Z.T.current;
+              setTip(id);
+              if (id != null && stage && z)
+                setView({ x: z.x, y: z.y, k: z.k, w: stage.clientWidth, h: stage.clientHeight });
+            }}
+          />
+          {openNode && !sheet && (
+            <OpenCard
+              at={{
+                left:
+                  side === "right"
+                    ? t.pos(openNode).x + HW(openNode.v) + 18
+                    : t.pos(openNode).x - HW(openNode.v) - 18 - CARD_W,
+                top: t.pos(openNode).y - HH(openNode.v) - 8,
               }}
-            />
-          </div>
+              ref={card}
+              // at 1:1 the card fits the stage; it scrolls past that
+              maxHeight={(stage?.clientHeight ?? 600) - 32}
+              onClose={() => setOpen(null)}
+            >
+              {detail(openNode)}
+            </OpenCard>
+          )}
         </div>
-        <Tip t={t} id={tip} isKept={isKept} view={view} />
-      </div>
+        <div className="vt-railbox" ref={rail}>
+          <Rail t={t} slug={subject.slug} />
+        </div>
+        <Tip t={t} id={tip === open ? null : tip} isKept={isKept} view={view} />
+        {openNode && sheet && (
+          <OpenCard ref={card} onClose={() => setOpen(null)}>
+            {detail(openNode)}
+          </OpenCard>
+        )}
+        <ZoomTools
+          className="vt-tools"
+          onIn={() => Z.scaleBy(1.25)}
+          onOut={() => Z.scaleBy(0.8)}
+          onFit={fitAll}
+          onRest={() => rest(MOVE_MS)}
+        />
+      </section>
       <div className="vt-legend">
         {LEGEND.filter((c) => t.S.some((x) => x.v === c)).map((c) => (
           <span key={c}>
@@ -410,50 +633,47 @@ export function SubjectTree({
       </div>
       <p className="vt-cap">
         Read down from the brief. A branch that stops had no good sample. A faint snapshot with no
-        line is a seed that went nowhere. Point at one for its card. Select one to light its path.
-        Keys: arrows walk the tree, Enter selects.
+        line is a seed that went nowhere. Drag to move; pinch or ⌘-scroll to zoom. Point at a sample
+        for its card; click it to open it there and light its path. Keys: arrows walk, Enter opens,
+        Esc closes, F fits, + and − zoom, 0 goes back to 1:1.
       </p>
-      {s && round && (
+      {s && (
         <div className="vt-detail">
-          <div className="vt-dl">
-            <SampleDetail
-              t={full}
-              s={s}
-              round={round}
-              kept={isKept(s)}
-              onGo={select}
-              onKeep={() => keep(s)}
-              subject={subject.slug}
-              only={shape.branch === s.id}
-              onOnly={() => setShape({ ...shape, branch: shape.branch === s.id ? null : s.id })}
-              folded={shape.fold.includes(s.id)}
-              onFold={() => toggleFold(s.id)}
-              steer={
-                steers && {
-                  pin: live.find((x) => x.kind === "pin" && x.sampleId === s.id),
-                  prune: live.find((x) => x.kind === "prune" && x.sampleId === s.id),
-                  pruned: pruned.has(s.id),
-                  crossFrom: crossFrom != null && crossFrom !== s.id ? nameOf(crossFrom) : null,
-                  busy,
-                  set: (kind) => {
-                    if (kind === "cross") {
-                      if (crossFrom == null || crossFrom === s.id) return setCrossFrom(s.id);
-                      setCrossFrom(null);
-                      return void act("variants/steer", { kind, sample: crossFrom, other: s.id });
-                    }
-                    void act("variants/steer", { kind, sample: s.id });
-                  },
-                  lift: (id) => void act("variants/unsteer", { id }),
-                }
-              }
-            />
-          </div>
           <div className="vt-dl">
             <BatchDetail t={full} n={s.r} subject={subject.slug} />
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+/** A sample opened in place: beside its card in the world, or a sheet at the stage's foot. */
+function OpenCard({
+  at,
+  maxHeight,
+  ref,
+  onClose,
+  children,
+}: {
+  at?: { left: number; top: number } | undefined;
+  maxHeight?: number | undefined;
+  ref: Ref<HTMLDivElement>;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      ref={ref}
+      className={`vt-open vt-dl${at ? "" : " sheet"}`}
+      style={at ? { left: f1(at.left), top: f1(at.top), width: CARD_W, maxHeight } : undefined}
+      aria-label="Open sample"
+    >
+      <Button className="vt-x" size="dense" tone="quiet" aria-label="Close" onClick={onClose}>
+        <Icon name="close" className="size-3.5" />
+      </Button>
+      {children}
+    </section>
   );
 }
 
@@ -954,15 +1174,18 @@ function Tip({
   t: Tree;
   id: number | null;
   isKept: (s: TNode) => boolean;
-  view: { left: number; width: number };
+  view: View;
 }) {
   const last = useRef<number | null>(null);
   if (id != null) last.current = id;
   const s = last.current != null ? t.byId.get(last.current) : undefined;
   if (!s) return <div className="vt-tip" aria-hidden="true" />;
   const p = t.pos(s);
-  const r = HH(s.v) + 8;
-  const below = p.y <= t.height * 0.55;
+  // the sample on screen, by the camera at hover time
+  const x = view.x + p.x * view.k;
+  const y = view.y + p.y * view.k;
+  const r = (HH(s.v) + 8) * view.k;
+  const below = y <= view.h * 0.55;
   const ch = t.kids(s.id).length;
   const gu = t.strongUnder(s.id) - (strong(s) ? 1 : 0);
   const chips = (
@@ -982,8 +1205,8 @@ function Tip({
       className={`vt-tip${id != null ? " on" : ""}`}
       aria-hidden="true"
       style={{
-        left: Math.max(0, Math.min(view.width - 300, p.x - view.left - 150)),
-        ...(below ? { top: p.y + r + 8 } : { bottom: t.height - (p.y - r - 8) }),
+        left: Math.max(8, Math.min(view.w - 308, x - 150)),
+        ...(below ? { top: y + r + 8 } : { bottom: view.h - (y - r - 8) }),
       }}
     >
       <Poster s={s} />

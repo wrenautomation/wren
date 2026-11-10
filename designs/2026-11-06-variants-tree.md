@@ -73,3 +73,30 @@ Built (Vireo 0.3.0, WA-1154):
 
 - Many samples in one row (20+) stay in frame but crowd. Widen `W` per row when real batches pass 12.
 - Close and open, focus a branch, saved default views: William, 11-06, for the map and Layers. The tree's version is the "Good line" filter and the path light on select; a focus mode (hide what is off the line) is the next step if he wants it here too.
+
+## Zoom and open in place (WA-1249, 11-09)
+
+William, 11-09: "the vireo variants tree should be zoomable, clicking on cards expands a view there, it's kind of like another form of the weaver graph."
+
+Today the tree is a fixed 830 px SVG in a sideways scroll box, read top to bottom with the page. The selected sample's detail sits under the tree, far from the card he clicked.
+
+Target: the tree sits in a stage he pans and zooms, like the weaver run graph. A click on a card opens that card's view beside it, in the canvas, and the camera brings it into view at reading size. The batch rail stays on the left and follows the rows.
+
+| Option | For | Against |
+|---|---|---|
+| **A. One shared d3-zoom stage (`useZoomStage` in @wren/ui) from the run graph's own zoom; the tree keeps its approved layout** | Same feel as the weaver graph; the approved SVG and model stay; the run graph moves onto the shared part, so one zoom seam | The open card is our code (an HTML layer in the world) |
+| B. Rebuild the tree on the kit's React Flow `GraphFrame` (xyflow) | Pan, zoom, minimap and keys come free; one vetted framework | A rewrite of the approved drawing as DOM nodes and custom edges; the rail and the path light get harder; the weaver run graph is not on React Flow either |
+| C. d3-zoom inline in `tree.tsx` | Smallest diff | A second copy of the run graph's zoom code |
+
+Ranked by: the approved look holds, one shared part, then the diff's risk.
+
+**Chose A.** The weaver run graph he points at is d3-zoom, not React Flow. A keeps pass 5 of the approved artifact as drawn and gives both graphs one zoom part. The zoom buttons come out of `GraphFrame` into a shared `ZoomTools`, so all three graphs show the same buttons.
+
+Rules:
+- Drag pans. Pinch or ⌘/Ctrl+wheel zooms (0.3 to 2). A plain wheel pans the tree; at an edge it scrolls the page (canvas habit, as in his devboard). The run graph keeps its wheel as it was.
+- Keys on the stage: + and − zoom, F fits, 0 goes back to 1:1 on the selected sample. Arrows still walk the tree; the camera follows the focused card.
+- Click a card: it is selected (the path lights) and opens. Click it again, press Esc or click the empty stage: it closes. Enter opens the focused card.
+- The open view holds the large poster and the full sample detail (marks, notes, keep, steers). Wide stage: beside the card, in the world, zoomed to at least 0.9. Narrow stage (under 640 px): a sheet at the stage's foot, the card brought into the room above it.
+- The batch detail stays under the stage.
+- The rail moves with the rows (y and zoom) and holds its x.
+- Opens on the selected sample at 1:1, or at the width that fits when the stage is wider than the tree.

@@ -64,30 +64,92 @@
   margin-left: auto;
 }
 
-/* tree */
+/* tree: a stage to pan and zoom; the world moves in it (useZoomStage) */
 .vt-stage {
   position: relative;
+  height: min(78vh, max(calc(var(--th) + 16px), 560px));
+  min-height: 340px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--ui-paper);
+  /* a border, not an inset shadow: the rail paints over a shadow */
+  border: 1px solid var(--ui-hair);
+  /* clear of the phone tab bar when the sheet scrolls it in */
+  scroll-margin: 16px 0 calc(72px + env(safe-area-inset-bottom));
+  touch-action: none;
+  cursor: grab;
+  outline: none;
 }
-.vt-scroll {
-  overflow-x: auto;
-  padding: 2px;
-  margin: 0 -2px;
+.vt-stage:active {
+  cursor: grabbing;
 }
-.vt-in {
-  position: relative;
+.vt-stage:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 2px;
+}
+.vt-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
   width: max-content;
-  display: grid;
 }
-.vt-in > svg {
-  grid-area: 1 / 1;
+.vt-world > svg {
   display: block;
 }
-.vt-rail {
-  grid-area: 1 / 1;
-  justify-self: start;
-  position: sticky;
-  left: -2px;
+.vt-railbox {
+  position: absolute;
+  left: 0;
+  top: 0;
   z-index: 1;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+/* top right: the portal's agent button holds the bottom right */
+.vt-tools {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 3;
+}
+/* a sample opened in place */
+.vt-open {
+  position: absolute;
+  z-index: 2;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--ui-paper);
+  box-shadow: var(--ui-raise);
+  cursor: auto;
+  user-select: text;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: vt-in 0.18s var(--ui-ease) both;
+}
+/* a capped card scrolls; its parts keep their size */
+.vt-open > * {
+  flex-shrink: 0;
+}
+.vt-open.sheet {
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  max-height: 62%;
+}
+/* sits on the poster: a paper chip so it reads on any image */
+.vt-open > .vt-x {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1;
+  background: var(--ui-paper);
+  box-shadow: var(--ui-raise);
+}
+/* the name row clears the close button */
+.vt-open > .vt-row:first-of-type {
+  padding-right: 32px;
+}
+.vt-rail {
   width: var(--rw);
   overflow: hidden;
   background: linear-gradient(90deg, var(--ui-paper) 88%, transparent);
@@ -131,10 +193,6 @@
 @container main (width < 608px) {
   .vt-rail {
     width: 108px;
-  }
-  /* more tree off to the right */
-  .vt-scroll {
-    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
   }
 }
 .vt-guide {
@@ -390,12 +448,8 @@
   padding-top: 16px;
   border-top: 1px solid var(--ui-hair);
 }
-@container main (width >= 728px) {
-  .vt-detail {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  }
-}
-.vt-detail h3 {
+.vt-detail h3,
+.vt-open h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
@@ -410,6 +464,9 @@
 }
 .vt-dl .vt-poster {
   max-width: 300px;
+}
+.vt-open .vt-poster {
+  max-width: none;
 }
 .vt-row {
   display: flex;

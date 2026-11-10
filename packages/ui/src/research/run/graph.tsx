@@ -8,11 +8,9 @@
  * classes, never moves a node. The web solves off screen, then moves each node once (web.ts).
  */
 import "./run.css";
-import "d3-transition";
 import { easeCubicOut } from "d3-ease";
-import { select } from "d3-selection";
 import { type Timer, timer } from "d3-timer";
-import { type ZoomBehavior, type ZoomTransform, zoom, zoomIdentity } from "d3-zoom";
+import { type ZoomTransform, zoomIdentity } from "d3-zoom";
 import {
   type ReactNode,
   startTransition,
@@ -23,6 +21,7 @@ import {
   useState,
 } from "react";
 import { Empty, Loading } from "../../feedback.js";
+import { useZoomStage } from "../../zoom/stage.js";
 import { Bars } from "./bars.js";
 import { RunDock } from "./dock.js";
 import { type Box, layShelf, type Size, shelfOf } from "./lays.js";
@@ -173,8 +172,16 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     fit: 0,
     center: null,
   });
-  const T = useRef<ZoomTransform>(zoomIdentity);
-  const zoomRef = useRef<ZoomBehavior<HTMLDivElement, unknown> | null>(null);
+  // zoom, before the first layout needs it
+  const Z = useZoomStage(stage, {
+    ignore: ".rg-panel,.rg-side,.rg-tip",
+    onZoom: (t) => {
+      const w = worldRef.current;
+      if (w) w.style.transform = `translate(${f1(t.x)}px,${f1(t.y)}px) scale(${t.k})`;
+      setTip(null);
+    },
+  });
+  const T = Z.T;
   const dock = wide && !card;
   // detail windows, each with its own history (wins.ts)
   const W = useWins(L, dock, (p, center) => {
@@ -371,14 +378,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     const b = H - 18 - (w || !p || fo.r ? 0 : (panelRef.current?.offsetHeight ?? 0));
     return { l, t, r, b, w: r - l, h: b - t };
   };
-  const go = (t: ZoomTransform, ms: number) => {
-    const st = stageRef.current;
-    const z = zoomRef.current;
-    if (!st || !z) return;
-    const sel = select(st);
-    if (ms && !reduced()) sel.transition().duration(ms).call(z.transform, t);
-    else sel.call(z.transform, t);
-  };
+  const go = (t: ZoomTransform, ms: number) => Z.go(t, ms);
   const fitView = (ms = 0) => {
     let B = wg.fitB;
     if (!B) {
@@ -441,34 +441,6 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
   };
   const fitRef = useRef(fitView);
   fitRef.current = fitView;
-
-  // zoom, before the first layout needs it
-  useLayoutEffect(() => {
-    const st = stage;
-    if (!st) return;
-    const z = zoom<HTMLDivElement, unknown>()
-      .scaleExtent([0.2, 3])
-      .clickDistance(5)
-      .filter(
-        (e: Event & { button?: number; ctrlKey?: boolean; metaKey?: boolean }) =>
-          !(e.target as Element | null)?.closest?.(".rg-panel,.rg-side,.rg-tip") &&
-          (e.type === "wheel" ? !!(e.ctrlKey || e.metaKey) : !e.button),
-      )
-      .on("zoom", (e: { transform: ZoomTransform }) => {
-        T.current = e.transform;
-        const w = worldRef.current;
-        if (w)
-          w.style.transform = `translate(${f1(e.transform.x)}px,${f1(e.transform.y)}px) scale(${e.transform.k})`;
-        setTip(null);
-      });
-    zoomRef.current = z;
-    const sel = select(st);
-    sel.call(z).on("dblclick.zoom", null);
-    T.current = zoomIdentity;
-    return () => {
-      sel.on(".zoom", null);
-    };
-  }, [stage]);
 
   // the layout: measure the marks, place them, draw the edges
   const sig = [wide, fonts, [...exp], [...lift], [...more]].join("|");
@@ -965,11 +937,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
         step={step}
         toRound={toRound}
         panes={W.panes}
-        zoomBy={(k) =>
-          stageRef.current &&
-          zoomRef.current &&
-          select(stageRef.current).transition().duration(250).call(zoomRef.current.scaleBy, k)
-        }
+        zoomBy={(k) => Z.scaleBy(k)}
         reset={() => {
           setHole(null);
           setExp(new Set());

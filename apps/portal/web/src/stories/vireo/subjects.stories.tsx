@@ -73,3 +73,20 @@ export const TreeBranch = pageAt("/variants/subjects?subject=3&branch=14", { me:
 
 /** A folded sample (`fold=`): what grew only from it goes to "+N". */
 export const TreeFold = pageAt("/variants/subjects?subject=4&fold=109", { me: ADMIN });
+
+/** A click on a sample opens it in place, beside its card (a sheet on a phone); Esc closes it. */
+export const TreeOpen = pageAt("/variants/subjects?subject=3", {
+  me: ADMIN,
+  check: async (page) => {
+    const nodes = await within(page).findAllByRole(
+      "button",
+      { name: /, batch \d+, / },
+      { timeout: 8000 },
+    );
+    const node = nodes.find((n) => !/to mark/.test(n.getAttribute("aria-label") ?? ""));
+    if (!node) throw new Error("no marked sample");
+    await userEvent.click(node);
+    const open = await within(page).findByRole("region", { name: "Open sample" });
+    await expect(within(open).getByText("Path")).toBeInTheDocument();
+  },
+});

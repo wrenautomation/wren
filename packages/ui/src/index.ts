@@ -639,3 +639,11 @@ export {
   RunWorkTrail,
   SiteMark,
 } from "./work.js";
+export {
+  useZoomStage,
+  type ZoomBox,
+  type ZoomRoom,
+  type ZoomStage,
+  type ZoomStageOpts,
+} from "./zoom/stage.js";
+export { ZoomTools, type ZoomToolsProps } from "./zoom/tools.js";

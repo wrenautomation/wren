@@ -21,7 +21,6 @@ import {
   useReactFlow,
   type Viewport,
 } from "@xyflow/react";
-import { tipProps } from "../hint.js";
 import "@xyflow/react/dist/base.css";
 import { cn } from "cn";
 import {
@@ -32,7 +31,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Icon } from "../icons.js";
+import { ZoomTools } from "../zoom/tools.js";
 
 const PAN_STEP = 80;
 const ZOOM = { min: 0.15, max: 2 };
@@ -58,9 +57,6 @@ interface FrameProps {
   className?: string | undefined;
 }
 
-const TOOL =
-  "inline-flex size-8 items-center justify-center border-0 bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:bg-(--ui-hover) hover:text-(--ui-ink) cursor-pointer";
-
 function Controls({
   rest,
   moved,
@@ -78,50 +74,28 @@ function Controls({
     <Panel
       position="bottom-left"
       className={cn(
-        "m-2! flex gap-px",
+        "m-2!",
         // On a bare graph they show on hover or focus, so they never sit on a step.
         quiet &&
           "opacity-0 transition-opacity duration-200 group-focus-within/frame:opacity-100 group-hover/frame:opacity-100",
       )}
     >
-      <button
-        type="button"
-        className={TOOL}
-        {...tipProps("Zoom in", { keys: "+", as: "none" })}
-        aria-label="Zoom in"
-        onClick={() => {
+      <ZoomTools
+        fits={fits}
+        onIn={() => {
           moved();
           void rf.zoomIn(EASE);
         }}
-      >
-        <Icon name="plus" className="size-3.5" />
-      </button>
-      <button
-        type="button"
-        className={TOOL}
-        {...tipProps("Zoom out", { keys: "−", as: "none" })}
-        aria-label="Zoom out"
-        onClick={() => {
+        onOut={() => {
           moved();
           void rf.zoomOut(EASE);
         }}
-      >
-        <Icon name="minus" className="size-3.5" />
-      </button>
-      <button
-        type="button"
-        className={cn(TOOL, !fits && "w-auto gap-1.5 px-2.5 text-[12.5px] font-medium")}
-        {...tipProps("Fit all. Double-click: back to the start", { keys: "F", as: "none" })}
-        aria-label="Fit all"
-        onClick={() => {
+        onFit={() => {
           moved();
           void rf.fitView({ padding: 0.08, ...EASE });
         }}
-        onDoubleClick={() => void rf.setViewport(rest, EASE)}
-      >
-        <Icon name="fit" className="size-3.5" />
-        {fits ? null : "Fit all"}
-      </button>
+        onRest={() => void rf.setViewport(rest, EASE)}
+      />
     </Panel>
   );
 }
