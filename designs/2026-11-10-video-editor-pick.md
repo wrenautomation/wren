@@ -138,3 +138,25 @@ Build order:
 5. Agent cursor. Content playbook (own design doc): Vireo's locked guides and kept winners feed one guide per format for all content and ads.
 
 - 11-10: William picked Finish as the editor, no Remotion fee, own base. Pick E1. Marks first, cursor after.
+
+## Spike result (11-10): E1 holds
+
+The composition file ran unchanged. "remotion" and the two font imports were aliased to a 130-line runtime; `@hyperframes/engine` 0.9.30 captured the page.
+
+| Test | Remotion 4.0.533 | Own runtime + engine | Picture (SSIM vs Remotion) | Sound |
+|---|---|---|---|---|
+| Promo, 57 s at 60 fps, 3,426 frames, 96 sounds | 331 s | 92 s (capture 73, encode 17, audio 2) | 0.993, 1 frame under 0.95 | -23.7 LUFS both |
+| Long, 7 s at 30 fps, camera + VP9-alpha matte + captions | 18 s | 14 s | 0.991, lowest frame 0.989 | -25.7 LUFS both |
+
+Raea scored 0.979 on the same Promo. The Long test used a synthetic matte (a circle cut from the cut file): the October edit folders are gone from the Mac.
+
+What the runtime had to match:
+- Remotion's page sets `box-sizing: border-box` on every element. Without it each padded scene moved 70 px.
+- Screen recordings are variable frame rate (about 2 frames a second). A frame holds until the next one starts. A plain `ffmpeg -ss` shows the next frame early; the frame server reads packet times and starts at the keyframe before.
+- Video frames come from our own frame server (ffmpeg, 120-frame chunks, read ahead, PNG for alpha), not the engine's injector. The injector needs a fixed list of `<video>` ids; our videos mount and unmount with their Sequence.
+- The engine waits on `window.__hfWaitForSeekCompletion` after each seek. The runtime resolves it when every image has decoded.
+- Sound: one pass over all frames lists each sound (file, start, trim, volume, loop); ffmpeg mixes them.
+
+Engine facts: on the Mac it captures by screenshot (beginFrame is Linux only). It ran 4-5 Chrome workers on this Mac without an OOM. The capture loop, worker pool and frame merge are the engine's; the page, the frame server and the audio mix are ours.
+
+Open from the spike: fonts load from Google by `<link>` (prod: self-hosted files); a moving volume is a step per frame (fine for the ducked bed, check by ear); the live preview mode (`<video>` synced to the clock) is not built yet.
