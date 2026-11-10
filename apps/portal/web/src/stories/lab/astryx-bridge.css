@@ -1,0 +1,41 @@
+/* WA-1278 trial: Astryx's prebuilt CSS, then its tokens pointed at ours. Lab stories only. */
+@import "@astryxdesign/core/reset.css";
+@import "@astryxdesign/core/astryx.css";
+@import "@astryxdesign/theme-neutral/theme.css";
+
+/* unlayered: beats astryx-theme; --ui-* flip with the look, so one block serves both */
+.astryx-wren {
+  color-scheme: var(--ui-scheme);
+  --color-accent: var(--ui-accent);
+  --color-accent-muted: var(--ui-accent-tint);
+  --color-on-accent: var(--ui-on-accent);
+  --color-text-accent: var(--ui-link);
+  --color-icon-accent: var(--ui-accent);
+  --color-background-body: var(--ui-canvas);
+  --color-background-surface: var(--ui-paper);
+  --color-background-card: var(--ui-paper);
+  --color-background-popover: var(--ui-paper);
+  --color-background-muted: var(--ui-fill);
+  --color-neutral: var(--ui-fill);
+  --color-overlay-hover: var(--ui-hover);
+  --color-text-primary: var(--ui-ink);
+  --color-text-secondary: var(--ui-ink-2);
+  --color-icon-primary: var(--ui-ink);
+  --color-icon-secondary: var(--ui-ink-2);
+  --color-border: var(--ui-hair);
+  --color-border-emphasized: var(--ui-edge);
+  --color-success: var(--ui-good);
+  --color-text-success: var(--ui-good-ink);
+  --color-error: var(--ui-bad);
+  --color-text-error: var(--ui-bad);
+  --color-warning: var(--ui-warn);
+  --color-text-warning: var(--ui-warn-ink);
+  --focus-outline-color: var(--ui-focus);
+  --font-family-body: var(--ui-font);
+  --font-family-heading: var(--ui-font-display);
+  --radius-element: var(--ui-radius);
+  --radius-container: var(--ui-radius-panel);
+  --radius-page: var(--ui-radius-sheet);
+  background: var(--ui-paper);
+  color: var(--ui-ink);
+}

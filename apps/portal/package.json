@@ -52,11 +52,14 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@astryxdesign/core": "0.7.12",
+    "@astryxdesign/theme-neutral": "0.7.12",
     "@cloudflare/vite-plugin": "1.61.0",
     "@cloudflare/workers-types": "5.20260927.1",
     "@storybook/addon-a11y": "10.6.2",
     "@storybook/addon-vitest": "10.6.2",
     "@storybook/react-vite": "10.6.2",
+    "@stylexjs/stylex": "0.19.1",
     "@tailwindcss/vite": "4.3.3",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
