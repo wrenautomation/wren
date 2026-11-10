@@ -1,6 +1,6 @@
 # Weaver seeds: a run that starts from our references (2026-11-10)
 
-Task WA-1164.1 (under WA-1164, the reference record design). Asked through the WA-1195 source walk. Status: design, for William. No build yet.
+Task WA-1164.1 (under WA-1164, the reference record design). Asked through the WA-1195 source walk. Status: E approved by William 11-10, with two conditions (below). Build next.
 
 ## Goal
 
@@ -69,7 +69,15 @@ Prior art: crawler seed lists with a scope rule (Heritrix, StormCrawler), and se
 - Weaver reads the knowledge repo at its last commit (`loadAt(root, head)`, `knowledge/src/repo.ts:82`), not the working tree, so uncommitted records do not count. The repo path is `--repo` or `KNOWLEDGE_DIR`, as promote finds it (`engine-cli.ts:1350`).
 - `--tag`: live records that have every tag named.
 - No match: the command fails with `seed: no live knowledge record has tags <tags>`, and writes nothing.
-- William can name the seeds or tags in his ask. The agent picks them, with a why.
+- The agent picks the seeds, with a why. William never names `weaver seed` or a record id.
+
+### Agents reach for seeds on their own
+
+William, 11-10: "its intutive to use for agents and when im interacting with an agent chat (lets design a website, then itll use seed naturally or osmething, or like itll ask do u want to use our internal knowledge base)".
+
+- The brief gets a `references` layer, next to `recalled` (`engine/layers.ts:41`): the knowledge repo's live tags with their record counts. One short line per tag, so it costs little.
+- The weaver skill says: before the first fetch, read `references`. If a tag fits the ask, seed it. If the ask is from William in a chat and the fit is not clear, ask him once: "Use our knowledge base for this?"
+- Acceptance check: William says "let's design a website for <a product>" in a chat. The agent seeds the `web-design` references, or asks him once. He names no command, no tag and no id.
 
 ### What the seeded lane does with a seed
 
@@ -80,6 +88,17 @@ Prior art: crawler seed lists with a scope rule (Heritrix, StormCrawler), and se
 
 - Never crawl a whole catalog: each search inside it answers this question's terms.
 - A catalog record can carry a `search:` URL template (frontmatter is loose: `knowledge/src/records.ts:2`). Then the agent can also open the catalog's own search page and follow its links.
+
+### Dedupe: optimistic and cheap
+
+William, 11-10: "dedupe is just important and we want ot optimistcally dedupe so its cheap and there sno issues."
+
+Optimistic means: assume a page we read before has not changed, and use what we have.
+- **In a run:** one URL is one hit, whichever lane or seed found it. This exists: hits key on the canonical URL (`engine/state.ts:85`, `engine/canonical.ts`).
+- **A seed page read before:** the run reuses the stored page text from the last run that read it (`ledger/files.ts:183`). No new read, no new cost. `weaver seed --fresh` reads it again.
+- **A finding already kept:** the seed's kept findings from earlier runs go into the extract step's `known` lines, so extract looks past them (`document/extract.ts:59`). The run keeps only what is new on that page.
+- **Back in knowledge:** promote matches a source by URL and findings by stable id, so nothing is written twice (`promote.ts:105-160`). Recall folds a quote seen in two runs into one (`recall.ts:74-80`).
+- A hit inside a catalog that an earlier run read: the same text reuse. The open lane keeps today's reads; reuse there can come later.
 
 ### Two code fixes this needs
 
@@ -107,6 +126,7 @@ Prior art: crawler seed lists with a scope rule (Heritrix, StormCrawler), and se
 - `yieldRows` already counts hits, reads, proposed and kept findings per source, writer, channel and kind, across runs (`ledger/ledger.ts:69-145`). It gets two more grains: `lane` and `seed`. `weaver yield` and the brief then show:
   - per lane: hits, reads, kept findings per read, $ per kept finding, keep calls;
   - per seed, across runs: the kept findings it led to.
+- These numbers are a report, not a rule. Nothing turns seeds off by itself.
 - Visual references carry few quotable sentences, so they can lose on findings per read. Two more measures cover them: keep calls per lane, and keepers promoted (below). Read video seeds with `open --see` when the picture carries the point.
 
 ### Back to knowledge
@@ -134,21 +154,17 @@ Prior art: crawler seed lists with a scope rule (Heritrix, StormCrawler), and se
 
 ## Tests
 
+- Dedupe: a seed page read in an earlier run is not read again; `--fresh` reads it; its kept findings reach `known`.
 - Lane rules: seeded, open, both, a follow from a seeded document, a no-query hit.
 - Routing: a seed query with no site is never fetched; a site search reaches only sources with `keeps`.
 - `weaver seed`: tag match, no match (the error), a catalog without `--terms` (the error), reads at HEAD not the working tree.
 - `yieldRows`: the lane and seed grains.
 
-## For William
+## Order
 
-1. **Stop rule.** My proposal: after 3 seeded runs, if the seeded lane's kept findings per read are under half of open's and it adds no keepers, seeds go off by default. The open lane stays on in every run.
-2. **Step 0, the first seeds.** The catalog sites (app-polish section 5) are prose today, not records, and no record has a `web-design` tag. The motivating run would find nothing. I propose: one source record per site (kind `site`, tags `reference` + `web-design`, what it is good for), written by the sources session, before the first run.
-
-## Order (when approved)
-
-0. The seed records (above).
-1. weaver: `seed` on Query and Leaf, `weaver seed`, the two routing fixes, the lane rules.
-2. weaver: `lane` and `seed` grains in `yieldRows`, the lane line in the brief, `seeds` in promote.
+0. Done 11-10 (knowledge 4927904): 17 catalog records, kind `site`, tags `reference`, `web-design`, `app-polish` and more. Ids are `web-<domain>`, for example `web-siteinspire-com`.
+1. weaver: `seed` on Query and Leaf, `weaver seed`, the two routing fixes, the lane rules, page text reuse.
+2. weaver: `lane` and `seed` grains in `yieldRows`, the `references` layer and the lane line in the brief, `seeds` in promote, the skill text.
 3. wren: the lane word on finding rows.
 4. First run: "build me a website for <a product>", seeded from the design references, plus open. Read `weaver yield` with William.
 5. Later, if the lane stays: the lane filter and table on the run page.
@@ -159,3 +175,4 @@ Links: WA-1164 (the reference record), WA-1195 (the source walk), WA-1281 (knowl
 
 - 2026-11-10: first draft (a `knowledge` source, a stored lane, blind triage, a read split).
 - 2026-11-10: goldfish review: 37 findings (14 critic, 15 reader, 8 zoom-out), 24 applied, 13 rejected or merged; open: the stop rule, and who writes the step 0 seed records. Changed: the Source dropped (it sent the seed query to the web, `ports.ts:123-135`); lane derived, not stored; the routing fix for site searches; yield from `yieldRows`; keepers through the knowledge CLI; blind triage, the read split and `find --tag` cut; `shape` replaced by the record's `kind`; Non-goals, Risks and Tests added.
+- 2026-11-10: William approved E, with two conditions. Agents must reach for seeds without him naming them: the `references` layer, the skill rule and the acceptance check were added. The auto-off stop rule was dropped; yield by lane is a report only. Optimistic dedupe was added: reuse stored page text and look past kept findings. Step 0 done by the sources session.
