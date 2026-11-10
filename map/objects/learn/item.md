@@ -28,7 +28,7 @@ Learn is now the breakdown core: read, break down, feed SOPs. The reader half (f
 
 ## If you change this
 
-- **Hits:** `wren learn` (`add`, `read`, `breakdown`, `to-sop`), `apps/cli/src/learn-readers.ts`, starling inbound learn back, the knowledge repo under `WREN_KNOWLEDGE_DIR` (source records tagged with the SOP)
+- **Hits:** `wren learn` (`add`, `read`, `breakdown`, `to-sop`), `apps/cli/src/learn-readers.ts`, starling inbound learn back, Canon under `WREN_CANON_DIR` (source records tagged with the SOP)
 - **Does not hit:** mail triage, the portal
 
 ## Surfaces

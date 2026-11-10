@@ -214,7 +214,7 @@ export const settingsSchema = z.object({
   /** A GitHub token that writes the private shapes repo's contents: the shape mirror commits each version with it. */
   shapesGithubToken: z.string().min(1).optional(),
   /** The private repo the shape mirror commits to, owner/name. */
-  shapesGithubRepo: z.string().default("wrenautomation/knowledge"),
+  shapesGithubRepo: z.string().default("wrenautomation/canon"),
   /** The API the shape mirror talks to: GitHub's, or a self-hosted Forgejo/Gitea (`https://git.example.com/api/v1`), whose contents API matches. */
   shapesGithubApi: z.string().url().default("https://api.github.com"),
   /** The lander's /api/edge bearer (its EDGE_TOKEN secret): flags pushed there. A secret. */
@@ -314,8 +314,8 @@ export const settingsSchema = z.object({
   ytDlp: z.string().min(1).default("yt-dlp"),
   /** The PySceneDetect command a film's cuts are found with (split on spaces). */
   sceneDetect: z.string().min(1).default("uvx scenedetect"),
-  /** The knowledge repo (relative to the repo root; private, not this repo): SOPs are guides there, `@wrenautomation/knowledge`. */
-  knowledgeDir: z.string().min(1).default("../knowledge"),
+  /** Canon (relative to the repo root; private, not this repo): SOPs are guides there, `@wrenautomation/knowledge`. */
+  canonDir: z.string().min(1).default("../canon"),
   /** The autobrowse checkout whose CLI (and tokens) `sop add drive:` runs. */
   autobrowseDir: z.string().min(1).default("../autobrowse"),
   /** The private S3 bucket that keeps every email and PDF the books read (under `books/`); unset = the local `.books/` directory. */
@@ -710,7 +710,7 @@ export const ENV_KEYS = {
   ffmpeg: "WREN_FFMPEG",
   ytDlp: "WREN_YT_DLP",
   sceneDetect: "WREN_SCENEDETECT",
-  knowledgeDir: "WREN_KNOWLEDGE_DIR",
+  canonDir: "WREN_CANON_DIR",
   autobrowseDir: "WREN_AUTOBROWSE_DIR",
   booksBucket: "WREN_BOOKS_BUCKET",
   booksMailboxes: "WREN_BOOKS_MAILBOXES",

@@ -13,7 +13,7 @@ A platform's SOP, pushed from the private sops folder, read into every draft pro
 
 ## Why this shape
 
-SOPs live in `../knowledge` (guide records), outside this public repo, so the text reaches the Lambda through the database, not the bundle. Insert-only: the newest row per platform is live, and `content_drafts.playbook_id` says which version a draft was written against, so a lesson can be traced to the SOP that caused it. Pushing the same text again stores nothing (`playbook.ts:38`). The voice and the prompt's own rules win where the playbook differs; only its writing rules apply, not its posting steps.
+SOPs live in `../canon` (guide records), outside this public repo, so the text reaches the Lambda through the database, not the bundle. Insert-only: the newest row per platform is live, and `content_drafts.playbook_id` says which version a draft was written against, so a lesson can be traced to the SOP that caused it. Pushing the same text again stores nothing (`playbook.ts:38`). The voice and the prompt's own rules win where the playbook differs; only its writing rules apply, not its posting steps.
 
 ## Shape
 

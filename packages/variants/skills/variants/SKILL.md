@@ -22,7 +22,7 @@ You drive. Code keeps the ledger. Run `./bin/wren variants …` from `wren/` (pr
 ./bin/wren variants guide add "…" [--subject s | --kind k] [--source study|sop|skill|agent --ref …]
 ./bin/wren variants guide lock|drop|test <id>
 ./bin/wren variants keep <sample> | catalog [--kind k]
-./bin/wren variants promote          # kept samples and locked tips → verdicts in the knowledge repo
+./bin/wren variants promote          # kept samples and locked tips → verdicts in Canon
 ./bin/wren variants ship <sample> post|site|email <target> [--why …] | unship <ship> | channels
 ./bin/wren variants live <subject> | collect [--ship id]
 ```
@@ -39,7 +39,7 @@ Read the reference for a step when you reach it. Each holds the how; this page h
 | 4 Hand over | Tell him `<subject>:<n>` waits in Variants › Batches. Stop | — |
 | 5 Read | `show`: his scores, anchored notes, batch note, leaders, steers | `references/batch.md` |
 | 6 Guides | Propose lock or drop from `effect`; he decides | `references/guides.md` |
-| 6b Record | After a keep, lock, un-keep or drop: `promote` (prod: `prod-wren.mjs`), then push `knowledge/` | — |
+| 6b Record | After a keep, lock, un-keep or drop: `promote` (prod: `prod-wren.mjs`), then push `canon/` | — |
 | 7 Ship | A kept sample goes out; read `live` before each batch | `references/ship.md` |
 | Makers | A maker on his Mac builds pages or video for you | `references/makers.md` |
 

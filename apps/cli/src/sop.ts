@@ -1,6 +1,6 @@
 /**
- * `wren sop …`: SOPs built from videos, Drive Docs and files, kept in the knowledge repo
- * (`knowledgeDir`): a guide per SOP, its sources and points as records (one commit per write, with a
+ * `wren sop …`: SOPs built from videos, Drive Docs and files, kept in Canon
+ * (`canonDir`): a guide per SOP, its sources and points as records (one commit per write, with a
  * by and a why), `topics/<name>/` for `notes.md`, `calls.md`, `standard.md`, refs. `add` ingests
  * a source, `sync` writes the numbers and your calls from Learn, `build` writes the next guide
  * on Claude Code (sync first), `ls` shows what is there, `push` hands the SOP to the content loop
@@ -62,7 +62,7 @@ export function registerSop(
   settings: Settings,
   rootDir: string,
 ): void {
-  const root = resolve(rootDir, settings.knowledgeDir);
+  const root = resolve(rootDir, settings.canonDir);
   // every record wren writes says it came from here; the why names the command
   const BY = "wren-sop";
   const topics = async () =>

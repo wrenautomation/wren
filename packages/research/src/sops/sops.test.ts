@@ -18,7 +18,7 @@ import {
 
 const WHO = { by: "test", why: "test" };
 
-/** An empty knowledge repo: git, knowledge.json, one commit. */
+/** An empty record repo: git, knowledge.json, one commit. */
 async function repo(): Promise<string> {
   const d = await mkdtemp(join(tmpdir(), "sop-"));
   git(d, ["init", "-q", "-b", "main"]);

@@ -89,15 +89,15 @@ export function registerLearn(
   /** Main, and the workspace the command works in. */
   const inWorkspace = <T>(fn: (db: Db, client: string) => Promise<T>) =>
     withDb(async (db) => fn(db, await dbs.workspace()));
-  const knowledgeDir = resolve(rootDir, settings.knowledgeDir);
+  const canonDir = resolve(rootDir, settings.canonDir);
   const { reader, judgeFor } = learnReaders(settings, rootDir);
   const writer = (model: string) => {
     const llm = modelLlm(claudeCode(model, { timeoutMs: 1_800_000 }));
     return {
       add: (sop: string, source: { name: string; md: string }) =>
-        addSource(knowledgeDir, sop, source, { by: BY, why: "asked into the SOP from Learn" }),
+        addSource(canonDir, sop, source, { by: BY, why: "asked into the SOP from Learn" }),
       extract: async (sop: string, stem: string) => {
-        await extractPoints(knowledgeDir, sop, llm, { by: BY }, stem);
+        await extractPoints(canonDir, sop, llm, { by: BY }, stem);
       },
     };
   };
@@ -427,13 +427,13 @@ export function registerLearn(
   learn
     .command("promote")
     .description(
-      "every item of the workspace as a source record in the knowledge repo: caption and transcript, breakdown, score, saves. One commit; a rerun edits only what changed",
+      "every item of the workspace as a source record in Canon: caption and transcript, breakdown, score, saves. One commit; a rerun edits only what changed",
     )
     .option("--why <text>", "why, on the commit", "Learn's items as sources")
     .action(async (o: { why: string }) =>
       json(
         await inWorkspace((db, client) =>
-          promoteItems(db, knowledgeDir, client, { by: "wren-learn", why: o.why }),
+          promoteItems(db, canonDir, client, { by: "wren-learn", why: o.why }),
         ),
       ),
     );
@@ -506,7 +506,7 @@ export function registerLearn(
             sop: ask.sop,
           });
           return done.length
-            ? { ...done[0], folder: topicDir(knowledgeDir, ask.sop) }
+            ? { ...done[0], folder: topicDir(canonDir, ask.sop) }
             : {
                 asked: ask.sop,
                 note: "Not read yet: the next `learn read` writes it.",

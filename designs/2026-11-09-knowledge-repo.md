@@ -242,3 +242,12 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
   one rule per line); the asks are in `topics/sop-making/refs/`. knowledge 0.68.5 lints every line id a
   guide names (live, in a cited set), so the build's own check for its guide is gone; the check for
   lines another guide names stays, because a write lints only the records it touches.
+- 2026-11-10 (WA-1290): the repo is named Canon (William). Folder `canon/`, GitHub `wrenautomation/canon`
+  (renamed; GitHub redirects the old name), index name `canon`, wren setting `canonDir` (`../canon`, env
+  `WREN_CANON_DIR`; was `knowledgeDir`), `shapesGithubRepo` default `wrenautomation/canon`. The engine,
+  npm package, CLI and `knowledge.json` keep the name `knowledge`: they are a general record store that
+  research, learn and variants use too; Canon is this one repo of it and the way its topics are made.
+  Options weighed: Canon for the repo only (picked: agents keep reading the plain `knowledge render`),
+  one bird brand for engine and repo (Rookery: fits the product family, tells a new reader nothing, and
+  costs an npm rename), Playbook (plainest, but clashes with the content playbook). `knowledge` stays as
+  a symlink to `canon/` for sessions that started before the move.

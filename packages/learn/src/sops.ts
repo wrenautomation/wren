@@ -1,5 +1,5 @@
 /**
- * Items into SOPs. "Add to SOP" asks. The Mac, where the knowledge repo lives, writes the item's
+ * Items into SOPs. "Add to SOP" asks. The Mac, where Canon lives, writes the item's
  * stored transcript as a source of that SOP and extracts its points; build and push stay William's
  * (`wren sop build`, `wren sop push`).
  */

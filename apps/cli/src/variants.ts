@@ -43,14 +43,14 @@ export function registerVariants(
   });
   v.command("promote")
     .description(
-      "kept samples and locked tips as verdict records in the knowledge repo; un-keep, unlock or drop retires. One commit; a rerun is a no-op",
+      "kept samples and locked tips as verdict records in Canon; un-keep, unlock or drop retires. One commit; a rerun is a no-op",
     )
     .option("--why <text>", "why, on the commit", "Vireo's kept samples and locked tips")
     .action(async (o: { why: string }) =>
       console.log(
         JSON.stringify(
           await withDb((db) =>
-            promoteVerdicts(db, resolve(rootDir, settings.knowledgeDir), {
+            promoteVerdicts(db, resolve(rootDir, settings.canonDir), {
               by: "wren-variants",
               why: o.why,
             }),

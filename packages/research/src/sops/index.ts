@@ -1,5 +1,5 @@
 /**
- * SOPs built from sources, kept in the knowledge repo (`@wrenautomation/knowledge`; design:
+ * SOPs built from sources, kept in Canon (`@wrenautomation/knowledge`; design:
  * designs/2026-11-09-knowledge-repo.md). An SOP is a guide record (`guides/<name>.md`, the
  * procedure; its `[n]` cites = the nth id in `cites`, sources first, then the rule sets it uses) plus
  * rule sets (`rules/<name>/<set>.md`, one rule per line with a fixed id; `./sets.ts`). A guide may
@@ -334,7 +334,7 @@ const asPoint = (d: Loaded): Point => ({
 });
 
 /**
- * One SOP, read from the knowledge repo: the topic folder's files, its guide, and the live sources
+ * One SOP, read from Canon: the topic folder's files, its guide, and the live sources
  * tagged with its name (each as its points when it has some). Highest priority first, then by name.
  */
 export async function readSopDir(root: string, name: string): Promise<SopDir> {
