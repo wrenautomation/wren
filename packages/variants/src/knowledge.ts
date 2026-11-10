@@ -20,7 +20,7 @@ import {
   type Verdict,
   verdictOf,
 } from "@wrenautomation/vireo";
-import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { PLAYBOOK, provenChanges, reachOf, typesOf } from "./playbook.js";
 
 type Fields = Record<string, unknown>;
@@ -222,6 +222,8 @@ export async function promoteVerdicts(
   edited: number;
   retired: number;
   proven: number;
+  /** subjects with no content type: their tips and keeps reach no playbook type */
+  untyped: string[];
   commit: string | null;
 }> {
   const kept = await db
@@ -345,6 +347,9 @@ export async function promoteVerdicts(
     edited: count("edit"),
     retired: count("retire"),
     proven: proven.length,
+    untyped: (
+      await db.select({ slug: subjects.slug }).from(subjects).where(isNull(subjects.contentType))
+    ).map((r) => r.slug),
     commit,
   };
 }

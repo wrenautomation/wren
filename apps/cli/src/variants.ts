@@ -85,11 +85,13 @@ export function registerPlaybook(
     .action(async (type: string, o: { json?: boolean; offline?: boolean }) => {
       const canon = resolve(rootDir, settings.canonDir);
       let stale: string | null = o.offline ? "offline" : null;
+      let untyped: string[] = [];
       if (!o.offline)
         try {
           const r = await withDb((db) =>
             promoteVerdicts(db, canon, { by: "wren-playbook", why: `wren playbook ${type}` }),
           );
+          untyped = r.untyped;
           if (r.commit) {
             const p = pushCanon(canon);
             if (!p.pushed)
@@ -99,9 +101,14 @@ export function registerPlaybook(
           stale = `promote failed: ${(e as Error).message}`;
         }
       const book = readPlaybook(canon, type);
-      if (o.json) console.log(JSON.stringify({ ...book, text: undefined, stale }, null, 2));
+      if (o.json)
+        console.log(JSON.stringify({ ...book, text: undefined, stale, untyped }, null, 2));
       else {
         if (stale) console.error(`last state (${stale})`);
+        if (untyped.length)
+          console.error(
+            `no content type, so their tips and keeps reach nothing: ${untyped.join(", ")} (wren variants type <subject> <type>)`,
+          );
         process.stdout.write(book.text);
       }
     });
