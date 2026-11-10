@@ -28,7 +28,7 @@ export const MARK = "marketing.videoMark";
 export const MARK_DONE = "marketing.videoMarkDone";
 export const MARK_DROP = "marketing.videoMarkDrop";
 /** How long a mark at one moment stays drawn on the stage after it. */
-export const MARK_HOLD_S = 2;
+const MARK_HOLD_S = 2;
 /** A mark's pin on the timeline, px. */
 const PIN_W = 18;
 /** Under this, a dragged box is a click. */
@@ -44,7 +44,7 @@ const marksPatch: ActPatch = (detail, answer) => {
 const MARKED = { patch: marksPatch };
 
 /** Whether mark `m` is on screen at `t`: its range, or a moment and the two seconds after. */
-export const markOn = (m: Mark, t: number) =>
+const markOn = (m: Mark, t: number) =>
   m.end === null ? t >= m.start - 0.02 && t < m.start + MARK_HOLD_S : t >= m.start && t < m.end;
 
 const TONES = [

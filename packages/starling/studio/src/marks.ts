@@ -8,13 +8,13 @@ import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { FORMATS, MARK_TONES, type VideoMark, videoEdits, videoMarks } from "./schema.js";
 
-export const MARK_TEXT_MAX = 2000;
+const MARK_TEXT_MAX = 2000;
 export const MARK_WHY_MAX = 600;
 /** Open marks handed to one agent pass; the rest wait for the next. */
-export const MARKS_PER_PASS = 30;
+const MARKS_PER_PASS = 30;
 
 const frac = z.number().min(0).max(1);
-export const markBoxSchema = z
+const markBoxSchema = z
   .object({ x: frac, y: frac, w: frac.positive(), h: frac.positive() })
   .refine((b) => b.x + b.w <= 1.0001 && b.y + b.h <= 1.0001, "the box leaves the frame");
 export const markInputSchema = z.object({
