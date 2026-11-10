@@ -47,7 +47,7 @@ Read the reference for a step when you reach it. Each holds the how; this page h
 
 - Never judge for him. `judge` and `note` exist for tests and for his spoken calls in chat only.
 - Blind: he sees no parent, change or why while he judges. He sees the batch `title` and each sample's `name` beside its number, so both say what it is, never which one should win. Never put them in a sample's body.
-- Fix a name or title in place: `wren variants rename sample <id> "…"` or `rename batch <subject>:<n> "…"`. Never re-add a batch to change words.
+- Fix a sample in place: `wren variants edit <id> --name|--change|--guides|--body|--file|--poster-file …`, many with `--json`. A title: `rename batch <subject>:<n> "…"`. Never re-add a batch to fix one. What he saw (body, file, poster) changes only before a call or a note; after one, the fix is a new sample in the next batch.
 - Name a batch `<subject>:<n>` (its number within the subject) in notes and messages. The global id is secondary; outputs lead with the ref.
 - One open batch per subject. "Add it to the current batch" means `append`, never `add`: a new batch replaces an unmarked one in his queue. A closed batch takes no more samples; make a new one.
 - Steers are his. Set or lift one only when he says so (chat or canvas); put his words in `--why`.
