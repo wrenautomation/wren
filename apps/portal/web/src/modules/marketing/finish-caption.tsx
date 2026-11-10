@@ -49,25 +49,33 @@ export function ShownCaption({
   return <div style={pillLook(size, CAPTION_LOOK.foreground)}>{words}</div>;
 }
 
-/** Text on the video as the render draws it; without `onDown` it's a picture, not a handle. */
+/**
+ * Text on the video as the render draws it; without `onDown` it's a picture, not a handle.
+ * `clear`: the handle alone, over text the player already draws.
+ */
 export function OverlayText({
   o,
   at,
   faint,
   selected,
+  clear,
   onDown,
 }: {
   o: TextOverlay;
   at: NonNullable<ReturnType<typeof overlayAt>>;
   faint: boolean;
   selected: boolean;
+  clear?: boolean;
   onDown?: (e: ReactPointerEvent) => void;
 }) {
   return (
     <div
       onPointerDown={onDown}
       className={cx(
-        "absolute rounded-md text-center font-extrabold text-white select-none [text-shadow:0_2px_6px_rgb(0_0_0/0.55),0_8px_30px_rgb(0_0_0/0.35)] [text-wrap:balance]",
+        "absolute rounded-md text-center font-extrabold select-none [text-wrap:balance]",
+        clear
+          ? "text-transparent"
+          : "text-white [text-shadow:0_2px_6px_rgb(0_0_0/0.55),0_8px_30px_rgb(0_0_0/0.35)]",
         onDown ? "cursor-move" : "pointer-events-none",
         selected && "outline-2 outline-offset-4 outline-white/80 outline-dashed",
       )}
@@ -79,7 +87,7 @@ export function OverlayText({
         fontSize: at.size,
         lineHeight: 1.12,
         letterSpacing: -at.size * 0.02,
-        opacity: faint ? 0.45 : at.opacity,
+        opacity: clear ? 1 : faint ? 0.45 : at.opacity,
       }}
     >
       {o.text}

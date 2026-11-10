@@ -189,3 +189,31 @@ New in the build:
 - CI sets `PUPPETEER_SKIP_DOWNLOAD`: no check draws a video, so CI fetches no Chrome.
 
 Not checked: a real Long with a camera cut, a Short and a Framed render. The October edit folders are gone; the first real recording is the test.
+
+## Build step 2 (11-10): Finish plays the render's composition
+
+Finish shows `Long` or `Framed` from `compositions/`, on the raw recording, through the Player. A changed cut, crop, caption or text shows at once, as the export draws it.
+
+| Part | File | Does |
+|---|---|---|
+| Spans | `frames/runtime.tsx` (`spans`, `fileFrame`) | `Video` and `Audio` map each output frame to a time in an uncut file. One sound note per span |
+| Hold | `frames/player.tsx` (`onWait`, `usePlayClock.hold`) | A video that loads or seeks stops the clock. Time on a seek is not played past |
+| Props | `src/props.ts` (`RawFiles`, `EditPicture`, `o.raw`) | `longProps` and `framedProps` build the same picture over the raw files. Safe in a browser |
+| Server | `inbound/src/video.ts` (`finishOf`) | Sends `sounds`, `music` and the bed's link |
+| Portal | `finish-preview.ts`, `finish-stage.tsx` | Builds the props from the page's data. The stage keeps only clear handles over the Player |
+| Story | `stories/wren/campaigns/finish.stories.tsx` | Default, Vertical, NoFile, on 8 s of synthetic footage |
+
+Changes from the plan:
+- The clock is the wall clock with a hold. The plan had the main video lead the clock. A lead video breaks at a cut: its time jumps and every other layer must follow. With a hold, the composition is the one source of time and a slow seek only pauses it.
+- `spans` are on the composition's props. The render sets none and reads the cut files as before.
+- A Short's own composition stays on Sequences and has no preview. Finish shows a Short through `Framed` with the Short's crop.
+- The preview draws no mattes and no words behind him. Both need files that exist only after a render.
+- The camera's `offsetS` is taken as 0 in the preview. The server does not send it yet.
+- A recording that fails to load, with no newer link, shows one sentence and Retry, and Play is off. Before, the picture stayed black.
+
+Measured: a render with spans is exact (output frame 60 = source frame 120, SSIM 0.972; 4.0 s, -25.7 LUFS). Play in Finish: one seek at the cut, clock and video within 0.02 s, the click sound at its second.
+
+Limits:
+- A file without a seekable range (one served through a service worker) seeks to 0 on each frame. The portal has no service worker; the story uses a blob link.
+- The bed's link (`sfx/<id>.wav`) is not checked in prod.
+- Not checked: a real recording with a camera, a Short's crop, a signed link that runs out during play.

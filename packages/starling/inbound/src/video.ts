@@ -766,6 +766,8 @@ async function finishOf(
     source: await sign(e.keys.source),
     sourceCam: await sign(e.keys["source-cam"]),
     strip: await sign(e.keys.strip),
+    // The music bed's file (the media bucket, `sfx/`): the preview plays it under the cut.
+    bed: await sign(e.music ? `sfx/${e.music.id}.wav` : null),
     picture: pictureOf(e.tracks),
     rendered: [...CROPPED, "long" as const].filter((f) => !!e.files[f]),
     covers: Object.fromEntries(covers.filter(([, url]) => url)),
@@ -777,6 +779,9 @@ async function finishOf(
 const finishEdited = (e: VideoEdit): VideoView["finish"] => ({
   // What the long video shows when: the preview draws the corner camera as the render does.
   layout: e.layout,
+  // The kit sounds and the bed, raw seconds: the preview plays what the render mixes.
+  sounds: e.sounds,
+  music: e.music,
   // Whole, so the Shorts panel saves card and cardText back as they were.
   shorts: e.shorts.map((s, i) => ({ n: i + 1, ...s })),
   camBox: e.tracks.camBox ?? null,
@@ -829,6 +834,8 @@ export interface VideoView {
   cuts: ReturnType<typeof cutRows>;
   finish: {
     layout: VideoEdit["layout"];
+    sounds: VideoEdit["sounds"];
+    music: VideoEdit["music"];
     shorts: (VideoEdit["shorts"][number] & { n: number })[];
     camBox: [number, number, number, number] | null;
     face: boolean;

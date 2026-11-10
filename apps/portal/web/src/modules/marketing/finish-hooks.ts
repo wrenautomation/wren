@@ -5,7 +5,7 @@ import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } f
  * A signed URL that stays put while only its signature changes, so a read of the record doesn't
  * reload the player. After an error (an old signature ran out) it takes the newest.
  */
-export function useSteadyUrl(url: string | null): [string | null, () => void] {
+export function useSteadyUrl(url: string | null): [string | null, () => boolean] {
   const kept = useRef(url);
   const newest = useRef(url);
   const [, redraw] = useState(0);
@@ -16,7 +16,9 @@ export function useSteadyUrl(url: string | null): [string | null, () => void] {
     if (newest.current && newest.current !== kept.current) {
       kept.current = newest.current;
       redraw((n) => n + 1);
+      return true;
     }
+    return false;
   };
   return [kept.current, renew];
 }

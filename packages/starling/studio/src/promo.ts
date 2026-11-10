@@ -5,7 +5,7 @@
  * captures any page the script names and renders `Promo`. Plain data and math here, so the
  * composition and its tests share one clock.
  */
-import { DEFAULT_LOOK, type Look } from "@wren/video";
+import { DEFAULT_LOOK, type Look } from "@wren/video/look";
 import { z } from "zod";
 import { autoCamera, type CameraKey, clip } from "./camera.js";
 import { type CursorTrack, cursorTrack } from "./cursor.js";

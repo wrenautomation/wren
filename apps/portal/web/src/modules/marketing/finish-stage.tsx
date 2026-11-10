@@ -1,13 +1,15 @@
-/** The Finish stage: the player over the recording with the view switch and the bar under it. */
+/**
+ * The Finish stage: the render's composition playing the raw recording (`finish-preview.ts`), with
+ * clear handles over it for what he drags (the crop, the caption line, each text), the view switch
+ * and the bar under it.
+ */
 import {
   CAPTION_LOOK,
   captionShown,
   captionTrack,
   captionY,
-  cornerCam,
   cropCentre,
   cropWindow,
-  FPS,
   FRAME,
   isCropped,
   longCaption,
@@ -18,7 +20,8 @@ import {
   reelCaption,
   reelY,
 } from "@wren/starling-studio/finish";
-import { cx } from "@wren/ui";
+import { Player } from "@wren/starling-studio/player";
+import { Button, cx } from "@wren/ui";
 import { type ReactNode, type PointerEvent as ReactPointerEvent, useMemo } from "react";
 import { OverlayText, ShownCaption } from "./finish-caption.js";
 import {
@@ -35,6 +38,7 @@ import {
   type Word,
 } from "./finish-data.js";
 import { drag, useWidth } from "./finish-hooks.js";
+import { previewOf } from "./finish-preview.js";
 
 export const Bar = ({ children }: { children: ReactNode }) => (
   <div className="flex flex-wrap items-center gap-3 rounded-lg bg-(--ui-fill) px-3 py-2 text-[13px] [font-variant-numeric:tabular-nums]">
@@ -83,17 +87,19 @@ export function Stage({
   draw,
   view,
   t,
-  src,
+  frame,
+  playing,
+  url,
+  ready,
+  lost,
+  tries,
+  onRetry,
   pic,
   centre,
   shortNo,
-  videoRef,
-  camSrc,
-  camRef,
-  onCamError,
   words,
-  onError,
-  onLoaded,
+  onWait,
+  onFailed,
   picked,
   showCaptionSpot,
   onPick,
@@ -103,20 +109,29 @@ export function Stage({
   data: FinishData;
   draw: FinishEdit;
   view: Format;
+  /** Raw seconds on the recording: where the handles are drawn for. */
   t: number;
-  src: string | null;
+  /** The frame of the cut the player shows. */
+  frame: number;
+  playing: boolean;
+  /** A file the composition names to its link. */
+  url: (file: string) => string;
+  /** False until the recording has a playback copy. */
+  ready: boolean;
+  /** The recording's link failed and the page has no newer one. */
+  lost: boolean;
+  /** Retries so far: a new count loads the files again. */
+  tries: number;
+  onRetry: () => void;
   pic: [number, number];
   centre: Point | null;
   /** The Short whose own crop a drag writes (9:16 only); null writes the format's crop. */
   shortNo: number | null;
-  videoRef: React.RefObject<HTMLVideoElement | null>;
-  /** The camera file's playback copy, for the long video's corner (null in other shapes). */
-  camSrc: string | null;
-  camRef: React.RefObject<HTMLVideoElement | null>;
-  onCamError: () => void;
   words: readonly Word[];
-  onError: () => void;
-  onLoaded: () => void;
+  /** The player loads or seeks: the clock holds. */
+  onWait: (waiting: boolean) => void;
+  /** A file's link ran out. */
+  onFailed: (file: string) => void;
   picked: Picked;
   showCaptionSpot: boolean;
   onPick: (i: number) => void;
@@ -131,17 +146,11 @@ export function Stage({
   const which = view === "long" ? "long" : "short";
   const cap = draw.captions;
 
-  // The picture: whole in 16:9, else the crop window scaled to the stage.
-  let picStyle: React.CSSProperties = { inset: 0, width: "100%", height: "100%" };
-  if (centre && w) {
-    const [x, y, cw, ch] = cropWindow(pic[0], pic[1], FRAME[view], centre);
-    picStyle = {
-      left: (-x * w) / cw,
-      top: (-y * h) / ch,
-      width: (pic[0] * w) / cw,
-      height: (pic[1] * h) / ch,
-    };
-  }
+  // The render's composition for this shape, on the raw recording.
+  const shown = useMemo(
+    () => previewOf(data, draw, words, view, centre),
+    [data, draw, words, view, centre],
+  );
 
   const dragCrop = (e: ReactPointerEvent) => {
     if (!centre || !isCropped(view)) return;
@@ -183,9 +192,6 @@ export function Stage({
           const r = reelCaption(w, reelY(h, cap.place), chars, REEL.maxChars, CAPTION_LOOK.font);
           return { box: r.box, text: {}, size: r.size };
         })();
-  // What the long video shows now: the camera in the corner, alone, or not at all.
-  const show = data.layout?.find((r) => t >= r.from && t < r.to)?.show ?? "corner";
-
   const dragCaption = (e: ReactPointerEvent) => {
     const y0 = e.clientY;
     const [lo, hi] = PLACE[which];
@@ -209,42 +215,33 @@ export function Stage({
         style={{ width: w, height: h }}
         onPointerDown={centre ? dragCrop : undefined}
       >
-        {src ? (
-          // biome-ignore lint/a11y/useMediaCaption: the captions draw over it from the transcript.
-          <video
-            key={src.split("?")[0]}
-            ref={videoRef}
-            src={src}
-            preload="auto"
-            playsInline
-            onLoadedMetadata={onLoaded}
-            onError={onError}
-            className="pointer-events-none absolute max-w-none object-contain"
-            style={picStyle}
+        {ready ? (
+          <Player
+            key={tries}
+            composition={shown.composition}
+            props={shown.props}
+            frame={frame}
+            playing={playing}
+            url={url}
+            onWait={onWait}
+            onFailed={onFailed}
+            style={{ width: w, height: h, pointerEvents: "none", userSelect: "none" }}
           />
         ) : (
           <p className="absolute inset-0 m-0 grid place-items-center p-6 text-center text-[13px] text-white/70">
             Playback shows here after the next render.
           </p>
         )}
-        {view === "long" && camSrc && show !== "screen" ? (
+        {lost ? (
           <div
-            className="pointer-events-none"
-            style={show === "cam" ? { position: "absolute", inset: 0 } : cornerCam(w, h)}
+            role="alert"
+            className="absolute inset-0 grid place-content-center justify-items-center gap-3 bg-black p-6 text-center text-[14px] text-white/85"
+            onPointerDown={(e) => e.stopPropagation()}
           >
-            <video
-              key={camSrc.split("?")[0]}
-              ref={camRef}
-              src={camSrc}
-              muted
-              preload="auto"
-              playsInline
-              onError={onCamError}
-              onLoadedMetadata={(e) => {
-                e.currentTarget.currentTime = t + 0.5 / FPS;
-              }}
-              className="absolute inset-0 h-full w-full object-cover"
-            />
+            <p className="m-0">The recording did not load.</p>
+            <Button size="sm" onClick={onRetry}>
+              Retry
+            </Button>
           </div>
         ) : null}
         {capOn && (line || showCaptionSpot) ? (
@@ -258,7 +255,10 @@ export function Stage({
               style={capLook.text}
             >
               {line ? (
-                <ShownCaption line={line} style={cap.style} size={capLook.size} />
+                // The player draws the line; this is its handle, the same size.
+                <div className="opacity-0">
+                  <ShownCaption line={line} style={cap.style} size={capLook.size} />
+                </div>
               ) : (
                 "Captions sit here"
               )}
@@ -267,9 +267,9 @@ export function Stage({
         ) : null}
         {draw.overlays.map((o, i) => {
           const sel = picked?.kind === "overlay" && picked.i === i;
-          const at =
-            overlayAt(o, t, w, h) ??
-            (sel ? overlayAt({ ...o, from: t, to: t + 1 }, t + 0.5, w, h) : null);
+          // On screen the player draws it; a picked one outside its time shows faint here.
+          const on = overlayAt(o, t, w, h);
+          const at = on ?? (sel ? overlayAt({ ...o, from: t, to: t + 1 }, t + 0.5, w, h) : null);
           if (!at) return null;
           return (
             <OverlayText
@@ -279,6 +279,7 @@ export function Stage({
               at={at}
               faint={sel && (t < o.from || t >= o.to)}
               selected={sel}
+              clear={!!on}
               onDown={(e) => {
                 onPick(i);
                 const x0 = e.clientX;

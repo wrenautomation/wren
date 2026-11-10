@@ -1,15 +1,17 @@
 /**
  * What the compositions get: the cut files (named inside the edit's folder, which the render
- * serves) and the edit moved onto the cut timeline. A render never reads the DB.
+ * serves) and the edit moved onto the cut timeline. A render never reads the DB. The page's
+ * preview builds the same props over the raw recording (`RawFiles`), so nothing here needs Node.
  */
-import { basename } from "node:path";
-import { DEFAULT_LOOK, type Look } from "@wren/video";
+import { DEFAULT_LOOK, type Look } from "@wren/video/look";
 import type { Captions } from "./caption-styles.js";
 import { srt } from "./captions.js";
+import { cutSize, portrait } from "./cut-size.js";
 import { keepSegments, onCut, type Span, shortCutsOver, toCutTime } from "./cuts.js";
 import {
   type CroppedFormat,
   cropWindow,
+  FPS,
   FRAME,
   overlaysOnCut,
   type Point,
@@ -18,16 +20,43 @@ import {
 } from "./finish.js";
 import { coverRect } from "./finish-look.js";
 import type { MatteWindow } from "./matte.js";
-import { cutSize, FPS, portrait } from "./media.js";
 import { fitRect, placeWord, type Rect, verticalRect, type Zone } from "./safe-zones.js";
 import type { LayoutRange, Short, VideoEdit, Word } from "./schema.js";
 import { type AudioProps, audioOn } from "./sounds.js";
 import { STRESS } from "./stress.js";
 
+const basename = (path: string) => path.slice(path.lastIndexOf("/") + 1);
+
+/**
+ * The raw recording in place of the cut files: the name the player's `url` knows each track by.
+ * The props then carry `spans`, the runs of the recording the cuts keep, so a changed cut shows
+ * with no new cut file. Mattes are cut out of the cut files, so no word draws behind the speaker.
+ */
+export type RawFiles = { main: string; cam: string | null };
+
+/** The fields of an edit the Long and Framed props read (the page has these, not the whole row). */
+export type EditPicture = Pick<
+  VideoEdit,
+  | "id"
+  | "tracks"
+  | "files"
+  | "cuts"
+  | "words"
+  | "stress"
+  | "layout"
+  | "captions"
+  | "overlays"
+  | "sounds"
+  | "music"
+  | "crops"
+>;
+
 export type LongProps = {
   /** File names in the public dir. */
   main: string;
   cam: string | null;
+  /** Set when the files are the raw recording: the runs of it the cut keeps, in frames. */
+  spans?: { from: number; frames: number }[];
   fps: number;
   durationInFrames: number;
   /** Cut-timeline seconds. */
@@ -122,11 +151,11 @@ function placeAll(
  * a stressed word with no matte isn't drawn behind.
  */
 export function longProps(
-  edit: VideoEdit,
+  edit: EditPicture,
   mattes: readonly Matte[] = [],
-  o: { skip?: OnSkip } = {},
+  o: { skip?: OnSkip; raw?: RawFiles } = {},
 ): LongProps {
-  const { raw, ...long } = longBase(edit, mattes);
+  const { raw, ...long } = longBase(edit, mattes, o.raw);
   const frame = BIG.long.frame;
   const main = fitRect(cutSize(edit.tracks.main), [...frame], "contain");
   const cam = edit.tracks.cam ? fitRect(cutSize(edit.tracks.cam), [...frame], "cover") : null;
@@ -145,7 +174,7 @@ export function longProps(
 const r = (x: number) => Math.round(x * 1000) / 1000;
 
 /** Each word left after the cuts, on the cut timeline, with its index in the edit's words. */
-function keptWords(edit: VideoEdit) {
+function keptWords(edit: Pick<VideoEdit, "cuts" | "tracks" | "words">) {
   const keep = keepSegments(edit.cuts, edit.tracks.main.durationS, FPS);
   return edit.words.flatMap((w, i) => {
     const s = toCutTime(w.s, keep);
@@ -159,30 +188,43 @@ export function longSrt(edit: VideoEdit): string {
 }
 
 function longBase(
-  edit: VideoEdit,
+  edit: EditPicture,
   mattes: readonly Matte[],
+  files?: RawFiles,
 ): Omit<LongProps, "behind"> & { raw: Unplaced[] } {
-  if (!edit.files.cutMain)
+  if (!files && !edit.files.cutMain)
     throw new Error(`video ${edit.id}: not cut yet; run wren video cut ${edit.id}`);
   const keep = keepSegments(edit.cuts, edit.tracks.main.durationS, FPS);
   const total = keep.reduce((n, k) => n + (k.e - k.s), 0);
   const kept = keptWords(edit);
   const stressed = new Set(edit.stress ?? []);
-  const main = basename(edit.files.cutMain);
-  const cam = edit.files.cutCam ? basename(edit.files.cutCam) : null;
-  const raw = edit.captions.behind
-    ? kept.flatMap(({ i, w }): Unplaced[] => {
-        const m = stressed.has(i) ? mattes.find((x) => x.picks.includes(i)) : undefined;
-        if (!m) return [];
-        const src = m.source === "cam" && cam ? cam : main;
-        const to = r(Math.min(w.e + STRESS.holdS, (m.fromFrame + m.frames) / FPS));
-        const { file, fromFrame, frames } = m;
-        return [{ ...w, to, matte: { file, src, fromFrame, frames }, zone: m.zone }];
-      })
-    : [];
+  const main = files ? files.main : basename(edit.files.cutMain as string);
+  const cam = files
+    ? edit.tracks.cam
+      ? files.cam
+      : null
+    : edit.files.cutCam
+      ? basename(edit.files.cutCam)
+      : null;
+  const spans = keep.map((k) => ({
+    from: Math.round(k.s * FPS),
+    frames: Math.round((k.e - k.s) * FPS),
+  }));
+  const raw =
+    edit.captions.behind && !files
+      ? kept.flatMap(({ i, w }): Unplaced[] => {
+          const m = stressed.has(i) ? mattes.find((x) => x.picks.includes(i)) : undefined;
+          if (!m) return [];
+          const src = m.source === "cam" && cam ? cam : main;
+          const to = r(Math.min(w.e + STRESS.holdS, (m.fromFrame + m.frames) / FPS));
+          const { file, fromFrame, frames } = m;
+          return [{ ...w, to, matte: { file, src, fromFrame, frames }, zone: m.zone }];
+        })
+      : [];
   return {
     main,
     cam,
+    ...(files ? { spans } : {}),
     fps: FPS,
     durationInFrames: Math.max(1, Math.round(total * FPS)),
     words: kept.map(({ w }) => w),
@@ -288,12 +330,15 @@ export const verticalWindow = (w: number, h: number, cx = w / 2) =>
  * recording or one with no camera file is the recording itself (centred on the cam box when there
  * is one); else the camera file, centred. The page shows the crop on the same picture.
  */
-export function framedPicture(edit: VideoEdit): {
+export function framedPicture(
+  edit: Pick<VideoEdit, "tracks" | "files">,
+  files?: RawFiles,
+): {
   source: "main" | "cam";
   size: [number, number];
   centre: Point;
 } {
-  const face = faceOf(edit);
+  const face = faceOf(edit, files);
   const own = portrait(edit.tracks.main) || !face.file || !!face.box;
   const [w, h] = own ? cutSize(edit.tracks.main) : face.size;
   const cx = own && face.box ? face.box[0] + face.box[2] / 2 : w / 2;
@@ -305,14 +350,14 @@ export function framedPicture(edit: VideoEdit): {
  * else on his face (`framedPicture`). The recording always carries the sound.
  */
 export function framedProps(
-  edit: VideoEdit,
+  edit: EditPicture,
   format: CroppedFormat,
   mattes: readonly Matte[] = [],
-  o: { skip?: OnSkip } = {},
+  o: { skip?: OnSkip; raw?: RawFiles } = {},
 ): FramedProps {
-  const { cam: _c, layout: _l, raw, ...long } = longBase(edit, mattes);
-  const at = framedPicture(edit);
-  const file = at.source === "main" ? long.main : (faceOf(edit).file as string);
+  const { cam: _c, layout: _l, raw, ...long } = longBase(edit, mattes, o.raw);
+  const at = framedPicture(edit, o.raw);
+  const file = at.source === "main" ? long.main : (faceOf(edit, o.raw).file as string);
   const frame: [number, number] = [...FRAME[format]];
   const [w, h] = at.size;
   const picture: FramedProps["picture"] = {
@@ -347,16 +392,18 @@ export const faceRect = (face: Face, w: number, h: number, crop: Point | null = 
 export const SHORT_S = { min: 20, max: 60 } as const;
 export const SHORT_COUNT = { min: 2, max: 12 } as const;
 
-function faceOf(edit: VideoEdit): Face {
+function faceOf(edit: Pick<VideoEdit, "tracks" | "files">, files?: RawFiles): Face {
   const { main, cam, camBox } = edit.tracks;
-  // The cut pass writes each track at 1080 on its short side (`cutSize`).
-  if (cam && edit.files.cutCam)
-    return { file: basename(edit.files.cutCam), box: null, size: cutSize(cam) };
+  const cutCam = files ? files.cam : edit.files.cutCam && basename(edit.files.cutCam);
+  const cutMain = files ? files.main : edit.files.cutMain && basename(edit.files.cutMain);
+  // The cut pass writes each track at 1080 on its short side (`cutSize`); the raw recording has
+  // the same shape, and a composition places a picture by its shape.
+  if (cam && cutCam) return { file: cutCam, box: null, size: cutSize(cam) };
   const size = cutSize(main);
-  if (camBox && edit.files.cutMain) {
+  if (camBox && cutMain) {
     const k = size[0] / main.width;
     return {
-      file: basename(edit.files.cutMain),
+      file: cutMain,
       box: camBox.map((n) => Math.round(n * k)) as Face["box"],
       size,
     };

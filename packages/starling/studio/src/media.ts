@@ -6,6 +6,7 @@ import { execFile, spawn } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
+import { cutSize, portrait } from "./cut-size.js";
 import {
   type CutKnobs,
   fitWords,
@@ -23,7 +24,7 @@ const ffprobeOf = (ffmpeg: string) =>
   ffmpeg.includes("/") ? join(dirname(ffmpeg), "ffprobe") : "ffprobe";
 
 /** Every output frame rate (finish.ts); the compositions run at the same. */
-export { FPS };
+export { cutSize, FPS, portrait };
 
 /** Audio fade at each cut, so no click. */
 const FADE_S = 0.01;
@@ -191,17 +192,8 @@ export function syncOffset(main: Pcm, cam: Pcm, maxS = 30): number {
 const f = (x: number) => x.toFixed(4);
 
 /** 1080p either way up: a landscape (or square) track 1080 high, a portrait one 1080 wide. */
-export const portrait = (s: { width: number; height: number }) => s.height > s.width;
 export const scaleFilter = (s: { width: number; height: number }) =>
   portrait(s) ? "scale=1080:-2:flags=lanczos" : "scale=-2:1080:flags=lanczos";
-/** The size the cut pass writes a track at (ffmpeg's -2: the nearest even number). */
-export function cutSize(s: { width: number; height: number }): [number, number] {
-  const even = (n: number) => Math.round(n / 2) * 2;
-  return portrait(s)
-    ? [1080, even((s.height * 1080) / s.width)]
-    : [even((s.width * 1080) / s.height), 1080];
-}
-
 /**
  * The filter graph that keeps `keep` of one input, scaled to 1080p at 30 fps (`scaleFilter`);
  * audio (main only) fades 10 ms in and out at every join. `shiftS` moves the input onto main's

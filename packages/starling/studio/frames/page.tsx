@@ -43,6 +43,7 @@ const Preview = ({ entry, props }: { entry: Entry; props: unknown }): ReactEleme
         frame={clock.frame}
         playing={clock.playing}
         url={url}
+        onWait={clock.hold}
         style={{ maxHeight: "calc(100vh - 56px)", margin: "0 auto", width: "100%" }}
       />
       <div

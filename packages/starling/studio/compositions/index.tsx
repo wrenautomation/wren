@@ -337,6 +337,7 @@ const Sounds: FC<{ audio: AudioProps | undefined }> = ({ audio }) => {
 export const Long: FC<LongProps> = ({
   main,
   cam,
+  spans,
   words,
   layout,
   captions,
@@ -355,10 +356,10 @@ export const Long: FC<LongProps> = ({
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       {/* The recording carries the sound, so it plays under every layout. */}
-      <Video src={staticFile(main)} style={{ ...fill, objectFit: "contain" }} />
+      <Video src={staticFile(main)} spans={spans} style={{ ...fill, objectFit: "contain" }} />
       {cam && show !== "screen" ? (
         <div style={show === "cam" ? { position: "absolute", inset: 0 } : cornerCam(width, height)}>
-          <Video src={staticFile(cam)} muted style={fill} />
+          <Video src={staticFile(cam)} spans={spans} muted style={fill} />
         </div>
       ) : null}
       <Behind
@@ -591,6 +592,7 @@ export const Short: FC<ShortProps> = ({
  */
 export const Framed: FC<FramedProps> = ({
   main,
+  spans,
   picture,
   frame: size,
   words,
@@ -610,8 +612,8 @@ export const Framed: FC<FramedProps> = ({
   const place: CSSProperties = { position: "absolute", left, top, width, height, maxWidth: "none" };
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Video src={staticFile(picture.file)} muted={!own} style={place} />
-      {own ? null : <Audio src={staticFile(main)} />}
+      <Video src={staticFile(picture.file)} spans={spans} muted={!own} style={place} />
+      {own ? null : <Audio src={staticFile(main)} spans={spans} />}
       {/* framedProps keeps only mattes cut from the picture, so each lines up with it. */}
       <Behind
         items={behind}

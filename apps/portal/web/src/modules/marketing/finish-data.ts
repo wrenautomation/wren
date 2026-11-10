@@ -10,7 +10,7 @@ import {
   type Point,
   type TextOverlay,
 } from "@wren/starling-studio/finish";
-import type { Cut } from "@wren/starling-studio/schema";
+import type { Cut, VideoEdit } from "@wren/starling-studio/schema";
 import type { ReactNode } from "react";
 import type { CamBox, LayoutRange, Short } from "./finish-parts.js";
 
@@ -43,6 +43,11 @@ export type FinishData = {
   source: string | null;
   sourceCam: string | null;
   strip: string | null;
+  /** The music bed's file; null when the edit has none. */
+  bed?: string | null;
+  /** The kit sounds and the bed (raw seconds), as the render mixes them. */
+  sounds?: VideoEdit["sounds"];
+  music?: VideoEdit["music"];
   picture: { source: "main" | "cam"; centre: Point };
   /** What the long video shows when (raw seconds): his face in the corner, alone, or the screen. */
   layout?: LayoutRange[];

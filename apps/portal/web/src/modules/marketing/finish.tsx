@@ -1,6 +1,7 @@
 /**
- * Finishing a video (designs/2026-10-15-video-finishing.md): the player over the recording's
- * playback copy, skipping what's cut; text and captions drawn live over it; each shape's crop
+ * Finishing a video (designs/2026-10-15-video-finishing.md): the render's own composition playing
+ * the recording's playback copy (designs/2026-11-10-video-editor-pick.md), skipping what's cut,
+ * so text, captions, the camera and the sounds show as the export has them; each shape's crop
  * dragged in place; the timeline under it with the filmstrip, in and out, cut edges, text bars,
  * caption lines, the cover and the playhead. Every time is raw seconds on the recording, as the
  * edit keeps them (`@wren/starling-studio/finish` does the sums the render does).
@@ -10,7 +11,7 @@
  * the fields that changed with what they were (`expect`), so a change made elsewhere meanwhile
  * opens Keep mine or Use theirs instead of being overwritten.
  */
-import { keepSegments } from "@wren/starling-studio/cuts";
+import { fromCutTime, keepSegments, onCut } from "@wren/starling-studio/cuts";
 import {
   addCut,
   type CroppedFormat,
@@ -22,9 +23,10 @@ import {
   snapFrame,
   trimCuts,
 } from "@wren/starling-studio/finish";
+import { usePlayClock } from "@wren/starling-studio/player";
 import type { Cut } from "@wren/starling-studio/schema";
 import { Button, type RecordAct, SaveConflict, SaveStatus, useSaved } from "@wren/ui";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { wrenRecords } from "../../records.js";
 import {
   clamp,
@@ -48,6 +50,7 @@ import {
 import { useSteadyUrl } from "./finish-hooks.js";
 import { CaptionsPanel, CoverPanel, ShapesPanel, TextPanel } from "./finish-panels.js";
 import { LayoutPanel, ShortsPanel } from "./finish-parts.js";
+import { previewUrl, RAW } from "./finish-preview.js";
 import { Bar, Stage, ViewSwitch } from "./finish-stage.js";
 import { Timeline } from "./finish-timeline.js";
 import { VIEWED } from "./video-patch.js";
@@ -131,10 +134,6 @@ export function Finish({
   const [picked, setPicked] = useState<Picked>(null);
   const [range, setRange] = useState<[number, number] | null>(null);
   const [t, setT] = useState(() => io.in);
-  const [playing, setPlaying] = useState(false);
-  const video = useRef<HTMLVideoElement | null>(null);
-  // The camera file in the long video's corner, kept on the recording's clock.
-  const camVideo = useRef<HTMLVideoElement | null>(null);
   const tRef = useRef(t);
   tRef.current = t;
   const keepRef = useRef(keep);
@@ -143,66 +142,36 @@ export function Finish({
 
   const cropped = isCropped(view);
   const useCam = cropped && data.picture.source === "cam" && !!data.sourceCam && !!data.camSize;
-  const [src, renew] = useSteadyUrl(useCam ? data.sourceCam : data.source);
   const pic: [number, number] = useCam ? (data.camSize as [number, number]) : data.size;
-  const [camSrc, renewCam] = useSteadyUrl(view === "long" ? data.sourceCam : null);
+  const [mainSrc, renew] = useSteadyUrl(data.source);
+  const [camSrc, renewCam] = useSteadyUrl(data.sourceCam);
+  const [bedSrc] = useSteadyUrl(data.bed ?? null);
+  /** The link that failed with no newer one to take: the picture can't load. */
+  const [lost, setLost] = useState<string | null>(null);
+  /** Counts Retry: the player loads its files again. */
+  const [tries, setTries] = useState(0);
+  const url = useCallback(
+    (file: string) => previewUrl(file, { main: mainSrc, cam: camSrc, bed: bedSrc }),
+    [mainSrc, camSrc, bedSrc],
+  );
 
-  // Paused, the corner camera shows the frame the recording shows.
+  // The player runs on the cut's frames; `t` stays raw seconds, as the edit keeps every time.
+  const frames = Math.max(1, Math.round(keptS * FPS));
+  const clock = usePlayClock(FPS, frames);
+  const playing = clock.playing;
+  const frame = playing ? clock.frame : Math.min(frames - 1, Math.round(onCut(t, keep) * FPS));
   useEffect(() => {
-    const cam = camVideo.current;
-    if (!cam || playing) return;
-    cam.pause();
-    if (Math.abs(cam.currentTime - t) > 0.5 / FPS) cam.currentTime = t + 0.5 / FPS;
-  }, [t, playing]);
+    if (clock.playing) setT(snapFrame(fromCutTime(clock.frame / FPS, keepRef.current)));
+  }, [clock.playing, clock.frame]);
 
-  const seek = (to: number) => {
-    const at = clamp(snapFrame(to), 0, snapFrame(dur));
-    setT(at);
-    // Half a frame in, so the picture is that frame's whatever the decoder rounds.
-    if (video.current) video.current.currentTime = at + 0.5 / FPS;
-  };
+  const seek = (to: number) => setT(clamp(snapFrame(to), 0, snapFrame(dur)));
   const play = () => {
-    const el = video.current;
-    if (!el) return;
     const from = playFrom(tRef.current, keepRef.current) ?? keepRef.current[0]?.s ?? 0;
-    el.currentTime = from;
     setT(from);
-    setPlaying(true);
-    el.play().catch(() => setPlaying(false));
+    clock.seek(Math.round(onCut(from, keepRef.current) * FPS));
+    clock.play(true);
   };
-  const pause = () => {
-    video.current?.pause();
-    setPlaying(false);
-    if (video.current) setT(snapFrame(video.current.currentTime));
-  };
-
-  // Playing: follow the video, and jump each cut as it comes.
-  useEffect(() => {
-    if (!playing) return;
-    let raf = 0;
-    const step = () => {
-      const el = video.current;
-      if (!el) return;
-      const now = el.currentTime;
-      const next = playFrom(now, keepRef.current);
-      if (next === null) {
-        el.pause();
-        setPlaying(false);
-        setT(snapFrame(keepRef.current.at(-1)?.e ?? now));
-        return;
-      }
-      if (next - now > 0.5 / FPS) el.currentTime = next;
-      const cam = camVideo.current;
-      if (cam) {
-        if (Math.abs(cam.currentTime - next) > 0.15) cam.currentTime = next;
-        if (cam.paused) cam.play().catch(() => {});
-      }
-      setT(next);
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [playing]);
+  const pause = () => clock.play(false);
 
   const setIn = (at: number) => commit({ ...draw, cuts: trimCuts(draw.cuts, dur, { in: at }) });
   const setOut = (at: number) => commit({ ...draw, cuts: trimCuts(draw.cuts, dur, { out: at }) });
@@ -307,7 +276,10 @@ export function Finish({
         draw={draw}
         view={view}
         t={t}
-        src={src}
+        frame={frame}
+        playing={playing}
+        url={url}
+        ready={!!mainSrc}
         pic={pic}
         shortNo={shortView}
         centre={
@@ -316,18 +288,21 @@ export function Finish({
               (useCam ? { x: 0.5, y: 0.5 } : data.picture.centre))
             : null
         }
-        videoRef={video}
-        camSrc={camSrc}
-        camRef={camVideo}
-        onCamError={renewCam}
         words={words}
-        onError={renew}
+        onWait={clock.hold}
+        lost={!!mainSrc && lost === mainSrc}
+        tries={tries}
+        onRetry={() => {
+          renew();
+          setLost(null);
+          setTries((n) => n + 1);
+        }}
+        onFailed={(file) => {
+          if (file === RAW.cam) renewCam();
+          else if (file === RAW.main && !renew()) setLost(mainSrc);
+        }}
         picked={overlay ? picked : null}
         showCaptionSpot={panel === "captions"}
-        onLoaded={() => {
-          if (video.current) video.current.currentTime = tRef.current + 0.5 / FPS;
-          if (playing) video.current?.play().catch(() => setPlaying(false));
-        }}
         onPick={(i) => {
           setPicked({ kind: "overlay", i });
           setPanel("text");
@@ -337,7 +312,7 @@ export function Finish({
       />
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <Button size="sm" onClick={playing ? pause : play} disabled={!src}>
+        <Button size="sm" onClick={playing ? pause : play} disabled={!mainSrc || lost === mainSrc}>
           {playing ? "Pause" : "Play"}
         </Button>
         <span className="text-[13px] text-(--ui-ink) [font-variant-numeric:tabular-nums]">

@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./look": "./src/overlay.ts",
     "./publish": "./src/publish.ts"
   },
   "scripts": {

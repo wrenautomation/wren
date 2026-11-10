@@ -33,6 +33,10 @@ export type Clock = {
   playing: boolean;
   /** A file name in the edit's folder to its URL. */
   url: (file: string) => string;
+  /** `play` only: an element says it loads or seeks (`on`); the clock's owner stops for it. */
+  wait?: (id: string, on: boolean) => void;
+  /** `play` only: a file did not load (a signed link ran out). */
+  failed?: (file: string) => void;
 };
 
 export const ClockContext = createContext<Clock | null>(null);
@@ -129,9 +133,45 @@ export const soundNotes = {
 
 type Volume = number | ((frame: number) => number);
 
-const note = (id: string, c: Clock, file: string, trim: number, volume: Volume, loop: boolean) => {
+/** A run of a file's frames: where it starts in the file and how long it plays. */
+export type FrameSpan = { from: number; frames: number };
+
+/**
+ * The file's frame at the clock's `local` frame when it plays `spans` one after another (the raw
+ * recording with its cuts skipped), and which span that is. Past the last span: its last frame.
+ */
+function spanFrame(spans: readonly FrameSpan[], local: number): { at: number; i: number } {
+  let before = 0;
+  for (let i = 0; i < spans.length; i++) {
+    const g = spans[i] as FrameSpan;
+    if (local < before + g.frames) return { at: g.from + Math.max(0, local - before), i };
+    before += g.frames;
+  }
+  const last = spans.at(-1);
+  return { at: last ? last.from + last.frames - 1 : 0, i: Math.max(0, spans.length - 1) };
+}
+
+/** The file's frame an element shows now: through its `spans`, else the clock plus `trim`. */
+const fileFrame = (c: Clock, trim: number, spans: readonly FrameSpan[] | undefined) => {
+  const local = c.frame - c.start;
+  return spans ? spanFrame(spans, local) : { at: local + trim, i: 0 };
+};
+
+const note = (
+  el: string,
+  c: Clock,
+  file: string,
+  trimBefore: number,
+  volume: Volume,
+  loop: boolean,
+  spans?: readonly FrameSpan[],
+) => {
   if (c.mode !== "scan") return;
   const local = c.frame - c.start;
+  // one sound per span: each starts at its own place in the file
+  const src = fileFrame(c, trimBefore, spans);
+  const id = `${el}:${src.i}`;
+  const trim = src.at - local;
   let n = open.get(id);
   // a gap, or another file in the same place: a new sound
   if (!n || n.file !== file || c.frame > n.at + n.frames) {
@@ -153,36 +193,78 @@ const note = (id: string, c: Clock, file: string, trim: number, volume: Volume, 
 
 /** How far a playing element may run from the clock before it is moved, seconds. */
 const DRIFT_S = 0.12;
+/** `HTMLMediaElement.HAVE_FUTURE_DATA`: enough loaded to play on from here. */
+const CAN_PLAY = 3;
 
-/** Keep a media element on the clock (`play` mode): seek a still, let a playing one run. */
+/**
+ * Keep a media element on the clock (`play` mode): seek a still, let a playing one run. While it
+ * loads or seeks it tells the clock's owner (`Clock.wait`), so the clock stops and the element is
+ * never chased: a seek at each skipped cut costs one short stop, not a run of seeks.
+ */
 function useOnClock(
   ref: RefObject<HTMLMediaElement | null>,
+  c: Clock,
+  file: string,
   seconds: number,
-  playing: boolean,
   volume: number,
   loop: boolean,
+  /** The clock stops while this one loads or seeks (a video, the main sound; never an effect). */
+  holds: boolean,
 ): void {
+  const id = useId();
+  const now = useRef({ c, seconds });
+  now.current = { c, seconds };
+  /** Says whether the clock must stop for this element now. */
+  const check = useRef(() => {});
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     el.volume = Math.max(0, Math.min(1, volume));
     const length = Number.isFinite(el.duration) ? el.duration : 0;
     const at = loop && length > 0 ? seconds % length : seconds;
+    // a sound that has played out stays silent: `play()` on an ended element starts it again
+    if (!loop && length > 0 && at >= length) {
+      if (!el.paused) el.pause();
+      return;
+    }
     const off = Math.abs(el.currentTime - at);
-    if (playing) {
+    if (c.playing) {
       if (off > DRIFT_S) el.currentTime = at;
       if (el.paused) el.play().catch(() => undefined);
     } else {
       if (!el.paused) el.pause();
       if (off > 0.001) el.currentTime = at;
     }
+    // not every stall fires an event (a first play before the file has loaded)
+    check.current();
   });
-  useEffect(
-    () => () => {
-      ref.current?.pause();
-    },
-    [ref],
-  );
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    check.current = () => {
+      const { c: clock, seconds: at } = now.current;
+      const over = !loop && Number.isFinite(el.duration) && at >= el.duration - 0.05;
+      const dead = !!el.error || !el.currentSrc;
+      const loading = el.seeking || el.readyState < CAN_PLAY;
+      clock.wait?.(id, holds && clock.playing && !dead && !over && loading);
+    };
+    const heard = () => check.current();
+    const fail = () => {
+      check.current();
+      now.current.c.failed?.(file);
+    };
+    const events = ["waiting", "seeking", "seeked", "canplay", "playing", "loadeddata", "emptied"];
+    for (const e of events) el.addEventListener(e, heard);
+    el.addEventListener("error", fail);
+    check.current();
+    return () => {
+      for (const e of events) el.removeEventListener(e, heard);
+      el.removeEventListener("error", fail);
+      check.current = () => {};
+      now.current.c.wait?.(id, false);
+      el.pause();
+    };
+  }, [ref, id, file, loop, holds]);
 }
 
 export type VideoProps = {
@@ -190,6 +272,8 @@ export type VideoProps = {
   style?: CSSProperties;
   /** Frames skipped at the file's start. */
   trimBefore?: number;
+  /** The runs of the file it plays, one after another (the raw recording, cuts skipped). */
+  spans?: readonly FrameSpan[] | undefined;
   /** The file has an alpha channel (a matte). */
   transparent?: boolean;
   muted?: boolean;
@@ -202,9 +286,10 @@ const VideoFrame: FC<VideoProps & { c: Clock }> = ({
   src,
   style,
   trimBefore = 0,
+  spans,
   transparent,
 }) => {
-  const f = c.frame - c.start + trimBefore;
+  const f = fileFrame(c, trimBefore, spans).at;
   const q = `file=${encodeURIComponent(src)}&frame=${f}&fps=${c.config.fps}${transparent ? "&alpha=1" : ""}`;
   // biome-ignore lint/a11y/useAltText: a frame of a video file
   return <img src={`/frame?${q}`} style={style} />;
@@ -215,12 +300,14 @@ const VideoPlaying: FC<VideoProps & { c: Clock }> = ({
   src,
   style,
   trimBefore = 0,
+  spans,
   muted,
   volume = 1,
 }) => {
   const ref = useRef<HTMLVideoElement>(null);
-  const seconds = (c.frame - c.start + trimBefore) / c.config.fps;
-  useOnClock(ref, seconds, c.playing, volume, false);
+  // half a frame in: the picture is that frame's however the decoder rounds
+  const seconds = (fileFrame(c, trimBefore, spans).at + 0.5) / c.config.fps;
+  useOnClock(ref, c, src, seconds, volume, false, true);
   return (
     <video ref={ref} src={c.url(src)} muted={!!muted} playsInline preload="auto" style={style} />
   );
@@ -229,7 +316,7 @@ const VideoPlaying: FC<VideoProps & { c: Clock }> = ({
 export const Video: FC<VideoProps> = (p) => {
   const c = useClock();
   const id = useId();
-  if (!p.muted) note(id, c, p.src, p.trimBefore ?? 0, p.volume ?? 1, false);
+  if (!p.muted) note(id, c, p.src, p.trimBefore ?? 0, p.volume ?? 1, false, p.spans);
   if (c.mode === "scan") return null;
   return c.mode === "render" ? <VideoFrame {...p} c={c} /> : <VideoPlaying {...p} c={c} />;
 };
@@ -239,6 +326,8 @@ export type AudioProps = {
   /** A number, or a value per frame from the sound's start. */
   volume?: Volume;
   trimBefore?: number;
+  /** The runs of the file it plays, one after another (the raw recording, cuts skipped). */
+  spans?: readonly FrameSpan[] | undefined;
   loop?: boolean;
 };
 
@@ -247,12 +336,13 @@ const AudioPlaying: FC<AudioProps & { c: Clock }> = ({
   src,
   volume = 1,
   trimBefore = 0,
+  spans,
   loop = false,
 }) => {
   const ref = useRef<HTMLAudioElement>(null);
   const local = c.frame - c.start;
   const v = typeof volume === "number" ? volume : volume(local);
-  useOnClock(ref, (local + trimBefore) / c.config.fps, c.playing, v, loop);
+  useOnClock(ref, c, src, fileFrame(c, trimBefore, spans).at / c.config.fps, v, loop, !!spans);
   // biome-ignore lint/a11y/useMediaCaption: a sound effect or the bed
   return <audio ref={ref} src={c.url(src)} preload="auto" />;
 };
@@ -260,7 +350,7 @@ const AudioPlaying: FC<AudioProps & { c: Clock }> = ({
 export const Audio: FC<AudioProps> = (p) => {
   const c = useClock();
   const id = useId();
-  note(id, c, p.src, p.trimBefore ?? 0, p.volume ?? 1, p.loop ?? false);
+  note(id, c, p.src, p.trimBefore ?? 0, p.volume ?? 1, p.loop ?? false, p.spans);
   return c.mode === "play" ? <AudioPlaying {...p} c={c} /> : null;
 };
 
