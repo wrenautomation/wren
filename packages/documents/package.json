@@ -29,7 +29,7 @@
     "@wren/starling-sms": "workspace:*",
     "drizzle-orm": "0.45.2",
     "pdf-lib": "1.17.1",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "12.1.0",

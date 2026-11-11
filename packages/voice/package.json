@@ -27,9 +27,9 @@
     "@wren/llm": "workspace:*",
     "@wren/runtime": "workspace:*",
     "@wren/starling-sms": "workspace:*",
-    "@wrenautomation/models": "0.62.0",
+    "@wrenautomation/models": "0.68.9",
     "drizzle-orm": "0.45.2",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "12.1.0",

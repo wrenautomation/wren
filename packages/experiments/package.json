@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@wrenautomation/vireo": "0.17.0",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "typescript": "5.9.3",

@@ -30,7 +30,7 @@
     "@wren/starling-reddit": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
     "drizzle-orm": "0.45.2",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "typescript": "5.9.3",

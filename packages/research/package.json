@@ -37,16 +37,16 @@
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/runtime": "workspace:*",
-    "@wrenautomation/knowledge": "0.68.5",
-    "@wrenautomation/models": "0.62.0",
-    "@wrenautomation/read": "0.62.0",
+    "@wrenautomation/knowledge": "0.68.9",
+    "@wrenautomation/models": "0.68.9",
+    "@wrenautomation/read": "0.68.9",
     "csv-parse": "7.0.2",
     "drizzle-orm": "0.45.2",
     "libphonenumber-js": "1.13.14",
     "playwright": "1.63.0",
     "playwright-core": "1.63.0",
     "tldts": "7.4.16",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "12.1.0",

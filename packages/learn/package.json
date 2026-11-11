@@ -18,10 +18,10 @@
     "@wren/llm": "workspace:*",
     "@wren/research": "workspace:*",
     "@wren/runtime": "workspace:*",
-    "@wrenautomation/knowledge": "0.68.5",
-    "@wrenautomation/read": "0.62.0",
+    "@wrenautomation/knowledge": "0.68.9",
+    "@wrenautomation/read": "0.68.9",
     "drizzle-orm": "0.45.2",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "12.1.0",

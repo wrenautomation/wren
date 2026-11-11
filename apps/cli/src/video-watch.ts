@@ -27,7 +27,7 @@ import type { Command } from "commander";
 export function watchEyes(
   settings: Settings,
   rootDir: string,
-): Pick<WatchOptions, "eye" | "ear" | "ffmpeg"> {
+): Pick<WatchOptions, "ear" | "ffmpeg"> & { eye: Model } {
   loadLlmEnv(settings.llmEnvPath, rootDir);
   const keys = fleetKeys(process.env, "cohere");
   const ear = speechHere(keys);

@@ -34,8 +34,8 @@
     "@wren/db": "workspace:*",
     "@wren/research": "workspace:*",
     "@wren/video": "workspace:*",
-    "@wrenautomation/models": "0.62.0",
-    "@wrenautomation/read": "0.62.0",
+    "@wrenautomation/models": "0.68.9",
+    "@wrenautomation/read": "0.68.9",
     "diff": "8.0.4",
     "drizzle-orm": "0.45.2",
     "esbuild": "0.28.2",
@@ -44,7 +44,7 @@
     "puppeteer-core": "25.17.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@types/fontkit": "2.0.9",

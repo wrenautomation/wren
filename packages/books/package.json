@@ -24,10 +24,10 @@
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/runtime": "workspace:*",
-    "@wrenautomation/read": "0.62.0",
+    "@wrenautomation/read": "0.68.9",
     "drizzle-orm": "0.45.2",
     "plaid": "49.0.0",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "12.1.0",
