@@ -25,7 +25,7 @@ import { useZoomStage } from "../../zoom/stage.js";
 import { Bars } from "./bars.js";
 import { RunDock } from "./dock.js";
 import { type Box, layShelf, type Size, shelfOf } from "./lays.js";
-import { Badge, EvBar, Ico, type MarkProps, SourceMark, WebMark } from "./marks.js";
+import { Badge, EvBar, farOf, Ico, type MarkProps, SourceMark, WebMark } from "./marks.js";
 import {
   countOf,
   EV_ORDER,
@@ -66,6 +66,8 @@ const SIDEW = 252;
 const PW = 380;
 /** the sidebars' fold, kept across runs */
 const FOLD = "weaver-graph-fold";
+/** below this zoom the web reads from afar: one word per card */
+const FAR_K = 0.62;
 const reduced = () =>
   typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -178,6 +180,8 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     onZoom: (t) => {
       const w = worldRef.current;
       if (w) w.style.transform = `translate(${f1(t.x)}px,${f1(t.y)}px) scale(${t.k})`;
+      // from afar the cards trade their text for one word each, sized by yield
+      stageRef.current?.classList.toggle("far", t.k < FAR_K);
       setTip(null);
     },
   });
@@ -787,7 +791,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
           )}
           style={
             e.kind === "hub" && !e.dim
-              ? { strokeWidth: Math.min(5, 1.1 + 0.9 * (e.w - 1)) }
+              ? { strokeWidth: f1(1 + 6 * Math.sqrt(e.w / farOf(L).sMax)) }
               : undefined
           }
         />,

@@ -1418,6 +1418,67 @@
   border-radius: 50%;
   background: var(--k);
 }
+/* size by yield: a top-half search grows, one with no finding fades or goes dashed */
+.rg .hq.big {
+  width: 284px;
+}
+.rg .hq.quiet {
+  width: 200px;
+  opacity: 0.72;
+}
+.rg .hq.dead {
+  width: 200px;
+  background: transparent;
+  box-shadow: none;
+  border: 1.25px dashed var(--ink3);
+  opacity: 0.6;
+}
+.rg .cd.big {
+  width: 208px;
+}
+/* far: each card shows one word, sized by its share of the run's top count (a word map) */
+.rg .fw {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 12px;
+  text-align: center;
+  pointer-events: none;
+}
+.rg .fw b {
+  display: block;
+  font-size: var(--fs);
+  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  overflow-wrap: normal;
+}
+.rg .cd .fw b {
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--k) 70%, var(--ink));
+}
+.rg .fw em {
+  font-style: normal;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ink3);
+  white-space: nowrap;
+}
+.rg .rg-stage.far .nd:is(.hq, .cd) > :not(.fw, .xp) {
+  visibility: hidden;
+}
+.rg .rg-stage.far .nd:is(.hq, .cd) > .fw {
+  display: flex;
+}
+.rg .rg-stage.far .hq.dead .fw b,
+.rg .rg-stage.far .hq.quiet .fw b {
+  color: var(--ink3);
+}
 .rg .hq.open {
   box-shadow:
     0 0 0 1.5px var(--accent),
@@ -1984,6 +2045,18 @@
   }
   .rg .hq {
     width: 204px;
+  }
+  .rg .hq.big {
+    width: 236px;
+  }
+  .rg .hq:is(.quiet, .dead) {
+    width: 172px;
+  }
+  .rg .cd.big {
+    width: 176px;
+  }
+  .rg .fw b {
+    font-size: calc(var(--fs) * 0.82);
   }
   .rg .fdn {
     width: 196px;

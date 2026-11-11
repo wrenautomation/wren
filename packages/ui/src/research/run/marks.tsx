@@ -166,6 +166,72 @@ export const Kd = ({ k }: { k: Speaker }) => (
   </span>
 );
 
+/** From afar: each search's own words (words most searches share dropped), and the run's largest
+ * counts, so a far label sizes by its share (a word map). */
+export interface Far {
+  words: Map<number, string>;
+  qMax: number;
+  sMax: number;
+}
+const FAR_STOP = new Set(
+  "a an and are as at by do does for from how in is it of on or the to what which who why with vs".split(
+    " ",
+  ),
+);
+const farCache = new WeakMap<Indexed, Far>();
+export function farOf(L: Indexed): Far {
+  const had = farCache.get(L);
+  if (had) return had;
+  const qs = L.run.searches;
+  const toks = (t: string) =>
+    t
+      .toLowerCase()
+      .split(/[^\p{L}\p{N}'&+-]+/u)
+      .filter((w) => w && !FAR_STOP.has(w));
+  const df = new Map<string, number>();
+  for (const q of qs) for (const w of new Set(toks(q.t))) df.set(w, (df.get(w) ?? 0) + 1);
+  // in over a third of the searches: the run's topic, not this search's
+  const common = (w: string) => qs.length > 2 && (df.get(w) ?? 0) > qs.length / 3;
+  const words = new Map<number, string>();
+  for (const q of qs) {
+    const all = toks(q.t);
+    const own = all.filter((w) => !common(w));
+    words.set(q.i, (own.length ? own : all).slice(0, 2).join(" ") || q.t);
+  }
+  const far = {
+    words,
+    qMax: Math.max(1, ...qs.map((q) => q.fnd)),
+    sMax: Math.max(1, ...L.nodes.map((n) => n.s.kept)),
+  };
+  farCache.set(L, far);
+  return far;
+}
+
+/** A far label: size by share of the max (sqrt, so area reads as count), cut so its longest word
+ * fits the card. */
+function FarWord(p: {
+  t: string;
+  n: string;
+  of: number;
+  w: number;
+  lo: number;
+  hi: number;
+  /** a short card: the whole label on one line */
+  one?: boolean;
+}) {
+  const len = p.one ? p.t.length : Math.max(...p.t.split(" ").map((x) => x.length));
+  const fs = Math.min(
+    p.lo + (p.hi - p.lo) * Math.sqrt(Math.max(0, p.of)),
+    (p.w - 24) / (Math.max(4, len) * 0.6),
+  );
+  return (
+    <span className="fw" aria-hidden="true" style={vars({ "--fs": `${fs.toFixed(1)}px` })}>
+      <b>{p.t}</b>
+      <em>{p.n}</em>
+    </span>
+  );
+}
+
 export type Tier = "card" | "chip" | "dot";
 /** The top sources with findings by rank get a card, the rest a chip, gray while it has none. */
 export const tierOf = (n: GNode, wide: boolean): Tier =>
@@ -219,13 +285,25 @@ function Mark({
   );
 }
 
-export function SourceMark({ n, tier, m }: { n: GNode; tier: Tier; m: MarkProps }) {
+export function SourceMark({
+  n,
+  tier,
+  m,
+  sMax = 1,
+}: {
+  n: GNode;
+  tier: Tier;
+  m: MarkProps;
+  /** the run's most findings from one source */
+  sMax?: number;
+}) {
   const s = n.s;
   const label = `${s.name}: ${countOf(n)}`;
   if (tier === "card") {
     const p = pic(s);
+    const big = s.kept > 1 && s.kept >= sMax * 0.5;
     return (
-      <Mark className={`nd cd k-${n.k}`} label={label} m={m}>
+      <Mark className={cls(`nd cd k-${n.k}`, big && "big")} label={label} m={m}>
         {p ? (
           <span className={cls("mi", s.site === "youtube" && "v")}>
             <Img src={p} />
@@ -237,6 +315,15 @@ export function SourceMark({ n, tier, m }: { n: GNode; tier: Tier; m: MarkProps 
         </span>
         <small>{countOf(n)}</small>
         <EvBar c={evCounts(s.fs)} />
+        <FarWord
+          one
+          t={s.name}
+          n={pl(s.kept, "finding")}
+          of={s.kept / sMax}
+          w={big ? 236 : 196}
+          lo={20}
+          hi={44}
+        />
       </Mark>
     );
   }
@@ -262,9 +349,13 @@ function HubMark({ L, i, m }: { L: Indexed; i: number; m: MarkProps }) {
   const ans = answerOf(L, i);
   const sp = spokesOf(L, i).sort((a, b) => SPEAKER_ORDER.indexOf(a.k) - SPEAKER_ORDER.indexOf(b.k));
   const sub = `${q.hits} hits · ${q.kept} kept · ${q.fnd ? pl(q.fnd, "finding") : "no finding"}`;
+  const far = farOf(L);
+  // size by yield: the top half grows; no finding shrinks to a pill
+  const big = q.fnd > 1 && q.fnd >= far.qMax * 0.5;
+  const dead = !q.fnd;
   return (
     <Mark
-      className={cls("nd hq", !ans && "na")}
+      className={cls("nd hq", !ans && "na", big && "big", dead && (q.kept ? "quiet" : "dead"))}
       label={`Search ${q.i + 1}: ${q.t}. ${ans ? `Answer: ${ans.f.t}` : "No answer"}. ${sub}`}
       m={m}
     >
@@ -288,6 +379,14 @@ function HubMark({ L, i, m }: { L: Indexed; i: number; m: MarkProps }) {
           ))}
         </span>
       ) : null}
+      <FarWord
+        t={far.words.get(q.i) ?? q.t}
+        n={`${q.fnd ? pl(q.fnd, "finding") : q.kept ? "no finding" : "nothing kept"} · ${stepAt(L.run, q.r)}`}
+        of={q.fnd / far.qMax}
+        w={big ? 284 : dead ? 200 : 244}
+        lo={dead ? 18 : 24}
+        hi={60}
+      />
     </Mark>
   );
 }
@@ -356,7 +455,7 @@ export function WebMark({
         {left} more
       </Mark>
     );
-  if (t === "s" && g) return <SourceMark n={g} tier={tierOf(g, wide)} m={m} />;
+  if (t === "s" && g) return <SourceMark n={g} tier={tierOf(g, wide)} m={m} sMax={farOf(L).sMax} />;
   if ((t === "p" || t === "v") && g) {
     const s = g.s;
     const pg = t === "p" ? s.pages[b] : s.unread[b];
