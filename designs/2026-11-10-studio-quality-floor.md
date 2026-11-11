@@ -1,106 +1,121 @@
 # Studio quality floor (WA-1267)
 
-Status: design, 11-10. Source: `tasks/docs/11-09/sources/raea/audit.md` (Raea's `check`, `judge`, `floor.md`, `rubric.md`). Raea is FSL: we write our own code from its rules and copy none of its source.
+Status: design, 11-10, goldfish reviewed. Source: `tasks/docs/11-09/sources/raea/audit.md` (Raea's `check`, `judge`, `floor.md`, `rubric.md`). Raea is FSL: we write our own code from its rules and copy none of its source.
+
+Terms: **floor** = faults code can stop or measure, ranked P0–P3 (below). **Bar** = `BAR` in `studio/src/bar.ts`, the rules the model reads. **Output** = one rendered file of an edit (long, short-N, vertical, square, portrait); each has its own render hash, `<output>.hash` in `files` (`render-hash.ts`).
 
 ## Goal
 
-A render cannot reach Approve with a fault a machine can measure. Today `wren video check` (`studio/src/video-check.ts`) is one Gemini look at a contact sheet against `bar.ts`. It guesses at faults that we can count: a caption on screen for 0.2 s, a word under the like button, five flashes in a second. A guess misses some and invents others, and nothing stops Approve when it fails (`approveVideo` in `inbound/src/video.ts` reads no check).
+No output reaches a platform with a fault that code can stop or measure. Today:
+
+- `wren video check` (`studio/src/video-check.ts`) is one Gemini look at a contact sheet against `BAR`. It guesses at faults we can count: an overlay half off frame, a word under the like button, five flashes in a second.
+- `wren video render --no-check` skips it, and a check error never fails a render.
+- `approveVideo` and `swapShortMedia` (`inbound/src/video.ts`) read no check. `selfChecks` (`inbound/src/video-edit.ts:447`) only colors the Finish view.
+- An approve also makes Facebook, LinkedIn and X drafts from the square or portrait output (`alsoDrafts`, `video.ts:483`). Those files are checked as `longProps` or not at all.
+- The compositions name "General Sans" (`finish-look.ts:134`), but no font file loads. Each machine draws its own fallback, so the Mac and Lambda renders differ and no code can know a text's width.
 
 Target:
 
-1. Measured checks run with no model, from the render's own data, and rank each fault P0–P3.
-2. Approve refuses an output while a P0 or P1 stands on its current render.
-3. The model judges only what we cannot measure, by a fixed rubric, and only advises until its calls agree with William's.
-4. The floor rules live in Canon, where every content skill reads them.
+1. Layout code refuses a fault before it is saved, where it can.
+2. What layout cannot stop is measured at render end, ranked, and stored on the output's hash.
+3. Approve and swap refuse any output they post while it has no current result or has a P0 or P1.
+4. The model judges only taste, per bar line, and advises until its calls agree with William's.
 
 ## Non-goals
 
-- Swapping Remotion for Raea or our own engine (WA-1268 measures that). The checks must survive such a swap, so they read an engine-neutral manifest, never Remotion internals.
-- 3D, games, sound models.
-- Checks on a non-video sample (text, image). The rank and gate shapes are general; only video uses them now.
+- Swapping Remotion for Raea or our own engine (WA-1268). Prevention lives in our layout code and the checks read props and files, so both survive a swap.
+- The sound cue map (VE-10 to VE-14 in Canon `video-editing`). It conflicts with `SOUND_RULES` (`sounds.ts:125`: click = a mouse click, `pop` = an overlay in) and is not a floor item. Own task: WA-1291.
+- Loudness: `loudness.ts` already corrects every render to `LOUDNESS` (-14 LUFS, -1.5 dBTP, within 0.5) and throws on a miss.
+- Cue on its word, and names spelled as the brief: no data feeds them (`Sound` has no anchor, a `VideoEdit` has no brief or names). Their Canon lines stay; the checks wait for the data.
+- Checks on text or image samples.
 
-## The key choice: where the measured checks read the frame from
+## The key choice: stop a fault, or find it
 
-Most checks need to know where text sits and when. Three ways to know it:
+| | A. Find: manifest from props | B. Find: measure in Chrome | C. Find: pixels only | D. Stop: constrain the layout code |
+|---|---|---|---|---|
+| How | A pure function turns props into text boxes per time span; checks read it. | A measure mode writes each element's `getBoundingClientRect` per sampled frame. | OCR on sampled frames. | `overlaySchema` (`finish.ts:65`) and `placeWord` (`safe-zones.ts:160`) refuse a box off frame or under a platform's buttons, with widths from the font file; `reelLines` (`captions.ts`) holds a line long enough. A bad edit is never saved. |
+| Truth | An estimate: the composition does not call our layout math; it draws in CSS (`index.tsx:240-297`). | Exact. | Misses styled text. | Exact once the font is bundled and measured (fontkit, MIT). |
+| When | Before or after a render. | During a render only. | After a render. | At save, in the edit pass and in `wren video set`. |
+| Survives a new engine | Yes. | No. | Yes. | Yes. |
+| Gate needed | Yes. | Yes. | Yes. | No: the fault cannot exist. |
 
-| | A. Manifest from props | B. Measure in Chrome | C. Pixels only |
+Priorities, in order: the result must be true; it must survive a new renderer (WA-1268); a fault is cheaper to stop than to find, rank and override.
+
+**Recommend D** for every fault our layout makes (text off frame, under buttons, caption hold), plus measured file checks for what layout cannot see (flash, contrast, Short pace). A, B and C all find a fault after the edit made it, and A rests on a box estimate the browser does not share.
+
+D needs one change first: bundle General Sans (Indian Type Foundry, free for commercial use) in the studio package, load it in the compositions, and measure with fontkit from the same file. Every render's text then looks the same on the Mac and on Lambda. That is a visible change: today's Mac renders draw San Francisco.
+
+## Faults and where each stops
+
+Rank: **P0** a platform rule, a law or health; never ships, no override. **P1** a viewer sees it; blocks, overridable with a reason. **P2** below our bar; shows beside Approve. **P3** a note.
+
+| Fault | Where | Rule | Rank |
 |---|---|---|---|
-| How | The props the composition gets (`longProps`, `shortProps`) already hold every word's time, the caption style, each overlay's box, the big word's box (`placeWord`), each sound's time. A pure function turns them into a `RenderManifest`: text boxes per time span, picture changes, cues. Flash, contrast and loudness read the file with ffmpeg. | A measure mode in the composition writes each text element's `getBoundingClientRect` per sampled frame during a render. | OCR on sampled frames finds the text boxes; ffmpeg finds cuts, flashes and loudness. |
-| Truth of boxes | Our layout math, the same functions the composition calls. Wrong only where CSS wraps differently from our estimate. | Exact. | What OCR reads; it misses styled or moving text. |
-| Cost per check | Milliseconds, before or after a render. | One more Chrome pass; this Mac renders one thing at a time. | Seconds per frame, a model or tesseract. |
-| Survives a new engine | Yes: any engine takes the same props. | No: tied to the DOM. | Yes. |
-| Runs before a render | Yes: a fault shows in the edit, before the render spends minutes. | No. | No. |
+| Text off frame | D: `overlaySchema`, `placeWord` | glyph box (font metrics, `textWrap: balance` lines) inside the frame margin | refused at save |
+| Text under platform buttons | D: `overlaySchema`, `placeWord`; zones in a new `platform-zones.ts` | box overlaps an output's button zone by more than 10%. A vertical posts to YouTube, Instagram and TikTok: the union of their zones. Numbers come from each platform's published safe-zone guide, cited in the file. | refused at save |
+| Caption hold | D: `reelLines` | a line holds at least `max(1 s, 0.3 s × words)`, extended into the gap after it or merged with the next line | never made |
+| Flash | file, at render end | WCAG 2.3.1 general flash: a pair of opposite changes in relative luminance of 10% or more, the darker state under 0.80. Measured per tile on a 4×4 grid (each tile under WCAG's 25% area), so a flash in a corner counts. More than 3 in any 1 s. | P0 |
+| Contrast | file, at render end | overlays and the big word only (captions carry their own stroke or pill, `finish-look.ts:256`). Text fill against the pixels in a ring around the glyph box, worst of 3 frames (start, middle, end), below 3:1 | P1 |
+| Short pace | props, at render end | no picture change for more than 10 s: a kept-span cut, a layout mark or an overlay in or out. A Short's crop is one fixed point, so it does not count. Long videos have no pace rule, as in `BAR`. | P1 |
+| | | more than 3 s | P2 |
+| Private data on screen | model (bar `private`) | keys, tokens, emails, customer data in any frame | P1 from day one |
 
-Priorities, in order: the check must be true; it must survive a new renderer (William wants our own base, WA-1268); it must be cheap enough to run on every render and every Vireo variant; it should run before a render.
+Every result carries `{rank, rule, at, says, box?}`. `rule` keeps its name: `selfChecks` reads it (`video-edit.ts:334`).
 
-**Recommend A**, with one guard: the composition and the manifest call the same layout functions (`placeWord`, `wordBox`, the caption box), so there is one estimate, not two. Where the composition lays text out in CSS with no matching function today, phase 1 moves that math into a shared function first. B stays the fallback for one check if A's boxes prove wrong in practice. C is rejected: slow, and OCR misses exactly the styled captions we use most.
+## Results and the gate
 
-## Checks and ranks
+- **Where results live.** The render writes one `video check` run per output at its end, `{output, hash, results}`, beside the loudness pass. The props-only pace check runs there too. The run's `hash` is the output's render hash. No run, or a null hash, counts as unchecked.
+- **The gate.** `approveVideo` and `swapShortMedia` refuse when any output they post (the YouTube file and every `alsoDrafts` file) is unchecked on its current hash ("check it first: `wren video check <id>`") or has a P0 or P1. A P1 passes with `--override "<reason>"`; the reason is stored on the approve's run. P2 shows beside Approve. The match reuses `selfChecks`' logic; the gate reads the newest check run per output by query, not from the capped step list (`STEP_MAX`).
+- **The model.** `wren video check` runs after the file checks. A model failure no longer fails the run: only `private` gates, and only when the model answers.
+- **Before a render.** The edit pass and `wren video set` run D's rules and the pace check as warnings. The big word's place needs the matte made at render, so it is decided there.
+- **Old outputs.** Approvals before phase 3 stand. An old output needs one `wren video check` before its next approve.
 
-Rank meaning: **P0** breaks a platform rule, a law or health (never ships). **P1** a viewer sees the fault (blocks Approve). **P2** below our bar, a person decides. **P3** a note.
+## Model judge
 
-| Check | Reads | Rule | Rank |
-|---|---|---|---|
-| Text off frame | manifest boxes | any part of a text box outside the frame | P0 |
-| Text under platform buttons | manifest boxes, per-platform zones | a caption or overlay box overlaps the zone of the output's platform (Shorts, Reels, TikTok: right rail and bottom bar, numbers in `platform-zones.ts`) by more than 10% | P1 |
-| Caption hold | manifest caption spans | a line is on screen less than 0.3 s per word | P1 |
-| | | less than 1 s (a fast speech run can force it) | P2 |
-| Still too long | manifest picture changes (cut, layout, crop move, overlay in or out; captions do not count) | Short: no change for more than 10 s | P1 |
-| | | Short: more than 3 s | P2 |
-| Flashes | file: per-frame luma (ffmpeg `signalstats`) | more than 3 flashes in any 1 s (WCAG 2.3.1: a swing of 10% of full luma and back) | P0 |
-| Contrast | file: frames at the middle of each text span, cropped to its box | text color against the box's background pixels below 3:1 | P1 |
-| Cue off its word | manifest cues and words | a cue anchored to a word or a cut lands more than 2 frames from it | P1 |
-| Loudness | file (`loudness.ts` measures) | integrated outside -14 ±1 LUFS, or true peak above -1 dBTP | P0 |
-| Name spelled as the brief | manifest caption words, the brief's names | a word within edit distance 2 of a brief name but not equal | P1 |
-| Name said but not shown | words, captions, overlays | a brief name is said and no caption or overlay shows it within 2 s | P2 |
+Each bar line goes to the floor or stays with the model:
 
-Every issue carries `{rank, check, at, says, box?}`. The existing model issues keep their shape and get a rank from the rubric (below).
+| Bar id | Goes to |
+|---|---|
+| `text` | floor: off frame and under buttons (D), contrast (file). The "reads at phone size" half stays with the model. |
+| `pace` | floor: Short pace |
+| `captions` | font: fixed in code. 2–3 words at a time and no over-animation: model |
+| `private` | model, P1 |
+| `cuts`, `open`, `face`, `plain`, `hook`, `best` | model |
 
-## Approve gate
-
-`approveVideo` reads the newest `video check` run for the output it approves. It refuses when that run's hash differs from the output's current render hash ("check it again: the render changed") or when a P0 or P1 stands. A P2 shows in the Videos page beside Approve; it does not block. `wren video check` runs the measured checks first, then the model; a model failure no longer fails the run, because the gate does not need the model.
-
-Phase 1 also runs the manifest checks inside `wren video set` and the edit pass, before any render, so the edit agent fixes a short hold or a buried word while the edit is cheap.
-
-## Rubric judge
-
-`bar.ts` becomes the rubric: per mode (open, point, shown, pace, read, sound, world, own), one or two fixed questions, each answered on five levels (poor, weak, fair, good, great) with one line of why. The prompt is frozen per version; a change is a new version id on each answer, so old calls stay comparable. The pass rule lives in code: any "poor" is P1, any "weak" is P2.
-
-Measured checks drop the bar lines they now cover (`text`, `pace`, the hold half of `captions`). The model keeps taste: `open`, `hook`, `face`, `private`, `plain`, `best`.
+The model answers each line on five levels (poor, weak, fair, good, great) with one line of why, under a frozen prompt version stored on each answer. Code ranks the answer: poor = P1, weak = P2. The edit pass still reads all of `BAR` plus the floor rules (`editPrompt`), so the edit agent knows them.
 
 ## Calibration
 
-The judge advises (its P1 shows as P2) until it agrees with William. His calls already exist: his Vireo verdicts on video samples (zones Bad, Okay, Good, Amazing) and his Approve or Reject on Videos. Each judged render records the judge's levels beside his call when he makes one. Agreement = his Bad matches a judge "poor" or "weak", and his Good or Amazing matches no "poor". `wren video judge stats` shows the agreement per mode. A mode's judge gates once it agrees on enough calls (his number; see Open).
+The model judge calls Vireo video samples as a second judge, `by: judge:<version>`, beside William's calls (one call per judge per sample, already in Vireo). Map: his Bad (score 1–3) = "poor" or "weak"; Okay (4–6) = "fair"; Good (7–8) and Amazing (9–10) = "good" or "great". Per bar line, measure the precision and recall of the judge's "poor" against his Bad. A line's judge leaves advisory once it clears his threshold (see Open). Approve and Reject are not used: Reject covers a whole edit, and Approve is not a score.
 
 ## Floor rules into Canon
 
-New lines in `sop-content-principles` (a rule set, fixed line ids, through `knowledge`): every name said is on screen; no camera move eases to a dead stop; cut to the song's map (its sections and hits), not a fixed tempo; a new version sits beside the old, never over it; names are spelled as the brief. Each cites Raea's floor guide as its source. The measured checks cite the line ids they enforce.
-
-## Sound cue map (William, 11-10, walk 7.3)
-
-From the reel he sent: click = a thing pops up on screen; flash = a quick cut; whoosh = a scene change; glitch = text pops up; riser = builds tension. The kit (earshot `launch`, `sfx/fx/`) has `click`, `whoosh.short`, `whoosh.long`, `riser`, and `snap` (a camera shutter for a whip cut), which serves as flash. It has no glitch. Earshot's `forge` makes one in code (recipe `glitch`, MIT, no sample), so `make.mjs` adds a `glitch` role beside the `launch` kit. `ROLE_SAYS` gets the map's meaning per role, so the edit pass places them by it.
+Add the lines not there yet. `video-editing`: no camera move eases to a dead stop; cut to the song's map, not a fixed tempo; a new version sits beside the old. `content-principles`: every name said is on screen; names are spelled as the brief. Each cites Raea's floor guide. The checks and schema refusals cite the line ids they enforce.
 
 ## Phases
 
-1. **Manifest and measured checks.** `RenderManifest` from props; the shared layout functions; `platform-zones.ts`; the file checks (flash, contrast, loudness); ranks; `wren video check` runs them and stores ranked issues. Done when each check has a unit test on a synthetic edit that fails it, and a real edit's check runs in under 5 s.
-2. **Approve gate.** Done when `approveVideo` refuses a P0 or P1 and a stale check, with a test for each, and the Videos page shows ranks.
-3. **Rubric judge.** Done when `bar.ts` is the rubric, the model answers levels per mode, and the pass rule is in code.
-4. **Floor rules.** Done when the five lines are in Canon and `knowledge render` shows them.
-5. **Calibration.** Done when his calls record beside the judge's and `judge stats` shows agreement per mode.
-6. **Sound cues.** Done when the kit has `glitch` and `ROLE_SAYS` carries the cue map.
+1. **Stop at the source.** Bundle and load General Sans; fontkit text widths; `platform-zones.ts`; `overlaySchema` and `placeWord` refuse off-frame and under-button boxes; `reelLines` hold. Done when each rule has a unit test with a synthetic edit it refuses, and a story shows a Reels frame with its button zones drawn over it.
+2. **File checks.** Flash, contrast and Short pace at render end, stored per output on its hash. Done when each has a test on a synthetic clip that fails it. Budget: under 1 s for props checks; file checks measured per minute of video on this Mac and noted here.
+3. **Gate.** `approveVideo` and `swapShortMedia` refuse as above, with a test for unchecked, stale, P0, P1 and P1 with override. The Videos page shows ranks.
+4. **Model judge.** Bar lines mapped as above, levels per line, ranks in code.
+5. **Floor rules.** The five lines in Canon; `knowledge render video-editing` shows them.
+6. **Calibration.** Judge calls on Vireo video samples; `wren variants live`-style stats per bar line.
 
 ## Risks
 
-- Box math drifts from CSS. Guard: the shared functions, plus a story that draws each manifest box over a rendered still, so a drift is visible.
-- Contrast on video behind captions changes every frame; one frame per span can miss a bright flash behind the text. Three frames per span (start, middle, end) take the worst.
-- Too many P1 on old edits blocks work. The gate applies to renders checked after phase 2 ships; old approvals stand.
+- The bundled font changes how every render looks. A batch of before and after stills goes to William before phase 1 ships.
+- Platform button zones change with app updates. `platform-zones.ts` dates each source; a stale date (over 6 months) is a P3 note.
+- A 4×4 tile grid finds a flash smaller than WCAG's area rule and so flags a little more than WCAG. That errs toward health.
+- Old edits with saved overlays that now fail D: `wren video set` refuses only a changed overlay, and the render warns on an old one.
 
 ## Open (William)
 
-- The calibration trigger: how many of his calls, at what agreement, before a mode's judge gates. Recommend 30 calls at 80%.
-- An override on a P1 (Approve anyway, with a reason on the record), or none. Recommend none for P0, an override with reason for P1.
+- Calibration threshold per bar line. Recommend: 30 of his calls on that line, precision of "poor" at 0.8 or more.
+- P1 override with a reason: recommend yes (P0 none).
+- Bundling General Sans changes the look of all renders: recommend yes, after he sees the stills.
 
 ## Decision log
 
-- 2026-11-10: Manifest from props (A) over Chrome measure (B) and pixels (C): true enough with shared layout functions, engine-neutral, runs before a render.
-- 2026-11-10: flash = the kit's `snap`; `glitch` made with earshot forge, not bought.
+- 2026-11-10: Stop faults in layout code (D) for text and captions; measure only flash, contrast and Short pace. Over a props manifest (A), Chrome measure (B) and OCR (C): a fault that cannot be saved needs no rank or override, and A's boxes are an estimate the browser does not share.
+- 2026-11-10: Calibrate on Vireo calls with the judge as a second caller; no new store.
+- 2026-11-10: goldfish review: 37 findings (critic 15, reader 15, zoom-out 7), 31 applied, 6 rejected or shrunk (glossary cut to three terms; no `names` field or cue anchor added; loudness check dropped as already enforced). Open: calibration threshold, P1 override, bundled font.
