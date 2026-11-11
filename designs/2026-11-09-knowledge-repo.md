@@ -251,3 +251,21 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
   one bird brand for engine and repo (Rookery: fits the product family, tells a new reader nothing, and
   costs an npm rename), Playbook (plainest, but clashes with the content playbook). `knowledge` stays as
   a symlink to `canon/` for sessions that started before the move.
+- 2026-11-11: who provided a record, and its edits (WA-1314, engine 0.69.0). William: `by` was overwritten
+  by the last editor, so nothing said who provided a source.
+  - `provider` {kind: human, agent or weaver; who} is set on add and never changes. An edit may fill it
+    once, only on a record made before it. The name `origin` was taken: Learn uses it for the import
+    channel (`origin: learn`).
+  - Edit history is read from git (`knowledge history <id>`): every store commit already holds
+    `Knowledge-By` and the why. Options weighed: an `edits:` list in the frontmatter (it copies git,
+    grows each file and conflicts on parallel edits), or a history jsonl per repo (copies git). Git was
+    picked; a hand commit shows as op `hand` with its author.
+  - Human sources outrank agent ones. A rule line's `[n]` refs walk down to sources, and `[notes]` counts
+    as human. Render ends a line that rests only on agent sources with "(agent sources only)".
+    `knowledge audit` lists every live line with no human source. On 11-11, 642 of the live lines had
+    none: 510 agent only, 132 with no ref.
+  - A disagreement is a `conflict` record (`conflicts/`: topic, state open, deferred or resolved;
+    lines; it cites both sides). Its topic's render ends with the open ones, so the agent raises them
+    with William. Finding a conflict is the agent's call; code only carries the record.
+  - Learn: `wren learn add --from william` marks a link he gave as human. Nothing else in Learn tells his
+    saves from feed imports (`saved_via` never held portal or shortcut).
