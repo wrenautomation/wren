@@ -3,8 +3,8 @@ type: object
 cluster: learn
 universe: live
 status: verified
-verified: 2026-10-25
-entity: packages/learn/src/schema.ts:313
+verified: 2026-11-11
+entity: packages/learn/src/schema.ts:394
 ---
 
 # breakdown (Learn)
@@ -19,6 +19,7 @@ A closed style set so reels group and rank; free tags would never count. Written
 
 - `item_id` (pk, FK items, cascade), `hook_style`, `hook`, `hook_why`, `topic`, `kind`, `facts` jsonb (the kind's rubric, checked by `FACTS[kind]`), `by` (`model`: code counted and the model labelled; `hand`: the seed study's facts, `learn import-films`), `beats` jsonb `[{t, beat}]` (`t` null when unplaced), `cta_kind` (`CTA_KINDS`), `cta` (null with `none`), `created_at`
 - `facts` by kind: reel and video `{format}` (`POST_FORMATS`); post `{format, chars, lines, first_line_chars, link, hashtags, shape}` (`postCounts` + the model's `shape`); film `filmFactsSchema` (`film.ts`): `cuts`, `cuts_by_signal`, `cuts_trust`, `shot_median_s`, `shot_p90_s`, `cuts_per_10s`, `first_product_s`, `logo_s`, `cta_s`, `music`, `vo`, `shots[]` (`type`, `move`, `in` null until vision proves itself)
+- ad `adFactsSchema`: `format` (`AD_FORMATS`), `days_running`, `versions`, `platforms`, `active`, `speech`, `cuts` from the page's `## Ad` fence (`adFactsOf`, `ads.ts`), plus the model's `offer` and `offer_kind`
 - A film's facts come off its read page: `renderWatched` (`@wrenautomation/read/video`) writes a `## Facts` JSON fence (duration, audio, each detector's cuts) when the Mac reader ran the scene detectors (`WREN_SCENEDETECT`, default `uvx scenedetect`); `filmFactsOf` reads it at breakdown time, so an old page re-breaks down offline. Trust: hash within 20% of a hand count, else hash and adaptive within 2x (`cutsTrust`); ffmpeg's `scene` is evidence only
 - `items.stats` jsonb `{likes, comments, views}` and `items.stats_at`: set by each creator pass (`pullCreators`, `creators.ts`), refreshed on posts seen before; the back catalog sets them on insert
 - His calls (`calls.ts`): keep, tune or drop with his words, on the item's document (`doc:<id>`, Decide kind `document`) or one fact (its finding's key `doc:<id>/beats/2`, `/facts/shots/5`, kind `finding`) in `decision_calls` (`comment` column); `factRows` lists the callable paths off the row, a path outside them is refused; `factCalls` is the newest per path. Wren's workspace only
