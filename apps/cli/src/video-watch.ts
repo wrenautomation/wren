@@ -21,7 +21,7 @@ import {
 import type { Command } from "commander";
 
 /** The model that reads frames: weaver's (engine-cli SEE_MODEL), so a video reads the same anywhere. */
-export const SEE_MODEL = "sonnet";
+const SEE_MODEL = "sonnet";
 
 /**
  * The eye: Claude, then Cohere past a busy or failed call (Cohere refuses frames that show a

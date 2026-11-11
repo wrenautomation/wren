@@ -179,8 +179,8 @@ and `in <group> <id|email>` (exits 1 when not). A rule can be inline, `@file` or
 `wren sop add <name> <youtube url | drive:<folderId> --account <addr> | file> [--priority n] [--no-screen]`
 ingests a source into Canon (`../canon`, private, `@wrenautomation/knowledge`): a source
 record tagged with the SOP's name, one commit with a by and a why. A video is
-its captions plus an `## On screen` section: Gemini (llm.env keys) reads the URL in clips and
-transcribes the documents and slides shown; `--no-screen` skips that.
+its captions plus an `## On screen` section: frames picked where the picture changes, read by
+Claude (Cohere past a failure), with the documents and slides shown; `--no-screen` skips that.
 `wren sop sync <name>` writes `standard.md` (the numbers off `learn.standards` for the pieces the
 front matter of `notes.md` names: `kinds`, `platforms`, `topic`, `set`) and `calls.md` (your keep /
 tune / drop calls on those pieces, rolled up and cited `[learn:<id>]`).
