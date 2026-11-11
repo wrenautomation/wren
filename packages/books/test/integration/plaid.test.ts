@@ -79,14 +79,12 @@ function scripted(script: Page[], calls: string[] = []) {
 }
 
 const addFeed = () =>
-  pg.db
-    .insert(cardFeeds)
-    .values({
-      card: "1234",
-      itemId: "item-1",
-      accountId: "acc-1",
-      keyLabel: "PLAID_ACCESS_TOKEN_1234",
-    });
+  pg.db.insert(cardFeeds).values({
+    card: "1234",
+    itemId: "item-1",
+    accountId: "acc-1",
+    keyLabel: "PLAID_ACCESS_TOKEN_1234",
+  });
 
 describe("Plaid card feed", () => {
   it("links: seals the token and adds the feed by the card's last four", async () => {
