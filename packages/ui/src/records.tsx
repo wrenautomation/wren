@@ -7,6 +7,7 @@
 export type { Load } from "./data/query.js";
 export { useLoad } from "./data/query.js";
 export { SearchBox, ViewTabs } from "./list-bar.js";
+export { askOf, facetsOf, pageAskOf, prefetchList } from "./records-ask.js";
 export {
   columnsOf,
   dockedOf,
@@ -18,16 +19,7 @@ export {
   titleLeast,
   widthsOf,
 } from "./records-columns.js";
-export {
-  askOf,
-  Bulk,
-  facetsOf,
-  NotHere,
-  pageAskOf,
-  prefetchList,
-  RecordList,
-  TierLabel,
-} from "./records-list.js";
+export { Bulk, NotHere, RecordList, TierLabel } from "./records-list.js";
 export { RecordBody, RecordPage } from "./records-page.js";
 export type { PeekWire } from "./records-panel.js";
 export { Kbd, Panel } from "./records-panel.js";
