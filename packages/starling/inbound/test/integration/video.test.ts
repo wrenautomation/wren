@@ -10,7 +10,7 @@ import { clearTemplate, saveLive } from "@wren/core/templates";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { setWords } from "@wren/starling-studio/edit";
 import { videoEdits } from "@wren/starling-studio/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { contentKinds } from "../../src/draft-items.js";
 import { contentDrafts } from "../../src/schema.js";
@@ -22,11 +22,13 @@ const approvalRecord = approvalRecordOf({ reach: bareReach, kinds: contentKinds 
 import {
   approveVideo,
   pickThumbnail,
+  swapShortMedia,
   VIDEO_FOOTERS,
   videoRecord,
   withFooter,
 } from "../../src/video.js";
 import { undoVideo, videoTurns } from "../../src/video-ask.js";
+import { approveChecked, checkRun } from "./checked.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -91,8 +93,8 @@ describe("marketing.video", () => {
     );
 
     await pickThumbnail(pg.db, id, 2);
-    const first = await approveVideo(pg.db, id, { source: "cli" });
-    const again = await approveVideo(pg.db, id, { source: "api" });
+    const first = await approveChecked(pg.db, id, { source: "cli" });
+    const again = await approveChecked(pg.db, id, { source: "api" });
     expect(again).toEqual({ id: first.id, again: true });
     const [d] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, first.id));
     expect(d).toMatchObject({
@@ -115,7 +117,7 @@ describe("marketing.video", () => {
         captionsLanguage: "en",
       },
     });
-    const short = await approveVideo(pg.db, id, { source: "cli", short: 1, privacy: "public" });
+    const short = await approveChecked(pg.db, id, { source: "cli", short: 1, privacy: "public" });
     const [s] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, short.id));
     expect(s).toMatchObject({
       title: "The one trick",
@@ -140,7 +142,7 @@ describe("marketing.video", () => {
     });
     // Its TikTok, X, Facebook and LinkedIn drafts came with it; approving again adds none.
     expect(short.also?.map((x) => x.platform)).toEqual(["tiktok", "x", "facebook", "linkedin"]);
-    expect(await approveVideo(pg.db, id, { source: "api", short: 1 })).toEqual({
+    expect(await approveChecked(pg.db, id, { source: "api", short: 1 })).toEqual({
       id: short.id,
       again: true,
       reel: { id: reelId, again: true },
@@ -152,7 +154,7 @@ describe("marketing.video", () => {
       limit: 50,
     });
     expect(reels.rows.map((r) => r.id)).toContain(`draft:${reelId}`);
-    await expect(approveVideo(pg.db, id, { source: "cli", short: 2 })).rejects.toThrow(/Short 2/);
+    await expect(approveChecked(pg.db, id, { source: "cli", short: 2 })).rejects.toThrow(/Short 2/);
 
     // A fresh serve: the first one keeps its rows for a while.
     const after = await serveRecords([approvalRecord], pg.db).list({
@@ -218,7 +220,7 @@ describe("marketing.video", () => {
       const [d] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, id));
       return d?.extra;
     };
-    const d = await approveVideo(pg.db, await make("A Short"), { source: "cli", short: 1 });
+    const d = await approveChecked(pg.db, await make("A Short"), { source: "cli", short: 1 });
     expect(await tiktok(d.also?.find((x) => x.platform === "tiktok")?.id)).toMatchObject({
       privacy: "PUBLIC_TO_EVERYONE",
       allowComment: true,
@@ -241,7 +243,7 @@ describe("marketing.video", () => {
       })
       .returning();
     if (!v) throw new Error("no video");
-    const r = await approveVideo(pg.db, v.id, { source: "cli", short: 1 });
+    const r = await approveChecked(pg.db, v.id, { source: "cli", short: 1 });
     expect(r.reel).toEqual({ missing: expect.stringMatching(/render it again/) });
     const rows = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, r.id));
     expect(rows.map((d) => d.platform)).toEqual(["youtube"]);
@@ -265,7 +267,7 @@ describe("marketing.video", () => {
       })
       .returning();
     if (!both) throw new Error("no video");
-    const v = await approveVideo(pg.db, both.id, { source: "cli", vertical: true });
+    const v = await approveChecked(pg.db, both.id, { source: "cli", vertical: true });
     const [d] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, v.id));
     expect(d).toMatchObject({
       platform: "youtube",
@@ -281,14 +283,14 @@ describe("marketing.video", () => {
       extra: { shareToFeed: true },
     });
     expect(v.also).toHaveLength(4);
-    expect(await approveVideo(pg.db, both.id, { source: "api", vertical: true })).toEqual({
+    expect(await approveChecked(pg.db, both.id, { source: "api", vertical: true })).toEqual({
       id: v.id,
       again: true,
       reel: { id: v.reel.id, again: true },
       also: [],
     });
     // The long video is its own draft.
-    expect((await approveVideo(pg.db, both.id, { source: "cli" })).id).not.toBe(v.id);
+    expect((await approveChecked(pg.db, both.id, { source: "cli" })).id).not.toBe(v.id);
 
     // A portrait take: its formats lack long, so a plain Approve (the Inbox's) is the vertical.
     const [tall] = await pg.db
@@ -303,7 +305,7 @@ describe("marketing.video", () => {
       })
       .returning();
     if (!tall) throw new Error("no video");
-    const s = await approveVideo(pg.db, tall.id, { source: "api" });
+    const s = await approveChecked(pg.db, tall.id, { source: "api" });
     const [sd] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, s.id));
     expect(sd?.extra).toMatchObject({ kind: "short" });
     expect(sd?.extra).not.toHaveProperty("thumbnail");
@@ -331,7 +333,7 @@ describe("marketing.video", () => {
       })
       .returning();
     if (!v) throw new Error("no video");
-    const r = await approveVideo(pg.db, v.id, { source: "cli", vertical: true });
+    const r = await approveChecked(pg.db, v.id, { source: "cli", vertical: true });
     const drafts = await pg.db.select().from(contentDrafts);
     const of = (id: string | undefined) => drafts.find((d) => d.id === id);
     const media = Object.fromEntries(
@@ -413,7 +415,7 @@ describe("marketing.video", () => {
       })
       .returning();
     if (!v) throw new Error("no video");
-    const a = await approveVideo(pg.db, v.id, { source: "cli" });
+    const a = await approveChecked(pg.db, v.id, { source: "cli" });
     const [d] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, a.id));
     expect(d?.text).toBe(
       `About it.\n\n0:00 Start\n1:00 Middle\n2:00 End\n\nSite: https://wrenautomation.com/go/yt/${v.id}-chaptered-its-the-one\n\nSubscribe.`,
@@ -431,7 +433,7 @@ describe("marketing.video", () => {
       })
       .returning();
     if (!w) throw new Error("no video");
-    const b = await approveVideo(pg.db, w.id, { source: "cli" });
+    const b = await approveChecked(pg.db, w.id, { source: "cli" });
     const [e] = await pg.db.select().from(contentDrafts).where(eq(contentDrafts.id, b.id));
     expect(e?.text).toBe("Just this.");
     // A long description gives way; the footer is never cut.
@@ -445,7 +447,9 @@ describe("marketing.video", () => {
       .insert(videoEdits)
       .values({ title: "Draft", dir: "/rec", tracks: { main: track } })
       .returning();
-    await expect(approveVideo(pg.db, v!.id, { source: "cli" })).rejects.toThrow(/render it first/);
+    await expect(approveChecked(pg.db, v!.id, { source: "cli" })).rejects.toThrow(
+      /render it first/,
+    );
   });
 
   it("replace uploads a re-render as a new video; the old draft keeps its row", async () => {
@@ -459,8 +463,8 @@ describe("marketing.video", () => {
         files: { long: "/rec/out/long.mp4", captions: "/rec/out/long.en.srt" },
       })
       .returning();
-    const first = await approveVideo(pg.db, v!.id, { source: "cli", privacy: "public" });
-    const fresh = await approveVideo(pg.db, v!.id, {
+    const first = await approveChecked(pg.db, v!.id, { source: "cli", privacy: "public" });
+    const fresh = await approveChecked(pg.db, v!.id, {
       source: "cli",
       privacy: "public",
       replace: true,
@@ -474,9 +478,100 @@ describe("marketing.video", () => {
       extra: { privacyStatus: "public", captions: "/rec/out/long.en.srt" },
     });
     // The new upload holds the video's ref: approving again answers it.
-    expect(await approveVideo(pg.db, v!.id, { source: "cli" })).toEqual({
+    expect(await approveChecked(pg.db, v!.id, { source: "cli" })).toEqual({
       id: fresh.id,
       again: true,
     });
+  });
+});
+
+describe("the quality gate", () => {
+  const P0 = { rank: "P0", rule: "flash", at: 3, says: "Flashes 4 times a second." };
+  const P1 = { rank: "P1", rule: "text", at: 7.5, says: "Overlay text is low contrast." };
+  const P2 = { rank: "P2", rule: "pace", at: 12, says: "Holds for 4 s." };
+  const rendered = async () => {
+    const [v] = await pg.db
+      .insert(videoEdits)
+      .values({
+        title: "Gated",
+        description: "x",
+        state: "rendered",
+        dir: "/rec",
+        tracks: { main: track },
+        shorts: [{ from: 20, to: 50, title: "One" }],
+        files: { long: "/rec/out/long.mp4", "short-1": "/rec/out/short-1.mp4" },
+        keys: { "reel-1": "s3://media/studio/1/reel-1.mp4" },
+      })
+      .returning();
+    return v!.id;
+  };
+  const overrides = (id: number) =>
+    pg.db.execute(
+      sql`select argv, stats from runs where command = 'video override' and argv->>'id' = ${String(id)}`,
+    ) as unknown as Promise<{ argv: { reason: string }; stats: { overridden: unknown[] } }[]>;
+
+  it("refuses an output with no check, then a check on an older render", async () => {
+    const id = await rendered();
+    await expect(approveVideo(pg.db, id, { source: "cli" })).rejects.toThrow(/Check it first/);
+    await checkRun(pg.db, id, "long");
+    const [e] = await pg.db.select().from(videoEdits).where(eq(videoEdits.id, id));
+    await pg.db
+      .update(videoEdits)
+      .set({ files: { ...e!.files, "long.hash": "newer" } })
+      .where(eq(videoEdits.id, id));
+    await expect(approveVideo(pg.db, id, { source: "cli" })).rejects.toThrow(/The long video/);
+  });
+
+  it("never ships a P0, even with a reason", async () => {
+    const id = await rendered();
+    await checkRun(pg.db, id, "long", [P0]);
+    await expect(approveVideo(pg.db, id, { source: "cli", override: "ship it" })).rejects.toThrow(
+      /can't ship: at 3.0 s, Flashes/,
+    );
+  });
+
+  it("holds a P1 until a reason is given, and keeps the reason", async () => {
+    const id = await rendered();
+    await checkRun(pg.db, id, "long", [P1, P2]);
+    await expect(approveVideo(pg.db, id, { source: "cli" })).rejects.toThrow(/--override/);
+    await expect(approveVideo(pg.db, id, { source: "cli", override: "  " })).rejects.toThrow(
+      /--override/,
+    );
+    const d = await approveVideo(pg.db, id, { source: "cli", override: "The text is a logo." });
+    expect(d.again).toBe(false);
+    const [r] = await overrides(id);
+    expect(r?.argv.reason).toBe("The text is a logo.");
+    expect(r?.stats.overridden).toEqual([{ ...P1, output: "long" }]);
+  });
+
+  it("passes P2 advice", async () => {
+    const id = await rendered();
+    await checkRun(pg.db, id, "long", [P2]);
+    expect((await approveVideo(pg.db, id, { source: "cli" })).again).toBe(false);
+    expect(await overrides(id)).toEqual([]);
+  });
+
+  it("swap skips a blocked Short and says why", async () => {
+    const id = await rendered();
+    await checkRun(pg.db, id, "short-1");
+    await approveVideo(pg.db, id, { source: "cli", short: 1 });
+    await pg.db
+      .update(contentDrafts)
+      .set({ status: "approved" })
+      .where(eq(contentDrafts.platform, "instagram"));
+    const [e] = await pg.db.select().from(videoEdits).where(eq(videoEdits.id, id));
+    await pg.db
+      .update(videoEdits)
+      .set({
+        files: { ...e!.files, "short-1": "/rec/out/short-1b.mp4", "short-1.hash": "b" },
+        keys: { ...e!.keys, "reel-1": "s3://media/studio/1/reel-1b.mp4" },
+      })
+      .where(eq(videoEdits.id, id));
+    const r = await swapShortMedia(pg.db, id, { by: "t" });
+    expect(r.swapped).toEqual([]);
+    expect(r.missing).toEqual([expect.stringMatching(/^short 1: Check it first/)]);
+    await checkRun(pg.db, id, "short-1", [P1]);
+    const forced = await swapShortMedia(pg.db, id, { by: "t", override: "Seen it." });
+    expect(forced.swapped.length).toBeGreaterThan(0);
   });
 });

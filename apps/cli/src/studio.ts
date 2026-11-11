@@ -663,10 +663,21 @@ export function registerStudio(
       "--replace",
       "the long video was uploaded already: upload this render as a new video (the old one stays until you hide it)",
     )
+    .option(
+      "--override <reason>",
+      "post past the check's P1 faults, for this reason (a P0 still refuses)",
+    )
     .action(
       (
         v: string,
-        o: { short?: number; vertical?: boolean; privacy: string; replace?: boolean; at?: string },
+        o: {
+          short?: number;
+          vertical?: boolean;
+          privacy: string;
+          replace?: boolean;
+          at?: string;
+          override?: string;
+        },
       ) =>
         withDb(async (db) => {
           const privacy = VIDEO_PRIVACY.find((p) => p === o.privacy);
@@ -684,6 +695,7 @@ export function registerStudio(
             ...(at ? { at } : {}),
             ...(o.short ? { short: o.short } : {}),
             ...(o.vertical ? { vertical: true } : {}),
+            ...(o.override ? { override: o.override } : {}),
           });
           console.log(
             d.again
@@ -706,11 +718,16 @@ export function registerStudio(
       "after a render: each approved Short draft not out yet points at the new file; slot, words and approval stay",
     )
     .option("--short <n>", "only Short n", id)
-    .action((v: string, o: { short?: number }) =>
+    .option(
+      "--override <reason>",
+      "swap past the check's P1 faults, for this reason (a P0 still refuses)",
+    )
+    .action((v: string, o: { short?: number; override?: string }) =>
       withDb(async (db) => {
         const r = await swapShortMedia(db, id(v), {
           by: "cli",
           ...(o.short ? { short: o.short } : {}),
+          ...(o.override ? { override: o.override } : {}),
         });
         for (const d of r.swapped)
           console.log(`short ${d.short} ${d.platform} draft ${d.id}: ${d.to}`);

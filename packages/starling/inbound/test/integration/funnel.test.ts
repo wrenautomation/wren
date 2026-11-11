@@ -18,7 +18,7 @@ import { promosOf, promoteVideo, videoDraftOf } from "../../src/promo.js";
 import { approveDrafts, FAN_GAP_MS } from "../../src/review.js";
 import { contentDrafts, contentIdeas } from "../../src/schema.js";
 import { shapeView } from "../../src/shape-view.js";
-import { approveVideo } from "../../src/video.js";
+import { approveChecked } from "./checked.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -187,8 +187,8 @@ describe("funnel", () => {
 
   it("points a Short's Reel at its long video and promotes the video per platform", async () => {
     const id = await video("promo-a");
-    const long = await approveVideo(pg.db, id, { source: "cli" });
-    const short = await approveVideo(pg.db, id, { source: "cli", short: 1 });
+    const long = await approveChecked(pg.db, id, { source: "cli" });
+    const short = await approveChecked(pg.db, id, { source: "cli", short: 1 });
     if (!short.reel || !("id" in short.reel)) throw new Error("no reel");
     const [reel] = await pg.db
       .select()
@@ -261,7 +261,7 @@ describe("funnel", () => {
       sql`update reddit_places set judged = judged || '{"linkOnly": true}'::jsonb`,
     );
     const id = await video("promo-b");
-    const long = await approveVideo(pg.db, id, { source: "cli" });
+    const long = await approveChecked(pg.db, id, { source: "cli" });
     prompts.length = 0;
     const r = await promoteVideo(pg.db, llm, long.id, ["reddit"]);
     expect(r.results[0]?.ok).toBe(true);
@@ -276,7 +276,7 @@ describe("funnel", () => {
 
   it("drafts an X thread and a carousel that share one slide set", async () => {
     const id = await video("promo-c");
-    const long = await approveVideo(pg.db, id, { source: "cli" });
+    const long = await approveChecked(pg.db, id, { source: "cli" });
     const r = await promoteVideo(pg.db, llm, long.id, undefined, {
       pieces: ["thread", "carousel"],
     });

@@ -4,7 +4,15 @@
  * worker never does (the render engine must stay out of what it bundles).
  */
 
-export { BAR, BAR_IDS, type BarFormat, type BarRule, barLines, VIDEO_CHECK } from "./bar.js";
+export {
+  BAR,
+  BAR_IDS,
+  type BarFormat,
+  type BarRule,
+  barLines,
+  FLOOR_VERSION,
+  VIDEO_CHECK,
+} from "./bar.js";
 export {
   CAP_RECORDINGS,
   capEvents,
@@ -214,7 +222,7 @@ export {
   renderStill,
   renderStills,
 } from "./render.js";
-export { FLOOR_VERSION, floorChecks } from "./render-checks.js";
+export { floorChecks } from "./render-checks.js";
 export {
   CUT_HASH,
   changedSince,

@@ -32,6 +32,7 @@ import { type Storyboard, storyboardOf } from "@wren/starling-studio/storyboard"
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import { type FilmCheck, filmCheck } from "./film-check.js";
 import { promosOf, videoDraftOf } from "./promo.js";
+import { passGate, postedOutputs } from "./render-gate.js";
 import { contentDrafts, contentIdeas, type DraftStatus, type IdeaSource } from "./schema.js";
 import { videoThumbs } from "./thumbs.js";
 import { videoTurns } from "./video-ask.js";
@@ -191,6 +192,8 @@ interface ApproveVideo {
   at?: Date;
   /** The long video, already uploaded: upload the current render as a new video. The old draft keeps its URL. */
   replace?: boolean;
+  /** His reason to post past P1 faults (`render-gate.ts`); a P0 still refuses. */
+  override?: string;
   source: IdeaSource;
   now?: Date;
 }
@@ -255,6 +258,7 @@ export async function approveVideo(
       throw new Error(
         `${videoName(e)} is ${videoState(e.state)}, so there's no file to post yet: render it first, then approve.`,
       );
+    await passGate(tx, e, postedOutputs(e, reels), { override: o.override, by: o.source });
     const { file, title, thumbnail } = target(e, reels);
     // The funnel (designs/2026-10-07-content-funnel.md): the long upload builds trust, its footer
     // links the site; a Short or Reel reaches, pointing at the long upload when there is one.
@@ -602,7 +606,7 @@ export interface SwappedDraft {
 export async function swapShortMedia(
   db: Queryable,
   id: number,
-  o: { short?: number; by: string },
+  o: { short?: number; by: string; override?: string },
 ): Promise<{ run: string; swapped: SwappedDraft[]; missing: string[] }> {
   return atomic(db, async (tx) => {
     const [e] = await tx.select().from(videoEdits).where(eq(videoEdits.id, id));
@@ -630,6 +634,19 @@ export async function swapShortMedia(
             sql`${contentDrafts.publishedAt} is null`,
           ),
         );
+      if (!rows.length) continue;
+      // The gate as at Approve: a blocked Short keeps its old render and says why.
+      const blocked = await passGate(tx, e, [`short-${n}`], {
+        override: o.override,
+        by: o.by,
+      }).then(
+        () => null,
+        (err: Error) => err.message,
+      );
+      if (blocked) {
+        missing.push(`short ${n}: ${blocked}`);
+        continue;
+      }
       for (const d of rows) {
         const next = d.platform === "youtube" ? e.files[`short-${n}`] : e.keys[reelKey(n)];
         if (!next) {

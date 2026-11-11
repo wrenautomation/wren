@@ -5,6 +5,11 @@
 export type BarFormat = "long" | "short";
 /** The self-check's `runs` command (`video-check.ts`); here so the worker can read it. */
 export const VIDEO_CHECK = "video check";
+/**
+ * The floor checks' version on each check run (`render-checks.ts`); bump when a rule changes. A
+ * run under an older one reads as unchecked at Approve.
+ */
+export const FLOOR_VERSION = 1;
 
 export interface BarRule {
   id: string;

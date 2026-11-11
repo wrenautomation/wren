@@ -252,11 +252,18 @@ describe("selfChecks", () => {
   const verdict = (
     output: string,
     hash: string | null,
-    issues: { at: number; rule: string; says: string }[] = [],
+    issues: { rank?: string; at: number; rule: string; says: string }[] = [],
+    floor: number | null = 1,
   ) =>
     step({
       command: "video check",
-      check: { output, hash, pass: !issues.length, issues },
+      check: {
+        output,
+        hash,
+        floor,
+        pass: !issues.some((i) => (i.rank ?? "P1") !== "P2"),
+        issues: issues.map((i) => ({ rank: "P1", ...i })),
+      },
     });
   const files = {
     long: "/o/long.mp4",
@@ -268,22 +275,29 @@ describe("selfChecks", () => {
     "thumb-1": "/o/thumb-1.jpg",
   };
 
-  it("shows the newest verdict on this render, red on a fail, and what is not checked", () => {
+  it("shows the newest check on this render by rank, and what is not checked", () => {
     const steps = [
       verdict("long", "h0", [{ at: 1, rule: "face", says: "Old render." }]),
-      verdict("long", "h1"),
+      verdict("long", "h1", [{ rank: "P2", at: 4, rule: "best", says: "A weak open." }]),
       verdict("short-1", "s1", [
-        { at: 2, rule: "face", says: "The head is cut at the top." },
-        { at: 5, rule: "text", says: "The title sits under the like button." },
+        { at: 2, rule: "text", says: "Low contrast." },
+        { at: 5, rule: "text", says: "Low contrast again." },
         { at: 9, rule: "pace", says: "The picture holds still for 14 s." },
-        { at: 30, rule: "best", says: "It ends before its point." },
+        { at: 30, rule: "pace", says: "Holds again." },
       ]),
+      verdict("short-2", "s2", [{ rank: "P0", at: 1, rule: "flash", says: "Flashes." }]),
     ];
     expect(selfChecks(files, steps).map((c) => `${c.tone}: ${c.say}`)).toEqual([
-      "bad: Short 1 failed the self-check: at 2.0 s, The head is cut at the top. at 5.0 s, The title sits under the like button. at 9.0 s, The picture holds still for 14 s. And 1 more.",
+      "neutral: Advice on Long: at 4.0 s, A weak open.",
+      "warn: Short 1 needs a fix, or a reason to approve: at 2.0 s, Low contrast. at 5.0 s, Low contrast again. at 9.0 s, The picture holds still for 14 s. And 1 more.",
+      "bad: Short 2 can't ship: at 1.0 s, Flashes.",
       "good: Long passed the self-check.",
-      "neutral: Not self-checked yet: Short 2.",
     ]);
+  });
+
+  it("reads a check under older floor rules as unchecked", () => {
+    const c = selfChecks(files, [verdict("long", "h1", [], null)]);
+    expect(c.at(-1)?.say).toBe("Not self-checked yet: Long and Shorts 1 and 2.");
   });
 
   it("drops a verdict on an older render of the same output", () => {

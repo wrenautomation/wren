@@ -11,12 +11,12 @@ import { atomic, type Queryable } from "@wren/db";
 import { barLines, VIDEO_CHECK } from "@wren/starling-studio/bar";
 import { reviewCuts } from "@wren/starling-studio/cuts";
 import { getEdit, setWords } from "@wren/starling-studio/edit";
-import { hashKey } from "@wren/starling-studio/hash";
 import { closeMarks, type Mark, marksForAgent } from "@wren/starling-studio/marks";
 import { type RenderState, type VideoEdit, videoEdits } from "@wren/starling-studio/schema";
 import { shortIssues } from "@wren/starling-studio/sentences";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import { onThisRender } from "./render-gate.js";
 import { applyAnswer } from "./video-ask.js";
 
 export const VIDEO_EDIT = "video-edit";
@@ -233,8 +233,10 @@ export interface VideoStep {
   check: {
     output: string;
     hash: string | null;
+    /** The floor rules' version it ran under (`FLOOR_VERSION`); null before the floor. */
+    floor: number | null;
     pass: boolean;
-    issues: { at: number; rule: string; says: string }[];
+    issues: { rank: string; at: number; rule: string; says: string }[];
   } | null;
 }
 
@@ -329,9 +331,10 @@ export async function videoSteps(db: Queryable, id: number): Promise<VideoStep[]
           ? {
               output: String(r.stats.output),
               hash: typeof r.stats.hash === "string" ? r.stats.hash : null,
+              floor: typeof r.stats.floor === "number" ? r.stats.floor : null,
               pass: r.stats.pass === true,
               issues: Array.isArray(r.stats.issues)
-                ? (r.stats.issues as { at: number; rule: string; says: string }[])
+                ? (r.stats.issues as { rank: string; at: number; rule: string; says: string }[])
                 : [],
             }
           : null,
@@ -441,8 +444,8 @@ const RENDERED = /^(long|vertical|square|portrait|short-\d+)$/;
 const ISSUES_SHOWN = 3;
 
 /**
- * The self-check's word on each rendered output: its newest verdict on this very render (the hash
- * matches). A fail is red but Approve stays open: he decides. Outputs with no verdict say so.
+ * The self-check's word on each rendered output, by the gate's rule (`render-gate.ts`): its newest
+ * check on this render. A P0 blocks Approve; a P1 blocks it without a reason; P2 is advice.
  */
 export function selfChecks(
   files: Record<string, string>,
@@ -454,20 +457,32 @@ export function selfChecks(
   const out: VideoCheck[] = [];
   const unchecked: string[] = [];
   const passed: string[] = [];
+  const said = (issues: { at: number; says: string }[]) => {
+    const more = issues.length - ISSUES_SHOWN;
+    return `${issues
+      .slice(0, ISSUES_SHOWN)
+      .map((i) => `at ${i.at.toFixed(1)} s, ${i.says}`)
+      .join(" ")}${more > 0 ? ` And ${more} more.` : ""}`;
+  };
   for (const o of outputs) {
     const c = newest.get(o);
-    if (!c || c.hash !== (files[hashKey(o)] ?? null)) unchecked.push(o);
-    else if (c.pass) passed.push(o);
-    else {
-      const more = c.issues.length - ISSUES_SHOWN;
-      out.push({
-        tone: "bad",
-        say: `${describeOutputs([o])} failed the self-check: ${c.issues
-          .slice(0, ISSUES_SHOWN)
-          .map((i) => `at ${i.at.toFixed(1)} s, ${i.says}`)
-          .join(" ")}${more > 0 ? ` And ${more} more.` : ""}`,
-      });
+    if (!c || !onThisRender(files, o, c)) {
+      unchecked.push(o);
+      continue;
     }
+    const p0 = c.issues.filter((i) => i.rank === "P0");
+    const p1 = c.issues.filter((i) => i.rank === "P1");
+    const p2 = c.issues.filter((i) => i.rank !== "P0" && i.rank !== "P1");
+    if (p0.length)
+      out.push({ tone: "bad", say: `${describeOutputs([o])} can't ship: ${said(p0)}` });
+    else if (p1.length)
+      out.push({
+        tone: "warn",
+        say: `${describeOutputs([o])} needs a fix, or a reason to approve: ${said(p1)}`,
+      });
+    else passed.push(o);
+    if (p2.length && !p0.length)
+      out.push({ tone: "neutral", say: `Advice on ${describeOutputs([o])}: ${said(p2)}` });
   }
   if (passed.length)
     out.push({ tone: "good", say: `${describeOutputs(passed)} passed the self-check.` });

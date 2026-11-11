@@ -8,9 +8,6 @@ import { OVERLAY, type TextOverlay } from "./finish-look.js";
 import type { BehindWord, ShortProps } from "./props.js";
 import { type Box, bigWordBox, overlayBox } from "./text-box.js";
 
-/** Bump when a check's rule changes: a run under an older version reads as unchecked. */
-export const FLOOR_VERSION = 1;
-
 export type Rank = "P0" | "P1" | "P2" | "P3";
 export interface Fault {
   rank: Rank;
@@ -69,7 +66,7 @@ async function rawFrames(
 export const FLASH = { grid: 4, side: 64, change: 0.1, darkBelow: 0.8, maxPerS: 3 } as const;
 
 /** Each tile's mean luminance in one rgb24 frame `side` px square. */
-export function tileMeans(px: Uint8Array): number[] {
+function tileMeans(px: Uint8Array): number[] {
   const { side, grid } = FLASH;
   const t = side / grid;
   const sums: number[] = new Array(grid * grid).fill(0);
@@ -172,7 +169,7 @@ export async function tileSeries(file: string, fps: number, ffmpeg: string): Pro
  * around their text box: `pad` x font size out from the box, `ring` x font size wide, read at its
  * `percentile` brightest. Under `min`:1 at the worst of 3 frames is a P1.
  */
-export const CONTRAST = { min: 3, pad: 0.1, ring: 0.3, percentile: 0.8 } as const;
+const CONTRAST = { min: 3, pad: 0.1, ring: 0.3, percentile: 0.8 } as const;
 /** Both texts are filled white (`compositions/index.tsx`, Overlays and Behind). */
 const FILL_LUMINANCE = 1;
 
@@ -218,7 +215,7 @@ const inside = ([bx, by, bw, bh]: Box, x: number, y: number) =>
   x >= bx && x < bx + bw && y >= by && y < by + bh;
 
 /** The ring's luminance at `percentile`, from `px` (rgb24) of the frame area `crop`; null when the ring is off frame. */
-export function ringLuminance(px: Uint8Array, crop: Box, t: Pick<TextOnScreen, "box" | "size">) {
+function ringLuminance(px: Uint8Array, crop: Box, t: Pick<TextOnScreen, "box" | "size">) {
   const inner = grow(t.box, CONTRAST.pad * t.size);
   const outer = grow(inner, CONTRAST.ring * t.size);
   const [cx, cy, cw, ch] = crop;
@@ -293,7 +290,7 @@ export async function contrastFaults(
 // --- pace ------------------------------------------------------------------------------------
 
 /** A Short with no picture change for more than `blockS` is a P1; more than `warnS`, a P2. */
-export const PACE = { blockS: 10, warnS: 3 } as const;
+const PACE = { blockS: 10, warnS: 3 } as const;
 
 /**
  * When a Short's picture changes (s): a cut between its kept spans, a layout mark, an overlay or

@@ -396,18 +396,27 @@ export function makeVideoDesk(db: Db, o: { llm?: VideoModel | null } = {}) {
           input: z.looseObject({
             ...ID,
             short: z.number().int().positive().nullish().describe("Only this Short, 1 the first"),
+            override: z
+              .string()
+              .nullish()
+              .describe("Why a Short posts past the check's P1 faults; a P0 still refuses"),
           }),
         },
-        async (ctx: restate.Context, req: One & { short?: number | null }) =>
+        async (
+          ctx: restate.Context,
+          req: One & { short?: number | null; override?: string | null },
+        ) =>
           ctx.run("swap", () =>
             told(
               swapShortMedia(db, req.id, {
                 by: byOf(req),
                 ...(req.short ? { short: req.short } : {}),
+                ...(req.override ? { override: req.override } : {}),
               }).then((r) => ({
                 run: r.run,
                 swapped: r.swapped.length,
                 missing: r.missing.length,
+                why: r.missing,
               })),
             ),
           ),

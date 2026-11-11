@@ -35,6 +35,10 @@ const VIDEO = z.looseObject({
     .nullish()
     .describe("A Short, 1 for the first; none: the long video"),
   vertical: z.boolean().nullish().describe("The whole cut, 9:16, instead of the long video"),
+  override: z
+    .string()
+    .nullish()
+    .describe("Why it posts past the check's P1 faults; a P0 still refuses"),
   privacy: z.enum(VIDEO_PRIVACY).nullish().describe("Who sees the upload; none: private"),
   replace: z
     .boolean()
@@ -291,6 +295,7 @@ export function approvalsHandlers(desk: ContentDeskContext) {
           privacy?: VideoPrivacy | null;
           replace?: boolean | null;
           publishAt?: string | null;
+          override?: string | null;
         },
       ) => {
         const { db } = await scopeOf(ctx);
@@ -306,6 +311,7 @@ export function approvalsHandlers(desk: ContentDeskContext) {
               ...(req.vertical ? { vertical: true } : {}),
               ...(req.privacy ? { privacy: req.privacy } : {}),
               ...(req.replace ? { replace: true } : {}),
+              ...(req.override ? { override: req.override } : {}),
             }),
           ]),
         );
