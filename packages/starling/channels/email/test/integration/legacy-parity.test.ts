@@ -134,6 +134,8 @@ const ADDED = {
     // 2026-11-03 hot paths (WA-1045): risky verdicts in a wait; leads with a profile URL.
     "ix_verifications_risky_checked_at",
     "ix_leads_social_url_id",
+    // 2026-11-11 (WA-icr): role-inbox's "no candidate holds this address", per lead.
+    "ix_contact_candidates_email_lower",
   ]),
   /** Legacy views wren grew (lead recycling, recruiting ranks): still present, bodies free to differ. */
   views: new Set(["campaign_funnel", "enrollment_outcomes", "person_facts"]),
