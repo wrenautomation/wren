@@ -17,7 +17,11 @@ import { DEFAULT_STEP, ENGINES, STEPS } from "./engines.js";
 import { funnel } from "./generate.js";
 import { type Score, scoreScene } from "./score.js";
 
-export default { title: "Orrery/Lab", parameters: { layout: "padded" } } satisfies Meta;
+export default {
+  title: "Lab/Orrery",
+  id: "orrery-lab",
+  parameters: { layout: "padded" },
+} satisfies Meta;
 
 interface Run {
   id: string;

@@ -30,19 +30,20 @@ export const PickSort = pageAt("/variants/batches", {
 });
 
 /** A link made before refs (`?batch=<id>`) still opens its batch. */
-export const OldLink = pageAt("/variants/batches?batch=6", { me: ADMIN });
+export const OldLink = pageAt("/variants/batches?batch=6", { me: ADMIN, empty: false });
 
-export const Batch = pageAt("/variants/batches?b=opener:2", { me: ADMIN });
+export const Batch = pageAt("/variants/batches?b=opener:2", { me: ADMIN, empty: false });
 
 /** An open batch, marked here: blind, in queue order. */
-export const Open = pageAt("/variants/batches?b=promo-cut:3", { me: ADMIN });
+export const Open = pageAt("/variants/batches?b=promo-cut:3", { me: ADMIN, empty: false });
 
 /** Open but replaced by a newer batch: view only, still blind. */
-export const Replaced = pageAt("/variants/batches?b=promo-cut:2", { me: ADMIN });
+export const Replaced = pageAt("/variants/batches?b=promo-cut:2", { me: ADMIN, empty: false });
 
 /** Flag a moment in the video's bar (press, press again), then its note: Works, why, Save. */
 export const Mark = pageAt("/variants/batches?b=promo-cut:3", {
   me: ADMIN,
+  empty: false,
   check: async (page) => {
     const p = within(page);
     const late = { timeout: 8000 };
@@ -61,6 +62,7 @@ export const Mark = pageAt("/variants/batches?b=promo-cut:3", {
 /** Rename the subject and the batch title in place: Rename, a new name, Enter; each shows it. */
 export const Rename = pageAt("/variants/batches?b=opener:2", {
   me: ADMIN,
+  empty: false,
   check: async (page) => {
     const p = within(page);
     await userEvent.click(
@@ -79,13 +81,14 @@ export const Rename = pageAt("/variants/batches?b=opener:2", {
 });
 
 /** page samples that run code: each still waits behind a glass play mark */
-export const Pages = pageAt("/variants/batches?b=hero-background:2", { me: ADMIN });
+export const Pages = pageAt("/variants/batches?b=hero-background:2", { me: ADMIN, empty: false });
 
 /** Hand to Vireo: the batch closes, the side chat opens on Vireo and holds the turn that points at it. */
 export const Hand: StoryObj = tidy(
   (() => {
     const base = pageAt("/variants/batches?b=promo-cut:3", {
       me: ADMIN,
+      empty: false,
       check: async (page) => {
         const p = within(page);
         const late = { timeout: 8000 };

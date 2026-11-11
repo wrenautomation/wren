@@ -11,7 +11,8 @@ import {
 import { BarsChart, ColumnsChart, HeatChart, LinesChart, RingChart, Sparkline } from "./index.js";
 
 export default {
-  title: "Charts/Dashboard",
+  title: "Components/Charts and graphs/Dashboard",
+  id: "charts-dashboard",
   parameters: { layout: "fullscreen" },
 } satisfies Meta;
 

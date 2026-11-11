@@ -30,7 +30,7 @@ import { WORST } from "./fixtures/worst.js";
 import { writeForm } from "./save/journal.js";
 
 export default {
-  title: "Forms/Edit form",
+  title: "Components/Forms/Edit form",
   id: "edit-form",
 } satisfies Meta;
 

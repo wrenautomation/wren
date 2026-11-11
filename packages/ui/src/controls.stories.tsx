@@ -16,7 +16,7 @@ import {
 import { WORST } from "./fixtures/index.js";
 
 export default {
-  title: "Parts/Controls",
+  title: "Components/Controls and feedback/Controls",
   id: "controls",
 } satisfies Meta;
 

@@ -108,6 +108,7 @@ export const StudioCompose = pageAt(
   `/campaigns/studio?make=post&idea=${encodeURIComponent(SAMPLE_POST)}`,
   {
     me: ADMIN,
+    empty: false,
     answers: STUDIO,
     check: async (page) => {
       const view = within(page);

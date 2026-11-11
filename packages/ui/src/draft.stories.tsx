@@ -14,7 +14,7 @@ import {
 } from "./fixtures/draft.js";
 
 export default {
-  title: "Forms/Draft",
+  title: "Components/Forms/Draft",
   id: "draft",
 } satisfies Meta;
 

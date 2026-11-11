@@ -67,7 +67,8 @@ const parts = process.env.WREN_STORYBOOK === "serve" ? [`${UI}src/**/*.stories.t
 
 const config: StorybookConfig = {
   framework: "@storybook/react-vite",
-  stories: ["../web/src/**/*.stories.tsx", ...parts],
+  // under `App/`, apart from ui's Templates, Components and Lab (preview.tsx storySort)
+  stories: [{ directory: "../web/src", files: "**/*.stories.tsx", titlePrefix: "App" }, ...parts],
   previewHead: (head) => `${head}${readFileSync(`${UI}.storybook/preview-head.html`, "utf8")}`,
   addons: ["@storybook/addon-a11y", "@storybook/addon-vitest", "msw-storybook-addon"],
   // The app's own files (icons), and the service worker MSW answers from (`msw init`), kept here

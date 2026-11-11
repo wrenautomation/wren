@@ -100,7 +100,7 @@ function ProposalsLine({ props }: { props: PageProps }) {
 /** Nothing waits on you: said only once every read is in and none failed. */
 function NothingWaits() {
   return (
-    <p className="flex items-center gap-2.5 text-[14.5px] text-(--ui-ink-2)">
+    <p data-empty="waits" className="flex items-center gap-2.5 text-[14.5px] text-(--ui-ink-2)">
       <Icon name="check" className="text-(--ui-good)" />
       Nothing waits on you.
     </p>
@@ -267,7 +267,9 @@ function WriteList({ narrow }: { narrow: boolean }) {
       {plan.error ? null : !plan.data ? (
         <Loading shape="rows" lines={4} />
       ) : !all.length ? (
-        <p className="text-[14.5px] text-(--ui-ink-2)">Nothing is due today.</p>
+        <p data-empty="waits" className="text-[14.5px] text-(--ui-ink-2)">
+          Nothing is due today.
+        </p>
       ) : (
         <>
           {short.length ? null : (

@@ -16,14 +16,24 @@ const preview: Preview = {
     ...frame.parameters,
     options: {
       storySort: {
+        // read statically by Storybook: the portal repeats it after App (apps/portal/.storybook/preview.tsx)
         order: [
-          "Parts",
-          "Forms",
-          "Lists",
-          "Charts",
-          ["All charts", "Dashboard", "*"],
-          "Pages",
-          "Orrery",
+          "Templates",
+          ["Intro", "*"],
+          "Components",
+          [
+            "Intro",
+            "Shell and nav",
+            "Lists",
+            "Forms",
+            "Controls and feedback",
+            "Charts and graphs",
+            ["All charts", "Dashboard", "*"],
+            "Agent chat",
+            "Map",
+          ],
+          "Lab",
+          ["Intro", "*"],
         ],
       },
     },

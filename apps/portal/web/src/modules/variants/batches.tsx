@@ -4,7 +4,18 @@
  * `kind`, `state`, `who`. A closed batch: every call, notes and the idea each sample tested, read
  * only. An open batch: blind, only his own marks, then handed to Vireo.
  */
-import { Button, cx, Empty, Icon, LoadFailed, Loading, PAGE_TITLE, Tag, TierLabel } from "@wren/ui";
+import {
+  AskAgent,
+  Button,
+  cx,
+  Empty,
+  Icon,
+  LoadFailed,
+  Loading,
+  PAGE_TITLE,
+  Tag,
+  TierLabel,
+} from "@wren/ui";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useFolders } from "../../folders.js";
@@ -208,8 +219,8 @@ function BatchList({ params, team }: { params: URLSearchParams; team: boolean })
   );
   if (!rows.length && !filtered)
     return (
-      <Empty title="No batches yet">
-        Ask the agent in chat to start a subject. Its batches land here.
+      <Empty title="No batches yet" action={<AskAgent setup="vireo" ask="Start variants for " />}>
+        Start a subject in the chat. Its batches land here.
       </Empty>
     );
   // waiting first: what waits leads (DESIGN.md, Needs You); other sorts are one list
@@ -224,7 +235,21 @@ function BatchList({ params, team }: { params: URLSearchParams; team: boolean })
     <div className="flex flex-col gap-3">
       {bar}
       {!rows.length ? (
-        <p className="m-0 text-[13px] text-(--ui-ink-2)">No batch matches.</p>
+        <Empty
+          action={
+            <a
+              href={href(
+                HERE,
+                { subject: null, folder: null, kind: null, state: null, who: null },
+                params,
+              )}
+            >
+              Clear filters
+            </a>
+          }
+        >
+          No batch matches these filters.
+        </Empty>
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">
           {tiers.map((t) => [

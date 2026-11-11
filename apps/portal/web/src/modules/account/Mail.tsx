@@ -374,7 +374,7 @@ export function Mail(props: PageProps) {
       ) : !data ? (
         <Loading lines={4} />
       ) : data.wren ? (
-        <Empty>Wren's own mail is the Monitor's. Open a client to see theirs.</Empty>
+        <Empty waits>Wren's own mail is the Monitor's. Open a client to see theirs.</Empty>
       ) : view ? (
         <>
           {!view.apps.google && !view.apps.microsoft ? (
@@ -387,7 +387,7 @@ export function Mail(props: PageProps) {
             ))}
           <Section title="Mailboxes">
             {view.mailboxes.length === 0 ? (
-              <Empty>No mailboxes yet. Add the ones Wren should send from or read.</Empty>
+              <Empty waits>No mailboxes yet. Add the ones Wren should send from or read.</Empty>
             ) : (
               <Mailboxes mailboxes={view.mailboxes} mayAct={view.mayAct} act={act} />
             )}

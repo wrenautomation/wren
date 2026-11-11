@@ -8,6 +8,10 @@ export default meta;
 
 export const Place = pageAt("/office", { me: ADMIN });
 
-export const Look = pageAt("/office/look", { me: ADMIN, check: shows("Look", "Save") });
+export const Look = pageAt("/office/look", {
+  empty: false,
+  me: ADMIN,
+  check: shows("Look", "Save"),
+});
 
-export const Experiments = pageAt("/office/experiments", { me: ADMIN });
+export const Experiments = pageAt("/office/experiments", { empty: false, me: ADMIN });

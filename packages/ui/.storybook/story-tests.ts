@@ -9,25 +9,43 @@ import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 // `.ts`: another package's Vitest loads this file in Node, which maps no `.js` to `.ts`.
-import { LOOKS } from "./looks.ts";
+import { EMPTY_PASS, LOOKS } from "./looks.ts";
 
 /** run.mjs starts one Chromium and passes its address: the projects share it. */
 const shared = process.env.WREN_UI_BROWSER;
 
-/** The story-test config for the Storybook in `configDir` (a package's `.storybook`). */
-export function storyTests(configDir: string) {
+/**
+ * The story-test config for the Storybook in `configDir` (a package's `.storybook`). `empty`: story
+ * files (from the package root) for one more pass, `EMPTY_PASS`, with the `data` global on Empty
+ * (the portal's page stories, mocks/page.tsx); run.mjs runs it on `--empty`.
+ */
+export function storyTests(configDir: string, { empty = [] }: { empty?: string[] } = {}) {
+  const passes = [
+    ...LOOKS.map((l) => ({ ...l, globals: {}, include: undefined })),
+    ...(empty.length ? [{ ...EMPTY_PASS, globals: { data: "empty" }, include: empty }] : []),
+  ];
   return defineConfig({
     root: resolve(configDir, ".."),
     test: {
       // A fixed count, not one per core: memory stays bounded. CI's runner has 4 cores to itself.
       maxWorkers: process.env.GITHUB_ACTIONS ? 4 : 2,
-      projects: LOOKS.map(({ theme, viewport, name }) => ({
+      projects: passes.map(({ theme, viewport, name, globals, include }) => ({
         extends: true,
+        // a story's own `data` global hides the pass's: the page reads the pass here (portal preview.tsx)
+        define: {
+          "import.meta.env.STORY_PASS_DATA": JSON.stringify(
+            (globals as { data?: string }).data ?? "",
+          ),
+        },
         plugins: [
-          storybookTest({ configDir, initialGlobals: { theme, viewport: { value: viewport } } }),
+          storybookTest({
+            configDir,
+            initialGlobals: { theme, viewport: { value: viewport }, ...globals },
+          }),
         ],
         test: {
           name,
+          ...(include ? { include } : {}),
           setupFiles: [join(import.meta.dirname, "vitest.setup.ts")],
           browser: {
             enabled: true,

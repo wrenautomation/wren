@@ -6,6 +6,7 @@
  * open on one graph. Read only: the agent and the CLI write. Live: serve sends an event per change.
  */
 import {
+  AskAgent,
   Button,
   cx,
   dragItem,
@@ -118,7 +119,12 @@ export function RunHistory({
   if (open && (open !== "all" || runs.data))
     return <Opened key={open} open={open} rows={rows} params={params} here={here} />;
   if (!runs.data) return <Loading shape="rows" lines={5} />;
-  if (!rows.length) return <Empty>No runs in this ledger yet.</Empty>;
+  if (!rows.length)
+    return (
+      <Empty action={<AskAgent setup="weaver" ask="Research: " />}>
+        Each question weaver researches is a run. Ask one and it lists here.
+      </Empty>
+    );
   const openRuns = (run: string) => navigate(href(here, { run, open: null }, params));
   const folders = filed.folders;
   const row = (r: RunRow) => (

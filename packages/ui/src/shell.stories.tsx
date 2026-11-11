@@ -13,7 +13,7 @@ import { PageHeader } from "./layout.js";
 import { AppShell } from "./shell.js";
 
 export default {
-  title: "Pages/Shell",
+  title: "Templates/Shell",
   id: "shell",
   parameters: {
     layout: "fullscreen",

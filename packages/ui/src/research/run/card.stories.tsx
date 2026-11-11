@@ -23,7 +23,7 @@ import {
 import { RunCard, type RunCardProps, SourceCard, type SourceRead } from "./card.js";
 
 export default {
-  title: "Parts/Weaver in the chat",
+  title: "Components/Agent chat/Weaver card",
   id: "research-chat",
 } satisfies Meta;
 

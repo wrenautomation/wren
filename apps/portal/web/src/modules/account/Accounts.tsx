@@ -408,7 +408,7 @@ export function Accounts(props: PageProps) {
             }
           />
           {d.accounts.length === 0 ? (
-            <Empty>
+            <Empty waits>
               {team
                 ? "No accounts yet. Add the first below."
                 : "No accounts yet. Wren's team adds each one as you connect it."}

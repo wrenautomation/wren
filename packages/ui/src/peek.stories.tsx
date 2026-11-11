@@ -8,7 +8,7 @@ import { LEAD_META, LEAD_NEEDS, LEADS, useRecordsDemo } from "./fixtures/records
 import { RecordList, type RowReplyBox } from "./records.js";
 
 export default {
-  title: "Lists/Peek",
+  title: "Components/Lists/Peek",
   id: "peek",
   parameters: { layout: "fullscreen" },
 } satisfies Meta;

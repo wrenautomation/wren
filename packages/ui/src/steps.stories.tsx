@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { type JobStep, Steps } from "./steps.js";
 
 export default {
-  title: "Parts/Steps",
+  title: "Components/Controls and feedback/Steps",
   id: "steps",
 } satisfies Meta;
 

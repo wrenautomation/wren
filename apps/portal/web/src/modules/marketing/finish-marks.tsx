@@ -473,7 +473,7 @@ export function MarksPanel({
           <ol className="m-0 grid list-none gap-2 p-0">{open.map(row)}</ol>
         </section>
       ) : (
-        <Empty title="No open marks">
+        <Empty waits title="No open marks">
           A mark tells the editing agent what to change at a moment, or what to keep. Play to the
           moment, say it above, then Add mark.
         </Empty>

@@ -18,7 +18,7 @@ import { useLoad, writeThrough } from "./data/query.js";
 import { DraftBox, DraftText } from "./draft.js";
 import { type LiveText, liveText } from "./draft-save.js";
 import { ASK_FOCUS, AskClaude, EditFields, type Editing, History, thinking } from "./edits.js";
-import { LoadFailed } from "./feedback.js";
+import { Empty, LoadFailed } from "./feedback.js";
 import { type CiteTo, Cue, dateOf, dateTip, FieldCell, FieldLine, relative } from "./fields.js";
 import { FoldList, foldOf } from "./fold.js";
 import { num } from "./format.js";
@@ -587,9 +587,9 @@ export function RecordBody({
             ))}
           </SourceList>
         ) : (
-          <Quiet>
+          <Empty waits>
             What research finds about this {meta.name.one} shows here, each with its link.
-          </Quiet>
+          </Empty>
         )
       ) : relatedType ? (
         <Related meta={relatedType} of={{ record: meta.id, id }} api={api} one={meta.name.one} />
@@ -755,15 +755,6 @@ function Line({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/** Nothing here yet: a dashed box, so it reads as a place that fills, not as stray text. */
-export function Quiet({ children }: { children: ReactNode }) {
-  return (
-    <p className="border border-dashed border-(--ui-edge) bg-(--ui-wash) px-4 py-6 text-[14px] text-(--ui-ink-2)">
-      {children}
-    </p>
-  );
-}
-
 /** What happened to a record, newest first. */
 function Activity({
   lines,
@@ -779,9 +770,9 @@ function Activity({
 }) {
   if (!lines.length)
     return (
-      <Quiet>
+      <Empty waits>
         {empty ?? `Emails, replies and findings about this ${one} show here as they happen.`}
-      </Quiet>
+      </Empty>
     );
   return (
     <ol className="grid">
@@ -850,9 +841,9 @@ function Related({
   if (!page.data) return <div className="h-24 w-full animate-pulse bg-(--ui-wash)" />;
   if (!page.data.rows.length)
     return (
-      <Quiet>
+      <Empty waits>
         {cap(meta.name.many)} for this {one} show here.
-      </Quiet>
+      </Empty>
     );
   const cols = meta.fields.filter((f) => f.column).slice(0, 4);
   return (

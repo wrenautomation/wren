@@ -14,7 +14,7 @@ import {
 import { fakePlace } from "./fixtures/place.js";
 
 export default {
-  title: "Pages/Day",
+  title: "Templates/Day",
   id: "day",
 } satisfies Meta;
 

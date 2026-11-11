@@ -16,7 +16,7 @@ import type { KeepApi } from "./list-bar.js";
 import { type Facets, ListBar, SearchBox, useSavedViews, ViewTabs } from "./list-bar.js";
 
 export default {
-  title: "Lists/List bar",
+  title: "Components/Lists/List bar",
   id: "list-bar",
 } satisfies Meta;
 

@@ -18,6 +18,7 @@ import {
   type TextMessagePartComponent,
   type ThreadMessageLike,
   ThreadPrimitive,
+  useAui,
   useAuiState,
   useExternalStoreRuntime,
   useSmooth,
@@ -27,6 +28,7 @@ import {
   createContext,
   type ReactNode,
   useContext,
+  useEffect,
   useMemo,
   useRef,
 } from "react";
@@ -165,6 +167,8 @@ export type AgentViews = Readonly<Record<string, ComponentType<{ data: unknown }
 
 export interface AgentThreadProps {
   messages: readonly AgentMessage[];
+  /** Words a page typed into the box (`handToChat` with `draft`): set once per id, not sent. */
+  draft?: { id: number; text: string } | null | undefined;
   /** A turn is out: Stop shows, Send waits. */
   running: boolean;
   /** The session opens: words after one second. */
@@ -505,6 +509,7 @@ export function AgentThread(p: AgentThreadProps) {
                           files={!!p.files && !p.closed}
                           context={p.context}
                           commands={p.commands}
+                          draft={p.draft}
                         />
                         {p.note ? (
                           <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">
@@ -894,7 +899,9 @@ function Composer({
   files,
   context,
   commands,
+  draft,
 }: {
+  draft?: AgentThreadProps["draft"];
   closed?: string | null | undefined;
   placeholder?: string | undefined;
   tools?: ReactNode;
@@ -903,8 +910,19 @@ function Composer({
   commands?: readonly AgentCommand[] | undefined;
 }) {
   const running = useAuiState((s) => s.thread.isRunning);
+  const aui = useAui();
+  const root = useRef<HTMLFormElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once per hand-off id
+  useEffect(() => {
+    if (!draft) return;
+    aui.composer().setText(draft.text);
+    root.current?.querySelector("textarea")?.focus();
+  }, [draft?.id]);
   const box = (
-    <ComposerPrimitive.Root className="relative grid rounded-[16px] bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-shadow duration-150 focus-within:shadow-[inset_0_0_0_1px_var(--ui-ink-3),var(--ui-raise)] in-data-dragging:shadow-[inset_0_0_0_2px_var(--ui-active),var(--ui-raise)]">
+    <ComposerPrimitive.Root
+      ref={root}
+      className="relative grid rounded-[16px] bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-shadow duration-150 focus-within:shadow-[inset_0_0_0_1px_var(--ui-ink-3),var(--ui-raise)] in-data-dragging:shadow-[inset_0_0_0_2px_var(--ui-active),var(--ui-raise)]"
+    >
       <ComposerPrimitive.TriggerPopoverRoot>
         {commands?.length ? <SlashMenu commands={commands} /> : null}
         {context || files ? (

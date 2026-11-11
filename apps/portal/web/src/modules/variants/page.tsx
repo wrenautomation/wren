@@ -6,6 +6,7 @@
  * guides under test. The agent writes through `wren variants`; these pages only judge.
  */
 import {
+  AskAgent,
   Button,
   cx,
   dragItem,
@@ -13,6 +14,7 @@ import {
   FolderMoveMenu,
   type FolderNode,
   FolderTree,
+  handToChat,
   Icon,
   LoadFailed,
   Loading,
@@ -31,7 +33,7 @@ import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
-import { handToChat, usePageContext } from "../agent/drive.js";
+import { usePageContext } from "../agent/drive.js";
 import { type Live, LiveView } from "./live.js";
 import { FramesProvider, useFrames, WIDTHS } from "./live-page.js";
 import {
@@ -489,7 +491,11 @@ export function SubjectsPage({ params, team }: PageProps) {
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading />;
   if (!got.data.length)
-    return <Empty title="No subjects yet">Ask the agent in chat: “start variants for …”.</Empty>;
+    return (
+      <Empty title="No subjects yet" action={<AskAgent setup="vireo" ask="Start variants for " />}>
+        Each thing you test (a hook, a cut, a page) is a subject. Start one in the chat.
+      </Empty>
+    );
   const rows = got.data;
   const folders = filed.folders;
   const folderOf = (s: SubjectRow) => filed.folderOf(String(s.id));

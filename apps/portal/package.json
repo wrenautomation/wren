@@ -17,7 +17,7 @@
     "stories:build": "storybook build --quiet",
     "stories:shot": "wren-shot",
     "look": "wren-look",
-    "test:stories": "wren-stories",
+    "test:stories": "wren-stories --empty",
     "kestrel:screens": "tsx scripts/screens.ts"
   },
   "dependencies": {

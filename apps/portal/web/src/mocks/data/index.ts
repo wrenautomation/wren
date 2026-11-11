@@ -153,7 +153,7 @@ const BASE: Answers = {
   ...OFFER_ANSWERS,
   ...VARIANTS_ANSWERS,
   ...FOLDERS_ANSWERS,
-  "console/call:Pieces.list": { pieces: PIECES },
+  "console/call:PieceList.list": { pieces: PIECES },
   "console/call:ContentDesk.waiting": STUDIO_WAITING,
   "console/call:InboxDesk.autoReplies": AUTO_REPLY,
 };

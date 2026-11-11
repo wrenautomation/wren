@@ -17,7 +17,7 @@ const WIDTHS = opt("--w", "1280,390").split(",").map(Number);
 const SHAPES = ["funnels", "attraction", "upsells", "downsells", "continuity", "whole-model"];
 const ids = argv.length
   ? argv
-  : [...SHAPES.map((s) => `wren-map-offer-shapes--${s}`), "wren-map-layers--default"];
+  : [...SHAPES.map((s) => `app-wren-map-offer-shapes--${s}`), "app-wren-map-layers--default"];
 
 const fails = [];
 const fail = (where, id, detail) => {

@@ -63,7 +63,9 @@ function SiteChat({ live }: { live: string | null }) {
           </p>
         </div>
       ) : (
-        <Empty>The chat tag comes from your domain. Set one up above and it shows here.</Empty>
+        <Empty waits>
+          The chat tag comes from your domain. Set one up above and it shows here.
+        </Empty>
       )}
     </Section>
   );
@@ -133,7 +135,7 @@ export function Domain(props: PageProps & { bare?: boolean }) {
         ) : !data ? (
           <Loading lines={3} />
         ) : data.domains.length === 0 ? (
-          <Empty>
+          <Empty waits>
             {data.ready
               ? "No domain yet. Your portal is at app.wrenautomation.com."
               : "Custom domains aren't switched on yet."}

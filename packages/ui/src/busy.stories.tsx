@@ -6,7 +6,7 @@ import { Button, Seg, Tag } from "./controls.js";
 import { Segmented } from "./phone.js";
 
 export default {
-  title: "Parts/Busy",
+  title: "Components/Controls and feedback/Busy",
   id: "busy",
 } satisfies Meta;
 

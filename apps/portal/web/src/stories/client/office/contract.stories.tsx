@@ -7,6 +7,7 @@ const meta: Meta = { title: "Client/Back office/Contract" };
 export default meta;
 
 export const Contract = pageAt("/office/contract", {
+  empty: false,
   answers,
   check: shows("Contract", "Sign the contract"),
 });

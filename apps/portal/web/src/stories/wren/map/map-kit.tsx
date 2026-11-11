@@ -55,7 +55,8 @@ export const SHARED = {
  * panel) is in the browser store, and the call log outlives a story in one frame.
  */
 export const mapAt = (at: string, opts: PageAt = {}) => ({
-  ...pageAt(at, { me: ADMIN, ...opts }),
+  // a diagram, not a list: its empty state has its own stories (loading-and-empty)
+  ...pageAt(at, { me: ADMIN, empty: false, ...opts }),
   beforeEach: () => {
     freshStory();
     forgetMapCalls();

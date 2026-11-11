@@ -16,7 +16,7 @@ import {
 import { fakePlace } from "./fixtures/place.js";
 
 export default {
-  title: "Forms/Accounts",
+  title: "Components/Forms/Accounts",
   id: "accounts",
 } satisfies Meta;
 

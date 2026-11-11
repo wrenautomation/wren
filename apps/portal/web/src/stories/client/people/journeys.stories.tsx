@@ -9,6 +9,8 @@ export default meta;
 /** A person's page leads with their journey: the steps reached, days at the step, owner and fit. */
 export const Default = tidy(
   pageAt("/people/people/1", {
+    // one person's record, not a list
+    empty: false,
     check: async (page) => {
       const steps = await within(page).findByRole("list", { name: "Steps reached" });
       await expect(within(steps).getByText("Booked")).toBeVisible();
@@ -21,6 +23,8 @@ export const Default = tidy(
 /** A journey past its step's limit says so at the step. */
 export const Stale = tidy(
   pageAt("/people/people/2", {
+    // one person's record, not a list
+    empty: false,
     check: async (page) => {
       await expect(await within(page).findByText("19 days here, past its limit")).toBeVisible();
     },
@@ -30,6 +34,8 @@ export const Stale = tidy(
 /** A dropped journey: where it stopped and why. */
 export const Dropped = tidy(
   pageAt("/people/people/3", {
+    // one person's record, not a list
+    empty: false,
     check: async (page) => {
       await expect(await within(page).findByText("No budget this year")).toBeVisible();
     },
@@ -39,6 +45,8 @@ export const Dropped = tidy(
 /** A done journey with five steps and a long source. */
 export const Done = tidy(
   pageAt("/people/people/4", {
+    // one person's record, not a list
+    empty: false,
     check: async (page) => {
       await expect(await within(page).findByText("Proposal sent")).toBeVisible();
     },

@@ -3,7 +3,7 @@
  * you now, on one round 13 graph that follows them. The open chat's runs and runs still going; with
  * none, the newest run. History holds every run.
  */
-import { cx, Empty, Loading } from "@wren/ui";
+import { AskAgent, cx, Empty, Loading } from "@wren/ui";
 import { useMemo } from "react";
 import { useCall } from "../../load.js";
 import { href } from "../../route.js";
@@ -41,7 +41,11 @@ export function LiveRuns({ params, here }: { params: URLSearchParams; here: stri
   if (runs.error && !runs.data) return <NoServe error={runs.error} onRetry={runs.retry} />;
   if (!runs.data) return <Loading shape="cards" lines={3} heading />;
   if (!ids.length)
-    return <Empty title="No runs yet">Ask in the chat; weaver's runs draw here as they go.</Empty>;
+    return (
+      <Empty title="No runs yet" action={<AskAgent setup="weaver" ask="Research: " />}>
+        Ask weaver a question; its runs draw here as they go.
+      </Empty>
+    );
   const from = chat.some((r) => ids.includes(r));
   return (
     <div className="grid min-w-0 gap-3">

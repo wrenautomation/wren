@@ -22,6 +22,7 @@ const links = (scope: ReturnType<typeof within>, name: string) =>
  * from it; their pages sit under a place. A phone has no sidebar, so PhoneDock checks its tabs.
  */
 export const Items = pageAt("/", {
+  empty: false,
   me: ADMIN,
   check: async (page) => {
     if (onPhone()) return;

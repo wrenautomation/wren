@@ -15,7 +15,7 @@ import { SplitPanel, type SplitRow, sliceColor } from "../split.js";
 import { BarsChart, Sparkline, TrendChart } from "./index.js";
 
 export default {
-  title: "Charts/Parts",
+  title: "Components/Charts and graphs/Parts",
   id: "charts",
 } satisfies Meta;
 

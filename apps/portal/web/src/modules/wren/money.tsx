@@ -6,6 +6,7 @@ import type { Row } from "@wren/core/records/serve";
 import {
   ColumnsChart,
   cx,
+  Empty,
   FLAT_HEAD,
   LoadFailed,
   Loading,
@@ -191,7 +192,7 @@ function ByMonth() {
         ) : !load.data ? (
           <Loading shape="rows" lines={3} label="Loading spend by month" />
         ) : !months.length ? (
-          <p className="m-0 text-[13px] text-(--ui-ink-2)">No months closed yet.</p>
+          <Empty waits>No months closed yet. Each month shows here once it closes.</Empty>
         ) : (
           <ColumnsChart
             label="Spend"

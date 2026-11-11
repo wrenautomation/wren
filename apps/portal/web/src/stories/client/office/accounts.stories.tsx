@@ -12,22 +12,33 @@ export const Accounts = pageAt("/office/accounts", { answers, check: shows("Acco
 
 /** Social: each platform's accounts as rows; a TikTok's numbers and newest videos under its row. */
 export const Social = tidy(
-  accountAt("/office/social", async (page) => {
-    await expect(await within(page).findByText("@acme-plumbing")).toBeVisible();
-    await expect(await within(page).findByText("Fix a dripping tap in two minutes")).toBeVisible();
-    await expect(await within(page).findByText(/stopped the sign-in/)).toBeVisible();
-  }),
+  accountAt(
+    "/office/social",
+    async (page) => {
+      await expect(await within(page).findByText("@acme-plumbing")).toBeVisible();
+      await expect(
+        await within(page).findByText("Fix a dripping tap in two minutes"),
+      ).toBeVisible();
+      await expect(await within(page).findByText(/stopped the sign-in/)).toBeVisible();
+    },
+    { empty: false },
+  ),
 );
 
 /** Check (behind ⋯) sends the write; Turn off asks first, then the account leaves. */
-export const SocialActions = accountAt("/office/social", async (page) => {
-  const row = await rowOf(page, "@sam-rivera");
-  await fromMenu(row, /^More for/, "Check");
-  await waitFor(() => expect(sent("social/check")).toHaveLength(1));
-  await yes(() => fromMenu(row, /^More for/, "Turn off"));
-  await waitFor(() => expect(within(page).queryByText("@sam-rivera")).toBeNull());
-  await expect(sent("social/disconnect")).toHaveLength(1);
-});
+export const SocialActions = accountAt(
+  "/office/social",
+  async (page) => {
+    const row = await rowOf(page, "@sam-rivera");
+    await fromMenu(row, /^More for/, "Check");
+    await waitFor(() => expect(sent("social/check")).toHaveLength(1));
+    await yes(() => fromMenu(row, /^More for/, "Turn off"));
+    await waitFor(() => expect(within(page).queryByText("@sam-rivera")).toBeNull());
+    await expect(sent("social/disconnect")).toHaveLength(1);
+  },
+  // the platforms are a fixed catalog, never empty in prod
+  { empty: false },
+);
 
 /** Mail: a row per mailbox with its state; what blocks one and its next step sit under it. */
 export const Mail = accountAt("/office/mail", async (page) => {

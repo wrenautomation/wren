@@ -23,7 +23,7 @@ import {
 } from "./index.js";
 
 export default {
-  title: "Charts/All charts",
+  title: "Components/Charts and graphs/All charts",
   id: "charts-all",
   parameters: { layout: "fullscreen" },
 } satisfies Meta;

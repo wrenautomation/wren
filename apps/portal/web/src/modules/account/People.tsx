@@ -56,7 +56,7 @@ export function People(props: PageProps & { bare?: boolean }) {
         ) : !people.data ? (
           <Loading lines={3} />
         ) : people.data.people.length === 0 ? (
-          <Empty>Invite someone below and they show here.</Empty>
+          <Empty waits>Invite someone below and they show here.</Empty>
         ) : (
           <PageRows<Member>
             label="People"

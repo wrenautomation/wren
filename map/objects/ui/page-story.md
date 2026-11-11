@@ -24,7 +24,7 @@ Layout and organization changes need the shell, the router and the reads togethe
 - Answers: `web/src/mocks/data/`: `index.ts` (the one table every story reads), `shell.ts` (account, bells, badges), `records.ts` (every records page: the server's types from `virtual:record-types`, rows by field kind), `apps.ts` and `client-pages.ts` (each page's own first read), `me.ts`, one file per domain (`map.ts`, `research.ts`, `variants.ts`, `agent/` tapes). Synthetic only
 - Messy data is the default (`setMessy`, `web/src/mocks/api.ts`; the `data` toolbar): every answer is stretched to prod's look (long and non-Latin text). `tidy(story)` pins the hand-made table for a check that reads a hand-made word
 - Sidebar: `Wren/<Place>/<Group>`, `Client/<Place>/<Group>`, as the portal's sidebar (WA-1160). No meta `id`: ids follow titles.
-- Stories: `web/src/stories/**/*.stories.tsx`, listed in the hub's Page stories table. Pending and failed reads are tested once per template (team: `wren-back-office-money--spend-pending`, `-fails`; client: `client-project--plan-pending`, `-fails`)
+- Stories: `web/src/stories/**/*.stories.tsx`, listed in the hub's Page stories table. Pending and failed reads are tested once per template (team: `app-wren-back-office-money--spend-pending`, `-fails`; client: `app-client-project--plan-pending`, `-fails`)
 - Guard: `web/src/stories-cover.test.ts` (client files under `stories/client/`) lists every page of `TEAM_PLACES`, `CLIENT_PLACES` and Research and fails on one with no story address, or a story at a moved address
 - Checks: `stories:build` in `gates.sh stories` (not in lint since 10-22); `test:stories` (`wren-stories`) in `gates.sh visual` and CI `test:stories`
 

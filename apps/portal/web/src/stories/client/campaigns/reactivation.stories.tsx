@@ -19,9 +19,9 @@ export const Replies = pageAt("/campaigns/replies", {
   check: shows("Replies", "Mark booked"),
 });
 
-export const Setup = pageAt("/campaigns/setup", { answers, check: shows("Setup") });
+export const Setup = pageAt("/campaigns/setup", { empty: false, answers, check: shows("Setup") });
 
-export const Run = pageAt("/campaigns/run", { answers, check: shows("Run") });
+export const Run = pageAt("/campaigns/run", { empty: false, answers, check: shows("Run") });
 
 export const People = pageAt("/campaigns/people", {
   answers,
@@ -32,6 +32,7 @@ export const Keep = pageAt("/campaigns/keep", { answers, check: shows("Keep") })
 
 /** The sample company's own page, from the top bar's chip. */
 export const Real = pageAt("/campaigns/real", {
+  empty: false,
   me: { ...OWNER, demo: true },
   answers,
   check: shows("What's real"),

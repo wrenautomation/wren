@@ -20,6 +20,7 @@ import {
   useHeld,
   useRun,
 } from "./action.js";
+import { AskAgent, useChatHere } from "./agent-hand.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
 import { listChanged } from "./data/delta.js";
@@ -296,7 +297,7 @@ function SortHead({
 
 /** A page whose record isn't served here: its part isn't installed. Said once, not a skeleton forever. */
 export function NotHere() {
-  return <Empty>This page fills once its part is installed.</Empty>;
+  return <Empty waits>This page fills once its part is installed.</Empty>;
 }
 
 /** The List template: views as tabs, search, a chip per filter, sortable columns, CSV, ↑/↓. */
@@ -527,6 +528,7 @@ function List({
   useLastUsed(api.keep, meta, place, saved);
   const searchable = meta.fields.some((f) => f.searchable);
   const narrowed = !!ask.q || !!ask.where;
+  const chat = useChatHere();
   const [cursor, setCursor] = useState(-1);
   const [busy, setBusy] = useState<string | null>(null);
   /** The row a box is open under: an action's words (a reason, a reply), or the page's reply. */
@@ -1028,28 +1030,35 @@ function List({
                   }
                 />
                 {page.data && !rows.length ? (
-                  <div className="grid justify-items-start gap-2 px-3 py-10 text-[14px] text-(--ui-ink-2)">
+                  <Empty
+                    className="mx-3 my-6"
+                    // no view with rows and no chat to ask (a client's): Wren fills it
+                    waits={!narrowed && !chat && !viewWithRows(meta, ask.view, page.data.counts)}
+                    action={
+                      narrowed ? (
+                        <a
+                          href={place.link({
+                            q: null,
+                            ...Object.fromEntries(filtersOf(meta).map((f) => [f.key, null])),
+                          })}
+                          className="text-[13px] text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2"
+                        >
+                          Clear filters
+                        </a>
+                      ) : (
+                        <ElseWhere
+                          meta={meta}
+                          current={ask.view}
+                          counts={page.data.counts}
+                          place={place}
+                          many={many}
+                          chat={chat}
+                        />
+                      )
+                    }
+                  >
                     {narrowed ? `No ${many} match these filters.` : emptyOf(empty, ask.view, many)}
-                    {!narrowed ? (
-                      <ElseWhere
-                        meta={meta}
-                        current={ask.view}
-                        counts={page.data.counts}
-                        place={place}
-                      />
-                    ) : null}
-                    {narrowed ? (
-                      <a
-                        href={place.link({
-                          q: null,
-                          ...Object.fromEntries(filtersOf(meta).map((f) => [f.key, null])),
-                        })}
-                        className="text-[13px] text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2"
-                      >
-                        Clear filters
-                      </a>
-                    ) : null}
-                  </div>
+                  </Empty>
                 ) : null}
               </div>
             )}
@@ -1141,27 +1150,44 @@ function RowReply({
   );
 }
 
-/** An empty view points at the first view that has rows: "No DM waits on you." then "All 12". */
+/** The first view other than `current` that has rows. */
+const viewWithRows = (
+  meta: RecordMeta,
+  current: string | undefined,
+  counts: Record<string, number> | undefined,
+) => {
+  const i = meta.views.findIndex((v) => v.id !== current && (counts?.[v.id] ?? 0) > 0);
+  const v = meta.views[i];
+  return v && counts ? { v, i, n: counts[v.id] ?? 0 } : null;
+};
+
+/** An empty view points at the first view that has rows ("All 12"); none has any: ask the agent to fill it. */
 function ElseWhere({
   meta,
   current,
   counts,
   place,
+  many,
+  chat,
 }: {
   meta: RecordMeta;
   current: string | undefined;
   counts: Record<string, number> | undefined;
   place: Place;
+  many: string;
+  chat: boolean;
 }) {
-  const i = meta.views.findIndex((v) => v.id !== current && (counts?.[v.id] ?? 0) > 0);
-  const v = meta.views[i];
-  if (!v || !counts) return null;
+  const at = viewWithRows(meta, current, counts);
+  if (!at)
+    return chat ? (
+      <AskAgent ask={`${cap(many)} is empty. Add some, or tell me what fills it.`} />
+    ) : null;
   return (
     <a
-      href={place.link({ view: i === 0 ? null : v.id, pg: null, sort: null })}
+      href={place.link({ view: at.i === 0 ? null : at.v.id, pg: null, sort: null })}
       className="inline-flex items-center gap-1 text-[13px] text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2 hover:decoration-current"
     >
-      {v.label} <span className="text-(--ui-ink-2)">{num(counts[v.id] ?? 0)}</span>
+      {at.v.label} <span className="text-(--ui-ink-2)">{num(at.n)}</span>
       <Icon name="arrow" className="size-3.5" />
     </a>
   );

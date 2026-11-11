@@ -7,6 +7,7 @@
 import {
   AgentChatsMenu,
   Alert,
+  type Hand,
   Loading,
   PANEL,
   PanelAct,
@@ -21,7 +22,6 @@ import { useCall } from "../../load.js";
 import { keep, recall } from "../../local.js";
 import { AgentChat, ChatTitle } from "./chat.js";
 import { relaySessions, relaySetups } from "./connect.js";
-import type { Hand } from "./drive.js";
 import { closeText } from "./thread.js";
 import { pageToken } from "./use-agent.js";
 
@@ -176,10 +176,10 @@ function PanelChat({
   const held = useRef<string | undefined>(undefined);
   const setup = (running ? named(held.current) : undefined) ?? wanted;
   held.current = setup?.name;
-  // a hand-off opens its own setup's chat, once this one is idle
-  const lost = !!hand && !!setups.data && !named(hand.setup);
+  // a hand-off opens its own setup's chat, once this one is idle; one with no setup takes this one
+  const lost = !!hand?.setup && !!setups.data && !named(hand.setup);
   useEffect(() => {
-    if (!hand || running || lost || !setups.data || setup?.name === hand.setup) return;
+    if (!hand?.setup || running || lost || !setups.data || setup?.name === hand.setup) return;
     put({ setup: hand.setup, for: under });
   });
   // the same list the Ask page reads: a name given in one shows in the other
@@ -224,7 +224,7 @@ function PanelChat({
       chat={chat}
       model={model}
       onModel={(v) => put({ ...pick, models: { ...tabRead().models, [setup.name]: v } })}
-      hand={hand?.setup === setup.name ? hand : null}
+      hand={hand && (!hand.setup || hand.setup === setup.name) ? hand : null}
       owner={owner}
       page={page}
       className="min-h-0 flex-1"

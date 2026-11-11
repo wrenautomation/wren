@@ -4,8 +4,16 @@ import { ACCOUNT_ANSWERS, ACCOUNT_CALLS, forgetAccount } from "../../../mocks/da
 import { pageAt } from "../../../mocks/page.js";
 
 /** A page on the account answers; each story starts from the same lists. */
-export const accountAt = (at: string, check?: (page: HTMLElement) => void | Promise<void>) => ({
-  ...pageAt(at, { answers: ACCOUNT_ANSWERS, ...(check ? { check } : {}) }),
+export const accountAt = (
+  at: string,
+  check?: (page: HTMLElement) => void | Promise<void>,
+  { empty }: { empty?: false } = {},
+) => ({
+  ...pageAt(at, {
+    answers: ACCOUNT_ANSWERS,
+    ...(check ? { check } : {}),
+    ...(empty === false ? { empty } : {}),
+  }),
   beforeEach: [freshStory, forgetAccount],
 });
 

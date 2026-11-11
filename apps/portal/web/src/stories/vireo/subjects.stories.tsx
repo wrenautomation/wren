@@ -45,6 +45,7 @@ export const FolderOpen = {
 /** A subject's generation tree: four rounds, one open (blind). A batch's name opens the batch. */
 export const Tree = pageAt("/variants/subjects?subject=3", {
   me: ADMIN,
+  empty: false,
   check: async (page) => {
     const [first] = await within(page).findAllByRole(
       "link",
@@ -62,21 +63,29 @@ export const Tree = pageAt("/variants/subjects?subject=3", {
 /** The subject has not come back: a ghost in the tree's shape. */
 export const TreeLoading = pageAt("/variants/subjects?subject=3", {
   me: ADMIN,
+  empty: false,
   answers: { "variants/subject": null },
 });
 
 /** Notes only, no calls: grew and unmarked carry the tree (prod's shape). */
-export const TreeNotes = pageAt("/variants/subjects?subject=4", { me: ADMIN });
+export const TreeNotes = pageAt("/variants/subjects?subject=4", { me: ADMIN, empty: false });
 
 /** One sample's line only (`branch=`): its parents up to the brief and all it grew. */
-export const TreeBranch = pageAt("/variants/subjects?subject=3&branch=14", { me: ADMIN });
+export const TreeBranch = pageAt("/variants/subjects?subject=3&branch=14", {
+  me: ADMIN,
+  empty: false,
+});
 
 /** A folded sample (`fold=`): what grew only from it goes to "+N". */
-export const TreeFold = pageAt("/variants/subjects?subject=4&fold=109", { me: ADMIN });
+export const TreeFold = pageAt("/variants/subjects?subject=4&fold=109", {
+  me: ADMIN,
+  empty: false,
+});
 
 /** A click on a sample opens it in place, beside its card (a sheet on a phone); Esc closes it. */
 export const TreeOpen = pageAt("/variants/subjects?subject=3", {
   me: ADMIN,
+  empty: false,
   check: async (page) => {
     const nodes = await within(page).findAllByRole(
       "button",

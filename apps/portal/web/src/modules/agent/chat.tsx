@@ -9,17 +9,18 @@ import {
   AgentTasks,
   AgentThread,
   cx,
+  type Hand,
   Icon,
   Input,
   Loading,
   modelName,
   type PickOption,
+  takeHand,
 } from "@wren/ui";
 import { useEffect, useRef, useState } from "react";
 import { linkPreview } from "../../api.js";
 import { keep, recall } from "../../local.js";
 import { relayFile, relayRename, type SetupInfo } from "./connect.js";
-import { type Hand, takeHand } from "./drive.js";
 import { ACCEPT } from "./files.js";
 import { pageToken, useAgent } from "./use-agent.js";
 import { VIEWS } from "./views.js";
@@ -218,7 +219,7 @@ export function AgentChat({
   head?: (first: string | undefined) => React.ReactNode;
   /** The page open beside the chat: a chip in the box, and a line in the turn. */
   page?: string | undefined;
-  /** A turn a page hands this chat: sent once, as the person's. */
+  /** A turn a page hands this chat: sent once, as the person's; a `draft` is typed into the box only. */
   hand?: Hand | null;
   onSession: (id: string) => void;
   /** A turn ended: the chat's title and time change in the list. */
@@ -260,8 +261,15 @@ export function AgentChat({
   const sendPage = page && page !== dropped ? page : undefined;
   const send = useRef(a.send);
   send.current = a.send;
+  const [draft, setDraft] = useState<{ id: number; text: string } | null>(null);
   useEffect(() => {
-    if (!hand || a.loading || a.running) return;
+    if (!hand || a.loading) return;
+    if (hand.draft) {
+      takeHand(hand.id);
+      setDraft({ id: hand.id, text: hand.text });
+      return;
+    }
+    if (a.running) return;
     takeHand(hand.id);
     send.current(hand.text, [], sendPage);
   }, [hand, a.loading, a.running, sendPage]);
@@ -290,6 +298,7 @@ export function AgentChat({
         error={a.error}
         closed={a.closed}
         onSend={(text, files) => a.send(text, files, sendPage)}
+        draft={draft}
         files={{ accept: ACCEPT, ready: a.ready }}
         context={sendPage ? { label: sendPage, onDrop: () => setDropped(sendPage) } : null}
         onStop={a.stop}

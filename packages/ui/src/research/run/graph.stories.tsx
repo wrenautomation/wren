@@ -14,7 +14,7 @@ import {
 import { RunGraph } from "./graph.js";
 
 export default {
-  title: "Charts/Weaver run graph",
+  title: "Components/Charts and graphs/Weaver run graph",
   id: "research-run",
   component: RunGraph,
   parameters: { layout: "padded" },

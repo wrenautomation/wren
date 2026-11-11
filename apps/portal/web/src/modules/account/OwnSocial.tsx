@@ -259,7 +259,7 @@ export function OwnSocial({
           />
         ))
       ) : (
-        <Empty>Wren posts to no channels yet.</Empty>
+        <Empty waits>Wren posts to no channels yet. Each one connected lists here.</Empty>
       )}
       {own.off.length ? <p className={QUIET}>Off: {own.off.join(", ")}.</p> : null}
     </>

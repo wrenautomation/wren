@@ -5,7 +5,7 @@ import { PRESETS, themeVars } from "../theme.js";
 import { Graph } from "./index.js";
 
 export default {
-  title: "Charts/Ribbons",
+  title: "Components/Charts and graphs/Ribbons",
   id: "graph-ribbons",
 } satisfies Meta;
 

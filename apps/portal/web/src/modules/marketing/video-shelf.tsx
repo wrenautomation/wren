@@ -90,7 +90,7 @@ export function VideoShelf({ params }: { params: URLSearchParams }) {
       ) : !load.data ? (
         <Loading lines={3} />
       ) : rows.length === 0 ? (
-        <Empty>
+        <Empty waits>
           No recording yet. Record with OBS or Cap on the Mac; it shows here a minute after you
           stop.
         </Empty>

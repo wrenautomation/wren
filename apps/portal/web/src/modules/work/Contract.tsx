@@ -44,7 +44,7 @@ export function Contract(props: PageProps) {
       <>
         <PageHeader title="Contract" actions={back} />
         {c.error.status === 404 ? (
-          <Empty>This work started without a contract.</Empty>
+          <Empty waits>This work started without a contract.</Empty>
         ) : (
           <Alert onRetry={c.error.status === 403 ? undefined : c.retry}>
             {c.error.status === 403

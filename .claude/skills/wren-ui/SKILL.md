@@ -29,9 +29,9 @@ Run the full gate (`./scripts/gates.sh all`) once, at hand-off. Not in the loop.
 For a whole page, the shell, or how apps and pages are laid out. The real app runs on a fake server: no backend, no sign-in.
 
 1. Use the same Storybook (Loop, step 3). The pages sit under Wren and Client.
-2. Open a page. The sidebar copies the portal's: `Wren/<place>/<group>` (Wren's team) and `Client/<place>/<group>` (a client's owner). A story id follows its title, for example `/?path=/story/client-campaigns-reactivation--default`. The hub's Page stories table lists every file. Links move inside the story.
+2. Open a page. The sidebar puts the portal under `App/`, after its Intro: `App/Wren/<place>/<group>` (Wren's team) and `App/Client/<place>/<group>` (a client's owner). The kit's groups follow: Templates, Components, Lab. A story id follows its title, for example `/?path=/story/app-client-campaigns-reactivation--default`. The hub's Page stories table lists every file. Links move inside the story.
 3. Edit the page or part. Storybook reloads it.
-4. Screenshot: `pnpm --filter @wren/portal stories:shot --width 390 --dark client-people-lists--default`.
+4. Screenshot: `pnpm --filter @wren/portal stories:shot --width 390 --dark app-client-people-lists--default`.
 5. A new page story: `export const X = pageAt("/place/page?view=all")` in its group's file, `apps/portal/web/src/stories/<client|wren>/<place>/<group>.stories.tsx` (Wren's team: `{ me: ADMIN }`). Name it for what it shows, without the group's name (`Spend`, not `OfficeSpend`). States: `{ mode: "pending" }`, `{ mode: "fails" }`. One answer swapped: `{ answers: { "<service>/<route>": body } }`. `check` runs once the reads are in; `lands` fails a story that opens another page. Data is Messy unless the story pins `tidy(story)`. A page with no story fails `stories-cover.test.ts`.
 6. The console says `unmocked: <service>/<route>` for a read with no answer. Its test fails too. Add the answer in `apps/portal/web/src/mocks/data/`, typed with `serve<Api>(service, {...})` where the server exports its API type. Synthetic data only.
 7. Test one file: `pnpm --filter @wren/portal test:stories web/src/stories/<file>` (it takes the checks lock itself). Then `./scripts/gates.sh ui`.

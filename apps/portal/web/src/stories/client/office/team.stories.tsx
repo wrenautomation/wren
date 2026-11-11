@@ -45,6 +45,6 @@ export const Grants = pageAt("/office/grants", {
   check: shows("Grants", "Add grant"),
 });
 
-export const You = pageAt("/office/you", { answers, check: shows("Your settings") });
+export const You = pageAt("/office/you", { empty: false, answers, check: shows("Your settings") });
 
-export const Look = pageAt("/office/look", { answers, check: shows("Look") });
+export const Look = pageAt("/office/look", { empty: false, answers, check: shows("Look") });

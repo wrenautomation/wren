@@ -13,7 +13,7 @@ import {
 import { type AgentMessage, AgentThread, type AgentThreadProps } from "./agent-thread.js";
 
 export default {
-  title: "Parts/Agent thread",
+  title: "Components/Agent chat/Thread",
   id: "agent-thread",
 } satisfies Meta;
 

@@ -11,7 +11,7 @@ import { RecordList } from "./records.js";
 import { Age, Rows, type RowsLine, type RowsWait } from "./rows.js";
 
 export default {
-  title: "Lists/Rows",
+  title: "Components/Lists/Rows",
   id: "rows",
   parameters: { layout: "fullscreen" },
 } satisfies Meta;

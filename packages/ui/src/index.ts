@@ -35,6 +35,14 @@ export {
   type ChatFolders,
 } from "./agent-chats.js";
 export {
+  AskAgent,
+  type Hand,
+  handToChat,
+  setChatHere,
+  takeHand,
+  useHand,
+} from "./agent-hand.js";
+export {
   type AgentCommand,
   AgentPick,
   AgentStatus,

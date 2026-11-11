@@ -8,7 +8,7 @@ import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import type { Me } from "../api.js";
 import { PortalRouter } from "../router.js";
-import { type Answers, fakeApi, freshStory, type Mode, settled } from "./api.js";
+import { type Answers, dataLook, fakeApi, freshStory, type Mode, settled } from "./api.js";
 import { ANSWERS } from "./data/index.js";
 import { OWNER } from "./data/me.js";
 
@@ -23,6 +23,36 @@ export interface PageAt {
   check?: (page: HTMLElement) => void | Promise<void>;
   /** Where the page must land, when not at `at` itself (an old address); false: anywhere. */
   lands?: string | false;
+  /** False: the page holds no list, so Empty mode has no empty state to check (a form, a setting). */
+  empty?: false;
+}
+
+/** Words an empty state never says alone (ui-design SV-8): they teach nothing. */
+const BARE = /^(nothing here( yet)?|no data|no results|empty)\.?$/i;
+
+/**
+ * Empty mode's check (ui-design SV-8): the page did not crash, and shows an empty state that
+ * teaches: a line on what will be here and one action that fills it. A state someone else fills
+ * (`Empty waits`, Wren for a client) needs no action.
+ */
+async function emptyTeaches(page: HTMLElement) {
+  await expect(within(page).queryByText(/something went wrong/i)).toBeNull();
+  const states = await waitFor(() => {
+    const all = [...page.querySelectorAll<HTMLElement>("[data-empty]")];
+    if (!all.length) {
+      const heads = [...page.querySelectorAll("h1, h2")].map((h) => h.textContent?.trim());
+      throw new Error(`Empty mode shows no empty state ([data-empty]) under: ${heads.join(" | ")}`);
+    }
+    return all;
+  });
+  // an Empty holds its line in a <p>; a bare line tagged data-empty is its own
+  const lines = states.map((s) => (s.querySelector("p") ?? s).textContent?.trim() ?? "");
+  for (const line of lines)
+    if (!line || BARE.test(line))
+      throw new Error(`an empty state says "${line}": say what fills it`);
+  const acts = states.filter((s) => s.dataset.empty !== "waits");
+  if (acts.length && !acts.some((s) => s.querySelector("button, a[href]")))
+    throw new Error(`no empty state gives the action that fills it: "${lines.join('" | "')}"`);
 }
 
 // the story's own history: the play reads where the router landed
@@ -51,7 +81,7 @@ async function landedAt(want: string) {
 /** The story for the portal at `at` (`/reactivation/people?status=open`). */
 export function pageAt(
   at: string,
-  { me = OWNER, answers = {}, mode, check, lands }: PageAt = {},
+  { me = OWNER, answers = {}, mode, check, lands, empty }: PageAt = {},
 ): StoryObj {
   return {
     render: () => <Page at={at} />,
@@ -62,7 +92,15 @@ export function pageAt(
       : {
           play: async ({ canvasElement }) => {
             await settled();
+            const bare = dataLook() === "empty";
+            // Empty pass (story-tests.ts): a page with no list may route elsewhere when its records go
+            if (bare && empty === false) return;
             if (lands !== false) await landedAt(lands ?? at);
+            // a failed read shows its error, not an empty state
+            if (bare) {
+              if (mode === undefined) await emptyTeaches(canvasElement);
+              return;
+            }
             await check?.(canvasElement);
           },
         }),

@@ -6,7 +6,7 @@ import { WORST } from "./fixtures/worst.js";
 import type { FolderActs, FolderNode } from "./folders.js";
 
 export default {
-  title: "Parts/Agent chats",
+  title: "Components/Agent chat/Chats",
   id: "agent-chats",
 } satisfies Meta;
 

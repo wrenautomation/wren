@@ -5,7 +5,7 @@ import { LEAD_META, LEAD_NEEDS, LEADS, useRecordsDemo, WORST_LEADS } from "./fix
 import { Panel, RecordList, type Late as Watched } from "./records.js";
 
 export default {
-  title: "Lists/Records",
+  title: "Components/Lists/Records",
   id: "records",
   parameters: { layout: "fullscreen" },
 } satisfies Meta;

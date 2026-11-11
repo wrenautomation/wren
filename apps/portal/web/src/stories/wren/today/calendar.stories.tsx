@@ -6,7 +6,7 @@ import { pageAt, shows } from "../../../mocks/page.js";
 const meta: Meta = { title: "Wren/Today/Calendar" };
 export default meta;
 
-export const Default = pageAt("/today/calendar", { me: ADMIN });
+export const Default = pageAt("/today/calendar", { empty: false, me: ADMIN });
 
 export const Calls = pageAt("/today/calls", { me: ADMIN, check: shows("Calls") });
 

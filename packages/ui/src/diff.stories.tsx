@@ -3,7 +3,7 @@ import { Diff } from "./diff.js";
 import { DIFF_A, DIFF_B, DIFF_SAME, WORST_A, WORST_B } from "./fixtures/diff.js";
 
 export default {
-  title: "Parts/Diff",
+  title: "Components/Controls and feedback/Diff",
   id: "diff",
 } satisfies Meta;
 

@@ -54,7 +54,8 @@ const story = (
   const chat = u.searchParams.get("chat");
   u.searchParams.delete("setup");
   u.searchParams.delete("chat");
-  const base = pageAt(u.pathname + u.search, { me: ADMIN, check });
+  // tests the chat, not the page behind it
+  const base = pageAt(u.pathname + u.search, { me: ADMIN, check, empty: false });
   const relay = fakeRelay({
     tape,
     library: LIBRARY,

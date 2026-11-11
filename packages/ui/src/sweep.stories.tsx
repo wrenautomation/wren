@@ -5,7 +5,7 @@ import { FRAME, GROUP_LABEL } from "./layout.js";
 import { Sweep } from "./sweep.js";
 
 export default {
-  title: "Parts/Leaf and sweep",
+  title: "Components/Shell and nav/Leaf and sweep",
   id: "leaf-and-sweep",
 } satisfies Meta;
 

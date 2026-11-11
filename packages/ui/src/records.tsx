@@ -28,7 +28,7 @@ export {
   RecordList,
   TierLabel,
 } from "./records-list.js";
-export { Quiet, RecordBody, RecordPage } from "./records-page.js";
+export { RecordBody, RecordPage } from "./records-page.js";
 export type { PeekWire } from "./records-panel.js";
 export { Kbd, Panel } from "./records-panel.js";
 export { swipesOf, withReply } from "./records-swipes.js";

@@ -4,7 +4,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { PANEL, PanelAct, PanelClose, SidePanel } from "./side-panel.js";
 
 export default {
-  title: "Parts/Side panel",
+  title: "Components/Agent chat/Side panel",
   id: "side-panel",
 } satisfies Meta;
 

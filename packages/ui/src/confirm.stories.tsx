@@ -5,7 +5,7 @@ import { useConfirm } from "./confirm.js";
 import { Button } from "./controls.js";
 
 export default {
-  title: "Parts/Confirm",
+  title: "Components/Controls and feedback/Confirm",
   id: "confirm",
 } satisfies Meta;
 

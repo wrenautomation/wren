@@ -77,7 +77,8 @@ export function Engagements({
   if (work.error && !work.data) return <LoadFailed error={work.error} onRetry={work.retry} />;
   if (!work.data) return <Loading lines={8} />;
   const es = work.data.engagements;
-  if (es.length === 0) return <Empty>Nothing started yet. Your plan shows here on day one.</Empty>;
+  if (es.length === 0)
+    return <Empty waits>Nothing started yet. Your plan shows here on day one.</Empty>;
   if (es.length === 1 && es[0]) return children(es[0]);
   return es.map((e) => (
     <section key={e.id} className="mt-10 first:mt-0">

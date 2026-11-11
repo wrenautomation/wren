@@ -10,6 +10,7 @@ import { CALL_OUTCOME_LABELS, type MeetingOutcome } from "@wren/core/calls";
 import type { RecordMeta } from "@wren/core/records";
 import {
   Button,
+  Empty,
   LoadFailed,
   Loading,
   type RecordActs,
@@ -668,7 +669,8 @@ function Agenda({
     return out;
   }, [days, calls, now]);
   const count = lines.filter((l) => l.kind === "row").length;
-  if (!count) return <p className="text-[14px] text-(--ui-ink-2)">No calls in these 30 days.</p>;
+  if (!count)
+    return <Empty waits>No calls in these 30 days. A call booked from your link lands here.</Empty>;
   return (
     <PageRows<Call>
       label="calls"

@@ -1,7 +1,8 @@
 /**
  * The portal Storybook's preview: `@wren/ui`'s frame over the app's stylesheet, and a fake server
  * (MSW) started before each story. A story's answers are `parameters.msw` (`web/src/mocks/`).
- * The `data` toolbar's Messy answers every call as prod looks (`setMessy`, mocks/api.ts).
+ * The `data` toolbar: Messy answers every call as prod looks, Empty with no records (`setData`,
+ * mocks/api.ts).
  * The sidebar follows the portal's: Wren's places and their groups, Weaver, Vireo, then a
  * client's; the ui parts follow in ui's own groups (dev server only, main.ts). A story's id comes
  * from its title (`stories/<place>/<group>/<file>`), so it moves when the file does.
@@ -12,7 +13,7 @@ import "../web/src/app.css";
 import type { Decorator, Preview } from "@storybook/react-vite";
 import { preview } from "@wren/ui/storybook/frame";
 import { mswLoader } from "msw-storybook-addon/csf3";
-import { setMessy } from "../web/src/mocks/api.js";
+import { type DataLook, setData } from "../web/src/mocks/api.js";
 
 if (window.parent !== window && new URLSearchParams(location.search).has("kestrel"))
   window.addEventListener(
@@ -33,8 +34,10 @@ if (window.parent !== window && new URLSearchParams(location.search).has("kestre
     true,
   );
 
-const data: Decorator = (Story, { globals }) => {
-  setMessy(globals.data === "messy");
+const data: Decorator = (Story, ctx) => {
+  // the Empty pass wins over a story's own `data: "tidy"` (story-tests.ts)
+  const pass = import.meta.env.STORY_PASS_DATA as string | undefined;
+  setData(pass === "empty" ? "empty" : ((ctx.globals.data as DataLook | undefined) ?? "messy"));
   return <Story />;
 };
 
@@ -44,12 +47,13 @@ export default {
   globalTypes: {
     ...preview.globalTypes,
     data: {
-      description: "The fake server's data: tidy, or as messy as prod",
+      description: "The fake server's data: tidy, as messy as prod, or no records",
       toolbar: {
         title: "Data",
         items: [
           { value: "tidy", title: "Tidy" },
           { value: "messy", title: "Messy" },
+          { value: "empty", title: "Empty" },
         ],
         dynamicTitle: true,
       },
@@ -61,56 +65,69 @@ export default {
     ...preview.parameters,
     options: {
       storySort: {
-        // the portal's sidebar order (modules/places.ts)
+        // App: the portal's sidebar order (modules/places.ts); then the kit's
         order: [
-          "Wren",
+          "App",
           [
-            "Shell",
+            "Intro",
+            "Wren",
+            [
+              "Shell",
+              "Agent chat",
+              "Map",
+              [
+                "Overview",
+                "Loading and empty",
+                "Panels",
+                "Focus",
+                "Layers",
+                "History",
+                "Drafts",
+                "Import and export",
+                "Offer shapes",
+                "Offers",
+              ],
+              "Today",
+              ["Overview", "Approve and messages", "Mail", "Calendar"],
+              "Campaigns",
+              ["Overview", "Content", "Outreach", "Cold email"],
+              "People",
+              "Back office",
+              ["Money", "Team", "Workspace"],
+            ],
+            "Weaver",
+            "Vireo",
+            ["Batches", "Projects"],
+            "Client",
+            [
+              "Today",
+              "Project",
+              "Campaigns",
+              ["Reactivation", "Content"],
+              "People",
+              ["Lists", "Journeys"],
+              "Back office",
+              ["Account", "Contract", "Money", "Accounts", "Team"],
+              "States",
+            ],
+          ],
+          // the kit's order, as in packages/ui/.storybook/preview.tsx (Storybook reads it statically)
+          "Templates",
+          ["Intro", "*"],
+          "Components",
+          [
+            "Intro",
+            "Shell and nav",
+            "Lists",
+            "Forms",
+            "Controls and feedback",
+            "Charts and graphs",
+            ["All charts", "Dashboard", "*"],
             "Agent chat",
             "Map",
-            [
-              "Overview",
-              "Loading and empty",
-              "Panels",
-              "Focus",
-              "Layers",
-              "History",
-              "Drafts",
-              "Import and export",
-              "Offer shapes",
-              "Offers",
-            ],
-            "Today",
-            ["Overview", "Approve and messages", "Mail", "Calendar"],
-            "Campaigns",
-            ["Overview", "Content", "Outreach", "Cold email"],
-            "People",
-            "Back office",
-            ["Money", "Team", "Workspace"],
           ],
-          "Weaver",
-          "Vireo",
-          ["Batches", "Projects"],
-          "Client",
-          [
-            "Today",
-            "Project",
-            "Campaigns",
-            ["Reactivation", "Content"],
-            "People",
-            ["Lists", "Journeys"],
-            "Back office",
-            ["Account", "Contract", "Money", "Accounts", "Team"],
-            "States",
-          ],
-          // packages/ui/.storybook/preview.tsx
-          "Parts",
-          "Forms",
-          "Lists",
-          "Charts",
-          ["Dashboard", "*"],
-          "Pages",
-          "Orrery",
+          "Lab",
+          ["Intro", "*"],
         ],
       },
     },

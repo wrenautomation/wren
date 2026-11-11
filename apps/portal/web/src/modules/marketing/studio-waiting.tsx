@@ -531,7 +531,9 @@ export function WaitingBoard(
       ) : !ideas ? (
         <Loading shape="rows" lines={5} />
       ) : ideas.length === 0 ? (
-        <Empty>{only ? `No ${nameOf(only)} draft waits on you.` : "No draft waits on you."}</Empty>
+        <Empty waits>
+          {only ? `No ${nameOf(only)} draft waits on you.` : "No draft waits on you."}
+        </Empty>
       ) : (
         <div className={cx(CARD, "overflow-hidden max-sm:[border-radius:6px_20px]")}>
           <Rows<Waiting>

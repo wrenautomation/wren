@@ -57,7 +57,7 @@ export function ClientAccounts({ client }: { client: string }) {
           ]}
         />
       ) : (
-        <Empty>No accounts yet.</Empty>
+        <Empty waits>No accounts yet. Each one you connect lists here.</Empty>
       )}
       <div className={TOOLS}>
         <ButtonLink href={`/office/accounts${q}`} size="dense" tone="secondary" arrow>

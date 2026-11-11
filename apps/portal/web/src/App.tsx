@@ -34,11 +34,13 @@ import {
   ShowRawErrors,
   SnippetsProvider,
   type SnippetsSource,
+  setChatHere,
   type Theme,
   Toasts,
   themeVars,
   togglePin,
   useDisplay,
+  useHand,
   usePref,
   type Viewer,
 } from "@wren/ui";
@@ -61,7 +63,7 @@ import { prefetchMap } from "./map/read.js";
 import { stationItems } from "./map/stations.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
 import { ownerOf } from "./modules/agent/chat.js";
-import { useHand, usePageContextText } from "./modules/agent/drive.js";
+import { usePageContextText } from "./modules/agent/drive.js";
 import { AgentPanel, useAgentPanel } from "./modules/agent/panel.js";
 import { appsIn, MODULES } from "./modules/index.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
@@ -297,6 +299,11 @@ export function App() {
   useEffect(() => {
     if (hand) openAgent({ open: true });
   }, [hand, openAgent]);
+  // an empty state's Ask button shows only where the panel can take it (AskAgent)
+  useEffect(() => {
+    setChatHere(team);
+    return () => setChatHere(false);
+  }, [team]);
   const onDemo = me.data ? me.data.demo : null;
   const clients = me.data?.clients ?? [];
   const current = wren

@@ -135,7 +135,7 @@ const TASKS: Task[] = [
   },
 ];
 
-export const Place = pageAt("/map", { me: ADMIN });
+export const Place = pageAt("/map", { me: ADMIN, empty: false });
 
 /**
  * Home for the team: the shape's lines, stations and tracks, the hub with its lead count, and the

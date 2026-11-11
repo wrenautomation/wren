@@ -206,7 +206,7 @@ const Player = ({ id, title, src }: { id: string; title: string; src: string | n
       item={{ id: `video:${id}:${cutOf(src)}`, kind: "media", media: "video", src, title }}
     />
   ) : (
-    <Empty>The preview shows here once the video is rendered.</Empty>
+    <Empty waits>The preview shows here once the video is rendered.</Empty>
   );
 
 /** A vertical cut (a Short, the whole video in 9:16), one click from playing. */
@@ -1620,7 +1620,7 @@ function timelineExtras(
         {v.vertical.preview ? (
           <Vertical id={String(row.id)} title="Vertical cut" src={v.vertical.preview} />
         ) : (
-          <Empty>Rendered; its preview shows once it is uploaded.</Empty>
+          <Empty waits>Rendered; its preview shows once it is uploaded.</Empty>
         )}
       </div>,
     ]);

@@ -75,21 +75,24 @@ const STATE =
 const STATE_TITLE = "text-[14.5px] font-semibold text-(--ui-ink)";
 const STATE_BUTTON = "mt-1.5 justify-self-start";
 
-/** Nothing here yet: say why, and what fills it. */
+/** Nothing here yet: say what will be here, and give the one action that fills it (ui-design SV-8). */
 export function Empty({
   title,
   action,
+  waits,
   className,
   children,
 }: {
-  /** A short name for the state, over the line: "Nothing here yet". */
+  /** A short name for the state, over the line: "No runs yet". */
   title?: ReactNode;
   action?: ReactNode;
+  /** No action in the box: someone else fills it (Wren, for a client), or the page's own form does. The line says which. */
+  waits?: boolean | undefined;
   className?: string | undefined;
   children: ReactNode;
 }) {
   return (
-    <div data-empty="" className={cx(STATE, className)}>
+    <div data-empty={waits ? "waits" : ""} className={cx(STATE, className)}>
       {title ? <b className={STATE_TITLE}>{title}</b> : null}
       <p className="max-w-[60ch] text-pretty">{children}</p>
       {action ? <div className={STATE_BUTTON}>{action}</div> : null}

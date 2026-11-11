@@ -50,7 +50,7 @@ export function ClientComponents({ client }: { client: string }) {
           })}
         </ul>
       ) : (
-        <Empty>Nothing installed.</Empty>
+        <Empty waits>No apps installed yet. Each one Wren installs lists here.</Empty>
       )}
     </div>
   );

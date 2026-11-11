@@ -33,7 +33,11 @@ import {
 } from "./samples.js";
 import type { MetroPart, MetroScene } from "./types.js";
 
-export default { title: "Orrery", parameters: { layout: "padded" } } satisfies Meta;
+export default {
+  title: "Components/Map/Orrery",
+  id: "orrery",
+  parameters: { layout: "padded" },
+} satisfies Meta;
 
 type Story = StoryObj;
 

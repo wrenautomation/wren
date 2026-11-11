@@ -112,7 +112,10 @@ export function answerOf(
     const { [REFUSAL]: status, ...rest } = got as { [REFUSAL]: number; error: string };
     return { status, body: rest };
   }
-  return { status: 200, body: messy ? stretch(got) : got };
+  if (data === "messy") return { status: 200, body: stretch(got) };
+  // who is signed in keeps its workspaces: without them there is no shell
+  if (data === "empty" && path !== "delivery/me") return { status: 200, body: emptied(got) };
+  return { status: 200, body: got };
 }
 
 /**
@@ -137,10 +140,27 @@ const OURS = new Set([
   "fields",
   "columns",
 ]);
-let messy = false;
-export const setMessy = (on: boolean) => {
-  messy = on;
+/** The `data` toolbar: the table as written, stretched as prod (`stretch`), or with no records (`emptied`). */
+export type DataLook = "tidy" | "messy" | "empty";
+let data: DataLook = "tidy";
+export const setData = (look: DataLook) => {
+  data = look;
 };
+// the play reads this, not its own globals: a story's `data` global can differ from the pass's
+export const dataLook = (): DataLook => data;
+
+/**
+ * Empty mode: every list of records answers with none, so each page shows its empty state. A list
+ * of records is an array of objects; a list of plain values (tags, ids) and our own words (a
+ * view's fields, its columns) stay, so the page still knows its shape.
+ */
+function emptied(v: unknown): unknown {
+  if (Array.isArray(v)) return v.some((x) => x && typeof x === "object") ? [] : v;
+  if (v && typeof v === "object")
+    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, OURS.has(k) ? x : emptied(x)]));
+  return v;
+}
+
 export function stretch(v: unknown): unknown {
   if (typeof v === "string") return v.includes(" ") && v.length < 400 ? v + MESSY_TAIL : v;
   if (Array.isArray(v)) return v.map(stretch);

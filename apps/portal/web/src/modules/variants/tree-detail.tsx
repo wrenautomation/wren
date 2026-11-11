@@ -1,8 +1,7 @@
 /** The tree's detail panel: one sample (path, parents, keep, steers) and its batch. */
-import { Button, Tag } from "@wren/ui";
+import { Button, handToChat, Tag } from "@wren/ui";
 import { call } from "../../api.js";
 import { href, navigate } from "../../route.js";
-import { handToChat } from "../agent/drive.js";
 import { Rename } from "./rename.js";
 import type { TreeSteer } from "./tree.js";
 import { type Call, type TNode, type Tree, VERD } from "./tree-model.js";

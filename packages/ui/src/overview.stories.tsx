@@ -4,7 +4,7 @@ import { fakeOverview, QUEUES, TILES } from "./fixtures/overview.js";
 import { RecordOverview } from "./overview.js";
 
 export default {
-  title: "Pages/Overview",
+  title: "Templates/Overview",
   id: "overview",
   parameters: { layout: "fullscreen" },
 } satisfies Meta;

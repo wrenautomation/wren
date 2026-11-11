@@ -17,7 +17,7 @@ import {
 } from "./fixtures/action.js";
 
 export default {
-  title: "Parts/Action",
+  title: "Components/Controls and feedback/Action",
   id: "action",
 } satisfies Meta;
 

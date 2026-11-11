@@ -242,7 +242,7 @@ export function RecordOverview({
         </p>
       ) : null}
       {types.data && !asE && !tiles.length && !top.some(here) ? (
-        <Empty>These numbers show once the parts that count them are installed.</Empty>
+        <Empty waits>These numbers show once the parts that count them are installed.</Empty>
       ) : null}
       {/* E draws its trends as cards beside the queues; the chart by day is the tiles' own. */}
       {asE ? null : <Trends tiles={tiles} stats={stats} />}

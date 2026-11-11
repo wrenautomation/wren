@@ -68,6 +68,8 @@ const silence = () => {
 const story = (check: (page: HTMLElement) => Promise<void>): StoryObj => {
   const base = pageAt("/today/recordings/1", {
     me: ADMIN,
+    // one recording and its player, not a list
+    empty: false,
     // Wren's own records come from the console.
     answers: { "console/recordsGet": withDetail },
     check,

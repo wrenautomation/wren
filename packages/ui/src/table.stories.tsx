@@ -12,7 +12,7 @@ import {
 import { DataTable, FactsTable } from "./table.js";
 
 export default {
-  title: "Lists/Table",
+  title: "Components/Lists/Table",
   id: "table",
 } satisfies Meta;
 

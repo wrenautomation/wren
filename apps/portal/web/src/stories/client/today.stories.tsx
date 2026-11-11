@@ -7,7 +7,7 @@ import { answers } from "./client-places-kit.js";
 const meta: Meta = { title: "Client/Today" };
 export default meta;
 
-export const Default = pageAt("/");
+export const Default = pageAt("/", { empty: false });
 
 export const NeedsYou = pageAt("/today/needs-you", {
   answers,
@@ -26,7 +26,7 @@ export const Messages = pageAt("/today/messages", {
 
 export const Calls = pageAt("/today/calls", { answers, check: shows("Calls") });
 
-export const Calendar = pageAt("/today/calendar");
+export const Calendar = pageAt("/today/calendar", { empty: false });
 
 /** The agenda as `Rows`: a band per day, a call a row, and a press opens it beside the list. */
 export const CalendarAgenda = tidy(

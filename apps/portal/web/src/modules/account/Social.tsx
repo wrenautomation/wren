@@ -266,7 +266,7 @@ export function Social(props: PageProps) {
         own ? (
           <OwnSocial own={own} client={props.client} mayAct={data.mayAct} />
         ) : (
-          <Empty>Wren's own accounts are its channels. Open a client to see theirs.</Empty>
+          <Empty waits>Wren's own accounts are its channels. Open a client to see theirs.</Empty>
         )
       ) : view ? (
         <>

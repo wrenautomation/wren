@@ -56,7 +56,9 @@ const story = (
   check: (page: HTMLElement) => Promise<void>,
   served: readonly (RequestHandler | WebSocketHandler)[] = SERVED,
 ): StoryObj => {
-  const base = pageAt(at, { me: ADMIN, check });
+  // runs come from weaver serve (`served`), which Empty mode leaves full
+  const readsServe = served.length > 0;
+  const base = pageAt(at, { me: ADMIN, check, ...(readsServe ? { empty: false as const } : {}) });
   // the side panel's chat: a quiet relay with the setups and the last `/` list
   const relay = fakeRelay({ tape: [], library: [COMMANDS as TapeLine[]], setups: SETUPS });
   return {

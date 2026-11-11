@@ -53,7 +53,7 @@ export function Overview(props: PageProps) {
       <PageHeader title={a.name} lede={`Working with Wren since ${month(a.since)}.`} />
       <Section title="What you have with us">
         {a.bought.length === 0 ? (
-          <Empty>Nothing started yet.</Empty>
+          <Empty waits>Nothing started yet. What you start with Wren lists here.</Empty>
         ) : (
           <PageRows<Bought>
             label="What you have with us"
