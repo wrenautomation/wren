@@ -2689,6 +2689,13 @@
       "when": 1794358651948,
       "tag": "0384_books_card_feeds",
       "breakpoints": true
+    },
+    {
+      "idx": 385,
+      "version": "7",
+      "when": 1794365000000,
+      "tag": "0385_live_on_row",
+      "breakpoints": true
     }
   ]
 }

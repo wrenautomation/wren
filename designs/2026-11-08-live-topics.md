@@ -42,10 +42,25 @@ WebSocket, not SSE: a DO can sleep with a WebSocket open, but an SSE stream keep
 - Secret: `WREN_LIVE_SECRET` in deploy/prod.env and SSM `/wren/prod/env-2` (Lambda; CLI via prod-wren's optional keys) = GitHub `LIVE_HOOK_SECRET` (portal Worker, via deploy.sh). To rotate, set both. env-2 is full after it (4095/4096): the next secret needs `env-3`.
 - A client's own data: `tellLive(topics, {client})` also reaches `client:<id>`. Frames carry topics only, so a tab learns no client id.
 
-## Next on it
+## Across the board (WA-1213)
 
-The other server polls move to topics, each with its writer's `tellLive` after commit: lead check, research (timeline), marketing ask, video render, the pulse's counts. Domain's DNS check stays a poll: no writer of ours sees Cloudflare's change.
+The writer side moved from each writer's `tellLive` to the table. A trigger fires `pg_notify('wren_live', '<topic>')` at commit (migration 0385). The box hears it on the connections it already holds for `wren_wake` (`apps/worker/src/wake.ts`), paces each topic (one push a second at most), and calls `tellLive` with the database's client.
+
+| Topic | Table | Page |
+|---|---|---|
+| `decisions` | `decisions` | profile's Lead check |
+| `research` | `profile_lookups` | profile's Research |
+| `ask` | `runs` (ask, record-ask, draft-ask) | Ask, any record's Ask Claude, a draft's turns |
+| `videos` | `video_edits`, `video_marks`, `video_presence`, `runs` (video-*) | video editor |
+
+- Why the table, not the writer: `video_edits` has many writers (Lambda, the CLI on the Mac, the desk). A missed `tellLive` fails quietly. NOTIFY is sent only at commit, so "after commit" holds by itself, and the Mac needs no secret.
+- A page names its topics in `RecordExtras.live`; `RecordsApi.onTopic` subscribes. `RecordExtras.poll` is gone.
+- The sidebar counts (`pulse.ts`) beat on any push (`ANY_TOPIC`), at most once per 5 s. The minute beat stays: most counts come from tables with no topic (inbound mail, queues).
+- Vireo keeps `afterWrite`: its writes are in its own package.
+- Domain's DNS check stays a poll: no writer of ours sees Cloudflare's change.
+- Box down = no pushes; tabs still read on focus and reconnect.
 
 ## Decision log
 
 - 2026-11-08: A, across the board (William). Topics, not data. One room per site. Vireo gets `afterWrite`.
+- 2026-11-10: WA-1213: table triggers + the box's LISTEN feed `tellLive`, in place of a call in each writer. The box has been a long-lived process since 11-09, so option C's blocker ("no listener") is gone for the writer side; transport stays A.

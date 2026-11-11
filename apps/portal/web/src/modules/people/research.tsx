@@ -8,8 +8,8 @@ import type { ResearchDetail, ResearchFinding } from "@wren/core/profile-finding
 import { type Action, Button, Facts, PlatformMark, type RecordAct } from "@wren/ui";
 import { type ReactNode, useRef, useState } from "react";
 
-/** How often the profile reads again while a run works. */
-export const RESEARCH_POLL_MS = 3000;
+/** Live topic: a run's row changed (migration 0385); the profile reads again. */
+export const RESEARCH_TOPIC = "research";
 
 /** Start a run for the open person. The server refuses while one is queued or running. */
 export const researchAction: Action = {
@@ -89,7 +89,7 @@ const when = (iso: string) =>
 const percent = (n: number) => `${Math.round(n * 100)}%`;
 
 /** Whether a run is still going: the profile reads again until it is not. */
-export const researching = (r: ResearchDetail | null | undefined) =>
+const researching = (r: ResearchDetail | null | undefined) =>
   r?.run?.state === "queued" || r?.run?.state === "running";
 
 /** The newest run in lines: its state, when, each step it tried, and why it stopped. */

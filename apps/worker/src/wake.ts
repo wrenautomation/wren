@@ -7,14 +7,23 @@
  * and a stream of them (a pipeline writing a row a second) wakes a loop at most every `SPACE_MS`:
  * each wake is a Lambda request, and a loop woken inside its own gap only says "soon". A wake
  * lost here (the box restarting) is covered by the loop's net, so nothing waits on this.
+ *
+ * The same connections hear `wren_live` (migration 0385): a topic an open page shows, relayed to
+ * the portal's LiveRoom (`tellLive`), with the client for a client's database.
  */
 
 import { clientUrl, listClients } from "@wren/core/clients";
+import { tellLive } from "@wren/core/live";
 import { clientKey } from "@wren/core/restate";
 import { createDb, type Listening, listen } from "@wren/db";
 import type { Logger } from "pino";
 
 const WAKE_CHANNEL = "wren_wake";
+/** Live topics on row (migration 0385): relayed to open tabs, designs/2026-11-08-live-topics.md. */
+const LIVE_CHANNEL = "wren_live";
+/** A topic's pushes: the first a beat after its commit, then at most one a second. */
+const LIVE_SETTLE_MS = 250;
+const LIVE_SPACE_MS = 1000;
 /** Notices for one loop inside this window are one wake. */
 const SETTLE_MS = 1000;
 /** The least time between two wakes of one loop: a storm of rows is four wakes a minute. */
@@ -94,6 +103,14 @@ export async function startWakes(o: WakeOptions): Promise<{ close(): Promise<voi
       .catch((e: unknown) => o.log.warn({ service, key, err: String(e) }, "wake failed"));
   });
   const wake = paced.wake;
+  // the pacer's "service" slot carries the topic, its "key" the database's owner ("" = Wren)
+  const live = pacedWakes(
+    (topic, owner) =>
+      void tellLive([topic], { client: owner || null }).then((ok) => {
+        if (!ok) o.log.warn({ topic, owner }, "live push not sent");
+      }),
+    { settleMs: LIVE_SETTLE_MS, spaceMs: LIVE_SPACE_MS },
+  );
   const open = new Map<string, Listening>();
   const on = async (owner: string | null, url: string) => {
     const name = owner ?? "";
@@ -103,11 +120,13 @@ export async function startWakes(o: WakeOptions): Promise<{ close(): Promise<voi
         name,
         await listen(
           url,
-          WAKE_CHANNEL,
-          (payload) => {
-            const t = wakeTarget(payload, owner);
-            if (t) wake(t.service, t.key);
-            else o.log.warn({ payload, owner }, "wake notice not understood");
+          {
+            [WAKE_CHANNEL]: (payload) => {
+              const t = wakeTarget(payload, owner);
+              if (t) wake(t.service, t.key);
+              else o.log.warn({ payload, owner }, "wake notice not understood");
+            },
+            [LIVE_CHANNEL]: (topic) => live.wake(topic, name),
           },
           { app: "wren-wake" },
         ),
@@ -133,6 +152,7 @@ export async function startWakes(o: WakeOptions): Promise<{ close(): Promise<voi
     async close() {
       clearInterval(timer);
       paced.close();
+      live.close();
       await Promise.all([...[...open.values()].map((l) => l.close()), main.close()]);
     },
   };

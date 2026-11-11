@@ -18,8 +18,6 @@ import {
 import type { ListPage } from "../../module.js";
 import { DraftVersions } from "./versions.js";
 
-const POLL_MS = 4000;
-
 /** The box's actions, ids the records list: save, ask and undo, run from inside the detail only. */
 export const DRAFT_SET = "marketing.draftSet";
 export const DRAFT_ASK = "marketing.draftAsk";
@@ -111,6 +109,6 @@ export const withDraft =
         // Which account it sends as, where its platform has two or more (`accountPickFor`).
         accounts: (detail as { accounts?: AccountPick | null } | null)?.accounts ?? null,
       },
-      ...(turns.some((t) => t.state === "thinking") ? { poll: POLL_MS } : {}),
+      live: ["ask"],
     };
   };

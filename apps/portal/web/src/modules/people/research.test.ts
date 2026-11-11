@@ -55,11 +55,10 @@ describe("profileExtras, research", () => {
     expect(titles(profileExtras(detail(null), act))).not.toContain("Research");
   });
 
-  it("reads again while a run is queued or running, and stops when it ends", () => {
-    for (const state of ["queued", "running"])
-      expect(profileExtras(detail({ run: run(state), findings: [] }), act).poll).toBeGreaterThan(0);
-    for (const state of ["done", "failed"])
-      expect(profileExtras(detail({ run: run(state), findings: [] }), act).poll).toBeUndefined();
-    expect(profileExtras(detail({ run: null, findings: [] }), act).poll).toBeUndefined();
+  it("hears the research topic for Wren's own people only", () => {
+    expect(profileExtras(detail({ run: run("running"), findings: [] }), act).live).toEqual([
+      "research",
+    ]);
+    expect(profileExtras(detail(undefined), act).live).toBeUndefined();
   });
 });

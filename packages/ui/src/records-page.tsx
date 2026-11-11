@@ -17,15 +17,7 @@ import { listChanged } from "./data/delta.js";
 import { useLoad, writeThrough } from "./data/query.js";
 import { DraftBox, DraftText } from "./draft.js";
 import { type LiveText, liveText } from "./draft-save.js";
-import {
-  ASK_FOCUS,
-  ASK_POLL_MS,
-  AskClaude,
-  EditFields,
-  type Editing,
-  History,
-  thinking,
-} from "./edits.js";
+import { ASK_FOCUS, AskClaude, EditFields, type Editing, History, thinking } from "./edits.js";
 import { LoadFailed } from "./feedback.js";
 import { type CiteTo, Cue, dateOf, dateTip, FieldCell, FieldLine, relative } from "./fields.js";
 import { FoldList, foldOf } from "./fold.js";
@@ -280,27 +272,17 @@ export function RecordBody({
             : {}),
         }
       : null;
-  const poll = more.poll ?? (thinking(state) ? ASK_POLL_MS : 0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: each new read sets the next one.
+  // A record Claude works on hears its answer on "ask" (`@wren/core/ask`).
+  const topics = [...(more.live ?? []), ...(thinking(state) ? ["ask"] : [])].join(",");
+  const reread = useRef(got.retry);
+  reread.current = got.retry;
   useEffect(() => {
-    if (!poll) return;
-    // A hidden tab reads nothing; it reads once when he comes back.
-    let missed = false;
-    const t = setTimeout(() => {
-      if (document.hidden) missed = true;
-      else got.retry();
-    }, poll);
-    const back = () => {
-      if (!missed || document.hidden) return;
-      missed = false;
-      got.retry();
-    };
-    document.addEventListener("visibilitychange", back);
+    if (!topics || !api.onTopic) return;
+    const offs = topics.split(",").map((t) => api.onTopic?.(t, () => reread.current()));
     return () => {
-      clearTimeout(t);
-      document.removeEventListener("visibilitychange", back);
+      for (const off of offs) off?.();
     };
-  }, [got.data]);
+  }, [topics, api]);
   // ⌘K asks about this record; with edits, its answer lands in the Ask box here.
   useOpenRecord(`${meta.id}:${id}:${tab}:${got.data ? 1 : 0}:${editing ? 1 : 0}`, () =>
     got.data

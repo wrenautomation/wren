@@ -675,7 +675,5 @@ export function AskClaude({
 /** ⌘K asked about the open record: its Ask box takes focus. */
 export const ASK_FOCUS = "wren:ask-record";
 
-/** Read the record again this often while Claude works on an ask. */
-export const ASK_POLL_MS = 4000;
 export const thinking = (state: EditState | null | undefined) =>
   !!state?.asks.some((t) => t.state === "thinking");

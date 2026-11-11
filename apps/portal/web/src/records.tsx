@@ -44,6 +44,7 @@ import {
 } from "./module.js";
 import { recordsApi } from "./records-api.js";
 import { ENTRY, href, navigate } from "./route.js";
+import { onTopic } from "./topic-socket.js";
 
 type HeadMeta = Parameters<NonNullable<ListPage["head"]>>[0];
 
@@ -68,6 +69,7 @@ function apiOf(product: string, client: string | null, scope: Scope): RecordsApi
           }
         : {}),
       access: accessOf(client, scope),
+      onTopic,
     }),
   );
 }

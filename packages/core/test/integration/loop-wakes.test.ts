@@ -20,7 +20,7 @@ afterAll(async () => {
 /** The notices one write sends, read after a short wait. */
 async function heardOf(write: () => Promise<unknown>): Promise<string[]> {
   const heard: string[] = [];
-  const l = await listen(pg.url, "wren_wake", (p) => heard.push(p));
+  const l = await listen(pg.url, { wren_wake: (p) => heard.push(p) });
   try {
     await write();
     await new Promise((r) => setTimeout(r, 300));

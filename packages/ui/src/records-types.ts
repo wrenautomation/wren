@@ -44,6 +44,8 @@ export interface RecordsApi {
   edit?(ask: EditAsk): Promise<Edited>;
   undo?(ask: UndoAsk): Promise<Edited>;
   ask?(ask: RecordAskAsk): Promise<{ id: string }>;
+  /** Hear a live topic; returns how to stop. None = the page reads on focus only. */
+  onTopic?(topic: string, fn: () => void): () => void;
   /** Saved views and prefs (`./list-bar.tsx`), where the workspace keeps them. */
   keep?: KeepApi;
   /** Issues and asks for access on a record (`./record-access.tsx`), where the workspace has them. */
@@ -135,8 +137,8 @@ export interface RecordExtras {
    * keeps an activity needs none of this: the peek reads that.
    */
   recent?: PeekLine[];
-  /** Read the record again in this many ms: something still works on it (Claude on a draft). */
-  poll?: number;
+  /** Live topics (designs/2026-11-08-live-topics.md): a push on one reads the record again. */
+  live?: readonly string[];
   /** The draft it holds, edited in place first in the details (`DraftBox`). */
   draft?: RecordDraft;
   /**

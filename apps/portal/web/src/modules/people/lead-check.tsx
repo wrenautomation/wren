@@ -26,8 +26,8 @@ interface LeadFit {
 
 /** How long "Checking" waits: the judge's call, behind a pass that may hold its object 5 minutes. */
 const CHECKING_MS = 6 * 60_000;
-/** How often the page reads again while a check is out. */
-const CHECKING_POLL_MS = 4_000;
+/** Live topic: a kept decision (migration 0385) reads the page again. */
+const DECISIONS_TOPIC = "decisions";
 
 /** Profiles asked about in this tab, by the time of the ask. Gone on a reload: the answer still lands. */
 const asked = new Map<string, number>();
@@ -109,11 +109,10 @@ const worth = (fit: LeadFit | null | undefined, id: string | number): fit is Lea
 function leadCheckExtras(
   fit: LeadFit | null | undefined,
   id: string | number,
-): { sections: [string, ReactNode][]; poll?: number } {
+): { sections: [string, ReactNode][] } {
   if (!worth(fit, id)) return { sections: [] };
   return {
     sections: [["Lead check", createElement(Chip, { id: String(id), fit })]],
-    ...(checking(id, fit.lastAt) ? { poll: CHECKING_POLL_MS } : {}),
   };
 }
 
@@ -132,7 +131,7 @@ export function withLeadCheck(
   return {
     ...base,
     sections: [...lead.sections, ...(base.sections ?? [])],
-    ...(lead.poll ? { poll: lead.poll } : {}),
+    live: [...(base.live ?? []), DECISIONS_TOPIC],
   };
 }
 

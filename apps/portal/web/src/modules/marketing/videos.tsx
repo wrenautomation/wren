@@ -170,10 +170,8 @@ const AGENT = "marketing.videoAgent";
 const WORDS = "marketing.videoWords";
 const STRESS = "marketing.videoStress";
 const PUNCTUATE = "marketing.videoPunctuate";
-const POLL_MS = 4000;
-const RENDER_POLL_MS = 15_000;
-/** A video that can be edited is read again now and then: an agent on it shows without a reload. */
-const WATCH_POLL_MS = 15_000;
+/** Live topic: a row of the video, its runs, marks or presence changed (migration 0385). */
+const VIDEOS_TOPIC = "videos";
 /** Before this it renders; after, the cut file and its upload are settled. */
 const EDITABLE = ["added", "edited", "rendered"];
 
@@ -1537,24 +1535,15 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (
             />,
           ],
         ],
-        ...polled(v, steps),
+        ...LIVE,
       };
     return { ...timelineExtras(v, { act, row, readAt, edit, steps, narrow }), top };
   }
   return timelineExtras(v, { act, row, readAt, edit, steps, narrow });
 };
 
-/** Read again soon while Claude works; now and then while the Mac renders (or is off). */
-const polled = (v: Video, steps: Step[]): Pick<RecordExtras, "poll"> =>
-  v.turns.some((t) => t.state === "thinking") ||
-  steps.some((t) => t.state === "running") ||
-  v.presence?.length
-    ? { poll: POLL_MS }
-    : v.render && v.render.state !== "failed"
-      ? { poll: RENDER_POLL_MS }
-      : v.finish
-        ? { poll: WATCH_POLL_MS }
-        : {};
+/** Every edit, render, mark and agent step on a video pushes: the page reads again then. */
+const LIVE: Pick<RecordExtras, "live"> = { live: [VIDEOS_TOPIC] };
 
 /** The editor itself: preview, finish, agent, fields, cuts, transcript and the rest. */
 function timelineExtras(
@@ -1679,7 +1668,7 @@ function timelineExtras(
   if (v.thumbnails.length)
     sections.push(["Thumbnails", <Thumbnails key="th" thumbnails={v.thumbnails} />]);
   if (steps.length) sections.push(["Steps", <Steps key="st" steps={steps} />]);
-  const out: RecordExtras = { sections, ...polled(v, steps) };
+  const out: RecordExtras = { sections, ...LIVE };
   if (v.render?.state === "failed" && v.render.why)
     out.facts = [["Why the render failed", v.render.why]];
   return out;

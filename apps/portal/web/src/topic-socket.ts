@@ -10,8 +10,10 @@ export const TOPICS_LIVE_PATH = "/api/live/topics";
 export const TOPICS_PROTOCOL = "wren-topics";
 
 const listeners = new Map<string, Set<() => void>>();
+/** Hears every topic: the shell's counts (./pulse.ts). */
+export const ANY_TOPIC = "*";
 
-/** Hear `topic` change; returns the unsubscribe. */
+/** Hear `topic` change (`ANY_TOPIC`: every one); returns the unsubscribe. */
 export function onTopic(topic: string, fn: () => void): () => void {
   const set = listeners.get(topic) ?? new Set<() => void>();
   listeners.set(topic, set);
@@ -26,7 +28,7 @@ export function onTopic(topic: string, fn: () => void): () => void {
 export function told(topics: readonly string[] | null) {
   const fns = new Set<() => void>();
   for (const [t, set] of listeners)
-    if (!topics || topics.includes(t)) for (const fn of set) fns.add(fn);
+    if (!topics || t === ANY_TOPIC || topics.includes(t)) for (const fn of set) fns.add(fn);
   for (const fn of fns) fn();
 }
 

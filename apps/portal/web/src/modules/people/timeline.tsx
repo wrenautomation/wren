@@ -19,7 +19,7 @@ import {
 } from "@wren/ui";
 import { createElement, type ReactNode } from "react";
 import { Journey } from "./journey.js";
-import { RESEARCH_POLL_MS, Research, researching } from "./research.js";
+import { RESEARCH_TOPIC, Research } from "./research.js";
 
 /** Each timeline kind's icon on its node, here and on the Timeline page. */
 export const KIND_ICONS: Readonly<Record<string, IconName>> = {
@@ -352,14 +352,14 @@ function recentOf(detail: Detail, name: string): PeekLine[] {
 
 /**
  * The profile page's Journey, Profiles, Research, Warmth and Timeline sections, and Site visits when it
- * has a visitor key. Research shows for Wren's own people; the page reads again while a run works.
+ * has a visitor key. Research shows for Wren's own people; a run's change reads the page again.
  * `name` is the person's, for the peek's newest lines.
  */
 export const profileExtras = (detail: unknown, act?: RecordAct, name = "They"): RecordExtras =>
   isDetail(detail)
     ? {
         recent: recentOf(detail, name),
-        ...(researching(detail.research) ? { poll: RESEARCH_POLL_MS } : {}),
+        ...(detail.research ? { live: [RESEARCH_TOPIC] } : {}),
         // Where they are leads the page: before the fields.
         ...(detail.journey ? { lead: createElement(Journey, { j: detail.journey }) } : {}),
         sections: [

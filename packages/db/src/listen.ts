@@ -1,5 +1,5 @@
 /**
- * LISTEN on one database: one connection of its own that stays open and comes back by itself
+ * LISTEN on one database, on each channel given: one connection of its own that stays open and comes back by itself
  * after a drop (postgres.js re-listens on reconnect). Never through PgBouncer: a pooled session
  * loses its LISTEN between transactions.
  */
@@ -11,8 +11,7 @@ export interface Listening {
 
 export async function listen(
   databaseUrl: string,
-  channel: string,
-  onPayload: (payload: string) => void,
+  channels: Record<string, (payload: string) => void>,
   opts: { app?: string } = {},
 ): Promise<Listening> {
   const sql = postgres(databaseUrl, {
@@ -21,6 +20,6 @@ export async function listen(
     onnotice: () => {},
     ...(opts.app ? { connection: { application_name: opts.app.slice(0, 63) } } : {}),
   });
-  await sql.listen(channel, onPayload);
+  for (const [channel, onPayload] of Object.entries(channels)) await sql.listen(channel, onPayload);
   return { close: () => sql.end({ timeout: 5 }) };
 }

@@ -300,7 +300,7 @@ describe("US and Canada", () => {
 
   it("a queued text wakes the sender at commit; a tick names the next one due", async () => {
     const heard: string[] = [];
-    const listening = await listen(pg.url, "wren_wake", (p) => heard.push(p));
+    const listening = await listen(pg.url, { wren_wake: (p) => heard.push(p) });
     try {
       await enrollAt(OPEN);
       for (let i = 0; i < 60 && heard.length === 0; i++)
