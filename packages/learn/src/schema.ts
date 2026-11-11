@@ -87,9 +87,9 @@ export const TOP_SCORE = 8;
 /**
  * article: text (a blog, a newsletter). video: YouTube. reel: a short off YouTube (Instagram,
  * TikTok). post: a text, image or carousel post (LinkedIn, X, Instagram, Threads). film: a produced
- * launch or demo film. episode: a podcast's.
+ * launch or demo film. episode: a podcast's. ad: one Meta Ad Library ad (`ads`, designs/2026-11-11-competitor-ads.md).
  */
-export const ITEM_KINDS = ["article", "video", "reel", "post", "film", "episode"] as const;
+export const ITEM_KINDS = ["article", "video", "reel", "post", "film", "episode", "ad"] as const;
 
 /** A post's public numbers; each only when its platform gives it (Instagram: no views). */
 export interface PostStats {
@@ -323,6 +323,16 @@ export const CTA_KINDS = [
   "other",
 ] as const;
 export type CtaKind = (typeof CTA_KINDS)[number];
+/** What an ad offers, by kind (the `ad` rubric). */
+export const AD_OFFERS = [
+  "discount",
+  "free-trial",
+  "lead-magnet",
+  "consult",
+  "product",
+  "event",
+  "other",
+] as const;
 export const POST_FORMATS = [
   "talking-head",
   "screen-demo",
@@ -528,6 +538,45 @@ export const itemTags = learn.table(
       name: "fk_item_tags_item_id_items",
     }).onDelete("cascade"),
     index("ix_learn_item_tags_tag").on(t.tag),
+  ],
+);
+
+/** The library's ad formats (`fb-public GET /ads`). */
+export const AD_FORMATS = ["IMAGE", "VIDEO", "CAROUSEL", "DCO", "DPA"] as const;
+export type AdFormat = (typeof AD_FORMATS)[number];
+
+/**
+ * One Meta Ad Library ad behind an `ad` item (designs/2026-11-11-competitor-ads.md): the numbers a
+ * pull reads and the library record whole (`raw`, the last read). A pull again updates them.
+ */
+export const ads = learn.table(
+  "ads",
+  {
+    itemId: integer("item_id").notNull(),
+    client: varchar("client", { length: 40 }).notNull(),
+    libraryId: varchar("library_id", { length: 40 }).notNull(),
+    pageId: varchar("page_id", { length: 40 }),
+    advertiser: text("advertiser"),
+    active: boolean("active").notNull(),
+    started: date("started"),
+    ended: date("ended"),
+    daysRunning: integer("days_running"),
+    /** Ads that share this creative (the library's collation count); 1 when alone. */
+    versions: integer("versions").notNull().default(1),
+    platforms: text("platforms").array().notNull().default(sql`'{}'::text[]`),
+    format: varchar("format", { length: 12 }),
+    raw: jsonb("raw").$type<Record<string, unknown>>().notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.itemId], name: "pk_ads" }),
+    foreignKey({
+      columns: [t.itemId],
+      foreignColumns: [items.id],
+      name: "fk_ads_item_id_items",
+    }).onDelete("cascade"),
+    unique("uq_learn_ads_client_library_id").on(t.client, t.libraryId),
+    index("ix_learn_ads_page_id").on(t.pageId),
   ],
 );
 

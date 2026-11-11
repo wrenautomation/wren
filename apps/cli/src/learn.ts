@@ -53,6 +53,7 @@ import { addSource, extractPoints, topicDir } from "@wren/research/sops";
 import { claudeCode } from "@wrenautomation/models/command";
 import type { Command } from "commander";
 import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { registerLearnAds } from "./learn-ads.js";
 import { learnReaders } from "./learn-readers.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -514,4 +515,6 @@ export function registerLearn(
         }),
       ),
     );
+
+  registerLearnAds(learn, { inWorkspace, judgeFor, settings, rootDir });
 }

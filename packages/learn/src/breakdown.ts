@@ -14,11 +14,14 @@ import { completeAndParse, parseModel } from "@wren/llm";
 import { readWatchFacts } from "@wrenautomation/read/video";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { adFactsOf } from "./ads.js";
 import { type FilmFacts, filmFacts, filmFactsSchema } from "./film.js";
 import { factFindings } from "./findings.js";
 import type { JudgeFor } from "./judge.js";
 import { secondsOf } from "./read.js";
 import {
+  AD_FORMATS,
+  AD_OFFERS,
   type Beat,
   type BreakdownBy,
   breakdowns,
@@ -38,7 +41,13 @@ const PROMPT_TEXT = 6_000;
 const TRIES = 2;
 
 /** The kinds with a rubric: a hook, beats and facts to read. */
-export const BROKEN_DOWN = ["reel", "video", "post", "film"] as const satisfies readonly ItemKind[];
+export const BROKEN_DOWN = [
+  "reel",
+  "video",
+  "post",
+  "film",
+  "ad",
+] as const satisfies readonly ItemKind[];
 export type BrokenDown = (typeof BROKEN_DOWN)[number];
 const isBrokenDown = (k: ItemKind): k is BrokenDown =>
   (BROKEN_DOWN as readonly string[]).includes(k);
@@ -79,6 +88,7 @@ const LABELS = {
   video: { format: z.enum(POST_FORMATS) },
   post: { shape: z.enum(POST_SHAPES) },
   film: {},
+  ad: { offer: z.string().min(1).max(200), offer_kind: z.enum(AD_OFFERS) },
 } as const satisfies Record<BrokenDown, z.ZodRawShape>;
 
 export const breakdownSchema = sharedSchema.extend(LABELS.reel);
@@ -86,6 +96,8 @@ export const answerSchema = <K extends BrokenDown>(kind: K) => sharedSchema.exte
 type Answer = z.infer<typeof sharedSchema> & {
   format?: string;
   shape?: string;
+  offer?: string;
+  offer_kind?: (typeof AD_OFFERS)[number];
 };
 
 /** The facts each kind's row carries, checked at write time. */
@@ -99,11 +111,24 @@ export const postFactsSchema = z.object({
   shape: z.enum(POST_SHAPES),
 });
 export type PostFacts = z.infer<typeof postFactsSchema>;
+/** An ad's facts: code's from its page's `## Ad` fence, the offer from the model. */
+export const adFactsSchema = z.object({
+  format: z.enum(AD_FORMATS).nullable(),
+  days_running: z.number().int().min(0).nullable(),
+  versions: z.number().int().min(1),
+  platforms: z.array(z.string()),
+  active: z.boolean(),
+  speech: z.boolean().nullable(),
+  cuts: z.number().int().min(0).nullable(),
+  offer: z.string(),
+  offer_kind: z.enum(AD_OFFERS),
+});
 export const FACTS = {
   reel: z.object({ format: z.enum(POST_FORMATS) }),
   video: z.object({ format: z.enum(POST_FORMATS) }),
   post: postFactsSchema,
   film: filmFactsSchema,
+  ad: adFactsSchema,
 } as const satisfies Record<BrokenDown, z.ZodTypeAny>;
 
 /** A post's counts, from its text alone. `link` is `body` or unknown: a link in a comment is not in the saved text. */
@@ -136,6 +161,10 @@ const ABOUT: Record<BrokenDown, { thing: string; beats: string }> = {
     thing: "product launch film",
     beats: "m:ss from the [m:ss] marks, when there are any",
   },
+  ad: {
+    thing: "paid social ad (Facebook, Instagram)",
+    beats: "m:ss from the [m:ss] marks, when it is a video",
+  },
 };
 
 export function breakdownPrompt(item: {
@@ -152,8 +181,17 @@ export function breakdownPrompt(item: {
       ? `Shapes: ${POST_SHAPES.join(", ")}.`
       : kind === "film"
         ? ""
-        : `Formats: ${POST_FORMATS.join(", ")}.`;
-  const labelField = kind === "post" ? `"shape": "..."` : kind === "film" ? "" : `"format": "..."`;
+        : kind === "ad"
+          ? `Offer kinds: ${AD_OFFERS.join(", ")}.`
+          : `Formats: ${POST_FORMATS.join(", ")}.`;
+  const labelField =
+    kind === "post"
+      ? `"shape": "..."`
+      : kind === "film"
+        ? ""
+        : kind === "ad"
+          ? `"offer": "what it gives or sells, under 20 words", "offer_kind": "..."`
+          : `"format": "..."`;
   const at = about.beats ? `"at": "${about.beats}", ` : "";
   const fields = [
     `"hook_style": "..."`,
@@ -206,6 +244,12 @@ export function factsOf(
       return { format: null, ...postCounts(item.text), shape: v.shape };
     case "film":
       return filmFactsOf(item.transcript);
+    case "ad": {
+      const f = adFactsOf(item.transcript);
+      return f && v.offer && v.offer_kind
+        ? { ...f, offer: v.offer, offer_kind: v.offer_kind }
+        : null;
+    }
   }
 }
 
