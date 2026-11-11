@@ -101,7 +101,7 @@ export const vendors = books.table(
 );
 export type Vendor = typeof vendors.$inferSelect;
 
-export const DOCUMENT_SOURCES = ["mailbox", "file", "attachment"] as const;
+export const DOCUMENT_SOURCES = ["mailbox", "file", "attachment", "plaid"] as const;
 export const DOCUMENT_KINDS = ["bill", "payment", "notice", "other"] as const;
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 
@@ -384,12 +384,12 @@ export const billDocuments = books.table(
   ],
 );
 
-export const CARD_SOURCES = ["statement", "alert"] as const;
+export const CARD_SOURCES = ["statement", "alert", "plaid"] as const;
 export type CardSource = (typeof CARD_SOURCES)[number];
 
 /**
- * One charge or credit on the card, from a statement file or the bank's alert
- * mail; a statement line takes over the alert it repeats. `vendor_id` and
+ * One charge or credit on the card, from a statement file, the bank's alert
+ * mail or Plaid's feed (`card_feeds`); a statement line takes over the alert it repeats. `vendor_id` and
  * `personal` come from `card_rules` or the vendor's card words; `bill_id` is
  * the bill it paid: a mailed one it matched, or one made from it when no mail
  * ever came (Inbox Insiders bills only on the card).
@@ -445,6 +445,33 @@ export const cardLines = books.table(
   ],
 );
 export type CardLine = typeof cardLines.$inferSelect;
+
+/**
+ * A card read through Plaid Transactions (WA-1276): one linked account. The access token is
+ * sealed in the key store (client `wren`, `PLAID_ACCESS_TOKEN`, label `key_label`); `cursor` is
+ * where `/transactions/sync` left off. `error` holds Plaid's code while the item fails
+ * (`ITEM_LOGIN_REQUIRED`: link again).
+ */
+export const cardFeeds = books.table(
+  "card_feeds",
+  {
+    id: serial("id").notNull(),
+    /** The card's last four, as `card_lines.card`. */
+    card: varchar("card", { length: 4 }).notNull(),
+    institution: text("institution"),
+    itemId: text("item_id").notNull(),
+    accountId: text("account_id").notNull(),
+    keyLabel: varchar("key_label", { length: 64 }).notNull(),
+    cursor: text("cursor"),
+    error: text("error"),
+    syncedAt: timestamp("synced_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_card_feeds" }),
+    unique("uq_card_feeds_account_id").on(t.accountId),
+  ],
+);
 
 /** William's call on a descriptor: whose charge it is, or personal. Every line with it follows, now and later. */
 export const cardRules = books.table(

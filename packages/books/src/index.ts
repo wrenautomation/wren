@@ -10,6 +10,7 @@ export * from "./economics.js";
 export * from "./ground.js";
 export * from "./mailbox.js";
 export * from "./money.js";
+export * from "./plaid.js";
 export * from "./post.js";
 export * from "./rates.js";
 export * from "./read.js";

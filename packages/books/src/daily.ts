@@ -22,6 +22,7 @@ import { seedBooks } from "./chart.js";
 import { shiftDay, today } from "./day.js";
 import { type DecryptFeed, decryptSpikes } from "./decrypts.js";
 import type { Mailbox } from "./mailbox.js";
+import { type FeedAccess, syncFeeds } from "./plaid.js";
 import { type Posted, post } from "./post.js";
 import type { RateFeed } from "./rates.js";
 import { type ReadReport, readDocuments } from "./read.js";
@@ -40,6 +41,8 @@ export interface BooksDayDeps {
   aws: UsageFeed | null;
   /** KMS decrypts per principal, checked beside AWS spend; null or absent = not watched. */
   decrypts?: DecryptFeed | null;
+  /** Linked cards' Plaid access (WA-1276); absent = no feeds pulled. */
+  plaid?: FeedAccess | null;
   /** The first day of the books: every search covers from here, so a new vendor rule finds old mail too. */
   since: string;
   log?: (line: string) => void;
@@ -52,6 +55,8 @@ export interface BooksDay {
   read: ReadReport;
   /** The card: purchase alerts read, lines sorted, charges matched to bills. */
   card: AlertsRead & CardMatch & { sorted: number };
+  /** Each linked card's Plaid pull. */
+  feeds: Awaited<ReturnType<typeof syncFeeds>>["feeds"];
   posted: Posted;
   aws: UsageIngest | null;
   /** Managed usage's draft lines for this month and last, rewritten. */
@@ -114,12 +119,16 @@ export async function booksDay(
   }
   const read = await readDocuments(db, deps.llm, { runId, ...opt(log) });
   const alerts = await readCardAlerts(db, deps.llm, { runId });
+  // after the alerts: a Plaid line takes over the alert it repeats
+  const pulled = deps.plaid
+    ? await syncFeeds(db, deps.store, deps.plaid, runId)
+    : { feeds: [], open: [] };
   const sorted = await sortCard(db);
   const card = { ...alerts, sorted, ...(await matchCard(db, on, runId)) };
   const posted = await post(db, { feed: deps.rates, runId, ...opt(log) });
 
   const kinds: AlertKind[] = ["held", "unread", "new_subscription", "renewal", "lapsed", "card"];
-  const open: Condition[] = await bookConditions(db, on);
+  const open: Condition[] = [...(await bookConditions(db, on)), ...pulled.open];
   const unsorted = await unsortedCard(db);
   if (unsorted.length)
     open.push({
@@ -162,6 +171,7 @@ export async function booksDay(
     unreachable,
     read,
     card,
+    feeds: pulled.feeds,
     posted,
     aws,
     usageLines,

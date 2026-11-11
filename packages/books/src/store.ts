@@ -22,6 +22,7 @@ const EXTENSIONS: Record<string, string> = {
   "image/png": ".png",
   "image/jpeg": ".jpg",
   "text/csv": ".csv",
+  "application/json": ".json",
 };
 
 /** `books/documents/<sha256>.<ext>`: one key per distinct content. */

@@ -20,6 +20,7 @@ import {
   dirStore,
   dismissDocuments,
   endSubscription,
+  finishLink,
   formatCents,
   formatMoney,
   getDocument,
@@ -31,6 +32,8 @@ import {
   type Mailbox,
   matchCard,
   openAlerts,
+  type PlaidEnv,
+  plaidApi,
   post,
   readDocuments,
   reviewQueue,
@@ -40,6 +43,7 @@ import {
   setReview,
   siteMailbox,
   sortCard,
+  startLink,
   today,
   unsortedCard,
   usageByService,
@@ -48,6 +52,7 @@ import {
 import { BOOKS_KEY, type Books } from "@wren/books/restate";
 import { ingressOf, type Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
+import { pgKeyStore } from "@wren/core/keys";
 import { usageByPart } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
@@ -55,6 +60,7 @@ import * as clients from "@wren/runtime/clients";
 import { GmailClient } from "@wren/starling-email";
 import { expandHome } from "@wrenautomation/autobrowse/google";
 import type { Command } from "commander";
+import { sealer } from "./keys.js";
 import { ingressSites } from "./sites.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -498,6 +504,57 @@ export function registerBooks(
       );
       const left = await withDb((db) => unsortedCard(db));
       if (left.length) console.log(`${left.length} descriptors to sort: wren books card sort`);
+    });
+
+  // Plaid keys from the env (run under scripts/secrets.mjs); the access token is sealed with the public key.
+  const plaidOf = (sandbox?: boolean) => {
+    const clientId = process.env.PLAID_CLIENT_ID;
+    const secret = process.env.PLAID_SECRET;
+    if (!clientId || !secret)
+      throw new Error("Set PLAID_CLIENT_ID and PLAID_SECRET: run it under scripts/secrets.mjs.");
+    const env: PlaidEnv = sandbox ? "sandbox" : "production";
+    return plaidApi({ clientId, secret, env });
+  };
+
+  card
+    .command("link")
+    .description("A Plaid hosted sign-in page for the card's bank; then `card finish`")
+    .requiredOption("--card <last4>", "the card's last four")
+    .option("--sandbox", "Plaid's sandbox, not production")
+    .action(async (opts: { card: string; sandbox?: boolean }) => {
+      const l = await startLink(plaidOf(opts.sandbox), { card: opts.card });
+      console.log(
+        `open: ${l.url}\nthen: wren books card finish ${l.linkToken} --card ${opts.card}`,
+      );
+    });
+
+  card
+    .command("finish <linkToken>")
+    .description("After the bank sign-in: seal the card's Plaid token and add its feed")
+    .requiredOption("--card <last4>", "the card's last four")
+    .option("--sandbox", "Plaid's sandbox, not production")
+    .option("--wait <minutes>", "poll until the sign-in is done", Number, 0)
+    .action(async (linkToken: string, opts: { card: string; sandbox?: boolean; wait: number }) => {
+      const api = plaidOf(opts.sandbox);
+      const until = Date.now() + opts.wait * 60_000;
+      for (;;) {
+        const feed = await withDb((db) =>
+          finishLink(
+            db,
+            api,
+            (k) => pgKeyStore(db, sealer()).put({ ...k, client: "wren", by: "cli" }),
+            { linkToken, card: opts.card },
+          ),
+        );
+        if (feed) {
+          console.log(
+            `card ${feed.card} linked (${feed.institution ?? "bank"}): the books day pulls it`,
+          );
+          return;
+        }
+        if (Date.now() > until) throw new Error("the sign-in isn't done yet");
+        await new Promise((r) => setTimeout(r, 10_000));
+      }
     });
 
   card

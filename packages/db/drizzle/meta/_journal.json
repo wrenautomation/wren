@@ -2682,6 +2682,13 @@
       "when": 1794344773732,
       "tag": "0383_video_presence",
       "breakpoints": true
+    },
+    {
+      "idx": 384,
+      "version": "7",
+      "when": 1794358651948,
+      "tag": "0384_books_card_feeds",
+      "breakpoints": true
     }
   ]
 }

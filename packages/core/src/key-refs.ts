@@ -51,6 +51,9 @@ function wrenShape(name: string): RegExp | undefined {
   if (/^SOCIAL_(META|LINKEDIN|LINKEDIN_PAGES|GOOGLE|X|TIKTOK)_CLIENT_(ID|SECRET)$/.test(name))
     return /^\S{4,4096}$/;
   if (/^CONNECTOR_(HUBSPOT|QUICKBOOKS|JOBBER)_(ID|SECRET)$/.test(name)) return /^\S{4,4096}$/;
+  if (/^PLAID_(CLIENT_ID|SECRET)$/.test(name)) return /^[a-f0-9]{24,40}$/;
+  // one Item's token, per card feed
+  if (name === "PLAID_ACCESS_TOKEN") return /^access-(production|sandbox)-[a-f0-9-]{36}$/;
   return undefined;
 }
 

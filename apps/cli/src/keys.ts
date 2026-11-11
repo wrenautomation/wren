@@ -29,7 +29,7 @@ async function stdin(): Promise<string> {
 }
 
 /** The sealer: the public key, or the one the private key in the env makes. */
-function sealer() {
+export function sealer() {
   const pub = process.env.WREN_KEYSTORE_PUBLIC;
   const priv = process.env.WREN_KEYSTORE_KEY;
   if (pub) return keySealer(pub);

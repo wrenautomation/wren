@@ -3,22 +3,23 @@ type: object
 cluster: books
 universe: live
 status: verified
-verified: 2026-10-11 @ 4a396a2
+verified: 2026-11-10 @ 99fee9d36
 entity: packages/books/src/schema.ts:397
 ---
 
 # card-line
 
-One charge or credit on William's card, from a statement file or BMO's purchase alert mail: one `books.card_lines` row each, sorted to a vendor or personal, matched to the bill it paid.
+One charge or credit on William's card, from a statement file, the bank's purchase alert mail or Plaid's feed (`card_feeds`): one `books.card_lines` row each, sorted to a vendor or personal, matched to the bill it paid.
 
 ## Why this shape
 
-The card is the one place every cost shows up, mailed bill or not. A line is sorted by William's rule for its descriptor (`card_rules`), else by the vendor's card words (`VendorSpec.card`). A business charge then finds its bill: same vendor, within 5 days, same CAD (a foreign bill within 6%, and it takes the CAD the card took as `charged_cad_cents`). After 5 days with no bill, one is made from the line (`card:<id>`, CAD, no tax), so a vendor that only bills the card (Inbox Insiders) still counts. A statement line takes over the alert it repeats (same card and amount, within 4 days), keeping its sort and bill. Re-importing a file adds nothing: OFX lines key on the bank's id, CSV lines on the line and how many like it came before.
+The card is the one place every cost shows up, mailed bill or not. A line is sorted by William's rule for its descriptor (`card_rules`), else by the vendor's card words (`VendorSpec.card`). A business charge then finds its bill: same vendor, within 5 days, same CAD (a foreign bill within 6%, and it takes the CAD the card took as `charged_cad_cents`). After 5 days with no bill, one is made from the line (`card:<id>`, CAD, no tax), so a vendor that only bills the card (Inbox Insiders) still counts. A statement line takes over the alert it repeats (same card and amount, within 4 days), keeping its sort and bill. A Plaid line (`plaid.ts`) keys on `plaid:<transaction_id>`; a posted line takes over its pending line (`pending_transaction_id`), else the alert it repeats; Plaid's removed lines are deleted. Each `/transactions/sync` page is kept as a `plaid` document. Re-importing a file adds nothing: OFX lines key on the bank's id, CSV lines on the line and how many like it came before.
 
 ## Shape
 
-- `card_lines` (`schema.ts:397`): card (last four), on, description, descriptor (cleaned), amount (charge positive), currency, source (statement | alert), fingerprint, document, vendor, personal, bill
-- `card_rules` (`:450`): descriptor → vendor or personal
+- `card_lines` (`schema.ts:397`): card (last four), on, description, descriptor (cleaned), amount (charge positive), currency, source (statement | alert | plaid), fingerprint, document, vendor, personal, bill
+- `card_feeds` (`:455`): one linked card: Plaid item, account, key label of the sealed token, sync cursor, last error
+- `card_rules` (`:477`): descriptor → vendor or personal
 - View `card_records` (`:803`): state to_sort | waiting | billed | card_only | personal | credit
 
 Citations: `packages/books/src/schema.ts:397`, `:450`, `:803`, `packages/books/src/card.ts:200`, `:229`, `:348`, `:409`, `:434`, `:491`, `:550`
@@ -31,7 +32,7 @@ Citations: `packages/books/src/schema.ts:397`, `:450`, `:803`, `packages/books/s
 
 ## If you change this
 
-- **Hits:** `importStatement` (`card.ts:229`), `readCardAlerts` (`:348`), `sortCard` (`:409`), `ruleCard` (`:434`), `matchCard` (`:491`, voids a made bill when the mail turns up), `makeBill` (`:550`), the daily pass (`packages/books/src/daily.ts:88`, raises one `card` alert while descriptors wait), Money → Card
+- **Hits:** `importStatement` (`card.ts:229`), `readCardAlerts` (`:348`), `sortCard` (`:409`), `ruleCard` (`:434`), `matchCard` (`:491`, voids a made bill when the mail turns up), `makeBill` (`:550`), the daily pass (`packages/books/src/daily.ts:88`, raises one `card` alert while descriptors wait), `syncFeeds` (`plaid.ts`; a failing feed is a `card` alert, `ITEM_LOGIN_REQUIRED` = link again), Money → Card
 - **Does not hit:** the journal directly; made bills post like any other
 
 ## Surfaces
@@ -40,7 +41,8 @@ Citations: `packages/books/src/schema.ts:397`, `:450`, `:803`, `packages/books/s
 |---|---|
 | `wren books card import <file>` | writes (OFX/QFX or CSV) |
 | `wren books card sort [descriptor] [vendor\|personal]` | lists what's left, or sets a rule |
-| daily `BooksClose/all` | reads alert mail, sorts, matches |
+| `wren books card link --card <last4>` then `card finish <linkToken>` | links a card through Plaid's hosted page (run under `scripts/secrets.mjs` with `PLAID_CLIENT_ID`, `PLAID_SECRET`) |
+| daily `BooksClose/all` | reads alert mail, pulls Plaid feeds, sorts, matches |
 | Money → Card | read |
 
 ## See
