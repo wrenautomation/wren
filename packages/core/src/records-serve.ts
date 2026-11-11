@@ -63,6 +63,11 @@ export interface ListAsk {
   of?: { record: string; id: string | number };
   /** Also count each state of every status, tags, verdict and choice field: Shop, Filter. */
   facets?: boolean;
+  /**
+   * False: rows only, no `total`, `counts` or `totals`. The count query reads every row
+   * (~350 ms on People, WA-1300), so a pager asks for counts once per filter, not per page.
+   */
+  counts?: boolean;
   /** Also each row's picture, where the type has them: a card view. */
   thumbs?: boolean;
   /** The hashes of the rows the reader holds: those come back as stubs (`./records-delta.ts`). */
@@ -94,6 +99,14 @@ export interface RecordsPage {
  * A list column's footer: money sums (one currency), a rate pools n of m, a verdict is valid of
  * the rows, text filled of the rows, a date its newest, a status its commonest state.
  */
+/** A page asked `counts: false`: rows only. */
+export type RowsPage = Omit<RecordsPage, "total" | "counts" | "totals">;
+/** `list`: `counts: false` drops the count query and its fields. */
+export interface ListCall {
+  (ask: ListAsk & { counts: false }): Promise<RowsPage>;
+  (ask: ListAsk): Promise<RecordsPage>;
+}
+
 export type Total =
   | { sum: number; currency: string }
   | { n: number; of: number }
@@ -756,7 +769,7 @@ export function serveRecords(
   return {
     types: (): RecordMeta[] => types.map((t) => metaOf(t, demo)),
 
-    list: (ask: ListAsk): Promise<RecordsPage> =>
+    list: ((ask: ListAsk): Promise<RowsPage | RecordsPage> =>
       guard(async () => {
         const p = plan(ask);
         let limit = PAGE;
@@ -795,7 +808,10 @@ export function serveRecords(
           limit ${limit + 1} offset ${skip}`);
         const views = p.t.views;
         const totals = totalsOf(p.t, p.inView);
-        const [n] = await db.execute<Raw>(sql`
+        const counted = ask.counts !== false;
+        const [n] = !counted
+          ? []
+          : await db.execute<Raw>(sql`
           select count(*) filter (where ${p.inView})::int "__total",
             ${sql.join(totals.cols, sql`, `)},
             ${sql.join(
@@ -824,9 +840,15 @@ export function serveRecords(
             record: p.t.id,
             view: p.view?.id ?? null,
             rows: page.map((r) => rowOf(p.t, r)),
-            total: Number(n?.__total ?? 0),
-            counts: Object.fromEntries(views.map((v, i) => [v.id, Number(n?.[`c${i}`] ?? 0)])),
-            totals: n ? totals.read(n) : {},
+            ...(counted
+              ? {
+                  total: Number(n?.__total ?? 0),
+                  counts: Object.fromEntries(
+                    views.map((v, i) => [v.id, Number(n?.[`c${i}`] ?? 0)]),
+                  ),
+                  totals: n ? totals.read(n) : {},
+                }
+              : {}),
             ...(facets ? { facets } : {}),
             ...(thumbs ? { thumbs } : {}),
             next: last
@@ -841,7 +863,7 @@ export function serveRecords(
           },
           knownIn(ask.known),
         );
-      }),
+      })) as ListCall,
 
     get: (ask: GetAsk): Promise<RecordAnswer> =>
       guard(async () => {

@@ -184,6 +184,13 @@ export function recordsAnswers(
   return out;
 }
 
+/** `n` made-up rows of one record, for a list long enough to page. */
+export function manyRows(record: string, n: number, base: Answers): Answers {
+  const meta = METAS.get(record);
+  if (!meta) throw new Error(`no record type ${record}`);
+  return ownRows(record, rowsOf(meta, n), base);
+}
+
 /**
  * One record's rows by hand, for one story: its list and get answer `rows`, whichever product
  * serves it; every other record falls through to `base`. Synthetic data only.

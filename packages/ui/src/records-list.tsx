@@ -6,7 +6,7 @@
  */
 
 import type { FieldMeta, RecordMeta } from "@wren/core/records";
-import type { ExportFormat, ListAsk, RecordsPage, Row } from "@wren/core/records/serve";
+import type { ExportFormat, ListAsk, RecordsPage, Row, RowsPage } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -211,15 +211,21 @@ export function askOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
   return ask;
 }
 
-/** The page of rows an address asks for: its filters, sort and group, `pg`'s slice. */
-export function pageAskOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
+/** The page of rows an address asks for: its filters, sort and group, `pg`'s slice. Rows only. */
+export function pageAskOf(meta: RecordMeta, params: URLSearchParams): ListAsk & { counts: false } {
   const pg = params.get("pg");
   const at = pageAt(pg);
   const size = sizeOf(params);
   const cursor = cursorAt(pg);
   const from = cursor ? { cursor } : at > 1 ? { offset: offsetOf(at, size) } : {};
-  return { ...askOf(meta, params), limit: size, ...from };
+  return { ...askOf(meta, params), limit: size, ...from, counts: false };
 }
+
+/** The counts an address shows (total, each view's, the foot's totals): one read per filter set, so paging never counts again (WA-1300). */
+export const countAskOf = (meta: RecordMeta, params: URLSearchParams): ListAsk => ({
+  ...askOf(meta, params),
+  limit: 1,
+});
 
 /**
  * Read an address's rows ahead into the data layer, under the key the list reads them by: a
@@ -235,7 +241,11 @@ export async function prefetchList(
   const meta = types.find((t) => t.id === record);
   if (!meta) return;
   const asked = pageAskOf(meta, params);
-  await readCached(api, JSON.stringify(asked), () => api.list(asked));
+  const counting = countAskOf(meta, params);
+  await Promise.all([
+    readCached(api, JSON.stringify(asked), () => api.list(asked)),
+    readCached(api, JSON.stringify(counting), () => api.list(counting)),
+  ]);
 }
 
 /** Filter's counts: one row's page with the facets of this address, read when a choice opens. */
@@ -388,12 +398,14 @@ function List({
   // The page the address names: `pg` from 1, read as rows to skip.
   const at = pageAt(params.get("pg"));
   const narrow = useNarrow();
-  const asked: ListAsk = pageAskOf(meta, params);
-  const page = useLoad<RecordsPage>(
+  const asked = pageAskOf(meta, params);
+  const page = useLoad<RowsPage>(
     JSON.stringify(asked),
-    (before) => listChanged((a) => api.list(a), asked, before),
+    (before) => listChanged((a) => api.list({ ...a, counts: false }), asked, before),
     api,
   );
+  const counting = countAskOf(meta, params);
+  const tally = useLoad<RecordsPage>(JSON.stringify(counting), () => api.list(counting), api);
   // Other rows read while these show. The artifact's Refresh: old data stays, never dimmed.
   const refresh = page.loading && !!page.data;
   // A view's tab turns the ring while its rows read; the pager's count does for another page.
@@ -407,7 +419,8 @@ function List({
     if (landed.current === held.landed) return;
     landed.current = held.landed;
     page.retry();
-  }, [held.landed, page.retry]);
+    tally.retry();
+  }, [held.landed, page.retry, tally.retry]);
   const many = meta.name.many;
   const actions = actsOf(meta, acts);
   // A row an optimistic press sends stays, washed, its word and the ring on it, till the server
@@ -424,6 +437,7 @@ function List({
   const [rev, setRev] = useState(0);
   const acted = (ids: (string | number)[]) => {
     page.retry();
+    tally.retry();
     setRev((n) => n + 1);
     setPicked(new Set());
     setChanged(new Set(ids.map(String)));
@@ -466,7 +480,7 @@ function List({
     return waitFrom(textOf(r[late.field]), late.promise, open, now);
   };
   const size = sizeOf(params);
-  const pages = pagesOf(page.data?.total ?? 0, size);
+  const pages = pagesOf(tally.data?.total ?? 0, size);
   const sort = ask.sort ?? meta.views.find((v) => v.id === ask.view)?.sort;
   // The rows on TanStack Table: it groups them (a group's band, or "Needs you" and "For info"),
   // orders the columns as the address says.
@@ -489,7 +503,7 @@ function List({
   const { rows, cols } = table;
   // A prose subtitle (a comment's words, a DM) previews under each row's title.
   const preview = meta.fields.find((f) => f.key === meta.subtitle && f.kind === "prose");
-  const totals = page.data?.totals;
+  const totals = tally.data?.totals;
   const footed = !!rows.length && !!totals && cols.some((f) => totalSays(f, totals[f.key]));
   const [scroller, room] = useRoom();
   const frame = useRef<HTMLDivElement | null>(null);
@@ -699,7 +713,7 @@ function List({
   const openRow = rows.find((r) => String(r.id) === openId);
   // ⌘K offers this view, the open record's actions, and a search of this list.
   useScope(
-    `${meta.id} ${place.link({})} ${openRow ? JSON.stringify(openRow) : ""} ${page.data?.total}`,
+    `${meta.id} ${place.link({})} ${openRow ? JSON.stringify(openRow) : ""} ${tally.data?.total}`,
     () => ({
       items: [
         ...(openRow
@@ -715,7 +729,7 @@ function List({
         ...actions
           .filter((a) => a.form && !a.each)
           .map((a) => ({ label: a.label, group: cap(many), run: () => run(a, []) })),
-        ...(page.data?.total
+        ...(tally.data?.total
           ? [
               {
                 label: "Export CSV",
@@ -909,7 +923,7 @@ function List({
           <HeadMenu
             items={[
               ...forms.slice(1).map((a) => ({ label: a.label, run: () => run(a, []) })),
-              ...(page.data?.total
+              ...(tally.data?.total
                 ? [
                     { label: "Export CSV", run: () => void exportAs("csv") },
                     ...(meta.drafts
@@ -936,7 +950,7 @@ function List({
       <ViewTabs
         meta={meta}
         current={ask.view}
-        counts={page.data?.counts}
+        counts={tally.data?.counts}
         place={place}
         saved={saved}
         keep={api.keep}
@@ -1029,11 +1043,11 @@ function List({
                     )
                   }
                 />
-                {page.data && !rows.length ? (
+                {page.data && (tally.data || tally.error) && !rows.length ? (
                   <Empty
                     className="mx-3 my-6"
                     // no view with rows and no chat to ask (a client's): Wren fills it
-                    waits={!narrowed && !chat && !viewWithRows(meta, ask.view, page.data.counts)}
+                    waits={!narrowed && !chat && !viewWithRows(meta, ask.view, tally.data?.counts)}
                     action={
                       narrowed ? (
                         <a
@@ -1049,7 +1063,7 @@ function List({
                         <ElseWhere
                           meta={meta}
                           current={ask.view}
-                          counts={page.data.counts}
+                          counts={tally.data?.counts}
                           place={place}
                           many={many}
                           chat={chat}
@@ -1071,7 +1085,7 @@ function List({
         place={place}
         page={Math.min(at, pages)}
         pages={pages}
-        total={page.data?.total ?? 0}
+        total={tally.data?.total ?? 0}
         shown={rows.length}
         size={size}
         next={page.data?.next ?? null}

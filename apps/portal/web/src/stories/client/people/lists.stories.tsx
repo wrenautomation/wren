@@ -1,6 +1,8 @@
 /** A client's people, groups, broadcasts and import. Fake server: `web/src/mocks/`. */
 import type { Meta } from "@storybook/react-vite";
 import { expect, waitFor, within } from "storybook/test";
+import { ANSWERS } from "../../../mocks/data/index.js";
+import { manyRows } from "../../../mocks/data/records.js";
 import { pageAt, shows, tidy } from "../../../mocks/page.js";
 import { answers } from "../client-places-kit.js";
 
@@ -43,6 +45,22 @@ export const Peek = tidy(
     },
   }),
 );
+
+/** 120 people: the pager's second page, its count read once for the filter, not per page. */
+const MANY = manyRows("people.profile", 120, ANSWERS);
+export const Paged = pageAt("/people/people?view=all", { answers: MANY, check: shows("People") });
+export const PageTwo = pageAt("/people/people?view=all&pg=2", {
+  answers: MANY,
+  check: shows("People"),
+});
+
+/** A search with no match: the empty state, never a flash of it before the count lands. */
+export const NoMatch = pageAt("/people/people?view=all&q=zzzz", {
+  answers,
+  check: async (page) => {
+    await expect(await within(page).findByText(/Clear filters/)).toBeVisible();
+  },
+});
 
 export const InJourney = pageAt("/people/people?view=journey", {
   answers,

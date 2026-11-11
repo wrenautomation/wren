@@ -198,6 +198,16 @@ describe("paging", () => {
     await refused(api.list({ record: "test.item", offset: 1e9 }));
   });
 
+  it("counts: false reads the rows, no count", async () => {
+    const all = await api.list({ record: "test.item", sort: "nm", limit: 3 });
+    const rows = await api.list({ record: "test.item", sort: "nm", limit: 3, counts: false });
+    expect(rows.rows).toEqual(all.rows);
+    expect(rows.next).toBe(all.next);
+    expect(rows).not.toHaveProperty("total");
+    expect(rows).not.toHaveProperty("counts");
+    expect(rows).not.toHaveProperty("totals");
+  });
+
   it("a page marker from another sort is refused", async () => {
     const page = await api.list({ record: "test.item", sort: "n", limit: 3 });
     await refused(api.list({ record: "test.item", sort: "-n", cursor: page.next ?? "" }));

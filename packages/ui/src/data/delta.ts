@@ -4,13 +4,13 @@
  * fill reads the list again in full.
  */
 import { knownOf, mergeChanged } from "@wren/core/records/delta";
-import type { ListAsk, RecordsPage } from "@wren/core/records/serve";
+import type { ListAsk, RowsPage } from "@wren/core/records/serve";
 
-export async function listChanged(
-  list: (ask: ListAsk) => Promise<RecordsPage>,
+export async function listChanged<P extends RowsPage>(
+  list: (ask: ListAsk) => Promise<P>,
   ask: ListAsk,
-  before: RecordsPage | undefined,
-): Promise<RecordsPage> {
+  before: P | undefined,
+): Promise<P> {
   const known = before?.record === ask.record ? knownOf(before) : [];
   if (!known.length) return list(ask);
   const got = await list({ ...ask, known });

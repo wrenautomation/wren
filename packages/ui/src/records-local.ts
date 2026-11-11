@@ -65,6 +65,11 @@ export function localRecords(server: RecordsApi): LocalRecords {
       const fits = (r: Row) => meets(view?.where, r) && meets(ask.where, r);
       const here = new Set(rows.map((r) => String(r.id)));
       const moved = changed(ask.record).map((r) => [r, patch(ask.record, r)] as const);
+      const came = ask.cursor
+        ? []
+        : moved.map(([, now]) => now).filter((r) => fits(r) && !here.has(String(r.id)));
+      // counts: false: rows only, nothing to adjust
+      if (page.total === undefined) return { ...page, rows: [...came, ...rows.filter(fits)] };
       const counts = { ...page.counts };
       for (const v of views)
         for (const [was, now] of moved)
@@ -72,9 +77,6 @@ export function localRecords(server: RecordsApi): LocalRecords {
             (counts[v.id] ?? 0) +
             Number(meets(v.where, now) && meets(ask.where, now)) -
             Number(meets(v.where, was) && meets(ask.where, was));
-      const came = ask.cursor
-        ? []
-        : moved.map(([, now]) => now).filter((r) => fits(r) && !here.has(String(r.id)));
       const total = page.total + moved.reduce((n, [was, now]) => n + +fits(now) - +fits(was), 0);
       return { ...page, rows: [...came, ...rows.filter(fits)], counts, total };
     },

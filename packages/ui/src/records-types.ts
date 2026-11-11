@@ -11,10 +11,9 @@ import type { Cell, RecordMeta } from "@wren/core/records";
 import type {
   ExportAsk,
   GetAsk,
-  ListAsk,
+  ListCall,
   RecordAnswer,
   RecordsFile,
-  RecordsPage,
   RecordsStat,
   Row,
   StatsAsk,
@@ -35,7 +34,7 @@ import { stripMarks } from "./sources.js";
 /** The four record calls, bound to a workspace. */
 export interface RecordsApi {
   types(): Promise<RecordMeta[]>;
-  list(ask: ListAsk): Promise<RecordsPage>;
+  list: ListCall;
   get(ask: GetAsk): Promise<RecordAnswer>;
   export(ask: ExportAsk): Promise<RecordsFile>;
   /** A number over a period against the one before, by day: the Overview's tiles. */
