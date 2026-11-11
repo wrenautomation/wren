@@ -269,3 +269,30 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
     with William. Finding a conflict is the agent's call; code only carries the record.
   - Learn: `wren learn add --from william` marks a link he gave as human. Nothing else in Learn tells his
     saves from feed imports (`saved_via` never held portal or shortcut).
+- 2026-11-11: Learn is retired; Canon is the one system (WA-1317, William: "everything has to be under the
+  new unified system"). The 11-11 Learn work was a mistake: `wren learn add --from`, Learn `provider`
+  (ffbaaad38), SL-21 telling sessions to use it, 4 prod rows written to Learn, and `wren learn ads`
+  (WA-1301). Learn had stopped taking items on 11-02, but the Mac's `learn-read` job still broke reels
+  down every 30 min.
+  - Data: a last `wren learn promote` brought 201 sources up to date (transcripts and breakdowns read
+    after the WA-1230 migration) and added the ads. His 96 keep / tune / drop calls on pieces
+    (`decision_calls` `doc:N`) become `verdict` records, from `owner`, citing the source. Nothing stays
+    only in Learn. The `learn` schema's tables stay until William says yes to the drop.
+  - What Learn did that lives on, by job: the breakdown of a piece, the standard an SOP holds pieces to
+    (medians over kept breakdowns) and the check of a draft or film against it. That code moves to
+    `@wren/content-standard`. Its rows come from Canon sources' `breakdown` and his verdicts, not from
+    `learn.standards`.
+  - Prod cannot read Canon (it is a git repo on the Mac). `wren sop push` computes the standard and the
+    calls for the SOP's scope and stores them on the pushed playbook (`content_playbooks.standard`). The
+    draft check and the film check read that snapshot. A platform with no pushed playbook gets no
+    standard; before, it got a median of every piece Learn read. Options weighed: keep the Learn tables
+    as Canon's mirror on prod (two truths, the bug this retires), or a sync job from Canon to a prod
+    table (a loop to run and watch, for numbers that change only when an SOP is pushed). The snapshot
+    rides the push that already exists.
+  - Saving a link is `wren sop add [name] <url> --from <person>`: the name is optional (a link that fits
+    no SOP yet), `--from` makes the source human-provided, and a reel or video is broken down on add.
+    `wren sop breakdown <source>` and `wren sop call <source> <path> <keep|tune|drop>` replace the Learn
+    commands. Competitor ads: `wren sop ads --ads <weaver export>`, one source per ad.
+  - Removed: `wren learn`, `@wren/learn`, `wren sop learn-back` (`learn.checks` never held a row), the
+    `learn-read` Mac job, the content-line feed (`MapLineFeed`, fed only by Learn items), Learn's
+    readers. Old design docs keep their text: they are history.
