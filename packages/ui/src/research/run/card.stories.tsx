@@ -162,7 +162,7 @@ const run = (data: RunCardProps): AgentPart => ({
   type: "view",
   id: "v1",
   name: "research.run",
-  data: { href: "/research/history?run=r-52", ...data },
+  data: { href: "/research/runs?run=r-52&pane=runs", ...data },
 });
 
 /** A standard run, done: the page's graph; a next ask goes as his turn. */
