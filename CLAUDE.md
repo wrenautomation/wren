@@ -12,7 +12,7 @@ Prod: `node scripts/prod-sql.mjs "<sql>"` (read only), `node scripts/ingress.mjs
 Secrets: `node scripts/secrets.mjs keys <file|/ssm/name>` (names only) or `run <source> -- <cmd>` (output masked).
 
 Shipping:
-- Check: `peers check` (it runs `scripts/gates.sh changed` on HEAD plus your work alone, in a side worktree; args pass through: `peers check ui`). Never run `gates.sh` in this shared checkout: another session's unfinished work fails it. Turbo keeps one cache (`~/Library/Caches/wren_automation/turbo/wren`), so a package that passed once is a hit.
+- Check: `peers check` (it runs `scripts/gates.sh changed` in place on your files and their packages only; args pass through: `peers check ui`). Never run `gates.sh` in this shared checkout: another session's unfinished work fails it. Turbo keeps one cache (`~/Library/Caches/wren_automation/turbo/wren`), so a package that passed once is a hit.
 - Commit with `git commit -- <paths>`: other sessions stage files here.
 - Push with `scripts/push.sh <commit>`. It merges origin/main if it moved, pushes, waits for CI's gates and the deploy, then syncs the folder copy. CI is the judge: no local rerun.
 - CI deploys `main` once lint (biome, types, guards) and schema pass. Unit, integration and story tests report only during the redesign (WA-917): a test of a part you redesign is rewritten or deleted, never a reason to wait.

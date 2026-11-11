@@ -156,7 +156,27 @@ schema() {
 # A builder's loop: Biome on the files changed since origin/main, then typecheck for the packages
 # changed and what depends on them. No tests during the redesign (WA-917): `vitest run <file>`. The full gate runs once, at hand-off;
 # unchanged packages are cache hits there.
+# PEERS_FILES (from `peers check`): one session's files, a line each. Then only those files and their packages
+# (plus dependents) are checked, in this shared checkout: another session's unfinished files stay out.
+mine() { printf '%s\n' "$PEERS_FILES" | while read -r f; do if [ -n "$f" ] && [ -f "$f" ]; then echo "$f"; fi; done; }
+# Each file's package folder (nearest package.json below the root) as a turbo filter: the package and its dependents.
+mine_filters() {
+  mine | while read -r f; do
+    d=$(dirname "$f")
+    while [ "$d" != "." ] && [ ! -f "$d/package.json" ]; do d=$(dirname "$d"); done
+    if [ "$d" != "." ]; then echo "--filter=...{./$d}"; fi
+  done | sort -u
+}
 changed() {
+  if [ -n "${PEERS_FILES:-}" ]; then
+    local files filters
+    files=$(mine) && filters=$(mine_filters) &&
+      echo "==> biome, this session's files" &&
+      { [ -z "$files" ] || pnpm -s biome check --error-on-warnings --no-errors-on-unmatched --files-ignore-unknown=true $files; } &&
+      echo "==> typecheck, this session's packages and their dependents" &&
+      { [ -z "$filters" ] || pnpm turbo run typecheck $filters --output-logs=errors-only; }
+    return
+  fi
   echo "==> biome, changed since origin/main" &&
     pnpm -s biome check --error-on-warnings --changed --since=origin/main --no-errors-on-unmatched &&
     echo "==> typecheck, changed since origin/main" &&
@@ -167,7 +187,9 @@ changed() {
 # during the redesign (WA-917): `visual` and `look` run on their own when you want them.
 ui() {
   local files
-  files=$({ git diff --name-only origin/main...HEAD && git diff --name-only HEAD && git ls-files --others --exclude-standard; } | sort -u | while read -r f; do [ -f "$f" ] && echo "$f"; done) &&
+  if [ -n "${PEERS_FILES:-}" ]; then files=$(mine); else
+    files=$({ git diff --name-only origin/main...HEAD && git diff --name-only HEAD && git ls-files --others --exclude-standard; } | sort -u | while read -r f; do [ -f "$f" ] && echo "$f"; done)
+  fi &&
     echo "==> biome, changed files" &&
     { [ -z "$files" ] || pnpm -s biome check --no-errors-on-unmatched --files-ignore-unknown=true $files; } &&
     echo "==> typecheck @wren/ui @wren/portal" &&
