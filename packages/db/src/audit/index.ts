@@ -59,9 +59,6 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   "delivery.health_days": "a client's daily score, rewritten by every watch pass, kept by day",
   "delivery.flag_digests": "when the flags digest went, one row a day",
   "watch.mail": "William's own mail, read by machine: previews never go in a permanent log",
-  "learn.items":
-    "public pages and their transcripts, read and scored by machine with their own times",
-  "learn.digests": "when the Learn digest went, one row a day",
   vault_keys: "a mirror of autobrowse's key list, rewritten hourly; the vault is the log",
   client_secrets:
     "sealed client keys: a sealed value never goes in a permanent log; client_secret_events logs every read and write",

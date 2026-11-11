@@ -90,7 +90,6 @@ describe("which tables", () => {
         "delivery",
         "pipeline",
         "watch",
-        "learn",
         "calendar",
         "vireo",
         "folders",

@@ -35,7 +35,7 @@ Canon is the one store for sources (designs/2026-11-09-knowledge-repo.md), so th
 ## If you change this
 
 - **Hits:** a new hook style or fact key: `labels.ts` and `FACTS[kind]`; a number a standard counts: `StandardRow`, `NUMBERS` or `SHARES`, and `piecesOf`; a regenerated breakdown orphans his calls on its paths
-- **Does not hit:** the database (no table; the old `learn` schema waits to drop, `packages/research/src/learn-schema.ts`)
+- **Does not hit:** the database (no table; the old `learn` schema dropped 11-11, WA-1318)
 
 ## Surfaces
 
