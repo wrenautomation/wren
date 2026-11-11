@@ -50,6 +50,10 @@ const gate = z
         port: z.number().int().min(1024).max(65535),
         key: z.string().regex(/^[A-Z][A-Z0-9_]*$/),
         suffix: z.string().default(""),
+        /** Gate-log alert each time a UTC day passes another this many GB. */
+        alertGb: z.number().positive().default(0.5),
+        /** Vendor price, for `credvault gate usage`. */
+        pricePerGb: z.number().nonnegative().default(1),
         sticky: z
           .string()
           .regex(/^\d+-\d+$/)

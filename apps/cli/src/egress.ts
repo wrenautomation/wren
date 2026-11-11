@@ -50,7 +50,7 @@ const SMOKESCREEN = {
 };
 /** The key gate's pieces, pinned: mitmproxy (MIT) in a venv, credvault from npm. */
 const MITMPROXY = "12.1.2";
-const CREDVAULT = "0.17.0";
+const CREDVAULT = "0.17.1";
 const HOME = homedir();
 const SHARE = join(HOME, ".local/share/wren/egress");
 const BIN = join(SHARE, `smokescreen-${SMOKESCREEN.version}`);
