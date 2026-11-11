@@ -100,7 +100,10 @@ describe("video check", () => {
         model: geminiReader(["k"], { fetch: fetchFn }),
         ffmpeg: "ffmpeg",
       });
-      expect(r).toEqual({ pass: false, issues: [{ rank: "P2", at: 3, rule: "pace", says: "Blue for 3 s." }] });
+      expect(r).toEqual({
+        pass: false,
+        issues: [{ rank: "P2", at: 3, rule: "pace", says: "Blue for 3 s." }],
+      });
       expect(sent).toHaveLength(1);
       expect(sent[0]?.images).toBe(4);
       expect(sent[0]?.text).toContain("0.5 hi");
