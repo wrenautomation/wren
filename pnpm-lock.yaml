@@ -678,8 +678,8 @@ importers:
         specifier: 0.3.318
         version: 0.3.318(@anthropic-ai/sdk@1.4.0(zod@4.6.6))(@modelcontextprotocol/sdk@1.32.0(zod@4.6.6))(zod@4.6.6)
       '@wrenautomation/compaction':
-        specifier: 0.68.10
-        version: 0.68.10
+        specifier: 0.68.12
+        version: 0.68.12
       '@wrenautomation/weaver':
         specifier: 0.68.10
         version: 0.68.10(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
@@ -6352,6 +6352,9 @@ packages:
 
   '@wrenautomation/compaction@0.68.10':
     resolution: {integrity: sha512-7NKSqGiLKNgxlRNUoQ8tmG+19j/N9zltbwy4jjCpccV9Zo66ijhznEjoR94ppORGAC0sPYh/6zUMtp1oICH1mQ==}
+
+  '@wrenautomation/compaction@0.68.12':
+    resolution: {integrity: sha512-1DeXceptE+I4ZGHzfY+O2k5LYLBaLSyFcCMDXOwnC70qe4AIjrWErZVTVvJkjECRiKUP75lr53X4QHqBoqDXMg==}
 
   '@wrenautomation/knowledge@0.68.10':
     resolution: {integrity: sha512-skpW4/clj40o+vag0h+CV4QH/4yshnU6uMOeRHqvQ6rLWQMsP9DA5XibhfMdDPi5ZKUIcj3AY4tDEIKpO0EizA==}
@@ -14499,6 +14502,8 @@ snapshots:
       - utf-8-validate
 
   '@wrenautomation/compaction@0.68.10': {}
+
+  '@wrenautomation/compaction@0.68.12': {}
 
   '@wrenautomation/knowledge@0.68.10(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
     dependencies:
