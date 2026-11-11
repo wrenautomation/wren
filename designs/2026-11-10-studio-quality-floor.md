@@ -96,6 +96,8 @@ Add the lines not there yet. `video-editing`: no camera move eases to a dead sto
 
 1. **Stop at the source.** Bundle and load the font; fontkit text widths; `platform-zones.ts`; `overlaySchema` and `placeWord` refuse off-frame and under-button boxes; `reelLines` hold. Done when each rule has a unit test with a synthetic edit it refuses, and a story shows a Reels frame with its button zones drawn over it.
 2. **File checks.** Flash, contrast and Short pace at render end, stored per output on its hash. Done when each has a test on a synthetic clip that fails it. Budget: under 1 s for props checks; file checks measured per minute of video on this Mac and noted here.
+   - Built 11-10: `studio/src/render-checks.ts` (`floorChecks`), text boxes from the Figtree file with fontkit (`text-box.ts`). A run's stats: `{output, hash, floor: FLOOR_VERSION, pass, issues, modelError}`; `pass` = no P0 or P1. The model's issues are P2. `--no-check` became `--no-model`: the file checks always run.
+   - Measured: flash reads 40 s of 720p in 1.0 s (about 1.5 s per minute). Contrast is 3 one-frame reads per text. The predicted text box sits within 3 px of the drawn glyphs (long, "3x more replies", size l).
 3. **Gate.** `approveVideo` and `swapShortMedia` refuse as above, with a test for unchecked, stale, P0, P1 and P1 with override. The Videos page shows ranks.
 4. **Model judge.** Bar lines mapped as above, levels per line, ranks in code.
 5. **Floor rules.** The five lines in Canon; `knowledge render video-editing` shows them.

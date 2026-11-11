@@ -72,7 +72,13 @@ export const OVERLAY = {
   fadeS: 0.18,
   /** Widest line, as a share of the frame's width. */
   maxWidth: 0.86,
+  /** CSS line-height, and letter-spacing as a share of the font size. */
+  lineHeight: 1.12,
+  tracking: -0.02,
 } as const;
+
+/** The big word behind the speaker: CSS line-height, and letter-spacing as a share of its size. */
+export const BIG_TYPE = { lineHeight: 1.2, tracking: -0.03 } as const;
 
 /**
  * Where a `size` picture sits (left, top, width, height, in the frame's pixels) so that `box` of

@@ -12,6 +12,7 @@ import type { Model } from "@wrenautomation/models";
 import { runFor, sceneCuts, TOOL_MS } from "@wrenautomation/read/video";
 import { z } from "zod";
 import { BAR_IDS, type BarFormat, barLines, VIDEO_CHECK } from "./bar.js";
+import type { Fault } from "./render-checks.js";
 
 export { VIDEO_CHECK };
 
@@ -19,12 +20,8 @@ export { VIDEO_CHECK };
 const SHEET_MAX = 48;
 const SHEET_EVERY_S = 2;
 
-export interface CheckIssue {
-  /** Seconds into the rendered file. */
-  at: number;
-  rule: string;
-  says: string;
-}
+/** The model only advises for now (William, 11-10): each of its issues is a P2. */
+export type CheckIssue = Fault;
 export interface CheckResult {
   pass: boolean;
   issues: CheckIssue[];
@@ -55,6 +52,7 @@ export function parseCheck(text: string): CheckResult {
 /** A rule not on the bar reads as `best`; an issue means no pass. */
 function verdict(a: z.infer<typeof ANSWER>): CheckResult {
   const issues = a.issues.map((i) => ({
+    rank: "P2" as const,
     at: Math.round(i.at * 10) / 10,
     rule: BAR_IDS.includes(i.rule) ? i.rule : "best",
     says: i.says,

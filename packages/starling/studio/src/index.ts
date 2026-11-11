@@ -214,6 +214,7 @@ export {
   renderStill,
   renderStills,
 } from "./render.js";
+export { FLOOR_VERSION, floorChecks } from "./render-checks.js";
 export {
   CUT_HASH,
   changedSince,

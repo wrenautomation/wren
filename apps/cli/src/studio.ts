@@ -31,6 +31,7 @@ import {
   BED_LUFS,
   bedPath,
   CAPTION_STYLES,
+  type CheckIssue,
   CROPPED,
   type CroppedFormat,
   CUT_HASH,
@@ -44,6 +45,7 @@ import {
   cutTracks,
   cutTranscript,
   editMattes,
+  FLOOR_VERSION,
   type Format,
   FPS,
   FX,
@@ -52,6 +54,7 @@ import {
   filmstrip,
   findCapProjects,
   findRecordings,
+  floorChecks,
   frameAt,
   framedProps,
   fromCutTime,
@@ -170,7 +173,7 @@ function editJson(e: VideoEdit): string {
 }
 
 type RenderOpts = {
-  check?: boolean;
+  model?: boolean;
   short?: number;
   only?: string;
   cut?: boolean;
@@ -352,32 +355,73 @@ export function registerStudio(
     });
 
   const CHECKED = /^(long|vertical|square|portrait|short-\d+)$/;
-  /** Check each rendered output against the bar, a `video check` run each; how many failed. */
-  async function checkOutputs(db: Db, e: VideoEdit, outputs: readonly string[], by: string) {
-    const model = await geminiModel(settings, rootDir);
+  /** An output's props and frame as its render drew them; a Short's props also feed the pace check. */
+  function outputProps(e: VideoEdit, output: string, mattes: Matte[]) {
+    const short = /^short-(\d+)$/.exec(output);
+    if (short) {
+      const p = shortProps(e, Number(short[1]), mattes);
+      return { props: p, frame: [1080, 1920] as const, short: p };
+    }
+    const framed = CROPPED.find((f) => f === output);
+    if (framed) {
+      const p = framedProps(e, framed, mattes);
+      return { props: p, frame: p.frame, short: null };
+    }
+    return { props: longProps(e, mattes), frame: [1920, 1080] as const, short: null };
+  }
+
+  /**
+   * Each rendered output's floor checks (flash, contrast, a Short's pace), then the model's look
+   * at the bar as advice: a `video check` run each, on the output's render hash. How many have a
+   * P0 or P1 (designs/2026-11-10-studio-quality-floor.md).
+   */
+  async function checkOutputs(
+    db: Db,
+    e: VideoEdit,
+    outputs: readonly string[],
+    o: { by: string; model: boolean },
+  ) {
+    const mattes = await mattesFor(e);
     let failed = 0;
     for (const output of outputs) {
-      const short = /^short-(\d+)$/.exec(output);
-      const props = short ? shortProps(e, Number(short[1])) : longProps(e);
+      const file = e.files[output] as string;
+      const { props, frame, short } = outputProps(e, output, mattes);
       const { stats } = await recordedRun(
         db,
-        { command: VIDEO_CHECK, argv: { id: e.id, output, by } },
-        async () => ({
-          output,
-          hash: e.files[hashKey(output)] ?? null,
-          ...(await checkRender(e.files[output] as string, {
-            format: short ? "short" : "long",
-            durationS: props.durationInFrames / FPS,
-            words: props.words,
-            // Throws inside the run with no working key: it shows failed, never a pass.
-            model: needGemini(model),
-            ffmpeg: settings.ffmpeg,
-          })),
-        }),
+        { command: VIDEO_CHECK, argv: { id: e.id, output, by: o.by, model: o.model } },
+        async () => {
+          const floor = await floorChecks(file, { props, frame, short, ffmpeg: settings.ffmpeg });
+          // The model only advises (William, 11-10): its failure is kept, never a fail.
+          let advice: CheckIssue[] = [];
+          let modelError: string | null = null;
+          if (o.model)
+            try {
+              const r = await checkRender(file, {
+                format: short ? "short" : "long",
+                durationS: props.durationInFrames / FPS,
+                words: props.words,
+                model: needGemini(await geminiModel(settings, rootDir)),
+                ffmpeg: settings.ffmpeg,
+              });
+              advice = r.issues;
+            } catch (err) {
+              modelError = err instanceof Error ? err.message : String(err);
+            }
+          const issues = [...floor, ...advice].sort((a, b) => a.at - b.at);
+          return {
+            output,
+            hash: e.files[hashKey(output)] ?? null,
+            floor: FLOOR_VERSION,
+            pass: !issues.some((i) => i.rank === "P0" || i.rank === "P1"),
+            issues,
+            modelError,
+          };
+        },
       );
       if (!stats.pass) failed++;
-      console.log(`${output}: ${stats.pass ? "pass" : `${stats.issues.length} to fix`}`);
-      for (const i of stats.issues) console.log(`  ${t(i.at)}  ${i.rule}  ${i.says}`);
+      console.log(`${output}: ${stats.pass ? "pass" : "blocked"}`);
+      for (const i of stats.issues) console.log(`  ${i.rank}  ${t(i.at)}  ${i.rule}  ${i.says}`);
+      if (stats.modelError) console.log(`  model look failed: ${stats.modelError}`);
     }
     return failed;
   }
@@ -386,11 +430,12 @@ export function registerStudio(
   video
     .command("check <id>")
     .description(
-      "check each rendered video against the edit bar (one Gemini look); a run per output",
+      "check each rendered video: flash, text contrast, a Short's pace, then one Gemini look at the bar as advice; a run per output",
     )
     .option("--only <output>", "one output: long, vertical, square, portrait, short-N")
     .option("--by <who>", "who asked", "cli")
-    .action((v: string, o: { only?: string; by: string }) =>
+    .option("--no-model", "skip the Gemini look")
+    .action((v: string, o: { only?: string; by: string; model: boolean }) =>
       withDb(async (db) => {
         const e = await getEdit(db, id(v));
         const outputs = Object.keys(e.files).filter(
@@ -400,7 +445,7 @@ export function registerStudio(
           throw new Error(
             `video ${e.id}: nothing rendered${o.only ? ` as ${o.only}` : ""}; run wren video render ${e.id}`,
           );
-        if ((await checkOutputs(db, e, outputs, o.by)) > 0) process.exitCode = 1;
+        if ((await checkOutputs(db, e, outputs, o)) > 0) process.exitCode = 1;
       }),
     );
 
@@ -913,7 +958,10 @@ export function registerStudio(
     )
     .option("--again", "render every output again, changed or not (default: only what changed)")
     .option("--upload", "no render: upload what out/ already holds and mark it rendered")
-    .option("--no-check", "skip the self-check of each new render (wren video check)")
+    .option(
+      "--no-model",
+      "skip the Gemini look in each new render's check (the file checks always run)",
+    )
     .option(
       "--still <s>",
       "no render: one frame per format at this second of the recording, to out/still-<format>-<s>.png",
@@ -933,15 +981,16 @@ export function registerStudio(
           await setRender(db, id(v), { state: "failed", at: at(), why });
           throw err;
         }
-        if (o.check === false || o.upload) return;
-        // Each output this render made new, checked before he Approves; a check error never fails it.
+        if (o.upload) return;
+        // Each output this render made new, checked before he Approves; a check error never fails
+        // the render (the output reads as unchecked).
         const e = await getEdit(db, id(v));
         const fresh = Object.keys(e.files).filter(
           (k) => CHECKED.test(k) && (o.again || e.files[hashKey(k)] !== was[hashKey(k)]),
         );
         if (fresh.length)
-          await checkOutputs(db, e, fresh, "render").catch((err: Error) =>
-            console.log(`self-check skipped: ${err.message}`),
+          await checkOutputs(db, e, fresh, { by: "render", model: o.model !== false }).catch(
+            (err: Error) => console.log(`check failed: ${err.message}`),
           );
       }),
     );
