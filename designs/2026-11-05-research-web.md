@@ -343,3 +343,27 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - The view sends `speaker` and `evidence` on each hit and document, and `evidence` on each finding, each with who said it (`by`, `p`). The portal's `kindOf` and `evOf` are deleted; the graph reads the view.
   - Facet `needs` names evidence (an old class name maps). Patterns count sources per speaker and per evidence; echo = every source is a company. Promote writes both fields to the knowledge records.
   - Old ledgers parse: the old `class` key stays readable. Old judge records with a `class` answer map too.
+- 11-10: Ask, Live and History become one page, Research › Runs (WA-1106).
+  - William: three pages for one job; the chat drives the graph, so they belong side by side.
+  - Options, ranked by the full-size chat beside the graph, then links and stories kept, then cost:
+    - A. The chat as the page's left column (420 px); past chats in a menu in its head. The right area has Live and History; `?run=` opens one run there. Chosen.
+    - B. The graph only, the chat in the shell's side panel. No full-size chat; the chat stories lose their page.
+    - C. The chat as a dockview pane inside the run graph. One dock for both, but the dock is per run and History is a list.
+  - Narrow (under 1000 px of main): a Seg "Chat | Runs" picks the one pane shown.
+  - Old addresses move: `/research/ask`, `/live`, `/history` to `/research/runs`, search kept. A bare `/history` lands on Live, one click from History.
+  - A new run in the chat switches the right area to Live (was: navigate to the Live page, which dropped the chat).
+  - States, right area:
+
+    | State | Shows | Enters on | Next | Motion |
+    |---|---|---|---|---|
+    | serve off | NoServe with Try again | runs read fails | loading | fade |
+    | loading | card skeleton | page open, retry | live, history, empty | fade |
+    | no runs | Empty: ask in the chat | runs read, 0 | live (first run) | fade |
+    | live | chat's runs or newest, on the graph | default, Seg, new run in chat | history, one run | fade 200 ms |
+    | history | runs list, pick, folders | Seg | one run, several, live | fade 200 ms |
+    | one run | back link, Graph / Back and forth | a row, a live link | history or live (back) | fade 200 ms |
+    | narrow chat / narrow runs | one pane | Seg | the other | fade 200 ms |
+
+    The chat column keeps the Ask page's states (setup read fails, no setup, loading, chat).
+
+    Built 11-10. Proof: shots of each row at 390 and 1280, both looks; pane, view and new-run switches played (story `NewRunGoesLive`). Proof found two shared faults, both fixed: the phone bar took a hidden pane's heading, and the new-run switch read `location`, not the router. Open: the chat's run card repeats the right-hand graph (WA-1292).

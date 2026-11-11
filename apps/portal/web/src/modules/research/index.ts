@@ -3,9 +3,7 @@
  * runs from `weaver serve`, live. Wren's team only.
  */
 import type { Module } from "../../module.js";
-import { AskPage } from "./ask.js";
-import { LivePage } from "./live.js";
-import { HistoryPage } from "./page.js";
+import { RunsPage } from "./runs.js";
 
 export const research: Module = {
   id: "research",
@@ -16,25 +14,12 @@ export const research: Module = {
   requires: { audience: "team" },
   pages: [
     {
-      id: "ask",
-      label: "Ask",
-      about: "Ask a Claude agent with weaver; your past chats stay on the left.",
-      Page: AskPage,
+      id: "runs",
+      label: "Runs",
+      about:
+        "Ask a Claude agent with weaver; its runs draw beside the chat, live, and every run stays in History.",
+      Page: RunsPage,
       fill: true,
-    },
-    {
-      id: "live",
-      label: "Live",
-      about: "The chat's runs and runs still going, on one graph that follows them.",
-      Page: LivePage,
-      wide: true,
-    },
-    {
-      id: "history",
-      label: "History",
-      about: "Every run: open one, pick several, or draw all of them on one graph.",
-      Page: HistoryPage,
-      wide: true,
     },
   ],
 };

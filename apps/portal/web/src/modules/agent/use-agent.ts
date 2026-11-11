@@ -14,7 +14,7 @@ import {
 } from "@wren/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { socketToken } from "../../api.js";
-import { navigate } from "../../route.js";
+import { here, href, navigate } from "../../route.js";
 import {
   type FreshMeter,
   openSetup,
@@ -38,7 +38,7 @@ import {
   type ThreadState,
 } from "./thread.js";
 
-const LIVE = "/research/live";
+const RUNS = "/research/runs";
 
 /** The page's sign-in token; a local run has none and the dev Worker answers for "dev". */
 export const pageToken = async () => (await socketToken()) ?? "dev";
@@ -243,8 +243,12 @@ export function useAgent(o: {
     setChatRuns(runs);
     setChatToolsDone(toolsDoneIn(s.messages));
     const fresh = was.session === s.session && runs.some((r) => !was.runs.includes(r));
-    const at = location.pathname;
-    if (fresh && at.startsWith("/research") && at !== LIVE) navigate(LIVE);
+    // a new run in the chat: the Runs page's right side goes back to Live
+    // the router's address: a page story's memory history too
+    const [path = "", search = ""] = here().split("?");
+    const q = new URLSearchParams(search);
+    if (fresh && path === RUNS && (q.has("run") || q.has("view")))
+      navigate(href(RUNS, { run: null, view: null, tab: null, open: null }, q), true);
   }, [s.messages, s.session]);
 
   // the model picked mid-chat goes to the live session at once

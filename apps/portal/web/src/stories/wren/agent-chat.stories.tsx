@@ -81,7 +81,7 @@ const background = (tape: TapeLine[]) => {
 };
 
 /** Tools, a command allowed, a background task and its output, a question answered, a second turn. */
-export const Work = story("/research/ask?setup=weaver", TAPES.work ?? [], async (page) => {
+export const Work = story("/research/runs?setup=weaver", TAPES.work ?? [], async (page) => {
   const c = within(page);
   const tape = TAPES.work ?? [];
   const [first = "", second = ""] = typedOn(tape);
@@ -109,7 +109,7 @@ export const Work = story("/research/ask?setup=weaver", TAPES.work ?? [], async 
 });
 
 /** Stopped mid-answer: the turn ends where it was, and the next one runs. */
-export const Stop = story("/research/ask?setup=weaver", TAPES.stop ?? [], async (page) => {
+export const Stop = story("/research/runs?setup=weaver", TAPES.stop ?? [], async (page) => {
   const c = within(page);
   const [first = "", second = ""] = typedOn(TAPES.stop ?? []);
   await say(page, first);
@@ -120,7 +120,7 @@ export const Stop = story("/research/ask?setup=weaver", TAPES.stop ?? [], async 
 });
 
 /** Typed commands: two refused by the relay, the rest run; the pickers follow /model and /effort. */
-export const Commands = story("/research/ask?setup=weaver", TAPES.commands ?? [], async (page) => {
+export const Commands = story("/research/runs?setup=weaver", TAPES.commands ?? [], async (page) => {
   const c = within(page);
   const typed = typedOn(TAPES.commands ?? []);
   const after: Record<string, () => Promise<unknown>> = {
@@ -140,7 +140,7 @@ export const Commands = story("/research/ask?setup=weaver", TAPES.commands ?? []
 });
 
 /** A stored chat, read back from the relay. */
-export const Stored = story(`/research/ask?setup=weaver&chat=${STORED}`, [], async (page) => {
+export const Stored = story(`/research/runs?setup=weaver&chat=${STORED}`, [], async (page) => {
   const c = within(page);
   await c.findByText(/A test of the chat page/, {}, LONG);
   await c.findByText(/42/, {}, LONG);
@@ -148,7 +148,7 @@ export const Stored = story(`/research/ask?setup=weaver&chat=${STORED}`, [], asy
 
 /** A chat the Mac no longer holds (404): the box reads only and says why; no Retry (WA-1173). */
 export const Gone = story(
-  "/research/ask?setup=weaver&chat=00000000-0000-4000-8000-0000000000ff",
+  "/research/runs?setup=weaver&chat=00000000-0000-4000-8000-0000000000ff",
   [],
   async (page) => {
     const box = await within(page).findByRole("textbox", { name: "Message" }, LONG);
@@ -158,10 +158,9 @@ export const Gone = story(
   },
 );
 
-/** The side panel on a page past Ask: its Chats menu lists the stored chats. */
-export const Panel = story("/research/history", [], async (page) => {
+/** The Runs page's chat head, the side panel's own: its Chats menu lists the stored chats. */
+export const Panel = story("/research/runs?view=history", [], async (page) => {
   const c = within(page);
-  await userEvent.click(await agentDoor(c));
   await userEvent.click(await c.findByRole("button", { name: "Chats" }, LONG));
   await within(document.body).findByText("Bakery buyers", {}, LONG);
 });
@@ -177,9 +176,16 @@ export const OnMap = story("/", [], async (page) => {
  * A step's output names its run (`::view research.run`): the run's card, read from weaver
  * serve, once and under the last step. These frames are written by hand in the stored shape.
  */
+// weaver serve for the run cards
+const CARD_SERVED = [
+  http.get(`${SERVE}/runs`, () => HttpResponse.json({ v: 1, runs: RESEARCH_ROWS })),
+  http.get(`${SERVE}/runs/:run`, () => HttpResponse.json(RESEARCH_VIEW)),
+  sse(`${SERVE}/events`, () => {}),
+];
+
 export const Card = (() => {
   const base = story(
-    `/research/ask?setup=weaver&chat=${CARDED}`,
+    `/research/runs?setup=weaver&chat=${CARDED}`,
     [],
     async (page) => {
       const c = within(page);
@@ -190,14 +196,53 @@ export const Card = (() => {
     },
     [{ session: CARDED, at: "2026-11-05T18:00:00Z", title: "Wholesale buyers", frames: CARD }],
   );
-  const served = [
-    http.get(`${SERVE}/runs`, () => HttpResponse.json({ v: 1, runs: RESEARCH_ROWS })),
-    http.get(`${SERVE}/runs/:run`, () => HttpResponse.json(RESEARCH_VIEW)),
-    sse(`${SERVE}/events`, () => {}),
-  ];
   return {
     ...base,
-    parameters: { ...base.parameters, msw: [...served, ...(base.parameters?.msw ?? [])] },
+    parameters: { ...base.parameters, msw: [...CARD_SERVED, ...(base.parameters?.msw ?? [])] },
+  };
+})();
+
+/**
+ * A run new to the chat brings Research › Runs back to Live (11-10, WA-1106). Tape: Work's
+ * session start, then the Card chat's turns live in that session.
+ */
+export const NewRunGoesLive = (() => {
+  const sid = "00000000-0000-4000-8000-000000000001";
+  const start = WORK.findIndex((l) => l.from === "cli" && l.frame.type === "stream_event");
+  const ask = (CARD[0] as { message: unknown }).message;
+  const pre = (WORK as TapeLine[])
+    .slice(0, start)
+    .map((l) =>
+      l.from === "page" && l.frame.type === "user"
+        ? { ...l, frame: { ...l.frame, message: ask } }
+        : l,
+    );
+  const t0 = pre.at(-1)?.t ?? 0;
+  const turns = (CARD as TapeLine["frame"][]).slice(1).map((frame, k) => ({
+    t: t0 + 300 * (k + 1),
+    from: "cli",
+    frame: { ...frame, session_id: sid },
+  }));
+  const end = (WORK as TapeLine[]).findLast((l) => l.frame.type === "result");
+  const tape = [
+    ...pre,
+    ...turns,
+    ...(end ? [{ ...end, t: t0 + 300 * CARD.length }] : []),
+  ] as TapeLine[];
+  const base = story("/research/runs?setup=weaver&view=history", tape, async (page) => {
+    const c = within(page);
+    const shown = (name: string) =>
+      c
+        .getAllByRole("button", { name: new RegExp(`^${name}$`) })
+        .some((b) => b.getAttribute("aria-pressed") === "true");
+    await waitFor(() => expect(shown("History")).toBe(true), LONG);
+    await say(page, typedOn(tape)[0] ?? "");
+    await c.findByRole("article", { name: /^Weaver run: / }, LONG);
+    await waitFor(() => expect(shown("Live")).toBe(true), LONG);
+  });
+  return {
+    ...base,
+    parameters: { ...base.parameters, msw: [...CARD_SERVED, ...(base.parameters?.msw ?? [])] },
   };
 })();
 
@@ -206,7 +251,7 @@ export const Card = (() => {
  * tree. Each reads the page's own call from the fake server.
  */
 export const VireoCards = story(
-  `/research/ask?setup=weaver&chat=${VIREO}`,
+  `/research/runs?setup=weaver&chat=${VIREO}`,
   [],
   async (page) => {
     const c = within(page);
@@ -225,7 +270,7 @@ export const VireoCards = story(
  */
 export const Compacted: StoryObj = {
   ...story(
-    `/research/ask?setup=weaver&chat=${COMPACTED}`,
+    `/research/runs?setup=weaver&chat=${COMPACTED}`,
     [],
     async (page) => {
       const c = within(page);

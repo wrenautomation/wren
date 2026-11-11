@@ -277,7 +277,10 @@ function useHeading(
     let seen: Element | null = null;
     let io: IntersectionObserver | null = null;
     const watch = () => {
-      const h = root.querySelector("h1") ?? root.querySelector("h2");
+      // a page with panes keeps a hidden one's heading in the DOM
+      const shown = (sel: string) =>
+        [...root.querySelectorAll(sel)].find((e) => e.checkVisibility?.() ?? true) ?? null;
+      const h = shown("h1") ?? shown("h2");
       setTitle(h?.textContent?.trim() ?? "");
       if (h === seen) return;
       seen = h;
@@ -293,7 +296,14 @@ function useHeading(
     watch();
     // The heading may come with the page's data.
     const mo = new MutationObserver(watch);
-    mo.observe(root, { childList: true, subtree: true, characterData: true });
+    // class: a pane shown or hidden
+    mo.observe(root, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["class"],
+    });
     return () => {
       mo.disconnect();
       io?.disconnect();

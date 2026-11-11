@@ -1,21 +1,24 @@
 /**
- * Ask weaver (designs/2026-11-04-multi-user-runtime.md, WA-1053): a Claude agent with the
- * weaver skill, on this Mac's relay. The page fills the window: past chats on the left (only
- * the asker's own), the chat on the right with the setup at its head and the model in the box.
+ * The chat column of Research › Runs (designs/2026-11-04-multi-user-runtime.md, WA-1053;
+ * merged 11-10, WA-1106): a Claude agent with the weaver skill, on this Mac's relay. Past chats
+ * (only the asker's own) sit in a menu in the head; the model is in the box.
  */
-import { AgentChats, Alert, Button, cx, Empty, Loading, Seg } from "@wren/ui";
-import { useState } from "react";
+import { AgentChatsMenu, Alert, Empty, Loading, PanelAct, Seg } from "@wren/ui";
 import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { href, navigate, useRoute } from "../../route.js";
+import { href, navigate } from "../../route.js";
 import { AgentChat, ChatTitle, ownerOf } from "../agent/chat.js";
 import { relaySessions, relaySetups } from "../agent/connect.js";
 import { closeText } from "../agent/thread.js";
 import { pageToken } from "../agent/use-agent.js";
 
-export function AskPage({ params, who, team }: PageProps) {
-  const here = `/${useRoute().path.join("/")}`;
+export function ChatColumn({
+  params,
+  who,
+  team,
+  here,
+}: Pick<PageProps, "params" | "team"> & { who: PageProps["who"] | undefined; here: string }) {
   const setups = useCall("agent:setups", () => relaySetups(), { kept: false });
   const mine = (setups.data ?? []).filter((s) => s.app === "research");
   const setup = mine.find((s) => s.name === params.get("setup")) ?? mine[0];
@@ -27,16 +30,10 @@ export function AskPage({ params, who, team }: PageProps) {
   const filed = useFolders("chat", team);
   const go = (p: Record<string, string | null>, replace = false) =>
     navigate(href(here, p, params), replace);
-  // narrow windows: the list folds so the chat keeps the screen
-  const [list, setList] = useState(false);
 
   if (setups.error && !setups.data) {
     const c = closeText(setups.error);
-    return (
-      <Alert onRetry={c.retry ? setups.retry : undefined} className="max-w-xl">
-        {c.text}
-      </Alert>
-    );
+    return <Alert onRetry={c.retry ? setups.retry : undefined}>{c.text}</Alert>;
   }
   if (!setup)
     return setups.data ? (
@@ -45,86 +42,56 @@ export function AskPage({ params, who, team }: PageProps) {
       <Loading shape="rows" lines={4} />
     );
 
-  const rows = sessions.data ?? [];
+  const rows = sessions.data;
   const model = params.get("model") ?? setup.model;
-  const stored = chat ? rows.find((r) => r.session === chat)?.title : undefined;
+  const stored = chat ? rows?.find((r) => r.session === chat)?.title : undefined;
   return (
-    <div className="grid min-h-0 flex-1 gap-5 @min-[740px]/main:grid-cols-[248px_minmax(0,1fr)]">
-      <nav
-        aria-label="Chats"
-        className="flex min-h-0 flex-col gap-3 @max-[740px]/main:max-h-[40dvh]"
-      >
-        <div className="flex gap-2">
-          <Button tone="secondary" icon="plus" onClick={() => go({ chat: null })}>
-            New chat
-          </Button>
-          <Button
-            tone="quiet"
-            icon="list"
-            aria-expanded={list}
-            className="@min-[740px]/main:hidden"
-            onClick={() => setList(!list)}
-          >
-            {list ? "Hide chats" : `Chats${rows.length ? ` (${rows.length})` : ""}`}
-          </Button>
-        </div>
-        <div className={cx("flex min-h-0 flex-col", !list && "@max-[740px]/main:hidden")}>
-          {sessions.error && !sessions.data ? (
-            <Alert onRetry={sessions.retry}>{closeText(sessions.error).text}</Alert>
-          ) : sessions.pending ? (
-            <Loading shape="rows" lines={4} />
-          ) : rows.length ? (
-            <AgentChats
-              rows={rows}
-              open={chat}
-              hrefOf={(r) => href(here, { chat: r.session }, params)}
-              onOpen={(r) => navigate(href(here, { chat: r.session }, params))}
-              folders={
-                filed.folders
-                  ? { id: `chats:${setup.name}`, ...filed, folders: filed.folders }
-                  : undefined
-              }
+    <AgentChat
+      key={setup.name}
+      setup={setup}
+      chat={chat}
+      model={model}
+      onModel={(v) => go({ model: v === setup.model ? null : v }, true)}
+      owner={ownerOf(who)}
+      className="min-h-0 flex-1"
+      head={(first) => (
+        // the side panel's head: one chat, one set of controls
+        <header className="flex min-h-[54px] flex-none flex-wrap items-center gap-1 border-(--ui-hair) border-b py-2 pr-2 pl-4">
+          {mine.length > 1 ? (
+            <Seg
+              label="Setup"
+              dense
+              items={mine.map((s) => ({ value: s.name, label: s.title }))}
+              value={setup.name}
+              onChange={(v) => go({ setup: v, chat: null, model: null })}
             />
-          ) : (
-            <p className="m-0 px-2 text-[13px] text-(--ui-ink-3)">No chats yet.</p>
-          )}
-        </div>
-      </nav>
-      <section className="flex min-h-0 min-w-0 flex-col @max-[740px]/main:h-[calc(100dvh-220px)] @max-[740px]/main:min-h-[420px]">
-        <AgentChat
-          key={setup.name}
-          setup={setup}
-          chat={chat}
-          model={model}
-          onModel={(v) => go({ model: v === setup.model ? null : v }, true)}
-          owner={ownerOf(who)}
-          head={(first) => (
-            // the thread's own column, so the title and the turns share one center
-            <header className="mx-auto flex min-h-9 w-full max-w-[46rem] flex-wrap items-center gap-3 px-[clamp(12px,3vw,28px)] pb-2">
-              <ChatTitle
-                setup={setup.name}
-                chat={chat}
-                title={stored ?? first ?? (chat ? "Chat" : "New chat")}
-                onRenamed={sessions.retry}
-              />
-              {mine.length > 1 ? (
-                <Seg
-                  label="Setup"
-                  dense
-                  items={mine.map((s) => ({ value: s.name, label: s.title }))}
-                  value={setup.name}
-                  onChange={(v) => go({ setup: v, chat: null, model: null })}
-                />
-              ) : null}
-            </header>
-          )}
-          onSession={(id) => {
-            if (id !== chat) go({ chat: id }, true);
-            sessions.retry();
-          }}
-          onIdle={sessions.retry}
-        />
-      </section>
-    </div>
+          ) : null}
+          <ChatTitle
+            setup={setup.name}
+            chat={chat}
+            title={stored ?? first ?? (chat ? "Chat" : "New chat")}
+            onRenamed={sessions.retry}
+            className="flex-1 text-[13.5px]"
+          />
+          <AgentChatsMenu
+            rows={sessions.error && !rows ? [] : (rows ?? undefined)}
+            open={chat}
+            hrefOf={(r) => href(here, { chat: r.session }, params)}
+            onOpen={(r) => navigate(href(here, { chat: r.session }, params))}
+            folders={
+              filed.folders
+                ? { id: `chats:${setup.name}`, ...filed, folders: filed.folders }
+                : undefined
+            }
+          />
+          <PanelAct icon="plus" label="New chat" onClick={() => go({ chat: null })} />
+        </header>
+      )}
+      onSession={(id) => {
+        if (id !== chat) go({ chat: id }, true);
+        sessions.retry();
+      }}
+      onIdle={sessions.retry}
+    />
   );
 }

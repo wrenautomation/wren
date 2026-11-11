@@ -161,3 +161,4 @@ temp repo as `knowledge.test.ts` does. One run on prod's 25 testing tips writes 
     the reason when promote or the push fails (`--offline` skips both).
   - Vireo 0.17.0: `subjects.content_type`, `new --type`, `vireo type <subject> <type>`.
   - The sop-making audit warns (not fails) SL-1 for a topic that only cites other topics' sets.
+- 2026-11-10: William: the 12 types are "fine for now".

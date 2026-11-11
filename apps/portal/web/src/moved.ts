@@ -59,6 +59,10 @@ export const MOVED: Readonly<Record<string, string>> = {
   "/pipeline/campaigns": "/campaigns/email-campaigns",
   "/pipelines/calls": "/campaigns/calls",
   "/pipeline/inboxes": "/campaigns/inboxes",
+  // Ask, Live and History are one page (WA-1106); `?run=` and `?chat=` carry over.
+  "/research/ask": "/research/runs",
+  "/research/history": "/research/runs",
+  "/research/live": "/research/runs",
   "/team/all": "/office/team",
 };
 

@@ -1,6 +1,6 @@
 /**
- * Research › History (designs/2026-11-05-research-web.md, 11-08): every weaver run as a list, in
- * folders (designs/2026-11-08-folders.md, kind "run").
+ * Research › Runs, History (designs/2026-11-05-research-web.md, 11-08, 11-10): every weaver run
+ * as a list, in folders (designs/2026-11-08-folders.md, kind "run").
  * One run opens full width as its graph (round 13: claims, sources, searches, dropped hits) and
  * the back and forth (every decision with its why and who made it). Picked runs, or all of them,
  * open on one graph. Read only: the agent and the CLI write. Live: serve sends an event per change.
@@ -29,7 +29,7 @@ import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { PlayerSlot } from "../../player/index.js";
-import { href, navigate, useRoute } from "../../route.js";
+import { href, navigate } from "../../route.js";
 import { QUIET } from "../work/bits.js";
 import { RowsPanel } from "../work/rows-panel.js";
 import { RunsCanvas } from "./canvas.js";
@@ -96,8 +96,11 @@ function runsIn(open: string, rows: readonly RunRow[]): string[] {
     .map((r) => r.run);
 }
 
-export function HistoryPage({ params, team }: PageProps) {
-  const here = `/${useRoute().path.join("/")}`;
+export function RunHistory({
+  params,
+  team,
+  here,
+}: Pick<PageProps, "params" | "team"> & { here: string }) {
   const runs = useCall("research:runs", runsOf, { kept: false });
   const filed = useFolders("run", team);
   const rows = runs.data ?? [];
@@ -637,19 +640,21 @@ function PageCard({ view, d, go }: { view: RunView; d: RunDocument; go: Go }) {
       {findings.length ? (
         <ol className="m-0 grid list-none gap-2 p-0">
           {findings.map((f) => (
-            <li
-              key={f.id}
-              className={cx(
-                "grid gap-1 border-l-2 pl-2.5",
-                f.kept ? "border-(--ui-good)" : "border-(--ui-hair)",
-              )}
-            >
+            <li key={f.id} className="grid gap-1">
               <span className={cx("text-[13.5px]", !f.kept && "opacity-70")}>
                 {f.text}
                 {f.date ? <span className={QUIET}> ({f.date})</span> : null}
               </span>
               {f.quote ? <q className={cx("text-[12.5px] italic", QUIET)}>{f.quote}</q> : null}
               <span className="text-[12px]">
+                {/* state: dot + word, no side stripe */}
+                <span
+                  aria-hidden
+                  className={cx(
+                    "mr-1.5 inline-block size-1.5 rounded-full align-middle",
+                    f.kept ? "bg-(--ui-good)" : "bg-(--ui-hair)",
+                  )}
+                />
                 {f.kept ? "Kept" : "Not kept"}
                 {` · ${f.evidence.value}`} · <Who x={f} />
                 {f.checks.map((c) => (

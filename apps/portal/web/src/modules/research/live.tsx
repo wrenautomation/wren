@@ -1,12 +1,12 @@
 /**
- * Research › Live (designs/2026-11-05-research-web.md, 11-08): the runs in front of you now, on
- * one round 13 graph that follows them. The open chat's runs and runs still going; with none, the
- * newest run. History holds every run.
+ * Research › Runs, Live (designs/2026-11-05-research-web.md, 11-08, 11-10): the runs in front of
+ * you now, on one round 13 graph that follows them. The open chat's runs and runs still going; with
+ * none, the newest run. History holds every run.
  */
 import { cx, Empty, Loading } from "@wren/ui";
 import { useMemo } from "react";
 import { useCall } from "../../load.js";
-import type { PageProps } from "../../module.js";
+import { href } from "../../route.js";
 import { useChatRuns, usePageContext } from "../agent/drive.js";
 import { QUIET } from "../work/bits.js";
 import { RunsCanvas } from "./canvas.js";
@@ -27,14 +27,16 @@ function liveRuns(rows: readonly RunRow[], chat: readonly string[], now: number)
   return [...ids].sort((a, b) => (started.get(a) ?? "").localeCompare(started.get(b) ?? ""));
 }
 
-export function LivePage(_: PageProps) {
+export function LiveRuns({ params, here }: { params: URLSearchParams; here: string }) {
   const runs = useCall("research:runs", runsOf, { kept: false });
   useLive(() => runs.retry());
   const chat = useChatRuns();
   const rows = runs.data ?? [];
   const ids = useMemo(() => liveRuns(rows, chat, Date.now()), [rows, chat]);
   const byRun = new Map(rows.map((r) => [r.run, r]));
-  usePageContext(ids.length ? `Research › Live shows weaver runs ${ids.join(", ")}` : undefined);
+  usePageContext(
+    ids.length ? `Research › Runs, Live, shows weaver runs ${ids.join(", ")}` : undefined,
+  );
   if (runs.error && !runs.data) return <NoServe error={runs.error} onRetry={runs.retry} />;
   if (!runs.data) return <Loading shape="cards" lines={3} heading />;
   if (!ids.length)
@@ -53,7 +55,7 @@ export function LivePage(_: PageProps) {
               <li key={id} className="flex min-w-0 gap-2">
                 <span className={cx("tabular-nums", QUIET)}>Run {i + 1}</span>
                 <a
-                  href={`/research/history?run=${encodeURIComponent(id)}`}
+                  href={href(here, { run: id }, params)}
                   className="min-w-0 wrap-anywhere text-(--ui-ink) underline"
                 >
                   {byRun.get(id)?.ask || id}

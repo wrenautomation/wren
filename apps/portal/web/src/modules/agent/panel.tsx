@@ -218,7 +218,7 @@ function PanelChat({
   // only Research has the chat as a page of its own
   const pageOf = (id: string | null) =>
     setup.app === "research"
-      ? `/research/ask?setup=${encodeURIComponent(setup.name)}${id ? `&chat=${encodeURIComponent(id)}` : ""}`
+      ? `/research/runs?setup=${encodeURIComponent(setup.name)}${id ? `&chat=${encodeURIComponent(id)}` : ""}`
       : null;
   const full = pageOf(chat);
   return (

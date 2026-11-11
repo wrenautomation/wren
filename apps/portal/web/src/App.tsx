@@ -598,8 +598,8 @@ export function App() {
         ])
     : [];
 
-  // Research › Ask is the same chat, full size: no panel over it
-  const onAsk = open?.module.id === "research" && open.page.id === "ask";
+  // Research › Runs holds the same chat, full size: no panel over it
+  const onResearchChat = open?.module.id === "research" && open.page.id === "runs";
   const pageLine = open
     ? `${open.module.name} › ${open.page.label} (${location.pathname})${inView ? `; ${inView}` : ""}`
     : onMap
@@ -678,7 +678,7 @@ export function App() {
               </>
             }
             agent={
-              team && !onAsk
+              team && !onResearchChat
                 ? { open: agent.open, onToggle: () => agent.set({ open: !agent.open }) }
                 : undefined
             }
@@ -703,7 +703,7 @@ export function App() {
             aside={
               team ? (
                 <AgentPanel
-                  open={agent.open && !onAsk}
+                  open={agent.open && !onResearchChat}
                   width={agent.width}
                   onWidth={(width) => agent.set({ width })}
                   onClose={() => agent.set({ open: false })}
