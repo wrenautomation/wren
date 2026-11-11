@@ -341,19 +341,21 @@ async function saveBill(
       existing.review === "void" ||
       (existing.review === "needs_review" && review === "ok"))
   ) {
+    // a person's accept on this same document outlives a re-read of it
+    const kept = reread && existing.review === "accepted";
     await tx
       .update(bills)
       .set({
         ...detailColumns(b),
-        review,
-        reviewReasons: b.reasons,
+        review: kept ? "accepted" : review,
+        reviewReasons: kept ? existing.reviewReasons : b.reasons,
         documentId,
         runId,
         updatedAt: new Date(),
       })
       .where(eq(bills.id, id));
     await writeLinesAndTaxes(tx, id, b);
-    return { id, saved: "replaced", review };
+    return { id, saved: "replaced", review: kept ? "accepted" : review };
   }
   if (review !== "ok" || existing.review === "personal")
     return { id, saved: "kept", review: existing.review };

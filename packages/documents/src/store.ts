@@ -842,7 +842,8 @@ export async function markSent(
         why: null,
         updatedAt: s.now,
       })
-      .where(eq(docs.id, id));
+      // a first send moves only sending: a signature that landed meanwhile stays
+      .where(s.remind ? eq(docs.id, id) : and(eq(docs.id, id), eq(docs.status, "sending")));
     await addEvent(tx, id, s.remind ? "reminded" : "sent", { by: s.by, at: s.now });
   });
 }
@@ -1014,7 +1015,8 @@ export async function declineDoc(main: Db, d: Doc, v: Visit & { why?: unknown })
  * so a late signature counts: it is a fact, not a request. A document called off meanwhile and
  * one past its date still become signed when the envelope completes.
  */
-const SIGNABLE_SEALED: readonly DocStatus[] = [...OPEN, "expired", "void"];
+// sending, failed: the envelope can be out before our own email step settles
+const SIGNABLE_SEALED: readonly DocStatus[] = [...OPEN, "expired", "void", "sending", "failed"];
 
 interface SealedSigner {
   name: string | null;

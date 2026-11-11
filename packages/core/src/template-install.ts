@@ -668,7 +668,10 @@ export async function installTemplate(
       by: ask.by,
       at: new Date(),
       ...(asked ? { askedBy: ask.by, askedAt: new Date() } : {}),
-      ...(row?.state === "off" ? { removedBy: null, removedAt: null } : {}),
+      // back after uninstall: the old yes is spent, so a decline returns to draft, never live
+      ...(row?.state === "off"
+        ? { removedBy: null, removedAt: null, approvedBy: null, approvedAt: null }
+        : {}),
     };
     if (row) await tx.update(workflowInstalls).set(values).where(eq(workflowInstalls.id, row.id));
     else await tx.insert(workflowInstalls).values(values);
