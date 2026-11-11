@@ -101,7 +101,71 @@ describe("lookUpCompany", () => {
       },
     });
     expect(r.finding?.document).toMatchObject({ kind: "profile", fetchTier: "exa-cache" });
-    expect(keys()).toEqual(["web GET /linkedin/company"]);
+    expect(keys()).toEqual(["linkedin-pages GET /rest/organizations", "web GET /linkedin/company"]);
+  });
+
+  it("LinkedIn's API answers first: matched off its website, the cache never read", async () => {
+    const { sites, keys, calls } = fakeSites({
+      "linkedin-pages GET /rest/organizations": () => ({
+        elements: [
+          {
+            vanityName: "acme-staffing",
+            localizedName: "Acme Staffing",
+            localizedWebsite: "https://www.acmestaffing.example/",
+            localizedDescription: "We place people.",
+            staffCountRange: "SIZE_11_50",
+            organizationType: "PRIVATELY_HELD",
+            locations: [
+              { locationType: "OTHER", address: { city: "Elsewhere" } },
+              {
+                locationType: "HEADQUARTERS",
+                address: { city: "Springfield", geographicArea: "ST", country: "US" },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    const r = await lookUpCompany(
+      sites,
+      subject({ linkedinUrl: "https://www.linkedin.com/company/acme-staffing" }),
+      opts,
+    );
+    expect(r.state).toBe("matched");
+    expect(calls[0]?.input).toEqual({ vanity: "acme-staffing" });
+    expect(keys()).toEqual(["linkedin-pages GET /rest/organizations"]);
+    expect(r.finding).toMatchObject({
+      via: "linkedin-api",
+      value: {
+        location: "Springfield, ST, US",
+        description: "We place people.",
+        employees: "11-50",
+        homepage: "https://www.acmestaffing.example/",
+      },
+    });
+    expect(r.finding?.document).toMatchObject({ fetchTier: "linkedin-api" });
+    expect(r.finding?.document?.text).toContain('"HEADQUARTERS"');
+  });
+
+  it("the API's company with a look-alike site is not the firm's; a numeric id skips the API", async () => {
+    const { sites, keys } = fakeSites({
+      "linkedin-pages GET /rest/organizations": () => ({
+        elements: [{ vanityName: "acme-staffing", localizedWebsite: "https://acme.evil.test" }],
+      }),
+      "web GET /linkedin/company": cache(page("12345", "https://acmestaffing.example")),
+      "web GET /companies": noCompanies,
+    });
+    const r = await lookUpCompany(
+      sites,
+      subject({
+        linkedinUrl: "https://www.linkedin.com/company/acme-staffing",
+        personCompanyUrl: "https://www.linkedin.com/company/12345",
+      }),
+      opts,
+    );
+    expect(r.state).toBe("matched");
+    expect(r.finding?.via).toBe("exa-cache");
+    expect(keys()).toEqual(["linkedin-pages GET /rest/organizations", "web GET /linkedin/company"]);
   });
 
   it("a page whose website is a look-alike is never the firm's; its text is still kept", async () => {
@@ -146,7 +210,7 @@ describe("lookUpCompany", () => {
         wrong: "website https://acmestaffing.example.evil.test: not the firm's",
       },
     ]);
-    expect(keys()).toEqual(["web GET /linkedin/company"]);
+    expect(keys()).toEqual(["linkedin-pages GET /rest/organizations", "web GET /linkedin/company"]);
   });
 
   it("a page with no website is never the firm's", async () => {
@@ -197,6 +261,7 @@ describe("lookUpCompany", () => {
     expect(r.state).toBe("matched");
     expect(calls.map((c) => [c.key, c.input.url ?? c.input.domain])).toEqual([
       ["web GET /companies", "acmestaffing.example"],
+      ["linkedin-pages GET /rest/organizations", undefined],
       ["web GET /linkedin/company", "https://www.linkedin.com/company/acme-staffing/"],
     ]);
   });
@@ -234,7 +299,11 @@ describe("lookUpCompany", () => {
     const r = await lookUpCompany(sites, subject(), { ...opts, google: true });
     expect(r.state).toBe("matched");
     expect(calls[0]?.input).toEqual({ q: 'site:linkedin.com/company "Acme Staffing"', n: 5 });
-    expect(calls.map((c) => c.key)).toEqual(["web GET /google", "web GET /linkedin/company"]);
+    expect(calls.map((c) => c.key)).toEqual([
+      "web GET /google",
+      "linkedin-pages GET /rest/organizations",
+      "web GET /linkedin/company",
+    ]);
   });
 
   it("Google stopping (a CAPTCHA) never stops the lookup: company search still runs", async () => {

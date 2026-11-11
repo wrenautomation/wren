@@ -119,6 +119,8 @@ interface Companies {
 
 /** Who read the page: Exa's cache of LinkedIn. */
 const CACHE_VIA = "exa-cache";
+/** Who read the page: LinkedIn's own API (autobrowse `linkedin-pages`, Community Management). */
+const API_VIA = "linkedin-api";
 /** A page whose website is the firm's own domain. */
 const SURE_PAGE = 0.9;
 /** Pages read per company at most. */
@@ -165,7 +167,11 @@ function profileFinding(s: ProfileSubject, page: CompanyPage, url: string): Comp
   return {
     kind: "profile",
     companyId: s.companyId,
-    factKey: `c${s.companyId}:profile:${CACHE_VIA}:${handle.toLowerCase()}`.slice(0, 400),
+    factKey:
+      `c${s.companyId}:profile:${page.source === API_VIA ? API_VIA : CACHE_VIA}:${handle.toLowerCase()}`.slice(
+        0,
+        400,
+      ),
     value: {
       name: page.name,
       industry: page.industry ?? null,
@@ -177,7 +183,7 @@ function profileFinding(s: ProfileSubject, page: CompanyPage, url: string): Comp
       phone: page.phone ?? null,
     },
     confidence: SURE_PAGE,
-    via: CACHE_VIA,
+    via: page.source === API_VIA ? API_VIA : CACHE_VIA,
     sourceUrl: url,
     document: pageDocument(page, url),
   };
@@ -188,7 +194,7 @@ const pageDocument = (page: CompanyPage, url: string): DocumentDraft => ({
   kind: "profile",
   title: page.name,
   text: page.text || JSON.stringify(page),
-  fetchTier: CACHE_VIA,
+  fetchTier: page.source === API_VIA ? API_VIA : CACHE_VIA,
 });
 
 /**
@@ -206,6 +212,82 @@ export async function readCompanyPage(
     const refused = refusedBy(err);
     if (refused === null) throw err;
     tried.push({ what: url, outcome: refused === 404 ? "no cached copy" : `refused: ${refused}` });
+    return null;
+  }
+}
+
+interface Org {
+  vanityName?: string;
+  localizedName?: string;
+  localizedWebsite?: string;
+  localizedDescription?: string;
+  staffCountRange?: string;
+  organizationType?: string;
+  locations?: {
+    locationType?: string;
+    address?: { city?: string; geographicArea?: string; country?: string };
+  }[];
+}
+
+/** `SIZE_51_200` → `51-200`; `SIZE_10001_OR_MORE` → `10001+`. */
+const sizeOf = (r: string | undefined): string | undefined =>
+  r
+    ?.replace(/^SIZE_/, "")
+    .replace(/_OR_MORE$/, "+")
+    .replace("_", "-");
+
+/** An org as LinkedIn's API answers it, in the cache's page shape; the whole answer is `text`. */
+export function orgPage(o: Org, handle: string): CompanyPage {
+  const hq = o.locations?.find((l) => l.locationType === "HEADQUARTERS")?.address;
+  const where = hq ? [hq.city, hq.geographicArea, hq.country].filter(Boolean).join(", ") : "";
+  const size = sizeOf(o.staffCountRange);
+  return {
+    name: o.localizedName ?? handle,
+    handle: o.vanityName ?? handle,
+    url: companyPageUrl(o.vanityName ?? handle),
+    ...(o.localizedWebsite ? { website: o.localizedWebsite } : {}),
+    ...(size ? { size } : {}),
+    ...(where ? { headquarters: where } : {}),
+    ...(o.organizationType ? { type: o.organizationType } : {}),
+    ...(o.localizedDescription ? { about: o.localizedDescription } : {}),
+    text: JSON.stringify(o),
+    source: API_VIA,
+  };
+}
+
+/**
+ * First pass (WA-1113): the company by handle from LinkedIn's API, free and certain of the
+ * website. Null when it has none or the call fails (the trail says which); the cache is next.
+ */
+export async function readCompanyApi(
+  call: ReturnType<typeof paced>,
+  handle: string,
+  tried: { what: string; outcome: string }[],
+): Promise<CompanyPage | null> {
+  // the finder takes handles; a numeric id is a page the cache reads
+  if (/^\d+$/.test(handle)) return null;
+  const what = `linkedin api ${handle}`;
+  try {
+    const r = await call<{ elements?: Org[] }>("linkedin-pages", "GET", "/rest/organizations", {
+      vanity: handle,
+    });
+    const o = r.elements?.[0];
+    if (!o) {
+      tried.push({ what, outcome: "no such company" });
+      return null;
+    }
+    return orgPage(o, handle);
+  } catch (err) {
+    const refused = refusedBy(err);
+    tried.push({
+      what,
+      outcome:
+        err instanceof Capped
+          ? `capped: ${err.why}`
+          : refused !== null
+            ? `refused: ${refused}`
+            : `failed: ${String(err instanceof Error ? err.message : err).slice(0, 200)}`,
+    });
     return null;
   }
 }
@@ -261,7 +343,8 @@ export async function lookUpCompany(
     read.add(handle.toLowerCase());
     const url = companyPageUrl(handle);
     const trail: { what: string; outcome: string }[] = [];
-    const page = await readCompanyPage(call, url, trail);
+    const page =
+      (await readCompanyApi(call, handle, trail)) ?? (await readCompanyPage(call, url, trail));
     for (const t of trail)
       tried.push({ step: "page", what: `${t.what} (${from})`, outcome: t.outcome });
     if (!page) return null;
