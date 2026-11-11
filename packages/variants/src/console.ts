@@ -106,13 +106,13 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
       refuse(async () => {
         const f = await v.feedback(num(req.id, "subject"));
         const me = by(req);
-        // blind: an open batch shows no idea, no parent and only his own calls until it closes
+        // blind: an open batch shows no change, no parent and only his own calls until it closes;
+        // the name stays (it says what the sample tries, vireo 0.15.1)
         const own = (x: (typeof f.batches)[number]["samples"][number]) => {
           const mine = x.calls.find((c) => c.by === me);
           return {
             ...x,
             change: null,
-            name: null,
             parents: [],
             strength: null,
             calls: mine ? [mine] : [],
