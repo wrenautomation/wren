@@ -67,7 +67,7 @@ const story = (
   return {
     ...base,
     beforeEach: () => {
-      const done = (base.beforeEach as (() => void) | undefined)?.();
+      (base.beforeEach as (() => void) | undefined)?.();
       // each story starts clean: a door click never closes a panel an earlier story left open
       const clear = () => {
         localStorage.removeItem(PANEL_KEYS.open);
@@ -81,10 +81,7 @@ const story = (
           JSON.stringify({ setup, chats: { [setup]: chat } }),
         );
       }
-      return () => {
-        clear();
-        if (typeof done === "function") done();
-      };
+      return clear;
     },
     // last: a story's own serve wins; never the Mac's real weaver serve
     parameters: {
