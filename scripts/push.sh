@@ -2,7 +2,7 @@
 # Push one commit to main, then wait for CI's gates and the deploy. Last line: "RESULT <sha> ci=<c> deploy=<d>".
 #   scripts/push.sh <commit>
 # CI is the judge: no local copy of its checks (2026-10-22: they ran twice and doubled the wait).
-# Check what you changed while you build (`gates.sh changed` or `ui`); CI runs the rest once.
+# Check what you changed while you build (`peers check`, or `peers check ui`); CI runs the rest once.
 # Any session may push. Pushes take turns on a lock; the CI watch runs outside it.
 # If origin/main moved past the commit, the push merges it in (a merge commit) and pushes that.
 set -eu
