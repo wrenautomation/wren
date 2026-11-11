@@ -222,7 +222,7 @@ export function pageAskOf(meta: RecordMeta, params: URLSearchParams): ListAsk & 
 }
 
 /** The counts an address shows (total, each view's, the foot's totals): one read per filter set, so paging never counts again (WA-1300). */
-export const countAskOf = (meta: RecordMeta, params: URLSearchParams): ListAsk => ({
+const countAskOf = (meta: RecordMeta, params: URLSearchParams): ListAsk => ({
   ...askOf(meta, params),
   limit: 1,
 });
