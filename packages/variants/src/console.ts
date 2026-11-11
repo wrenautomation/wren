@@ -86,6 +86,8 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
               o.samples.map((s) =>
                 media({
                   id: s.id,
+                  // what the sample tries: shows beside its number while blind (vireo 0.15.1)
+                  name: s.name,
                   body: s.body,
                   media: s.media,
                   poster: s.poster,
