@@ -101,7 +101,7 @@ function textPage(text: string, o: { durationS: number; size: number; fadeS: num
 <style>
   html, body { margin: 0; width: 100%; height: 100%; }
   body { display: grid; place-items: center; }
-  p { margin: 0; font: 700 ${o.size}px/1.15 "General Sans", sans-serif; color: #fff; text-align: center; }
+  p { margin: 0; font: 700 ${o.size}px/1.15 "Figtree", sans-serif; color: #fff; text-align: center; }
 </style>
 </head>
 <body>

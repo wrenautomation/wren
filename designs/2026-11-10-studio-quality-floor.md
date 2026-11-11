@@ -108,12 +108,9 @@ Add the lines not there yet. `video-editing`: no camera move eases to a dead sto
 - A 4×4 tile grid finds a flash smaller than WCAG's area rule and so flags a little more than WCAG. That errs toward health.
 - Old edits with saved overlays that now fail D: `wren video set` refuses only a changed overlay, and the render warns on an old one.
 
-## Open (William)
-
-- Font: stills sent 11-10 (today's fallback, General Sans, Figtree). General Sans's license (ITF FFL 2.0) bars it from a repo, a public server and any service third parties make content with, so client renders cannot use it. Figtree is OFL and the portal already ships it. Recommend Figtree.
-
 ## Decided (William, 11-10)
 
+- Font: Figtree (OFL; the portal ships it). General Sans's license (ITF FFL 2.0) bars it from a repo, a public server and any service third parties make content with. Styling gets its own Vireo loop soon, so phase 1 only bundles and loads the font.
 - P1 override with a reason on record: yes. P0: none.
 - The model judge does not block anything yet, `private` included: every judge rank shows as advice. Calibration still records; when a line clears 30 calls at 0.8 precision, ask him before it gates.
 

@@ -21,7 +21,7 @@ export const DEFAULT_LOOK: Look = {
   foreground: "#0e0e0e",
   muted: "#56564f",
   accent: "#7969a3",
-  font: '"General Sans", ui-sans-serif, system-ui, sans-serif',
+  font: '"Figtree", ui-sans-serif, system-ui, sans-serif',
 };
 
 /** A full-screen title: a small line over a big one, and an optional line under. */

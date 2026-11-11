@@ -14,6 +14,8 @@
 import "@fontsource/figtree/latin-400.css";
 import "@fontsource/figtree/latin-600.css";
 import "@fontsource/figtree/latin-700.css";
+// captions and overlays draw at 800
+import "@fontsource/figtree/latin-800.css";
 import "@fontsource/geist-mono/latin-500.css";
 import {
   type CSSProperties,
@@ -80,7 +82,7 @@ import type {
 import { verticalRect } from "../src/safe-zones.ts";
 import type { AudioProps } from "../src/sounds.ts";
 
-// The caps cards' monospace. It and the dark look's sans (`DARK_LOOK`, Figtree) come from the css above.
+// The caps cards' monospace. It and every look's sans (Figtree, WA-1267) come from the css above.
 const MONO = "Geist Mono";
 
 type Word = LongProps["words"][number];

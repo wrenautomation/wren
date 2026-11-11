@@ -131,7 +131,7 @@ export function overlayAt(
 export const CAPTION_LOOK = {
   foreground: "#0e0e0e",
   accent: "#7969a3",
-  font: '"General Sans", ui-sans-serif, system-ui, sans-serif',
+  font: '"Figtree", ui-sans-serif, system-ui, sans-serif',
 } as const;
 
 /** The `stress` style's heavier face: a system serif, so renders stay offline. */
