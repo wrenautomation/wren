@@ -2,9 +2,10 @@
  * `wren learn ads` (designs/2026-11-11-competitor-ads.md): pull an advertiser's or a keyword's ads
  * from the Meta Ad Library (autobrowse `fb-public GET /ads` on the desk, signed out, $0), save each
  * whole, read it here (the media links expire: a video through the watch core, images through the
- * eye) and break it down. `--winners` lists the long runners.
+ * eye) and break it down. `--ads`: a Weaver run's kept ads (`weaver export <run> --source ads`),
+ * no desk read. `--winners` lists the long runners.
  */
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Settings } from "@wren/config";
@@ -147,6 +148,10 @@ export function registerLearnAds(
       "competitor ads from the Meta Ad Library (desk, signed out): an advertiser's (--page) or a keyword's (--q), each saved whole, read here and broken down; --winners lists the long runners",
     )
     .option("--page <page>", "advertiser: page id, page URL or username")
+    .option(
+      "--ads <file>",
+      "ads already pulled, as a JSON array: a Weaver run's kept ads (`weaver export <run> --source ads`)",
+    )
     .option("--q <words>", "keyword search")
     .option("--country <code>", "ISO code or ALL", "US")
     .option("--inactive", "ended ads too")
@@ -163,6 +168,7 @@ export function registerLearnAds(
     .action(
       async (o: {
         page?: string;
+        ads?: string;
         q?: string;
         country: string;
         inactive?: boolean;
@@ -179,14 +185,9 @@ export function registerLearnAds(
           console.log(JSON.stringify(out, null, 2));
           return;
         }
-        if (!o.page === !o.q) throw new Error("give --page or --q, not both");
-        const sites = ingressSites(d.settings, "learn ads", DESK, PULL_MS);
-        const answer = await sites.call<AdsAnswer>("fb-public", "GET", "/ads", {
-          ...(o.page ? { page: o.page } : { q: o.q }),
-          country: o.country,
-          inactive: !!o.inactive,
-          max: o.max,
-        });
+        if ([o.page, o.q, o.ads].filter(Boolean).length !== 1)
+          throw new Error("give one of --page, --q or --ads");
+        const answer = o.ads ? await keptAds(o.ads) : await pull(d.settings, o);
         if (answer.found === false) throw new Error(`no Ad Library page for ${o.page}`);
         const media = (() => {
           const { eye, ear } = watchEyes(d.settings, d.rootDir);
@@ -213,7 +214,7 @@ export function registerLearnAds(
               client,
               ad,
               pageId: answer.pageId ?? null,
-              by: BY,
+              by: o.ads ? "weaver" : BY,
               via: "cli",
             });
             const read = saved.unread && o.read ? await readAd(db, saved.id, ad, media) : null;
@@ -248,4 +249,30 @@ export function registerLearnAds(
         );
       },
     );
+}
+
+/** A Weaver export: the ads whole, each with its library id. */
+async function keptAds(file: string): Promise<AdsAnswer> {
+  const parsed: unknown = JSON.parse(await readFile(file, "utf8"));
+  const list = Array.isArray(parsed) ? parsed : (parsed as { ads?: unknown })?.ads;
+  if (!Array.isArray(list)) throw new Error(`${file}: not a JSON array of ads`);
+  const ads = list.filter(
+    (a): a is LibraryAd => typeof a === "object" && a !== null && typeof a.libraryId === "string",
+  );
+  if (ads.length < list.length)
+    say(`${file}: ${list.length - ads.length} items without a libraryId skipped`);
+  return { query: { file }, ads };
+}
+
+function pull(
+  settings: Settings,
+  o: { page?: string; q?: string; country: string; inactive?: boolean; max: number },
+): Promise<AdsAnswer> {
+  const sites = ingressSites(settings, "learn ads", DESK, PULL_MS);
+  return sites.call<AdsAnswer>("fb-public", "GET", "/ads", {
+    ...(o.page ? { page: o.page } : { q: o.q }),
+    country: o.country,
+    inactive: !!o.inactive,
+    max: o.max,
+  });
 }

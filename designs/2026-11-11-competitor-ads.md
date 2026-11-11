@@ -32,9 +32,9 @@ Ranked: one core for every breakdown, then keep every field, then upkeep. Chosen
 
 ## Surfaces
 
-- `wren learn ads (--page <page> | --q <words>) [--country US] [--inactive] [--max 30] [--no-read]`: pull, save, read, break down. JSON out.
+- `wren learn ads (--page <page> | --q <words> | --ads <file>) [--country US] [--inactive] [--max 30] [--no-read]`: pull, save, read, break down. JSON out.
 - `wren learn ads --winners [--page <page>]`: the winners, longest running first.
-- Weaver (weaver dev): a source that calls the same desk route in a run, so "what ads do staffing agencies run" is a research ask. The run's kept ads go to Learn through the same command.
+- Weaver source `ads` (engine 0.68.11, WA-1301): a query pinned to `facebook.com/ads` searches the library (every country, 30 ads); `follow --as posts` on an advertiser's page lists its ads (90 at most). Each hit keeps its ad whole (`data`), so an open reads that copy: no second desk read. `weaver export <run> --source ads > ads.json`, then `wren learn ads --ads ads.json` saves the kept ads.
 
 ## Non-goals
 
@@ -44,3 +44,4 @@ Ranked: one core for every breakdown, then keep every field, then upkeep. Chosen
 ## Log
 
 - 2026-11-11: option A chosen (above). autobrowse built the walk; wren side and the Weaver source follow.
+- 2026-11-11: Weaver source built (WA-1301). The library has no lookup by id, so the ad rides on its hit (a new optional `data` field, kept in the ledger) and `open` builds the page from it. Rejected: the media store (it evicts past a size cap, so an open could fail later, and wren would read Weaver's cache) and a second desk read per open (the 200-a-day cap). `onSite` now takes a site with a path, so `facebook.com/ads` hits pass the off-site drop.
