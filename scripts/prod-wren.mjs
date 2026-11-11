@@ -62,6 +62,13 @@ function keystorePublic() {
   const value = /^\s*keystore_public_key\s*=\s*"([^"\n]*)"/m.exec(tfvars)?.[1];
   return value && /^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+$/.test(value) ? value : null;
 }
+// a locked role (Wrenfile `db`) reaches loopback only: go through its db relay, TLS unchanged
+const relay = process.env.WREN_DB_RELAY;
+if (relay) {
+  const u = new URL(prod.WREN_DATABASE_URL);
+  u.host = relay;
+  prod.WREN_DATABASE_URL = u.toString();
+}
 const keystore = keystorePublic();
 const ingress = process.env.WREN_PROD_INGRESS_URL ?? "https://api.wrenautomation.com";
 const env = {

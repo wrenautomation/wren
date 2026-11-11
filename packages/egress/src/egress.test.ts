@@ -5,6 +5,7 @@ import { parse } from "yaml";
 import {
   aclOf,
   byHost,
+  dbRelayEnv,
   decisionOf,
   gateConfig,
   lockProfile,
@@ -192,6 +193,25 @@ gate:
     expect(m(GATED.replace("gate: 4772", "gate: 4761"))).toContain("share port 4761");
     expect(m(GATED.replace("  web:", "  gate:").replace("role: web", "role: gate"))).toContain(
       "no role may be named gate",
+    );
+  });
+
+  it("db relay: env for locked roles, its port not shared, no role named db", () => {
+    const m = (text: string) => {
+      try {
+        return parseWrenfile(text);
+      } catch (e) {
+        return (e as Error).message;
+      }
+    };
+    const db = (port: number) => `${GATED}db: { port: ${port}, from: "@/prod.env" }\n`;
+    expect(dbRelayEnv(m(db(4775)) as ReturnType<typeof parseWrenfile>)).toEqual({
+      WREN_DB_RELAY: "127.0.0.1:4775",
+    });
+    expect(dbRelayEnv(w)).toEqual({});
+    expect(m(db(4772))).toContain("db and role web share port 4772");
+    expect(m(db(4775).replace("  web:", "  db:").replace("role: web", "role: db"))).toContain(
+      "no role may be named db",
     );
   });
 });

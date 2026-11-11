@@ -26,6 +26,7 @@ import {
   byHost,
   DENY_RANGES,
   type Decision,
+  dbRelayEnv,
   decisionOf,
   gateConfig,
   gateDir,
@@ -276,7 +277,7 @@ function applyLocks(w: Wrenfile) {
       continue;
     }
     put(sb, lockProfile(w, { root: resolve(repoDir(), "..") }));
-    const env = Object.entries(proxyEnv(r))
+    const env = Object.entries({ ...proxyEnv(r), ...dbRelayEnv(w) })
       .map(([k, v]) => `export ${k}='${v}'`)
       .join("\n");
     put(
@@ -320,6 +321,28 @@ async function waitUp(port: number, quarters = 12): Promise<boolean> {
   return false;
 }
 
+const DB = "db";
+/** The db relay job (packages/egress/bin/db-relay.mjs): restarts when its plist changed. */
+async function applyDb(w: Wrenfile) {
+  const label = `${LABEL}${DB}`;
+  const plistPath = join(AGENTS, `${label}.plist`);
+  if (!w.db) {
+    if (loaded(label)) launchctl("bootout", `${domain()}/${label}`);
+    rmSync(plistPath, { force: true });
+    return null;
+  }
+  const root = resolve(repoDir(), "..");
+  const from = w.db.from.startsWith("@/")
+    ? join(root, w.db.from.slice(2))
+    : join(HOME, w.db.from.slice(2));
+  const script = join(repoDir(), "packages/egress/bin/db-relay.mjs");
+  const changed = put(plistPath, plist(DB, [nodeBin(), script, String(w.db.port), from]));
+  rotate(DB);
+  const restarted = changed || !loaded(label);
+  if (restarted) restart(plistPath, label);
+  return { port: w.db.port, restarted, up: await waitUp(w.db.port) };
+}
+
 async function apply() {
   const w = readWrenfile();
   const installed = await install();
@@ -343,7 +366,7 @@ async function apply() {
   const removed = [];
   for (const f of readdirSync(AGENTS)) {
     const m = f.match(/^com\.wrenautomation\.egress-([a-z0-9-]+)\.plist$/);
-    if (!m?.[1] || m[1] === GATE || w.roles[m[1]]) continue;
+    if (!m?.[1] || m[1] === GATE || m[1] === DB || w.roles[m[1]]) continue;
     if (loaded(`${LABEL}${m[1]}`)) launchctl("bootout", `${domain()}/${LABEL}${m[1]}`);
     rmSync(join(AGENTS, f));
     for (const x of ["acl.yaml", "conf.yaml", "env"])
@@ -353,8 +376,9 @@ async function apply() {
   // launchd starts it within a second; give it three
   for (const r of roles) Object.assign(r, { up: await waitUp(r.port) });
   const gate = await applyGate(w);
+  const db = await applyDb(w);
   const locks = applyLocks(w);
-  return { installed, roles, removed, gate, locks };
+  return { installed, roles, removed, gate, db, locks };
 }
 
 const SPAN = /^(\d+)([mhd])$/;

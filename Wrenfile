@@ -38,6 +38,7 @@ roles:
   agents:
     port: 4761
     mode: report
+    lock: true
     hosts:
       - api.anthropic.com
       - mcp-proxy.anthropic.com
@@ -63,6 +64,12 @@ roles:
   desk:
     port: 4763
     mode: report
+
+# Locked roles reach loopback only (Seatbelt cannot pin a remote IP): prod's database comes
+# through this relay, pinned to the host in `from`'s WREN_DATABASE_URL.
+db:
+  port: 4775
+  from: "@/wren/deploy/prod.env"
 
 # Relay sessions per setup. role: the proxy for claude and its CLIs. run: CLIs that run outside
 # the sandbox. hosts: what the sandboxed shell may reach. default: any setup not named here.

@@ -63,11 +63,20 @@ const schema = z
     roles: z.record(z.string().regex(NAME), role),
     agents: z.record(z.string().regex(NAME), agent),
     gate: gate.optional(),
+    /** Loopback relay to prod's database for locked roles: its port, the env file with the URL. */
+    db: z
+      .object({
+        port: z.number().int().min(1024).max(65535),
+        from: z.string().regex(SECRET, "starts with ~/ or @/"),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .superRefine((w, ctx) => {
-    // the gate's launchd job is `egress-gate`
-    if (w.roles.gate) ctx.addIssue({ code: "custom", message: "no role may be named gate" });
+    // launchd jobs `egress-gate` and `egress-db`
+    for (const job of ["gate", "db"])
+      if (w.roles[job]) ctx.addIssue({ code: "custom", message: `no role may be named ${job}` });
     if (!w.agents.default) ctx.addIssue({ code: "custom", message: "agents.default is missing" });
     for (const [name, a] of Object.entries(w.agents))
       if (!w.roles[a.role])
@@ -89,7 +98,14 @@ const schema = z
       if (r.gate !== undefined && !r.keys.length)
         ctx.addIssue({ code: "custom", message: `roles.${name}: a gate port with no keys` });
     }
+    const dbHad = w.db && ports.get(w.db.port);
+    if (dbHad)
+      ctx.addIssue({ code: "custom", message: `db and role ${dbHad} share port ${w.db?.port}` });
   });
+
+/** A locked role's env for prod's database: prod-wren.mjs swaps the URL's host for this. */
+export const dbRelayEnv = (w: Wrenfile): Record<string, string> =>
+  w.db ? { WREN_DB_RELAY: `127.0.0.1:${w.db.port}` } : {};
 
 export type Wrenfile = z.infer<typeof schema>;
 export type Role = Wrenfile["roles"][string];
