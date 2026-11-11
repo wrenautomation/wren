@@ -17,9 +17,9 @@ export const research: Module = {
       id: "runs",
       label: "Runs",
       about:
-        "Ask a Claude agent with weaver; its runs draw beside the chat, live, and every run stays in History.",
+        "The chat's runs live on one graph; History holds every run. Ask in the side panel's chat.",
       Page: RunsPage,
-      fill: true,
+      wide: true,
     },
   ],
 };

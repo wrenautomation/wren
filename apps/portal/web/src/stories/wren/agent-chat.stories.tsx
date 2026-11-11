@@ -14,6 +14,7 @@ import { ADMIN } from "../../mocks/data/me.js";
 import { RESEARCH_ROWS, RESEARCH_VIEW } from "../../mocks/data/research.js";
 import { pageAt } from "../../mocks/page.js";
 import { fakeRelay, type TapeLine, typedOn } from "../../mocks/relay.js";
+import { PANEL_KEYS } from "../../modules/agent/panel.js";
 import { SERVE } from "../../modules/research/serve.js";
 
 const meta: Meta = { title: "Wren/Agent chat" };
@@ -33,15 +34,27 @@ const VIREO = "00000000-0000-4000-8000-000000000004";
 
 const LONG = { timeout: 30_000 };
 
+/** weaver serve with no runs */
+const NO_RUNS = [
+  http.get(`${SERVE}/runs`, () => HttpResponse.json({ v: 1, runs: [] })),
+  sse(`${SERVE}/events`, () => {}),
+];
+
 type Stored = NonNullable<Parameters<typeof fakeRelay>[0]["stored"]>[number];
 
+/** `?setup=weaver[&chat=…]` in `at`: the side panel opens on that chat (the chat lives only there). */
 const story = (
   at: string,
   tape: TapeLine[],
   check: (page: HTMLElement) => Promise<void>,
   more: Stored[] = [],
 ): StoryObj => {
-  const base = pageAt(at, { me: ADMIN, check });
+  const u = new URL(at, "http://x");
+  const setup = u.searchParams.get("setup");
+  const chat = u.searchParams.get("chat");
+  u.searchParams.delete("setup");
+  u.searchParams.delete("chat");
+  const base = pageAt(u.pathname + u.search, { me: ADMIN, check });
   const relay = fakeRelay({
     tape,
     library: LIBRARY,
@@ -53,7 +66,31 @@ const story = (
   });
   return {
     ...base,
-    parameters: { ...base.parameters, msw: [...relay, ...(base.parameters?.msw ?? [])] },
+    beforeEach: () => {
+      const done = (base.beforeEach as (() => void) | undefined)?.();
+      // each story starts clean: a door click never closes a panel an earlier story left open
+      const clear = () => {
+        localStorage.removeItem(PANEL_KEYS.open);
+        sessionStorage.removeItem(PANEL_KEYS.chat);
+      };
+      clear();
+      if (setup) {
+        localStorage.setItem(PANEL_KEYS.open, JSON.stringify({ open: true }));
+        sessionStorage.setItem(
+          PANEL_KEYS.chat,
+          JSON.stringify({ setup, chats: { [setup]: chat } }),
+        );
+      }
+      return () => {
+        clear();
+        if (typeof done === "function") done();
+      };
+    },
+    // last: a story's own serve wins; never the Mac's real weaver serve
+    parameters: {
+      ...base.parameters,
+      msw: [...relay, ...(base.parameters?.msw ?? []), ...NO_RUNS],
+    },
   };
 };
 
@@ -158,11 +195,16 @@ export const Gone = story(
   },
 );
 
-/** The Runs page's chat head, the side panel's own: its Chats menu lists the stored chats. */
+/** The side panel's Chats menu lists the stored chats, by folder. */
 export const Panel = story("/research/runs?view=history", [], async (page) => {
   const c = within(page);
+  await userEvent.click(await agentDoor(c));
   await userEvent.click(await c.findByRole("button", { name: "Chats" }, LONG));
-  await within(document.body).findByText("Bakery buyers", {}, LONG);
+  const menu = within(document.body);
+  // a filed chat sits in its folder: Bakeries › Buyers (mocks/data/folders.ts)
+  await userEvent.click(await menu.findByText(/^Bakeries/, {}, LONG));
+  await userEvent.click(await menu.findByText(/^Buyers/, {}, LONG));
+  await menu.findByText("Bakery buyers", {}, LONG);
 });
 
 /** On the Map, the panel opens on Orrery: the Map's product. */
@@ -268,32 +310,35 @@ export const VireoCards = story(
  * A chat after `/compact` (a real session, scrubbed): the turns before stay, a rule marks the
  * compaction, and the meter, kept from the chat's last turn, opens its menu.
  */
-export const Compacted: StoryObj = {
-  ...story(
-    `/research/runs?setup=weaver&chat=${COMPACTED}`,
-    [],
-    async (page) => {
-      const c = within(page);
-      await c.findByText(/Strawberry/, {}, LONG);
-      await c.findByText("Compacted: 12k to 1.2k tokens", {}, LONG);
-      expect(c.queryByText(/This session is being continued/)).toBeNull();
-      await userEvent.click(await c.findByRole("button", { name: /^Context: / }, LONG));
-      const menu = await within(document.body).findByRole("menu", { name: "Context" });
-      expect(within(menu).getByRole("menuitemcheckbox", { name: "Auto-compact" }).ariaChecked).toBe(
-        "true",
-      );
-      expect(within(menu).getByRole("menuitem", { name: "Compact now" })).toBeTruthy();
+const Compacted0 = story(
+  `/research/runs?setup=weaver&chat=${COMPACTED}`,
+  [],
+  async (page) => {
+    const c = within(page);
+    await c.findByText(/Strawberry/, {}, LONG);
+    await c.findByText("Compacted: 12k to 1.2k tokens", {}, LONG);
+    expect(c.queryByText(/This session is being continued/)).toBeNull();
+    await userEvent.click(await c.findByRole("button", { name: /^Context: / }, LONG));
+    const menu = await within(document.body).findByRole("menu", { name: "Context" });
+    expect(within(menu).getByRole("menuitemcheckbox", { name: "Auto-compact" }).ariaChecked).toBe(
+      "true",
+    );
+    expect(within(menu).getByRole("menuitem", { name: "Compact now" })).toBeTruthy();
+  },
+  [
+    {
+      session: COMPACTED,
+      at: "2026-11-06T16:29:30Z",
+      title: "Fruit list",
+      frames: COMPACTED_CHAT,
     },
-    [
-      {
-        session: COMPACTED,
-        at: "2026-11-06T16:29:30Z",
-        title: "Fruit list",
-        frames: COMPACTED_CHAT,
-      },
-    ],
-  ),
+  ],
+);
+export const Compacted: StoryObj = {
+  ...Compacted0,
   beforeEach: () => {
+    const base = Compacted0.beforeEach as () => (() => void) | undefined;
+    const done = base();
     const key = `agent-status:${COMPACTED}`;
     localStorage.setItem(
       key,
@@ -305,6 +350,9 @@ export const Compacted: StoryObj = {
         compactAt: 967_000,
       }),
     );
-    return () => localStorage.removeItem(key);
+    return () => {
+      localStorage.removeItem(key);
+      done?.();
+    };
   },
 };

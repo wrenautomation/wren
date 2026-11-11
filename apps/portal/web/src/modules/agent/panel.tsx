@@ -27,6 +27,8 @@ import { pageToken } from "./use-agent.js";
 
 const KEPT = "wren.agent.panel";
 const TAB = "wren.agent.chat";
+/** The stored keys: a story opens the panel on a chat with them. */
+export const PANEL_KEYS = { open: KEPT, chat: TAB } as const;
 
 interface Kept {
   open: boolean;
@@ -215,12 +217,6 @@ function PanelChat({
     put({ ...pick, chats: { ...tabRead().chats, [setup.name]: id } });
   const stored = sessions.data?.find((r) => r.session === chat)?.title;
   const model = tab.models?.[setup.name] || setup.model;
-  // only Research has the chat as a page of its own
-  const pageOf = (id: string | null) =>
-    setup.app === "research"
-      ? `/research/runs?setup=${encodeURIComponent(setup.name)}${id ? `&chat=${encodeURIComponent(id)}` : ""}`
-      : null;
-  const full = pageOf(chat);
   return (
     <AgentChat
       key={setup.name}
@@ -255,7 +251,7 @@ function PanelChat({
           <AgentChatsMenu
             rows={sessions.data ?? undefined}
             open={chat}
-            hrefOf={(r) => pageOf(r.session) ?? "#"}
+            hrefOf={() => "#"}
             onOpen={(r) => putChat(r.session)}
             folders={
               filed.folders
@@ -264,9 +260,6 @@ function PanelChat({
             }
           />
           <PanelAct icon="plus" label="New chat" onClick={() => putChat(null)} />
-          {full ? (
-            <PanelAct icon="expand" label="Open on its own page" href={full} onClick={onClose} />
-          ) : null}
           <PanelClose label="Agent" onClose={onClose} />
         </div>
       )}

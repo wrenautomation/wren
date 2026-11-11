@@ -195,6 +195,13 @@ export const Chev = ({ dir }: { dir: "l" | "r" }) => (
   </svg>
 );
 
+const samePick = (a: Pick, b: Pick | null) =>
+  !!b &&
+  a.t === b.t &&
+  (a.t === "n"
+    ? a.key === (b as { key: string }).key
+    : (a as { i: number }).i === (b as { i: number }).i);
+
 export function Side({
   r,
   L,
@@ -361,6 +368,59 @@ export function Side({
         })}
       </>
     );
+  // a phone: one item at a time with its words, not a grid of bare numbers
+  if (chips && tab !== "d") {
+    const steps =
+      tab === "c"
+        ? L.claims.map(({ c }) => ({ p: { t: "c", i: c.i } as Pick, what: "Claim", head: c.head }))
+        : L.run.runs
+          ? L.run.runs.map((run, i) => ({
+              p: { t: "n", key: `r${i + 1}` } as Pick,
+              what: "Run",
+              head: headOf(run.t).t,
+            }))
+          : L.run.searches.map((q) => ({
+              p: { t: "q", i: q.i } as Pick,
+              what: "Search",
+              head: q.t,
+            }));
+    const at = steps.findIndex((x) => samePick(x.p, pick));
+    const cur = steps[at];
+    const go = (d: number) => {
+      const next = steps[at < 0 ? (d > 0 ? 0 : steps.length - 1) : at + d];
+      if (next) onPick(next.p);
+    };
+    list = steps.length ? (
+      <div className="step">
+        <div className="srow">
+          <button
+            type="button"
+            className="sb"
+            aria-label="Previous"
+            disabled={at === 0}
+            onClick={() => go(-1)}
+          >
+            <Chev dir="l" />
+          </button>
+          <span className="sn" aria-live="polite">
+            {cur
+              ? `${cur.what} ${at + 1} of ${steps.length}`
+              : pl(steps.length, steps[0]?.what.toLowerCase() ?? "")}
+          </span>
+          <button
+            type="button"
+            className="sb"
+            aria-label="Next"
+            disabled={at === steps.length - 1}
+            onClick={() => go(1)}
+          >
+            <Chev dir="r" />
+          </button>
+        </div>
+        {cur ? <p className="sh">{cur.head}</p> : null}
+      </div>
+    ) : null;
+  }
   return (
     <div ref={r} className={cls("rg-side", chips && "chips")} onPointerLeave={() => onHover(null)}>
       <div className="srow">
@@ -385,7 +445,8 @@ export function Side({
           </button>
         )}
       </div>
-      <div className="rg-ls">{list}</div>
+      {/* inl: a phone's stepper shares the tabs' row; the graph keeps the screen */}
+      <div className={cls("rg-ls", chips && tab !== "d" && "inl")}>{list}</div>
     </div>
   );
 }

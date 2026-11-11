@@ -114,8 +114,14 @@ export const SourceOpen: Story = {
 export const Dropped: Story = {
   args: { run: RUN_GRAPH },
   play: async ({ canvasElement }) => {
-    const side = canvasElement.querySelector<HTMLElement>(".rg-side");
-    if (!side) return;
+    // wide: the lists pane starts closed; the toolbar opens it
+    const show = canvasElement.querySelector<HTMLElement>('button[title="Show the lists"]');
+    if (show) await userEvent.click(show);
+    const side = await waitFor(() => {
+      const el = canvasElement.querySelector<HTMLElement>(".rg-side");
+      expect(el).toBeTruthy();
+      return el as HTMLElement;
+    });
     const tab = [...side.querySelectorAll("button")].find((b) =>
       b.textContent?.startsWith("Dropped"),
     );

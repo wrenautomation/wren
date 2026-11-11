@@ -57,7 +57,7 @@ const story = (
   served: readonly (RequestHandler | WebSocketHandler)[] = SERVED,
 ): StoryObj => {
   const base = pageAt(at, { me: ADMIN, check });
-  // the page's chat column: a quiet relay with the setups and the last `/` list
+  // the side panel's chat: a quiet relay with the setups and the last `/` list
   const relay = fakeRelay({ tape: [], library: [COMMANDS as TapeLine[]], setups: SETUPS });
   return {
     ...base,
@@ -66,7 +66,7 @@ const story = (
 };
 
 const folderStory = (check: (page: HTMLElement) => Promise<void>): StoryObj => ({
-  ...story("/research/runs?view=history&pane=runs", check),
+  ...story("/research/runs?view=history", check),
   beforeEach: () => {
     resetFolders();
     freshStory();
@@ -91,7 +91,7 @@ export const HistoryFolderOpen = folderStory(async (page) => {
 
 /** One run opens full width as its graph: the claims web, the shelf, the summary. */
 export const Graph = tidy(
-  story("/research/runs?run=r1&pane=runs", async (page) => {
+  story("/research/runs?run=r1", async (page) => {
     const p = within(page);
     await p.findByRole("link", { name: "All runs" });
     await waitFor(() => expect(page.querySelector(".rg .rg-nodes [data-n]")).not.toBeNull(), LATE);
@@ -101,7 +101,7 @@ export const Graph = tidy(
 );
 
 /** Every decision in order, with its why and who made it; a human's steer among them. */
-export const BackAndForth = story("/research/runs?run=r1&tab=talk&pane=runs", async (page) => {
+export const BackAndForth = story("/research/runs?run=r1&tab=talk", async (page) => {
   const p = within(page);
   await p.findByText("a vendor page");
   await p.findByText("numbers only; skip vendor pages");
@@ -110,7 +110,7 @@ export const BackAndForth = story("/research/runs?run=r1&tab=talk&pane=runs", as
 
 /** serve is not running: the page says how to start it, never an empty list. */
 export const NoServe = story(
-  "/research/runs?view=history&pane=runs",
+  "/research/runs?view=history",
   async (page) => {
     await within(page).findByText("Can't reach weaver serve");
   },
@@ -119,7 +119,7 @@ export const NoServe = story(
 
 /** Picked runs, or all of them, on one graph: a source both read is one node. */
 export const AllRuns = tidy(
-  story("/research/runs?run=all&pane=runs", async (page) => {
+  story("/research/runs?run=all", async (page) => {
     const p = within(page);
     await p.findByRole("link", { name: "All runs" });
     await waitFor(() => expect(page.querySelector(".rg .rg-nodes [data-n]")).not.toBeNull(), LATE);
@@ -129,20 +129,21 @@ export const AllRuns = tidy(
 
 /** No chat and no run going: Live draws the newest run. */
 export const Live = tidy(
-  story("/research/runs?pane=runs", async (page) => {
+  story("/research/runs", async (page) => {
     await within(page).findByText("The newest run");
     await waitFor(() => expect(page.querySelector(".rg .rg-nodes [data-n]")).not.toBeNull(), LATE);
   }),
 );
 
-/** The chat sits beside the runs; a new chat has the `/` menu before its first turn. */
+/** The chat is the side panel over the run; a new chat has the `/` menu before its first turn. */
 export const Chat = tidy(
   story("/research/runs", async (page) => {
     const p = within(page);
-    const chat = await p.findByRole("region", { name: "Chat" });
-    // the shell's side panel stays shut: the page holds the same chat
-    expect(p.queryByRole("complementary", { name: "Agent" })).toBeNull();
-    await userEvent.type(await within(chat).findByRole("textbox", { name: "Message" }, LATE), "/");
-    await within(chat).findByRole("listbox", { name: "Commands" }, LATE);
+    await userEvent.click(
+      (await p.findAllByRole("button", { name: "Agent" }, LATE))[0] as HTMLElement,
+    );
+    const panel = await p.findByRole("complementary", { name: "Agent" }, LATE);
+    await userEvent.type(await within(panel).findByRole("textbox", { name: "Message" }, LATE), "/");
+    await within(panel).findByRole("listbox", { name: "Commands" }, LATE);
   }),
 );

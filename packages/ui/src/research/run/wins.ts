@@ -144,7 +144,7 @@ export function useWins(
   const visible = (gs: typeof listsGs) => gs.some((g) => g.api.isVisible);
   const panes: PaneBar | undefined = dock
     ? {
-        lists: !listsGs.length || visible(listsGs),
+        lists: visible(listsGs),
         detail: detailGs.length ? visible(detailGs) : null,
         onLists: () => {
           if (!api) return;

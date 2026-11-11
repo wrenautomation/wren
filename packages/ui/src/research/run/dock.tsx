@@ -25,7 +25,8 @@ import {
 import { Icon } from "../../icons.js";
 import type { Win } from "./wins.js";
 
-const LAY = "weaver-dock";
+// -2: the web-alone default (11-10) replaces layouts kept with the lists open
+const LAY = "weaver-dock-2";
 
 /** What the panes draw; Graph owns the state, the panes only place it. */
 export interface DockParts {
@@ -177,10 +178,10 @@ export function addDetail(api: DockviewApi, id: string, title: string, near?: st
       : { position: { referencePanel: "web", direction: "right" }, initialWidth: 440 }),
   });
 }
+/** the web alone: the graph is the page's focus; the toolbar opens the lists */
 export function defaultLayout(api: DockviewApi) {
   api.clear();
   api.addPanel({ id: "web", component: "web", tabComponent: "fixed", title: "Web" });
-  addLists(api);
 }
 /** the groups that hold a kind of pane; a hidden one stays in the layout */
 export const groupsOf = (api: DockviewApi, kind: "lists" | "detail") => [

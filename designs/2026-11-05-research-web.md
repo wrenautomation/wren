@@ -367,3 +367,9 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
     The chat column keeps the Ask page's states (setup read fails, no setup, loading, chat).
 
     Built 11-10. Proof: shots of each row at 390 and 1280, both looks; pane, view and new-run switches played (story `NewRunGoesLive`). Proof found two shared faults, both fixed: the phone bar took a hidden pane's heading, and the new-run switch read `location`, not the router. Open: the chat's run card repeats the right-hand graph (WA-1292).
+- 11-10, later: A reversed to B after William saw it. He wants the chat icon to open the side overlay, the main page to show the live run, and a view for all history. He also wants the graph to be the main focus at every width.
+  - The chat lives only in the shell's side panel. The Ask column, the "Open on its own page" button and the narrow "Chat | Runs" Seg are gone. Runs shows Live | History at full width.
+  - The graph comes first. The dock opens with the Web pane alone; the toolbar's Lists button opens the lists. The layout key moves to `weaver-dock-2`, so old layouts with the lists open reset. The "Each tinted card…" caption moves under the graph.
+  - Narrow: the numbered chip grid becomes a stepper ("Search 2 of 3", ‹ ›, the pick's full text). It shares a row with the tabs where it fits.
+  - The chat card's detail region is named "Card detail", so the page's graph and the card's graph do not share one landmark name.
+  - Chat stories mock weaver serve with no runs. Before, they reached this Mac's real serve on :4747 and timed out.

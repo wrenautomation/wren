@@ -910,7 +910,13 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
         </button>
       ) : null}
       {dock ? null : (
-        <section ref={panelRef} className="rg-panel" aria-label="Detail" aria-live="polite">
+        <section
+          ref={panelRef}
+          className="rg-panel"
+          // a chat card beside the page's own graph: two regions, two names
+          aria-label={card ? "Card detail" : "Detail"}
+          aria-live="polite"
+        >
           {pick && aw && awCur ? (
             <PanelBody key={JSON.stringify(awCur)} c={ctxOf(aw)} p={awCur} />
           ) : null}
@@ -966,13 +972,6 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
           </p>
         </div>
       )}
-      {card ? null : (
-        <p className="lookcap">
-          {L.run.runs
-            ? "Each tinted card is a run: its ask and its note. Lines run to the sources it kept findings from; a source two runs read links them. Click a run to open its searches."
-            : "Each tinted card is a search and its best answer. Lines run to every source it found: gray until the source holds a finding, then in its color; a thicker line carries more."}
-        </p>
-      )}
       {dock ? (
         <RunDock
           parts={{
@@ -997,6 +996,14 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
         />
       ) : (
         web
+      )}
+      {/* under the graph: the graph comes first */}
+      {card ? null : (
+        <p className="lookcap">
+          {L.run.runs
+            ? "Each tinted card is a run: its ask and its note. Lines run to the sources it kept findings from; a source two runs read links them. Click a run to open its searches."
+            : "Each tinted card is a search and its best answer. Lines run to every source it found: gray until the source holds a finding, then in its color; a thicker line carries more."}
+        </p>
       )}
       {card ? null : (
         <Summary
