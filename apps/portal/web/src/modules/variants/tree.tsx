@@ -321,18 +321,7 @@ export function SubjectTree({
     }
     if ((e.target as HTMLElement).closest("input, textarea, select, [contenteditable], .vt-open"))
       return;
-    const run: Record<string, () => void> = {
-      "+": () => Z.scaleBy(1.25),
-      "=": () => Z.scaleBy(1.25),
-      "-": () => Z.scaleBy(0.8),
-      f: fitAll,
-      F: fitAll,
-      "0": () => rest(MOVE_MS),
-    };
-    const go = run[e.key];
-    if (!go) return;
-    e.preventDefault();
-    go();
+    Z.keys(e, { fit: fitAll, rest: () => rest(MOVE_MS) });
   };
   const live = steers ?? [];
   const pruned = useMemo(() => new Set(prunedIds ?? []), [prunedIds]);
@@ -524,7 +513,7 @@ export function SubjectTree({
         className="vt-stage"
         // biome-ignore lint/a11y/noNoninteractiveTabindex: the stage takes keys to zoom and fit
         tabIndex={0}
-        aria-label={`Generation tree of ${subject.name}. Drag to move, plus and minus zoom, F fits all.`}
+        aria-label={`Generation tree of ${subject.name}. Drag or arrows to move, plus and minus zoom, F fits all.`}
         style={{ "--th": `${t.height}px` } as CSSProperties}
         onKeyDown={stageKey}
         onClick={(e) => {

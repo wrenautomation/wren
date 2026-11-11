@@ -34,8 +34,28 @@ export interface ZoomStageOpts {
   onZoom: (t: ZoomTransform) => void;
 }
 
+/** What `keys` reads off a key event: React's and the DOM's both fit. */
+export interface ZoomKeyEvent {
+  key: string;
+  shiftKey: boolean;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  altKey: boolean;
+  defaultPrevented: boolean;
+  target: EventTarget | null;
+  preventDefault(): void;
+}
+
+/** One arrow press, in screen px; Shift: three times */
+const PAN_STEP = 80;
+
 export interface ZoomStage {
   T: RefObject<ZoomTransform>;
+  /**
+   * The shared keys: arrows pan (Shift: further), + and = zoom in, - zooms out, F fits, 0 rests.
+   * True when it took the key. Skips fields, and a key a node already took.
+   */
+  keys(e: ZoomKeyEvent, o: { fit: () => void; rest?: (() => void) | undefined }): boolean;
   go(t: ZoomTransform, ms?: number): void;
   /** translate (x, y), then scale k */
   set(x: number, y: number, k: number, ms?: number): void;
@@ -123,17 +143,54 @@ export function useZoomStage(stage: HTMLElement | null, opts: ZoomStageOpts): Zo
         (R.t + R.b) / 2 - ((B.y0 + B.y1) / 2) * k,
       )
       .scale(k);
+  const panBy = (dx: number, dy: number) => {
+    const z = zr.current;
+    if (!stage || !z) return;
+    const sel = select(stage);
+    const k = T.current.k;
+    if (!reduced())
+      sel
+        .transition()
+        .duration(150)
+        .call(z.translateBy, dx / k, dy / k);
+    else sel.call(z.translateBy, dx / k, dy / k);
+  };
+  const scaleBy = (k: number, ms = 250) => {
+    const z = zr.current;
+    if (!stage || !z) return;
+    const sel = select(stage);
+    if (ms && !reduced()) sel.transition().duration(ms).call(z.scaleBy, k);
+    else sel.call(z.scaleBy, k);
+  };
   return {
     T,
+    keys: (e, { fit, rest }) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return false;
+      if ((e.target as Element | null)?.closest?.("input, textarea, select, [contenteditable]"))
+        return false;
+      const d = PAN_STEP * (e.shiftKey ? 3 : 1);
+      const run: Record<string, () => void> = {
+        ArrowLeft: () => panBy(d, 0),
+        ArrowRight: () => panBy(-d, 0),
+        ArrowUp: () => panBy(0, d),
+        ArrowDown: () => panBy(0, -d),
+        "+": () => scaleBy(1.25),
+        "=": () => scaleBy(1.25),
+        "-": () => scaleBy(0.8),
+        _: () => scaleBy(0.8),
+        f: fit,
+        F: fit,
+        "0": rest ?? fit,
+      };
+      const go = run[e.key];
+      if (!go) return false;
+      e.preventDefault();
+      go();
+      return true;
+    },
     go,
     set: (x, y, k, ms = 0) => go(zoomIdentity.translate(x, y).scale(k), ms),
-    scaleBy: (k, ms = 250) => {
-      const z = zr.current;
-      if (!stage || !z) return;
-      const sel = select(stage);
-      if (ms && !reduced()) sel.transition().duration(ms).call(z.scaleBy, k);
-      else sel.call(z.scaleBy, k);
-    },
+    scaleBy,
     fit: (B, R, { min = lo, max = 1, ms = 0 } = {}) => {
       if (!(B.x1 > B.x0 && B.y1 > B.y0)) return;
       const k = Math.max(

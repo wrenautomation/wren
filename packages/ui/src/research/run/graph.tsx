@@ -715,6 +715,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     setPick(x.h.pick);
   };
   const onStageKey = (e: React.KeyboardEvent) => {
+    if (Z.keys(e, { fit: () => fitView(400) })) return;
     if (e.key !== "Enter" && e.key !== " ") return;
     const t = e.target as Element;
     if (t.closest("a,.rg-panel,.rg-side")) return;
@@ -869,7 +870,14 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
         dock && "dk",
       )}
       role="group"
-      aria-label="The run as a web: each search a card with its answer, lines from each search to every source it found."
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: the web takes keys to pan and zoom
+      tabIndex={0}
+      aria-label="The run as a web: each search a card with its answer, lines from each search to every source it found. Arrows pan, plus and minus zoom, F fits all."
+      // d3-zoom's mousedown blocks focus: take it here, so the keys work after a drag
+      onPointerDown={(e) => {
+        if (!(e.target as Element).closest("a,button,input,textarea,select,.rg-panel,.rg-side,.nd"))
+          e.currentTarget.focus({ preventScroll: true });
+      }}
       onClick={onStageClick}
       onAuxClick={onStageAux}
       onKeyDown={onStageKey}

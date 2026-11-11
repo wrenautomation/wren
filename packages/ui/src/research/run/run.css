@@ -1152,6 +1152,11 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+/* the stage takes keys: its ring sits inside, the pane clips outside */
+.rg .rg-stage:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 .rg .nd.pk {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
