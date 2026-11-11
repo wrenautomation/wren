@@ -51,13 +51,14 @@ const AD_HOSTS = [
   "hs-sites.com",
 ] as const;
 
-/** One ad as `fb-public` `GET /ads` answers it: every field the walk read, kept whole. */
+/** One ad as `fb-public` `GET /ads` answers it (autobrowse `browser/flows/fb-ad-library`), kept whole. */
 export interface Ad {
   libraryId: string;
-  advertiser: string | null;
-  page?: string | null;
-  url?: string | null;
+  advertiser: { id: string | null; name: string | null; url: string | null; [k: string]: unknown };
+  link?: string | null;
   caption?: string | null;
+  /** Carousel and catalog cards: each has its own link. */
+  cards?: { link?: string | null }[];
   [field: string]: unknown;
 }
 
@@ -68,7 +69,7 @@ const adRef = (q: string, country = AD_COUNTRY): string =>
 /** The advertiser's own site from an ad's link or shown caption; null for a platform or form. */
 function adDomain(ad: Ad, platforms: Iterable<string> = []): string | null {
   const extra = [...AD_HOSTS, ...platforms];
-  for (const raw of [ad.url, ad.caption]) {
+  for (const raw of [ad.link, ...(ad.cards ?? []).map((c) => c.link), ad.caption]) {
     const host = typeof raw === "string" && raw.trim() ? extractDomain(raw) : null;
     if (host && !isPlatformDomain(host, extra)) return registrableDomain(host);
   }
@@ -77,7 +78,8 @@ function adDomain(ad: Ad, platforms: Iterable<string> = []): string | null {
 
 /** `fb:<page>` from the advertiser's page link (`facebook.com/DryHome/` is `fb:dryhome`). */
 export function pageKey(ad: Ad): string {
-  const path = ad.page ? new URL(ad.page, "https://www.facebook.com").pathname : "";
+  const page = ad.advertiser?.url;
+  const path = page ? new URL(page, "https://www.facebook.com").pathname : "";
   const slug = path.replace(/^\/+|\/+$/g, "").toLowerCase();
   return `fb:${slug || `ad-${ad.libraryId}`}`.slice(0, 64);
 }
@@ -91,8 +93,8 @@ export function adRows(ads: readonly Ad[], q: string, platforms: Iterable<string
   return ads.map((ad) => {
     const domain = homes.get(pageKey(ad)) ?? null;
     return {
-      company_name: ad.advertiser,
-      website: domain ?? ad.page ?? null,
+      company_name: ad.advertiser?.name ?? null,
+      website: domain ?? ad.advertiser?.url ?? null,
       keyword: q,
       ad,
       ...(domain ? {} : { [IDENTITY_KEY]: { source_key: pageKey(ad) } }),

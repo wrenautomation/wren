@@ -26,11 +26,10 @@ const db = () => pg.db;
 
 const ad = (id: string, advertiser: string, page: string, url: string | null): Ad => ({
   libraryId: id,
-  advertiser,
-  page: `https://www.facebook.com/${page}/`,
-  url,
+  advertiser: { id: null, name: advertiser, url: `https://www.facebook.com/${page}/` },
+  link: url,
   caption: null,
-  all: `Library ID: ${id}`,
+  cards: [],
 });
 const answering = (ads: Ad[]): SiteClient => ({
   call: async <T>() => ({ ads }) as T,
