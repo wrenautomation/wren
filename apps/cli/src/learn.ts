@@ -146,14 +146,21 @@ export function registerLearn(
     .option("--model <name>", "the breakdown model", "cohere")
     .option("--no-read", "only save it: the Mac's next `learn read` takes it")
     .option("--kind <kind>", `what it is, when the link doesn't say: ${ITEM_KINDS.join(", ")}`)
+    .option(
+      "--from <person>",
+      "the person who gave you this link (william): its source is human-provided and outranks an agent's find. Leave out for your own finds",
+    )
     .action(
-      async (url: string, o: { title?: string; model: string; read: boolean; kind?: string }) =>
+      async (
+        url: string,
+        o: { title?: string; model: string; read: boolean; kind?: string; from?: string },
+      ) =>
         json(
           await inWorkspace(async (db, client) => {
             const saved = await saveLink(db, {
               client,
               url,
-              by: BY,
+              by: o.from?.trim() || BY,
               via: "cli",
               title: o.title ?? null,
               ...(o.kind ? { kind: itemKindOf(o.kind) } : {}),

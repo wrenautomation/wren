@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type ItemRow, itemChanges, itemSource } from "./knowledge.js";
+import { type ItemRow, itemChanges, itemSource, providerOf } from "./knowledge.js";
 
 const row = (over: Partial<ItemRow["item"]> = {}): ItemRow => ({
   item: {
@@ -86,5 +86,24 @@ describe("itemChanges", () => {
     expect(itemChanges(merged, [row({ score: 9, title: "New" })])).toEqual([
       { op: "edit", id: "instagram-AbC123", score: 9 },
     ]);
+  });
+});
+
+describe("providerOf", () => {
+  it("a person named at save is human; the CLI's own saves and feed imports are agents", () => {
+    expect(providerOf({ savedBy: "william", savedVia: "cli" })).toEqual({
+      kind: "human",
+      who: "william",
+    });
+    expect(providerOf({ savedBy: "cli", savedVia: "cli" })).toEqual({
+      kind: "agent",
+      who: "learn-cli",
+    });
+    expect(providerOf({ savedBy: null, savedVia: null })).toEqual({
+      kind: "agent",
+      who: "learn-feed",
+    });
+    const [add] = itemChanges(new Map(), [row({ savedBy: "william", savedVia: "cli" } as never)]);
+    expect(add).toMatchObject({ op: "add", provider: { kind: "human", who: "william" } });
   });
 });

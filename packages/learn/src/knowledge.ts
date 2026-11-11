@@ -40,6 +40,15 @@ const defined = (o: Record<string, unknown>) =>
     ),
   );
 
+/**
+ * Who provided an item (knowledge `provider`, fixed on add): a person named at save
+ * (`wren learn add --from`) is human; the CLI's own saves and feed imports are agents.
+ */
+export function providerOf(i: { savedBy: string | null; savedVia: string | null }) {
+  if (i.savedBy && i.savedBy !== "cli") return { kind: "human" as const, who: i.savedBy };
+  return { kind: "agent" as const, who: i.savedVia ? `learn-${i.savedVia}` : "learn-feed" };
+}
+
 /** One item as a source's fields and body. */
 export function itemSource(r: ItemRow): { fields: Record<string, unknown>; body: string } {
   const i = r.item;
@@ -138,6 +147,7 @@ export function itemChanges(
         type: "source",
         id,
         origin: "learn",
+        provider: providerOf(r.item),
         ...fields,
         title: String(fields.title),
         tags,
