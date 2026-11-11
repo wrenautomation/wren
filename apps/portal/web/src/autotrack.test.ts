@@ -38,7 +38,7 @@ describe("autotrack", () => {
     expect(commandOf("console/recordsList", {})).toBeNull();
     expect(commandOf("console/recordsCounts", {})).toBeNull();
     expect(commandOf("delivery/me", {})).toBeNull();
-    expect(commandOf("learn/search", {})).toBeNull();
+    expect(commandOf("research/search", {})).toBeNull();
     expect(commandOf("console/call", { service: "ContentDesk", handler: "approve" })).toBe(
       "console/call:ContentDesk.approve",
     );

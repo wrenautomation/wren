@@ -2,7 +2,7 @@
  * One of our pieces beside its SOP (designs/2026-10-25-competitor-analyzer.md, Use): each
  * standard number with ours, each closed set with ours, the patterns he kept or dropped, his calls
  * judged, and up to 3 changes. A post draft (Write) and a Studio film share it. The server's shape
- * is content `DraftCheck` and learn `PieceCheck`.
+ * is content `DraftCheck`.
  */
 import { cx, Tag } from "@wren/ui";
 import type { ReactNode } from "react";

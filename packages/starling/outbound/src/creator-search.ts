@@ -400,31 +400,14 @@ export async function findCreators(
   return out;
 }
 
-/** A page or feed address compared loosely: no scheme, `www.`, case or trailing slash. */
-export const sameAddress = (u: string) =>
-  u
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, "")
-    .replace(/^www\./, "")
-    .replace(/\/+$/, "");
-
-/**
- * Which hits are followed already: by Learn's sources (`follows`, their feed or page addresses)
- * or, on LinkedIn, by the comments' pages (`pages`, `in/<vanity>` for a person).
- */
+/** Which hits are followed already: LinkedIn's comment pages (`pages`, `in/<vanity>` for a person). */
 export function markFollowed(
   hits: readonly CreatorHit[],
-  follows: readonly string[],
   pages: readonly string[],
 ): (CreatorHit & { followed: boolean })[] {
-  const have = new Set(follows.map(sameAddress));
   const paged = new Set(pages.map((p) => p.toLowerCase()));
   return hits.map((h) => ({
     ...h,
-    followed:
-      h.site === "linkedin"
-        ? paged.has(h.handle.replace(/^company\//, "").toLowerCase())
-        : have.has(sameAddress(h.follow)) || have.has(sameAddress(h.url)),
+    followed: h.site === "linkedin" && paged.has(h.handle.replace(/^company\//, "").toLowerCase()),
   }));
 }

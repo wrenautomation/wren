@@ -2,20 +2,20 @@
  * `wren sop …`: SOPs built from videos, Drive Docs and files, kept in Canon
  * (`canonDir`): a guide per SOP, its sources and points as records (one commit per write, with a
  * by and a why), `topics/<name>/` for `notes.md`, `calls.md`, `standard.md`, refs. `add` ingests
- * a source, `sync` writes the numbers and your calls from Learn, `build` writes the next guide
- * on Claude Code (sync first), `ls` shows what is there, `push` hands the SOP to the content loop
- * as a platform's playbook. Iterate by editing notes.md (your rules, top priority), calling on
- * pieces, and building again. Drive reads go through autobrowse's `drive` site on this machine.
+ * a source and breaks a reel or video down, `sync` writes the numbers and your calls from Canon,
+ * `build` writes the next guide on Claude Code (sync first), `ls` shows what is there, `push`
+ * hands the SOP and its standard to the content loop as a platform's playbook. Iterate by editing
+ * notes.md (your rules, top priority), calling on pieces (`call`), and building again. Drive
+ * reads go through autobrowse's `drive` site on this machine.
  */
 import { spawnSync } from "node:child_process";
 import { copyFile, mkdir, readdir, readFile, symlink, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
-import { WREN } from "@wren/core/access";
+import { playbookStandard, scopeOf, writeSopFiles } from "@wren/content-standard";
 import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
 import type { Db } from "@wren/db";
-import { scopeOf, writeSopFiles } from "@wren/learn";
 import { modelLlm } from "@wren/llm";
 import {
   addSource,
@@ -34,10 +34,11 @@ import {
   writeSkill,
   youtubeSource,
 } from "@wren/research/sops";
-import { learnBack, pushPlaybook } from "@wren/starling-inbound";
+import { pushPlaybook } from "@wren/starling-inbound";
+import { loadWorking } from "@wrenautomation/knowledge";
 import { claudeCode } from "@wrenautomation/models/command";
 import type { Command } from "commander";
-import { learnReaders } from "./learn-readers.js";
+import { breakdownLlm, breakdownSource, registerSopPieces } from "./sop-pieces.js";
 import { watchEyes } from "./video-watch.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -74,22 +75,32 @@ export function registerSop(
     .description("SOPs from videos, Drive Docs and files: `sop add`, then `sop build`");
 
   sop
-    .command("add <name> <what>")
+    .command("add <name> [what]")
     .description(
-      "ingest a source: a YouTube URL, another video URL (Instagram reel, TikTok, X), `drive:<folderId>` (every Doc under it), or a text file",
+      "ingest a source, into the SOP when one is named (`sop add <url>` for a link that fits none yet): a YouTube URL, another video URL (Instagram reel, TikTok, X), `drive:<folderId>` (every Doc under it), or a text file. A reel or video is broken down",
     )
+    .option("--from <person>", "who gave it (a person's sources outrank an agent's): the provider")
     .option("--account <address>", "whose Drive (an autobrowse `drive` consent)")
     .option("--priority <n>", "higher wins when sources disagree (notes.md always wins)", (v) =>
       Number.parseInt(v, 10),
     )
     .option("--no-screen", "YouTube: captions only, skip the frames read of what is on screen")
+    .option("--no-breakdown", "skip the breakdown of a reel or video")
+    .option("--model <name>", "the breakdown model", "cohere")
     .action(
       async (
-        name: string,
-        what: string,
-        opts: { account?: string; priority?: number; screen?: boolean },
+        first: string,
+        second: string | undefined,
+        opts: {
+          from?: string;
+          account?: string;
+          priority?: number;
+          screen?: boolean;
+          breakdown?: boolean;
+          model: string;
+        },
       ) => {
-        const dir = topicDir(root, name);
+        const [name, what] = second === undefined ? [null, first] : [first, second];
         const priority = opts.priority ?? DEFAULT_PRIORITY;
         let sources: Source[];
         if (YOUTUBE.test(what)) {
@@ -113,15 +124,30 @@ export function registerSop(
           sources = await driveSources(what.slice("drive:".length), drive, priority);
         } else if (/\.(md|txt)$/i.test(what)) sources = [await fileSource(resolve(what), priority)];
         else {
+          if (!name) throw new Error("a reference file needs an SOP name");
           // Not text (PDF, image, design export): kept as a reference file, not a source.
+          const dir = topicDir(root, name);
           await mkdir(join(dir, "refs"), { recursive: true });
           const to = join(dir, "refs", basename(what));
           await copyFile(resolve(what), to);
           console.log(to);
           return;
         }
-        for (const s of sources)
-          console.log(await addSource(root, name, s, { by: BY, why: `sop add ${what}` }));
+        const who = { by: BY, why: `sop add ${what}` };
+        const extra = opts.from ? { provider: { kind: "human", who: opts.from } } : {};
+        const llm = opts.breakdown === false ? null : breakdownLlm(settings, rootDir, opts.model);
+        for (const s of sources) {
+          const path = await addSource(root, name, s, who, extra);
+          console.log(path);
+          const id = basename(path, ".md");
+          const kind = loadWorking(root).docs.find((l) => l.doc.fm.id === id)?.doc.fm.kind;
+          if (llm && (kind === "reel" || kind === "video")) {
+            const b = await breakdownSource(root, id, llm, who);
+            console.log(
+              b ? `  broken down: ${b.hookStyle}, ${b.beats.length} beats` : "  no breakdown",
+            );
+          }
+        }
       },
     );
 
@@ -140,7 +166,7 @@ export function registerSop(
   const sync = async (name: string) => {
     const dir = topicDir(root, name);
     const notes = await readFile(join(dir, "notes.md"), "utf8").catch(() => "");
-    const r = await withDb((db) => writeSopFiles(db, dir, name, notes));
+    const r = await writeSopFiles(root, dir, name, notes);
     if (!r) return false;
     console.log(
       `${name}: ${r.pieces} piece${r.pieces === 1 ? "" : "s"} (${r.scope.kinds.join(", ")}), ${r.calls} call${r.calls === 1 ? "" : "s"} → standard.md, calls.md`,
@@ -151,7 +177,7 @@ export function registerSop(
   sop
     .command("sync <name>")
     .description(
-      "write standard.md (the numbers) and calls.md (your keep / tune / drop calls) from the pieces notes.md's front matter names (kinds, platforms, set)",
+      "write standard.md (the numbers) and calls.md (your keep / tune / drop calls) from the Canon pieces notes.md's front matter names (kinds, platforms, set)",
     )
     .action(async (name: string) => {
       if (!(await sync(name)))
@@ -159,42 +185,14 @@ export function registerSop(
     });
 
   sop
-    .command("learn-back <name>")
-    .description(
-      "learn back: our posted pieces in this SOP's scope into Learn, read and broken down like anyone's, then each pattern you kept held to their real numbers (a reel's 3 s hook, a video's share watched, a post's engagement); a kept pattern ours do worse with comes back on Competitors → Check this",
-    )
-    .option("--model <name>", "the reading and breakdown model", "cohere")
-    .action(async (name: string, o: { model: string }) => {
-      const notes = await readFile(join(topicDir(root, name), "notes.md"), "utf8").catch(() => "");
-      const scope = scopeOf(notes, name);
-      if (!scope)
-        throw new Error(
-          `${name}: notes.md names no kinds in its front matter (kinds, platforms, topic, set)`,
-        );
-      const { reader, judgeFor } = learnReaders(settings, rootDir);
-      const out = await withDb((db) =>
-        learnBack(db, {
-          client: WREN,
-          sop: name,
-          scope,
-          read: reader(),
-          judge: judgeFor(db, o.model),
-          say: (line) => console.error(line),
-        }),
-      );
-      console.log(JSON.stringify(out, null, 2));
-    });
-
-  sop
     .command("build <name>")
     .description(
-      "write the next guide from notes.md, your calls, the standard and the sources, on Claude Code (prod numbers: node scripts/prod-wren.mjs sop sync <name> first)",
+      "write the next guide from notes.md, your calls, the standard and the sources, on Claude Code",
     )
     .option("--model <model>", "Claude Code model", "opus")
     .option("--no-sync", "skip the standard.md and calls.md rewrite first")
     .option("--ask <text>", "one instruction for this build only (it goes in the commit's why)")
     .action(async (name: string, opts: { model: string; sync: boolean; ask?: string }) => {
-      // No database here (the Mac with Postgres down): build from the two files as they are on disk.
       if (opts.sync)
         await sync(name).catch((err: unknown) =>
           console.warn(
@@ -233,7 +231,7 @@ export function registerSop(
   sop
     .command("push <name>")
     .description(
-      "hand the SOP (the guide, rendered) to the content loop: every draft for the platform reads it (prod: node scripts/prod-wren.mjs sop push …)",
+      "hand the SOP (the guide, rendered) and its standard and calls from Canon to the content loop: every draft for the platform reads them (prod: node scripts/prod-wren.mjs sop push …)",
     )
     .requiredOption("--platform <platform>", PLATFORMS.join(" | "))
     .action(async (name: string, opts: { platform: string }) => {
@@ -241,16 +239,20 @@ export function registerSop(
         throw new Error(`platform must be one of ${PLATFORMS.join(", ")}`);
       const platform = opts.platform as Platform;
       const text = await sopText(root, name);
-      // What it governs rides along, so a draft reads the SOP's set live (designs/2026-10-25-competitor-analyzer.md, Use).
+      // prod cannot read Canon: the standard and his calls ride the push (WA-1317)
       const notes = await readFile(join(topicDir(root, name), "notes.md"), "utf8").catch(() => "");
       const scope = scopeOf(notes, name);
+      const standard = playbookStandard(root, name, scope, platform);
       const { playbook, changed } = await withDb((db) =>
-        pushPlaybook(db, { platform, sop: name, text, scope }),
+        pushPlaybook(db, { platform, sop: name, text, scope, standard }),
       );
+      const pieces = standard.kinds.map((k) => `${k.kind} ${k.n}`).join(", ") || "no pieces";
       console.log(
-        `${platform}: ${name} ${changed ? "pushed" : "unchanged"} (${playbook.id}, ${text.length} chars)`,
+        `${platform}: ${name} ${changed ? "pushed" : "unchanged"} (${playbook.id}, ${text.length} chars; ${pieces}; ${standard.calls.length} calls)`,
       );
     });
+
+  registerSopPieces(sop, { root, settings, rootDir, by: BY });
 
   sop
     .command("ls")

@@ -220,7 +220,7 @@ export interface Module {
   component?: string;
   /** The one button in its head, a page to go to. */
   action?: { page: string; label: string; icon: IconName };
-  /** Tabs read from its data, beside its pages: Learn's places and collections. */
+  /** Tabs read from its data, beside its pages. */
   nav?: ModuleNav;
   /** ⌘K as you type: its records that match, in the workspace on screen, each with its page. */
   find?: (q: string, client: string) => Promise<Found[]>;

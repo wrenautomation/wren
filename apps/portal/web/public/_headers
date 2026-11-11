@@ -3,14 +3,14 @@
 # npm's registry lists the browser mods (Marketplace). Dictation's speech model
 # (src/dictation/model.worker.ts): weights from Hugging Face (redirects to *.hf.co); onnxruntime's
 # wasm is ours (/ort/), and 'wasm-unsafe-eval' compiles it. frame-src: the session player is ours
-# (/replay); Learn plays YouTube (no-cookie), Instagram, TikTok and X posts in their own embeds.
+# (/replay); Research plays YouTube (no-cookie), Instagram, TikTok and X posts in their own embeds.
 # frame-src *.pages.dev: Variants runs a page sample as a link (vireo D8), each one a Cloudflare Pages
 # preview deploy on its own origin; the frame is sandboxed and reaches nothing of ours.
 # connect-src 127.0.0.1:4747: Research reads `weaver serve` on the viewer's own Mac (modules/research).
 # connect-src http + ws 127.0.0.1:4748: a Claude setup and its past chats through `wren agent serve` on the viewer's own Mac (modules/agent).
 # blob: (img, media): the page's own bytes: a chat's file chips and the files the agent names by path,
 # read from the relay (modules/agent). Never a remote address.
-# Learn's thumbnails and audio come through our /media (src/media.ts).
+# Thumbnails and audio come through our /media (src/media.ts).
 # img-src https: Research's run graph draws each page's own picture (og:image), a video's still and a
 # site's icon from any host (modules/research/graph.ts); through /media, one view costs 100+ Worker calls.
 # The graph's <img> sends no referrer. A TikTok avatar is TikTok's CDN; a post's video preview is a signed S3 link (media-src).

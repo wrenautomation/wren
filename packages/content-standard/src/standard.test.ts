@@ -11,13 +11,13 @@ const SCOPE = { kinds: ["film"], platforms: [], topic: "launch", set: ["linear",
 
 const row = (o: Record<string, unknown>) =>
   ({
-    id: 1,
+    id: "s1",
     kind: "film",
     platform: "youtube",
     creator: "Linear",
     title: "t",
     reach: 100,
-    at: new Date(0),
+    at: null,
     by: "hand",
     hookStyle: "demo-first",
     ctaKind: "none",
@@ -38,7 +38,6 @@ const row = (o: Record<string, unknown>) =>
     cutsTrust: "ok",
     music: true,
     vo: false,
-    calls: 0,
     ...o,
   }) as Parameters<typeof kindStandard>[1][number];
 
@@ -62,21 +61,21 @@ describe("the scope in notes.md", () => {
 describe("the standard", () => {
   it("gives each number its median and middle half, trusted films only for cuts, and counts each closed set", () => {
     const rows = [
-      row({ id: 1, durationS: "30", cuts: 10, shotMedianS: "2.5", cutsTrust: "ok" }),
+      row({ id: "s1", durationS: 30, cuts: 10, shotMedianS: 2.5, cutsTrust: "ok" }),
       row({
-        id: 2,
-        durationS: "40",
+        id: "s2",
+        durationS: 40,
         cuts: 12,
-        shotMedianS: "3",
+        shotMedianS: 3,
         cutsTrust: "ok",
         hookStyle: "story",
       }),
-      row({ id: 3, durationS: "50", cuts: 99, shotMedianS: "0.4", cutsTrust: "low", music: false }),
+      row({ id: "s3", durationS: 50, cuts: 99, shotMedianS: 0.4, cutsTrust: "low", music: false }),
       row({
-        id: 4,
-        durationS: "60",
+        id: "s4",
+        durationS: 60,
         cuts: 14,
-        shotMedianS: "3.5",
+        shotMedianS: 3.5,
         cutsTrust: "ok",
         ctaKind: "link",
       }),
@@ -121,7 +120,7 @@ describe("the standard", () => {
 
 describe("his calls as markdown", () => {
   const call = (o: Partial<SopCall>): SopCall => ({
-    id: 1,
+    id: "s1",
     title: "Linear launch",
     creator: "Linear",
     path: "hook_style",
@@ -129,18 +128,23 @@ describe("his calls as markdown", () => {
     value: "demo-first",
     call: "keep",
     comment: null,
-    at: new Date(0),
+    at: "1970-01-01T00:00:00.000Z",
     ...o,
   });
   it("counts a pattern across pieces, marks a rule, and lists his words on a piece's own facts by call", () => {
     const md = callsMarkdown(
       SCOPE,
       [
-        call({ id: 1 }),
-        call({ id: 2, title: "Raycast 1.0", creator: "Raycast" }),
-        call({ id: 3, title: "Cursor 2", creator: "Cursor", comment: "straight to the product" }),
+        call({ id: "s1" }),
+        call({ id: "s2", title: "Raycast 1.0", creator: "Raycast" }),
         call({
-          id: 4,
+          id: "s3",
+          title: "Cursor 2",
+          creator: "Cursor",
+          comment: "straight to the product",
+        }),
+        call({
+          id: "s4",
           title: "Slow one",
           creator: "X",
           path: "cta",
@@ -150,7 +154,7 @@ describe("his calls as markdown", () => {
           comment: "no asks this early",
         }),
         call({
-          id: 2,
+          id: "s2",
           title: "Raycast 1.0",
           creator: "Raycast",
           path: "beats/0",
@@ -160,7 +164,7 @@ describe("his calls as markdown", () => {
           comment: "hold the product longer",
         }),
         call({
-          id: 3,
+          id: "s3",
           title: "Cursor 2",
           creator: "Cursor",
           path: "/",
@@ -173,14 +177,12 @@ describe("his calls as markdown", () => {
     );
     expect(md).toContain("## Patterns");
     expect(md).toContain(
-      '- Hook style: demo-first: keep 3 → rule [learn:1, learn:2, learn:3] ("straight to the product" [learn:3])',
+      '- Hook style: demo-first: keep 3 → rule [s1, s2, s3] ("straight to the product" [s3])',
     );
+    expect(md).toContain('- Call to action: link: drop 1 [s4] ("no asks this early" [s4])');
+    expect(md).toContain("## Keep\n- Whole piece: Cursor 2, Cursor [s3]");
     expect(md).toContain(
-      '- Call to action: link: drop 1 [learn:4] ("no asks this early" [learn:4])',
-    );
-    expect(md).toContain("## Keep\n- Whole piece: Cursor 2, Cursor [learn:3]");
-    expect(md).toContain(
-      '## Tune: do this, with the change in his words\n- Beat 1 "[0:00] Logo" (Raycast 1.0, Raycast) "hold the product longer" [learn:2]',
+      '## Tune: do this, with the change in his words\n- Beat 1 "[0:00] Logo" (Raycast 1.0, Raycast) "hold the product longer" [s2]',
     );
     expect(md).not.toContain("## Drop");
     expect(callsMarkdown(SCOPE, [])).toContain("No calls yet");

@@ -282,57 +282,6 @@ async function tapOnly(browser: Browser) {
   await done();
 }
 
-/**
- * A form's unsent values survive a move to another page and back, and a reload: Learn's Follow
- * form (an address and an alerts pick) on React Hook Form through useEditForm.
- */
-async function formKeeps(browser: Browser, size: typeof DESK) {
-  const { page, done } = await open(browser, size);
-  await page.goto(`${url}/learn/sources`);
-  const address = page.getByLabel("Address to follow");
-  const alerts = page.getByLabel("Alerts for everyone here");
-  await address.waitFor({ timeout: T });
-  await address.fill("https://example.com/sample-feed");
-  await alerts.selectOption("every");
-  // Move inside the app (no load), then back.
-  await page.evaluate(() => {
-    const a = document.createElement("a");
-    a.href = "/people/people";
-    document.body.append(a);
-    a.click();
-    a.remove();
-  });
-  await at(page, /\/people\/people/);
-  await page.goBack();
-  await address.waitFor({ timeout: T });
-  assert.equal(
-    await address.inputValue(),
-    "https://example.com/sample-feed",
-    "address back after a move",
-  );
-  assert.equal(await alerts.inputValue(), "every", "alerts pick back after a move");
-  // A reload: the values come back from the device, with a note.
-  await page.reload();
-  await address.waitFor({ timeout: T });
-  await page.waitForFunction(
-    () =>
-      (document.querySelector('input[data-edit="form:address"]') as HTMLInputElement | null)
-        ?.value === "https://example.com/sample-feed",
-    undefined,
-    { timeout: T },
-  );
-  assert.equal(await alerts.inputValue(), "every", "alerts pick back after a reload");
-  await page.getByRole("button", { name: "Discard" }).click();
-  assert.equal(await address.inputValue(), "", "Discard empties the form");
-  // The device's copy lets go on its own write; a reload in the same instant can beat it.
-  await page.waitForTimeout(300);
-  await page.reload();
-  await address.waitFor({ timeout: T });
-  await page.waitForTimeout(500);
-  assert.equal(await address.inputValue(), "", "nothing kept after Discard");
-  await done();
-}
-
 const tests: [string, (b: Browser) => Promise<void>][] = [
   ["round trip, desk", (b) => roundTrip(b, DESK)],
   ["round trip, phone", (b) => roundTrip(b, PHONE)],
@@ -341,8 +290,6 @@ const tests: [string, (b: Browser) => Promise<void>][] = [
   ["column order", columnOrder],
   ["hover menus, desk", hoverMenus],
   ["tap only, phone", tapOnly],
-  ["form keeps, desk", (b) => formKeeps(b, DESK)],
-  ["form keeps, phone", (b) => formKeeps(b, PHONE)],
 ];
 
 const browser = await chromium.launch({ executablePath: CHROME });

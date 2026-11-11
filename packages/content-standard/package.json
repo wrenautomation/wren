@@ -1,0 +1,24 @@
+{
+  "name": "@wren/content-standard",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test:unit": "vitest run src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@wren/core": "workspace:*",
+    "@wren/llm": "workspace:*",
+    "@wrenautomation/knowledge": "0.69.0",
+    "@wrenautomation/read": "0.68.10",
+    "zod": "4.6.6"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

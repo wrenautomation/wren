@@ -9,7 +9,7 @@ import {
   HOOK_STYLE_ABOUT,
   postCounts,
 } from "./breakdown.js";
-import { HOOK_STYLES } from "./schema.js";
+import { HOOK_STYLES } from "./labels.js";
 
 describe("breakdown", () => {
   it("tells the model every hook style", () => {

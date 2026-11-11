@@ -15,7 +15,7 @@ import {
   SHOT_SOUNDS,
   SHOT_SRCS,
   SHOT_TYPES,
-} from "./schema.js";
+} from "./labels.js";
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const r2 = (n: number) => Math.round(n * 100) / 100;

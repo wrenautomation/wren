@@ -164,7 +164,7 @@ export function draftingHandlers(desk: ContentDeskContext) {
     ),
     /**
      * Check one draft against its platform's SOP and save the result on it. Wren's desk only:
-     * the standard and his calls live in Wren's Learn. Shared: it writes the draft's check
+     * the standard and his calls ride Wren's pushed playbook. Shared: it writes the draft's check
      * column only, so drafting on the desk never waits on it.
      */
     check: sharedHandler(

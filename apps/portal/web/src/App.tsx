@@ -107,7 +107,7 @@ const CommandPalette = lazy(() =>
 );
 
 /**
- * The open app's tabs read from its data (Learn's places and collections), in the workspace on
+ * The open app's tabs read from its data, in the workspace on
  * screen: again on every move, and when the app says they changed.
  */
 function useModuleNav(
@@ -365,7 +365,7 @@ export function App() {
   const display = useDisplay(mine);
   const myLook = usePref<unknown>(operator ? mine : undefined, LOOK_PREF);
   // ⌘K finds records as you type in each app here that can (`find`: people, clients, deals,
-  // workflows, templates, pages, Learn's items); never on a sample.
+  // workflows, templates, pages); never on a sample.
   // Stations too: the live shape's nodes, each opening on the Map (Wren's team only).
   const finders = apps.filter((m) => m.find);
   const stations = team && !!current && !sample;

@@ -2710,6 +2710,20 @@
       "when": 1794379924543,
       "tag": "0387_learn_ads",
       "breakpoints": true
+    },
+    {
+      "idx": 388,
+      "version": "7",
+      "when": 1794435433093,
+      "tag": "0388_playbook_standard",
+      "breakpoints": true
+    },
+    {
+      "idx": 389,
+      "version": "7",
+      "when": 1794435704251,
+      "tag": "0389_executions_no_learn",
+      "breakpoints": true
     }
   ]
 }

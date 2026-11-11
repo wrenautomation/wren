@@ -2,16 +2,16 @@ import { describe, expect, it } from "vitest";
 import { checkPiece } from "./check.js";
 import { type KindStandard, rulesOf, type SopCall } from "./standard.js";
 
-const call = (id: number, path: string, value: string, c: SopCall["call"]): SopCall => ({
-  id,
-  title: `Piece ${id}`,
+const call = (n: number, path: string, value: string, c: SopCall["call"]): SopCall => ({
+  id: `s${n}`,
+  title: `Piece ${n}`,
   creator: null,
   path,
   label: path === "hook_style" ? "Hook style" : path === "cta" ? "Call to action" : "Music",
   value,
   call: c,
   comment: null,
-  at: new Date("2026-10-25T00:00:00Z"),
+  at: "2026-10-25T00:00:00Z",
 });
 
 const standard: KindStandard = {
@@ -50,7 +50,7 @@ describe("a piece against the SOP", () => {
       ["Hook style", "demo-first", true],
       ["Music", "yes", false],
     ]);
-    expect(own.map((c) => c.id)).toEqual([6]);
+    expect(own.map((c) => c.id)).toEqual(["s6"]);
 
     const c = checkPiece("post", standard, patterns, {
       chars: 1200,

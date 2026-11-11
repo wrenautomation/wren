@@ -51,7 +51,7 @@ export default defineConfig({
     "../starling/acts/src/schema.ts",
     "../starling/outbound/src/schema.ts",
     "../watch/src/schema.ts",
-    "../learn/src/schema.ts",
+    "../research/src/learn-schema.ts",
     "../starling/studio/src/schema.ts",
     "../calendar/src/schema.ts",
     "../voice/src/schema.ts",

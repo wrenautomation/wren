@@ -1,24 +1,19 @@
 /**
  * What an SOP's pieces measure and what he called on them (designs/2026-10-25-competitor-analyzer.md,
- * Write). An SOP names what it governs in its `notes.md` front matter: `kinds`, `platforms`,
- * `topic` and `set` (the creators and brands the standard counts). From that scope code writes two
- * files beside his notes: `standard.md`, the numbers off `learn.standards`, and `calls.md`, his
- * keep / tune / drop calls rolled up with his words and the piece ids. `sop build` reads both as
- * files (`@wren/research/sops`), so research never imports learn.
+ * Write; designs/2026-11-09-knowledge-repo.md, WA-1317). An SOP names what it governs in its
+ * `notes.md` front matter: `kinds`, `platforms`, `topic` and `set` (the creators and brands the
+ * standard counts). Pure: rows come from Canon sources (`canon.ts`), and the result goes to
+ * `standard.md` and `calls.md` beside his notes and, on `wren sop push`, onto the playbook.
  */
-import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import type { Queryable } from "@wren/db";
-import { and, eq, inArray, sql } from "drizzle-orm";
-import { type FactCall, factRows, ITEM_PATH, isFactCall } from "./calls.js";
-import { breakdowns, items, sopSources, standards } from "./schema.js";
+import { type FactCall, ITEM_PATH } from "./calls.js";
+import type { BreakdownBy } from "./labels.js";
 
 export interface SopScope {
   kinds: string[];
   platforms: string[];
   topic: string;
   set: string[];
-  /** The SOP's own name, so the standard reads its content line when it has one (`lineItems`). */
+  /** The SOP's own name. */
   sop?: string;
 }
 
@@ -51,40 +46,43 @@ export function scopeOf(notes: string, sop?: string): SopScope | null {
   };
 }
 
-export type StandardRow = typeof standards.$inferSelect;
-
-/**
- * The Wren items on the SOP's content line (designs/2026-10-25-ingestion-engine.md): the standard
- * is a reader over the line, so once the line has taken a document only its documents count. Null
- * while no instance names the SOP: the scope alone decides.
- */
-async function lineItems(db: Queryable, sop: string | undefined): Promise<Set<number> | null> {
-  if (!sop) return null;
-  const rows = (await db.execute(sql`
-    select i.id from learn.items i
-    where i.client = 'wren' and i.document_id in (select j.document_id from pipeline.instances j
-      where j.subject_kind = 'document' and j.entry_ref->>'sop' = ${sop})`)) as unknown as {
-    id: number;
-  }[];
-  return rows.length ? new Set(rows.map((r) => Number(r.id))) : null;
+/** One picked piece's breakdown as a flat row: the kind's facts as columns, so a standard is a filter and a median. */
+export interface StandardRow {
+  /** The Canon source id. */
+  id: string;
+  kind: string;
+  platform: string | null;
+  creator: string | null;
+  title: string;
+  reach: number | null;
+  at: string | null;
+  by: BreakdownBy;
+  hookStyle: string | null;
+  ctaKind: string | null;
+  format: string | null;
+  shape: string | null;
+  link: string | null;
+  chars: number | null;
+  lines: number | null;
+  firstLineChars: number | null;
+  hashtags: number | null;
+  durationS: number | null;
+  cuts: number | null;
+  shotMedianS: number | null;
+  shotP90S: number | null;
+  firstProductS: number | null;
+  logoS: number | null;
+  ctaS: number | null;
+  cutsTrust: string | null;
+  music: boolean | null;
+  vo: boolean | null;
 }
 
-/**
- * The in-scope rows of `learn.standards`: the SOP's kinds, on its platforms, by its set (each
- * empty = any), and on its line when it has one.
- */
-export async function standardRows(db: Queryable, scope: SopScope): Promise<StandardRow[]> {
-  const [rows, line] = await Promise.all([
-    db.select().from(standards).where(inArray(standards.kind, scope.kinds)),
-    lineItems(db, scope.sop),
-  ]);
-  return rows.filter(
-    (r) =>
-      (!line || line.has(Number(r.id))) &&
-      (!scope.platforms.length || scope.platforms.includes((r.platform ?? "").toLowerCase())) &&
-      (!scope.set.length || scope.set.includes((r.creator ?? "").toLowerCase())),
-  );
-}
+/** A row in the scope: its kind, on its platforms, by its set (each empty = any). */
+export const inScope = (r: StandardRow, scope: SopScope): boolean =>
+  scope.kinds.includes(r.kind) &&
+  (!scope.platforms.length || scope.platforms.includes((r.platform ?? "").toLowerCase())) &&
+  (!scope.set.length || scope.set.includes((r.creator ?? "").toLowerCase()));
 
 export const median = (xs: number[]) => {
   const s = [...xs].sort((a, b) => a - b);
@@ -192,8 +190,8 @@ export function kindStandard(kind: string, rows: StandardRow[]): KindStandard {
 }
 
 /** The standard for a scope: one block per kind that has pieces, in the scope's order. */
-export async function standardOf(db: Queryable, scope: SopScope): Promise<KindStandard[]> {
-  const rows = await standardRows(db, scope);
+export function standardOf(all: StandardRow[], scope: SopScope): KindStandard[] {
+  const rows = all.filter((r) => inScope(r, scope));
   return scope.kinds
     .map((k) =>
       kindStandard(
@@ -220,8 +218,8 @@ export function standardLines(k: KindStandard): string[] {
 export const MIN_STANDARD = 5;
 
 /**
- * The scope one draft is held to: its own kind on its own platform, by the SOP's set and line. An
- * SOP with no scope in its notes still governs its platform's posts, by everyone Learn read.
+ * The scope one draft is held to: its own kind on its own platform, by the SOP's set. An SOP with
+ * no scope in its notes still governs its platform's posts, by everyone in Canon.
  */
 export const draftScope = (
   playbook: { sop: string; scope: SopScope | null } | null,
@@ -235,9 +233,22 @@ export const draftScope = (
   ...(playbook ? { sop: playbook.sop } : {}),
 });
 
-/** The standard for one kind in a scope; null under `MIN_STANDARD` pieces. */
-export async function kindStandardOf(db: Queryable, scope: SopScope): Promise<KindStandard | null> {
-  const [k] = await standardOf(db, scope);
+/**
+ * What `wren sop push` stores on the playbook (`content_playbooks.standard`): prod cannot read
+ * Canon, so the draft and film checks read this snapshot.
+ */
+export interface PlaybookStandard {
+  at: string;
+  kinds: KindStandard[];
+  calls: SopCall[];
+}
+
+/** One kind's standard in a snapshot; null under `MIN_STANDARD` pieces or none. */
+export function kindStandardIn(
+  snap: PlaybookStandard | null | undefined,
+  kind: string,
+): KindStandard | null {
+  const k = snap?.kinds.find((x) => x.kind === kind);
   return k && k.n >= MIN_STANDARD ? k : null;
 }
 
@@ -254,7 +265,7 @@ export function standardMarkdown(scope: SopScope, kinds: KindStandard[], at = ne
   const head = [
     "# Standard",
     "",
-    `Numbers from \`learn.standards\` for ${scopeLine(scope)}: ${n} piece${n === 1 ? "" : "s"} as of ${at.toISOString().slice(0, 10)}. Code writes this file; it is rewritten on every \`wren sop sync\` and \`wren sop build\`.`,
+    `Numbers from Canon sources' breakdowns for ${scopeLine(scope)}: ${n} piece${n === 1 ? "" : "s"} as of ${at.toISOString().slice(0, 10)}. Code writes this file; it is rewritten on every \`wren sop sync\` and \`wren sop build\`.`,
   ];
   if (!kinds.length) return `${head.join("\n")}\n\nNo pieces yet: nothing to measure.\n`;
   const blocks = kinds.map((k) => {
@@ -268,7 +279,8 @@ export function standardMarkdown(scope: SopScope, kinds: KindStandard[], at = ne
 }
 
 export interface SopCall {
-  id: number;
+  /** The Canon source id. */
+  id: string;
   title: string;
   creator: string | null;
   path: string;
@@ -276,70 +288,7 @@ export interface SopCall {
   value: string;
   call: FactCall;
   comment: string | null;
-  at: Date;
-}
-
-/**
- * His standing calls on the pieces an SOP covers: on its line when it has one (a dropped piece
- * too), else in its scope or asked into it ("Add to SOP"). The newest call per subject; a call
- * on a path the breakdown no longer lists is dropped.
- */
-export async function callsOf(db: Queryable, scope: SopScope, sop: string): Promise<SopCall[]> {
-  const line = await lineItems(db, sop);
-  const inScope = line ? [] : (await standardRows(db, scope)).map((r) => Number(r.id));
-  const asked = line
-    ? []
-    : (
-        await db
-          .select({ id: sopSources.itemId })
-          .from(sopSources)
-          .where(and(eq(sopSources.sop, sop), eq(sopSources.state, "added")))
-      ).map((r) => Number(r.id));
-  const ids = [...new Set([...(line ?? []), ...inScope, ...asked])];
-  if (!ids.length) return [];
-  const rows = await db
-    .select({ b: breakdowns, doc: items.documentId, title: items.title, creator: items.creator })
-    .from(breakdowns)
-    .innerJoin(items, eq(items.id, breakdowns.itemId))
-    .where(inArray(breakdowns.itemId, ids));
-  if (!rows.length) return [];
-  // Two items can share one document: each shows the calls on it.
-  const byDoc = new Map<number, typeof rows>();
-  for (const r of rows) byDoc.set(r.doc, [...(byDoc.get(r.doc) ?? []), r]);
-  const docs = sql.raw(`array[${[...byDoc.keys()].join(",")}]::int[]`);
-  const calls = (await db.execute(sql`
-    select distinct on (c.subject) c.subject, c.label, c.comment, c.at
-    from decision_calls c
-    where c.kind in ('document', 'finding')
-      and split_part(split_part(c.subject, ':', 2), '/', 1)::int = any(${docs})
-    order by c.subject, c.at desc, c.id desc`)) as unknown as Record<string, unknown>[];
-  const out: SopCall[] = [];
-  for (const c of calls) {
-    const subject = String(c.subject);
-    const [docPart, ...rest] = subject.slice("doc:".length).split("/");
-    const path = rest.length ? rest.join("/") : ITEM_PATH;
-    const call = String(c.label);
-    if (!isFactCall(call)) continue;
-    for (const row of byDoc.get(Number(docPart)) ?? []) {
-      const fact =
-        path === ITEM_PATH
-          ? { label: "Whole piece", value: "" }
-          : factRows(row.b).find((r) => r.path === path);
-      if (!fact) continue;
-      out.push({
-        id: Number(row.b.itemId),
-        title: row.title,
-        creator: row.creator,
-        path,
-        label: fact.label,
-        value: fact.value,
-        call,
-        comment: (c.comment as string | null) ?? null,
-        at: new Date(String(c.at)),
-      });
-    }
-  }
-  return out.sort((a, b) => a.id - b.id || a.path.localeCompare(b.path));
+  at: string;
 }
 
 /** Keeps on one pattern, with no drop, that make it a rule on its own. */
@@ -405,7 +354,7 @@ export function rulesOf(calls: SopCall[]): { patterns: PatternRule[]; own: SopCa
   };
 }
 
-const cite = (c: SopCall) => `learn:${c.id}`;
+const cite = (c: SopCall) => c.id;
 const who = (c: SopCall) => `${c.title}${c.creator ? `, ${c.creator}` : ""}`;
 const said = (c: SopCall) => (c.comment ? ` "${c.comment}"` : "");
 
@@ -414,7 +363,7 @@ export function callsMarkdown(scope: SopScope, calls: SopCall[], at = new Date()
   const head = [
     "# Calls",
     "",
-    `His keep / tune / drop calls on the pieces this SOP covers (${scopeLine(scope)}), as of ${at.toISOString().slice(0, 10)}. Code writes this file from \`decision_calls\`; a call changes on the item page or with \`wren learn call\`.`,
+    `His keep / tune / drop calls on the pieces this SOP covers (${scopeLine(scope)}), as of ${at.toISOString().slice(0, 10)}. Code writes this file from his Canon verdicts; a call changes with \`wren sop call\`.`,
   ];
   if (!calls.length) return `${head.join("\n")}\n\nNo calls yet.\n`;
   const { patterns, own } = rulesOf(calls);
@@ -454,23 +403,4 @@ export function callsMarkdown(scope: SopScope, calls: SopCall[], at = new Date()
     ...section("drop", "Drop: never do this"),
   ];
   return `${[...head, "", ...body].join("\n").replace(/\n(## )/g, "\n\n$1")}\n`;
-}
-
-/**
- * Write `standard.md` and `calls.md` into an SOP's folder from its scope. Null when the notes
- * name no kinds: the SOP governs no pieces, and the two files are not written.
- */
-export async function writeSopFiles(
-  db: Queryable,
-  dir: string,
-  sop: string,
-  notes: string,
-): Promise<{ scope: SopScope; files: string[]; pieces: number; calls: number } | null> {
-  const scope = scopeOf(notes, sop);
-  if (!scope) return null;
-  const [standard, calls] = await Promise.all([standardOf(db, scope), callsOf(db, scope, sop)]);
-  const files = [join(dir, "standard.md"), join(dir, "calls.md")];
-  await writeFile(files[0] as string, standardMarkdown(scope, standard));
-  await writeFile(files[1] as string, callsMarkdown(scope, calls));
-  return { scope, files, pieces: standard.reduce((n, k) => n + k.n, 0), calls: calls.length };
 }

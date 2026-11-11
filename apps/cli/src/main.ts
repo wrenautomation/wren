@@ -56,7 +56,6 @@ import { registerHealth } from "./health.js";
 import { registerHooks } from "./hooks.js";
 import { registerKeys } from "./keys.js";
 import { registerLake } from "./lake.js";
-import { registerLearn } from "./learn.js";
 import { registerLimits } from "./limits.js";
 import { registerListmonk } from "./listmonk.js";
 import { registerLoops } from "./loops.js";
@@ -270,24 +269,6 @@ registerWatch(program, withMainDb, settings, rootDir);
 registerVariants(program, withDb, settings, actor, rootDir);
 registerPlaybook(program, withDb, settings, rootDir);
 registerFolders(program, withDb, actor);
-registerLearn(
-  program,
-  {
-    withMainDb,
-    withClientDb: async (id, fn) => {
-      const client = await withMainDb((db) => getClient(db, id));
-      return open(clientUrl(settings.databaseUrl, client), fn);
-    },
-    workspace: async () => {
-      const id = program.opts<{ client?: string }>().client;
-      if (!id || id === WREN) return WREN;
-      return (await withMainDb((db) => getClient(db, id))).id;
-    },
-    named: () => program.opts<{ client?: string }>().client,
-  },
-  settings,
-  rootDir,
-);
 registerCalendar(program, withMainDb);
 registerCalls(program, withMainDb, settings, rootDir);
 registerAppReviews(program, withMainDb, rootDir);

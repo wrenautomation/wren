@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { factRows, factSubject, ITEM_PATH, isFactCall } from "./calls.js";
+import { factRows, isFactCall } from "./calls.js";
 
 const BREAKDOWN = {
   hookStyle: "contrarian" as const,
@@ -16,9 +16,7 @@ const BREAKDOWN = {
 };
 
 describe("fact calls", () => {
-  it("names the item and each fact as a subject under it", () => {
-    expect(factSubject(7, ITEM_PATH)).toBe("doc:7");
-    expect(factSubject(7, "beats/2")).toBe("doc:7/beats/2");
+  it("knows the three calls", () => {
     expect(isFactCall("tune")).toBe(true);
     expect(isFactCall("maybe")).toBe(false);
   });

@@ -3,15 +3,16 @@
  * into every draft prompt for that platform. The newest row wins; pushing
  * the same text again stores nothing.
  */
-import type { Platform } from "@wren/core/autobrowse";
-import type { Queryable } from "@wren/db";
+
 import {
-  draftScope,
   type KindStandard,
-  kindStandardOf,
+  kindStandardIn,
+  type PlaybookStandard,
   type SopScope,
   standardLines,
-} from "@wren/learn";
+} from "@wren/content-standard";
+import type { Platform } from "@wren/core/autobrowse";
+import type { Queryable } from "@wren/db";
 import { and, desc, eq, notInArray, sql } from "drizzle-orm";
 import { type ContentPlaybook, contentPlaybooks } from "./schema.js";
 
@@ -106,7 +107,13 @@ export async function commentGuide(db: Queryable, platform: Platform): Promise<s
 
 export async function pushPlaybook(
   db: Queryable,
-  p: { platform: Platform; sop: string; text: string; scope?: SopScope | null },
+  p: {
+    platform: Platform;
+    sop: string;
+    text: string;
+    scope?: SopScope | null;
+    standard?: PlaybookStandard | null;
+  },
 ): Promise<{ playbook: ContentPlaybook; changed: boolean }> {
   const text = p.text.trim();
   if (text.length === 0) throw new Error(`${p.sop}: empty SOP`);
@@ -120,11 +127,18 @@ export async function pushPlaybook(
       ? await sopFor(db, p.platform, p.sop)
       : await playbookFor(db, p.platform);
   const scope = p.scope ?? null;
-  if (live && live.sop === p.sop && live.text === text && sameScope(live.scope ?? null, scope))
+  const standard = p.standard ?? null;
+  if (
+    live &&
+    live.sop === p.sop &&
+    live.text === text &&
+    sameScope(live.scope ?? null, scope) &&
+    sameStandard(live.standard ?? null, standard)
+  )
     return { playbook: live, changed: false };
   const [row] = await db
     .insert(contentPlaybooks)
-    .values({ platform: p.platform, sop: p.sop, text, scope })
+    .values({ platform: p.platform, sop: p.sop, text, scope, standard })
     .returning();
   if (!row) throw new Error("insert returned no row");
   return { playbook: row, changed: true };
@@ -138,6 +152,20 @@ const sameScope = (a: SopScope | null, b: SopScope | null) =>
     a.topic === b.topic &&
     (["kinds", "platforms", "set"] as const).every((k) => a[k].join() === b[k].join()));
 
+/** Keys sorted: jsonb gives them back in its own order. */
+const stable = (v: unknown): string =>
+  Array.isArray(v)
+    ? `[${v.map(stable).join(",")}]`
+    : v && typeof v === "object"
+      ? `{${Object.keys(v)
+          .sort()
+          .map((k) => `${JSON.stringify(k)}:${stable((v as Record<string, unknown>)[k])}`)
+          .join(",")}}`
+      : JSON.stringify(v);
+/** The numbers and calls, not the time they were read. */
+const sameStandard = (a: PlaybookStandard | null, b: PlaybookStandard | null) =>
+  stable(a && { ...a, at: null }) === stable(b && { ...b, at: null });
+
 export function playbookBlock(playbook: Pick<ContentPlaybook, "text"> | null): string {
   if (!playbook) return "";
   return `
@@ -149,18 +177,13 @@ ${playbook.text}
 }
 
 /**
- * The numbers a post draft is held to (designs/2026-10-25-competitor-analyzer.md, Use): the
- * `post` pieces Learn broke down on the draft's platform, by the playbook SOP's set. Read live, so
- * a piece read since the last push counts. Null under `MIN_STANDARD` pieces.
+ * The numbers a post draft is held to (designs/2026-10-25-competitor-analyzer.md, Use): the `post`
+ * standard pushed with the playbook (Canon, WA-1317). Null with no playbook, or under
+ * `MIN_STANDARD` pieces.
  */
-// The view counts Wren's items only (`client = 'wren'`): a client's database gives no standard.
-export function postStandardFor(
-  db: Queryable,
-  playbook: Pick<ContentPlaybook, "sop" | "scope"> | null,
-  platform: Platform,
-): Promise<KindStandard | null> {
-  return kindStandardOf(db, draftScope(playbook, "post", platform));
-}
+export const postStandardFor = (
+  playbook: Pick<ContentPlaybook, "standard"> | null,
+): KindStandard | null => kindStandardIn(playbook?.standard, "post");
 
 export function standardBlock(standard: KindStandard | null): string {
   if (!standard) return "";

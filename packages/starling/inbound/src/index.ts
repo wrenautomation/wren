@@ -20,7 +20,6 @@ export * from "./draft-kinds.js";
 export * from "./film-check.js";
 export * from "./funnel.js";
 export * from "./ideas.js";
-export * from "./learn-back.js";
 export * from "./lessons.js";
 export * from "./media.js";
 export * from "./metrics.js";

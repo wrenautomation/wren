@@ -5,24 +5,22 @@
  * call reads his calls on pieces' own words and gives up to 3 changes. The result is saved on the
  * draft with the words' version it read: an edit makes it stale, never wrong.
  */
-import { isVendorStop } from "@wren/core/metered";
-import type { Queryable } from "@wren/db";
+
 import {
   answerSchema,
   breakdownPrompt,
-  callsOf,
   checkPiece,
-  draftScope,
-  kindStandardOf,
   type PieceCheck,
   postCounts,
   rulesOf,
   type SopCall,
-} from "@wren/learn";
+} from "@wren/content-standard";
+import { isVendorStop } from "@wren/core/metered";
+import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Tracer } from "@wren/llm";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { playbookFor } from "./playbook.js";
+import { playbookFor, postStandardFor } from "./playbook.js";
 import { draftVersion } from "./review.js";
 import { type ContentPlaybook, contentDrafts, contentPlaybooks } from "./schema.js";
 
@@ -118,11 +116,9 @@ export async function checkDraft(
     .where(eq(contentDrafts.id, draftId));
   if (!d) throw new Error(`no draft ${draftId}`);
   const playbook = await playbookOf(db, d);
-  const scope = draftScope(playbook, "post", d.platform);
-  const [standard, calls] = await Promise.all([
-    kindStandardOf(db, scope),
-    playbook ? callsOf(db, scope, playbook.sop) : Promise.resolve([]),
-  ]);
+  // the snapshot `wren sop push` stored: prod cannot read Canon
+  const standard = postStandardFor(playbook);
+  const calls = playbook?.standard?.calls ?? [];
   const { patterns, own } = rulesOf(calls);
   const base = {
     version: draftVersion(d.text),
@@ -140,7 +136,9 @@ export async function checkDraft(
       hook: null,
       rules: [],
       changes: [],
-      why: `No posts on ${d.platform} broken down and no calls yet: nothing to hold it to.`,
+      why: playbook
+        ? `No posts on ${d.platform} in the ${playbook.sop} standard and no calls yet: nothing to hold it to. Push the SOP again after adding pieces.`
+        : `No playbook pushed for ${d.platform}: nothing to hold it to.`,
     });
   const stage = {
     ...(o.tracer ? { tracer: o.tracer } : {}),
@@ -200,7 +198,7 @@ export async function checkDraft(
     rules: rules.map((c, i) => ({
       call: c.call,
       say: ruleSay(c),
-      cite: `learn:${c.id}`,
+      cite: c.id,
       verdict: verdicts.get(i + 1) ?? "n/a",
     })),
     changes: (judged.parsed?.changes ?? []).slice(0, 3),

@@ -107,7 +107,7 @@ function DraftCard({
   onDone,
 }: {
   d: Waiting["drafts"][number];
-  /** The SOP check is Wren's own only: the standard and his calls live in Wren's Learn. */
+  /** The SOP check is Wren's own only: the standard and his calls live in Canon. */
   sop: boolean;
   /** When the board's read left: an older read never lands over his typing. */
   at: number;

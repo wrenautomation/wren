@@ -372,8 +372,6 @@ export const executions = pgView("executions", {
       when subject ~ '^mail:[0-9]{1,9}$' then (select coalesce(nullif(m.from_name, ''),
         m.from_address) || ': ' || coalesce(nullif(m.subject, ''), 'Email')
         from watch.mail m where m.id = split_part(x.subject, ':', 2)::int)
-      when subject ~ '^item:[0-9]{1,9}$' then (select i.title from learn.items i
-        where i.id = split_part(x.subject, ':', 2)::int)
       when subject ~ '^(lead|reply):sms:[0-9]{1,9}$' then (select coalesce(nullif(s.name, ''),
         c.name, 'Lead') || case when x.subject like 'lead:%' then ': Text lead' else ': Text reply' end
         from sms_contacts s left join companies c on c.id = s.company_id
@@ -398,7 +396,7 @@ export const executions = pgView("executions", {
         where j.id = substr(x.subject, 9)::uuid)
       when subject ~ '^doc:[0-9]{1,9}$' then (select coalesce(nullif(d.title, ''), d.url)
         from documents d where d.id = split_part(x.subject, ':', 2)::int)
-    end, case split_part(subject, ':', 1) when 'mail' then 'Email' when 'item' then 'Learn item'
+    end, case split_part(subject, ':', 1) when 'mail' then 'Email'
       when 'company' then 'Company' when 'account' then 'Account' when 'journey' then 'Journey'
       when 'doc' then 'Document' when 'lead' then case split_part(subject, ':', 2) when 'reach' then 'DM lead'
         when 'email' then 'Email lead' else 'Text lead' end

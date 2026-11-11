@@ -1,5 +1,5 @@
 /**
- * The app's one pulse. What the shell keeps fresh (the sidebar's counts, Learn's bell) joins here
+ * The app's one pulse. What the shell keeps fresh (the sidebar's counts) joins here
  * instead of running its own timer. Once a minute, only while the tab shows and the window has
  * focus, every beat runs and their reads go out as one request (`batched`). Coming back to the
  * tab runs them once more (the data layer's `focusManager`). A live push on any topic runs them

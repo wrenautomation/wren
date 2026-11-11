@@ -23,14 +23,13 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 | `ledger/` | what ran and what it cost: runs, imports |
 | `research/` | what we learned about a company: documents, enrichments, discovery, candidates, verifications, signals |
 | `email/` | the cold-email machine: enrollments, messages, templates, sequences, roster, policy, health, inbox |
-| `content/` | the content loop: ideas, drafts, metrics, platforms, media |
+| `content/` | the content loop: ideas, drafts, metrics, platforms, media, the standard SOPs measure from Canon |
 | `ads/` | Meta ads: cut 2026-11-04, tables stay |
 | `sms/` | texts: numbers, contacts, messages, events, site applicants' runs; missed calls and review asks cut 2026-11-04, tables stay |
 | `clients/` | who we work for: the registry row, its own database, its logins and what we deliver |
 | `reactivation/` | the lead reactivation product: CRM contacts, client profile, handoffs, demo videos |
 | `books/` | the money: vendors, bills, their documents, the journal |
 | `watch/` | the Monitor: William's mail, triaged by rules and a model into Needs you |
-| `learn/` | Learn: saved links and our own pieces, read and broken down for the SOPs |
 | `calendar/` | our own booking calendar: bookings, slots, the lander's /book page |
 | `voice/` | the phone agent, in development: calls, timed turns, consent to AI calls |
 | `ui/` | the portal's look: area → screen → `@wren/ui` part → its story → the `DESIGN.md` section (`objects/ui/CONTEXT.md`) |

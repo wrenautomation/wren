@@ -1,6 +1,6 @@
 import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { describe, expect, it } from "vitest";
-import { findCreators, handleIn, markFollowed, sameAddress } from "./creator-search.js";
+import { findCreators, handleIn, markFollowed } from "./creator-search.js";
 
 type Route = (input: Record<string, unknown>, account?: string) => unknown;
 const sitesOf = (routes: Record<string, Route>) => {
@@ -154,7 +154,7 @@ describe("creator search", () => {
     ]);
   });
 
-  it("marks what's followed: Learn's addresses, LinkedIn's comment pages", () => {
+  it("marks what's followed: LinkedIn's comment pages", () => {
     const hit = {
       name: "n",
       about: null,
@@ -173,11 +173,9 @@ describe("creator search", () => {
           follow: "https://www.linkedin.com/company/acme/",
         },
       ],
-      ["https://X.com/a/"],
       ["acme"],
     );
-    expect(marked.map((m) => m.followed)).toEqual([true, false, true]);
-    expect(sameAddress("https://www.Reddit.com/r/x/")).toBe("reddit.com/r/x");
+    expect(marked.map((m) => m.followed)).toEqual([false, false, true]);
     expect(handleIn("@acme.co")).toBe("acme.co");
     expect(handleIn("recruiting founders")).toBeNull();
   });

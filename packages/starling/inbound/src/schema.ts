@@ -5,10 +5,11 @@
  * stays on the draft row beside the audit envelope.
  * Design: designs/2026-09-22-content-loop.md.
  */
+
+import type { PlaybookStandard, SopScope } from "@wren/content-standard";
 import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
 import { platformObjects } from "@wren/core/objects-schema";
 import { baseColumns, nonNegative, oneOf } from "@wren/db/columns";
-import type { SopScope } from "@wren/learn";
 import { ACTIVITY_KINDS, type ActivityKind, GAP_STATES, type Media } from "@wren/starling-core";
 import { sql } from "drizzle-orm";
 import {
@@ -112,6 +113,8 @@ export const contentPlaybooks = pgTable(
     text: text("text").notNull(),
     /** What the SOP governs, from its notes' front matter at push (`SopScope`); null when it names none. */
     scope: jsonb("scope").$type<SopScope | null>(),
+    /** The standard and his calls from Canon at push: prod cannot read Canon. Null before WA-1317. */
+    standard: jsonb("standard").$type<PlaybookStandard | null>(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_content_playbooks" }),

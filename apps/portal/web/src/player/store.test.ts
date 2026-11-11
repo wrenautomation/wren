@@ -2,11 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { createPlayerStore, type PlayerItem } from "./store.js";
 
 const item = (over: Partial<PlayerItem> = {}): PlayerItem => ({
-  id: "learn:1",
+  id: "clip:1",
   kind: "youtube",
   src: "abc",
   title: "One",
-  back: "/learn/items/1",
+  back: "/research/sources/1",
   ...over,
 });
 const make = () => {
@@ -45,7 +45,7 @@ describe("player store", () => {
     expect(store.getState().mode).toBe("full");
     store.release(a);
     expect(store.getState().mode).toBe("mini");
-    expect(store.getState().item?.id).toBe("learn:1");
+    expect(store.getState().item?.id).toBe("clip:1");
   });
 
   it("docks by hand, and a slot claims it back", () => {
@@ -62,7 +62,7 @@ describe("player store", () => {
     const { store, go } = make();
     store.play(item());
     store.expand();
-    expect(go).toHaveBeenCalledWith("/learn/items/1");
+    expect(go).toHaveBeenCalledWith("/research/sources/1");
   });
 
   it("expand with a slot stays on the page", () => {
@@ -92,9 +92,9 @@ describe("player store", () => {
     store.play(item({ onTime }));
     store.report(12, 60, true);
     onTime.mockClear();
-    store.play(item({ id: "learn:2", back: "/learn/items/2" }));
+    store.play(item({ id: "clip:2", back: "/research/sources/2" }));
     expect(onTime).toHaveBeenCalledWith(12, 60, false);
-    expect(store.getState().item?.id).toBe("learn:2");
+    expect(store.getState().item?.id).toBe("clip:2");
     expect(store.getState().time).toBe(0);
     expect(store.getState().heard).toBe(false);
   });

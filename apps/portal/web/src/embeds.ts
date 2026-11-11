@@ -1,6 +1,6 @@
 /**
  * A post's own player address from its link: YouTube's id, and the embeds the CSP lets in
- * (`public/_headers` frame-src). Learn's item page and Research's sources both read it.
+ * (`public/_headers` frame-src). Research's sources read it.
  */
 
 /** The YouTube id in a watch, short, Shorts or embed address. */

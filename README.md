@@ -115,7 +115,7 @@ node scripts/prod-wren.mjs drafts list       # on prod
 
 Machine calls beside William's (designs/2026-10-16-decide.md, 2026-11-04-loops.md). The judge
 agent (Claude Code on the desk, his plan, $0) judges drafted comments (send, edit, drop) and lead
-fits, each with a one-line why and its session id; Learn items stay on `WREN_DECIDE`'s chain.
+fits, each with a one-line why and its session id.
 His send, drop, star or archive is logged next to it. `NextStepDecide/wren` runs every 10 minutes; while
 the Mac is off, its kinds wait. The Agents page shows the same numbers.
 
@@ -181,13 +181,13 @@ ingests a source into Canon (`../canon`, private, `@wrenautomation/knowledge`): 
 record tagged with the SOP's name, one commit with a by and a why. A video is
 its captions plus an `## On screen` section: frames picked where the picture changes, read by
 Claude (Cohere past a failure), with the documents and slides shown; `--no-screen` skips that.
-`wren sop sync <name>` writes `standard.md` (the numbers off `learn.standards` for the pieces the
+`wren sop sync <name>` writes `standard.md` (the numbers off the breakdowns of Canon sources the
 front matter of `notes.md` names: `kinds`, `platforms`, `topic`, `set`) and `calls.md` (your keep /
-tune / drop calls on those pieces, rolled up and cited `[learn:<id>]`).
+tune / drop calls on those pieces, rolled up and cited by Canon source id).
 `wren sop build <name>` syncs, then writes the next guide (`guides/<name>.md`, the procedure) and its rule sets
 (`rules/<name>/<set>.md`, one rule per line with a fixed id) from `notes.md` (your rules, top priority), your
 calls, the standard and the sources on Claude Code (`--no-sync` skips the sync). A build never drops a set.
-Iterate: edit notes.md, call on pieces (`wren learn call`), build again.
+Iterate: edit notes.md, call on pieces (`wren sop call <source> <path> keep|tune|drop`), build again.
 `wren sop extract <name> [source]` lists every point a source makes as finding records tagged with
 the SOP (cited, generated only); build reads the points instead of the raw source.
 `notes.md`, `calls.md`, `standard.md`, `refs/` and `SKILL.md` sit in `topics/<name>/`. `knowledge render <name>`

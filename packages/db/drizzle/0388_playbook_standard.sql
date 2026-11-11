@@ -1,0 +1,1 @@
+ALTER TABLE "content_playbooks" ADD COLUMN "standard" jsonb;

@@ -7,11 +7,12 @@
  * checks every draft against the idea (his words) and the facts: a made-up
  * claim or number is asked for once more, then the platform's row says why.
  */
+
+import type { KindStandard } from "@wren/content-standard";
 import type { Platform } from "@wren/core/autobrowse";
 import { llmOf, recordDraft } from "@wren/core/draft-record";
 import { droppedWhy, guardDraft, recordGuard } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
-import type { KindStandard } from "@wren/learn";
 import { completeAndParse, type LlmClient, type Outcome, type Tracer } from "@wren/llm";
 import { isThread } from "@wren/starling-core/thread";
 import { and, count, eq, gte, inArray, isNotNull } from "drizzle-orm";
@@ -273,7 +274,7 @@ export async function redraft(
     brand: o.brand ?? DEFAULT_BRAND,
     lessons: await lessonsFor(db, platform),
     playbook,
-    standard: await postStandardFor(db, playbook, platform),
+    standard: postStandardFor(playbook),
     ...(o.facts ? { facts: o.facts } : {}),
   });
   const { outcome, why } = await askGuarded(db, llm, prompt, [idea.text, note], {
@@ -367,7 +368,7 @@ export async function draftIdea(
       brand,
       lessons: await lessonsFor(db, platform),
       playbook,
-      standard: await postStandardFor(db, playbook, platform),
+      standard: postStandardFor(playbook),
       ...(o.facts ? { facts: o.facts } : {}),
     });
     const { outcome, why } = await askGuarded(db, llm, prompt, [idea.text], {

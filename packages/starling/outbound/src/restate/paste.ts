@@ -8,7 +8,6 @@ import { byOf } from "@wren/core/ask";
 import { serviceHandler } from "@wren/core/restate";
 import * as restate from "@wren/runtime";
 import { ReachRefusal } from "@wren/starling-acts";
-import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { CREATOR_SITES, type CreatorSite, findCreators, markFollowed } from "../creator-search.js";
 import { addPlaces, watchPlace } from "../discovery/places.js";
@@ -165,15 +164,8 @@ export function pasteHandlers(deps: ReachDeps) {
             x: settings.x.account || "x@wren",
           },
         });
-        const follows = await ctx.run("follows", async () =>
-          (
-            (await deps.db.execute(
-              sql`select url, page from learn.sources where client = 'wren' and stopped_at is null`,
-            )) as unknown as { url: string; page: string | null }[]
-          ).flatMap((r) => (r.page ? [r.url, r.page] : [r.url])),
-        );
         return {
-          hits: markFollowed(found.hits, follows, settings.linkedin.pages),
+          hits: markFollowed(found.hits, settings.linkedin.pages),
           failed: found.failed,
         };
       },

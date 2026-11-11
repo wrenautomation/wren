@@ -40,7 +40,7 @@ export interface PieceCheck {
   }[];
 }
 
-/** Our facts, keyed like a `learn.standards` row. */
+/** Our facts, keyed like a standard row. */
 export type Ours = Partial<Record<keyof StandardRow, string | number | boolean | null>>;
 
 /** The standards column each pattern path counts. */

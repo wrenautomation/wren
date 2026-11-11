@@ -13,7 +13,7 @@
 type PlayerKind = "youtube" | "embed" | "media";
 
 export interface PlayerItem {
-  /** Stable for the thing, not the visit: `learn:12`, `video:34:cut.mp4`. The same id is the same player. */
+  /** Stable for the thing, not the visit: `video:34:cut.mp4`. The same id is the same player. */
   id: string;
   kind: PlayerKind;
   /** youtube: the video id. embed: the iframe address. media: the file's address. */

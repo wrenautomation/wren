@@ -18,7 +18,6 @@ import { flowsWith } from "@wren/core/workflows";
 import { llmForKey } from "@wren/llm";
 import { journeyOfProfile } from "@wren/pipeline/records";
 import { COMPONENTS } from "../components.js";
-import { makeMapLineFeed } from "../line-feed.js";
 import { makeListToJourney } from "../sourced-feed.js";
 import { WORKFLOWS } from "../workflows.js";
 import type { AnyService, Deps } from "./deps.js";
@@ -91,8 +90,6 @@ export function peopleServices(deps: Deps): AnyService[] {
       clientDb,
       clients: () => loopClients(db),
     }),
-    // Content lines: documents a find takes, and jobs that end at a station, told to the executor.
-    makeMapLineFeed({ main: db }),
     // Broadcasts (B6): each approved one started on its time and sent a batch per run.
     makeBroadcast({ main: db, clientDb, mail: (client, cdb) => mailOf(client, cdb) }),
   );

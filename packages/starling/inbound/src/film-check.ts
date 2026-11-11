@@ -2,19 +2,18 @@
  * A Studio edit beside the film standard (designs/2026-10-25-competitor-analyzer.md, Use). Code
  * only: the edit holds the exact cut list, so its length, cuts and shot lengths are counted, not
  * guessed. A short edit (3 minutes or less) is checked as a `film`, a longer one as a `video`.
- * The scope is the newest pushed SOP that governs that kind, else the kind on YouTube. None when
- * there is no standard yet, or on a client's database (the standard is Wren's own).
+ * The standard is the one pushed with the newest SOP that governs that kind (Canon, WA-1317). None
+ * when no SOP governs it or its standard is too thin, or on a client's database.
  */
 
-import type { Queryable } from "@wren/db";
 import {
   checkPiece,
-  kindStandardOf,
+  kindStandardIn,
   type PieceCheck,
-  type SopScope,
   shotStats,
   shotsOf,
-} from "@wren/learn";
+} from "@wren/content-standard";
+import type { Queryable } from "@wren/db";
 import { keepSegments } from "@wren/starling-studio/cuts";
 import type { VideoEdit } from "@wren/starling-studio/schema";
 import { desc, sql } from "drizzle-orm";
@@ -48,15 +47,12 @@ export async function filmCheck(
   if (durationS <= 0) return null;
   const kind = durationS <= FILM_MAX_S ? "film" : "video";
   const [pushed] = await db
-    .select({ sop: contentPlaybooks.sop, scope: contentPlaybooks.scope })
+    .select({ sop: contentPlaybooks.sop, standard: contentPlaybooks.standard })
     .from(contentPlaybooks)
     .where(sql`${contentPlaybooks.scope}->'kinds' ? ${kind}`)
     .orderBy(desc(contentPlaybooks.createdAt))
     .limit(1);
-  const scope: SopScope = pushed?.scope
-    ? { ...pushed.scope, kinds: [kind], sop: pushed.sop }
-    : { kinds: [kind], platforms: ["youtube"], topic: "", set: [] };
-  const standard = await kindStandardOf(db, scope);
+  const standard = kindStandardIn(pushed?.standard, kind);
   if (!standard) return null;
   const stats = shotStats(shotsOf(cuts, durationS), durationS);
   const check = checkPiece(kind, standard, [], {

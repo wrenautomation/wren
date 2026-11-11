@@ -1,14 +1,10 @@
 /**
- * Meta Ad Library ads as Learn items (designs/2026-11-11-competitor-ads.md): autobrowse's
- * `fb-public GET /ads` answer saved whole, one `ad` item and one `ads` row per ad; the page a read
- * writes (its `## Ad` facts fence feeds the breakdown's facts); the winners.
+ * Meta Ad Library ads (designs/2026-11-11-competitor-ads.md): autobrowse's `fb-public GET /ads`
+ * answer, read into one Canon source per ad. The page a read writes carries an `## Ad` facts
+ * fence that feeds the breakdown's facts; the winners get the winner tags.
  */
-import type { Db, Queryable } from "@wren/db";
-import { pgSafe } from "@wren/db/columns";
-import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { type Saved, saveLink } from "./items.js";
-import { AD_FORMATS, type AdFormat, ads, items, itemTags, type Via } from "./schema.js";
+import { AD_FORMATS, type AdFormat } from "./labels.js";
 
 export interface AdVideo {
   hd?: string | null;
@@ -72,7 +68,7 @@ export interface AdsAnswer {
 export const WINNER_DAYS = 30;
 /** Winner: this many ads share the creative. */
 export const WINNER_VERSIONS = 3;
-/** The tags a winner gets: `learn promote` writes it to Canon as a reference. */
+/** The tags a winner gets: a Canon reference. */
 export const WINNER_TAGS = ["winning-ad", "reference"] as const;
 
 export const adUrl = (libraryId: string): string =>
@@ -202,95 +198,4 @@ export function adFactsOf(md: string): AdFacts | null {
   } catch {
     return null;
   }
-}
-
-/**
- * Save one ad: its item (the copy as `text`, the video as `media_url`), its `ads` row with the
- * library record whole, and the winner tags when it is one. A pull again updates the numbers.
- */
-export async function saveAd(
-  db: Db,
-  p: {
-    client: string;
-    ad: LibraryAd;
-    pageId?: string | null;
-    by: string | null;
-    via: Via;
-    now?: Date;
-  },
-): Promise<Saved & { winner: boolean }> {
-  const { ad } = p;
-  const now = p.now ?? new Date();
-  const saved = await saveLink(db, {
-    client: p.client,
-    url: adUrl(ad.libraryId),
-    by: p.by,
-    via: p.via,
-    kind: "ad",
-    title: adTitle(ad),
-    creator: ad.advertiser?.name ?? null,
-    now,
-  });
-  const video = adVideos(ad)[0];
-  await db
-    .update(items)
-    .set({
-      text: pgSafe(adCopy(ad)),
-      mediaUrl: video?.hd ?? video?.sd ?? null,
-      thumbnailUrl: video?.poster ?? adImages(ad)[0] ?? null,
-      ...(ad.started ? { publishedAt: new Date(`${ad.started}T00:00:00Z`) } : {}),
-    })
-    .where(eq(items.id, saved.id));
-  const row = {
-    client: p.client,
-    libraryId: ad.libraryId,
-    pageId: ad.advertiser?.id ?? p.pageId ?? null,
-    advertiser: ad.advertiser?.name ?? null,
-    active: ad.active,
-    started: ad.started ?? null,
-    ended: ad.ended ?? null,
-    daysRunning: ad.daysRunning ?? null,
-    versions: ad.versions ?? 1,
-    platforms: ad.platforms ?? [],
-    format: ad.format ?? null,
-    raw: ad as Record<string, unknown>,
-    seenAt: now,
-  };
-  await db
-    .insert(ads)
-    .values({ itemId: saved.id, ...row })
-    .onConflictDoUpdate({ target: ads.itemId, set: row });
-  const winner = isWinner(ad);
-  if (winner)
-    await db
-      .insert(itemTags)
-      .values(WINNER_TAGS.map((tag) => ({ itemId: saved.id, tag })))
-      .onConflictDoNothing();
-  return { ...saved, winner };
-}
-
-/** The winners in a workspace, longest running first; one advertiser's with `pageId`. */
-export async function winningAds(
-  db: Queryable,
-  client: string,
-  o: { pageId?: string; limit?: number } = {},
-) {
-  return db
-    .select({
-      id: items.id,
-      title: items.title,
-      url: items.url,
-      advertiser: ads.advertiser,
-      format: ads.format,
-      daysRunning: ads.daysRunning,
-      versions: ads.versions,
-      active: ads.active,
-      readAt: items.readAt,
-    })
-    .from(ads)
-    .innerJoin(items, eq(items.id, ads.itemId))
-    .innerJoin(itemTags, and(eq(itemTags.itemId, ads.itemId), eq(itemTags.tag, WINNER_TAGS[0])))
-    .where(and(eq(ads.client, client), o.pageId ? eq(ads.pageId, o.pageId) : undefined))
-    .orderBy(desc(sql`coalesce(${ads.daysRunning}, 0)`), desc(ads.versions))
-    .limit(o.limit ?? 30);
 }

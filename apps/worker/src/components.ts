@@ -72,7 +72,6 @@ export const PLATFORM = {
     TouchToJourney:
       "on a new touch, net every 15 min: each workspace's untold social touches told to the executor",
     ListToJourney: "people added to a list a sourced source takes people from open journeys there",
-    MapLineFeed: "documents a content line finds open instances; a job that ends moves each on",
     NextStepDecide:
       "every 10 minutes: drafted comments and lead fits judged by Claude Code on the desk, each answer logged beside his call",
     ProfileResearch:

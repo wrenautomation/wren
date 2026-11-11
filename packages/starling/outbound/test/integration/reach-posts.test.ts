@@ -1301,10 +1301,8 @@ describe("pick (Marketing → Feed, Explore)", () => {
 });
 
 describe("find creators (Marketing → Feed)", () => {
-  it("every site's hits in one shape, each marked when Learn follows it already", async () => {
+  it("every site's hits in one shape, none marked followed off LinkedIn", async () => {
     await settings({ account: "linkedin@wren" });
-    await db().execute(sql`insert into learn.sources (client, url, name, kind)
-      values ('wren', 'https://www.youtube.com/feeds/videos.xml?channel_id=UC2', 'Two', 'youtube')`);
     routes["/youtube/v3/search"] = () => ({
       items: [
         { id: { channelId: "UC1" }, snippet: { title: "One" } },
@@ -1315,7 +1313,7 @@ describe("find creators (Marketing → Feed)", () => {
     const out = await desk().findCreators({ q: "synthetic words" });
     expect(out.hits.map((h) => [h.site, h.name, h.followed])).toEqual([
       ["youtube", "One", false],
-      ["youtube", "Two", true],
+      ["youtube", "Two", false],
     ]);
     // No X comments account: the search reads as Wren's own login.
     expect(calls.find((c) => c.path === "/2/tweets/search/recent")?.account).toBe("x@wren");

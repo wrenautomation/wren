@@ -28,14 +28,7 @@ import {
 import type { Model } from "@wrenautomation/models";
 import type { Ear } from "@wrenautomation/models/hear";
 import type { Fetched, MediaStore, VideoRead, WatchOptions } from "@wrenautomation/read/video";
-import {
-  keptRead,
-  mediaKey,
-  readAudio,
-  readVideo,
-  readYoutube,
-  seeYoutube,
-} from "@wrenautomation/read/video";
+import { keptRead, mediaKey, readVideo, readYoutube, seeYoutube } from "@wrenautomation/read/video";
 import { expandCites, numberCites } from "./cites.js";
 import { atOf, type Point, pointsOf, pointsText, pointTitle } from "./points.js";
 import { assignIds, freePrefix, mergeDoc, prefixesIn, type SetBlock, splitDoc } from "./sets.js";
@@ -135,24 +128,6 @@ export const videoSource = async (
     await keptRead(opts.store, mediaKey(url), () => readVideo(url, { ...opts, ytDlp })),
     priority,
   );
-
-/**
- * A podcast episode heard from its audio file (`readAudio`): the ear (whisper, else Cohere) in
- * 60 s clips, as a video's speech. `url` is the episode's page; `title` and `creator` are what
- * its feed said.
- */
-export const audioSource = async (
-  audioUrl: string,
-  opts: {
-    url: string;
-    title?: string | null;
-    creator?: string | null;
-    ear: Ear;
-    fetchFn?: typeof fetch;
-    ffmpeg?: string;
-    priority?: number;
-  },
-): Promise<Source> => toSource(await readAudio(audioUrl, opts), opts.priority);
 
 /** `GET /drive/v3/...` on autobrowse's `drive` site, as the CLI wires it. */
 export type DriveGet = (path: string, body: Record<string, unknown>) => Promise<unknown>;
@@ -474,19 +449,23 @@ export interface By {
 }
 
 /**
- * Add a source to an SOP: a source record (`sources/<stem>.md`, one commit) tagged with the SOP's
- * name, and the topic folder with a notes.md stub. A source already there gets the new text and the tag.
+ * Add a source: a source record (`sources/<stem>.md`, one commit), tagged with the SOP's name and
+ * with the topic folder and a notes.md stub when one is named. A source already there gets the
+ * new text and the tag. `extra` adds fields (a `provider` counts on add only).
  */
 export async function addSource(
   root: string,
-  name: string,
+  name: string | null,
   source: Source,
   who: By,
+  extra: Record<string, unknown> = {},
 ): Promise<string> {
-  const dir = topicDir(root, name);
-  await mkdir(dir, { recursive: true });
-  const notes = join(dir, "notes.md");
-  await readFile(notes).catch(() => writeFile(notes, NOTES_STUB));
+  if (name) {
+    const dir = topicDir(root, name);
+    await mkdir(dir, { recursive: true });
+    const notes = join(dir, "notes.md");
+    await readFile(notes).catch(() => writeFile(notes, NOTES_STUB));
+  }
   const id = source.name.replace(/\.md$/, "");
   const { fields, body } = sourceFields(source.md);
   const { source: origin, channel, title, url, priority, ...rest } = fields;
@@ -501,6 +480,9 @@ export async function addSource(
     body,
   };
   const prev = loadWorking(root).docs.find((l) => l.doc.fm.id === id);
+  const tags = name ? [name] : [];
+  // provider is fixed on add; an edit keeps the first one
+  const { provider, ...more } = extra;
   await write(
     root,
     [
@@ -509,9 +491,18 @@ export async function addSource(
             op: "edit",
             id,
             ...record,
-            tags: [...new Set([...prev.doc.fm.tags, name])].sort(),
+            ...more,
+            tags: [...new Set([...prev.doc.fm.tags, ...tags])].sort(),
           }
-        : { op: "add", type: "source", id, tags: [name], ...record },
+        : {
+            op: "add",
+            type: "source",
+            id,
+            tags,
+            ...record,
+            ...more,
+            ...(provider ? { provider } : {}),
+          },
     ],
     who,
   );
