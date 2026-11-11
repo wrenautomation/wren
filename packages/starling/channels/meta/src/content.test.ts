@@ -541,3 +541,49 @@ describe("a configured Page: /me/accounts is not read", () => {
     expect(accounts(calls)).toBe(0);
   });
 });
+
+describe("instagram with no media host", () => {
+  it("sends a local video as video_file, a URL as video_url", async () => {
+    const sent: Array<Record<string, unknown> | undefined> = [];
+    const { sites } = fakeSites({
+      "GET /me/accounts": pages,
+      "POST /ig9/media": (i) => {
+        sent.push(i);
+        return { id: "c1" };
+      },
+      "GET /c1": () => ({ status_code: "FINISHED" }),
+      "POST /ig9/media_publish": () => ({ id: "p1" }),
+    });
+    const ch = instagramContent(sites, { now, sleep: async () => {} });
+    await ch.publish({ text: "a", media: { kind: "video", source: "/box/r.mp4" } });
+    await ch.publish({ text: "b", media: { kind: "video", source: "https://x.test/r.mp4" } });
+    expect(sent.map((i) => [i?.video_file, i?.video_url, i?.media_type])).toEqual([
+      ["/box/r.mp4", undefined, "REELS"],
+      [undefined, "https://x.test/r.mp4", "REELS"],
+    ]);
+  });
+
+  it("posts a local image by the web channel, a URL image by Graph", async () => {
+    const { sites, calls } = fakeSites({
+      "GET /me/accounts": pages,
+      "POST /ig9/media": () => ({ id: "c1" }),
+      "POST /ig9/media_publish": () => ({ id: "p1" }),
+    });
+    const web: string[] = [];
+    const webImages = {
+      platform: "instagram",
+      async publish(p: { media?: { source: string } }) {
+        web.push(p.media?.source ?? "");
+        return { id: "w1", url: "", publishedAt: "", fetchedWith: "browser" as const };
+      },
+    } as never;
+    const ch = instagramContent(sites, { now, webImages });
+    const local = await ch.publish({ text: "a", media: { kind: "image", source: "/box/a.png" } });
+    expect(local.id).toBe("w1");
+    expect(web).toEqual(["/box/a.png"]);
+    await ch.publish({ text: "b", media: { kind: "image", source: "https://x.test/a.png" } });
+    expect(calls.find(([m, p]) => m === "POST" && p === "/ig9/media")?.[2]?.image_url).toBe(
+      "https://x.test/a.png",
+    );
+  });
+});

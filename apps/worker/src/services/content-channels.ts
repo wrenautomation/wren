@@ -106,15 +106,17 @@ export function contentFor(settings: Settings, log: Logger, db: Db): ChannelsFor
         ? { youtube: youtubeContent(as("youtube", base), host ? { host } : {}) }
         : {}),
       ...(on.includes("x") ? { x: xContent(as("x", base), host ? { host } : {}) } : {}),
-      // The Graph path needs a hosted URL and a Facebook Page (WREN_META_PAGE_ID);
-      // until both exist the browser composer posts, fetching the signed URL itself.
+      // Graph with a Facebook Page (WREN_META_PAGE_ID): a local video uploads by `video_file`;
+      // a local image with no media host goes by the browser composer (Graph wants its URL).
       ...(on.includes("instagram")
-        ? {
-            instagram:
-              host && settings.metaPageId
-                ? instagramContent(as("instagram", base), meta)
-                : instagramWebContent(as("instagram", base), host ? { host } : {}),
-          }
+        ? (() => {
+            const web = instagramWebContent(as("instagram", base), host ? { host } : {});
+            return {
+              instagram: settings.metaPageId
+                ? instagramContent(as("instagram", base), { ...meta, webImages: web })
+                : web,
+            };
+          })()
         : {}),
       // Wren's Page token holds `pages_read_user_content` (consent 10-22): its comments read too.
       ...(on.includes("facebook")

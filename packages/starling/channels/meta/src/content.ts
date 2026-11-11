@@ -22,6 +22,8 @@ import {
   type Insights,
   type InsightsQuery,
   type InsightValue,
+  isStoredMedia,
+  isUrl,
   knownGaps,
   type ListQuery,
   METRICS as M,
@@ -54,6 +56,8 @@ interface MetaContentOptions {
   igId?: string;
   /** Between the container and its publish: the Graph API needs a moment for a video. */
   sleep?: (ms: number) => Promise<void>;
+  /** Instagram: posts a local image when no host makes it a URL (Graph takes images by URL only). */
+  webImages?: ContentChannel;
   /**
    * Read a Page's comments: its token holds `pages_read_user_content` (a client's connected
    * Page). Off, a Page reads none.
@@ -398,8 +402,20 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
         return published(await carousel(ig, post, f.collaborators));
       if (!post.media) throw new Error("instagram: a post is an image or a video");
       if (f.kind === "story") return story(ig, post.media);
-      const url = await publicUrlOf(post.media.source, o.host, "instagram");
       const video = post.media.kind === "video";
+      const local = !o.host && !isUrl(post.media.source) && !isStoredMedia(post.media.source);
+      if (local && !video && o.webImages) return o.webImages.publish(post);
+      // A local video with no host: a path on the sites box, its bytes uploaded by autobrowse.
+      const media =
+        local && video
+          ? { video_file: post.media.source }
+          : {
+              [video ? "video_url" : "image_url"]: await publicUrlOf(
+                post.media.source,
+                o.host,
+                "instagram",
+              ),
+            };
       const reel = video
         ? {
             ...(f.cover ? { cover_url: await publicUrlOf(f.cover, o.host, "instagram") } : {}),
@@ -411,7 +427,8 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
           }
         : {};
       const container = await sites.call<{ id?: string }>("meta", "POST", `/${ig}/media`, {
-        ...(video ? { video_url: url, media_type: "REELS" } : { image_url: url }),
+        ...media,
+        ...(video ? { media_type: "REELS" } : {}),
         caption: post.text,
         ...(f.shareToFeed === false ? { share_to_feed: false } : {}),
         ...(f.collaborators?.length ? { collaborators: f.collaborators } : {}),
