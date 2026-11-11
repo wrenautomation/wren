@@ -136,13 +136,7 @@ import { autobrowseDrive } from "./sop.js";
 import { registerVideoAsk } from "./video-ask.js";
 import { registerVideoMarks } from "./video-marks.js";
 import { registerVideoPresence } from "./video-presence.js";
-import {
-  geminiModel,
-  needGemini,
-  type WatchFlags,
-  watchVideo,
-  withWatchOptions,
-} from "./video-watch.js";
+import { type WatchFlags, watchEyes, watchVideo, withWatchOptions } from "./video-watch.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -400,7 +394,7 @@ export function registerStudio(
                 format: short ? "short" : "long",
                 durationS: props.durationInFrames / FPS,
                 words: props.words,
-                model: needGemini(await geminiModel(settings, rootDir)),
+                model: watchEyes(settings, rootDir).eye,
                 ffmpeg: settings.ffmpeg,
               });
               advice = r.issues;
@@ -430,11 +424,11 @@ export function registerStudio(
   video
     .command("check <id>")
     .description(
-      "check each rendered video: flash, text contrast, a Short's pace, then one Gemini look at the bar as advice; a run per output",
+      "check each rendered video: flash, text contrast, a Short's pace, then one model look (Claude) at the bar as advice; a run per output",
     )
     .option("--only <output>", "one output: long, vertical, square, portrait, short-N")
     .option("--by <who>", "who asked", "cli")
-    .option("--no-model", "skip the Gemini look")
+    .option("--no-model", "skip the model look")
     .action((v: string, o: { only?: string; by: string; model: boolean }) =>
       withDb(async (db) => {
         const e = await getEdit(db, id(v));
@@ -977,7 +971,7 @@ export function registerStudio(
     .option("--upload", "no render: upload what out/ already holds and mark it rendered")
     .option(
       "--no-model",
-      "skip the Gemini look in each new render's check (the file checks always run)",
+      "skip the model look in each new render's check (the file checks always run)",
     )
     .option(
       "--still <s>",

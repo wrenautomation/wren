@@ -28,7 +28,14 @@ import {
 import type { Model } from "@wrenautomation/models";
 import type { Ear } from "@wrenautomation/models/hear";
 import type { Fetched, MediaStore, VideoRead, WatchOptions } from "@wrenautomation/read/video";
-import { keptRead, mediaKey, readAudio, readVideo, readYoutube } from "@wrenautomation/read/video";
+import {
+  keptRead,
+  mediaKey,
+  readAudio,
+  readVideo,
+  readYoutube,
+  seeYoutube,
+} from "@wrenautomation/read/video";
 import { expandCites, numberCites } from "./cites.js";
 import { atOf, type Point, pointsOf, pointsText, pointTitle } from "./points.js";
 import { assignIds, freePrefix, mergeDoc, prefixesIn, type SetBlock, splitDoc } from "./sets.js";
@@ -78,31 +85,37 @@ export function toSource(read: VideoRead, priority = DEFAULT_PRIORITY): Source {
 }
 
 /**
- * A YouTube video's captions and chapters through `yt-dlp` (`ytDlp` is the command, split on
- * spaces: `uvx yt-dlp`), plus what it showed on screen when a video model is given (`geminiVideo`):
- * `readYoutube`, filed with the SOP's priority. `ear` hears the audio when captions 429 or are missing.
- * `store` keeps the read: a URL is read once (WA-1184).
+ * A YouTube video: its captions and chapters (yt-dlp), and with an `eye` its frames too, picked
+ * where the picture changes and read by the eye (`seeYoutube`), the path weaver's `youtube-see`
+ * takes. The ear hears the audio when captions fail. A kept read skips all of it.
  */
 export const youtubeSource = async (
   url: string,
   ytDlp: string,
   priority = DEFAULT_PRIORITY,
   opts: {
-    video?: Model | null;
+    eye?: Model | undefined;
     fetchFn?: typeof fetch;
     ear?: Ear | undefined;
     ffmpeg?: string | undefined;
     store?: MediaStore | undefined;
   } = {},
 ): Promise<Source> => {
-  const { ffmpeg, store, ...rest } = opts;
+  const { eye, ear, ffmpeg, store, fetchFn } = opts;
   const key = mediaKey(url);
-  // with the screen: its own read, apart from a captions-only one (weaver's key)
-  const kept = key && opts.video ? `${key}.screen` : key;
+  const common = {
+    ytDlp,
+    ...(ear ? { ear } : {}),
+    ...(ffmpeg ? { ffmpeg } : {}),
+    ...(fetchFn ? { fetchFn } : {}),
+  };
+  // with frames: its own read, apart from a captions-only one
   return toSource(
-    await keptRead(store, kept, () =>
-      readYoutube(url, { ytDlp, ...rest, ...(ffmpeg ? { ffmpeg } : {}) }),
-    ),
+    eye
+      ? await keptRead(store, key && `${key}.see`, () =>
+          seeYoutube(url, { ...common, eye, words: true, ...(store ? { store } : {}) }),
+        )
+      : await keptRead(store, key, () => readYoutube(url, common)),
     priority,
   );
 };
@@ -124,9 +137,9 @@ export const videoSource = async (
   );
 
 /**
- * A podcast episode heard from its audio file (`readAudio`): cut by ffmpeg, each clip
- * transcribed by a model that takes audio (`geminiVideo`). `url` is the episode's page; `title`
- * and `creator` are what its feed said.
+ * A podcast episode heard from its audio file (`readAudio`): the ear (whisper, else Cohere) in
+ * 60 s clips, as a video's speech. `url` is the episode's page; `title` and `creator` are what
+ * its feed said.
  */
 export const audioSource = async (
   audioUrl: string,
@@ -134,7 +147,7 @@ export const audioSource = async (
     url: string;
     title?: string | null;
     creator?: string | null;
-    model: Model;
+    ear: Ear;
     fetchFn?: typeof fetch;
     ffmpeg?: string;
     priority?: number;

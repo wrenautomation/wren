@@ -2,7 +2,7 @@
  * `wren learn …` (designs/2026-10-07-learn.md): save a link, list, show, call and break down what
  * Learn kept, and the Mac's reader. Every command works in one workspace: Wren's own, or the client
  * `--client` names; another's items are "no such item". `read` reads videos and reels waiting for
- * the Mac with the `sop add` readers (yt-dlp, the Gemini key fleet), a client's on its models
+ * the Mac with the `sop add` readers (yt-dlp, Claude on the frames, the ear), a client's on its models
  * allowance, breaks each down, then writes Wren's items asked into SOP folders.
  */
 
@@ -461,7 +461,7 @@ export function registerLearn(
   learn
     .command("read")
     .description(
-      "the Mac's reader: videos and reels waiting in every workspace (or --client's), read with yt-dlp and Gemini and broken down, then Wren's SOP asks written",
+      "the Mac's reader: videos and reels waiting in every workspace (or --client's), read with yt-dlp, Claude on the frames and the ear on speech, broken down, then Wren's SOP asks written",
     )
     .option("--limit <n>", "items a pass", (v) => Number.parseInt(v, 10), 20)
     .option("--retry", "take failed reads too")

@@ -1,17 +1,16 @@
 /**
  * The Mac's readers for Learn, shared by `wren learn` and `wren sop`: the video reader (a film is
- * watched for its cuts, YouTube read from captions plus the screen, other video by Cohere, audio
- * cut by ffmpeg) and the breakdown judge per workspace.
+ * watched for its cuts, YouTube read from captions plus frames, other video by its frames and
+ * speech, audio heard by the ear) and the breakdown judge per workspace.
  */
 import type { Settings } from "@wren/config";
 import type { Db } from "@wren/db";
 import { judges, type VideoReader } from "@wren/learn";
 import { type LlmClient, loadLlmEnv, makeLlm } from "@wren/llm";
 import { audioSource, videoSource, youtubeSource } from "@wren/research/sops";
-import type { Model } from "@wrenautomation/models";
 import { s3MediaStore } from "@wrenautomation/read/s3";
 import type { VideoMeta } from "@wrenautomation/read/video";
-import { geminiModel, needGemini, watchEyes } from "./video-watch.js";
+import { watchEyes } from "./video-watch.js";
 
 /** What the feed said, as yt-dlp's fields: `upload_date` is YYYYMMDD. */
 export function metaOf(i: {
@@ -28,16 +27,21 @@ export function metaOf(i: {
   };
 }
 
+/** An episode has no other reader. */
+function needEar<T>(ear: T | undefined): T {
+  if (!ear) throw new Error("no ear: no whisper model here and no COHERE key in llm.env");
+  return ear;
+}
+
 export function learnReaders(settings: Settings, rootDir: string) {
-  /** The video reader: YouTube by captions plus the screen, other video by Cohere, audio cut by ffmpeg. */
+  /** The video reader: frames read by Claude, speech by the ear, one path for every kind (WA-904). */
   const reader = (): VideoReader => {
-    // One key check per batch, not per video.
-    let probe: Promise<Model | null> | undefined;
-    const gemini = () => {
-      probe ??= geminiModel(settings, rootDir);
-      return probe;
+    // one eye and ear per batch: Claude on the frames, the ear on speech (WA-904)
+    let eyes: ReturnType<typeof watchEyes> | undefined;
+    const watching = () => {
+      eyes ??= watchEyes(settings, rootDir);
+      return eyes;
     };
-    const watching = async () => ({ ...watchEyes(settings, rootDir), video: await gemini() });
     // A video downloads and reads once (WA-1029, WA-1184): the media bucket's cache/, on the Mac's AWS chain.
     const store = settings.mediaBucket ? s3MediaStore(settings.mediaBucket) : undefined;
     return async ({ url, kind, title, creator, mediaUrl, text, publishedAt }) => {
@@ -49,23 +53,22 @@ export function learnReaders(settings: Settings, rootDir: string) {
               url,
               title,
               creator,
-              // An episode has no other reader: no working key fails it.
-              model: needGemini(await gemini()),
+              ear: needEar(watching().ear),
               ffmpeg: settings.ffmpeg,
             })
           : kind === "film"
             ? await videoSource(url, settings.ytDlp, undefined, {
-                ...(await watching()),
+                ...watching(),
                 sceneDetect: settings.sceneDetect,
                 ...(store ? { store } : {}),
               })
             : youtube
               ? await youtubeSource(url, settings.ytDlp, undefined, {
-                  ...(await watching()),
+                  ...watching(),
                   ...(store ? { store } : {}),
                 })
               : await videoSource(url, settings.ytDlp, undefined, {
-                  ...(await watching()),
+                  ...watching(),
                   ...(store ? { store } : {}),
                   // Graph's mp4 before yt-dlp, and its caption, author and date over yt-dlp's.
                   ...(mediaUrl ? { mediaUrl } : {}),

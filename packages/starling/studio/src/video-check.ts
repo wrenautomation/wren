@@ -2,8 +2,8 @@
  * The self-check (designs/2026-10-24-video-film-file.md, Decision 2): a rendered file against the
  * bar (`bar.ts`), before he Approves. ffmpeg makes a contact sheet (one frame every 2 s or more,
  * in time order) and 3 full frames, and finds the scene cuts; one ask of a model that takes images
- * reads them with the captions' words. Gemini, not Cohere: Cohere's vision refuses frames with a
- * person.
+ * reads them with the captions' words. Claude first (the video reader's eye, `watchEyes`): Cohere's
+ * vision refuses frames with a person.
  */
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -116,7 +116,7 @@ async function sheet(file: string, dir: string, durationS: number, ffmpeg: strin
 
 /**
  * Check one rendered file. `words`: what is said in it, on its own clock (the captions' words).
- * `model` takes images (`geminiVideo`). Throws when it cannot answer, so the run shows failed,
+ * `model` takes images (Claude). Throws when it cannot answer, so the run shows failed,
  * never a pass.
  */
 export async function checkRender(

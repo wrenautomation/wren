@@ -1,9 +1,8 @@
 /**
  * Reading: an item's words, kept as its transcript. An article is read on the worker, from its
- * feed text when that's the whole post, else from its page. A YouTube video is read on the
- * worker too when it has a video reader (Gemini through the gateway, by URL). Any other video or
- * reel, and a YouTube read that failed, needs yt-dlp and a home IP, so it waits for the Mac's
- * reader (`wren learn read`), which reads it with the `sop add` readers and scores it there. A
+ * feed text when that's the whole post, else from its page. A video or reel needs yt-dlp and a
+ * home IP, so it waits for the Mac's reader (`wren learn read`), which reads it with the `sop add`
+ * readers (frames read by Claude, speech by the ear) and scores it there. A
  * client's video is read on that client's own `models` allowance: gated before, metered after.
  */
 import { WREN } from "@wren/core/access";

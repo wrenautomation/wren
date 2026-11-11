@@ -69,8 +69,8 @@ export function kindOf(clean: string, audio?: string | null): ItemKind {
 }
 
 /**
- * Whether the Mac's reader reads it: video needs yt-dlp, a home IP and the Gemini keys (the worker
- * tries YouTube first), and an episode's audio needs ffmpeg. An episode with no audio file is read
+ * Whether the Mac's reader reads it: video needs yt-dlp and a home IP, and an episode's audio
+ * needs ffmpeg and the ear. An episode with no audio file is read
  * from its show notes.
  */
 export const needsMac = (kind: ItemKind, media?: string | null): boolean =>

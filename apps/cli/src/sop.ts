@@ -38,7 +38,7 @@ import { learnBack, pushPlaybook } from "@wren/starling-inbound";
 import { claudeCode } from "@wrenautomation/models/command";
 import type { Command } from "commander";
 import { learnReaders } from "./learn-readers.js";
-import { geminiModel, watchEyes, watchModels } from "./video-watch.js";
+import { watchEyes } from "./video-watch.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -82,7 +82,7 @@ export function registerSop(
     .option("--priority <n>", "higher wins when sources disagree (notes.md always wins)", (v) =>
       Number.parseInt(v, 10),
     )
-    .option("--no-screen", "YouTube: captions only, skip the Gemini read of what is on screen")
+    .option("--no-screen", "YouTube: captions only, skip the frames read of what is on screen")
     .action(
       async (
         name: string,
@@ -93,18 +93,19 @@ export function registerSop(
         const priority = opts.priority ?? DEFAULT_PRIORITY;
         let sources: Source[];
         if (YOUTUBE.test(what)) {
-          // Gemini (the llm.env fleet) reads what the video shows on screen.
-          const video = opts.screen === false ? null : await geminiModel(settings, rootDir);
-          if (opts.screen !== false && !video)
-            console.warn(
-              "no working GEMINI key in llm.env: captions only, on-screen content skipped",
-            );
-          const { ear, ffmpeg } = watchEyes(settings, rootDir);
-          sources = [await youtubeSource(what, settings.ytDlp, priority, { video, ear, ffmpeg })];
+          // the frames, read by the eye, carry what the captions don't: what is on screen
+          const { eye, ear, ffmpeg } = watchEyes(settings, rootDir);
+          sources = [
+            await youtubeSource(what, settings.ytDlp, priority, {
+              ...(opts.screen === false ? {} : { eye }),
+              ear,
+              ffmpeg,
+            }),
+          ];
         } else if (/^https?:\/\//.test(what)) {
           // Reels, TikTok, X: no captions, so the watch core hears and reads the download.
           sources = [
-            await videoSource(what, settings.ytDlp, priority, await watchModels(settings, rootDir)),
+            await videoSource(what, settings.ytDlp, priority, watchEyes(settings, rootDir)),
           ];
         } else if (what.startsWith("drive:")) {
           if (!opts.account) throw new Error("drive: needs --account <address>");

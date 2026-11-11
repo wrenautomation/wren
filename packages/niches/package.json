@@ -17,7 +17,7 @@
     "@wren/research": "workspace:*",
     "@wren/starling-email": "workspace:*",
     "@wren/starling-sms": "workspace:*",
-    "@wrenautomation/read": "0.68.9",
+    "@wrenautomation/read": "0.68.10",
     "fflate": "0.8.3",
     "saxes": "6.0.0"
   },
