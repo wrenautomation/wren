@@ -121,6 +121,8 @@ export const contactCandidates = pgTable(
     primaryKey({ columns: [t.id], name: "pk_contact_candidates" }),
     index("ix_contact_candidates_lead_id").on(t.leadId),
     index("ix_contact_candidates_domain").on(t.domain),
+    // role-inbox compose: "no candidate holds this address" per lead (WA-icr)
+    index("ix_contact_candidates_email_lower").on(sql`lower((email)::text)`),
     foreignKey({
       columns: [t.leadId],
       foreignColumns: [leads.id],

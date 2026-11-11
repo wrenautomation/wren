@@ -173,9 +173,9 @@ const eligibleSql = (
 ) => sql`
   SELECT pf.person_id, pf.company_id, pf.full_name, pf.title, pf.role_rank,
          pf.company_name, pf.company_domain
-  FROM person_facts pf
-  WHERE pf.company_niche = ${niche}
-    AND NOT EXISTS (SELECT 1 FROM companies dc WHERE dc.id = pf.company_id AND dc.decline_reason IS NOT NULL)
+  -- OFFSET 0 fence: the view's title regexes run on this niche's people only (WA-icr)
+  FROM (SELECT * FROM person_facts WHERE company_niche = ${niche} OFFSET 0) pf
+  WHERE NOT EXISTS (SELECT 1 FROM companies dc WHERE dc.id = pf.company_id AND dc.decline_reason IS NOT NULL)
     AND NOT pf.avoid_emailing_first
     AND pf.role_rank IS NOT NULL
     AND NOT EXISTS (

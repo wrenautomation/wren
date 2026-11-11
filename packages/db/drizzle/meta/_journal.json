@@ -2696,6 +2696,13 @@
       "when": 1794365000000,
       "tag": "0385_live_on_row",
       "breakpoints": true
+    },
+    {
+      "idx": 386,
+      "version": "7",
+      "when": 1794378026213,
+      "tag": "0386_contact_candidates_email_lower",
+      "breakpoints": true
     }
   ]
 }

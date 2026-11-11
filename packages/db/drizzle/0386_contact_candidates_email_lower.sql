@@ -1,0 +1,1 @@
+CREATE INDEX "ix_contact_candidates_email_lower" ON "contact_candidates" USING btree (lower((email)::text));

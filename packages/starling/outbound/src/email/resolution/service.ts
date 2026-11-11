@@ -831,9 +831,12 @@ export async function selectNewResolutionTargets(
             AND v.result <> 'risky' AND v.raw->>'authoritative' = 'true') AS spent
       FROM domains d
       -- Its own risky verdicts, and any lead's that says the server turned us away.
+      -- OFFSET 0 fence: the backoff runs on this domain's risky verdicts, not every one (WA-icr)
       WHERE NOT EXISTS (
-          SELECT 1 FROM contact_candidates x JOIN verifications v ON v.contact_candidate_id = x.id
-          WHERE x.domain = d.domain AND ${holds})
+          SELECT 1 FROM (SELECT v.* FROM contact_candidates x
+            JOIN verifications v ON v.contact_candidate_id = x.id
+            WHERE x.domain = d.domain AND v.result = 'risky' OFFSET 0) v
+          WHERE ${holds})
         AND d.domain NOT IN ${waitingDomains()}
         -- Known catch-all from any verdict at the domain (a lead's too): the walk has nothing to ask.
         -- NOT IN, not a correlated NOT EXISTS: Postgres hashes it once (NOT EXISTS ran minutes).
