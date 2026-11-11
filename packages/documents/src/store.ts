@@ -8,7 +8,7 @@ import { clients } from "@wren/core/clients";
 import { UUID } from "@wren/core/ids";
 import { PortalRefusal, staleRefusal } from "@wren/core/refusal";
 import { atomic, type Db, type Queryable, type Tx } from "@wren/db";
-import { type AnyColumn, and, asc, eq, inArray, sql } from "drizzle-orm";
+import { type AnyColumn, and, asc, eq, inArray, lt, sql } from "drizzle-orm";
 import {
   depositOf as depositShare,
   fillSlots,
@@ -853,6 +853,25 @@ export async function markFailed(main: Db, id: string, why: string, now: Date): 
     .update(docs)
     .set({ status: "failed", why: why.slice(0, 5000), updatedAt: now })
     .where(and(eq(docs.id, id), inArray(docs.status, ["sending", "waiting"])));
+}
+
+/**
+ * Claim one reminder: a write on the doc's own `updatedAt`, so two clicks (or tabs) send one
+ * email and no second token kills the first. Refused within a minute of any change to the doc.
+ */
+export async function claimReminder(main: Db, id: string, now: Date): Promise<boolean> {
+  const won = await main
+    .update(docs)
+    .set({ updatedAt: now })
+    .where(
+      and(
+        eq(docs.id, id),
+        inArray(docs.status, [...OPEN]),
+        lt(docs.updatedAt, new Date(now.getTime() - 60_000)),
+      ),
+    )
+    .returning({ id: docs.id });
+  return won.length > 0;
 }
 
 /** A reminder may go: it's out, unsigned and not expired. */

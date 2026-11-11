@@ -486,11 +486,14 @@ export function peopleConsoleApi({
       const runs: BroadcastRun[] = [];
       const ids = broadcastIds(req);
       const expect = ids.length === 1 ? (req.expect ?? null) : null;
-      for (const id of ids) {
-        const got = await decideBroadcast(w.db, id, true, by(req), now(), null, expect);
-        if (got.startAt)
-          runs.push({ key: broadcastKey(w.client, id), at: got.startAt.toISOString() });
-      }
+      // all or none: a refusal partway would leave the earlier ones scheduled with no run
+      await atomic(w.db, async (tx) => {
+        for (const id of ids) {
+          const got = await decideBroadcast(tx, id, true, by(req), now(), null, expect);
+          if (got.startAt)
+            runs.push({ key: broadcastKey(w.client, id), at: got.startAt.toISOString() });
+        }
+      });
       return { done: broadcastIds(req), runs };
     },
     broadcastDecline: async (req: BroadcastIdsRequest) => {
@@ -510,11 +513,13 @@ export function peopleConsoleApi({
     broadcastRestore: async (req: BroadcastIdsRequest) => {
       const w = await workspace(req, "act");
       const runs: BroadcastRun[] = [];
-      for (const id of broadcastIds(req)) {
-        const got = await restoreBroadcast(w.db, id, now());
-        if (got.startAt)
-          runs.push({ key: broadcastKey(w.client, id), at: got.startAt.toISOString() });
-      }
+      await atomic(w.db, async (tx) => {
+        for (const id of broadcastIds(req)) {
+          const got = await restoreBroadcast(tx, id, now());
+          if (got.startAt)
+            runs.push({ key: broadcastKey(w.client, id), at: got.startAt.toISOString() });
+        }
+      });
       return { done: broadcastIds(req), runs };
     },
     /**

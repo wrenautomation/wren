@@ -283,6 +283,10 @@ export function errorWords(err: unknown): string {
   return text.slice(0, 3000) || "The run failed.";
 }
 
+/** The lookup still in flight: the state every run write moves from. */
+const LIVE = (lookupId: number) =>
+  and(eq(profileLookups.id, lookupId), inArray(profileLookups.state, ["queued", "running"]));
+
 /**
  * A queued run starts: marked running with what it searches by. Null when the row is gone or
  * already finished (a stale send), so nothing runs twice.
@@ -297,7 +301,8 @@ export async function beginProfileResearch(
     .where(eq(profileLookups.id, lookupId));
   if (!row || (row.state !== "queued" && row.state !== "running")) return null;
   const subject = subjectOf(await readProfileFacts(db, row.profileId));
-  await db
+  // running is re-admitted on purpose: a crashed send's retry picks its own run up again
+  const [won] = await db
     .update(profileLookups)
     .set({
       state: "running",
@@ -306,7 +311,10 @@ export async function beginProfileResearch(
       tried: [],
       error: null,
     })
-    .where(eq(profileLookups.id, lookupId));
+    // compare-and-set: a failed or done row in between stays as it is
+    .where(LIVE(lookupId))
+    .returning({ id: profileLookups.id });
+  if (!won) return null;
   return { profileId: row.profileId, subject };
 }
 
@@ -350,7 +358,8 @@ async function recordProfileResearch(
         retryAt: r.retryAt,
         finishedAt: sql`now()`,
       })
-      .where(eq(profileLookups.id, lookupId));
+      // a slow run the stale sweep failed keeps its findings, not a done over the failed
+      .where(LIVE(lookupId));
   });
   return { findings: rows.length };
 }
@@ -364,9 +373,7 @@ export async function failProfileResearch(
   await db
     .update(profileLookups)
     .set({ state: "failed", error: error.slice(0, 10_000), finishedAt: sql`now()` })
-    .where(
-      and(eq(profileLookups.id, lookupId), inArray(profileLookups.state, ["queued", "running"])),
-    );
+    .where(LIVE(lookupId));
 }
 
 // ---- the run ---------------------------------------------------------------------------

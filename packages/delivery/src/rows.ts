@@ -25,6 +25,8 @@ export const bad = (message: string) => new DeliveryRefusal(message, 400);
 
 export const missing = (what: string) => new DeliveryRefusal(`no such ${what}`, 404);
 
+export const clash = (message: string) => new DeliveryRefusal(message, 409);
+
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** A calendar day, `YYYY-MM-DD`. */

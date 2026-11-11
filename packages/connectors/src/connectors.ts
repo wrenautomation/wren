@@ -150,13 +150,16 @@ export function connectorAccess(deps: ConnectorDeps) {
     return l ?? null;
   };
 
-  /** Broken: the page says why, the sync stops until it's connected again. */
-  const broke = async (id: number, why: string) => {
-    cache.delete(id);
+  /**
+   * Broken: the page says why, the sync stops until it's connected again. Only the sign-in it
+   * read: a reconnect in between (a new token ref) stays connected.
+   */
+  const broke = async (l: Pick<ConnectorLink, "id" | "tokenRef">, why: string) => {
+    cache.delete(l.id);
     await main
       .update(connectorLinks)
       .set({ state: "broken", why: why.slice(0, 3000) })
-      .where(eq(connectorLinks.id, id));
+      .where(and(eq(connectorLinks.id, l.id), eq(connectorLinks.tokenRef, l.tokenRef)));
   };
 
   /**
@@ -176,7 +179,7 @@ export function connectorAccess(deps: ConnectorDeps) {
       why: `${l.app} link ${l.id}`,
     });
     if (!v) {
-      await broke(l.id, "Its token is gone. Connect it again.");
+      await broke(l, "Its token is gone. Connect it again.");
       throw new ConnectorRefusal("Its token is gone. Connect it again.");
     }
     const kept = JSON.parse(v) as StoredToken;
@@ -194,7 +197,7 @@ export function connectorAccess(deps: ConnectorDeps) {
       );
     } catch (err) {
       if (err instanceof OAuthError && err.revoked) {
-        await broke(l.id, "Access was taken back or ran out. Connect it again.");
+        await broke(l, "Access was taken back or ran out. Connect it again.");
         throw new ConnectorRefusal("Access was taken back or ran out. Connect it again.");
       }
       throw err;

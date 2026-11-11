@@ -357,6 +357,19 @@ export async function setupInvoice(
   });
 }
 
+/** By hand: open to paid or void, and back to open. Void and paid never cross; money back on a paid one stays paid. */
+const markRefusal = (
+  i: Pick<Invoice, "status" | "refundedCents" | "dispute">,
+  to: InvoiceStatus,
+): string | null => {
+  if (i.status === to || i.status === "open" || to === "open") {
+    if (i.status === "paid" && to === "open" && (i.refundedCents > 0 || i.dispute))
+      return "it has a refund or dispute: it stays paid";
+    return null;
+  }
+  return `a ${i.status} invoice can't be marked ${to}: open it again first`;
+};
+
 /** Paid on a day (today by default), void, or open again. A paid setup fee may start the plan. */
 export async function markInvoice(
   db: Queryable,
@@ -367,15 +380,25 @@ export async function markInvoice(
 ): Promise<Invoice> {
   if (!INVOICE_STATUSES.includes(status as InvoiceStatus))
     throw bad(`an invoice is ${INVOICE_STATUSES.join(", ")}`);
+  const to = status as InvoiceStatus;
+  const mine = and(
+    eq(invoices.number, number.trim()),
+    ofClient(db, invoices.engagementId, clientId),
+  );
+  const [was] = await db.select().from(invoices).where(mine);
+  if (!was) throw missing(`invoice '${number}'`);
+  const why = markRefusal(was, to);
+  if (why) throw bad(why);
   const [row] = await db
     .update(invoices)
     .set({
-      status: status as InvoiceStatus,
-      paidOn: status === "paid" ? dayOf(on ?? todayUtc(), "the paid date") : null,
+      status: to,
+      paidOn: to === "paid" ? dayOf(on ?? todayUtc(), "the paid date") : null,
     })
-    .where(and(eq(invoices.number, number.trim()), ofClient(db, invoices.engagementId, clientId)))
+    // compare-and-set: a change since the read refuses
+    .where(and(mine, eq(invoices.status, was.status)))
     .returning();
-  if (!row) throw missing(`invoice '${number}'`);
+  if (!row) throw bad(`invoice '${number}' changed meanwhile: try again`);
   // Void, its usage is unbilled again and rides the next bill.
   await markUsage(db, clientId, row.lines, row.status !== "void");
   if (row.status === "paid" && row.setup)

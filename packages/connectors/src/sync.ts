@@ -7,7 +7,7 @@ import type { FetchLike } from "@wren/core";
 import type { Fired } from "@wren/core/executor";
 import { PortalRefusal } from "@wren/core/refusal";
 import type { Db, Queryable } from "@wren/db";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { ConnectorApp } from "./apps.js";
 import type { ConnectorAccess } from "./connectors.js";
 import { pullHubspot } from "./pull/hubspot.js";
@@ -173,7 +173,7 @@ export async function syncLink(deps: SyncDeps, id: number): Promise<SyncResult> 
     });
   } catch (err) {
     if (err instanceof PullError && err.auth) {
-      await deps.access.broke(l.id, `${err.message}. Connect it again.`);
+      await deps.access.broke(l, `${err.message}. Connect it again.`);
       return none("broken", err.message);
     }
     // The app's own trouble: said on the page, tried again next hour. Retrying now won't help.
@@ -235,6 +235,7 @@ export async function syncLink(deps: SyncDeps, id: number): Promise<SyncResult> 
       people: sql`${connectorLinks.people} + ${people.length}`,
       fired: sql`${connectorLinks.fired} + ${fired.length}`,
     })
-    .where(eq(connectorLinks.id, l.id));
+    // a break meanwhile keeps its why
+    .where(and(eq(connectorLinks.id, l.id), eq(connectorLinks.state, "connected")));
   return { state: "connected", people: people.length, fired, more: got.more, why: null };
 }

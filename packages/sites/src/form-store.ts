@@ -12,7 +12,7 @@ import { type FormSplitDetail, formSplitDetail, formSplitsOf } from "./form-spli
 import { defaultSpec, FormProblem, type FormSpec, parseSpec } from "./forms.js";
 import { embedSnippets } from "./kit.js";
 import { formUrl, type PageStatus, SLUG, SLUG_MAX, slugOf, WREN_SITE } from "./model.js";
-import { type SiteFormDef, siteFormDefs, siteForms } from "./schema.js";
+import { type SiteFormDef, siteFormDefs, siteFormSplits, siteForms } from "./schema.js";
 import { SitesRefusal, stillAt } from "./store.js";
 
 /** The words' version: the first 12 hex of their SHA-256. Same words, same version. */
@@ -152,7 +152,17 @@ export async function setFormStatus(
   const rows = await db
     .update(siteFormDefs)
     .set({ status, updatedAt: new Date(), updatedBy: by })
-    .where(inArray(siteFormDefs.id, ok))
+    .where(
+      and(
+        inArray(siteFormDefs.id, ok),
+        // as pages: a retired form stays retired (copy it instead)
+        sql`${siteFormDefs.status} <> 'retired'`,
+        // a form in a running split is retired after its split ends
+        status === "retired"
+          ? sql`not exists (select 1 from ${siteFormSplits} where ${siteFormSplits.form} = ${siteFormDefs.id} and ${siteFormSplits.state} = 'running')`
+          : undefined,
+      ),
+    )
     .returning({ id: siteFormDefs.id });
   return rows.map((r) => r.id);
 }

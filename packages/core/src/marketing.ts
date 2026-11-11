@@ -351,7 +351,7 @@ export async function confirmConsent(
     if (now.getTime() - had.pendingAt.getTime() > PENDING_DAYS * DAY) return null;
     const [row] = await tx
       .update(consents)
-      .set({ state: "confirmed", confirmedAt: now })
+      .set({ state: "confirmed", confirmedAt: now, withdrawnAt: null })
       .where(eq(consents.id, had.id))
       .returning();
     if (!row) return null;
@@ -405,6 +405,7 @@ export async function giveConsent(db: Queryable, input: SignUp): Promise<Consent
       source: input.source,
       textVersion: input.textVersion,
       confirmedAt: now,
+      withdrawnAt: null,
     };
     const [row] = had
       ? await tx.update(consents).set(fields).where(eq(consents.id, had.id)).returning()

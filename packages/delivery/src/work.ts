@@ -12,6 +12,7 @@ import { DELIVERY_COMPONENTS } from "./components.js";
 import {
   addDays,
   bad,
+  clash,
   DeliveryRefusal,
   dayOf,
   engagementOf,
@@ -136,7 +137,12 @@ export async function setEngagementStatus(
   id: number,
   status: EngagementStatus,
 ): Promise<void> {
-  await engagementOf(db, clientId, id);
+  const e = await engagementOf(db, clientId, id);
+  // onboarding ends only through startIfReady (signed, setup paid); never re-entered
+  if (status === "onboarding" && e.status !== "onboarding")
+    throw clash(`engagement #${id} has left onboarding`);
+  if (e.status === "onboarding" && (status === "active" || status === "paused"))
+    throw clash(`engagement #${id} starts when its contract is signed and its setup fee paid`);
   // `done` keeps the first day it ended; any other status clears it.
   const endedOn =
     status === "done"

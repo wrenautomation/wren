@@ -39,14 +39,14 @@ export const PAY_ACTIONS: Action[] = [
   },
 ];
 
-/** A bank payment that didn't go through: a new link with the same ask. */
+/** A bank payment that didn't go through, or a send that failed before Stripe made a link: a new link with the same ask. */
 const AGAIN: Action = {
   id: "payments.again",
   label: "Send a new link",
   icon: "send",
   handler: "payments/again",
   confirm: "Send a new pay link for the same amount? The old one can't be paid again.",
-  when: { status: ["unpaid"] },
+  when: { status: ["unpaid", "failed"] },
   bulk: true,
   done: (a) => sentLine(a),
 };

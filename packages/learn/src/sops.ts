@@ -75,14 +75,17 @@ export async function writeAsked(
   for (const { ask, item } of asked) {
     const name = item ? (item.file ?? fileOf(item.url)) : noteFile(ask);
     const md = item ? (item.transcript ?? "") : noteWords(ask);
+    // claim first: a second run at once skips it, so the source is added once
+    const [won] = await db
+      .update(sopSources)
+      .set({ state: "added", file: name, error: null, doneAt: new Date() })
+      .where(and(eq(sopSources.id, ask.id), eq(sopSources.state, "asked")))
+      .returning({ id: sopSources.id });
+    if (!won) continue;
     let written = false;
     try {
       await writer.add(ask.sop, { name, md });
       written = true;
-      await db
-        .update(sopSources)
-        .set({ state: "added", file: name, error: null, doneAt: new Date() })
-        .where(eq(sopSources.id, ask.id));
       await writer.extract(ask.sop, name.replace(/\.md$/, ""));
       await db.update(sopSources).set({ points: new Date() }).where(eq(sopSources.id, ask.id));
       out.push({ sop: ask.sop, file: name, error: null });
@@ -91,7 +94,7 @@ export async function writeAsked(
       // Written but not extracted stays added: `wren sop extract` finishes it.
       await db
         .update(sopSources)
-        .set({ error, ...(written ? {} : { state: "failed" as const }) })
+        .set({ error, ...(written ? {} : { state: "failed" as const, file: null, doneAt: null }) })
         .where(eq(sopSources.id, ask.id));
       out.push({ sop: ask.sop, file: null, error });
     }

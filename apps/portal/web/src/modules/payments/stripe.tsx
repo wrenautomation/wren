@@ -40,14 +40,19 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
   const blank = !form.watch("key").trim() && !form.watch("secret").trim();
   const flying = useRef(false);
   const [said, setSaid] = useState<{ ok: boolean; line: string; url?: string } | null>(null);
-  const load = useCallback(
-    () =>
-      call<Status>("payments/status", { client })
-        .then(setS)
-        .catch(() => setS(null)),
-    [client],
-  );
+  // the latest ask wins: a slow answer for the last client never paints over this one's
+  const asked = useRef(0);
+  const load = useCallback(() => {
+    const n = ++asked.current;
+    return call<Status>("payments/status", { client })
+      .then((got) => {
+        if (n === asked.current) setS(got);
+      })
+      .catch(() => {}); // a blip keeps the last status (and the form, and what it said)
+  }, [client]);
   useEffect(() => {
+    setS(null);
+    setSaid(null);
     void load();
   }, [load]);
 

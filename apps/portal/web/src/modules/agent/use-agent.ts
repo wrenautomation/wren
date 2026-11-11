@@ -189,9 +189,12 @@ export function useAgent(o: {
 
   // bumped on each close: a socket that finishes opening after its chat was left shuts at once
   const gen = useRef(0);
+  // the socket on its way: a send in that window waits for it, never opens a second one
+  const opening = useRef<Promise<Live> | null>(null);
 
   const close = useCallback(() => {
     gen.current++;
+    opening.current = null;
     const l = live.current;
     live.current = null;
     if (!l) return;
@@ -382,24 +385,34 @@ export function useAgent(o: {
       const content = files.length || page || chat ? turnContent(text, files, page, chat) : text;
       const l = live.current;
       if (l) return l.say(content);
+      const on = opening.current;
+      if (on) {
+        void on.then((n) => live.current === n && n.say(content)).catch(() => {});
+        return;
+      }
       setStarting(true);
       const at = gen.current;
-      open(shown.current ?? undefined)
-        .then((n) => {
-          if (at !== gen.current) {
-            n.closing = true;
-            n.end();
-            n.q.close();
-            return;
-          }
-          live.current = n;
-          n.say(content);
+      const p = open(shown.current ?? undefined);
+      opening.current = p;
+      void p
+        .finally(() => {
+          if (opening.current === p) opening.current = null;
         })
-        .catch((e) => {
-          setStarting(false);
-          failed(e);
-          setS(cut);
-        });
+        .catch(() => {});
+      p.then((n) => {
+        if (at !== gen.current) {
+          n.closing = true;
+          n.end();
+          n.q.close();
+          return;
+        }
+        live.current = n;
+        n.say(content);
+      }).catch((e) => {
+        setStarting(false);
+        failed(e);
+        setS(cut);
+      });
     },
     [open, failed],
   );
@@ -413,7 +426,13 @@ export function useAgent(o: {
 
   const stop = useCallback(() => {
     const l = live.current;
-    if (!l) return setS(cut);
+    if (!l) {
+      // still opening: the gen bump shuts the socket when it lands, before the turn is said
+      gen.current++;
+      opening.current = null;
+      setStarting(false);
+      return setS(cut);
+    }
     setS((p) => ({ ...p, stopping: true }));
     for (const [id, a] of l.asks) {
       a(false);

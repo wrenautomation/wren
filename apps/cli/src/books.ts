@@ -273,7 +273,8 @@ export function registerBooks(
         await withDb((db) =>
           recordedRun(db, { command: `books ${verb}`, argv: { ids: billIds } }, async (r) => {
             for (const id of billIds)
-              if (!(await setReview(db, id, review))) throw new Error(`no bill ${id}`);
+              if (!(await setReview(db, id, review)))
+                throw new Error(`no bill ${id}, or it is void`);
             return posting(db, r.id);
           }),
         );

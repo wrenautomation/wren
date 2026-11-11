@@ -258,8 +258,18 @@ export async function askPublish(
   const [out] = await db
     .update(sitePages)
     .set({ waitingVersion: number, waitingBy: a.by, waitingAt: sql`now()` })
-    .where(eq(sitePages.id, id))
+    .where(
+      and(
+        eq(sitePages.id, id),
+        sql`${sitePages.status} <> 'retired'`,
+        isNull(sitePages.retireAt),
+        // a shipping split's winner waits on its own ask; overwriting it strands the split
+        sql`not exists (select 1 from ${siteSplits} where ${siteSplits.page} = ${id} and ${siteSplits.state} = 'shipping' and ${siteSplits.shipVersion} is not null)`,
+      ),
+    )
     .returning();
+  if (!out)
+    throw new SitesRefusal("this page is retired, or its split's winner waits for a yes", 409);
   return out as SitePage;
 }
 
@@ -310,7 +320,13 @@ async function approveOne(db: Queryable, id: string, number: number, by: string)
       updatedAt: sql`now()`,
       updatedBy: by,
     })
-    .where(and(eq(sitePages.id, id), eq(sitePages.waitingVersion, number)))
+    .where(
+      and(
+        eq(sitePages.id, id),
+        eq(sitePages.waitingVersion, number),
+        sql`${sitePages.status} <> 'retired'`,
+      ),
+    )
     .returning();
   if (!out) throw new SitesRefusal("that version isn't waiting anymore", 409);
   return out;
@@ -364,7 +380,15 @@ export async function retirePages(db: Db, ids: readonly string[], by: string): P
       updatedAt: sql`now()`,
       updatedBy: by,
     })
-    .where(and(inArray(sitePages.id, ok), sql`${sitePages.status} <> 'retired'`))
+    .where(
+      and(
+        inArray(sitePages.id, ok),
+        sql`${sitePages.status} <> 'retired'`,
+        // as askRetire: stop its split first
+        sql`not exists (select 1 from ${siteSplits} s left join ${siteSplitArms} a on a.split = s.id and a.page = ${sitePages.id}
+          where (s.page = ${sitePages.id} or a.page is not null) and s.state in ('running', 'shipping'))`,
+      ),
+    )
     .returning({ id: sitePages.id });
   return out.map((r) => r.id);
 }
@@ -413,6 +437,9 @@ export async function approveRetire(db: Db, id: string, by: string): Promise<Sit
         status: "retired",
         retireBy: null,
         retireAt: null,
+        waitingVersion: null,
+        waitingBy: null,
+        waitingAt: null,
         updatedAt: sql`now()`,
         updatedBy: by,
       })
@@ -511,7 +538,13 @@ export async function registerCodePage(
   if (had) {
     const [page] = await db
       .update(sitePages)
-      .set({ ...facts, status: "live", updatedAt: sql`now()`, updatedBy: p.by })
+      .set({
+        ...facts,
+        // a retire in the portal holds across deploys
+        status: sql`case when ${sitePages.status} = 'retired' then 'retired' else 'live' end`,
+        updatedAt: sql`now()`,
+        updatedBy: p.by,
+      })
       .where(eq(sitePages.id, had.id))
       .returning();
     return { page: page as SitePage, added: false };

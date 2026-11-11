@@ -176,13 +176,14 @@ export async function applyBooking(
         await tx.update(callBookings).set({ uid: e.uid }).where(eq(callBookings.uid, e.fromUid));
       }
     }
-    // A late "created" never revives a cancelled row; a reschedule or cancel sets the state.
+    // Only a cancel sets the state of a row that is in: a late "created" or "rescheduled"
+    // never revives a cancelled uid (a cancel of the new uid can only follow its reschedule).
     const [row] = await tx
       .insert(callBookings)
       .values({ uid: e.uid, state, bookedAt: e.bookedAt ?? opts.now, ...fields })
       .onConflictDoUpdate({
         target: callBookings.uid,
-        set: e.change === "created" ? fields : { ...fields, state },
+        set: e.change === "cancelled" ? { ...fields, state } : fields,
       })
       .returning();
     if (!row) throw new Error(`call_bookings upsert for ${e.uid} returned no row`);

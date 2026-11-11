@@ -435,7 +435,8 @@ export async function setReview(
   const [row] = await db
     .update(bills)
     .set({ review, updatedAt: new Date() })
-    .where(eq(bills.id, billId))
+    // void: its document no longer gives a bill; a review never brings it back
+    .where(and(eq(bills.id, billId), ne(bills.review, "void")))
     .returning();
   return row;
 }

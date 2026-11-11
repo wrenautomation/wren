@@ -29,7 +29,7 @@ import { serviceHandler } from "@wren/core/restate";
 import { canonicalZone } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import * as restate from "@wren/runtime";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { z } from "zod";
 import {
   type Booker,
@@ -522,20 +522,34 @@ export function calendarFlows(deps: CalendarDeps) {
   const remind = async (ctx: restate.Context, req: RemindRequest): Promise<{ sent: boolean }> => {
     const rules = await rulesNow(ctx);
     const now = new Date(await ctx.date.now());
+    const at = req.kind === "day" ? bookings.remindedDayAt : bookings.remindedHourAt;
+    const mark = (v: Date | null) =>
+      req.kind === "day" ? { remindedDayAt: v } : { remindedHourAt: v };
+    // claim: one conditional write, so a duplicate remind or a move in between sends nothing
     const due = await ctx.run("due", async () => {
-      const b = await bookingById(db, req.id);
-      if (b?.state !== "booked" || b.start.toISOString() !== req.start) return false;
-      if (b.start <= now) return false;
-      return (req.kind === "day" ? b.remindedDayAt : b.remindedHourAt) === null;
+      const won = await db
+        .update(bookings)
+        .set(mark(now))
+        .where(
+          and(
+            eq(bookings.id, req.id),
+            eq(bookings.state, "booked"),
+            eq(bookings.start, new Date(req.start)),
+            gt(bookings.start, now),
+            isNull(at),
+          ),
+        )
+        .returning({ id: bookings.id });
+      return won.length > 0;
     });
     if (!due) return { sent: false };
     const sent = await mail(ctx, req.kind, req.id, rules.title);
-    if (sent)
-      await ctx.run("mark", async () => {
+    if (!sent)
+      await ctx.run("release", async () => {
         await db
           .update(bookings)
-          .set(req.kind === "day" ? { remindedDayAt: now } : { remindedHourAt: now })
-          .where(eq(bookings.id, req.id));
+          .set(mark(null))
+          .where(and(eq(bookings.id, req.id), eq(at, now)));
       });
     return { sent };
   };

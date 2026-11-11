@@ -5,7 +5,7 @@
  * rolls up `flag_days` and moves the shares (`@wren/starling-search` experiments); the edge serves
  * them in place of the flag's rules (`./flag-store.ts` pushEdge).
  */
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { type EdgePush, pushEdge } from "./flag-store.js";
@@ -82,8 +82,9 @@ export async function startExperiments(
       ),
     );
   const now = new Date();
-  for (const r of rows)
-    await db
+  const started: string[] = [];
+  for (const r of rows) {
+    const [won] = await db
       .update(flagExperiments)
       .set({
         state: "running",
@@ -98,9 +99,15 @@ export async function startExperiments(
         endedBy: null,
         updatedAt: now,
       })
-      .where(eq(flagExperiments.flag, r.flag));
-  if (rows.length) await pushEdge(db, push);
-  return rows.map((r) => r.flag);
+      // a ship or start in between wins: no revive of a shipped one
+      .where(
+        and(eq(flagExperiments.flag, r.flag), inArray(flagExperiments.state, ["draft", "stopped"])),
+      )
+      .returning({ flag: flagExperiments.flag });
+    if (won) started.push(won.flag);
+  }
+  if (started.length) await pushEdge(db, push);
+  return started;
 }
 
 /** Running or settled → shipped: the flag goes to the winner for everyone. William's yes. */
@@ -124,15 +131,26 @@ export async function shipExperiments(
   for (const e of rows) {
     const winner = e.best ?? leader(e.shares);
     if (!winner) continue;
-    await db
-      .update(flags)
-      .set({ rules: [{ variant: winner }], killed: false, updatedAt: now })
-      .where(eq(flags.key, e.flag));
-    await db
-      .update(flagExperiments)
-      .set({ state: "shipped", winner, endedAt: now, endedBy: by, updatedAt: now })
-      .where(eq(flagExperiments.flag, e.flag));
-    done.push(e.flag);
+    const shipped = await atomic(db, async (tx) => {
+      // a stop in between wins: the flag keeps its own rules
+      const [won] = await tx
+        .update(flagExperiments)
+        .set({ state: "shipped", winner, endedAt: now, endedBy: by, updatedAt: now })
+        .where(
+          and(
+            eq(flagExperiments.flag, e.flag),
+            inArray(flagExperiments.state, ["running", "settled"]),
+          ),
+        )
+        .returning({ flag: flagExperiments.flag });
+      if (!won) return false;
+      await tx
+        .update(flags)
+        .set({ rules: [{ variant: winner }], killed: false, updatedAt: now })
+        .where(eq(flags.key, e.flag));
+      return true;
+    });
+    if (shipped) done.push(e.flag);
   }
   if (done.length) await pushEdge(db, push);
   return done;

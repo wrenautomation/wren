@@ -309,8 +309,15 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
       for (const id of ids) {
         const old = await linkById(main, id);
         if (!old || old.client !== client.id) throw new PortalRefusal("no such pay link", 404);
-        if (old.status !== "unpaid")
-          throw new PortalRefusal("only a payment that didn't go through is sent again", 409);
+        // failed with no Stripe link: nothing payable is out, so a new one can't be paid twice
+        const retry = old.status === "unpaid" || (old.status === "failed" && !old.stripeLink);
+        if (!retry)
+          throw new PortalRefusal(
+            old.status === "failed"
+              ? "its Stripe link is live: it may still be paid, so it isn't sent again"
+              : "only a payment that didn't go through is sent again",
+            409,
+          );
         links.push(
           await createLink(main, {
             client: client.id,

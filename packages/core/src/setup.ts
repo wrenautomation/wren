@@ -666,18 +666,26 @@ export async function recheck(
         break;
       }
     }
+    // only the generation read here: a restart in between keeps its new run
+    const same = and(
+      eq(setupRuns.id, run.id),
+      eq(setupRuns.gen, run.gen),
+      eq(setupRuns.state, "done"),
+    );
     if (failed) {
-      lost++;
-      await main
+      const [won] = await main
         .update(setupRuns)
         .set({ state: "lost", why: `${failed.step.label}: ${failed.r.why}` })
-        .where(eq(setupRuns.id, run.id));
+        .where(same)
+        .returning({ id: setupRuns.id });
+      if (!won) continue;
+      lost++;
       emits.push(await startSetup(main, s, { accountId: acct.id, by: "recheck", now: o.now }));
     } else
       await main
         .update(setupRuns)
         .set({ nextCheckAt: s.repeat ? new Date(o.now.getTime() + waitMs(s.repeat)) : null })
-        .where(eq(setupRuns.id, run.id));
+        .where(same);
   }
   return { checked: due.length, lost, emits };
 }

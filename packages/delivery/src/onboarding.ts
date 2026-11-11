@@ -1,15 +1,16 @@
 /** Onboarding: the contract and its terms, the setup fee, signing, and access to the client's systems. */
 import { clients } from "@wren/core/clients";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { OFFER_IDS, type Offer, offerFor } from "@wren/offers";
 import { canonicalJson, liveTerms } from "@wren/pipeline/store";
-import { and, eq, isNull, lt, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { CONTRACT_VERSION, contractText, sha256 } from "./contract.js";
 import {
   bad,
   CURRENCY,
   cents,
+  clash,
   DeliveryRefusal,
   missing,
   ofClient,
@@ -223,24 +224,39 @@ export async function startIfReady(
   }
   const startsOn = today > e.startsOn ? today : e.startsOn;
   const by = Math.round((Date.parse(startsOn) - Date.parse(e.startsOn)) / 86_400_000);
-  if (by > 0) {
-    const moved = (c: AnyPgColumn) => sql`${c} + ${by}::int`;
-    await db
-      .update(milestones)
-      .set({
-        plannedFrom: moved(milestones.plannedFrom),
-        plannedTo: moved(milestones.plannedTo),
-        dueOn: moved(milestones.dueOn),
-      })
-      .where(and(eq(milestones.engagementId, e.id), isNull(milestones.doneOn)));
-    await db
-      .update(asks)
-      .set({ dueOn: moved(asks.dueOn) })
-      .where(and(eq(asks.engagementId, e.id), isNull(asks.answeredAt)));
-  }
-  await db.update(engagements).set({ status: "active", startsOn }).where(eq(engagements.id, e.id));
-  return true;
+  // compare-and-set: two callers (sign, pay) must not both move the plan
+  return atomic(db, async (db) => {
+    const [won] = await db
+      .update(engagements)
+      .set({ status: "active", startsOn })
+      .where(and(eq(engagements.id, e.id), eq(engagements.status, "onboarding")))
+      .returning({ id: engagements.id });
+    if (!won) return false;
+    if (by > 0) {
+      const moved = (c: AnyPgColumn) => sql`${c} + ${by}::int`;
+      await db
+        .update(milestones)
+        .set({
+          plannedFrom: moved(milestones.plannedFrom),
+          plannedTo: moved(milestones.plannedTo),
+          dueOn: moved(milestones.dueOn),
+        })
+        .where(and(eq(milestones.engagementId, e.id), isNull(milestones.doneOn)));
+      await db
+        .update(asks)
+        .set({ dueOn: moved(asks.dueOn) })
+        .where(and(eq(asks.engagementId, e.id), isNull(asks.answeredAt)));
+    }
+    return true;
+  });
 }
+
+/** What an access answer moves from: revoke only what was granted; a revoked one needs a new request. */
+const FROM: Record<Exclude<AccessStatus, "open">, AccessStatus[]> = {
+  granted: ["open", "declined"],
+  declined: ["open"],
+  revoked: ["granted"],
+};
 
 /** Ask, formally, for access to one of the client's systems. */
 export async function requestAccess(
@@ -278,9 +294,22 @@ export async function answerAccess(
     .update(accessRequests)
     .set({ status, note, answeredBy: input.by, answeredAt: new Date() })
     .where(
-      and(eq(accessRequests.id, input.id), ofClient(db, accessRequests.engagementId, clientId)),
+      and(
+        eq(accessRequests.id, input.id),
+        ofClient(db, accessRequests.engagementId, clientId),
+        inArray(accessRequests.status, FROM[status]),
+      ),
     )
     .returning();
-  if (!r) throw missing("access request");
+  if (!r) {
+    const [was] = await db
+      .select({ status: accessRequests.status })
+      .from(accessRequests)
+      .where(
+        and(eq(accessRequests.id, input.id), ofClient(db, accessRequests.engagementId, clientId)),
+      );
+    if (!was) throw missing("access request");
+    throw clash(`access request ${input.id} is ${was.status}; it can't be ${status}`);
+  }
   return r;
 }

@@ -145,7 +145,7 @@ async function creditById(db: Queryable, id: number): Promise<WiseCredit> {
 
 /**
  * A person puts a credit on an invoice: the whole of what was sent counts toward it. Refused
- * when the credit is on one already, the currencies differ, or the invoice isn't open.
+ * when the credit is on one already or is our own money, the currencies differ, or the invoice isn't open.
  */
 export async function matchByHand(
   db: Queryable,
@@ -157,6 +157,9 @@ export async function matchByHand(
     await setAuditActor(tx, by);
     const c = await creditById(tx, creditId);
     if (c.status === "matched") throw clash(`credit ${c.id} is on an invoice already`);
+    // ours moving between our own accounts: never a client's payment
+    if (c.status === "ignored")
+      throw clash(`credit ${c.id} is our own money moving, not a payment`);
     const [i] = await tx
       .select()
       .from(invoices)

@@ -521,7 +521,19 @@ async function pickAddresses(
  * On its time: the segment read once into recipients, each due at its own time, and the
  * broadcast `sending`. Only a scheduled one starts; a second call does nothing.
  */
-export async function startBroadcast(db: Queryable, id: number, now: Date): Promise<number> {
+export function startBroadcast(main: Queryable, id: number, now: Date): Promise<number> {
+  // one transaction under the row lock: a cancel waits, so it never strands recipients
+  return atomic(main, async (db) => {
+    await db
+      .select({ id: broadcasts.id })
+      .from(broadcasts)
+      .where(eq(broadcasts.id, id))
+      .for("update");
+    return startLocked(db, id, now);
+  });
+}
+
+async function startLocked(db: Queryable, id: number, now: Date): Promise<number> {
   const b = await mustHave(db, id);
   if (b.state !== "scheduled") return 0;
   let after = 0;
@@ -649,8 +661,17 @@ const VERDICT_WORDS: Record<string, string> = {
   paused: "Paused their messages",
 };
 
+/** Only an open turn settles: sent, queued, failed and skipped are final. */
 async function settle(db: Queryable, id: number, set: Partial<Recipient>) {
-  await db.update(broadcastRecipients).set(set).where(eq(broadcastRecipients.id, id));
+  await db
+    .update(broadcastRecipients)
+    .set(set)
+    .where(
+      and(
+        eq(broadcastRecipients.id, id),
+        inArray(broadcastRecipients.state, ["due", "held", "sending"]),
+      ),
+    );
 }
 
 /**

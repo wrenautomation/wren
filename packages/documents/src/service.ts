@@ -44,6 +44,7 @@ import { docPdf, sealedPdf } from "./pdf.js";
 import { docPage, lookOf, type PageCtx, shutPage } from "./render.js";
 import type { Doc, DocKind, SealedFiles } from "./schema.js";
 import {
+  claimReminder,
   DocRefusal,
   declineDoc,
   docByEnvelope,
@@ -413,6 +414,7 @@ export function makeDocuments(deps: DocumentsDeps) {
             const d = await docById(main, req.id);
             if (!d) return null;
             if (req.remind ? remindable(d, at) : d.status !== "sending") return null;
+            if (req.remind && !(await claimReminder(main, d.id, at))) return null;
             const c = await findClient(main, d.client);
             if (!c) return null;
             return { doc: d, business: c.name, sends: sendsOn(c, DOCUMENTS) };

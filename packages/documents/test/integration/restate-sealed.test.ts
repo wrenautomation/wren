@@ -12,9 +12,11 @@ import { startTestRuntime } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { smsContacts } from "@wren/starling-sms/schema";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { documentsConsoleApi, makeDocumentsConsole } from "../../src/console.js";
 import { documenso } from "../../src/documenso.js";
+import { docs } from "../../src/schema.js";
 import { type Answer, type DocumentsDeps, makeDocuments } from "../../src/service.js";
 import { docById, docEventsOf, issueLink, SEALED_CONSENT_VERSION } from "../../src/store.js";
 
@@ -210,6 +212,11 @@ describe("send and the webhooks", () => {
   });
 
   it("a reminder mails the same live link and makes no second envelope", async () => {
+    // past the reminder claim's minute after the send
+    await pg.db
+      .update(docs)
+      .set({ updatedAt: new Date(Date.now() - 120_000) })
+      .where(eq(docs.id, id));
     await post("DocumentsConsole", "remind", { ...ADA, id });
     await expect.poll(() => mails.length).toBe(1);
     expect(mails[0]?.subject).toMatch(/^Reminder/);
