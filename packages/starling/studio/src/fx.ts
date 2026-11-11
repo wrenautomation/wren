@@ -778,6 +778,31 @@ const fx = {
       },
     ],
   },
+  glitch: {
+    align: "onset",
+    offsetMs: 0,
+    gapMs: 200,
+    bedDb: 7,
+    note: "a digital stutter glitch (0.64 s) as a text overlay comes in; earshot ranks it first for 'a digital glitch'",
+    takes: [
+      {
+        file: "glitch_1.ogg",
+        sync: 0.0198,
+        durS: 0.64,
+        l50: -8.93,
+        peakDb: -1,
+        sha1: "3220a7bfa2cd5756378cfeca7a1b3f2dee8b9200",
+      },
+      {
+        file: "glitch_2.ogg",
+        sync: 0.0018,
+        durS: 0.64,
+        l50: -9.56,
+        peakDb: -1,
+        sha1: "74ee32f2e943e4a43b3d773eb7856b8d60b11a7e",
+      },
+    ],
+  },
 } as const satisfies Record<string, FxRole>;
 export type Role = keyof typeof fx;
 export const FX: Record<Role, FxRole> = fx;

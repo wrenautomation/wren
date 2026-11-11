@@ -24,6 +24,22 @@ const earshot = (...args) =>
   execFileSync("uvx", ["-q", "--from", EARSHOT, "earshot", ...args], { stdio: "inherit" });
 
 earshot("kit", "init", "--preset", PRESET, "-o", join(tmp, "kit.json"));
+// roles the preset lacks; Canon video-editing VE-13 (glitch: text pops up)
+const ADD = {
+  glitch: {
+    sound: "glitch/stutter",
+    takes: 2,
+    align: "onset",
+    bed_db: 7.0,
+    offset_ms: 0,
+    min_gap_ms: 200,
+    level_db: -8.0,
+    note: "a digital stutter glitch (0.64 s) as a text overlay comes in; earshot ranks it first for 'a digital glitch'",
+  },
+};
+const init = JSON.parse(readFileSync(join(tmp, "kit.json"), "utf8"));
+Object.assign(init.roles, ADD);
+writeFileSync(join(tmp, "kit.json"), JSON.stringify(init, null, 1));
 earshot("kit", "render", join(tmp, "kit.json"), "--out", join(tmp, "takes"));
 const kit = JSON.parse(readFileSync(join(tmp, "kit.json"), "utf8"));
 const lock = JSON.parse(readFileSync(join(tmp, "takes/kit.lock.json"), "utf8"));

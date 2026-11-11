@@ -169,6 +169,6 @@ describe("the prompt", () => {
     const sys = changeSystem();
     expect(sys).toContain("- sounds: kit sounds at moments");
     expect(sys).toContain("whoosh.short (a fast whoosh");
-    expect(sys).toContain("a soft pop as each text overlay comes in");
+    expect(sys).toContain("a digital glitch as each text overlay comes in (VE-13)");
   });
 });

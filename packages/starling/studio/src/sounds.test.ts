@@ -32,19 +32,19 @@ describe("automatic sounds", () => {
     const s = autoSounds(edit(), { clicks: [3, 3.05, 7], keys: [8, 8.05, 8.1] });
     expect(s).toEqual([
       { at: 3, id: "click" },
-      { at: 5, id: "pop" },
+      { at: 5, id: "glitch" },
       { at: 7, id: "click" },
       { at: 8, id: "key" },
       { at: 8.1, id: "key" },
       { at: 10, id: "whoosh.short" },
       { at: 20, id: "whoosh.short" },
-      { at: 30, id: "land", only: "short" },
+      { at: 30, id: "click", only: "short" },
     ]);
   });
 
-  it("gives a Short with no card no boom", () => {
+  it("gives a Short with no card no card sound", () => {
     const s = autoSounds(edit({ shorts: [{ from: 30, to: 50, title: "A", card: false }] }));
-    expect(s.some((x) => x.id === "land")).toBe(false);
+    expect(s.some((x) => x.only === "short")).toBe(false);
   });
 });
 

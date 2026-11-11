@@ -1318,6 +1318,47 @@
           "l50_lufs": -4.07
         }
       ]
+    },
+    "glitch": {
+      "sound": "glitch/stutter",
+      "align": "onset",
+      "level_db": -8,
+      "max_s": null,
+      "bed_db": 7,
+      "offset_ms": 0,
+      "min_gap_ms": 200,
+      "takes": [
+        {
+          "file": "glitch_1.wav",
+          "seed": 3,
+          "pitch": null,
+          "onset_s": 0.0198,
+          "peak_s": 0.3745,
+          "end_s": 0.622,
+          "dur_s": 0.64,
+          "peak_db": -1,
+          "lufs_m_max": -12.78,
+          "sha1": "bb3b32ba02da37eb903b29f5cf75ff4f2bbf35f1",
+          "key": "3b7da20d1f8cf1a114a2471bd7101cebe52887ca",
+          "checks": [],
+          "l50_lufs": -8.93
+        },
+        {
+          "file": "glitch_2.wav",
+          "seed": 4,
+          "pitch": null,
+          "onset_s": 0.0018,
+          "peak_s": 0.4965,
+          "end_s": 0.62,
+          "dur_s": 0.64,
+          "peak_db": -1,
+          "lufs_m_max": -13.22,
+          "sha1": "a6fb2e6ae2c80cf198c1c561d874e0ae7758e0a2",
+          "key": "11a7f65919737b715a0bdd9f12b4def1b674c1bf",
+          "checks": [],
+          "l50_lufs": -9.56
+        }
+      ]
     }
   },
   "mix": {

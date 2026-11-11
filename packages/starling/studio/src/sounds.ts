@@ -28,20 +28,21 @@ export const ROLE_SAYS = {
   hit: "a short punchy hit on a cut",
   land: "a round low thump just after the cut, for a card or a panel landing",
   "land.light": "a light finger tap",
-  pop: "a soft pop as a thing comes in; the most used",
-  "whoosh.short": "a fast whoosh for a cut, a move or a zoom",
+  pop: "a soft pop, for a light thing coming in",
+  "whoosh.short": "a fast whoosh as one scene changes to the next (VE-12)",
   "whoosh.long": "a big low whoosh that lands with a thump",
-  riser: "a short dark riser into a cut; one or two a video at most",
+  riser: "a short dark riser as tension builds, into a cut; one or two a video at most (VE-14)",
   swell: "a dark reverse swell into a cut; one a video at most",
   drop: "a short low kick on a cut",
   key: "a key tap, a new take each",
   "key.space": "the space bar",
   "key.return": "the return key, a little louder",
-  click: "a small plastic mouse click",
+  click: "a small plastic click: a mouse click, or a thing pops up on screen (VE-10)",
   "click.confirm": "a soft ding: done, sent, a number",
-  snap: "a camera shutter for a snap zoom or a whip cut",
+  snap: "the flash: a camera shutter on a quick cut, a snap zoom or a whip cut (VE-11)",
   bell: "a glockenspiel note",
   text: "a soft pluck as a line of text resolves",
+  glitch: "a digital glitch as text pops up (VE-13)",
 } as const satisfies Record<Role, string>;
 export const BED_ID = /^bed-[a-z0-9-]+$/;
 export const isEffect = (id: string): id is Role => Object.hasOwn(FX, id);
@@ -117,14 +118,14 @@ export interface RecordingEvents {
 }
 
 /**
- * The automatic sounds (Decision 4), one rule per row, the same for every edit. A rule names what
+ * The automatic sounds (Decision 4; the cue map is Canon video-editing VE-10..VE-14), one rule per row, the same for every edit. A rule names what
  * it reads from the edit, the kit sound and the outputs it is for. The edit pass and he may add or
  * remove; his `wren video set` of `sounds` locks them.
  */
 export const SOUND_RULES = [
   { on: "click", id: "click", says: "a small plastic click on each mouse click" },
   { on: "key", id: "key", says: "a key tap on each key press, a new take each" },
-  { on: "overlay", id: "pop", says: "a soft pop as each text overlay comes in" },
+  { on: "overlay", id: "glitch", says: "a digital glitch as each text overlay comes in (VE-13)" },
   {
     on: "layout",
     id: "whoosh.short",
@@ -132,8 +133,8 @@ export const SOUND_RULES = [
   },
   {
     on: "card",
-    id: "land",
-    says: "a low pop-in thump under each Short's title card",
+    id: "click",
+    says: "a click as each Short's title card pops up (VE-10)",
     only: "short",
   },
 ] as const satisfies readonly { on: string; id: Role; says: string; only?: "short" | "long" }[];
