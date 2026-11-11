@@ -18,10 +18,12 @@ export interface RunCardProps {
   live?: boolean | undefined;
   asks?: readonly NextAsk[] | undefined;
   onAsk?: OnAsk;
+  /** the page beside the chat already draws this run: no second graph (WA-1292) */
+  onPage?: boolean | undefined;
 }
 
 /** A run: its head, the page's graph in card mode, the agent's next asks. */
-export function RunCard({ run, failed, href, live, asks, onAsk }: RunCardProps) {
+export function RunCard({ run, failed, href, live, asks, onAsk, onPage }: RunCardProps) {
   const f = run?.funnel;
   const meta = f
     ? [
@@ -47,7 +49,11 @@ export function RunCard({ run, failed, href, live, asks, onAsk }: RunCardProps) 
       onAsk={onAsk}
     >
       {run?.note ? <p className="m-0 text-[13px]/[1.5] text-(--ui-ink-2)">{run.note}</p> : null}
-      <RunGraph run={run} failed={failed} card />
+      {onPage && !failed ? (
+        <p className="m-0 text-[13px]/[1.5] text-(--ui-ink-2)">Its graph is on this page.</p>
+      ) : (
+        <RunGraph run={run} failed={failed} card />
+      )}
     </ProductCard>
   );
 }

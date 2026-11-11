@@ -68,6 +68,30 @@ export const usePageContextText = (): string | undefined =>
     () => undefined,
   );
 
+let pageRuns: readonly string[] = [];
+
+/** The weaver runs the page draws on its graph, while mounted: a chat card of one of them skips its own graph (WA-1292). */
+export function usePageRuns(runs: readonly string[] | undefined): void {
+  const key = runs?.join(",") ?? "";
+  useEffect(() => {
+    const mine = key ? key.split(",") : [];
+    pageRuns = mine;
+    tell();
+    return () => {
+      if (pageRuns !== mine) return;
+      pageRuns = [];
+      tell();
+    };
+  }, [key]);
+}
+
+export const usePageRunsShown = (): readonly string[] =>
+  useSyncExternalStore(
+    sub,
+    () => pageRuns,
+    () => pageRuns,
+  );
+
 let chatRuns: readonly string[] = [];
 
 /** The weaver runs the open chat's cards name, in order: Research › Live draws them. */

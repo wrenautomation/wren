@@ -6,6 +6,7 @@
 import { AgentSay, type AgentViews, LoadFailed, Loading } from "@wren/ui";
 import { useContext, useState } from "react";
 import { useCall } from "../../load.js";
+import { usePageRunsShown } from "../agent/drive.js";
 import { runCard, runOf, sourceRead } from "./card.js";
 import { RunCard, SourceCard } from "./run-lazy.js";
 import { runsOf, useLive, viewOf } from "./serve.js";
@@ -18,6 +19,7 @@ function RunRef({ data }: { data: unknown }) {
     kept: false,
   });
   const say = useContext(AgentSay);
+  const shown = usePageRunsShown();
   const row = rows.data?.find((r) => r.run === run) ?? null;
   useLive((changed) => {
     if (changed !== run) return;
@@ -31,7 +33,7 @@ function RunRef({ data }: { data: unknown }) {
   return one ? (
     <SourceCard read={one} onAsk={say} />
   ) : (
-    <RunCard {...runCard(got.data, row)} onAsk={say} />
+    <RunCard {...runCard(got.data, row)} onAsk={say} onPage={shown.includes(run)} />
   );
 }
 

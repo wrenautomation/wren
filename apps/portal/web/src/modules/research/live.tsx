@@ -7,7 +7,7 @@ import { cx, Empty, Loading } from "@wren/ui";
 import { useMemo } from "react";
 import { useCall } from "../../load.js";
 import { href } from "../../route.js";
-import { useChatRuns, usePageContext } from "../agent/drive.js";
+import { useChatRuns, usePageContext, usePageRuns } from "../agent/drive.js";
 import { QUIET } from "../work/bits.js";
 import { RunsCanvas } from "./canvas.js";
 import { NoServe } from "./page.js";
@@ -37,6 +37,7 @@ export function LiveRuns({ params, here }: { params: URLSearchParams; here: stri
   usePageContext(
     ids.length ? `Research › Runs, Live, shows weaver runs ${ids.join(", ")}` : undefined,
   );
+  usePageRuns(runs.data ? ids : undefined);
   if (runs.error && !runs.data) return <NoServe error={runs.error} onRetry={runs.retry} />;
   if (!runs.data) return <Loading shape="cards" lines={3} heading />;
   if (!ids.length)

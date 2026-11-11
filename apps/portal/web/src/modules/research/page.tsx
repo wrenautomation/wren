@@ -30,6 +30,7 @@ import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { PlayerSlot } from "../../player/index.js";
 import { href, navigate } from "../../route.js";
+import { usePageRuns } from "../agent/drive.js";
 import { QUIET } from "../work/bits.js";
 import { RowsPanel } from "../work/rows-panel.js";
 import { RunsCanvas } from "./canvas.js";
@@ -265,6 +266,8 @@ function Opened({
   here: string;
 }) {
   const ids = useMemo(() => runsIn(open, rows), [open, rows]);
+  // Back and forth draws no graph
+  usePageRuns(params.get("tab") === "talk" ? undefined : ids);
   const go = (p: Record<string, string | null>) => navigate(href(here, p, params), true);
   const back = (
     <a

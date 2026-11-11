@@ -224,13 +224,15 @@ const CARD_SERVED = [
 
 export const Card = (() => {
   const base = story(
-    `/research/runs?setup=weaver&chat=${CARDED}`,
+    // History draws no graph: the card keeps its own
+    `/research/runs?view=history&setup=weaver&chat=${CARDED}`,
     [],
     async (page) => {
       const c = within(page);
       const card = await c.findByRole("article", { name: /^Weaver run: / }, LONG);
       expect(within(card).getByText("How do small bakeries find wholesale buyers?")).toBeTruthy();
       expect(c.getAllByRole("article", { name: /^Weaver run: / })).toHaveLength(1);
+      expect(card.querySelector(".rg")).not.toBeNull();
       await c.findByText(/The review is next/, {}, LONG);
     },
     [{ session: CARDED, at: "2026-11-05T18:00:00Z", title: "Wholesale buyers", frames: CARD }],
@@ -278,6 +280,10 @@ export const NewRunGoesLive = (() => {
     await say(page, typedOn(tape)[0] ?? "");
     await c.findByRole("article", { name: /^Weaver run: / }, LONG);
     await waitFor(() => expect(shown("Live")).toBe(true), LONG);
+    // Live draws the run: the card drops its second graph (WA-1292)
+    const card = c.getByRole("article", { name: /^Weaver run: / });
+    await within(card).findByText("Its graph is on this page.", {}, LONG);
+    expect(card.querySelector(".rg")).toBeNull();
   });
   return {
     ...base,
