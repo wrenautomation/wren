@@ -43,7 +43,7 @@ Priorities, in order: the result must be true; it must survive a new renderer (W
 
 **Recommend D** for every fault our layout makes (text off frame, under buttons, caption hold), plus measured file checks for what layout cannot see (flash, contrast, Short pace). A, B and C all find a fault after the edit made it, and A rests on a box estimate the browser does not share.
 
-D needs one change first: bundle General Sans (Indian Type Foundry, free for commercial use) in the studio package, load it in the compositions, and measure with fontkit from the same file. Every render's text then looks the same on the Mac and on Lambda. That is a visible change: today's Mac renders draw San Francisco.
+D needs one change first: bundle one font file in the studio package (Figtree recommended, see Open), load it in the compositions, and measure with fontkit from the same file. Every render's text then looks the same on the Mac and on Lambda. That is a visible change: today's Mac renders draw San Francisco.
 
 ## Faults and where each stops
 
@@ -58,7 +58,7 @@ Rank: **P0** a platform rule, a law or health; never ships, no override. **P1** 
 | Contrast | file, at render end | overlays and the big word only (captions carry their own stroke or pill, `finish-look.ts:256`). Text fill against the pixels in a ring around the glyph box, worst of 3 frames (start, middle, end), below 3:1 | P1 |
 | Short pace | props, at render end | no picture change for more than 10 s: a kept-span cut, a layout mark or an overlay in or out. A Short's crop is one fixed point, so it does not count. Long videos have no pace rule, as in `BAR`. | P1 |
 | | | more than 3 s | P2 |
-| Private data on screen | model (bar `private`) | keys, tokens, emails, customer data in any frame | P1 from day one |
+| Private data on screen | model (bar `private`) | keys, tokens, emails, customer data in any frame | advice (P2) until he lets the judge gate |
 
 Every result carries `{rank, rule, at, says, box?}`. `rule` keeps its name: `selfChecks` reads it (`video-edit.ts:334`).
 
@@ -66,7 +66,7 @@ Every result carries `{rank, rule, at, says, box?}`. `rule` keeps its name: `sel
 
 - **Where results live.** The render writes one `video check` run per output at its end, `{output, hash, results}`, beside the loudness pass. The props-only pace check runs there too. The run's `hash` is the output's render hash. No run, or a null hash, counts as unchecked.
 - **The gate.** `approveVideo` and `swapShortMedia` refuse when any output they post (the YouTube file and every `alsoDrafts` file) is unchecked on its current hash ("check it first: `wren video check <id>`") or has a P0 or P1. A P1 passes with `--override "<reason>"`; the reason is stored on the approve's run. P2 shows beside Approve. The match reuses `selfChecks`' logic; the gate reads the newest check run per output by query, not from the capped step list (`STEP_MAX`).
-- **The model.** `wren video check` runs after the file checks. A model failure no longer fails the run: only `private` gates, and only when the model answers.
+- **The model.** `wren video check` runs after the file checks. A model failure no longer fails the run, and no model answer gates.
 - **Before a render.** The edit pass and `wren video set` run D's rules and the pace check as warnings. The big word's place needs the matte made at render, so it is decided there.
 - **Old outputs.** Approvals before phase 3 stand. An old output needs one `wren video check` before its next approve.
 
@@ -79,7 +79,7 @@ Each bar line goes to the floor or stays with the model:
 | `text` | floor: off frame and under buttons (D), contrast (file). The "reads at phone size" half stays with the model. |
 | `pace` | floor: Short pace |
 | `captions` | font: fixed in code. 2–3 words at a time and no over-animation: model |
-| `private` | model, P1 |
+| `private` | model; advice only for now (William, 11-10) |
 | `cuts`, `open`, `face`, `plain`, `hook`, `best` | model |
 
 The model answers each line on five levels (poor, weak, fair, good, great) with one line of why, under a frozen prompt version stored on each answer. Code ranks the answer: poor = P1, weak = P2. The edit pass still reads all of `BAR` plus the floor rules (`editPrompt`), so the edit agent knows them.
@@ -94,7 +94,7 @@ Add the lines not there yet. `video-editing`: no camera move eases to a dead sto
 
 ## Phases
 
-1. **Stop at the source.** Bundle and load General Sans; fontkit text widths; `platform-zones.ts`; `overlaySchema` and `placeWord` refuse off-frame and under-button boxes; `reelLines` hold. Done when each rule has a unit test with a synthetic edit it refuses, and a story shows a Reels frame with its button zones drawn over it.
+1. **Stop at the source.** Bundle and load the font; fontkit text widths; `platform-zones.ts`; `overlaySchema` and `placeWord` refuse off-frame and under-button boxes; `reelLines` hold. Done when each rule has a unit test with a synthetic edit it refuses, and a story shows a Reels frame with its button zones drawn over it.
 2. **File checks.** Flash, contrast and Short pace at render end, stored per output on its hash. Done when each has a test on a synthetic clip that fails it. Budget: under 1 s for props checks; file checks measured per minute of video on this Mac and noted here.
 3. **Gate.** `approveVideo` and `swapShortMedia` refuse as above, with a test for unchecked, stale, P0, P1 and P1 with override. The Videos page shows ranks.
 4. **Model judge.** Bar lines mapped as above, levels per line, ranks in code.
@@ -110,9 +110,12 @@ Add the lines not there yet. `video-editing`: no camera move eases to a dead sto
 
 ## Open (William)
 
-- Calibration threshold per bar line. Recommend: 30 of his calls on that line, precision of "poor" at 0.8 or more.
-- P1 override with a reason: recommend yes (P0 none).
-- Bundling General Sans changes the look of all renders: recommend yes, after he sees the stills.
+- Font: stills sent 11-10 (today's fallback, General Sans, Figtree). General Sans's license (ITF FFL 2.0) bars it from a repo, a public server and any service third parties make content with, so client renders cannot use it. Figtree is OFL and the portal already ships it. Recommend Figtree.
+
+## Decided (William, 11-10)
+
+- P1 override with a reason on record: yes. P0: none.
+- The model judge does not block anything yet, `private` included: every judge rank shows as advice. Calibration still records; when a line clears 30 calls at 0.8 precision, ask him before it gates.
 
 ## Decision log
 
