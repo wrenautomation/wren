@@ -60,7 +60,11 @@ roles:
       - TYPESAFE_API_KEY
     plain: [NUM_*, SEARXNG_URL]
     # weaver reads its keys from this config's env files: the role's sentinel file
-    env: { WEAVER_CONFIG: ~/.config/weaver/gated.json }
+    # READ_PROXY: signed-out reads (YouTube, pages) leave by the gate's read relay
+    env:
+      WEAVER_CONFIG: ~/.config/weaver/gated.json
+      READ_PROXY: http://127.0.0.1:4776
+      READ_PROXY_SESSIONS: "1"
   desk:
     port: 4763
     mode: report
@@ -90,6 +94,8 @@ agents:
 # reads them. A key whose vendor credvault does not know names its hosts here.
 gate:
   sources: ["@/autobrowse/.env", "@/llm.env"]
+  # residential exit for signed-out reads; the login stays in the gate (WA-1312)
+  relay: { port: 4776, key: DATAIMPULSE_PROXY, suffix: __cr.us, sticky: 10000-20000 }
   hosts:
     WREN_API_TOKEN: [api.wrenautomation.com]
     DESK_DOOR_TOKEN: [api.wrenautomation.com]

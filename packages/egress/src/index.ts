@@ -44,6 +44,19 @@ const gate = z
     /** Env files with the real values; an earlier file wins a name. */
     sources: z.array(z.string().regex(SECRET, "starts with ~/ or @/")).min(1),
     hosts: z.record(z.string().regex(ENV_GLOB), z.array(host).min(1)).default({}),
+    /** Read relay: a loopback proxy to the vendor proxy in source name `key` (credvault). */
+    relay: z
+      .object({
+        port: z.number().int().min(1024).max(65535),
+        key: z.string().regex(/^[A-Z][A-Z0-9_]*$/),
+        suffix: z.string().default(""),
+        sticky: z
+          .string()
+          .regex(/^\d+-\d+$/)
+          .optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 const agent = z
@@ -186,6 +199,7 @@ export function gateConfig(
     keychain: { service: "credvault-gate" },
     sources: w.gate.sources.map((s) => absolute(s, o.root, home)),
     hosts: w.gate.hosts,
+    ...(w.gate.relay ? { relay: w.gate.relay } : {}),
     roles: Object.fromEntries(
       roles.map(([name, r]) => [
         name,
