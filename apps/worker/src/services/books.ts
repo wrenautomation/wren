@@ -15,7 +15,7 @@ import type { AnyService, Deps } from "./deps.js";
 
 /** The books domain's services, in the order they were served from `services.ts`. */
 export function booksServices(deps: Deps): AnyService[] {
-  const { db, keys, llm, mailboxOf, notify, rootDir, settings } = deps;
+  const { db, llm, mailboxOf, notify, rootDir, settings } = deps;
   const services: AnyService[] = [];
   // The books' day: billing mail kept, read and posted, AWS spend in, alerts out;
   // off until `wren books loop start`.
@@ -30,10 +30,8 @@ export function booksServices(deps: Deps): AnyService[] {
       rates: bankOfCanada(),
       aws: settings.booksAwsUsage ? awsCostExplorer() : null,
       decrypts: settings.booksAwsUsage ? cloudTrailDecrypts() : null,
-      // linked cards' tokens and Wren's Plaid keys, sealed under client wren
-      plaid: keys
-        ? feedAccess((o) => keys.named({ ...o, client: "wren", by: "wren:books" }))
-        : null,
+      // Wren's Plaid keys and each linked card's token, from the env
+      plaid: feedAccess(process.env),
       since: settings.booksSince,
       ...notify,
     }),

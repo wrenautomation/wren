@@ -25,11 +25,27 @@ import { type DocumentStore, sha256, storeKey } from "./store.js";
 
 export type PlaidEnv = "production" | "sandbox";
 
-/** Wren's own Plaid keys, kept under client `wren`: id unlabelled, secret labelled by env. */
-const WREN = "wren";
-const TOKEN = "PLAID_ACCESS_TOKEN";
+/**
+ * Wren's Plaid keys live in the worker env (SSM `/wren/prod/env-3`; like Wren's mail apps: prod
+ * has no `wren` client row for the key store). Each card's token: `PLAID_ACCESS_TOKEN_<last4>`.
+ */
+type Env = Record<string, string | undefined>;
+const tokenName = (card: string) => `PLAID_ACCESS_TOKEN_${card}`;
+/** The secret by environment: the sandbox one has its own name. */
+const SECRET: Record<PlaidEnv, string> = {
+  production: "PLAID_SECRET",
+  sandbox: "PLAID_SANDBOX_SECRET",
+};
 
-export function plaidApi(o: { clientId: string; secret: string; env: PlaidEnv }): PlaidApi {
+/** Plaid's API from Wren's keys in `env`. */
+export function plaidFromEnv(env: Env, plaidEnv: PlaidEnv): PlaidApi {
+  const clientId = env.PLAID_CLIENT_ID;
+  const secret = env[SECRET[plaidEnv]];
+  if (!clientId || !secret) throw new Error(`no PLAID_CLIENT_ID or ${SECRET[plaidEnv]} in the env`);
+  return plaidApi({ clientId, secret, env: plaidEnv });
+}
+
+function plaidApi(o: { clientId: string; secret: string; env: PlaidEnv }): PlaidApi {
   return new PlaidApi(
     new Configuration({
       basePath: PlaidEnvironments[o.env] as string,
@@ -65,12 +81,12 @@ export async function startLink(api: PlaidApi, o: { card: string }) {
 
 /**
  * After the person signs in on the hosted page: trade the public token, find the card's account
- * by its last four, seal the access token and add the feed. Null: the page is not done yet.
+ * by its last four, hand the access token to `keep` and add the feed. Null: the page is not done yet.
  */
 export async function finishLink(
   db: Db,
   api: PlaidApi,
-  put: (o: { name: string; label: string; value: string }) => Promise<unknown>,
+  keep: (o: { name: string; value: string }) => Promise<unknown>,
   o: { linkToken: string; card: string },
 ) {
   const { data } = await api.linkTokenGet({ link_token: o.linkToken });
@@ -85,8 +101,8 @@ export async function finishLink(
     throw new Error(
       `no account ending ${o.card} on this login (found ${acc.accounts.map((a) => a.mask ?? "?").join(", ")})`,
     );
-  const keyLabel = `card-${o.card}`;
-  await put({ name: TOKEN, label: keyLabel, value: x.access_token });
+  const keyLabel = tokenName(o.card);
+  await keep({ name: keyLabel, value: x.access_token });
   const row = {
     card: o.card,
     institution: added.institution?.name ?? null,
@@ -104,27 +120,16 @@ export async function finishLink(
   return feed;
 }
 
-/** Plaid's API and a feed's access token, read from the key store at sync time. */
+/** Plaid's API and a feed's access token, by the token's env name. */
 export type FeedAccess = (keyLabel: string) => Promise<{ api: PlaidApi; token: string }>;
 
-type Named = (o: { name: string; label?: string; why: string }) => Promise<string | null>;
-
-/** The worker's access: Wren's keys from the key store; the env from the token's prefix. */
-export function feedAccess(named: Named): FeedAccess {
-  const need = async (name: string, label: string | undefined, why: string) => {
-    const v = await named({ name, ...(label ? { label } : {}), why });
-    if (!v) throw new Error(`no ${name}${label ? `@${label}` : ""} under client ${WREN}`);
-    return v;
-  };
+/** The worker's access: keys from its env; sandbox or production from the token's prefix. */
+export function feedAccess(env: Env): FeedAccess {
   return async (keyLabel) => {
-    const why = `books card feed ${keyLabel}`;
-    const token = await need(TOKEN, keyLabel, why);
-    const env: PlaidEnv = token.startsWith("access-sandbox-") ? "sandbox" : "production";
-    const [clientId, secret] = await Promise.all([
-      need("PLAID_CLIENT_ID", undefined, why),
-      need("PLAID_SECRET", env, why),
-    ]);
-    return { api: plaidApi({ clientId, secret, env }), token };
+    const token = env[keyLabel];
+    if (!token) throw new Error(`no ${keyLabel} in the env`);
+    const api = plaidFromEnv(env, token.startsWith("access-sandbox-") ? "sandbox" : "production");
+    return { api, token };
   };
 }
 

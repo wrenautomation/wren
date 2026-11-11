@@ -447,8 +447,8 @@ export const cardLines = books.table(
 export type CardLine = typeof cardLines.$inferSelect;
 
 /**
- * A card read through Plaid Transactions (WA-1276): one linked account. The access token is
- * sealed in the key store (client `wren`, `PLAID_ACCESS_TOKEN`, label `key_label`); `cursor` is
+ * A card read through Plaid Transactions (WA-1276): one linked account. The access token is in
+ * the worker env under the name `key_label` (`PLAID_ACCESS_TOKEN_<last4>`); `cursor` is
  * where `/transactions/sync` left off. `error` holds Plaid's code while the item fails
  * (`ITEM_LOGIN_REQUIRED`: link again).
  */

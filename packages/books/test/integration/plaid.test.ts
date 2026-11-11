@@ -14,6 +14,7 @@ import {
   cardLines,
   dirStore,
   documents,
+  feedAccess,
   finishLink,
   seedBooks,
   syncFeeds,
@@ -80,11 +81,16 @@ function scripted(script: Page[], calls: string[] = []) {
 const addFeed = () =>
   pg.db
     .insert(cardFeeds)
-    .values({ card: "1234", itemId: "item-1", accountId: "acc-1", keyLabel: "card-1234" });
+    .values({
+      card: "1234",
+      itemId: "item-1",
+      accountId: "acc-1",
+      keyLabel: "PLAID_ACCESS_TOKEN_1234",
+    });
 
 describe("Plaid card feed", () => {
   it("links: seals the token and adds the feed by the card's last four", async () => {
-    const put: unknown[] = [];
+    const kept: unknown[] = [];
     const api = {
       linkTokenGet: async () => ({
         data: {
@@ -109,14 +115,12 @@ describe("Plaid card feed", () => {
         },
       }),
     } as unknown as PlaidApi;
-    const feed = await finishLink(pg.db, api, async (k) => put.push(k), {
+    const feed = await finishLink(pg.db, api, async (k) => kept.push(k), {
       linkToken: "link-x",
       card: "1234",
     });
     expect(feed).toMatchObject({ card: "1234", accountId: "acc-1", institution: "Bank" });
-    expect(put).toEqual([
-      { name: "PLAID_ACCESS_TOKEN", label: "card-1234", value: "access-sandbox-t" },
-    ]);
+    expect(kept).toEqual([{ name: "PLAID_ACCESS_TOKEN_1234", value: "access-sandbox-t" }]);
   });
 
   it("pending then posted is one line; an alert is taken over; a removed line goes", async () => {
@@ -204,5 +208,19 @@ describe("Plaid card feed", () => {
     const [f] = await pg.db.select().from(cardFeeds);
     expect(f?.error).toMatch(/^ITEM_LOGIN_REQUIRED/);
     expect(f?.cursor).toBeNull();
+  });
+});
+
+describe("feedAccess", () => {
+  it("reads the token by name and picks sandbox or production from its prefix", async () => {
+    const vars = {
+      PLAID_CLIENT_ID: "id",
+      PLAID_SANDBOX_SECRET: "s",
+      PLAID_ACCESS_TOKEN_1234: "access-sandbox-t",
+    };
+    expect((await feedAccess(vars)("PLAID_ACCESS_TOKEN_1234")).token).toBe("access-sandbox-t");
+    await expect(feedAccess(vars)("PLAID_ACCESS_TOKEN_9999")).rejects.toThrow(/no PLAID_ACCESS/);
+    const prod = { ...vars, PLAID_ACCESS_TOKEN_1234: "access-production-t" };
+    await expect(feedAccess(prod)("PLAID_ACCESS_TOKEN_1234")).rejects.toThrow(/PLAID_SECRET/);
   });
 });

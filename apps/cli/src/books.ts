@@ -4,7 +4,7 @@
  * into a bill with its lines, taxes and payments, and posts the journal. The
  * rest read the books back, or settle what the checks held for a look.
  */
-import { readFile, writeFile } from "node:fs/promises";
+import { appendFile, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, extname, join, resolve } from "node:path";
 import {
@@ -32,8 +32,7 @@ import {
   type Mailbox,
   matchCard,
   openAlerts,
-  type PlaidEnv,
-  plaidApi,
+  plaidFromEnv,
   post,
   readDocuments,
   reviewQueue,
@@ -52,7 +51,6 @@ import {
 import { BOOKS_KEY, type Books } from "@wren/books/restate";
 import { ingressOf, type Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
-import { pgKeyStore } from "@wren/core/keys";
 import { usageByPart } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
@@ -60,10 +58,15 @@ import * as clients from "@wren/runtime/clients";
 import { GmailClient } from "@wren/starling-email";
 import { expandHome } from "@wrenautomation/autobrowse/google";
 import type { Command } from "commander";
-import { sealer } from "./keys.js";
 import { ingressSites } from "./sites.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
+interface FinishOpts {
+  card: string;
+  sandbox?: boolean;
+  keepTo: string;
+  wait: number;
+}
 
 const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
 const log = (line: string) => console.log(line);
@@ -506,15 +509,9 @@ export function registerBooks(
       if (left.length) console.log(`${left.length} descriptors to sort: wren books card sort`);
     });
 
-  // Plaid keys from the env (run under scripts/secrets.mjs); the access token is sealed with the public key.
-  const plaidOf = (sandbox?: boolean) => {
-    const clientId = process.env.PLAID_CLIENT_ID;
-    const secret = process.env.PLAID_SECRET;
-    if (!clientId || !secret)
-      throw new Error("Set PLAID_CLIENT_ID and PLAID_SECRET: run it under scripts/secrets.mjs.");
-    const env: PlaidEnv = sandbox ? "sandbox" : "production";
-    return plaidApi({ clientId, secret, env });
-  };
+  // Plaid keys from the env: run under scripts/secrets.mjs.
+  const plaidOf = (sandbox?: boolean) =>
+    plaidFromEnv(process.env, sandbox ? "sandbox" : "production");
 
   card
     .command("link")
@@ -533,8 +530,9 @@ export function registerBooks(
     .description("After the bank sign-in: seal the card's Plaid token and add its feed")
     .requiredOption("--card <last4>", "the card's last four")
     .option("--sandbox", "Plaid's sandbox, not production")
+    .requiredOption("--keep-to <file>", "env file the access token is added to (0600)")
     .option("--wait <minutes>", "poll until the sign-in is done", Number, 0)
-    .action(async (linkToken: string, opts: { card: string; sandbox?: boolean; wait: number }) => {
+    .action(async (linkToken: string, opts: FinishOpts) => {
       const api = plaidOf(opts.sandbox);
       const until = Date.now() + opts.wait * 60_000;
       for (;;) {
@@ -542,13 +540,13 @@ export function registerBooks(
           finishLink(
             db,
             api,
-            (k) => pgKeyStore(db, sealer()).put({ ...k, client: "wren", by: "cli" }),
+            (k) => appendFile(opts.keepTo, `${k.name}=${k.value}\n`, { mode: 0o600 }),
             { linkToken, card: opts.card },
           ),
         );
         if (feed) {
           console.log(
-            `card ${feed.card} linked (${feed.institution ?? "bank"}): the books day pulls it`,
+            `card ${feed.card} linked (${feed.institution ?? "bank"}); ${feed.keyLabel} is in ${opts.keepTo}: add it to the worker env`,
           );
           return;
         }

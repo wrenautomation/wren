@@ -18,7 +18,7 @@ The card is the one place every cost shows up, mailed bill or not. A line is sor
 ## Shape
 
 - `card_lines` (`schema.ts:397`): card (last four), on, description, descriptor (cleaned), amount (charge positive), currency, source (statement | alert | plaid), fingerprint, document, vendor, personal, bill
-- `card_feeds` (`:455`): one linked card: Plaid item, account, key label of the sealed token, sync cursor, last error
+- `card_feeds` (`:455`): one linked card: Plaid item, account, `key_label` = the env name of its token (`PLAID_ACCESS_TOKEN_<last4>`), sync cursor, last error
 - `card_rules` (`:477`): descriptor → vendor or personal
 - View `card_records` (`:803`): state to_sort | waiting | billed | card_only | personal | credit
 
@@ -41,7 +41,7 @@ Citations: `packages/books/src/schema.ts:397`, `:450`, `:803`, `packages/books/s
 |---|---|
 | `wren books card import <file>` | writes (OFX/QFX or CSV) |
 | `wren books card sort [descriptor] [vendor\|personal]` | lists what's left, or sets a rule |
-| `wren books card link --card <last4>` then `card finish <linkToken>` | links a card through Plaid's hosted page (run under `scripts/secrets.mjs` with `PLAID_CLIENT_ID`, `PLAID_SECRET`) |
+| `wren books card link --card <last4>` then `card finish <linkToken>` | links a card through Plaid's hosted page (run under `scripts/secrets.mjs` with `PLAID_CLIENT_ID`, `PLAID_SECRET`; `--keep-to` gets the token for the worker's SSM env) |
 | daily `BooksClose/all` | reads alert mail, pulls Plaid feeds, sorts, matches |
 | Money → Card | read |
 
