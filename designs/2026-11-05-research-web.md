@@ -373,3 +373,4 @@ Chosen: A now. C later only to place each new island (old ones stay put), if tim
   - Narrow: the numbered chip grid becomes a stepper ("Search 2 of 3", ‹ ›, the pick's full text). It shares a row with the tabs where it fits.
   - The chat card's detail region is named "Card detail", so the page's graph and the card's graph do not share one landmark name.
   - Chat stories mock weaver serve with no runs. Before, they reached this Mac's real serve on :4747 and timed out.
+- 2026-11-10 (WA-1292): the chat card drops its graph when the page already draws that run (Live or History). It says "Its graph is on this page." The page publishes the ids it draws (`usePageRuns`); the `talk` tab publishes none. A failed run keeps its card graph.
