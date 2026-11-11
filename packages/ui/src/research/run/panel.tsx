@@ -1,5 +1,5 @@
 /** The detail panel: a source, claim, search, page, finding or the dropped hits. */
-import { useDeferredValue, useState } from "react";
+import { type ReactNode, useDeferredValue, useState } from "react";
 import { Icon } from "../../icons.js";
 import { Glyph, Ico, Kd } from "./marks.js";
 import {
@@ -23,6 +23,7 @@ import {
   unit,
 } from "./model.js";
 import { Chev, cls } from "./side.js";
+import { SplitBody, useLay } from "./split.js";
 import { parse } from "./web.js";
 
 export type Pick =
@@ -61,8 +62,22 @@ const Out = ({
   </a>
 );
 
-const X = ({ c }: { c: PanelCtx }) => (
+/** Split or Stack, offered only where the window is wide enough to split. */
+type LayBtn = { split: boolean; flip: () => void };
+
+const X = ({ c, lay }: { c: PanelCtx; lay?: LayBtn | undefined }) => (
   <div className={cls("xs", c.dock && "dk")}>
+    {lay ? (
+      <button
+        type="button"
+        className="x"
+        aria-label={lay.split ? "Stack" : "Split: the source beside its findings"}
+        title={lay.split ? "Stack" : "Split: the source beside its findings"}
+        onClick={lay.flip}
+      >
+        <Icon name={lay.split ? "rows" : "split"} size={14} />
+      </button>
+    ) : null}
     <button
       type="button"
       className="x"
@@ -163,6 +178,49 @@ function Frame({
 }
 
 const picOf = (s: GraphSource) => s.thumb ?? s.og;
+
+/**
+ * A panel with a title card and a body. Wide and split: `side` left, `main` right, the card under
+ * both (split.tsx). Else the card on top, then `stack`.
+ */
+function Laid({
+  c,
+  kind,
+  head,
+  side,
+  main,
+  stack,
+}: {
+  c: PanelCtx;
+  kind: Speaker;
+  head: ReactNode;
+  side: ReactNode;
+  main: ReactNode;
+  stack: ReactNode;
+}) {
+  const { split, wide, lay, set, box } = useLay();
+  const btn = wide ? { split, flip: () => set(lay === "split" ? "stack" : "split") } : undefined;
+  if (!split)
+    return (
+      <>
+        <div ref={box} className={`ph k-${kind}`}>
+          <X c={c} lay={btn} />
+          {head}
+        </div>
+        <div className="pb">{stack}</div>
+      </>
+    );
+  return (
+    <div ref={box} className="spw">
+      <X c={c} lay={btn} />
+      <SplitBody
+        side={<div className="pb">{side}</div>}
+        main={<div className="pb">{main}</div>}
+        head={<div className={`ph k-${kind}`}>{head}</div>}
+      />
+    </div>
+  );
+}
 
 /** A source as a tile: its frame first, then its name, kind and yield. */
 function Tile({ c, n }: { c: PanelCtx; n: GNode }) {
@@ -305,112 +363,154 @@ function SourcePanel({ c, n }: { c: PanelCtx; n: GNode }) {
       {x.p.d ? <small> {day(x.p.d)}</small> : null}
     </li>
   ));
-  return (
+  const pic = picOf(s) ? <Frame img={picOf(s)} icon={s.icon} fmt={s.fmt} kind={s.kind} /> : null;
+  const none = !s.pages.length ? (
+    <p className="gh">A search found this and the run kept it, but nothing read it yet.</p>
+  ) : null;
+  const pgHead = (x: (typeof told)[number]) => (
+    <a className="pgh" href={x.p.u} target="_blank" rel="noopener">
+      <Frame
+        img={x.p.th ?? x.p.og}
+        icon={s.icon}
+        fmt={x.p.f || s.fmt}
+        kind={s.kind}
+        len={x.p.len}
+        sm
+      />
+      <span>
+        <b>{x.p.t}</b>
+        <small>
+          {[
+            day(x.p.d),
+            clock(x.p.len),
+            stepAt(c.L.run, x.p.r),
+            x.p.kept ? pl(x.p.kept, "finding") : "",
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </small>
+        <small className="go">{s.site === "youtube" ? "Open the video" : "Open the page"}</small>
+      </span>
+    </a>
+  );
+  const rest = (
     <>
-      <div className={`ph k-${s.kind}`}>
-        <X c={c} />
-        <div className="hd">
-          <Ico s={s} />
-          <h4>{s.name}</h4>
-        </div>
-        <p className="ct">
-          <Kd k={s.kind} />
-          {mix ? <span>{mix}</span> : null}
-          <span>{stepAt(c.L.run, s.r, true)}</span>
-          {s.pages.length ? (
-            <>
-              <span>{pl(s.pages.length, u)} read</span>
-              <span>{s.kept ? `${pl(s.kept, "finding")} kept` : "No finding kept"}</span>
-              {s.used ? <span>{pl(s.used, "finding")} in claims</span> : null}
-            </>
-          ) : (
-            <span>Not read yet</span>
-          )}
-          {s.home ? <Out href={s.home}>Open the site</Out> : null}
-        </p>
-        {backs.length ? (
+      {quiet.length ? (
+        told.length ? (
+          <details>
+            <summary>{pl(quiet.length, `more ${u}`)} read, no finding kept</summary>
+            <ul>{qli}</ul>
+          </details>
+        ) : (
           <>
-            <p className="lbl">Backs {pl(backs.length, "claim")}</p>
-            <div className="cl">
-              {backs.map((i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className="chip"
-                  onClick={() => c.pick({ t: "c", i }, true)}
-                >
-                  <i className="no">{L.run.claims[i]?.n}</i>
-                  <span>{L.run.claims[i]?.head}</span>
-                </button>
-              ))}
-            </div>
+            <p className="lbl">Read. No finding kept.</p>
+            <ul>{qli}</ul>
           </>
-        ) : null}
-        {qs.length ? (
-          <>
-            <p className="lbl">Found by {pl(qs.length, "search")}</p>
-            <div className="cl">
-              {qs.map((q) => (
-                <QChip key={q.i} c={c} q={q} />
-              ))}
-            </div>
-          </>
-        ) : null}
-      </div>
-      <div className="pb">
-        {picOf(s) ? <Frame img={picOf(s)} icon={s.icon} fmt={s.fmt} kind={s.kind} /> : null}
-        {!s.pages.length ? (
-          <p className="gh">A search found this and the run kept it, but nothing read it yet.</p>
-        ) : null}
-        {told.map((x) => (
-          <section key={x.i} className="pg">
-            <a className="pgh" href={x.p.u} target="_blank" rel="noopener">
-              <Frame
-                img={x.p.th ?? x.p.og}
-                icon={s.icon}
-                fmt={x.p.f || s.fmt}
-                kind={s.kind}
-                len={x.p.len}
-                sm
-              />
-              <span>
-                <b>{x.p.t}</b>
-                <small>
-                  {[
-                    day(x.p.d),
-                    clock(x.p.len),
-                    stepAt(c.L.run, x.p.r),
-                    x.p.kept ? pl(x.p.kept, "finding") : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </small>
-                <small className="go">
-                  {s.site === "youtube" ? "Open the video" : "Open the page"}
-                </small>
-              </span>
-            </a>
-            {x.fs.map((f) => (
-              <Finding key={s.fs.indexOf(f)} c={c} s={s} f={f} claim />
-            ))}
-          </section>
-        ))}
-        {quiet.length ? (
-          told.length ? (
-            <details>
-              <summary>{pl(quiet.length, `more ${u}`)} read, no finding kept</summary>
-              <ul>{qli}</ul>
-            </details>
-          ) : (
-            <>
-              <p className="lbl">Read. No finding kept.</p>
-              <ul>{qli}</ul>
-            </>
-          )
-        ) : null}
-        <Unread c={c} s={s} />
-      </div>
+        )
+      ) : null}
+      <Unread c={c} s={s} />
     </>
+  );
+  return (
+    <Laid
+      c={c}
+      kind={s.kind}
+      head={
+        <>
+          <div className="hd">
+            <Ico s={s} />
+            <h4>{s.name}</h4>
+          </div>
+          <p className="ct">
+            <Kd k={s.kind} />
+            {mix ? <span>{mix}</span> : null}
+            <span>{stepAt(c.L.run, s.r, true)}</span>
+            {s.pages.length ? (
+              <>
+                <span>{pl(s.pages.length, u)} read</span>
+                <span>{s.kept ? `${pl(s.kept, "finding")} kept` : "No finding kept"}</span>
+                {s.used ? <span>{pl(s.used, "finding")} in claims</span> : null}
+              </>
+            ) : (
+              <span>Not read yet</span>
+            )}
+            {s.home ? <Out href={s.home}>Open the site</Out> : null}
+          </p>
+          {backs.length ? (
+            <>
+              <p className="lbl">Backs {pl(backs.length, "claim")}</p>
+              <div className="cl">
+                {backs.map((i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className="chip"
+                    onClick={() => c.pick({ t: "c", i }, true)}
+                  >
+                    <i className="no">{L.run.claims[i]?.n}</i>
+                    <span>{L.run.claims[i]?.head}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+          {qs.length ? (
+            <>
+              <p className="lbl">Found by {pl(qs.length, "search")}</p>
+              <div className="cl">
+                {qs.map((q) => (
+                  <QChip key={q.i} c={c} q={q} />
+                ))}
+              </div>
+            </>
+          ) : null}
+        </>
+      }
+      stack={
+        <>
+          {pic}
+          {none}
+          {told.map((x) => (
+            <section key={x.i} className="pg">
+              {pgHead(x)}
+              {x.fs.map((f) => (
+                <Finding key={s.fs.indexOf(f)} c={c} s={s} f={f} claim />
+              ))}
+            </section>
+          ))}
+          {rest}
+        </>
+      }
+      side={
+        <>
+          {pic}
+          {none}
+          {told.map((x) => (
+            <section key={x.i} className="pg">
+              {pgHead(x)}
+            </section>
+          ))}
+          {rest}
+        </>
+      }
+      main={
+        told.length ? (
+          told.map((x) => (
+            <section key={x.i} className="pg">
+              {/* one page: the side card already names it */}
+              {told.length > 1 ? <p className="lbl">{x.p.t}</p> : null}
+              {x.fs.map((f) => (
+                <Finding key={s.fs.indexOf(f)} c={c} s={s} f={f} claim />
+              ))}
+            </section>
+          ))
+        ) : (
+          <p className="gh">
+            {s.pages.length ? "No finding kept from this source." : "Nothing read yet."}
+          </p>
+        )
+      }
+    />
   );
 }
 
@@ -650,30 +750,50 @@ function PagePanel({ c, n, b }: { c: PanelCtx; n: GNode; b: number }) {
   const pg = s.pages[b];
   if (!pg) return null;
   const fs = s.fs.filter((f) => f.p === b);
+  const open = s.site === "youtube" ? "Open the video" : "Open the page";
+  const found = fs.length ? (
+    fs.map((f) => <Finding key={s.fs.indexOf(f)} c={c} s={s} f={f} claim />)
+  ) : (
+    <p className="gh">The run read this {unit(s)} and kept no finding from it.</p>
+  );
   return (
-    <>
-      <div className={`ph k-${s.kind}`}>
-        <X c={c} />
-        <div className="hd">
-          <Ico s={s} />
-          <h4>{pg.t}</h4>
-        </div>
-        <p className="ct">
-          <Kd k={s.kind} />
-          <SrcLink c={c} s={s} />
-          <span>{stepAt(c.L.run, pg.r, true)}</span>
-          <span>{fs.length ? pl(fs.length, "finding") : "No finding kept"}</span>
-          <Out href={pg.u}>{s.site === "youtube" ? "Open the video" : "Open the page"}</Out>
-        </p>
-      </div>
-      <div className="pb">
-        {fs.length ? (
-          fs.map((f) => <Finding key={s.fs.indexOf(f)} c={c} s={s} f={f} claim />)
-        ) : (
-          <p className="gh">The run read this {unit(s)} and kept no finding from it.</p>
-        )}
-      </div>
-    </>
+    <Laid
+      c={c}
+      kind={s.kind}
+      head={
+        <>
+          <div className="hd">
+            <Ico s={s} />
+            <h4>{pg.t}</h4>
+          </div>
+          <p className="ct">
+            <Kd k={s.kind} />
+            <SrcLink c={c} s={s} />
+            <span>{stepAt(c.L.run, pg.r, true)}</span>
+            <span>{fs.length ? pl(fs.length, "finding") : "No finding kept"}</span>
+            <Out href={pg.u}>{open}</Out>
+          </p>
+        </>
+      }
+      stack={found}
+      side={
+        <a className="pgh" href={pg.u} target="_blank" rel="noopener">
+          <Frame
+            img={pg.th ?? pg.og ?? picOf(s)}
+            icon={s.icon}
+            fmt={pg.f || s.fmt}
+            kind={s.kind}
+            len={pg.len}
+          />
+          <span>
+            <b>{pg.t}</b>
+            <small>{[day(pg.d), clock(pg.len)].filter(Boolean).join(" · ")}</small>
+            <small className="go">{open}</small>
+          </span>
+        </a>
+      }
+      main={found}
+    />
   );
 }
 

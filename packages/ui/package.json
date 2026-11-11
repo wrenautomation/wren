@@ -97,6 +97,7 @@
     "lucide-react": "1.51.0",
     "motion": "14.0.0",
     "react-hook-form": "7.89.0",
+    "react-resizable-panels": "2.1.7",
     "react-textarea-autosize": "8.5.9",
     "recharts": "3.10.1",
     "simple-icons": "16.34.0",

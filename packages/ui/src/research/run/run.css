@@ -2539,3 +2539,74 @@
   opacity: 0.4;
   cursor: default;
 }
+/* Split (WA-1315): source left, findings right, the title card under both; each edge drags */
+.rg .rg-panel:has(> .spw) {
+  overflow: hidden;
+}
+.rg .rg-panel .spw {
+  position: relative;
+  height: 100%;
+}
+.rg .rg-panel .spw > .xs {
+  top: 8px;
+}
+/* the library's panels clip; their one child scrolls */
+.rg .rg-panel .sp-side > .pb,
+.rg .rg-panel .sp-main > .pb,
+.rg .rg-panel .sp-head > .ph {
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.rg .rg-panel .sp-side {
+  background: var(--canvas);
+}
+.rg .rg-panel .sp .pb {
+  padding: 8px 16px 20px;
+}
+/* the buttons sit over the findings column's top */
+.rg .rg-panel .sp-main > .pb {
+  padding-top: 40px;
+}
+.rg .rg-panel .sp-side > .pb > .fr {
+  margin-top: 8px;
+}
+.rg .rg-panel .sp .ph {
+  position: static;
+  border-bottom: 0;
+}
+.rg .rg-panel .sp .hd {
+  padding-right: 0;
+}
+.rg .rg-panel .sp-h,
+.rg .rg-panel .sp-v {
+  background: var(--hair);
+  transition: background 0.15s;
+}
+.rg .rg-panel .sp-h {
+  width: 1px;
+  margin-inline: -3px;
+  border-inline: 3px solid transparent;
+  background-clip: padding-box;
+}
+.rg .rg-panel .sp-v {
+  height: 1px;
+  margin-block: -3px;
+  border-block: 3px solid transparent;
+  background-clip: padding-box;
+}
+.rg .rg-panel .sp-h[data-resize-handle-state="hover"],
+.rg .rg-panel .sp-h[data-resize-handle-state="drag"],
+.rg .rg-panel .sp-v[data-resize-handle-state="hover"],
+.rg .rg-panel .sp-v[data-resize-handle-state="drag"] {
+  background-color: var(--accent);
+}
+/* a split column is its own measure: no centering */
+.rg .rg-panel.dk .sp .pb,
+.rg .rg-panel.dk .sp .ph {
+  padding-inline: 16px;
+}
+.rg .rg-panel.dk .spw > .xs {
+  right: 10px;
+}

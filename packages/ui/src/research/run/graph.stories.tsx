@@ -110,6 +110,22 @@ export const SourceOpen: Story = {
   },
 };
 
+/** A wide window splits a source: its pages left, findings right, the title card under both. */
+export const SourceSplit: Story = {
+  args: { run: RUN_GRAPH },
+  play: async ({ canvasElement }) => {
+    const src = RUN_GRAPH.sources.find((s) => s.kept && s.pages.length);
+    if (!src) return;
+    await userEvent.click(await mark(canvasElement, `s${src.id}`));
+    await waitFor(() => expect(canvasElement.querySelector(".rg-panel .ph h4")).not.toBeNull());
+    const panel = canvasElement.querySelector<HTMLElement>(".rg-panel:has(.ph h4)");
+    // a narrow panel stacks; a wide one splits and shows the switch
+    if (panel && panel.getBoundingClientRect().width >= 560)
+      await waitFor(() => expect(panel.querySelector(".spw .sp-main .fd")).not.toBeNull());
+    else expect(panel?.querySelector(".spw")).toBeNull();
+  },
+};
+
 /** The Dropped tab, one reason picked: each hit links to its page. */
 export const Dropped: Story = {
   args: { run: RUN_GRAPH },
