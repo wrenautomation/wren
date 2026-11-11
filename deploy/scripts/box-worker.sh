@@ -42,9 +42,15 @@ rm -rf /opt/wren-worker.new && mkdir -p /opt/wren-worker.new
 python3 -m zipfile -e /tmp/wren-worker.zip /opt/wren-worker.new
 rm -f /tmp/wren-worker.zip
 
-# The same bundle and script as the running worker: leave it be. A restart cuts any turn
+# The same bundle, script and env as the running worker: leave it be. A restart cuts any turn
 # mid-run; it runs again only when its lease ends.
-script="$(sha256sum "$0" | cut -c1-64)"
+# Env = SSM versions: the worker reads SSM once at start, so a new version needs a new slot.
+ssm_env=/wren/prod/env,/wren/prod/env-2,/wren/prod/env-3,/wren/prod/keystore
+versions=""
+for p in ${ssm_env//,/ }; do
+  versions+="$p=$(aws ssm get-parameter --region us-east-1 --name "$p" --query Parameter.Version --output text);"
+done
+script="$(sha256sum "$0" | cut -c1-64) $(sha256sum <<<"$versions" | cut -c1-16)"
 if [ -n "$live_dir" ] && [ "$(cat /opt/wren-worker.script 2>/dev/null)" = "$script" ] &&
   diff -rq "$live_dir" /opt/wren-worker.new >/dev/null 2>&1 &&
   [ "$(docker inspect -f '{{.State.Running}}' wren-worker 2>/dev/null)" = true ]; then
@@ -72,7 +78,7 @@ docker run -d --name wren-worker-new --restart unless-stopped --init \
   -e WREN_BUILD="$key" -e WREN_BUILD_LIVE="$live_build" \
   -v /etc/wren:/etc/wren:ro \
   -e WREN_BUNDLE_ROOT=/app \
-  -e WREN_SSM_ENV_PARAM=/wren/prod/env,/wren/prod/env-2,/wren/prod/env-3,/wren/prod/keystore \
+  -e WREN_SSM_ENV_PARAM="$ssm_env" \
   -e WREN_SSM_ROSTER_PARAM=/wren/prod/senders_config \
   -e WREN_SSM_MAILBOXES_PARAM=/wren/prod/mailboxes \
   -e WREN_SSM_BOX_PARAM=/wren/prod/box \

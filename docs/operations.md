@@ -216,9 +216,9 @@ GitHub environment `production` secrets: `AWS_DEPLOY_ROLE_ARN`,
 Edit `deploy/prod.env`, run `deploy/scripts/push-secrets.sh`, then
 `gh workflow run deploy.yml --ref main`: it publishes a new Lambda version and starts a new box
 slot, so every instance cold-starts and re-reads SSM. (Bumping `$LATEST`'s description does not
-recycle a published version's instances; the Lambda lane invokes `:N`, not `$LATEST`.) A rerun of
-the same commit keeps the box slot (slots key on the commit): the box reads new SSM values only
-after a new commit deploys.
+recycle a published version's instances; the Lambda lane invokes `:N`, not `$LATEST`.) The box
+keeps its slot only when the bundle, `box-worker.sh` and the SSM env versions all match, so a
+rerun after an env change starts a new slot.
 
 `/wren/prod/env` and `env-2` are full; new names go in `env-3`. It holds the Plaid keys
 (`PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_SANDBOX_SECRET`) and each linked card's token
