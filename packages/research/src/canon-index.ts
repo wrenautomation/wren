@@ -15,8 +15,8 @@ import * as restate from "@wren/runtime";
 import { type Db as IndexDb, RecordIndex, type Synced } from "@wrenautomation/knowledge";
 import { sql } from "drizzle-orm";
 
-export const CANON_SCHEMA = "canon";
-export const CANON_ROLE = "canon_index";
+const CANON_SCHEMA = "canon";
+const CANON_ROLE = "canon_index";
 const HOUR_MS = 3_600_000;
 
 /** Derived from main's password, as client logins are: no secret to store or rotate. */
@@ -37,7 +37,7 @@ export function canonIndexUrl(mainUrl: string): string {
  * makes, sees only `canon` (search_path), and every table it makes is readable by main, a rebuild's
  * new tables too (default privileges).
  */
-export async function ensureCanonIndex(main: Db, mainUrl: string): Promise<void> {
+async function ensureCanonIndex(main: Db, mainUrl: string): Promise<void> {
   const reader = new URL(mainUrl).username;
   const password = new URL(canonIndexUrl(mainUrl)).password;
   const run = (text: string) => main.execute(sql.raw(text));
@@ -69,7 +69,7 @@ export interface CanonCheckout {
 }
 
 /** The bare clone at `main`'s tip: cloned once, then fetched (new objects only). */
-export function fetchCanon(repo: string, c: CanonCheckout): string {
+function fetchCanon(repo: string, c: CanonCheckout): string {
   mkdirSync(c.dir, { recursive: true, mode: 0o700 });
   // the token rides in env-only git config: never in argv, the remote URL or the clone's config
   const auth = c.token
