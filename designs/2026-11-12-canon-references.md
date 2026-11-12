@@ -99,7 +99,7 @@ super minimal rewrites on my notes for standardization."
   fix (small edit distance).
 - This session does both passes, a one-off. William gets the before and after of each note. The
   raw notes stay in git history.
-- Agent words in `note` move to `origin`.
+- The 10 Learn marks stay as they are: they record his own act (a folder, a star).
 - No agent writes a note for him. An empty note stays empty.
 - From now on a note comes in with the link: `wren source add <link> --from william --note "…"`
   (WA-1342). A second note goes under the first.
@@ -154,3 +154,5 @@ super minimal rewrites on my notes for standardization."
   Main changes: reels already stored (D2 rebuilt on the existing store, no `media` field); grants
   survive a rebuild; sync detached, one writer; line ids at read time with `linesOf`; "Used in
   Vireo" cut; the note facts restated (about 30 still cut).
+- 2026-11-12: notes done: 76 of 86 rewritten (Canon 6fce9270). 2 had no words of his about the
+  link and lost the note; 2 (SEO, LinkedIn) have no full source and stay cut. Learn marks unchanged.
