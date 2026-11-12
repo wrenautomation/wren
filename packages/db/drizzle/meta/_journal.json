@@ -2752,6 +2752,13 @@
       "when": 1794511229614,
       "tag": "0393_canon_add_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 394,
+      "version": "7",
+      "when": 1794519411692,
+      "tag": "0394_canon_search_trigrams",
+      "breakpoints": true
     }
   ]
 }
