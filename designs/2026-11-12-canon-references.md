@@ -137,6 +137,22 @@ super minimal rewrites on my notes for standardization."
 - States: loading, empty filter, no index on prod yet, a reel on the embed, a long title, a long
   note. The page footer names the indexed commit (`knowledge_meta.head`).
 
+## D4: the Add box (WA-1345)
+
+He pastes a link or drops a file, adds his words, and it lands in Canon like `wren source add
+--from william --note`. Facts: the box token can push to Canon. The box image has no yt-dlp or
+ffmpeg. Instagram refuses most cloud IPs; every reel so far came down from the Mac.
+
+| | Who files it | For | Against |
+|---|---|---|---|
+| A | The box: clone, `addSource`, commit, push | lands in about a minute, no Mac | new image (yt-dlp, ffmpeg); Instagram blocks AWS IPs, so reels fail or need a proxy; a second writer to Canon |
+| **B** | **The portal stores a request row; the Mac files it with the same CLI, then marks it done** | **one writer and one add path; reels download from a home IP; an agent can tag it and fix typos in his note** | **lands only while the Mac is awake (minutes, not seconds); one new table** |
+| C | A GitHub Action in Canon, on `repository_dispatch` | no Mac, no box change | the wren CLI, model keys and AWS keys in Canon's secrets; same IP block as A |
+
+Recommend B. Ranked by: reels must land (A and C fail there), one write path, no new secret. The
+row shows on the page as "Filing…" until the index has the record; a failed add shows its error
+and a Retry. A file goes to the media bucket first (`canon/<sha32>`, as `source files` does).
+
 ## Non-goals
 
 - Editing notes or tags in the portal: a portal edit is a commit, built later.
@@ -172,3 +188,4 @@ super minimal rewrites on my notes for standardization."
 - 2026-11-12: notes done: 76 of 86 rewritten (Canon 6fce9270). 2 had no words of his about the
   link and lost the note; 2 (SEO, LinkedIn) have no full source and stay cut. Learn marks unchanged.
 - 2026-11-12: D1 moved from the Mac hook to C (box fetches on push), William: "sure go with C". Built: `CanonIndexSync`, `/webhooks/github`, `wren canon sync`.
+- 2026-11-12: References page built and shipped (bcf7926, 0fc5b5e). D4 (Add box) written; open for William: B recommended.
