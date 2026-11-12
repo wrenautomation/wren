@@ -14,7 +14,7 @@
     "@wren/core": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wrenautomation/knowledge": "0.70.3",
-    "@wrenautomation/read": "0.68.10",
+    "@wrenautomation/read": "0.71.1",
     "zod": "4.6.6"
   },
   "devDependencies": {

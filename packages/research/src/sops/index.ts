@@ -28,7 +28,14 @@ import {
 import type { Model } from "@wrenautomation/models";
 import type { Ear } from "@wrenautomation/models/hear";
 import type { Fetched, MediaStore, VideoRead, WatchOptions } from "@wrenautomation/read/video";
-import { keptRead, mediaKey, readVideo, readYoutube, seeYoutube } from "@wrenautomation/read/video";
+import {
+  keptRead,
+  mediaKey,
+  readStats,
+  readVideo,
+  readYoutube,
+  seeYoutube,
+} from "@wrenautomation/read/video";
 import { expandCites, numberCites } from "./cites.js";
 import { atOf, type Point, pointsOf, pointsText, pointTitle } from "./points.js";
 import { assignIds, freePrefix, mergeDoc, prefixesIn, type SetBlock, splitDoc } from "./sets.js";
@@ -52,9 +59,9 @@ export interface Source {
   md: string;
 }
 
-const frontMatter = (fields: Record<string, string | number>) =>
+const frontMatter = (fields: Record<string, string | number | object>) =>
   `---\n${Object.entries(fields)
-    .map(([k, v]) => `${k}: ${typeof v === "string" ? JSON.stringify(v) : v}`)
+    .map(([k, v]) => `${k}: ${typeof v === "number" ? v : JSON.stringify(v)}`)
     .join("\n")}\n---\n\n`;
 
 /**
@@ -73,6 +80,7 @@ export function toSource(read: VideoRead, priority = DEFAULT_PRIORITY): Source {
       priority,
       ...(read.duration ? { duration: read.duration } : {}),
       ...(read.thumbnail ? { thumbnail: read.thumbnail } : {}),
+      ...(read.stats ? { stats: read.stats } : {}),
     })}# ${read.title}\n\n${read.body}`,
   };
 }
@@ -103,15 +111,20 @@ export const youtubeSource = async (
     ...(fetchFn ? { fetchFn } : {}),
   };
   // with frames: its own read, apart from a captions-only one
-  return toSource(
-    eye
-      ? await keptRead(store, key && `${key}.see`, () =>
-          seeYoutube(url, { ...common, eye, words: true, ...(store ? { store } : {}) }),
-        )
-      : await keptRead(store, key, () => readYoutube(url, common)),
-    priority,
-  );
+  const read = eye
+    ? await keptRead(store, key && `${key}.see`, () =>
+        seeYoutube(url, { ...common, eye, words: true, ...(store ? { store } : {}) }),
+      )
+    : await keptRead(store, key, () => readYoutube(url, common));
+  return toSource(await withFreshStats(read, url, ytDlp), priority);
 };
+
+/** A kept read's numbers are old: read them again, else keep the read's own. */
+async function withFreshStats(read: VideoRead, url: string, ytDlp: string): Promise<VideoRead> {
+  const stats = await readStats(url, ytDlp).catch(() => undefined);
+  const best = stats ?? read.stats;
+  return best ? { ...read, stats: best } : read;
+}
 
 /**
  * Any other video (Instagram reel, TikTok, X), watched (`readVideo`): the caption, then its
@@ -125,7 +138,11 @@ export const videoSource = async (
   opts: Omit<WatchOptions, "ytDlp"> & Fetched,
 ): Promise<Source> =>
   toSource(
-    await keptRead(opts.store, mediaKey(url), () => readVideo(url, { ...opts, ytDlp })),
+    await withFreshStats(
+      await keptRead(opts.store, mediaKey(url), () => readVideo(url, { ...opts, ytDlp })),
+      url,
+      ytDlp,
+    ),
     priority,
   );
 
@@ -409,16 +426,16 @@ names what the SOP governs (kinds post, film, reel, video; platforms; topic word
 and brands): \`wren sop sync\` measures those pieces into standard.md and rolls your calls into calls.md.
 `;
 
-/** `toSource`'s front matter: JSON strings and bare numbers, one per line. */
-function sourceFields(md: string): { fields: Record<string, string | number>; body: string } {
+/** `toSource`'s front matter: JSON strings, objects and bare numbers, one per line. */
+function sourceFields(md: string): { fields: Record<string, unknown>; body: string } {
   const m = md.match(FRONT_MATTER);
   if (!m) return { fields: {}, body: md.trim() };
-  const fields: Record<string, string | number> = {};
+  const fields: Record<string, unknown> = {};
   for (const line of m[0].split("\n").slice(1, -2)) {
     const kv = line.match(/^([a-z_]+):\s*(.*)$/);
     if (!kv?.[1]) continue;
     const v = kv[2] ?? "";
-    fields[kv[1]] = v.startsWith('"') ? (JSON.parse(v) as string) : /^\d+$/.test(v) ? Number(v) : v;
+    fields[kv[1]] = /^["{]/.test(v) ? JSON.parse(v) : /^\d+$/.test(v) ? Number(v) : v;
   }
   return { fields, body: md.slice(m[0].length).trim() };
 }
