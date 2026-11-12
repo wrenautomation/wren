@@ -23,10 +23,13 @@ import {
   loadWorking,
   newId,
   readRecord,
+  sourceId,
   write,
 } from "@wrenautomation/knowledge";
 import type { Model } from "@wrenautomation/models";
 import type { Ear } from "@wrenautomation/models/hear";
+import type { Fetcher } from "@wrenautomation/read/fetch";
+import { readPage } from "@wrenautomation/read/text";
 import type { Fetched, MediaStore, VideoRead, WatchOptions } from "@wrenautomation/read/video";
 import {
   keptRead,
@@ -145,6 +148,56 @@ export const videoSource = async (
     ),
     priority,
   );
+
+/** A person's own note on a source: whole, never cut. */
+export interface Note {
+  text: string;
+  by: string;
+  /** YYYY-MM-DD */
+  at: string;
+}
+
+/** Hosts whose links are videos or posts yt-dlp reads; any other link is a page. */
+export const VIDEO_HOST =
+  /^https?:\/\/([a-z]+\.)?(instagram\.com|tiktok\.com|x\.com|twitter\.com|vimeo\.com|facebook\.com|fb\.watch)\//i;
+
+/**
+ * A web page as a source: its title, picture and text. A GitHub repo: its README, raw. Named by
+ * `sourceId`, so one URL is one record whoever adds it.
+ */
+export async function pageSource(
+  url: string,
+  fetcher: Fetcher,
+  priority = DEFAULT_PRIORITY,
+): Promise<Source> {
+  const id = sourceId(url);
+  const page = await fetcher.get(url);
+  if (page.status >= 400) throw new Error(`${url}: HTTP ${page.status}`);
+  const read = readPage(page.text, page.url);
+  let text = read.text;
+  const repo = new URL(page.url).pathname.match(/^\/([^/]+)\/([^/]+)/);
+  if (id.startsWith("github-") && repo) {
+    for (const f of ["README.md", "readme.md", "README"]) {
+      const r = await fetcher
+        .get(`https://raw.githubusercontent.com/${repo[1]}/${repo[2]}/HEAD/${f}`)
+        .catch(() => null);
+      if (r && r.status < 400 && r.text.trim()) {
+        text = r.text;
+        break;
+      }
+    }
+  }
+  const title = read.title || id;
+  return {
+    name: `${id}.md`,
+    md: `${frontMatter({
+      url: page.url,
+      title,
+      ...(read.image ? { image: read.image } : {}),
+      priority,
+    })}# ${title}\n\n${text.trim()}\n`,
+  };
+}
 
 /** `GET /drive/v3/...` on autobrowse's `drive` site, as the CLI wires it. */
 export type DriveGet = (path: string, body: Record<string, unknown>) => Promise<unknown>;
@@ -468,7 +521,8 @@ export interface By {
 /**
  * Add a source: a source record (`sources/<stem>.md`, one commit), tagged with the SOP's name and
  * with the topic folder and a notes.md stub when one is named. A source already there gets the
- * new text and the tag. `extra` adds fields (a `provider` counts on add only).
+ * new text and the tag. `extra` adds fields: a `provider` counts on add, or raises an agent's to a
+ * person's; a `note` goes under any note already there.
  */
 export async function addSource(
   root: string,
@@ -498,8 +552,21 @@ export async function addSource(
   };
   const prev = loadWorking(root).docs.find((l) => l.doc.fm.id === id);
   const tags = name ? [name] : [];
-  // provider is fixed on add; an edit keeps the first one
-  const { provider, ...more } = extra;
+  // provider: set on add; an edit only raises an agent's to a person's
+  const { provider, note, ...more } = extra;
+  const was = prev?.doc.fm as { provider?: { kind?: string }; note?: Note } | undefined;
+  const raise =
+    prev && provider && (provider as { kind?: string }).kind === "human"
+      ? was?.provider?.kind !== "human"
+      : false;
+  // a person's note is never replaced: a new one goes under the old
+  const said = note as Note | undefined;
+  const old = was?.note;
+  if (said?.text.trim())
+    more.note =
+      old && !old.text.includes(said.text.trim())
+        ? { ...said, text: `${old.text}\n\n${said.text.trim()}` }
+        : (old ?? { ...said, text: said.text.trim() });
   await write(
     root,
     [
@@ -509,6 +576,7 @@ export async function addSource(
             id,
             ...record,
             ...more,
+            ...(raise ? { provider } : {}),
             tags: [...new Set([...prev.doc.fm.tags, ...tags])].sort(),
           }
         : {

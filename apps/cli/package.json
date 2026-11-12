@@ -52,7 +52,7 @@
     "@wren/worker": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
     "@wrenautomation/compaction": "0.68.10",
-    "@wrenautomation/knowledge": "0.73.0",
+    "@wrenautomation/knowledge": "0.73.1",
     "@wrenautomation/models": "0.73.0",
     "@wrenautomation/read": "0.73.0",
     "@wrenautomation/vireo": "0.18.0",

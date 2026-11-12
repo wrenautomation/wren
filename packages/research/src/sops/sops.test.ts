@@ -10,6 +10,7 @@ import {
   driveSources,
   expandCites,
   numberCites,
+  pageSource,
   readSopDir,
   sopPrompt,
   topicDir,
@@ -104,7 +105,7 @@ describe("sops", () => {
       },
     });
     expect(await buildSop(dir, "x", llm, WHO)).toBe(
-      '# SOP\n\n1. Do it [1 0:00]\n\n## The owner\'s notes (they beat every source)\n\nmine\n\n## Sources\n\n1. file-b, "file-b"\n',
+      '# SOP\n\n1. Do it [1 0:00]\n\n## The owner\'s notes (they beat every source)\n\nmine\n\n## Sources\n\n1. file-b, "file-b" (human: test)\n',
     );
     expect(readRecord(dir, "x")?.fm).toMatchObject({ type: "guide", cites: ["file-b"] });
     expect(prompt.indexOf('file="file-b"')).toBeLessThan(prompt.indexOf('file="file-a"'));
@@ -162,6 +163,51 @@ describe("sops", () => {
     reply =
       '# SOP\n\nDo it.\n\n<!-- set x-rules XR "Rules" -->\n- **XR-2** Two [file-a]\n<!-- /set -->\n\n<!-- set x-bare "Bare" -->\n- No cite\n<!-- /set -->\n';
     await expect(buildSop(dir, "x", llm, WHO)).rejects.toThrow("x-bare cites no source or call");
+  });
+
+  it("files a page by its source id, and a repo by its README", async () => {
+    const pages: Record<string, string> = {
+      "https://emilkowal.ski/ui/x":
+        '<html><head><title>Good UI</title><meta property="og:image" content="/p.png"></head><body><p>Springs.</p></body></html>',
+      "https://github.com/acme/kit":
+        "<html><head><title>acme/kit</title></head><body>nav</body></html>",
+      "https://raw.githubusercontent.com/acme/kit/HEAD/README.md": "# Kit\n\nThe whole readme.",
+    };
+    const fetcher = {
+      userAgent: "test",
+      get: async (url: string) =>
+        url in pages
+          ? { status: 200, url, text: pages[url] ?? "" }
+          : { status: 404, url, text: "" },
+    };
+    const page = await pageSource("https://emilkowal.ski/ui/x", fetcher);
+    expect(page.name).toBe("web-emilkowal-ski-ui-x.md");
+    expect(page.md).toContain('image: "https://emilkowal.ski/p.png"');
+    expect(page.md).toContain("Springs.");
+    const repoSource = await pageSource("https://github.com/acme/kit", fetcher);
+    expect(repoSource.name).toBe("github-acme-kit.md");
+    expect(repoSource.md).toContain("The whole readme.");
+    expect(repoSource.md).not.toContain("nav");
+  });
+
+  it("keeps a giver's old note and adds a new one under it, whole", async () => {
+    dir = await repo();
+    const long = `insane editing ${"very high aura ".repeat(40)}`.trim();
+    const src = { name: "file-a.md", md: "---\n---\nbody" };
+    const by = { by: "william", at: "2026-11-12" };
+    await addSource(dir, null, src, WHO, { note: { text: "editing style", ...by } });
+    await addSource(dir, null, src, WHO, { note: { text: long, ...by } });
+    await addSource(dir, null, src, WHO, { note: { text: long, ...by } });
+    expect(readRecord(dir, "file-a")?.fm.note).toEqual({ text: `editing style\n\n${long}`, ...by });
+  });
+
+  it("raises an agent's provider to a person's, never back", async () => {
+    dir = await repo();
+    const src = { name: "file-a.md", md: "---\n---\nbody" };
+    await addSource(dir, null, src, WHO, { provider: { kind: "agent", who: "cc" } });
+    await addSource(dir, null, src, WHO, { provider: { kind: "human", who: "william" } });
+    await addSource(dir, null, src, WHO, { provider: { kind: "human", who: "else" } });
+    expect(readRecord(dir, "file-a")?.fm.provider).toEqual({ kind: "human", who: "william" });
   });
 
   it("tags a source shared by two SOPs once, in one record", async () => {

@@ -24,11 +24,13 @@ import {
   driveSources,
   extractPoints,
   fileSource,
+  pageSource,
   readSopDir,
   renumberGuide,
   type Source,
   sopText,
   topicDir,
+  VIDEO_HOST,
   videoSource,
   writeSkill,
   youtubeSource,
@@ -36,6 +38,7 @@ import {
 import { pushPlaybook } from "@wren/starling-inbound";
 import { loadWorking } from "@wrenautomation/knowledge";
 import { claudeCode } from "@wrenautomation/models/command";
+import { PoliteFetcher, userAgent } from "@wrenautomation/read/fetch";
 import type { Command } from "commander";
 import { breakdownLlm, breakdownSource, registerSourcePieces } from "./source-pieces.js";
 import { watchEyes } from "./video-watch.js";
@@ -83,10 +86,14 @@ export function registerCanon(
   source
     .command("add <what>")
     .description(
-      "ingest a source: a YouTube URL, another video URL (Instagram reel, TikTok, X), `drive:<folderId>` (every Doc under it), or a text file; any other file is kept as a topic's reference. A reel or video is broken down",
+      "ingest a source: a YouTube URL, another video URL (Instagram reel, TikTok, X), a web page or GitHub repo (its README), `drive:<folderId>` (every Doc under it), or a text file; any other file is kept as a topic's reference. A reel or video is broken down",
     )
     .option("--topic <name>", "tag it with this topic (makes the topic folder and a notes.md stub)")
-    .option("--from <person>", "who gave it (a person's sources outrank an agent's): the provider")
+    .option(
+      "--from <person>",
+      "who gave it (a person's sources outrank an agent's): the provider; raises an agent's",
+    )
+    .option("--note <words>", "the giver's own note on it, whole; added under any note there")
     .option("--account <address>", "whose Drive (an autobrowse `drive` consent)")
     .option("--priority <n>", "higher wins when sources disagree (notes.md always wins)", (v) =>
       Number.parseInt(v, 10),
@@ -100,6 +107,7 @@ export function registerCanon(
         opts: {
           topic?: string;
           from?: string;
+          note?: string;
           account?: string;
           priority?: number;
           screen?: boolean;
@@ -107,6 +115,8 @@ export function registerCanon(
           model: string;
         },
       ) => {
+        // a note is a person's own words: it names them
+        if (opts.note && !opts.from) throw new Error("--note needs --from <person>");
         const name = opts.topic ?? null;
         const priority = opts.priority ?? DEFAULT_PRIORITY;
         let sources: Source[];
@@ -120,6 +130,13 @@ export function registerCanon(
               ffmpeg,
             }),
           ];
+        } else if (/^https?:\/\//.test(what) && !VIDEO_HOST.test(what)) {
+          // a page or repo: its text (a repo: the README)
+          const fetcher = new PoliteFetcher(
+            userAgent(settings.fetchContact ?? "https://wrenautomation.com"),
+            { retries: 2 },
+          );
+          sources = [await pageSource(what, fetcher, priority)];
         } else if (/^https?:\/\//.test(what)) {
           // Reels, TikTok, X: no captions, so the watch core hears and reads the download.
           sources = [
@@ -141,7 +158,14 @@ export function registerCanon(
           return;
         }
         const who = { by: BY, why: `source add ${what}` };
-        const extra = opts.from ? { provider: { kind: "human", who: opts.from } } : {};
+        const extra = {
+          ...(opts.from ? { provider: { kind: "human", who: opts.from } } : {}),
+          ...(opts.note
+            ? {
+                note: { text: opts.note, by: opts.from, at: new Date().toISOString().slice(0, 10) },
+              }
+            : {}),
+        };
         const llm = opts.breakdown === false ? null : breakdownLlm(settings, rootDir, opts.model);
         for (const s of sources) {
           const path = await addSource(root, name, s, who, extra);
