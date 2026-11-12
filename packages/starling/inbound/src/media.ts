@@ -46,7 +46,7 @@ const clientOf = (o: MediaStoreOptions) =>
 
 /** What to do when the laptop's AWS session is gone. */
 export const AWS_LOGIN_HINT =
-  "run aws-login (cd autobrowse && pnpm -s autobrowse cli-login aws --user william)";
+  "sign in to AWS (cd autobrowse && pnpm -s autobrowse cli-login aws --user william)";
 
 /**
  * Before a long job that ends in an upload: the session signs and S3 takes it. A one-key list
