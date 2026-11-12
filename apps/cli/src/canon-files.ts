@@ -63,7 +63,7 @@ const READ_IMAGE =
   "Write out every word shown in this image, in reading order, as Markdown. Then one short paragraph: what the image shows.";
 
 /** The eye's read of a picture: its words, then what it shows. */
-export async function readImage(eye: Model, bytes: Uint8Array, type: string): Promise<string> {
+async function readImage(eye: Model, bytes: Uint8Array, type: string): Promise<string> {
   const r = await eye.complete({
     prompt: [
       { type: "image", data: bytes, mediaType: type },
@@ -187,7 +187,7 @@ export async function postFiles(
 }
 
 /** `cache/instagram/<code>.mp4` and its poster key, from a reel's record id. */
-export const reelKeys = (id: string) => {
+const reelKeys = (id: string) => {
   const code = id.replace(/^instagram-/, "");
   return { video: `cache/instagram/${code}.mp4`, poster: `cache/instagram/${code}.jpg` };
 };
