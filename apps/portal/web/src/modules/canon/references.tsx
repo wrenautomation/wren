@@ -280,7 +280,7 @@ function Card({ r, params }: { r: Reference; params: URLSearchParams }) {
   // a phone: a row, poster left, note across; wide: a card, poster on top
   return (
     <article className="grid grid-cols-[96px_minmax(0,1fr)] content-start gap-x-3 gap-y-2 @min-[720px]/main:flex @min-[720px]/main:flex-col">
-      <a href={to} tabIndex={-1} aria-hidden="true" className="group row-span-2 self-start">
+      <a href={to} tabIndex={-1} aria-label={r.title} className="group row-span-2 self-start">
         <Poster r={r} className="transition-[opacity] duration-150 group-hover:opacity-90" />
       </a>
       <a
