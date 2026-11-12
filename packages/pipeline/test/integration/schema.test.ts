@@ -217,8 +217,8 @@ describe("journeys", () => {
   });
 });
 
-describe("metro only (0315)", () => {
-  const SAID = "Convert first: wren shape convert.";
+describe("metro only (0315, 0392)", () => {
+  const SAID = "Refused: a graph body. Every shape is on the metro model.";
   const row = (body: unknown) => ({
     number: 2,
     body: body as never,
