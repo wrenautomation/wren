@@ -21,7 +21,9 @@ const program = () => {
       throw new Error("stop: no database in this test");
     },
   });
-  p.command("status").action(() => {});
+  const content = p.command("content");
+  content.command("status").action(() => {});
+  content.command("write").action(() => {});
   return { p, asked };
 };
 
@@ -62,8 +64,12 @@ describe("wren --client <id> groups", () => {
   });
 
   it("still refuses --client on a command that does not take it", async () => {
-    const { asked, done } = run(["--client", "acme", "status"]);
-    await expect(done).rejects.toThrow("`wren status` does not take --client");
+    const { asked, done } = run(["--client", "acme", "content", "status"]);
+    await expect(done).rejects.toThrow("`wren content status` does not take --client");
     expect(asked).toEqual([]);
+  });
+
+  it("takes --client on `content write`, the one per-client part of content", async () => {
+    await expect(run(["--client", "acme", "content", "write"]).done).resolves.toBeDefined();
   });
 });

@@ -1,5 +1,5 @@
 /**
- * `wren drafts …`: every draft waiting on William, from a terminal (designs/2026-10-06-content-desk.md,
+ * `wren content review …`: every draft waiting on William, from a terminal (designs/2026-10-06-content-desk.md,
  * 4), so a Claude Code session reads and rewrites the drafts the console shows. Ids are the
  * Inbox's: draft:<id>, comment:3, thread:t3_x. `set` writes the field the console edits and
  * leaves a runs row, so the item's Ask Claude thread shows it. `edits` prints how William changed
@@ -41,9 +41,9 @@ const { listEdits, listWaiting, readDraft, writeDraft } = deskDrafts;
 
 const line = (s: string | null, n = 90) => (s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 
-export function registerDrafts(program: Command, withDb: WithDb): void {
-  const drafts = program
-    .command("drafts")
+export function registerDrafts(content: Command, withDb: WithDb): void {
+  const drafts = content
+    .command("review")
     .description(
       "Drafts waiting on you (posts, comment answers, thread comments): read and rewrite",
     );

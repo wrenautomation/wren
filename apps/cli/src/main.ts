@@ -133,17 +133,6 @@ guardClient(program, (path) => {
   app = `wren-cli:${path.join(" ")}`;
 });
 
-program
-  .command("status")
-  .description("Is the content week on track? Exit 1 if Thursday+ with nothing drafted this week.")
-  .option("--today <iso>", "override today (YYYY-MM-DD)")
-  .action(async (opts: { today?: string }) => {
-    const now = opts.today ? new Date(`${opts.today}T00:00:00Z`) : new Date();
-    const report = await withMainDb((db) => collectStatus(db, now));
-    for (const line of formatStatusLines(report)) console.log(line);
-    if (weekSlipped(now, report.draftedThisWeek)) process.exitCode = 1;
-  });
-
 const db = program.command("db").description("database");
 db.command("check")
   .description("Print applied migration count")
@@ -252,15 +241,26 @@ registerLimits(program, withMainDb);
 registerWorkflows(program, withMainDb, withClientDb, settings);
 registerEnrich(program, withMainDb, settings, rootDir);
 registerPages(program, withMainDb, settings);
-registerContent(program, withMainDb, settings);
-registerWrite(program, withDb, settings);
-registerDrafts(program, withMainDb);
-registerJudge(program, withMainDb, {
+const content = registerContent(program, withMainDb, settings);
+content
+  .command("status")
+  .description("Is the content week on track? Exit 1 if Thursday+ with nothing drafted this week.")
+  .option("--today <iso>", "override today (YYYY-MM-DD)")
+  .action(async (opts: { today?: string }) => {
+    const now = opts.today ? new Date(`${opts.today}T00:00:00Z`) : new Date();
+    const report = await withMainDb((db) => collectStatus(db, now));
+    for (const line of formatStatusLines(report)) console.log(line);
+    if (weekSlipped(now, report.draftedThisWeek)) process.exitCode = 1;
+  });
+
+registerWrite(content, withDb, settings);
+registerDrafts(content, withMainDb);
+registerJudge(content, withMainDb, {
   llmEnvPath: settings.llmEnvPath,
   rootDir,
   ingress: ingressOf(settings),
 });
-registerTrain(program, withMainDb);
+registerTrain(content, withMainDb);
 registerSms(program, withDb, settings);
 registerReach(program, withMainDb, settings);
 registerAccounts(program, withMainDb, settings);

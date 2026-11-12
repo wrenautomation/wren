@@ -26,8 +26,9 @@ const CLIENT_SCOPED = new Set([
   "templates",
   "terms",
   "workflows",
-  "write",
 ]);
+/** Under a command outside the set, the parts that do take `--client`. */
+const PER_CLIENT = new Set(["content write"]);
 /** Under a client-scoped command, the parts that cover every database or only Wren's. */
 const NOT_PER_CLIENT = new Set([
   "audit sealer",
@@ -50,7 +51,9 @@ export function guardClient(program: Command, onPath: (path: string[]) => void =
     onPath(path);
     if (!program.opts<{ client?: string }>().client) return;
     const top = path[0] ?? "";
-    if (!CLIENT_SCOPED.has(top) || NOT_PER_CLIENT.has(path.slice(0, 2).join(" ")))
-      throw new Error(`\`wren ${path.slice(0, 2).join(" ")}\` does not take --client`);
+    const part = path.slice(0, 2).join(" ");
+    if (PER_CLIENT.has(part)) return;
+    if (!CLIENT_SCOPED.has(top) || NOT_PER_CLIENT.has(part))
+      throw new Error(`\`wren ${part}\` does not take --client`);
   });
 }

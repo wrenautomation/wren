@@ -13,8 +13,8 @@ import { mediaOf } from "./content.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
-export function registerWrite(program: Command, withDb: WithDb, settings: Settings): void {
-  program
+export function registerWrite(content: Command, withDb: WithDb, settings: Settings): void {
+  content
     .command("write")
     .description(
       "Write one post in your own words as a draft per platform, no model; --media for a video platform (TikTok)",

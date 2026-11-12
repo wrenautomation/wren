@@ -1,5 +1,5 @@
 /**
- * `wren train …`: the training record out as JSONL (designs/2026-10-07-training-record.md).
+ * `wren content train …`: the training record out as JSONL (designs/2026-10-07-training-record.md).
  * `export` writes one `wren.draft/1` line per draft, `pairs` one `wren.pair/1` line per
  * preference pair, `backfill` folds the drafts made before the record into it. Names and emails
  * read [person] and [email] unless `--include-people`.
@@ -50,8 +50,8 @@ function emit(rows: readonly unknown[], what: string, out?: string) {
   process.stderr.write(`${rows.length} ${what}${out ? ` → ${out}` : ""}\n`);
 }
 
-export function registerTrain(program: Command, withDb: WithDb): void {
-  const train = program
+export function registerTrain(content: Command, withDb: WithDb): void {
+  const train = content
     .command("train")
     .description("The training record as JSONL: every draft, its versions, decisions, outcomes");
   const filters = (c: Command) =>

@@ -1,5 +1,5 @@
 /**
- * `wren judge …` (designs/2026-10-16-decide.md, 2026-11-04-loops.md): the machine's calls beside
+ * `wren content judge …` (designs/2026-10-16-decide.md, 2026-11-04-loops.md): the machine's calls beside
  * William's. `stats` shows agreement and spend per kind, `mode` sets a kind's mode, `export` writes
  * the distill set (`wren.decision/1` JSONL), `backfill` labels history from the draft record and can
  * ask the judge about a capped sample of it, `pass` runs one pass here.
@@ -83,7 +83,7 @@ const positive = (v: string) => {
 };
 
 export function registerJudge(
-  program: Command,
+  content: Command,
   withDb: WithDb,
   env: {
     llmEnvPath: string;
@@ -92,9 +92,8 @@ export function registerJudge(
     ingress: { url: string; headers?: Record<string, string> };
   },
 ): Command {
-  const decide = program
+  const decide = content
     .command("judge")
-    .alias("decide")
     .description("The judge's calls beside William's: agreement, spend, modes, the distill set");
   const backends = () => {
     loadLlmEnv(env.llmEnvPath, env.rootDir);
