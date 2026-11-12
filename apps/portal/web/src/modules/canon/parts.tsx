@@ -159,7 +159,7 @@ const CITE = /\[(\d+)((?: [^\]\n]*)?)\](?![(:])/g;
 const NOTES = /\[notes\](?![(:])/g;
 
 /** Canon's markdown with each `[n]` as a link to the record it names. */
-export function citeLinks(text: string): string {
+function citeLinks(text: string): string {
   return text
     .replace(CITE, (_, n: string, rest: string) => `[\\[${n}${rest}\\]](#cite-${n})`)
     .replace(NOTES, "[\\[notes\\]](#notes)");
@@ -195,6 +195,7 @@ const MD: Components = {
       {children}
     </pre>
   ),
+  // table-ok: a markdown file's own table, drawn as written
   table: ({ children }) => (
     <div className="my-2 overflow-x-auto">
       <table className="w-full border-collapse text-[13px]">{children}</table>
@@ -293,7 +294,7 @@ export const sizeLabel = (n: number) =>
       ? `${Math.round(n / 1024)} KB`
       : `${(n / 1024 / 1024).toFixed(1)} MB`;
 
-export const TYPE_NAMES: Record<string, [string, string]> = {
+const TYPE_NAMES: Record<string, [string, string]> = {
   source: ["Source", "Sources"],
   finding: ["Finding", "Findings"],
   pattern: ["Pattern", "Patterns"],

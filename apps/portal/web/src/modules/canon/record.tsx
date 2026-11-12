@@ -176,7 +176,7 @@ function Fact({ k, v }: { k: string; v: unknown }) {
   );
 }
 
-export function LinkList({
+function LinkList({
   title,
   links,
   open,
@@ -258,7 +258,7 @@ function OpenedFile({
   );
 }
 
-export function FileBody({ f }: { f: FileWhole }) {
+function FileBody({ f }: { f: FileWhole }) {
   const md = f.path.endsWith(".md");
   const { head, body } =
     md && f.body != null ? splitFrontmatter(f.body) : { head: null, body: f.body };

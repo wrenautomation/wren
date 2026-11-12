@@ -546,7 +546,7 @@ function SkillText({ text }: { text: string }) {
 type Render = { ids: string[]; only: string[]; except: string[] };
 
 /** What SKILL.md loads: each `knowledge … render <ids> [--only|--except <lines>]`, and notes.md. */
-export function skillLoads(text: string): { renders: Render[]; notes: boolean } {
+function skillLoads(text: string): { renders: Render[]; notes: boolean } {
   const renders: Render[] = [];
   for (const m of text.matchAll(/\bknowledge\b[^\n`]*?\srender\s+([^\n`|]+)/g)) {
     const r: Render = { ids: [], only: [], except: [] };
