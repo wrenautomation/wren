@@ -94,7 +94,7 @@ export function Section({
   );
 }
 
-export function CloseButton({ onClick }: { onClick: () => void }) {
+function CloseButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
