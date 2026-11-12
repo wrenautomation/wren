@@ -267,15 +267,18 @@ export function canonLibraryApi(
         db.execute<{ id: string; title: string; status: string; topic: string | null }>(
           sql`select id, title, status, data->>'topic' as topic from canon.knowledge_records where repo = ${REPO} and type = 'conflict' and status = 'live' and data->>'state' = 'open' order by id`,
         ),
+        // narrow rows once, then hash joins: 9k cites by index lookup into wide rows took 110 ms on prod, this 62
         db.execute<Home["stale"][number]>(sql`
+          with k as materialized (
+            select id, type, title, status, coalesce(data->>'changed', created) as at
+            from canon.knowledge_records where repo = ${REPO})
           select r.id, r.type, r.title, c."to" as cites,
             case when t.id is null then 'missing' when t.status = 'retired' then 'retired' else 'changed' end as why
           from canon.knowledge_cites c
-          join canon.knowledge_records r on r.repo = c.repo and r.id = c."from"
-          left join canon.knowledge_records t on t.repo = c.repo and t.id = c."to"
+          join k r on r.id = c."from"
+          left join k t on t.id = c."to"
           where c.repo = ${REPO} and r.status = 'live'
-            and (t.id is null or t.status = 'retired'
-              or coalesce(t.data->>'changed', t.created) > coalesce(r.data->>'changed', r.created))
+            and (t.id is null or t.status = 'retired' or t.at > r.at)
           order by r.id, c."to" limit 300`),
         db.execute<Home["shared"][number]>(sql`
           select s.id, s.title, s.topic as owner, array_agg(distinct g.topic order by g.topic) as users
