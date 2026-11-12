@@ -78,7 +78,7 @@ wren call PipelineConsole/shapeTag --input '{"name":"before-pricing","version":3
 ```
 
 - `shapeVersion` takes `{ body, note, moves? }`, or `{ from, note }` to save a copy of version
-  `from` as the next one (a restore). Send exactly one of `body` and `from`. Every body is a metro body: a graph body is refused ("Convert first: wren shape convert."). A restore of an old graph version saves its drawn form. `moves` is `{ "<old node>": "<new node>" }` for
+  `from` as the next one (a restore). Send exactly one of `body` and `from`. Every body is a metro body: a graph body is refused ("Refused: a graph body. Every shape is on the metro model."). A restore of an old graph version saves its drawn form. `moves` is `{ "<old node>": "<new node>" }` for
   people on a node the new body drops. `shapeImport` takes the YAML file text (a metro file: `model: metro`, `name`,
   `lines`, `stations`, `tracks`, optional `note`, `moves`, `terms`). Both refuse with every reason, or with
   "Nothing changed." when the body equals the newest.

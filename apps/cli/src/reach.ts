@@ -18,7 +18,6 @@ import { listThreads, reachStats } from "@wren/starling-conversations";
 import { CONTACT_STATES, type ContactState } from "@wren/starling-conversations/schema";
 import type { Proof } from "@wren/starling-core";
 import {
-  backfillFromProofs,
   COMMENTS_COMPONENTS,
   COMMENTS_SETTINGS,
   clearGate,
@@ -860,12 +859,6 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .action(async (sub: string) => {
       const n = await withDb((db) => clearGate(db, sub, new Date()));
       console.log(n ? `cleared ${n}` : "nothing to clear");
-    });
-  gates
-    .command("backfill")
-    .description("Replay the kept comment proofs into requirements (removals state their floor)")
-    .action(async () => {
-      console.log(`${await withDb((db) => backfillFromProofs(db))} proofs replayed`);
     });
   return cmd;
 }

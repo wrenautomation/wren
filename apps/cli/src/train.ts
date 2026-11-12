@@ -1,14 +1,12 @@
 /**
  * `wren content train …`: the training record out as JSONL (designs/2026-10-07-training-record.md).
  * `export` writes one `wren.draft/1` line per draft, `pairs` one `wren.pair/1` line per
- * preference pair, `backfill` folds the drafts made before the record into it. Names and emails
- * read [person] and [email] unless `--include-people`.
+ * preference pair. Names and emails read [person] and [email] unless `--include-people`.
  */
 import { writeFileSync } from "node:fs";
 import { DRAFT_RECORD_KINDS, type DraftRecordKind, isDraftKind } from "@wren/core/draft-record";
 import { jsonl, type TrainAsk, trainPairs, trainRecords } from "@wren/core/train";
 import type { Db } from "@wren/db";
-import { backfillTraining } from "@wren/starling-inbound";
 import { type Command, InvalidArgumentError } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -79,17 +77,6 @@ export function registerTrain(content: Command, withDb: WithDb): void {
       const n = (t: string) => pairs.filter((p) => p.type === t).length;
       process.stderr.write(
         `edit ${n("edit")}, decision ${n("decision")}, engagement ${n("engagement")}\n`,
-      );
-    });
-
-  train
-    .command("backfill")
-    .description("Fold the drafts made before the record into it; safe to run again")
-    .option("--dry-run", "count what it would write; write nothing")
-    .action(async (o: { dryRun?: boolean }) => {
-      const r = await withDb((db) => backfillTraining(db, { dryRun: !!o.dryRun }));
-      console.log(
-        `${o.dryRun ? "would write" : "wrote"} ${r.written} of ${r.steps} steps over ${r.items} drafts; ${r.live} already in the live record, left alone`,
       );
     });
 }

@@ -293,10 +293,10 @@ interface NewShape {
 }
 
 /**
- * What a save says to a graph body. Every stored body is a metro body (C1 part 4); the one
- * way from a graph is `convertShape`, which reads the stored graph and writes metro.
+ * What a save says to a graph body. Every stored body is a metro body (C1 part 4); the trigger
+ * `pipeline.metro_only()` (0315) still says the old words.
  */
-export const CONVERT_FIRST = "Convert first: wren shape convert.";
+export const CONVERT_FIRST = "Refused: a graph body. Every shape is on the metro model.";
 
 /**
  * The next shape version. Refused with every reason `checkStored` finds (`checkMetro` and

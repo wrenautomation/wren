@@ -6,7 +6,7 @@
  * A file has `model: metro` at the top (`metro-file.ts`): `lines`, `stations`, `tracks`, `groups`
  * and `frames`, then optional `flows`, and optional `note`, `moves` and `terms`. `exportShape`
  * still writes a graph body as `name`, `nodes` and `edges`, so an old graph version can be read;
- * `parseShape` refuses such a file (C1 part 4): it needs `wren shape convert` first.
+ * `parseShape` refuses such a file (C1 part 4).
  *
  * `terms` is a list of terms versions (`NewTerms` without `by`). Each is added to its plan unless
  * the plan's newest version already has that body, so an import is safe to repeat.
@@ -82,7 +82,7 @@ export function parseShape(text: string): ShapeFile {
   } else if (doc.model !== undefined) {
     errors.push("model is metro.");
   } else {
-    // A graph file: the one way on is `wren shape convert`, which writes a metro file.
+    // a graph file: refused, metro only
     errors.push(CONVERT_FIRST);
   }
   let moves: Moves | undefined;

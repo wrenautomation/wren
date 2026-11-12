@@ -12,8 +12,7 @@
  * save mirrors and says what the mirror did.
  *
  * A version is a graph or on the metro model (designs/2026-10-20-design-language.md, area C1).
- * `show`, `diff`, `export`, `blame` and `undo` read both. `convert` turns a graph into a metro
- * body; with `--write` it saves that as the next version. `add-node`, `connect` and `remove` edit
+ * `show`, `diff`, `export`, `blame` and `undo` read both. `add-node`, `connect` and `remove` edit
  * the graph only: on a metro version they refuse, and the way is export, edit the YAML, import.
  *
  * Edits to a draft are ops (`@wren/pipeline/metro-ops`): `edit` writes them to a draft, which
@@ -26,12 +25,6 @@ import { normalEmail } from "@wren/core/clients";
 import { TRIGGER_IDS } from "@wren/core/logic";
 import { type SavedViewLine, savedViewsOf } from "@wren/core/saved-views";
 import type { Db } from "@wren/db";
-import {
-  type ConvertPlan,
-  convertShape,
-  planConvert,
-  reportLines,
-} from "@wren/pipeline/convert-shape";
 import { changeKey, changesOf } from "@wren/pipeline/diff";
 import {
   applyDraft,
@@ -67,13 +60,7 @@ import {
 import { openNowOf } from "@wren/pipeline/numbers";
 import { exportShape, importShape, parseShape } from "@wren/pipeline/shape-file";
 import { startShape } from "@wren/pipeline/starter";
-import {
-  newestShape,
-  Refused,
-  type ShapeDiff,
-  shapeContext,
-  shapeVersionsOf,
-} from "@wren/pipeline/store";
+import { newestShape, Refused, type ShapeDiff, shapeVersionsOf } from "@wren/pipeline/store";
 import {
   type BlameOn,
   diffStored,
@@ -303,11 +290,6 @@ export function storedDiffLines(
   return storedChangesOf(d).map((c, i) => `${lines[i]}  [${storedChangeKey(c)}]`);
 }
 
-/** What `convert` prints besides the file: the report, or that the shape is on the metro model already. */
-export function convertLines(plan: ConvertPlan): string[] {
-  return plan.already ? ["The shape is on the metro model already."] : reportLines(plan.report);
-}
-
 const BLAME_ON = ["node", "edge", "line", "station", "track", "group", "frame", "flow"] as const;
 
 /** What `blame --on` names. */
@@ -527,56 +509,6 @@ export function registerShape(program: Command, deps: ShapeDeps): void {
       if (o.out) writeFileSync(o.out, text);
       else process.stdout.write(text);
     });
-
-  shape
-    .command("convert")
-    .description(
-      "A version on the metro model, as a shape file (YAML), and a report of what the convert keeps. With --write, save it as the next version if every proof holds",
-    )
-    .option("--version <n>", "a version number; the newest when left out", versionArg)
-    .option("--out <file>", "write the file here instead of printing it")
-    .option("--write", "save the metro model as the next version (the newest only)")
-    .option("--note <text>", "why, with --write", "Move the shape to the metro model.")
-    .action((o: { version?: number; out?: string; write?: boolean; note: string }) =>
-      plain(async () => {
-        // The file goes to stdout unless `--out`; the report then goes to stderr, so a pipe stays a file.
-        const say = (lines: string[]) => {
-          for (const line of lines) (o.out || o.write ? console.log : console.error)(line);
-        };
-        if (!o.write) {
-          // Read what the proofs need in one go, then prove with no database.
-          const read = await withDb(async (db) => ({
-            all: await shapeVersionsOf(db),
-            ctx: await shapeContext(db, TRIGGER_IDS),
-            open: await openNowOf(db),
-          }));
-          const v = o.version
-            ? read.all.find((x) => x.number === o.version)
-            : read.all[read.all.length - 1];
-          if (!v) throw new Refused([o.version ? `no version ${o.version}` : "no shape yet"]);
-          const got = planConvert(v.body, v.number, read.ctx, read.open);
-          const text = exportShape(got.body);
-          if (o.out) {
-            writeFileSync(o.out, text);
-            console.log(`wrote ${o.out}`);
-          } else process.stdout.write(text);
-          say(convertLines(got));
-          return;
-        }
-        const { result: r, mirror } = await writeAndMirror(async (db) => {
-          const newest = await newestShape(db);
-          if (!newest) throw new Refused(["The workspace has no shape yet."]);
-          if (o.version && o.version !== newest.number)
-            throw new Refused([
-              `Only the newest version can be written. v${o.version} is not the newest (v${newest.number}).`,
-            ]);
-          return convertShape(db, { note: o.note, by: who(), triggers: TRIGGER_IDS });
-        });
-        say(reportLines(r.report));
-        console.log(`v${r.version.number} saved`);
-        printMirror(mirror);
-      }),
-    );
 
   shape
     .command("import <file>")

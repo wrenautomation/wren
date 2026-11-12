@@ -50,7 +50,6 @@ Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts
 | every draft page: Versions section (`draftRecordOf` in each `load`) and Activity tab (`draft_activity`) | read |
 | Inbox → Done (`marketing.done`, view `done_records`: a person's and Claude's steps plus scheduled/sent/failed; Today by New York's day) | read |
 | `wren content train export`, `wren content train pairs`, Export JSONL on draft lists (records `drafts`) | read: `wren.draft/1`, `wren.pair/1`, people out by default |
-| `wren content train backfill [--dry-run]` | write history from `content_drafts`, `runs`, `audit_events`, `comments`, `reddit_threads`, `reach_messages`, `video_edits`; skips items with live steps |
 
 ## See
 

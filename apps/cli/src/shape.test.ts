@@ -9,7 +9,6 @@ import {
   advanceArg,
   blameLines,
   blameOnArg,
-  convertLines,
   diffLines,
   draftLine,
   metroLines,
@@ -407,26 +406,6 @@ describe("the metro model", () => {
       graphEqual: true,
       workflowEqual: true,
     });
-  });
-
-  it("prints the report, with the deal rule and the open journeys it would move", () => {
-    const c = convertBody(graph, new Map([["booked", 2]]));
-    expect(convertLines(c)).toEqual([
-      "notes: none",
-      "checks: ok",
-      "graph equal: yes",
-      "workflow equal: yes",
-      "deal rule signed: first station booked, deal station signed, " +
-        "open before the deal station: 2 (booked 2)",
-    ]);
-  });
-
-  it("keeps a metro body as it is, and says so", () => {
-    const first = convertBody(graph);
-    const again = convertBody(first.body);
-    expect(again).toMatchObject({ already: true });
-    expect(again.body).toBe(first.body);
-    expect(convertLines(again)).toEqual(["The shape is on the metro model already."]);
   });
 
   it("refuses a graph that cannot convert, with the reason", () => {
