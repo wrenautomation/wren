@@ -16,7 +16,7 @@ import { answer, PortalRefusal, type PortalRequest, portalService } from "../por
 import type { ExportAsk, GetAsk, ListAsk, StatsAsk } from "../records-serve.js";
 import type { SurveyInput } from "../survey-store.js";
 import { viewAsApi, viewAsHandlers } from "../view-as.js";
-import type { AgentChangesRequest, AgentUndoRequest } from "./api/agent.js";
+import type { AgentChangesRequest, AgentDecideRequest, AgentUndoRequest } from "./api/agent.js";
 import type { ComponentRequest, InstallRequest } from "./components.js";
 import {
   type AddClientRequest,
@@ -96,6 +96,10 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
         answer(() => ctx.run("undo", () => answer(() => api.recordsUndo(req)))),
       agentChanges: (_: restate.Context, req: AgentChangesRequest) =>
         answer(() => api.agentChanges(req)),
+      agentConfirms: (_: restate.Context, req: AgentChangesRequest) =>
+        answer(() => api.agentConfirms(req)),
+      agentDecide: (ctx: restate.Context, req: AgentDecideRequest) =>
+        answer(() => ctx.run("agent decide", () => answer(() => api.agentDecide(req)))),
       agentUndo: (ctx: restate.Context, req: AgentUndoRequest) =>
         answer(() => ctx.run("agent undo", () => answer(() => api.agentUndo(req)))),
       recordsAsk: (ctx: restate.Context, req: AskRequest) =>

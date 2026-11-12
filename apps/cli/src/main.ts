@@ -31,6 +31,7 @@ import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { registerAccounts } from "./accounts.js";
 import { registerAgent } from "./agent.js";
+import { registerGate } from "./agent-gate.js";
 import { registerAppReviews } from "./app-reviews.js";
 import { registerBooks } from "./books.js";
 import { registerCalendar } from "./calendar.js";
@@ -151,6 +152,7 @@ const program = new Command("wren")
 guardClient(program, (path) => {
   app = `wren-cli:${path.join(" ")}`;
 });
+registerGate(program, withMainDb, { actor, chat: agentTurn.chat, turn: agentTurn.turn });
 
 const db = program.command("db").description("database");
 db.command("check")

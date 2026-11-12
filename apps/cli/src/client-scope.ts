@@ -26,6 +26,7 @@ const CLIENT_SCOPED = new Set([
   "templates",
   "terms",
   "workflows",
+  "autonomy",
 ]);
 /** Under a command outside the set, the parts that do take `--client`. */
 const PER_CLIENT = new Set(["content write"]);

@@ -73,13 +73,16 @@ of every new part, shown to him before any wiring. Page awareness on every page 
 cost per new command.
 
 How the tags get set:
-- The relay mints a chat id (uuid) when it starts the child and passes `WREN_AGENT_CHAT` through
-  the child's env (`launch.ts:136-146`). It links the id to the SDK session at `init`
-  (`relay.ts:984`) and keeps it on `--resume`.
-- Turns run one at a time. The relay writes the current turn id to a file named by
-  `WREN_AGENT_TURN_FILE` when each turn starts. The CLI reads both at start and sets
-  `wren.chat` and `wren.turn` as startup parameters, beside `wren.actor`. The CLI opens one
-  connection per command (`main.ts:101`); the worker never sets them, so its writes carry none.
+- The chat id is the SDK session id, read from the child's `init` frame. `--resume` keeps it;
+  `/clear` starts a new one, so a new Changes list.
+- The relay gives each chat child its own file, named by `WREN_AGENT_TURN_FILE` (0600, removed
+  when the child exits). It holds `{chat, turn, by}`: the turn is the user frame's uuid, written
+  as the frame goes in; `by` is the chat's person. Turns run one at a time, so one file holds now.
+- The CLI reads the file at start. It sets `wren.chat` and `wren.turn` as startup parameters,
+  and its actor becomes `claude-code:<by>`. The CLI opens one connection per command
+  (`main.ts:101`); the worker never sets them, so its writes carry none.
+- Undo and the D2 default find the chat's person in that actor. A chat whose every event had its
+  actor overwritten by `setAuditActor` has no person on record: only an admin can undo it.
 - `setAuditActor` sets only `wren.actor` and `wren.as`, so the chat tag survives it.
 - The columns are added in `AUDIT_FUNCTION_STATEMENTS` (`install.ts:79-82`), not a drizzle
   migration. `audit_event_hash` includes them only when set, as it does `acting_as`
@@ -102,9 +105,11 @@ Undo, in one serializable transaction per line:
 - Undo a turn: its lines newest first, so children go before parents. It stops at the first
   refusal and says which line.
 
-Changes API: one portal endpoint, `GET /agent/changes?chat=<id>`, reads main and, for a chat
-that used `--client`, that client's database (the same route as `withDb`, `main.ts:111`).
-`POST /agent/changes/undo {event | turn}`. Only the chat's owner or an admin may undo.
+Changes API (built 11-12, `core/src/agent-changes.ts`, `console/api/agent.ts`): ConsolePortal
+`agentChanges {chat, client?}` reads main, or that client's database for a chat that used
+`--client`. `agentUndo {chat, client?, event | turn}`. Only the chat's person or an admin may
+undo. The `changes` path (undo through `undoChange`) runs on main only; a client database has no
+record types of Wren's, so its lines undo row by row.
 
 ### D2. Where the confirm and the dial are enforced (hard to change)
 
@@ -122,11 +127,25 @@ that used `--client`, that client's database (the same route as `withDb`, `main.
 - Dial: `clients set --set autonomy.send=approve` (and `.spend`, `.delete`, `.publish`). Default
   by who drives the chat: an admin's agent runs `auto` (like bypass-permissions mode); anyone
   else's agent runs `approve`. A client's own setting overrides the default. The email send gate stays; `gate` sits before it.
-- Shapes: `gate(act: "send"|"spend"|"delete"|"publish", client: string, what: string): Promise<void>`
-  (throws `NeedsConfirm {id}` or refuses). Pending row: `agent_confirms(id, chat, act, client,
-  what, args jsonb, state pending|yes|no, decided_by, at)`.
-- Guard: a test lists every write to a send or spend table (outbound messages, ad budgets,
-  payments) and fails if it is outside a `gate` call. A name list alone is the same weakness as B.
+- Shapes (built 11-12, `core/src/agent-gate.ts`): `gate(main, runner, {act, client, what,
+  command, argv})` throws `NeedsConfirm {id}` or refuses. Row: `agent_confirms(id, chat, turn,
+  act, client, what, args, key, state pending|yes|no|used, asked_by, decided_by, decided_at,
+  used_at, at)`; `key` = sha256 of act, client and argv.
+- Yes does not run the act from the portal: the worker cannot run a CLI command. The CLI exits 3
+  with `{"needsConfirm": id}`. Yes (ConsolePortal `agentDecide`, or `wren confirm <id>` in a
+  terminal) marks the row. The panel then tells the agent, and the same command run again uses
+  the Yes once. A No holds for that exact command. One open card per command, not one per retry.
+- Where: a `preAction` hook in the CLI (`apps/cli/src/agent-gate.ts`), over a list of 41 command
+  paths that send, spend, delete or publish. Loop start and sync commands are out: they carry out
+  what a person already approved. No CLI command sets an ad budget or pays a bill.
+- The agent cannot move its own dial: `wren autonomy set` and `clients set --set autonomy.*`
+  refuse an agent actor. A person sets it with `wren [--client <id>] autonomy set send=approve`.
+- Guard, as built: a unit test checks each gated command's words against the CLI's sources, and
+  `wren autonomy check` walks the live tree for full paths. The table-write guard (every write to
+  a send or spend table inside a `gate` call) is not built: most of those writes run in the worker
+  after a CLI call over ingress, so a static trace from table to command does not hold. A new
+  risky command must be added to the list by hand; this is the weakness B had, at a smaller
+  scale.
 
 ### D3. How a page says what is in view
 
@@ -184,7 +203,10 @@ The text keeps 50 rows and counts the rest, so a turn stays under about 3 KB.
 
 - Undo after the worker reacted to a change: the check refuses when rows moved on; the line says
   what it could not put back.
-- The gate holds only for acts that call it. The guard test is the backstop.
+- The gate holds only for commands in the list. The list test and `autonomy check` catch a
+  rename, not a new risky command.
+- An agent with a raw connection to the database could mark its own ask Yes. The fix is a
+  database role for agents without write rights on `agent_confirms`; not built.
 - The CLI reaches prod with full write rights through the db relay. A raw-SQL write would skip
   both the gate and the tag. No CLI command takes raw write SQL today (`prod-sql.mjs` is read
   only); keep it so.
@@ -198,3 +220,4 @@ The text keeps 50 rows and counts the rest, so a turn stays under about 3 KB.
   D1, D2, the dial default (`approve`).
 - 2026-11-11: William: D2 A. Default `auto` for an admin's chat, `approve` for anyone else. D1 reopened: write volume of A, and undo/redo vs a write-back cache.
 - 2026-11-11: William: D1 A, no limiter. A adds no writes: two tags on audit rows the per-row trigger already writes (prod: 1.8k/day, agent 4%). At 100 busy clients (~5M rows/day, ~60/s mean) the box's insert rate holds; the bind is disk (20 GB gp3, ~300 B a row). Revisit with audit retention when the disk fills, not with a limiter. A bulk turn groups into one line with one Undo.
+- 2026-11-12: built D1 (tags, Changes API, generic undo) and D2 (gate, `agent_confirms`, dial, `wren confirm`). Chat = SDK session id; actor `claude-code:<person>` carries the chat's person. Yes marks the row and the agent re-runs the command (the portal cannot run a CLI command). Gate is a CLI hook over 41 command paths; the table-write guard is not built (writes run in the worker). UI wiring waits on William's look at the stories.

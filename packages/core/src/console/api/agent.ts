@@ -14,7 +14,9 @@ import {
   undoEvent,
   undoTurn,
 } from "../../agent-changes.js";
+import { confirmsOf, decideConfirm } from "../../agent-gate.js";
 import { findClient, normalEmail } from "../../clients/index.js";
+import type { AgentConfirm } from "../../confirms-schema.js";
 import { undoChange } from "../../edits.js";
 import { PortalRefusal, type PortalRequest, type SignedViewer, teamCan } from "../../portal.js";
 import { changes } from "../../schema.js";
@@ -22,6 +24,11 @@ import type { ConsoleContext } from "./context.js";
 
 export interface AgentChangesRequest extends PortalRequest {
   chat?: unknown;
+}
+
+export interface AgentDecideRequest extends PortalRequest {
+  id?: unknown;
+  yes?: unknown;
 }
 
 export interface AgentUndoRequest extends AgentChangesRequest {
@@ -60,6 +67,23 @@ export function agentHandlers(ctx: ConsoleContext) {
       await undoChange(tx, t, c.id, change, by);
     };
   return {
+    /** A chat's asks for a person's Yes: its cards. Asks live on Wren's database. */
+    agentConfirms: async (req: AgentChangesRequest): Promise<{ asks: AgentConfirm[] }> => {
+      team(req);
+      return { asks: await confirmsOf(main, chatOf(req)) };
+    },
+    /** A person's Yes or No to one ask; the agent's same command, run again, uses the Yes. */
+    agentDecide: async (req: AgentDecideRequest): Promise<AgentConfirm> => {
+      team(req);
+      if (typeof req.id !== "string" || !req.id) throw new PortalRefusal("say which ask", 400);
+      if (typeof req.yes !== "boolean") throw new PortalRefusal("say yes or no", 400);
+      return decideConfirm(main, {
+        id: req.id,
+        yes: req.yes,
+        by: normalEmail((req.viewer as SignedViewer).email),
+        admin: teamCan(req, "manage", WREN),
+      });
+    },
     agentChanges: async (req: AgentChangesRequest): Promise<{ lines: AgentChangeLine[] }> => {
       team(req);
       const chat = chatOf(req);

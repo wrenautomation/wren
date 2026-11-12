@@ -110,6 +110,8 @@
     "./limits": "./src/limits.ts",
     "./ramp": "./src/ramp.ts",
     "./limits-schema": "./src/limits-schema.ts",
+    "./confirms-schema": "./src/confirms-schema.ts",
+    "./agent-gate": "./src/agent-gate.ts",
     "./checks": "./src/checks.ts",
     "./setup": "./src/setup.ts",
     "./setup-agent": "./src/setup-agent.ts",
