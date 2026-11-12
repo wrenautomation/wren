@@ -190,6 +190,31 @@ describe("sops", () => {
     expect(repoSource.md).not.toContain("nav");
   });
 
+  it("reads an arxiv PDF link as its abstract page, and never files a PDF's bytes", async () => {
+    const abs = `<html><head><title>[2512.00001] A paper</title></head><body><p>The abstract.</p></body></html>`;
+    const fetcher = {
+      userAgent: "test",
+      get: async (url: string) =>
+        url === "https://arxiv.org/abs/2512.00001"
+          ? { status: 200, url, text: abs }
+          : { status: 200, url, text: "%PDF-1.7\n\u0000\u0001 binary" },
+    };
+    // bytes with no text in them: pdfText answers null
+    const real = globalThis.fetch;
+    globalThis.fetch = (async () => new Response(new Uint8Array([0, 1, 2]))) as typeof fetch;
+    try {
+      const paper = await pageSource("https://arxiv.org/pdf/2512.00001", fetcher);
+      expect(paper.name).toBe("arxiv-2512.00001.md");
+      expect(paper.md).toContain("The abstract.");
+      expect(paper.md).not.toContain("%PDF");
+      await expect(pageSource("https://example.com/a.pdf", fetcher)).rejects.toThrow(
+        /no readable text/,
+      );
+    } finally {
+      globalThis.fetch = real;
+    }
+  });
+
   it("keeps a giver's old note and adds a new one under it, whole", async () => {
     dir = await repo();
     const long = `insane editing ${"very high aura ".repeat(40)}`.trim();

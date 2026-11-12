@@ -29,7 +29,7 @@ import {
 import type { Model } from "@wrenautomation/models";
 import type { Ear } from "@wrenautomation/models/hear";
 import type { Fetcher } from "@wrenautomation/read/fetch";
-import { readPage } from "@wrenautomation/read/text";
+import { pdfText, readPage, withoutNul } from "@wrenautomation/read/text";
 import type { Fetched, MediaStore, VideoRead, WatchOptions } from "@wrenautomation/read/video";
 import {
   keptRead,
@@ -171,10 +171,31 @@ export async function pageSource(
   priority = DEFAULT_PRIORITY,
 ): Promise<Source> {
   const id = sourceId(url);
-  const page = await fetcher.get(url);
+  // arxiv: the abstract page names the paper; the PDF holds the words
+  const arxiv =
+    /^https?:\/\/(?:www\.)?arxiv\.org\/(?:abs|pdf)\/([^?#]+?)(?:\.pdf)?\/?(?:[?#].*)?$/i.exec(
+      url,
+    )?.[1];
+  const page = await fetcher.get(arxiv ? `https://arxiv.org/abs/${arxiv}` : url);
   if (page.status >= 400) throw new Error(`${url}: HTTP ${page.status}`);
-  const read = readPage(page.text, page.url);
+  const pdfUrl = arxiv
+    ? `https://arxiv.org/pdf/${arxiv}`
+    : page.text.startsWith("%PDF")
+      ? page.url
+      : null;
+  const read = page.text.startsWith("%PDF")
+    ? { title: "", text: "", image: undefined }
+    : readPage(page.text, page.url);
   let text = read.text;
+  if (pdfUrl) {
+    // the fetcher answers text: a PDF's bytes are read again as bytes
+    const r = await fetch(pdfUrl, { headers: { "user-agent": fetcher.userAgent } });
+    if (!r.ok) throw new Error(`${pdfUrl}: HTTP ${r.status}`);
+    const words = await pdfText(new Uint8Array(await r.arrayBuffer()));
+    if (!words && !arxiv) throw new Error(`${pdfUrl}: a PDF with no readable text`);
+    if (words) text = arxiv ? `${text.trim()}\n\n## Paper\n\n${words}` : words;
+  }
+  text = withoutNul(text);
   const repo = new URL(page.url).pathname.match(/^\/([^/]+)\/([^/]+)/);
   if (id.startsWith("github-") && repo) {
     for (const f of ["README.md", "readme.md", "README"]) {
@@ -510,9 +531,11 @@ const kindOf = (stem: string, url: string | undefined) =>
               ? "repo"
               : stem.startsWith("image-")
                 ? "image"
-                : /^(drive|file|note)-/.test(stem)
-                  ? "doc"
-                  : "other";
+                : stem.startsWith("arxiv-")
+                  ? "paper"
+                  : /^(drive|file|note)-/.test(stem)
+                    ? "doc"
+                    : "other";
 
 /** Who writes and why: every record carries both. */
 export interface By {
