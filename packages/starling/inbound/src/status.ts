@@ -1,5 +1,5 @@
 /**
- * `wren status`: is the content week on track? One screen from live tables.
+ * `wren content status`: is the content week on track? One screen from live tables.
  * The week slipped when it is Thursday or later (UTC, Monday first) and
  * nothing was drafted since Monday.
  */

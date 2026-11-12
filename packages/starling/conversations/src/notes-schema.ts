@@ -134,7 +134,7 @@ export const notes = pgTable(
     /** Everyone in the workspace gets `general_role`, or only those it's shared with. */
     general: varchar("general", { length: 12, enum: GENERAL }).notNull().default("private"),
     generalRole: varchar("general_role", { length: 8, enum: ROLES }).notNull().default("view"),
-    /** In `wren train export --notes` (its workspace's `notes_settings.train` counts too). */
+    /** In `wren content train export --notes` (its workspace's `notes_settings.train` counts too). */
     train: boolean("train").notNull().default(false),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -312,7 +312,7 @@ export const notesSettings = pgTable(
   "notes_settings",
   {
     id: integer("id").notNull().default(1),
-    /** Every note here goes to `wren train export --notes`. */
+    /** Every note here goes to `wren content train export --notes`. */
     train: boolean("train").notNull().default(false),
     updatedBy: varchar("updated_by", { length: 200 }),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

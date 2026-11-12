@@ -3,7 +3,7 @@
  * Every prompt that writes as him or as Wren carries them (`factsBlock`), and the guard
  * (`grounded.ts`) flags a first-person claim none of them backs. Wren's block in `wren_settings`
  * replaces the default. It is edited as one record (`factsRecord`): Marketing → Facts, or
- * `wren drafts facts`, each save a `changes` row with who and Undo. The repo is public: what he
+ * `wren content review facts`, each save a `changes` row with who and Undo. The repo is public: what he
  * built and shipped, never an amount or a client's name.
  */
 

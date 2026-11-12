@@ -1,6 +1,6 @@
 /**
  * Decide's sources against a real Postgres (designs/2026-10-16-decide.md): history backfilled
- * once, due subjects shown without names, and `wren judge backfill --dry-run` writing nothing.
+ * once, due subjects shown without names, and `wren content judge backfill --dry-run` writing nothing.
  * Synthetic.
  */
 
@@ -98,7 +98,7 @@ describe("comment source", () => {
   });
 });
 
-describe("wren judge", () => {
+describe("wren content judge", () => {
   it("backfill --dry-run counts and writes nothing; backfill adds each once", async () => {
     const before = (await calls()).length;
     const dry = JSON.parse(await wren("backfill", "--dry-run"));

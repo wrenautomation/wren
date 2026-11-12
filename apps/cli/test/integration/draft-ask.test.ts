@@ -2,7 +2,7 @@
  * Ask Claude on a draft against Postgres and a Restate test environment, over a fake desk
  * `claude`: an ask rewrites a post and keeps what it replaced, a question writes nothing, Undo
  * puts the text back, a hand edit meanwhile is never overwritten, a closed comment is refused.
- * Then `wren drafts`' reads and writes: the waiting list, the cap, the Inbox's thread; a DM
+ * Then `wren content review`' reads and writes: the waiting list, the cap, the Inbox's thread; a DM
  * reply and an accepted invite's first message on `reach_contacts.draft`. His edits: the box's
  * save and a changed send kept as before and after, read back per kind into the next ask. His
  * past decisions on comments: the same few-shot the comment drafters read, in a comment's ask.

@@ -51,7 +51,7 @@ export interface DraftDesk {
     db: Queryable,
     o?: { type?: DraftType; limit?: number },
   ): ReturnType<DraftKind["waiting"]>;
-  /** His newest edits of one type (or every type), newest first, for `wren drafts edits`. */
+  /** His newest edits of one type (or every type), newest first, for `wren content review edits`. */
   listEdits(db: Queryable, o?: { type?: DraftType; limit?: number }): ReturnType<typeof draftEdits>;
   /** Write `text` over the draft as one `runs` row that keeps what it replaced. */
   writeDraft(
@@ -188,7 +188,7 @@ export function askPrompt(
   prompt: Pick<LiveTemplate, "template"> = { template: draftAskDefault() },
 ): { question: string; system: string } | { error: string } {
   if ((d.draft?.length ?? 0) > ASK_DRAFT_MAX)
-    return { error: `the draft is over ${ASK_DRAFT_MAX} characters; use wren drafts set` };
+    return { error: `the draft is over ${ASK_DRAFT_MAX} characters; use wren content review set` };
   const system = renderPrompt(prompt, {
     what: d.what,
     max: String(d.max),

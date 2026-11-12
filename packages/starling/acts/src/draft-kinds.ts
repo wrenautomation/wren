@@ -7,7 +7,7 @@
  */
 import type { Queryable } from "@wren/db";
 
-/** What `wren drafts list --type` names: a post is an Inbox `draft:`. */
+/** What `wren content review list --type` names: a post is an Inbox `draft:`. */
 export const DRAFT_TYPES = ["post", "comment", "thread", "dm", "invite", "onpost"] as const;
 export type DraftType = (typeof DRAFT_TYPES)[number];
 

@@ -54,7 +54,7 @@ Citations: `packages/pipeline/src/metro-campaigns.ts:146`, `packages/starling/co
 | `EmailOpenerFill/<niche>` | reads (live campaigns, each pass) |
 | `ReachInboxRead/daily` | reads (live campaigns, the invites and posts passes) |
 | `PostPlan/<key>` | reads (live campaigns of its database, each fill) |
-| `wren content add --campaign`, `wren write --campaign` | writes (an idea's campaign) |
+| `wren content add --campaign`, `wren content write --campaign` | writes (an idea's campaign) |
 | `SmsDesk/enroll`, `wren sms enroll --campaign` | reads (one live campaign), writes (a contact's campaign) |
 
 ## See

@@ -1,5 +1,5 @@
 /**
- * The edit row: add (ingest), read, write (checked, a `runs` row each, like `wren drafts set`), and
+ * The edit row: add (ingest), read, write (checked, a `runs` row each, like `wren content review set`), and
  * the cut knobs in `wren_settings` under component `studio` (`{ cuts: {...} }`).
  */
 

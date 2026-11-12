@@ -11,7 +11,7 @@ pnpm db:migrate                      # every migration in packages/db/drizzle (N
 pnpm wren db check                   # migrations applied: 9
 pnpm worker                          # the Restate endpoint on :9080, keep it running
 pnpm register                        # once per worker restart: tells the compose Restate where it is
-pnpm wren status
+pnpm wren content status
 ```
 
 ## Pointing the CLI at production

@@ -21,7 +21,7 @@ function legacyAsk(
   ask: { by: string; message: string },
 ): { question: string; system: string } | { error: string } {
   if ((d.draft?.length ?? 0) > ASK_DRAFT_MAX)
-    return { error: `the draft is over ${ASK_DRAFT_MAX} characters; use wren drafts set` };
+    return { error: `the draft is over ${ASK_DRAFT_MAX} characters; use wren content review set` };
   const head = `${DRAFT_SYSTEM}\n\nIt is a ${d.what}, at most ${d.max} characters.\n\nThe draft now:\n${
     d.draft ? `"""\n${d.draft}\n"""` : "(none yet)"
   }`;

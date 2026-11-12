@@ -750,7 +750,7 @@ export const doneRecords = pgView("done_records", {
   where e.via in ('person', 'claude') or e.event in ('scheduled', 'sent', 'failed')`);
 
 /**
- * What each sent draft got (designs/2026-10-07-training-record.md, Outcomes), read by `wren train`:
+ * What each sent draft got (designs/2026-10-07-training-record.md, Outcomes), read by `wren content train`:
  * a post's newest metrics snapshot and the replies under it (follows from its insights days when
  * the snapshot has none: YouTube's subscribers gained); an answered comment's or thread's replies
  * to our answer; a DM or invite contact's messages back. One row per item.
@@ -799,7 +799,7 @@ export const draftOutcomes = pgView("draft_outcomes", {
     and o.state = 'sent')`);
 
 /**
- * The people a draft names (its commenter, thread author or contact), which `wren train` writes
+ * The people a draft names (its commenter, thread author or contact), which `wren content train` writes
  * as [person] unless asked for them. A post's repliers come with its outcome.
  */
 export const draftPeople = pgView("draft_people", {

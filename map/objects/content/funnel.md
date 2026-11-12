@@ -57,7 +57,7 @@ Citations: `designs/2026-10-07-content-funnel.md`
 | the post editor's Funnel group, `wren content funnel` | writes stage, target, video, page, link |
 | Videos → Promote, Posts → Promote (Wren's and a client's), `wren content promote [--pieces]` | writes promo drafts: posts, an X thread, a carousel |
 | the slides editor (Save slides, Draw), `wren content slides` | writes the slide set and its drawn files |
-| comment drafting (`sortComment`, `draftThread`, LinkedIn posts), Ask Claude on those, `wren drafts examples` | reads examples |
+| comment drafting (`sortComment`, `draftThread`, LinkedIn posts), Ask Claude on those, `wren content review examples` | reads examples |
 
 ## See
 

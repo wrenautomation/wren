@@ -15,13 +15,13 @@ pnpm db:migrate
 pnpm worker                   # Restate endpoint on :9080 (keep running)
 pnpm register                 # tell Restate where the worker is (once per worker restart)
 ln -s "$PWD/bin/wren" ~/.local/bin/wren   # the CLI, compiled on first run and after every source change
-wren status
+wren content status
 ```
 
 ## Content loop (every platform)
 
 ```bash
-wren status                         # drafts, open ideas, spend; exit 1 on Thursday+ with nothing drafted this week
+wren content status                         # drafts, open ideas, spend; exit 1 on Thursday+ with nothing drafted this week
 echo "shipped the spend gate today. every buy asks me first." | wren content add
 wren content add idea.md --media short.mp4 --title "Spend gate"   # a short: YouTube, Reels, TikTok, X, LinkedIn captions
 wren content drafts                 # one row per platform, status draft
@@ -104,11 +104,11 @@ Nothing sends; each write is a `runs` row the item's thread shows. In the consol
 draft has Claude Code on William's Mac rewrite it ($0), and Undo puts the old text back.
 
 ```bash
-wren drafts list [--type post|comment|thread] [--limit 50]   # newest first
-wren drafts show comment:3          # the whole draft, what it answers, its Ask Claude thread
-wren drafts set comment:3 --file answer.md   # or pipe it in; the same field the console edits
-wren drafts edits --type dm --limit 5        # how William changed drafts, before and after
-node scripts/prod-wren.mjs drafts list       # on prod
+wren content review list [--type post|comment|thread] [--limit 50]   # newest first
+wren content review show comment:3          # the whole draft, what it answers, its Ask Claude thread
+wren content review set comment:3 --file answer.md   # or pipe it in; the same field the console edits
+wren content review edits --type dm --limit 5        # how William changed drafts, before and after
+node scripts/prod-wren.mjs content review list       # on prod
 ```
 
 ## Judge
@@ -120,11 +120,11 @@ His send, drop, star or archive is logged next to it. `NextStepDecide/wren` runs
 the Mac is off, its kinds wait. The Agents page shows the same numbers.
 
 ```bash
-wren judge stats                   # per kind: mode, his calls, agreement, overrides, tokens, $
-wren judge mode document shadow    # off, shadow, recommend (a chip), gate (refused until built)
-wren judge export --called --out decisions.jsonl   # wren.decision/1: the distill set
-wren judge backfill [--dry-run] [--sample 100 --max-usd 2]   # history's calls; a judged sample
-wren judge pass                    # one pass here
+wren content judge stats                   # per kind: mode, his calls, agreement, overrides, tokens, $
+wren content judge mode document shadow    # off, shadow, recommend (a chip), gate (refused until built)
+wren content judge export --called --out decisions.jsonl   # wren.decision/1: the distill set
+wren content judge backfill [--dry-run] [--sample 100 --max-usd 2]   # history's calls; a judged sample
+wren content judge pass                    # one pass here
 ```
 
 ## Accounts

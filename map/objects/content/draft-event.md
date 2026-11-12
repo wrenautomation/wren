@@ -41,16 +41,16 @@ Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts
 
 | Surface | Role |
 |---|---|
-| `wren drafts models`, `ReachDesk.draftModels`, Engage > Draft models | read: per-model scorecard over reach drafts |
+| `wren content review models`, `ReachDesk.draftModels`, Engage > Draft models | read: per-model scorecard over reach drafts |
 | drafting (`draftIdea`, `redraft`, `sortComment`, `draftThread`, `draftDm`) | write `generated` with the prompt |
-| the draft box, Ask Claude, Undo, `wren drafts set`, `wren content edit`, a changed send | write `edited` |
+| the draft box, Ask Claude, Undo, `wren content review set`, `wren content edit`, a changed send | write `edited` |
 | a post field save (`setFields`: editor, attach, `wren content fields`) | writes `edited` with `meta.fields: {key: [before, after]}`; `sent` carries `meta.fields` (what went out) and `meta.notes`. Export versions carry `fields` |
 | `ContentDesk.approve/reject`, `MarketingConsole.rejectDraft`, `wren content reject --reason --note`, drop and skip | write decisions |
 | `PostPublish`, `markAnswered`, `markCommented`, `queueDraft`, `privateReplied`, the DM and invite-note senders | write `sent` / `failed`; every `sent` carries `url`, where it can be seen (`whereSent`, `packages/core/src/sent-url.ts:6`: a reply's permalink, else the post, thread or profile) |
 | every draft page: Versions section (`draftRecordOf` in each `load`) and Activity tab (`draft_activity`) | read |
 | Inbox → Done (`marketing.done`, view `done_records`: a person's and Claude's steps plus scheduled/sent/failed; Today by New York's day) | read |
-| `wren train export`, `wren train pairs`, Export JSONL on draft lists (records `drafts`) | read: `wren.draft/1`, `wren.pair/1`, people out by default |
-| `wren train backfill [--dry-run]` | write history from `content_drafts`, `runs`, `audit_events`, `comments`, `reddit_threads`, `reach_messages`, `video_edits`; skips items with live steps |
+| `wren content train export`, `wren content train pairs`, Export JSONL on draft lists (records `drafts`) | read: `wren.draft/1`, `wren.pair/1`, people out by default |
+| `wren content train backfill [--dry-run]` | write history from `content_drafts`, `runs`, `audit_events`, `comments`, `reddit_threads`, `reach_messages`, `video_edits`; skips items with live steps |
 
 ## See
 
