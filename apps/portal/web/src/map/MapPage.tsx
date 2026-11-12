@@ -10,7 +10,17 @@
  */
 
 import type { BlameLine, ShapeRef } from "@wren/pipeline/history";
-import { Button, cx, Icon, LoadFailed, SELECT_CLASS, Segmented, usePhone, usePref } from "@wren/ui";
+import {
+  Button,
+  cx,
+  Icon,
+  LoadFailed,
+  SELECT_CLASS,
+  Segmented,
+  usePhone,
+  usePref,
+  useSeen,
+} from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import {
   type Fold,
@@ -30,7 +40,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../api.js";
 import { type PageProps, WREN } from "../module.js";
-import { useChatToolsDone, usePageContext } from "../modules/agent/drive.js";
+import { useChatToolsDone } from "../modules/agent/drive.js";
 import { atOf } from "../modules/deals/board.js";
 import { go, href, navigate } from "../route.js";
 import { DraftBanner } from "./DraftBanner.js";
@@ -245,17 +255,16 @@ export function MapPage({
     opened.retry();
     against.retry();
   }, [steps]);
-  usePageContext(
-    [
-      client ? `client ${client}` : "Wren's own shape",
-      row
-        ? `open draft ${row.id} (${row.state}, on v${row.base})`
-        : `the live shape${newest ? ` v${newest}` : ""}, no draft open`,
-      panel ? `selected ${panel.kind} ${panel.id}` : null,
-    ]
-      .filter(Boolean)
-      .join("; "),
-  );
+  const inView = [
+    client ? `client ${client}` : "Wren's own shape",
+    row
+      ? `open draft ${row.id} (${row.state}, on v${row.base})`
+      : `the live shape${newest ? ` v${newest}` : ""}, no draft open`,
+    panel ? `selected ${panel.kind} ${panel.id}` : null,
+  ]
+    .filter(Boolean)
+    .join("; ");
+  useSeen("page", { label: row ? `Draft ${row.id}` : "Live map", icon: "eye", text: inView });
 
   // The two sides History draws: the Versions tab's picked pair, or the Drafts tab's compared draft.
   const pair = pairOf(picked);

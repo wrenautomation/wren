@@ -138,8 +138,16 @@ export const ChangesNone: Story = {
   render: () => <Changes start={[]} />,
 };
 
-/** Long names, many lines. */
+/** Long names, many lines: a turn over 6 lines shows 5 and folds the rest. */
 export const ChangesWorst: Story = {
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await expect(c.getAllByText(/Saint-Germain-des-Prés/)).toHaveLength(5);
+    await userEvent.click(c.getByRole("button", { name: "Show 4 more" }));
+    await expect(c.getAllByText(/Saint-Germain-des-Prés/)).toHaveLength(9);
+    await userEvent.click(c.getByRole("button", { name: "Show fewer" }));
+    await expect(c.getAllByText(/Saint-Germain-des-Prés/)).toHaveLength(5);
+  },
   render: () => (
     <Changes
       start={[

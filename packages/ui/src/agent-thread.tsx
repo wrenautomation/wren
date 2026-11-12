@@ -13,6 +13,7 @@ import {
   type AttachmentAdapter,
   AttachmentPrimitive,
   ComposerPrimitive,
+  createMessageQueue,
   MessagePrimitive,
   type ReasoningMessagePartComponent,
   type TextMessagePartComponent,
@@ -31,6 +32,8 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
+  useSyncExternalStore,
 } from "react";
 import TextareaAutosize, { type TextareaAutosizeProps } from "react-textarea-autosize";
 import { Streamdown } from "streamdown";
@@ -48,6 +51,7 @@ import {
   Say,
 } from "./agent-cards.js";
 import { type AgentCommand, SlashMenu } from "./agent-picks.js";
+import { QueuedTurns } from "./agent-queued.js";
 import { partsOf, spanOf, ToolPart, took, Working } from "./agent-steps.js";
 import { Ring } from "./busy.js";
 import { Tag } from "./controls.js";
@@ -183,8 +187,10 @@ export interface AgentThreadProps {
   onSend: (text: string, files: readonly AgentSent[]) => void;
   /** Files may be added: the clip button, drop and paste. */
   files?: AgentFiles | undefined;
-  /** The page the next turn names: a chip in the box; Close drops it. */
-  context?: { label: string; onDrop: () => void } | null | undefined;
+  /** What the next turn carries of the page (`PageSeen`): in the box, over the words. */
+  seen?: ReactNode;
+  /** Send while a turn is out: the turn waits over the box and goes when the reply ends. */
+  queue?: boolean | undefined;
   onStop: () => void;
   /** An ask answered; `answers` for AskUserQuestion, by question. */
   onAnswer: (toolId: string, allow: boolean, answers?: Record<string, string>) => void;
@@ -199,6 +205,8 @@ export interface AgentThreadProps {
   note?: ReactNode;
   /** Over the box: the live background tasks (`AgentTasks`). */
   above?: ReactNode;
+  /** Under a reply, after its foot: what the turn changed (`ChangesTally`). */
+  replyFoot?: ((replyId: string) => ReactNode) | undefined;
   /** `/` at the start of the box lists these. */
   commands?: readonly AgentCommand[] | undefined;
   /** A sent link's preview (the portal's `/api/unfurl`); none = bare link cards. */
@@ -442,18 +450,94 @@ function useFiles(files: AgentFiles | undefined) {
 
 const COLUMN = "mx-auto w-full max-w-[46rem] px-[clamp(12px,3vw,28px)]";
 
+/**
+ * assistant-ui's queue on the host's run: a send while a turn is out waits, the next goes on the
+ * falling edge. A send that starts no turn (an error, a refusal) frees the queue too.
+ */
+function useSendQueue(
+  on: boolean,
+  running: boolean,
+  failed: boolean,
+  send: (m: AppendMessage) => void,
+) {
+  const sendRef = useRef(send);
+  sendRef.current = send;
+  const waiting = useRef(false); // sent; its turn not yet out
+  const [q] = useState(() =>
+    createMessageQueue({
+      run: (m) => {
+        q.notifyBusy();
+        waiting.current = true;
+        sendRef.current(m);
+      },
+    }),
+  );
+  const was = useRef(false);
+  useEffect(() => {
+    if (running && !was.current) {
+      if (waiting.current) waiting.current = false;
+      else q.notifyBusy(); // a turn the page started: hold sends
+    }
+    if (!running && was.current) q.notifyIdle();
+    was.current = running;
+  }, [running, q]);
+  useEffect(() => {
+    if (failed && waiting.current && !running) {
+      waiting.current = false;
+      q.notifyIdle();
+    }
+  }, [failed, running, q]);
+  const items = useSyncExternalStore(
+    q.subscribe,
+    () => q.adapter.items,
+    () => q.adapter.items,
+  );
+  const steer = useSyncExternalStore(
+    q.subscribe,
+    () => q.adapter.steerItems,
+    () => q.adapter.steerItems,
+  );
+  const waits = useMemo(
+    () =>
+      [...steer, ...items].map((i) => ({
+        id: i.id,
+        text: i.parts.flatMap((x) => (x.type === "text" ? [x.text] : [])).join("\n"),
+        files: i.parts.some((x) => x.type === "file"),
+      })),
+    [steer, items],
+  );
+  return on ? { adapter: q.adapter, waits } : null;
+}
+
+/** A queued turn's words changed: the same user message, new text. */
+function retyped(text: string): AppendMessage {
+  return {
+    role: "user",
+    content: [{ type: "text", text }],
+    attachments: [],
+    metadata: { custom: {} },
+    createdAt: new Date(),
+    parentId: null,
+    sourceId: null,
+    runConfig: undefined,
+  } as AppendMessage;
+}
+
 export function AgentThread(p: AgentThreadProps) {
   const files = useFiles(p.files);
+  const send = (m: AppendMessage) => {
+    const text = textOf(m).trim();
+    const sent = files.take(m);
+    if (text || sent.length) p.onSend(text, sent);
+  };
+  const queue = useSendQueue(!!p.queue, p.running, !!p.error, send);
   const runtime = useExternalStoreRuntime<AgentMessage>({
     messages: p.messages,
     convertMessage: threadMessage,
     isRunning: p.running,
     isDisabled: !!p.closed || !!p.stale,
-    onNew: async (m) => {
-      const text = textOf(m).trim();
-      const sent = files.take(m);
-      if (text || sent.length) p.onSend(text, sent);
-    },
+    onNew: async (m) => send(m),
+    ...(queue ? { queue: queue.adapter } : {}),
     onCancel: async () => p.onStop(),
     onRespondToToolApproval: ({ approvalId, approved }) => p.onAnswer(approvalId, approved),
     ...(files.adapter ? { adapters: { attachments: files.adapter } } : {}),
@@ -465,62 +549,76 @@ export function AgentThread(p: AgentThreadProps) {
           <Say.Provider value={(text) => p.onSend(text, [])}>
             <Preview.Provider value={p.preview}>
               <FileRead.Provider value={p.readFile}>
-                <ThreadPrimitive.Root
-                  data-agent-thread=""
-                  className={cx("flex h-full min-h-0 flex-col", p.className)}
-                >
-                  <ThreadPrimitive.Viewport
-                    aria-busy={p.stale || undefined}
-                    className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
+                <ReplyFoot.Provider value={p.replyFoot}>
+                  <ThreadPrimitive.Root
+                    data-agent-thread=""
+                    className={cx("flex h-full min-h-0 flex-col", p.className)}
                   >
-                    <div
-                      className={cx(
-                        COLUMN,
-                        "grid gap-6 pt-5 pb-5 transition-opacity duration-200",
-                        p.stale && "opacity-50",
-                      )}
+                    <ThreadPrimitive.Viewport
+                      aria-busy={p.stale || undefined}
+                      className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
                     >
-                      <ThreadPrimitive.Messages>
-                        {({ message }) => (message.role === "user" ? <UserTurn /> : <ReplyTurn />)}
-                      </ThreadPrimitive.Messages>
-                      {p.starting ? <Starting /> : null}
-                      {p.error ? (
-                        <Alert onRetry={p.error.retry} className="ui-rise mb-0">
-                          {p.error.text}
-                        </Alert>
-                      ) : null}
-                    </div>
-                    <ThreadPrimitive.Empty>
-                      {/* closed: no prompts to send; the box says why */}
-                      {p.welcome && !p.closed ? <Welcome {...p.welcome} /> : null}
-                    </ThreadPrimitive.Empty>
-                    <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-[linear-gradient(transparent,var(--ui-paper)_28px)] pt-7 pb-1">
-                      <div className={cx(COLUMN, "relative")}>
-                        <ThreadPrimitive.ScrollToBottom
-                          className="absolute -top-11 left-1/2 grid size-8 -translate-x-1/2 place-items-center rounded-full bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-opacity duration-200 hover:text-(--ui-ink) disabled:pointer-events-none disabled:opacity-0"
-                          aria-label="Scroll to the newest"
-                        >
-                          <Icon name="down" size={15} />
-                        </ThreadPrimitive.ScrollToBottom>
-                        {p.above}
-                        <Composer
-                          closed={p.closed}
-                          placeholder={p.placeholder}
-                          tools={p.tools}
-                          files={!!p.files && !p.closed}
-                          context={p.context}
-                          commands={p.commands}
-                          draft={p.draft}
-                        />
-                        {p.note ? (
-                          <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">
-                            {p.note}
-                          </p>
+                      <div
+                        className={cx(
+                          COLUMN,
+                          "grid gap-6 pt-5 pb-5 transition-opacity duration-200",
+                          p.stale && "opacity-50",
+                        )}
+                      >
+                        <ThreadPrimitive.Messages>
+                          {({ message }) =>
+                            message.role === "user" ? <UserTurn /> : <ReplyTurn />
+                          }
+                        </ThreadPrimitive.Messages>
+                        {p.starting ? <Starting /> : null}
+                        {p.error ? (
+                          <Alert onRetry={p.error.retry} className="ui-rise mb-0">
+                            {p.error.text}
+                          </Alert>
                         ) : null}
                       </div>
-                    </ThreadPrimitive.ViewportFooter>
-                  </ThreadPrimitive.Viewport>
-                </ThreadPrimitive.Root>
+                      <ThreadPrimitive.Empty>
+                        {/* closed: no prompts to send; the box says why */}
+                        {p.welcome && !p.closed ? <Welcome {...p.welcome} /> : null}
+                      </ThreadPrimitive.Empty>
+                      <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-[linear-gradient(transparent,var(--ui-paper)_28px)] pt-7 pb-1">
+                        <div className={cx(COLUMN, "relative")}>
+                          <ThreadPrimitive.ScrollToBottom
+                            className="absolute -top-11 left-1/2 grid size-8 -translate-x-1/2 place-items-center rounded-full bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-opacity duration-200 hover:text-(--ui-ink) disabled:pointer-events-none disabled:opacity-0"
+                            aria-label="Scroll to the newest"
+                          >
+                            <Icon name="down" size={15} />
+                          </ThreadPrimitive.ScrollToBottom>
+                          {p.above}
+                          {queue?.waits.length ? (
+                            <div className="mb-2">
+                              <QueuedTurns
+                                turns={queue.waits}
+                                onEdit={(id, text) => queue.adapter.edit(id, retyped(text))}
+                                onRemove={(id) => queue.adapter.remove(id)}
+                              />
+                            </div>
+                          ) : null}
+                          <Composer
+                            closed={p.closed}
+                            placeholder={p.placeholder}
+                            tools={p.tools}
+                            files={!!p.files && !p.closed}
+                            seen={p.seen}
+                            queue={!!queue}
+                            commands={p.commands}
+                            draft={p.draft}
+                          />
+                          {p.note ? (
+                            <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">
+                              {p.note}
+                            </p>
+                          ) : null}
+                        </div>
+                      </ThreadPrimitive.ViewportFooter>
+                    </ThreadPrimitive.Viewport>
+                  </ThreadPrimitive.Root>
+                </ReplyFoot.Provider>
               </FileRead.Provider>
             </Preview.Provider>
           </Say.Provider>
@@ -682,8 +780,12 @@ function FileChip({ remove }: { remove?: boolean }) {
 const NO_VIEWS: AgentViews = {};
 const Views = createContext<AgentViews>(NO_VIEWS);
 
+const ReplyFoot = createContext<AgentThreadProps["replyFoot"]>(undefined);
+
 function ReplyTurn() {
   const views = useContext(Views);
+  const foot = useContext(ReplyFoot);
+  const id = useAuiState((s) => s.message.id);
   return (
     <MessagePrimitive.Root className="ui-rise group/reply grid min-w-0 gap-2">
       <MessagePrimitive.Parts
@@ -697,6 +799,7 @@ function ReplyTurn() {
       <Working />
       <Ended />
       <Foot />
+      {foot?.(id)}
     </MessagePrimitive.Root>
   );
 }
@@ -898,7 +1001,8 @@ function Composer({
   placeholder,
   tools,
   files,
-  context,
+  seen,
+  queue,
   commands,
   draft,
 }: {
@@ -907,7 +1011,8 @@ function Composer({
   placeholder?: string | undefined;
   tools?: ReactNode;
   files: boolean;
-  context?: AgentThreadProps["context"];
+  seen?: ReactNode;
+  queue: boolean;
   commands?: readonly AgentCommand[] | undefined;
 }) {
   const running = useAuiState((s) => s.thread.isRunning);
@@ -926,23 +1031,9 @@ function Composer({
     >
       <ComposerPrimitive.TriggerPopoverRoot>
         {commands?.length ? <SlashMenu commands={commands} /> : null}
-        {context || files ? (
+        {seen || files ? (
           <div className="flex flex-wrap items-center gap-2 px-3 pt-3 empty:hidden">
-            {context ? (
-              <span className="inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-[14px] py-1 bg-(--ui-fill) pr-1 pl-2.5 text-[12.5px] text-(--ui-ink-2) [animation:ui-fade_.15s_both]">
-                <Icon name="page" size={13} className="flex-none" />
-                <span className="min-w-0 wrap-anywhere">{context.label}</span>
-                <button
-                  type="button"
-                  aria-label="Don't send this page"
-                  {...tipProps("Don't send this page")}
-                  onClick={context.onDrop}
-                  className="grid size-5 flex-none place-items-center rounded-full text-(--ui-ink-3) hover:bg-(--ui-wash) hover:text-(--ui-ink)"
-                >
-                  <Icon name="close" size={11} />
-                </button>
-              </span>
-            ) : null}
+            {seen}
             {files ? (
               <ComposerPrimitive.Attachments>
                 {() => <FileChip remove />}
@@ -971,6 +1062,15 @@ function Composer({
             </ComposerPrimitive.AddAttachment>
           ) : null}
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">{tools}</div>
+          {running && queue ? (
+            <ComposerPrimitive.Send
+              aria-label="Send when this reply ends"
+              {...tipProps("Send when this reply ends", { keys: "Enter" })}
+              className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-fill) text-(--ui-ink) [animation:ui-fade_.15s_both] hover:bg-(--ui-hover) disabled:hidden"
+            >
+              <Icon name="arrowUp" size={16} />
+            </ComposerPrimitive.Send>
+          ) : null}
           {running ? (
             <ComposerPrimitive.Cancel
               aria-label="Stop"

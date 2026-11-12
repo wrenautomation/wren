@@ -346,7 +346,7 @@ export const textOf = (c: Cell | undefined) =>
       : String(c);
 
 /** A field's cell as words: a state's label ("Reddit", not "reddit"), else its text. */
-const wordsOf = (meta: RecordMeta, row: Row, key: string) => {
+export const wordsOf = (meta: RecordMeta, row: Row, key: string) => {
   const t = textOf(row[key]);
   const f = meta.fields.find((f) => f.key === key);
   return f && t ? shownOf(f, t) : t;

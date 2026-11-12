@@ -16,10 +16,12 @@ import {
   SplitGhost,
   SplitPanel,
   type SplitRow,
+  seenRows,
   sliceColor,
   TopRecords,
   useLoad,
   useNarrow,
+  useSeen,
   useTypes,
 } from "@wren/ui";
 import type { PageProps } from "../../module.js";
@@ -143,6 +145,16 @@ export function MoneyOverview(_: PageProps) {
 function MonthSplit() {
   const load = useLoad("money:month", readMonth, api);
   const label = "Spend this month";
+  useSeen(
+    "page",
+    load.data && {
+      label: "Spend this month",
+      icon: "eye",
+      text: `Money, spend this month by account (${load.data.currency}), total ${load.data.total}:\n${seenRows(
+        load.data.accounts.map((a) => `${a.name}: ${a.sum} (${a.vendors.join(", ")})`),
+      )}`,
+    },
+  );
   if (load.error && !load.data) return <LoadFailed error={load.error} onRetry={load.retry} />;
   if (!load.data) return <SplitGhost label={label} lines={5} shape="ring" />;
   const { accounts, total, currency } = load.data;

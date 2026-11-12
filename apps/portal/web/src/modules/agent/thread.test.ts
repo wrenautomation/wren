@@ -344,12 +344,14 @@ describe("files in a turn", () => {
     ],
     "Research › Ask (/research/ask)",
     "00000000-0000-4000-8000-000000000001",
+    "Leads: 12 rows",
   );
 
   it("words first, then the page and chat lines, then each file's line and block", () => {
     expect(wire.map((b) => (b.type === "text" ? b.text : b.type))).toEqual([
       "What is in these?",
       "[Page: Research › Ask (/research/ask)]",
+      "[In view]\nLeads: 12 rows",
       "[Chat: 00000000-0000-4000-8000-000000000001]",
       "[Attached: shot.png]",
       "image",
@@ -357,7 +359,7 @@ describe("files in a turn", () => {
     ]);
   });
 
-  it("a stored turn reads back as words, file parts and the page; the chat line stays hidden", () => {
+  it("a stored turn reads back as words, file parts and the page; the chat and in-view lines stay hidden", () => {
     const t = storedTurn(wire);
     expect(t.words).toBe("What is in these?");
     expect(t.page).toBe("Research › Ask (/research/ask)");

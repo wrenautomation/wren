@@ -9,7 +9,7 @@
  * ContentDesk through the console.
  */
 
-import { cx, Icon, PageHeader } from "@wren/ui";
+import { cx, Icon, PageHeader, seenRows, useSeen } from "@wren/ui";
 import { useEffect } from "react";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
@@ -76,6 +76,21 @@ function StudioHome(props: PageProps) {
   // A plan that names no line for its pieces has nothing to filter by.
   const filter = lines.length > 0 && all.some((d) => d.line);
   const shown = line ? byId.get(line) : undefined;
+  useSeen(
+    "page",
+    plan.data && {
+      label: `${n} due`,
+      icon: "eye",
+      text: `Studio, pieces the plan still asks for this week:\n${
+        seenRows(
+          due.map(
+            (d) =>
+              `${d.name}: ${d.n} to make${d.late ? ", late today" : ""}${d.line ? ` (line ${d.line})` : ""}`,
+          ),
+        ) || "none"
+      }`,
+    },
+  );
   return (
     <>
       <PageHeader

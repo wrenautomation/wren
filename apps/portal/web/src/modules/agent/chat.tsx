@@ -4,23 +4,31 @@
  */
 import type { Who } from "@wren/core/access";
 import {
+  AgentChanges,
   AgentPick,
   AgentStatus,
   AgentTasks,
   AgentThread,
+  Button,
+  ChangesTally,
+  ConfirmCard,
   cx,
   type Hand,
   Icon,
   Input,
   Loading,
   modelName,
+  PageSeen,
   type PickOption,
   takeHand,
+  useSeenParts,
 } from "@wren/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { linkPreview } from "../../api.js";
 import { keep, recall } from "../../local.js";
+import { decidedTurn, useChatChanges } from "./changes.js";
 import { relayFile, relayRename, type SetupInfo } from "./connect.js";
+import { toolsDoneIn } from "./drive.js";
 import { ACCEPT } from "./files.js";
 import { pageToken, useAgent } from "./use-agent.js";
 import { VIEWS } from "./views.js";
@@ -256,11 +264,24 @@ export function AgentChat({
     was.current = a.running;
     busy.current?.(a.running);
   }, [a.running]);
-  // a page dropped from the box stays dropped until another page opens
-  const [dropped, setDropped] = useState<string | null>(null);
-  const sendPage = page && page !== dropped ? page : undefined;
+  // a part left out stays out until another page opens
+  const [off, setOff] = useState<ReadonlySet<string>>(() => new Set());
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new page clears the picks
+  useEffect(() => setOff(new Set()), [page]);
+  const inView = useSeenParts();
+  const parts = useMemo(() => inView.map((p) => ({ ...p, off: off.has(p.id) })), [inView, off]);
+  const seen =
+    parts
+      .filter((p) => !p.off)
+      .map((p) => `${p.label}: ${p.text}`)
+      .join("\n\n") || undefined;
+  const sendPage = page;
   const send = useRef(a.send);
   send.current = a.send;
+  const toolsDone = useMemo(() => toolsDoneIn(a.messages), [a.messages]);
+  const ch = useChatChanges({ chat, running: a.running, toolsDone, messages: a.messages });
+  const [changesOpen, setChangesOpen] = useState(false);
+  const asking = ch.asks.filter((x) => x.state === "asks");
   const [draft, setDraft] = useState<{ id: number; text: string } | null>(null);
   useEffect(() => {
     if (!hand || a.loading) return;
@@ -271,8 +292,8 @@ export function AgentChat({
     }
     if (a.running) return;
     takeHand(hand.id);
-    send.current(hand.text, [], sendPage);
-  }, [hand, a.loading, a.running, sendPage]);
+    send.current(hand.text, [], sendPage, seen);
+  }, [hand, a.loading, a.running, sendPage, seen]);
   const one = a.messages.find((m) => m.role === "user")?.parts[0];
   // a long opening turn: its first line names the chat
   const first = one?.type === "text" ? one.text.split("\n")[0] : undefined;
@@ -289,18 +310,57 @@ export function AgentChat({
   return (
     <>
       {head?.(first)}
+      {changesOpen ? (
+        <section
+          aria-label="Changes in this chat"
+          className="mx-auto grid min-h-0 w-full max-w-[46rem] flex-1 content-start gap-4 overflow-y-auto px-[clamp(12px,3vw,28px)] pt-4 pb-6 [animation:ui-fade_.15s_both]"
+        >
+          <div className="flex items-center gap-2">
+            <Button size="sm" tone="quiet" icon="left" onClick={() => setChangesOpen(false)}>
+              Back to the chat
+            </Button>
+          </div>
+          <h2 className="m-0 text-[15px] font-semibold text-(--ui-ink)">Changes in this chat</h2>
+          <AgentChanges turns={ch.turns} onUndo={ch.undo} />
+        </section>
+      ) : null}
       <AgentThread
-        className={className ?? "min-h-0 flex-1 [animation:ui-fade_.2s_both]"}
+        className={cx(
+          className ?? "min-h-0 flex-1 [animation:ui-fade_.2s_both]",
+          // hidden, not unmounted: the box keeps its words and queue
+          changesOpen && "hidden",
+        )}
         stale={a.stale}
         messages={a.messages}
         running={a.running}
         starting={a.starting}
         error={a.error}
         closed={a.closed}
-        onSend={(text, files) => a.send(text, files, sendPage)}
+        onSend={(text, files) => a.send(text, files, sendPage, seen)}
+        queue
         draft={draft}
         files={{ accept: ACCEPT, ready: a.ready }}
-        context={sendPage ? { label: sendPage, onDrop: () => setDropped(sendPage) } : null}
+        seen={
+          page && parts.length ? (
+            <PageSeen
+              page={page.replace(/ \([^)]*\)$/, "")}
+              parts={parts}
+              onToggle={(id) =>
+                setOff((o) => {
+                  const n = new Set(o);
+                  if (!n.delete(id)) n.add(id);
+                  return n;
+                })
+              }
+            />
+          ) : null
+        }
+        replyFoot={(id) => {
+          const lines = ch.turns.filter((t) => t.reply === id).flatMap((t) => t.lines);
+          return lines.length ? (
+            <ChangesTally lines={lines} onOpen={() => setChangesOpen(true)} />
+          ) : null;
+        }}
         onStop={a.stop}
         onAnswer={a.answer}
         preview={linkPreview}
@@ -332,7 +392,22 @@ export function AgentChat({
           </>
         }
         welcome={w ?? { title: `Ask ${setup.title}` }}
-        above={<AgentTasks tasks={a.tasks} onStop={a.stopTask} onOutput={a.taskOutput} />}
+        above={
+          <>
+            {asking.map((c) => (
+              <div key={c.id} className="mb-2">
+                <ConfirmCard
+                  c={c}
+                  onAnswer={async (yes, why) => {
+                    await ch.decide(c.id, yes);
+                    a.send(decidedTurn(c, yes, why), [], sendPage, seen);
+                  }}
+                />
+              </div>
+            ))}
+            <AgentTasks tasks={a.tasks} onStop={a.stopTask} onOutput={a.taskOutput} />
+          </>
+        }
         commands={a.commands}
         note={
           // before the first turn: the picks, as the terminal shows them at start

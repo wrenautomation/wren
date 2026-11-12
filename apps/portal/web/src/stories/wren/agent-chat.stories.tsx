@@ -2,6 +2,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { HttpResponse, http, sse } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import type { Answers } from "../../mocks/api.js";
 import CARD from "../../mocks/data/agent/card.json";
 import COMMANDS from "../../mocks/data/agent/commands.json";
 import COMPACTED_CHAT from "../../mocks/data/agent/compacted.json";
@@ -48,6 +49,7 @@ const story = (
   tape: TapeLine[],
   check: (page: HTMLElement) => Promise<void>,
   more: Stored[] = [],
+  answers: Answers = {},
 ): StoryObj => {
   const u = new URL(at, "http://x");
   const setup = u.searchParams.get("setup");
@@ -55,7 +57,7 @@ const story = (
   u.searchParams.delete("setup");
   u.searchParams.delete("chat");
   // tests the chat, not the page behind it
-  const base = pageAt(u.pathname + u.search, { me: ADMIN, check, empty: false });
+  const base = pageAt(u.pathname + u.search, { me: ADMIN, check, empty: false, answers });
   const relay = fakeRelay({
     tape,
     library: LIBRARY,
@@ -180,6 +182,81 @@ export const Stored = story(`/research/runs?setup=weaver&chat=${STORED}`, [], as
   await c.findByText(/A test of the chat page/, {}, LONG);
   await c.findByText(/42/, {}, LONG);
 });
+
+/** What the chat changed and asks (designs/2026-11-11-agent-panel.md): a Yes or No card over the box, a tally at the reply's foot, Changes per turn. */
+export const ChangesAndAsk = story(
+  `/research/runs?setup=weaver&chat=${STORED}`,
+  [],
+  async (page) => {
+    const c = within(page);
+    await c.findByText(/Send 12 emails to the spring list/, {}, LONG);
+    await c.findByRole("button", { name: /Yes, send/ }, LONG);
+    await userEvent.click(await c.findByRole("button", { name: /Changed 2 records/ }, LONG));
+    await c.findByText(/Lead · 4521/, {}, LONG);
+  },
+  [],
+  {
+    "console/agentChanges": {
+      lines: [
+        {
+          id: "903",
+          at: "2026-11-04T23:20:29Z",
+          turn: "t1",
+          table: "leads",
+          area: "client",
+          op: "update",
+          row: "4521",
+          change: "stage: Engaged → Booked",
+          undone: false,
+          keyed: true,
+          records: [],
+        },
+        {
+          id: "902",
+          at: "2026-11-04T23:20:28Z",
+          turn: "t1",
+          table: "leads",
+          area: "client",
+          op: "update",
+          row: "4518",
+          change: "owner: empty → ann",
+          undone: false,
+          keyed: true,
+          records: [],
+        },
+        {
+          id: "901",
+          at: "2026-11-04T23:20:27Z",
+          turn: "t1",
+          table: "books.spend",
+          area: "money",
+          op: "insert",
+          row: "77",
+          change: null,
+          undone: true,
+          keyed: true,
+          records: [],
+        },
+      ],
+    },
+    "console/agentConfirms": {
+      asks: [
+        {
+          id: "a1",
+          act: "send",
+          client: "wren",
+          what: "Send 12 emails to the spring list",
+          args: { command: "crm approve", argv: ["--all"] },
+          state: "pending",
+          decidedBy: null,
+          decidedAt: null,
+          at: "2026-11-04T23:20:30Z",
+          chat: STORED,
+        },
+      ],
+    },
+  },
+);
 
 /** A chat the Mac no longer holds (404): the box reads only and says why; no Retry (WA-1173). */
 export const Gone = story(

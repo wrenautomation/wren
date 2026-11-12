@@ -10,6 +10,8 @@ import { Icon } from "./icons.js";
 export interface QueuedTurn {
   id: string;
   text: string;
+  /** Carries files: words can't change without dropping them. */
+  files?: boolean | undefined;
 }
 
 function Chip({
@@ -63,7 +65,7 @@ function Chip({
           {t.text}
         </span>
       )}
-      {editing ? null : (
+      {editing || t.files ? null : (
         <button
           type="button"
           aria-label="Change it"

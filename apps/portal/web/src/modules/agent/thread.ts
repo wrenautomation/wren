@@ -5,6 +5,7 @@
  * input. Pure, so fixtures from a real relay session test it (thread.test.ts).
  */
 import { type AgentFile, type AgentMessage, type AgentPart, fileKind } from "@wren/ui";
+import { IN_VIEW } from "./files.js";
 
 export interface ThreadState {
   messages: AgentMessage[];
@@ -339,7 +340,7 @@ export function storedTurn(content: unknown): { parts: AgentPart[]; words: strin
       const fl = FILE_LINE.exec(t);
       open = null;
       if (pg) page = pg[1];
-      else if (CHAT_LINE.test(t)) continue;
+      else if (CHAT_LINE.test(t) || t.startsWith(IN_VIEW)) continue;
       else if (fl) {
         const name = baseName(fl[1] ?? "");
         open = { name, kind: fileKind("", name) };

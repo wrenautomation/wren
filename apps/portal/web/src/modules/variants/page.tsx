@@ -23,6 +23,7 @@ import {
   Textarea,
   UnfiledDrop,
   useEdit,
+  useSeen,
 } from "@wren/ui";
 import { verdictOf } from "@wrenautomation/vireo/calls";
 import { footageLength } from "@wrenautomation/vireo/sync";
@@ -33,7 +34,6 @@ import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
-import { usePageContext } from "../agent/drive.js";
 import { type Live, LiveView } from "./live.js";
 import { FramesProvider, useFrames, WIDTHS } from "./live-page.js";
 import {
@@ -128,9 +128,11 @@ export function MarkBatch({
     .filter(([, n]) => n)
     .map(([t, n]) => `${n} ${t}`)
     .join(", ");
-  usePageContext(
-    `in view: ${open.subject.slug} (${open.subject.kind}), batch ${open.subject.slug}:${open.batch.n} (id ${open.batch.id}), ${judged} of ${open.samples.length} marked`,
-  );
+  useSeen("record", {
+    label: `Batch ${open.subject.slug}:${open.batch.n}`,
+    icon: "page",
+    text: `${open.subject.slug} (${open.subject.kind}), batch ${open.subject.slug}:${open.batch.n} (id ${open.batch.id}), ${judged} of ${open.samples.length} marked`,
+  });
   const wide = WIDE_KINDS.includes(open.subject.kind);
   const group = useMemo(() => new Together(), []);
   const [mode, setMode] = useState<SyncMode>("off");

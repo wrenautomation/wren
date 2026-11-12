@@ -26,6 +26,7 @@ import { Why } from "./hint-layer.js";
 import { away, NoLink } from "./item-link.js";
 import { GROUP_LABEL, PAGE_TITLE } from "./layout.js";
 import { TAB, tabTone } from "./list-bar.js";
+import { useSeen } from "./page-seen.js";
 import { useOpenRecord } from "./palette-scope.js";
 import { AskAccess, type IssueLine, RecordIssues, rowTarget } from "./record-access.js";
 import { recordHead } from "./record-head.js";
@@ -51,6 +52,7 @@ import {
   useTypes,
   versionIn,
   words,
+  wordsOf,
 } from "./records-types.js";
 import { SaveScope, useSavePage } from "./save/react.js";
 import { recordKey } from "./save/writes.js";
@@ -118,6 +120,9 @@ export function RecordPage({
 }
 
 /** One record: its head, then tabs for details, each related type, activity and sources. */
+/** A field's words the agent gets; a long one is cut, the page shows it whole. */
+const SEEN_FIELD = 400;
+
 export function RecordBody({
   meta,
   types,
@@ -144,6 +149,26 @@ export function RecordBody({
   docked?: boolean | undefined;
 }) {
   const got = useLoad(`${meta.id}:${id}:${rev}`, () => api.get({ record: meta.id, id }), api);
+  // what the agent sees (D3): this record, a line per field with a value
+  const seenRow = got.data?.row;
+  useSeen(
+    "record",
+    seenRow
+      ? {
+          label: `${meta.name.one} ${titleOf(meta, seenRow)}`,
+          icon: "page",
+          text: [
+            `${meta.name.one} ${id} (${meta.id})`,
+            ...meta.fields.flatMap((f) => {
+              const v = wordsOf(meta, seenRow, f.key);
+              return v
+                ? [`${f.label}: ${v.length > SEEN_FIELD ? `${v.slice(0, SEEN_FIELD)}…` : v}`]
+                : [];
+            }),
+          ].join("\n"),
+        }
+      : undefined,
+  );
   /** An action changed this record: its states wash once they are read again. */
   const [changed, setChanged] = useState(false);
   const acted = (ids: (string | number)[]) => {

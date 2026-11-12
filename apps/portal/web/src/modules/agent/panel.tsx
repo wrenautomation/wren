@@ -246,8 +246,9 @@ function PanelChat({
             chat={chat}
             title={stored ?? first ?? (chat ? "Chat" : "New chat")}
             onRenamed={sessions.retry}
-            className="ml-1.5 flex-1 text-[13.5px]"
+            className="ml-1.5 flex-1 text-[13.5px] max-sm:order-last max-sm:ml-0 max-sm:basis-full max-sm:pt-1"
           />
+          <span className="flex-1 sm:hidden" />
           <AgentChatsMenu
             rows={sessions.data ?? undefined}
             open={chat}

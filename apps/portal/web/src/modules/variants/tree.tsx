@@ -3,7 +3,15 @@
  * strongest line in the middle. Point for a card, select to light a path; arrows walk it.
  * Port of the approved preview (artifact A5xNkRRGMoMZuH8s7mvfRL, pass 5).
  */
-import { Button, Seg, useZoomStage, type ZoomBox, type ZoomRoom, ZoomTools } from "@wren/ui";
+import {
+  Button,
+  Seg,
+  useSeen,
+  useZoomStage,
+  type ZoomBox,
+  type ZoomRoom,
+  ZoomTools,
+} from "@wren/ui";
 import {
   type CSSProperties,
   type KeyboardEvent,
@@ -17,7 +25,6 @@ import {
 import { call } from "../../api.js";
 import { keep as keepLocal, recall } from "../../local.js";
 import { here, href, navigate } from "../../route.js";
-import { usePageContext } from "../agent/drive.js";
 import { BatchDetail, PIN, Pin, SampleDetail } from "./tree-detail.js";
 import {
   type Call,
@@ -221,13 +228,15 @@ export function SubjectTree({
   const isKept = (s: TNode) => kept[s.id] ?? s.kept;
   const s = sel != null ? (full.byId.get(sel) ?? null) : null;
   const round = s ? full.rounds[s.r - 1] : undefined;
-  usePageContext(
-    `in view: ${subject.slug} generation tree${s ? `, ${s.name} selected (sample ${s.id}, batch ${subject.slug}:${round?.num})` : ""}${
+  useSeen("page", {
+    label: `${subject.slug} tree`,
+    icon: "eye",
+    text: `${subject.slug} generation tree${s ? `, ${s.name} selected (sample ${s.id}, batch ${subject.slug}:${round?.num})` : ""}${
       steers?.length
         ? `; live steers: ${steers.map((x) => (x.kind === "width" ? `width ${x.width}` : x.kind === "cross" ? `cross ${x.sampleId}×${x.otherId}` : `${x.kind} ${x.sampleId}`)).join(", ")}`
         : ""
     }`,
-  );
+  });
   // open on the selected sample at 1:1; again when the shape changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: only a new layout or stage moves the camera.
   useLayoutEffect(() => rest(), [t, stage]);

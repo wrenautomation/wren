@@ -15,7 +15,7 @@ export type RiskyAct = "send" | "spend" | "delete" | "publish";
 export interface AgentConfirm {
   id: string;
   act: RiskyAct;
-  /** The act in words, as the Yes button says it: "Send 12 emails". */
+  /** The act in words: "Send 12 emails". */
   title: string;
   /** What it touches, a line each: ["To", "12 leads in Bakeries, Toronto"]. */
   facts: readonly (readonly [string, ReactNode])[];
@@ -29,11 +29,31 @@ export interface AgentConfirm {
   why?: string | undefined;
 }
 
-const LOOK: Record<RiskyAct, { icon: IconName; tint: string; word: string }> = {
-  send: { icon: "send", tint: "bg-(--ui-needs-tint) text-(--ui-needs)", word: "Sends" },
-  spend: { icon: "dollar", tint: "bg-(--ui-warn-tint) text-(--ui-warn-ink)", word: "Spends" },
-  delete: { icon: "trash", tint: "bg-(--ui-bad-tint) text-(--ui-bad)", word: "Removes" },
-  publish: { icon: "globe", tint: "bg-(--ui-accent-tint) text-(--ui-live)", word: "Goes live" },
+const LOOK: Record<RiskyAct, { icon: IconName; tint: string; word: string; yes: string }> = {
+  send: {
+    icon: "send",
+    tint: "bg-(--ui-needs-tint) text-(--ui-needs)",
+    word: "Sends",
+    yes: "Yes, send",
+  },
+  spend: {
+    icon: "dollar",
+    tint: "bg-(--ui-warn-tint) text-(--ui-warn-ink)",
+    word: "Spends",
+    yes: "Yes, spend",
+  },
+  delete: {
+    icon: "trash",
+    tint: "bg-(--ui-bad-tint) text-(--ui-bad)",
+    word: "Removes",
+    yes: "Yes, remove",
+  },
+  publish: {
+    icon: "globe",
+    tint: "bg-(--ui-accent-tint) text-(--ui-live)",
+    word: "Goes live",
+    yes: "Yes, publish",
+  },
 };
 
 export function ConfirmCard({
@@ -109,8 +129,14 @@ export function ConfirmCard({
             </label>
           ) : null}
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" busy={busy === "yes"} disabled={!!busy} onClick={() => answer(true)}>
-              {c.title}
+            <Button
+              size="sm"
+              tone="primary"
+              busy={busy === "yes"}
+              disabled={!!busy}
+              onClick={() => answer(true)}
+            >
+              {LOOK[c.act].yes}
             </Button>
             <Button
               size="sm"
@@ -130,7 +156,7 @@ export function ConfirmCard({
             size={13}
             className={c.state === "yes" ? "text-(--ui-good)" : "text-(--ui-ink-3)"}
           />
-          <span className="wrap-anywhere">
+          <span className="wrap-anywhere text-pretty">
             {c.state === "yes"
               ? `Yes from ${c.by ?? "you"}`
               : c.state === "no"

@@ -1,13 +1,11 @@
 /**
- * A page drives the side chat (designs/2026-11-05-variants.md, option A). Two things cross from a
- * page to the panel, which sits outside the page's tree: a line of context for each turn (what is
- * in view), and a hand-off (`@wren/ui` agent-hand.tsx). One store, no provider: the panel may be
- * unmounted when the page speaks.
+ * A page and the side chat share state outside the page's tree: the weaver runs each draws, and
+ * the chat's finished tool calls. What is in view: `@wren/ui` page-seen.ts; a hand-off:
+ * agent-hand.tsx. One store, no provider: the panel may be unmounted when the page speaks.
  */
 import type { AgentMessage } from "@wren/ui";
 import { useEffect, useSyncExternalStore } from "react";
 
-let context: string | undefined;
 const subs = new Set<() => void>();
 const tell = () => {
   for (const f of subs) f();
@@ -18,26 +16,6 @@ const sub = (f: () => void) => {
     subs.delete(f);
   };
 };
-
-/** What the page has in view, added to each turn's `[Page: …]` line while the page is mounted. */
-export function usePageContext(text: string | undefined): void {
-  useEffect(() => {
-    context = text;
-    tell();
-    return () => {
-      if (context !== text) return;
-      context = undefined;
-      tell();
-    };
-  }, [text]);
-}
-
-export const usePageContextText = (): string | undefined =>
-  useSyncExternalStore(
-    sub,
-    () => context,
-    () => undefined,
-  );
 
 let pageRuns: readonly string[] = [];
 
@@ -113,3 +91,30 @@ export function runsNamed(messages: readonly AgentMessage[]): string[] {
     }
   return [...out];
 }
+
+/** How long a place's row keeps the agent's mark after a change lands (designs/2026-11-11-agent-panel.md). */
+const MARK_MS = 5000;
+let changed: ReadonlySet<string> = new Set();
+const until = new Map<string, number>();
+
+/** Record types the chat just changed: the sidebar marks each place that lists one, for 5 s. */
+export function markChanged(records: readonly string[], now = Date.now()): void {
+  if (!records.length) return;
+  for (const r of records) until.set(r, now + MARK_MS);
+  changed = new Set(until.keys());
+  tell();
+  setTimeout(() => {
+    const t = Date.now();
+    for (const [r, end] of until) if (end <= t) until.delete(r);
+    if (until.size === changed.size) return;
+    changed = new Set(until.keys());
+    tell();
+  }, MARK_MS + 50);
+}
+
+export const useChangedRecords = (): ReadonlySet<string> =>
+  useSyncExternalStore(
+    sub,
+    () => changed,
+    () => changed,
+  );

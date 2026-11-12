@@ -3,11 +3,11 @@
  * you now, on one round 13 graph that follows them. The open chat's runs and runs still going; with
  * none, the newest run. History holds every run.
  */
-import { AskAgent, cx, Empty, Loading } from "@wren/ui";
+import { AskAgent, cx, Empty, Loading, useSeen } from "@wren/ui";
 import { useMemo } from "react";
 import { useCall } from "../../load.js";
 import { href } from "../../route.js";
-import { useChatRuns, usePageContext, usePageRuns } from "../agent/drive.js";
+import { useChatRuns, usePageRuns } from "../agent/drive.js";
 import { QUIET } from "../work/bits.js";
 import { RunsCanvas } from "./canvas.js";
 import { NoServe } from "./page.js";
@@ -34,8 +34,15 @@ export function LiveRuns({ params, here }: { params: URLSearchParams; here: stri
   const rows = runs.data ?? [];
   const ids = useMemo(() => liveRuns(rows, chat, Date.now()), [rows, chat]);
   const byRun = new Map(rows.map((r) => [r.run, r]));
-  usePageContext(
-    ids.length ? `Research › Runs, Live, shows weaver runs ${ids.join(", ")}` : undefined,
+  useSeen(
+    "page",
+    ids.length
+      ? {
+          label: `${ids.length} ${ids.length === 1 ? "run" : "runs"}`,
+          icon: "eye",
+          text: `Research › Runs, Live, shows weaver runs ${ids.join(", ")}`,
+        }
+      : undefined,
   );
   usePageRuns(runs.data ? ids : undefined);
   if (runs.error && !runs.data) return <NoServe error={runs.error} onRetry={runs.retry} />;

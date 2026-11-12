@@ -122,9 +122,13 @@ function Line({ c, onUndo }: { c: AgentChange; onUndo: UndoChange }) {
   );
 }
 
+/** Lines shown before a fold; one over shows whole (a "1 more" fold saves nothing). */
+const FOLD = 5;
+
 function Turn({ t, onUndo }: { t: AgentChangeTurn; onUndo: UndoChange }) {
   const [busy, setBusy] = useState(false);
   const [no, setNo] = useState<string | null>(null);
+  const [all, setAll] = useState(t.lines.length <= FOLD + 1);
   const open = t.lines.filter((l) => !l.undone && !l.fixed).length;
   const undoAll = async () => {
     setBusy(true);
@@ -155,10 +159,21 @@ function Turn({ t, onUndo }: { t: AgentChangeTurn; onUndo: UndoChange }) {
         </span>
       ) : null}
       <ul className="m-0 grid list-none p-0">
-        {t.lines.map((c) => (
+        {(all ? t.lines : t.lines.slice(0, FOLD)).map((c) => (
           <Line key={c.id} c={c} onUndo={onUndo} />
         ))}
       </ul>
+      {t.lines.length > FOLD + 1 ? (
+        <button
+          type="button"
+          aria-expanded={all}
+          onClick={() => setAll(!all)}
+          className="flex min-h-8 w-fit items-center gap-1 rounded-[8px] px-2 text-[12.5px] font-medium text-(--ui-ink-2) transition-colors hover:bg-(--ui-fill) hover:text-(--ui-ink) pointer-coarse:min-h-11"
+        >
+          <Icon name={all ? "up" : "down"} size={12} />
+          {all ? "Show fewer" : `Show ${t.lines.length - FOLD} more`}
+        </button>
+      ) : null}
     </section>
   );
 }

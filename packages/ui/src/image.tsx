@@ -27,7 +27,6 @@ export function Img({
       ref={ref}
       src={src || undefined}
       alt={look === "in" ? alt : ""}
-      aria-busy={look === "wait" || undefined}
       data-img={look}
       className={className ? `ui-img ${className}` : "ui-img"}
       onLoad={(e) => {

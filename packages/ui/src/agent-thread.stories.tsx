@@ -10,6 +10,7 @@ import {
   type AgentTaskOutput,
   AgentTasks,
 } from "./agent-picks.js";
+import { PageSeen } from "./agent-sees.js";
 import { type AgentMessage, AgentThread, type AgentThreadProps } from "./agent-thread.js";
 
 export default {
@@ -586,10 +587,77 @@ export const Switching: Story = {
 const PIXEL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR4nGNkYPj/n4GBgYGJgYGBAQAqVwMBJJ1sJwAAAABJRU5ErkJggg==";
 
+/** Sends while a turn is out wait over the box, numbered; each goes as a reply ends. */
+export const Queued: Story = {
+  render: () => {
+    const [messages, setMessages] = useState<AgentMessage[]>([
+      you("u0", "Pull this week's sends into a table."),
+      { id: "a0", role: "assistant", parts: [], state: "live" },
+    ]);
+    const [running, setRunning] = useState(true);
+    return (
+      <div className="h-[640px] bg-(--ui-paper)">
+        <AgentThread
+          queue
+          messages={messages}
+          running={running}
+          onSend={(text) => {
+            setMessages((m) => [
+              ...m,
+              you(`u${m.length}`, text),
+              { id: `a${m.length}`, role: "assistant", parts: [], state: "live" },
+            ]);
+            setRunning(true);
+          }}
+          onStop={() => setRunning(false)}
+          onAnswer={() => {}}
+          tools={
+            <button
+              type="button"
+              onClick={() => {
+                setMessages((m) =>
+                  m.map((x, i) =>
+                    i === m.length - 1
+                      ? { ...x, state: "done" as const, parts: [{ type: "text", text: "Done." }] }
+                      : x,
+                  ),
+                );
+                setRunning(false);
+              }}
+              className="rounded-[8px] px-2 py-1 text-[12px] text-(--ui-ink-3) hover:bg-(--ui-fill)"
+            >
+              End the reply
+            </button>
+          }
+        />
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    const box = c.getByRole("textbox");
+    await userEvent.type(box, "Then sort by opens{Enter}");
+    await userEvent.type(box, "And drop the bounces{Enter}");
+    await userEvent.type(box, "Never mind{Enter}");
+    await waitFor(() => expect(c.getByText("Send one by one as each reply ends")).toBeTruthy());
+    await expect(c.getAllByRole("listitem").length).toBe(3);
+    await userEvent.click(
+      c.getAllByRole("button", { name: "Don't send it" }).at(-1) as HTMLElement,
+    );
+    await waitFor(() => expect(c.queryByText("Never mind")).toBeNull());
+    await userEvent.click(c.getByRole("button", { name: "End the reply" }));
+    // the first waiting turn goes; one still waits
+    await waitFor(() => expect(c.getByText("Sends when this reply ends")).toBeTruthy());
+    await expect(c.getAllByText("Then sort by opens").length).toBe(1);
+    await userEvent.click(c.getByRole("button", { name: "End the reply" }));
+    await waitFor(() => expect(c.queryByLabelText("Waiting to send")).toBeNull());
+  },
+};
+
 /** Files in a turn: a picture, a video, a PDF; the page the turn came from under it. The box takes more. */
 export const Files: Story = {
   render: () => {
-    const [page, setPage] = useState<string | null>("Campaigns › Sends (/campaigns/sends)");
+    const [off, setOff] = useState(false);
     return (
       <Live
         messages={[
@@ -624,7 +692,21 @@ export const Files: Story = {
               ),
             ),
         }}
-        context={page ? { label: page, onDrop: () => setPage(null) } : null}
+        seen={
+          <PageSeen
+            page="Campaigns › Sends"
+            parts={[
+              {
+                id: "list",
+                label: "12 sends",
+                icon: "list",
+                text: "sends: 12 rows (status, opens)",
+                off,
+              },
+            ]}
+            onToggle={() => setOff(!off)}
+          />
+        }
       />
     );
   },
@@ -632,8 +714,10 @@ export const Files: Story = {
     const c = within(canvasElement);
     await expect(c.getByText("promo-cut-3.mp4")).toBeTruthy();
     await expect(c.getByText("Studio › Videos (/studio/videos)")).toBeTruthy();
-    await userEvent.click(c.getByRole("button", { name: "Don't send this page" }));
-    await waitFor(() => expect(c.queryByText(/Campaigns › Sends/)).toBeNull());
+    await userEvent.click(c.getByText("Campaigns › Sends · 12 sends"));
+    await userEvent.click(await within(document.body).findByRole("button", { name: "Leave out" }));
+    await waitFor(() => expect(c.getByText("Campaigns › Sends")).toBeTruthy());
+    await userEvent.keyboard("{Escape}");
     // the picker's input exists only on a click: a paste takes the same path
     const box = c.getByRole("textbox");
     const dt = new DataTransfer();

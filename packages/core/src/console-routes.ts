@@ -28,6 +28,9 @@ export const CONSOLE_ROUTES = {
   // D2: a chat's asks, and a person's Yes or No (`agent-gate.ts`, the chat's person or an admin).
   agentConfirms: "read",
   agentDecide: "read",
+  // D2's dial: read by the team; moved with `manage` on the client (never by the agent).
+  agentAutonomy: "read",
+  agentAutonomySet: "manage",
   // A viewer's own saved views and prefs, where they look; sharing a view checks `manage`.
   savedViews: "read",
   saveView: "read",
@@ -217,6 +220,7 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "recordsAsk",
   "agentUndo",
   "agentDecide",
+  "agentAutonomySet",
   "saveView",
   "removeView",
   "moveViews",

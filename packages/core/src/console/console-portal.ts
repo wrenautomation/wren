@@ -16,7 +16,12 @@ import { answer, PortalRefusal, type PortalRequest, portalService } from "../por
 import type { ExportAsk, GetAsk, ListAsk, StatsAsk } from "../records-serve.js";
 import type { SurveyInput } from "../survey-store.js";
 import { viewAsApi, viewAsHandlers } from "../view-as.js";
-import type { AgentChangesRequest, AgentDecideRequest, AgentUndoRequest } from "./api/agent.js";
+import type {
+  AgentAutonomyRequest,
+  AgentChangesRequest,
+  AgentDecideRequest,
+  AgentUndoRequest,
+} from "./api/agent.js";
 import type { ComponentRequest, InstallRequest } from "./components.js";
 import {
   type AddClientRequest,
@@ -100,6 +105,10 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
         answer(() => api.agentConfirms(req)),
       agentDecide: (ctx: restate.Context, req: AgentDecideRequest) =>
         answer(() => ctx.run("agent decide", () => answer(() => api.agentDecide(req)))),
+      agentAutonomy: (_: restate.Context, req: PortalRequest) =>
+        answer(() => api.agentAutonomy(req)),
+      agentAutonomySet: (ctx: restate.Context, req: AgentAutonomyRequest) =>
+        answer(() => ctx.run("agent autonomy", () => answer(() => api.agentAutonomySet(req)))),
       agentUndo: (ctx: restate.Context, req: AgentUndoRequest) =>
         answer(() => ctx.run("agent undo", () => answer(() => api.agentUndo(req)))),
       recordsAsk: (ctx: restate.Context, req: AskRequest) =>

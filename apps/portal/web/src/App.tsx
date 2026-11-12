@@ -63,7 +63,7 @@ import { prefetchMap } from "./map/read.js";
 import { stationItems } from "./map/stations.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
 import { ownerOf } from "./modules/agent/chat.js";
-import { usePageContextText } from "./modules/agent/drive.js";
+import { useChangedRecords } from "./modules/agent/drive.js";
 import { AgentPanel, useAgentPanel } from "./modules/agent/panel.js";
 import { appsIn, MODULES } from "./modules/index.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
@@ -294,7 +294,6 @@ export function App() {
   const agent = useAgentPanel(team);
   // a page handed the chat a turn: the panel opens to take it
   const hand = useHand();
-  const inView = usePageContextText();
   const openAgent = agent.set;
   useEffect(() => {
     if (hand) openAgent({ open: true });
@@ -449,6 +448,8 @@ export function App() {
     team,
     `${route.path.join("/")}?${route.params}`,
   );
+  // the chat's fresh changes: a mark on each place that lists their records
+  const changedRecords = useChangedRecords();
   // Words typed from here on wait under the client on screen (set before its boxes read them).
   EDITS.setClient(current?.id ?? null);
   // A route's loader reads ahead in this workspace; a sample reads nothing ahead.
@@ -529,6 +530,7 @@ export function App() {
     icon: m.icon,
     href: firstOf(m),
     count: appTotal(waiting[m.id]),
+    agent: m.pages.some((p) => "record" in p && changedRecords.has(p.record)),
     off: !wren && !!m.component && !installed.has(m.component),
     pages: m.pages
       .filter((p) => !p.hidden && p.id !== m.action?.page)
@@ -606,9 +608,9 @@ export function App() {
     : [];
 
   const pageLine = open
-    ? `${open.module.name} › ${open.page.label} (${location.pathname})${inView ? `; ${inView}` : ""}`
+    ? `${open.module.name} › ${open.page.label} (${location.pathname})`
     : onMap
-      ? `Map (${location.pathname}${location.search})${inView ? `; ${inView}` : ""}`
+      ? `Map (${location.pathname}${location.search})`
       : undefined;
 
   return (

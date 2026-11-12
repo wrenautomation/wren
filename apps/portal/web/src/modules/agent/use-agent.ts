@@ -106,8 +106,8 @@ export interface AgentChat {
   taskOutput: (id: string) => Promise<AgentTaskOutput>;
   /** What `/` lists: the session's commands and skills. */
   commands: readonly AgentCommand[];
-  /** `page` names the page the turn is sent from; the thread shows it under the turn. */
-  send: (text: string, files?: readonly AgentSent[], page?: string) => void;
+  /** `page` names the page the turn is sent from; the thread shows it under the turn. `seen`: what it shows, for the agent only. */
+  send: (text: string, files?: readonly AgentSent[], page?: string, seen?: string) => void;
   /** A picked file → what its turn carries (AgentThread `files.ready`). */
   ready: (file: File) => Promise<Wire[]>;
   stop: () => void;
@@ -173,7 +173,12 @@ export function useAgent(o: {
   // the id this hook is showing: a new chat's id arriving must not reload it
   const shown = useRef<string | null>(null);
   // Retry after a dropped socket sends the last turn again, on a new one
-  type Turn = [text: string, files: readonly AgentSent[], page: string | undefined];
+  type Turn = [
+    text: string,
+    files: readonly AgentSent[],
+    page: string | undefined,
+    seen?: string | undefined,
+  ];
   const last = useRef<Turn>(["", [], undefined]);
   const again = useRef<(...t: Turn) => void>(() => {});
   const failed = useCallback((e: unknown) => {
@@ -375,14 +380,15 @@ export function useAgent(o: {
   );
 
   const send = useCallback(
-    (text: string, files: readonly AgentSent[] = [], page?: string) => {
-      last.current = [text, files, page];
+    (text: string, files: readonly AgentSent[] = [], page?: string, seen?: string) => {
+      last.current = [text, files, page, seen];
       const c = /^\/([\w:.-]+)/.exec(text.trim());
       typedNow.current = c?.[1] ? { name: c[1], cleared: false } : null;
       setError(null);
       setS((p) => said(p, text, { files: files.map((f) => f.file), page }));
       const chat = shown.current ?? undefined;
-      const content = files.length || page || chat ? turnContent(text, files, page, chat) : text;
+      const content =
+        files.length || page || chat || seen ? turnContent(text, files, page, chat, seen) : text;
       const l = live.current;
       if (l) return l.say(content);
       const on = opening.current;

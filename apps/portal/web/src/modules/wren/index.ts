@@ -14,6 +14,7 @@ import { ClientComponents } from "../account/Installed.js";
 import { ClientLook } from "../account/Look.js";
 import { People } from "../account/People.js";
 import { ClientAccounts } from "../account/summary.js";
+import { ClientAutonomy } from "../agent/autonomy.js";
 import { CREDIT_ACTIONS } from "./credits.js";
 import { AiSpend, idOf } from "./heads.js";
 import { MoneyOverview } from "./money.js";
@@ -275,6 +276,7 @@ export const clients: Module = {
             ["Products", createElement(ClientComponents, { client })],
             ["Accounts", createElement(ClientAccounts, { client })],
             ["Look", createElement(ClientLook, { client })],
+            ["Agent", createElement(ClientAutonomy, { client })],
             ["Domain", real ? createElement(Domain, as) : "A demo keeps Wren's address."],
           ],
         };

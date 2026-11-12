@@ -11,6 +11,7 @@ import {
   agentChanges,
   chatOwner,
   NO_KEY,
+  recordsOfTables,
   STALE,
   UNDONE,
   undoEvent,
@@ -172,5 +173,23 @@ describe("undo a turn", () => {
       problem: string | null;
     }[];
     expect(v?.problem ?? null).toBeNull();
+  });
+});
+
+describe("records of tables", () => {
+  it("follows a view through the views under it to each table", async () => {
+    await pg.db.execute(sql`create schema if not exists feed`);
+    await pg.db.execute(sql`create view feed.parent_base as select id, name from undo_parent`);
+    await pg.db.execute(sql`create view feed.parent_records as
+      select b.id, b.name, c.body from feed.parent_base b left join undo_child c on c.parent = b.id`);
+    const fed = await recordsOfTables(pg.db, [
+      { id: "test.parent", view: "feed.parent_records" },
+      { id: "test.loose" },
+      { id: "test.gone", view: "feed.no_such_view" },
+    ]);
+    expect(Object.fromEntries(fed)).toEqual({
+      undo_parent: ["test.parent"],
+      undo_child: ["test.parent"],
+    });
   });
 });

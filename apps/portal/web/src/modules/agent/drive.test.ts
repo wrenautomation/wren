@@ -1,6 +1,12 @@
 import type { AgentMessage } from "@wren/ui";
-import { describe, expect, it } from "vitest";
-import { toolsDoneIn } from "./drive.js";
+import { describe, expect, it, vi } from "vitest";
+import { markChanged, toolsDoneIn, useChangedRecords } from "./drive.js";
+
+// the hook's snapshot, read outside React through its getter
+vi.mock("react", async (real) => ({
+  ...(await real<typeof import("react")>()),
+  useSyncExternalStore: (_s: unknown, get: () => unknown) => get(),
+}));
 
 const tool = (id: string, result?: string) => ({
   type: "tool" as const,
@@ -18,5 +24,20 @@ describe("toolsDoneIn", () => {
       { id: "a2", role: "assistant", state: "streaming", parts: [tool("t3")] },
     ] as unknown as AgentMessage[];
     expect(toolsDoneIn(messages)).toBe(2);
+  });
+});
+
+describe("markChanged", () => {
+  it("marks each record for 5 s, and a newer change keeps it", () => {
+    vi.useFakeTimers();
+    markChanged(["books.spend"]);
+    expect([...useChangedRecords()]).toEqual(["books.spend"]);
+    vi.advanceTimersByTime(3000);
+    markChanged(["books.spend", "leads.person"]);
+    vi.advanceTimersByTime(2100);
+    expect([...useChangedRecords()].sort()).toEqual(["books.spend", "leads.person"]);
+    vi.advanceTimersByTime(3000);
+    expect([...useChangedRecords()]).toEqual([]);
+    vi.useRealTimers();
   });
 });

@@ -22,6 +22,8 @@ export interface AgentChangeLine {
   undone: boolean;
   /** Has a key: undo can find its row. */
   keyed: boolean;
+  /** Record types its table feeds (`recordsOfTables`): the pages to mark. */
+  records?: string[];
 }
 
 /** Lines one read returns: a chat's whole run of writes, newest first. */
@@ -56,6 +58,49 @@ export async function agentChanges(db: Queryable, chat: string): Promise<AgentCh
     at: Date | string;
   })[];
   return rows.map((r) => ({ ...r, at: new Date(r.at).toISOString() }));
+}
+
+/** Per view list: the schema moves only with a deploy (a new process). */
+const FED = new Map<string, Promise<Map<string, string[]>>>();
+
+/**
+ * Table → the record types its rows feed, through each type's view and the views under it (the
+ * view rules in `pg_depend`). A changed table marks the pages that list those types.
+ */
+export function recordsOfTables(
+  db: Queryable,
+  types: readonly { id: string; view?: string | undefined }[],
+): Promise<Map<string, string[]>> {
+  const views = types.filter((t) => t.view).map((t) => [t.id, t.view as string] as const);
+  const key = views.map((v) => v.join("=")).join(",");
+  const had = FED.get(key);
+  if (had) return had;
+  const got = (async () => {
+    const rows = (await db.execute(sql`
+      WITH RECURSIVE start AS (
+        SELECT v.id, to_regclass(v.view) oid
+        FROM jsonb_to_recordset(${JSON.stringify(views.map(([id, view]) => ({ id, view })))}::jsonb)
+          v(id text, view text)
+      ), dep AS (
+        SELECT id, oid FROM start WHERE oid IS NOT NULL
+        UNION
+        SELECT dep.id, d.refobjid
+        FROM dep JOIN pg_rewrite r ON r.ev_class = dep.oid
+          JOIN pg_depend d ON d.classid = 'pg_rewrite'::regclass AND d.objid = r.oid
+            AND d.refclassid = 'pg_class'::regclass AND d.refobjid <> dep.oid
+      )
+      SELECT DISTINCT dep.id, dep.oid::regclass::text "table"
+      FROM dep JOIN pg_class c ON c.oid = dep.oid WHERE c.relkind IN ('r', 'p')`)) as unknown as {
+      id: string;
+      table: string;
+    }[];
+    const out = new Map<string, string[]>();
+    for (const r of rows) out.set(r.table, [...(out.get(r.table) ?? []), r.id]);
+    return out;
+  })();
+  FED.set(key, got);
+  got.catch(() => FED.delete(key));
+  return got;
 }
 
 interface AuditRow {

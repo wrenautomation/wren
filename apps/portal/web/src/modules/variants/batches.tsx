@@ -16,6 +16,7 @@ import {
   PAGE_TITLE,
   Tag,
   TierLabel,
+  useSeen,
 } from "@wren/ui";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
@@ -23,7 +24,6 @@ import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
-import { usePageContext } from "../agent/drive.js";
 import { dayLabel, SELECT } from "../work/bits.js";
 import { FramesProvider } from "./live-page.js";
 import { type Kind, pct, type Sample } from "./marks.js";
@@ -160,11 +160,13 @@ function BatchList({ params, team }: { params: URLSearchParams; team: boolean })
   const [extra, setExtra] = useState<{ key: string; pages: ListPage[] }>({ key, pages: [] });
   const more = extra.key === key ? extra.pages : [];
   const [loading, setLoading] = useState(false);
-  usePageContext(
-    `in view: Variants batches, ${SORTS[q.sort as keyof typeof SORTS] ?? q.sort}${
+  useSeen("list", {
+    label: "Batches",
+    icon: "list",
+    text: `Variants batches, ${SORTS[q.sort as keyof typeof SORTS] ?? q.sort}${
       q.subject ? `, subject ${q.subject}` : ""
     }${q.state ? `, ${q.state}` : ""}${q.kind ? `, ${q.kind}` : ""}${q.who ? ", marked by him" : ""}`,
-  );
+  });
   const set = (k: string, v: string) => navigate(href(HERE, { [k]: v || null }, params));
   const bar = (
     // phone: two to a row; wider: one line that wraps
@@ -554,9 +556,11 @@ function BatchView({
   onSent: () => void;
 }) {
   const open = r.state === "open";
-  usePageContext(
-    `in view: batch ${r.subject.slug}:${r.n} (${r.subject.kind}, id ${r.id}), ${open ? "open" : "closed"}, ${r.samples.length} samples`,
-  );
+  useSeen("record", {
+    label: `Batch ${r.subject.slug}:${r.n}`,
+    icon: "page",
+    text: `batch ${r.subject.slug}:${r.n} (${r.subject.kind}, id ${r.id}), ${open ? "open" : "closed"}, ${r.samples.length} samples`,
+  });
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">

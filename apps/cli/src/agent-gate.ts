@@ -14,8 +14,8 @@ import {
   isAgent,
   NeedsConfirm,
   type Runner,
+  setAutonomy,
 } from "@wren/core/agent-gate";
-import { settingsFor, setWrenSettings, updateClient } from "@wren/core/clients";
 import { RISKY_ACTS, type RiskyAct } from "@wren/core/confirms-schema";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
@@ -169,26 +169,16 @@ export function registerGate(program: Command, withMainDb: WithDb, runner: Runne
     .action(async (pairs: string[]) => {
       guardAutonomyChange(runner.actor, [AUTONOMY]);
       const client = program.opts<{ client?: string }>().client ?? WREN;
-      const change: Record<string, Autonomy | null> = {};
+      const change: Partial<Record<RiskyAct, Autonomy | null>> = {};
       for (const p of pairs) {
         const [act, level] = p.split("=");
         if (!(RISKY_ACTS as readonly string[]).includes(act ?? ""))
           throw new Error(`act is one of ${RISKY_ACTS.join(", ")}`);
         if (!["auto", "approve", "off", "default"].includes(level ?? ""))
           throw new Error("level is auto, approve, off or default");
-        change[act as string] = level === "default" ? null : (level as Autonomy);
+        change[act as RiskyAct] = level === "default" ? null : (level as Autonomy);
       }
-      const block = await withMainDb(async (db) => {
-        const now = ((await settingsFor(db, client === WREN ? null : client))[AUTONOMY] ??
-          {}) as Record<string, unknown>;
-        const next = { ...now };
-        for (const [a, l] of Object.entries(change))
-          if (l === null) delete next[a];
-          else next[a] = l;
-        if (client === WREN) await setWrenSettings(db, AUTONOMY, next, runner.actor);
-        else await updateClient(db, client, { products: { [AUTONOMY]: next } }, runner.actor);
-        return next;
-      });
+      const block = await withMainDb((db) => setAutonomy(db, client, change, runner.actor));
       console.log(JSON.stringify({ client, [AUTONOMY]: block }));
     });
 }

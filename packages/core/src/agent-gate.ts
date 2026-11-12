@@ -8,9 +8,9 @@ import { createHash, randomBytes } from "node:crypto";
 import { type Queryable, serializable } from "@wren/db";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { WREN } from "./access.js";
-import { normalEmail, settingsFor } from "./clients/index.js";
+import { normalEmail, settingsFor, setWrenSettings, updateClient } from "./clients/index.js";
 import { operators } from "./clients/schema.js";
-import { type AgentConfirm, agentConfirms, type RiskyAct } from "./confirms-schema.js";
+import { type AgentConfirm, agentConfirms, RISKY_ACTS, type RiskyAct } from "./confirms-schema.js";
 import { PortalRefusal } from "./portal.js";
 
 export type Autonomy = "auto" | "approve" | "off";
@@ -71,6 +71,39 @@ export async function autonomyOf(
     .from(operators)
     .where(eq(operators.email, person));
   return op?.role === "admin" ? "auto" : "approve";
+}
+
+/** The dial as set: an act left out follows the chat's person (`autonomyOf`). */
+export async function autonomySet(
+  main: Queryable,
+  client: string,
+): Promise<Partial<Record<RiskyAct, Autonomy>>> {
+  const block = ((await settingsFor(main, client === WREN ? null : client))[AUTONOMY] ??
+    {}) as Record<string, unknown>;
+  return Object.fromEntries(
+    Object.entries(block).filter(([, l]) => (LEVELS as readonly unknown[]).includes(l)),
+  ) as Partial<Record<RiskyAct, Autonomy>>;
+}
+
+/** A person moves the dial; null clears an act back to its default. Never the agent. */
+export async function setAutonomy(
+  main: Queryable,
+  client: string,
+  change: Partial<Record<RiskyAct, Autonomy | null>>,
+  by: string,
+): Promise<Partial<Record<RiskyAct, Autonomy>>> {
+  guardAutonomyChange(by, [AUTONOMY]);
+  const next: Record<string, Autonomy> = { ...(await autonomySet(main, client)) };
+  for (const [act, level] of Object.entries(change)) {
+    if (!(RISKY_ACTS as readonly string[]).includes(act))
+      throw new PortalRefusal(`act is one of ${RISKY_ACTS.join(", ")}`, 400);
+    if (level === null) delete next[act];
+    else if ((LEVELS as readonly unknown[]).includes(level)) next[act] = level as Autonomy;
+    else throw new PortalRefusal("level is auto, approve or off", 400);
+  }
+  if (client === WREN) await setWrenSettings(main, AUTONOMY, next, by);
+  else await updateClient(main, client, { products: { [AUTONOMY]: next } }, by);
+  return next;
 }
 
 const keyOf = (act: RiskyAct, client: string, argv: readonly string[]) =>

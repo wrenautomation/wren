@@ -9,14 +9,23 @@ import {
   type AgentChangeLine,
   agentChanges,
   chatOwner,
+  recordsOfTables,
   type TurnUndone,
   type UndoThroughChange,
   undoEvent,
   undoTurn,
 } from "../../agent-changes.js";
-import { confirmsOf, decideConfirm } from "../../agent-gate.js";
+import {
+  type Autonomy,
+  autonomyOf,
+  autonomySet,
+  confirmsOf,
+  decideConfirm,
+  setAutonomy,
+} from "../../agent-gate.js";
 import { findClient, normalEmail } from "../../clients/index.js";
 import type { AgentConfirm } from "../../confirms-schema.js";
+import { RISKY_ACTS, type RiskyAct } from "../../confirms-schema.js";
 import { undoChange } from "../../edits.js";
 import { PortalRefusal, type PortalRequest, type SignedViewer, teamCan } from "../../portal.js";
 import { changes } from "../../schema.js";
@@ -41,6 +50,17 @@ const chatOf = (req: AgentChangesRequest): string => {
     throw new PortalRefusal("say which chat", 400);
   return req.chat;
 };
+
+export interface AgentAutonomyRequest extends PortalRequest {
+  /** act → level; null clears it back to the default. */
+  change?: unknown;
+}
+
+/** One client's dial: what is set, and what each act runs at for your own agent. */
+export interface AutonomyView {
+  set: Partial<Record<RiskyAct, Autonomy>>;
+  yours: Record<RiskyAct, Autonomy>;
+}
 
 export function agentHandlers(ctx: ConsoleContext) {
   const { main, team, onClientDb, typesFor } = ctx;
@@ -84,10 +104,43 @@ export function agentHandlers(ctx: ConsoleContext) {
         admin: teamCan(req, "manage", WREN),
       });
     },
+    agentAutonomy: async (req: PortalRequest): Promise<AutonomyView> => {
+      team(req);
+      const client = req.client || WREN;
+      const actor = `claude-code:${normalEmail((req.viewer as SignedViewer).email)}`;
+      const levels = await Promise.all(RISKY_ACTS.map((a) => autonomyOf(main, actor, a, client)));
+      return {
+        set: await autonomySet(main, client),
+        yours: Object.fromEntries(
+          RISKY_ACTS.map((a, i) => [a, levels[i]]),
+        ) as AutonomyView["yours"],
+      };
+    },
+    /** A person moves one client's dial: `manage` on that client. */
+    agentAutonomySet: async (req: AgentAutonomyRequest): Promise<AutonomyView["set"]> => {
+      team(req);
+      if (!req.change || typeof req.change !== "object")
+        throw new PortalRefusal("say what to set", 400);
+      return setAutonomy(
+        main,
+        req.client || WREN,
+        req.change as Partial<Record<RiskyAct, Autonomy | null>>,
+        normalEmail((req.viewer as SignedViewer).email),
+      );
+    },
     agentChanges: async (req: AgentChangesRequest): Promise<{ lines: AgentChangeLine[] }> => {
       team(req);
       const chat = chatOf(req);
-      return { lines: await at(req, (db) => agentChanges(db, chat)) };
+      const types = await typesFor(req);
+      return {
+        lines: await at(req, async (db) => {
+          const [lines, fed] = await Promise.all([
+            agentChanges(db, chat),
+            recordsOfTables(db, types),
+          ]);
+          return lines.map((l) => ({ ...l, records: fed.get(l.table) ?? [] }));
+        }),
+      };
     },
     /** One line (`event`) or a whole turn. The chat's own person, or an admin. */
     agentUndo: async (req: AgentUndoRequest): Promise<TurnUndone> => {

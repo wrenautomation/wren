@@ -17,11 +17,13 @@ import {
   Rail,
   Section,
   SelectField,
+  seenRows,
   soon,
   Tag,
   TextField,
   useConfirm,
   useEditForm,
+  useSeen,
 } from "@wren/ui";
 import { useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
@@ -385,6 +387,19 @@ export function Accounts(props: PageProps) {
   const act = useAccountsAct(props.client, load.retry);
   const d = load.data;
   const team = !!d?.team;
+  useSeen(
+    "page",
+    d && {
+      label: `${d.accounts.length} ${d.accounts.length === 1 ? "account" : "accounts"}`,
+      icon: "eye",
+      text: seenRows(
+        d.accounts.map(
+          (a) =>
+            `${a.id} ${a.siteLabel}: ${a.runs.map((r) => `${r.name} ${r.state}`).join(", ") || "no setups"}`,
+        ),
+      ),
+    },
+  );
   return (
     <>
       <PageHeader

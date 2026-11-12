@@ -35,6 +35,7 @@ import { Icon } from "./icons.js";
 import { PageTitle } from "./layout.js";
 import { filtersOf, ListBar, useLastUsed, useNarrow, useSavedViews, ViewTabs } from "./list-bar.js";
 import { PageBar } from "./page-bar.js";
+import { seenRows, useSeen } from "./page-seen.js";
 import { pageAt, pagesOf, sizeOf } from "./pager.js";
 import { useScope } from "./palette-scope.js";
 import { askOf, countAskOf, facetsOf, pageAskOf } from "./records-ask.js";
@@ -80,6 +81,7 @@ import {
   waitsOn,
   walkKey,
   walkTo,
+  wordsOf,
 } from "./records-types.js";
 import { AskBox, ReplyFrame, rowActsOf } from "./row-acts.js";
 import {
@@ -234,6 +236,30 @@ function SortHead({
 }
 
 /** A page whose record isn't served here: its part isn't installed. Said once, not a skeleton forever. */
+/** The list as the agent reads it: what it is, its ask, then a line per row shown. */
+function listSeen(
+  meta: RecordMeta,
+  rows: readonly Row[] | undefined,
+  cols: readonly FieldMeta[],
+  total: number | undefined,
+  params: URLSearchParams,
+) {
+  if (!rows) return undefined;
+  const ask = [...params].filter(([k]) => k !== meta.name.one).map(([k, v]) => `${k}=${v}`);
+  const shown = cols.filter((f) => f.key !== meta.title).slice(0, 4);
+  const line = (r: Row) =>
+    [
+      `${String(r.id)} · ${titleOf(meta, r)}`,
+      ...shown.map((f) => `${f.label}: ${wordsOf(meta, r, f.key) || "-"}`),
+    ].join("; ");
+  const n = total ?? rows.length;
+  return {
+    label: `${num(n)} ${n === 1 ? meta.name.one : meta.name.many}`,
+    icon: "list" as const,
+    text: `${meta.name.many} (${meta.id})${ask.length ? `, ${ask.join(" ")}` : ""}, ${n} in all\n${seenRows(rows.map(line), n)}`,
+  };
+}
+
 export function NotHere() {
   return <Empty waits>This page fills once its part is installed.</Empty>;
 }
@@ -429,6 +455,18 @@ function List({
     split,
   });
   const { rows, cols } = table;
+  // what the agent sees (D3): the rows shown, and the ones picked
+  useSeen("list", listSeen(meta, loaded, cols, tally.data?.total, params));
+  useSeen(
+    "selection",
+    picked.size
+      ? {
+          label: `${num(picked.size)} picked`,
+          icon: "selected",
+          text: `${meta.name.many} picked, by id: ${[...picked].join(", ")}`,
+        }
+      : undefined,
+  );
   // A prose subtitle (a comment's words, a DM) previews under each row's title.
   const preview = meta.fields.find((f) => f.key === meta.subtitle && f.kind === "prose");
   const totals = tally.data?.totals;

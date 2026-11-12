@@ -17,9 +17,11 @@ import {
   RecordPanel,
   type RecordsApi,
   type RowsLine,
+  seenRows,
   tipProps,
   useNarrow,
   usePageKeys,
+  useSeen,
   useTypes,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -209,6 +211,19 @@ function Board({ client: workspace, params, team, demo, can }: PageProps) {
   const open = useMemo(
     () => (got.data?.open ?? []).map((o) => ({ start: new Date(o.start), end: new Date(o.end) })),
     [got.data],
+  );
+  useSeen(
+    "list",
+    got.data && {
+      label: `${calls.length} ${calls.length === 1 ? "call" : "calls"}`,
+      icon: "eye",
+      text: `Calendar, ${LABEL[view]} from ${from.toDateString()} to ${to.toDateString()}:\n${seenRows(
+        calls.map(
+          (c) =>
+            `call ${c.id} ${c.start.toISOString()} ${c.name}${c.offer ? ` (${c.offer})` : ""} ${c.state}${c.outcome ? ` ${c.outcome}` : ""}`,
+        ),
+      )}`,
+    },
   );
 
   const go = (change: Record<string, string | null>, replace = false) =>

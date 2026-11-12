@@ -9,10 +9,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   AUTONOMY,
   autonomyOf,
+  autonomySet,
   decideConfirm,
   gate,
   guardAutonomyChange,
   NeedsConfirm,
+  setAutonomy,
 } from "../../src/agent-gate.js";
 import { clients } from "../../src/clients/schema.js";
 
@@ -92,6 +94,24 @@ describe("the dial", () => {
       await stopped(gate(pg.db, { actor: "claude-code:boss@example.test" }, send(["x"]))),
     ).toMatch(/may not send/);
     expect(await autonomyOf(pg.db, OP.actor, "spend", "acme")).toBe("auto");
+  });
+
+  it("a person sets and clears one act; the rest stay; the agent can't", async () => {
+    const was = await autonomySet(pg.db, "acme");
+    expect(
+      await setAutonomy(pg.db, "acme", { delete: "approve", send: null }, "boss@example.test"),
+    ).toEqual({
+      ...was,
+      send: undefined,
+      delete: "approve",
+    } as object);
+    expect(await autonomySet(pg.db, "acme")).toEqual({ spend: was.spend, delete: "approve" });
+    await expect(
+      setAutonomy(pg.db, "acme", { send: "auto" }, "claude-code:boss@example.test"),
+    ).rejects.toThrow(/can't change its own autonomy/);
+    await expect(
+      setAutonomy(pg.db, "acme", { send: "yes" as never }, "boss@example.test"),
+    ).rejects.toThrow(/level is/);
   });
 
   it("can't be moved by the agent", () => {

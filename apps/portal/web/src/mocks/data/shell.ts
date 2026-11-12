@@ -35,7 +35,19 @@ export const SHELL = {
       billing: { open: 1, overdue: 0 },
     },
   }),
-  ...serve<ReturnType<typeof consoleApi>>("console", { surveysDue: [], prefs: {}, savedViews: [] }),
+  ...serve<ReturnType<typeof consoleApi>>("console", {
+    surveysDue: [],
+    prefs: {},
+    savedViews: [],
+    // the side chat's Changes and asks, and a client's dial (designs/2026-11-11-agent-panel.md)
+    agentChanges: { lines: [] },
+    agentConfirms: { asks: [] },
+    agentAutonomy: {
+      set: { send: "approve" },
+      yours: { send: "approve", spend: "auto", delete: "auto", publish: "auto" },
+    },
+    agentAutonomySet: (b) => b.change as Record<string, never>,
+  }),
   ...serve<ReturnType<typeof accountsApi>>("accounts", {
     accounts: {
       owner: OWNER,

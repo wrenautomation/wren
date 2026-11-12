@@ -395,6 +395,7 @@ export {
   RecordOverview,
   TopRecords,
 } from "./overview.js";
+export { SEEN_ROWS, type SeenSource, seenRows, useSeen, useSeenParts } from "./page-seen.js";
 export type { PaletteItem } from "./palette.js";
 export {
   type BrandInput,
