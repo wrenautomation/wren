@@ -924,6 +924,41 @@ html[data-morph="cards"]::view-transition-new(*) {
   animation: none;
 }
 
+/* A picture that loads (image.tsx): the skeleton's tint sweeps across the box; a failed one keeps
+   the fill. */
+.ui-img[data-img="wait"],
+.ui-img[data-img="bad"] {
+  /* a clear 16:9 stand-in: the browser draws no frame or icon; a width-only box keeps a shape */
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='9'/%3E");
+  background-color: var(--ui-fill);
+  color: transparent;
+}
+.ui-img[data-img="wait"] {
+  background-image: linear-gradient(90deg, transparent, var(--ui-accent-tint), transparent);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: ui-img-shim 1.6s linear infinite;
+}
+.ui-img[data-img="in"] {
+  animation: ui-fade 0.2s ease-out;
+}
+@keyframes ui-img-shim {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-img[data-img] {
+    animation: none;
+  }
+}
+[data-motion="less"] .ui-img[data-img] {
+  animation: none;
+}
+
 /* A toast (artifact `.toast`): bottom centre, 22 px up, ink ground, paper text, the button leaf,
    10 by 14 padding, 14 px. It rises on the spring in .45 s and fades in .2 s. Its width fits
    its words. Its action is the bold underline (Undo). Sonner's sheet is unlayered, so these

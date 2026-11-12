@@ -33,6 +33,7 @@ import {
 } from "./frame.js";
 import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
+import { Img } from "./image.js";
 import { NAV_LABEL, NAV_ON, NAV_ROW } from "./layout.js";
 import { headed, runs, total } from "./phone-nav.js";
 import {
@@ -335,7 +336,7 @@ export function AppShell({
             aria-label={brand.name}
             {...(folded ? tipProps(workspace.current?.name, { side: "right" }) : {})}
           >
-            <img
+            <Img
               className={cx("flex-none", nav && "min-[901px]:hidden")}
               src={brand.stamp}
               alt=""
@@ -1340,7 +1341,7 @@ export function Gate({
   return (
     <main className={cx("grid min-h-dvh place-items-center px-4 py-6", className)}>
       <div className="flex w-[min(440px,100%)] flex-col gap-3.5 rounded-(--ui-radius-sheet) bg-(--ui-paper) p-8 shadow-(--ui-raise) [&_form]:flex [&_form]:flex-col [&_form]:gap-3.5 [&_li]:flex [&_li]:items-center [&_li]:justify-between [&_li]:gap-3 [&_li]:border-b [&_li]:border-(--ui-hair) [&_li]:py-1.5 [&_p]:text-(--ui-ink-2) [&_ul]:list-none [&_ul]:border-t [&_ul]:border-(--ui-hair)">
-        <img className="mb-1.5 flex-none" src={stamp} alt="" width={36} height={36} />
+        <Img className="mb-1.5 flex-none" src={stamp} alt="" width={36} height={36} />
         <h1 className="font-(family-name:--ui-font-display) text-[24px]/[1.2] font-(--ui-display-weight) tracking-[calc(-0.025em*var(--ui-display-squeeze))]">
           {title}
         </h1>

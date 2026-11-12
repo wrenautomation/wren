@@ -1,6 +1,7 @@
 /** The detail panel: a source, claim, search, page, finding or the dropped hits. */
 import { type ReactNode, useDeferredValue, useState } from "react";
 import { Icon } from "../../icons.js";
+import { Img } from "../../image.js";
 import { Glyph, Ico, Kd } from "./marks.js";
 import {
   atQuote,
@@ -148,7 +149,7 @@ function Frame({
   return (
     <span className={cls("fr", `k-${kind}`, sm && "sm")}>
       {img && !bad ? (
-        <img
+        <Img
           className="pic"
           src={img}
           alt=""
@@ -159,7 +160,7 @@ function Frame({
       ) : (
         <span className="pst">
           {icon && !ibad ? (
-            <img
+            <Img
               className="ic"
               src={icon}
               alt=""
