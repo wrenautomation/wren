@@ -1,0 +1,2 @@
+# ripgrep and editor search skip drizzle snapshots: machine-written, ~55k lines each
+packages/db/drizzle/meta/*_snapshot.json

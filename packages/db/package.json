@@ -13,7 +13,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "generate": "drizzle-kit generate",
+    "generate": "drizzle-kit generate && node bin/prune-snapshots.mjs",
     "migrate": "tsx src/migrate-cli.ts",
     "check": "drizzle-kit check",
     "test:integration": "vitest run test/integration",
