@@ -8,7 +8,7 @@ nothing; texts live in Postgres behind Restate. Sign-in is Wren's shared one
 
 `wren-workers`, minted 2026-09-28 by autobrowse (deterministic flow, no hands):
 
-    cd ../autobrowse && pnpm -s autobrowse cloudflare-token wren-workers \
+    cd ../autobrowse && pnpm -s autobrowse cloudflare token wren-workers \
       --env WREN_CLOUDFLARE_WORKERS_TOKEN \
       --perm "Account:Workers Scripts:Edit" "Account:Workers KV Storage:Edit" \
              "Account:D1:Edit" "Account:Account Settings:Read" \
@@ -126,7 +126,7 @@ lander's signature (`EXPORT_TOKEN`) or the call's signed link. No secret of its 
 ## Gmail push
 
 Made 2026-10-04 in the service account's project (`wrenautomation`) with gcloud as
-william@ (`cd ../autobrowse && pnpm -s autobrowse gcloud-login` when it lapses):
+william@ (`cd ../autobrowse && pnpm -s autobrowse cli-login gcloud` when it lapses):
 topic `gmail-push`, publisher `gmail-api-push@system.gserviceaccount.com` (the org's
 domain-restricted sharing was lifted on the project for that one binding, then put
 back), and a push subscription to the Worker:
