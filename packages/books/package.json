@@ -24,7 +24,7 @@
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/runtime": "workspace:*",
-    "@wrenautomation/read": "0.74.0",
+    "@wrenautomation/read": "0.75.2",
     "drizzle-orm": "0.45.2",
     "plaid": "49.0.0",
     "zod": "4.6.6"

@@ -56,3 +56,13 @@ Reference proof run (by hand): `/private/tmp/claude-502/-Users-williamjin-Docume
   words a second, words a cut, change picks, pointing words); `--see` reads the frames (paid, rate-limited);
   `--frames <dir>` writes them for a session to read. Pixel change cannot tell a gesturing speaker from a
   demo: a talking head still gets ~1 frame a second. Its saving is the skim, not the sampler.
+- 2026-11-12 (WA-1316, engine 0.75.2): each read frame names its shot kind: `face`, `screen-face` (a screen
+  with the speaker inset), `screen`, `graphic`, `broll`. `Watched.shots` holds runs of one kind; the page
+  gets `## Shots` (share of the length, then the runs) and the facts fence gets `shots`. Options, scored on a
+  hand seed of 64 frames from 4 builder videos: A, the eye names the kind in the same frame-read call
+  (chosen; no extra call; shipped prompt Haiku 94%, Gemini 3.5 flash-lite 91%; every face and inset frame
+  right, the misses are mock app windows drawn as graphics, read as screen); B, a local face detector
+  (dropped: A already gets faces right, and it cannot tell screen from graphic); C, shots.ts `labelShots`
+  (left alone: built for product films, unused here). A skim has no kinds. Cuts were not retuned: on one
+  video ffmpeg 0.25 found 7, ffmpeg 0.1 found 20, PySceneDetect hash 26 and adaptive 24, with no ground truth.
+  The yt-dlp 403 on NnYLzGMk8Tg was a stale yt-dlp (2026.10.21); 2026.10.26 reads it.
