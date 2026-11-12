@@ -38,6 +38,7 @@ import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { dayLabel, SELECT } from "../work/bits.js";
+import { AddBox } from "./add-box.js";
 
 const HERE = "/canon/references";
 const FILTERS = ["platform", "provider", "tag", "q", "noted"] as const;
@@ -51,10 +52,11 @@ const platformName = (p: string) => PLATFORMS[p] ?? p;
 export function ReferencesPage({ params }: PageProps) {
   const open = params.get("r");
   return (
-    <>
+    <div className="flex flex-col gap-6">
+      <AddBox here={HERE} params={params} />
       <List params={params} />
       {open && <Opened key={open} id={open} params={params} />}
-    </>
+    </div>
   );
 }
 
@@ -152,9 +154,7 @@ function List({ params }: { params: URLSearchParams }) {
             No reference matches these filters.
           </Empty>
         ) : (
-          <Empty title="No references yet">
-            A reel or video comes in with `wren source add &lt;link&gt;`.
-          </Empty>
+          <Empty title="No references yet">Paste a reel or video link above.</Empty>
         )
       ) : (
         <ul className="m-0 grid list-none grid-cols-1 gap-x-3 gap-y-5 p-0 @min-[720px]/main:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">

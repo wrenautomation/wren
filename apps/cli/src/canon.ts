@@ -8,14 +8,23 @@
  * through autobrowse's `drive` site on this machine.
  */
 import { spawnSync } from "node:child_process";
-import { copyFile, mkdir, readdir, readFile, symlink, unlink } from "node:fs/promises";
-import { homedir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, symlink, unlink } from "node:fs/promises";
+import { homedir, hostname, tmpdir } from "node:os";
+import { basename, extname, join, resolve } from "node:path";
 import { ingressOf, type Settings } from "@wren/config";
 import { playbookStandard, scopeOf, writeSopFiles } from "@wren/content-standard";
 import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
+import { tellLive } from "@wren/core/live";
 import type { Db } from "@wren/db";
 import { modelLlm } from "@wren/llm";
+import {
+  type CanonAddRequest,
+  claimAdd,
+  failAdd,
+  finishAdd,
+  renewAdd,
+  whatOf,
+} from "@wren/research/canon-adds";
 import type { CanonIndexSync } from "@wren/research/canon-index";
 import {
   addSource,
@@ -37,7 +46,7 @@ import {
   youtubeSource,
 } from "@wren/research/sops";
 import * as clients from "@wren/runtime/clients";
-import { pushPlaybook } from "@wren/starling-inbound";
+import { getKey, parseStored, pushPlaybook } from "@wren/starling-inbound";
 import { loadWorking, type SourceFile, write } from "@wrenautomation/knowledge";
 import { claudeCode } from "@wrenautomation/models/command";
 import { PoliteFetcher, userAgent } from "@wrenautomation/read/fetch";
@@ -55,6 +64,18 @@ import { breakdownLlm, breakdownSource, registerSourcePieces } from "./source-pi
 import { watchEyes } from "./video-watch.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
+
+interface AddOpts {
+  topic?: string;
+  from?: string;
+  note?: string;
+  title?: string;
+  account?: string;
+  priority?: number;
+  screen?: boolean;
+  breakdown?: boolean;
+  model: string;
+}
 
 const YOUTUBE = /^https?:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//;
 
@@ -118,6 +139,119 @@ export function registerCanon(
     .description("Start the hourly fetch, the backstop for a missed push")
     .action(async () => console.log(JSON.stringify(await indexOf().start(), null, 2)));
 
+  /** One source in: a link, a Drive folder, a text file, a picture or PDF. Answers the record ids. */
+  const addOne = async (
+    what: string,
+    opts: AddOpts,
+    why = `source add ${what}`,
+  ): Promise<string[]> => {
+    // a note is a person's own words: it names them
+    if (opts.note && !opts.from) throw new Error("--note needs --from <person>");
+    const name = opts.topic ?? null;
+    const priority = opts.priority ?? DEFAULT_PRIORITY;
+    let sources: Source[];
+    // files per source name: a post's slides, a picture
+    const filesOf = new Map<string, SourceFile[]>();
+    const store = settings.mediaBucket ? s3MediaStore(settings.mediaBucket) : undefined;
+    if (YOUTUBE.test(what)) {
+      // the frames, read by the eye, carry what the captions don't: what is on screen
+      const { eye, ear, ffmpeg } = watchEyes(settings, rootDir);
+      sources = [
+        await youtubeSource(what, settings.ytDlp, priority, {
+          ...(opts.screen === false ? {} : { eye }),
+          ear,
+          ffmpeg,
+        }),
+      ];
+    } else if (/^https?:\/\//.test(what) && !VIDEO_HOST.test(what)) {
+      // a page or repo: its text (a repo: the README)
+      const fetcher = new PoliteFetcher(
+        userAgent(settings.fetchContact ?? "https://wrenautomation.com"),
+        { retries: 2 },
+      );
+      sources = [await pageSource(what, fetcher, priority)];
+    } else if (/^https?:\/\//.test(what)) {
+      // Reels, TikTok, X: no captions, so the watch core hears and reads the download.
+      const { eye, ...rest } = watchEyes(settings, rootDir);
+      const post = POST_LINK.test(what)
+        ? await postSource(what, {
+            ...bucketOf("a post"),
+            ytDlp: settings.ytDlp,
+            eye,
+            watch: rest,
+            priority,
+          })
+        : null;
+      if (post) filesOf.set(post.source.name, post.files);
+      sources = post
+        ? [post.source]
+        : [
+            await videoSource(what, settings.ytDlp, priority, {
+              eye,
+              ...rest,
+              ...(store ? { store } : {}),
+            }),
+          ];
+    } else if (what.startsWith("drive:")) {
+      if (!opts.account) throw new Error("drive: needs --account <address>");
+      const drive = autobrowseDrive(resolve(rootDir, settings.autobrowseDir), opts.account);
+      sources = await driveSources(what.slice("drive:".length), drive, priority);
+    } else if (/\.(md|txt)$/i.test(what)) sources = [await fileSource(resolve(what), priority)];
+    else if (!name) {
+      // a picture or PDF of its own: the bytes to the bucket, the record lists them
+      if (!opts.title) throw new Error("a picture or PDF needs --title <words>");
+      const made = await fileSourceOf(resolve(what), {
+        ...bucketOf("a picture or PDF"),
+        eye: watchEyes(settings, rootDir).eye,
+        title: opts.title,
+        priority,
+      });
+      filesOf.set(made.source.name, made.files);
+      sources = [made.source];
+    } else {
+      // Not text (PDF, image, design export): kept as a reference file, not a source.
+      const dir = topicDir(root, name);
+      await mkdir(join(dir, "refs"), { recursive: true });
+      const to = join(dir, "refs", basename(what));
+      await copyFile(resolve(what), to);
+      console.log(to);
+      return [];
+    }
+    const who = { by: BY, why };
+    const extra = {
+      ...(opts.from ? { provider: { kind: "human", who: opts.from } } : {}),
+      ...(opts.note
+        ? {
+            note: { text: opts.note, by: opts.from, at: new Date().toISOString().slice(0, 10) },
+          }
+        : {}),
+    };
+    const ids: string[] = [];
+    const llm = opts.breakdown === false ? null : breakdownLlm(settings, rootDir, opts.model);
+    for (const s of sources) {
+      const files = filesOf.get(s.name);
+      const path = await addSource(root, name, s, who, {
+        ...extra,
+        ...(files ? { files } : {}),
+      });
+      console.log(path);
+      const id = basename(path, ".md");
+      ids.push(id);
+      const kind = loadWorking(root).docs.find((l) => l.doc.fm.id === id)?.doc.fm.kind;
+      if (store && kind === "reel" && id.startsWith("instagram-"))
+        console.log(
+          `  poster: ${await posterOf(id, { ...bucketOf("a poster"), ffmpeg: settings.ffmpeg })}`,
+        );
+      if (llm && (kind === "reel" || kind === "video")) {
+        const b = await breakdownSource(root, id, llm, who);
+        console.log(
+          b ? `  broken down: ${b.hookStyle}, ${b.beats.length} beats` : "  no breakdown",
+        );
+      }
+    }
+    return ids;
+  };
+
   source
     .command("add <what>")
     .description(
@@ -137,124 +271,94 @@ export function registerCanon(
     .option("--no-screen", "YouTube: captions only, skip the frames read of what is on screen")
     .option("--no-breakdown", "skip the breakdown of a reel or video")
     .option("--model <name>", "the breakdown model", "cohere")
-    .action(
-      async (
-        what: string,
-        opts: {
-          topic?: string;
-          from?: string;
-          note?: string;
-          title?: string;
-          account?: string;
-          priority?: number;
-          screen?: boolean;
-          breakdown?: boolean;
-          model: string;
-        },
-      ) => {
-        // a note is a person's own words: it names them
-        if (opts.note && !opts.from) throw new Error("--note needs --from <person>");
-        const name = opts.topic ?? null;
-        const priority = opts.priority ?? DEFAULT_PRIORITY;
-        let sources: Source[];
-        // files per source name: a post's slides, a picture
-        const filesOf = new Map<string, SourceFile[]>();
-        const store = settings.mediaBucket ? s3MediaStore(settings.mediaBucket) : undefined;
-        if (YOUTUBE.test(what)) {
-          // the frames, read by the eye, carry what the captions don't: what is on screen
-          const { eye, ear, ffmpeg } = watchEyes(settings, rootDir);
-          sources = [
-            await youtubeSource(what, settings.ytDlp, priority, {
-              ...(opts.screen === false ? {} : { eye }),
-              ear,
-              ffmpeg,
-            }),
-          ];
-        } else if (/^https?:\/\//.test(what) && !VIDEO_HOST.test(what)) {
-          // a page or repo: its text (a repo: the README)
-          const fetcher = new PoliteFetcher(
-            userAgent(settings.fetchContact ?? "https://wrenautomation.com"),
-            { retries: 2 },
-          );
-          sources = [await pageSource(what, fetcher, priority)];
-        } else if (/^https?:\/\//.test(what)) {
-          // Reels, TikTok, X: no captions, so the watch core hears and reads the download.
-          const { eye, ...rest } = watchEyes(settings, rootDir);
-          const post = POST_LINK.test(what)
-            ? await postSource(what, {
-                ...bucketOf("a post"),
-                ytDlp: settings.ytDlp,
-                eye,
-                watch: rest,
-                priority,
-              })
-            : null;
-          if (post) filesOf.set(post.source.name, post.files);
-          sources = post
-            ? [post.source]
-            : [
-                await videoSource(what, settings.ytDlp, priority, {
-                  eye,
-                  ...rest,
-                  ...(store ? { store } : {}),
-                }),
-              ];
-        } else if (what.startsWith("drive:")) {
-          if (!opts.account) throw new Error("drive: needs --account <address>");
-          const drive = autobrowseDrive(resolve(rootDir, settings.autobrowseDir), opts.account);
-          sources = await driveSources(what.slice("drive:".length), drive, priority);
-        } else if (/\.(md|txt)$/i.test(what)) sources = [await fileSource(resolve(what), priority)];
-        else if (!name) {
-          // a picture or PDF of its own: the bytes to the bucket, the record lists them
-          if (!opts.title) throw new Error("a picture or PDF needs --title <words>");
-          const made = await fileSourceOf(resolve(what), {
-            ...bucketOf("a picture or PDF"),
-            eye: watchEyes(settings, rootDir).eye,
-            title: opts.title,
-            priority,
-          });
-          filesOf.set(made.source.name, made.files);
-          sources = [made.source];
-        } else {
-          // Not text (PDF, image, design export): kept as a reference file, not a source.
-          const dir = topicDir(root, name);
-          await mkdir(join(dir, "refs"), { recursive: true });
-          const to = join(dir, "refs", basename(what));
-          await copyFile(resolve(what), to);
-          console.log(to);
-          return;
-        }
-        const who = { by: BY, why: `source add ${what}` };
-        const extra = {
-          ...(opts.from ? { provider: { kind: "human", who: opts.from } } : {}),
-          ...(opts.note
-            ? {
-                note: { text: opts.note, by: opts.from, at: new Date().toISOString().slice(0, 10) },
-              }
-            : {}),
-        };
-        const llm = opts.breakdown === false ? null : breakdownLlm(settings, rootDir, opts.model);
-        for (const s of sources) {
-          const files = filesOf.get(s.name);
-          const path = await addSource(root, name, s, who, {
-            ...extra,
-            ...(files ? { files } : {}),
-          });
-          console.log(path);
-          const id = basename(path, ".md");
-          const kind = loadWorking(root).docs.find((l) => l.doc.fm.id === id)?.doc.fm.kind;
-          if (store && kind === "reel" && id.startsWith("instagram-"))
-            console.log(
-              `  poster: ${await posterOf(id, { ...bucketOf("a poster"), ffmpeg: settings.ffmpeg })}`,
-            );
-          if (llm && (kind === "reel" || kind === "video")) {
-            const b = await breakdownSource(root, id, llm, who);
-            console.log(
-              b ? `  broken down: ${b.hookStyle}, ${b.beats.length} beats` : "  no breakdown",
-            );
+    .action((what: string, opts: AddOpts) => addOne(what, opts).then(() => undefined));
+
+  // the portal's Add box (designs/2026-11-12-canon-references.md D4): asks in canon_add_requests,
+  // filed here. Any machine with the database, yt-dlp, the bucket and Canon push rights drains.
+  const git = (...args: string[]) => {
+    const r = spawnSync("git", ["-C", root, ...args], { encoding: "utf8" });
+    if (r.status !== 0) throw new Error(`git ${args[0]}: ${(r.stderr || r.stdout).trim()}`);
+  };
+  /** Canon's main into this clone, then ours out; a push that lost the race pulls once more. */
+  const shareCanon = () => {
+    git("pull", "--rebase", "--autostash", "-q");
+    try {
+      git("push", "-q");
+    } catch {
+      git("pull", "--rebase", "--autostash", "-q");
+      git("push", "-q");
+    }
+  };
+  const fileOf = async (
+    uri: string,
+    fileName: string | null,
+  ): Promise<{ path: string; dir: string }> => {
+    const at = parseStored(uri);
+    if (!at) throw new Error(`not a stored file: ${uri}`);
+    const dir = await mkdtemp(join(tmpdir(), "canon-add-"));
+    const safe = (fileName ?? basename(at.key)).replace(/[^\w. -]+/g, "-").slice(-120);
+    const path = join(dir, safe.includes(".") ? safe : `${safe}${extname(at.key)}`);
+    await getKey(at.key, path, { bucket: at.bucket });
+    return { path, dir };
+  };
+  /** One ask, filed. Answers the record ids; throws what the person should read. */
+  const fileAsk = async (a: CanonAddRequest): Promise<string[]> => {
+    const opts: AddOpts = {
+      from: a.person,
+      ...(a.note ? { note: a.note } : {}),
+      model: "cohere",
+    };
+    if (whatOf(a.what) === "link") return addOne(a.what, opts, `add box #${a.id}: ${a.what}`);
+    const { path, dir } = await fileOf(a.what, a.fileName);
+    try {
+      const title = basename(path, extname(path)).replace(/[-_]+/g, " ").trim() || "File";
+      return await addOne(path, { ...opts, title }, `add box #${a.id}: ${basename(path)}`);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  };
+  source
+    .command("drain")
+    .description(
+      "file the portal's Add box asks (canon_add_requests): claim one, add it to Canon, push, mark it done",
+    )
+    .option("--watch", "keep going: look again every 30 s when the queue is empty")
+    .option("--worker <name>", "this machine's name on its claims", hostname())
+    .option("--limit <n>", "stop after this many", (v) => Number.parseInt(v, 10))
+    .action((o: { watch?: boolean; worker: string; limit?: number }) =>
+      withDb(async (db) => {
+        let n = 0;
+        for (;;) {
+          if (o.limit && n >= o.limit) return;
+          const a = await claimAdd(db, o.worker);
+          if (!a) {
+            if (!o.watch) return;
+            await new Promise((r) => setTimeout(r, 30_000));
+            continue;
           }
+          n++;
+          // a long breakdown keeps its lease
+          const beat = setInterval(
+            () => void renewAdd(db, a.id, o.worker).catch(() => {}),
+            5 * 60_000,
+          );
+          try {
+            git("pull", "--rebase", "--autostash", "-q");
+            const ids = await fileAsk(a);
+            shareCanon();
+            await finishAdd(db, a.id, o.worker, ids);
+            console.log(JSON.stringify({ id: a.id, what: a.what, records: ids }));
+          } catch (e) {
+            const error = e instanceof Error ? e.message : String(e);
+            await failAdd(db, a.id, o.worker, error);
+            console.error(JSON.stringify({ id: a.id, what: a.what, error }));
+          } finally {
+            clearInterval(beat);
+          }
+          // open References tabs read the adds again
+          await tellLive(["canon-adds"]);
         }
-      },
+      }),
     );
 
   source

@@ -189,3 +189,4 @@ and a Retry. A file goes to the media bucket first (`canon/<sha32>`, as `source 
   link and lost the note; 2 (SEO, LinkedIn) have no full source and stay cut. Learn marks unchanged.
 - 2026-11-12: D1 moved from the Mac hook to C (box fetches on push), William: "sure go with C". Built: `CanonIndexSync`, `/webhooks/github`, `wren canon sync`.
 - 2026-11-12: References page built and shipped (bcf7926, 0fc5b5e). D4 (Add box) written; open for William: B recommended.
+- 2026-11-12: D4 B, William: "make sure this can scale to past just our mac into servers". Built: `canon_add_requests` (skip-locked claims, 3 tries), Add box on References, `wren source drain`, Mac launchd drain; the drain tells live topic `canon-adds`.

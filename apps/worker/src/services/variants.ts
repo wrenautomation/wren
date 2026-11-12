@@ -1,6 +1,7 @@
 /** Variants: the review page, and the live numbers loop (designs/2026-11-05-variants.md). */
 import { makeFoldersConsole } from "@wren/folders/restate";
 import { makeCanonConsole } from "@wren/research/canon-console";
+import { signMediaPut } from "@wren/starling-inbound";
 import { makeVariantsCollect, makeVariantsConsole } from "@wren/variants/restate";
 import type { AnyService, Deps } from "./deps.js";
 
@@ -14,7 +15,13 @@ export function variantsServices(deps: Deps): AnyService[] {
     // Canon › References: reads schema `canon` (designs/2026-11-12-canon-references.md)
     makeCanonConsole(
       deps.db,
-      signer ? { bucket: signer.bucket, sign: (uri) => signer.host.host(uri) } : null,
+      signer
+        ? {
+            bucket: signer.bucket,
+            sign: (uri) => signer.host.host(uri),
+            signPut: (f) => signMediaPut({ bucket: signer.bucket }, f),
+          }
+        : null,
     ),
   ];
 }

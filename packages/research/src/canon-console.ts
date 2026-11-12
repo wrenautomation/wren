@@ -3,13 +3,27 @@
  * schema `canon` (the index `CanonIndexSync` keeps), never the repo. Reels play from the media
  * bucket (`cache/instagram/<code>.mp4`); the page falls back to the embed when a file is missing.
  */
-import { answer, PortalRefusal, type PortalRequest, portalService } from "@wren/core/portal";
+import {
+  answer,
+  isDemo,
+  PortalRefusal,
+  type PortalRequest,
+  portalService,
+} from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type * as restate from "@wren/runtime";
 import { type Frontmatter, linesOf, RULE_LINE } from "@wrenautomation/knowledge";
 import { type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
+import {
+  type CanonAddRequest,
+  enqueueAdd,
+  listAdds,
+  retryAdd,
+  STORED_FILE,
+  whatOf,
+} from "./canon-adds.js";
 import { CANON_CONSOLE_APPS, CANON_CONSOLE_ROUTES } from "./canon-console-routes.js";
 
 const REPO = "canon";
@@ -18,10 +32,57 @@ const PAGE = 60;
 
 /** s3://bucket/key → a signed URL. */
 export type Sign = (uri: string) => Promise<string>;
+/** A browser PUT signed for this hash: S3 refuses other bytes. */
+export type SignPut = (f: {
+  sha256: string;
+  ext: string;
+  type: string;
+  size: number;
+}) => Promise<{ url: string; headers: Record<string, string>; source: string }>;
 export interface Media {
   bucket: string;
   sign: Sign;
+  signPut?: SignPut;
 }
+
+/** what the Add box takes as a file: Canon keeps pictures and PDFs (canon-files) */
+const ADD_FILE_TYPES: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".pdf": "application/pdf",
+};
+const ADD_MAX_BYTES = 50 * 1024 * 1024;
+
+/** An Add box row as the page shows it. */
+export interface AddRow {
+  id: number;
+  what: string;
+  fileName: string | null;
+  note: string | null;
+  person: string;
+  state: CanonAddRequest["state"];
+  error: string | null;
+  records: string[];
+  at: string;
+}
+const addRow = (r: CanonAddRequest): AddRow => ({
+  id: r.id,
+  what: r.what,
+  fileName: r.fileName,
+  note: r.note,
+  person: r.person,
+  state: r.state,
+  error: r.error,
+  records: r.records ?? [],
+  at: r.at.toISOString(),
+});
+const emailOf = (req: PortalRequest) => {
+  if (isDemo(req.viewer)) throw new PortalRefusal("sign in to add to Canon", 403);
+  return req.viewer.email;
+};
 
 interface Note {
   text: string;
@@ -368,6 +429,18 @@ const INPUTS = {
     limit: z.number().int().min(1).max(PAGE).nullish(),
   },
   reference: { id: ID },
+  adds: {},
+  add: {
+    what: z.string().min(1).max(2000).describe("a link, or the `source` an upload answered"),
+    fileName: z.string().max(300).nullish(),
+    note: z.string().max(20_000).nullish().describe("the person's words, whole"),
+  },
+  retry: { id: z.number().int().positive() },
+  upload: {
+    name: z.string().min(1).max(300),
+    size: z.number().int().positive(),
+    sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  },
 } as const;
 
 type Req = PortalRequest & Record<string, unknown>;
@@ -388,6 +461,39 @@ export function makeCanonConsole(db: Db, media: Media | null) {
     handlers: {
       references: h("references", (req) => api.references(req as Filters)),
       reference: h("reference", (req) => api.reference(String(req.id))),
+      adds: h("adds", async () => ({ rows: (await listAdds(db)).map(addRow) })),
+      add: h("add", async (req) => {
+        const what = String(req.what).trim();
+        if (!whatOf(what)) throw new PortalRefusal("give a link that starts with https://", 400);
+        // a file must be one this store took: never a key from elsewhere
+        if (STORED_FILE.test(what) && !what.startsWith(`s3://${media?.bucket}/`))
+          throw new PortalRefusal("that file isn't one uploaded here", 400);
+        return addRow(
+          await enqueueAdd(db, {
+            what,
+            fileName: (req.fileName as string | null) ?? null,
+            note: (req.note as string | null) ?? null,
+            askedBy: emailOf(req),
+          }),
+        );
+      }),
+      retry: h("retry", async (req) => {
+        const row = await retryAdd(db, Number(req.id));
+        if (!row) throw new PortalRefusal("only a failed add can be tried again", 409);
+        return addRow(row);
+      }),
+      upload: h("upload", async (req) => {
+        emailOf(req);
+        if (!media?.signPut) throw new PortalRefusal("no file store here", 503);
+        const name = String(req.name);
+        const ext = (/\.[a-z0-9]+$/i.exec(name)?.[0] ?? "").toLowerCase();
+        const type = ADD_FILE_TYPES[ext];
+        if (!type) throw new PortalRefusal("Canon takes a picture or a PDF", 400);
+        const size = Number(req.size);
+        if (size > ADD_MAX_BYTES)
+          throw new PortalRefusal(`files go up to ${ADD_MAX_BYTES / 1024 / 1024} MB`, 400);
+        return media.signPut({ sha256: String(req.sha256), ext, type, size });
+      }),
     },
   });
 }

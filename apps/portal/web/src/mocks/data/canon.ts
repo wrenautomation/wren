@@ -2,8 +2,13 @@
  * Canon › References answers. Synthetic: made-up creators, notes and rule lines. The list answer
  * filters like the server (`canon-console.ts`): platform, provider, tag, q, noted, `after`.
  */
-import type { canonConsoleApi, Reference, ReferenceWhole } from "@wren/research/canon-console";
-import { serve } from "../api.js";
+import type {
+  AddRow,
+  canonConsoleApi,
+  Reference,
+  ReferenceWhole,
+} from "@wren/research/canon-console";
+import { serve, UPLOAD_HOST } from "../api.js";
 import { ago } from "./shell.js";
 
 const LONG_NOTE =
@@ -167,3 +172,74 @@ export const CANON_ANSWERS = serve<ReturnType<typeof canonConsoleApi>>("canon", 
     return whole(r);
   },
 });
+
+/** The Add box: one filing, one filed, one failed. A new ask joins the top as Filing. */
+export const CANON_ADDS: AddRow[] = [
+  {
+    id: 3,
+    what: "https://www.instagram.com/reel/FakeNew01/",
+    fileName: null,
+    note: "the pacing here, every cut on the beat",
+    person: "william",
+    state: "claimed",
+    error: null,
+    records: [],
+    at: ago(0),
+  },
+  {
+    id: 2,
+    what: "https://www.youtube.com/watch?v=fakeVideo01",
+    fileName: null,
+    note: null,
+    person: "william",
+    state: "done",
+    error: null,
+    records: ["youtube-fakeVideo01"],
+    at: ago(0),
+  },
+  {
+    id: 1,
+    what: "https://www.tiktok.com/@made-up-creator/video/7000000000000000001",
+    fileName: null,
+    note: "good hook",
+    person: "william",
+    state: "failed",
+    error: "yt-dlp: this video is private",
+    records: [],
+    at: ago(1),
+  },
+];
+
+export function canonAddAnswers(start: AddRow[] = CANON_ADDS) {
+  let rows = [...start];
+  let next = 100;
+  return {
+    "canon/adds": () => ({ rows }),
+    "canon/add": (b: Record<string, unknown>) => {
+      const row: AddRow = {
+        id: next++,
+        what: String(b.what),
+        fileName: (b.fileName as string | null) ?? null,
+        note: (b.note as string | null) ?? null,
+        person: "william",
+        state: "pending",
+        error: null,
+        records: [],
+        at: new Date().toISOString(),
+      };
+      rows = [row, ...rows];
+      return row;
+    },
+    "canon/retry": (b: Record<string, unknown>) => {
+      rows = rows.map((r) =>
+        r.id === b.id ? { ...r, state: "pending" as const, error: null } : r,
+      );
+      return rows.find((r) => r.id === b.id) ?? null;
+    },
+    "canon/upload": (b: Record<string, unknown>) => ({
+      url: `${UPLOAD_HOST}/media/${String(b.sha256).slice(0, 32)}`,
+      headers: { "content-type": "application/pdf" },
+      source: `s3://fake-media/media/${String(b.sha256).slice(0, 32)}.pdf`,
+    }),
+  };
+}

@@ -1,6 +1,6 @@
 {
-  "id": "3e04ce86-b5e0-4591-9fe2-eddef0986a79",
-  "prevId": "69d6c8dd-2200-4220-a397-cc87eee3d8a3",
+  "id": "a394d8bd-7595-4dab-966d-67f23bfc5269",
+  "prevId": "7f9b5f3f-9981-4d2d-ae46-642c2625c098",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -7844,6 +7844,164 @@
       },
       "isRLSEnabled": false
     },
+    "public.agent_confirms": {
+      "name": "agent_confirms",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chat": {
+          "name": "chat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "turn": {
+          "name": "turn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "act": {
+          "name": "act",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client": {
+          "name": "client",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "what": {
+          "name": "what",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "args": {
+          "name": "args",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key": {
+          "name": "key",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "asked_by": {
+          "name": "asked_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decided_by": {
+          "name": "decided_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decided_at": {
+          "name": "decided_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "used_at": {
+          "name": "used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "at": {
+          "name": "at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ix_agent_confirms_key": {
+          "name": "ix_agent_confirms_key",
+          "columns": [
+            {
+              "expression": "key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "state",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ix_agent_confirms_chat": {
+          "name": "ix_agent_confirms_chat",
+          "columns": [
+            {
+              "expression": "chat",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "pk_agent_confirms": {
+          "name": "pk_agent_confirms",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ck_agent_confirms_act": {
+          "name": "ck_agent_confirms_act",
+          "value": "(\"act\")::text = ANY ((ARRAY['send'::character varying, 'spend'::character varying, 'delete'::character varying, 'publish'::character varying])::text[])"
+        },
+        "ck_agent_confirms_state": {
+          "name": "ck_agent_confirms_state",
+          "value": "(\"state\")::text = ANY ((ARRAY['pending'::character varying, 'yes'::character varying, 'no'::character varying, 'used'::character varying])::text[])"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.client_secret_events": {
       "name": "client_secret_events",
       "schema": "",
@@ -14211,6 +14369,140 @@
         "ck_social_searches_socialnetwork": {
           "name": "ck_social_searches_socialnetwork",
           "value": "(\"network\")::text = ANY ((ARRAY['facebook'::character varying])::text[])"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.canon_add_requests": {
+      "name": "canon_add_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "what": {
+          "name": "what",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_name": {
+          "name": "file_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "person": {
+          "name": "person",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asked_by": {
+          "name": "asked_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "worker": {
+          "name": "worker",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_until": {
+          "name": "lease_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "records": {
+          "name": "records",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "at": {
+          "name": "at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "done_at": {
+          "name": "done_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "ix_canon_add_requests_state": {
+          "name": "ix_canon_add_requests_state",
+          "columns": [
+            {
+              "expression": "state",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "pk_canon_add_requests": {
+          "name": "pk_canon_add_requests",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ck_canon_add_requests_state": {
+          "name": "ck_canon_add_requests_state",
+          "value": "(\"state\")::text = ANY ((ARRAY['pending'::character varying, 'claimed'::character varying, 'done'::character varying, 'failed'::character varying])::text[])"
         }
       },
       "isRLSEnabled": false

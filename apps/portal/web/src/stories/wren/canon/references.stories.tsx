@@ -1,6 +1,7 @@
 /** Canon › References: the reel grid, his note whole, one reference open. Fake server: `web/src/mocks/`. */
 import type { Meta } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import { canonAddAnswers } from "../../../mocks/data/canon.js";
 import { ADMIN } from "../../../mocks/data/me.js";
 import { pageAt, storyHref, tidy } from "../../../mocks/page.js";
 
@@ -26,6 +27,74 @@ export const References = tidy(
       await userEvent.click(view.getByRole("button", { name: "Show more" }));
       await expect(await view.findByText("Reference 12", {}, WAIT)).toBeVisible();
       await waitFor(() => expect(view.queryByRole("button", { name: "Show more" })).toBeNull());
+    },
+  }),
+);
+
+/** The Add box: a link and his note go in; the new row says Filing at once. */
+export const AddLink = tidy(
+  pageAt("/canon/references", {
+    me: ADMIN,
+    answers: canonAddAnswers(),
+    check: async (page) => {
+      const view = within(page);
+      await userEvent.type(
+        await view.findByLabelText("Add to Canon", {}, WAIT),
+        "https://www.instagram.com/reel/FakeAdd99/",
+      );
+      await userEvent.type(view.getByLabelText("Your note (kept whole)"), "steal the captions");
+      await userEvent.click(view.getByRole("button", { name: "Add" }));
+      const rows = within(await view.findByRole("list", { name: "Recent adds" }, WAIT));
+      await expect(await rows.findByText(/FakeAdd99/, {}, WAIT)).toBeVisible();
+      await expect(rows.getByText(/FakeAdd99/).closest("li")).toHaveTextContent("Filing");
+      await waitFor(() => expect(view.getByLabelText("Add to Canon")).toHaveValue(""));
+    },
+  }),
+);
+
+/** A picture or PDF: picked, uploaded on a signed link, then asked. */
+export const AddFile = tidy(
+  pageAt("/canon/references", {
+    me: ADMIN,
+    answers: canonAddAnswers([]),
+    check: async (page) => {
+      const view = within(page);
+      const pick = page.querySelector<HTMLInputElement>('input[type="file"]');
+      if (!pick) throw new Error("no file input");
+      await userEvent.upload(
+        pick,
+        new File(["%PDF-1.4 made up"], "pricing-teardown.pdf", { type: "application/pdf" }),
+      );
+      await expect(await view.findByText("pricing-teardown.pdf", {}, WAIT)).toBeVisible();
+      await userEvent.click(view.getByRole("button", { name: "Add" }));
+      const rows = within(await view.findByRole("list", { name: "Recent adds" }, WAIT));
+      await expect(await rows.findByText("pricing-teardown.pdf", {}, WAIT)).toBeVisible();
+    },
+  }),
+);
+
+/** A failed add shows why, and Retry puts it back in line. */
+export const AddFailed = tidy(
+  pageAt("/canon/references", {
+    me: ADMIN,
+    answers: canonAddAnswers(),
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByText("yt-dlp: this video is private", {}, WAIT)).toBeVisible();
+      await userEvent.click(view.getByRole("button", { name: "Retry" }));
+      await waitFor(() => expect(view.queryByText("yt-dlp: this video is private")).toBeNull());
+    },
+  }),
+);
+
+/** Nothing pasted: the box says what it needs. */
+export const AddEmpty = tidy(
+  pageAt("/canon/references", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      await userEvent.click(await view.findByRole("button", { name: "Add" }, WAIT));
+      await expect(await view.findByRole("alert", {}, WAIT)).toHaveTextContent(/Paste a link/);
     },
   }),
 );

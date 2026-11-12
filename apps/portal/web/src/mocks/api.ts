@@ -186,6 +186,9 @@ const told = (path: string) => {
   if (window.parent !== window) window.parent.postMessage({ kestrel: "call", key: path }, "*");
 };
 
+/** Where a fake upload answer points the browser's PUT. */
+export const UPLOAD_HOST = "https://uploads.example.test";
+
 /** The MSW handlers for `answers`. A story overrides one path with its own table on top. */
 export function fakeApi(answers: Answers, mode: Mode = "answer") {
   return [
@@ -203,6 +206,8 @@ export function fakeApi(answers: Answers, mode: Mode = "answer") {
       if (each.some((a) => a === null)) return delay("infinite").then(() => HttpResponse.json({}));
       return counted(async () => HttpResponse.json({ answers: each }));
     }),
+    // a browser PUT on a link a fake `*Upload` signed (`UPLOAD_HOST`): taken, nothing kept
+    http.put(`${UPLOAD_HOST}/*`, () => new HttpResponse(null, { status: 200 })),
     http.post("/api/*", async ({ request, params }) => {
       const path = String((params as Record<string, string[] | string>)[0] ?? "");
       const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
