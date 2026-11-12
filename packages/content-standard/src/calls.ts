@@ -1,7 +1,7 @@
 /**
  * His calls on a breakdown's facts (designs/2026-10-25-competitor-analyzer.md, Decide): keep,
  * tune or drop, with his words, on the whole piece (`/`) or on one fact of it (`beats/2`,
- * `facts/shots/5`). Each is a Canon `verdict` from `owner` citing the source (`wren sop call`).
+ * `facts/shots/5`). Each is a Canon `verdict` from `owner` citing the source (`wren source call`).
  * The rows `factRows` lists are the paths a call may name: a path outside them is refused.
  */
 import type { Beat, Breakdown } from "./labels.js";

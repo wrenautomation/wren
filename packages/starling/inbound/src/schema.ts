@@ -99,7 +99,7 @@ export const contentIdeas = pgTable(
 
 /**
  * A platform's playbook: an SOP from the private sops folder, pushed with
- * `wren sop push <name> --platform <p>` and read into every draft prompt for
+ * `wren topic push <name> --platform <p>` and read into every draft prompt for
  * that platform. Insert-only: the newest row per platform is the live one,
  * older rows say what earlier drafts were written against.
  */
@@ -108,7 +108,7 @@ export const contentPlaybooks = pgTable(
   {
     ...baseColumns,
     platform: varchar("platform", { length: 16 }).$type<Platform>().notNull(),
-    /** The SOP's folder name, as in `wren sop ls`. */
+    /** The SOP's folder name, as in `wren topic list`. */
     sop: varchar("sop", { length: 64 }).notNull(),
     text: text("text").notNull(),
     /** What the SOP governs, from its notes' front matter at push (`SopScope`); null when it names none. */

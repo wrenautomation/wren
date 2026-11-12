@@ -176,22 +176,22 @@ and `in <group> <id|email>` (exits 1 when not). A rule can be inline, `@file` or
 
 ## SOPs
 
-`wren sop add <name> <youtube url | drive:<folderId> --account <addr> | file> [--priority n] [--no-screen]`
+`wren source add <youtube url | drive:<folderId> --account <addr> | file> [--priority n] [--no-screen] --topic <name>`
 ingests a source into Canon (`../canon`, private, `@wrenautomation/knowledge`): a source
 record tagged with the SOP's name, one commit with a by and a why. A video is
 its captions plus an `## On screen` section: frames picked where the picture changes, read by
 Claude (Cohere past a failure), with the documents and slides shown; `--no-screen` skips that.
-`wren sop sync <name>` writes `standard.md` (the numbers off the breakdowns of Canon sources the
+`wren topic sync <name>` writes `standard.md` (the numbers off the breakdowns of Canon sources the
 front matter of `notes.md` names: `kinds`, `platforms`, `topic`, `set`) and `calls.md` (your keep /
 tune / drop calls on those pieces, rolled up and cited by Canon source id).
-`wren sop build <name>` syncs, then writes the next guide (`guides/<name>.md`, the procedure) and its rule sets
+`wren topic build <name>` syncs, then writes the next guide (`guides/<name>.md`, the procedure) and its rule sets
 (`rules/<name>/<set>.md`, one rule per line with a fixed id) from `notes.md` (your rules, top priority), your
 calls, the standard and the sources on Claude Code (`--no-sync` skips the sync). A build never drops a set.
-Iterate: edit notes.md, call on pieces (`wren sop call <source> <path> keep|tune|drop`), build again.
-`wren sop extract <name> [source]` lists every point a source makes as finding records tagged with
+Iterate: edit notes.md, call on pieces (`wren source call <source> <path> keep|tune|drop`), build again.
+`wren topic extract <name> [source]` lists every point a source makes as finding records tagged with
 the SOP (cited, generated only); build reads the points instead of the raw source.
 `notes.md`, `calls.md`, `standard.md`, `refs/` and `SKILL.md` sit in `topics/<name>/`. `knowledge render <name>`
-prints the SOP with its Sources list. `wren sop link <name>` symlinks the topic into `~/.claude/skills/sop-<name>`
+prints the SOP with its Sources list. `wren topic link <name>` symlinks the topic into `~/.claude/skills/sop-<name>`
 so Claude Code can follow the SOP as a skill. A non-text source (PDF, image) lands in `refs/`.
 
 ## Claude setups in a page

@@ -1,7 +1,7 @@
 /**
  * The Library's Media and SOPs (designs/2026-10-06-library-and-views.md, 3), read only. Media:
  * each long cut, Short and thumbnail in the media bucket, with where it went. SOPs: each SOP
- * the content loop holds as a platform's playbook (`wren sop push`), its newest text.
+ * the content loop holds as a platform's playbook (`wren topic push`), its newest text.
  */
 import {
   cued,

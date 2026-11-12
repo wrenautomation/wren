@@ -1,5 +1,5 @@
 /**
- * A points list (`sop extract`'s answer) ⇄ findings. Each `- ` line is one point; the lines between
+ * A points list (`topic extract`'s answer) ⇄ findings. Each `- ` line is one point; the lines between
  * points (a worked example, a fenced email) are one passage; headings are the section each sits in.
  * `pointsText(pointsOf(md))` gives the same text back, blank lines aside.
  */

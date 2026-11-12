@@ -22,7 +22,7 @@ Canon is the one store for sources (designs/2026-11-09-knowledge-repo.md), so th
 - Row (`piecesOf`, `canon.ts`): id = the source id, `platform` (`platformOf`: the source's `platform`, else the URL host), creator, reach (views, else likes plus comments), the kind's numbers. A piece counts once someone picked it: a hand breakdown, `saved`, a `feed`, or his keep; a whole-piece drop never counts
 - Calls (`verdictsOf`, `callsOf`): newest owner verdict per source and path (`/` = the whole piece; `factRows`, `calls.ts`, lists the callable paths)
 - `standardOf` (`standard.ts`): per kind in an SOP's scope (`scopeOf`: `kinds`, `platforms`, `topic`, `set` off `notes.md`), each number's median and middle half, each closed set's counts. `rulesOf` rolls calls into patterns; `RULE_KEEPS` keeps with no drop make a rule
-- `writeSopFiles` writes `standard.md` and `calls.md` into the topic folder; `playbookStandard` is the snapshot `wren sop push` stores on `content_playbooks.standard` (jsonb, migration 0388)
+- `writeSopFiles` writes `standard.md` and `calls.md` into the topic folder; `playbookStandard` is the snapshot `wren topic push` stores on `content_playbooks.standard` (jsonb, migration 0388)
 - `checkPiece` (`check.ts`): one of our pieces beside a `KindStandard` and the patterns
 - Ads (`ads.ts`): a Meta Ad Library ad as a source page (`adPage`, `adFacts`); `isWinner` at `WINNER_DAYS` running or `WINNER_VERSIONS` versions
 
@@ -41,8 +41,8 @@ Canon is the one store for sources (designs/2026-11-09-knowledge-repo.md), so th
 
 | Surface | Role |
 |---|---|
-| `wren sop add <name> <url> [--from who]` | reads a link into a Canon source, breaks it down (`--no-breakdown` skips) |
-| `wren sop breakdown <source...>` | writes a breakdown on sources that lack one |
-| `wren sop call <source> <path> keep\|tune\|drop` | writes his verdict (path `?` lists the paths) |
-| `wren sop ads` | pulls an advertiser's or a keyword's ads (`--ads <file>` from a Weaver run) into sources |
-| `wren sop sync <name>` / `build` / `push` | reads the standard and calls into the SOP |
+| `wren source add <url> [--from who] --topic <name>` | reads a link into a Canon source, breaks it down (`--no-breakdown` skips) |
+| `wren source breakdown <source...>` | writes a breakdown on sources that lack one |
+| `wren source call <source> <path> keep\|tune\|drop` | writes his verdict (path `?` lists the paths) |
+| `wren source ads` | pulls an advertiser's or a keyword's ads (`--ads <file>` from a Weaver run) into sources |
+| `wren topic sync <name>` / `build` / `push` | reads the standard and calls into the SOP |

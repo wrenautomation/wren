@@ -1,12 +1,11 @@
 /**
- * `wren sop …`: SOPs built from videos, Drive Docs and files, kept in Canon
- * (`canonDir`): a guide per SOP, its sources and points as records (one commit per write, with a
- * by and a why), `topics/<name>/` for `notes.md`, `calls.md`, `standard.md`, refs. `add` ingests
- * a source and breaks a reel or video down, `sync` writes the numbers and your calls from Canon,
- * `build` writes the next guide on Claude Code (sync first), `ls` shows what is there, `push`
- * hands the SOP and its standard to the content loop as a platform's playbook. Iterate by editing
- * notes.md (your rules, top priority), calling on pieces (`call`), and building again. Drive
- * reads go through autobrowse's `drive` site on this machine.
+ * `wren source …` and `wren topic …`: Canon (`canonDir`) from wren. Records carry a by and a why,
+ * one commit per write. `source add` ingests a video, Drive Doc or file and breaks a reel or video
+ * down; `source breakdown | call | ads` in source-pieces.ts. A topic: a guide, its sources and
+ * points, `topics/<name>/` for `notes.md`, `calls.md`, `standard.md`, refs. `topic sync` writes the
+ * numbers and your calls, `topic build` the next guide on Claude Code (sync first), `topic list`
+ * what is there, `topic push` hands it to the content loop as a platform's playbook. Drive reads go
+ * through autobrowse's `drive` site on this machine.
  */
 import { spawnSync } from "node:child_process";
 import { copyFile, mkdir, readdir, readFile, symlink, unlink } from "node:fs/promises";
@@ -38,7 +37,7 @@ import { pushPlaybook } from "@wren/starling-inbound";
 import { loadWorking } from "@wrenautomation/knowledge";
 import { claudeCode } from "@wrenautomation/models/command";
 import type { Command } from "commander";
-import { breakdownLlm, breakdownSource, registerSopPieces } from "./sop-pieces.js";
+import { breakdownLlm, breakdownSource, registerSourcePieces } from "./source-pieces.js";
 import { watchEyes } from "./video-watch.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -57,7 +56,7 @@ export function autobrowseDrive(dir: string, account: string): DriveGet {
   };
 }
 
-export function registerSop(
+export function registerCanon(
   program: Command,
   withDb: WithDb,
   settings: Settings,
@@ -70,15 +69,23 @@ export function registerSop(
     (await readdir(join(root, "topics"), { withFileTypes: true }).catch(() => []))
       .filter((e) => e.isDirectory() && !e.name.startsWith("."))
       .map((e) => e.name);
-  const sop = program
-    .command("sop")
-    .description("SOPs from videos, Drive Docs and files: `sop add`, then `sop build`");
-
-  sop
-    .command("add <name> [what]")
+  const source = program
+    .command("source")
     .description(
-      "ingest a source, into the SOP when one is named (`sop add <url>` for a link that fits none yet): a YouTube URL, another video URL (Instagram reel, TikTok, X), `drive:<folderId>` (every Doc under it), or a text file. A reel or video is broken down",
+      "Canon sources: add a video, Drive Doc or file, break it down, call on its pieces, competitor ads",
+    );
+  const topic = program
+    .command("topic")
+    .description(
+      "Canon topics (guide, rule sets, references): `source add --topic`, then `topic build`",
+    );
+
+  source
+    .command("add <what>")
+    .description(
+      "ingest a source: a YouTube URL, another video URL (Instagram reel, TikTok, X), `drive:<folderId>` (every Doc under it), or a text file; any other file is kept as a topic's reference. A reel or video is broken down",
     )
+    .option("--topic <name>", "tag it with this topic (makes the topic folder and a notes.md stub)")
     .option("--from <person>", "who gave it (a person's sources outrank an agent's): the provider")
     .option("--account <address>", "whose Drive (an autobrowse `drive` consent)")
     .option("--priority <n>", "higher wins when sources disagree (notes.md always wins)", (v) =>
@@ -89,9 +96,9 @@ export function registerSop(
     .option("--model <name>", "the breakdown model", "cohere")
     .action(
       async (
-        first: string,
-        second: string | undefined,
+        what: string,
         opts: {
+          topic?: string;
           from?: string;
           account?: string;
           priority?: number;
@@ -100,7 +107,7 @@ export function registerSop(
           model: string;
         },
       ) => {
-        const [name, what] = second === undefined ? [null, first] : [first, second];
+        const name = opts.topic ?? null;
         const priority = opts.priority ?? DEFAULT_PRIORITY;
         let sources: Source[];
         if (YOUTUBE.test(what)) {
@@ -124,7 +131,7 @@ export function registerSop(
           sources = await driveSources(what.slice("drive:".length), drive, priority);
         } else if (/\.(md|txt)$/i.test(what)) sources = [await fileSource(resolve(what), priority)];
         else {
-          if (!name) throw new Error("a reference file needs an SOP name");
+          if (!name) throw new Error("a reference file needs --topic <name>");
           // Not text (PDF, image, design export): kept as a reference file, not a source.
           const dir = topicDir(root, name);
           await mkdir(join(dir, "refs"), { recursive: true });
@@ -133,7 +140,7 @@ export function registerSop(
           console.log(to);
           return;
         }
-        const who = { by: BY, why: `sop add ${what}` };
+        const who = { by: BY, why: `source add ${what}` };
         const extra = opts.from ? { provider: { kind: "human", who: opts.from } } : {};
         const llm = opts.breakdown === false ? null : breakdownLlm(settings, rootDir, opts.model);
         for (const s of sources) {
@@ -151,13 +158,15 @@ export function registerSop(
       },
     );
 
-  sop
+  topic
     .command("cite [name]")
-    .description("number the guide's citations ([1 12:03]), one cites list; every SOP when no name")
+    .description(
+      "number the guide's citations ([1 12:03]), one cites list; every topic when no name",
+    )
     .action(async (name?: string) => {
       const names = name ? [name] : await topics();
       for (const n of names) {
-        const changed = await renumberGuide(root, n, { by: BY, why: "sop cite: renumbered" });
+        const changed = await renumberGuide(root, n, { by: BY, why: "topic cite: renumbered" });
         console.log(`${n}${changed ? "" : " (same)"}`);
       }
     });
@@ -174,7 +183,7 @@ export function registerSop(
     return true;
   };
 
-  sop
+  topic
     .command("sync <name>")
     .description(
       "write standard.md (the numbers) and calls.md (your keep / tune / drop calls) from the Canon pieces notes.md's front matter names (kinds, platforms, set)",
@@ -184,7 +193,7 @@ export function registerSop(
         console.log(`${name}: notes.md names no kinds in its front matter; nothing to measure`);
     });
 
-  sop
+  topic
     .command("build <name>")
     .description(
       "write the next guide from notes.md, your calls, the standard and the sources, on Claude Code",
@@ -204,10 +213,10 @@ export function registerSop(
       console.log(`${join(root, "guides", `${name}.md`)} (${text.split(/\s+/).length} words)`);
     });
 
-  sop
+  topic
     .command("extract <name> [source]")
     .description(
-      "list every point a source makes as findings tagged with the SOP (generated; your calls decide what is in); build then reads points instead of the raw source. Naming a source extracts it again",
+      "list every point a source makes as findings tagged with the topic (generated; your calls decide what is in); build then reads points instead of the raw source. Naming a source extracts it again",
     )
     .option("--model <model>", "Claude Code model", "opus")
     .action(async (name: string, source: string | undefined, opts: { model: string }) => {
@@ -215,10 +224,10 @@ export function registerSop(
       for (const f of await extractPoints(root, name, llm, { by: BY }, source)) console.log(f);
     });
 
-  sop
+  topic
     .command("link <name>")
     .description(
-      "expose the SOP as the Claude Code skill `sop-<name>` (topics/<name>/, symlinked in ~/.claude/skills)",
+      "expose the topic as the Claude Code skill `sop-<name>` (topics/<name>/, symlinked in ~/.claude/skills)",
     )
     .action(async (name: string) => {
       await writeSkill(root, name);
@@ -228,10 +237,10 @@ export function registerSop(
       console.log(to);
     });
 
-  sop
+  topic
     .command("push <name>")
     .description(
-      "hand the SOP (the guide, rendered) and its standard and calls from Canon to the content loop: every draft for the platform reads them (prod: node scripts/prod-wren.mjs sop push …)",
+      "hand the topic (the guide, rendered) and its standard and calls from Canon to the content loop: every draft for the platform reads them (prod: node scripts/prod-wren.mjs topic push …)",
     )
     .requiredOption("--platform <platform>", PLATFORMS.join(" | "))
     .action(async (name: string, opts: { platform: string }) => {
@@ -252,11 +261,13 @@ export function registerSop(
       );
     });
 
-  registerSopPieces(sop, { root, settings, rootDir, by: BY });
+  registerSourcePieces(source, { root, settings, rootDir, by: BY });
 
-  sop
-    .command("ls")
-    .description("every SOP: sources by priority, whether a guide, calls.md and standard.md exist")
+  topic
+    .command("list")
+    .description(
+      "every topic: sources by priority, whether a guide, calls.md and standard.md exist",
+    )
     .action(async () => {
       for (const name of await topics()) {
         const d = await readSopDir(root, name);

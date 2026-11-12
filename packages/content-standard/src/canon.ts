@@ -199,7 +199,7 @@ export async function writeSopFiles(
 }
 
 /**
- * The snapshot `wren sop push` stores on a playbook: each kind the SOP names over its scope, and
+ * The snapshot `wren topic push` stores on a playbook: each kind the SOP names over its scope, and
  * `post` on the pushed platform when it governs posts (what a draft is held to), with his calls.
  */
 export function playbookStandard(

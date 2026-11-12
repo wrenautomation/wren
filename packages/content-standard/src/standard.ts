@@ -3,7 +3,7 @@
  * Write; designs/2026-11-09-knowledge-repo.md, WA-1317). An SOP names what it governs in its
  * `notes.md` front matter: `kinds`, `platforms`, `topic` and `set` (the creators and brands the
  * standard counts). Pure: rows come from Canon sources (`canon.ts`), and the result goes to
- * `standard.md` and `calls.md` beside his notes and, on `wren sop push`, onto the playbook.
+ * `standard.md` and `calls.md` beside his notes and, on `wren topic push`, onto the playbook.
  */
 import { type FactCall, ITEM_PATH } from "./calls.js";
 import type { BreakdownBy } from "./labels.js";
@@ -234,7 +234,7 @@ export const draftScope = (
 });
 
 /**
- * What `wren sop push` stores on the playbook (`content_playbooks.standard`): prod cannot read
+ * What `wren topic push` stores on the playbook (`content_playbooks.standard`): prod cannot read
  * Canon, so the draft and film checks read this snapshot.
  */
 export interface PlaybookStandard {
@@ -265,7 +265,7 @@ export function standardMarkdown(scope: SopScope, kinds: KindStandard[], at = ne
   const head = [
     "# Standard",
     "",
-    `Numbers from Canon sources' breakdowns for ${scopeLine(scope)}: ${n} piece${n === 1 ? "" : "s"} as of ${at.toISOString().slice(0, 10)}. Code writes this file; it is rewritten on every \`wren sop sync\` and \`wren sop build\`.`,
+    `Numbers from Canon sources' breakdowns for ${scopeLine(scope)}: ${n} piece${n === 1 ? "" : "s"} as of ${at.toISOString().slice(0, 10)}. Code writes this file; it is rewritten on every \`wren topic sync\` and \`wren topic build\`.`,
   ];
   if (!kinds.length) return `${head.join("\n")}\n\nNo pieces yet: nothing to measure.\n`;
   const blocks = kinds.map((k) => {
@@ -363,7 +363,7 @@ export function callsMarkdown(scope: SopScope, calls: SopCall[], at = new Date()
   const head = [
     "# Calls",
     "",
-    `His keep / tune / drop calls on the pieces this SOP covers (${scopeLine(scope)}), as of ${at.toISOString().slice(0, 10)}. Code writes this file from his Canon verdicts; a call changes with \`wren sop call\`.`,
+    `His keep / tune / drop calls on the pieces this SOP covers (${scopeLine(scope)}), as of ${at.toISOString().slice(0, 10)}. Code writes this file from his Canon verdicts; a call changes with \`wren source call\`.`,
   ];
   if (!calls.length) return `${head.join("\n")}\n\nNo calls yet.\n`;
   const { patterns, own } = rulesOf(calls);

@@ -116,7 +116,7 @@ export async function checkDraft(
     .where(eq(contentDrafts.id, draftId));
   if (!d) throw new Error(`no draft ${draftId}`);
   const playbook = await playbookOf(db, d);
-  // the snapshot `wren sop push` stored: prod cannot read Canon
+  // the snapshot `wren topic push` stored: prod cannot read Canon
   const standard = postStandardFor(playbook);
   const calls = playbook?.standard?.calls ?? [];
   const { patterns, own } = rulesOf(calls);

@@ -131,8 +131,8 @@ import {
 import { capturePage } from "@wren/video";
 import type { Command } from "commander";
 import { desc, sql } from "drizzle-orm";
+import { autobrowseDrive } from "./canon.js";
 import { readText } from "./content.js";
-import { autobrowseDrive } from "./sop.js";
 import { registerVideoAsk } from "./video-ask.js";
 import { registerVideoMarks } from "./video-marks.js";
 import { registerVideoPresence } from "./video-presence.js";

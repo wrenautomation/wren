@@ -24,20 +24,20 @@ Citations: `packages/starling/inbound/src/schema.ts:61`, `packages/starling/inbo
 ## Connected to
 
 - **owned-by:** [[content/platform]]
-- **joins:** [[content/draft]] (`playbook_id`), [[processes/sop-build]] (`wren sop push`)
+- **joins:** [[content/draft]] (`playbook_id`), [[processes/sop-build]] (`wren topic push`)
 - **joins:** [[content/funnel]] (written posts: one idea, an adapter per platform)
 
 ## If you change this
 
 - **Scope and standard:** `scope` (jsonb) holds the SOP notes' front matter at push; `playbookFor` takes only a playbook whose scope is empty or names `post`; `postStandardFor` + `standardBlock` add the standard's `post` lines after the playbook in every draft prompt. `ContentDesk/check` (`check.ts`) saves a draft's check on [[content/draft]] `check`.
-- **Hits:** `draft.ts` (`draftPrompt`, `draftIdea`, `redraft`; bump `DRAFT_PROMPT_VERSION`), `wren sop push`
+- **Hits:** `draft.ts` (`draftPrompt`, `draftIdea`, `redraft`; bump `DRAFT_PROMPT_VERSION`), `wren topic push`
 - **Does not hit:** `lessons.ts` (notes and winners stay separate)
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `wren sop push <name> --platform <p>` | writes (prod: `node scripts/prod-wren.mjs sop push …`) |
+| `wren topic push <name> --platform <p>` | writes (prod: `node scripts/prod-wren.mjs topic push …`) |
 | `ContentDesk.draft/redraft` | reads |
 
 ## See

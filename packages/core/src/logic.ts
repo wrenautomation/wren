@@ -221,7 +221,7 @@ const journeyNodeOf = (w: Record<string, unknown>): string => text(w.node) || te
 const JOURNEY_KEY = /^[a-z][a-z0-9_-]{0,39}$/;
 /** A sourced list's id: `import:<batch number>`. */
 export const SOURCE_ID = /^import:[1-9][0-9]{0,9}$/;
-/** An SOP's folder name, as `wren sop ls` prints it and the hunt tags its finds. */
+/** An SOP's folder name, as `wren topic list` prints it and the hunt tags its finds. */
 export const SOP_NAME = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 /**

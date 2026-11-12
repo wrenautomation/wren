@@ -92,7 +92,7 @@ export const CONTENT_COMPONENTS = [
     ready: true,
     settings: clientPlannerSchema,
     requires: { components: ["content.posting"], anyAccount: [...CHANNEL_ACCOUNTS] },
-    // The SOPs it drafts from (`wren sop push`) are its playbooks.
+    // The SOPs it drafts from (`wren topic push`) are its playbooks.
     provides: { services: ["PostPlan"], loops: ["PostPlan"], records: ["library.sop"] },
     // Drafts tomorrow's posts into the client's To approve, as it (its About), on its own models.
     clientLoops: (client) => [{ service: "PostPlan", key: clientKey(client, PLAN_UNIT) }],

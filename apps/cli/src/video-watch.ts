@@ -3,7 +3,7 @@
  * @wren/research/sops): ffmpeg's cuts and frames picked where the picture changes, the ear's speech,
  * Claude's read of the frames (Cohere when Claude fails). Prints the Speech, On screen and Cuts
  * sections, or `--json`. One path for every read (WA-904): no whole-video model.
- * `sop add`, `learn` and studio use the same core through `watchEyes`.
+ * `source add` and studio use the same core through `watchEyes`.
  * The command itself is registered in ./studio.ts: bare `wren video watch` was already the
  * recordings loop the desk runs every minute, so one command does both (an input picks this).
  */

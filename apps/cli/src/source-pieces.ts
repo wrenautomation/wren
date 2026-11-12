@@ -1,5 +1,5 @@
 /**
- * `wren sop breakdown | call | ads`: pieces in Canon (designs/2026-11-09-knowledge-repo.md, WA-1317).
+ * `wren source breakdown | call | ads`: pieces in Canon (designs/2026-11-09-knowledge-repo.md, WA-1317).
  * A breakdown goes on the source's `breakdown` field; a call is a `verdict` from `owner` citing the
  * source; a competitor ad is one source per ad (designs/2026-11-11-competitor-ads.md), pulled from
  * the Meta Ad Library on the desk (signed out, $0) or taken from a Weaver export, read here (the
@@ -102,13 +102,13 @@ export async function breakdownSource(
   return b;
 }
 
-export function registerSopPieces(
-  sop: Command,
+export function registerSourcePieces(
+  source: Command,
   d: { root: string; settings: Settings; rootDir: string; by: string },
 ): void {
   const { root, settings, rootDir, by } = d;
 
-  sop
+  source
     .command("breakdown <source...>")
     .description(
       "break a source down (hook, beats, call to action, its kind's facts) onto its record; again on one with a breakdown replaces it",
@@ -122,7 +122,7 @@ export function registerSopPieces(
         const b = await breakdownSource(root, id, llm, {
           ...(o.kind ? { kind: o.kind as BrokenDown } : {}),
           by,
-          why: `sop breakdown ${id}`,
+          why: `source breakdown ${id}`,
         });
         console.log(
           b ? `${id}: ${b.kind}, ${b.hookStyle}, ${b.beats.length} beats` : `${id}: no breakdown`,
@@ -130,7 +130,7 @@ export function registerSopPieces(
       }
     });
 
-  sop
+  source
     .command("call <source> <path> <call>")
     .description(
       `his call on a piece: ${FACT_CALLS.join(" | ")} on the whole piece (/) or one fact (hook_style, beats/2, facts/format); a verdict from owner citing the source. Paths: run with path ?`,
@@ -169,13 +169,13 @@ export function registerSopPieces(
               body: `${o.from} ${word} ${what}.${o.comment ? ` "${o.comment}"` : ""}`,
             },
           ],
-          { by, why: `sop call ${source} ${path} ${call}` },
+          { by, why: `source call ${source} ${path} ${call}` },
         );
         console.log(JSON.stringify(out));
       },
     );
 
-  sop
+  source
     .command("ads")
     .description(
       "competitor ads from the Meta Ad Library (desk, signed out): an advertiser's (--page), a keyword's (--q) or a Weaver run's kept ads (--ads); one Canon source per ad, read here and broken down",
@@ -193,7 +193,7 @@ export function registerSopPieces(
     )
     .option("--no-read", "only save them")
     .option("--model <name>", "the breakdown model", "cohere")
-    .option("--sop <name>", "tag each ad with this SOP")
+    .option("--topic <name>", "tag each ad with this topic")
     .action(
       async (o: {
         page?: string;
@@ -204,7 +204,7 @@ export function registerSopPieces(
         max: number;
         read: boolean;
         model: string;
-        sop?: string;
+        topic?: string;
       }) => {
         if ([o.page, o.q, o.ads].filter(Boolean).length !== 1)
           throw new Error("give one of --page, --q or --ads");
@@ -219,13 +219,13 @@ export function registerSopPieces(
           ...(store ? { store } : {}),
         };
         const llm = breakdownLlm(settings, rootDir, o.model);
-        const who = { by, why: `sop ads ${o.ads ?? o.page ?? o.q}` };
+        const who = { by, why: `source ads ${o.ads ?? o.page ?? o.q}` };
         const rows = [];
         for (const ad of answer.ads) {
           const id = `facebook-ad-${ad.libraryId}`;
           const prev = loadWorking(root).docs.find((l) => l.doc.fm.id === id);
           const winner = isWinner(ad);
-          const tags = [...(winner ? WINNER_TAGS : []), ...(o.sop ? [o.sop] : [])];
+          const tags = [...(winner ? WINNER_TAGS : []), ...(o.topic ? [o.topic] : [])];
           const video = adVideos(ad)[0];
           const fields = {
             title: adTitle(ad),
@@ -371,7 +371,7 @@ function pull(
   settings: Settings,
   o: { page?: string; q?: string; country: string; inactive?: boolean; max: number },
 ): Promise<AdsAnswer> {
-  const sites = ingressSites(settings, "sop ads", DESK, PULL_MS);
+  const sites = ingressSites(settings, "source ads", DESK, PULL_MS);
   return sites.call<AdsAnswer>("fb-public", "GET", "/ads", {
     ...(o.page ? { page: o.page } : { q: o.q }),
     country: o.country,

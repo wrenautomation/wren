@@ -316,7 +316,7 @@ export const settingsSchema = z.object({
   sceneDetect: z.string().min(1).default("uvx scenedetect"),
   /** Canon (relative to the repo root; private, not this repo): SOPs are guides there, `@wrenautomation/knowledge`. */
   canonDir: z.string().min(1).default("../canon"),
-  /** The autobrowse checkout whose CLI (and tokens) `sop add drive:` runs. */
+  /** The autobrowse checkout whose CLI (and tokens) `source add drive:` runs. */
   autobrowseDir: z.string().min(1).default("../autobrowse"),
   /** The private S3 bucket that keeps every email and PDF the books read (under `books/`); unset = the local `.books/` directory. */
   booksBucket: z.string().min(1).optional(),

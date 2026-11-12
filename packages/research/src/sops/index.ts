@@ -8,7 +8,7 @@
  * source's extracted points are finding records tagged with it. `topics/<name>/` holds the rest:
  * `notes.md` (the owner's own rules, top priority, never written by code; its front matter names
  * what the SOP governs), `calls.md` and `standard.md` (the owner's keep / tune / drop calls and the
- * measured numbers, written by `wren sop sync` from the learn package), refs, SKILL.md. `buildSop` asks one
+ * measured numbers, written by `wren topic sync` from Canon breakdowns), refs, SKILL.md. `buildSop` asks one
  * model for the next guide and its own sets from all of it, as one doc that code splits; iterating is editing notes.md, calling on
  * pieces, or editing the guide and building again. Every record write is one commit with a by and a why. The videos and audio are read by
  * `@wrenautomation/read/video`; this file only files what it read. Nothing here touches a
@@ -213,7 +213,7 @@ export const STYLE = `Style: short plain sentences a person would say out loud. 
 
 interface SopInput {
   name: string;
-  /** One instruction for this build only (`sop build --ask`). */
+  /** One instruction for this build only (`topic build --ask`). */
   ask?: string;
   notes: string;
   /** `calls.md`: the owner's calls on pieces, rolled up; empty when none. */
@@ -265,7 +265,7 @@ interface SopDir {
   root: string;
   /** `topics/<name>/`: notes, calls, standard, counts, refs, SKILL.md. */
   dir: string;
-  /** `notes.md` without its front matter (the scope lines are for `wren sop sync`, not the model). */
+  /** `notes.md` without its front matter (the scope lines are for `wren topic sync`, not the model). */
   notes: string;
   calls: string;
   standard: string;
@@ -423,7 +423,7 @@ set:
 
 Your own rules for this SOP. They beat every source. Code never writes here. The front matter
 names what the SOP governs (kinds post, film, reel, video; platforms; topic words; set of creators
-and brands): \`wren sop sync\` measures those pieces into standard.md and rolls your calls into calls.md.
+and brands): \`wren topic sync\` measures those pieces into standard.md and rolls your calls into calls.md.
 `;
 
 /** `toSource`'s front matter: JSON strings, objects and bare numbers, one per line. */
@@ -645,7 +645,7 @@ const purposeOf = (body: string, name: string) =>
 /** Write `topics/<name>/SKILL.md` from the guide and the sets it cites. */
 export async function writeSkill(root: string, name: string): Promise<string> {
   const guide = readRecord(root, name);
-  if (guide?.fm.type !== "guide") throw new Error(`${name}: no guide (sop build first)`);
+  if (guide?.fm.type !== "guide") throw new Error(`${name}: no guide (topic build first)`);
   const read = await readSopDir(root, name);
   const file = join(topicDir(root, name), "SKILL.md");
   await mkdir(topicDir(root, name), { recursive: true });
@@ -673,7 +673,7 @@ const readable = (doc: string) =>
  */
 export async function sopText(root: string, name: string): Promise<string> {
   const read = await readSopDir(root, name);
-  if (!read.current) throw new Error(`${name}: no guide (sop build first)`);
+  if (!read.current) throw new Error(`${name}: no guide (topic build first)`);
   const shared = read.shared
     ? `\n## Shared rule sets\n\n${read.shared.replace(/^<\/?set[^>]*>\n?/gm, "").replace(/^# /gm, "### ")}\n`
     : "";
@@ -690,7 +690,7 @@ export async function sopText(root: string, name: string): Promise<string> {
   return `${body}\n## Sources\n\n${lines.join("\n")}\n`;
 }
 
-/** Renumber a guide's source cites (`wren sop cite`); its set cites stay. False when nothing changed. */
+/** Renumber a guide's source cites (`wren topic cite`); its set cites stay. False when nothing changed. */
 export async function renumberGuide(root: string, name: string, who: By): Promise<boolean> {
   const guide = readRecord(root, name);
   if (guide?.fm.type !== "guide") return false;
@@ -849,7 +849,7 @@ export async function buildSop(
   const byHand = read.sets.filter((s) => !s.last && /^- \*\*[A-Z]{2,3}-\d+\*\*/m.test(s.body));
   if (byHand.length)
     throw new Error(
-      `${name}: ${byHand.map((s) => s.id).join(", ")} written by hand; edit this topic with knowledge apply, not sop build`,
+      `${name}: ${byHand.map((s) => s.id).join(", ")} written by hand; edit this topic with knowledge apply, not topic build`,
     );
   const { text } = await llm.complete(
     sopPrompt({ name, ...read, house: houseRules(root), ...(ask ? { ask } : {}) }),
