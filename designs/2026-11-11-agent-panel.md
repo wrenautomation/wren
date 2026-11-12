@@ -120,7 +120,8 @@ that used `--client`, that client's database (the same route as `withDb`, `main.
   only from the portal.
 - The worker and test engines are out of scope: they act on items a person already approved.
 - Dial: `clients set --set autonomy.send=approve` (and `.spend`, `.delete`, `.publish`). Default
-  `approve` for every class. The email send gate stays; `gate` sits before it.
+  by who drives the chat: an admin's agent runs `auto` (like bypass-permissions mode); anyone
+  else's agent runs `approve`. A client's own setting overrides the default. The email send gate stays; `gate` sits before it.
 - Shapes: `gate(act: "send"|"spend"|"delete"|"publish", client: string, what: string): Promise<void>`
   (throws `NeedsConfirm {id}` or refuses). Pending row: `agent_confirms(id, chat, act, client,
   what, args jsonb, state pending|yes|no, decided_by, at)`.
@@ -195,3 +196,5 @@ The text keeps 50 rows and counts the rest, so a turn stays under about 3 KB.
 - 2026-11-11: goldfish review: 36 findings, 27 applied, 4 rejected (actor-string tag: 57
   overwrites; "phase 1 not UI only"; per-call grouping by time; worker dial), 5 merged; open:
   D1, D2, the dial default (`approve`).
+- 2026-11-11: William: D2 A. Default `auto` for an admin's chat, `approve` for anyone else. D1 reopened: write volume of A, and undo/redo vs a write-back cache.
+- 2026-11-11: William: D1 A, no limiter. A adds no writes: two tags on audit rows the per-row trigger already writes (prod: 1.8k/day, agent 4%). At 100 busy clients (~5M rows/day, ~60/s mean) the box's insert rate holds; the bind is disk (20 GB gp3, ~300 B a row). Revisit with audit retention when the disk fills, not with a limiter. A bulk turn groups into one line with one Undo.
