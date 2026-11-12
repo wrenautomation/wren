@@ -31,6 +31,7 @@ const row = (i: number, r: Partial<Reference>): Reference => ({
   length: 20 + i,
   provider: agent,
   note: null,
+  useFor: null,
   tags: [],
   saved: day(i),
   posted: day(i + 30),
@@ -47,6 +48,10 @@ export const CANON_ROWS: Reference[] = [
     handle: "edit.studio.example",
     provider: human,
     note: { text: LONG_NOTE, by: "william", at: day(1) },
+    useFor: {
+      area: "Video editing",
+      text: "Cut timing and one-word captions for the next short.",
+    },
     tags: ["video-editing", "hooks"],
     stats: { views: 1_240_000, likes: 88_000, comments: 1_420 },
   }),
@@ -54,6 +59,7 @@ export const CANON_ROWS: Reference[] = [
     title: "Pricing in one whiteboard",
     provider: human,
     note: { text: "good structure: problem, number, offer.", by: "william", at: day(2) },
+    useFor: { area: "Content", text: null },
     tags: ["offers"],
   }),
   row(3, {
@@ -68,7 +74,11 @@ export const CANON_ROWS: Reference[] = [
     video: null,
     tags: ["video-editing"],
   }),
-  row(4, { title: "Hook in the first frame", tags: ["hooks"] }),
+  row(4, {
+    title: "Hook in the first frame",
+    useFor: { area: "Video editing", text: "Open on motion, never a still." },
+    tags: ["hooks"],
+  }),
   row(5, {
     title: "Ahttps://example.com/a/very/long/unbroken/title/without/any/spaces/at/all/in/it",
     handle: "a.handle.that.is.very.long.and.never.breaks.example",
@@ -140,6 +150,7 @@ export const CANON_ANSWERS = serve<ReturnType<typeof canonConsoleApi>>("canon", 
       (skip === "platform" || !s("platform") || r.platform === s("platform")) &&
       (skip === "provider" || !s("provider") || r.provider?.kind === s("provider")) &&
       (skip === "tag" || !s("tag") || r.tags.includes(s("tag") as string)) &&
+      (skip === "area" || !s("area") || r.useFor?.area === s("area")) &&
       (!q || `${r.title} ${r.handle ?? ""} ${r.note?.text ?? ""}`.toLowerCase().includes(q)) &&
       (!b.noted || !!r.note);
     const rows = CANON_ROWS.filter((r) => keep(r));
@@ -162,6 +173,10 @@ export const CANON_ANSWERS = serve<ReturnType<typeof canonConsoleApi>>("canon", 
         tag: facet(
           CANON_ROWS.filter((r) => keep(r, "tag")),
           (r) => r.tags,
+        ),
+        area: facet(
+          CANON_ROWS.filter((r) => keep(r, "area")),
+          (r) => (r.useFor ? [r.useFor.area] : []),
         ),
       },
     };

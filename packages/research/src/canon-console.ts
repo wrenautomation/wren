@@ -100,6 +100,8 @@ export interface Reference {
   length: number | null;
   provider: { kind: string; who: string } | null;
   note: Note | null;
+  /** what it is good for: `useFor` in the record */
+  useFor: { area: string; text: string | null } | null;
   tags: string[];
   /** when it came into Canon */
   saved: string;
@@ -140,7 +142,7 @@ export interface ReferencesPage {
   total: number;
   rows: Reference[];
   next: number | null;
-  facets: { platform: Facet[]; tag: Facet[]; provider: Facet[] };
+  facets: { platform: Facet[]; tag: Facet[]; provider: Facet[]; area: Facet[] };
 }
 
 type Data = Record<string, unknown>;
@@ -179,6 +181,7 @@ async function shape(
   const note = obj(d.note);
   const provider = obj(d.provider);
   const stats = obj(d.stats);
+  const useFor = obj(d.useFor);
   let poster: string | null = null;
   let video: string | null = null;
   let embed: string | null = null;
@@ -215,6 +218,8 @@ async function shape(
       note && str(note.text)
         ? { text: String(note.text), by: str(note.by) ?? "", at: str(note.at) ?? "" }
         : null,
+    useFor:
+      useFor && str(useFor.area) ? { area: String(useFor.area), text: str(useFor.text) } : null,
     tags: Array.isArray(d.tags) ? d.tags.filter((t): t is string => typeof t === "string") : [],
     saved: savedOf(d, r.created),
     posted: str(d.date) ?? str(d.uploaded),
@@ -257,14 +262,17 @@ export interface Filters {
   kind?: string | null;
   provider?: string | null;
   tag?: string | null;
+  /** `useFor.area` */
+  area?: string | null;
   q?: string | null;
   noted?: boolean | null;
 }
+type Facetted = "platform" | "tag" | "provider" | "area";
 
 const SAVED_SQL = sql`coalesce(case when jsonb_typeof(r.data->'saved') = 'object' then r.data->'saved'->>'at' else r.data->>'saved' end, r.created)`;
 const PLATFORM_SQL = sql`coalesce(r.data->>'platform', split_part(r.id, '-', 1))`;
 
-function where(f: Filters, skip?: "platform" | "tag" | "provider"): SQL {
+function where(f: Filters, skip?: Facetted): SQL {
   const w: SQL[] = [
     sql`r.repo = ${REPO}`,
     sql`r.type = 'source'`,
@@ -278,6 +286,7 @@ function where(f: Filters, skip?: "platform" | "tag" | "provider"): SQL {
   if (f.kind) w.push(sql`r.data->>'kind' = ${f.kind}`);
   if (f.provider && skip !== "provider") w.push(sql`r.data->'provider'->>'kind' = ${f.provider}`);
   if (f.tag && skip !== "tag") w.push(sql`r.data->'tags' ? ${f.tag}`);
+  if (f.area && skip !== "area") w.push(sql`r.data->'useFor'->>'area' = ${f.area}`);
   if (f.noted) w.push(sql`coalesce(r.data->'note'->>'text', '') <> ''`);
   if (f.q?.trim()) {
     const like = `%${f.q.trim().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
@@ -303,7 +312,7 @@ export function canonConsoleApi(db: Db, media: Media | null = null) {
     );
     return r?.value ?? null;
   };
-  const facet = async (expr: SQL, f: Filters, skip: "platform" | "tag" | "provider") =>
+  const facet = async (expr: SQL, f: Filters, skip: Facetted) =>
     (
       await db.execute<{ value: string; n: number }>(
         sql`select v as value, count(*)::int as n from canon.knowledge_records r, ${expr} where ${where(f, skip)} and v is not null group by v order by n desc, v limit 40`,
@@ -319,12 +328,12 @@ export function canonConsoleApi(db: Db, media: Media | null = null) {
         total: 0,
         rows: [],
         next: null,
-        facets: { platform: [], tag: [], provider: [] },
+        facets: { platform: [], tag: [], provider: [], area: [] },
       };
       if (!(await indexed())) return empty;
       const after = f.after ?? 0;
       const limit = Math.min(f.limit ?? PAGE, PAGE);
-      const [rows, [count], head, platform, tag, provider] = await Promise.all([
+      const [rows, [count], head, platform, tag, provider, area] = await Promise.all([
         db.execute<Row>(
           sql`select r.id, r.title, r.created, r.data from canon.knowledge_records r where ${where(f)} order by ${SAVED_SQL} desc, r.id limit ${limit} offset ${after}`,
         ),
@@ -335,6 +344,7 @@ export function canonConsoleApi(db: Db, media: Media | null = null) {
         facet(sql`lateral (select ${PLATFORM_SQL} as v) x`, f, "platform"),
         facet(sql`jsonb_array_elements_text(coalesce(r.data->'tags', '[]'::jsonb)) x(v)`, f, "tag"),
         facet(sql`lateral (select r.data->'provider'->>'kind' as v) x`, f, "provider"),
+        facet(sql`lateral (select r.data->'useFor'->>'area' as v) x`, f, "area"),
       ]);
       const total = count?.n ?? 0;
       return {
@@ -343,7 +353,7 @@ export function canonConsoleApi(db: Db, media: Media | null = null) {
         total,
         rows: await Promise.all(rows.map((r) => shape(r, media))),
         next: after + rows.length < total ? after + rows.length : null,
-        facets: { platform, tag, provider },
+        facets: { platform, tag, provider, area },
       } satisfies ReferencesPage;
     },
 
@@ -423,6 +433,7 @@ const INPUTS = {
     kind: z.string().max(40).nullish(),
     provider: z.string().max(40).nullish().describe("human or agent"),
     tag: z.string().max(80).nullish(),
+    area: z.string().max(80).nullish().describe("what it is good for: useFor.area"),
     q: z.string().max(200).nullish(),
     noted: z.boolean().nullish().describe("only references with his note"),
     after: z.number().int().min(0).nullish(),

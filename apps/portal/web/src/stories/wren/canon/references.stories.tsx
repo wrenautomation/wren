@@ -127,6 +127,23 @@ export const OnlyHis = tidy(
   }),
 );
 
+/** Useful for: the select narrows to one use and writes `area=` in the address; each card says it. */
+export const ByUse = tidy(
+  pageAt("/canon/references", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      await userEvent.selectOptions(
+        await view.findByLabelText("Useful for", {}, WAIT),
+        "Video editing",
+      );
+      await expect(await view.findByText("2 references", {}, WAIT)).toBeVisible();
+      await expect(storyHref()).toContain("area=Video+editing");
+      await expect(view.getAllByText("For Video editing")).toHaveLength(2);
+    },
+  }),
+);
+
 /** One reference open: the player, his note, the rule lines it backs, the beats. */
 export const Opened = tidy(
   pageAt("/canon/references?r=instagram-Fake1", {
@@ -137,6 +154,7 @@ export const Opened = tidy(
       await expect(sheet.getByText("Cut on the beat, never between beats.")).toBeVisible();
       await expect(sheet.getByText(/keep the music under the voice/)).toBeVisible();
       await expect(sheet.getByText("Zoom on the punchline")).toBeVisible();
+      await expect(sheet.getByText("Useful for Video editing")).toBeVisible();
     },
   }),
 );
@@ -162,7 +180,7 @@ export const NotIndexed = pageAt("/canon/references", {
       total: 0,
       rows: [],
       next: null,
-      facets: { platform: [], tag: [], provider: [] },
+      facets: { platform: [], tag: [], provider: [], area: [] },
     },
   },
   check: async (page) => {

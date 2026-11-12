@@ -54,6 +54,7 @@ describe("canonConsoleApi", () => {
           length: 21,
           provider: { kind: "human", who: "ana" },
           note,
+          useFor: { area: "Video editing", text: "the cut timing", by: "ana", at: "2026-11-12" },
           tags: ["video-editing"],
           body: "# Cut on the beat\n\n## Caption\n\nWatch the cuts.\n\n## Transcript\n\nOne two three.\n",
         },
@@ -137,6 +138,11 @@ describe("canonConsoleApi", () => {
       "instagram-AbC123",
     ]);
     expect((await api.references({ tag: "video-editing" })).total).toBe(1);
+    const forEditing = await api.references({ area: "Video editing" });
+    expect(forEditing.rows.map((r) => [r.id, r.useFor])).toEqual([
+      ["instagram-AbC123", { area: "Video editing", text: "the cut timing" }],
+    ]);
+    expect(forEditing.facets.area).toEqual([{ value: "Video editing", n: 1 }]);
     expect((await api.references({ q: "long talk" })).rows.map((r) => r.id)).toEqual([
       "youtube-xyz98765432",
     ]);

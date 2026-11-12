@@ -1,7 +1,7 @@
 /**
  * Canon › References (designs/2026-11-12-canon-references.md): every reel and video in Canon as a
  * card, his note whole. A card opens the reference (`?r=<id>`): a panel on a wide screen, a sheet
- * on a phone. List state lives in the address: `platform`, `provider`, `tag`, `q`, `noted`.
+ * on a phone. List state lives in the address: `platform`, `provider`, `area` (`useFor.area`), `tag`, `q`, `noted`.
  */
 import type {
   Facet,
@@ -41,7 +41,7 @@ import { dayLabel, SELECT } from "../work/bits.js";
 import { AddBox } from "./add-box.js";
 
 const HERE = "/canon/references";
-const FILTERS = ["platform", "provider", "tag", "q", "noted"] as const;
+const FILTERS = ["platform", "provider", "area", "tag", "q", "noted"] as const;
 const PLATFORMS: Record<string, string> = { instagram: "Instagram", youtube: "YouTube" };
 const PROVIDERS: Record<string, string> = { human: "His", agent: "An agent's", weaver: "Weaver's" };
 
@@ -64,6 +64,7 @@ function List({ params }: { params: URLSearchParams }) {
   const q = {
     platform: params.get("platform") || null,
     provider: params.get("provider") || null,
+    area: params.get("area") || null,
     tag: params.get("tag") || null,
     q: params.get("q") || null,
     noted: params.get("noted") === "1" || null,
@@ -78,7 +79,7 @@ function List({ params }: { params: URLSearchParams }) {
     icon: "book",
     text: `Canon references${q.platform ? `, ${platformName(q.platform)}` : ""}${
       q.provider ? `, ${q.provider}'s` : ""
-    }${q.tag ? `, tagged ${q.tag}` : ""}${q.q ? `, matching "${q.q}"` : ""}${q.noted ? ", with his note" : ""}`,
+    }${q.area ? `, for ${q.area}` : ""}${q.tag ? `, tagged ${q.tag}` : ""}${q.q ? `, matching "${q.q}"` : ""}${q.noted ? ", with his note" : ""}`,
   });
   const set = (k: string, v: string | null) => navigate(href(HERE, { [k]: v || null }, params));
 
@@ -122,6 +123,12 @@ function List({ params }: { params: URLSearchParams }) {
           value={q.provider ?? ""}
           options={options(data.facets.provider, (v) => PROVIDERS[v] ?? v, "Anyone's", q.provider)}
           onChange={(v) => set("provider", v)}
+        />
+        <Pick
+          label="Useful for"
+          value={q.area ?? ""}
+          options={options(data.facets.area, (v) => v, "Any use", q.area)}
+          onChange={(v) => set("area", v)}
         />
         <Pick
           label="Tag"
@@ -295,6 +302,14 @@ function Card({ r, params }: { r: Reference; params: URLSearchParams }) {
         <span>{dayLabel(r.saved)}</span>
         <Saver r={r} />
       </span>
+      {r.useFor && (
+        <a
+          href={href(HERE, { area: r.useFor.area }, new URLSearchParams())}
+          className="col-start-2 self-start no-underline"
+        >
+          <Tag tone="green">For {r.useFor.area}</Tag>
+        </a>
+      )}
       {r.note && (
         <div className="col-span-2">
           <NoteText note={r.note} />
@@ -484,6 +499,15 @@ function Whole({ r }: { r: ReferenceWhole }) {
       {r.note && (
         <Section title="His note">
           <NoteText note={r.note} />
+        </Section>
+      )}
+      {r.useFor && (
+        <Section title={`Useful for ${r.useFor.area}`}>
+          {r.useFor.text && (
+            <p className="m-0 text-[14px] leading-normal whitespace-pre-line wrap-anywhere">
+              {r.useFor.text}
+            </p>
+          )}
         </Section>
       )}
       {r.tags.length > 0 && (
