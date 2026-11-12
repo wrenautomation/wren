@@ -32,7 +32,10 @@ const put = (id: SeenSource, part: Omit<SeenPart, "id"> | null) => {
 };
 
 /** Publish a part while mounted; undefined publishes nothing. */
-export function useSeen(source: SeenSource, part: Omit<SeenPart, "id" | "off"> | undefined): void {
+export function useSeen(
+  source: SeenSource,
+  part: Omit<SeenPart, "id" | "off"> | null | undefined,
+): void {
   const key = part ? `${part.label}\n${part.icon}\n${part.text}` : "";
   // biome-ignore lint/correctness/useExhaustiveDependencies: keyed by the part's content
   useEffect(() => {
