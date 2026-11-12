@@ -4,6 +4,12 @@ import type { Need, RouteApps } from "@wren/core/access";
 export const CANON_CONSOLE_ROUTES = {
   references: "wren:team",
   reference: "wren:team",
+  // the whole brain (designs/2026-11-12-canon-references.md D5)
+  home: "wren:team",
+  topic: "wren:team",
+  records: "wren:team",
+  record: "wren:team",
+  file: "wren:team",
   // the Add box (designs/2026-11-12-canon-references.md D4): asks go in a queue a drain files
   adds: "wren:team",
   add: "wren:team",

@@ -10,7 +10,6 @@ import type {
   ReferenceWhole,
 } from "@wren/research/canon-console";
 import {
-  BottomSheet,
   Button,
   cx,
   Empty,
@@ -20,25 +19,18 @@ import {
   Loading,
   num,
   Tag,
-  usePhone,
   useSeen,
   Video,
   type VideoMark,
 } from "@wren/ui";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@wren/ui/components/ui/sheet";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
-import { dayLabel, SELECT } from "../work/bits.js";
+import { dayLabel } from "../work/bits.js";
 import { AddBox } from "./add-box.js";
+import { Panel, Pick, Search, Section, VIDEO_KINDS } from "./parts.js";
 
 const HERE = "/canon/references";
 const FILTERS = ["platform", "provider", "area", "tag", "q", "noted"] as const;
@@ -111,7 +103,12 @@ function List({ params }: { params: URLSearchParams }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-2 @min-[720px]/main:flex @min-[720px]/main:flex-wrap @min-[720px]/main:items-center">
-        <Search value={q.q ?? ""} onChange={(v) => set("q", v)} />
+        <Search
+          value={q.q ?? ""}
+          label="Search references"
+          placeholder="Search title, note, creator"
+          onChange={(v) => set("q", v)}
+        />
         <Pick
           label="Platform"
           value={q.platform ?? ""}
@@ -201,53 +198,6 @@ function List({ params }: { params: URLSearchParams }) {
   );
 }
 
-function Search({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [text, setText] = useState(value);
-  useEffect(() => setText(value), [value]);
-  return (
-    // edit-ok: search box, applied on Enter and on blur
-    <input
-      type="search"
-      aria-label="Search references"
-      placeholder="Search title, note, creator"
-      className={cx(SELECT, "col-span-2 w-full min-w-0 @min-[720px]/main:w-64")}
-      value={text}
-      onChange={(e) => setText(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") onChange(text.trim());
-      }}
-      onBlur={() => text.trim() !== value && onChange(text.trim())}
-    />
-  );
-}
-
-function Pick({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: Readonly<Record<string, string>>;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <select
-      aria-label={label}
-      className={cx(SELECT, "w-full min-w-0 @min-[720px]/main:w-auto @min-[720px]/main:max-w-64")}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      {Object.entries(options).map(([k, v]) => (
-        <option key={k} value={k}>
-          {v}
-        </option>
-      ))}
-    </select>
-  );
-}
-
 /** Who saved it: his own, or an agent's. */
 function Saver({ r }: { r: Reference }) {
   if (!r.provider) return null;
@@ -258,7 +208,16 @@ function Saver({ r }: { r: Reference }) {
   );
 }
 
-function Poster({ r, className }: { r: Reference; className?: string }) {
+/** A reference's still: its poster, else a video or link mark; length bottom right unless `small`. */
+export function Poster({
+  r,
+  className,
+  small,
+}: {
+  r: Pick<Reference, "poster" | "length" | "kind">;
+  className?: string;
+  small?: boolean;
+}) {
   return (
     <span
       className={cx(
@@ -270,10 +229,13 @@ function Poster({ r, className }: { r: Reference; className?: string }) {
         <Img src={r.poster} alt="" className="size-full object-cover" loading="lazy" />
       ) : (
         <span className="grid size-full place-items-center text-(--ui-ink-3)">
-          <Icon name="video" className="size-6" />
+          <Icon
+            name={VIDEO_KINDS.has(r.kind) ? "video" : "link"}
+            className={small ? "size-3.5" : "size-6"}
+          />
         </span>
       )}
-      {r.length != null && (
+      {r.length != null && !small && (
         <span className="absolute right-1.5 bottom-1.5 bg-black/70 px-1.5 py-0.5 text-[11.5px] font-medium text-white tabular-nums [border-radius:3px]">
           {clock(r.length)}
         </span>
@@ -329,7 +291,6 @@ function NoteText({ note }: { note: NonNullable<Reference["note"]> }) {
 }
 
 function Opened({ id, params }: { id: string; params: URLSearchParams }) {
-  const phone = usePhone();
   const got = useCall(`canon-reference:${id}`, () =>
     call<ReferenceWhole>("canon/reference", { id }),
   );
@@ -346,49 +307,14 @@ function Opened({ id, params }: { id: string; params: URLSearchParams }) {
   ) : (
     <Whole r={got.data} />
   );
-  if (phone)
-    return (
-      <BottomSheet
-        label={title}
-        start="large"
-        onClose={shut}
-        bodyClassName="px-4 pt-2 pb-[calc(96px+env(safe-area-inset-bottom))]"
-        head={
-          <div className="flex h-11 items-center border-b border-(--ui-hair) px-2">
-            <CloseButton onClick={shut} />
-          </div>
-        }
-      >
-        {body}
-      </BottomSheet>
-    );
   return (
-    <Sheet open onOpenChange={(o) => !o && shut()}>
-      <SheetContent
-        side="right"
-        className="w-full overflow-y-auto data-[side=right]:sm:max-w-[560px]"
-      >
-        {/* the body's h2 shows the title; the close button sits top right */}
-        <SheetHeader className="sr-only">
-          <SheetTitle>{title}</SheetTitle>
-          <SheetDescription>The reference, his note and the rule lines it backs.</SheetDescription>
-        </SheetHeader>
-        <div className="px-5 pt-12 pb-10">{body}</div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function CloseButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-label="Close"
-      onClick={onClick}
-      className="inline-grid size-8 cursor-pointer place-items-center border-0 bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) pointer-coarse:size-11"
+    <Panel
+      title={title}
+      about="The reference, his note and the rule lines it backs."
+      onClose={shut}
     >
-      <Icon name="close" className="size-4" />
-    </button>
+      {body}
+    </Panel>
   );
 }
 
@@ -450,17 +376,6 @@ function Player({ r }: { r: ReferenceWhole }) {
       No file saved. Watch it on {platformName(r.platform)}.
       <Icon name="external" className="size-3.5 flex-none" />
     </a>
-  );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-1.5">
-      <h3 className="m-0 text-[12px] font-semibold tracking-wide text-(--ui-ink-3) uppercase">
-        {title}
-      </h3>
-      {children}
-    </section>
   );
 }
 

@@ -7,6 +7,7 @@ import type { Row } from "@wren/core/records/serve";
 import type { Answers } from "../api.js";
 import { APP_ANSWERS } from "./apps.js";
 import { CANON_ADDS, CANON_ANSWERS } from "./canon.js";
+import { CANON_LIBRARY_ANSWERS } from "./canon-library.js";
 import { CLIENT_PAGE_ANSWERS } from "./client-pages.js";
 import { FOLDERS_ANSWERS } from "./folders.js";
 import { JOURNEY_DETAIL, JOURNEY_ROWS, JOURNEY_WRITES } from "./journeys.js";
@@ -155,6 +156,7 @@ const BASE: Answers = {
   ...VARIANTS_ANSWERS,
   ...FOLDERS_ANSWERS,
   ...CANON_ANSWERS,
+  ...CANON_LIBRARY_ANSWERS,
   "canon/adds": { rows: CANON_ADDS },
   "console/call:PieceList.list": { pieces: PIECES },
   "console/call:ContentDesk.waiting": STUDIO_WAITING,

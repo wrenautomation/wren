@@ -153,6 +153,24 @@ Recommend B. Ranked by: reels must land (A and C fail there), one write path, no
 row shows on the page as "Filing…" until the index has the record; a failed add shows its error
 and a Retry. A file goes to the media bucket first (`canon/<sha32>`, as `source files` does).
 
+## D5: the whole of Canon in the portal (WA-1346)
+
+William: "everything related to canon should be synced and shown in the portal", and "canon is
+sort of like an implicit file structure, but also with references, visuals, and many to many
+connections". Read only.
+
+- Index: engine 0.75.0 adds `knowledge_files` (every repo file; body null when binary or over
+  2 MB). `canonLibraryApi` reads records, cites and files; never the repo.
+- Pages: Overview (topics, shared rule sets, direction, conflicts, stale cites), Library (every
+  record, filters, search over files), References, and a topic page. Any record or file opens in a
+  side panel (`?r=` / `?f=`), so a link never leaves the page.
+- A topic page runs in layer order: Skill (what SKILL.md loads, parsed from its `knowledge render`
+  lines with `--only`/`--except`) → Procedure → Rule sets → References. Each rule line shows its
+  id, its backing (`knowledge audit`: his, agent, unknown, none), its open conflicts and the
+  reference posters under it. Own sets open; borrowed sets fold and name their owner. Each
+  reference says which lines it backs. Evidence, checks, his notes, conflicts and files sit beside.
+- The many-to-many: a set lists the topics that also load it; Overview lists every shared set.
+
 ## Non-goals
 
 - Editing notes or tags in the portal: a portal edit is a commit, built later.
@@ -190,3 +208,4 @@ and a Retry. A file goes to the media bucket first (`canon/<sha32>`, as `source 
 - 2026-11-12: D1 moved from the Mac hook to C (box fetches on push), William: "sure go with C". Built: `CanonIndexSync`, `/webhooks/github`, `wren canon sync`.
 - 2026-11-12: References page built and shipped (bcf7926, 0fc5b5e). D4 (Add box) written; open for William: B recommended.
 - 2026-11-12: D4 B, William: "make sure this can scale to past just our mac into servers". Built: `canon_add_requests` (skip-locked claims, 3 tries), Add box on References, `wren source drain`, Mac launchd drain; the drain tells live topic `canon-adds`.
+- 2026-11-12: D5 built (WA-1346): engine 0.75.0 `knowledge_files`; Canon Overview, Library, topic in layer order, record and file panel. Fresh-eye review: 12 findings, 5 applied, 7 rejected (shell crumb and tab bar, focus ring and worst-case title in the shots, reading measure, poster grid width, thumb labels).

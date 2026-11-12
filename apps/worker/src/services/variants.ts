@@ -12,7 +12,7 @@ export function variantsServices(deps: Deps): AnyService[] {
     makeVariantsCollect({ db: deps.db, ...deps.notify }),
     // the one folder tree: Variants subjects, agent chats, Weaver runs (designs/2026-11-08-folders.md)
     makeFoldersConsole(deps.db),
-    // Canon › References: reads schema `canon` (designs/2026-11-12-canon-references.md)
+    // Canon: reads schema `canon` (designs/2026-11-12-canon-references.md)
     makeCanonConsole(
       deps.db,
       signer
@@ -22,6 +22,7 @@ export function variantsServices(deps: Deps): AnyService[] {
             signPut: (f) => signMediaPut({ bucket: signer.bucket }, f),
           }
         : null,
+      deps.settings.canonRemote,
     ),
   ];
 }

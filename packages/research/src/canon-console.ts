@@ -1,5 +1,6 @@
 /**
- * CanonConsole: the portal's Canon › References (designs/2026-11-12-canon-references.md). Reads
+ * CanonConsole: the portal's Canon: References here, the rest in `canon-library.ts`
+ * (designs/2026-11-12-canon-references.md). Reads
  * schema `canon` (the index `CanonIndexSync` keeps), never the repo. Reels play from the media
  * bucket (`cache/instagram/<code>.mp4`); the page falls back to the embed when a file is missing.
  */
@@ -25,6 +26,7 @@ import {
   whatOf,
 } from "./canon-adds.js";
 import { CANON_CONSOLE_APPS, CANON_CONSOLE_ROUTES } from "./canon-console-routes.js";
+import { canonLibraryApi, lineText, type RecordFilters } from "./canon-library.js";
 
 const REPO = "canon";
 const VIDEO_KINDS = ["reel", "video"];
@@ -249,14 +251,6 @@ export function sectionOf(body: string, name: string): string | null {
   return text || null;
 }
 
-/** A rule line's words: no `- **XX-n**` head, no `[n]` refs. */
-const lineText = (line: string) =>
-  line
-    .replace(RULE_LINE, "")
-    .replace(/\[(\d+)(?: [^\]]*)?\]|\[notes\]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
 export interface Filters {
   platform?: string | null;
   kind?: string | null;
@@ -440,6 +434,18 @@ const INPUTS = {
     limit: z.number().int().min(1).max(PAGE).nullish(),
   },
   reference: { id: ID },
+  home: {},
+  topic: { name: z.string().min(1).max(80) },
+  records: {
+    type: z.string().max(40).nullish(),
+    status: z.string().max(40).nullish(),
+    topic: z.string().max(80).nullish(),
+    tag: z.string().max(80).nullish(),
+    q: z.string().max(200).nullish(),
+    after: z.number().int().min(0).nullish(),
+  },
+  record: { id: ID },
+  file: { path: z.string().min(1).max(500) },
   adds: {},
   add: {
     what: z.string().min(1).max(2000).describe("a link, or the `source` an upload answered"),
@@ -456,8 +462,11 @@ const INPUTS = {
 
 type Req = PortalRequest & Record<string, unknown>;
 
-export function makeCanonConsole(db: Db, media: Media | null) {
+export function makeCanonConsole(db: Db, media: Media | null, remote: string) {
   const api = canonConsoleApi(db, media);
+  const library = canonLibraryApi(db, remote, (rows) =>
+    Promise.all(rows.map((r) => shape(r, media))),
+  );
   const h = <K extends keyof typeof INPUTS>(k: K, fn: (req: Req) => Promise<unknown>) =>
     serviceHandler(
       { input: z.looseObject({ ...PORTAL_FIELDS, ...INPUTS[k] }) },
@@ -472,6 +481,11 @@ export function makeCanonConsole(db: Db, media: Media | null) {
     handlers: {
       references: h("references", (req) => api.references(req as Filters)),
       reference: h("reference", (req) => api.reference(String(req.id))),
+      home: h("home", () => library.home()),
+      topic: h("topic", (req) => library.topic(String(req.name))),
+      records: h("records", (req) => library.records(req as RecordFilters)),
+      record: h("record", (req) => library.record(String(req.id))),
+      file: h("file", (req) => library.file(String(req.path))),
       adds: h("adds", async () => ({ rows: (await listAdds(db)).map(addRow) })),
       add: h("add", async (req) => {
         const what = String(req.what).trim();
