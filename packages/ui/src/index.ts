@@ -29,11 +29,20 @@ export {
 } from "./action.js";
 export { type LinkPreview, Say as AgentSay } from "./agent-cards.js";
 export {
+  type AgentChange,
+  AgentChanges,
+  type AgentChangeTurn,
+  ChangesTally,
+  type UndoChange,
+} from "./agent-changes.js";
+export {
   type AgentChatRow,
   AgentChats,
   AgentChatsMenu,
   type ChatFolders,
 } from "./agent-chats.js";
+export { type AgentConfirm, ConfirmCard, type RiskyAct } from "./agent-confirm.js";
+export { type Autonomy, AutonomyDial } from "./agent-dial.js";
 export {
   AskAgent,
   type Hand,
@@ -60,6 +69,8 @@ export {
   ProductCard,
   type ProductCardProps,
 } from "./agent-product-card.js";
+export { type QueuedTurn, QueuedTurns } from "./agent-queued.js";
+export { PageSeen, type SeenPart } from "./agent-sees.js";
 export { toolLine } from "./agent-steps.js";
 export {
   type AgentFile,

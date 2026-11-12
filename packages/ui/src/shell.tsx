@@ -93,6 +93,8 @@ export interface NavApp {
   href: string;
   /** What waits in it, all its pages. */
   count?: number | undefined;
+  /** The agent is changing its data now (designs/2026-11-11-agent-panel.md): a mark on its row. */
+  agent?: boolean | undefined;
   /** Shown to the team, not installed for this client: dimmed. */
   off?: boolean | undefined;
   /** Its pages, shown beside its row on hover while it's closed. */
@@ -627,6 +629,23 @@ const APPNAME =
   "inline-flex min-w-0 items-center gap-2.5 px-1 font-(family-name:--ui-font-display) text-[17px] font-(--ui-display-weight) tracking-[-0.01em] no-underline";
 const APPMARK =
   "grid size-[30px] flex-none place-items-center rounded-(--ui-radius) bg-(--ui-fill) text-(--ui-ink)";
+/** The agent is at work in this app: its mark, breathing, before the count. */
+function AgentMark({ folded }: { folded: boolean }) {
+  return (
+    <span
+      role="img"
+      aria-label="The agent is changing this"
+      {...tipProps("The agent is changing this", { side: "right", as: "none" })}
+      className={cx(
+        "grid flex-none place-items-center rounded-full bg-(--ui-accent-tint) text-(--ui-primary) motion-safe:animate-ui-run-pulse",
+        folded ? "absolute top-1 left-1 size-3.5" : "ml-auto size-5",
+      )}
+    >
+      <Icon name="sparkle" size={folded ? 8 : 11} />
+    </span>
+  );
+}
+
 /** The count after a name (the artifact's `.nav .n`): what waits on you there, an accent pill. */
 const COUNT =
   "ml-auto min-w-5 flex-none in-data-[counts=off]:hidden rounded-full bg-(--ui-primary) px-[7px] text-center text-[12px]/[1.55] font-semibold text-(--ui-on-accent) [font-variant-numeric:tabular-nums]";
@@ -1074,6 +1093,7 @@ function SideNav({
                     >
                       {a.name}
                     </span>
+                    {a.agent ? <AgentMark folded={folded} /> : null}
                     {a.count ? (
                       <span className={folded ? DOT : COUNT} {...(folded ? {} : waits(a.count))}>
                         {folded ? null : short(a.count)}

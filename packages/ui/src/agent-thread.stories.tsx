@@ -388,6 +388,62 @@ export const Steps: Story = {
   },
 };
 
+/** A run of mixed calls folds into one block, named by what it did; open shows each call. */
+export const MixedSteps: Story = {
+  render: () => (
+    <Live
+      messages={[
+        you("u1", "Move the Acme deal to Won and note why."),
+        {
+          id: "a1",
+          role: "assistant",
+          state: "done",
+          parts: [
+            {
+              type: "tool",
+              id: "m1",
+              name: "Grep",
+              input: { pattern: "Acme Bakery", path: "deals/" },
+              result: "deals/acme.md",
+            },
+            {
+              type: "tool",
+              id: "m2",
+              name: "Read",
+              input: { file_path: "deals/acme.md" },
+              result: "stage: Proposal\nowner: Sam",
+            },
+            {
+              type: "tool",
+              id: "m3",
+              name: "Bash",
+              input: { command: "wren deals set acme --stage won", description: "Set the stage" },
+              result: '{"changed":1}',
+            },
+            {
+              type: "tool",
+              id: "m4",
+              name: "Edit",
+              input: { file_path: "deals/acme.md", old_string: "stage: Proposal" },
+              result: "ok",
+            },
+            { type: "text", text: "Done. Acme Bakery is **Won**, with the note on the deal." },
+          ],
+        },
+      ]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    const block = c.getByRole("button", {
+      name: /Searched, read 1 file, ran a command and changed 1 file/,
+    });
+    await userEvent.click(block);
+    await expect(c.getByText("wren deals set acme --stage won")).toBeTruthy();
+    await expect(c.getByText("Read acme.md")).toBeTruthy();
+  },
+};
+
 /** Steps still running: done rows stay, the live one shimmers, the turn line counts up. */
 export const Running: Story = {
   render: () => (

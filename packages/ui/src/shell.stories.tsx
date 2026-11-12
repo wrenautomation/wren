@@ -80,3 +80,18 @@ export const Client: Story = {
     </AppShell>
   ),
 };
+
+/** The agent is changing data in two apps: a mark breathes on each row, before its count. */
+export const AgentAtWork: Story = {
+  render: () => (
+    <AppShell
+      {...SHELL}
+      areas={SHELL.areas?.map((a) => ({
+        ...a,
+        apps: a.apps.map((x) => (x.id === "money" || x.id === "leads" ? { ...x, agent: true } : x)),
+      }))}
+    >
+      <Page title="Waiting" />
+    </AppShell>
+  ),
+};

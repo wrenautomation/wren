@@ -1,7 +1,8 @@
 /**
- * A reply's steps as they come (designs/2026-11-04-multi-user-runtime.md, Decisions 10, 12): plain
- * shell commands fold into one "Ran N commands" block, open: each its description, command and output; every other call is
- * its own row, appended in order, its result on the right. The turn's line sits at the foot:
+ * A reply's steps as they come (designs/2026-11-04-multi-user-runtime.md, Decisions 10, 12;
+ * 2026-11-11-agent-panel.md, 6): a run of plain calls (shell, reads, edits, searches) folds into one
+ * block, "Ran 3 commands, read 2 files", open: each its description, call and output. weaver's
+ * verbs, helpers, asks and a lone non-shell call are rows, appended in order, their result on the right. The turn's line sits at the foot:
  * the live step and the time, then "Done" with what it cost.
  */
 import { type ToolCallMessagePartComponent, useAuiState } from "@assistant-ui/react";
@@ -35,6 +36,20 @@ export function toolTitle(name: string, input: Args): string {
   // plugin skills come as "plugin:skill"
   if (name === "Skill") return line ? `Load the ${line.split(":").at(-1)} skill` : "Load a skill";
   if (name === "Bash") return "Run a command";
+  const file = (k: string) =>
+    typeof input[k] === "string" ? (input[k] as string).split("/").pop() : "";
+  if (name === "Grep" || name === "Glob")
+    return typeof input.pattern === "string" ? `Search for ${input.pattern}` : "Search the files";
+  if (name === "Edit" || name === "Write") return `Change ${file("file_path") || "a file"}`;
+  if (name === "WebSearch")
+    return typeof input.query === "string" ? `Search the web for ${input.query}` : "Search the web";
+  if (name === "WebFetch") {
+    try {
+      return `Read ${new URL(String(input.url)).hostname}`;
+    } catch {
+      return "Read a page";
+    }
+  }
   return name;
 }
 
@@ -183,9 +198,16 @@ const partsOf = (s: { message: { parts: readonly unknown[] } }) =>
 const argsOf = (x: Part): Args => (x.args ?? {}) as Args;
 const asking = (x: Part) =>
   !!x.approval && x.approval.approved === undefined && !x.approval.resolution;
+const named = (x: Part) => x.toolName === "Bash" && NAMED.test(String(argsOf(x).command ?? ""));
 const inBlock = (x: Part | undefined): boolean =>
-  // a command that asked stays its own row, with its answer
-  !!x && x.type === "tool-call" && isCommand(x.toolName ?? "", argsOf(x)) && !x.approval;
+  // a call that asked stays its own row, with its answer
+  !!x &&
+  x.type === "tool-call" &&
+  !x.approval &&
+  !named(x) &&
+  // a helper's own tokens and tools stay on its row
+  x.toolName !== "Agent" &&
+  x.toolName !== "Task";
 const outOf = (x: Part) => (typeof x.result === "string" ? x.result : undefined);
 const msOf = (x: Part) =>
   x.timing?.completedAt && x.timing.startedAt ? x.timing.completedAt - x.timing.startedAt : 0;
@@ -201,18 +223,50 @@ export const ToolPart: ToolCallMessagePartComponent = (t) => {
   if (inBlock(parts[i - 1])) return null;
   let j = i;
   while (inBlock(parts[j + 1])) j++;
-  return <Commands parts={parts.slice(i, j + 1)} />;
+  const run = parts.slice(i, j + 1);
+  // one call alone reads better as its titled row, unless it is a shell command
+  if (run.length === 1 && !isCommand(t.toolName, (t.args ?? {}) as Args)) return <StepRow {...t} />;
+  return <Commands parts={run} />;
 };
+
+/** Kinds of call in a block, as past-tense counts, in first-seen order. */
+const KIND: Record<string, [string, string, string]> = {
+  Bash: ["ran", "command", "commands"],
+  Read: ["read", "file", "files"],
+  Write: ["changed", "file", "files"],
+  Edit: ["changed", "file", "files"],
+  Grep: ["searched", "time", "times"],
+  Glob: ["searched", "time", "times"],
+  WebSearch: ["searched the web", "time", "times"],
+  WebFetch: ["read", "page", "pages"],
+  Skill: ["loaded", "skill", "skills"],
+};
+function blockLabel(names: readonly string[]): string {
+  const n = new Map<string, number>();
+  for (const name of names) {
+    const [verb, one, many] = KIND[name] ?? ["took", "other step", "other steps"];
+    const k = `${verb}|${one}|${many}`;
+    n.set(k, (n.get(k) ?? 0) + 1);
+  }
+  const s = [...n].map(([k, c]) => {
+    const [verb, one, many] = k.split("|");
+    if (c === 1 && one === "time") return verb;
+    return `${verb} ${c === 1 ? (one === "command" ? "a command" : `1 ${one}`) : `${c} ${many}`}`;
+  });
+  const line = s.length > 1 ? `${s.slice(0, -1).join(", ")} and ${s.at(-1)}` : (s[0] ?? "");
+  return line.charAt(0).toUpperCase() + line.slice(1);
+}
 
 function Commands({ parts }: { parts: readonly Part[] }) {
   const [open, setOpen] = useState(false);
-  const n = parts.length;
-  const live = parts.some((x) => x.result === undefined);
+  const live = parts.find((x) => x.result === undefined);
   const bad = parts.filter((x) => x.isError).length;
   const ms = parts.reduce((a, x) => a + msOf(x), 0);
+  const shell = parts.every((x) => x.toolName === "Bash");
+  const n = parts.length;
   const label = live
-    ? `Running ${n === 1 ? "a command" : `${n} commands`}`
-    : `Ran ${n === 1 ? "a command" : `${n} commands`}${bad ? `, ${bad} failed` : ""}`;
+    ? `Running ${n === 1 ? "a command" : `${n} ${shell ? "commands" : "steps"}`}`
+    : `${blockLabel(parts.map((x) => x.toolName ?? ""))}${bad ? `, ${bad} failed` : ""}`;
   return (
     <Grow className="grid rounded-[12px] bg-(--ui-fill) shadow-[inset_0_0_0_1px_var(--ui-hair)]">
       <button
@@ -226,8 +280,14 @@ function Commands({ parts }: { parts: readonly Part[] }) {
           size={13}
           className={cx("flex-none transition-transform duration-200", open && "rotate-90")}
         />
-        <Icon name="terminal" size={14} className="flex-none text-(--ui-active)" />
-        <span className="min-w-0 flex-1 font-medium">{label}</span>
+        <Icon
+          name={shell ? "terminal" : "list"}
+          size={14}
+          className="flex-none text-(--ui-active)"
+        />
+        <span className={cx("min-w-0 flex-1 font-medium wrap-anywhere", live && "ui-shimmer")}>
+          {label}
+        </span>
         {live ? (
           <Ring />
         ) : ms ? (
@@ -258,7 +318,11 @@ function Terminal({ parts }: { parts: readonly Part[] }) {
         const done = x.result !== undefined;
         const out = outOf(x)?.trim() ?? "";
         const ms = msOf(x);
-        const said = typeof input.description === "string" && input.description;
+        const name = x.toolName ?? "";
+        const said =
+          name === "Bash"
+            ? typeof input.description === "string" && input.description
+            : toolTitle(name, input);
         return (
           <li key={id} className="grid gap-1.5 [animation:ui-fade_.2s_both]">
             {said || done ? (
@@ -279,10 +343,10 @@ function Terminal({ parts }: { parts: readonly Part[] }) {
             <div className="grid rounded-[8px] bg-(--ui-term) font-mono text-[12px]/[1.6] text-(--ui-term-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)]">
               <div className="flex min-w-0 gap-2 px-3 py-1.5">
                 <span className="flex-none text-(--ui-term-prompt) select-none" aria-hidden="true">
-                  $
+                  {name === "Bash" ? "$" : name.toLowerCase()}
                 </span>
                 <span className="min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]">
-                  {toolLine("Bash", input) || x.argsText}
+                  {toolLine(name, input) || x.argsText}
                   {done ? null : <span className="ui-term-caret" aria-hidden="true" />}
                 </span>
               </div>
