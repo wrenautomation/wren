@@ -5,6 +5,7 @@
  */
 import { type ReactNode, useState } from "react";
 import { Button } from "./controls.js";
+import { useEdit } from "./data/use-edit.js";
 import { relative } from "./fields.js";
 import { cx } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
@@ -45,10 +46,13 @@ export function ConfirmCard({
   const look = LOOK[c.act];
   const [busy, setBusy] = useState<"yes" | "no" | null>(null);
   const [saying, setSaying] = useState(false);
-  const [why, setWhy] = useState("");
+  // a why half typed survives a reload or a closed panel
+  const why = useEdit(`agent-confirm-why:${c.id}`, "");
   const answer = async (yes: boolean) => {
     setBusy(yes ? "yes" : "no");
-    await onAnswer(yes, yes ? undefined : why.trim() || undefined).finally(() => setBusy(null));
+    await onAnswer(yes, yes ? undefined : why.value.trim() || undefined)
+      .then(() => why.saved())
+      .finally(() => setBusy(null));
   };
   const asks = c.state === "asks";
   return (
@@ -99,8 +103,7 @@ export function ConfirmCard({
               </span>
               <textarea
                 rows={2}
-                value={why}
-                onChange={(e) => setWhy(e.target.value)}
+                {...why.field}
                 className="w-full resize-none rounded-[10px] bg-(--ui-paper) px-3 py-2 text-[13.5px] text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)] outline-none focus:shadow-[inset_0_0_0_1px_var(--ui-ink-3)]"
               />
             </label>

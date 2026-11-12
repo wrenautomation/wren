@@ -38,6 +38,7 @@ function Chip({
       </span>
       {editing ? (
         <textarea
+          // edit-ok: one queued line, saved on blur and Enter
           // biome-ignore lint/a11y/noAutofocus: opened by the edit button just pressed
           autoFocus
           rows={Math.min(4, text.split("\n").length)}
