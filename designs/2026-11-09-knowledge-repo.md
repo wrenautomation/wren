@@ -296,3 +296,5 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
   - Removed: `wren learn`, `@wren/learn`, `wren sop learn-back` (`learn.checks` never held a row), the
     `learn-read` Mac job, the content-line feed (`MapLineFeed`, fed only by Learn items), Learn's
     readers. Old design docs keep their text: they are history.
+- 11-12 (WA-1281, William): the second brain view is Explorer, a Finder-style browser with Columns by
+  default; the graph-kit view becomes its Map view (`designs/2026-11-12-explorer.md`).
