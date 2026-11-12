@@ -1562,3 +1562,13 @@ Gate (`scripts/cdm-gate.mjs`, 20 ledger documents ≤16k chars, seed 1273; `task
 Decision:
 - Classify passes as Jev's fallback: past Jev's cap, on images, when Jev is down. It never replaces Jev where Jev answers.
 - Extract fails the findings gate. It stays in models as a field tool; nothing in weaver calls it.
+
+## 11-11: what Meta-N gave weaver, engine 0.71.0 (WA-1335)
+
+Source: the Meta-N read (WA-1326, run 01M76HZRTQHRN3J0GN3TTPXA0R). In its ablation, the plain note passed from layer to layer gave about 72% of the recursion gain, and the helper code about 15%. Depth 3 regressed on 41% of tasks.
+
+Decision:
+- `add edge --learned "<how to search better>"`: one line about method, never a finding. A plan reads these lines as `ask.notes`, newest first: from this run's rounds, its parent, its stopped children, and the last 3 runs of the same kind outside the tree.
+- Plan files keep every version (`plans/<kind>/v<n>.json`). `learn --versions` lists them, and `learn --back <v>` restores one as the next version.
+- A rule change is a trial until the next run of the kind proves it. Compare kept findings per read, thin facets and cost against the last run on the old version. If it did worse, go `--back`. Change one thing per version. Build changes from failures first, at about 3:1. These are skill rules, not code: our runs have no automatic score.
+- Not taken: auto-written layers and code helpers. They regress past depth 2, and they need an automatic scorer we lack.
