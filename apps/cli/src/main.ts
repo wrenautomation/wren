@@ -42,6 +42,7 @@ import { guardClient } from "./client-scope.js";
 import { registerClients } from "./clients.js";
 import { registerContent } from "./content.js";
 import { registerCrm } from "./crm.js";
+import { registerDatasets } from "./datasets.js";
 import { registerJudge } from "./decide.js";
 import { registerDelivery } from "./delivery.js";
 import { registerDlq } from "./dlq.js";
@@ -51,7 +52,6 @@ import { registerEgress } from "./egress.js";
 import { registerEmail } from "./email.js";
 import { registerEnrich } from "./enrich.js";
 import { registerFeatures } from "./features.js";
-import { registerFetch } from "./fetch.js";
 import { registerFolders } from "./folders.js";
 import { registerGroups } from "./groups.js";
 import { registerHealth } from "./health.js";
@@ -59,9 +59,10 @@ import { registerHooks } from "./hooks.js";
 import { registerKeys } from "./keys.js";
 import { registerLake } from "./lake.js";
 import { registerLimits } from "./limits.js";
-import { registerListmonk } from "./listmonk.js";
 import { registerLoops } from "./loops.js";
+import { registerMail } from "./mail.js";
 import { registerNewsletter } from "./newsletter.js";
+import { registerNewsletterLists } from "./newsletter-lists.js";
 import { registerObjects } from "./objects.js";
 import { registerPages } from "./pages.js";
 import { registerPeople } from "./people.js";
@@ -77,7 +78,6 @@ import { registerTouches } from "./touches.js";
 import { registerTrain } from "./train.js";
 import { registerPlaybook, registerVariants } from "./variants.js";
 import { registerVideo } from "./video.js";
-import { registerWatch } from "./watch.js";
 import { registerWebhooks } from "./webhooks.js";
 import { registerWorkflows } from "./workflows.js";
 import { registerWrite } from "./write.js";
@@ -247,20 +247,18 @@ registerDelivery(program, withMainDb, settings);
 registerHealth(program, withMainDb, settings);
 registerCrm(program, withClientDb, settings, rootDir);
 registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
-registerFetch(program, settings);
+registerDatasets(program, settings);
 registerHooks(program, withMainDb);
 registerDlq(program, withMainDb, settings);
 registerLoops(program, withMainDb, settings);
 registerFeatures(program, withMainDb, settings);
 registerLake(program, withMainDb, settings);
-registerNewsletter(program, withMainDb, settings);
-registerListmonk(program, withMainDb, settings);
+registerNewsletterLists(registerNewsletter(program, withMainDb, settings), withMainDb, settings);
 registerWebhooks(program, withMainDb, settings);
 registerKeys(program, withMainDb);
 registerLimits(program, withMainDb);
 registerWorkflows(program, withMainDb, withClientDb, settings);
-registerEnrich(program, withMainDb, settings, rootDir);
-registerPages(program, withMainDb, settings);
+registerPages(registerEnrich(program, withMainDb, settings, rootDir), withMainDb, settings);
 const content = registerContent(program, withMainDb, settings);
 content
   .command("status")
@@ -285,7 +283,7 @@ registerSms(program, withDb, settings);
 registerReach(program, withMainDb, settings);
 registerAccounts(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
-registerWatch(program, withMainDb, settings, rootDir);
+registerMail(program, withMainDb, settings, rootDir);
 registerVariants(program, withDb, settings, actor, rootDir);
 registerPlaybook(program, withDb, settings, rootDir);
 registerFolders(program, withDb, actor);
@@ -382,7 +380,7 @@ const renewal = () =>
     .objectClient<SiteTokenRenew>({ name: "SiteTokenRenew" }, RENEWAL_KEY);
 const tokens = program
   .command("tokens")
-  .description("SiteTokenRenew: autobrowse makes again what lapses within 14 days");
+  .description("Site tokens: autobrowse makes again what lapses within 14 days");
 tokens
   .command("status")
   .action(async () => console.log(JSON.stringify(await renewal().status(), null, 2)));

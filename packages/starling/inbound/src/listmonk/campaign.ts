@@ -9,7 +9,7 @@
 import type { Listmonk } from "./client.js";
 import { escapeTemplate } from "./client.js";
 
-/** The postback messenger `wren listmonk setup` registers; a campaign names it to go through Wren. */
+/** The postback messenger `wren newsletter lists setup` registers; a campaign names it to go through Wren. */
 export const MESSENGER = "wren";
 /** The campaign template: the body and nothing else. Listmonk wraps a plain body in its HTML template otherwise. */
 const TEMPLATE_NAME = "wren plain";

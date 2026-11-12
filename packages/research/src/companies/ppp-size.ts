@@ -1,5 +1,5 @@
 /**
- * Size a niche's companies from PPP loan files (`wren fetch get <niche>'s ppp
+ * Size a niche's companies from PPP loan files (`wren datasets get <niche>'s ppp
  * dataset`): jobs reported and a yearly payroll estimate, stored as a
  * `firmographics` enrichment (model `ppp-foia`, prompt_version = the release).
  *

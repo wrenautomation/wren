@@ -1,5 +1,5 @@
 /**
- * `wren pages`: crawled page HTML, inline in Postgres or archived to the pages
+ * `wren enrich pages`: crawled page HTML, inline in Postgres or archived to the pages
  * bucket. `archive` drives `PageHtmlArchive/all` on the Postgres box.
  */
 
@@ -12,8 +12,8 @@ import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
-export function registerPages(program: Command, withDb: WithDb, settings: Settings): Command {
-  const pages = program.command("pages").description("crawled page HTML: Postgres or the bucket");
+export function registerPages(enrich: Command, withDb: WithDb, settings: Settings): Command {
+  const pages = enrich.command("pages").description("crawled page HTML: Postgres or the bucket");
   pages
     .command("count")
     .description("Pages still inline, and archived")
@@ -24,9 +24,7 @@ export function registerPages(program: Command, withDb: WithDb, settings: Settin
       .connect(ingressOf(settings))
       .objectClient<PageHtmlArchive>({ name: "PageHtmlArchive" }, PAGE_ARCHIVE_KEY);
   const print = (v: unknown) => console.log(JSON.stringify(v, null, 2));
-  const archive = pages
-    .command("archive")
-    .description("PageHtmlArchive: moves HTML a day old to the pages bucket");
+  const archive = pages.command("archive").description("Move HTML a day old to the pages bucket");
   archive.command("status").action(async () => print(await loop().status()));
   archive
     .command("start")

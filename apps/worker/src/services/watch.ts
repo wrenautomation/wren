@@ -10,7 +10,7 @@ import { type AnyService, BOOKS_DESK_TIMEOUT_MS, type Deps, googleKey } from "./
 export function watchServices(deps: Deps): AnyService[] {
   const { db, gmail, keyPath, mailboxOf, settings, watchLlm } = deps;
   const services: AnyService[] = [];
-  // The Monitor: new mail every 15 minutes, onto the `watch` workflow; off until `wren watch start`.
+  // Mail triage: new mail every 15 minutes, onto the `watch` workflow; off until `wren mail start`.
   const watchBoxes = settings.watchMailboxes.length
     ? settings.watchMailboxes
     : settings.booksMailboxes;

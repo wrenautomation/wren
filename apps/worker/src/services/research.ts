@@ -204,7 +204,7 @@ export function researchServices(deps: Deps): AnyService[] {
       signals: queueAhead,
     }),
   );
-  // Page HTML a day old moves to the pages bucket; off until `wren pages archive start`.
+  // Page HTML a day old moves to the pages bucket; off until `wren enrich pages archive start`.
   services.push(makePageHtmlArchive({ db, pages, ...notify }));
   return services;
 }

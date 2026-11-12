@@ -12,7 +12,7 @@ A source file becomes rows, and every row it could not take becomes a row too.
 
 ## Input → Movement → Output
 
-A file under `<data>/<niche>/` (fetched by `wren fetch` or saved by hand) and a niche source format. The importer hashes the file, opens an `imports` row, walks rows through the format's `build`, upserts companies by domain, inserts leads or people, and records a sighting per row. Rejections and domain conflicts land in `import_errors`.
+A file under `<data>/<niche>/` (fetched by `wren datasets` or saved by hand) and a niche source format. The importer hashes the file, opens an `imports` row, walks rows through the format's `build`, upserts companies by domain, inserts leads or people, and records a sighting per row. Rejections and domain conflicts land in `import_errors`.
 
 ## Why this shape
 
@@ -37,7 +37,7 @@ Identity constraints must never decide what gets stored: a clash is recorded as 
 
 | Surface | Role |
 |---|---|
-| `wren email import` / `import-people` / `wren fetch` | runs |
+| `wren email import` / `import-people` / `wren datasets` | runs |
 | `wren email screen` / `contacts` | rerun steps 5–6 |
 | `CompanySiteFind.discover` | runs the batch form |
 

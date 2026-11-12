@@ -277,7 +277,7 @@ export async function setNeed(
  * A moderator's words he pastes: the floor they state, kept as a removal. Words with no floor in
  * them are refused (use `setNeed`, or leave the hold).
  */
-export async function learnText(
+export async function keepStatedFloor(
   db: Queryable,
   subName: string,
   text: string,

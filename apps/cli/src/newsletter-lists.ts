@@ -1,5 +1,5 @@
 /**
- * `wren listmonk …` (designs/2026-10-21-esign-and-newsletter.md): the newsletter's lists,
+ * `wren newsletter lists …` (designs/2026-10-21-esign-and-newsletter.md): the newsletter's lists,
  * subscribers and campaigns live in Listmonk. `setup` writes the settings Wren needs and makes the
  * template; `sync` brings the lists and Wren's consents in line, both ways, now.
  */
@@ -22,10 +22,14 @@ function client(settings: Settings) {
   return listmonk({ url, user, token });
 }
 
-export function registerListmonk(program: Command, withMainDb: WithDb, settings: Settings) {
-  const cmd = program
-    .command("listmonk")
-    .description("the newsletter's lists, subscribers and campaigns, kept in Listmonk");
+export function registerNewsletterLists(
+  newsletter: Command,
+  withMainDb: WithDb,
+  settings: Settings,
+) {
+  const cmd = newsletter
+    .command("lists")
+    .description("the lists, subscribers and campaigns, kept in Listmonk");
 
   cmd
     .command("setup")

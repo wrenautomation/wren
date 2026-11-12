@@ -2,7 +2,7 @@
  * What Wren needs Listmonk's settings to say (designs/2026-10-21-esign-and-newsletter.md): the
  * postback messenger that sends every message to Wren, a slow steady rate under Gmail's daily
  * cap, and none of Listmonk's own tracking or public pages (sign-up stays on the lander, where
- * the proof of consent is kept). `wren listmonk setup` applies it; running it twice changes nothing.
+ * the proof of consent is kept). `wren newsletter lists setup` applies it; running it twice changes nothing.
  */
 import { ensureTemplate, MESSENGER } from "./campaign.js";
 import type { Listmonk, SettingsMap } from "./client.js";

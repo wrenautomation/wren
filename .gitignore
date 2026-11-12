@@ -14,7 +14,7 @@ legacy/
 senders_config.toml
 *.tsbuildinfo
 
-# `wren fetch` default: bulk lead data never enters git.
+# `wren datasets` default: bulk lead data never enters git.
 /data/
 
 # `wren books` with no WREN_BOOKS_BUCKET: invoices never enter git.

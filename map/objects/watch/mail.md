@@ -42,7 +42,7 @@ Citations: `packages/watch/src/schema.ts:30`, `:50`, `:106`, `:148`; `packages/w
 
 | Surface | Role |
 |---|---|
-| `MyMailTriage/all` on the box, every 15 min (`wren monitor start`) | writes rows, emits to Executor |
+| `MyMailTriage/all` on the box, every 15 min (`wren mail start`) | writes rows, emits to Executor |
 | Executor `watch.triage` (Lambda, `WREN_WATCH_LLM`) | writes verdicts |
 | WatchConsole (Inbox app: Done, Hide like this, Show like this, Sort again, rules) | writes |
 | Inbox app, admins only (`needs: team`) | reads |

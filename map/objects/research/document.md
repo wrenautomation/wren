@@ -50,7 +50,7 @@ Citations: `packages/research/src/schema.ts:41`, `packages/research/src/enrichme
 | `CompanyEnrich.crawl` | write; reads the memory, skips `dead` and remembered domains |
 | `CompanyEnrich.render` | write; shells through the box browser, blocked companies through `web GET /fetch` (`ladder` dep, `ladderLimit`) |
 | `CompanyEnrich.scan/contacts/extract` | read |
-| `PageHtmlArchive.loop` (box), `wren pages archive` | moves html to S3 |
+| `PageHtmlArchive.loop` (box), `wren enrich pages archive` | moves html to S3 |
 
 ## See
 

@@ -30,7 +30,11 @@ async function postOf(site: string, slug: string): Promise<Post> {
   return (await res.json()) as Post;
 }
 
-export function registerNewsletter(program: Command, withMainDb: WithDb, settings: Settings) {
+export function registerNewsletter(
+  program: Command,
+  withMainDb: WithDb,
+  settings: Settings,
+): Command {
   const cmd = program
     .command("newsletter")
     .description("blog posts by email to the people who signed up for them");
@@ -127,4 +131,5 @@ export function registerNewsletter(program: Command, withMainDb: WithDb, setting
           `Listmonk campaign #${found.id}: ${found.status}, ${found.sent ?? 0} of ${found.to_send ?? 0} posted.`,
         );
     });
+  return cmd;
 }

@@ -77,13 +77,13 @@ it in To approve; the CLI never approves. `wren [--client <id>] workflows save-t
 does the same); `wren workflows remove-template <id|name>` takes one off, refused while a client
 runs it live. Design: `designs/2026-10-07-template-install.md`.
 
-## The Monitor
+## Mail triage
 
-`wren monitor start|stop|status|sync`: `MyMailTriage/all` on the box reads new mail in William's inboxes
+`wren mail start|stop|status|sync`: `MyMailTriage/all` on the box reads new mail in William's inboxes
 every 15 minutes (`WREN_WATCH_MAILBOXES`, else the books' own), skipping promotions and social.
 Each email goes along the `watch` workflow to triage: a rule with a sender and a verdict settles it
 for $0, the model in `WREN_WATCH_LLM` (Cohere, set in `lambda.tf`) reads the rest. What needs him
-shows under Today → Mail; Hide like this writes a rule, Sort again (or `wren monitor sort`)
+shows under Today → Mail; Hide like this writes a rule, Sort again (or `wren mail sort`)
 re-triages what's waiting under today's rules. No bodies are kept. A client's Google data (a Gmail
 mailbox, YouTube comments, Business Profile reviews) reaches only `WREN_GOOGLE_LLM`, a model that
 doesn't train on it; unset, none.

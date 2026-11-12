@@ -130,7 +130,7 @@ export const recruitingDatasets = () => [
 export const recruitingLeadFormats = [
   overtureFormat({
     name: "overture-staffing",
-    help: "Overture places JSON lines from `wren fetch get overture-staffing` (chains, closed, public, military, nonprofit declined)",
+    help: "Overture places JSON lines from `wren datasets get overture-staffing` (chains, closed, public, military, nonprofit declined)",
     niche: "recruiting",
     // 3 to 10 offices is a regional firm the owner still runs; 11+ is a national brand or franchise network.
     chainAt: RECRUITING_CHAIN_AT,
@@ -138,7 +138,7 @@ export const recruitingLeadFormats = [
   }),
   sbaSearchFormat({
     name: "sba-staffing",
-    help: "SBA search answers from `wren fetch get sba-staffing` (a directory; firms whose primary NAICS isn't staffing declined)",
+    help: "SBA search answers from `wren datasets get sba-staffing` (a directory; firms whose primary NAICS isn't staffing declined)",
     niche: "recruiting",
     naics: STAFFING_NAICS,
   }),

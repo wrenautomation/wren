@@ -1,4 +1,4 @@
-/** `wren monitor`: the Monitor's loop on the Postgres box. Its mail and rules live in the Inbox app. */
+/** `wren mail`: William's mail triage loop on the Postgres box. Its mail and rules live in the Inbox app. */
 
 import { ingressOf, type Settings } from "@wren/config";
 import type { Db } from "@wren/db";
@@ -13,7 +13,7 @@ type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
 const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
 
-export function registerWatch(
+export function registerMail(
   program: Command,
   withDb: WithDb,
   settings: Settings,
@@ -22,10 +22,9 @@ export function registerWatch(
   const loop = () =>
     clients.connect(ingressOf(settings)).objectClient<Watch>({ name: "MyMailTriage" }, WATCH_KEY);
   const watch = program
-    .command("monitor")
-    .alias("watch")
+    .command("mail")
     .description(
-      "Monitor (MyMailTriage/all) on the Postgres box: new mail every 15 minutes, sorted on the executor; Learn's feeds hourly",
+      "William's mail triage on the Postgres box: new mail every 15 minutes, sorted on the executor",
     );
   watch.command("status").action(async () => json(await loop().status()));
   watch

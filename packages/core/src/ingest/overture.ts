@@ -1,5 +1,5 @@
 /**
- * Overture Maps places, as `wren fetch get` writes them (JSON lines, one place per
+ * Overture Maps places, as `wren datasets get` writes them (JSON lines, one place per
  * line), turned into import rows. Niche-agnostic: a niche registers a format with
  * its name and, if it needs one, its own `decline` rule.
  *

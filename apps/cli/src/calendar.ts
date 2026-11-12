@@ -4,11 +4,9 @@
  * portal's Calendar app.
  */
 import { CALENDAR, calendarSettingsSchema } from "@wren/calendar";
-import { bookings } from "@wren/calendar/schema";
 import { settingsFor, setWrenSettings } from "@wren/core/clients";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
-import { and, asc, eq, gte } from "drizzle-orm";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -62,27 +60,5 @@ export function registerCalendar(program: Command, withDb: WithDb): void {
           }
           json(calendarSettingsSchema.parse(next));
         }),
-    );
-
-  calendar
-    .command("calls")
-    .description("Booked calls from now on, soonest first")
-    .action(() =>
-      withDb(async (db) =>
-        json(
-          await db
-            .select({
-              id: bookings.id,
-              start: bookings.start,
-              name: bookings.name,
-              email: bookings.email,
-              offer: bookings.offer,
-              meet: bookings.meetUrl,
-            })
-            .from(bookings)
-            .where(and(eq(bookings.state, "booked"), gte(bookings.start, new Date())))
-            .orderBy(asc(bookings.start)),
-        ),
-      ),
     );
 }

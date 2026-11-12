@@ -26,8 +26,8 @@ import {
   gateList,
   keepPlace,
   keepRulesNeed,
+  keepStatedFloor,
   learnFromProof,
-  learnText,
   planThreadComment,
   queueThreads,
   setNeed,
@@ -324,11 +324,11 @@ describe("reddit requirements", () => {
 
   it("keeps the floor of words he pastes, and refuses words with none", async () => {
     await place("salestechniques", null);
-    await expect(learnText(db(), "r/SalesTechniques", "removed by a mod", NOW)).rejects.toThrow(
-      /no days or karma/,
-    );
+    await expect(
+      keepStatedFloor(db(), "r/SalesTechniques", "removed by a mod", NOW),
+    ).rejects.toThrow(/no days or karma/);
     expect(
-      await learnText(db(), "r/SalesTechniques", "needs 10 days and 50 karma", NOW),
+      await keepStatedFloor(db(), "r/SalesTechniques", "needs 10 days and 50 karma", NOW),
     ).toMatchObject({ minAgeDays: 10, minKarma: 50 });
     expect((await gateList(db(), NOW))[0]?.subreddit).toBe("salestechniques");
   });

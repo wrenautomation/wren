@@ -1,5 +1,5 @@
 /**
- * `wren fetch`: pull a niche's bulk files from their publisher into
+ * `wren datasets`: pull a niche's bulk files from their publisher into
  * `<data>/<niche>/bulk/<dataset>/`, newest first, skipping what is already on disk.
  * Import them afterwards with `wren email import` / `import-people`.
  */
@@ -10,12 +10,12 @@ import { fetchDataset } from "@wren/research/fetch";
 import { PoliteFetcher, userAgent } from "@wrenautomation/read/fetch";
 import type { Command } from "commander";
 
-export function registerFetch(program: Command, settings: Settings): void {
-  const fetch = program
-    .command("fetch")
+export function registerDatasets(program: Command, settings: Settings): void {
+  const datasets = program
+    .command("datasets")
     .description("bulk files from publishers (SEC catalogs, directory profiles)");
 
-  fetch
+  datasets
     .command("list")
     .description("The datasets each niche knows how to pull")
     .option("--data <dir>", "data directory", "data")
@@ -24,7 +24,7 @@ export function registerFetch(program: Command, settings: Settings): void {
         console.log(`  ${dataset.name.padEnd(26)} ${niche.padEnd(9)} ${dataset.description}`);
     });
 
-  fetch
+  datasets
     .command("get <dataset>")
     .description("Download the newest files of one dataset")
     .option("--months <n>", "how many newest files (monthly datasets)", "1")
@@ -32,7 +32,7 @@ export function registerFetch(program: Command, settings: Settings): void {
     .action(async (name: string, opts: { months: string; data: string }) => {
       const dataDir = resolve(opts.data);
       const found = datasetsFor(dataDir).get(name);
-      if (!found) throw new Error(`unknown dataset ${name}; see \`wren fetch list\``);
+      if (!found) throw new Error(`unknown dataset ${name}; see \`wren datasets list\``);
       if (!settings.fetchContact)
         throw new Error(
           "WREN_FETCH_CONTACT is unset: every fetch identifies itself with a contact",

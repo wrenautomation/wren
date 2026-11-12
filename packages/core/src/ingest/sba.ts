@@ -1,5 +1,5 @@
 /**
- * SBA Small Business Search answers, as `wren fetch get` writes them (one JSON file
+ * SBA Small Business Search answers, as `wren datasets get` writes them (one JSON file
  * per NAICS code per day), turned into import rows. Niche-agnostic: a niche
  * registers a format with the NAICS codes it sells to.
  *

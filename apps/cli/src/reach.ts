@@ -28,7 +28,7 @@ import {
   inviteSettings,
   invitesSettingsSchema,
   isProofItem,
-  learnText,
+  keepStatedFloor,
   listPosts,
   listTemplates,
   policyFrom,
@@ -849,10 +849,10 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
       },
     );
   gates
-    .command("learn <subreddit> <words>")
+    .command("keep <subreddit> <words>")
     .description('Keep the floor a moderator\'s words state ("must be 10 days old with 50 karma")')
     .action(async (sub: string, words: string) => {
-      json(await withDb((db) => learnText(db, sub, words, new Date())));
+      json(await withDb((db) => keepStatedFloor(db, sub, words, new Date())));
     });
   gates
     .command("clear <subreddit>")

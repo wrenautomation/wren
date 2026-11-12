@@ -400,14 +400,14 @@ Download a job's CSV and import it. `title` becomes the company name, the first 
 LinkedIn people come from `autobrowse people` (Wren's LinkedIn; `--enrich` adds the
 employer's website, which keys the company, else `li-co:<handle>`; the person keys by
 `li:<vanity>`). Directory pages are saved by hand: none of these formats fetches. The publisher files
-come through `wren fetch` (needs `WREN_FETCH_CONTACT`; lands under
+come through `wren datasets` (needs `WREN_FETCH_CONTACT`; lands under
 `<data>/<niche>/bulk/<dataset>/`, skips what is already there, so re-running resumes):
 
 ```sh
-wren fetch list
-wren fetch get firm-feed                      # today's IA_FIRM_SEC_Feed → import --format sec-firm-feed
-wren fetch get adv-filing-data --months 2     # newest monthly zips → import-people --format adv-filing-data
-wren fetch get shopify-partner-profiles       # profiles for slugs under data/agencies/shopify; 3–8 s apart, stops on a challenge page
+wren datasets list
+wren datasets get firm-feed                      # today's IA_FIRM_SEC_Feed → import --format sec-firm-feed
+wren datasets get adv-filing-data --months 2     # newest monthly zips → import-people --format adv-filing-data
+wren datasets get shopify-partner-profiles       # profiles for slugs under data/agencies/shopify; 3–8 s apart, stops on a challenge page
 ```
 
 

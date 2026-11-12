@@ -29,7 +29,7 @@ const ago = (d: Date) => {
 };
 
 export function registerDlq(program: Command, withMainDb: WithDb, settings: Settings) {
-  /** Restate's admin and the pg runtime's (designs/2026-11-09-own-runtime.md). */
+  /** the pg runtime's admin (designs/2026-11-09-own-runtime.md) */
   const admin = (db: Db) => runtimeAdmin(db);
   const loop = () =>
     clients
@@ -38,7 +38,7 @@ export function registerDlq(program: Command, withMainDb: WithDb, settings: Sett
 
   const cmd = program
     .command("dlq")
-    .description("dead letters: calls Restate gave up on (paused after their retries)");
+    .description("dead letters: calls the runtime gave up on (paused after their retries)");
 
   cmd
     .command("list")
@@ -57,14 +57,14 @@ export function registerDlq(program: Command, withMainDb: WithDb, settings: Sett
 
   cmd
     .command("show <id>")
-    .description("One letter, and its journal from Restate while Restate still keeps it")
+    .description("One letter, and its journal while the runtime still keeps it")
     .option("--json", "as JSON")
     .action(async (id: string, o: { json?: boolean }) => {
       const { row, journal } = await withMainDb(async (db) => {
         const row = await deadLetter(db, Number(id));
         if (!row) throw new Error(`no dead letter #${id}`);
         const journal = await journalOf(admin(db).query, row.invocationId).catch((e: Error) => {
-          console.error(`journal: ${e.message} (Restate keeps it while the call is paused)`);
+          console.error(`journal: ${e.message} (the runtime keeps it while the call is paused)`);
           return [];
         });
         return { row, journal };
@@ -99,8 +99,8 @@ export function registerDlq(program: Command, withMainDb: WithDb, settings: Sett
         console.log(`${letterLine(row)}: ${row.end}`);
       });
   act("retry", "Resume it where it stopped; if it pauses again it comes back as the same letter");
-  act("kill", "Give up on it: Restate ends it with an error its caller sees");
-  act("drop", "Close the letter only (handled some other way); Restate is left alone");
+  act("kill", "Give up on it: the runtime ends it with an error its caller sees");
+  act("drop", "Close the letter only (handled some other way); the runtime is left alone");
 
   const sweep = cmd
     .command("sweep")

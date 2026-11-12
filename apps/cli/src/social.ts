@@ -34,7 +34,7 @@ export function registerSocial(program: Command, settings: Settings): void {
   const social = program
     .command("social")
     .description(
-      "SocialActivityRead/wren: comments, activity and followers on our posts every 30 minutes, 07:00-23:00 New York",
+      "Comments, activity and followers on our posts every 30 minutes, 07:00-23:00 New York",
     );
   social.command("status").action(async () => json(await loop().status()));
   social
@@ -46,9 +46,7 @@ export function registerSocial(program: Command, settings: Settings): void {
     .command("sync")
     .description("One pass now")
     .action(async () => json(await loop().sync()));
-  const push = social
-    .command("push")
-    .description("Webhooks into SocialActivityRead instead of the clock");
+  const push = social.command("push").description("Webhooks in place of the clock");
   push
     .command("meta")
     .description(

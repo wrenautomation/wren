@@ -41,7 +41,7 @@ sendable address is enrolled. Three feeds:
 pnpm wren email formats                                          # every import format and its niche
 pnpm wren email import export.csv --format agency-directory-csv  # a hand-saved directory export
 pnpm wren email import data/agencies/clutch/design_agencies --format clutch-pages
-pnpm wren fetch get firm-feed && pnpm wren email import <file> --format sec-firm-feed
+pnpm wren datasets get firm-feed && pnpm wren email import <file> --format sec-firm-feed
 ```
 
 then the research chain (`LeadPoolFill/{niche}/start`; `WREN_POOL_MODEL_STAGES`
