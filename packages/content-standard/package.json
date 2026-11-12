@@ -13,7 +13,7 @@
   "dependencies": {
     "@wren/core": "workspace:*",
     "@wren/llm": "workspace:*",
-    "@wrenautomation/knowledge": "0.69.0",
+    "@wrenautomation/knowledge": "0.70.3",
     "@wrenautomation/read": "0.68.10",
     "zod": "4.6.6"
   },

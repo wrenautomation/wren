@@ -217,8 +217,8 @@ importers:
         specifier: 0.68.10
         version: 0.68.10
       '@wrenautomation/knowledge':
-        specifier: 0.69.0
-        version: 0.69.0(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.70.3
+        version: 0.70.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/models':
         specifier: 0.68.10
         version: 0.68.10
@@ -895,8 +895,8 @@ importers:
         specifier: workspace:*
         version: link:../llm
       '@wrenautomation/knowledge':
-        specifier: 0.69.0
-        version: 0.69.0(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.70.3
+        version: 0.70.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/read':
         specifier: 0.68.10
         version: 0.68.10(@aws-sdk/client-s3@3.1136.0)
@@ -1376,8 +1376,8 @@ importers:
         specifier: workspace:*
         version: link:../runtime
       '@wrenautomation/knowledge':
-        specifier: 0.69.0
-        version: 0.69.0(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.70.3
+        version: 0.70.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/models':
         specifier: 0.68.10
         version: 0.68.10
@@ -6356,6 +6356,13 @@ packages:
 
   '@wrenautomation/knowledge@0.69.0':
     resolution: {integrity: sha512-I1CNx6Khnd755GqlbyHTjda/GXNBi6iHrFbGM0cdMwqQ44srC1OmoZ0Cv2whpJJWr4S+BrTiBR2Ifw8hhNZG3w==}
+    engines: {node: '>=24'}
+    hasBin: true
+    peerDependencies:
+      '@electric-sql/pglite': ^0.5.11
+
+  '@wrenautomation/knowledge@0.70.3':
+    resolution: {integrity: sha512-La/vdK82MUXjYR9lAJYkrRY+Fj3sWbJYTE3H6lo7BQJ5dA2PmY5ZIbaaf5Yq124Kv1A5S9ISj1h7elKc0SKstw==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
@@ -14549,6 +14556,45 @@ snapshots:
       - sqlite3
 
   '@wrenautomation/knowledge@0.69.0(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.15
+      commander: 15.0.0
+      drizzle-orm: 0.45.4(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
+      gray-matter: 4.0.3
+      postgres: 3.4.9
+      proper-lockfile: 4.1.2
+      zod: 4.6.6
+    transitivePeerDependencies:
+      - '@aws-sdk/client-rds-data'
+      - '@cloudflare/workers-types'
+      - '@libsql/client'
+      - '@libsql/client-wasm'
+      - '@neondatabase/serverless'
+      - '@netlify/db'
+      - '@op-engineering/op-sqlite'
+      - '@opentelemetry/api'
+      - '@planetscale/database'
+      - '@prisma/client'
+      - '@tidbcloud/serverless'
+      - '@types/better-sqlite3'
+      - '@types/pg'
+      - '@types/sql.js'
+      - '@upstash/redis'
+      - '@vercel/postgres'
+      - '@xata.io/client'
+      - better-sqlite3
+      - bun-types
+      - expo-sqlite
+      - gel
+      - knex
+      - kysely
+      - mysql2
+      - pg
+      - prisma
+      - sql.js
+      - sqlite3
+
+  '@wrenautomation/knowledge@0.70.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
     dependencies:
       '@electric-sql/pglite': 0.5.15
       commander: 15.0.0
