@@ -28,11 +28,10 @@ describe("the places", () => {
     ]);
   });
 
-  it("gives a client its places: Project, never Map or Research", () => {
+  it("gives a client its places: never Map, Research or Project (parked)", () => {
     const apps = appsIn(MODULES, { wren: false, team: false, installed: ALL });
     expect(sidebarOf(apps).map((i) => i.app.id)).toEqual([
       "today",
-      "project",
       "campaigns",
       "people",
       "office",

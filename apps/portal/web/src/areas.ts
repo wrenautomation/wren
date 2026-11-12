@@ -18,7 +18,6 @@ export interface Area {
 const PLACES = [
   { label: "Map", app: "map", area: "fixed" },
   { label: "Today", app: "today", area: "fixed" },
-  { label: "Project", app: "project", area: "fixed" },
   { label: "Campaigns", app: "campaigns", area: "work" },
   { label: "Research", app: "research", area: "work" },
   { label: "Variants", app: "variants", area: "work" },

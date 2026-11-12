@@ -22,7 +22,7 @@ The portal is a fixed shell of places (designs/2026-11-04-portal-places.md). Cod
 | People | Everyone once, clients, timeline. A person's journey (steps reached, days at the step) leads their own page; no Journeys page | `/people/people` |
 | Back office | Contracts, money, spend, accounts, team, grants, look | `/office/money` |
 
-**A client's sidebar:** Today, Project, Campaigns (its reactivation run and posts), People, Back office. A client sees only the pages of the products it holds.
+**A client's sidebar:** Today, Campaigns (its reactivation run and posts), People, Back office. Project (plan, updates, deliverables, results) is parked since 11-12: off the sidebar, reached from links, ⌘K and Today's offer cards. A client sees only the pages of the products it holds.
 
 - **Addresses:** `/<place>/<page>`, with filters and the open record in the query (`?person=12`). A reload or a shared link lands on the same screen.
 - **Hidden pages:** some pages have no tab and open from a link (Today's DMs, replies, calls).

@@ -254,6 +254,8 @@ const projectPlace: Module = {
   icon: "workflow",
   blurb: "What we do for you and where it stands.",
   fallback: true,
+  // William 11-12: out of the sidebar; links, ⌘K and Today's offer cards still open it
+  parked: true,
   ...(work.Glance ? { Glance: work.Glance } : {}),
   pages: [
     ...from(work, ["overview", "plan", "updates", "deliverables", "results"]),
