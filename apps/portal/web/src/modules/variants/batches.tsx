@@ -10,6 +10,7 @@ import {
   cx,
   Empty,
   Icon,
+  Img,
   LoadFailed,
   Loading,
   PAGE_TITLE,
@@ -407,7 +408,7 @@ function BatchRow({ row: r, params }: { row: ListRow; params: URLSearchParams })
         >
           {shown.map((s) => (
             <span key={s.id} className="relative block flex-none">
-              <img
+              <Img
                 src={s.posterUrl ?? ""}
                 alt=""
                 loading="lazy"

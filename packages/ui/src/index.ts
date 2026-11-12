@@ -333,6 +333,7 @@ export {
   useSubmenus,
 } from "./hover-pop.js";
 export { Icon, type IconName, isIconName } from "./icons.js";
+export { Img } from "./image.js";
 export { AppCard, AppGlance, AppGrid, type GlanceFigure } from "./launcher.js";
 export {
   ABOUT,

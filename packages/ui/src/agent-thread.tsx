@@ -55,6 +55,7 @@ import { Alert } from "./feedback.js";
 import { cx } from "./format.js";
 import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
+import { Img } from "./image.js";
 
 /** A file in a turn. `src` (a data URL) draws an image. */
 export interface AgentFile {
@@ -634,7 +635,7 @@ function FileChip({ remove }: { remove?: boolean }) {
     >
       {src ? (
         <>
-          <img src={src} alt={a.name} className="size-full object-cover" />
+          <Img src={src} alt={a.name} className="size-full object-cover" />
           {kind === "video" ? (
             <span className="absolute inset-0 grid place-items-center bg-black/20 text-white">
               <Icon name="play" size={14} />

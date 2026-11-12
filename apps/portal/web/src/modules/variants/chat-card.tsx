@@ -9,6 +9,7 @@ import {
   type AgentViews,
   cx,
   Icon,
+  Img,
   LoadFailed,
   Loading,
   type NextAsk,
@@ -121,7 +122,7 @@ export function BatchCard({ row: r, onAsk }: { row: Whole; onAsk?: OnAsk }) {
                 )}
               >
                 {s.posterUrl ? (
-                  <img
+                  <Img
                     src={s.posterUrl}
                     alt=""
                     loading="lazy"

@@ -5,7 +5,7 @@
  * stays: its links still open the same editor.
  */
 import type { Thumb } from "@wren/core/records";
-import { cx, Empty, Icon, LoadFailed, Loading, PlatformMark, Tag } from "@wren/ui";
+import { cx, Empty, Icon, Img, LoadFailed, Loading, PlatformMark, Tag } from "@wren/ui";
 import { useCall } from "../../load.js";
 import type { ListPage, PageProps } from "../../module.js";
 import { TemplatePage, wrenRecords } from "../../records.js";
@@ -46,7 +46,7 @@ function Poster({ thumb, title }: { thumb: Thumb | undefined; title: string }) {
       </span>
     );
   return thumb.kind === "image" ? (
-    <img src={thumb.url} alt="" className="size-full object-cover" loading="lazy" />
+    <Img src={thumb.url} alt="" className="size-full object-cover" loading="lazy" />
   ) : (
     <video
       src={`${thumb.url}#t=1`}

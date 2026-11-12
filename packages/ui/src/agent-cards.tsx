@@ -10,6 +10,7 @@ import { Button, Tag } from "./controls.js";
 import { useLoad } from "./data/query.js";
 import { cx } from "./format.js";
 import { Icon } from "./icons.js";
+import { Img } from "./image.js";
 import { Video } from "./video.js";
 
 export const Answer = createContext<AgentThreadProps["onAnswer"]>(() => {});
@@ -75,7 +76,7 @@ export function LinkCard({ url, preview }: { url: URL; preview?: LinkPreview | u
   const host = url.host.replace(/^www\./, "");
   const path = `${url.pathname === "/" ? "" : url.pathname}${url.search}`;
   const mark = p.icon ? (
-    <img src={p.icon} alt="" className="size-4 flex-none rounded-[3px] object-contain" />
+    <Img src={p.icon} alt="" className="size-4 flex-none rounded-[3px] object-contain" />
   ) : (
     <Icon name="globe" size={p.title ? 14 : 16} />
   );
@@ -95,7 +96,7 @@ export function LinkCard({ url, preview }: { url: URL; preview?: LinkPreview | u
         rel="noreferrer noopener"
         className={cx(link, "grid w-[min(22rem,85%)] overflow-hidden")}
       >
-        <img
+        <Img
           src={p.image}
           alt=""
           className="aspect-[1.91] w-full bg-(--ui-fill) object-cover [animation:ui-fade_.3s_both]"
@@ -197,7 +198,7 @@ function FilePreview({ path, read }: { path: string; read: (path: string) => Pro
         <Video src={src} className="w-full" />
       ) : (
         <a href={src} target="_blank" rel="noreferrer noopener" className="block">
-          <img
+          <Img
             src={src}
             alt={name}
             className={cx(media, "shadow-[inset_0_0_0_1px_var(--ui-hair)]")}

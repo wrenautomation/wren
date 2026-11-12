@@ -20,6 +20,7 @@ import {
   type DraftTurnLine,
   DraftTurns,
   Empty,
+  Img,
   Input,
   messageOf,
   type RecordAct,
@@ -1131,7 +1132,7 @@ const Thumbnails = ({ thumbnails }: { thumbnails: Video["thumbnails"] }) => (
   <div className="grid grid-cols-3 gap-3">
     {thumbnails.map((t, i) => (
       <figure key={t.url ?? i} className="grid gap-1">
-        {t.url ? <img src={t.url} alt={`Thumbnail ${i + 1}`} className="w-full rounded" /> : null}
+        {t.url ? <Img src={t.url} alt={`Thumbnail ${i + 1}`} className="w-full rounded" /> : null}
         <figcaption className="text-[13px]">
           {i + 1} {t.picked ? <Tag tone="accent">Picked</Tag> : null}
         </figcaption>

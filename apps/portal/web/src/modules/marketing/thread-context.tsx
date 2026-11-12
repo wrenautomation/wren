@@ -13,6 +13,7 @@ import {
   ButtonLink,
   cx,
   exact,
+  Img,
   PlatformMark,
   type RecordAct,
   type RecordExtras,
@@ -309,7 +310,7 @@ function PostHead({ c }: { c: ThreadContext }) {
           ) : null}
         </div>
         {media ? (
-          <img
+          <Img
             src={media}
             alt=""
             loading="lazy"

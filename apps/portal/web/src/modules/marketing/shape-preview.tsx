@@ -5,7 +5,7 @@
  * platform without its own card (Facebook) keeps the generic feed preview.
  */
 import type { FieldView } from "@wren/starling-core/shapes";
-import { DeviceFrame, type MessageKind, MessagePreview, useDraftText } from "@wren/ui";
+import { DeviceFrame, Img, type MessageKind, MessagePreview, useDraftText } from "@wren/ui";
 import { type ReactNode, useState, useSyncExternalStore } from "react";
 import type { Shape } from "./fields.js";
 import { CarouselPreview, onSlidesTyped, slidesTyped } from "./slides.js";
@@ -60,7 +60,7 @@ function Art({
   return (
     <div className={`relative w-full overflow-hidden ${ratio}`}>
       {src ? (
-        <img src={src} alt="" className="absolute inset-0 size-full object-cover" />
+        <Img src={src} alt="" className="absolute inset-0 size-full object-cover" />
       ) : video ? (
         <video
           src={`${video}#t=${at ?? 0.1}`}
@@ -429,7 +429,7 @@ function YouTubeCommunity({ s, text, device }: Post) {
           </p>
           <p className="whitespace-pre-wrap break-words">{text.trim() || "No text"}</p>
           {image ? (
-            <img src={image} alt="" className="max-h-[420px] w-full rounded-xl object-cover" />
+            <Img src={image} alt="" className="max-h-[420px] w-full rounded-xl object-cover" />
           ) : null}
           <p className={`flex gap-6 text-[13px] ${GRAY}`}>
             <span>Like</span>

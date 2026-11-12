@@ -7,7 +7,7 @@
  */
 
 import type { Platform } from "@wren/core/autobrowse/platforms";
-import { ACTIONS, Button, cx, messageOf, Section } from "@wren/ui";
+import { ACTIONS, Button, cx, Img, messageOf, Section } from "@wren/ui";
 import { useState } from "react";
 import { uploadMedia } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -171,7 +171,7 @@ export function StoryBox(props: { demo?: boolean; only: Platform | null; made: (
         </div>
         {photo ? (
           <div className="flex items-end gap-3">
-            <img
+            <Img
               src={photo.url}
               alt="Your story, as it will post"
               className="h-40 w-auto rounded-(--ui-radius) border border-(--ui-hair) object-cover"

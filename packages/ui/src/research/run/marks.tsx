@@ -1,5 +1,6 @@
 /** The graph's marks: icons, the evidence bar, source tiers, claim cards and the web's node kinds. */
 import { type CSSProperties, type ReactNode, useState } from "react";
+import { Img } from "../../image.js";
 import {
   answerOf,
   atQuote,
@@ -115,7 +116,7 @@ const Mag = () => (
 export function Ico({ s }: { s: GraphSource }) {
   const [bad, setBad] = useState(false);
   return s.icon && !bad ? (
-    <img
+    <Img
       className="ic"
       src={s.icon}
       alt=""
@@ -124,22 +125,6 @@ export function Ico({ s }: { s: GraphSource }) {
     />
   ) : (
     <Glyph f={s.fmt} />
-  );
-}
-
-/** An image that hides itself on a failed load; its box keeps its size. */
-export function Img({ src, className }: { src: string; className?: string }) {
-  const [bad, setBad] = useState(false);
-  return (
-    <img
-      className={className}
-      src={src}
-      alt=""
-      loading="lazy"
-      referrerPolicy="no-referrer"
-      style={bad ? { visibility: "hidden" } : undefined}
-      onError={() => setBad(true)}
-    />
   );
 }
 

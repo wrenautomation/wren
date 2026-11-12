@@ -3,7 +3,7 @@
  * (vireo D8). One frame runs at a time, so a batch of scenes never shares the GPU and a scroll
  * scene never traps the list; the rest show their still. Stage: the card over the whole window.
  */
-import { Button, cx, Icon, PLAY_MARK, Seg } from "@wren/ui";
+import { Button, cx, Icon, Img, PLAY_MARK, Seg } from "@wren/ui";
 import {
   createContext,
   type ReactNode,
@@ -123,7 +123,7 @@ export function LivePage({
             ) : (
               <>
                 {still && (
-                  <img
+                  <Img
                     src={still}
                     alt=""
                     className="block size-full object-cover object-top select-none"

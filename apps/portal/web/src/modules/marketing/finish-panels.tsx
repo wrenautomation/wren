@@ -11,7 +11,7 @@ import {
   snapFrame,
   type TextOverlay,
 } from "@wren/starling-studio/finish";
-import { ACTIONS, Button, cx, EditConflict, type RecordAct, useEdit } from "@wren/ui";
+import { ACTIONS, Button, cx, EditConflict, Img, type RecordAct, useEdit } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   type FinishData,
@@ -433,7 +433,7 @@ export function CoverPanel({
         <div className="flex flex-wrap gap-3">
           {shots.map(([f, url]) => (
             <figure key={f} className="m-0 grid gap-1">
-              <img
+              <Img
                 src={url}
                 alt={`Cover, ${f}`}
                 className="h-32 rounded-lg bg-black object-contain"

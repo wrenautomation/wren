@@ -4,7 +4,17 @@
  * opens the note: works or breaks, and why. Boxes are fractions of the shown frame, so they hold
  * at any width.
  */
-import { Button, cx, Icon, Input, tipProps, VIDEO_BUTTON, Video, type VideoMark } from "@wren/ui";
+import {
+  Button,
+  cx,
+  Icon,
+  Img,
+  Input,
+  tipProps,
+  VIDEO_BUTTON,
+  Video,
+  type VideoMark,
+} from "@wren/ui";
 import type { Verdict } from "@wrenautomation/vireo/calls";
 import type { Source } from "@wrenautomation/vireo/sync";
 import { type PointerEvent, type ReactNode, useRef, useState } from "react";
@@ -360,7 +370,7 @@ export function SampleBody({
   if (kind === "image")
     return sample.mediaUrl ? (
       <div className="relative overflow-hidden rounded-(--ui-radius) bg-(--ui-tile)">
-        <img src={sample.mediaUrl} alt="" className="block w-full select-none" draggable={false} />
+        <Img src={sample.mediaUrl} alt="" className="block w-full select-none" draggable={false} />
         <BoxLayer on={boxing} boxes={boxes} onBox={(b) => onAnchor({ type: "box", ...b })} />
       </div>
     ) : (

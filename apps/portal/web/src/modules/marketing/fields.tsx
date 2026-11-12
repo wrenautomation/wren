@@ -12,6 +12,7 @@ import {
   Button,
   GROUP_LABEL,
   HINT_CLASS,
+  Img,
   Input,
   LABEL_CLASS,
   messageOf,
@@ -511,7 +512,7 @@ function FileField({ f, act, link }: FieldProps & { link: string | null }) {
     <div className="grid min-w-0 gap-1.5">
       <Head f={f} id={id} said={said} bad={bad} />
       {f.input === "image" && link && !String(f.value).toLowerCase().endsWith(".pdf") ? (
-        <img
+        <Img
           src={link}
           alt={f.label}
           className="max-h-40 w-fit max-w-full rounded-(--ui-radius) shadow-[0_0_0_1px_var(--ui-hair)]"
@@ -581,7 +582,7 @@ function FilesField({ f, act, links }: FieldProps & { links: Record<string, stri
           {list.map((v, i) => (
             <li key={v} className="grid w-28 gap-1">
               {links[`${f.key}.${i}`] ? (
-                <img
+                <Img
                   src={links[`${f.key}.${i}`]}
                   alt={`${f.label} ${i + 1}`}
                   className="aspect-square w-28 rounded-(--ui-radius) object-cover shadow-[0_0_0_1px_var(--ui-hair)]"
@@ -650,7 +651,7 @@ function Fixed({ f, link }: { f: FieldView; link?: string | null }) {
         {tag}
       </div>
       {f.input === "image" && link ? (
-        <img
+        <Img
           src={link}
           alt={f.label}
           className="max-h-40 w-fit max-w-full rounded-(--ui-radius) shadow-[0_0_0_1px_var(--ui-hair)]"

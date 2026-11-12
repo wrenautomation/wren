@@ -4,7 +4,7 @@
  * opened. Pictures load from the platform's CDN, never through the portal's Worker.
  */
 import type { TikTokNumbers } from "@wren/starling-inbound/connect";
-import { cx } from "@wren/ui";
+import { cx, Img } from "@wren/ui";
 import { useState } from "react";
 import { PageRows, rowLines } from "../../page-rows.js";
 
@@ -28,7 +28,7 @@ function CdnImage({
   const [broken, setBroken] = useState(false);
   if (!url || broken) return <>{fallback}</>;
   return (
-    <img
+    <Img
       src={url}
       alt=""
       loading="lazy"

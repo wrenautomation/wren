@@ -59,6 +59,7 @@ import {
 
 export type { Pick } from "./panel.js";
 
+import { Img } from "../../image.js";
 import { Chev, cls, type Focus, Key, Side, Summary, Table } from "./side.js";
 import { curOf, useWins, type Win } from "./wins.js";
 
@@ -899,7 +900,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
       {tipN ? (
         <div ref={tipRef} className={`rg-tip hc k-${tipN.k}`}>
           {pic(tipN.s) ? (
-            <img className="th" referrerPolicy="no-referrer" src={pic(tipN.s) ?? ""} alt="" />
+            <Img className="th" referrerPolicy="no-referrer" src={pic(tipN.s) ?? ""} alt="" />
           ) : null}
           <b>
             <Ico s={tipN.s} />

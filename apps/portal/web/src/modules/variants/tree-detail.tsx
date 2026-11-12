@@ -1,5 +1,5 @@
 /** The tree's detail panel: one sample (path, parents, keep, steers) and its batch. */
-import { Button, handToChat, Tag } from "@wren/ui";
+import { Button, handToChat, Img, Tag } from "@wren/ui";
 import { call } from "../../api.js";
 import { href, navigate } from "../../route.js";
 import { Rename } from "./rename.js";
@@ -31,7 +31,7 @@ export function Poster({ s }: { s: TNode }) {
   if (s.v === "open")
     return s.poster ? (
       <div className="vt-poster to-mark">
-        <img src={s.poster} alt={`Snapshot of sample ${s.letter}`} loading="lazy" />
+        <Img src={s.poster} alt={`Snapshot of sample ${s.letter}`} loading="lazy" />
         <span>{s.letter}</span>
       </div>
     ) : (
@@ -40,7 +40,7 @@ export function Poster({ s }: { s: TNode }) {
   if (s.poster)
     return (
       <div className="vt-poster">
-        <img src={s.poster} alt={`Snapshot of ${s.name}`} loading="lazy" />
+        <Img src={s.poster} alt={`Snapshot of ${s.name}`} loading="lazy" />
       </div>
     );
   return <div className="vt-poster words">{s.body ?? s.change ?? s.name}</div>;

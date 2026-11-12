@@ -14,7 +14,7 @@ import {
   tiktokDeclaration,
   tiktokLabel,
 } from "@wren/starling-core/tiktok";
-import { GROUP_LABEL, HINT_CLASS, LABEL_CLASS, tipProps } from "@wren/ui";
+import { GROUP_LABEL, HINT_CLASS, Img, LABEL_CLASS, tipProps } from "@wren/ui";
 import { useState } from "react";
 import { SELECT } from "../work/bits.js";
 
@@ -96,7 +96,7 @@ function Account({ tiktok }: { tiktok: TikTokPanelProps["tiktok"] }) {
       <span className={LABEL_CLASS}>Posting to</span>
       <div className="flex items-center gap-2.5">
         {c.avatarUrl ? (
-          <img src={c.avatarUrl} alt="" className="size-8 rounded-full object-cover" />
+          <Img src={c.avatarUrl} alt="" className="size-8 rounded-full object-cover" />
         ) : null}
         <span className="text-[14px] font-medium">{c.nickname}</span>
         {c.username ? <span className={HINT_CLASS}>@{c.username}</span> : null}

@@ -3,7 +3,7 @@
  * Missing or Checking. Hovering the badge shows the screenshot and when it was read; a click
  * opens the permalink. The list's Proof column is the same state as a chip.
  */
-import { dateTip, type RecordExtras, Tag, type TagTone } from "@wren/ui";
+import { dateTip, Img, type RecordExtras, Tag, type TagTone } from "@wren/ui";
 
 type Row = Record<string, unknown>;
 
@@ -53,7 +53,7 @@ function ProofBadge({ row }: { row: Row }) {
       ) : null}
       {shot ? (
         <span className="absolute left-0 top-full z-50 mt-2 hidden group-hover:block group-focus-within:block w-[420px] max-w-[80vw] rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) p-2 shadow-(--ui-shadow)">
-          <img
+          <Img
             src={shot}
             alt="The comment as a signed-out reader saw it"
             className="block w-full"
