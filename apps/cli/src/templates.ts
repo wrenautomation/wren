@@ -109,7 +109,7 @@ export function registerTemplates(program: Command, dbs: TemplateDbs) {
     });
 
   cmd
-    .command("ls [folder]")
+    .command("list [folder]")
     .description("Templates by folder, each with its status and live, draft and waiting versions")
     .option("--kind <kind>", `one kind (${TEMPLATE_KINDS.join(", ")})`)
     .option("--status <status>", `one status (${Object.keys(STATUS_LABEL).join(", ")})`)

@@ -169,7 +169,7 @@ async function tableRows(mainUrl: string, database: string): Promise<Record<stri
 }
 
 /**
- * Takes a client off for good (`wren clients rm`, on William's yes): its registry row and all that
+ * Takes a client off for good (`wren clients remove`, on William's yes): its registry row and all that
  * cascades from it, its roles, grants and runtime state, then its database and login. Rows in
  * Wren's own tables that only mention it (research, leads, past runs) stay: they are Wren's data.
  */

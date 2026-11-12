@@ -96,7 +96,7 @@ export function registerFeatures(program: Command, withMainDb: WithDb, settings:
     .action((key: string) => edit(key, { state: "live" }));
 
   cmd
-    .command("rm <keys...>")
+    .command("remove <keys...>")
     .description("delete flags; code that asks for one gets off")
     .action(async (keys: string[]) => {
       const gone = await write((tx) => removeFlags(tx, keys, push));

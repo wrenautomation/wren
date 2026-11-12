@@ -106,7 +106,7 @@ export function registerKeys(program: Command, withMainDb: WithDb) {
     });
 
   cmd
-    .command("delete")
+    .command("remove")
     .argument("<client>")
     .argument("<ref>")
     .description("Remove a key by its ref")

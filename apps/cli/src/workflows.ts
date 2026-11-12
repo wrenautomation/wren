@@ -3,7 +3,7 @@
  * Plan first, then install: parts, copy, a draft and a shut door, nothing started. Publish asks in
  * To approve; the CLI never approves. Uninstall stops the loops and keeps the data. `save-template`
  * keeps a published workflow's live wiring as a template (designs/2026-10-06-workflow-editor.md);
- * `delete-template` takes one off, refused while a client runs it live.
+ * `remove-template` takes one off, refused while a client runs it live.
  */
 
 import { ingressOf, type Settings } from "@wren/config";
@@ -138,7 +138,7 @@ export function registerWorkflows(
     });
 
   cmd
-    .command("delete-template <template>")
+    .command("remove-template <template>")
     .description("Delete a saved template, by id or name; refused while a client runs it live")
     .action(async (template: string) => {
       const out = await withMainDb((db) => deleteWorkflowTemplate(db, { template, by: BY }));

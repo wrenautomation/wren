@@ -12,7 +12,7 @@ folders tree [--kind chat|subject|run]        # every folder with its path, and 
 folders new "<name>" [--in <folder>]           # nests at most 3 deep
 folders rename <folder> "<name>"
 folders move <folder> --to <folder|top>
-folders drop <folder>                          # what it holds goes up one level; at the top, unfiled
+folders remove <folder>                        # what it holds goes up one level; at the top, unfiled
 folders file <kind> <ref>... --to <folder>     # or --out to unfile
 ```
 

@@ -84,7 +84,7 @@ const idOf = (v: string) => {
 export async function authorOf(db: Db, by: string | undefined): Promise<string> {
   const ops = await listOperators(db);
   if (by) {
-    if (!ops.includes(normalEmail(by))) throw new Error(`${by} isn't an operator (wren team ls)`);
+    if (!ops.includes(normalEmail(by))) throw new Error(`${by} isn't an operator (wren team list)`);
     return normalEmail(by);
   }
   if (ops.length === 1) return ops[0] as string;

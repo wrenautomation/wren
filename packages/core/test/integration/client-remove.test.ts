@@ -1,4 +1,4 @@
-/** `wren clients rm`: the dry run counts, the removal takes the row, cascades, state, database and login. */
+/** `wren clients remove`: the dry run counts, the removal takes the row, cascades, state, database and login. */
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -19,7 +19,7 @@ afterAll(() => pg.stop());
 const exists = async (q: string) =>
   ((await pg.db.execute<{ n: number }>(sql.raw(q)))[0]?.n ?? 0) > 0;
 
-describe("clients rm", () => {
+describe("clients remove", () => {
   it("counts first, then removes the client and only the client", async () => {
     await addClient(pg.db, pg.url, { id: "gone_co", name: "Gone Co" });
     await addClient(pg.db, pg.url, { id: "gone", name: "Kept" });

@@ -48,7 +48,7 @@ Citations: `packages/core/src/templates.ts:1`, `packages/core/src/schema.ts:1063
 
 | Surface | Role |
 |---|---|
-| `wren templates ls\|get\|set\|diff\|history\|restore\|reset` (`apps/cli/src/templates.ts`) | reads all kinds; writes email, posts and prompts, `set --publish` asks |
+| `wren templates list\|get\|set\|diff\|history\|restore\|reset` (`apps/cli/src/templates.ts`) | reads all kinds; writes email, posts and prompts, `set --publish` asks |
 | `wren templates sync\|install` | defaults into every database (deploy), a client's parts |
 | `wren templates prune [--apply]` (`apps/cli/src/template-prune.ts`) | main only: a niche's email row with no default file; never sent is deleted, sent is emptied into `retired/`; dry run by default |
 | marketing Texts and DMs pages | save texts and DMs with each slot's rules |

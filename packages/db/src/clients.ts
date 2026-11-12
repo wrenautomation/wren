@@ -88,7 +88,7 @@ export async function createDatabase(main: Db, database: string): Promise<boolea
 
 /**
  * DROP DATABASE if it's there, its open connections cut. Runs on main. Callers: the sandbox's
- * Start over (designs/2026-10-14-view-as.md) and `wren clients rm`, on William's yes.
+ * Start over (designs/2026-10-14-view-as.md) and `wren clients remove`, on William's yes.
  */
 export async function dropDatabase(main: Db, database: string): Promise<void> {
   checkedDatabase(database);

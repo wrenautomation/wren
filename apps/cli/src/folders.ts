@@ -79,7 +79,7 @@ export function registerFolders(program: Command, withDb: WithDb, by: string): v
         return t.move(pick(all, folder), o.to === "top" ? null : pick(all, o.to), by);
       }),
     );
-  f.command("drop <folder>")
+  f.command("remove <folder>")
     .description("Remove a folder; what it holds goes up one level (unfiled at the top)")
     .action((folder: string) => run(async (t) => t.drop(pick(await list(t), folder), by)));
   f.command("file <kind> <refs...>")

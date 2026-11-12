@@ -122,7 +122,7 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
     );
 
   cmd
-    .command("rm <id>")
+    .command("remove <id>")
     .description(
       "Remove a client for good: its row and what cascades, its database, its shape file. Without --yes, a dry run",
     )
@@ -136,7 +136,7 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
         console.log(JSON.stringify({ dryRun: true, ...view }, null, 2));
         return;
       }
-      await withMainDb((db) => removeClient(db, id, `clients rm: ${opts.why}`));
+      await withMainDb((db) => removeClient(db, id, `clients remove: ${opts.why}`));
       const files = settings.shapesGithubToken
         ? githubRepo({
             token: settings.shapesGithubToken,
@@ -261,7 +261,7 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
     .description(
       "Wren's own people: admin (everything), operator (no money, effects, installs or team), viewer (reads)",
     );
-  team.command("ls").action(async () => {
+  team.command("list").action(async () => {
     const seats = await withMainDb((db) => db.select().from(operators).orderBy(operators.email));
     for (const o of seats)
       console.log([o.email.padEnd(36), o.role.padEnd(8), o.clients?.join(",") ?? "all"].join("  "));
@@ -292,7 +292,7 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
         console.log(`${s.email} is ${s.role} over ${s.clients?.join(", ") ?? "every client"}`);
       });
   team
-    .command("rm <email>")
+    .command("remove <email>")
     .description("Take them off the team and sign them out; the last admin stays")
     .action(async (email: string) => {
       const gone = await withMainDb((db) => removeTeamSeat(db, email));
