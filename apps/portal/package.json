@@ -33,6 +33,7 @@
     "@wren/payments": "workspace:*",
     "@wren/pipeline": "workspace:*",
     "@wren/reactivation": "workspace:*",
+    "@wren/research": "workspace:*",
     "@wren/sites": "workspace:*",
     "@wren/starling-acts": "workspace:*",
     "@wren/starling-conversations": "workspace:*",

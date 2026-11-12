@@ -95,6 +95,8 @@ export const PLATFORM = {
     VariantsConsole: "the taste loop: batches, his marks and notes, guides, the catalog, ships",
     VariantsCollect: "every 6 h: each shipped sample's market numbers per segment",
     FoldersConsole: "Wren's folder tree: make, rename, move, drop, file",
+    CanonConsole:
+      "Canon's references for the portal: reels and videos, his notes, the rules they back",
   },
   records: {
     "console.ask": "every question asked of Claude Code",

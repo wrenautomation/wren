@@ -79,6 +79,11 @@ import {
   PORTAL_WRITES,
 } from "@wren/reactivation/portal-routes";
 import {
+  CANON_CONSOLE_APPS,
+  CANON_CONSOLE_ROUTES,
+  CANON_CONSOLE_WRITES,
+} from "@wren/research/canon-console-routes";
+import {
   SITES_CONSOLE_APPS,
   SITES_CONSOLE_ROUTES,
   SITES_CONSOLE_WRITES,
@@ -190,6 +195,8 @@ export const SERVICES: Readonly<Record<string, Service>> = {
     VARIANTS_CONSOLE_APPS,
     VARIANTS_CONSOLE_WRITES,
   ),
+  // Canon › References: the index of Canon's sources, read only.
+  canon: service("CanonConsole", CANON_CONSOLE_ROUTES, CANON_CONSOLE_APPS, CANON_CONSOLE_WRITES),
   // One folder tree for chats, subjects and runs.
   folders: service(
     "FoldersConsole",

@@ -98,6 +98,7 @@ export const APPS = {
   calendar: "Calendar",
   research: "Research",
   variants: "Variants",
+  canon: "Canon",
   office: "Back office",
   // Parked with its package (designs/2026-11-04-portal-places.md).
   voice: "Voice",

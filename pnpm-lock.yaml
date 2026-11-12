@@ -332,6 +332,9 @@ importers:
       '@wren/reactivation':
         specifier: workspace:*
         version: link:../../packages/reactivation
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../../packages/research
       '@wren/sites':
         specifier: workspace:*
         version: link:../../packages/sites

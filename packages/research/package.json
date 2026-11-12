@@ -5,6 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./canon-console": "./src/canon-console.ts",
+    "./canon-console-routes": "./src/canon-console-routes.ts",
     "./canon-index": "./src/canon-index.ts",
     "./companies": "./src/companies/index.ts",
     "./components": "./src/components.ts",
