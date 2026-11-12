@@ -51,6 +51,17 @@ data "aws_iam_policy_document" "worker_media" {
     actions   = ["s3:GetObject", "s3:PutObject"]
     resources = ["${aws_s3_bucket.media.arn}/media/*"]
   }
+  # Canon's files (designs/2026-11-12-canon-files.md): read only, never on a publish path.
+  # Reels and posters by record id; screenshots and slides by hash.
+  statement {
+    sid     = "CanonFiles"
+    actions = ["s3:GetObject"]
+    resources = [
+      "${aws_s3_bucket.media.arn}/cache/*/*.mp4",
+      "${aws_s3_bucket.media.arn}/cache/*/*.jpg",
+      "${aws_s3_bucket.media.arn}/canon/*",
+    ]
+  }
 }
 
 resource "aws_iam_role_policy" "worker_media" {

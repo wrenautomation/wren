@@ -508,9 +508,11 @@ const kindOf = (stem: string, url: string | undefined) =>
             ? "page"
             : stem.startsWith("github-")
               ? "repo"
-              : /^(drive|file|note)-/.test(stem)
-                ? "doc"
-                : "other";
+              : stem.startsWith("image-")
+                ? "image"
+                : /^(drive|file|note)-/.test(stem)
+                  ? "doc"
+                  : "other";
 
 /** Who writes and why: every record carries both. */
 export interface By {

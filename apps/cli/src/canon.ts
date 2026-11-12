@@ -36,10 +36,19 @@ import {
   youtubeSource,
 } from "@wren/research/sops";
 import { pushPlaybook } from "@wren/starling-inbound";
-import { loadWorking } from "@wrenautomation/knowledge";
+import { loadWorking, type SourceFile, write } from "@wrenautomation/knowledge";
 import { claudeCode } from "@wrenautomation/models/command";
 import { PoliteFetcher, userAgent } from "@wrenautomation/read/fetch";
+import { s3MediaStore } from "@wrenautomation/read/s3";
 import type { Command } from "commander";
+import {
+  fileSourceOf,
+  POST_LINK,
+  posterOf,
+  postFiles,
+  postSource,
+  putCanonFile,
+} from "./canon-files.js";
 import { breakdownLlm, breakdownSource, registerSourcePieces } from "./source-pieces.js";
 import { watchEyes } from "./video-watch.js";
 
@@ -68,6 +77,11 @@ export function registerCanon(
   const root = resolve(rootDir, settings.canonDir);
   // every record wren writes says it came from here; the why names the command
   const BY = "wren-sop";
+  const bucketOf = (what: string) => {
+    if (!settings.mediaBucket)
+      throw new Error(`${what} needs WREN_MEDIA_BUCKET: its files go there`);
+    return { bucket: settings.mediaBucket };
+  };
   const topics = async () =>
     (await readdir(join(root, "topics"), { withFileTypes: true }).catch(() => []))
       .filter((e) => e.isDirectory() && !e.name.startsWith("."))
@@ -86,7 +100,7 @@ export function registerCanon(
   source
     .command("add <what>")
     .description(
-      "ingest a source: a YouTube URL, another video URL (Instagram reel, TikTok, X), a web page or GitHub repo (its README), `drive:<folderId>` (every Doc under it), or a text file; any other file is kept as a topic's reference. A reel or video is broken down",
+      "ingest a source: a YouTube URL, another video URL (Instagram reel, TikTok, X), an Instagram post (`/p/`: every slide kept), a web page or GitHub repo (its README), `drive:<folderId>` (every Doc under it), a text file, or a picture or PDF (kept in the bucket; with --topic, a topic's reference file instead). A reel or video is broken down",
     )
     .option("--topic <name>", "tag it with this topic (makes the topic folder and a notes.md stub)")
     .option(
@@ -94,6 +108,7 @@ export function registerCanon(
       "who gave it (a person's sources outrank an agent's): the provider; raises an agent's",
     )
     .option("--note <words>", "the giver's own note on it, whole; added under any note there")
+    .option("--title <words>", "a picture or PDF: its title")
     .option("--account <address>", "whose Drive (an autobrowse `drive` consent)")
     .option("--priority <n>", "higher wins when sources disagree (notes.md always wins)", (v) =>
       Number.parseInt(v, 10),
@@ -108,6 +123,7 @@ export function registerCanon(
           topic?: string;
           from?: string;
           note?: string;
+          title?: string;
           account?: string;
           priority?: number;
           screen?: boolean;
@@ -120,6 +136,9 @@ export function registerCanon(
         const name = opts.topic ?? null;
         const priority = opts.priority ?? DEFAULT_PRIORITY;
         let sources: Source[];
+        // files per source name: a post's slides, a picture
+        const filesOf = new Map<string, SourceFile[]>();
+        const store = settings.mediaBucket ? s3MediaStore(settings.mediaBucket) : undefined;
         if (YOUTUBE.test(what)) {
           // the frames, read by the eye, carry what the captions don't: what is on screen
           const { eye, ear, ffmpeg } = watchEyes(settings, rootDir);
@@ -139,16 +158,43 @@ export function registerCanon(
           sources = [await pageSource(what, fetcher, priority)];
         } else if (/^https?:\/\//.test(what)) {
           // Reels, TikTok, X: no captions, so the watch core hears and reads the download.
-          sources = [
-            await videoSource(what, settings.ytDlp, priority, watchEyes(settings, rootDir)),
-          ];
+          const { eye, ...rest } = watchEyes(settings, rootDir);
+          const post = POST_LINK.test(what)
+            ? await postSource(what, {
+                ...bucketOf("a post"),
+                ytDlp: settings.ytDlp,
+                eye,
+                watch: rest,
+                priority,
+              })
+            : null;
+          if (post) filesOf.set(post.source.name, post.files);
+          sources = post
+            ? [post.source]
+            : [
+                await videoSource(what, settings.ytDlp, priority, {
+                  eye,
+                  ...rest,
+                  ...(store ? { store } : {}),
+                }),
+              ];
         } else if (what.startsWith("drive:")) {
           if (!opts.account) throw new Error("drive: needs --account <address>");
           const drive = autobrowseDrive(resolve(rootDir, settings.autobrowseDir), opts.account);
           sources = await driveSources(what.slice("drive:".length), drive, priority);
         } else if (/\.(md|txt)$/i.test(what)) sources = [await fileSource(resolve(what), priority)];
-        else {
-          if (!name) throw new Error("a reference file needs --topic <name>");
+        else if (!name) {
+          // a picture or PDF of its own: the bytes to the bucket, the record lists them
+          if (!opts.title) throw new Error("a picture or PDF needs --title <words>");
+          const made = await fileSourceOf(resolve(what), {
+            ...bucketOf("a picture or PDF"),
+            eye: watchEyes(settings, rootDir).eye,
+            title: opts.title,
+            priority,
+          });
+          filesOf.set(made.source.name, made.files);
+          sources = [made.source];
+        } else {
           // Not text (PDF, image, design export): kept as a reference file, not a source.
           const dir = topicDir(root, name);
           await mkdir(join(dir, "refs"), { recursive: true });
@@ -168,10 +214,18 @@ export function registerCanon(
         };
         const llm = opts.breakdown === false ? null : breakdownLlm(settings, rootDir, opts.model);
         for (const s of sources) {
-          const path = await addSource(root, name, s, who, extra);
+          const files = filesOf.get(s.name);
+          const path = await addSource(root, name, s, who, {
+            ...extra,
+            ...(files ? { files } : {}),
+          });
           console.log(path);
           const id = basename(path, ".md");
           const kind = loadWorking(root).docs.find((l) => l.doc.fm.id === id)?.doc.fm.kind;
+          if (store && kind === "reel" && id.startsWith("instagram-"))
+            console.log(
+              `  poster: ${await posterOf(id, { ...bucketOf("a poster"), ffmpeg: settings.ffmpeg })}`,
+            );
           if (llm && (kind === "reel" || kind === "video")) {
             const b = await breakdownSource(root, id, llm, who);
             console.log(
@@ -181,6 +235,63 @@ export function registerCanon(
         }
       },
     );
+
+  source
+    .command("files <id> [paths...]")
+    .description(
+      "keep files on a source already in Canon, its body untouched: the paths given, or with none an Instagram post's slides (from its url)",
+    )
+    .option("--role <role>", "what the paths are: image, slide, page or file", "image")
+    .action(async (id: string, paths: string[], o: { role: SourceFile["role"] }) => {
+      const fm = loadWorking(root).docs.find((l) => l.doc.fm.id === id)?.doc.fm as
+        | { url?: string; files?: SourceFile[] }
+        | undefined;
+      if (!fm) throw new Error(`no source ${id}`);
+      const at = bucketOf("files");
+      const added: SourceFile[] = [];
+      if (paths.length)
+        for (const [i, p] of paths.entries()) {
+          const { bytes: _, ...file } = await putCanonFile(resolve(p), at, o.role, {
+            ...(paths.length > 1 ? { at: String(i + 1) } : {}),
+            name: basename(p),
+          });
+          added.push(file);
+        }
+      else if (fm.url && POST_LINK.test(fm.url))
+        added.push(...(await postFiles(fm.url, { ...at, ytDlp: settings.ytDlp })));
+      else throw new Error(`${id}: give paths, or it needs an Instagram post url`);
+      const kept = fm.files ?? [];
+      const files = [...kept, ...added.filter((a) => !kept.some((k) => k.key === a.key))];
+      await write(root, [{ op: "edit", id, files }], {
+        by: BY,
+        why: `source files: ${added.length} kept`,
+      });
+      console.log(JSON.stringify({ id, files: files.length, added: files.length - kept.length }));
+    });
+
+  source
+    .command("posters")
+    .description(
+      "a poster (one frame) beside each stored Instagram reel's video in the bucket, for every Canon reel without one",
+    )
+    .option("--limit <n>", "stop after this many made", (v) => Number.parseInt(v, 10))
+    .action(async (o: { limit?: number }) => {
+      const at = { ...bucketOf("posters"), ffmpeg: settings.ffmpeg };
+      const reels = loadWorking(root)
+        .docs.map((l) => l.doc.fm)
+        .filter((f) => f.type === "source" && f.id.startsWith("instagram-"));
+      const tally: Record<string, number> = { made: 0, had: 0, "no video": 0, failed: 0 };
+      for (const r of reels) {
+        if (o.limit !== undefined && (tally.made ?? 0) >= o.limit) break;
+        const done = await posterOf(r.id, at).catch((err: unknown) => {
+          console.error(`${r.id}: ${err instanceof Error ? err.message : err}`);
+          return "failed" as const;
+        });
+        tally[done] = (tally[done] ?? 0) + 1;
+        if (done === "made") console.log(r.id);
+      }
+      console.log(JSON.stringify(tally));
+    });
 
   topic
     .command("cite [name]")

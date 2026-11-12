@@ -49,7 +49,6 @@ Pick **E**. Priorities, in order: no Glacier read-back of 1.17 GB (A fails); fil
   same record. `--title` is required. The body is `--note`, then the eye's read: every word shown,
   then what the picture shows.
 - A reel's poster sits beside its video: `cache/instagram/<id>.jpg`. No entry, no record write.
-- `wren canon lint`: each `canon/` key exists (one HEAD each, `storedHead`).
 
 ## Writes (the Mac CLI, on William's AWS session)
 
@@ -61,7 +60,9 @@ Pick **E**. Priorities, in order: no Glacier read-back of 1.17 GB (A fails); fil
   --skip-download` and parses each line. A video slide downloads; an image slide fetches its
   `thumbnail` (the full image). `wren source add` makes one `post` source: the caption, the eye's
   read of each slide, and `files` with `role: slide`, `at: <n>`. A single-item post stays a reel.
-- Posters: `wren canon posters` reads each Canon reel's mp4 with no `.jpg` and writes one frame
+- `wren source files <id> [paths]`: files onto a source already in Canon, body untouched. No
+  paths and an Instagram post url: its slides.
+- Posters: `wren source posters` reads each Canon reel's mp4 with no `.jpg` and writes one frame
   (`ffmpeg -ss 0.5`, else `-ss 0`). `source add` runs it for a new reel.
 
 ## Reads
@@ -73,14 +74,14 @@ Pick **E**. Priorities, in order: no Glacier read-back of 1.17 GB (A fails); fil
 ## Order
 
 1. Engine: `files` and kind `image` in knowledge; `postItems` in read. Release.
-2. wren: pin, `source add` paths, `canon posters`, `canon lint`, the IAM statement.
+2. wren: pin, `source add` paths, `source files`, `source posters`, the IAM statement.
 3. Backfill: posters for the 258 Canon reels; carousel `De2-09Cjnyx` with his note.
 4. The References page, after canon-references D1.
 
 ## Cost
 
-- Posters: 258 × about 30 KB = 8 MB. Reading the 258 mp4s back from Glacier IR: about 0.8 GB at
-  $0.03/GB, under 3 cents. Screenshots and slides: small.
+- Posters: 258 × about 30 KB = 8 MB. Reading the 258 mp4s to the Mac: about 0.8 GB, Glacier IR
+  retrieval $0.03/GB plus egress $0.09/GB, about 10 cents once. Screenshots and slides: small.
 - The 334 reels not stored (about 1 GB) stay William's yes (canon-references D2).
 
 ## Non-goals
@@ -104,3 +105,5 @@ Pick **E**. Priorities, in order: no Glacier read-back of 1.17 GB (A fails); fil
   Rejected: gallery-dl (yt-dlp reads slides signed out), autobrowse desk route for carousels
   (signed-out yt-dlp needs no account), moving the PDF (topic build reads `refs/`), `files` on
   every record type (no reader), git history rewrite, a glossary, a delete guard.
+- 2026-11-12: built. Engine 0.74.0 (`Source.files`, kind `image`, `postItems`). The key check
+  (`wren canon lint`) waits for `wren canon sync` (canon-references D1). Worker grant applied.

@@ -183,7 +183,7 @@
     "@typesafe-ai/sdk": "0.6.0",
     "@wren/db": "workspace:*",
     "@wren/runtime": "workspace:*",
-    "@wrenautomation/models": "0.73.0",
+    "@wrenautomation/models": "0.74.0",
     "csv-parse": "7.0.2",
     "drizzle-orm": "0.45.2",
     "entities": "8.1.0",

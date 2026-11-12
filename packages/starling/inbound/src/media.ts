@@ -12,6 +12,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { extname } from "node:path";
 import {
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
@@ -19,7 +20,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { isStoredMedia, type MediaHost } from "@wren/starling-core";
 
-const TYPES: Record<string, string> = {
+export const MEDIA_TYPES: Record<string, string> = {
   ".mp4": "video/mp4",
   ".mov": "video/quicktime",
   ".m4v": "video/x-m4v",
@@ -28,6 +29,7 @@ const TYPES: Record<string, string> = {
   ".jpeg": "image/jpeg",
   ".png": "image/png",
   ".gif": "image/gif",
+  ".webp": "image/webp",
   ".srt": "application/x-subrip",
   ".vtt": "text/vtt",
   ".pdf": "application/pdf",
@@ -90,7 +92,7 @@ export async function putMedia(
       Bucket: o.bucket,
       Key: key,
       Body: bytes,
-      ContentType: TYPES[ext] ?? "application/octet-stream",
+      ContentType: MEDIA_TYPES[ext] ?? "application/octet-stream",
     }),
   );
   return `s3://${o.bucket}/${key}`;
@@ -174,10 +176,22 @@ export async function putKey(path: string, key: string, o: MediaStoreOptions): P
       Bucket: o.bucket,
       Key: key,
       Body: await readFile(path),
-      ContentType: TYPES[extname(path).toLowerCase()] ?? "application/octet-stream",
+      ContentType: MEDIA_TYPES[extname(path).toLowerCase()] ?? "application/octet-stream",
     }),
   );
   return `s3://${o.bucket}/${key}`;
+}
+
+/** Whether an object sits at `key`. */
+export async function keyExists(key: string, o: MediaStoreOptions): Promise<boolean> {
+  try {
+    await clientOf(o).send(new HeadObjectCommand({ Bucket: o.bucket, Key: key }));
+    return true;
+  } catch (err) {
+    const name = err instanceof Error ? err.name : "";
+    if (name === "NotFound" || name === "NoSuchKey") return false;
+    throw err;
+  }
 }
 
 /** The object at `key` into the file `path`. */
