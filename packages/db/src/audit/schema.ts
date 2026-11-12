@@ -49,12 +49,17 @@ export const auditEvents = pgTable(
     actor: text("actor").default(sql`NULLIF(current_setting('wren.actor', true), '')`),
     /** View as, Act: whom `actor` acted as (`amy@acme.test at acme`); null otherwise. */
     actingAs: text("acting_as").default(sql`NULLIF(current_setting('wren.as', true), '')`),
+    /** The agent chat (its session id) whose CLI made the write; null otherwise. */
+    chat: text("chat").default(sql`NULLIF(current_setting('wren.chat', true), '')`),
+    /** That chat's turn; `undo:<event id>` on an undo's own writes. */
+    turn: text("turn").default(sql`NULLIF(current_setting('wren.turn', true), '')`),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_audit_events" }),
     index("ix_audit_events_era_tx").on(t.era, t.tx, t.id),
     index("ix_audit_events_table_at").on(t.tableName, t.at),
     index("ix_audit_events_at").on(t.at),
+    index("ix_audit_events_chat").on(t.chat, t.id).where(sql`chat IS NOT NULL`),
   ],
 );
 

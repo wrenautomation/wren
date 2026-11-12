@@ -3,6 +3,7 @@
  * `wren` ops CLI. Reads go straight to Postgres. Writes go through Restate so
  * they are journaled and single-writer per key.
  */
+import { readFileSync } from "node:fs";
 import { userInfo } from "node:os";
 import { ingressOf, loadEnvFile, loadSettings } from "@wren/config";
 import { WREN } from "@wren/core/access";
@@ -84,9 +85,28 @@ import { registerWrite } from "./write.js";
 const rootDir = loadEnvFile(process.cwd(), process.env.WREN_ROOT);
 const settings = loadSettings(process.env, { rootDir });
 
-/** Who ran the command, kept on every audit event it causes. */
+/**
+ * The agent chat and turn the relay is on (designs/2026-11-11-agent-panel.md, D1): kept on every
+ * audit event, so the chat's Changes list finds them. The relay rewrites the file as turns start.
+ */
+const agentTurn = ((): { chat?: string; turn?: string; by?: string } => {
+  const file = process.env.WREN_AGENT_TURN_FILE;
+  if (!file) return {};
+  try {
+    const j = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
+    const out: { chat?: string; turn?: string; by?: string } = {};
+    for (const k of ["chat", "turn", "by"] as const) {
+      const v = j[k];
+      if (typeof v === "string" && v) out[k] = v;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+})();
+/** Who ran the command, kept on every audit event it causes. An agent chat's: `claude-code:<person>`. */
 const actor = (() => {
-  if (process.env.CLAUDECODE) return "claude-code";
+  if (process.env.CLAUDECODE) return agentTurn.by ? `claude-code:${agentTurn.by}` : "claude-code";
   try {
     return userInfo().username;
   } catch {
@@ -98,7 +118,7 @@ let app = "wren-cli";
 
 /** Open a one-connection pool for one command and always close it. */
 async function open<T>(url: string, fn: (db: Db) => Promise<T>): Promise<T> {
-  const handle = createDb(url, { max: 1, app, actor });
+  const handle = createDb(url, { max: 1, app, actor, chat: agentTurn.chat, turn: agentTurn.turn });
   try {
     return await fn(handle.db);
   } finally {

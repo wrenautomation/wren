@@ -29,6 +29,9 @@ interface DbOptions {
   app?: string;
   /** Who is acting, kept on every audit event (`wren.actor`); a transaction may set its own. */
   actor?: string;
+  /** The agent chat and turn behind the writes (`wren.chat`, `wren.turn`): designs/2026-11-11-agent-panel.md. */
+  chat?: string | undefined;
+  turn?: string | undefined;
 }
 
 /**
@@ -47,6 +50,8 @@ export function createDb(databaseUrl: string, opts: DbOptions = {}): DbHandle {
   // Postgres keeps 63 bytes of a name; cut here so the stored one is predictable.
   if (opts.app) connection.application_name = opts.app.slice(0, 63);
   if (opts.actor) connection["wren.actor"] = opts.actor;
+  if (opts.chat) connection["wren.chat"] = opts.chat;
+  if (opts.turn) connection["wren.turn"] = opts.turn;
   const client = postgres(url, {
     max: opts.max ?? 4,
     prepare: false,

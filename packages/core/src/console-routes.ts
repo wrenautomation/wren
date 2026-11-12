@@ -22,6 +22,9 @@ export const CONSOLE_ROUTES = {
   recordsEdit: "wren:act",
   recordsUndo: "wren:act",
   recordsAsk: "wren:act",
+  // An agent chat's Changes (`agent-changes.ts`); undo checks the chat's person or an admin.
+  agentChanges: "read",
+  agentUndo: "read",
   // A viewer's own saved views and prefs, where they look; sharing a view checks `manage`.
   savedViews: "read",
   saveView: "read",
@@ -209,6 +212,7 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "recordsEdit",
   "recordsUndo",
   "recordsAsk",
+  "agentUndo",
   "saveView",
   "removeView",
   "moveViews",

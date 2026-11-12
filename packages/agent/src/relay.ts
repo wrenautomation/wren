@@ -10,11 +10,18 @@
  */
 import { type ChildProcess, spawn as nodeSpawn, type SpawnOptions } from "node:child_process";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
-import { appendFileSync, createReadStream, createWriteStream, mkdirSync, rmSync } from "node:fs";
+import {
+  appendFileSync,
+  createReadStream,
+  createWriteStream,
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { realpath, stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { basename, extname, isAbsolute, join, sep } from "node:path";
 import { createInterface } from "node:readline";
 import { type WebSocket, WebSocketServer } from "ws";
@@ -197,6 +204,23 @@ export function relay(o: RelayOptions): {
   const commandStore = o.commands ?? memoryCommands();
   const meterStore = new Map<string, Record<string, Meter>>();
   const live = new Set<ChildProcess>();
+  /**
+   * Per chat child: the file its `wren` CLI reads for the chat (the session id) and the turn
+   * (designs/2026-11-11-agent-panel.md, D1). Turns run one at a time, so one file holds the now.
+   */
+  const turns = new Map<ChildProcess, { file: string; by: string; chat?: string; turn?: string }>();
+  const noteTurn = (child: ChildProcess | undefined, at: { chat?: string; turn?: string }) => {
+    const t = child && turns.get(child);
+    if (!t) return;
+    Object.assign(t, at);
+    try {
+      writeFileSync(t.file, JSON.stringify({ chat: t.chat, turn: t.turn, by: t.by }), {
+        mode: 0o600,
+      });
+    } catch (e) {
+      log(`turn file: ${e instanceof Error ? e.message : e}`);
+    }
+  };
   const http = createServer((req, res) => void answer(req, res));
   const server = new WebSocketServer({
     server: http,
@@ -258,8 +282,12 @@ export function relay(o: RelayOptions): {
     const forward = (line: string) => {
       tape?.("page", line);
       const r = inbound(line, setup, owner);
-      if (r.kind === "forward") child?.stdin?.write(`${r.line}\n`);
-      else if (r.kind === "reply") said(r.frame);
+      if (r.kind === "forward") {
+        const f = JSON.parse(r.line) as { type?: unknown; uuid?: unknown };
+        if (f.type === "user")
+          noteTurn(child, { turn: typeof f.uuid === "string" ? f.uuid : randomUUID() });
+        child?.stdin?.write(`${r.line}\n`);
+      } else if (r.kind === "reply") said(r.frame);
       else if (r.kind === "answer") for (const f of r.frames) said(f);
       else if (!/keep_alive/.test(r.why)) log(`${setup.name}: dropped ${r.why}`);
     };
@@ -332,6 +360,12 @@ export function relay(o: RelayOptions): {
     const vars = l.env;
     // compaction part files: under the add-dir, so the child reads them unasked
     if (mine) vars.COMPACT_PARTS_DIR = join(mine, "compact-parts");
+    const turnFile =
+      kind === "chat" ? join(tmpdir(), "wren-agent-turns", `${randomUUID()}.json`) : undefined;
+    if (turnFile) {
+      mkdirSync(join(tmpdir(), "wren-agent-turns"), { recursive: true, mode: 0o700 });
+      vars.WREN_AGENT_TURN_FILE = turnFile;
+    }
     if (token) {
       sessionTokens.set(token, { person, app: setup.app });
       vars[RUN_ENV.url] = `http://127.0.0.1:${(http.address() as AddressInfo).port}`;
@@ -344,12 +378,17 @@ export function relay(o: RelayOptions): {
       stdio: ["pipe", "pipe", "pipe"],
     });
     live.add(child);
+    // `by`: whose chat; undo and the confirm default read it
+    if (turnFile) turns.set(child, { file: turnFile, by: who });
     log(
       `${setup.name}: started pid ${child.pid} for ${who}${resume ? ` resume ${resume}` : ""}${kind === "chat" ? "" : ` ${kind}`}`,
     );
     child.stderr?.on("data", (d) => log(`${setup.name}: ${String(d).trim().slice(0, 300)}`));
     const gone = () => {
       live.delete(child);
+      const t = turns.get(child);
+      if (t) rmSync(t.file, { force: true });
+      turns.delete(child);
       if (token) sessionTokens.delete(token);
     };
     child.on("exit", (code) => {
@@ -400,6 +439,8 @@ export function relay(o: RelayOptions): {
         return ws.close(CLOSE.credential, breach.slice(0, 120));
       }
       const session = initSession(frame);
+      // `/clear` starts a new session: a new chat for the Changes list
+      if (session) noteTurn(child, { chat: session });
       if (session && !noted.has(session)) {
         noted.add(session);
         ledger.add({ setup: setup.name, session, who, at: new Date().toISOString() });

@@ -11,6 +11,7 @@ import { accessApi } from "../access-console.js";
 import { clientUrl, findClient } from "../clients/index.js";
 import { customApi } from "../custom-console.js";
 import { PortalRefusal } from "../portal.js";
+import { agentHandlers } from "./api/agent.js";
 import { callsHandlers } from "./api/calls.js";
 import { clientsHandlers } from "./api/clients.js";
 import { componentsHandlers } from "./api/components.js";
@@ -65,6 +66,7 @@ export function consoleApi(deps: ConsoleDeps) {
     }),
     ...loopsHandlers(ctx),
     ...recordsHandlers(ctx),
+    ...agentHandlers(ctx),
     ...libraryHandlers(ctx),
     ...clientsHandlers(ctx),
     ...componentsHandlers(ctx),

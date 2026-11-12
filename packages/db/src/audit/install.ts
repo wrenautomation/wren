@@ -80,6 +80,13 @@ export const AUDIT_FUNCTION_STATEMENTS = [
   // gains the column here; metadata only, no rewrite.
   "ALTER TABLE audit_events ADD COLUMN IF NOT EXISTS acting_as text",
   "ALTER TABLE audit_events ALTER COLUMN acting_as SET DEFAULT NULLIF(current_setting('wren.as', true), '')",
+  // Agent panel (designs/2026-11-11-agent-panel.md, D1): the agent chat and turn that made the write.
+  "ALTER TABLE audit_events ADD COLUMN IF NOT EXISTS chat text",
+  "ALTER TABLE audit_events ALTER COLUMN chat SET DEFAULT NULLIF(current_setting('wren.chat', true), '')",
+  "ALTER TABLE audit_events ADD COLUMN IF NOT EXISTS turn text",
+  "ALTER TABLE audit_events ALTER COLUMN turn SET DEFAULT NULLIF(current_setting('wren.turn', true), '')",
+  // agent rows only: a small index
+  "CREATE INDEX IF NOT EXISTS ix_audit_events_chat ON audit_events (chat, id) WHERE chat IS NOT NULL",
   // One function for every audited table. Row trigger: TG_ARGV = the primary key's columns.
   // Statement trigger: TRUNCATE. SECURITY DEFINER: a client login cannot write the log itself.
   `CREATE OR REPLACE FUNCTION audit_row() RETURNS trigger
@@ -135,11 +142,16 @@ export const AUDIT_FUNCTION_STATEMENTS = [
   END
   $fn$`,
   // An event as one unambiguous line (a JSON array), hashed. Time as epoch seconds,
-  // so the session's time zone never changes the line. `acting_as` joins the line only when set,
-  // so every event sealed before it existed hashes as it did.
+  // so the session's time zone never changes the line. `acting_as`, then `chat` and `turn`, join
+  // the line only when set, so every event sealed before they existed hashes as it did.
   `CREATE OR REPLACE FUNCTION audit_event_hash(e audit_events) RETURNS bytea
   LANGUAGE sql STABLE SET search_path = pg_catalog, public, pg_temp AS $fn$
-    SELECT sha256(convert_to((CASE WHEN e.acting_as IS NULL
+    SELECT sha256(convert_to((CASE
+      WHEN e.chat IS NOT NULL OR e.turn IS NOT NULL
+      THEN jsonb_build_array(e.era, e.tx, e.id, extract(epoch FROM e.at),
+        e.table_name, e.op, e.row_key, e.old_values, e.new_values, e.db_user, e.app, e.actor,
+        e.acting_as, e.chat, e.turn)
+      WHEN e.acting_as IS NULL
       THEN jsonb_build_array(e.era, e.tx, e.id, extract(epoch FROM e.at),
         e.table_name, e.op, e.row_key, e.old_values, e.new_values, e.db_user, e.app, e.actor)
       ELSE jsonb_build_array(e.era, e.tx, e.id, extract(epoch FROM e.at),
@@ -226,10 +238,12 @@ export const AUDIT_FUNCTION_STATEMENTS = [
   END
   $fn$`,
   "CREATE INDEX IF NOT EXISTS ix_audit_events_at ON audit_events (at)",
-  // The Changes page (`console.change`): the last 7 days as lines a person reads. Older: `wren audit`.
+  // Every event as a line a person reads. The Changes page (`console.change`) reads the last 7
+  // days (`audit_changes`); an agent chat's Changes reads its own lines at any age, by `chat`.
   "DROP VIEW IF EXISTS audit_changes",
-  `CREATE VIEW audit_changes AS
-  SELECT e.id::text id, e.at,
+  "DROP VIEW IF EXISTS audit_lines",
+  `CREATE VIEW audit_lines AS
+  SELECT e.id::text id, e.at, e.chat, e.turn,
     CASE WHEN e.actor LIKE '%@%' THEN e.actor
       WHEN e.actor LIKE 'claude%' THEN 'agent:' || e.actor
       WHEN e.actor IS NOT NULL THEN 'person:' || e.actor
@@ -270,8 +284,10 @@ export const AUDIT_FUNCTION_STATEMENTS = [
         WHERE nullif(e.old_values ->> k, '') IS NOT NULL ORDER BY n LIMIT 1)
       END change,
     CASE WHEN e.at >= date_trunc('day', now()) THEN 'today' ELSE 'week' END age
-  FROM audit_events e
-  WHERE e.at > now() - interval '7 days'`,
+  FROM audit_events e`,
+  `CREATE VIEW audit_changes AS
+  SELECT id, at, who, made_by, via, "as", "table", area, op, "row", change, age
+  FROM audit_lines WHERE at > now() - interval '7 days'`,
 ];
 
 /** The guard on each log table, made when missing. */
