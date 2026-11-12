@@ -36,6 +36,10 @@
  *   Restate down, the event goes to KV under its idempotency key and the sender gets 200; the
  *   cron (`replayHeld`, every 2 min) sends it on under the same key. Gmail, Business Profile
  *   and Meta retry for days: Restate down = 502.
+ * - `/webhooks/github`: a push to a Canon repo's `main`, `X-Hub-Signature-256` checked against
+ *   `GITHUB_WEBHOOK_SECRET`, then `CanonIndexSync/<repo>/sync/send` keyed by the delivery id
+ *   (designs/2026-11-12-canon-references.md). Ping and other refs: 200 and no further. Restate
+ *   down = held (GitHub never redelivers on its own; the hourly fetch is the backstop).
  * - `/webhooks/gbp`: Business Profile's review notices through Pub/Sub, `?token=` checked against
  *   `GBP_PUSH_TOKEN`, then `SocialPushIntake/gbp/send` keyed by Pub/Sub's message id.
  * - `/api/<handler>`: Wren's operators only, by the token from Wren's sign-in
@@ -314,6 +318,34 @@ async function calcomWebhook(req: Request, env: Env, client: string | null): Pro
     `calcom-${client ? `${client}-` : ""}${trigger}-${uid}-${String(body.payload?.startTime ?? "")}`,
     forwarded(raw, client),
   );
+}
+
+/** Repos the prod index takes; a push from any other is ignored. */
+const CANON_REPOS = new Set(["canon"]);
+// a push payload lists every commit's paths: far over MAX_BODY on a big push (GitHub caps at 25 MB)
+const GITHUB_MAX_BODY = 25 * 1024 * 1024;
+
+/** GitHub's push webhook: Canon's index on the box catches up to `main`. */
+async function githubWebhook(req: Request, env: Env): Promise<Response> {
+  if (!env.GITHUB_WEBHOOK_SECRET)
+    return json({ error: "webhooks off: no GITHUB_WEBHOOK_SECRET" }, 503);
+  const raw = await readBody(req, GITHUB_MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
+  const sig = (req.headers.get("x-hub-signature-256") ?? "").replace(/^sha256=/, "");
+  if (!(await hmacSigned(env.GITHUB_WEBHOOK_SECRET, raw, sig))) {
+    return json({ error: "bad signature" }, 401);
+  }
+  if (req.headers.get("x-github-event") !== "push") return json({ ok: true });
+  let body: { ref?: unknown; after?: unknown; repository?: { name?: unknown } };
+  try {
+    body = JSON.parse(raw) as typeof body;
+  } catch {
+    return json({ error: "not json" }, 400);
+  }
+  const repo = String(body.repository?.name ?? "");
+  if (body.ref !== "refs/heads/main" || !CANON_REPOS.has(repo)) return json({ ok: true });
+  const id = req.headers.get("x-github-delivery") ?? String(body.after ?? "");
+  return forward(env, `CanonIndexSync/${repo}/sync/send`, `github-${repo}-${id}`, "{}");
 }
 
 /**
@@ -953,6 +985,9 @@ export default {
       return req.method === "POST" ? siteWebhook(req, env) : json({ error: "POST only" }, 405);
     }
     if (pathname === "/webhooks/meta") return metaWebhook(req, env);
+    if (pathname === "/webhooks/github") {
+      return req.method === "POST" ? githubWebhook(req, env) : json({ error: "POST only" }, 405);
+    }
     if (pathname === "/webhooks/gbp") {
       return req.method === "POST" ? gbpWebhook(req, env) : json({ error: "POST only" }, 405);
     }

@@ -11,11 +11,12 @@ import { spawnSync } from "node:child_process";
 import { copyFile, mkdir, readdir, readFile, symlink, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
-import type { Settings } from "@wren/config";
+import { ingressOf, type Settings } from "@wren/config";
 import { playbookStandard, scopeOf, writeSopFiles } from "@wren/content-standard";
 import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
 import type { Db } from "@wren/db";
 import { modelLlm } from "@wren/llm";
+import type { CanonIndexSync } from "@wren/research/canon-index";
 import {
   addSource,
   buildSop,
@@ -35,6 +36,7 @@ import {
   writeSkill,
   youtubeSource,
 } from "@wren/research/sops";
+import * as clients from "@wren/runtime/clients";
 import { pushPlaybook } from "@wren/starling-inbound";
 import { loadWorking, type SourceFile, write } from "@wrenautomation/knowledge";
 import { claudeCode } from "@wrenautomation/models/command";
@@ -96,6 +98,25 @@ export function registerCanon(
     .description(
       "Canon topics (guide, rule sets, references): `source add --topic`, then `topic build`",
     );
+
+  // the prod index (designs/2026-11-12-canon-references.md D1): the box fetches and syncs; this asks it
+  const indexOf = () =>
+    clients
+      .connect(ingressOf(settings))
+      .objectClient<CanonIndexSync>({ name: "CanonIndexSync" }, "canon");
+  const canon = program.command("canon").description("Canon's prod index, on the box");
+  canon
+    .command("sync")
+    .description("Fetch Canon's main on the box and bring schema canon up to it (a push does this)")
+    .option("--full", "reread every file at main: after a force push, or to repair")
+    .action(async (o: { full?: boolean }) => {
+      const out = o.full ? await indexOf().rebuild() : await indexOf().sync();
+      console.log(JSON.stringify(out, null, 2));
+    });
+  canon
+    .command("start")
+    .description("Start the hourly fetch, the backstop for a missed push")
+    .action(async () => console.log(JSON.stringify(await indexOf().start(), null, 2)));
 
   source
     .command("add <what>")

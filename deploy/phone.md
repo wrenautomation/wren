@@ -45,6 +45,7 @@ from `apps/phone/`:
     # The secret in Documenso's webhook setting (deploy/documenso/README.md). Each event must carry
     # it in X-Documenso-Secret. Until set, /webhooks/documenso gets 503.
     printf %s "$DOCUMENSO_WEBHOOK_SECRET" | npx wrangler secret put DOCUMENSO_WEBHOOK_SECRET
+    printf %s "$GITHUB_WEBHOOK_SECRET" | npx wrangler secret put GITHUB_WEBHOOK_SECRET   # Canon repo webhook, push to main
     npx wrangler deploy
 
 The worker (Lambda) must already serve `SmsDesk` and `SmsWebhookIntake`, and migration

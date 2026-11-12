@@ -323,6 +323,58 @@ describe("telnyx webhook", () => {
   });
 });
 
+describe("GitHub webhook", () => {
+  const SECRET = "gh-secret";
+  const push = (ref = "refs/heads/main", repo = "canon") =>
+    JSON.stringify({ ref, after: "abc123", repository: { name: repo } });
+  const sign = async (body: string, secret = SECRET) => {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(body)));
+    return `sha256=${[...mac].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+  };
+  const send = async (
+    body: string,
+    o: { event?: string; secret?: string; signed?: boolean } = {},
+  ) =>
+    call("/webhooks/github", {
+      method: "POST",
+      headers: {
+        "x-github-event": o.event ?? "push",
+        "x-github-delivery": "d-1",
+        ...(o.signed === false ? {} : { "x-hub-signature-256": await sign(body, o.secret) }),
+      },
+      body,
+    });
+  beforeEach(() => {
+    env.GITHUB_WEBHOOK_SECRET = SECRET;
+  });
+
+  it("sends a signed push to main on to the repo's index sync, keyed by the delivery", async () => {
+    expect((await send(push())).status).toBe(200);
+    expect(restateCalls).toHaveLength(1);
+    expect(restateCalls[0]?.url).toBe("https://restate.test/CanonIndexSync/canon/sync/send");
+    expect(restateCalls[0]?.headers.get("idempotency-key")).toBe("github-canon-d-1");
+  });
+
+  it("refuses a bad signature; stops at a ping, another branch or another repo", async () => {
+    expect((await send(push(), { signed: false })).status).toBe(401);
+    expect((await send(push(), { secret: "other" })).status).toBe(401);
+    expect((await send(push(), { event: "ping" })).status).toBe(200);
+    expect((await send(push("refs/heads/dev"))).status).toBe(200);
+    expect((await send(push("refs/heads/main", "wren"))).status).toBe(200);
+    expect(restateCalls).toHaveLength(0);
+    delete env.GITHUB_WEBHOOK_SECRET;
+    expect((await send(push())).status).toBe(503);
+  });
+});
+
 describe("cal.com webhook", () => {
   const SECRET = "test-secret";
   const booking = JSON.stringify({

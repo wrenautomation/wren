@@ -17,6 +17,8 @@ export interface Env {
   CALCOM_WEBHOOK_SECRETS?: string;
   /** The secret in Documenso's webhook setting (`X-Documenso-Secret`). Unset = every e-signature webhook refused. */
   DOCUMENSO_WEBHOOK_SECRET?: string;
+  /** GitHub's push webhook secret (the repo's webhook setting): Canon pushes to its prod index. */
+  GITHUB_WEBHOOK_SECRET?: string;
   /** The token in the Pub/Sub push subscription's URL (`?token=`). Unset = Gmail's push refused. */
   GMAIL_PUSH_TOKEN?: string;
   /** Meta's webhook handshake token (`hub.verify_token`). Unset = Meta's webhooks refused. */

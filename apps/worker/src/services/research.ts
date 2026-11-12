@@ -20,6 +20,7 @@ import {
   triggersFor,
   youtubeSearchFor,
 } from "@wren/niches";
+import { makeCanonIndexSync } from "@wren/research/canon-index";
 import { YOUTUBE_READ_SCOPE, youtubeApi } from "@wren/research/enrichment";
 import { s3PageStore } from "@wren/research/pages";
 import {
@@ -206,5 +207,20 @@ export function researchServices(deps: Deps): AnyService[] {
   );
   // Page HTML a day old moves to the pages bucket; off until `wren enrich pages archive start`.
   services.push(makePageHtmlArchive({ db, pages, ...notify }));
+  // Canon's prod index on the box: a push's webhook and an hourly fetch; off until both are set.
+  services.push(
+    makeCanonIndexSync({
+      db,
+      databaseUrl,
+      checkout: settings.shapesGithubToken
+        ? {
+            dir: settings.canonCloneDir,
+            remote: settings.canonRemote,
+            token: settings.shapesGithubToken,
+          }
+        : null,
+      ...notify,
+    }),
+  );
   return services;
 }

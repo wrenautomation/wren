@@ -69,6 +69,19 @@ rm -rf "$dir" && mv /opt/wren-worker.new "$dir"
 # The Lambda version ARN CI publishes (deploy.sh "register"); the rt's lambda lane pins rows to it.
 mkdir -p /etc/wren
 
+# node:22-slim plus git: CanonIndexSync keeps Canon's bare clone (knowledge reads it with the git
+# CLI). Built here once per tag; a new tag = a changed recipe.
+image=wren-box-node:22-git-1
+if ! docker image inspect "$image" >/dev/null 2>&1; then
+  docker build -q -t "$image" - >/dev/null <<'DOCKERFILE'
+FROM node:22-slim
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+DOCKERFILE
+fi
+# Canon's clone outlives a slot: a new build fetches only new objects.
+mkdir -p /var/lib/wren-pg/canon && chmod 700 /var/lib/wren-pg/canon
+
 docker run -d --name wren-worker-new --restart unless-stopped --init \
   --network host --memory 640m --stop-timeout 60 \
   --log-opt max-size=20m --log-opt max-file=3 \
@@ -77,6 +90,7 @@ docker run -d --name wren-worker-new --restart unless-stopped --init \
   -e WREN_BOX_PORT="$port" \
   -e WREN_BUILD="$key" -e WREN_BUILD_LIVE="$live_build" \
   -v /etc/wren:/etc/wren:ro \
+  -v /var/lib/wren-pg/canon:/var/lib/wren-canon \
   -e WREN_BUNDLE_ROOT=/app \
   -e WREN_SSM_ENV_PARAM="$ssm_env" \
   -e WREN_SSM_ROSTER_PARAM=/wren/prod/senders_config \
@@ -86,7 +100,7 @@ docker run -d --name wren-worker-new --restart unless-stopped --init \
   -e WREN_DATABASE_POOL_PORT=6432 \
   -e WREN_LOG_LEVEL=info \
   -e NODE_OPTIONS=--max-old-space-size=448 \
-  node:22-slim node app/box.mjs >/dev/null
+  "$image" node app/box.mjs >/dev/null
 
 # Up = its lanes and door run ("box ready"). CI logs are public: print names and messages only.
 brief='import json,sys

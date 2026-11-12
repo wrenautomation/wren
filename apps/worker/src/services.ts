@@ -42,10 +42,12 @@ export interface Services {
 const POOL_CHAIN = ["LeadPoolFill", "CompanySiteFind", "CompanyEnrich", "LeadVerify"];
 /**
  * The box lane (`rt.ts`): the chain; the page archive, which moves rows out of its own disk;
- * the books' day and the triage, which wait on the model and the Mac's desk.
+ * the books' day and the triage, which wait on the model and the Mac's desk; Canon's index, which
+ * keeps a git clone on the box's disk.
  */
 export const BOX_SERVICES = [
   ...POOL_CHAIN,
+  "CanonIndexSync",
   "PageHtmlArchive",
   "BooksClose",
   "MyMailTriage",

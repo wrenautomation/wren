@@ -272,6 +272,10 @@ export const settingsSchema = z.object({
   filesBucket: z.string().min(1).optional(),
   /** The private S3 bucket archived page HTML moves to (`pages/<id>.html.gz`); unset = pages stay in Postgres. */
   pagesBucket: z.string().min(1).optional(),
+  /** Canon's git remote the box indexes (CanonIndexSync); it reads with `shapesGithubToken`. */
+  canonRemote: z.string().url().default("https://github.com/wrenautomation/canon.git"),
+  /** Where the box keeps Canon's bare clone (CanonIndexSync); the CLI's checkout is `canonDir`. */
+  canonCloneDir: z.string().min(1).default("/var/lib/wren-canon"),
   /** The client portal (`https://app.<domain>`); unset = no ClientUpdateMail. */
   portalOrigin: z.string().url().optional(),
   /** Client mail comes from this address, sent through `portalMailbox`; either unset = pings only. */
@@ -690,6 +694,8 @@ export const ENV_KEYS = {
   mediaBucket: "WREN_MEDIA_BUCKET",
   filesBucket: "WREN_FILES_BUCKET",
   pagesBucket: "WREN_PAGES_BUCKET",
+  canonRemote: "WREN_CANON_REMOTE",
+  canonCloneDir: "WREN_CANON_CLONE_DIR",
   portalOrigin: "WREN_PORTAL_ORIGIN",
   marketingPostal: "WREN_MARKETING_POSTAL",
   portalFrom: "WREN_PORTAL_FROM",

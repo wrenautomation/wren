@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./canon-index": "./src/canon-index.ts",
     "./companies": "./src/companies/index.ts",
     "./components": "./src/components.ts",
     "./discovery": "./src/discovery/index.ts",

@@ -45,25 +45,39 @@ Filters: tag, provider (his own first by default), platform, kind (reel or video
 The knowledge design (2026-11-09) chose git files as the truth with a Postgres index. Open: what
 runs the sync for prod.
 
-| | How | For | Against |
+William 11-12: "why does it have to be a sync? ... can there not be one source of truth?" There is one:
+git. The index holds no fact git lacks, nothing else writes it, and a drop rebuilds it. The portal
+needs it because a page that lists, filters and walks cites cannot read 10.6k files per request.
+
+| | Truth | Trigger | Against |
 |---|---|---|---|
-| A | Mac writes with the owner URL | no new code | owner rights for an index job |
-| B | Mac posts the diff to an ingress handler | box holds the only DB rights | a full rebuild is about 40 MB: chunks or an S3 hop; a second code path beside `sync` |
-| C | Box fetches Canon from GitHub and syncs | no Mac needed; fits many client repos | git in the worker image, a deploy key in SSM |
-| **D** | **Canon's post-commit hook runs `wren canon sync` as a role that writes only schema `canon`** | **same code as the local index; fresh on every commit; least rights** | **needs the Mac; one more DB role** |
+| A | git | Canon's post-commit hook on the Mac runs the sync | stops when the Mac sleeps; only repos on this Mac |
+| B | Postgres | none | loses git history, diffs and the knowledge engine |
+| **C** | **git** | **push → GitHub webhook → box fetches a bare clone, diff sync** | **git in the box image; a GitHub token on the box** |
+| D | git | CI writes a JSON snapshot to S3; the portal reads it | no SQL or cite walk; a second read path |
 
-Pick D. Today only the Mac writes Canon. Canon's hook already reaches prod from the Mac (it pushes
-guides). When clients write their own repos, move the sync to the box (C). The tables stay the same.
+Pick C (William, 11-12: "sure go with C"). No Mac in the path; a client repo is one more key. Scale:
+a diff sync reads only the files changed since `knowledge_meta.head`, so a push costs O(changed
+files). The index trails git by seconds; each pass goes to `main`'s tip, so a missed one heals on
+the next. The box, not Lambda: the clone stays on disk (a fetch moves new objects only) and the
+writes stay beside Postgres.
 
-- One SQL migration: schema `canon`, role `canon_index` (owner, `search_path=canon`), `USAGE` for
-  wren, and `ALTER DEFAULT PRIVILEGES FOR ROLE canon_index IN SCHEMA canon GRANT SELECT ON TABLES TO
-  wren`. A rebuild that drops and makes the tables again keeps the grant. The password is set out of
-  band and goes to SSM (`/wren/canon-index-url`). The hook reads it through `scripts/secrets.mjs run`.
-- Only `wren canon sync` writes, so one pinned `knowledge` version owns the tables.
-- The hook runs it detached, under a lock file, before its "no guide changed" exit. A commit never
-  waits for it. A diff sync is safe to replay, so a missed run heals on the next commit.
-- The hook never runs a full rebuild. When `sync` needs one (amend, rebase, `SCHEMA` bump), it stops
-  and prints `wren canon sync --full`.
+- `CanonIndexSync/<repo>` (packages/research `canon-index.ts`), box lane. `sync` per push, `start`
+  for the hourly backstop, `rebuild` rereads every file (after a force push). Exclusive per repo.
+- The phone Worker's `/webhooks/github` checks `X-Hub-Signature-256` (`GITHUB_WEBHOOK_SECRET`), takes
+  a push to `main` of a repo in `CANON_REPOS`, sends `sync` keyed by the delivery id. Door down:
+  held and replayed (GitHub never redelivers on its own).
+- The box keeps a bare clone in `/var/lib/wren-pg/canon` (mounted at `/var/lib/wren-canon`).
+  Fetch over HTTPS with `WREN_SHAPES_GITHUB_TOKEN` (fine-grained, contents on Canon; the shape
+  mirror's, already in env-2), passed as env-only git config. The org turns deploy keys off, and a
+  second token would add a secret for no new reach: the box process holds this one already. Image
+  `wren-box-node:22-git-1`: node:22-slim plus git, built on the box by `box-worker.sh`.
+- Each pass first runs `ensureCanonIndex` as main: schema `canon`, login `canon_index` (password
+  derived from main's, as client logins are; `search_path=canon`), `USAGE, CREATE` on `canon` only,
+  and default privileges so main reads every table `canon_index` makes, a rebuild's too. No
+  migration: the role's password cannot sit in SQL.
+- Only `CanonIndexSync` writes, so one pinned `knowledge` version owns the tables.
+- `wren canon sync [--full]` and `wren canon start` ask the box; the Mac holds no index rights.
 - The portal reads `canon.knowledge_*` by name (a `pgSchema("canon")` copy of the three tables).
 
 ## D2: media
@@ -135,7 +149,8 @@ super minimal rewrites on my notes for standardization."
 - A signed-out download fails on a private or deleted reel. It stays on the embed.
 - A `knowledge` release that changes `SCHEMA` rebuilds prod's tables on the next sync, and the
   portal's table copy must match it. Bump wren's pin and the copy together.
-- The sync runs only when the Mac commits. The footer shows how fresh the index is.
+- A push GitHub fails to deliver waits for the hourly fetch. The footer shows how fresh the index is.
+- A full rebuild reads every file into the box worker (640 MB cap); today about 44 MB of text.
 - Copyright: copies are private study material in a private bucket, never published.
 
 ## Order
@@ -156,3 +171,4 @@ super minimal rewrites on my notes for standardization."
   Vireo" cut; the note facts restated (about 30 still cut).
 - 2026-11-12: notes done: 76 of 86 rewritten (Canon 6fce9270). 2 had no words of his about the
   link and lost the note; 2 (SEO, LinkedIn) have no full source and stay cut. Learn marks unchanged.
+- 2026-11-12: D1 moved from the Mac hook to C (box fetches on push), William: "sure go with C". Built: `CanonIndexSync`, `/webhooks/github`, `wren canon sync`.
