@@ -1,6 +1,7 @@
 /** Explorer › Canon: Explorer over the Canon tree (`paths/*`), each kind of home in the preview. Fake server: `web/src/mocks/`. */
 import type { Meta } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import { refuse } from "../../../mocks/api.js";
 import { CANON_ROWS } from "../../../mocks/data/canon.js";
 import { CANON_HOME } from "../../../mocks/data/canon-library.js";
 import { ADMIN } from "../../../mocks/data/me.js";
@@ -11,7 +12,9 @@ const meta: Meta = { title: "Wren/Explorer/Canon" };
 export default meta;
 
 const WAIT = { timeout: 5000 };
-const at = (route: string, view?: "list" | "gallery") => explorerHref(route, view);
+const at = (route: string, view?: "list" | "gallery" | "map") => explorerHref(route, view);
+const mapBox = (page: HTMLElement, path: string) =>
+  page.querySelector<HTMLElement>(`[data-map="b:${path}"]`);
 const REF = CANON_ROWS[0]?.id ?? "instagram-Fake1";
 const LONG = "writing-tells-and-a-much-longer-topic-name-that-wraps";
 
@@ -148,6 +151,90 @@ export const Gallery = tidy(
     },
   }),
 );
+
+/** The root as a map: its areas as boxes, the first level open, the links between them as lines. */
+export const MapRoot = tidy(
+  pageAt(at("canon", "map"), {
+    me: ADMIN,
+    check: async (page) => {
+      await waitFor(() => expect(page.querySelectorAll("[data-line]").length).toBeGreaterThan(0), {
+        timeout: 10_000,
+      });
+      await expect(mapBox(page, "canon/topics")?.hasAttribute("data-open")).toBe(true);
+      await expect(
+        within(page).getByRole("button", { name: "Map", pressed: true }),
+      ).toBeInTheDocument();
+    },
+  }),
+);
+
+/** A rule line in Map: the boxes on its way open, its box picked, the line beside. */
+export const MapAtLine = tidy(
+  pageAt(at("canon/topics/video-editing/sets/video-editing-cuts/VC-3", "map"), {
+    ...ONE,
+    check: async (page) => {
+      const box = "canon/topics/video-editing/sets/video-editing-cuts/VC-3";
+      await waitFor(() => expect(mapBox(page, box)?.hasAttribute("data-picked")).toBe(true), {
+        timeout: 10_000,
+      });
+      const [shown] = await within(page).findAllByText(
+        "Never cut away from the speaker mid-word. [3]",
+        {},
+        WAIT,
+      );
+      await waitFor(() => expect(shown).toBeVisible(), WAIT);
+    },
+  }),
+);
+
+/** A line picked: its links by kind beside the map; each end stays in Map. */
+export const MapLink = tidy(
+  pageAt(at("canon", "map"), {
+    me: ADMIN,
+    check: async (page) => {
+      await waitFor(() => expect(page.querySelector("[data-line]")).not.toBeNull(), {
+        timeout: 10_000,
+      });
+      const hit = page.querySelector("[data-line]")?.nextElementSibling;
+      await userEvent.click(hit as unknown as HTMLElement);
+      await within(page).findByText(/\d+ links?$/, {}, WAIT);
+      await waitFor(() => expect(page.querySelector("article section ul a")).not.toBeNull(), WAIT);
+      await expect(page.querySelector("article section ul a")?.getAttribute("href")).toMatch(
+        /view=map$/,
+      );
+    },
+  }),
+);
+
+/** The map's read fails: what failed and Try again; the view switch stays. */
+export const MapFailed = pageAt(at("canon", "map"), {
+  me: ADMIN,
+  answers: { "paths/map": refuse(500, "The map could not be laid out") },
+  check: async (page) => {
+    const view = within(page);
+    await expect(await view.findByRole("button", { name: /Try again/ }, WAIT)).toBeVisible();
+    await expect(view.getByRole("button", { name: "Map", pressed: true })).toBeInTheDocument();
+  },
+});
+
+/** Before the first sync in Map: one line on how Canon gets here, not a second error for the map. */
+export const MapNotIndexed = pageAt(at("canon", "map"), {
+  me: ADMIN,
+  empty: false,
+  answers: {
+    "paths/columns": {
+      columns: [],
+      error: { code: "not-indexed", message: "Canon has no index here yet", route: "canon" },
+    },
+    "paths/map": refuse(404, "Canon has no index here yet"),
+    "canon/home": { ...CANON_HOME, indexed: false, head: null, topics: [] },
+  },
+  check: async (page) => {
+    const view = within(page);
+    await expect(await view.findByText(/wren canon sync/, {}, WAIT)).toBeVisible();
+    await expect(view.queryByText(/This map/)).toBeNull();
+  },
+});
 
 /** Find under the root: the words matched, each result a link to its home. */
 export const Find = tidy(

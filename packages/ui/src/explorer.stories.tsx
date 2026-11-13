@@ -9,6 +9,7 @@ import {
   explorerPending,
   explorerRead,
 } from "./fixtures/index.js";
+import { fails } from "./fixtures/load.js";
 
 export default {
   title: "Templates/Explorer",
@@ -318,5 +319,51 @@ export const WorstCase: Story = {
     await canvas.findByRole("heading", { name: "W-4", level: 2 });
     await settle(canvasElement);
     await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
+  },
+};
+
+const mapBox = (el: HTMLElement, path: string) =>
+  el.querySelector<HTMLElement>(`[data-map="b:${path}"]`);
+
+/** The Map at a rule line: the boxes on its way open, its box is picked, the line whole beside. */
+export const MapView: Story = {
+  render: () => <Demo make={() => explorerRead()} at={`${SET}/BP-2`} view="map" />,
+  play: async ({ canvasElement: el }) => {
+    const canvas = within(el);
+    await waitFor(() => expect(mapBox(el, `${SET}/BP-2`)).not.toBeNull(), { timeout: 10_000 });
+    expect(mapBox(el, `${SET}/BP-2`)?.hasAttribute("data-picked")).toBe(true);
+    expect(mapBox(el, "canon/topics/bread-baking")?.hasAttribute("data-open")).toBe(true);
+    await canvas.findByRole("heading", { name: "BP-2", level: 2 });
+    expect(canvas.getByRole("button", { name: "Map", pressed: true })).toBeInTheDocument();
+  },
+};
+
+/** Pick a line: its links by kind beside the map, each end a link that stays in Map. */
+export const MapLine: Story = {
+  render: () => <Demo make={() => explorerRead()} at="canon" view="map" />,
+  play: async ({ canvasElement: el }) => {
+    const canvas = within(el);
+    await waitFor(() => expect(el.querySelectorAll("[data-line]").length).toBeGreaterThan(0), {
+      timeout: 10_000,
+    });
+    const line = el.querySelector<SVGGElement>("[data-line]");
+    const hit = line?.nextElementSibling as SVGPathElement | null;
+    await userEvent.click(hit as unknown as HTMLElement);
+    const heading = await canvas.findByRole("heading", { level: 2 });
+    await canvas.findByText(/\d+ links?$/);
+    await waitFor(() => expect(el.querySelector("article section ul a")).not.toBeNull());
+    const a = el.querySelector<HTMLAnchorElement>("article section ul a");
+    expect(a?.getAttribute("href")).toMatch(/view=map$/);
+    expect(heading.textContent).not.toBe("");
+  },
+};
+
+/** The map's read fails: what failed and Try again; the view switch stays. */
+export const MapFailed: Story = {
+  render: () => <Demo make={() => ({ ...explorerRead(), map: fails() })} at="canon" view="map" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole("button", { name: /Try again/ }, { timeout: 4000 });
+    expect(canvas.getByRole("button", { name: "Map", pressed: true })).toBeInTheDocument();
   },
 };

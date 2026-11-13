@@ -78,16 +78,22 @@ export const OpenBox: Story = {
   render: () => <Demo />,
   play: async ({ canvasElement: el }) => {
     await drawn(el, "canon/topics/bread-baking");
-    await userEvent.click(box(el, "canon/topics/bread-baking") as HTMLElement);
-    await drawn(el, "canon/topics/bread-baking/sets");
-    // the glide runs on the inner divs, never on React Flow's wrapper
-    await waitFor(() =>
-      expect(
-        document
-          .getAnimations()
-          .some((a) => (a.effect as KeyframeEffect | null)?.target?.closest?.("[data-map]")),
-      ).toBe(true),
-    );
+    // each animate call, kept: the glide ends (under 300 ms) before a poll would see it
+    const moved: Element[] = [];
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function (this: Element, ...args) {
+      moved.push(this);
+      return animate.apply(this, args);
+    };
+    try {
+      await userEvent.click(box(el, "canon/topics/bread-baking") as HTMLElement);
+      await drawn(el, "canon/topics/bread-baking/sets");
+      // the glide runs on the inner divs, never on React Flow's wrapper
+      await waitFor(() => expect(moved.some((m) => m.closest("[data-map]"))).toBe(true));
+      expect(moved.some((m) => m.classList.contains("react-flow__node"))).toBe(false);
+    } finally {
+      Element.prototype.animate = animate;
+    }
     expect(box(el, "canon/topics/bread-baking")?.hasAttribute("data-open")).toBe(true);
     expect(el.querySelector('[data-testid="picked"]')?.textContent).toBe(
       "Picked canon/topics/bread-baking",

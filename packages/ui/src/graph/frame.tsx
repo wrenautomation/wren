@@ -49,6 +49,8 @@ interface FrameProps {
   fits: boolean;
   /** No border or dotted ground: a run's steps sit on the page. */
   bare?: boolean | undefined;
+  /** The dotted ground, no border: it sits in a frame that has one. */
+  flush?: boolean | undefined;
   minimap?: boolean | undefined;
   /** React Flow's events and switches this graph needs (clicks, connecting, sizes). */
   flow?: Partial<ReactFlowProps> | undefined;
@@ -110,6 +112,7 @@ export function GraphFrame({
   rest,
   fits,
   bare,
+  flush,
   minimap,
   flow,
   children,
@@ -171,7 +174,8 @@ export function GraphFrame({
       aria-label={`${label}. Arrows pan, plus and minus zoom, F fits all.`}
       className={cn(
         "group/frame relative w-full max-w-full overflow-hidden outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus)",
-        !bare && "border border-(--ui-hair) bg-(--ui-graph)",
+        !bare && "bg-(--ui-graph)",
+        !bare && !flush && "border border-(--ui-hair)",
         className,
       )}
       style={{ height }}

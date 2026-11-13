@@ -419,12 +419,13 @@ describe("canonPaths", () => {
     expect(await canonPaths(pg.db, REMOTE, null).edges?.("canon")).toEqual(edges);
 
     const map = await mapAt(a, { depth: 2, open: {} });
+    // the depth cut skips a box past 12 rows: Records counts every record
     expect(map.boxes.filter((b) => b.open).map((b) => b.path)).toEqual([
       "canon/topics",
       "canon/references",
-      "canon/records",
       "canon/files",
     ]);
+    expect(map.boxes.find((b) => b.path === "canon/records")).toMatchObject({ open: false });
     const line = map.lines.find((l) => l.id === `${ref}>${T}`);
     expect(line).toMatchObject({ count: 1, rels: { backs: 1 } });
     expect(map.inside[T]).toBeGreaterThan(0);

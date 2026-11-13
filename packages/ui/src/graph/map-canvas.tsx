@@ -35,6 +35,7 @@ import {
   type MapIn,
   type MapLaid,
   type MapLineIn,
+  type MapRect,
   metaOf,
   titleOf,
 } from "./map-layout.js";
@@ -54,6 +55,8 @@ export interface MapCanvasProps {
   height?: number | undefined;
   /** The layout's time (ms), for the page's own measure. */
   onLaid?: ((ms: number) => void) | undefined;
+  /** In a frame that has its own border (Explorer's) */
+  flush?: boolean | undefined;
 }
 
 /** MV-9: the Map's motion holds under 300 ms. */
@@ -259,15 +262,16 @@ function MapLine({ id, data }: EdgeProps<Edge<LineData>>) {
         data-line={id}
         className="transition-[opacity,color] duration-200 ease-(--ui-ease) motion-reduce:transition-none"
         style={{
-          opacity: dim ? 0.14 : picked || g.lit ? 0.95 : 0.6,
+          opacity: dim ? 0.25 : picked || g.lit ? 0.95 : 0.6,
           color: picked ? "var(--ui-active)" : g.lit && !dim ? "var(--ui-ink)" : "var(--ui-ink-3)",
         }}
       >
         <title>{say}</title>
         <path
           d={route.d}
-          className="fill-none stroke-current [stroke-linecap:round]"
-          style={{ strokeWidth: data.width }}
+          className="fill-none stroke-current transition-[stroke-width] duration-200 ease-(--ui-ease) [stroke-linecap:round] motion-reduce:transition-none"
+          // picked: thick enough to find at a glance, even a 1-link line
+          style={{ strokeWidth: picked ? Math.max(2.5, data.width + 1) : data.width }}
         />
         <path d={route.head} className="fill-current" />
       </g>
@@ -369,6 +373,15 @@ function edgesOf(map: MapIn, at: MapLaid): Edge<LineData>[] {
   });
 }
 
+/** A box's place in map units: its own offset plus every open box it sits in. */
+function placeOf(laid: { map: MapIn; at: MapLaid }, path: string): MapRect | null {
+  const own = laid.at.boxes[path];
+  if (!own) return null;
+  const parent = laid.map.boxes.find((b) => b.path === path)?.parent;
+  const up = parent && parent !== laid.map.root ? placeOf(laid, parent) : null;
+  return up ? { ...own, x: own.x + up.x, y: own.y + up.y } : own;
+}
+
 export default function MapCanvas({
   map,
   label,
@@ -377,6 +390,7 @@ export default function MapCanvas({
   onPick,
   height = 560,
   onLaid,
+  flush,
 }: MapCanvasProps) {
   const host = useRef<HTMLDivElement>(null);
   const ghost = useRef<HTMLDivElement>(null);
@@ -502,6 +516,9 @@ export default function MapCanvas({
     };
   }, [laid, picked, onPick, onOpen]);
 
+  // the box to rest on when the map overflows: the pick as the layout lands, not each later pick
+  const pickedNow = useRef(picked);
+  pickedNow.current = picked;
   const view = useMemo(() => {
     if (!laid || !width) return null;
     const { width: w, height: h } = laid.at;
@@ -515,11 +532,24 @@ export default function MapCanvas({
       Math.min(1, room / Math.max(1, w), tall / Math.max(1, h)),
     );
     const fits = w * zoom <= room + 1 && h * zoom <= tall + 1;
+    const p = pickedNow.current;
+    const at = !fits && p?.kind === "box" ? placeOf(laid, p.path) : null;
+    // the axis that overflows centers the pick, kept inside the map's own edges
+    const onPick = (start: number, free: number, size: number, mid: number) =>
+      free >= 0
+        ? start + free / 2
+        : Math.min(start, Math.max(start + free, start + free / 2 + (size / 2 - mid) * zoom));
     return {
-      // centered when it all fits; past the frame it rests top left, so the first boxes show
+      // centered when it all fits; past the frame it rests on the pick, else top left
       rest: fits
         ? { x: PAD + (room - w * zoom) / 2, y: top + Math.max(0, (tall - h * zoom) / 2), zoom }
-        : { x: PAD + Math.max(0, (room - w * zoom) / 2), y: top, zoom },
+        : at
+          ? {
+              x: onPick(PAD, room - w * zoom, w, at.x + at.width / 2),
+              y: onPick(top, Math.min(0, tall - h * zoom), h, at.y + at.height / 2),
+              zoom,
+            }
+          : { x: PAD + Math.max(0, (room - w * zoom) / 2), y: top, zoom },
       fits,
     };
   }, [laid, width, height, narrow]);
@@ -535,7 +565,7 @@ export default function MapCanvas({
         <p className="text-[14px] text-(--ui-ink-2)">Nothing here to draw.</p>
       ) : !view ? (
         <div
-          className="w-full border border-(--ui-hair) bg-(--ui-tile)"
+          className={cn("w-full bg-(--ui-tile)", !flush && "border border-(--ui-hair)")}
           style={{ height }}
           role="status"
           aria-busy="true"
@@ -552,6 +582,7 @@ export default function MapCanvas({
             height={height}
             rest={view.rest}
             fits={view.fits}
+            flush={flush}
             minimap={!view.fits}
             flow={{ onPaneClick: () => onPick?.(null) }}
             className={cn("transition-opacity duration-150 ease-(--ui-ease)", slow && "opacity-60")}

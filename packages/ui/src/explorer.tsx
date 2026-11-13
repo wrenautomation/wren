@@ -26,16 +26,17 @@ import {
 import { Seg, type TagTone } from "./controls.js";
 import { useCopy } from "./copy.js";
 import { useLoad } from "./data/query.js";
+import { MapPane, type MapRead } from "./explorer-map.js";
 import { FindResults, Narrow, WideColumns, WideGallery, WideList } from "./explorer-panes.js";
 import { type Ctx, follow, PathFailed, within } from "./explorer-rows.js";
 import { LoadFailed } from "./feedback.js";
 import { Icon, type IconName } from "./icons.js";
 
-export type ExplorerView = "columns" | "list" | "gallery";
-export const EXPLORER_VIEWS: readonly ExplorerView[] = ["columns", "list", "gallery"];
+export type ExplorerView = "columns" | "list" | "gallery" | "map";
+export const EXPLORER_VIEWS: readonly ExplorerView[] = ["columns", "list", "gallery", "map"];
 
 /** The answers Explorer reads: PathsConsole's routes, or an adapter in the browser. */
-export interface ExplorerRead {
+export interface ExplorerRead extends Partial<MapRead> {
   columns(route: string): Promise<Shown>;
   children(path: string, after?: string): Promise<Page>;
   find(q: string, under: string): Promise<Item[]>;
@@ -215,6 +216,9 @@ export function Explorer(p: ExplorerProps) {
 
   const frameBox = useRef<HTMLDivElement>(null);
   const frame = useFrameHeight(frameBox, wide);
+  // the Map needs both reads; a read without them has no Map
+  const mapRead: MapRead | null =
+    read.map && read.line ? { map: read.map.bind(read), line: read.line.bind(read) } : null;
   const body = asked ? (
     <FindResults
       ctx={ctx}
@@ -238,6 +242,21 @@ export function Explorer(p: ExplorerProps) {
     <div className="min-w-0 flex-1 p-1">
       <PathFailed ctx={ctx} error={error} onRetry={got.retry} />
     </div>
+  ) : view === "map" && mapRead ? (
+    <MapPane
+      ctx={ctx}
+      read={mapRead}
+      route={route}
+      home={home}
+      cols={cols}
+      whole={settled ? whole : undefined}
+      aside={aside}
+      dim={!settled}
+      error={error}
+      onRetry={got.retry}
+      wide={wide}
+      height={frame}
+    />
   ) : !wide ? (
     <Narrow
       ctx={ctx}
@@ -313,6 +332,14 @@ export function Explorer(p: ExplorerProps) {
               },
               { value: "list", label: <ViewLabel icon="list" text="List" short={!wide} /> },
               { value: "gallery", label: <ViewLabel icon="apps" text="Gallery" short={!wide} /> },
+              ...(mapRead
+                ? [
+                    {
+                      value: "map" as const,
+                      label: <ViewLabel icon="workflow" text="Map" short={!wide} />,
+                    },
+                  ]
+                : []),
             ]}
           />
           <CopyLink href={hrefFor(home)} />

@@ -12,6 +12,7 @@ import {
   type Item,
   itemFromParent,
   join,
+  lineAt,
   linksOf,
   mapAt,
   type PathEdge,
@@ -479,6 +480,8 @@ export function explorerRead(o: ExplorerFixture & { ms?: number } = {}): Explore
     columns: async (route) => later(await columns(a, route), ms),
     children: async (path, after) => later(await childrenAt(a, path, after), ms),
     find: async (q, under) => later(await a.find(q, await homeAt(a, under)), ms),
+    map: async (_root, fold) => later(await mapAt(a, fold), ms),
+    line: async (from, to, after) => later(await lineAt(a, from, to, after), ms),
   };
 }
 
