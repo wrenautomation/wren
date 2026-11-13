@@ -209,13 +209,19 @@ export async function pageSource(
     }
   }
   const title = read.title || id;
+  const meta = "meta" in read ? read.meta : undefined;
+  // the page's own author fields; a repo's owner is its author
+  const channel =
+    meta?.authors?.join(", ") || (id.startsWith("github-") && repo?.[1] ? repo[1] : undefined);
   return {
     name: `${id}.md`,
     md: `${frontMatter({
       url: page.url,
       title,
-      // a repo's owner is its author
-      ...(id.startsWith("github-") && repo?.[1] ? { channel: repo[1] } : {}),
+      ...(channel ? { channel } : {}),
+      // a site is a publisher, never an author
+      ...(meta?.site ? { site: meta.site } : {}),
+      ...(meta?.published ? { uploaded: meta.published } : {}),
       ...(read.image ? { image: read.image } : {}),
       priority,
     })}# ${title}\n\n${text.trim()}\n`,

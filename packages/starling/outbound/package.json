@@ -35,7 +35,7 @@
     "@wren/starling-linkedin": "workspace:*",
     "@wren/starling-reddit": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
-    "@wrenautomation/read": "0.75.2",
+    "@wrenautomation/read": "0.75.5",
     "drizzle-orm": "0.45.2",
     "mailifier": "0.3.9",
     "zod": "4.6.6"

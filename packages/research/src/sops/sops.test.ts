@@ -179,7 +179,9 @@ describe("sops", () => {
   it("files a page by its source id, and a repo by its README", async () => {
     const pages: Record<string, string> = {
       "https://emilkowal.ski/ui/x":
-        '<html><head><title>Good UI</title><meta property="og:image" content="/p.png"></head><body><p>Springs.</p></body></html>',
+        '<html><head><title>Good UI</title><meta property="og:image" content="/p.png"><meta name="author" content="Emil Kowalski, A. Person"><meta property="article:published_time" content="2026-10-01T09:00:00Z"><meta property="og:site_name" content="Emil"></head><body><p>Springs.</p></body></html>',
+      "https://example.com/plain":
+        "<html><head><title>Plain</title></head><body><p>Words.</p></body></html>",
       "https://github.com/acme/kit":
         "<html><head><title>acme/kit</title></head><body>nav</body></html>",
       "https://raw.githubusercontent.com/acme/kit/HEAD/README.md": "# Kit\n\nThe whole readme.",
@@ -200,7 +202,11 @@ describe("sops", () => {
     expect(repoSource.md).toContain("The whole readme.");
     expect(repoSource.md).not.toContain("nav");
     expect(repoSource.md).toContain('channel: "acme"');
-    expect(page.md).not.toContain("channel:");
+    expect(page.md).toContain('channel: "Emil Kowalski, A. Person"');
+    expect(page.md).toContain('site: "Emil"');
+    expect(page.md).toMatch(/uploaded: "2026-10-01T09:00:00(\.000)?Z"/);
+    const plain = await pageSource("https://example.com/plain", fetcher);
+    expect(plain.md).not.toMatch(/channel:|site:|uploaded:/);
   });
 
   it("reads an arxiv PDF link as its abstract page, and never files a PDF's bytes", async () => {
