@@ -12,7 +12,6 @@ import {
   LoadFailed,
   Pill,
   Skeleton,
-  say,
   Tag,
   tipProps,
   useSeen,
@@ -20,7 +19,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
 import { holdersOf, lineage, PRIORITIES, STATUSES } from "@wrenautomation/aerie/core";
 import { type ReactNode, useEffect, useState } from "react";
-import type { ApiError } from "../../api.js";
 import type { Load } from "../../load.js";
 import { navigate } from "../../route.js";
 import { Markdown, Section } from "../canon/parts.js";
@@ -28,6 +26,7 @@ import { dayLabel } from "../work/bits.js";
 import {
   type Board,
   editTask,
+  sayRefused,
   type TaskPick,
   type TaskRow,
   type TaskWhole,
@@ -55,7 +54,6 @@ type Head = Pick<
 >;
 
 const NOT_FOUND = 404;
-const STALE = 409;
 
 export interface TaskSheetProps {
   id: string;
@@ -140,10 +138,7 @@ function TaskBody({ id, rows, board, hrefOf, onWrote }: TaskSheetProps) {
     try {
       setWrote((await editTask(head.id, expect, edit)).version);
     } catch (err) {
-      const stale = (err as ApiError).status === STALE;
-      say.failed(
-        stale ? new Error(`${head.id} changed since you read it. It shows the newest now.`) : err,
-      );
+      sayRefused(head.id, err);
     } finally {
       setBusy(false);
       got.retry();

@@ -4,9 +4,16 @@
  * (`matches`), so a filter change reads nothing.
  */
 
-import { changedSince, mergeRows } from "@wrenautomation/aerie/core";
+import { say } from "@wren/ui";
+import {
+  applyEdit,
+  changedSince,
+  type MoveEdit,
+  mergeRows,
+  type Task,
+} from "@wrenautomation/aerie/core";
 import type { AerieAnswer, AerieRoute } from "@wrenautomation/aerie/http";
-import { call } from "../../api.js";
+import { type ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 
 export type Board = AerieAnswer<"board">;
@@ -58,5 +65,31 @@ export const useTask = (id: string) =>
 
 /** the panel's picks; `expect` is the version read, a newer one refuses with 409 */
 export type TaskPick = { status?: string; priority?: string | null };
-export const editTask = (id: string, expect: number, edit: TaskPick) =>
+export const editTask = (id: string, expect: number, edit: TaskPick | MoveEdit) =>
   aerieCall("edit", { id, expect, edit });
+
+/** the row the server will answer: core `applyEdit`, the store's own step, one version on */
+export function predict(r: TaskRow, edit: MoveEdit): TaskRow {
+  const { area, ...rest } = edit;
+  const t = applyEdit(
+    { ...r, comments: [], extra: {} } as unknown as Task,
+    rest,
+    new Date().toISOString(),
+  );
+  return {
+    ...r,
+    ...(t as unknown as TaskRow),
+    comments: r.comments,
+    area: area ?? r.area,
+    version: r.version + 1,
+  };
+}
+
+/** a refused write's toast: 409 names the task, the rest say the server's line */
+export function sayRefused(id: string, err: unknown) {
+  say.failed(
+    (err as ApiError).status === 409
+      ? new Error(`${id} changed since you read it. It shows the newest now.`)
+      : err,
+  );
+}

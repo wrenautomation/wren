@@ -65,10 +65,15 @@ export function unmocked(key: string) {
   return refuse(404, `unmocked: ${key}`);
 }
 
+/** a mock's own state (rows a story wrote): cleared before each story */
+const resets: (() => void)[] = [];
+export const onFreshStory = (reset: () => void) => void resets.push(reset);
+
 /** Called before each story renders. */
 export function freshStory() {
   story.out = 0;
   story.unmocked.clear();
+  for (const reset of resets) reset();
 }
 
 /**

@@ -3,8 +3,9 @@
  * work. Worst cases ride along: a long unbroken title, a task with no priority, area `inbox` or assignee,
  * a task in two label groups, a held task, and a big Done pile.
  */
+import { applyEdit, type Edit, type Task } from "@wrenautomation/aerie/core";
 import type { AerieAnswer, AerieApi } from "@wrenautomation/aerie/http";
-import { refuse, serve } from "../api.js";
+import { onFreshStory, refuse, serve } from "../api.js";
 import { ago } from "./shell.js";
 
 type Row = AerieAnswer<"tasks">[number];
@@ -248,24 +249,53 @@ export function wholeOf(id: string, rows: readonly Row[] = AERIE_TASKS): Whole |
   };
 }
 
+/** rows a story wrote, by id: reads see them, so a move stays moved */
+const written = new Map<string, Row>();
+onFreshStory(() => written.clear());
+const rowOf = (id: string) => written.get(id) ?? AERIE_TASKS.find((t) => t.id === id);
+const current = () => AERIE_TASKS.map((t) => written.get(t.id) ?? t);
+
+/** the server's write: core `applyEdit` on the row, `area` as a placement, one version on */
+function write(r: Row, edit: Edit & { area?: string }): Row {
+  const { area, ...rest } = edit;
+  const t = applyEdit(
+    { ...r, comments: [], extra: {} } as unknown as Task,
+    rest,
+    new Date().toISOString(),
+  );
+  return {
+    ...r,
+    ...(t as unknown as Row),
+    comments: r.comments,
+    area: area ?? r.area,
+    version: r.version + 1,
+  };
+}
+
 export const AERIE_ANSWERS = serve<AerieApi>("aerie", {
   board: AERIE_BOARD,
-  // a delta read (`updatedAfter`) finds nothing new: nothing changes behind a story
-  tasks: (b) =>
-    (b.filter as { updatedAfter?: string } | undefined)?.updatedAfter ? [] : AERIE_TASKS,
+  // a delta read (`updatedAfter`) answers the rows a story wrote since
+  tasks: (b) => {
+    const after = (b.filter as { updatedAfter?: string } | undefined)?.updatedAfter;
+    return after
+      ? [...written.values()].filter((r) => (r.updatedAt ?? r.createdAt) > after)
+      : current();
+  },
   search: (b) => {
     const q = String(b.text).toLowerCase();
-    return AERIE_TASKS.filter((t) =>
-      `${t.id} ${t.title} ${t.summary ?? ""}`.toLowerCase().includes(q),
-    ).map((t) => t.id);
+    return current()
+      .filter((t) => `${t.id} ${t.title} ${t.summary ?? ""}`.toLowerCase().includes(q))
+      .map((t) => t.id);
   },
-  task: async (b) => wholeOf(String(b.id)) ?? refuse(404, `no task ${String(b.id)}`),
-  // a write answers the row one version on; stories that turn writes on override the board
+  task: async (b) => wholeOf(String(b.id), current()) ?? refuse(404, `no task ${String(b.id)}`),
+  // stories that turn writes on override the board
   edit: async (b) => {
-    const r = AERIE_TASKS.find((t) => t.id === b.id);
+    const r = rowOf(String(b.id));
     if (!r) return refuse(404, `no task ${String(b.id)}`);
     if (b.expect !== r.version) return refuse(409, `stale: ${r.id} is at version ${r.version}`);
-    return { ...r, ...(b.edit as object), version: r.version + 1 };
+    const next = write(r, b.edit as Edit);
+    written.set(r.id, next);
+    return next;
   },
   decisions: [],
   saveView: (b) => ({ id: 2, ...(b as Omit<AerieAnswer<"saveView">, "id">) }),

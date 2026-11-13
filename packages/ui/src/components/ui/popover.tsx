@@ -51,14 +51,14 @@ function PopoverContent({
  * On a phone a popup rises from the bottom as a sheet: full width, a grabber on top, clear of the
  * home bar, and it slides rather than zooms. Last in the classes, so it wins over a caller's.
  */
-const SHEET =
+export const SHEET =
   "max-[900px]:mx-auto max-[900px]:w-full! max-[900px]:max-w-[640px]! max-[900px]:max-h-[min(72dvh,560px)]! max-[900px]:min-w-0! max-[900px]:overflow-y-auto max-[900px]:overscroll-contain max-[900px]:rounded-b-none! max-[900px]:rounded-t-2xl! max-[900px]:border-t max-[900px]:border-(--ui-rim) max-[900px]:px-3! max-[900px]:pt-6! max-[900px]:pb-[calc(12px+env(safe-area-inset-bottom))]! max-[900px]:shadow-(--ui-shadow)! max-[900px]:ring-0! max-[900px]:duration-300 max-[900px]:zoom-in-100! max-[900px]:zoom-out-100! max-[900px]:slide-in-from-bottom-[40%]! max-[900px]:slide-out-to-bottom-[40%]! max-[900px]:before:absolute max-[900px]:before:top-2 max-[900px]:before:left-1/2 max-[900px]:before:h-[5px] max-[900px]:before:w-9 max-[900px]:before:-translate-x-1/2 max-[900px]:before:rounded-full max-[900px]:before:bg-(--ui-ink-3) max-[900px]:before:opacity-50 max-[900px]:before:content-['']";
 
 /**
  * A popup sheet follows a finger pulling it down from its top, and past a third of its height
  * it shuts, by the Escape the popup already answers.
  */
-function useDragDown(ref: React.RefObject<HTMLDivElement | null>) {
+export function useDragDown(ref: React.RefObject<HTMLDivElement | null>) {
   React.useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia?.("(max-width: 899.98px)").matches)
       return;
