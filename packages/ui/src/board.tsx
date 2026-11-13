@@ -4,8 +4,18 @@
  * (`useLines` on the lane). A shut lane is a 44 px strip. Narrow: a strip of lanes picks one, and the
  * page scrolls it. A card is a link: a plain click opens it in place, a modified one in a new tab.
  * `move`: a Move button beside each card's link opens one menu of the lanes (one detached menu per board);
- * without it the board reads only.
+ * wide, a card also drags to a lane (pragmatic-drag-and-drop, native drag). Without it the board reads only.
  */
+
+import {
+  draggable,
+  dropTargetForElements,
+  monitorForElements,
+} from "@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/utils/combine";
+import { preserveOffsetOnSource } from "@atlaskit/pragmatic-drag-and-drop/utils/preserve-offset-on-source";
+import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
+import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
 
 import { cn } from "cn";
 import {
@@ -97,7 +107,20 @@ interface Moves<T> {
   arrived: (at: string) => void;
   /** a lane's `reveal`, so a moved card scrolls into its lane's view */
   reveals: Map<string, (i: number) => void>;
+  /** this board's drags only: a second board on the page ignores them; null: no drag (narrow) */
+  drag: symbol | null;
+  /** a dropped card's place on screen (`id\0lane`): it flies from there to its place in the lane */
+  flights: Map<string, { left: number; top: number }>;
 }
+
+/** what a card's drag carries */
+interface Dragged<T> extends MovePayload<T> {
+  board: symbol;
+  /** the pointer's place on the card at the grab */
+  grab: { x: number; y: number };
+}
+const dragOf = <T,>(data: Record<string | symbol, unknown>, board: symbol) =>
+  data.board === board ? (data as unknown as Dragged<T>) : null;
 
 const LANE_W = 288;
 const STRIP_W = 44;
@@ -165,17 +188,102 @@ function Card<T>({
   const busy = p.move?.busy(c.item) ?? false;
   const at = arrival(c.id, lane);
   const arrives = moves?.arriving.has(at) ?? false;
+  const link = useRef<HTMLAnchorElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const board = moves?.drag ?? null;
+  // read at drag start: a live push mid-drag rebuilds the lanes, not the drag
+  const payload = useRef<MovePayload<T>>({ card: c, lane });
+  payload.current = { card: c, lane };
+  useEffect(() => {
+    const el = link.current;
+    if (!el || !board || busy) return;
+    const off = draggable({
+      element: el,
+      getInitialData: ({ input }) => {
+        const r = el.getBoundingClientRect();
+        const grab = { x: input.clientX - r.left, y: input.clientY - r.top };
+        return { board, grab, ...payload.current } satisfies Dragged<T>;
+      },
+      // Safari draws a link's address: draw the card, at the grab point (GS-2)
+      onGenerateDragPreview: ({ nativeSetDragImage, location }) =>
+        setCustomNativeDragPreview({
+          nativeSetDragImage,
+          getOffset: preserveOffsetOnSource({ element: el, input: location.current.input }),
+          render: ({ container }) => {
+            const copy = el.cloneNode(true) as HTMLElement;
+            copy.style.width = `${el.getBoundingClientRect().width}px`;
+            container.append(copy);
+          },
+        }),
+      onDragStart: () => setDragging(true),
+      onDrop: () => setDragging(false),
+    });
+    // torn down mid-drag (a move turned busy): no onDrop comes
+    return () => {
+      off();
+      setDragging(false);
+    };
+  }, [board, busy]);
+  const box = useRef<HTMLDivElement>(null);
+  const flight = arrives ? moves?.flights.get(at) : undefined;
+  // kept in `flights` until it lands: a render mid-flight keeps it
+  const flying = flight !== undefined;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per flight; `moves`, `at` and `flight` are read with it.
+  useLayoutEffect(() => {
+    // a dropped card flies from the drop to its place: a copy over the page, since the lane clips
+    const el = link.current;
+    const wrap = box.current;
+    if (!flight || !el || !wrap || !moves) return;
+    const done = () => {
+      moves.flights.delete(at);
+      moves.arrived(at);
+    };
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return done();
+    const r = el.getBoundingClientRect();
+    const copy = el.cloneNode(true) as HTMLElement;
+    Object.assign(copy.style, {
+      position: "fixed",
+      left: `${flight.left}px`,
+      top: `${flight.top}px`,
+      width: `${r.width}px`,
+      margin: "0",
+      pointerEvents: "none",
+      zIndex: "50",
+    });
+    document.body.append(copy);
+    wrap.style.opacity = "0";
+    const easing = getComputedStyle(el).getPropertyValue("--ui-ease").trim() || "ease-out";
+    const fly = copy.animate(
+      [
+        { transform: "none" },
+        { transform: `translate(${r.left - flight.left}px, ${r.top - flight.top}px)` },
+      ],
+      { duration: 220, easing },
+    );
+    fly.onfinish = () => {
+      copy.remove();
+      wrap.style.opacity = "";
+      done();
+    };
+    return () => {
+      fly.cancel();
+      copy.remove();
+      wrap.style.opacity = "";
+    };
+  }, [flying]);
   return (
-    <li data-index={index} ref={measure} className="pb-2">
+    <li data-index={index} data-key={c.key} ref={measure} className="pb-2">
       {/* the Move button is the link's sibling: a button inside a link is not valid */}
       <div
-        className={cn("group/card relative", arrives && FADE)}
+        ref={box}
+        className={cn("group/card relative", arrives && !flight && FADE)}
         aria-busy={busy || undefined}
         onAnimationEnd={(e) => {
           if (e.target === e.currentTarget && e.animationName === "ui-fade") moves?.arrived(at);
         }}
       >
         <a
+          ref={link}
           href={p.href(c.item)}
           data-id={c.id}
           aria-current={isOpen ? "true" : undefined}
@@ -191,6 +299,7 @@ function Card<T>({
             CARD,
             moves && "pr-10 pointer-coarse:pr-12",
             busy && "opacity-60",
+            dragging && "opacity-40",
             isOpen && CARD_OPEN,
             washes && "animate-ui-changed",
           )}
@@ -213,6 +322,43 @@ function Card<T>({
   );
 }
 
+/**
+ * FLIP: a card whose place in its lane changed (a move, a live change, a sort) slides from its old place.
+ * Only when the lane's cards change: a windowed lane's scroll moves no card.
+ */
+function useFlip<T>(list: HTMLUListElement | null, cards: BoardCard<T>[]) {
+  const tops = useRef(new Map<string, number>());
+  const keys = useRef("");
+  useLayoutEffect(() => {
+    if (!list) return;
+    const now = new Map<string, number>();
+    const shown = list.querySelectorAll<HTMLElement>(":scope > li[data-key]");
+    // offsetTop: the layout's place, without a running slide's transform
+    for (const li of shown) now.set(li.dataset.key as string, li.offsetTop);
+    const was = tops.current;
+    tops.current = now;
+    const sig = cards.map((c) => c.key).join("\u0000");
+    const changed = keys.current !== "" && sig !== keys.current;
+    keys.current = sig;
+    if (!changed || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const easing = getComputedStyle(list).getPropertyValue("--ui-ease").trim() || "ease-out";
+    for (const li of shown) {
+      const old = was.get(li.dataset.key as string);
+      const top = now.get(li.dataset.key as string);
+      if (old === undefined || top === undefined) continue;
+      // a slide still running: start from where it is now, not from its old layout place
+      const running = li.getAnimations();
+      const from = old + (running.length ? new DOMMatrix(getComputedStyle(li).transform).m42 : 0);
+      for (const a of running) a.cancel();
+      if (from === top) continue;
+      li.animate([{ transform: `translateY(${from - top}px)` }, { transform: "none" }], {
+        duration: 200,
+        easing,
+      });
+    }
+  });
+}
+
 /** a lane's cards: past the kit's threshold only those in view of `scroller` draw */
 function Cards<T>({
   lane,
@@ -229,6 +375,7 @@ function Cards<T>({
   const root = useCallback(() => list, [list]);
   const lines = useLines({ count: lane.cards.length, scroller, root, estimate: 112 });
   const { reveal } = lines;
+  useFlip(list, lane.cards);
   useEffect(() => {
     if (!moves) return;
     moves.reveals.set(lane.key, reveal);
@@ -260,8 +407,22 @@ function Cards<T>({
   );
 }
 
+/** a lane's count: a changed number rises in once (`ui-rise`), never on the first draw */
 function Count({ n }: { n: number }) {
-  return <b className="flex-none font-semibold text-(--ui-ink) tabular-nums">{n}</b>;
+  const first = useRef(n);
+  const moved = useRef(false);
+  if (n !== first.current) moved.current = true;
+  return (
+    <b
+      key={n}
+      className={cn(
+        "flex-none font-semibold text-(--ui-ink) tabular-nums",
+        moved.current && "ui-rise",
+      )}
+    >
+      {n}
+    </b>
+  );
 }
 
 function Lane<T>({
@@ -290,6 +451,35 @@ function Lane<T>({
     });
   };
   const section = useRef<HTMLElement>(null);
+  const [over, setOver] = useState(false);
+  const board = moves?.drag ?? null;
+  useEffect(() => {
+    const el = section.current;
+    if (!el || !board) return;
+    const mine = (data: Record<string | symbol, unknown>) => dragOf<T>(data, board);
+    return combine(
+      dropTargetForElements({
+        element: el,
+        // its own lane is no target: the browser shows no drop, and a drop there writes nothing
+        canDrop: ({ source }) => {
+          const d = mine(source.data);
+          return d !== null && d.lane !== lane.key;
+        },
+        getData: () => ({ lane: lane.key }),
+        onDragEnter: () => setOver(true),
+        onDragLeave: () => setOver(false),
+        onDrop: () => setOver(false),
+      }),
+      ...(scroll
+        ? [
+            autoScrollForElements({
+              element: scroll,
+              canScroll: ({ source }) => mine(source.data) !== null,
+            }),
+          ]
+        : []),
+    );
+  }, [board, lane.key, scroll]);
   useEffect(() => {
     // reduced motion: no width transition, so no transitionend
     const el = section.current;
@@ -303,12 +493,13 @@ function Lane<T>({
       ref={section}
       aria-label={lane.label}
       data-lane={lane.key}
+      data-over={over || undefined}
       onTransitionEnd={(e) => {
         if (e.target === e.currentTarget && e.propertyName === "width" && reveal.current)
           show(e.currentTarget, true);
       }}
       style={{ width: shut ? STRIP_W : LANE_W } as CSSProperties}
-      className="flex h-full flex-none flex-col rounded-(--ui-leaf-panel) bg-(--ui-fill) transition-[width] duration-200 ease-(--ui-ease) motion-reduce:transition-none"
+      className="flex h-full flex-none flex-col rounded-(--ui-leaf-panel) bg-(--ui-fill) transition-[width,background-color,box-shadow] duration-200 ease-(--ui-ease) data-over:bg-[color-mix(in_srgb,var(--ui-accent)_10%,var(--ui-fill))] data-over:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--ui-accent)_55%,transparent)] motion-reduce:transition-none"
     >
       {shut ? (
         <button
@@ -594,6 +785,7 @@ export function Board<T>(p: Omit<BoardProps<T>, "lanes"> & { lanes: BoardLane<T>
   const [handle] = useState(() => createMenuHandle<MovePayload<T>>());
   const [arriving, setArriving] = useState<ReadonlySet<string>>(new Set());
   const reveals = useRef(new Map<string, (i: number) => void>()).current;
+  const flights = useRef(new Map<string, { left: number; top: number }>()).current;
   const arrived = useCallback(
     (at: string) =>
       setArriving((s) => {
@@ -603,9 +795,11 @@ export function Board<T>(p: Omit<BoardProps<T>, "lanes"> & { lanes: BoardLane<T>
       }),
     [],
   );
+  const [token] = useState(() => Symbol("board"));
+  const drag = p.narrow ? null : token;
   const moves = useMemo<Moves<T> | null>(
-    () => (p.move ? { handle, arriving, arrived, reveals } : null),
-    [p.move, handle, arriving, arrived, reveals],
+    () => (p.move ? { handle, arriving, arrived, reveals, drag, flights } : null),
+    [p.move, handle, arriving, arrived, reveals, drag, flights],
   );
 
   // a card in a lane it was not in before (a move, a refusal, a write elsewhere) fades in there
@@ -641,6 +835,35 @@ export function Board<T>(p: Omit<BoardProps<T>, "lanes"> & { lanes: BoardLane<T>
     setSaid(`${m.card.id} moved to ${q.lanes.find((l) => l.key === to)?.label ?? to}`);
     p.move.onMove(m.card.item, m.lane, to);
   };
+  // a drop is the menu's pick
+  const pick = useRef(onPick);
+  pick.current = onPick;
+  const dragOn = moves?.drag ?? null;
+  useEffect(() => {
+    if (!dragOn || !root) return;
+    return combine(
+      monitorForElements({
+        canMonitor: ({ source }) => dragOf<T>(source.data, dragOn) !== null,
+        onDrop: ({ source, location }) => {
+          const d = dragOf<T>(source.data, dragOn);
+          const to = location.current.dropTargets[0]?.data.lane;
+          if (!d || typeof to !== "string") return;
+          // where the browser's preview was: the card flies on from there
+          const { clientX, clientY } = location.current.input;
+          flights.clear();
+          flights.set(arrival(d.card.id, to), {
+            left: clientX - d.grab.x,
+            top: clientY - d.grab.y,
+          });
+          pick.current(d, to);
+        },
+      }),
+      autoScrollForElements({
+        element: root,
+        canScroll: ({ source }) => dragOf<T>(source.data, dragOn) !== null,
+      }),
+    );
+  }, [dragOn, root, flights]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs on the lanes a move draws.
   useLayoutEffect(() => {
     const l = landing.current;

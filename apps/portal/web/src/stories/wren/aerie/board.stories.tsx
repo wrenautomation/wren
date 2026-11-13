@@ -348,3 +348,119 @@ export const MoveBusy = tidy(
     },
   }),
 );
+
+/** one native drag event at `el`'s top left, as the browser sends it */
+function fire(el: Element, type: string, data: DataTransfer) {
+  const r = el.getBoundingClientRect();
+  el.dispatchEvent(
+    new DragEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      dataTransfer: data,
+      clientX: r.x + 8,
+      clientY: r.y + 8,
+    }),
+  );
+}
+const frame = () => new Promise((r) => requestAnimationFrame(() => r(null)));
+
+/** drags a card over the lane `to` (its key), then drops it there */
+async function drag(page: HTMLElement, from: string, id: string, to: string) {
+  const card = await waitFor(() => {
+    const a = cardIn(page, from, id);
+    expect(a).not.toBeNull();
+    return a as HTMLElement;
+  }, WAIT);
+  const data = new DataTransfer();
+  fire(card, "dragstart", data);
+  // the library starts the drag a frame later
+  await frame();
+  await frame();
+  const target = page.querySelector(`[data-lane="${to}"]`) as HTMLElement;
+  fire(target, "dragenter", data);
+  fire(target, "dragover", data);
+  return {
+    card,
+    target,
+    drop: async () => {
+      fire(target, "drop", data);
+      await frame();
+    },
+  };
+}
+
+/**
+ * Drag (wide): the card's place fades and the lane under it tints; a drop moves it there, as the menu does,
+ * and the cards left in its lane slide up. A phone has no drag.
+ */
+export const Drag = tidy(
+  pageAt(BOARD, {
+    me: ADMIN,
+    answers: WRITES,
+    check: async (page) => {
+      await lane(page, "To Do");
+      if (narrow()) {
+        await expect(cardIn(page, "status:To Do", "EX-104")?.getAttribute("draggable")).toBeNull();
+        return;
+      }
+      const d = await drag(page, "status:To Do", "EX-104", "status:In Progress");
+      await waitFor(() => expect(d.target).toHaveAttribute("data-over"), WAIT);
+      await waitFor(() => expect(d.card.className).toMatch(/opacity-40/), WAIT);
+      const below = cardIn(page, "status:To Do", "EX-105")?.closest("li") as HTMLElement;
+      await d.drop();
+      await expect(await screen.findByText("EX-104 moved to In Progress", {}, WAIT)).toBeTruthy();
+      await expect(d.target).not.toHaveAttribute("data-over");
+      await waitFor(
+        () => expect(cardIn(page, "status:In Progress", "EX-104")).not.toBeNull(),
+        WAIT,
+      );
+      // FLIP: the card under it slides up into its place; reduced motion (the test runs): it jumps
+      const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      await expect(below.getAnimations().length > 0).toBe(!still);
+      await waitFor(() => expect(cardIn(page, "status:To Do", "EX-104")).toBeNull(), WAIT);
+    },
+  }),
+);
+
+/** A drop on a shut lane moves the card there; the strip stays shut and takes focus. */
+export const DragToShut = tidy(
+  pageAt(BOARD, {
+    me: ADMIN,
+    answers: WRITES,
+    check: async (page) => {
+      if (narrow()) return;
+      await lane(page, "To Do");
+      const d = await drag(page, "status:To Do", "EX-104", "status:Done");
+      await waitFor(() => expect(d.target).toHaveAttribute("data-over"), WAIT);
+      await d.drop();
+      const strip = within(page).getByRole("button", { name: /^Done, / });
+      await waitFor(() => expect(document.activeElement).toBe(strip), WAIT);
+      await expect(strip).toHaveAttribute("aria-expanded", "false");
+      await waitFor(() => expect(cardIn(page, "status:To Do", "EX-104")).toBeNull(), WAIT);
+    },
+  }),
+);
+
+/** Its own lane: no tint, and a drop there writes nothing; the card comes back to full. */
+export const DragCancel = tidy(
+  pageAt(BOARD, {
+    me: ADMIN,
+    answers: {
+      ...WRITES,
+      "aerie/edit": () => {
+        throw new Error("a drop on its own lane wrote");
+      },
+    },
+    check: async (page) => {
+      if (narrow()) return;
+      await lane(page, "To Do");
+      const d = await drag(page, "status:To Do", "EX-104", "status:To Do");
+      await frame();
+      await expect(d.target).not.toHaveAttribute("data-over");
+      await d.drop();
+      await waitFor(() => expect(d.card.className).not.toMatch(/opacity-40/), WAIT);
+      await expect(cardIn(page, "status:To Do", "EX-104")).toBe(d.card);
+    },
+  }),
+);
