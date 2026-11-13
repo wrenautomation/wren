@@ -18,7 +18,9 @@ import {
 } from "@wren/starling-inbound";
 import type { SourceFile } from "@wrenautomation/knowledge";
 import type { Model } from "@wrenautomation/models";
+import { s3MediaStore } from "@wrenautomation/read/s3";
 import {
+  download,
   fetchPostItem,
   postItems,
   renderWatched,
@@ -191,6 +193,25 @@ const reelKeys = (id: string) => {
   const code = id.replace(/^instagram-/, "");
   return { video: `cache/instagram/${code}.mp4`, poster: `cache/instagram/${code}.jpg` };
 };
+
+/** A reel's video into the bucket (`cache/instagram/<code>.mp4` + `.json`) through yt-dlp; the temp copy goes. */
+export async function reelVideoOf(
+  url: string,
+  o: MediaStoreOptions & { ytDlp: string },
+): Promise<void> {
+  const dir = await mkdtemp(join(tmpdir(), "canon-reel-"));
+  try {
+    await download(url, o.ytDlp, dir, {
+      store: s3MediaStore(o.bucket),
+      // a store write that fails must fail the reel, not warn
+      warn: (line) => {
+        throw new Error(line);
+      },
+    });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
 
 /**
  * A stored reel's poster: one frame (0.5 s in, else the first), beside the mp4. Answers what it

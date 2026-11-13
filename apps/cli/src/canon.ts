@@ -59,6 +59,7 @@ import {
   postFiles,
   postSource,
   putCanonFile,
+  reelVideoOf,
 } from "./canon-files.js";
 import { breakdownLlm, breakdownSource, registerSourcePieces } from "./source-pieces.js";
 import { watchEyes } from "./video-watch.js";
@@ -458,15 +459,49 @@ export function registerCanon(
       "a poster (one frame) beside each stored Instagram reel's video in the bucket, for every Canon reel without one",
     )
     .option("--limit <n>", "stop after this many made", (v) => Number.parseInt(v, 10))
-    .action(async (o: { limit?: number }) => {
+    .option("--fetch", "a reel with no stored video: download it (yt-dlp) into the bucket first")
+    .action(async (o: { limit?: number; fetch?: boolean }) => {
       const at = { ...bucketOf("posters"), ffmpeg: settings.ffmpeg };
       const reels = loadWorking(root)
         .docs.map((l) => l.doc.fm)
         .filter((f) => f.type === "source" && f.id.startsWith("instagram-"));
-      const tally: Record<string, number> = { made: 0, had: 0, "no video": 0, failed: 0 };
+      const tally: Record<string, number> = {
+        made: 0,
+        had: 0,
+        "no video": 0,
+        unavailable: 0,
+        failed: 0,
+      };
+      // Instagram is a third-party page: 2 blocks in a row stop the run; one reel's own verdict is no block
+      const UNAVAILABLE = /isn't available|not available|No video formats|private|removed/i;
+      let blocksInRow = 0;
       for (const r of reels) {
         if (o.limit !== undefined && (tally.made ?? 0) >= o.limit) break;
-        const done = await posterOf(r.id, at).catch((err: unknown) => {
+        if (blocksInRow >= 2) {
+          console.error("2 fetch blocks in a row: stopped");
+          break;
+        }
+        const poster = async (): Promise<string> => {
+          const first = await posterOf(r.id, at);
+          const url = typeof r.url === "string" ? r.url : undefined;
+          // a post's slides are its picture already
+          if (first !== "no video" || !o.fetch || !url || POST_LINK.test(url)) return first;
+          try {
+            await reelVideoOf(url, { ...at, ytDlp: settings.ytDlp });
+            blocksInRow = 0;
+          } catch (err) {
+            const why = err instanceof Error ? err.message : String(err);
+            if (!UNAVAILABLE.test(why)) {
+              blocksInRow++;
+              throw err;
+            }
+            blocksInRow = 0;
+            console.error(`${r.id}: unavailable, ${why.split("\n").at(-2) ?? why}`);
+            return "unavailable";
+          }
+          return posterOf(r.id, at);
+        };
+        const done = await poster().catch((err: unknown) => {
           console.error(`${r.id}: ${err instanceof Error ? err.message : err}`);
           return "failed" as const;
         });
