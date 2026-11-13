@@ -145,13 +145,17 @@ export function linkLabel(href: string, label = ""): string {
   return label.toLowerCase().includes(site.toLowerCase()) ? "Open" : `Open in ${site}`;
 }
 
-/** "Sample recruiting firm" -> "SR": the first letters of the first two words. */
+/**
+ * "Sample recruiting firm" -> "SR": the first letters of the first two words. A word with no
+ * letter or digit (an emoji, "·") is skipped: `w[0]` would be half a surrogate pair.
+ */
 export const initials = (name: string) =>
   name
     .split(/\s+/)
+    .map((w) => w.match(/[\p{L}\p{N}]\p{M}*/u)?.[0] ?? "")
     .filter(Boolean)
     .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? "")
+    .map((c) => c.toUpperCase())
     .join("");
 
 /** Class names, falsy ones dropped. */

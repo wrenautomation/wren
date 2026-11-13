@@ -37,9 +37,13 @@ export function PeekTitle({
   className?: string | undefined;
 }) {
   return (
-    <div className={cn("flex min-w-0 items-center gap-2.5", className)}>
+    // a long name wraps down from the avatar's top; one line sits on its centre (min-h-8 = lg avatar)
+    <div className={cn("flex min-w-0 items-start gap-2.5", className)}>
       {avatar ? <Avatar initials={avatar} lg /> : null}
-      <h2 className="m-0 min-w-0 flex-1 wrap-anywhere whitespace-normal text-[17px] font-semibold">
+      <h2
+        dir="auto"
+        className="m-0 flex min-h-8 min-w-0 flex-1 items-center wrap-anywhere whitespace-normal text-[17px] font-semibold"
+      >
         {title}
       </h2>
     </div>
@@ -73,8 +77,11 @@ export function PeekView({
         <dl className="m-0 grid grid-cols-[96px_minmax(0,1fr)] gap-x-2.5 gap-y-1.5 text-[13.5px]">
           {props.map((p) => (
             <div key={p.label} className="contents">
-              <dt className="text-(--ui-ink-3)">{p.label}</dt>
-              <dd className="m-0 flex min-w-0 items-center gap-1.5">{p.node ?? NONE}</dd>
+              {/* a long label or a value with no break point wraps inside its column */}
+              <dt className="min-w-0 wrap-anywhere hyphens-auto text-(--ui-ink-3)">{p.label}</dt>
+              <dd className="m-0 flex min-w-0 items-center gap-1.5 wrap-anywhere">
+                {p.node ?? NONE}
+              </dd>
             </div>
           ))}
         </dl>

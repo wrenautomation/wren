@@ -4,7 +4,7 @@
  * past the fold it closes. On a phone it is the bottom sheet's shape (phone.tsx), full height.
  */
 import { type MotionStyle, motion, useReducedMotion } from "motion/react";
-import { type ReactNode, useRef } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { cx } from "./format.js";
 import { Resizer } from "./frame.js";
 import { tipProps } from "./hint.js";
@@ -39,21 +39,23 @@ export function SidePanel({
   const still = useReducedMotion() ?? false;
   const phone = useNarrow();
   // arrives on the ease, leaves quicker; closed it stays mounted, so the chat keeps its session
-  const move = still
-    ? { duration: 0 }
-    : open
-      ? { duration: 0.34, ease: EASE }
-      : { duration: 0.24, ease: LEAVE };
-  const shut = phone ? { y: "100%" } : { opacity: 0, x: 24 };
+  const move = open ? { duration: 0.3, ease: EASE } : { duration: 0.2, ease: LEAVE };
+  // reduced motion: a fade in place; the room jumps (after the fade, on close)
+  const fade = { duration: 0.15, ease: "linear" } as const;
+  const room = still ? { duration: 0, delay: open ? 0 : fade.duration } : move;
+  const shut = still ? { opacity: 0 } : phone ? { y: "100%" } : { opacity: 0, x: 24 };
+  // shut and done moving: out of the tab order and the a11y tree (motion's transitionEnd never
+  // set display:none here, so a closed chat stayed focusable at width 0)
+  const [gone, setGone] = useState(!open);
+  if (open && gone) setGone(false);
   return (
     <motion.div
       // its room: the page gives way as it opens and takes the room back as it shuts
-      className="flex min-h-0 flex-none overflow-hidden"
+      className={cx("flex min-h-0 flex-none overflow-hidden", !open && gone && "hidden")}
       initial={false}
-      animate={
-        open ? { width: "auto", display: "flex" } : { width: 0, transitionEnd: { display: "none" } }
-      }
-      transition={move}
+      animate={{ width: open ? "auto" : 0 }}
+      transition={room}
+      onAnimationComplete={() => (open ? undefined : setGone(true))}
     >
       <motion.aside
         ref={host}
@@ -61,10 +63,12 @@ export function SidePanel({
         style={{ "--panel-w": `${width}px` } as MotionStyle}
         initial={false}
         animate={open ? { opacity: 1, x: 0, y: 0 } : shut}
-        transition={move}
+        transition={still ? fade : move}
         className={cx(
           // inset card, a faint rim: Claude's and ChatGPT's side panel
           "relative flex min-h-0 w-(--panel-w) flex-none flex-col bg-(--ui-paper)",
+          // a key or a reset eases to its width; a drag follows the pointer (Resizer sets data-resizing)
+          "transition-[width] duration-200 ease-out data-resizing:transition-none motion-reduce:transition-none",
           // main keeps >= 560px while the panel can give: 616 = 560 + main pad 48 + panel gap 8;
           // under that main narrows and its pages reflow (@container/main)
           "min-[901px]:w-[max(340px,min(var(--panel-w),calc(100cqw-616px)))]",
@@ -82,7 +86,12 @@ export function SidePanel({
           host={() => host.current}
           cssVar="--panel-w"
           style={{ left: -5 }}
-          onDone={(n) => (n.shut ? onClose() : onWidth(n.width))}
+          onDone={(n) => {
+            if (!n.shut) return onWidth(n.width);
+            // a drag shut it: the next open starts at its kept width, not the dragged one
+            host.current?.style.setProperty("--panel-w", `${width}px`);
+            onClose();
+          }}
           onReset={() => onWidth(PANEL.width)}
         />
         {title ? (
@@ -101,7 +110,7 @@ export function SidePanel({
 /** A panel head's icon button: New, Expand, Close. */
 /** A head action's look; a part with its own trigger (a menu) takes it too. */
 export const PANEL_ACT =
-  "grid size-8 flex-none place-items-center rounded-(--ui-radius) text-(--ui-ink-2) no-underline transition-colors duration-150 hover:bg-(--ui-fill) hover:text-(--ui-ink) data-popup-open:bg-(--ui-wash) pointer-coarse:size-11";
+  "grid size-8 flex-none place-items-center rounded-(--ui-radius) text-(--ui-ink-2) no-underline transition-[background-color,color,scale] duration-150 active:scale-[.97] motion-reduce:transition-none hover:bg-(--ui-fill) hover:text-(--ui-ink) data-popup-open:bg-(--ui-wash) pointer-coarse:size-11";
 
 export function PanelAct({
   icon,
@@ -160,7 +169,7 @@ export function PanelButton({
         ...(compact ? { as: "none" } : {}),
       })}
       className={cx(
-        "inline-flex h-8 flex-none items-center gap-2 rounded-(--ui-radius) border-0 bg-transparent px-2.5 text-[13px] font-medium text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) aria-pressed:bg-(--ui-wash) aria-pressed:text-(--ui-ink) pointer-coarse:h-11",
+        "inline-flex h-8 flex-none items-center gap-2 rounded-(--ui-radius) border-0 bg-transparent px-2.5 text-[13px] font-medium text-(--ui-ink-2) transition-[background-color,color,scale] duration-150 active:scale-[.97] motion-reduce:transition-none hover:bg-(--ui-hover) hover:text-(--ui-ink) aria-pressed:bg-(--ui-wash) aria-pressed:text-(--ui-ink) pointer-coarse:h-11",
         compact && "w-8 justify-center px-0 pointer-coarse:w-11",
       )}
       onClick={onToggle}

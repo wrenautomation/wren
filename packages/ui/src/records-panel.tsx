@@ -119,7 +119,8 @@ export function Panel({
   );
   const read = got.data && String(got.data.row.id) === id ? got.data : null;
   const row = peek ? (read?.row ?? listRow ?? null) : null;
-  const title = row ? titleOf(meta, row) : "";
+  // a row with no title still gets a heading: the panel is named, never blank
+  const title = row ? titleOf(meta, row) || `Untitled ${meta.name.one}` : "";
   const named = meta.fields.find((f) => f.key === meta.title)?.kind === "name";
   const avatar = named ? avatarOf(title) : null;
   const body = peek ? (
@@ -167,10 +168,10 @@ export function Panel({
         className={ROOT}
         bodyClassName="px-4 pt-2 pb-[calc(96px+env(safe-area-inset-bottom))]"
         head={
-          <div className="flex h-11 items-center gap-1 border-b border-(--ui-hair) px-2">
+          <div className="flex min-h-11 items-center gap-1 border-b border-(--ui-hair) px-2">
             <SheetDone />
             <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal text-center text-[13px] text-(--ui-ink-2)">
-              {index >= 0 ? `${num(index + 1)} of ${num(count)}` : ""}
+              {index >= 0 ? `${num(index + 1)} of ${num(count)}` : cap(meta.name.one)}
             </span>
             {peek && row ? (
               <PeekActs
@@ -232,36 +233,40 @@ export function Panel({
       {peek ? (
         // The peek's head (artifact `.pk header`): who it is, then its row's actions (William,
         // 10-24: in place of the walk, which J and K still do), the whole record and the close.
-        <div className="flex shrink-0 items-center gap-2.5 px-[18px] pt-4">
+        // The name on one line beside the actions, else the actions drop under it (the name's
+        // basis is its own width), so a long name never shrinks to a word a line.
+        <div className="flex shrink-0 flex-wrap items-start justify-end gap-x-2.5 gap-y-2 px-[18px] pt-4">
           {row ? (
-            <PeekTitle avatar={avatar} title={title} className="flex-1" />
+            <PeekTitle avatar={avatar} title={title} className="grow" />
           ) : (
-            <span className="flex-1" />
+            <span className="grow" />
           )}
-          {row ? (
-            <PeekActs
-              wire={peek}
-              row={row}
-              title={title}
-              ask={(action) => setAsking({ id, action })}
-            />
-          ) : null}
-          <a
-            href={place.page(id)}
-            className={PEEK_ICON}
-            aria-label="Open"
-            {...tipProps("Open the full record", { as: "none" })}
-          >
-            <Icon name="expand" />
-          </a>
-          <a
-            href={shut}
-            className={PEEK_ICON}
-            aria-label="Close"
-            {...tipProps("Close", { keys: "Esc", as: "none" })}
-          >
-            <Icon name="close" />
-          </a>
+          <div className="flex flex-none items-center gap-2.5">
+            {row ? (
+              <PeekActs
+                wire={peek}
+                row={row}
+                title={title}
+                ask={(action) => setAsking({ id, action })}
+              />
+            ) : null}
+            <a
+              href={place.page(id)}
+              className={PEEK_ICON}
+              aria-label="Open"
+              {...tipProps("Open the full record", { as: "none" })}
+            >
+              <Icon name="expand" />
+            </a>
+            <a
+              href={shut}
+              className={PEEK_ICON}
+              aria-label="Close"
+              {...tipProps("Close", { keys: "Esc", as: "none" })}
+            >
+              <Icon name="close" />
+            </a>
+          </div>
         </div>
       ) : (
         <div className="flex h-12 shrink-0 items-center gap-1 border-b border-(--ui-hair) bg-(--ui-band) px-3 max-sm:box-content max-sm:h-14 max-sm:pt-[env(safe-area-inset-top)] max-sm:pr-[max(12px,env(safe-area-inset-right))] max-sm:pl-[max(4px,env(safe-area-inset-left))]">

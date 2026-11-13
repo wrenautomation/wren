@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Toasts } from "./action.js";
 import { QUERIES } from "./data/query.js";
-import { LEAD_META, LEAD_NEEDS, LEADS, useRecordsDemo } from "./fixtures/records.js";
+import { LEAD_META, LEAD_NEEDS, LEADS, useRecordsDemo, WORST_LEADS } from "./fixtures/records.js";
+import { WORST } from "./fixtures/worst.js";
 import { RecordList, type RowReplyBox } from "./records.js";
 
 export default {
@@ -40,14 +41,16 @@ function Host({
   peek,
   reply,
   slow,
+  rows,
 }: {
   at?: string;
+  rows?: typeof LEADS;
   peek?: false | { fields?: string[] };
   reply?: RowReplyBox;
   /** A lead whose record reads slowly (ms), for a race. */
   slow?: { id: number; ms: number };
 }) {
-  const demo = useRecordsDemo({ at });
+  const demo = useRecordsDemo(rows ? { at, rows } : { at });
   const api = useMemo(
     () => ({
       ...demo.api,
@@ -288,5 +291,18 @@ export const Grouped: Story = {
     await userEvent.keyboard("j");
     expect(next).toBeDefined();
     await expect(await here.findByRole("heading", { name: next })).toBeVisible();
+  },
+};
+
+/** The worst-case lead: a long name over its actions, unbreakable values, emoji initials. */
+export const WorstCase: Story = {
+  render: () => (
+    <Host rows={WORST_LEADS} peek={{ fields: ["company", "city", "owner", "value"] }} />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await openAs(WORST.longName)(canvas);
+    const here = within(await peekOf());
+    await expect(await here.findByRole("heading", { name: WORST.longName })).toBeVisible();
   },
 };

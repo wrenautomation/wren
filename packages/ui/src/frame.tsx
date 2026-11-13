@@ -233,9 +233,12 @@ export const typingAt = (e: KeyboardEvent) => {
   return !!t?.closest?.("input, textarea, select, [contenteditable=''], [contenteditable=true]");
 };
 
+/** Width per ms toward the fold that shuts a panel on release. */
+const FLICK = 0.8;
+
 /**
  * The edge a panel is dragged by: its right border (`left` for a panel on the window's right). Drag it, or focus it and use ← and →; past
- * the fold line it folds the panel, Enter folds or opens it, a double click puts the width back.
+ * the fold line, or thrown toward it, it folds the panel; Enter folds or opens it, a double click puts the width back.
  * While dragging it sets `cssVar` on `host` alone, so nothing re-renders until it lets go.
  */
 export function Resizer({
@@ -269,29 +272,41 @@ export function Resizer({
   side?: "left" | "right";
 }) {
   const sign = side === "left" ? -1 : 1;
-  const drag = useRef<{ x: number; from: number; last: number } | null>(null);
+  // `v`: width change per ms over the last moves, for a flick
+  const drag = useRef<{ x: number; from: number; last: number; t: number; v: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const shown = shut ? shutPx : width;
   const down = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { x: e.clientX, from: shown, last: shown };
+    drag.current = { x: e.clientX, from: shown, last: shown, t: e.timeStamp, v: 0 };
+    // the host drops its width transition while the pointer leads
+    host()?.setAttribute("data-resizing", "");
     setDragging(true);
   };
   const move = (e: ReactPointerEvent<HTMLDivElement>) => {
     const d = drag.current;
     if (!d) return;
-    d.last = d.from + sign * (e.clientX - d.x);
+    const next = d.from + sign * (e.clientX - d.x);
+    const dt = e.timeStamp - d.t;
+    // smoothed, so one late event doesn't read as a flick
+    if (dt > 0) d.v = 0.6 * ((next - d.last) / dt) + 0.4 * d.v;
+    d.t = e.timeStamp;
+    d.last = next;
     const at = dragged(d.last, range);
     host()?.style.setProperty(cssVar, `${at.shut ? shutPx : at.width}px`);
   };
-  const up = () => {
+  const up = (e: ReactPointerEvent<HTMLDivElement>) => {
     const d = drag.current;
     drag.current = null;
     setDragging(false);
+    host()?.removeAttribute("data-resizing");
     // A click with no drag leaves it as it was.
-    if (d && Math.abs(d.last - d.from) >= 2) onDone(dragged(d.last, range));
+    if (!d || Math.abs(d.last - d.from) < 2) return;
+    // a fast throw toward the fold shuts it, however far it went; not after a pause, not on a cancel
+    const flick = !shut && e.type === "pointerup" && d.v < -FLICK && e.timeStamp - d.t < 100;
+    onDone(flick ? { width, shut: true } : dragged(d.last, range));
   };
   const key = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     const step = (e.shiftKey ? 48 : 16) * sign;

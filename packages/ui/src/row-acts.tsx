@@ -44,7 +44,7 @@ export function rowActsOf(
 
 /** A row's icon button (artifact `.ib`): ink-3, the tint and accent on hover. */
 const ICON_BUTTON =
-  "inline-grid size-7 flex-none cursor-pointer place-items-center [border-radius:4px_10px_4px_10px] border-0 bg-transparent text-(--ui-ink-3) no-underline transition-[background-color,color,opacity] duration-150 motion-reduce:transition-none [&_svg]:size-4 [&_svg]:[stroke-width:1.9] hover:bg-(--ui-accent-tint) hover:text-(--ui-link) focus-visible:bg-(--ui-accent-tint) focus-visible:text-(--ui-link) focus-visible:outline-2 focus-visible:outline-(--ui-focus) disabled:cursor-default disabled:opacity-60 data-[popup-open]:bg-(--ui-accent-tint) data-[popup-open]:text-(--ui-link)";
+  "inline-grid size-7 flex-none cursor-pointer place-items-center [border-radius:4px_10px_4px_10px] border-0 bg-transparent text-(--ui-ink-3) no-underline transition-[background-color,color,opacity] duration-150 motion-reduce:transition-none [&_svg]:size-4 [&_svg]:[stroke-width:1.9] hover:bg-(--ui-accent-tint) hover:text-(--ui-link) focus-visible:bg-(--ui-accent-tint) focus-visible:text-(--ui-link) focus-visible:outline-2 focus-visible:outline-(--ui-focus) disabled:cursor-default disabled:opacity-60 data-[popup-open]:bg-(--ui-accent-tint) data-[popup-open]:text-(--ui-link) pointer-coarse:size-11";
 
 /** The one icon a row always shows: quiet until its row is hovered, then accent. */
 const QUIET_BUTTON =
