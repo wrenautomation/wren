@@ -30,7 +30,7 @@ const missing = (what: string) => (e: unknown) => {
 };
 
 /** Canon's index as the tree's source. */
-export function canonSource(db: Db, remote: string, media: Media | null): CanonSource {
+function canonSource(db: Db, remote: string, media: Media | null): CanonSource {
   const library = canonLibraryApi(db, remote, (rows) =>
     Promise.all(rows.map((r) => referenceOf(r, media))),
   );

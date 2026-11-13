@@ -33,7 +33,7 @@ import type {
 } from "@wren/research/canon-library";
 
 const ROOT = "canon";
-export const CANON_PAGE = 50;
+const CANON_PAGE = 50;
 
 /** A record with what its home needs. */
 export type Placed = {
