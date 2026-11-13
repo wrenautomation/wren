@@ -1,6 +1,8 @@
 /**
  * Canon as a tree (designs/2026-11-12-explorer.md D4): `canon/topics/<topic>/<layer>/…`, a set's
  * lines under it, `canon/references/<id>`, `canon/records/<type>/<id>`, `canon/files/<path>`.
+ * References open on groups (`by-topic/<topic>`, `yours`, `by-creator/<handle>`, `all`); a row
+ * in a group keeps its home, `canon/references/<id>` (WA-1375).
  * A set another topic borrows shows there as an alias; `backs`, `cites` and `used-by` are
  * relation folders. Reads only through a `CanonSource`: the index on a server (`canon.ts`), or
  * fixtures in a story, so both walk the same tree. Browser-safe: core and types only.
@@ -36,6 +38,15 @@ import type {
 } from "@wren/research/canon-library";
 
 const ROOT = "canon";
+/** the references' group segments; a reference id starts with its platform, so none collide */
+const GROUP = { topic: "by-topic", yours: "yours", creator: "by-creator", all: "all" } as const;
+const GROUPS: ReadonlySet<string> = new Set(Object.values(GROUP));
+const GROUP_NAME: Record<string, string> = {
+  [GROUP.topic]: "By topic",
+  [GROUP.yours]: "Saved by you",
+  [GROUP.creator]: "By creator",
+  [GROUP.all]: "All",
+};
 
 /** A record with what its home needs. */
 export type Placed = {
@@ -46,6 +57,22 @@ export type Placed = {
   topic?: string | null;
   kind?: string | null;
 };
+
+/** Which references a group holds: those a topic cites, his own saves, one creator's; none: all. */
+export interface ReferencesBy {
+  usedBy?: string;
+  yours?: boolean;
+  handle?: string;
+}
+
+/** The references' groups, biggest first. */
+export interface ReferenceGroups {
+  /** each topic that cites at least one */
+  topics: { topic: string; n: number }[];
+  creators: { handle: string; platform: string; n: number }[];
+  /** saved by a person, not an agent */
+  yours: number;
+}
 
 /** Where a find looks: one topic, one type, or the references. */
 export interface FindUnder {
@@ -65,8 +92,13 @@ export interface CanonSource {
   record(id: string): Promise<RecordWhole>;
   reference(id: string): Promise<ReferenceWhole>;
   file(path: string): Promise<FileWhole>;
-  /** references, newest saved first */
-  references(after: number, limit: number): Promise<{ rows: Reference[]; next: number | null }>;
+  /** references, newest saved first; `by`: one group's */
+  references(
+    after: number,
+    limit: number,
+    by?: ReferencesBy,
+  ): Promise<{ rows: Reference[]; next: number | null }>;
+  referenceGroups(): Promise<ReferenceGroups>;
   /** files outside topics/: direction, knowledge.json, shapes … */
   rootFiles(): Promise<FileRef[]>;
   placed(ids: readonly string[]): Promise<Placed[]>;
@@ -425,6 +457,70 @@ export function canonTree(src: CanonSource): Adapter {
     }));
   const citedBy = async (id: string) => rowsOf((await record(id)).citedBy);
 
+  const groups = once(() => src.referenceGroups());
+  /** a page of one group's references; each row under its group (`item()` answers it at home) */
+  const referenceRows = async (
+    offset: number,
+    by: ReferencesBy,
+    group: readonly string[],
+  ): Promise<Page> => {
+    const p = await src.references(offset, PAGE_SIZE, by);
+    return {
+      items: p.rows.map((r) => ({
+        path: join(ROOT, "references", ...group, r.id),
+        name: r.title,
+        sub: [r.platform, r.handle ? `@${r.handle}` : null].filter(Boolean).join(" · "),
+        kind: "reference",
+        ...(r.poster ? { poster: r.poster } : {}),
+      })),
+      ...(p.next != null ? { next: String(p.next) } : {}),
+    };
+  };
+  /** a group's folder rows (`list`) or the references it holds (`by`); null: no group */
+  const groupOf = (
+    rest: readonly string[],
+  ): {
+    list?: (g: ReferenceGroups, titles: Map<string, string>) => Item[];
+    by?: ReferencesBy;
+  } | null => {
+    const [g, key, more] = rest;
+    if (more !== undefined) return null;
+    const under = (...s: string[]) => join(ROOT, "references", ...s);
+    if (g === GROUP.all && !key) return { by: {} };
+    if (g === GROUP.yours && !key) return { by: { yours: true } };
+    if (g === GROUP.topic)
+      return key
+        ? { by: { usedBy: key } }
+        : {
+            // its title the sub, as in Topics
+            list: (x, titles) =>
+              x.topics.map((t) => {
+                const title = titles.get(t.topic);
+                return {
+                  path: under(GROUP.topic, t.topic),
+                  name: t.topic,
+                  kind: "folder",
+                  count: t.n,
+                  ...(title && title !== t.topic ? { sub: title } : {}),
+                };
+              }),
+          };
+    if (g === GROUP.creator)
+      return key
+        ? { by: { handle: key } }
+        : {
+            list: (x) =>
+              x.creators.map((c) => ({
+                path: under(GROUP.creator, c.handle),
+                name: c.handle,
+                sub: c.platform,
+                kind: "folder",
+                count: c.n,
+              })),
+          };
+    return null;
+  };
+
   const children = async (path: string, after?: string): Promise<Page> => {
     await indexed();
     const [root, area, ...rest] = segments(path);
@@ -464,18 +560,29 @@ export function canonTree(src: CanonSource): Adapter {
       case "references": {
         const [id, rel] = rest;
         if (!id) {
-          const p = await src.references(offset, PAGE_SIZE);
+          const [g, n] = await Promise.all([groups(), src.counts()]);
+          const folder = (seg: string, count: number, sub?: string): Item => ({
+            path: join(ROOT, "references", seg),
+            name: GROUP_NAME[seg] ?? seg,
+            kind: "folder",
+            count,
+            ...(sub ? { sub } : {}),
+          });
           return {
-            items: p.rows.map((r) => ({
-              path: join(ROOT, "references", r.id),
-              name: r.title,
-              sub: [r.platform, r.handle ? `@${r.handle}` : null].filter(Boolean).join(" · "),
-              kind: "reference",
-              ...(r.poster ? { poster: r.poster } : {}),
-            })),
-            ...(p.next != null ? { next: String(p.next) } : {}),
+            items: [
+              folder(GROUP.topic, g.topics.length, "the topics that cite them"),
+              folder(GROUP.yours, g.yours),
+              folder(GROUP.creator, g.creators.length),
+              folder(GROUP.all, n.references, "newest saved first"),
+            ],
           };
         }
+        const group = groupOf(rest);
+        if (group?.list) {
+          const [g, h] = await Promise.all([groups(), src.home()]);
+          return { items: group.list(g, new Map(h.topics.map((t) => [t.name, t.title]))) };
+        }
+        if (group?.by) return referenceRows(offset, group.by, rest);
         const home = join(ROOT, "references", id);
         if (!rel)
           return {
@@ -546,7 +653,14 @@ export function canonTree(src: CanonSource): Adapter {
     await indexed();
     if (!src.edges) return [];
     const { places, cites, backs } = await src.edges();
-    const home = new Map(places.map((p) => [p.id, recordHome({ ...p, title: null })]));
+    // a reference's Map end sits under All, the one group that holds every reference, so a fold lifts it to a box
+    const onMap = (h: string) => {
+      const [, area, id, more] = segments(h);
+      return area === "references" && id && more === undefined
+        ? join(ROOT, "references", GROUP.all, id)
+        : h;
+    };
+    const home = new Map(places.map((p) => [p.id, onMap(recordHome({ ...p, title: null }))]));
     const out = new Map<string, PathEdge>();
     const put = (rel: string, from: string | undefined, to: string | undefined) => {
       if (!from || !to || from === to) return;
@@ -596,6 +710,20 @@ export function canonTree(src: CanonSource): Adapter {
           kind: "topic",
           ...(home !== path ? { was: path } : {}),
         };
+      }
+      // a references group, or a reference in one: straight, at its home
+      if (area === "references" && a && GROUPS.has(a)) {
+        // all and yours hold references; by-topic and by-creator hold a folder each
+        const flat = a === GROUP.all || a === GROUP.yours;
+        if (segs.length === 3) return { path, name: GROUP_NAME[a] ?? a, kind: "folder" };
+        if (!flat && b && segs.length === 4) return { path, name: b, kind: "folder" };
+        const id = segs[flat ? 3 : 4];
+        if (id && segs.length === (flat ? 4 : 5)) {
+          const r = (await placed([id])).get(id);
+          if (!r) throw new PathError("unknown-path", `no reference ${id}`);
+          return recordRow(r);
+        }
+        throw new PathError("unknown-path", `nothing at ${path}`);
       }
       // a record by id, straight: no list to page through
       if (
@@ -657,7 +785,7 @@ export function canonTree(src: CanonSource): Adapter {
         }
         return out;
       }
-      if (area === "references" && a) {
+      if (area === "references" && a && !GROUPS.has(a)) {
         const r = await reference(a);
         return { ...out, body: r.transcript ?? r.caption ?? r.note?.text ?? "", data: r };
       }

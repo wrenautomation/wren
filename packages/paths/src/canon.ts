@@ -9,7 +9,10 @@ import type { Db } from "@wren/db";
 import {
   canonConsoleApi,
   type Media,
+  PLATFORM_SQL,
   referenceOf,
+  referencesWhere,
+  SAVED_SQL,
   VIDEO_KINDS,
 } from "@wren/research/canon-console";
 import { canonEdges, canonLibraryApi, type FileRef } from "@wren/research/canon-library";
@@ -59,7 +62,38 @@ function canonSource(db: Db, remote: string, media: Media | null): CanonSource {
     record: (id) => library.record(id).catch(missing(`record ${id}`)),
     reference: (id) => console.reference(id).catch(missing(`reference ${id}`)),
     file: (path) => library.file(path).catch(missing("file")),
-    references: (after, limit) => console.references({ after, limit }),
+    references: async (after, limit, by = {}) => {
+      const f = {
+        handle: by.handle ?? null,
+        usedBy: by.usedBy ?? null,
+        provider: by.yours ? "human" : null,
+      };
+      // one more than the page: a next page without a count
+      const rows = await db.execute<Parameters<typeof referenceOf>[0]>(
+        sql`select r.id, r.title, r.created, r.data from canon.knowledge_records r where ${referencesWhere(f)} order by ${SAVED_SQL} desc, r.id limit ${limit + 1} offset ${after}`,
+      );
+      const page = rows.slice(0, limit);
+      return {
+        rows: await Promise.all(page.map((r) => referenceOf(r, media))),
+        next: rows.length > limit ? after + limit : null,
+      };
+    },
+    referenceGroups: async () => {
+      const all = referencesWhere({});
+      const [topics, creators, yours] = await Promise.all([
+        db.execute<{ topic: string; n: number }>(
+          // each topic's walk down its cites, as `usedBy` reads one
+          sql`with recursive down(topic, id) as (select topic, id from canon.knowledge_records where repo = ${REPO} and status = 'live' and type in ('guide', 'rule') and topic is not null union select down.topic, c."to" from canon.knowledge_cites c join down on c."from" = down.id where c.repo = ${REPO}) select d.topic, count(distinct r.id)::int as n from down d join canon.knowledge_records r on r.repo = ${REPO} and r.id = d.id where ${all} group by 1 order by n desc, 1`,
+        ),
+        db.execute<{ handle: string; platform: string; n: number }>(
+          sql`select r.data->>'handle' as handle, min(${PLATFORM_SQL}) as platform, count(*)::int as n from canon.knowledge_records r where ${all} and coalesce(r.data->>'handle', '') <> '' and strpos(r.data->>'handle', '/') = 0 group by 1 order by n desc, 1`,
+        ),
+        count(
+          sql`select count(*)::int as n from canon.knowledge_records r where ${referencesWhere({ provider: "human" })}`,
+        ),
+      ]);
+      return { topics, creators, yours };
+    },
     rootFiles: () =>
       db.execute<FileRef>(
         sql`select path, size, body is not null as text from canon.knowledge_files where repo = ${REPO} and path not like 'topics/%' order by path`,

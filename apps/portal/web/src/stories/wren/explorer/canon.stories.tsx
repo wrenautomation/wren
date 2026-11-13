@@ -139,9 +139,41 @@ export const File = tidy(
   }),
 );
 
+/** References open on groups: by the topics that cite them, his own saves, by creator, all. */
+export const References = tidy(
+  pageAt(at("canon/references"), {
+    ...ONE,
+    check: async (page) => {
+      const view = within(page);
+      for (const [name, to] of [
+        [/^By topic/, "by-topic"],
+        [/^Saved by you/, "yours"],
+        [/^By creator/, "by-creator"],
+        [/^All/, "all"],
+      ] as const)
+        await expect(await view.findByRole("link", { name }, WAIT)).toHaveAttribute(
+          "href",
+          at(`canon/references/${to}`),
+        );
+    },
+  }),
+);
+
+/** The references a topic cites; each opens inside the group. */
+export const ReferencesOfTopic = tidy(
+  pageAt(at("canon/references/by-topic/video-editing"), {
+    ...ONE,
+    check: async (page) => {
+      await expect(
+        await within(page).findByRole("link", { name: /^Cuts on the kick/ }, WAIT),
+      ).toHaveAttribute("href", at(`canon/references/by-topic/video-editing/${REF}`));
+    },
+  }),
+);
+
 /** Every reference as a poster wall. */
 export const Gallery = tidy(
-  pageAt(at("canon/references", "gallery"), {
+  pageAt(at("canon/references/all", "gallery"), {
     me: ADMIN,
     check: async (page) => {
       const view = within(page);

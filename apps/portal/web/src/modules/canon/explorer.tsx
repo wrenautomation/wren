@@ -36,7 +36,7 @@ export const CANON_MARKS: Record<string, { label: string; tone?: TagTone }> = {
 
 /** What fills an empty Canon folder: a reference from Library's Add box, the rest from the repo. */
 export const canonFills = (route: string) =>
-  route === "canon/references" ? (
+  route.startsWith("canon/references") ? (
     <>
       Save a reel or video from the Add box in <a href="/canon/library">Library</a>.
     </>

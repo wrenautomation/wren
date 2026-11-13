@@ -20,6 +20,7 @@ import {
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { syncCanonIndex } from "@wren/research/canon-index";
 import { write } from "@wrenautomation/knowledge";
+import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { canonPaths } from "../../src/canon.js";
 
@@ -212,6 +213,71 @@ describe("canonPaths", () => {
     ]);
   });
 
+  it("groups references: by topic, saved by you, by creator, all", async () => {
+    const R = "canon/references";
+    const id = "youtube-abc12345678";
+    const rows = async (x: typeof a, p: string) =>
+      (await x.children(p)).items.map((i) => [i.path, i.count ?? null]);
+    expect(await rows(a, R)).toEqual([
+      [`${R}/by-topic`, 1],
+      [`${R}/yours`, 0],
+      [`${R}/by-creator`, 0],
+      [`${R}/all`, 1],
+    ]);
+    // a topic holds what its guide and sets reach down their cites: here through a finding
+    expect((await a.children(`${R}/by-topic`)).items).toEqual([
+      {
+        path: `${R}/by-topic/video-editing`,
+        name: "video-editing",
+        sub: "Video editing",
+        kind: "folder",
+        count: 1,
+      },
+    ]);
+    expect(paths((await a.children(`${R}/by-topic/video-editing`)).items)).toEqual([
+      `${R}/by-topic/video-editing/${id}`,
+    ]);
+    expect(paths((await a.children(`${R}/by-topic/writing-tells`)).items)).toEqual([]);
+    expect(paths((await a.children(`${R}/all`)).items)).toEqual([`${R}/all/${id}`]);
+    // a row in a group is the reference at its home
+    expect(await a.item(`${R}/by-topic/video-editing/${id}`)).toMatchObject({ path: `${R}/${id}` });
+
+    // his save, with a creator; a handle that is a URL is no creator
+    const set = (data: string) =>
+      pg.db.execute(
+        sql`update canon.knowledge_records set data = data || ${data}::jsonb where repo = 'canon' and id = ${id}`,
+      );
+    await set('{"handle": "edit.studio", "provider": {"kind": "human", "who": "ana"}}');
+    try {
+      const b = canonPaths(pg.db, REMOTE, null);
+      expect(await rows(b, R)).toEqual([
+        [`${R}/by-topic`, 1],
+        [`${R}/yours`, 1],
+        [`${R}/by-creator`, 1],
+        [`${R}/all`, 1],
+      ]);
+      expect((await b.children(`${R}/by-creator`)).items).toEqual([
+        {
+          path: `${R}/by-creator/edit.studio`,
+          name: "edit.studio",
+          sub: "youtube",
+          kind: "folder",
+          count: 1,
+        },
+      ]);
+      expect(paths((await b.children(`${R}/by-creator/edit.studio`)).items)).toEqual([
+        `${R}/by-creator/edit.studio/${id}`,
+      ]);
+      expect(paths((await b.children(`${R}/yours`)).items)).toEqual([`${R}/yours/${id}`]);
+      await set('{"handle": "example.com/someone"}');
+      expect(await rows(canonPaths(pg.db, REMOTE, null), `${R}/by-creator`)).toEqual([]);
+    } finally {
+      await pg.db.execute(
+        sql`update canon.knowledge_records set data = data - 'handle' - 'provider' where repo = 'canon' and id = ${id}`,
+      );
+    }
+  });
+
   it("lists a topic by layer, a borrowed set as an alias from its owner", async () => {
     expect((await childrenAt(a, T)).items.map((i) => [i.name, i.count ?? null])).toEqual([
       ["Skill", null],
@@ -385,7 +451,8 @@ describe("canonPaths", () => {
   it("links homes for the Map: cites, backs, into; lifts them to the boxes a fold shows", async () => {
     const edges = (await a.edges?.("canon")) ?? [];
     const sets = `${T}/sets`;
-    const ref = "canon/references/youtube-abc12345678";
+    // a reference's Map end: under All, the group that holds every reference
+    const ref = "canon/references/all/youtube-abc12345678";
     expect(edges).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -426,10 +493,12 @@ describe("canonPaths", () => {
       "canon/files",
     ]);
     expect(map.boxes.find((b) => b.path === "canon/records")).toMatchObject({ open: false });
-    const line = map.lines.find((l) => l.id === `${ref}>${T}`);
+    // References opens on its groups; All stays shut, so the line runs from it
+    const all = "canon/references/all";
+    const line = map.lines.find((l) => l.id === `${all}>${T}`);
     expect(line).toMatchObject({ count: 1, rels: { backs: 1 } });
     expect(map.inside[T]).toBeGreaterThan(0);
-    const page = await lineAt(a, { path: ref, open: false }, { path: T, open: false });
+    const page = await lineAt(a, { path: all, open: false }, { path: T, open: false });
     expect(page.edges.map((e) => [e.rel, e.to])).toEqual([
       ["backs", `${sets}/video-editing-cuts/VC-1`],
     ]);

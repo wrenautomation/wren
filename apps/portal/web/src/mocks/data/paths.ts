@@ -157,6 +157,10 @@ const CANON_EDGES = (() => {
   return { places, cites, backs };
 })();
 
+/** the topics that cite a reference: the one topic the mocks hold whole */
+const usedBy = (id: string) =>
+  CANON_TOPIC.references.some((r) => r.id === id) ? [CANON_TOPIC.name] : [];
+
 export const CANON_SOURCE: CanonSource = {
   videoKinds: VIDEO_KINDS,
   indexed: async () => CANON_HOME.indexed,
@@ -181,10 +185,37 @@ export const CANON_SOURCE: CanonSource = {
     if (!f) throw missing("file");
     return f;
   },
-  references: async (after, limit) => ({
-    rows: CANON_ROWS.slice(after, after + limit),
-    next: after + limit < CANON_ROWS.length ? after + limit : null,
-  }),
+  references: async (after, limit, by = {}) => {
+    const rows = CANON_ROWS.filter(
+      (r) =>
+        (!by.yours || r.provider?.kind === "human") &&
+        (!by.handle || r.handle === by.handle) &&
+        (!by.usedBy || usedBy(r.id).includes(by.usedBy)),
+    );
+    return {
+      rows: rows.slice(after, after + limit),
+      next: after + limit < rows.length ? after + limit : null,
+    };
+  },
+  referenceGroups: async () => {
+    const creators = new Map<string, { handle: string; platform: string; n: number }>();
+    for (const r of CANON_ROWS) {
+      if (!r.handle) continue;
+      const c = creators.get(r.handle) ?? { handle: r.handle, platform: r.platform, n: 0 };
+      c.n += 1;
+      creators.set(r.handle, c);
+    }
+    const topics = new Map<string, number>();
+    for (const t of CANON_ROWS.flatMap((r) => usedBy(r.id)))
+      topics.set(t, (topics.get(t) ?? 0) + 1);
+    return {
+      topics: [...topics].map(([topic, n]) => ({ topic, n })),
+      creators: [...creators.values()].sort(
+        (a, b) => b.n - a.n || a.handle.localeCompare(b.handle),
+      ),
+      yours: CANON_ROWS.filter((r) => r.provider?.kind === "human").length,
+    };
+  },
   rootFiles: async () => ROOT_FILES,
   placed: async (ids) => ids.flatMap((i) => PLACED.get(i) ?? []),
   into: async (id) => {
@@ -241,6 +272,7 @@ const EMPTY_CANON: CanonSource = {
   reference: (id) => none(`reference ${id}`),
   file: () => none("file"),
   references: async () => ({ rows: [], next: null }),
+  referenceGroups: async () => ({ topics: [], creators: [], yours: 0 }),
   rootFiles: async () => [],
   placed: async () => [],
   into: async () => null,

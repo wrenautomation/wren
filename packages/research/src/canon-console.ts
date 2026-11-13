@@ -271,13 +271,18 @@ export interface Filters {
   area?: string | null;
   q?: string | null;
   noted?: boolean | null;
+  /** one creator's */
+  handle?: string | null;
+  /** the ones a live record of this topic cites */
+  usedBy?: string | null;
 }
 type Facetted = "platform" | "tag" | "provider" | "area";
 
-const SAVED_SQL = sql`coalesce(case when jsonb_typeof(r.data->'saved') = 'object' then r.data->'saved'->>'at' else r.data->>'saved' end, r.created)`;
-const PLATFORM_SQL = sql`coalesce(r.data->>'platform', split_part(r.id, '-', 1))`;
+export const SAVED_SQL = sql`coalesce(case when jsonb_typeof(r.data->'saved') = 'object' then r.data->'saved'->>'at' else r.data->>'saved' end, r.created)`;
+export const PLATFORM_SQL = sql`coalesce(r.data->>'platform', split_part(r.id, '-', 1))`;
 
-function where(f: Filters, skip?: Facetted): SQL {
+/** The references a filter keeps, as `r`. */
+export function referencesWhere(f: Filters, skip?: Facetted): SQL {
   const w: SQL[] = [
     sql`r.repo = ${REPO}`,
     sql`r.type = 'source'`,
@@ -293,6 +298,12 @@ function where(f: Filters, skip?: Facetted): SQL {
   if (f.tag && skip !== "tag") w.push(sql`r.data->'tags' ? ${f.tag}`);
   if (f.area && skip !== "area") w.push(sql`r.data->'useFor'->>'area' = ${f.area}`);
   if (f.noted) w.push(sql`coalesce(r.data->'note'->>'text', '') <> ''`);
+  if (f.handle) w.push(sql`r.data->>'handle' = ${f.handle}`);
+  // a topic's references: down its cites from its live guide and sets (canon-library topic page)
+  if (f.usedBy)
+    w.push(
+      sql`r.id in (with recursive down(id) as (select id from canon.knowledge_records where repo = ${REPO} and status = 'live' and type in ('guide', 'rule') and topic = ${f.usedBy} union select c."to" from canon.knowledge_cites c join down on c."from" = down.id where c.repo = ${REPO}) select id from down)`,
+    );
   if (f.q?.trim()) {
     const like = `%${f.q.trim().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
     w.push(
@@ -320,7 +331,7 @@ export function canonConsoleApi(db: Db, media: Media | null = null) {
   const facet = async (expr: SQL, f: Filters, skip: Facetted) =>
     (
       await db.execute<{ value: string; n: number }>(
-        sql`select v as value, count(*)::int as n from canon.knowledge_records r, ${expr} where ${where(f, skip)} and v is not null group by v order by n desc, v limit 40`,
+        sql`select v as value, count(*)::int as n from canon.knowledge_records r, ${expr} where ${referencesWhere(f, skip)} and v is not null group by v order by n desc, v limit 40`,
       )
     ).map((x) => ({ value: x.value, n: x.n }));
 
@@ -340,10 +351,10 @@ export function canonConsoleApi(db: Db, media: Media | null = null) {
       const limit = Math.min(f.limit ?? PAGE, PAGE);
       const [rows, [count], head, platform, tag, provider, area] = await Promise.all([
         db.execute<Row>(
-          sql`select r.id, r.title, r.created, r.data from canon.knowledge_records r where ${where(f)} order by ${SAVED_SQL} desc, r.id limit ${limit} offset ${after}`,
+          sql`select r.id, r.title, r.created, r.data from canon.knowledge_records r where ${referencesWhere(f)} order by ${SAVED_SQL} desc, r.id limit ${limit} offset ${after}`,
         ),
         db.execute<{ n: number }>(
-          sql`select count(*)::int as n from canon.knowledge_records r where ${where(f)}`,
+          sql`select count(*)::int as n from canon.knowledge_records r where ${referencesWhere(f)}`,
         ),
         headOf(),
         facet(sql`lateral (select ${PLATFORM_SQL} as v) x`, f, "platform"),
