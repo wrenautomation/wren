@@ -865,6 +865,15 @@ export function serveRecords(
         );
       })) as ListCall,
 
+    /** One list's `total` alone (`recordsCounts`): no rows, no order, no tab counts. */
+    count: (ask: ListAsk): Promise<number> =>
+      guard(async () => {
+        const p = plan(ask);
+        const [n] = await db.execute<Raw>(sql`
+          select count(*)::int "__total" from ${await source(p.t)} where ${p.base} and ${p.inView}`);
+        return Number(n?.__total ?? 0);
+      }),
+
     get: (ask: GetAsk): Promise<RecordAnswer> =>
       guard(async () => {
         const t = typeOf(ask.record);

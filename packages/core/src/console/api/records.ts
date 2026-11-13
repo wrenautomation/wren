@@ -212,11 +212,8 @@ export function recordsHandlers(ctx: ConsoleContext) {
         .filter((a): a is ListAsk => !!a && typeof (a as ListAsk).record === "string");
       const totals = await Promise.all(
         asks.map((a) => {
-          const ask = { ...req, record: a.record, where: a.where, limit: 1 };
-          return read(ask, (r) => r.list(ask)).then(
-            (p) => p.total,
-            () => 0,
-          );
+          const ask = { ...req, record: a.record, where: a.where };
+          return read(ask, (r) => r.count(ask)).catch(() => 0);
         }),
       );
       return { totals };

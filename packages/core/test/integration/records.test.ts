@@ -208,6 +208,17 @@ describe("paging", () => {
     expect(rows).not.toHaveProperty("totals");
   });
 
+  it("count is list's total: view, filter and search", async () => {
+    const asks = [
+      { record: "test.item" },
+      { record: "test.item", view: "open" },
+      { record: "test.item", where: { state: "open" } },
+      { record: "test.item", q: "jane doe 5" },
+    ];
+    for (const ask of asks) expect(await api.count(ask)).toBe((await api.list(ask)).total);
+    await refused(api.count({ record: "test.nope" }), 404);
+  });
+
   it("a page marker from another sort is refused", async () => {
     const page = await api.list({ record: "test.item", sort: "n", limit: 3 });
     await refused(api.list({ record: "test.item", sort: "-n", cursor: page.next ?? "" }));

@@ -60,4 +60,6 @@ The list template draws them; no new part.
 
 - 2026-11-13: real traffic (A), not a CI load test or a prod probe. A CI test comes per route, after a fix, if that route regresses.
 - 2026-11-13: lane from `build`: `arn:` Lambda, `worker/` box, else desk (the Mac's desk worker leaves it null). The view covers every waited call, not only portal reads: a slow desk call is a wait too.
+- 2026-11-13: `recordsCounts` (the sidebar's counts, each minute) was `list` with limit 1 per ask: an ordered rows query plus every tab's count and totals, for one number. Now `count`: one `count(*)` on the same filters. Before: p50 1121 ms, p90 1813 ms (4 days, 386 calls). After: read it on Speed once a day of traffic is in.
+- 2026-11-13: `batches` and `mapRead` wait. Their p90 (about 4 s) was Lambda cold starts, gone since WA-1353 A; profile them from box numbers.
 - 2026-11-13: the shared `duration` format shows ms under 1 s and one decimal under 10 s ("279ms", "3.9s"); whole seconds showed every read as "0s".
