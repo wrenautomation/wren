@@ -41,6 +41,7 @@ import {
   ClipboardList,
   Clock,
   Code,
+  Columns3,
   Copy,
   CreditCard,
   DollarSign,
@@ -186,6 +187,7 @@ const ICONS = {
   pin: Pin,
   // Apps: the launcher, and each app's mark.
   apps: LayoutGrid,
+  columns: Columns3,
   cycle: RefreshCw,
   flag: Flag,
   board: SquareKanban,

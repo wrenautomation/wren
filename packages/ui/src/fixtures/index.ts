@@ -3,6 +3,15 @@
  * data only: the repo is public. Add to these files; never copy a fixture into a story.
  */
 
+export {
+  EXPLORER_MARKS,
+  EXPLORER_ROOT_PAGE,
+  type ExplorerFixture,
+  explorerAdapter,
+  explorerFails,
+  explorerPending,
+  explorerRead,
+} from "./explorer.js";
 export { LOOP_EDGES, RIBBON_EDGES, RIBBON_NODES, wideGraph } from "./graph.js";
 export { answer, fails, pending } from "./load.js";
 export { pageOf } from "./records.js";

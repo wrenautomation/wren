@@ -7,7 +7,6 @@ import { existsSync } from "node:fs";
 import { mkdir, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
-import type { Db } from "@wren/db";
 import {
   type Adapter,
   allChildren,
@@ -19,7 +18,8 @@ import {
   rootOf,
   segments,
   wholeAt,
-} from "@wren/paths";
+} from "@wren/core/paths";
+import type { Db } from "@wren/db";
 import { serverRoots } from "@wren/paths/roots";
 import type { Command } from "commander";
 import { isLoopback, syncHere } from "./canon.js";

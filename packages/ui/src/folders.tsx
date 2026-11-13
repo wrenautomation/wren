@@ -686,6 +686,20 @@ export function FolderTree<T>({
   );
 }
 
+/** A tree row's fold mark: right when shut, down when open. FolderTree and Explorer's List share it. */
+export function FoldChevron({ open }: { open: boolean }) {
+  return (
+    <Icon
+      name="right"
+      size={12}
+      className={cn(
+        "flex-none text-(--ui-ink-3) transition-transform duration-200 ease-(--ui-ease) motion-reduce:transition-none",
+        open && "rotate-90",
+      )}
+    />
+  );
+}
+
 /** A folder's own row: open or close, a drop target, and its ⋯. Dragging it moves the folder. */
 function FolderRow({
   f,
@@ -722,14 +736,7 @@ function FolderRow({
         onClick={onToggle}
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-[8px] border-0 bg-transparent py-2 pr-1 pl-2 text-left text-(--ui-ink) focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--ui-focus)"
       >
-        <Icon
-          name="right"
-          size={12}
-          className={cn(
-            "flex-none text-(--ui-ink-3) transition-transform duration-200 ease-[cubic-bezier(.16,1,.3,1)] motion-reduce:transition-none",
-            open && "rotate-90",
-          )}
-        />
+        <FoldChevron open={open} />
         <Icon name="folder" size={15} className="flex-none text-(--ui-ink-2)" />
         <span className="min-w-0 flex-1 text-[13.5px]/[1.4] font-medium wrap-anywhere">
           {f.name}

@@ -7,12 +7,12 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { type Adapter, allChildren, childrenAt, homeAt, walk, wholeAt } from "@wren/core/paths";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { syncCanonIndex } from "@wren/research/canon-index";
 import { write } from "@wrenautomation/knowledge";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { canonPaths } from "../../src/canon.js";
-import { type Adapter, allChildren, childrenAt, homeAt, walk, wholeAt } from "../../src/index.js";
 
 const git = (cwd: string, args: string[]) =>
   execFileSync("git", args, { cwd, stdio: ["ignore", "pipe", "pipe"] })

@@ -5,6 +5,20 @@
  * relation folders. Reads schema `canon` through the library, never the repo. One adapter per
  * request: topics and records load once.
  */
+
+import {
+  type Adapter,
+  aliasOf,
+  type Item,
+  itemFromParent,
+  join,
+  linksOf,
+  type Page,
+  PathError,
+  relationRow,
+  segments,
+  type Whole,
+} from "@wren/core/paths";
 import { PortalRefusal } from "@wren/core/portal";
 import type { Db } from "@wren/db";
 import {
@@ -23,19 +37,6 @@ import {
   type TopicWhole,
 } from "@wren/research/canon-library";
 import { type SQL, sql } from "drizzle-orm";
-import {
-  type Adapter,
-  aliasOf,
-  type Item,
-  itemFromParent,
-  join,
-  linksOf,
-  type Page,
-  PathError,
-  relationRow,
-  segments,
-  type Whole,
-} from "./index.js";
 
 const ROOT = "canon";
 const REPO = "canon";

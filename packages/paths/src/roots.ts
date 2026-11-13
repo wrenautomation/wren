@@ -1,8 +1,9 @@
 /** The roots a server or the CLI holds, by name (designs/2026-11-12-explorer.md D2). */
+
+import type { Adapter } from "@wren/core/paths";
 import type { Db } from "@wren/db";
 import type { Media } from "@wren/research/canon-console";
 import { canonPaths } from "./canon.js";
-import type { Adapter } from "./index.js";
 
 export interface PathsDeps {
   db: Db;

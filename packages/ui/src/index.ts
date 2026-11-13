@@ -223,6 +223,13 @@ export {
   useFieldArray,
 } from "./edit-form.js";
 export {
+  EXPLORER_VIEWS,
+  Explorer,
+  type ExplorerProps,
+  type ExplorerRead,
+  type ExplorerView,
+} from "./explorer.js";
+export {
   Alert,
   Callout,
   Empty,

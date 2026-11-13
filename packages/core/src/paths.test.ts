@@ -14,7 +14,7 @@ import {
   relationRow,
   walk,
   wholeAt,
-} from "./index.js";
+} from "./paths.js";
 
 // a: two topics; b borrows a's set; a line with a relation folder; one path offline
 const LINE: Item = { path: "t/a/s1/L-1", name: "L-1", kind: "line" };
@@ -73,6 +73,23 @@ describe("walk", () => {
     const w = await walk(fixture(), "t/a/nope/deeper");
     expect(w.steps.map((s) => s.route)).toEqual(["t", "t/a"]);
     expect(w.error).toMatchObject({ code: "unknown-path", route: "t/a/nope" });
+  });
+
+  it("goes on from a moved item's new home", async () => {
+    const a = fixture();
+    const asked = a.item;
+    a.item = async (path) =>
+      path.startsWith("t/old")
+        ? { ...(await asked(path.replace("t/old", "t/a"))), was: "t/old" }
+        : asked(path);
+    const shown = await columns(a, "t/old/s1");
+    expect(shown.columns.map((c) => [c.route, c.home])).toEqual([
+      ["t", "t"],
+      ["t/a", "t/a"],
+      ["t/a/s1", "t/a/s1"],
+    ]);
+    // its rows are at home: no alias mark
+    expect(shown.columns[1]?.items[0]?.original).toBeUndefined();
   });
 
   it("refuses another root", async () => {

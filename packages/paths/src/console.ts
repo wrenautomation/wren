@@ -3,12 +3,13 @@
  * Weaver runs in the browser, beside `weaver serve`. A fresh adapter per call: its loads are
  * that call's.
  */
+
+import { childrenAt, columns, homeAt, PathError, rootOf, wholeAt } from "@wren/core/paths";
 import { answer, PortalRefusal, type PortalRequest, portalService } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type * as restate from "@wren/runtime";
 import { z } from "zod";
 import { PATHS_CONSOLE_APPS, PATHS_CONSOLE_ROUTES } from "./console-routes.js";
-import { childrenAt, columns, homeAt, PathError, rootOf, wholeAt } from "./index.js";
 import { type PathsDeps, serverRoots } from "./roots.js";
 
 type Req = PortalRequest & Record<string, unknown>;

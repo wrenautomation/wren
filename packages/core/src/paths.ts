@@ -197,6 +197,8 @@ export async function walk(a: Adapter, route: string): Promise<Walked> {
     try {
       const item = await a.item(join(home, seg));
       home = item.path;
+      // moved: the route goes on from the new home; the old name stops here
+      if (item.was) at = home;
       steps.push({ route: at, home, item });
     } catch (e) {
       const code = codeOf(e);
@@ -227,8 +229,9 @@ export interface Shown {
   error?: Walked["error"];
 }
 
-// folders show their rows; only these open a preview
+// folders show their rows; only the rest open a preview
 const FOLDERS = new Set(["root", "area", "layer", "relation", "folder", "type"]);
+export const isFolder = (i: Pick<Item, "kind">) => FOLDERS.has(i.kind);
 
 export async function columns(a: Adapter, route: string): Promise<Shown> {
   const w = await walk(a, route);
@@ -250,8 +253,7 @@ export async function columns(a: Adapter, route: string): Promise<Shown> {
     }
   }
   const last = cols.at(-1);
-  if (error || !last || FOLDERS.has(last.item.kind))
-    return { columns: cols, ...(error ? { error } : {}) };
+  if (error || !last || isFolder(last.item)) return { columns: cols, ...(error ? { error } : {}) };
   try {
     return { columns: cols, whole: await a.whole(last.home) };
   } catch (e) {

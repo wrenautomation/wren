@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
     "./canon": "./src/canon.ts",
     "./console-routes": "./src/console-routes.ts",
     "./restate": "./src/console.ts",
@@ -12,7 +11,7 @@
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
-    "test:unit": "vitest run src",
+    "test:unit": "vitest run src --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
