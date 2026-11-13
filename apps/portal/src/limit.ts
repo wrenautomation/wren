@@ -1,14 +1,14 @@
 /**
  * One cap per visitor on every path anyone may post to without signing in: Sites forms and the
- * tracker, site chat, document signing, booking and AI tools. Cloudflare's rate limiter, keyed by
+ * tracker, site chat, document signing, booking, AI tools and the Aerie CLI. Cloudflare's rate limiter, keyed by
  * IP (wrangler.toml `PUBLIC_LIMIT`). Unbound (local, tests) or no IP = no cap. Each path keeps its
  * own checks behind this (Turnstile, a thread's hourly cap, a token). Past the cap, `uncapped`
- * may still let a call through (an operator's AI tools); its own checks are capped the same way,
+ * may still let a call through (an operator's AI tools or Aerie CLI); its own checks are capped the same way,
  * so a flood of made-up tokens costs at most one cap's worth of checks.
  */
 import type { Env } from "./env.js";
 
-const PUBLIC_POST = /^\/o\/|^\/api\/agent\/|\/__book\//;
+const PUBLIC_POST = /^\/o\/|^\/api\/agent\/|^\/api\/aerie$|\/__book\//;
 
 /** A 429 when this visitor is over the cap on a public post, else null. */
 export async function publicLimit(

@@ -12,11 +12,12 @@ import {
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type * as restate from "@wren/runtime";
-import { AerieError } from "@wrenautomation/aerie";
+import { type Db as AerieDb, AerieError } from "@wrenautomation/aerie";
 import { AERIE_ROUTES, type AerieRoute, aerieRoutes } from "@wrenautomation/aerie/http";
+import { remoteServer } from "@wrenautomation/aerie/remote";
 import { z } from "zod";
 import { AERIE_CONSOLE_APPS, AERIE_CONSOLE_ROUTES } from "./console-routes.js";
-import { aerie } from "./index.js";
+import { AERIE_HOOKS, aerie } from "./index.js";
 
 type Req = PortalRequest & Record<string, unknown>;
 
@@ -44,8 +45,21 @@ export function aerieConsoleApi(db: Db) {
     );
 }
 
+/** D20 B: the CLI's store and coord over `/api/aerie`. Answer: Aerie's status + superjson text, passed through by the edge */
+function aerieRemote(db: Db) {
+  const routes = aerieRoutes(aerie(db));
+  // shadow mode: peers' files own task status until William flips coord (WA-1367.1); the flip sets `status` here
+  const server = remoteServer({ db: db as unknown as AerieDb, hooks: AERIE_HOOKS, ns: "main" });
+  return async (req: Req): Promise<{ status: number; body: string }> => {
+    const email = (req.viewer as SignedViewer).email;
+    const actor = await refuse(() => routes.viewer(email));
+    return server.handle({ actor, email }, typeof req.body === "string" ? req.body : "");
+  };
+}
+
 export function makeAerieConsole(db: Db) {
   const api = aerieConsoleApi(db);
+  const remote = aerieRemote(db);
   // Aerie validates its own input; the host schema carries the portal's fields only
   const h = (k: AerieRoute) =>
     serviceHandler(
@@ -58,9 +72,15 @@ export function makeAerieConsole(db: Db) {
     routes: AERIE_CONSOLE_ROUTES,
     apps: AERIE_CONSOLE_APPS,
     unnamed: "wren",
-    handlers: Object.fromEntries(AERIE_ROUTES.map((k) => [k, h(k)])) as Record<
-      AerieRoute,
-      ReturnType<typeof h>
-    >,
+    handlers: {
+      ...(Object.fromEntries(AERIE_ROUTES.map((k) => [k, h(k)])) as Record<
+        AerieRoute,
+        ReturnType<typeof h>
+      >),
+      remote: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS, body: z.string().max(1 << 20) }) },
+        (_: restate.Context, req: Req) => answer(() => remote(req)),
+      ),
+    },
   });
 }

@@ -13,6 +13,7 @@
  *   `LiveRoom`, then to its tabs (./topics.ts).
  * - `/api/agent`: Wren for AI tools (the CLI and skill under `/agent/`), by a `wren_` access
  *   token (./agent.ts).
+ * - `/api/aerie` (exact): the Aerie CLI's store over HTTP, by a `wren_` token (./aerie.ts).
  * - `/api/<service>/<route>`: forwarded to that portal service (`./services.ts`)
  *   with the viewer set here, never by the browser. Writes are refused on the
  *   demo. The service's guard decides who may call each route.
@@ -34,6 +35,7 @@ import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
 import { viewAsShape } from "@wren/core/access";
 import { readBody } from "@wren/core/http";
 import { KEY_STAGE_PATH } from "@wren/core/key-refs";
+import { AERIE_PATH, aerieRoute } from "./aerie.js";
 import { AGENT_PATH, agentRoute, operatorToken } from "./agent.js";
 import { bookRoute } from "./book.js";
 import { BUILD_FILE, BUILD_HEADER, isStale, STALE_CODE, STALE_SEND, STALE_WRITE } from "./build.js";
@@ -295,7 +297,9 @@ export default {
     if (refused) return refused;
     const site = await siteOf(req, env, ctx);
     const over = await publicLimit(req, env, pathname, (r) =>
-      pathname.startsWith(`${AGENT_PATH}/`) ? operatorToken(r, env) : Promise.resolve(false),
+      pathname.startsWith(`${AGENT_PATH}/`) || pathname === AERIE_PATH
+        ? operatorToken(r, env)
+        : Promise.resolve(false),
     );
     if (over) return over;
     // Sites' pages, tracker and forms: on the apex, a client's host, or the app host (./sites.ts).
@@ -360,6 +364,7 @@ export default {
     if (pathname === KEY_STAGE_PATH) return keyStage(req, env, site, (r) => viewerOf(r, env));
     if (pathname === AGENT_PATH || pathname.startsWith(`${AGENT_PATH}/`))
       return agentRoute(req, env, site);
+    if (pathname === AERIE_PATH) return aerieRoute(req, env, site);
     if (pathname === PULSE_PATH) return pulseRoute(req, env, site, ctx);
     if (pathname === WRITE_STATUS_PATH)
       return writeStatus(req, env, site, async (r) => {

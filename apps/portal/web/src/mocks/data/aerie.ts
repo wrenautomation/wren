@@ -303,6 +303,8 @@ export const AERIE_DECISIONS: Decision[] = [
     blocks: ["EX-101", "EX-990"],
     area: "dev/site",
     askedBy: "agent:claude-builder",
+    kind: "ask",
+    history: [],
     askedAt: hoursAgo(26),
     due: dayFromNow(-1),
   },
@@ -317,6 +319,8 @@ export const AERIE_DECISIONS: Decision[] = [
     blocks: [],
     area: "growth/email",
     askedBy: "agent:claude-writer",
+    kind: "ask",
+    history: [],
     askedAt: hoursAgo(3),
     due: dayFromNow(5),
   },
@@ -326,6 +330,8 @@ export const AERIE_DECISIONS: Decision[] = [
     options: [],
     blocks: [],
     askedBy: "@sam",
+    kind: "ask",
+    history: [],
     askedAt: hoursAgo(50),
   },
   {
@@ -344,6 +350,8 @@ export const AERIE_DECISIONS: Decision[] = [
     blocks: ["EX-102"],
     area: "growth",
     askedBy: "agent:claude-marketing-lead-with-a-long-name",
+    kind: "ask",
+    history: [],
     askedAt: hoursAgo(5),
   },
 ];
@@ -359,6 +367,8 @@ const ANSWERED_DECISION: Decision = {
   blocks: ["EX-104"],
   area: "growth",
   askedBy: "agent:claude-marketing",
+  kind: "ask",
+  history: [],
   askedAt: hoursAgo(80),
   answer: "b",
   answeredBy: "@william",
@@ -377,6 +387,8 @@ export const manyDecisions = (n: number): Decision[] =>
     ],
     blocks: [],
     askedBy: "agent:claude-writer",
+    kind: "ask",
+    history: [],
     askedAt: hoursAgo(i + 1),
   }));
 

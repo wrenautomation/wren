@@ -18,7 +18,7 @@ const LIST_MAX = 50;
 /** A token's limit below its person (`Cap` in `@wren/core/access`); the guard holds every call to it. */
 type Cap = { verbs: string[]; apps?: string[] };
 type Viewer = { email: string; operator?: true; cap?: Cap };
-type Who = { viewer: Viewer; pin: { client?: string; asClient?: true }; origin: object };
+export type Who = { viewer: Viewer; pin: { client?: string; asClient?: true }; origin: object };
 type Args = Record<string, unknown>;
 
 /** Each tool, its CLI command and what it takes. The CLI's help reads this. */
@@ -90,7 +90,7 @@ export async function operatorToken(req: Request, env: Env): Promise<boolean> {
 }
 
 /** Who the bearer token acts as, or the 401 that sends the agent back for a token. */
-async function whoOf(req: Request, env: Env, site: Site): Promise<Who | Response> {
+export async function whoOf(req: Request, env: Env, site: Site): Promise<Who | Response> {
   const unauthorized = (why: string) =>
     new Response(JSON.stringify({ error: why }), {
       status: 401,

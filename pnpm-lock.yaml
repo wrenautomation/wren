@@ -372,8 +372,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/watch
       '@wrenautomation/aerie':
-        specifier: 0.4.6
-        version: 0.4.6(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.8.0
+        version: 0.8.0(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/vireo':
         specifier: 0.18.0
         version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
@@ -720,8 +720,8 @@ importers:
         specifier: workspace:*
         version: link:../runtime
       '@wrenautomation/aerie':
-        specifier: 0.4.6
-        version: 0.4.6(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.8.0
+        version: 0.8.0(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       zod:
         specifier: 4.6.6
         version: 4.6.6
@@ -1033,8 +1033,8 @@ importers:
   packages/db:
     dependencies:
       '@wrenautomation/aerie':
-        specifier: 0.4.6
-        version: 0.4.6(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.8.0
+        version: 0.8.0(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/vireo':
         specifier: 0.18.0
         version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
@@ -6534,8 +6534,8 @@ packages:
   '@workflow/serde@4.1.0':
     resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
 
-  '@wrenautomation/aerie@0.4.6':
-    resolution: {integrity: sha512-YRPS/+K/FM2QqloarkC+URdeFulH1HhUOYpTvN/8QWUg/qc1TyowCw67eJBr5dFMNqXxsqQ301l2hmx7oIEF0Q==}
+  '@wrenautomation/aerie@0.8.0':
+    resolution: {integrity: sha512-XyJuRy8Fe4aUaXUr6ERfcXtfWnDZZBUXM6n01YFUnNQL6PxttucGm3yeVeMUjUPeRkiFK4TK2xPyvXQD/i8Ydw==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -7221,6 +7221,10 @@ packages:
 
   cookie@1.1.1:
     resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
+    engines: {node: '>=18'}
+
+  copy-anything@4.1.5:
+    resolution: {integrity: sha512-vePst2VLTSqPglW7Q98VwFpGiGpOHTyXIo81MO5VyLecA5zMbZw/P/V1vmwD1jksa2iJpn/YkDrJ3XhTfzUyhQ==}
     engines: {node: '>=18'}
 
   core-util-is@1.0.3:
@@ -10162,6 +10166,10 @@ packages:
 
   styleq@0.2.1:
     resolution: {integrity: sha512-L0TR0NQb+X4/ktDEKmjWyp27gla+LUYi/by5k5SjKXf6/pvZP7wbwEB5J+tqxdFVPgzbsuz+d4RTScO/QZquBw==}
+
+  superjson@2.2.6:
+    resolution: {integrity: sha512-H+ue8Zo4vJmV2nRjpx86P35lzwDT3nItnIsocgumgr0hHMQ+ZGq5vrERg9kJBo5AWGmxZDhzDo+WVIJqkB0cGA==}
+    engines: {node: '>=16'}
 
   supports-color@10.2.2:
     resolution: {integrity: sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==}
@@ -14706,20 +14714,25 @@ snapshots:
 
   '@workflow/serde@4.1.0': {}
 
-  '@wrenautomation/aerie@0.4.6(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
+  '@wrenautomation/aerie@0.8.0(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
     dependencies:
       '@electric-sql/pglite': 0.5.15
+      '@wrenautomation/models': 0.77.1
+      '@wrenautomation/read': 0.77.1(@aws-sdk/client-s3@3.1136.0)
       commander: 15.0.0
       drizzle-orm: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
       fuse.js: 7.1.0
       js-yaml: 4.1.0
       postgres: 3.4.9
+      superjson: 2.2.6
       zod: 4.6.6
     transitivePeerDependencies:
       - '@aws-sdk/client-rds-data'
+      - '@aws-sdk/client-s3'
       - '@cloudflare/workers-types'
       - '@libsql/client'
       - '@libsql/client-wasm'
+      - '@napi-rs/canvas'
       - '@neondatabase/serverless'
       - '@op-engineering/op-sqlite'
       - '@opentelemetry/api'
@@ -15590,6 +15603,8 @@ snapshots:
   cookie@0.7.2: {}
 
   cookie@1.1.1: {}
+
+  copy-anything@4.1.5: {}
 
   core-util-is@1.0.3: {}
 
@@ -18910,6 +18925,10 @@ snapshots:
       inline-style-parser: 0.2.9
 
   styleq@0.2.1: {}
+
+  superjson@2.2.6:
+    dependencies:
+      copy-anything: 4.1.5
 
   supports-color@10.2.2: {}
 
