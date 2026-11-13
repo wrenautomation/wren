@@ -587,3 +587,51 @@ export function canonLibraryApi(
     },
   };
 }
+
+/** A record with what its home needs, and what took its place when retired. */
+export type EdgePlace = {
+  id: string;
+  type: string | null;
+  status: string;
+  topic: string | null;
+  kind: string | null;
+  into: string | null;
+};
+
+/** Every link in Canon, for Explorer's Map (designs/2026-11-12-explorer.md D6): narrow rows only. */
+export async function canonEdges(db: Db): Promise<{
+  places: EdgePlace[];
+  cites: { from: string; to: string }[];
+  /** source → line, through a set's cites (a pattern to its findings, a finding to its source) */
+  backs: { source: string; set: string; topic: string; line: string }[];
+}> {
+  const [places, cites, sets] = await Promise.all([
+    db.execute<EdgePlace>(
+      sql`select id, type, status, coalesce(topic, data->>'topic') as topic, data->>'kind' as kind, data->>'into' as into from canon.knowledge_records where repo = ${REPO}`,
+    ),
+    db.execute<{ from: string; to: string }>(
+      sql`select "from", "to" from canon.knowledge_cites where repo = ${REPO}`,
+    ),
+    db.execute<{ id: string; topic: string; body: string; data: Data }>(
+      sql`select id, topic, body, data from canon.knowledge_records where repo = ${REPO} and type = 'rule' and status = 'live' and topic is not null`,
+    ),
+  ]);
+  // the walk down needs only each record's type and cites: the cites table holds both
+  const type = new Map(places.map((p) => [p.id, p.type]));
+  const down = new Map<string, string[]>();
+  for (const c of cites) down.set(c.from, [...(down.get(c.from) ?? []), c.to]);
+  const byId = {
+    get: (id: string) => {
+      const t = type.get(id);
+      return t
+        ? ({ id, type: t, source: "", cites: down.get(id) ?? [] } as unknown as Frontmatter)
+        : undefined;
+    },
+  };
+  const backs = sets.flatMap((s) =>
+    linesOf({ fm: s.data as unknown as Frontmatter, body: s.body }, byId).flatMap((b) =>
+      b.sources.map((source) => ({ source, set: s.id, topic: s.topic, line: b.line })),
+    ),
+  );
+  return { places, cites, backs };
+}

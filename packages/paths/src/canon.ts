@@ -1,6 +1,6 @@
 /**
  * Canon's tree on a server: `canonTree` (canon-tree.ts) over schema `canon`, read through the
- * library, never the repo. One adapter per request: topics and records load once.
+ * library, never the repo. One adapter per request: topics and records load once; edges once per head.
  */
 
 import { PathError } from "@wren/core/paths";
@@ -12,7 +12,7 @@ import {
   referenceOf,
   VIDEO_KINDS,
 } from "@wren/research/canon-console";
-import { canonLibraryApi, type FileRef } from "@wren/research/canon-library";
+import { canonEdges, canonLibraryApi, type FileRef } from "@wren/research/canon-library";
 import { type SQL, sql } from "drizzle-orm";
 import { type CanonSource, canonTree, type Placed } from "./canon-tree.js";
 
@@ -29,6 +29,10 @@ const missing = (what: string) => (e: unknown) => {
   throw e;
 };
 
+type Edges = ReturnType<typeof canonEdges>;
+/** Edges move only with a sync: one read per database and head, kept across requests (Map folds). */
+const EDGES = new WeakMap<Db, { head: string; edges: Edges }>();
+
 /** Canon's index as the tree's source. */
 function canonSource(db: Db, remote: string, media: Media | null): CanonSource {
   const library = canonLibraryApi(db, remote, (rows) =>
@@ -36,6 +40,12 @@ function canonSource(db: Db, remote: string, media: Media | null): CanonSource {
   );
   const console = canonConsoleApi(db, media);
   const count = async (q: SQL) => (await db.execute<{ n: number }>(q))[0]?.n ?? 0;
+  const head = async () => {
+    const [h] = await db.execute<{ value: string }>(
+      sql`select value from canon.knowledge_meta where repo = ${REPO} and key = 'head'`,
+    );
+    return h?.value ?? null;
+  };
   return {
     videoKinds: VIDEO_KINDS,
     indexed: async () => {
@@ -117,12 +127,17 @@ function canonSource(db: Db, remote: string, media: Media | null): CanonSource {
         sql`select ${PLACED} from canon.knowledge_records where ${sql.join(w, sql` and `)} order by (status = 'live') desc, updated desc, id limit ${limit}`,
       );
     },
-    head: async () => {
-      const [h] = await db.execute<{ value: string }>(
-        sql`select value from canon.knowledge_meta where repo = ${REPO} and key = 'head'`,
-      );
-      return h?.value ?? null;
+    edges: async () => {
+      const at = await head();
+      const kept = EDGES.get(db);
+      if (at && kept?.head === at) return kept.edges;
+      const edges = canonEdges(db);
+      if (at) EDGES.set(db, { head: at, edges });
+      // a failed read is not kept
+      edges.catch(() => EDGES.get(db)?.edges === edges && EDGES.delete(db));
+      return edges;
     },
+    head,
   };
 }
 

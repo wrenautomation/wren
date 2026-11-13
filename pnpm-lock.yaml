@@ -949,6 +949,9 @@ importers:
       '@wrenautomation/models':
         specifier: 0.76.1
         version: 0.76.1
+      '@wrenautomation/orrery':
+        specifier: 0.77.0
+        version: 0.77.0
       csv-parse:
         specifier: 7.0.2
         version: 7.0.2
@@ -2178,8 +2181,8 @@ importers:
         specifier: workspace:*
         version: link:../core
       '@wrenautomation/orrery':
-        specifier: 0.68.10
-        version: 0.68.10
+        specifier: 0.77.0
+        version: 0.77.0
       '@xyflow/react':
         specifier: 12.12.0
         version: 12.12.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(immer@11.1.21)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -6439,8 +6442,8 @@ packages:
     resolution: {integrity: sha512-MgOZrgK3itK1Jg0p8rb4S9sMDObvK+ZuNLeanCkTCnvd/tu60ia/Mune4X9wDnMfKmlW1IkD014fRs79/tenoQ==}
     engines: {node: '>=24'}
 
-  '@wrenautomation/orrery@0.68.10':
-    resolution: {integrity: sha512-JVws9hIWxuwchfhOLW5N5C48aJgU1ZvXMGquVSn0WC40hqWWBh4b2TOq4K1jLaeT/n/AkZv5DZF/Lo0zRIwfkg==}
+  '@wrenautomation/orrery@0.77.0':
+    resolution: {integrity: sha512-0YFu+bPRg4AcOgV+teEtj4+vywqNGtqzJVUtENL62HsyDiE3iEoLHb9h+iT2Wm+Tdd0ObhzxbA6JC+8vCwxXkA==}
 
   '@wrenautomation/read@0.76.1':
     resolution: {integrity: sha512-sYGunl8DNmXrK3fROVy3RRYJeJESqxUOcfg+Ao/n/GHynf4NF85F7VMKL38azIQYJ/xJi8fmMvzsW96J5dO2rQ==}
@@ -14721,7 +14724,7 @@ snapshots:
       ai: 7.0.155(zod@4.6.6)
       zod: 4.6.6
 
-  '@wrenautomation/orrery@0.68.10': {}
+  '@wrenautomation/orrery@0.77.0': {}
 
   '@wrenautomation/read@0.76.1(@aws-sdk/client-s3@3.1136.0)':
     dependencies:

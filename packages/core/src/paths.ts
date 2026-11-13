@@ -1,8 +1,10 @@
 /**
  * Explorer's contract (designs/2026-11-12-explorer.md): every item has one home path; links join
- * any two items. Each product gives one adapter. No imports: the browser, the server and the CLI
- * all run it.
+ * any two items. Each product gives one adapter. Imports only Orrery (pure): the browser, the
+ * server and the CLI all run it.
  */
+
+import { type Bundle, bundle, type Fold, type FoldEdge, lift } from "@wrenautomation/orrery";
 
 /** A row in a column. */
 export interface Item {
@@ -59,6 +61,13 @@ export interface Adapter {
   find(q: string, under?: string): Promise<Item[]>;
   /** what an export's `.stamp` records: the version it read (a head commit, a ledger time) */
   stamp?(): Promise<Record<string, unknown>>;
+  /** every edge with an end under `home`, between home paths, one direction per pair (Map) */
+  edges?(home: string): Promise<PathEdge[]>;
+}
+
+/** A link between two homes, one way: `member` (an alias's other parent → the item), `backs` … */
+export interface PathEdge extends FoldEdge {
+  rel: string;
 }
 
 export type PathErrorCode = "not-indexed" | "offline" | "unknown-path" | "blind";
@@ -335,6 +344,7 @@ export function rooted(roots: Readonly<Record<string, Adapter>>, root: string): 
     whole: async (path) => at(path).whole(path),
     find: async (q, under) => at(under ?? root).find(q, under),
     ...(own?.stamp ? { stamp: own.stamp.bind(own) } : {}),
+    ...(own?.edges ? { edges: own.edges.bind(own) } : {}),
   };
 }
 
@@ -343,6 +353,9 @@ export interface Reads {
   columns(route: string): Promise<Shown>;
   children(path: string, after?: string): Promise<Page>;
   find(q: string, under: string): Promise<Item[]>;
+  /** One root's Map: a root reads whole on its own host, never across */
+  map(root: string, fold: Fold): Promise<PathMap>;
+  line(from: LineEnd, to: LineEnd, after?: string): Promise<LinePage>;
 }
 
 const under = (path: string, top: string) => path === top || path.startsWith(`${top}/`);
@@ -414,5 +427,125 @@ export function across(here: Readonly<Record<string, Adapter>>, far: Reads): Rea
       failed(w);
       return hand ? far.find(q, hand.to) : a.find(q, home);
     },
+    map: (root, fold) => (isFar(root) ? far.map(root, fold) : mapAt(rooted(here, root), fold)),
+    line: (from, to, after) =>
+      isFar(from.path)
+        ? far.line(from, to, after)
+        : lineAt(rooted(here, rootOf(from.path)), from, to, after),
   };
+}
+
+/** Boxes past this many do not open (designs/2026-11-12-explorer.md, Map: Cap). */
+const MAP_CAP = 300;
+
+/** A box on the Map: a home row, in the open box `parent` (the root for the top). */
+export interface MapBox extends Item {
+  parent: string;
+  open: boolean;
+  /** asked open, held closed: past `MAP_CAP` */
+  full?: boolean;
+}
+/** A bundle without its edges: the line preview pages them (`lineAt`). */
+export interface MapLine extends Omit<Bundle<PathEdge>, "edges"> {
+  count: number;
+}
+export interface PathMap {
+  root: string;
+  /** parents before their kids */
+  boxes: MapBox[];
+  lines: MapLine[];
+  /** links with both ends in one closed box, by box */
+  inside: Record<string, number>;
+  /** links to another root, by root */
+  outside: Record<string, number>;
+}
+
+/** depth 0: the root */
+const depthOf = (path: string) => segments(path).length - 1;
+/** A fold's own call on a box, over the depth cut (Orrery's `openSet` rule on paths). */
+const asked = (fold: Fold, path: string) => fold.open[path] ?? depthOf(path) < fold.depth;
+
+/**
+ * The Map of a root under a fold: open boxes read all their rows (relation folders and aliases
+ * become lines), then every edge lifts to the boxes that show (Orrery `lift`, `bundle`).
+ */
+export async function mapAt(a: Adapter, fold: Fold): Promise<PathMap> {
+  const root = a.root;
+  const boxes: MapBox[] = [];
+  const open = new Set([root]);
+  let level = [root];
+  while (level.length) {
+    const rows = await Promise.all(
+      level.map(async (home) =>
+        (await allChildren(a, home))
+          .filter((i) => i.kind !== "relation" && !i.original)
+          .map((i) => ({ i, home })),
+      ),
+    );
+    const next: string[] = [];
+    for (const { i, home } of rows.flat()) {
+      const want = !i.leaf && asked(fold, i.path);
+      boxes.push({ ...i, parent: home, open: want });
+      if (want) next.push(i.path);
+    }
+    // a level opens whole or not at all, so a fold never draws half a box
+    let room = MAP_CAP - boxes.length;
+    level = [];
+    for (const path of next) {
+      const n = boxes.find((b) => b.path === path)?.count ?? 1;
+      if (n <= room) {
+        room -= n;
+        level.push(path);
+        open.add(path);
+      }
+    }
+    for (const b of boxes)
+      if (b.open && !open.has(b.path)) Object.assign(b, { open: false, full: true });
+  }
+  const shown = new Set(boxes.map((b) => b.path));
+  const { lines, inside, outside } = lift(
+    a.edges ? await a.edges(root) : [],
+    open,
+    (p) => parentOf(p) || undefined,
+    root,
+  );
+  const out: PathMap = { root, boxes, lines: [], inside: {}, outside: {} };
+  for (const [k, es] of inside) out.inside[k] = es.length;
+  const far = (e: PathEdge) => (under(e.from, root) ? rootOf(e.to) : rootOf(e.from));
+  for (const e of outside) out.outside[far(e)] = (out.outside[far(e)] ?? 0) + 1;
+  // an end the rows never named (a gone record) draws nowhere
+  out.lines = bundle(lines.filter((l) => shown.has(l.from) && shown.has(l.to))).map(
+    ({ edges, ...b }) => ({ ...b, count: edges.length }),
+  );
+  return out;
+}
+
+/** One end of a Map line: a closed box takes every end under it; an open one only its own path. */
+export interface LineEnd {
+  path: string;
+  open: boolean;
+}
+
+export interface LinePage {
+  edges: PathEdge[];
+  count: number;
+  next?: string;
+}
+
+/** A Map line's edges, one page (`PAGE_SIZE`) from `after`, without the fold's child reads. */
+export async function lineAt(
+  a: Adapter,
+  from: LineEnd,
+  to: LineEnd,
+  after?: string,
+): Promise<LinePage> {
+  const at = (id: string, end: LineEnd) => id === end.path || (!end.open && under(id, end.path));
+  const all = (a.edges ? await a.edges(a.root) : []).filter(
+    (e) => at(e.from, from) && at(e.to, to),
+  );
+  const start = Number(after ?? 0) || 0;
+  const edges = all.slice(start, start + PAGE_SIZE);
+  return start + PAGE_SIZE < all.length
+    ? { edges, count: all.length, next: String(start + PAGE_SIZE) }
+    : { edges, count: all.length };
 }

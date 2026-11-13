@@ -4,7 +4,16 @@
  * are that call's. Vireo sees through the viewer's eyes (blind).
  */
 
-import { childrenAt, columns, homeAt, PathError, rootOf, wholeAt } from "@wren/core/paths";
+import {
+  childrenAt,
+  columns,
+  homeAt,
+  lineAt,
+  mapAt,
+  PathError,
+  rootOf,
+  wholeAt,
+} from "@wren/core/paths";
 import {
   answer,
   PortalRefusal,
@@ -25,6 +34,16 @@ const INPUTS = {
   children: { path: PATH, after: z.string().max(40).nullish() },
   whole: { path: PATH },
   find: { q: z.string().min(1).max(200), under: PATH.nullish() },
+  map: {
+    root: z.string().min(1).max(40),
+    depth: z.number().int().min(0).max(8),
+    open: z.record(PATH, z.boolean()).refine((o) => Object.keys(o).length <= 200),
+  },
+  line: {
+    from: z.object({ path: PATH, open: z.boolean() }),
+    to: z.object({ path: PATH, open: z.boolean() }),
+    after: z.string().max(40).nullish(),
+  },
 } as const;
 
 /** What each route answers: the portal's mocks type their answers by it. */
@@ -58,6 +77,20 @@ function pathsConsoleApi(d: PathsDeps) {
         ),
       ),
     whole: (req: Req) => refuse(() => wholeAt(adapter(req, String(req.path)), String(req.path))),
+    map: (req: Req) =>
+      refuse(() =>
+        mapAt(adapter(req, String(req.root)), {
+          depth: Number(req.depth),
+          open: req.open as Record<string, boolean>,
+        }),
+      ),
+    line: (req: Req) => {
+      type End = { path: string; open: boolean };
+      const [from, to] = [req.from as End, req.to as End];
+      return refuse(() =>
+        lineAt(adapter(req, from.path), from, to, (req.after as string | null) ?? undefined),
+      );
+    },
     find: (req: Req) => {
       const under = (req.under as string | null) ?? "canon";
       return refuse(async () => {
@@ -87,6 +120,8 @@ export function makePathsConsole(d: PathsDeps) {
       children: h("children"),
       whole: h("whole"),
       find: h("find"),
+      map: h("map"),
+      line: h("line"),
     },
   });
 }

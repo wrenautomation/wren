@@ -9,7 +9,11 @@ import {
   type Item,
   itemFromParent,
   join,
+  lineAt,
   linksOf,
+  mapAt,
+  PAGE_SIZE,
+  type PathEdge,
   PathError,
   type Reads,
   rebase,
@@ -190,11 +194,28 @@ const farHost = () => {
       calls.push(`find ${under}`);
       return [];
     },
+    map: (root, fold) => {
+      calls.push(`map ${root}`);
+      return mapAt(t, fold);
+    },
+    line: (from, to) => {
+      calls.push(`line ${from.path}`);
+      return lineAt(t, from, to);
+    },
   };
   return { far, calls };
 };
 
 describe("across", () => {
+  it("draws a root's Map where the root reads, never across", async () => {
+    const { far, calls } = farHost();
+    const r = across({ f: folders() }, far);
+    await r.map("t", { depth: 1, open: {} });
+    await r.line({ path: "t/a", open: false }, { path: "t/b", open: false });
+    expect((await r.map("f", { depth: 1, open: {} })).root).toBe("f");
+    expect(calls).toEqual(["map t", "line t/a"]);
+  });
+
   it("walks here, then sends the rest of the route to the far host in one call", async () => {
     const { far, calls } = farHost();
     const shown = await across({ f: folders() }, far).columns("f/1/s1/L-1");
@@ -257,5 +278,97 @@ describe("rooted", () => {
     const a = rooted({ t: fixture(), f: folders() }, "f");
     expect(await homeAt(a, "f/1/s1/L-1")).toBe("t/a/s1/L-1");
     await expect(a.children("x/1")).rejects.toMatchObject({ code: "unknown-path" });
+  });
+});
+
+describe("mapAt", () => {
+  const EDGES: PathEdge[] = [
+    { id: "e1", from: "t/refs/r1", to: "t/a/s1/L-1", rel: "backs" },
+    { id: "e2", from: "t/b", to: "t/a/s1", rel: "member" },
+    { id: "e3", from: "t/a/s1/L-1", to: "t/a/s1", rel: "cites" },
+    { id: "e4", from: "t/refs/r1", to: "v/x", rel: "applies" },
+    { id: "e5", from: "t/refs/gone", to: "t/a", rel: "backs" },
+  ];
+  const withEdges = () => ({ ...fixture(), edges: async () => EDGES });
+
+  it("draws the open boxes and lifts each edge to the boxes that show", async () => {
+    const m = await mapAt(withEdges(), { depth: 2, open: { "t/dark": false } });
+    expect(m.boxes.map((b) => [b.path, b.parent, b.open])).toEqual([
+      ["t/a", "t", true],
+      ["t/b", "t", true],
+      ["t/refs", "t", true],
+      ["t/dark", "t", false],
+      ["t/a/s1", "t/a", false],
+      ["t/refs/r1", "t/refs", false],
+    ]);
+    expect(m.lines.map((l) => [l.id, l.count, l.rels])).toEqual([
+      ["t/refs/r1>t/a/s1", 1, { backs: 1 }],
+      ["t/b>t/a/s1", 1, { member: 1 }],
+    ]);
+    expect(m.inside).toEqual({ "t/a/s1": 1 });
+    expect(m.outside).toEqual({ v: 1 });
+  });
+
+  it("moves a line to its real end when its box opens", async () => {
+    const m = await mapAt(withEdges(), { depth: 2, open: { "t/dark": false, "t/a/s1": true } });
+    expect(m.lines.map((l) => l.id)).toContain("t/refs/r1>t/a/s1/L-1");
+    expect(m.inside).toEqual({});
+  });
+
+  it("pages a line's edges: a closed end takes all under it, an open end only itself", async () => {
+    const a = withEdges();
+    const closed = await lineAt(a, { path: "t/refs", open: false }, { path: "t/a", open: false });
+    expect(closed.edges.map((e) => e.id)).toEqual(["e1", "e5"]);
+    const open = await lineAt(a, { path: "t/refs", open: false }, { path: "t/a", open: true });
+    expect(open).toEqual({ edges: [EDGES[4]], count: 1 });
+    const many = Array.from({ length: PAGE_SIZE + 1 }, (_, i) => ({
+      id: `m${i}`,
+      from: "t/b",
+      to: `t/a/s${i}`,
+      rel: "member",
+    }));
+    const big = { ...fixture(), edges: async () => many };
+    const ends = [
+      { path: "t/b", open: false },
+      { path: "t/a", open: false },
+    ] as const;
+    const first = await lineAt(big, ...ends);
+    expect([first.edges.length, first.count, first.next]).toEqual([PAGE_SIZE, PAGE_SIZE + 1, "50"]);
+    expect((await lineAt(big, ...ends, first.next)).edges.map((e) => e.id)).toEqual(["m50"]);
+  });
+
+  it("draws boxes with no lines when the adapter has no edges", async () => {
+    const m = await mapAt(fixture(), { depth: 1, open: {} });
+    expect(m.boxes.every((b) => !b.open)).toBe(true);
+    expect(m.lines).toEqual([]);
+  });
+
+  it("holds a box closed past the cap, and never reads it", async () => {
+    const reads: string[] = [];
+    const big: Adapter = {
+      root: "c",
+      children: async (path) => {
+        reads.push(path);
+        return {
+          items: path === "c" ? [{ path: "c/big", name: "big", kind: "area", count: 999 }] : [],
+        };
+      },
+      item: async (path) => ({ path, name: path, kind: "area" }),
+      whole: async (path) => ({ path, name: path, kind: "area", links: [] }),
+      find: async () => [],
+    };
+    const m = await mapAt(big, { depth: 2, open: {} });
+    expect(m.boxes).toEqual([
+      {
+        path: "c/big",
+        name: "big",
+        kind: "area",
+        count: 999,
+        parent: "c",
+        open: false,
+        full: true,
+      },
+    ]);
+    expect(reads).toEqual(["c"]);
   });
 });

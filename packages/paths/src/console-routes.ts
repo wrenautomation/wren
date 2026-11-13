@@ -7,6 +7,8 @@ export const PATHS_CONSOLE_ROUTES = {
   children: "wren:team",
   whole: "wren:team",
   find: "wren:team",
+  map: "wren:team",
+  line: "wren:team",
 } as const satisfies Record<string, Need>;
 /** No one app: Explorer opens in Canon first, then Research and Variants. */
 export const PATHS_CONSOLE_APPS = { "*": null } as const satisfies RouteApps<

@@ -3,7 +3,18 @@
  * walk over the Canon and Variants mocks, so a page story reads the shapes and errors prod reads.
  * Synthetic data only.
  */
-import { childrenAt, columns, homeAt, PathError, rooted, rootOf, wholeAt } from "@wren/core/paths";
+import {
+  childrenAt,
+  columns,
+  homeAt,
+  type LineEnd,
+  lineAt,
+  mapAt,
+  PathError,
+  rooted,
+  rootOf,
+  wholeAt,
+} from "@wren/core/paths";
 import { type CanonSource, canonTree, type Placed } from "@wren/paths/canon-tree";
 import { PATH_ERROR_STATUS } from "@wren/paths/console-routes";
 import type { PathsConsoleApi } from "@wren/paths/restate";
@@ -118,6 +129,32 @@ function fileOf(path: string): FileWhole | null {
   };
 }
 
+/** Canon's links as `canonEdges` reads them: the mocks' cites, each line's sources, no retires. */
+const CANON_EDGES = (() => {
+  const cites: { from: string; to: string }[] = [];
+  const add = (from: string, to: readonly { id: string }[]) => {
+    for (const c of to) cites.push({ from, to: c.id });
+  };
+  const t = CANON_TOPIC;
+  if (t.guide) add(t.guide.id, t.guide.cites);
+  for (const s of [...t.sets, ...t.borrowed]) add(s.id, s.cites);
+  for (const r of canonRecordsWhole()) add(r.id, r.cites);
+  const backs = [...t.sets, ...t.borrowed].flatMap((s) =>
+    s.rules.flatMap((r) =>
+      r.sources.map((source) => ({ source, set: s.id, topic: s.topic ?? t.name, line: r.id })),
+    ),
+  );
+  const places = [...PLACED.values()].map((r) => ({
+    id: r.id,
+    type: r.type,
+    status: r.status,
+    topic: r.topic ?? null,
+    kind: r.kind ?? null,
+    into: null,
+  }));
+  return { places, cites, backs };
+})();
+
 export const CANON_SOURCE: CanonSource = {
   videoKinds: VIDEO_KINDS,
   indexed: async () => CANON_HOME.indexed,
@@ -176,6 +213,7 @@ export const CANON_SOURCE: CanonSource = {
       .sort((a, b) => Number(b.status === "live") - Number(a.status === "live"))
       .slice(0, limit),
   head: async () => CANON_HOME.head,
+  edges: async () => CANON_EDGES,
 };
 
 /** A path error as the server refuses it (`PathsConsole`). */
@@ -208,6 +246,7 @@ const EMPTY_CANON: CanonSource = {
   types: async () => [],
   ofType: async () => ({ rows: [], total: 0 }),
   findRecords: async () => [],
+  edges: async () => ({ places: [], cites: [], backs: [] }),
 };
 
 /** Empty mode: Vireo with no subjects or guides. */
@@ -247,4 +286,17 @@ export const PATHS_ANSWERS = serve<PathsConsoleApi>("paths", {
       const a = at(under);
       return { items: await a.find(String(b.q), await homeAt(a, under)) };
     }),
+  map: (b) =>
+    refused(() =>
+      mapAt(at(String(b.root)), {
+        depth: Number(b.depth),
+        open: (b.open ?? {}) as Record<string, boolean>,
+      }),
+    ),
+  line: (b) => {
+    const [from, to] = [b.from as LineEnd, b.to as LineEnd];
+    return refused(() =>
+      lineAt(at(from.path), from, to, typeof b.after === "string" ? b.after : undefined),
+    );
+  },
 });

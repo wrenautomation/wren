@@ -1,13 +1,22 @@
 /**
  * Canon as paths on a real Postgres: the root, a topic's layers, a borrowed set as an alias, a
  * line's backing, a reference's backs, record pages, the file tree, find, the stamp, redirects
- * for a set and a topic retired `into` another, and the errors before a sync.
+ * for a set and a topic retired `into` another, the Map's edges and lines, and the errors before a sync.
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type Adapter, allChildren, childrenAt, homeAt, walk, wholeAt } from "@wren/core/paths";
+import {
+  type Adapter,
+  allChildren,
+  childrenAt,
+  homeAt,
+  lineAt,
+  mapAt,
+  walk,
+  wholeAt,
+} from "@wren/core/paths";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { syncCanonIndex } from "@wren/research/canon-index";
 import { write } from "@wrenautomation/knowledge";
@@ -371,6 +380,58 @@ describe("canonPaths", () => {
     await expect(a.children("canon/records/rule/nobody")).rejects.toMatchObject({
       code: "unknown-path",
     });
+  });
+
+  it("links homes for the Map: cites, backs, into; lifts them to the boxes a fold shows", async () => {
+    const edges = (await a.edges?.("canon")) ?? [];
+    const sets = `${T}/sets`;
+    const ref = "canon/references/youtube-abc12345678";
+    expect(edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rel: "cites",
+          from: `${T}/guide`,
+          to: `${sets}/video-editing-cuts`,
+        }),
+        expect.objectContaining({
+          rel: "cites",
+          from: `${T}/guide`,
+          to: "canon/topics/writing-tells/sets/writing-tells-copy",
+        }),
+        expect.objectContaining({ rel: "backs", from: ref, to: `${sets}/video-editing-cuts/VC-1` }),
+        expect.objectContaining({
+          rel: "into",
+          from: "canon/records/rule/video-editing-old",
+          to: `${sets}/video-editing-cuts`,
+        }),
+        expect.objectContaining({
+          rel: "into",
+          from: "canon/records/guide/old-editing",
+          to: `${T}/guide`,
+        }),
+      ]),
+    );
+    // under a path: only edges with an end there
+    expect(
+      (await a.edges?.("canon/references"))?.every((e) => e.from === ref || e.to === ref),
+    ).toBe(true);
+    // a second read at the same head is the kept one
+    expect(await canonPaths(pg.db, REMOTE, null).edges?.("canon")).toEqual(edges);
+
+    const map = await mapAt(a, { depth: 2, open: {} });
+    expect(map.boxes.filter((b) => b.open).map((b) => b.path)).toEqual([
+      "canon/topics",
+      "canon/references",
+      "canon/records",
+      "canon/files",
+    ]);
+    const line = map.lines.find((l) => l.id === `${ref}>${T}`);
+    expect(line).toMatchObject({ count: 1, rels: { backs: 1 } });
+    expect(map.inside[T]).toBeGreaterThan(0);
+    const page = await lineAt(a, { path: ref, open: false }, { path: T, open: false });
+    expect(page.edges.map((e) => [e.rel, e.to])).toEqual([
+      ["backs", `${sets}/video-editing-cuts/VC-1`],
+    ]);
   });
 
   it("answers not-indexed before the first sync", async () => {

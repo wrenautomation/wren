@@ -14,6 +14,8 @@ import {
   homeAt,
   homeOf,
   type Item,
+  lineAt,
+  mapAt,
   PathError,
   rooted,
   rootOf,
@@ -189,6 +191,62 @@ export function registerPaths(
     .option("--under <path>", "only under this path", "canon")
     .action((words: string, o: { under: string }) =>
       run(o.under, async (a) => ({ items: await a.find(words, await homeAt(a, o.under)) })),
+    );
+  p.command("map [root]")
+    .description(
+      "the Map under a fold: boxes (open ones read whole, up to 300) and the links between them, bundled per pair of boxes",
+    )
+    .option("--depth <n>", "levels open", (v) => Number.parseInt(v, 10), 1)
+    .option("--open <paths>", "also open these, comma separated", "")
+    .option("--closed <paths>", "hold these closed, comma separated", "")
+    .action((root = "canon", o: { depth: number; open: string; closed: string }) =>
+      run(root, async (a) => {
+        const list = (s: string) => s.split(",").filter(Boolean);
+        const open = Object.fromEntries([
+          ...list(o.open).map((k) => [k, true] as const),
+          ...list(o.closed).map((k) => [k, false] as const),
+        ]);
+        // the cost, split: the edges read, and the child reads the open boxes take
+        const took = { reads: 0, readMs: 0, edgesMs: 0 };
+        const timed = <T>(p: Promise<T>, k: "readMs" | "edgesMs") => {
+          const t = performance.now();
+          return p.finally(() => {
+            took[k] += performance.now() - t;
+          });
+        };
+        const edges = a.edges?.bind(a);
+        const counted: typeof a = {
+          ...a,
+          children: (path, after) => {
+            took.reads++;
+            return timed(a.children(path, after), "readMs");
+          },
+          ...(edges ? { edges: (home: string) => timed(edges(home), "edgesMs") } : {}),
+        };
+        const t0 = performance.now();
+        const map = await mapAt(counted, { depth: Math.max(0, o.depth), open });
+        const ms = (n: number) => Math.round(n);
+        return {
+          ms: ms(performance.now() - t0),
+          edgesMs: ms(took.edgesMs),
+          reads: took.reads,
+          readMs: ms(took.readMs),
+          ...map,
+        };
+      }),
+    );
+  p.command("line <from> <to>")
+    .description(
+      "a Map line's links, one page: every link from under <from> to under <to>; --open-from/--open-to for an open box (only its own links)",
+    )
+    .option("--open-from", "the <from> box is open")
+    .option("--open-to", "the <to> box is open")
+    .option("--after <cursor>", "the next page: the `next` of the last one")
+    .action(
+      (from: string, to: string, o: { openFrom?: boolean; openTo?: boolean; after?: string }) =>
+        run(from, (a) =>
+          lineAt(a, { path: from, open: !!o.openFrom }, { path: to, open: !!o.openTo }, o.after),
+        ),
     );
   p.command("export <path> <dir>")
     .description(

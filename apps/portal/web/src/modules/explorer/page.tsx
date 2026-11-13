@@ -8,7 +8,9 @@ import {
   across,
   type Column,
   type Item,
+  type LinePage,
   type Page,
+  type PathMap,
   type Reads,
   rootOf,
   type Shown,
@@ -34,6 +36,9 @@ const FAR: Reads = {
   columns: (route) => call<Shown>("paths/columns", { route }),
   children: (path, after) => call<Page>("paths/children", { path, ...(after ? { after } : {}) }),
   find: (q, under) => call<{ items: Item[] }>("paths/find", { q, under }).then((r) => r.items),
+  map: (root, fold) => call<PathMap>("paths/map", { root, ...fold }),
+  line: (from, to, after) =>
+    call<LinePage>("paths/line", { from, to, ...(after ? { after } : {}) }),
 };
 
 /** The roots read here; fresh per read, so each read loads its own runs and tree. */
@@ -53,6 +58,8 @@ const READ: Reads = {
   columns: (route) => across(here(), FAR).columns(route),
   children: (path, after) => across(here(), FAR).children(path, after),
   find: (q, under) => across(here(), FAR).find(q, under),
+  map: (root, fold) => across(here(), FAR).map(root, fold),
+  line: (from, to, after) => across(here(), FAR).line(from, to, after),
 };
 
 /** Every root's marks in one map: a folder's rows come from any root. */

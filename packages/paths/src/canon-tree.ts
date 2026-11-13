@@ -16,6 +16,7 @@ import {
   linksOf,
   PAGE_SIZE,
   type Page,
+  type PathEdge,
   PathError,
   relationRow,
   segments,
@@ -24,6 +25,7 @@ import {
 } from "@wren/core/paths";
 import type { Reference, ReferenceWhole } from "@wren/research/canon-console";
 import type {
+  canonEdges,
   FileRef,
   FileWhole,
   Home,
@@ -80,6 +82,8 @@ export interface CanonSource {
   findRecords(words: readonly string[], under: FindUnder, limit: number): Promise<Placed[]>;
   /** the Canon commit the index holds */
   head(): Promise<string | null>;
+  /** every link, narrow (Map); none: the Map draws no lines */
+  edges?(): ReturnType<typeof canonEdges>;
 }
 
 /** A folder of files: the next level under `prefix`, folders first. */
@@ -537,9 +541,32 @@ export function canonTree(src: CanonSource): Adapter {
     }
   };
 
+  /** Every link between homes (designs/2026-11-12-explorer.md, Map): cites, backs, into. */
+  const allEdges = once(async (): Promise<PathEdge[]> => {
+    await indexed();
+    if (!src.edges) return [];
+    const { places, cites, backs } = await src.edges();
+    const home = new Map(places.map((p) => [p.id, recordHome({ ...p, title: null })]));
+    const out = new Map<string, PathEdge>();
+    const put = (rel: string, from: string | undefined, to: string | undefined) => {
+      if (!from || !to || from === to) return;
+      const id = `${rel}:${from}>${to}`;
+      out.set(id, { id, from, to, rel });
+    };
+    for (const c of cites) put("cites", home.get(c.from), home.get(c.to));
+    for (const b of backs)
+      put("backs", home.get(b.source), join(ROOT, "topics", b.topic, "sets", b.set, b.line));
+    for (const p of places) if (p.into) put("into", home.get(p.id), home.get(p.into));
+    return [...out.values()];
+  });
+
   const adapter: Adapter = {
     root: ROOT,
     children,
+    edges: async (at) => {
+      const inside = (p: string) => p === at || p.startsWith(`${at}/`);
+      return (await allEdges()).filter((e) => inside(e.from) || inside(e.to));
+    },
     item: async (path) => {
       await indexed();
       const segs = segments(path);
