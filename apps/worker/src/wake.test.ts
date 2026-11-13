@@ -1,5 +1,27 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { pacedWakes, wakeTarget } from "./wake.js";
+import { pacedWakes, startWakes, wakeTarget } from "./wake.js";
+
+const h = vi.hoisted(() => ({
+  handlers: new Map<string, Record<string, (payload: string) => void>>(),
+  told: [] as Array<{ topics: readonly string[]; client: string | null }>,
+}));
+vi.mock("@wren/db", () => ({
+  createDb: () => ({ db: {}, close: async () => {} }),
+  listen: async (url: string, on: Record<string, (payload: string) => void>) => {
+    h.handlers.set(url, on);
+    return { close: async () => {} };
+  },
+}));
+vi.mock("@wren/core/clients", () => ({
+  listClients: async () => [{ id: "acme" }],
+  clientUrl: () => "pg://acme",
+}));
+vi.mock("@wren/core/live", () => ({
+  tellLive: async (topics: readonly string[], o: { client: string | null }) => {
+    h.told.push({ topics, client: o.client });
+    return true;
+  },
+}));
 
 describe("wakeTarget", () => {
   it("keys a notice to its database's owner", () => {
@@ -46,5 +68,24 @@ describe("pacedWakes", () => {
     vi.advanceTimersByTime(1000);
     expect(sent).toHaveLength(4);
     p.close();
+  });
+});
+
+describe("startWakes", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("relays aerie writes as live topic aerie, from Wren's database only", async () => {
+    vi.useFakeTimers();
+    const log = { info: () => {}, warn: () => {} } as unknown as Parameters<
+      typeof startWakes
+    >[0]["log"];
+    const w = await startWakes({ databaseUrl: "pg://wren", ingress: { url: "http://x" }, log });
+    expect(Object.keys(h.handlers.get("pg://wren") ?? {})).toContain("aerie");
+    expect(Object.keys(h.handlers.get("pg://acme") ?? {})).not.toContain("aerie");
+    h.handlers.get("pg://wren")?.aerie?.("task");
+    h.handlers.get("pg://wren")?.aerie?.("task_area");
+    await vi.advanceTimersByTimeAsync(300);
+    expect(h.told).toEqual([{ topics: ["aerie"], client: null }]);
+    await w.close();
   });
 });

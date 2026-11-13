@@ -10,6 +10,7 @@
  *
  * The same connections hear `wren_live` (migration 0385): a topic an open page shows, relayed to
  * the portal's LiveRoom (`tellLive`), with the client for a client's database.
+ * Wren's database also hears `aerie` (aerie migration 0007, payload = table): live topic `aerie`.
  */
 
 import { clientUrl, listClients } from "@wren/core/clients";
@@ -21,6 +22,8 @@ import type { Logger } from "pino";
 const WAKE_CHANNEL = "wren_wake";
 /** Live topics on row (migration 0385): relayed to open tabs, designs/2026-11-08-live-topics.md. */
 const LIVE_CHANNEL = "wren_live";
+/** Aerie's writes (schema `aerie`, Wren's database only): one topic for the whole board. */
+const AERIE_CHANNEL = "aerie";
 /** A topic's pushes: the first a beat after its commit, then at most one a second. */
 const LIVE_SETTLE_MS = 250;
 const LIVE_SPACE_MS = 1000;
@@ -127,6 +130,7 @@ export async function startWakes(o: WakeOptions): Promise<{ close(): Promise<voi
               else o.log.warn({ payload, owner }, "wake notice not understood");
             },
             [LIVE_CHANNEL]: (topic) => live.wake(topic, name),
+            ...(owner ? {} : { [AERIE_CHANNEL]: () => live.wake(AERIE_CHANNEL, name) }),
           },
           { app: "wren-wake" },
         ),
