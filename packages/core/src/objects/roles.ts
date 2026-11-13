@@ -48,6 +48,14 @@ export const OBJECT_ROLES: readonly ObjectRole[] = [
     twin: "drop",
     key: ["keyword"],
   },
+  {
+    table: "captures",
+    platform: "platform",
+    column: "ref",
+    kind: "post",
+    twin: "drop",
+    key: ["person"],
+  },
   { table: "reach_posts", platform: "platform", column: "ref", kind: "post", twin: "reach" },
   { table: "reddit_threads", platform: "platform", column: "id", kind: "post", twin: "refuse" },
   {

@@ -93,7 +93,7 @@ export async function syncHere(settings: Settings, rootDir: string, full = false
   }
 }
 
-interface AddOpts {
+export interface AddOpts {
   topic?: string;
   from?: string;
   note?: string;
@@ -103,6 +103,10 @@ interface AddOpts {
   screen?: boolean;
   breakdown?: boolean;
   model: string;
+  /** plain tags beside the topic's; never a topic folder */
+  tags?: string[];
+  /** a source already built (a capture's item): no fetch */
+  made?: Source;
 }
 
 const YOUTUBE = /^https?:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//;
@@ -119,12 +123,21 @@ export function autobrowseDrive(dir: string, account: string): DriveGet {
   };
 }
 
+/** What `wren capture` borrows: one source in, and Canon's git. */
+export interface CanonWrites {
+  addOne: (what: string, opts: AddOpts, why?: string) => Promise<string[]>;
+  /** Canon's main into this clone */
+  pull: () => void;
+  /** pull, then push ours */
+  share: () => void;
+}
+
 export function registerCanon(
   program: Command,
   withDb: WithDb,
   settings: Settings,
   rootDir: string,
-): void {
+): CanonWrites {
   const root = resolve(rootDir, settings.canonDir);
   // every record wren writes says it came from here; the why names the command
   const BY = "wren-sop";
@@ -189,7 +202,10 @@ export function registerCanon(
     // files per source name: a post's slides, a picture
     const filesOf = new Map<string, SourceFile[]>();
     const store = settings.mediaBucket ? s3MediaStore(settings.mediaBucket) : undefined;
-    if (YOUTUBE.test(what)) {
+    // a kind the record name cannot tell: an X video is a reel
+    const kinds = new Map<string, string>();
+    if (opts.made) sources = [opts.made];
+    else if (YOUTUBE.test(what)) {
       // the frames, read by the eye, carry what the captions don't: what is on screen
       const { eye, ear, ffmpeg } = watchEyes(settings, rootDir);
       sources = [
@@ -219,15 +235,19 @@ export function registerCanon(
           })
         : null;
       if (post) filesOf.set(post.source.name, post.files);
-      sources = post
-        ? [post.source]
-        : [
-            await videoSource(what, settings.ytDlp, priority, {
-              eye,
-              ...rest,
-              ...(store ? { store } : {}),
-            }),
-          ];
+      const video = post
+        ? null
+        : await videoSource(what, settings.ytDlp, priority, {
+            eye,
+            ...rest,
+            ...(store ? { store } : {}),
+          });
+      // yt-dlp names X `twitter`; Canon's X records are `x-<id>`
+      if (video?.name.startsWith("twitter-")) {
+        video.name = video.name.replace(/^twitter-/, "x-");
+        kinds.set(video.name, "reel");
+      }
+      sources = post ? [post.source] : video ? [video] : [];
     } else if (what.startsWith("drive:")) {
       if (!opts.account) throw new Error("drive: needs --account <address>");
       const drive = autobrowseDrive(resolve(rootDir, settings.autobrowseDir), opts.account);
@@ -269,6 +289,8 @@ export function registerCanon(
       const path = await addSource(root, name, s, who, {
         ...extra,
         ...(files ? { files } : {}),
+        ...(opts.tags?.length ? { tags: opts.tags } : {}),
+        ...(kinds.has(s.name) ? { kind: kinds.get(s.name) } : {}),
       });
       console.log(path);
       const id = basename(path, ".md");
@@ -576,4 +598,5 @@ export function registerCanon(
         for (const s of d.sources) console.log(`  ${s.priority}  ${s.name}`);
       }
     });
+  return { addOne, pull: () => git("pull", "--rebase", "--autostash", "-q"), share: shareCanon };
 }

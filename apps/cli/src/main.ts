@@ -38,6 +38,7 @@ import { registerCalendar } from "./calendar.js";
 import { registerCalls } from "./calls.js";
 import { registerCampaigns } from "./campaigns.js";
 import { registerCanon } from "./canon.js";
+import { registerCapture } from "./capture.js";
 import { guardClient } from "./client-scope.js";
 import { registerClients } from "./clients.js";
 import { registerContent } from "./content.js";
@@ -284,7 +285,13 @@ registerCalendar(program, withMainDb);
 registerCalls(program, withMainDb, settings, rootDir);
 registerAppReviews(program, withMainDb, rootDir);
 registerSocial(program, settings);
-registerCanon(program, withMainDb, settings, rootDir);
+registerCapture(
+  program,
+  withMainDb,
+  settings,
+  rootDir,
+  registerCanon(program, withMainDb, settings, rootDir),
+);
 registerPaths(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerTouches(program, withMainDb);

@@ -535,7 +535,9 @@ const kindOf = (stem: string, url: string | undefined) =>
                   ? "paper"
                   : /^(drive|file|note)-/.test(stem)
                     ? "doc"
-                    : "other";
+                    : stem.startsWith("linkedin-")
+                      ? "post"
+                      : "other";
 
 /** Who writes and why: every record carries both. */
 export interface By {
@@ -576,9 +578,10 @@ export async function addSource(
     body,
   };
   const prev = loadWorking(root).docs.find((l) => l.doc.fm.id === id);
-  const tags = name ? [name] : [];
   // provider: set on add; an edit only raises an agent's to a person's
-  const { provider, note, ...more } = extra;
+  const { provider, note, tags: given, ...more } = extra;
+  // `tags`: plain tags, never a topic folder
+  const tags = [...new Set([...(name ? [name] : []), ...((given as string[] | undefined) ?? [])])];
   const was = prev?.doc.fm as { provider?: { kind?: string }; note?: Note } | undefined;
   const raise =
     prev && provider && (provider as { kind?: string }).kind === "human"
