@@ -711,8 +711,8 @@ importers:
         specifier: workspace:*
         version: link:../runtime
       '@wrenautomation/aerie':
-        specifier: 0.4.0
-        version: 0.4.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.4.1
+        version: 0.4.1(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       zod:
         specifier: 4.6.6
         version: 4.6.6
@@ -1024,8 +1024,8 @@ importers:
   packages/db:
     dependencies:
       '@wrenautomation/aerie':
-        specifier: 0.4.0
-        version: 0.4.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.4.1
+        version: 0.4.1(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/vireo':
         specifier: 0.18.0
         version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
@@ -6440,8 +6440,8 @@ packages:
   '@workflow/serde@4.1.0':
     resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
 
-  '@wrenautomation/aerie@0.4.0':
-    resolution: {integrity: sha512-E97gX31TAIBF1B8Hp4hMpOAS9i/F99xeu6W002vi0FYoHe62EJryRJAAxHtSKNEFWfv7LW2AFQT9eS9WgNCt3A==}
+  '@wrenautomation/aerie@0.4.1':
+    resolution: {integrity: sha512-JjL6IuMGMnfT5vUkaTgCaxU5DexZS0ZFxtkYENB7pammtjFSlEsC5p06qOX8O8cBbNY5+Luxe2nQLZa/RmmR9A==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -14595,7 +14595,7 @@ snapshots:
 
   '@workflow/serde@4.1.0': {}
 
-  '@wrenautomation/aerie@0.4.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
+  '@wrenautomation/aerie@0.4.1(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
     dependencies:
       '@electric-sql/pglite': 0.5.15
       commander: 15.0.0
