@@ -214,6 +214,8 @@ export async function pageSource(
     md: `${frontMatter({
       url: page.url,
       title,
+      // a repo's owner is its author
+      ...(id.startsWith("github-") && repo?.[1] ? { channel: repo[1] } : {}),
       ...(read.image ? { image: read.image } : {}),
       priority,
     })}# ${title}\n\n${text.trim()}\n`,

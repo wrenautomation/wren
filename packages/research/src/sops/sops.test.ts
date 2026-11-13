@@ -199,6 +199,8 @@ describe("sops", () => {
     expect(repoSource.name).toBe("github-acme-kit.md");
     expect(repoSource.md).toContain("The whole readme.");
     expect(repoSource.md).not.toContain("nav");
+    expect(repoSource.md).toContain('channel: "acme"');
+    expect(page.md).not.toContain("channel:");
   });
 
   it("reads an arxiv PDF link as its abstract page, and never files a PDF's bytes", async () => {
