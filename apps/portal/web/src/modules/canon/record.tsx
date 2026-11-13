@@ -4,14 +4,13 @@
  */
 import { sizeLabel } from "@wren/core/paths";
 import type { FileWhole, Link, RecordWhole } from "@wren/research/canon-library";
-import { Empty, Icon, LoadFailed, Loading, Tag, useSeen } from "@wren/ui";
+import { DetailSheet, Empty, Icon, LoadFailed, Loading, Tag, useSeen } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { href, navigate } from "../../route.js";
 import { dayLabel } from "../work/bits.js";
 import {
   Markdown,
-  Panel,
   Section,
   splitFrontmatter,
   typeName,
@@ -51,7 +50,7 @@ function OpenedRecord({ id, here, params }: { id: string; here: string; params: 
       : null,
   );
   return (
-    <Panel
+    <DetailSheet
       title={got.data?.title ?? "Record"}
       about="The record whole, what it cites and what cites it."
       onClose={shut}
@@ -63,7 +62,7 @@ function OpenedRecord({ id, here, params }: { id: string; here: string; params: 
       ) : (
         <RecordBody r={got.data} open={(id) => recordHref(here, id, params)} />
       )}
-    </Panel>
+    </DetailSheet>
   );
 }
 
@@ -280,7 +279,7 @@ function OpenedFile({
       : null,
   );
   return (
-    <Panel title={name} about="A file in Canon, whole." onClose={shut}>
+    <DetailSheet title={name} about="A file in Canon, whole." onClose={shut}>
       {got.error ? (
         <LoadFailed error={got.error} onRetry={got.retry} />
       ) : !got.data ? (
@@ -288,7 +287,7 @@ function OpenedFile({
       ) : (
         <FileBody f={got.data} />
       )}
-    </Panel>
+    </DetailSheet>
   );
 }
 

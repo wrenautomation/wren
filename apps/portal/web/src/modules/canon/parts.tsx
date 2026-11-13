@@ -1,16 +1,8 @@
 /**
- * Canon's shared parts: the search box, a filter select, a titled section, the side panel (a sheet
- * on a phone), and Markdown with Canon's cites: `[n]` links to the record it names.
+ * Canon's shared parts: the search box, a filter select, a titled section, and Markdown with Canon's cites: `[n]` links to the record it names.
  */
 import type { Link } from "@wren/research/canon-library";
-import { BottomSheet, cx, GROUP_LABEL, Icon, usePhone } from "@wren/ui";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@wren/ui/components/ui/sheet";
+import { cx, GROUP_LABEL } from "@wren/ui";
 import { type ReactNode, useEffect, useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -91,66 +83,6 @@ export function Section({
       {about && <p className="m-0 -mt-1 text-[13px] text-pretty text-(--ui-ink-3)">{about}</p>}
       {children}
     </section>
-  );
-}
-
-function CloseButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-label="Close"
-      onClick={onClick}
-      className="inline-grid size-8 cursor-pointer place-items-center border-0 bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) pointer-coarse:size-11"
-    >
-      <Icon name="close" className="size-4" />
-    </button>
-  );
-}
-
-/** One thing open beside the page: a right panel on a wide screen, a bottom sheet on a phone. */
-export function Panel({
-  title,
-  about,
-  onClose,
-  children,
-}: {
-  title: string;
-  about: string;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  const phone = usePhone();
-  if (phone)
-    return (
-      <BottomSheet
-        label={title}
-        start="large"
-        onClose={onClose}
-        bodyClassName="px-4 pt-2 pb-[calc(96px+env(safe-area-inset-bottom))]"
-        head={
-          <div className="flex h-11 items-center border-b border-(--ui-hair) px-2">
-            <CloseButton onClick={onClose} />
-          </div>
-        }
-      >
-        {children}
-      </BottomSheet>
-    );
-  return (
-    <Sheet open onOpenChange={(o) => !o && onClose()}>
-      <SheetContent
-        side="right"
-        // DESIGN.md record panel: 560 wide, floats 8 in, sheet radius
-        className="w-full overflow-y-auto data-[side=right]:sm:top-2 data-[side=right]:sm:right-2 data-[side=right]:sm:bottom-2 data-[side=right]:sm:h-auto data-[side=right]:sm:max-w-[560px] data-[side=right]:sm:rounded-(--ui-radius-sheet) data-[side=right]:sm:border"
-      >
-        {/* the body's h2 shows the title; the close button sits top right */}
-        <SheetHeader className="sr-only">
-          <SheetTitle>{title}</SheetTitle>
-          <SheetDescription>{about}</SheetDescription>
-        </SheetHeader>
-        <div className="px-5 pt-12 pb-10">{children}</div>
-      </SheetContent>
-    </Sheet>
   );
 }
 

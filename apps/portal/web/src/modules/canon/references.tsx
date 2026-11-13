@@ -12,6 +12,7 @@ import type {
 import {
   Button,
   cx,
+  DetailSheet,
   Empty,
   Icon,
   Img,
@@ -30,7 +31,7 @@ import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { dayLabel } from "../work/bits.js";
 import { AddBox } from "./add-box.js";
-import { Panel, Pick, Search, Section, VIDEO_KINDS } from "./parts.js";
+import { Pick, Search, Section, VIDEO_KINDS } from "./parts.js";
 
 const HERE = "/canon/references";
 const FILTERS = ["platform", "provider", "area", "tag", "q", "noted"] as const;
@@ -308,13 +309,13 @@ function Opened({ id, params }: { id: string; params: URLSearchParams }) {
     <ReferenceBody r={got.data} />
   );
   return (
-    <Panel
+    <DetailSheet
       title={title}
       about="The reference, his note and the rule lines it backs."
       onClose={shut}
     >
       {body}
-    </Panel>
+    </DetailSheet>
   );
 }
 

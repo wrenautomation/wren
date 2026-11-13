@@ -169,6 +169,7 @@ export {
 } from "./data/index.js";
 export { Facts, Settings } from "./data.js";
 export { type DaySource, RecordDay } from "./day.js";
+export { DetailSheet } from "./detail-sheet.js";
 export {
   DICTATE_KEYS,
   Dictate,
