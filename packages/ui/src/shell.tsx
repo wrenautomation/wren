@@ -294,7 +294,8 @@ export function AppShell({
           ? "grid h-dvh grid-cols-[calc(var(--layout-side)_+_var(--ui-frame))_minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)_auto] [grid-template-areas:'bar_bar'_'top_window'_'nav_window'_'me_window']"
           : "flex h-dvh flex-col",
         // A phone: one column that scrolls as the page, nothing past its sides, clear of the notch.
-        "max-[900px]:block max-[900px]:h-auto max-[900px]:overflow-x-clip max-[900px]:pr-[env(safe-area-inset-right)] max-[900px]:pl-[env(safe-area-inset-left)]",
+        // Paper to the foot: the window card is only as tall as a short page.
+        "max-[900px]:block max-[900px]:h-auto max-[900px]:min-h-dvh max-[900px]:bg-(--ui-paper) max-[900px]:overflow-x-clip max-[900px]:pr-[env(safe-area-inset-right)] max-[900px]:pl-[env(safe-area-inset-left)]",
         className,
       )}
     >

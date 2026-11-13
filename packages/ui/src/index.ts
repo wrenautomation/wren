@@ -263,6 +263,7 @@ export {
 export {
   type BarField,
   BarGlyph,
+  BarLayout,
   CHIP,
   CHIP_ON,
   POP,

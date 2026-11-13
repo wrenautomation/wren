@@ -20,6 +20,7 @@ import { Cue, cueOf, FieldFilter, filterParts, filterShape } from "./fields.js";
 import {
   type BarField,
   BarGlyph,
+  BarLayout,
   CHIP,
   CHIP_ON,
   POP,
@@ -1023,42 +1024,27 @@ export function ListBar({
     </nav>
   ) : null;
 
-  // The artifact's `.nt-top`: the views at the left, the tools at the right.
-  if (!narrow && !compact)
-    // A side control: the bar hugs its parts, never the page's width.
-    return (
-      <div className="flex w-fit max-w-full flex-wrap items-center gap-2">
-        {/* Whole, never clipped: beside a peek the tools wrap under it instead. */}
-        {shape ? <div className="flex flex-none">{shape}</div> : null}
-        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5">
-          {accountChip}
-          {pills}
-          {clear}
-          {filter}
-          {search}
-          {save}
-          {tail}
-        </div>
-      </div>
-    );
-  // A phone, or a list beside its peek, keeps the one line (artifact `.nt-top` at 720px): the
-  // tools drop their words.
+  // The artifact's `.nt-top`: the views at the left, the tools at the right. A phone, or a list
+  // beside its peek, keeps the one line (`.nt-top` at 720px).
+  const oneLine = narrow || compact;
   return (
-    <div className="grid gap-2">
-      <div className="flex min-w-0 items-center gap-2">
-        {shape}
-        <div className="ml-auto flex min-w-0 items-center gap-0.5 [&_[data-hp]]:sr-only">
+    <BarLayout
+      shape={shape}
+      narrow={oneLine}
+      hug={!oneLine}
+      pills={pills}
+      clear={clear}
+      sheet={tools.sheet}
+      tools={
+        <>
           {accountChip}
-          {clear}
           {filter}
           {search}
           {save}
           {tail}
-        </div>
-      </div>
-      {pills.length ? <div className="flex flex-wrap gap-0.5">{pills}</div> : null}
-      {tools.sheet}
-    </div>
+        </>
+      }
+    />
   );
 }
 

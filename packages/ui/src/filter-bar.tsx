@@ -490,6 +490,58 @@ export function useFilterTools({
   return { tool, pills, sheet: sheetEl, on: on.length };
 }
 
+/**
+ * A list bar's frame: the shape and the tools on one line, the filters in force on a line under
+ * it. The tools keep their place as filters come and go. Clear ends the pills' line when there
+ * are pills, else it sits with the tools (a search alone).
+ */
+export function BarLayout({
+  shape,
+  tools,
+  pills,
+  clear,
+  narrow,
+  sheet,
+  hug,
+}: {
+  shape?: ReactNode;
+  tools: ReactNode;
+  pills: ReactNode[];
+  clear?: ReactNode;
+  narrow: boolean;
+  /** The phone's filter sheet. */
+  sheet?: ReactNode;
+  /** A side control: the bar hugs its parts, never the page's width. */
+  hug?: boolean | undefined;
+}) {
+  const set = pills.length > 0;
+  return (
+    <div className={cn("grid gap-2", hug && "w-fit max-w-full")}>
+      <div className={cn("flex min-w-0 items-center gap-2", !narrow && "flex-wrap")}>
+        {/* Whole, never clipped: when it runs out of room the tools wrap under it. */}
+        {shape ? narrow ? shape : <div className="flex flex-none">{shape}</div> : null}
+        <div
+          className={cn(
+            "ml-auto flex min-w-0 items-center gap-0.5",
+            // A phone keeps one line: the tools drop their words.
+            narrow ? "[&_[data-hp]]:sr-only" : "flex-wrap justify-end",
+          )}
+        >
+          {set ? null : clear}
+          {tools}
+        </div>
+      </div>
+      {set ? (
+        <div className="flex flex-wrap items-center gap-0.5">
+          {pills}
+          {clear}
+        </div>
+      ) : null}
+      {sheet}
+    </div>
+  );
+}
+
 /** The search box: it asks once typing stops (250 ms). */
 export function SearchField({
   asked,

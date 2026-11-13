@@ -6,6 +6,7 @@
 
 import {
   type BarField,
+  BarLayout,
   CHIP,
   CHIP_ON,
   Icon,
@@ -830,36 +831,23 @@ export function AerieBar({
     <ViewStrip tabs={tabs} more={[]} menu={menu} row="views:aerie-tasks" narrow={narrow} />
   );
 
-  if (!narrow)
-    return (
-      <div className="grid gap-2">
-        {strip}
-        <div className="flex max-w-full flex-wrap items-center gap-2">
-          {shape}
-          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5">
-            {tools.pills()}
-            {clear}
-            {tools.tool}
-            {searchBox}
-            {save}
-          </div>
-        </div>
-      </div>
-    );
   return (
     <div className="grid gap-2">
       {strip}
-      <div className="flex min-w-0 items-center gap-2">
-        {shape}
-        <div className="ml-auto flex min-w-0 items-center gap-0.5 [&_[data-hp]]:sr-only">
-          {clear}
-          {tools.tool}
-          {searchBox}
-          {save}
-        </div>
-      </div>
-      {on.length ? <div className="flex flex-wrap gap-0.5">{tools.pills()}</div> : null}
-      {tools.sheet}
+      <BarLayout
+        shape={shape}
+        narrow={narrow}
+        pills={on.length ? tools.pills() : []}
+        clear={clear}
+        sheet={tools.sheet}
+        tools={
+          <>
+            {tools.tool}
+            {searchBox}
+            {save}
+          </>
+        }
+      />
     </div>
   );
 }
