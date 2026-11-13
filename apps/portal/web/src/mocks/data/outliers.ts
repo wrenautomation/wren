@@ -17,6 +17,7 @@ const row = (o: Partial<FeedRow> & Pick<FeedRow, "ref" | "handle" | "multiple">)
   followers: 18_400,
   counts: { views: 412_000, likes: 9_800 },
   scoreCount: "views",
+  band: (o.multiple ?? 0) >= 50 ? "50x+" : (o.multiple ?? 0) >= 10 ? "10-50x" : "5-10x",
   rank: null,
   baselineN: 30,
   record: null,

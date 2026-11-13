@@ -117,6 +117,89 @@ describe("creators", () => {
     expect(top[0]?.multiple).toBe(10);
   });
 
+  it("keeps every kind; a retweet is never scored; a reel with no views scores on likes", async () => {
+    const x = await trackCreator(db(), {
+      platform: "x",
+      handle: "@writer",
+      niches: ["ml"],
+      addedBy: "william",
+    });
+    const tweet = (i: number, kind: string, likes: number) => ({
+      platform: "x",
+      id: `${1000 + i}`,
+      url: `https://x.com/writer/status/${1000 + i}`,
+      kind,
+      date: daysAgo(i + 1),
+      text: `tweet ${i}`,
+      metrics: { likes },
+    });
+    const xOut = await keepCreatorRead(
+      db(),
+      x.id,
+      {
+        creator: { platform: "x", handle: "writer", url: "https://x.com/writer" },
+        posts: [
+          tweet(0, "quote", 100),
+          ...[1, 2, 3, 4, 5].map((i) => tweet(i, "quote", 10)),
+          tweet(6, "retweet", 5000),
+          tweet(7, "reply", 3),
+        ],
+      },
+      "2026-11-13",
+    );
+    expect(xOut.posts).toBe(8);
+
+    const ig = await trackCreator(db(), {
+      platform: "instagram",
+      handle: "@cutter",
+      niches: ["ml"],
+      addedBy: "william",
+    });
+    const reel = (i: number, likes: number) => ({
+      platform: "instagram",
+      id: `Reel${i}`,
+      url: `https://www.instagram.com/reel/Reel${i}/`,
+      kind: "reel",
+      date: daysAgo(i + 1),
+      metrics: { likes, comments: 1 },
+    });
+    await keepCreatorRead(
+      db(),
+      ig.id,
+      {
+        creator: {
+          platform: "instagram",
+          handle: "cutter",
+          url: "https://www.instagram.com/cutter/",
+        },
+        posts: [reel(0, 80), ...[1, 2, 3, 4, 5].map((i) => reel(i, 10))],
+      },
+      "2026-11-13",
+    );
+
+    const kinds = [
+      ...(await db().execute<{ kind: string; multiple: number | null }>(
+        "select kind, multiple from creator_posts where platform = 'x' order by ref",
+      )),
+    ];
+    expect(kinds.find((k) => k.kind === "retweet")?.multiple).toBeNull();
+    expect(kinds.map((k) => k.kind).sort()).toEqual([
+      "quote",
+      "quote",
+      "quote",
+      "quote",
+      "quote",
+      "quote",
+      "reply",
+      "retweet",
+    ]);
+    const feed = await feedPosts(db(), { niche: "ml", min: 5 });
+    expect(feed.map((p) => [p.platform, p.kind, p.multiple, p.scoreCount, p.band])).toEqual([
+      ["x", "quote", 10, "likes", "10-50x"],
+      ["instagram", "reel", 8, "likes", "5-10x"],
+    ]);
+  });
+
   it("leaves the due list after a read, after 3 fails, and after remove", async () => {
     const c = await trackCreator(db(), {
       platform: "youtube",

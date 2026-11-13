@@ -35,7 +35,6 @@ import {
   type FeedRow,
   feedFacets,
   feedPosts,
-  POST_KINDS,
 } from "./creators.js";
 
 const REPO = "canon";
@@ -469,7 +468,7 @@ const INPUTS = {
     preset: z.enum(Object.keys(FEED_PRESETS) as [FeedPreset, ...FeedPreset[]]).nullish(),
     niche: z.string().max(80).nullish(),
     platform: z.string().max(40).nullish(),
-    kind: z.enum(POST_KINDS).nullish(),
+    kind: z.string().max(16).nullish(),
     limit: z.number().int().min(1).max(200).nullish(),
   },
   upload: {

@@ -29,7 +29,6 @@
     "./sops": "./src/sops/index.ts",
     "./enrichment": "./src/enrichment/index.ts",
     "./restate": "./src/restate/index.ts",
-    "./outliers": "./src/outliers.ts",
     "./creators": "./src/creators.ts"
   },
   "scripts": {
@@ -46,9 +45,9 @@
     "@wren/llm": "workspace:*",
     "@wren/runtime": "workspace:*",
     "@wrenautomation/knowledge": "0.75.6",
-    "@wrenautomation/models": "0.75.7",
-    "@wrenautomation/read": "0.75.7",
-    "@wrenautomation/weaver": "0.75.7",
+    "@wrenautomation/models": "0.76.0",
+    "@wrenautomation/read": "0.76.0",
+    "@wrenautomation/weaver": "0.76.0",
     "csv-parse": "7.0.2",
     "drizzle-orm": "0.45.2",
     "libphonenumber-js": "1.13.14",

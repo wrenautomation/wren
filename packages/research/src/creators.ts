@@ -8,21 +8,24 @@ import { resolveObjects } from "@wren/core/objects";
 import { normalizeHandle, resolveHandle } from "@wren/core/touches";
 import { socialHandles } from "@wren/core/touches-schema";
 import { atomic, type Db, type Queryable } from "@wren/db";
-import { type ScoredPost, scoreOf } from "@wrenautomation/weaver/ledger";
+import {
+  bandOf,
+  baselineKindOf,
+  countOf,
+  type ScoredPost,
+  scoreOf,
+} from "@wrenautomation/weaver/ledger";
 import { and, asc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import {
   creatorPosts as cp,
   followerCountDays,
-  POST_KINDS,
-  type PostKind,
   postCountDays,
   type TrackedCreator,
   trackedCreators as tc,
 } from "./creators-schema.js";
-import { outlierCount } from "./outliers.js";
 import type { Source } from "./sops/index.js";
 
-export { POST_KINDS, type PostKind, type TrackedCreator } from "./creators-schema.js";
+export { POST_KINDS, type TrackedCreator } from "./creators-schema.js";
 
 /** failed reads in a row before a creator waits for a person */
 export const MAX_READ_FAILS = 3;
@@ -48,7 +51,7 @@ export interface CreatorRead {
     /** the platform's id: video id, shortcode, tweet id, URN */
     id: string;
     url: string;
-    kind: PostKind;
+    kind: string;
     /** ISO */
     date?: string;
     title?: string;
@@ -250,7 +253,7 @@ export async function keepCreatorRead(
           target: [followerCountDays.creatorId, followerCountDays.day],
           set: { followers: sql`excluded.followers`, readAt: sql`now()` },
         });
-    const posts = read.posts.filter((p) => (POST_KINDS as readonly string[]).includes(p.kind));
+    const posts = read.posts;
     if (!posts.length) return { posts: 0, added: 0, scored: await rescore(tx, creatorId) };
     const refs = await resolveObjects(
       tx,
@@ -328,18 +331,21 @@ async function rescore(db: Queryable, creatorId: number): Promise<number> {
       where d.platform = p.platform and d.ref = p.ref order by d.day desc limit 1) c on true
     where p.creator_id = ${creatorId}
     order by p.posted_at desc nulls last, p.first_seen desc`);
-  const all = [...rows];
+  const all = [...rows].filter((r) => r.kind !== "retweet"); // a retweet's counts are the original's
   const posts = all.map(
     (r): ScoredPost => ({
       ...(r.posted_at ? { at: new Date(r.posted_at).toISOString() } : {}),
-      kind: r.kind,
+      kind: baselineKindOf(r.platform, r.kind),
       metrics: r.counts ?? {},
     }),
   );
   let scored = 0;
   for (const [i, r] of all.entries()) {
     const self = posts[i] as ScoredPost;
-    const s = scoreOf(self, posts, { count: outlierCount(r.platform, r.kind) });
+    const want = countOf(r.platform, r.kind);
+    // IG grid reads carry no reel views: likes until a read gives views
+    const count = self.metrics[want] == null && self.metrics.likes != null ? "likes" : want;
+    const s = scoreOf(self, posts, { count });
     await db
       .update(cp)
       .set({
@@ -397,6 +403,8 @@ export interface FeedRow {
   counts: Counts;
   scoreCount: string | null;
   multiple: number | null;
+  /** Eden's band of the multiple (1-3x ... 50x+); none under 1x */
+  band: string | null;
   rank: number | null;
   baselineN: number | null;
   record: string | null;
@@ -469,6 +477,7 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     counts: r.counts ?? {},
     scoreCount: r.score_count,
     multiple: r.multiple,
+    band: r.multiple != null ? (bandOf(r.multiple) ?? null) : null,
     rank: r.rank,
     baselineN: r.baseline_n,
     record: r.record,

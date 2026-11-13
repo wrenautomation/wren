@@ -42,11 +42,17 @@ const PLATFORMS: Record<string, string> = {
   threads: "Threads",
   linkedin: "LinkedIn",
 };
+/** every scored kind; a retweet is never scored */
 const KINDS: Record<string, string> = {
   video: "Video",
   short: "Short",
+  live: "Live",
   reel: "Reel",
   post: "Post",
+  photo: "Photo",
+  carousel: "Carousel",
+  quote: "Quote",
+  reply: "Reply",
 };
 const platformName = (p: string) => PLATFORMS[p] ?? p;
 

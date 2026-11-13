@@ -1,4 +1,3 @@
-import { outlierCount } from "@wren/research/outliers";
 import { describe, expect, it } from "vitest";
 import { engagementRate, formatWhatWorked, type WorkedRow } from "./metrics.js";
 import { weekOf } from "./restate/metrics.js";
@@ -35,16 +34,6 @@ describe("metrics", () => {
       "12.0/100 · x · 5.5x likes, top 4% · 50 views · 5+1+0 · the gate asks first · https://x.test/1",
     ]);
     expect(formatWhatWorked([])).toEqual(["no published posts with metrics in the window"]);
-  });
-
-  it("scores video feeds on views, the rest on likes", () => {
-    expect(outlierCount("youtube", "short")).toBe("views");
-    expect(outlierCount("youtube", "post")).toBe("likes");
-    expect(outlierCount("instagram", "reel")).toBe("views");
-    expect(outlierCount("instagram", "carousel")).toBe("likes");
-    expect(outlierCount("tiktok", "video")).toBe("views");
-    expect(outlierCount("x", "video")).toBe("likes");
-    expect(outlierCount("linkedin", "post")).toBe("likes");
   });
 
   it("names the week by its Monday", () => {

@@ -7,9 +7,14 @@
  */
 import type { Platform } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
-import { outlierCount } from "@wren/research/outliers";
 import type { Metrics } from "@wren/starling-core";
-import { type Score, type ScoredPost, scoreOf } from "@wrenautomation/weaver/ledger";
+import {
+  baselineKindOf,
+  countOf,
+  type Score,
+  type ScoredPost,
+  scoreOf,
+} from "@wrenautomation/weaver/ledger";
 import { and, desc, eq, gte, inArray, isNotNull, notExists, sql } from "drizzle-orm";
 import { formatOf } from "./analytics/catalog.js";
 import { type ContentDraft, type ContentMetric, contentDrafts, contentMetrics } from "./schema.js";
@@ -193,7 +198,7 @@ async function ourPosts(db: Queryable, platforms: readonly string[]): Promise<Ou
     platform: r.platform,
     post: {
       ...(r.publishedAt ? { at: r.publishedAt.toISOString() } : {}),
-      kind: formatOfDraft(r),
+      kind: baselineKindOf(r.platform, formatOfDraft(r)),
       metrics: { views: r.views, likes: r.reactions, comments: r.comments, shares: r.shares },
     },
   }));
@@ -238,9 +243,9 @@ export async function whatWorked(
       ? scoreOf(
           self,
           ours.filter((p) => p.platform === d.platform).map((p) => p.post),
-          { count: outlierCount(d.platform, self.kind), now: now.toISOString() },
+          { count: countOf(d.platform, self.kind), now: now.toISOString() },
         )
-      : { count: outlierCount(d.platform, formatOfDraft(d)), n: 0 };
+      : { count: countOf(d.platform, formatOfDraft(d)), n: 0 };
     rows.push({
       draftId: d.id,
       platform: d.platform,

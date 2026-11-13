@@ -5,7 +5,6 @@
  */
 import { platformObjects } from "@wren/core/objects-schema";
 import { socialHandles } from "@wren/core/touches-schema";
-import { oneOf } from "@wren/db/columns";
 import {
   boolean,
   date,
@@ -23,9 +22,19 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-/** What a post is, for its baseline: Eden scores reels and posts apart */
-export const POST_KINDS = ["video", "short", "reel", "post"] as const;
-export type PostKind = (typeof POST_KINDS)[number];
+/** the kinds `weaver posts` gives today; the column takes any (a new kind is stored, never dropped) */
+export const POST_KINDS = [
+  "video",
+  "short",
+  "live",
+  "reel",
+  "post",
+  "photo",
+  "carousel",
+  "quote",
+  "reply",
+  "retweet",
+] as const;
 
 export const trackedCreators = pgTable(
   "tracked_creators",
@@ -72,7 +81,7 @@ export const creatorPosts = pgTable(
     ref: varchar("ref", { length: 255 }).notNull(),
     creatorId: integer("creator_id").notNull(),
     url: text("url").notNull(),
-    kind: varchar("kind", { length: 8 }).notNull(),
+    kind: varchar("kind", { length: 16 }).notNull(),
     postedAt: timestamp("posted_at", { withTimezone: true }),
     title: text("title"),
     text: text("text"),
@@ -93,7 +102,6 @@ export const creatorPosts = pgTable(
     primaryKey({ columns: [t.platform, t.ref], name: "pk_creator_posts" }),
     index("ix_creator_posts_creator_id_posted_at").on(t.creatorId, t.postedAt),
     index("ix_creator_posts_multiple").on(t.multiple),
-    oneOf("ck_creator_posts_kind", t.kind, POST_KINDS),
     foreignKey({
       columns: [t.creatorId],
       foreignColumns: [trackedCreators.id],
