@@ -77,7 +77,10 @@ bg render-lambda sh -c "aws lambda update-function-code --function-name wren-pro
   --s3-bucket $BOX_BUCKET --s3-key $render_key > /dev/null && aws lambda wait function-updated --function-name wren-prod-render"
 key="worker/$GITHUB_SHA.zip"
 aws s3 cp --only-show-errors apps/worker/dist/lambda.zip "s3://$BOX_BUCKET/$key"
-bg box-worker box_script worker box-worker.sh "$BOX_BUCKET" "$key"
+# the box serves the portal's reads (rt.ts): it signs media like the Lambda, so it takes the Lambda's buckets
+buckets="$(aws lambda get-function-configuration --function-name wren-prod-worker \
+  --query '[Environment.Variables.WREN_MEDIA_BUCKET, Environment.Variables.WREN_FILES_BUCKET]' --output text)"
+bg box-worker box_script worker box-worker.sh "$BOX_BUCKET" "$key" $buckets
 bg auth-lambda sh -c 'aws lambda update-function-code --function-name wren-prod-auth \
   --zip-file fileb://apps/auth/dist/lambda.zip > /dev/null && aws lambda wait function-updated --function-name wren-prod-auth'
 aws lambda update-function-code --function-name "$LAMBDA_NAME" \

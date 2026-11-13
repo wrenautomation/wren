@@ -252,6 +252,20 @@ resource "aws_iam_role_policy" "pg" {
   policy = data.aws_iam_policy_document.pg.json
 }
 
+# The box serves the portal's reads (apps/worker/src/rt.ts), which sign media and files:
+# the worker's grants, since a URL signed by a role that cannot read is refused.
+resource "aws_iam_role_policy" "pg_media" {
+  name   = "worker-media"
+  role   = aws_iam_role.pg.id
+  policy = data.aws_iam_policy_document.worker_media.json
+}
+
+resource "aws_iam_role_policy" "pg_files" {
+  name   = "worker-files"
+  role   = aws_iam_role.pg.id
+  policy = data.aws_iam_policy_document.worker_files.json
+}
+
 resource "aws_iam_instance_profile" "pg" {
   name = "${local.prefix}-pg"
   role = aws_iam_role.pg.name

@@ -1,9 +1,9 @@
 #!/bin/bash
 # @unit worker: The runtime (apps/worker/src/rt.ts), on the box: its lanes and its door.
 # Runs ON the Postgres box (CI sends it over SSM): install a worker bundle and
-# (re)start the worker. Usage: box-worker.sh <bucket> <key>
+# (re)start the worker. Usage: box-worker.sh <bucket> <key> <media bucket> <files bucket>
 set -euo pipefail
-bucket="$1" key="$2"
+bucket="$1" key="$2" media_bucket="$3" files_bucket="$4"
 
 # Headroom beside Postgres and the browser on a 4 GB box: a 2 GB swap file on the
 # data volume (the 8 GB root has no room for it). Swap is the crash buffer, not memory to
@@ -96,6 +96,7 @@ docker run -d --name wren-worker-new --restart unless-stopped --init \
   -e WREN_SSM_ROSTER_PARAM=/wren/prod/senders_config \
   -e WREN_SSM_MAILBOXES_PARAM=/wren/prod/mailboxes \
   -e WREN_SSM_BOX_PARAM=/wren/prod/box \
+  -e WREN_MEDIA_BUCKET="$media_bucket" -e WREN_FILES_BUCKET="$files_bucket" \
   -e WREN_RENDERER=lambda -e WREN_RENDER_FUNCTION=wren-prod-render \
   -e WREN_DATABASE_POOL_PORT=6432 \
   -e WREN_LOG_LEVEL=info \
