@@ -67,6 +67,8 @@ export interface ExplorerProps {
   errorText?: Partial<Record<PathErrorCode, ReactNode>> | undefined;
   /** what fills an empty folder and the way there (ui-design SV-8); none: it says only that it is empty */
   emptyText?: ((c: Column) => ReactNode) | undefined;
+  /** "crumbs": the host page's bar finds and switches views, so the part draws only the crumbs and Copy link */
+  bar?: "full" | "crumbs" | undefined;
   className?: string | undefined;
 }
 
@@ -156,11 +158,15 @@ export function Explorer(p: ExplorerProps) {
   const shown = got.data;
   // the answer is this route's; else another's, held while this one reads (Moving)
   const settled = shown !== null && !got.placeholder;
-  const cols = useMemo(
-    () =>
-      !shown ? [] : settled ? shown.columns : shown.columns.filter((c) => within(c.route, p.route)),
-    [shown, settled, p.route],
-  );
+  const cols = useMemo(() => {
+    const all = !shown
+      ? []
+      : settled
+        ? shown.columns
+        : shown.columns.filter((c) => within(c.route, p.route));
+    // core names the root by its path; the host's name labels its column, as in the crumbs
+    return all.map((c, i) => (i === 0 ? { ...c, item: { ...c.item, name: p.name } } : c));
+  }, [shown, settled, p.route, p.name]);
   // a moved path walks on from its new home: show that route, not the old name
   const walked = settled && !shown.error ? shown.columns.at(-1)?.route : undefined;
   const route = walked ?? p.route;
@@ -310,7 +316,13 @@ export function Explorer(p: ExplorerProps) {
 
   return (
     <div ref={box} className={cn("flex min-w-0 flex-col gap-3", p.className)}>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      {/* narrow under a host's bar: Back and the pane's title carry it; a lone link row is noise */}
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-x-3 gap-y-2",
+          !wide && p.bar === "crumbs" && "hidden",
+        )}
+      >
         {/* narrow: no crumb; the pane's Back row names the parent, its title where it stands */}
         {wide ? <Crumbs crumbs={crumbs} ctx={ctx} /> : null}
         <div
@@ -319,29 +331,36 @@ export function Explorer(p: ExplorerProps) {
             wide ? "flex-none" : "flex-1 basis-full",
           )}
         >
-          <FindBox text={text} onText={setText} where={here} wide={wide} />
-          <Seg
-            dense
-            label="View"
-            value={view}
-            onChange={(v) => onRoute(route, v)}
-            items={[
-              {
-                value: "columns",
-                label: <ViewLabel icon="columns" text="Columns" short={!wide} />,
-              },
-              { value: "list", label: <ViewLabel icon="list" text="List" short={!wide} /> },
-              { value: "gallery", label: <ViewLabel icon="apps" text="Gallery" short={!wide} /> },
-              ...(mapRead
-                ? [
-                    {
-                      value: "map" as const,
-                      label: <ViewLabel icon="workflow" text="Map" short={!wide} />,
-                    },
-                  ]
-                : []),
-            ]}
-          />
+          {p.bar === "crumbs" ? null : (
+            <>
+              <FindBox text={text} onText={setText} where={here} wide={wide} />
+              <Seg
+                dense
+                label="View"
+                value={view}
+                onChange={(v) => onRoute(route, v)}
+                items={[
+                  {
+                    value: "columns",
+                    label: <ViewLabel icon="columns" text="Columns" short={!wide} />,
+                  },
+                  { value: "list", label: <ViewLabel icon="list" text="List" short={!wide} /> },
+                  {
+                    value: "gallery",
+                    label: <ViewLabel icon="apps" text="Gallery" short={!wide} />,
+                  },
+                  ...(mapRead
+                    ? [
+                        {
+                          value: "map" as const,
+                          label: <ViewLabel icon="workflow" text="Map" short={!wide} />,
+                        },
+                      ]
+                    : []),
+                ]}
+              />
+            </>
+          )}
           <CopyLink href={hrefFor(home)} />
         </div>
       </div>

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./aerie-tree": "./src/aerie-tree.ts",
     "./canon": "./src/canon.ts",
     "./canon-tree": "./src/canon-tree.ts",
     "./console-routes": "./src/console-routes.ts",

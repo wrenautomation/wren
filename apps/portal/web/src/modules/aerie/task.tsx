@@ -108,7 +108,12 @@ function useWalk(id: string, order: readonly string[], hrefOf: (id: string) => s
   }, [id, order, hrefOf]);
 }
 
-function TaskBody({ id, rows, board, hrefOf, onWrote }: TaskSheetProps) {
+/** the task whole; `bare`: a host names it and walks its links (Explorer's preview in Columns) */
+export type TaskBodyProps = Pick<TaskSheetProps, "id" | "rows" | "board" | "hrefOf" | "onWrote"> & {
+  bare?: boolean;
+};
+
+export function TaskBody({ id, rows, board, hrefOf, onWrote, bare = false }: TaskBodyProps) {
   const got = useTask(id);
   const row = rows.find((r) => r.id === id);
   const whole = got.data?.task;
@@ -148,7 +153,11 @@ function TaskBody({ id, rows, board, hrefOf, onWrote }: TaskSheetProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      {head ? <TaskHead task={head} writes={writes} busy={busy} onPick={pick} /> : <HeadSkeleton />}
+      {head ? (
+        <TaskHead task={head} writes={writes} busy={busy} onPick={pick} bare={bare} />
+      ) : (
+        <HeadSkeleton />
+      )}
       {board.data && !writes && (
         <p className="m-0 -mt-3 flex items-start gap-1.5 text-[13px] leading-snug text-(--ui-ink-3)">
           <Icon name="lock" className="mt-0.5 size-3.5 shrink-0" />
@@ -167,6 +176,7 @@ function TaskBody({ id, rows, board, hrefOf, onWrote }: TaskSheetProps) {
           grants={board.data?.grants ?? []}
           milestones={board.data?.milestones ?? []}
           hrefOf={hrefOf}
+          bare={bare}
         />
       )}
     </div>
@@ -195,7 +205,9 @@ function TaskHead({
   writes,
   busy,
   onPick,
+  bare,
 }: {
+  bare: boolean;
   task: Head;
   writes: boolean;
   busy: boolean;
@@ -211,7 +223,7 @@ function TaskHead({
   return (
     <div className="flex flex-col gap-2">
       <span className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[13px] text-(--ui-ink-3) tabular-nums">{task.id}</span>
+        {!bare && <span className="text-[13px] text-(--ui-ink-3) tabular-nums">{task.id}</span>}
         {writes ? (
           <OnePick
             label="Status"
@@ -243,9 +255,11 @@ function TaskHead({
         )}
         {FOLDER[task.place] && <Tag tone="warn">{FOLDER[task.place]}</Tag>}
       </span>
-      <h2 className="m-0 text-[18px] leading-snug font-semibold text-pretty wrap-anywhere">
-        {task.title}
-      </h2>
+      {!bare && (
+        <h2 className="m-0 text-[18px] leading-snug font-semibold text-pretty wrap-anywhere">
+          {task.title}
+        </h2>
+      )}
       <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-(--ui-ink-3)">
         <span className="inline-flex items-center gap-1">
           <Icon name="folder" className="size-3.5" />
@@ -353,7 +367,10 @@ function TaskParts({
   grants,
   milestones,
   hrefOf,
+  bare,
 }: {
+  /** the host draws parent, children and waits-on itself */
+  bare: boolean;
   task: Whole;
   events: TaskEvent[];
   rows: readonly TaskRow[];
@@ -404,7 +421,7 @@ function TaskParts({
           <Markdown text={task.finalSummary} />
         </Section>
       )}
-      {(task.parentId || children.length > 0 || task.dependencies.length > 0) && (
+      {!bare && (task.parentId || children.length > 0 || task.dependencies.length > 0) && (
         <Section title="Linked tasks">
           <Facts
             items={(

@@ -109,6 +109,8 @@ export const RELATIONS: Record<string, string> = {
   "looped-from": "Looped from",
   opens: "Opens",
   "opened-by": "Opened by",
+  "waits-on": "Waits on",
+  blocks: "Blocks",
 };
 
 export const segments = (path: string) => path.split("/").filter(Boolean);
@@ -183,6 +185,7 @@ const IN_RELS = [
   "transferred-from",
   "looped-from",
   "opened-by",
+  "blocks",
 ];
 
 /** Each relation folder under an item's home, with what it holds; a leaf holds none. */

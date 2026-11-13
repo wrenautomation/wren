@@ -407,7 +407,7 @@ function Cards<T>({
   );
 }
 
-/** a lane's count: a changed number rises in once (`ui-rise`), never on the first draw */
+/** a lane's count: a changed number rises in once (`ui-rise` keyframes), never on the first draw */
 function Count({ n }: { n: number }) {
   const first = useRef(n);
   const moved = useRef(false);
@@ -417,7 +417,8 @@ function Count({ n }: { n: number }) {
       key={n}
       className={cn(
         "flex-none font-semibold text-(--ui-ink) tabular-nums",
-        moved.current && "ui-rise",
+        // 200 ms: a routine change stays under 300 (MV-9); `ui-rise` is 350 for Steps
+        moved.current && "animate-[ui-rise_200ms_var(--ui-ease)_both] motion-reduce:animate-none",
       )}
     >
       {n}

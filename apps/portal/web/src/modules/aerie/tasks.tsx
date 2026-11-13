@@ -19,6 +19,7 @@ import { href, navigate } from "../../route.js";
 import { addressOf, GROUP, TASKS, unfiltered, withoutText } from "./address.js";
 import { AerieBar } from "./bar.js";
 import { TaskBoard } from "./board.js";
+import { TaskColumns } from "./columns.js";
 import {
   editTask,
   predict,
@@ -34,8 +35,7 @@ import { TaskSheet } from "./task.js";
 export { TASKS };
 
 const NO_ACTOR = /^no Aerie actor for (.+)$/;
-/** the layouts that draw so far */
-const LAYOUTS: readonly ViewLayout[] = ["list", "board"];
+const LAYOUTS: readonly ViewLayout[] = ["list", "board", "columns"];
 const NO_TASKS: TaskRow[] = [];
 
 /** the viewer's sign-in has no actor: say the one line that adds it */
@@ -102,6 +102,8 @@ export function TasksPage({ params }: PageProps) {
   }, [rows, board.data, view, ranked]);
 
   const onBoard = view.layout === "board";
+  // Columns previews the task itself: no sheet there
+  const onColumns = view.layout === "columns";
   const writes = board.data?.writes === true;
   const { retry } = got;
   const groupKey = view.group ?? GROUP;
@@ -172,6 +174,16 @@ export function TasksPage({ params }: PageProps) {
 
   let body: ReactNode;
   if (got.error && !got.data) body = <LoadFailed error={got.error} onRetry={got.retry} />;
+  else if (onColumns && (!got.data || shown.length))
+    body = (
+      <TaskColumns
+        rows={got.data ? rows : null}
+        shown={shown}
+        board={board}
+        params={params}
+        onWrote={got.retry}
+      />
+    );
   else if (!got.data)
     body = onBoard ? <TaskBoard {...boardOf(null)} /> : <Loading shape="rows" lines={8} />;
   else if (!rows.length)
@@ -227,7 +239,7 @@ export function TasksPage({ params }: PageProps) {
         />
       </div>
       {body}
-      {open && (
+      {open && !onColumns && (
         <TaskSheet
           id={open}
           rows={rows}

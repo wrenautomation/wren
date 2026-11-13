@@ -169,7 +169,7 @@ export function WideColumns(props: PaneProps & { first: boolean }) {
                 key={c.route}
                 data-col={c.route}
                 aria-label={c.item.name}
-                className="flex w-[240px] flex-none flex-col overflow-y-auto border-r border-(--ui-hair) p-1.5 transition-[opacity,translate] duration-150 ease-out starting:-translate-x-2 starting:opacity-0"
+                className="flex w-[240px] flex-none flex-col overflow-y-auto border-r border-(--ui-hair) p-1.5 transition-[opacity,translate] duration-150 ease-out motion-safe:starting:-translate-x-2 starting:opacity-0"
               >
                 <Rows ctx={ctx} c={c} route={route} />
               </section>
@@ -576,7 +576,7 @@ export function Narrow({
       key={route}
       className={cn(
         "flex min-w-0 flex-1 flex-col gap-3 transition-[opacity,translate] duration-150 ease-out starting:opacity-0",
-        deeper ? "starting:translate-x-2" : "starting:-translate-x-2",
+        deeper ? "motion-safe:starting:translate-x-2" : "motion-safe:starting:-translate-x-2",
       )}
     >
       {up ? (
@@ -586,9 +586,7 @@ export function Narrow({
           className="flex min-h-11 items-center gap-1.5 self-start pr-2 text-[14px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
         >
           <Icon name="left" size={16} className="flex-none" />
-          <span className="wrap-anywhere">
-            {up.route === cols[0]?.route ? ctx.p.name : up.item.name}
-          </span>
+          <span className="wrap-anywhere">{up.item.name}</span>
         </a>
       ) : null}
       {error ? (
@@ -607,7 +605,7 @@ export function Narrow({
             dir="auto"
             className="m-0 text-[19px]/[1.3] font-semibold text-(--ui-ink) wrap-anywhere"
           >
-            {at === cols[0] ? ctx.p.name : at.item.name}
+            {at.item.name}
           </h2>
           {listing(at)}
           {aside ? <div className="border-t border-(--ui-hair) pt-5">{aside}</div> : null}

@@ -84,12 +84,15 @@ export const AERIE_TASKS: Row[] = [
     priority: "low",
     assignees: ["@alex"],
     summary: "Opens, replies and booked calls for the week.",
+    // inbox reads it too: an alias row there (not growth: Board EmptyLane needs its To Do empty)
+    aliases: ["inbox"],
     days: 2,
   }),
   row("EX-105", "Untriaged idea from a chat", "To Do", "inbox", { days: 0.5 }),
   row("EX-106", "Archive the old pricing page", "Backlog", "dev/site", {
     priority: "low",
     labels: ["repo:site"],
+    dependencies: ["EX-101"],
     days: 6,
   }),
   row("EX-107", "Try a second subject line on the follow-up", "Parked", "growth/email", {
@@ -135,6 +138,15 @@ export const AERIE_BOARD: AerieAnswer<"board"> = {
     { id: 4, path: "growth/email", name: "Email", description: null, mirror: false, count: 1 },
     { id: 5, path: "inbox", name: "Inbox", description: null, mirror: false, count: 1 },
     { id: 6, path: "ops", name: "Operations", description: null, mirror: false, count: 13 },
+    // no task yet: Columns' empty area
+    {
+      id: 7,
+      path: "content",
+      name: "Content",
+      description: "Videos and posts",
+      mirror: false,
+      count: 0,
+    },
   ],
   grants: [
     { area: "dev", actor: "@william", role: "owner" },
