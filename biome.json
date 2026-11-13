@@ -43,7 +43,12 @@
   },
   "overrides": [
     {
-      "includes": ["packages/**", "!packages/reactivation/**", "!packages/ui/**"],
+      "includes": [
+        "packages/**",
+        "!packages/reactivation/**",
+        "!packages/ui/**",
+        "!packages/portal-routes/**"
+      ],
       "linter": {
         "rules": {
           "style": {

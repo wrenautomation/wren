@@ -49,6 +49,9 @@ export async function register(sql: Sql, registry: Registry) {
 export interface Lane {
   only?: readonly string[];
   except?: readonly string[];
+  /** `routes` / `exceptRoutes`: by `Service/handler` (the box's portal read lane). */
+  routes?: readonly string[];
+  exceptRoutes?: readonly string[];
   build?: string;
   strict?: boolean;
   /** false: only rows already pinned to `build` (a superseded slot finishing its own). */
@@ -61,6 +64,12 @@ export interface Lane {
 const laneSql = (sql: Sql, l: Lane) => sql`
   ${l.only ? sql`AND i.service IN ${sql(l.only as string[])}` : sql``}
   ${l.except?.length ? sql`AND i.service NOT IN ${sql(l.except as string[])}` : sql``}
+  ${l.routes ? sql`AND (i.service || '/' || i.handler) IN ${sql(l.routes as string[])}` : sql``}
+  ${
+    l.exceptRoutes?.length
+      ? sql`AND (i.service || '/' || i.handler) NOT IN ${sql(l.exceptRoutes as string[])}`
+      : sql``
+  }
   ${l.callerWaits === undefined ? sql`` : sql`AND i.caller_waits = ${l.callerWaits}`}
   ${
     l.strict && l.build
@@ -70,6 +79,9 @@ const laneSql = (sql: Sql, l: Lane) => sql`
       : sql``
   }`;
 
+/** An empty `only` or `routes` list matches no row (and `IN ()` is no SQL). */
+const none = (l: Lane) => l.only?.length === 0 || l.routes?.length === 0;
+
 /** Claim up to `n` due invocations. FIFO per object key for exclusive handlers; one holder per key. */
 export async function claim(
   sql: Sql,
@@ -78,7 +90,7 @@ export async function claim(
   now: number,
   lane: Lane = {},
 ): Promise<Claim[]> {
-  if (lane.only && lane.only.length === 0) return [];
+  if (none(lane)) return [];
   const at = new Date(now);
   const lock = lane.lock ?? true;
   return sql<Claim[]>`
@@ -111,7 +123,7 @@ export async function claim(
  * but blocked (a key holder) are left out: the holder's finish sends NOTIFY rt_wake.
  */
 export async function nextDue(sql: Sql, lane: Lane = {}): Promise<Date | null> {
-  if (lane.only && lane.only.length === 0) return null;
+  if (none(lane)) return null;
   const [r] = await sql<{ at: Date | null }[]>`
     SELECT least(
       (SELECT min(run_at) FROM rt.invocations i

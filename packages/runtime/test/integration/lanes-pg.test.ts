@@ -29,12 +29,12 @@ beforeAll(async () => {
 afterAll(() => stop());
 
 let n = 0;
-const add = async (service: string, build: string | null = null) => {
+const add = async (service: string, build: string | null = null, handler = "h") => {
   const id = `inv_lane${String(n++).padStart(22, "0")}`;
   await submit(sql, {
     id,
     service,
-    handler: "h",
+    handler,
     key: null,
     input: new Uint8Array(),
     headers: {},
@@ -54,6 +54,17 @@ describe("lanes", () => {
     expect(await nextDue(sql, { only: [] })).toBeNull();
     expect((await take({ only: ["LaneA"] })).map((c) => c.id)).toEqual([a]);
     expect((await take({ except: ["LaneA", "LaneC", "LaneD"] })).map((c) => c.id)).toEqual([b]);
+  });
+
+  it("routes / exceptRoutes split one service by handler", async () => {
+    const read = await add("LaneR", null, "list");
+    const write = await add("LaneR", null, "save");
+    expect((await take({ routes: [] })).length).toBe(0);
+    expect(await nextDue(sql, { routes: [] })).toBeNull();
+    expect(
+      (await take({ only: ["LaneR"], exceptRoutes: ["LaneR/list"] })).map((c) => c.id),
+    ).toEqual([write]);
+    expect((await take({ routes: ["LaneR/list", "LaneZ/list"] })).map((c) => c.id)).toEqual([read]);
   });
 
   it("the first claim pins the lane's build; a loose lane takes any build", async () => {

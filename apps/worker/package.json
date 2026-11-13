@@ -37,6 +37,7 @@
     "@wren/paths": "workspace:*",
     "@wren/payments": "workspace:*",
     "@wren/pipeline": "workspace:*",
+    "@wren/portal-routes": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/research": "workspace:*",
     "@wren/runtime": "workspace:*",

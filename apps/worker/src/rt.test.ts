@@ -4,6 +4,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadSettings } from "@wren/config";
+import { PORTAL_READS } from "@wren/portal-routes";
 import { Registry } from "@wren/runtime/pg";
 import type { Logger } from "pino";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -54,6 +55,16 @@ describe("route list", () => {
       expect(names.has(from), from).toBe(false);
       expect(names.has(to), to).toBe(true);
     }
+  });
+
+  it("every portal read is a built service's handler", () => {
+    const r = new Registry(all as never);
+    const missing = PORTAL_READS.filter((route) => {
+      const [service = "", handler = ""] = route.split("/");
+      return !r.get(service, handler);
+    });
+    expect(PORTAL_READS.length).toBeGreaterThan(0);
+    expect(missing).toEqual([]);
   });
 
   it("the runtime registers every built service, each name once", () => {

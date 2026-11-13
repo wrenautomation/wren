@@ -238,6 +238,39 @@ The door speaks Restate's ingress shape: `POST /<Service>/<key>/<handler>` (`/se
 
 Ranked: no caller breaks, the runtime keeps a tested contract, plain names. The call shape `/<Service>/<key>/<handler>` is plain HTTP RPC, not a Restate tie. The real tie is the SDK's programming model (ctx.run, objects, awakeables) that `@wren/runtime` implements; it stays while the conformance suite holds.
 
+## Group 5: portal reads on the box, lazy code on Lambda (11-13, WA-1353)
+
+Measured on prod 11-12 and 11-13. Lambda cold init: p50 3.9 s, p90 4.1 s, on 153 of 3,546 turns in 24 h (4.3%). Portal handlers: p50 55–280 ms, but p90 3.5 s and p99 5 s. The tail is cold starts: a turn runs in 12 ms at the median. Init split (`lambda ready` line, Init Duration): module load about 2.8 s, service build about 1.0 s, SSM 0.17 s. The bundle is one 29.5 MB ESM file; V8's compile is 40% of its load. William 11-12: "i agree with A + B".
+
+### A: reads on the box
+
+| Option | How | For | Against |
+|---|---|---|---|
+| **A1. A read lane on the box (picked)** | A third box dispatcher takes rows whose `service/handler` is a portal read; the Lambda lane skips them | No cold start on any page load; writes and loops stay on Lambda | A per-route lane filter; the read list must be exact |
+| A2. Whole consoles on the box | Consoles join `BOX_SERVICES` | A service list only | Writes (sends, Stripe, child calls) run beside Postgres; not what William agreed |
+| A3. The caller names the lane | The portal Worker tags a read; the door stores a lane | No list in the worker | Routing leaves the runtime; any bearer can put work on the box; a new column |
+
+- The read list: each portal service's routes less its writes. The table moves from `apps/portal/src/services.ts` to a new package, `@wren/portal-routes` (top layer). The Worker and the worker read the same table. Rejected: a copy in the worker held by a test (the worker cannot import an app; a copy drifts).
+- The read lane has its own 8 slots, apart from the box lane's 6. A slow site wait in the pool chain never queues a page.
+- It pins to the box build, strict, like the box lane. A superseded slot takes no new reads.
+- The Lambda lane skips the reads. `Lane.routes` and `Lane.exceptRoutes` match `service || '/' || handler`.
+- At start, open read rows pinned to another build move to this build, as box services do.
+- Reads share the services' pool of 6 on the box. Raise it if `rt timing` shows box-read waits.
+- A child call a read makes is its own row and runs on its own lane.
+
+### B: a service's code loads on its first turn (Lambda)
+
+| Option | Measured (local; Lambda at 1 GB is about 3.5× slower) | For | Against |
+|---|---|---|---|
+| **B1. Lazy domains, esbuild code splitting (picked)** | Shared deps alone: 10.3 MB, 320 ms. One domain more: +5 ms. Everything: 29.5 MB, 780 ms | A turn loads deps and its own domain. Module load about 2.8 s → 1.2 s | A service → domain list (a test holds it to the built names); the registry grows per turn |
+| B2. Minify | 16.7 MB, but 1.2 s: slower, as V8 compiles minified code eagerly | Smaller zip | Slower load |
+| B3. More memory (1 GB → 1.77 GB, one full vCPU) | About 1.7× on init and on every turn | One line | Twice the GB-seconds against the free tier: William's call |
+| B4. Provisioned concurrency; SnapStart | — | No cold start | Costs money; SnapStart has no Node runtime |
+
+- Each domain lists its service names. Lambda loads a domain on the first turn for one of its services, then keeps it. The box and local dev load all.
+- The Call form's handler list (`served()`) loads every domain first, on Lambda only.
+- After B1, measured: lazy imports inside `deps.ts` for the big vendors (stripe, imapflow, iconv-lite).
+
 ## VPSs
 
 Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too small for Chromium or a Postgres replica. They stay for work that needs a non-AWS IP with port 25 or a clean search IP: probers, SearXNG. Extra use: a second SearXNG on LA (search fallback when Buffalo is rate-limited), so weaver's search does not wait on the desk's Google.

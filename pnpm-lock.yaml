@@ -338,6 +338,9 @@ importers:
       '@wren/pipeline':
         specifier: workspace:*
         version: link:../../packages/pipeline
+      '@wren/portal-routes':
+        specifier: workspace:*
+        version: link:../../packages/portal-routes
       '@wren/reactivation':
         specifier: workspace:*
         version: link:../../packages/reactivation
@@ -613,6 +616,9 @@ importers:
       '@wren/pipeline':
         specifier: workspace:*
         version: link:../../packages/pipeline
+      '@wren/portal-routes':
+        specifier: workspace:*
+        version: link:../../packages/portal-routes
       '@wren/reactivation':
         specifier: workspace:*
         version: link:../../packages/reactivation
@@ -1391,6 +1397,76 @@ importers:
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/portal-routes:
+    dependencies:
+      '@wren/aerie':
+        specifier: workspace:*
+        version: link:../aerie
+      '@wren/books':
+        specifier: workspace:*
+        version: link:../books
+      '@wren/calendar':
+        specifier: workspace:*
+        version: link:../calendar
+      '@wren/connectors':
+        specifier: workspace:*
+        version: link:../connectors
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../core
+      '@wren/delivery':
+        specifier: workspace:*
+        version: link:../delivery
+      '@wren/documents':
+        specifier: workspace:*
+        version: link:../documents
+      '@wren/folders':
+        specifier: workspace:*
+        version: link:../folders
+      '@wren/paths':
+        specifier: workspace:*
+        version: link:../paths
+      '@wren/payments':
+        specifier: workspace:*
+        version: link:../payments
+      '@wren/pipeline':
+        specifier: workspace:*
+        version: link:../pipeline
+      '@wren/reactivation':
+        specifier: workspace:*
+        version: link:../reactivation
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../research
+      '@wren/sites':
+        specifier: workspace:*
+        version: link:../sites
+      '@wren/starling-email':
+        specifier: workspace:*
+        version: link:../starling/channels/email
+      '@wren/starling-inbound':
+        specifier: workspace:*
+        version: link:../starling/inbound
+      '@wren/starling-sms':
+        specifier: workspace:*
+        version: link:../starling/channels/sms
+      '@wren/variants':
+        specifier: workspace:*
+        version: link:../variants
+      '@wren/voice':
+        specifier: workspace:*
+        version: link:../voice
+      '@wren/watch':
+        specifier: workspace:*
+        version: link:../watch
+    devDependencies:
       typescript:
         specifier: 5.9.3
         version: 5.9.3

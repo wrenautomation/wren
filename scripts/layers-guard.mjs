@@ -16,6 +16,8 @@ const LAYERS = [
   "aerie delivery reactivation starling-inbound starling-outbound variants voice",
   // Reads across products: every product's records as one tree (designs/2026-11-12-explorer.md).
   "paths",
+  // The portal's routes over every product: the Worker serves them, the box runs their reads.
+  "portal-routes",
 ].flatMap((row, layer) => row.split(" ").map((name) => [name, layer]));
 const layerOf = new Map(LAYERS);
 

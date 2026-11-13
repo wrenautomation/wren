@@ -1,0 +1,40 @@
+{
+  "name": "@wren/portal-routes",
+  "description": "The portal's routes: each /api service, its handler names, needs and writes. The portal Worker serves them; the worker runs their reads on the box.",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test:unit": "vitest run src --passWithNoTests",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@wren/aerie": "workspace:*",
+    "@wren/books": "workspace:*",
+    "@wren/calendar": "workspace:*",
+    "@wren/connectors": "workspace:*",
+    "@wren/core": "workspace:*",
+    "@wren/delivery": "workspace:*",
+    "@wren/documents": "workspace:*",
+    "@wren/folders": "workspace:*",
+    "@wren/paths": "workspace:*",
+    "@wren/payments": "workspace:*",
+    "@wren/pipeline": "workspace:*",
+    "@wren/reactivation": "workspace:*",
+    "@wren/research": "workspace:*",
+    "@wren/sites": "workspace:*",
+    "@wren/starling-email": "workspace:*",
+    "@wren/starling-inbound": "workspace:*",
+    "@wren/starling-sms": "workspace:*",
+    "@wren/variants": "workspace:*",
+    "@wren/voice": "workspace:*",
+    "@wren/watch": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

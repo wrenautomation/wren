@@ -1,6 +1,7 @@
 /**
  * The Postgres runtime on the box (designs/2026-11-09-own-runtime.md). Every service runs on it:
  *   box lane     BOX_SERVICES, in this process, pinned to this build
+ *   read lane    the portal's reads (PORTAL_READS), in this process: no Lambda cold start on a page
  *   lambda lane  the rest, one Lambda invoke per turn, pinned to a version ARN
  *   door         the ingress protocol at slot port + 10; Caddy fronts it (box-front-door.sh)
  * Slots (box-slot.ts): the build that started last takes new rows; an older one finishes its own.
@@ -72,6 +73,8 @@ export const RENAMED: Readonly<Record<string, string>> = {
 const PULLED: readonly string[] = ["desk", "claude", "studio", "calls"];
 
 const LEASE_MS = 60_000;
+/** The box's read lane width: portal reads run 12 ms at the median, so 8 rarely queue. */
+const READ_SLOTS = 8;
 const THROTTLE_MS = 2_000;
 /** How often an older slot looks whether a newer build started. */
 const SUPERSEDED_EVERY_MS = 10_000;
@@ -135,6 +138,8 @@ export async function startRt(o: {
   all: AnyService[];
   /** Services this process runs (box lane); the rest go to the Lambda. */
   box: readonly string[];
+  /** `Service/handler` routes this process runs too (the portal's reads); the Lambda skips them. */
+  reads?: readonly string[];
   /** Straight to Postgres: LISTEN needs a session, which PgBouncer's transaction mode drops. */
   databaseUrl: string;
   build: string;
@@ -158,6 +163,11 @@ export async function startRt(o: {
   const names = o.all.map((s) => s.name);
   const onBox = names.filter((s) => o.box.includes(s));
   const onLambda = names.filter((s) => !o.box.includes(s));
+  // a read of a box service already runs in the box lane
+  const reads = (o.reads ?? []).filter((r) => {
+    const s = r.split("/")[0] ?? "";
+    return names.includes(s) && !o.box.includes(s);
+  });
   // rows pinned to a stopped slot (two deploys ago) replay on this build
   if (onBox.length)
     await sql`UPDATE rt.invocations SET build = ${o.build}
@@ -178,6 +188,25 @@ export async function startRt(o: {
         time: timed.of("box"),
       })
     : null;
+  // own slots: a page never queues behind the pool chain's site waits (design doc "Group 5")
+  const readLane = reads.length
+    ? new Dispatcher({
+        sql,
+        concurrency: READ_SLOTS,
+        leaseMs: LEASE_MS,
+        // not strict: a read is one step, so it runs on any build, a row an old slot's Lambda lane
+        // pinned (then lost its lease) included; the Lambda lane skips reads, so none is stranded
+        lane: { routes: reads, build: o.build },
+        run: (c) => runTurn({ sql, registry, leaseMs: LEASE_MS, log }, c),
+        log,
+        time: timed.of("read"),
+      })
+    : null;
+  const lambdaOnly = (build?: string) => ({
+    only: onLambda,
+    exceptRoutes: reads,
+    ...(build ? { build } : {}),
+  });
   // under the worker's reserved concurrency (lambda_max_concurrency, 6)
   const width = Number(process.env.WREN_RT_LAMBDA_CONCURRENCY ?? 5);
   const lambdaLane = onLambda.length
@@ -187,7 +216,7 @@ export async function startRt(o: {
         // rows a caller waits on (portal, webhooks) always keep 2 slots (design doc "Group 4")
         background: Math.max(1, width - 2),
         leaseMs: LEASE_MS,
-        lane: { only: onLambda, ...(arn() ? { build: arn() as string } : {}) },
+        lane: lambdaOnly(arn()),
         run: (c) =>
           remoteTurn(
             sql,
@@ -231,10 +260,10 @@ export async function startRt(o: {
   // a new ARN pins new Lambda rows to it; a stat every 2 s (rows made before it ran on the old one)
   const repin = setInterval(() => {
     const a = arn();
-    if (a) lambdaLane?.setLane({ only: onLambda, build: a });
+    if (a) lambdaLane?.setLane(lambdaOnly(a));
   }, 2_000);
   repin.unref();
-  await Promise.all([boxLane?.start(), lambdaLane?.start()]);
+  await Promise.all([boxLane?.start(), readLane?.start(), lambdaLane?.start()]);
   // own pool: portal calls must not starve the lanes
   const doorSql = o.doorPort ? rtSql(o.databaseUrl, 4, "wren-rt-door", true) : null;
   const door =
@@ -249,7 +278,10 @@ export async function startRt(o: {
         })
       : null;
   await boxStarted(sql, o.build);
-  o.log.info({ onBox, onLambda: onLambda.length, build: o.build, door: door?.url }, "rt ready");
+  o.log.info(
+    { onBox, reads: reads.length, onLambda: onLambda.length, build: o.build, door: door?.url },
+    "rt ready",
+  );
 
   let superseded = false;
   /** A newer slot took over: finish this build's own box rows only. */
@@ -259,6 +291,7 @@ export async function startRt(o: {
     clearInterval(repin);
     clearInterval(watch);
     boxLane?.setLane({ only: onBox, build: o.build, strict: true, fresh: false });
+    readLane?.setLane({ routes: reads, build: o.build, strict: true, fresh: false });
     // Caddy takes the first healthy door: new calls, and the desk's `/rt` pulls, go to the newest
     door?.drain();
     await lambdaLane?.stop();
@@ -282,7 +315,7 @@ export async function startRt(o: {
       timed.stop();
       await door?.close();
       await doorSql?.end({ timeout: 5 });
-      await Promise.all([boxLane?.stop(), lambdaLane?.stop()]);
+      await Promise.all([boxLane?.stop(), readLane?.stop(), lambdaLane?.stop()]);
       await sql.end({ timeout: 5 });
     },
   };

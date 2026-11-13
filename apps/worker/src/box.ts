@@ -1,12 +1,13 @@
 /**
  * The worker on the Postgres box: the whole runtime (`rt.ts`). Same bundle and secrets as
  * `lambda.ts`. The box lane runs `BOX_SERVICES` here (the waiting-heavy chain, the page archive):
- * the wait on sites and mail servers bills nothing and no row crosses the network. Every other
- * turn goes to the Lambda. The door (slot port + 10) takes calls behind Caddy.
+ * the wait on sites and mail servers bills nothing and no row crosses the network. The read lane
+ * runs the portal's reads here, always warm. Every other turn goes to the Lambda. The door (slot port + 10) takes calls behind Caddy.
  */
 
 import { loadSettings } from "@wren/config";
 import { loadSsmEnv, loadSsmFile } from "@wren/config/ssm";
+import { PORTAL_READS } from "@wren/portal-routes";
 import pino from "pino";
 import { boxPort } from "./box-slot.js";
 import { startRt } from "./rt.js";
@@ -42,6 +43,8 @@ let wakes: { close(): Promise<void> } | null = null;
 const rt = await startRt({
   all: built.services,
   box: BOX_SERVICES,
+  // the portal's reads: a page never waits on a Lambda cold start
+  reads: PORTAL_READS,
   databaseUrl,
   build: process.env.WREN_BUILD ?? "dev",
   ...(process.env.WREN_BUILD_LIVE ? { buildLive: process.env.WREN_BUILD_LIVE } : {}),
