@@ -5,13 +5,28 @@
 
 import { Pill, type RowsColumn, type RowsLine, Tag, useNarrow } from "@wren/ui";
 import { groupTasks } from "@wrenautomation/aerie/core";
-import { useState } from "react";
 import { PageRows } from "../../page-rows.js";
 import { dayLabel } from "../work/bits.js";
 import type { TaskRow } from "./data.js";
 import { groupLabel, peopleOf, statusColor, who } from "./look.js";
 
-const SHUT = ["status:Done"];
+/** folds that start shut: Done is most of the board */
+export const SHUT: ReadonlySet<string> = new Set(["status:Done"]);
+const foldKey = (group: string | null, key: string | null) =>
+  group ? `${group}:${key ?? ""}` : "";
+
+/** the ids as the List shows them: group by group, each once, none from a shut fold (↑ ↓ walk it) */
+export function shownOrder(
+  tasks: TaskRow[],
+  group: string | null,
+  folded: ReadonlySet<string>,
+): string[] {
+  const groups = group ? groupTasks(tasks, group) : [{ key: null, tasks }];
+  const ids = groups
+    .filter((g) => !folded.has(foldKey(group, g.key)))
+    .flatMap((g) => g.tasks.map((t) => t.id));
+  return [...new Set(ids)];
+}
 
 function People({ task }: { task: TaskRow }) {
   const people = peopleOf(task);
@@ -78,6 +93,8 @@ export function TaskList({
   hrefOf,
   washed,
   onWashed,
+  folded,
+  onFold,
 }: {
   tasks: TaskRow[];
   /** a `FIELDS` key that groups; none: one run */
@@ -87,19 +104,21 @@ export function TaskList({
   hrefOf: (t: TaskRow) => string;
   washed: ReadonlySet<string>;
   onWashed: () => void;
+  /** shut folds (`group:key`); the page holds them, so ↑ ↓ skip what is shut */
+  folded: ReadonlySet<string>;
+  onFold: (key: string) => void;
 }) {
   const narrow = useNarrow();
   // the group's field shows on its fold; the phone's one column is the next that says most
   const columns = COLUMNS.filter((c) => c.key !== group).map((c, i) =>
     i === 0 ? { ...c, phone: true } : c,
   );
-  const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set(SHUT));
   const lines: RowsLine<TaskRow>[] = [];
   let index = 0;
   const groups = group ? groupTasks(tasks, group) : [{ key: null, tasks }];
   const seen = new Set<string>();
   for (const g of groups) {
-    const at = group ? `${group}:${g.key ?? ""}` : "";
+    const at = foldKey(group, g.key);
     if (group)
       lines.push({
         kind: "group",
@@ -150,19 +169,7 @@ export function TaskList({
       open={{ id: open, onOpen: (t) => onOpen(t) }}
       rowState={(t) => ({ changed: washed.has(t.id) })}
       onSettled={onWashed}
-      group={
-        group
-          ? {
-              folded,
-              toggle: (k) =>
-                setFolded((s) => {
-                  const next = new Set(s);
-                  if (!next.delete(k)) next.add(k);
-                  return next;
-                }),
-            }
-          : undefined
-      }
+      group={group ? { folded, toggle: onFold } : undefined}
     />
   );
 }

@@ -5,14 +5,15 @@
 
 import { Empty, LoadFailed, Loading, useNarrow, useSeen } from "@wren/ui";
 import { compare, matches, type ViewLayout, viewOfAddress } from "@wrenautomation/aerie/core";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ApiError } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { addressOf, GROUP, TASKS, unfiltered, withoutText } from "./address.js";
 import { AerieBar } from "./bar.js";
 import { type TaskRow, useBoard, useRows, useSearch } from "./data.js";
-import { TaskList } from "./list.js";
+import { SHUT, shownOrder, TaskList } from "./list.js";
+import { TaskSheet } from "./task.js";
 
 export { TASKS };
 
@@ -65,9 +66,20 @@ export function TasksPage({ params }: PageProps) {
     return kept.sort(compare(view.sort));
   }, [rows, board.data, view, ranked]);
 
+  const group = ranked ? null : (view.group ?? GROUP);
+  const [folded, setFolded] = useState<ReadonlySet<string>>(SHUT);
+  const fold = (k: string) =>
+    setFolded((s) => {
+      const next = new Set(s);
+      if (!next.delete(k)) next.add(k);
+      return next;
+    });
+  const order = useMemo(() => shownOrder(shown, group, folded), [shown, group, folded]);
+  const taskAt = useCallback((id: string) => href(TASKS, { task: id }, params), [params]);
+
   const err = got.error ?? board.error;
   if (err?.status === 403 && NO_ACTOR.test(err.message)) return <NoActor error={err} />;
-  const at = (t: TaskRow) => href(TASKS, { task: t.id }, params);
+  const at = (t: TaskRow) => taskAt(t.id);
 
   let body: ReactNode;
   if (got.error && !got.data) body = <LoadFailed error={got.error} onRetry={got.retry} />;
@@ -93,12 +105,14 @@ export function TasksPage({ params }: PageProps) {
     body = (
       <TaskList
         tasks={shown}
-        group={ranked ? null : (view.group ?? GROUP)}
+        group={group}
         open={open}
         onOpen={(t) => navigate(at(t))}
         hrefOf={at}
         washed={washed}
         onWashed={() => setWashed(new Set())}
+        folded={folded}
+        onFold={fold}
       />
     );
 
@@ -121,6 +135,17 @@ export function TasksPage({ params }: PageProps) {
         />
       </div>
       {body}
+      {open && (
+        <TaskSheet
+          id={open}
+          rows={rows}
+          board={board}
+          hrefOf={taskAt}
+          order={order}
+          onClose={() => navigate(href(TASKS, { task: null }, params), true)}
+          onWrote={got.retry}
+        />
+      )}
     </div>
   );
 }

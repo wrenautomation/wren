@@ -33,6 +33,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Circle,
   CircleAlert,
   CircleCheck,
   CircleDot,
@@ -76,6 +77,7 @@ import {
   List,
   ListChecks,
   ListPlus,
+  Lock,
   LogOut,
   type LucideIcon,
   Mail,
@@ -264,6 +266,10 @@ const ICONS = {
   tag: Tag,
   gauge: Gauge,
   selected: CircleCheck,
+  /** a check not yet done (an open AC line) */
+  unchecked: Circle,
+  /** shut to this viewer for now */
+  lock: Lock,
   choices: ListChecks,
   lines: AlignLeft,
   quote: Quote,

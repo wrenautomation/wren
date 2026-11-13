@@ -197,7 +197,13 @@ export function Markdown({
     );
   };
   return (
-    <div className={cx("text-[14px] leading-normal wrap-anywhere", className)}>
+    <div
+      // its first and last blocks keep no outer margin: the section's gap sets the space
+      className={cx(
+        "text-[14px] leading-normal wrap-anywhere [&>:first-child]:mt-0 [&>:last-child]:mb-0",
+        className,
+      )}
+    >
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ ...MD, a }}>
         {citeLinks(text)}
       </ReactMarkdown>

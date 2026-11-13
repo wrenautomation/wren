@@ -50,3 +50,13 @@ export const useSearch = (text: string | undefined) =>
   useCall<string[]>(text ? `aerie/search:${text}` : null, () => aerieCall("search", { text }), {
     kept: false,
   });
+
+/** a task whole and its events (oldest first); live, so a write elsewhere shows in the open panel */
+export type TaskWhole = AerieAnswer<"task">;
+export const useTask = (id: string) =>
+  useCall<TaskWhole>(`aerie/task:${id}`, () => aerieCall("task", { id }), { live: LIVE });
+
+/** the panel's picks; `expect` is the version read, a newer one refuses with 409 */
+export type TaskPick = { status?: string; priority?: string | null };
+export const editTask = (id: string, expect: number, edit: TaskPick) =>
+  aerieCall("edit", { id, expect, edit });

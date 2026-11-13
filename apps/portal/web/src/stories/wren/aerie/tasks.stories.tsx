@@ -2,6 +2,7 @@
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { refuse } from "../../../mocks/api.js";
+import { manyTasks, wholeOf } from "../../../mocks/data/aerie.js";
 import { ADMIN } from "../../../mocks/data/me.js";
 import { pageAt, storyHref, tidy } from "../../../mocks/page.js";
 
@@ -177,3 +178,36 @@ export const BoardFailed = pageAt("/aerie/tasks", {
     await expect(view.queryByRole("link", { name: /^Site work/ })).toBeNull();
   },
 });
+
+/** 800 tasks, prod's size: the List draws them grouped (the speed check opens Done too). */
+const MANY = manyTasks(800);
+
+/** Scrolls what scrolls the rows to its end: the shell's panel on a wide screen, else the window. */
+function scrollToEnd(page: HTMLElement) {
+  for (let e = page.querySelector("[data-index]")?.parentElement; e; e = e.parentElement)
+    if (e.scrollHeight > e.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(e).overflowY)) {
+      e.scrollTop = e.scrollHeight;
+      return;
+    }
+  window.scrollTo(0, document.documentElement.scrollHeight);
+}
+
+export const ManyTasks = tidy(
+  pageAt("/aerie/tasks", {
+    me: ADMIN,
+    answers: {
+      "aerie/tasks": (b: Record<string, unknown>) =>
+        (b.filter as { updatedAfter?: string } | undefined)?.updatedAfter ? [] : MANY,
+      "aerie/task": (b: Record<string, unknown>) => wholeOf(String(b.id), MANY),
+    },
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByText("Piece of work number 1", {}, WAIT)).toBeVisible();
+      // the rows past the first screen draw as the page scrolls (was: a wide screen drew none)
+      await waitFor(() => {
+        scrollToEnd(page);
+        expect(view.getByRole("button", { name: /^Done/ })).toBeInTheDocument();
+      }, WAIT);
+    },
+  }),
+);
