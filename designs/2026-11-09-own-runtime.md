@@ -270,7 +270,23 @@ Measured on prod 11-12 and 11-13. Lambda cold init: p50 3.9 s, p90 4.1 s, on 153
 - A miss loads every domain: an old box sends no domain, or a service moved to another domain.
 - The Call form's handler list (`served()`) loads every domain first.
 - `bound` (does this worker serve a service?) answers yes on Lambda until every domain is loaded, as viewAsApi's default does. A service gated off by settings then reads as served; prod sets every gate.
-- Split build, measured (local): the static load is 19.2 MB in 570 ms, not 10.3 MB. `deps.ts` holds the rest: the EC2 client (2.3 MB, `core/autobrowse/box.ts`), stripe, imapflow, iconv-lite. The Restate SDK (2.3 MB) stays: the executor needs it. Next: import those vendors on first use.
+- Split build, measured (local): the static load is 19.2 MB in 570 ms, not 10.3 MB. `deps.ts` holds the rest: the EC2 client (2.3 MB, `core/autobrowse/box.ts`), stripe, imapflow, iconv-lite. The Restate SDK (2.3 MB) stays: the executor needs it.
+- The EC2 SDK now loads on the first box wake (ae8c5deac): local static load 570 → 445 ms.
+- Prod after B (11-13, a few cold starts at night): Init 2.6–3.0 s (was 2.9–4.1 s), service build 0.38–0.42 s (was 0.74–1.06 s). First-turn domain load: email 135 ms, content 479 ms. Module load is still about 2.2 s.
+- Since A went live, every turn a person waited on ran on the box (25 of 25, 08:42–09:30Z). A Lambda cold start now hits loops and the rare portal write.
+
+### Not built: the rest of module load
+
+V8 compile (`compileSourceTextModule`) is 230 of the 445 ms local static load. Bytes drive it.
+
+| Option | Saves (local → Lambda, about 5×) | Against |
+|---|---|---|
+| C1. Node compile cache, made on Lambda at deploy, fetched from S3 at init | 550 → 310 ms local (−42%, read-only folder works); about 0.9 s on Lambda, less a 7–13 MB S3 fetch | The cache folder is keyed by Node version, arch, a V8 hash and the uid (`v25.2.1-arm64-392347a2-502`): only Lambda can make it. An AWS runtime update misses until the next deploy. A new deploy step and an S3 read on the init path |
+| C2. Same cache, built in CI in the Lambda arm64 image, runtime pinned (Manual updates) | Same, no S3 read | Pinned runtime means patches by hand; image digest to runtime version is not published |
+| C3. Vendors on first use: stripe (0.67 MB), imapflow + iconv-lite + encoding-japanese (1.3 MB), nodemailer | About 60 ms local, 0.3 s on Lambda | imapflow and nodemailer load in `@wrenautomation/autobrowse` (`mail/session.js`, `google/gmail.js`): a change and a publish there; stripe's sync webhook check turns async |
+| C4. `deps.ts` built per domain | The most: a turn loads only its domain's vendors | `deps.ts` is 900 lines of shared closures used across domains: a large refactor |
+
+None is built: no person waits on Lambda's cold start after A. Build C1 when portal writes on Lambda show a slow p90 that William wants cut.
 
 ## VPSs
 
@@ -337,3 +353,4 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 - 2026-11-09: Restate leftovers deleted on William's yes ("sure. go for it"): SSM `/wren/prod/restate` and `/wren/prod/cache`, `rt.pg_services` (V9), the box's Restate data dir, its watch file, the Redis dir, the stopped Restate/Redis containers and images, and the S3 `restate/` backups (9 GB). Caddy health checks use `/health`. Autobrowse traces and autotrack were never in Restate.
 - 2026-11-13: Group 5 A live (14970d397): the box's read lane serves 170 portal reads. A read through the door costs about 30 ms on the server (a refused call's 232 ms round trip subtracted), against a warm Lambda turn of 300 ms and a cold one of 4.9 s.
 - 2026-11-13: Group 5 B: the box names each turn's domain, not a name list per domain (it drifts; gated services make it a superset). A miss loads every domain.
+- 2026-11-13: Group 5 B live (45a465711, 1b6dba387) and the EC2 SDK lazy (ae8c5deac). Cold init 2.6–3.0 s (was p50 3.9 s); service build 0.4 s (was 1.0 s). The compile cache (C1, about 0.9 s more) is not built: since A, no waited turn runs on Lambda.
