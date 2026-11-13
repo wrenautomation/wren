@@ -37,7 +37,7 @@
     "@wren/runtime": "workspace:*",
     "@wren/starling-core": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
-    "@wrenautomation/read": "0.76.0",
+    "@wrenautomation/read": "0.76.1",
     "drizzle-orm": "0.45.2",
     "imapflow": "2.2.4",
     "libmime": "5.4.7",
