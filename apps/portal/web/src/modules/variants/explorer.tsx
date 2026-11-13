@@ -1,13 +1,18 @@
 /**
  * Vireo in Explorer (designs/2026-11-12-explorer.md): the preview of a subject, a batch, a sample
- * and a guide. Read only: marking stays in Batches. An open batch comes blind from the server, so
- * nothing here can show what Vireo hides.
+ * and a guide; a subject opens whole here (WA-1373). Marking stays in Batches. An open batch comes
+ * blind from the server, so nothing here can show what Vireo hides.
  */
 import { segments, type Whole } from "@wren/core/paths";
 import type { VireoGuide, VireoSample } from "@wren/paths/vireo-tree";
-import { Img, num, Tag, type TagTone, Video } from "@wren/ui";
+import { AskAgent, Empty, Img, LoadFailed, Loading, num, Tag, type TagTone, Video } from "@wren/ui";
+import type { ReactNode } from "react";
+import { call } from "../../api.js";
+import { useCall } from "../../load.js";
 import { href } from "../../route.js";
+import { wholeHref } from "../explorer/href.js";
 import { LivePage } from "./live-page.js";
+import { SubjectDetail } from "./page.js";
 
 /** Vireo's row marks: an open batch, a kept sample, a guide's state, a subject not open. */
 export const VIREO_MARKS: Record<string, { label: string; tone?: TagTone }> = {
@@ -24,8 +29,10 @@ export const VIREO_MARKS: Record<string, { label: string; tone?: TagTone }> = {
 export const vireoFills = (route: string) =>
   route === "vireo/subjects" ? (
     <>
-      An agent starts one with <code>wren variants new</code>; it shows in{" "}
-      <a href="/variants/subjects">Subjects</a>.
+      An agent starts one with <code>wren variants new</code>; it shows here.
+      <span className="mt-2 flex">
+        <AskAgent setup="vireo" ask="Start variants for " />
+      </span>
     </>
   ) : route === "vireo/guides" ? (
     <>
@@ -74,7 +81,35 @@ function SampleMedia({ s, kind }: { s: VireoSample; kind: string }) {
   return s.body ? <Text text={s.body} /> : null;
 }
 
-export function VireoPreview({ w }: { w: Whole }) {
+/** One subject whole by its slug, as Explorer opens it; `back` returns to the tree. */
+export function SubjectWhole({
+  slug,
+  params,
+  onBack,
+}: {
+  slug: string;
+  params: URLSearchParams;
+  onBack: () => void;
+}) {
+  const got = useCall("variants-subjects", () =>
+    call<{ id: number; slug: string }[]>("variants/subjects", {}),
+  );
+  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
+  if (!got.data) return <Loading shape="rows" lines={4} />;
+  const s = got.data.find((x) => x.slug === slug);
+  if (!s) return <Empty title="No such subject">Vireo has no subject {slug}.</Empty>;
+  return <SubjectDetail id={s.id} params={params} onBack={onBack} back="Explorer" />;
+}
+
+/** The Open link and the item's ⋯ (its folder), on one line. */
+const OpenLine = ({ to, label, file }: { to: string; label: string; file?: ReactNode }) => (
+  <span className="flex items-center gap-2">
+    <a href={to}>{label}</a>
+    {file}
+  </span>
+);
+
+export function VireoPreview({ w, file }: { w: Whole; file?: ReactNode }) {
   const [, area, slug, layer, , sample] = segments(w.path);
   if (area === "guides" && w.data) {
     // the header holds its text, source and scope; the samples that apply it are its links
@@ -97,9 +132,7 @@ export function VireoPreview({ w }: { w: Whole }) {
             `${num(d.guides)} ${d.guides === 1 ? "guide" : "guides"} under test`,
           ]}
         />
-        <a href={href("/variants/subjects", { subject: d.subject.id })} className="self-start">
-          Open in Subjects
-        </a>
+        <OpenLine to={wholeHref(w.path)} label="Open its tree" file={file} />
       </div>
     );
   }

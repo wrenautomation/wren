@@ -15,7 +15,9 @@ describe("a run as its chat card", () => {
     const card = runCard(RESEARCH_VIEW, row);
     expect(card.run?.t).toBe(row?.ask);
     expect(card.run?.funnel.read).toBe(RESEARCH_VIEW.documents.length);
-    expect(card.href).toBe(`/research/runs?run=${RESEARCH_VIEW.run}`);
+    expect(card.href).toBe(
+      `/explorer/weaver?at=${encodeURIComponent(`weaver/${RESEARCH_VIEW.run}`)}&whole=1`,
+    );
   });
 
   it("a run of one page and no search is that page; any other run is a graph", () => {

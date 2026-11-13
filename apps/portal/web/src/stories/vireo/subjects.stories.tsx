@@ -1,51 +1,21 @@
-/** Vireo (Variants) › Subjects: the list in folders, and each one's generation tree. Fake server: `web/src/mocks/`. */
+/** Vireo › a subject's generation tree, opened whole in Explorer (`?whole=1`, WA-1373). Folders: `wren/explorer/folders.stories.tsx`. Fake server: `web/src/mocks/`. */
 import type { Meta } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { freshStory } from "../../mocks/api.js";
-import { resetFolders } from "../../mocks/data/folders.js";
 import { ADMIN } from "../../mocks/data/me.js";
 import { pageAt, storyHref } from "../../mocks/page.js";
+import { wholeHref } from "../../modules/explorer/href.js";
 
 const meta: Meta = { title: "Vireo/Subjects" };
 export default meta;
 
-/** The list: folders first (Bakeries holds Buyers), then the subjects in no folder. */
-export const Default = {
-  ...pageAt("/variants/subjects", {
-    me: ADMIN,
-    check: async (page) => {
-      const c = within(page);
-      await c.findByRole("button", { name: /^Bakeries/ }, { timeout: 8000 });
-      await expect(c.getByRole("heading", { name: "No folder" })).toBeTruthy();
-      await expect(c.getByText(/^Promo cut, 30s/)).toBeTruthy();
-    },
-  }),
-  beforeEach: () => {
-    resetFolders();
-    freshStory();
-  },
-};
+// mocks/data/variants.ts: subject 3, subject 4
+const HERO = "vireo/subjects/hero-background";
+const PORTFOLIO = "vireo/subjects/portfolio-hero";
+const ONE = { me: ADMIN, empty: false } as const;
 
-/** A folder opened: its subjects show in it, with the left rule. */
-export const FolderOpen = {
-  ...pageAt("/variants/subjects", {
-    me: ADMIN,
-    check: async (page) => {
-      const c = within(page);
-      await userEvent.click(await c.findByRole("button", { name: /^Bakeries/ }, { timeout: 8000 }));
-      await c.findByText(/^Opener email, small bakeries/);
-    },
-  }),
-  beforeEach: () => {
-    resetFolders();
-    freshStory();
-  },
-};
-
-/** A subject's generation tree: four rounds, one open (blind). A batch's name opens the batch. */
-export const Tree = pageAt("/variants/subjects?subject=3", {
-  me: ADMIN,
-  empty: false,
+/** Four rounds, one open (blind). A batch's name opens the batch. */
+export const Tree = pageAt(wholeHref(HERO), {
+  ...ONE,
   check: async (page) => {
     const [first] = await within(page).findAllByRole(
       "link",
@@ -61,31 +31,23 @@ export const Tree = pageAt("/variants/subjects?subject=3", {
 });
 
 /** The subject has not come back: a ghost in the tree's shape. */
-export const TreeLoading = pageAt("/variants/subjects?subject=3", {
-  me: ADMIN,
-  empty: false,
+export const TreeLoading = pageAt(wholeHref(HERO), {
+  ...ONE,
   answers: { "variants/subject": null },
 });
 
 /** Notes only, no calls: grew and unmarked carry the tree (prod's shape). */
-export const TreeNotes = pageAt("/variants/subjects?subject=4", { me: ADMIN, empty: false });
+export const TreeNotes = pageAt(wholeHref(PORTFOLIO), ONE);
 
 /** One sample's line only (`branch=`): its parents up to the brief and all it grew. */
-export const TreeBranch = pageAt("/variants/subjects?subject=3&branch=14", {
-  me: ADMIN,
-  empty: false,
-});
+export const TreeBranch = pageAt(wholeHref(HERO, { branch: "14" }), ONE);
 
 /** A folded sample (`fold=`): what grew only from it goes to "+N". */
-export const TreeFold = pageAt("/variants/subjects?subject=4&fold=109", {
-  me: ADMIN,
-  empty: false,
-});
+export const TreeFold = pageAt(wholeHref(PORTFOLIO, { fold: "109" }), ONE);
 
 /** A click on a sample opens it in place, beside its card (a sheet on a phone); Esc closes it. */
-export const TreeOpen = pageAt("/variants/subjects?subject=3", {
-  me: ADMIN,
-  empty: false,
+export const TreeOpen = pageAt(wholeHref(HERO), {
+  ...ONE,
   check: async (page) => {
     const nodes = await within(page).findAllByRole(
       "button",

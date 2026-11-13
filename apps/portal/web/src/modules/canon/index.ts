@@ -5,7 +5,6 @@
 import type { Module } from "../../module.js";
 import { LibraryPage } from "./library.js";
 import { OutliersPage } from "./outliers.js";
-import { ReferencesPage } from "./references.js";
 import { TopicPage } from "./topic.js";
 
 export const canon: Module = {
@@ -19,15 +18,9 @@ export const canon: Module = {
     {
       id: "library",
       label: "Library",
-      about: "Every record of every type: sources, findings, patterns, verdicts, rules, guides.",
+      about:
+        "Every record of every type: sources, findings, patterns, verdicts, rules, guides. Add a link here.",
       Page: LibraryPage,
-      wide: true,
-    },
-    {
-      id: "references",
-      label: "References",
-      about: "Every reel and video in Canon, newest saved first. Open one to play it.",
-      Page: ReferencesPage,
       wide: true,
     },
     {

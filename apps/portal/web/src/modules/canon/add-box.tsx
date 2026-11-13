@@ -1,5 +1,5 @@
 /**
- * The Add box on Canon › References (designs/2026-11-12-canon-references.md D4): a link or a
+ * The Add box on Canon › Library (designs/2026-11-12-canon-references.md D4): a link or a
  * picture or PDF, plus his note, whole. The ask waits in a queue; `wren source drain` files it.
  * A row says Filing… until then, Filed with a link after, or why it failed with Retry.
  */

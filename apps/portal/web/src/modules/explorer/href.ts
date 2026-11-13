@@ -14,3 +14,9 @@ export const explorerHref = (route: string, view: ExplorerView = "columns") => {
     view: view === "columns" ? null : view,
   });
 };
+
+/** A route opened whole (`?whole=1`): the item's own view fills the page, the columns step aside. */
+export const wholeHref = (route: string, extra: Record<string, string | null> = {}) => {
+  const root = rootOf(route);
+  return href(`/explorer/${root}`, { at: route === root ? null : route, whole: "1", ...extra });
+};

@@ -8,6 +8,7 @@ import { DetailSheet, Empty, Icon, LoadFailed, Loading, Tag, useSeen } from "@wr
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { href, navigate } from "../../route.js";
+import { explorerHref } from "../explorer/href.js";
 import { dayLabel } from "../work/bits.js";
 import {
   Markdown,
@@ -116,7 +117,7 @@ export function RecordBody({
             </a>
           )}
           {r.type === "source" && kind && VIDEO_KINDS.has(kind) && (
-            <a href={href("/canon/references", { r: r.id })}>Play in References</a>
+            <a href={explorerHref(`canon/references/${r.id}`)}>Play in Explorer</a>
           )}
           <a
             href={r.github}

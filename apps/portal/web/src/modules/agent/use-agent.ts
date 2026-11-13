@@ -14,7 +14,6 @@ import {
 } from "@wren/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { socketToken } from "../../api.js";
-import { here, href, navigate } from "../../route.js";
 import {
   type FreshMeter,
   openSetup,
@@ -37,8 +36,6 @@ import {
   said,
   type ThreadState,
 } from "./thread.js";
-
-const RUNS = "/research/runs";
 
 /** The page's sign-in token; a local run has none and the dev Worker answers for "dev". */
 export const pageToken = async () => (await socketToken()) ?? "dev";
@@ -239,25 +236,11 @@ export function useAgent(o: {
 
   useEffect(() => close, [close]);
 
-  // the chat's weaver runs feed Research › Live; a run new to this chat brings Research there
-  const named = useRef<{ session: string | undefined; runs: readonly string[] }>({
-    session: undefined,
-    runs: [],
-  });
+  // the chat's weaver runs feed Research › Runs (Live only since WA-1373)
   useEffect(() => {
-    const runs = runsNamed(s.messages);
-    const was = named.current;
-    named.current = { session: s.session, runs };
-    setChatRuns(runs);
+    setChatRuns(runsNamed(s.messages));
     setChatToolsDone(toolsDoneIn(s.messages));
-    const fresh = was.session === s.session && runs.some((r) => !was.runs.includes(r));
-    // a new run in the chat: the Runs page's right side goes back to Live
-    // the router's address: a page story's memory history too
-    const [path = "", search = ""] = here().split("?");
-    const q = new URLSearchParams(search);
-    if (fresh && path === RUNS && (q.has("run") || q.has("view")))
-      navigate(href(RUNS, { run: null, view: null, tab: null, open: null }, q), true);
-  }, [s.messages, s.session]);
+  }, [s.messages]);
 
   // the model picked mid-chat goes to the live session at once
   useEffect(() => {

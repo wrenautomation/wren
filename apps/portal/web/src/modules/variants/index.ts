@@ -4,7 +4,7 @@
  */
 import type { Module } from "../../module.js";
 import { BatchesPage } from "./batches.js";
-import { openBatches, SubjectsPage } from "./page.js";
+import { openBatches } from "./page.js";
 
 export const variants: Module = {
   id: "variants",
@@ -22,14 +22,6 @@ export const variants: Module = {
       Page: BatchesPage,
       wide: true,
       badge: (_client, team) => (team ? openBatches() : Promise.resolve(0)),
-    },
-    {
-      id: "subjects",
-      label: "Subjects",
-      about:
-        "Each subject's tree of batches, its live numbers and the tips under test, in folders.",
-      Page: SubjectsPage,
-      wide: true,
     },
   ],
 };

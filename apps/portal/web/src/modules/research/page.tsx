@@ -1,6 +1,6 @@
 /**
- * Research › Runs, History (designs/2026-11-05-research-web.md, 11-08, 11-10): every weaver run
- * as a list, in folders (designs/2026-11-08-folders.md, kind "run").
+ * A weaver run whole (designs/2026-11-05-research-web.md, 11-08, 11-10), opened from Explorer ›
+ * Weaver (WA-1373); the list and its folders are Explorer's now.
  * One run opens full width as its graph (round 13: claims, sources, searches, dropped hits) and
  * the back and forth (every decision with its why and who made it). Picked runs, or all of them,
  * open on one graph. Read only: the agent and the CLI write. Live: serve sends an event per change.
@@ -30,7 +30,7 @@ import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { PlayerSlot } from "../../player/index.js";
-import { href, navigate } from "../../route.js";
+import { href, navigate, useRoute } from "../../route.js";
 import { usePageRuns } from "../agent/drive.js";
 import { QUIET } from "../work/bits.js";
 import { RowsPanel } from "../work/rows-panel.js";
@@ -98,166 +98,28 @@ function runsIn(open: string, rows: readonly RunRow[]): string[] {
     .map((r) => r.run);
 }
 
-export function RunHistory({
+/**
+ * Runs opened whole in Explorer › Weaver (WA-1373): `open` names one run, several (comma
+ * separated), or `all`. `back` returns to the tree.
+ */
+export function RunWhole({
+  open,
   params,
-  team,
-  here,
-}: Pick<PageProps, "params" | "team"> & { here: string }) {
-  const runs = useCall("research:runs", runsOf, { kept: false });
-  const filed = useFolders("run", team);
-  const rows = runs.data ?? [];
-  const open = params.get("run");
-  const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
-  const pick = useRowsPick(
-    rows.map((r) => r.run),
-    picked,
-    (next) => setPicked(next),
-  );
-  useLive(() => runs.retry());
-  const askOf = useMemo(() => new Map(rows.map((r) => [r.run, r.ask])), [rows]);
-  if (runs.error && !runs.data) return <NoServe error={runs.error} onRetry={runs.retry} />;
-  if (open && (open !== "all" || runs.data))
-    return <Opened key={open} open={open} rows={rows} params={params} here={here} />;
-  if (!runs.data) return <Loading shape="rows" lines={5} />;
-  if (!rows.length)
-    return (
-      <Empty action={<AskAgent setup="weaver" ask="Research: " />}>
-        Each question weaver researches is a run. Ask one and it lists here.
-      </Empty>
-    );
-  const openRuns = (run: string) => navigate(href(here, { run, open: null }, params));
-  const folders = filed.folders;
-  const row = (r: RunRow) => (
-    <RunItem
-      r={r}
-      from={r.parent ? (askOf.get(r.parent) ?? r.parent) : null}
-      to={href(here, { run: r.run, open: null }, params)}
-      picked={pick.picked(r.run)}
-      anyPicked={picked.size > 0}
-      onPick={(range) => pick.toggle(r.run, range)}
-      folders={folders}
-      filed={filed}
-    />
-  );
-  const loose = folders ? rows.filter((r) => filed.folderOf(r.run) == null) : rows;
-  return (
-    <div className="grid min-w-0 gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="dense" tone="secondary" onClick={() => openRuns("all")}>
-          All runs on one graph
-        </Button>
-        {picked.size > 1 ? (
-          <Button
-            size="dense"
-            onClick={() => openRuns(runsIn([...picked].join(","), rows).join(","))}
-          >
-            Open {picked.size} runs together
-          </Button>
-        ) : null}
-        <span className={cx("text-[12.5px]", QUIET)}>
-          {picked.size ? `${picked.size} picked` : "Pick runs to draw them on one graph."}
-        </span>
-      </div>
-      <div className="grid max-w-[860px] min-w-0 gap-5">
-        {folders ? (
-          <FolderTree
-            id="runs"
-            folders={folders}
-            items={rows}
-            keyOf={(r) => r.run}
-            folderOf={(r) => filed.folderOf(r.run)}
-            renderItem={row}
-            acts={filed.acts}
-            noun={(n) => (n === 1 ? "run" : "runs")}
-          />
-        ) : null}
-        <UnfiledDrop acts={filed.acts} className="grid gap-px">
-          {folders?.length && loose.length ? (
-            <h3 className="m-0 px-2.5 pb-1 text-[12px] font-medium text-(--ui-ink-3)">No folder</h3>
-          ) : null}
-          <ul className="m-0 grid list-none gap-px p-0">
-            {loose.map((r) => (
-              <li key={r.run} {...(folders ? dragItem(r.run) : {})}>
-                {row(r)}
-              </li>
-            ))}
-          </ul>
-        </UnfiledDrop>
-      </div>
-    </div>
-  );
-}
-
-/** One run: pick box, its ask (opens it), where it came from, its counts and state; ⋯ files it. */
-function RunItem({
-  r,
-  from,
-  to,
-  picked,
-  anyPicked,
-  onPick,
-  folders,
-  filed,
+  back,
 }: {
-  r: RunRow;
-  from: string | null;
-  to: string;
-  picked: boolean;
-  anyPicked: boolean;
-  onPick: (range: boolean) => void;
-  folders: readonly FolderNode[] | null;
-  filed: ReturnType<typeof useFolders>;
+  open: string;
+  params: URLSearchParams;
+  back: ReactNode;
 }) {
-  const ask = r.ask || r.run;
+  const here = `/${useRoute().path.join("/")}`;
+  const runs = useCall("research:runs", runsOf, { kept: false });
+  useLive(() => runs.retry());
+  if (runs.error && !runs.data) return <NoServe error={runs.error} onRetry={runs.retry} />;
+  if (open === "all" && !runs.data) return <Loading shape="rows" lines={5} />;
   return (
-    <div className="group/run flex items-center gap-2.5 rounded-[8px] py-2 pr-1 pl-2.5 transition-[background-color] duration-150 hover:bg-(--ui-fill)">
-      <input
-        type="checkbox"
-        aria-label={`Pick ${ask}`}
-        checked={picked}
-        onChange={() => {}}
-        onClick={(e) => onPick(e.shiftKey)}
-        className={cx(
-          // gutter box, as the rows part: hover, focus or any pick shows it; touch always
-          "mt-[3px] flex-none self-start transition-opacity duration-150 focus-visible:opacity-100 pointer-coarse:opacity-100",
-          anyPicked
-            ? "opacity-100"
-            : "opacity-0 group-hover/run:opacity-100 group-focus-within/run:opacity-100",
-        )}
-      />
-      <a href={to} className="min-w-0 flex-1 no-underline focus-visible:outline-offset-2">
-        <span className="block text-[13.5px]/[1.4] font-medium wrap-anywhere text-(--ui-ink)">
-          {ask}
-        </span>
-        {from ? (
-          <span className="block text-[12px] wrap-anywhere text-(--ui-ink-3)">From: {from}</span>
-        ) : null}
-        <span className="block text-[12px] text-(--ui-ink-3) tabular-nums">
-          Round {r.round} · {plural(r.hits, "hit")} · {r.kept} kept · {usd(r.usd)}
-          {r.updated ? ` · ${relative(new Date(r.updated))}` : ""}
-        </span>
-      </a>
-      <span className="flex-none text-[12.5px]">
-        <StateMark state={stateOf(r)} />
-      </span>
-      {folders ? (
-        <FolderMoveMenu
-          title={ask}
-          folders={folders}
-          current={filed.folderOf(r.run)}
-          acts={filed.acts}
-          itemKey={r.run}
-          className="opacity-0 group-hover/run:opacity-100 group-focus-within/run:opacity-100 data-[popup-open]:opacity-100 pointer-coarse:opacity-100"
-        />
-      ) : null}
-    </div>
+    <Opened key={open} open={open} rows={runs.data ?? []} params={params} here={here} back={back} />
   );
 }
-
-export const stateOf = (r: RunRow) =>
-  r.next
-    ? { label: r.next.step, tone: "good" as const }
-    : { label: "Stopped", tone: "neutral" as const };
 
 /** One run, or several on one graph. */
 function Opened({
@@ -275,15 +137,6 @@ function Opened({
   // Back and forth draws no graph
   usePageRuns(params.get("tab") === "talk" ? undefined : ids);
   const go = (p: Record<string, string | null>) => navigate(href(here, p, params), true);
-  const back = (
-    <a
-      href={href(here, { run: null, tab: null, open: null }, params)}
-      className="inline-flex items-center gap-1 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
-    >
-      <Icon name="back" size={14} />
-      All runs
-    </a>
-  );
   const [one] = ids;
   if (ids.length === 1 && one)
     return (
@@ -297,7 +150,7 @@ function Opened({
     );
   return (
     <div className="grid min-w-0 gap-4">
-      {back}
+      <div className="justify-self-start">{back}</div>
       <RunsCanvas
         runs={ids}
         rows={rows}

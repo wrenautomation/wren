@@ -1,15 +1,14 @@
-/** Weaver in the portal, Research › Runs: the chat, Live, History, one run's graph and back and forth, runs together. Fake server: `web/src/mocks/`. */
+/** Weaver in the portal: Research › Runs (the chat, Live), and a run opened whole in Explorer › Weaver (its graph, back and forth, runs together). Fake server: `web/src/mocks/`. */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { RequestHandler, WebSocketHandler } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { freshStory } from "../../mocks/api.js";
 import COMMANDS from "../../mocks/data/agent/commands.json";
 import SETUPS from "../../mocks/data/agent/setups.json";
-import { resetFolders } from "../../mocks/data/folders.js";
 import { ADMIN } from "../../mocks/data/me.js";
 import { pageAt, tidy } from "../../mocks/page.js";
 import { fakeRelay, type TapeLine } from "../../mocks/relay.js";
 import { REFUSED, SERVED } from "../../mocks/weaver-serve.js";
+import { wholeHref } from "../../modules/explorer/href.js";
 
 const meta: Meta = { title: "Weaver/Research" };
 export default meta;
@@ -33,35 +32,11 @@ const story = (
   };
 };
 
-const folderStory = (check: (page: HTMLElement) => Promise<void>): StoryObj => ({
-  ...story("/research/runs?view=history", check),
-  beforeEach: () => {
-    resetFolders();
-    freshStory();
-  },
-});
-
-/** The runs as a list: folders first (Bakeries holds a run), then the runs in no folder. */
-export const History = folderStory(async (page) => {
-  const p = within(page);
-  await p.findByRole("button", { name: /^Bakeries/ }, LATE);
-  await expect(p.getByRole("heading", { name: "No folder" })).toBeTruthy();
-  await p.findByRole("link", { name: /How do small bakeries find wholesale buyers/ });
-});
-
-/** A folder opened: its run shows in it, with where it came from and its numbers. */
-export const HistoryFolderOpen = folderStory(async (page) => {
-  const p = within(page);
-  await userEvent.click(await p.findByRole("button", { name: /^Bakeries/ }, LATE));
-  await p.findByRole("link", { name: /Which cafes buy pastries/ });
-  await p.findByText(/From: How do small bakeries/);
-});
-
-/** One run opens full width as its graph: the claims web, the shelf, the summary. */
+/** One run opens whole in Explorer as its graph: the claims web, the shelf, the summary. */
 export const Graph = tidy(
-  story("/research/runs?run=r1", async (page) => {
+  story(wholeHref("weaver/r1"), async (page) => {
     const p = within(page);
-    await p.findByRole("link", { name: "All runs" });
+    await p.findByRole("button", { name: "Explorer" }, LATE);
     await waitFor(() => expect(page.querySelector(".rg .rg-nodes [data-n]")).not.toBeNull(), LATE);
     // the list opens on Searches
     await p.findAllByText(/^bakery wholesale accounts first buyer/, {}, LATE);
@@ -69,7 +44,7 @@ export const Graph = tidy(
 );
 
 /** Every decision in order, with its why and who made it; a human's steer among them. */
-export const BackAndForth = story("/research/runs?run=r1&tab=talk", async (page) => {
+export const BackAndForth = story(wholeHref("weaver/r1", { tab: "talk" }), async (page) => {
   const p = within(page);
   await p.findByText("a vendor page");
   await p.findByText("numbers only; skip vendor pages");
@@ -78,7 +53,7 @@ export const BackAndForth = story("/research/runs?run=r1&tab=talk", async (page)
 
 /** serve is not running: the page says how to start it, never an empty list. */
 export const NoServe = story(
-  "/research/runs?view=history",
+  wholeHref("weaver/r1"),
   async (page) => {
     await within(page).findByText("Can't reach weaver serve");
   },
@@ -87,9 +62,9 @@ export const NoServe = story(
 
 /** Picked runs, or all of them, on one graph: a source both read is one node. */
 export const AllRuns = tidy(
-  story("/research/runs?run=all", async (page) => {
+  story(wholeHref("weaver"), async (page) => {
     const p = within(page);
-    await p.findByRole("link", { name: "All runs" });
+    await p.findByRole("button", { name: "Explorer" }, LATE);
     await waitFor(() => expect(page.querySelector(".rg .rg-nodes [data-n]")).not.toBeNull(), LATE);
     await p.findAllByText("All runs", {}, LATE);
   }),

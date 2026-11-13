@@ -21,6 +21,7 @@ import { useContext, useMemo, useRef } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { href, navigate } from "../../route.js";
+import { wholeHref } from "../explorer/href.js";
 import { countsOf, Tally, type Whole } from "./batches.js";
 import { pct } from "./marks.js";
 import type { SubjectView } from "./page.js";
@@ -192,7 +193,7 @@ export function SubjectCard({ v, onAsk }: { v: SubjectView; onAsk?: OnAsk }) {
   const s = v.subject;
   const waits = v.batches.find((b) => b.state === "open");
   const kept = v.batches.reduce((n, b) => n + b.samples.filter((x) => x.keptAt).length, 0);
-  const page = href("/variants/subjects", { subject: s.id });
+  const page = wholeHref(`vireo/subjects/${s.slug}`);
   return (
     <ProductCard
       product="Vireo"

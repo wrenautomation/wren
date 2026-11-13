@@ -822,21 +822,9 @@ function AppCrumb({
           </b>
         ) : null}
       </nav>
-      {app.action || pins || (display && paged && !display.display.sideShut) ? (
+      {app.action || pins ? (
         <div className="ml-auto flex flex-none items-center gap-1.5">
           {app.action}
-          {display && paged && !display.display.sideShut ? (
-            <button
-              type="button"
-              className={ICON_BUTTON}
-              aria-pressed={!hidden}
-              aria-label={hidden ? "Show pages" : "Hide pages"}
-              {...tipProps(hidden ? "Show pages" : "Hide pages", { keys: "]", as: "none" })}
-              onClick={() => display.set({ pagesShut: !hidden })}
-            >
-              <Icon name="panel" />
-            </button>
-          ) : null}
           {pins ? <PinButton pinned={pins.here} onToggle={pins.onToggle} compact /> : null}
         </div>
       ) : null}

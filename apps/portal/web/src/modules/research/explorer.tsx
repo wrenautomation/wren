@@ -1,6 +1,6 @@
 /**
  * Weaver in Explorer (designs/2026-11-12-explorer.md): the preview of a run, a page, a finding and
- * a query, read from `weaver serve` on this Mac. Each links to its card in Research.
+ * a query, read from `weaver serve` on this Mac. Each opens its run whole here, at its card (WA-1373).
  */
 import { segments, type Whole } from "@wren/core/paths";
 import type {
@@ -10,7 +10,8 @@ import type {
   WeaverRun,
 } from "@wren/paths/weaver-tree";
 import { num, relative, Tag, type TagTone } from "@wren/ui";
-import { href } from "../../route.js";
+import type { ReactNode } from "react";
+import { wholeHref } from "../explorer/href.js";
 
 /** Weaver's row marks: a finding its check dropped. */
 export const WEAVER_MARKS: Record<string, { label: string; tone?: TagTone }> = {
@@ -25,7 +26,7 @@ export const weaverFills = (route: string) =>
     </>
   ) : undefined;
 
-const runHref = (run: string, open?: string) => href("/research/runs", { run, open: open ?? null });
+const runHref = (run: string, open?: string) => wholeHref(`weaver/${run}`, { open: open ?? null });
 
 const Facts = ({ items }: { items: (string | null | false | undefined)[] }) => (
   <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-(--ui-ink-3)">
@@ -62,7 +63,7 @@ function Finding({ f, bare = false }: { f: WeaverFinding; bare?: boolean }) {
 
 const plural = (n: number, one: string, many = `${one}s`) => `${num(n)} ${n === 1 ? one : many}`;
 
-export function WeaverPreview({ w }: { w: Whole }) {
+export function WeaverPreview({ w, file }: { w: Whole; file?: ReactNode }) {
   const [, run, area] = segments(w.path);
   if (!run || !w.data) return w.body ? <Text text={w.body} /> : null;
   if (!area) {
@@ -83,9 +84,10 @@ export function WeaverPreview({ w }: { w: Whole }) {
             d.run.updated ? `changed ${relative(new Date(d.run.updated))}` : null,
           ]}
         />
-        <a href={runHref(run)} className="self-start">
-          Open in Research
-        </a>
+        <span className="flex items-center gap-2">
+          <a href={runHref(run)}>Open its graph</a>
+          {file}
+        </span>
       </div>
     );
   }
@@ -105,7 +107,7 @@ export function WeaverPreview({ w }: { w: Whole }) {
           </section>
         ) : null}
         <a href={runHref(run, `d:${doc.id}`)} className="self-start">
-          Open in Research
+          Open in its run
         </a>
       </div>
     );
@@ -118,7 +120,7 @@ export function WeaverPreview({ w }: { w: Whole }) {
         {d.document ? <Facts items={[d.document.title ?? d.document.url]} /> : null}
         {d.document ? (
           <a href={runHref(run, `d:${d.document.id}`)} className="self-start">
-            Open its page in Research
+            Open its page in the run
           </a>
         ) : null}
       </div>
@@ -131,7 +133,7 @@ export function WeaverPreview({ w }: { w: Whole }) {
       <div className="flex max-w-[72ch] flex-col gap-4">
         {q.why ? <Text text={q.why} /> : null}
         <a href={runHref(run, `q:${q.id}`)} className="self-start">
-          Open in Research
+          Open in its run
         </a>
       </div>
     );

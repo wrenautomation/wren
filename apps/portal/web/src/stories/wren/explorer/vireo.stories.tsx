@@ -3,7 +3,7 @@ import type { Meta } from "@storybook/react-vite";
 import { expect, waitFor, within } from "storybook/test";
 import { ADMIN } from "../../../mocks/data/me.js";
 import { pageAt, tidy } from "../../../mocks/page.js";
-import { explorerHref } from "../../../modules/explorer/href.js";
+import { explorerHref, wholeHref } from "../../../modules/explorer/href.js";
 import { linkTo, relation, WAIT } from "./explorer-kit.js";
 
 const meta: Meta = { title: "Wren/Explorer/Vireo" };
@@ -49,7 +49,7 @@ export const Guides = tidy(
   }),
 );
 
-/** A subject: its batches in the column; its brief and counts in the preview. */
+/** A subject: its batches in the column; its brief and counts in the preview; ⋯ files it. */
 export const Subject = tidy(
   pageAt(at(HERO), {
     ...ONE,
@@ -57,10 +57,11 @@ export const Subject = tidy(
       const view = within(page);
       await expect(await view.findByText("4 batches", {}, WAIT)).toBeVisible();
       await expect(view.getByText("2 guides under test")).toBeVisible();
-      await expect(view.getByRole("link", { name: "Open in Subjects" })).toHaveAttribute(
+      await expect(view.getByRole("link", { name: "Open its tree" })).toHaveAttribute(
         "href",
-        "/variants/subjects?subject=3",
+        wholeHref(HERO),
       );
+      await expect(view.getByRole("button", { name: "More for Hero background" })).toBeVisible();
     },
   }),
 );

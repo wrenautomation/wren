@@ -20,7 +20,7 @@ import { href } from "../../route.js";
 import { explorerHref } from "../explorer/href.js";
 import { Markdown, Section, splitFrontmatter, typeName, withoutTitle } from "./parts.js";
 import { Code, FileBody, RecordBody } from "./record.js";
-import { Poster, ReferenceBody } from "./references.js";
+import { Poster, ReferenceBody } from "./reference.js";
 
 const ROOT = "canon";
 
@@ -34,11 +34,11 @@ export const CANON_MARKS: Record<string, { label: string; tone?: TagTone }> = {
   missing: { label: "Not in Canon", tone: "bad" },
 };
 
-/** What fills an empty Canon folder: a reference from References, the rest from the repo. */
+/** What fills an empty Canon folder: a reference from Library's Add box, the rest from the repo. */
 export const canonFills = (route: string) =>
   route === "canon/references" ? (
     <>
-      Save a reel or video in <a href="/canon/references">References</a>.
+      Save a reel or video from the Add box in <a href="/canon/library">Library</a>.
     </>
   ) : (
     <>

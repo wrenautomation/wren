@@ -1,13 +1,13 @@
 /**
  * Research › Runs, Live (designs/2026-11-05-research-web.md, 11-08, 11-10): the runs in front of
  * you now, on one round 13 graph that follows them. The open chat's runs and runs still going; with
- * none, the newest run. History holds every run.
+ * none, the newest run. Explorer › Weaver holds every run.
  */
 import { AskAgent, cx, Empty, Loading, useSeen } from "@wren/ui";
 import { useMemo } from "react";
 import { useCall } from "../../load.js";
-import { href } from "../../route.js";
 import { useChatRuns, usePageRuns } from "../agent/drive.js";
+import { wholeHref } from "../explorer/href.js";
 import { QUIET } from "../work/bits.js";
 import { RunsCanvas } from "./canvas.js";
 import { NoServe } from "./page.js";
@@ -27,7 +27,7 @@ function liveRuns(rows: readonly RunRow[], chat: readonly string[], now: number)
   return [...ids].sort((a, b) => (started.get(a) ?? "").localeCompare(started.get(b) ?? ""));
 }
 
-export function LiveRuns({ params, here }: { params: URLSearchParams; here: string }) {
+export function LiveRuns() {
   const runs = useCall("research:runs", runsOf, { kept: false });
   useLive(() => runs.retry());
   const chat = useChatRuns();
@@ -67,7 +67,7 @@ export function LiveRuns({ params, here }: { params: URLSearchParams; here: stri
               <li key={id} className="flex min-w-0 gap-2">
                 <span className={cx("tabular-nums", QUIET)}>Run {i + 1}</span>
                 <a
-                  href={href(here, { run: id }, params)}
+                  href={wholeHref(`weaver/${id}`)}
                   className="min-w-0 wrap-anywhere text-(--ui-ink) underline"
                 >
                   {byRun.get(id)?.ask || id}

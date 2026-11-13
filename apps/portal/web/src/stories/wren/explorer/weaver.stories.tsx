@@ -5,7 +5,7 @@ import { expect, waitFor, within } from "storybook/test";
 import { ADMIN } from "../../../mocks/data/me.js";
 import { pageAt, tidy } from "../../../mocks/page.js";
 import { REFUSED, SERVED } from "../../../mocks/weaver-serve.js";
-import { explorerHref } from "../../../modules/explorer/href.js";
+import { explorerHref, wholeHref } from "../../../modules/explorer/href.js";
 import { relation, WAIT } from "./explorer-kit.js";
 
 const meta: Meta = { title: "Wren/Explorer/Weaver" };
@@ -43,9 +43,9 @@ export const Run = tidy(
   story(at("weaver/r1"), async (page) => {
     const view = within(page);
     await expect(await view.findByText("3 queries", {}, WAIT)).toBeVisible();
-    await expect(view.getByRole("link", { name: "Open in Research" })).toHaveAttribute(
+    await expect(view.getByRole("link", { name: "Open its graph" })).toHaveAttribute(
       "href",
-      "/research/runs?run=r1",
+      wholeHref("weaver/r1"),
     );
   }),
 );
@@ -70,7 +70,7 @@ export const Query = tidy(
   story(at("weaver/r1/queries/q1"), async (page) => {
     const view = within(page);
     await expect(await view.findByText("the ask's words", {}, WAIT)).toBeVisible();
-    const open = view.getByRole("link", { name: "Open in Research" });
+    const open = view.getByRole("link", { name: "Open in its run" });
     await expect(decodeURIComponent(open.getAttribute("href") ?? "")).toContain("open=q:q1");
   }),
 );

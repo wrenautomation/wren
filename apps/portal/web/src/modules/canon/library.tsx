@@ -1,6 +1,7 @@
 /**
  * Canon › Library: every record of every type, newest change first. Filters live in the address:
  * `type`, `status`, `topic`, `tag`, `q`. A search also lists the files whose path or text matches.
+ * The Add box on top files a link, a picture or a PDF; a filed one opens here (`?r=`).
  */
 import { sizeLabel } from "@wren/core/paths";
 import type { Counted, RecordsPage } from "@wren/research/canon-library";
@@ -11,6 +12,7 @@ import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { dayLabel } from "../work/bits.js";
+import { AddBox } from "./add-box.js";
 import { Pick, Search, Section, typeName } from "./parts.js";
 import { fileHref, OpenedHere, recordHref } from "./record.js";
 
@@ -18,6 +20,15 @@ const HERE = "/canon/library";
 const FILTERS = ["type", "status", "topic", "tag", "q"] as const;
 
 export function LibraryPage({ params }: PageProps) {
+  return (
+    <div className="flex flex-col gap-6">
+      <AddBox here={HERE} params={params} />
+      <Records params={params} />
+    </div>
+  );
+}
+
+function Records({ params }: { params: URLSearchParams }) {
   const q = {
     type: params.get("type") || null,
     status: params.get("status") || null,

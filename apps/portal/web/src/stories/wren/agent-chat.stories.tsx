@@ -271,7 +271,7 @@ export const Gone = story(
 );
 
 /** The side panel's Chats menu lists the stored chats, by folder. */
-export const Panel = story("/research/runs?view=history", [], async (page) => {
+export const Panel = story("/research/runs", [], async (page) => {
   const c = within(page);
   await userEvent.click(await agentDoor(c));
   await userEvent.click(await c.findByRole("button", { name: "Chats" }, LONG));
@@ -302,8 +302,8 @@ const CARD_SERVED = [
 
 export const Card = (() => {
   const base = story(
-    // History draws no graph: the card keeps its own
-    `/research/runs?view=history&setup=weaver&chat=${CARDED}`,
+    // Explorer's Weaver root draws no graph: the card keeps its own
+    `/explorer/weaver?setup=weaver&chat=${CARDED}`,
     [],
     async (page) => {
       const c = within(page);
@@ -322,10 +322,10 @@ export const Card = (() => {
 })();
 
 /**
- * A run new to the chat brings Research › Runs back to Live (11-10, WA-1106). Tape: Work's
- * session start, then the Card chat's turns live in that session.
+ * Research › Runs draws the chat's runs live: the card drops its second graph (WA-1292). Tape:
+ * Work's session start, then the Card chat's turns live in that session.
  */
-export const NewRunGoesLive = (() => {
+export const CardOnLive = (() => {
   const sid = "00000000-0000-4000-8000-000000000001";
   const start = WORK.findIndex((l) => l.from === "cli" && l.frame.type === "stream_event");
   const ask = (CARD[0] as { message: unknown }).message;
@@ -348,17 +348,10 @@ export const NewRunGoesLive = (() => {
     ...turns,
     ...(end ? [{ ...end, t: t0 + 300 * CARD.length }] : []),
   ] as TapeLine[];
-  const base = story("/research/runs?setup=weaver&view=history", tape, async (page) => {
+  const base = story("/research/runs?setup=weaver", tape, async (page) => {
     const c = within(page);
-    const shown = (name: string) =>
-      c
-        .getAllByRole("button", { name: new RegExp(`^${name}$`) })
-        .some((b) => b.getAttribute("aria-pressed") === "true");
-    await waitFor(() => expect(shown("History")).toBe(true), LONG);
     await say(page, typedOn(tape)[0] ?? "");
     await c.findByRole("article", { name: /^Weaver run: / }, LONG);
-    await waitFor(() => expect(shown("Live")).toBe(true), LONG);
-    // Live draws the run: the card drops its second graph (WA-1292)
     const card = c.getByRole("article", { name: /^Weaver run: / });
     await within(card).findByText("Its graph is on this page.", {}, LONG);
     expect(card.querySelector(".rg")).toBeNull();

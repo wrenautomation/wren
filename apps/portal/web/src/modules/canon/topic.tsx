@@ -15,7 +15,7 @@ import { href } from "../../route.js";
 import { explorerHref } from "../explorer/href.js";
 import { Markdown, Section, splitFrontmatter, VIDEO_KINDS, withoutTitle } from "./parts.js";
 import { Code, fileHref, OpenedHere, recordHref } from "./record.js";
-import { Poster } from "./references.js";
+import { Poster } from "./reference.js";
 
 const HERE = "/canon/topic";
 
@@ -265,7 +265,7 @@ function Whole({ t, params }: { t: TopicWhole; params: URLSearchParams }) {
                   <a
                     href={
                       s.kind && VIDEO_KINDS.has(s.kind)
-                        ? href("/canon/references", { r: s.id })
+                        ? explorerHref(`canon/references/${s.id}`)
                         : open(s.id)
                     }
                     className="wrap-anywhere"
@@ -429,7 +429,7 @@ function Line({
           {shown.map((r) => (
             <a
               key={r.id}
-              href={href("/canon/references", { r: r.id })}
+              href={explorerHref(`canon/references/${r.id}`)}
               title={r.title}
               aria-label={`Reference: ${r.title}`}
               className="block w-7"
@@ -444,7 +444,7 @@ function Line({
 }
 
 function RefCard({ r }: { r: Ref }) {
-  const to = href("/canon/references", { r: r.id });
+  const to = explorerHref(`canon/references/${r.id}`);
   return (
     <article className="flex flex-col gap-1.5">
       <a href={to} tabIndex={-1} aria-label={r.title} className="group block">

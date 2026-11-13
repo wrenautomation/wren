@@ -17,7 +17,7 @@ export const research: Module = {
       id: "runs",
       label: "Runs",
       about:
-        "The chat's runs live on one graph; History holds every run. Ask in the side panel's chat.",
+        "The chat's runs, live on one graph. Every run is in Explorer › Weaver. Ask in the side panel's chat.",
       Page: RunsPage,
       wide: true,
     },

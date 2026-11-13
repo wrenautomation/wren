@@ -6,7 +6,7 @@ import { resetFolders } from "../../../mocks/data/folders.js";
 import { ADMIN } from "../../../mocks/data/me.js";
 import { pageAt, tidy } from "../../../mocks/page.js";
 import { SERVED } from "../../../mocks/weaver-serve.js";
-import { explorerHref } from "../../../modules/explorer/href.js";
+import { explorerHref, wholeHref } from "../../../modules/explorer/href.js";
 import { linkTo, WAIT } from "./explorer-kit.js";
 
 const meta: Meta = { title: "Wren/Explorer/Folders" };
@@ -64,9 +64,9 @@ export const Folder = tidy(
 export const FiledSubject = tidy(
   story(at("folders/1/opener"), async (page) => {
     const view = within(page);
-    await expect(await view.findByRole("link", { name: "Open in Subjects" }, WAIT)).toHaveAttribute(
+    await expect(await view.findByRole("link", { name: "Open its tree" }, WAIT)).toHaveAttribute(
       "href",
-      "/variants/subjects?subject=1",
+      wholeHref("vireo/subjects/opener"),
     );
     await linkTo(view, /^Batches/, at("folders/1/opener/batches"));
   }),

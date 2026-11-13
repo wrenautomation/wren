@@ -17,6 +17,8 @@ export const MOVED: Readonly<Record<string, string>> = {
   "/calendar/recordings": "/today/recordings",
   "/calendar/schedule": "/today/calendar",
   "/canon/explorer": "/explorer/canon",
+  // References and Subjects went into Library and Explorer (WA-1373); `?r=` and `?subject=` still open
+  "/canon/references": "/canon/library",
   "/clients/all": "/people/clients",
   "/documents/all": "/office/documents",
   "/engage/accounts": "/office/accounts",
@@ -62,7 +64,7 @@ export const MOVED: Readonly<Record<string, string>> = {
   "/pipeline/inboxes": "/campaigns/inboxes",
   // Live and History are one page (WA-1106); `?run=` carries over. The chat is the side panel.
   "/research/ask": "/research/runs",
-  "/research/history": "/research/runs",
+  "/research/history": "/explorer/weaver",
   "/research/live": "/research/runs",
   "/team/all": "/office/team",
 };
@@ -110,7 +112,8 @@ export const CLIENT_MOVED: Readonly<Record<string, string>> = {
   "/reactivation/welcome": "/project/welcome",
   "/variants/catalog": "/variants/batches",
   "/variants/pick": "/variants/batches",
-  "/variants/projects": "/variants/subjects",
+  "/variants/projects": "/explorer/vireo",
+  "/variants/subjects": "/explorer/vireo",
   "/work/contract": "/office/contract",
   "/work/deliverables": "/project/deliverables",
   "/work/needs-you": "/today/needs-you",
