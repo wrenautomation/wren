@@ -10,7 +10,7 @@ import type { Platform } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { latestDigest } from "./analytics/digest.js";
-import { scoreOf } from "./metrics.js";
+import { engagementRate } from "./metrics.js";
 import { contentDrafts, contentMetrics } from "./schema.js";
 
 export interface Lessons {
@@ -61,7 +61,7 @@ export async function lessonsFor(db: Queryable, platform: Platform): Promise<Les
     .orderBy(contentMetrics.draftId, desc(contentMetrics.createdAt));
   const winners = snaps
     .filter((s) => s.views >= MIN_VIEWS)
-    .map((s) => ({ text: s.text.slice(0, WINNER_CHARS), views: s.views, score: scoreOf(s) }))
+    .map((s) => ({ text: s.text.slice(0, WINNER_CHARS), views: s.views, score: engagementRate(s) }))
     .sort((a, b) => b.score - a.score || b.views - a.views)
     .slice(0, MAX_WINNERS);
   const digest = (await latestDigest(db, platform))

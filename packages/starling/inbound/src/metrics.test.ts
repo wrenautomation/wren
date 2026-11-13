@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { formatWhatWorked, scoreOf, type WorkedRow } from "./metrics.js";
+import { engagementRate, formatWhatWorked, outlierCount, type WorkedRow } from "./metrics.js";
 import { weekOf } from "./restate/metrics.js";
 
 describe("metrics", () => {
   it("scores engagement per 100 views, 0 without views", () => {
-    expect(scoreOf({ views: 200, reactions: 20, comments: 1, shares: 0 })).toBeCloseTo(10.5);
-    expect(scoreOf({ views: 0, reactions: 3, comments: 0, shares: 0 })).toBe(0);
+    expect(engagementRate({ views: 200, reactions: 20, comments: 1, shares: 0 })).toBeCloseTo(10.5);
+    expect(engagementRate({ views: 0, reactions: 3, comments: 0, shares: 0 })).toBe(0);
   });
 
   it("formats one line per post and an empty window", () => {
@@ -23,11 +23,27 @@ describe("metrics", () => {
       asOf: new Date(),
       score: 12,
       looks: 1,
+      outlier: { count: "likes", n: 2 },
     };
     expect(formatWhatWorked([row])).toEqual([
       "12.0/100 · x · 50 views · 5+1+0 · the gate asks first · https://x.test/1",
     ]);
+    expect(
+      formatWhatWorked([{ ...row, outlier: { count: "likes", n: 30, multiple: 5.5, rank: 4 } }]),
+    ).toEqual([
+      "12.0/100 · x · 5.5x likes, top 4% · 50 views · 5+1+0 · the gate asks first · https://x.test/1",
+    ]);
     expect(formatWhatWorked([])).toEqual(["no published posts with metrics in the window"]);
+  });
+
+  it("scores video feeds on views, the rest on likes", () => {
+    expect(outlierCount("youtube", "short")).toBe("views");
+    expect(outlierCount("youtube", "post")).toBe("likes");
+    expect(outlierCount("instagram", "reel")).toBe("views");
+    expect(outlierCount("instagram", "carousel")).toBe("likes");
+    expect(outlierCount("tiktok", "video")).toBe("views");
+    expect(outlierCount("x", "video")).toBe("likes");
+    expect(outlierCount("linkedin", "post")).toBe("likes");
   });
 
   it("names the week by its Monday", () => {

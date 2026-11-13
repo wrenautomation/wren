@@ -57,7 +57,7 @@
     "@wrenautomation/models": "0.75.2",
     "@wrenautomation/read": "0.75.2",
     "@wrenautomation/vireo": "0.18.0",
-    "@wrenautomation/weaver": "0.73.0",
+    "@wrenautomation/weaver": "0.75.4",
     "commander": "15.0.0",
     "drizzle-orm": "0.45.2",
     "playwright": "1.63.0",

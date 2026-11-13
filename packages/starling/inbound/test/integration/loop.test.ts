@@ -1134,6 +1134,11 @@ describe("content loop", () => {
     // x: 50 views, 5+1+0 → 12/100; linkedin: 200 views, 20+1 → 10.5.
     expect(ranked.map((r) => r.platform)).toEqual(["x", "linkedin"]);
     expect(ranked[0]).toMatchObject({ views: 50, reactions: 5, looks: 1 });
+    // one post a platform: its own baseline holds only itself, too few for a multiple
+    expect(ranked.map((r) => r.outlier)).toEqual([
+      { count: "likes", n: 1 },
+      { count: "likes", n: 1 },
+    ]);
     // A winner with an audience shapes the next draft on its platform.
     await desk().add({ text: "next idea", platforms: ["linkedin"] });
     expect(prompts.at(-1)).toContain("(10.5, 200 views)");

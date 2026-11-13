@@ -8,7 +8,9 @@
 import type { Platform } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import type { Metrics } from "@wren/starling-core";
+import { type Score, type ScoredPost, scoreOf } from "@wrenautomation/weaver/ledger";
 import { and, desc, eq, gte, inArray, isNotNull, notExists, sql } from "drizzle-orm";
+import { formatOf } from "./analytics/catalog.js";
 import { type ContentDraft, type ContentMetric, contentDrafts, contentMetrics } from "./schema.js";
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -133,14 +135,76 @@ export interface WorkedRow {
   score: number;
   /** How many looks the row has: 1 = no curve yet. */
   looks: number;
+  /** Eden's outlier score against our own posts of this platform and format (`outlierOf`). */
+  outlier: Score;
 }
 
-export const scoreOf = (m: {
+export const engagementRate = (m: {
   views: number;
   reactions: number;
   comments: number;
   shares: number;
 }) => (m.views > 0 ? ((m.reactions + m.comments + m.shares) / m.views) * 100 : 0);
+
+/** The count a format's outlier score is on (Eden): views for video feeds, likes elsewhere. */
+export function outlierCount(platform: string, format: string): Score["count"] {
+  if (platform === "youtube" && format !== "post") return "views";
+  if (platform === "tiktok") return "views";
+  if ((platform === "instagram" || platform === "facebook") && format === "reel") return "views";
+  return "likes";
+}
+
+/** A draft's format: `formatOf` on its kind and its media's kind. */
+const formatOfDraft = (d: Pick<ContentDraft, "platform" | "extra" | "media">) =>
+  formatOf(
+    d.platform,
+    typeof d.extra.kind === "string" ? d.extra.kind : null,
+    d.media?.kind ?? null,
+  );
+
+interface OurPost {
+  draftId: string;
+  platform: string;
+  post: ScoredPost;
+}
+
+/**
+ * Our own published posts with their newest counts, as `scoreOf` takes them, on the given platforms.
+ * One platform is one creator: Wren has one account a platform.
+ */
+async function ourPosts(db: Queryable, platforms: readonly string[]): Promise<OurPost[]> {
+  if (!platforms.length) return [];
+  const rows = await db
+    .selectDistinctOn([contentMetrics.draftId], {
+      draftId: contentDrafts.id,
+      platform: contentDrafts.platform,
+      extra: contentDrafts.extra,
+      media: contentDrafts.media,
+      publishedAt: contentDrafts.publishedAt,
+      views: contentMetrics.views,
+      reactions: contentMetrics.reactions,
+      comments: contentMetrics.comments,
+      shares: contentMetrics.shares,
+    })
+    .from(contentMetrics)
+    .innerJoin(contentDrafts, eq(contentDrafts.id, contentMetrics.draftId))
+    .where(
+      and(
+        eq(contentDrafts.status, "published"),
+        inArray(contentDrafts.platform, platforms as ContentDraft["platform"][]),
+      ),
+    )
+    .orderBy(contentMetrics.draftId, desc(contentMetrics.createdAt));
+  return rows.map((r) => ({
+    draftId: r.draftId,
+    platform: r.platform,
+    post: {
+      ...(r.publishedAt ? { at: r.publishedAt.toISOString() } : {}),
+      kind: formatOfDraft(r),
+      metrics: { views: r.views, likes: r.reactions, comments: r.comments, shares: r.shares },
+    },
+  }));
+}
 
 /** Posts published in the last `days` with their latest snapshot, best score first. */
 export async function whatWorked(
@@ -170,11 +234,20 @@ export async function whatWorked(
       ),
     )
     .orderBy(desc(contentMetrics.createdAt));
+  const ours = await ourPosts(db, [...new Set(drafts.map((d) => d.platform))]);
   const rows: WorkedRow[] = [];
   for (const d of drafts) {
     const mine = snaps.filter((s) => s.draftId === d.id);
     const latest = mine[0];
     if (!latest || !d.publishedAt) continue;
+    const self = ours.find((p) => p.draftId === d.id)?.post;
+    const outlier = self
+      ? scoreOf(
+          self,
+          ours.filter((p) => p.platform === d.platform).map((p) => p.post),
+          { count: outlierCount(d.platform, self.kind), now: now.toISOString() },
+        )
+      : { count: outlierCount(d.platform, formatOfDraft(d)), n: 0 };
     rows.push({
       draftId: d.id,
       platform: d.platform,
@@ -187,8 +260,9 @@ export async function whatWorked(
       comments: latest.comments,
       shares: latest.shares,
       asOf: latest.asOf,
-      score: scoreOf(latest),
+      score: engagementRate(latest),
       looks: mine.length,
+      outlier,
     });
   }
   return rows.sort((a, b) => b.score - a.score || b.views - a.views);
@@ -203,8 +277,12 @@ const preview = (t: string) => {
 /** One line per post, best first; the report the notifier sends and the CLI prints. */
 export function formatWhatWorked(rows: readonly WorkedRow[]): string[] {
   if (rows.length === 0) return ["no published posts with metrics in the window"];
-  return rows.map(
-    (r) =>
-      `${r.score.toFixed(1)}/100 · ${r.platform} · ${r.views} views · ${r.reactions}+${r.comments}+${r.shares} · ${preview(r.text)}${r.url ? ` · ${r.url}` : ""}`,
-  );
+  return rows.map((r) => {
+    const o = r.outlier;
+    const out = [
+      o.multiple !== undefined ? `${o.multiple}x ${o.count}` : null,
+      o.rank !== undefined ? `top ${o.rank}%` : null,
+    ].filter(Boolean);
+    return `${r.score.toFixed(1)}/100 · ${r.platform}${out.length ? ` · ${out.join(", ")}` : ""} · ${r.views} views · ${r.reactions}+${r.comments}+${r.shares} · ${preview(r.text)}${r.url ? ` · ${r.url}` : ""}`;
+  });
 }
