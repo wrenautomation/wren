@@ -128,16 +128,21 @@ export function TaskList({
         sub: (t) => (
           <span className="flex flex-col gap-0.5">
             <span className="text-[12px] text-(--ui-ink-3) tabular-nums">
-              {t.id}
-              {/* a phone shows one column: priority rides on the id line */}
-              {narrow && t.priority && group !== "priority" ? ` · ${t.priority}` : null}
+              {/* a phone shows one column (status, or area under a status group): the rest ride here */}
+              {[
+                t.id,
+                narrow && group !== "status" && group !== "area" ? t.area : null,
+                narrow && group !== "priority" ? t.priority : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </span>
             {t.summary ? (
               <span className="text-[13.5px] leading-normal text-pretty wrap-anywhere text-(--ui-ink-2)">
                 {t.summary}
               </span>
             ) : null}
-            {narrow && group !== "people" ? <People task={t} /> : null}
+            {narrow ? <People task={t} /> : null}
           </span>
         ),
       }}

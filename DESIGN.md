@@ -324,7 +324,7 @@ Source: `records.tsx`, `list-bar.tsx`, `fields.tsx`, `card-grid.tsx`.
 - **Row:** height `--layout-row` (48 px coarse), bottom hairline, hover `--ui-hover`, open row `--ui-fill`. Cells pad 12 px, truncate, ink-2. Dates ink-3 tabular. The title cell is a link with `TITLE_WEIGHT`.
 - **Tiers:** waiting rows lead under **Needs you**, the rest under **For info**. A band row (`--ui-band`, h-8) with a count in ink-3. Tiers turn off when the list is grouped or sorted by hand.
 - **Head row:** sticky, h-9, `--ui-band`, 12 px semibold ink-2, `--ui-edge` underline.
-- **List bar** (`list-bar.tsx`): chips and pills h-8 (44 px coarse), 13 px, hair border, paper ground. Saved views are tabs with counts: 3 quick tabs, then up to 5 views, then More. A tab has a 2 px underline; on is ink, off is ink-2.
+- **List bar** (`list-bar.tsx`): chips and pills h-8 (44 px coarse), 13 px, hair border, paper ground. Filter pills sit on their own line under the bar, Clear at its end; the tools keep their place (`BarLayout`; the artifact draws no pills). Saved views are tabs with counts: 3 quick tabs, then up to 5 views, then More. A tab has a 2 px underline; on is ink, off is ink-2.
 - **Record panel:** fixed right. Phone full width. At sm+: 560 px wide, floats 8 px in, sheet radius, `--ui-shadow`. Tabs have a 2 px underline. Facts use a two-column `dl` (150 px label).
 - **Skeleton:** fill ground, leaf corners 3 and 8, a lavender tint sweeps across in 1.6 s (`.ui-skeleton::after`, artifact `.sk i`). Still under reduced or less motion.
 - **Empty:** hair box (artifact `.stt`), corners 6 and 14, no ground, 13.5 px ink-2. It says what will fill the list.
