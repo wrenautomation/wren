@@ -5,6 +5,7 @@
 import type { Module } from "../../module.js";
 import { ExplorerPage } from "./explorer.js";
 import { LibraryPage } from "./library.js";
+import { OutliersPage } from "./outliers.js";
 import { ReferencesPage } from "./references.js";
 import { TopicPage } from "./topic.js";
 
@@ -36,6 +37,14 @@ export const canon: Module = {
       label: "References",
       about: "Every reel and video in Canon, newest saved first. Open one to play it.",
       Page: ReferencesPage,
+      wide: true,
+    },
+    {
+      id: "outliers",
+      label: "Outliers",
+      about:
+        "Posts of tracked creators that beat their own usual draw, best multiple first. Save one to Canon.",
+      Page: OutliersPage,
       wide: true,
     },
     {

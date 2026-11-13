@@ -118,6 +118,22 @@ Deferred: a Weaver `index` source that returns tracked posts as hits in research
   - Viral now: 10x+, 30 days, 500+ likes (likes on every platform).
   - All-time greats: 10x+, over 50K followers.
 - Portal page: the same query, the design-language artifact, the ui-design proof. A row opens the post; "save to Canon" files it as his source.
+- Built as Canon › Outliers (`/canon/outliers`), handler `CanonConsole/feed`. Save calls the Add box's `canon/add`: the same queue and drain, his source.
+
+| State | Shows | Enters on | Next | Motion |
+|---|---|---|---|---|
+| loading | skeleton in the row's shape: filter bar, multiple, title, meta, Save | first open (a filter change keeps the last rows on screen) | typical, the empties, failed | rows fade in |
+| nobody tracked | "No creators tracked yet", the `wren creator add` line | 0 creators | typical | instant: first paint |
+| tracked, none scored | "N creators tracked", why no score yet (5 posts of a kind) | 0 scored posts | typical | instant |
+| no match | "No post clears these filters", Clear filters | 0 rows, a filter set | typical | instant |
+| no outliers | "No outliers yet" | scored posts, 0 rows, no filter | typical | instant |
+| typical, many | rows: multiple, title whole; creator and followers; kind, age, the count and the creator's usual count; niches. No dot separators (AI-18). "N posts from M creators" counts the rows shown | rows | save | none |
+| partial | no title: the text; no followers or date: left out | a field missing | | |
+| failed | the error, Try again (shared `LoadFailed`) | load error | loading | instant |
+| saving | Save busy: ring in its padding, disabled, same width | Save | saved, save failed | ring fades in (shared `Button busy`) |
+| saved | "Filing into Canon" tag in Save's fixed slot; "In Canon" once filed | the add answers | | tag fades in (`ui-fade` 0.2 s) |
+| save failed | "Not saved: <reason>" under the row, Save back | the add refuses | saving | instant |
+| 390 | the multiple and title on top, meta wraps, Save under | width | | |
 
 ## 5. Auto-DM
 

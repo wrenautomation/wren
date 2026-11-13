@@ -27,6 +27,16 @@ import {
 } from "./canon-adds.js";
 import { CANON_CONSOLE_APPS, CANON_CONSOLE_ROUTES } from "./canon-console-routes.js";
 import { canonLibraryApi, lineText, type RecordFilters } from "./canon-library.js";
+import {
+  FEED_PRESETS,
+  type FeedFacets,
+  type FeedFilter,
+  type FeedPreset,
+  type FeedRow,
+  feedFacets,
+  feedPosts,
+  POST_KINDS,
+} from "./creators.js";
 
 const REPO = "canon";
 /** the kinds the References page holds */
@@ -455,6 +465,13 @@ const INPUTS = {
     note: z.string().max(20_000).nullish().describe("the person's words, whole"),
   },
   retry: { id: z.number().int().positive() },
+  feed: {
+    preset: z.enum(Object.keys(FEED_PRESETS) as [FeedPreset, ...FeedPreset[]]).nullish(),
+    niche: z.string().max(80).nullish(),
+    platform: z.string().max(40).nullish(),
+    kind: z.enum(POST_KINDS).nullish(),
+    limit: z.number().int().min(1).max(200).nullish(),
+  },
   upload: {
     name: z.string().min(1).max(300),
     size: z.number().int().positive(),
@@ -463,6 +480,30 @@ const INPUTS = {
 } as const;
 
 type Req = PortalRequest & Record<string, unknown>;
+
+interface FeedAsk {
+  preset?: FeedPreset | null;
+  niche?: string | null;
+  platform?: string | null;
+  kind?: string | null;
+  limit?: number | null;
+}
+export interface FeedPage extends FeedFacets {
+  rows: FeedRow[];
+}
+
+/** Canon › Outliers: the CLI's `wren feed`, a preset plus the picks. */
+async function feedPage(db: Db, a: FeedAsk): Promise<FeedPage> {
+  const f: FeedFilter = {
+    ...(a.preset ? FEED_PRESETS[a.preset] : {}),
+    ...(a.niche ? { niche: a.niche } : {}),
+    ...(a.platform ? { platforms: [a.platform] } : {}),
+    ...(a.kind ? { kinds: [a.kind] } : {}),
+    limit: a.limit ?? 100,
+  };
+  const [facets, rows] = await Promise.all([feedFacets(db), feedPosts(db, f)]);
+  return { ...facets, rows };
+}
 
 export function makeCanonConsole(db: Db, media: Media | null, remote: string) {
   const api = canonConsoleApi(db, media);
@@ -489,6 +530,7 @@ export function makeCanonConsole(db: Db, media: Media | null, remote: string) {
       record: h("record", (req) => library.record(String(req.id))),
       file: h("file", (req) => library.file(String(req.path))),
       adds: h("adds", async () => ({ rows: (await listAdds(db)).map(addRow) })),
+      feed: h("feed", (req) => feedPage(db, req as FeedAsk)),
       add: h("add", async (req) => {
         const what = String(req.what).trim();
         if (!whatOf(what)) throw new PortalRefusal("give a link that starts with https://", 400);

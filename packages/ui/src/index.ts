@@ -279,7 +279,7 @@ export {
   UnfiledDrop,
 } from "./folders.js";
 export { RecordForm } from "./form.js";
-export { ago, cx, hostOf, initials, money, month, num, soon } from "./format.js";
+export { ago, cx, hostOf, initials, money, month, num, short, soon } from "./format.js";
 export {
   type DisplayControl,
   DisplayPanel,

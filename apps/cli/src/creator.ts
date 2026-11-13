@@ -57,11 +57,22 @@ const accountsOf = (pairs: string[] = []) =>
     }),
   );
 
-/** One creator through `weaver posts <url> --json`. */
+/** signed-out yt-dlp reads (TikTok) leave through the key gate's read relay */
+const YT_DLP = process.env.WEAVER_YTDLP ?? "yt-dlp --proxy http://127.0.0.1:4776";
+
+/** One creator through `weaver posts` (the key-gate shim); accounts ride `WEAVER_ACCOUNTS`. */
 function readCreator(url: string, n: number, accounts: Record<string, string>): CreatorRead {
-  const args = ["posts", url, "-n", String(n), "--json"];
-  for (const [site, name] of Object.entries(accounts)) args.push("--account", `${site}=${name}`);
-  const r = spawnSync("weaver", args, { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+  const args = ["posts", url, "-n", String(n), "--yt-dlp", YT_DLP];
+  const r = spawnSync("weaver", args, {
+    encoding: "utf8",
+    maxBuffer: 256 * 1024 * 1024,
+    env: {
+      ...process.env,
+      WEAVER_ACCOUNTS: Object.entries(accounts)
+        .map(([site, name]) => `${site}=${name}`)
+        .join(","),
+    },
+  });
   if (r.error) throw r.error;
   if (r.status !== 0) throw new Error(`weaver posts ${url}: ${(r.stderr || r.stdout).trim()}`);
   return JSON.parse(r.stdout) as CreatorRead;

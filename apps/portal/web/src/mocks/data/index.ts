@@ -16,6 +16,7 @@ import { DRAFT_ANSWERS, draftRecords } from "./map-drafts.js";
 import { AUTO_REPLY, CADENCE, PIECES, STUDIO_WAITING } from "./marketing.js";
 import { MOVE_ROWS } from "./moves.js";
 import { OFFER_ANSWERS, OFFER_ROWS } from "./offers.js";
+import { OUTLIER_ANSWERS } from "./outliers.js";
 import { PATHS_ANSWERS } from "./paths.js";
 import { recordsAnswers } from "./records.js";
 import { ago, SHELL } from "./shell.js";
@@ -158,6 +159,7 @@ const BASE: Answers = {
   ...FOLDERS_ANSWERS,
   ...CANON_ANSWERS,
   ...CANON_LIBRARY_ANSWERS,
+  ...OUTLIER_ANSWERS,
   ...PATHS_ANSWERS,
   "canon/adds": { rows: CANON_ADDS },
   "console/call:PieceList.list": { pieces: PIECES },

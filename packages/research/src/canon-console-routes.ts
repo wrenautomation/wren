@@ -15,6 +15,8 @@ export const CANON_CONSOLE_ROUTES = {
   add: "wren:team",
   retry: "wren:team",
   upload: "wren:team",
+  // outlier posts of tracked creators (designs/2026-11-12-eden-method.md §4)
+  feed: "wren:team",
 } as const satisfies Record<string, Need>;
 export const CANON_CONSOLE_APPS = { "*": "canon" } as const satisfies RouteApps<
   typeof CANON_CONSOLE_ROUTES

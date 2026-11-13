@@ -475,6 +475,38 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
   }));
 }
 
+export interface FeedFacets {
+  /** active creators */
+  creators: number;
+  /** posts with a multiple */
+  scored: number;
+  niches: { value: string; n: number }[];
+  platforms: { value: string; n: number }[];
+}
+
+/** What the feed's picks offer: niches and platforms of active creators, with counts. */
+export async function feedFacets(db: Queryable): Promise<FeedFacets> {
+  const [head] = [
+    ...(await db.execute<{ creators: number; scored: number }>(sql`select
+      (select count(*)::int from tracked_creators where active) as creators,
+      (select count(*)::int from creator_posts where multiple is not null) as scored`)),
+  ];
+  const niches = await db.execute<{
+    value: string;
+    n: number;
+  }>(sql`select x as value, count(*)::int as n
+    from tracked_creators, unnest(niches) x where active group by x order by n desc, x`);
+  const platforms = await db.execute<{ value: string; n: number }>(sql`select h.platform as value,
+    count(*)::int as n from tracked_creators c join social_handles h on h.id = c.handle_id
+    where c.active group by h.platform order by n desc, h.platform`);
+  return {
+    creators: head?.creators ?? 0,
+    scored: head?.scored ?? 0,
+    niches: [...niches],
+    platforms: [...platforms],
+  };
+}
+
 // ---- Promotion into Canon ----------------------------------------------------------------------
 
 export async function markCreatorPromoted(db: Queryable, id: number, record: string) {
