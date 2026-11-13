@@ -7,6 +7,7 @@
  */
 import type { Platform } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
+import { outlierCount } from "@wren/research/outliers";
 import type { Metrics } from "@wren/starling-core";
 import { type Score, type ScoredPost, scoreOf } from "@wrenautomation/weaver/ledger";
 import { and, desc, eq, gte, inArray, isNotNull, notExists, sql } from "drizzle-orm";
@@ -145,14 +146,6 @@ export const engagementRate = (m: {
   comments: number;
   shares: number;
 }) => (m.views > 0 ? ((m.reactions + m.comments + m.shares) / m.views) * 100 : 0);
-
-/** The count a format's outlier score is on (Eden): views for video feeds, likes elsewhere. */
-export function outlierCount(platform: string, format: string): Score["count"] {
-  if (platform === "youtube" && format !== "post") return "views";
-  if (platform === "tiktok") return "views";
-  if ((platform === "instagram" || platform === "facebook") && format === "reel") return "views";
-  return "likes";
-}
 
 /** A draft's format: `formatOf` on its kind and its media's kind. */
 const formatOfDraft = (d: Pick<ContentDraft, "platform" | "extra" | "media">) =>

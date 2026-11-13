@@ -28,7 +28,9 @@
     "./social-schema": "./src/social-schema.ts",
     "./sops": "./src/sops/index.ts",
     "./enrichment": "./src/enrichment/index.ts",
-    "./restate": "./src/restate/index.ts"
+    "./restate": "./src/restate/index.ts",
+    "./outliers": "./src/outliers.ts",
+    "./creators": "./src/creators.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -46,6 +48,7 @@
     "@wrenautomation/knowledge": "0.75.6",
     "@wrenautomation/models": "0.75.7",
     "@wrenautomation/read": "0.75.7",
+    "@wrenautomation/weaver": "0.75.7",
     "csv-parse": "7.0.2",
     "drizzle-orm": "0.45.2",
     "libphonenumber-js": "1.13.14",

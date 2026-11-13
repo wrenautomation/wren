@@ -31,6 +31,7 @@ export default defineConfig({
     "../research/src/social-schema.ts",
     "../research/src/canon-adds-schema.ts",
     "../research/src/captures-schema.ts",
+    "../research/src/creators-schema.ts",
     "../starling/channels/email/src/schema.ts",
     "../starling/channels/email/src/access/schema.ts",
     "../starling/channels/email/src/views.ts",

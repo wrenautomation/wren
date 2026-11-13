@@ -42,6 +42,7 @@ import { registerCapture } from "./capture.js";
 import { guardClient } from "./client-scope.js";
 import { registerClients } from "./clients.js";
 import { registerContent } from "./content.js";
+import { registerCreator } from "./creator.js";
 import { registerCrm } from "./crm.js";
 import { registerDatasets } from "./datasets.js";
 import { registerJudge } from "./decide.js";
@@ -285,13 +286,9 @@ registerCalendar(program, withMainDb);
 registerCalls(program, withMainDb, settings, rootDir);
 registerAppReviews(program, withMainDb, rootDir);
 registerSocial(program, settings);
-registerCapture(
-  program,
-  withMainDb,
-  settings,
-  rootDir,
-  registerCanon(program, withMainDb, settings, rootDir),
-);
+const canonWrites = registerCanon(program, withMainDb, settings, rootDir);
+registerCapture(program, withMainDb, settings, rootDir, canonWrites);
+registerCreator(program, withMainDb, canonWrites);
 registerPaths(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerTouches(program, withMainDb);

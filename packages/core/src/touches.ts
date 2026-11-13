@@ -149,6 +149,17 @@ function youtube(text: string): HandleRef | null {
   };
 }
 
+/** `@name` on TikTok and Threads: the profile is `/@name` */
+function atProfile(platform: "tiktok" | "threads", text: string): HandleRef | null {
+  const hosts = platform === "tiktok" ? /(^|\.)tiktok\.com$/i : /(^|\.)threads\.(net|com)$/i;
+  const segs = pathOf(text, hosts);
+  const raw = segs ? (segs[0]?.startsWith("@") ? segs[0] : "") : text;
+  const h = raw.replace(/^@/, "").toLowerCase();
+  if (!/^[a-z0-9._]{1,30}$/.test(h)) return null;
+  const site = platform === "tiktok" ? "https://www.tiktok.com" : "https://www.threads.com";
+  return { platform, handle: h, url: `${site}/@${h}` };
+}
+
 function plain(platform: string, text: string): HandleRef | null {
   const h = text.replace(/^@/, "").trim().toLowerCase();
   return h && h.length <= 200 && !/[\s/?#]/.test(h) ? { platform, handle: h, url: null } : null;
@@ -175,6 +186,9 @@ export function normalizeHandle(
       return reddit(t);
     case "youtube":
       return youtube(t);
+    case "tiktok":
+    case "threads":
+      return atProfile(platform, t);
     default:
       return (TOUCH_PLATFORMS as readonly string[]).includes(platform) ? plain(platform, t) : null;
   }
@@ -201,6 +215,8 @@ const PREFIXES: Record<string, string> = {
   reddit: "reddit",
   youtube: "youtube",
   yt: "youtube",
+  tiktok: "tiktok",
+  threads: "threads",
 };
 
 /** A handle from text alone: a profile URL, `u/name`, a LinkedIn URN, or `<platform>:<handle>`. */
@@ -208,7 +224,9 @@ export function parseHandle(text: string): HandleRef | null {
   const t = text.trim();
   if (/^urn:li:/i.test(t)) return linkedin(t);
   if (/^\/?u\//i.test(t)) return reddit(t);
-  const host = /^(?:https?:\/\/)?(?:[a-z0-9-]+\.)*([a-z0-9-]+)\.com\//i.exec(t)?.[1]?.toLowerCase();
+  const host = /^(?:https?:\/\/)?(?:[a-z0-9-]+\.)*([a-z0-9-]+)\.(?:com|net)\//i
+    .exec(t)?.[1]
+    ?.toLowerCase();
   const byHost: Record<string, string> = {
     linkedin: "linkedin",
     x: "x",
@@ -216,6 +234,8 @@ export function parseHandle(text: string): HandleRef | null {
     instagram: "instagram",
     reddit: "reddit",
     youtube: "youtube",
+    tiktok: "tiktok",
+    threads: "threads",
   };
   if (host && byHost[host]) return normalizeHandle(byHost[host] as string, t);
   const p = /^([a-z]+):(.+)$/i.exec(t);

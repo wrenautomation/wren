@@ -1436,6 +1436,9 @@ importers:
       '@wrenautomation/read':
         specifier: 0.75.7
         version: 0.75.7(@aws-sdk/client-s3@3.1136.0)
+      '@wrenautomation/weaver':
+        specifier: 0.75.7
+        version: 0.75.7(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       csv-parse:
         specifier: 7.0.2
         version: 7.0.2

@@ -244,6 +244,7 @@ export const TOUCH_ON_PLATFORMS = [
   "youtube",
   "x",
   "instagram",
+  "threads",
   "facebook",
   "tiktok",
   "google_business",

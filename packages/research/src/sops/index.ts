@@ -545,7 +545,9 @@ const kindOf = (stem: string, url: string | undefined) =>
                     ? "doc"
                     : stem.startsWith("linkedin-")
                       ? "post"
-                      : "other";
+                      : stem.startsWith("creator-")
+                        ? "person"
+                        : "other";
 
 /** Who writes and why: every record carries both. */
 export interface By {

@@ -29,6 +29,7 @@ export const TOUCH_PLATFORMS = [
   "youtube",
   "x",
   "instagram",
+  "threads",
   "facebook",
   "tiktok",
   "google_business",

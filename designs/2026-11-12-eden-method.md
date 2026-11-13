@@ -76,7 +76,9 @@ Not covered: X bookmark folders (the route reads none), Watch Later and YouTube 
 
 Breakdowns run on fleet cohere keys (`apps/cli/src/video-watch.ts:37`). The cost is time. A saved reel is an edit reference, so each keeps its breakdown.
 
-## 3. Creator index (his yes before any build)
+## 3. Creator index
+
+**Chosen: A** (William 11-12: "probably just a diff postgres table or smth is fine, and then if some sources are particular useful they get promoted into canon references. or like a whole series or something."). Promotion: `wren creator promote <creator>` files the creator's profile as a Canon `reference` source; `wren creator promote <creator> --posts <ids|--min x>` files a set of posts (a series) as his sources, tagged with the series name.
 
 Hard to change: the feed and the score stand on it.
 
@@ -125,7 +127,7 @@ Built for IG and FB (keywords.ts). An IG send needs `instagram_manage_messages` 
 
 1. Captures (WA-1360.2): now.
 2. Score (WA-1360.1): weaver dev builds `scoreOf`; wren's adapter for our posts follows the release.
-3. Index (WA-1360.3): on his pick.
+3. Index (WA-1360.3): A, picked 11-12.
 4. Feed (WA-1360.4): after the index.
 5. Auto-DM (WA-1360.5): parked.
 
@@ -145,3 +147,5 @@ Built for IG and FB (keywords.ts). An IG send needs `instagram_manage_messages` 
 
 - 2026-11-12: written. Captures and score need no index choice; the index waits for his yes.
 - 2026-11-12: goldfish review: 39 findings, 27 applied, 8 rejected; open: index A or D, YouTube consent. Applied: captures file from `raw` with no queue (the drain sent x.com to yt-dlp, the 50 cap lost the backlog, `person` came from `asked_by`); `lists[]` and `filed_at`; `AddOpts.tags`; route caps as single calls; IG collections list; `scoreOf` beside `liftOf`, stored on rows; option E; the D costs; four tables; presets per count; build order. Rejected: captures stay parked (he said go ahead on all), F14 passive (both active), the queue fixes (no queue now).
+- 2026-11-12: William picked A for the index: a Postgres table; useful creators, or a whole series, are promoted into Canon references.
+- 2026-11-12: index built: tables `tracked_creators`, `creator_posts`, `post_count_days`, `follower_count_days` (migration 0396); `wren creator add|list|remove|refresh|promote` and `wren feed`. Refresh reads through `weaver posts` (weaver dev builds it); X, Threads and IG photos wait on autobrowse routes. The reading account per site is William's call; with none, IG, TikTok and LinkedIn refuse.

@@ -1,5 +1,6 @@
+import { outlierCount } from "@wren/research/outliers";
 import { describe, expect, it } from "vitest";
-import { engagementRate, formatWhatWorked, outlierCount, type WorkedRow } from "./metrics.js";
+import { engagementRate, formatWhatWorked, type WorkedRow } from "./metrics.js";
 import { weekOf } from "./restate/metrics.js";
 
 describe("metrics", () => {
