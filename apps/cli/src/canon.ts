@@ -15,7 +15,7 @@ import { ingressOf, type Settings } from "@wren/config";
 import { playbookStandard, scopeOf, writeSopFiles } from "@wren/content-standard";
 import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
 import { tellLive } from "@wren/core/live";
-import type { Db } from "@wren/db";
+import { createDb, type Db } from "@wren/db";
 import { modelLlm } from "@wren/llm";
 import {
   type CanonAddRequest,
@@ -25,7 +25,7 @@ import {
   renewAdd,
   whatOf,
 } from "@wren/research/canon-adds";
-import type { CanonIndexSync } from "@wren/research/canon-index";
+import { type CanonIndexSync, syncCanonIndex } from "@wren/research/canon-index";
 import {
   addSource,
   buildSop,
@@ -64,6 +64,34 @@ import { breakdownLlm, breakdownSource, registerSourcePieces } from "./source-pi
 import { watchEyes } from "./video-watch.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
+
+/** This Mac's own database: a sync from the local Canon clone is safe only here. */
+export const isLoopback = (url: string) =>
+  ["127.0.0.1", "localhost", "::1", "[::1]"].includes(new URL(url).hostname);
+
+/** Schema `canon` from this machine's Canon clone at its main (git is the truth: not the working tree). */
+export async function syncHere(settings: Settings, rootDir: string, full = false) {
+  if (!isLoopback(settings.databaseUrl))
+    throw new Error(
+      "canon sync --here writes the database it reads: loopback only (prod syncs on the box)",
+    );
+  const h = createDb(settings.databaseUrl, { max: 1, app: "wren-canon-here" });
+  try {
+    return await syncCanonIndex(
+      h.db,
+      settings.databaseUrl,
+      "canon",
+      {
+        dir: join(homedir(), ".cache", "wren", "canon-index"),
+        remote: resolve(rootDir, settings.canonDir),
+        token: null,
+      },
+      { full },
+    );
+  } finally {
+    await h.close();
+  }
+}
 
 interface AddOpts {
   topic?: string;
@@ -130,7 +158,15 @@ export function registerCanon(
     .command("sync")
     .description("Fetch Canon's main on the box and bring schema canon up to it (a push does this)")
     .option("--full", "reread every file at main: after a force push, or to repair")
-    .action(async (o: { full?: boolean }) => {
+    .option(
+      "--here",
+      "sync this Mac's database from the local Canon clone's main instead (loopback only)",
+    )
+    .action(async (o: { full?: boolean; here?: boolean }) => {
+      if (o.here) {
+        console.log(JSON.stringify(await syncHere(settings, rootDir, o.full), null, 2));
+        return;
+      }
       const out = o.full ? await indexOf().rebuild() : await indexOf().sync();
       console.log(JSON.stringify(out, null, 2));
     });

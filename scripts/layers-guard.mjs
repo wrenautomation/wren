@@ -14,6 +14,8 @@ const LAYERS = [
   "books calendar content-standard documents folders niches payments pipeline starling-acts starling-conversations starling-studio watch",
   // What a client buys or Wren runs as a loop.
   "delivery reactivation starling-inbound starling-outbound variants voice",
+  // Reads across products: every product's records as one tree (designs/2026-11-12-explorer.md).
+  "paths",
 ].flatMap((row, layer) => row.split(" ").map((name) => [name, layer]));
 const layerOf = new Map(LAYERS);
 

@@ -29,7 +29,8 @@ import { CANON_CONSOLE_APPS, CANON_CONSOLE_ROUTES } from "./canon-console-routes
 import { canonLibraryApi, lineText, type RecordFilters } from "./canon-library.js";
 
 const REPO = "canon";
-const VIDEO_KINDS = ["reel", "video"];
+/** the kinds the References page holds */
+export const VIDEO_KINDS = ["reel", "video"];
 const PAGE = 60;
 
 /** s3://bucket/key → a signed URL. */
@@ -173,7 +174,8 @@ export function youtubeId(url: string): string | null {
 const savedOf = (d: Data, created: string) =>
   str(obj(d.saved)?.at) ?? str(d.saved) ?? str(d.created) ?? created;
 
-async function shape(
+/** A source row as the page shows it: poster and player from the media bucket or the platform. */
+export async function referenceOf(
   r: { id: string; title: string; created: string; data: Data },
   media: Media | null,
 ): Promise<Reference> {
@@ -345,7 +347,7 @@ export function canonConsoleApi(db: Db, media: Media | null = null) {
         indexed: true,
         head,
         total,
-        rows: await Promise.all(rows.map((r) => shape(r, media))),
+        rows: await Promise.all(rows.map((r) => referenceOf(r, media))),
         next: after + rows.length < total ? after + rows.length : null,
         facets: { platform, tag, provider, area },
       } satisfies ReferencesPage;
@@ -406,7 +408,7 @@ export function canonConsoleApi(db: Db, media: Media | null = null) {
           })
         : [];
       return {
-        ...(await shape(r, media)),
+        ...(await referenceOf(r, media)),
         hook: str(bd.hook),
         hookStyle: str(bd.hookStyle),
         cta: str(bd.cta),
@@ -465,7 +467,7 @@ type Req = PortalRequest & Record<string, unknown>;
 export function makeCanonConsole(db: Db, media: Media | null, remote: string) {
   const api = canonConsoleApi(db, media);
   const library = canonLibraryApi(db, remote, (rows) =>
-    Promise.all(rows.map((r) => shape(r, media))),
+    Promise.all(rows.map((r) => referenceOf(r, media))),
   );
   const h = <K extends keyof typeof INPUTS>(k: K, fn: (req: Req) => Promise<unknown>) =>
     serviceHandler(

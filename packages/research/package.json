@@ -42,7 +42,7 @@
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/runtime": "workspace:*",
-    "@wrenautomation/knowledge": "0.75.1",
+    "@wrenautomation/knowledge": "0.75.3",
     "@wrenautomation/models": "0.75.2",
     "@wrenautomation/read": "0.75.2",
     "csv-parse": "7.0.2",

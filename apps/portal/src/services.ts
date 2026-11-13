@@ -63,6 +63,11 @@ import {
   FOLDERS_CONSOLE_WRITES,
 } from "@wren/folders/console-routes";
 import {
+  PATHS_CONSOLE_APPS,
+  PATHS_CONSOLE_ROUTES,
+  PATHS_CONSOLE_WRITES,
+} from "@wren/paths/console-routes";
+import {
   PAYMENTS_CONSOLE_APPS,
   PAYMENTS_CONSOLE_ROUTES,
   PAYMENTS_CONSOLE_WRITES,
@@ -197,6 +202,8 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   ),
   // Canon › References: the index of Canon's sources, read only.
   canon: service("CanonConsole", CANON_CONSOLE_ROUTES, CANON_CONSOLE_APPS, CANON_CONSOLE_WRITES),
+  // Explorer: any product's records as one tree of paths, with links between them.
+  paths: service("PathsConsole", PATHS_CONSOLE_ROUTES, PATHS_CONSOLE_APPS, PATHS_CONSOLE_WRITES),
   // One folder tree for chats, subjects and runs.
   folders: service(
     "FoldersConsole",

@@ -153,6 +153,9 @@ importers:
       '@wren/offers':
         specifier: workspace:*
         version: link:../../packages/offers
+      '@wren/paths':
+        specifier: workspace:*
+        version: link:../../packages/paths
       '@wren/pipeline':
         specifier: workspace:*
         version: link:../../packages/pipeline
@@ -217,8 +220,8 @@ importers:
         specifier: 0.68.10
         version: 0.68.10
       '@wrenautomation/knowledge':
-        specifier: 0.75.1
-        version: 0.75.1(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.75.3
+        version: 0.75.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/models':
         specifier: 0.75.2
         version: 0.75.2
@@ -323,6 +326,9 @@ importers:
       '@wren/folders':
         specifier: workspace:*
         version: link:../../packages/folders
+      '@wren/paths':
+        specifier: workspace:*
+        version: link:../../packages/paths
       '@wren/payments':
         specifier: workspace:*
         version: link:../../packages/payments
@@ -589,6 +595,9 @@ importers:
       '@wren/offers':
         specifier: workspace:*
         version: link:../../packages/offers
+      '@wren/paths':
+        specifier: workspace:*
+        version: link:../../packages/paths
       '@wren/payments':
         specifier: workspace:*
         version: link:../../packages/payments
@@ -904,8 +913,8 @@ importers:
         specifier: workspace:*
         version: link:../llm
       '@wrenautomation/knowledge':
-        specifier: 0.75.1
-        version: 0.75.1(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.75.3
+        version: 0.75.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/read':
         specifier: 0.75.2
         version: 0.75.2(@aws-sdk/client-s3@3.1136.0)
@@ -1229,6 +1238,40 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
+  packages/paths:
+    dependencies:
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../core
+      '@wren/db':
+        specifier: workspace:*
+        version: link:../db
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../research
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
+      zod:
+        specifier: 4.6.6
+        version: 4.6.6
+    devDependencies:
+      '@testcontainers/postgresql':
+        specifier: 12.1.0
+        version: 12.1.0
+      '@wrenautomation/knowledge':
+        specifier: 0.75.3
+        version: 0.75.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
   packages/payments:
     dependencies:
       '@wren/core':
@@ -1385,8 +1428,8 @@ importers:
         specifier: workspace:*
         version: link:../runtime
       '@wrenautomation/knowledge':
-        specifier: 0.75.1
-        version: 0.75.1(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.75.3
+        version: 0.75.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/models':
         specifier: 0.75.2
         version: 0.75.2
@@ -6370,8 +6413,8 @@ packages:
     peerDependencies:
       '@electric-sql/pglite': ^0.5.11
 
-  '@wrenautomation/knowledge@0.75.1':
-    resolution: {integrity: sha512-YrBzA6mG3kbqd4O+sks1Ybwfo7EU4zOHMHF+XS0q7vQTcRekrGYro/8TOOMzA//nViRejWHhhvEa3QSoTXhEiw==}
+  '@wrenautomation/knowledge@0.75.3':
+    resolution: {integrity: sha512-fuwlsKBOcpA0Ssy/BOh77+ZOYv5UBQ1WF14y7VyXZmLlj7vTCnIPnMnihgEnMcZ5HDWGiZe78yC1B5fIsrSXOQ==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
@@ -14626,7 +14669,7 @@ snapshots:
       - sql.js
       - sqlite3
 
-  '@wrenautomation/knowledge@0.75.1(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
+  '@wrenautomation/knowledge@0.75.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
     dependencies:
       '@electric-sql/pglite': 0.5.15
       commander: 15.0.0
