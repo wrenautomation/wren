@@ -2,6 +2,7 @@
  * Canon › Library: every record of every type, newest change first. Filters live in the address:
  * `type`, `status`, `topic`, `tag`, `q`. A search also lists the files whose path or text matches.
  */
+import { sizeLabel } from "@wren/core/paths";
 import type { Counted, RecordsPage } from "@wren/research/canon-library";
 import { Button, Empty, LoadFailed, Loading, num, Tag, useSeen } from "@wren/ui";
 import { useState } from "react";
@@ -10,7 +11,7 @@ import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { dayLabel } from "../work/bits.js";
-import { Pick, Search, Section, sizeLabel, typeName } from "./parts.js";
+import { Pick, Search, Section, typeName } from "./parts.js";
 import { fileHref, OpenedHere, recordHref } from "./record.js";
 
 const HERE = "/canon/library";

@@ -1,7 +1,6 @@
-/** Canon › Overview, a topic, the Library, and any record or file opened beside them. Fake server: `web/src/mocks/`. */
+/** Canon: a topic, the Library, and any record or file opened beside them. Fake server: `web/src/mocks/`. */
 import type { Meta } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { CANON_HOME } from "../../../mocks/data/canon-library.js";
 import { ADMIN } from "../../../mocks/data/me.js";
 import { pageAt, storyHref, tidy } from "../../../mocks/page.js";
 
@@ -10,27 +9,6 @@ export default meta;
 
 const WAIT = { timeout: 5000 };
 const sheet = async () => within(await within(document.body).findByRole("dialog", {}, WAIT));
-
-/** Every topic, records by type, direction, conflicts; a topic card opens the topic. */
-export const Overview = tidy(
-  pageAt("/canon/overview", {
-    me: ADMIN,
-    check: async (page) => {
-      const view = within(page);
-      await expect(await view.findByText("Topics (3)", {}, WAIT)).toBeVisible();
-      await expect(view.getByRole("link", { name: /^Findings/ })).toBeVisible();
-      await expect(view.getByText("1 open conflict")).toBeVisible();
-      await expect(view.getByText("Personal brand, then licensing")).toBeVisible();
-      // two stale cites on one guide count once
-      await expect(view.getByText("Needs a look (2)")).toBeVisible();
-      await expect(view.getByText("Shared rule sets (2)")).toBeVisible();
-      await expect(view.getByRole("link", { name: "Writing tells: Copy" })).toBeVisible();
-      await expect(
-        view.getByRole("link", { name: /^Video editing\s*Edit a video/ }),
-      ).toHaveAttribute("href", "/canon/topic?t=video-editing");
-    },
-  }),
-);
 
 /** One topic: the guide with cites as links; a cite opens its record beside the page. */
 export const Topic = tidy(
@@ -190,7 +168,7 @@ export const SourceOpened = tidy(
 
 /** A direction doc open: frontmatter as code, the rest as markdown. */
 export const FileOpened = tidy(
-  pageAt("/canon/overview?f=direction/2026-11-12-personal-brand.md", {
+  pageAt("/canon/library?f=direction/2026-11-12-personal-brand.md", {
     me: ADMIN,
     check: async () => {
       const s = await sheet();
@@ -211,17 +189,6 @@ export const BinaryFile = tidy(
     },
   }),
 );
-
-/** Before the first sync. */
-export const NotIndexed = pageAt("/canon/overview", {
-  me: ADMIN,
-  answers: { "canon/home": { ...CANON_HOME, indexed: false, head: null, topics: [] } },
-  check: async (page) => {
-    await expect(await within(page).findByText("No index here yet", {}, WAIT)).toBeVisible();
-  },
-});
-
-export const Loading = pageAt("/canon/overview", { me: ADMIN, mode: "pending" });
 
 export const Failed = pageAt("/canon/library", {
   me: ADMIN,

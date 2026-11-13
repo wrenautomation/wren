@@ -72,10 +72,10 @@ export const Default: Story = {
     );
     // its sources, as rows to their homes
     await shown(canvas.getByRole("region", { name: "Backed by" }));
-    // narrow: Back to the set; the crumb names only the line
+    // narrow: Back to the set; the heading names the line, so no crumb
     if (!wideIn(canvasElement)) {
       await expect(canvas.getAllByRole("link", { name: "bread-baking-proofing" })).toHaveLength(1);
-      await expect(canvas.getByRole("navigation", { name: "Path" })).toHaveTextContent(/^BP-2$/);
+      await expect(canvas.queryByRole("navigation", { name: "Path" })).toBeNull();
       return;
     }
     await expect(canvasElement.querySelectorAll("[data-col]")).toHaveLength(6);

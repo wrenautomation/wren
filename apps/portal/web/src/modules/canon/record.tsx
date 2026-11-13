@@ -2,6 +2,7 @@
  * Any Canon record or file, opened beside the page that links it: `?r=<id>` a record, `?f=<path>` a
  * file. A record shows its fields whole, its body with cites as links, what it cites and what cites it.
  */
+import { sizeLabel } from "@wren/core/paths";
 import type { FileWhole, Link, RecordWhole } from "@wren/research/canon-library";
 import { Empty, Icon, LoadFailed, Loading, Tag, useSeen } from "@wren/ui";
 import { call } from "../../api.js";
@@ -12,7 +13,6 @@ import {
   Markdown,
   Panel,
   Section,
-  sizeLabel,
   splitFrontmatter,
   typeName,
   VIDEO_KINDS,
@@ -61,14 +61,25 @@ function OpenedRecord({ id, here, params }: { id: string; here: string; params: 
       ) : !got.data ? (
         <Loading shape="rows" lines={6} />
       ) : (
-        <Whole r={got.data} here={here} params={params} />
+        <RecordBody r={got.data} open={(id) => recordHref(here, id, params)} />
       )}
     </Panel>
   );
 }
 
-function Whole({ r, here, params }: { r: RecordWhole; here: string; params: URLSearchParams }) {
-  const open = (id: string) => recordHref(here, id, params);
+/**
+ * A record's fields, note, body and links. `bare`: inside a frame that already shows its title and
+ * its cites both ways (Explorer's preview).
+ */
+export function RecordBody({
+  r,
+  open,
+  bare,
+}: {
+  r: RecordWhole;
+  open: (id: string) => string;
+  bare?: boolean;
+}) {
   const note = r.data.note as { text?: string; by?: string; at?: string } | undefined;
   const provider = r.data.provider as { kind?: string; who?: string } | undefined;
   const url = typeof r.data.url === "string" ? r.data.url : null;
@@ -87,11 +98,14 @@ function Whole({ r, here, params }: { r: RecordWhole; here: string; params: URLS
             </a>
           )}
         </span>
-        <h2 className="m-0 text-[18px] leading-snug font-semibold text-pretty wrap-anywhere">
-          {r.title}
-        </h2>
+        {!bare && (
+          <h2 className="m-0 text-[18px] leading-snug font-semibold text-pretty wrap-anywhere">
+            {r.title}
+          </h2>
+        )}
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-(--ui-ink-3)">
-          <code className="wrap-anywhere">{r.id}</code>
+          {/* bare: the frame's header names the id */}
+          {!bare && <code className="wrap-anywhere">{r.id}</code>}
           {url && (
             <a
               href={url}
@@ -130,8 +144,12 @@ function Whole({ r, here, params }: { r: RecordWhole; here: string; params: URLS
           <Markdown text={withoutTitle(r.body)} cites={r.cites} open={open} />
         </Section>
       )}
-      <LinkList title="Cites" links={r.cites} open={open} numbered empty="It cites nothing." />
-      <LinkList title="Cited by" links={r.citedBy} open={open} empty="Nothing cites it yet." />
+      {!bare && (
+        <>
+          <LinkList title="Cites" links={r.cites} open={open} numbered empty="It cites nothing." />
+          <LinkList title="Cited by" links={r.citedBy} open={open} empty="Nothing cites it yet." />
+        </>
+      )}
       <Section title="Fields">
         <dl className="m-0 grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[13px]">
           {provider?.kind && <Fact k="provider" v={`${provider.kind}: ${provider.who ?? ""}`} />}
@@ -150,8 +168,24 @@ function Whole({ r, here, params }: { r: RecordWhole; here: string; params: URLS
 
 const DATE = /^\d{4}-\d{2}-\d{2}T/;
 
+/** A finding's quote: `{ text, at }`. */
+const quoteOf = (v: unknown) =>
+  v && typeof v === "object" && typeof (v as { text?: unknown }).text === "string"
+    ? (v as { text: string; at?: unknown })
+    : null;
+
 function Fact({ k, v }: { k: string; v: unknown }) {
   if (v == null || v === "") return null;
+  const q = quoteOf(v);
+  if (q)
+    return (
+      <>
+        <dt className="text-(--ui-ink-3) wrap-anywhere">{k}</dt>
+        <dd className="m-0 min-w-0 wrap-anywhere">
+          “{q.text}”{q.at != null && <span className="text-(--ui-ink-3)"> at {String(q.at)}</span>}
+        </dd>
+      </>
+    );
   const flat =
     typeof v === "string" || typeof v === "number" || typeof v === "boolean"
       ? String(v)
@@ -258,16 +292,19 @@ function OpenedFile({
   );
 }
 
-function FileBody({ f }: { f: FileWhole }) {
+/** A file whole: Markdown, else code. `bare`: its frame shows the name. */
+export function FileBody({ f, bare }: { f: FileWhole; bare?: boolean }) {
   const md = f.path.endsWith(".md");
   const { head, body } =
     md && f.body != null ? splitFrontmatter(f.body) : { head: null, body: f.body };
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h2 className="m-0 text-[18px] leading-snug font-semibold wrap-anywhere">
-          {f.path.split("/").pop()}
-        </h2>
+        {!bare && (
+          <h2 className="m-0 text-[18px] leading-snug font-semibold wrap-anywhere">
+            {f.path.split("/").pop()}
+          </h2>
+        )}
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-(--ui-ink-3)">
           <code className="wrap-anywhere">{f.path}</code>
           <span>{sizeLabel(f.size)}</span>

@@ -4,6 +4,7 @@
  * behind them. Evidence, checks, his notes, conflicts and files sit beside the layers. Any link opens
  * the record or file beside the page.
  */
+import { sizeLabel } from "@wren/core/paths";
 import type { RuleLine, RuleSet, TopicWhole } from "@wren/research/canon-library";
 import { Empty, Icon, LoadFailed, Loading, num, Tag, type TagTone, useSeen } from "@wren/ui";
 import { Fragment, type ReactNode } from "react";
@@ -11,14 +12,8 @@ import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href } from "../../route.js";
-import {
-  Markdown,
-  Section,
-  sizeLabel,
-  splitFrontmatter,
-  VIDEO_KINDS,
-  withoutTitle,
-} from "./parts.js";
+import { explorerHref } from "./explorer.js";
+import { Markdown, Section, splitFrontmatter, VIDEO_KINDS, withoutTitle } from "./parts.js";
 import { Code, fileHref, OpenedHere, recordHref } from "./record.js";
 import { Poster } from "./references.js";
 
@@ -31,8 +26,11 @@ export function TopicPage({ params }: PageProps) {
   const name = params.get("t");
   if (!name)
     return (
-      <Empty title="No topic picked" action={<a href="/canon/overview">Every topic</a>}>
-        Pick a topic on the overview.
+      <Empty
+        title="No topic picked"
+        action={<a href={explorerHref("canon/topics")}>Every topic</a>}
+      >
+        Pick a topic in Explorer.
       </Empty>
     );
   return <Topic key={name} name={name} params={params} />;
@@ -80,7 +78,10 @@ function Whole({ t, params }: { t: TopicWhole; params: URLSearchParams }) {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
-        <a href="/canon/overview" className="inline-flex items-center gap-1 text-[13px]">
+        <a
+          href={explorerHref("canon/topics")}
+          className="inline-flex items-center gap-1 text-[13px]"
+        >
           <Icon name="left" className="size-3.5" /> Every topic
         </a>
         <h2 className="m-0 text-[22px] leading-tight font-semibold text-pretty wrap-anywhere">

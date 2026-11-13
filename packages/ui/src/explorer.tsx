@@ -27,7 +27,7 @@ import { Seg, type TagTone } from "./controls.js";
 import { useCopy } from "./copy.js";
 import { useLoad } from "./data/query.js";
 import { FindResults, Narrow, WideColumns, WideGallery, WideList } from "./explorer-panes.js";
-import { type Ctx, follow, within } from "./explorer-rows.js";
+import { type Ctx, follow, PathFailed, within } from "./explorer-rows.js";
 import { LoadFailed } from "./feedback.js";
 import { Icon, type IconName } from "./icons.js";
 
@@ -231,6 +231,11 @@ export function Explorer(p: ExplorerProps) {
     <div className="min-w-0 flex-1 p-4">
       <LoadFailed error={got.error} onRetry={got.retry} className="mb-0" />
     </div>
+  ) : error && !cols.length ? (
+    // the root failed: no column to stand in, so the frame's body
+    <div className="min-w-0 flex-1 p-1">
+      <PathFailed ctx={ctx} error={error} onRetry={got.retry} />
+    </div>
   ) : !wide ? (
     <Narrow
       ctx={ctx}
@@ -285,8 +290,13 @@ export function Explorer(p: ExplorerProps) {
   return (
     <div ref={box} className={cn("flex min-w-0 flex-col gap-3", p.className)}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        {/* narrow: the pane's Back row names the parent; the crumb names only where it stands */}
-        <Crumbs crumbs={wide ? crumbs : crumbs.slice(-1)} ctx={ctx} />
+        {/* narrow: the pane's Back row names the parent; the crumb names only where it stands,
+            and a preview's own title does that */}
+        {wide ? (
+          <Crumbs crumbs={crumbs} ctx={ctx} />
+        ) : whole ? null : (
+          <Crumbs crumbs={crumbs.slice(-1)} ctx={ctx} />
+        )}
         <div
           className={cn(
             "flex min-w-0 items-center gap-2",

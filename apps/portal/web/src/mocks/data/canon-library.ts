@@ -525,27 +525,40 @@ export const CANON_LIBRARY_ANSWERS = serve<ReturnType<typeof canonLibraryApi>>("
     };
   },
   record: (b) => {
-    const r = RECORD[String(b.id)];
-    if (r) return r;
-    const listed = CANON_RECORDS.find((x) => x.id === b.id);
-    if (!listed) throw new Error("no such record");
-    return {
-      id: listed.id,
-      type: listed.type,
-      title: listed.title,
-      status: listed.status,
-      path: `${listed.type}s/${listed.id}.md`,
-      topic: listed.topic,
-      body: listed.id === "video-editing-cuts" ? CUTS : listed.summary,
-      data: { by: "agent-1", why: "made up", version: 1, updated: listed.updated },
-      cites: listed.id === "video-editing-cuts" ? CUTS_CITES : [],
-      citedBy: [],
-      github: `${GITHUB}/blob/main/${listed.type}s/${listed.id}.md`,
-    };
+    const r = canonRecord(String(b.id));
+    if (!r) throw new Error("no such record");
+    return r;
   },
   file: (b) => {
-    const f = FILES[String(b.path)];
+    const f = canonFile(String(b.path));
     if (!f) throw new Error("no such file");
     return f;
   },
 });
+
+/** A record whole, as `canon/record` answers; null when Canon has none. */
+export function canonRecord(id: string): RecordWhole | null {
+  const r = RECORD[id];
+  if (r) return r;
+  const listed = CANON_RECORDS.find((x) => x.id === id);
+  if (!listed) return null;
+  return {
+    id: listed.id,
+    type: listed.type,
+    title: listed.title,
+    status: listed.status,
+    path: `${listed.type}s/${listed.id}.md`,
+    topic: listed.topic,
+    body: listed.id === "video-editing-cuts" ? CUTS : listed.summary,
+    data: { by: "agent-1", why: "made up", version: 1, updated: listed.updated },
+    cites: listed.id === "video-editing-cuts" ? CUTS_CITES : [],
+    citedBy: [],
+    github: `${GITHUB}/blob/main/${listed.type}s/${listed.id}.md`,
+  };
+}
+
+/** Every record whole the mocks hold by id. */
+export const canonRecordsWhole = (): readonly RecordWhole[] => Object.values(RECORD);
+
+/** A file whole, as `canon/file` answers; null when the mocks hold none. */
+export const canonFile = (path: string): FileWhole | null => FILES[path] ?? null;

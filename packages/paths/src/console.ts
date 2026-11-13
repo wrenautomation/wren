@@ -9,7 +9,7 @@ import { answer, PortalRefusal, type PortalRequest, portalService } from "@wren/
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type * as restate from "@wren/runtime";
 import { z } from "zod";
-import { PATHS_CONSOLE_APPS, PATHS_CONSOLE_ROUTES } from "./console-routes.js";
+import { PATH_ERROR_STATUS, PATHS_CONSOLE_APPS, PATHS_CONSOLE_ROUTES } from "./console-routes.js";
 import { type PathsDeps, serverRoots } from "./roots.js";
 
 type Req = PortalRequest & Record<string, unknown>;
@@ -21,7 +21,8 @@ const INPUTS = {
   find: { q: z.string().min(1).max(200), under: PATH.nullish() },
 } as const;
 
-const STATUS = { "not-indexed": 404, "unknown-path": 404, offline: 503, blind: 403 } as const;
+/** What each route answers: the portal's mocks type their answers by it. */
+export type PathsConsoleApi = ReturnType<typeof pathsConsoleApi>;
 
 function pathsConsoleApi(d: PathsDeps) {
   const roots = serverRoots(d);
@@ -35,7 +36,7 @@ function pathsConsoleApi(d: PathsDeps) {
       return await fn();
     } catch (e) {
       if (e instanceof PathError)
-        throw new PortalRefusal(`${e.code}: ${e.message}`, STATUS[e.code]);
+        throw new PortalRefusal(`${e.code}: ${e.message}`, PATH_ERROR_STATUS[e.code]);
       throw e;
     }
   };

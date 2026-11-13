@@ -305,7 +305,7 @@ function Opened({ id, params }: { id: string; params: URLSearchParams }) {
   ) : !got.data ? (
     <Loading shape="rows" lines={6} />
   ) : (
-    <Whole r={got.data} />
+    <ReferenceBody r={got.data} />
   );
   return (
     <Panel
@@ -379,7 +379,8 @@ function Player({ r }: { r: ReferenceWhole }) {
   );
 }
 
-function Whole({ r }: { r: ReferenceWhole }) {
+/** A reference: player, note, breakdown. `bare`: its frame shows the title and the lines it backs. */
+export function ReferenceBody({ r, bare }: { r: ReferenceWhole; bare?: boolean }) {
   const stats = [
     r.stats?.views != null ? `${num(r.stats.views)} views` : null,
     r.stats?.likes != null ? `${num(r.stats.likes)} likes` : null,
@@ -389,9 +390,11 @@ function Whole({ r }: { r: ReferenceWhole }) {
     <div className="flex flex-col gap-5">
       <Player r={r} />
       <div className="flex flex-col gap-1.5">
-        <h2 className="m-0 text-[18px] leading-snug font-semibold text-pretty wrap-anywhere">
-          {r.title}
-        </h2>
+        {!bare && (
+          <h2 className="m-0 text-[18px] leading-snug font-semibold text-pretty wrap-anywhere">
+            {r.title}
+          </h2>
+        )}
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-(--ui-ink-3)">
           <a
             href={r.url}
@@ -438,22 +441,24 @@ function Whole({ r }: { r: ReferenceWhole }) {
           ))}
         </div>
       )}
-      <Section title="Backs">
-        {r.backs.length ? (
-          <ul className="m-0 flex list-none flex-col gap-2 p-0">
-            {r.backs.map((b) => (
-              <li key={`${b.set}:${b.line}`} className="flex flex-col gap-0.5">
-                <span className="text-[12.5px] text-(--ui-ink-3)">
-                  <code>{b.line}</code> in {b.setTitle}
-                </span>
-                <span className="text-[14px] leading-normal text-pretty">{b.text}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="m-0 text-[13.5px] text-(--ui-ink-3)">No rule line cites it yet.</p>
-        )}
-      </Section>
+      {!bare && (
+        <Section title="Backs">
+          {r.backs.length ? (
+            <ul className="m-0 flex list-none flex-col gap-2 p-0">
+              {r.backs.map((b) => (
+                <li key={`${b.set}:${b.line}`} className="flex flex-col gap-0.5">
+                  <span className="text-[12.5px] text-(--ui-ink-3)">
+                    <code>{b.line}</code> in {b.setTitle}
+                  </span>
+                  <span className="text-[14px] leading-normal text-pretty">{b.text}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="m-0 text-[13.5px] text-(--ui-ink-3)">No rule line cites it yet.</p>
+          )}
+        </Section>
+      )}
       {(r.hook || r.cta) && (
         <Section title="Breakdown">
           {r.hook && (

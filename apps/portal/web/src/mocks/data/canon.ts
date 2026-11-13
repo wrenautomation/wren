@@ -121,7 +121,8 @@ const WHOLE: Record<string, Partial<ReferenceWhole>> = {
   },
 };
 
-const whole = (r: Reference): ReferenceWhole => ({
+/** A reference whole, as `canon/reference` answers. */
+export const referenceWhole = (r: Reference): ReferenceWhole => ({
   hook: null,
   hookStyle: null,
   cta: null,
@@ -184,7 +185,7 @@ export const CANON_ANSWERS = serve<ReturnType<typeof canonConsoleApi>>("canon", 
   reference: (b) => {
     const r = CANON_ROWS.find((x) => x.id === b.id);
     if (!r) throw new Error("no such reference");
-    return whole(r);
+    return referenceWhole(r);
   },
 });
 

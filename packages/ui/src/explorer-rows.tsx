@@ -313,9 +313,9 @@ export function Preview({
   const alias = step && !moved && step.route !== step.home;
   const links = whole.links.filter((l) => l.items.length);
   const body = ctx.p.preview ? undefined : whole.body;
-  // a rule line's sub is its body's first words: say it once
+  // a rule line's sub is its body's first words: say it once, whoever draws the body
   const sub =
-    whole.sub && whole.sub !== whole.name && !body?.trimStart().startsWith(whole.sub.trim())
+    whole.sub && whole.sub !== whole.name && !whole.body?.trimStart().startsWith(whole.sub.trim())
       ? whole.sub
       : undefined;
   return (

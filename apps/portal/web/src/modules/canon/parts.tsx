@@ -286,14 +286,6 @@ export function splitFrontmatter(text: string): { head: string | null; body: str
   return { head: text.slice(4, end), body: text.slice(end + 4).replace(/^\n+/, "") };
 }
 
-/** Bytes as KB or MB. */
-export const sizeLabel = (n: number) =>
-  n < 1024
-    ? `${n} B`
-    : n < 1024 * 1024
-      ? `${Math.round(n / 1024)} KB`
-      : `${(n / 1024 / 1024).toFixed(1)} MB`;
-
 const TYPE_NAMES: Record<string, [string, string]> = {
   source: ["Source", "Sources"],
   finding: ["Finding", "Findings"],

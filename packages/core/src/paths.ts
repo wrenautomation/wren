@@ -233,6 +233,14 @@ export interface Shown {
 const FOLDERS = new Set(["root", "area", "layer", "relation", "folder", "type"]);
 export const isFolder = (i: Pick<Item, "kind">) => FOLDERS.has(i.kind);
 
+/** Bytes as B, KB or MB: a file row's sub and its page say one size. */
+export const sizeLabel = (n: number) =>
+  n < 1024
+    ? `${n} B`
+    : n < 1024 * 1024
+      ? `${Math.round(n / 1024)} KB`
+      : `${(n / 1024 / 1024).toFixed(1)} MB`;
+
 export async function columns(a: Adapter, route: string): Promise<Shown> {
   const w = await walk(a, route);
   let error = w.error;

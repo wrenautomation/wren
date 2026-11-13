@@ -1,122 +1,27 @@
 /**
- * Canon as a tree (designs/2026-11-12-explorer.md D4): `canon/topics/<topic>/<layer>/…`, a set's
- * lines under it, `canon/references/<id>`, `canon/records/<type>/<id>`, `canon/files/<path>`.
- * A set another topic borrows shows there as an alias; `backs`, `cites` and `used-by` are
- * relation folders. Reads schema `canon` through the library, never the repo. One adapter per
- * request: topics and records load once.
+ * Canon's tree on a server: `canonTree` (canon-tree.ts) over schema `canon`, read through the
+ * library, never the repo. One adapter per request: topics and records load once.
  */
 
-import {
-  type Adapter,
-  aliasOf,
-  type Item,
-  itemFromParent,
-  join,
-  linksOf,
-  type Page,
-  PathError,
-  relationRow,
-  segments,
-  type Whole,
-} from "@wren/core/paths";
+import { PathError } from "@wren/core/paths";
 import { PortalRefusal } from "@wren/core/portal";
 import type { Db } from "@wren/db";
 import {
   canonConsoleApi,
   type Media,
-  type ReferenceWhole,
   referenceOf,
   VIDEO_KINDS,
 } from "@wren/research/canon-console";
-import {
-  canonLibraryApi,
-  type FileRef,
-  type Link as RecordLink,
-  type RecordWhole,
-  type RuleSet,
-  type TopicWhole,
-} from "@wren/research/canon-library";
+import { canonLibraryApi, type FileRef } from "@wren/research/canon-library";
 import { type SQL, sql } from "drizzle-orm";
+import { type CanonSource, canonTree, type Placed } from "./canon-tree.js";
 
-const ROOT = "canon";
 const REPO = "canon";
-const PAGE = 50;
-
-/** A record with what its home needs. */
-export type Placed = {
-  id: string;
-  type: string | null;
-  title: string | null;
-  status: string;
-  topic?: string | null;
-  kind?: string | null;
-};
-
-/**
- * A record's home: live guides and sets under their topic, video sources under references. A
- * retired record leaves its topic (the topic shows live ones): it sits under records/.
- */
-function recordHome(r: Placed): string {
-  const live = r.status === "live";
-  if (live && r.type === "guide" && r.topic) return join(ROOT, "topics", r.topic, "guide");
-  if (live && r.type === "rule" && r.topic) return join(ROOT, "topics", r.topic, "sets", r.id);
-  if (r.type === "source" && r.kind && VIDEO_KINDS.includes(r.kind))
-    return join(ROOT, "references", r.id);
-  return join(ROOT, "records", r.type ?? "missing", r.id);
-}
-
-const recordRow = (r: Placed): Item => ({
-  path: recordHome(r),
-  name: r.title ?? r.id,
-  sub: r.id,
-  kind: r.type ?? "record",
-  ...(r.status !== "live" ? { mark: r.status } : {}),
-  ...(r.type ? {} : { leaf: true }),
-});
-
-/** A folder of files: the next level under `prefix`, folders first. */
-function fileTree(base: string, prefix: string, files: FileRef[]): Item[] {
-  const dirs = new Map<string, number>();
-  const leaves: Item[] = [];
-  for (const f of files) {
-    if (!f.path.startsWith(prefix)) continue;
-    const [head = "", ...more] = f.path.slice(prefix.length).split("/");
-    if (more.length) dirs.set(head, (dirs.get(head) ?? 0) + 1);
-    else
-      leaves.push({
-        path: join(base, head),
-        name: head,
-        kind: "file",
-        sub: f.text ? `${f.size} bytes` : `${f.size} bytes, binary`,
-        leaf: true,
-      });
-  }
-  return [
-    ...[...dirs]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([d, n]): Item => ({ path: join(base, d), name: d, kind: "folder", count: n })),
-    ...leaves.sort((a, b) => a.name.localeCompare(b.name)),
-  ];
-}
-
-const once = <V>(load: () => Promise<V>) => {
-  let p: Promise<V> | undefined;
-  return () => {
-    p ??= load();
-    return p;
-  };
-};
-const memo = <K, V>(load: (k: K) => Promise<V>) => {
-  const m = new Map<K, Promise<V>>();
-  return (k: K) => {
-    let p = m.get(k);
-    if (!p) {
-      p = load(k);
-      m.set(k, p);
-    }
-    return p;
-  };
-};
+const PLACED = sql`id, type, title, status, coalesce(topic, data->>'topic') as topic, data->>'kind' as kind`;
+const VIDEO = sql.join(
+  VIDEO_KINDS.map((k) => sql`${k}`),
+  sql`, `,
+);
 
 // a refusal from the library is a path that isn't there
 const missing = (what: string) => (e: unknown) => {
@@ -124,621 +29,103 @@ const missing = (what: string) => (e: unknown) => {
   throw e;
 };
 
-export function canonPaths(db: Db, remote: string, media: Media | null): Adapter {
+/** Canon's index as the tree's source. */
+export function canonSource(db: Db, remote: string, media: Media | null): CanonSource {
   const library = canonLibraryApi(db, remote, (rows) =>
     Promise.all(rows.map((r) => referenceOf(r, media))),
   );
   const console = canonConsoleApi(db, media);
-
-  const indexed = once(async () => {
-    const [r] = await db.execute<{ t: string | null }>(
-      sql`select to_regclass('canon.knowledge_files')::text as t`,
-    );
-    if (!r?.t)
-      throw new PathError(
-        "not-indexed",
-        "Canon has no index here yet: wren canon sync (this Mac: --here)",
+  const count = async (q: SQL) => (await db.execute<{ n: number }>(q))[0]?.n ?? 0;
+  return {
+    videoKinds: VIDEO_KINDS,
+    indexed: async () => {
+      const [r] = await db.execute<{ t: string | null }>(
+        sql`select to_regclass('canon.knowledge_files')::text as t`,
       );
-    return true;
-  });
-  const topic = memo(async (name: string) => {
-    await indexed();
-    return library.topic(name).catch(missing(`topic ${name}`));
-  });
-  const record = memo(async (id: string) => {
-    await indexed();
-    return library.record(id).catch(missing(`record ${id}`));
-  });
-  const reference = memo(async (id: string) => {
-    await indexed();
-    return console.reference(id).catch(missing(`reference ${id}`));
-  });
-  /** files outside topics/: direction, knowledge.json, shapes … */
-  const rootFiles = once(async () => {
-    await indexed();
-    return db.execute<FileRef>(
-      sql`select path, size, body is not null as text from canon.knowledge_files where repo = ${REPO} and path not like 'topics/%' order by path`,
-    );
-  });
-  const placed = async (ids: string[]): Promise<Map<string, Placed>> => {
-    if (!ids.length) return new Map();
-    const rows = await db.execute<Placed>(
-      sql`select id, type, title, status, coalesce(topic, data->>'topic') as topic, data->>'kind' as kind from canon.knowledge_records where repo = ${REPO} and id in (${sql.join(
-        ids.map((i) => sql`${i}`),
-        sql`, `,
-      )})`,
-    );
-    return new Map(rows.map((r) => [r.id, r]));
-  };
-  /** What took a retired record's place (`retire --into`), followed to a live one; null when none. */
-  const movedTo = async (id: string): Promise<Placed | null> => {
-    let at = id;
-    for (let i = 0; i < 5; i++) {
-      const [r] = await db.execute<Placed & { into: string | null }>(
-        sql`select id, type, title, status, coalesce(topic, data->>'topic') as topic, data->>'kind' as kind, data->>'into' as into from canon.knowledge_records where repo = ${REPO} and id = ${at}`,
-      );
-      if (!r) return null;
-      if (r.status === "live") return at === id ? null : r;
-      if (!r.into) return null;
-      at = r.into;
-    }
-    return null;
-  };
-  /** A topic folded away: its retired guide's `into`, as the topic that took it. */
-  const movedTopic = async (name: string): Promise<string | null> => {
-    const [g] = await db.execute<{ id: string }>(
-      sql`select id from canon.knowledge_records where repo = ${REPO} and type = 'guide' and status = 'retired' and data ? 'into' and (id = ${name} or topic = ${name}) order by (id = ${name}) desc limit 1`,
-    );
-    const to = g ? await movedTo(g.id) : null;
-    return to?.topic ?? null;
-  };
-  /** Cited records as rows, in their order; one not in Canon is `missing`. */
-  const rowsOf = async (links: RecordLink[]): Promise<Item[]> => {
-    const by = await placed(links.map((l) => l.id));
-    return links.map((l) => recordRow(by.get(l.id) ?? { ...l, status: "missing", type: null }));
-  };
-  const relation = (home: string, rel: string, targets: Item[]) =>
-    targets.map((t) => aliasOf(join(home, rel), t));
-
-  const setOf = async (owner: string, id: string): Promise<{ t: TopicWhole; set: RuleSet }> => {
-    const t = await topic(owner);
-    const set = t.sets.find((s) => s.id === id);
-    if (!set) throw new PathError("unknown-path", `${owner} owns no set ${id}`);
-    return { t, set };
-  };
-  /** a source under a topic as a row: a reference (poster) or plain evidence */
-  const sourceRows = (t: TopicWhole) => {
-    const m = new Map<string, Item>();
-    for (const r of t.references)
-      m.set(r.id, {
-        path: recordHome({
-          id: r.id,
-          type: "source",
-          title: r.title,
-          status: "live",
-          kind: r.kind,
-        }),
-        name: r.title,
-        sub: [r.platform, r.handle ? `@${r.handle}` : null].filter(Boolean).join(" · "),
-        kind: "reference",
-        ...(r.poster ? { poster: r.poster } : {}),
-      });
-    for (const e of t.evidence) m.set(e.id, recordRow({ ...e, type: "source", kind: e.kind }));
-    return m;
-  };
-
-  /** The rows under a topic, by layer. */
-  const topicRows = async (name: string, rest: string[]): Promise<Item[]> => {
-    const t = await topic(name);
-    const base = join(ROOT, "topics", name);
-    const checks = t.files.filter((f) => f.path.startsWith(`topics/${name}/checks/`));
-    const others = t.files.filter((f) => !f.path.startsWith(`topics/${name}/checks/`));
-    const [layer, ...under] = rest;
-    if (!layer) {
-      const rows: Item[] = [];
-      if (t.skill)
-        rows.push({
-          path: join(base, "skill"),
-          name: "Skill",
-          sub: "SKILL.md",
-          kind: "skill",
-          leaf: true,
-        });
-      if (t.guide)
-        rows.push({
-          path: join(base, "guide"),
-          name: "Procedure",
-          sub: t.guide.title,
-          kind: "guide",
-        });
-      rows.push({
-        path: join(base, "sets"),
-        name: "Rule sets",
-        kind: "layer",
-        count: t.sets.length + t.borrowed.length,
-      });
-      if (t.references.length)
-        rows.push({
-          path: join(base, "references"),
-          name: "References",
-          kind: "layer",
-          count: t.references.length,
-        });
-      if (t.evidence.length)
-        rows.push({
-          path: join(base, "evidence"),
-          name: "Evidence",
-          kind: "layer",
-          count: t.evidence.length,
-        });
-      if (checks.length)
-        rows.push({
-          path: join(base, "checks"),
-          name: "Checks",
-          kind: "layer",
-          count: checks.length,
-        });
-      if (t.notes != null)
-        rows.push({
-          path: join(base, "notes"),
-          name: "Notes",
-          sub: "notes.md",
-          kind: "notes",
-          leaf: true,
-        });
-      if (t.conflicts.length)
-        rows.push({
-          path: join(base, "conflicts"),
-          name: "Conflicts",
-          kind: "layer",
-          count: t.conflicts.length,
-        });
-      if (others.length)
-        rows.push({
-          path: join(base, "files"),
-          name: "Files",
-          kind: "layer",
-          count: others.length,
-        });
-      return rows;
-    }
-    const at = join(base, layer);
-    // these hold alias rows only: a row under one reads at its home
-    if (under.length && ["skill", "notes", "references", "evidence", "conflicts"].includes(layer))
-      throw new PathError("unknown-path", `${join(at, ...under)} is an alias: read it at its home`);
-    switch (layer) {
-      case "skill":
-      case "notes":
-        return [];
-      case "guide": {
-        const cites = t.guide ? await rowsOf(t.guide.cites) : [];
-        if (!under.length) return relationRow(at, "cites", cites);
-        if (under.join("/") === "cites") return relation(at, "cites", cites);
-        throw new PathError("unknown-path", `${name}'s guide has no ${under.join("/")}`);
-      }
-      case "sets": {
-        const [id, ...deeper] = under;
-        if (!id)
-          return [
-            ...t.sets.map((s) => ({
-              path: join(at, s.id),
-              name: s.id,
-              sub: s.title,
-              kind: "set",
-              count: s.lines,
-            })),
-            ...t.borrowed.map((s) =>
-              aliasOf(
-                at,
-                {
-                  path: join(ROOT, "topics", s.topic ?? name, "sets", s.id),
-                  name: s.id,
-                  sub: s.title,
-                  kind: "set",
-                  count: s.lines,
-                },
-                s.topic ?? undefined,
-              ),
-            ),
-          ];
-        return setRows(name, id, deeper);
-      }
-      case "references":
-      case "evidence": {
-        const rows = sourceRows(t);
-        const ids =
-          layer === "references" ? t.references.map((r) => r.id) : t.evidence.map((e) => e.id);
-        return ids.flatMap((i) => {
-          const r = rows.get(i);
-          return r ? [aliasOf(at, r)] : [];
-        });
-      }
-      case "conflicts":
-        return t.conflicts.map((c) => aliasOf(at, recordRow({ ...c, type: "conflict" })));
-      case "checks":
-        return fileTree(
-          join(at, ...under),
-          `topics/${name}/checks/${under.map((u) => `${u}/`).join("")}`,
-          checks,
-        );
-      case "files":
-        return fileTree(
-          join(at, ...under),
-          `topics/${name}/${under.map((u) => `${u}/`).join("")}`,
-          others,
-        );
-      default:
-        throw new PathError("unknown-path", `${name} has no ${layer}`);
-    }
-  };
-
-  /** Under a set's home: its lines and relations; under a line, what backs it. */
-  const setRows = async (owner: string, id: string, rest: string[]): Promise<Item[]> => {
-    const { t, set } = await setOf(owner, id);
-    const home = join(ROOT, "topics", owner, "sets", id);
-    const usedBy = set.usedBy.map(
-      (u): Item => ({
-        path: join(ROOT, "topics", u.topic),
-        name: u.topic,
-        sub: u.title,
-        kind: "topic",
-      }),
-    );
-    const [seg, ...deeper] = rest;
-    if (!seg)
-      return [
-        ...set.rules.map((r) => ({
-          path: join(home, r.id),
-          name: r.id,
-          sub: r.text,
-          kind: "line",
-          mark: r.backing,
-        })),
-        ...relationRow(home, "used-by", usedBy),
-        ...relationRow(home, "cites", await rowsOf(set.cites)),
-      ];
-    if (seg === "used-by") return relation(home, seg, usedBy);
-    if (seg === "cites") return relation(home, seg, await rowsOf(set.cites));
-    const line = set.rules.find((r) => r.id === seg);
-    if (!line) throw new PathError("unknown-path", `${id} has no line ${seg}`);
-    const sources = sourceRows(t);
-    const backers = line.sources.flatMap((s) => {
-      const r = sources.get(s);
-      return r ? [r] : [];
-    });
-    const lineHome = join(home, seg);
-    if (!deeper.length) return relationRow(lineHome, "backed-by", backers);
-    if (deeper[0] === "backed-by") return relation(lineHome, "backed-by", backers);
-    throw new PathError("unknown-path", `${seg} has no ${deeper[0]}`);
-  };
-
-  const backsOf = async (id: string): Promise<Item[]> =>
-    (await reference(id)).backs.map((b) => ({
-      path: join(ROOT, "topics", b.topic ?? "", "sets", b.set, b.line),
-      name: b.line,
-      sub: b.text,
-      kind: "line",
-    }));
-  const citedBy = async (id: string) => rowsOf((await record(id)).citedBy);
-
-  const children = async (path: string, after?: string): Promise<Page> => {
-    await indexed();
-    const [root, area, ...rest] = segments(path);
-    if (root !== ROOT) throw new PathError("unknown-path", `not a Canon path: ${path}`);
-    const offset = Number(after ?? 0) || 0;
-    switch (area) {
-      case undefined: {
-        const [[refs], [recs], files] = await Promise.all([
-          db.execute<{ n: number }>(
-            sql`select count(*)::int as n from canon.knowledge_records where repo = ${REPO} and type = 'source' and status = 'live' and data->>'kind' in (${sql.join(
-              VIDEO_KINDS.map((k) => sql`${k}`),
+      return !!r?.t;
+    },
+    home: () => library.home(),
+    topic: (name) => library.topic(name).catch(missing(`topic ${name}`)),
+    record: (id) => library.record(id).catch(missing(`record ${id}`)),
+    reference: (id) => console.reference(id).catch(missing(`reference ${id}`)),
+    file: (path) => library.file(path).catch(missing("file")),
+    references: (after, limit) => console.references({ after, limit }),
+    rootFiles: () =>
+      db.execute<FileRef>(
+        sql`select path, size, body is not null as text from canon.knowledge_files where repo = ${REPO} and path not like 'topics/%' order by path`,
+      ),
+    placed: async (ids) =>
+      !ids.length
+        ? []
+        : await db.execute<Placed>(
+            sql`select ${PLACED} from canon.knowledge_records where repo = ${REPO} and id in (${sql.join(
+              ids.map((i) => sql`${i}`),
               sql`, `,
             )})`,
           ),
-          db.execute<{ n: number }>(
-            sql`select count(*)::int as n from canon.knowledge_records where repo = ${REPO}`,
-          ),
-          rootFiles(),
-        ]);
-        const [topics] = await db.execute<{ n: number }>(
+    into: async (id) => {
+      const [r] = await db.execute<Placed & { into: string | null }>(
+        sql`select ${PLACED}, data->>'into' as into from canon.knowledge_records where repo = ${REPO} and id = ${id}`,
+      );
+      return r ?? null;
+    },
+    foldedGuide: async (name) => {
+      const [g] = await db.execute<{ id: string }>(
+        sql`select id from canon.knowledge_records where repo = ${REPO} and type = 'guide' and status = 'retired' and data ? 'into' and (id = ${name} or topic = ${name}) order by (id = ${name}) desc limit 1`,
+      );
+      return g?.id ?? null;
+    },
+    counts: async () => {
+      const [references, records, topics] = await Promise.all([
+        count(
+          sql`select count(*)::int as n from canon.knowledge_records where repo = ${REPO} and type = 'source' and status = 'live' and data->>'kind' in (${VIDEO})`,
+        ),
+        count(sql`select count(*)::int as n from canon.knowledge_records where repo = ${REPO}`),
+        count(
           sql`select count(*)::int as n from (
                 select topic as t from canon.knowledge_records where repo = ${REPO} and status = 'live' and type in ('guide', 'rule') and topic is not null
                 union
                 select split_part(path, '/', 2) from canon.knowledge_files where repo = ${REPO} and path like 'topics/%/%'
               ) x`,
-        );
-        return {
-          items: [
-            { path: join(ROOT, "topics"), name: "Topics", kind: "area", count: topics?.n ?? 0 },
-            {
-              path: join(ROOT, "references"),
-              name: "References",
-              kind: "area",
-              count: refs?.n ?? 0,
-            },
-            { path: join(ROOT, "records"), name: "Records", kind: "area", count: recs?.n ?? 0 },
-            { path: join(ROOT, "files"), name: "Files", kind: "area", count: files.length },
-          ],
-        };
-      }
-      case "topics": {
-        const [name, ...under] = rest;
-        if (!name)
-          return {
-            items: (await library.home()).topics.map((t) => ({
-              path: join(ROOT, "topics", t.name),
-              name: t.name,
-              sub: t.title === t.name ? (t.description ?? undefined) : t.title,
-              kind: "topic",
-              count: t.sets,
-            })) as Item[],
-          };
-        return { items: await topicRows(name, under) };
-      }
-      case "references": {
-        const [id, rel] = rest;
-        if (!id) {
-          const p = await console.references({ after: offset, limit: PAGE });
-          return {
-            items: p.rows.map((r) => ({
-              path: join(ROOT, "references", r.id),
-              name: r.title,
-              sub: [r.platform, r.handle ? `@${r.handle}` : null].filter(Boolean).join(" · "),
-              kind: "reference",
-              ...(r.poster ? { poster: r.poster } : {}),
-            })),
-            ...(p.next != null ? { next: String(p.next) } : {}),
-          };
-        }
-        const home = join(ROOT, "references", id);
-        if (!rel)
-          return {
-            items: [
-              ...relationRow(home, "backs", await backsOf(id)),
-              ...relationRow(home, "cited-by", await citedBy(id)),
-            ],
-          };
-        if (rel === "backs") return { items: relation(home, rel, await backsOf(id)) };
-        if (rel === "cited-by") return { items: relation(home, rel, await citedBy(id)) };
-        throw new PathError("unknown-path", `${id} has no ${rel}`);
-      }
-      case "records": {
-        const [type, id, rel] = rest;
-        if (!type) {
-          const types = await db.execute<{ type: string; n: number }>(
-            sql`select type, count(*)::int as n from canon.knowledge_records where repo = ${REPO} group by type order by n desc, type`,
-          );
-          return {
-            items: types.map((t) => ({
-              path: join(ROOT, "records", t.type),
-              name: t.type,
-              kind: "type",
-              count: t.n,
-            })),
-          };
-        }
-        const base = join(ROOT, "records", type);
-        if (!id) {
-          const [rows, [count]] = await Promise.all([
-            db.execute<Placed>(
-              sql`select id, type, title, status, coalesce(topic, data->>'topic') as topic, data->>'kind' as kind from canon.knowledge_records where repo = ${REPO} and type = ${type} order by updated desc, id limit ${PAGE} offset ${offset}`,
-            ),
-            db.execute<{ n: number }>(
-              sql`select count(*)::int as n from canon.knowledge_records where repo = ${REPO} and type = ${type}`,
-            ),
-          ]);
-          const items = rows.map((r) => {
-            const row = recordRow(r);
-            return row.path === join(base, r.id) ? row : aliasOf(base, row);
-          });
-          const next = offset + rows.length;
-          return { items, ...(next < (count?.n ?? 0) ? { next: String(next) } : {}) };
-        }
-        const home = join(base, id);
-        const r = await record(id);
-        const into = async () => {
-          const to = await movedTo(id);
-          return to ? [recordRow(to)] : [];
-        };
-        if (!rel)
-          return {
-            items: [
-              ...relationRow(home, "into", await into()),
-              ...relationRow(home, "cites", await rowsOf(r.cites)),
-              ...relationRow(home, "cited-by", await rowsOf(r.citedBy)),
-            ],
-          };
-        if (rel === "into") return { items: relation(home, rel, await into()) };
-        if (rel === "cites") return { items: relation(home, rel, await rowsOf(r.cites)) };
-        if (rel === "cited-by") return { items: relation(home, rel, await rowsOf(r.citedBy)) };
-        throw new PathError("unknown-path", `${id} has no ${rel}`);
-      }
-      case "files":
-        return {
-          items: fileTree(
-            join(ROOT, "files", ...rest),
-            rest.map((r) => `${r}/`).join(""),
-            await rootFiles(),
-          ),
-        };
-      default:
-        throw new PathError("unknown-path", `Canon has no ${area}`);
-    }
-  };
-
-  const adapter: Adapter = {
-    root: ROOT,
-    children,
-    item: async (path) => {
-      await indexed();
-      const segs = segments(path);
-      const [root, area, a, b] = segs;
-      if (root !== ROOT) throw new PathError("unknown-path", `not a Canon path: ${path}`);
-      if (!area) return { path: ROOT, name: "Canon", kind: "root" };
-      if (segs.length === 2) {
-        if (!["topics", "references", "records", "files"].includes(area))
-          throw new PathError("unknown-path", `Canon has no ${area}`);
-        return { path, name: area[0]?.toUpperCase() + area.slice(1), kind: "area" };
-      }
-      if (area === "topics" && a && segs.length === 3) {
-        // a topic folded into another answers as that one
-        const to = await topic(a).then(
-          (t) => ({ name: a, t }),
-          async (e: unknown) => {
-            const into = e instanceof PathError ? await movedTopic(a) : null;
-            if (!into) throw e;
-            return { name: into, t: await topic(into) };
-          },
-        );
-        const home = join(ROOT, "topics", to.name);
-        return {
-          path: home,
-          name: to.name,
-          sub: to.t.title,
-          kind: "topic",
-          ...(home !== path ? { was: path } : {}),
-        };
-      }
-      // a record by id, straight: no list to page through
-      if (
-        (area === "references" && a && segs.length === 3) ||
-        (area === "records" && b && segs.length === 4)
-      ) {
-        const id = (area === "references" ? a : b) as string;
-        const r = (await placed([id])).get(id);
-        if (!r || (area === "records" && r.type !== a))
-          throw new PathError("unknown-path", `no ${area === "records" ? a : "reference"} ${id}`);
-        return recordRow(r);
-      }
-      if (area === "records" && a && segs.length === 3) return { path, name: a, kind: "type" };
-      if (area === "files") {
-        const rel = segs.slice(2).join("/");
-        const files = await rootFiles();
-        if (files.some((f) => f.path === rel))
-          return { path, name: segs.at(-1) ?? rel, kind: "file", leaf: true };
-        if (files.some((f) => f.path.startsWith(`${rel}/`)))
-          return { path, name: segs.at(-1) ?? rel, kind: "folder" };
-        throw new PathError("unknown-path", `no file ${rel}`);
-      }
-      return itemFromParent(adapter, path).catch(async (e: unknown) => {
-        // a set retired into another: its home now
-        const set = area === "topics" && b === "sets" && segs.length === 5 ? segs[4] : undefined;
-        const to = set && e instanceof PathError ? await movedTo(set) : null;
-        if (to?.type !== "rule") throw e;
-        return {
-          ...recordRow(to),
-          name: to.id,
-          ...(to.title ? { sub: to.title } : {}),
-          kind: "set",
-          was: path,
-        };
-      });
+        ),
+      ]);
+      return { topics, references, records };
     },
-    whole: async (path) => {
-      const it = await adapter.item(path);
-      const home = it.path;
-      const [, area, a, layer, set, line] = segments(home);
-      const links = await linksOf(adapter, it);
-      const out: Whole = { ...it, links };
-      if (area === "topics" && a) {
-        const t = await topic(a);
-        if (!layer) return { ...out, data: t };
-        if (layer === "skill") return { ...out, body: t.skill ?? "" };
-        if (layer === "notes") return { ...out, body: t.notes ?? "" };
-        if (layer === "guide") return { ...out, body: t.guide?.body ?? "", data: t.guide };
-        if (layer === "sets" && set) {
-          const { set: s } = await setOf(a, set);
-          if (!line) return { ...out, body: s.body, data: s };
-          const l = s.rules.find((r) => r.id === line);
-          return { ...out, body: l?.text ?? "", data: { set: s.id, setTitle: s.title, line: l } };
-        }
-        if ((layer === "checks" || layer === "files") && it.kind === "file") {
-          const rest = segments(home).slice(4).join("/");
-          const f = await library
-            .file(`topics/${a}/${layer === "checks" ? "checks/" : ""}${rest}`)
-            .catch(missing("file"));
-          return { ...out, body: f.body ?? "", data: f };
-        }
-        return out;
-      }
-      if (area === "references" && a) {
-        const r: ReferenceWhole = await reference(a);
-        return { ...out, body: r.transcript ?? r.caption ?? r.note?.text ?? "", data: r };
-      }
-      if (area === "records" && layer) {
-        const r: RecordWhole = await record(layer);
-        return { ...out, body: r.body, data: r };
-      }
-      if (area === "files" && it.kind === "file") {
-        const f = await library.file(segments(home).slice(2).join("/")).catch(missing("file"));
-        return { ...out, body: f.body ?? "", data: f };
-      }
-      return out;
+    types: () =>
+      db.execute<{ type: string; n: number }>(
+        sql`select type, count(*)::int as n from canon.knowledge_records where repo = ${REPO} group by type order by n desc, type`,
+      ),
+    ofType: async (type, offset, limit) => {
+      const [rows, total] = await Promise.all([
+        db.execute<Placed>(
+          sql`select ${PLACED} from canon.knowledge_records where repo = ${REPO} and type = ${type} order by updated desc, id limit ${limit} offset ${offset}`,
+        ),
+        count(
+          sql`select count(*)::int as n from canon.knowledge_records where repo = ${REPO} and type = ${type}`,
+        ),
+      ]);
+      return { rows, total };
     },
-    find: async (q, under) => {
-      await indexed();
-      const words = q.split(/\s+/).filter(Boolean);
-      if (!words.length) return [];
-      const [, area, a] = segments(under ?? ROOT);
+    findRecords: (words, under, limit) => {
       const like = (w: string) => `%${w.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
       const w: SQL[] = [sql`repo = ${REPO}`];
       for (const word of words) w.push(sql`(title ilike ${like(word)} or id ilike ${like(word)})`);
-      if (area === "topics" && a) w.push(sql`coalesce(topic, data->>'topic') = ${a}`);
-      if (area === "records" && a) w.push(sql`type = ${a}`);
-      if (area === "references")
-        w.push(
-          sql`type = 'source' and data->>'kind' in (${sql.join(
-            VIDEO_KINDS.map((k) => sql`${k}`),
-            sql`, `,
-          )})`,
-        );
-      const records =
-        area === "files"
-          ? []
-          : await db.execute<Placed>(
-              sql`select id, type, title, status, coalesce(topic, data->>'topic') as topic, data->>'kind' as kind from canon.knowledge_records where ${sql.join(w, sql` and `)} order by (status = 'live') desc, updated desc, id limit ${PAGE}`,
-            );
-      const topics =
-        area && area !== "topics"
-          ? []
-          : (await library.home()).topics
-              .filter(
-                (t) =>
-                  (!a || t.name === a) &&
-                  words.every((x) =>
-                    `${t.name} ${t.title}`.toLowerCase().includes(x.toLowerCase()),
-                  ),
-              )
-              .map(
-                (t): Item => ({
-                  path: join(ROOT, "topics", t.name),
-                  name: t.name,
-                  sub: t.title,
-                  kind: "topic",
-                }),
-              );
-      const files =
-        area && area !== "files"
-          ? []
-          : (await rootFiles())
-              .filter((f) => words.every((x) => f.path.toLowerCase().includes(x.toLowerCase())))
-              .map(
-                (f): Item => ({
-                  path: join(ROOT, "files", f.path),
-                  name: f.path,
-                  kind: "file",
-                  leaf: true,
-                }),
-              );
-      return [...topics, ...records.map(recordRow), ...files];
+      if (under.topic) w.push(sql`coalesce(topic, data->>'topic') = ${under.topic}`);
+      if (under.type) w.push(sql`type = ${under.type}`);
+      if (under.references) w.push(sql`type = 'source' and data->>'kind' in (${VIDEO})`);
+      return db.execute<Placed>(
+        sql`select ${PLACED} from canon.knowledge_records where ${sql.join(w, sql` and `)} order by (status = 'live') desc, updated desc, id limit ${limit}`,
+      );
     },
-    stamp: async () => {
-      await indexed();
+    head: async () => {
       const [h] = await db.execute<{ value: string }>(
         sql`select value from canon.knowledge_meta where repo = ${REPO} and key = 'head'`,
       );
-      return { root: ROOT, head: h?.value ?? null };
+      return h?.value ?? null;
     },
   };
-  return adapter;
+}
+
+export function canonPaths(db: Db, remote: string, media: Media | null) {
+  return canonTree(canonSource(db, remote, media));
 }

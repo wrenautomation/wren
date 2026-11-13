@@ -3,8 +3,8 @@
  * (designs/2026-11-12-canon-references.md). Wren's team only. Read only: edits stay in Canon.
  */
 import type { Module } from "../../module.js";
+import { ExplorerPage } from "./explorer.js";
 import { LibraryPage } from "./library.js";
-import { OverviewPage } from "./overview.js";
 import { ReferencesPage } from "./references.js";
 import { TopicPage } from "./topic.js";
 
@@ -17,10 +17,11 @@ export const canon: Module = {
   requires: { audience: "team" },
   pages: [
     {
-      id: "overview",
-      label: "Overview",
-      about: "Every topic with its guide, rule sets and skill; direction; what needs a look.",
-      Page: OverviewPage,
+      id: "explorer",
+      label: "Explorer",
+      about:
+        "The whole brain as one tree: topics, their layers and lines, references, records, files. What needs a look beside the root.",
+      Page: ExplorerPage,
       wide: true,
     },
     {
@@ -43,7 +44,7 @@ export const canon: Module = {
       about: "One topic whole: guide, rule sets, his notes, skill, sources and files.",
       Page: TopicPage,
       hidden: true,
-      lights: "overview",
+      lights: "explorer",
     },
   ],
 };

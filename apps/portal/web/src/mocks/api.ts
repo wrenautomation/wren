@@ -15,7 +15,7 @@ export type Answer = { status: number; body: unknown };
 export type Answers = Record<string, Body | Reply>;
 /** A fixed answer. `object` takes in arrays and every typed body. */
 type Body = object | string | number | boolean | null;
-/** An answer made from the call's body. */
+/** An answer made from the call's body; async where the server's own code makes it. */
 type Reply = (body: Record<string, unknown>) => unknown;
 
 /** What a route of the server's API object `A` answers. */
@@ -29,7 +29,11 @@ export type Out<A, K extends keyof A> = A[K] extends (...args: never[]) => infer
  */
 export function serve<A>(
   service: string,
-  routes: { [K in keyof A & string]?: Out<A, K> | ((body: Record<string, unknown>) => Out<A, K>) },
+  routes: {
+    [K in keyof A & string]?:
+      | Out<A, K>
+      | ((body: Record<string, unknown>) => Out<A, K> | Promise<Out<A, K> | Refusal>);
+  },
 ): Answers {
   return Object.fromEntries(
     Object.entries(routes).map(([k, v]) => [`${service}/${k}`, v as Body | Reply]),
@@ -41,7 +45,8 @@ export type Mode = "answer" | "pending" | "fails";
 
 /** Wrapped so a table entry can say a status: `refuse(403, "Not yours")`. */
 const REFUSAL = Symbol("refusal");
-export const refuse = (status: number, error: string) => ({ [REFUSAL]: status, error });
+export type Refusal = { [REFUSAL]: number; error: string };
+export const refuse = (status: number, error: string): Refusal => ({ [REFUSAL]: status, error });
 
 /**
  * The table's key for a call: its path, or for a public handler called by name (`console/call`)
@@ -83,13 +88,16 @@ export async function settled(quietMs = 200, maxMs = 8000) {
     throw new Error(`Calls with no answer: ${[...story.unmocked].join(", ")}`);
 }
 
-/** The answer to one call. A call the table lacks is a 404, named in the console. */
+/**
+ * The answer to one call: a Promise when its reply is async. A call the table lacks is a 404,
+ * named in the console.
+ */
 export function answerOf(
   answers: Answers,
   path: string,
   body: Record<string, unknown>,
   mode: Mode,
-): Answer | null {
+): Answer | Promise<Answer> | null {
   // Who is signed in always answers: without it there is no shell to show a state in.
   if (path !== "delivery/me") {
     if (mode === "pending") return null;
@@ -102,12 +110,17 @@ export function answerOf(
   if (entry === undefined && path === "pipeline/mapRead") {
     const ask = (p: string, b: Record<string, unknown>) => {
       const a = answerOf(answers, p, b, mode);
-      return a?.status === 200 ? a.body : null;
+      return a && !(a instanceof Promise) && a.status === 200 ? a.body : null;
     };
     return { status: 200, body: mapReadOf(ask, body) };
   }
   if (entry === undefined) return { status: 404, body: { error: unmocked(key).error } };
   const got = typeof entry === "function" ? (entry as Reply)(body) : entry;
+  return got instanceof Promise ? got.then((g) => finish(path, g)) : finish(path, got);
+}
+
+/** A table answer as the call's: its refusal's status, or the body in this story's data look. */
+function finish(path: string, got: unknown): Answer {
   if (got && typeof got === "object" && REFUSAL in got) {
     const { [REFUSAL]: status, ...rest } = got as { [REFUSAL]: number; error: string };
     return { status, body: rest };
@@ -202,9 +215,10 @@ export function fakeApi(answers: Answers, mode: Mode = "answer") {
     http.post("/api/pulse", async ({ request }) => {
       const { calls } = (await request.json()) as { calls: Call[] };
       for (const c of calls) told(c.path);
+      // only `pending` answers null, and at once: an async answer counts as out while it works
       const each = calls.map((c) => answerOf(answers, c.path, c.body ?? {}, mode));
       if (each.some((a) => a === null)) return delay("infinite").then(() => HttpResponse.json({}));
-      return counted(async () => HttpResponse.json({ answers: each }));
+      return counted(async () => HttpResponse.json({ answers: await Promise.all(each) }));
     }),
     // a browser PUT on a link a fake `*Upload` signed (`UPLOAD_HOST`): taken, nothing kept
     http.put(`${UPLOAD_HOST}/*`, () => new HttpResponse(null, { status: 200 })),
@@ -214,7 +228,10 @@ export function fakeApi(answers: Answers, mode: Mode = "answer") {
       told(path);
       const a = answerOf(answers, path, body, mode);
       if (!a) return delay("infinite").then(() => HttpResponse.json({}));
-      return counted(async () => HttpResponse.json(a.body as never, { status: a.status }));
+      return counted(async () => {
+        const got = await a;
+        return HttpResponse.json(got.body as never, { status: got.status });
+      });
     }),
   ];
 }
