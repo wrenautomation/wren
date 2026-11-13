@@ -87,7 +87,7 @@ type PageRowsProps<T> = Omit<RowsProps<T>, "narrow" | "scroller"> & {
 };
 
 /** `Rows` on the page, flat as the records lists: no panel, no inner scroll, no count foot. */
-export function PageRows<T>({ narrow: fixed, scroller = "window", ...p }: PageRowsProps<T>) {
+export function PageRows<T>({ narrow: fixed, scroller = "page", ...p }: PageRowsProps<T>) {
   const screen = useNarrow();
   return <Rows<T> {...p} narrow={fixed ?? screen} scroller={scroller} />;
 }

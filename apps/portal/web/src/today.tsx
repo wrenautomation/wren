@@ -133,7 +133,7 @@ function Digest<T>({
       label={label}
       noun={noun}
       narrow={narrow}
-      scroller="window"
+      scroller="page"
       lines={lines}
       name={name}
       columns={columns}

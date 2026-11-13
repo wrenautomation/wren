@@ -19,6 +19,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -28,7 +29,7 @@ import { Icon, type IconName } from "./icons.js";
 import { lineColor, StageSquare, tintColor } from "./marks.js";
 import { SwipeRow, type Swipes } from "./phone.js";
 import { RowActions } from "./row-acts.js";
-import { type RowAttrs, useLines } from "./table.js";
+import { type RowAttrs, scrollerOf, useLines } from "./table.js";
 
 export { StageSquare };
 
@@ -304,8 +305,11 @@ export interface RowsProps<T> {
   wait?: ((row: T) => RowsWait | null) | undefined;
   /** Groups that fold: which are shut, and shut or open one. */
   group?: { folded: ReadonlySet<string>; toggle: (key: string) => void } | undefined;
-  /** The element that scrolls the rows, or "window" where the page does (a phone's always does). */
-  scroller: HTMLElement | null | "window";
+  /**
+   * What scrolls the rows: an element, "window", or "page" (the rows' nearest scrolling parent,
+   * found once they draw: the shell's panel on a wide screen). A phone's rows always use the window.
+   */
+  scroller: HTMLElement | null | "window" | "page";
   narrow: boolean;
   /** A phone row's swipes. */
   swipes?: ((row: T) => Swipes | null) | undefined;
@@ -562,10 +566,17 @@ export function Rows<T>(p: RowsProps<T>) {
   );
   const drawn = drawnOf(p.lines, p.group?.folded, p.wait);
   const root = useCallback(() => body.current ?? list.current, []);
+  // "page": read from the DOM, since the shell's panel scrolls a wide screen, not the window
+  const [found, setFound] = useState<HTMLElement | "window" | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the table and the list are other elements.
+  useLayoutEffect(() => {
+    const el = root();
+    if (p.scroller === "page" && el) setFound(scrollerOf(el));
+  }, [p.scroller, narrow, p.loading, root]);
   // A long list draws the lines in view of what scrolls the page.
   const lines = useLines({
     count: drawn.length,
-    scroller: narrow ? "window" : p.scroller,
+    scroller: narrow ? "window" : p.scroller === "page" ? found : p.scroller,
     root,
     estimate: narrow ? 76 : 42,
   });

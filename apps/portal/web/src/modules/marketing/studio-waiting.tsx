@@ -540,8 +540,8 @@ export function WaitingBoard(
             label="drafts"
             noun="draft"
             narrow={narrow}
-            // The page scrolls the rows: the board has no panel of its own.
-            scroller="window"
+            // the page's scroller: the board has no panel of its own
+            scroller="page"
             lines={lines}
             columns={columns}
             name={draftName(narrow, props.lines)}
