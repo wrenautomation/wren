@@ -47,12 +47,19 @@ const slug = (s: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
-/** `--account instagram=lana`: the reading account per platform; none means the site refuses */
+/**
+ * `--account x=x@wren`: the reading account per platform; none means the site refuses.
+ * Labeled only: a bare login (`instagram`) is the site's default, and a default may be William's own.
+ */
 const accountsOf = (pairs: string[] = []) =>
   Object.fromEntries(
     pairs.map((p) => {
       const [k, v] = p.split("=");
-      if (!k || !v) throw new Error(`--account takes platform=name: ${p}`);
+      if (!k || !v) throw new Error(`--account takes platform=site@label: ${p}`);
+      if (!/^[^@\s]+@[^@\s]+$/.test(v))
+        throw new Error(
+          `--account ${p}: name the login with its label (x@wren); a bare login may be William's own`,
+        );
       return [k, v];
     }),
   );
@@ -190,7 +197,7 @@ export function registerCreator(program: Command, withDb: WithDb, canon: CanonWr
     .option("-n, --posts <n>", `posts a read (default ${READ_POSTS})`, int)
     .option(
       "--account <platform=name...>",
-      "the autobrowse account that reads a site (instagram, threads, x, tiktok, linkedin); a site with none refuses",
+      "the labeled autobrowse login that reads a site (x=x@wren, linkedin=linkedin@wren); a site that needs one and has none refuses",
       many,
     )
     .option("--json", "JSON out")
