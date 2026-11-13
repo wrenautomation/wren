@@ -17,7 +17,8 @@ import { Segmented as Choice, useFrame } from "./frame.js";
 import { tipProps } from "./hint.js";
 import { useHoverPop } from "./hover-pop.js";
 import { Icon } from "./icons.js";
-import { CHIP, CHIP_ON, groupFields } from "./list-bar.js";
+import { CHIP, CHIP_ON } from "./filter-bar.js";
+import { groupFields } from "./list-bar.js";
 import { PAGE_SIZE, PAGE_SIZES, sizeOf } from "./pager.js";
 import { type Place, titleOf } from "./records-types.js";
 

@@ -259,6 +259,13 @@ export {
   wilson,
 } from "./fields.js";
 export {
+  type BarField,
+  CHIP,
+  CHIP_ON,
+  SearchField,
+  useFilterTools,
+} from "./filter-bar.js";
+export {
   type Box,
   edgePath,
   type FlowAxis,
@@ -361,8 +368,6 @@ export {
 } from "./layout.js";
 export { Lineage, type LineageVersion } from "./lineage.js";
 export {
-  CHIP,
-  CHIP_ON,
   type KeepApi,
   type SavedViewLine,
   SaveViewPop,

@@ -9,32 +9,26 @@
 import type { FieldMeta, RecordMeta } from "@wren/core/records";
 import type { SavedViewLine } from "@wren/core/saved-views";
 import { cn } from "cn";
-import {
-  type ReactNode,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { AccountFilter, accountFieldOf } from "./accounts.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "./components/ui/sheet.js";
 import { Button } from "./controls.js";
 import { useLoad } from "./data/query.js";
 import { useEdit } from "./data/use-edit.js";
 import { CheckField, TextField, useEditForm } from "./edit-form.js";
-import { Cue, cueOf, FieldFilter, filterParts, filterShape, inSight, useRoving } from "./fields.js";
+import { Cue, cueOf, FieldFilter, filterParts, filterShape } from "./fields.js";
+import {
+  type BarField,
+  BarGlyph,
+  CHIP,
+  CHIP_ON,
+  POP,
+  SearchField,
+  useFilterTools,
+} from "./filter-bar.js";
 import { num, short } from "./format.js";
 import { tipProps } from "./hint.js";
-import { useHoverPop, useSubmenus } from "./hover-pop.js";
+import { useHoverPop } from "./hover-pop.js";
 import { Icon, type IconName } from "./icons.js";
 import { LIST_FORMS } from "./list-search.js";
 import { RingSlot } from "./motion.js";
@@ -764,83 +758,38 @@ export function SaveViewPop({
 /** Rows per state of each field, under every filter but that field's own (a page's `facets`). */
 export type Facets = Record<string, Record<string, number>>;
 
-/**
- * A tool on the list's bar (artifact `.nt-top .tl button`): no frame, ink-3 at rest, the accent
- * wash on hover. `CHIP_ON` is one that is set (`.tl button.on`): the active ink on the tint.
- */
-export const CHIP =
-  "inline-flex h-8 pointer-coarse:h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-[4px_10px_4px_10px] border-0 bg-transparent px-[9px] text-[13px] font-semibold whitespace-nowrap text-(--ui-ink-3) no-underline transition-[background-color,color] duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink) focus-visible:outline-2 focus-visible:outline-(--ui-focus) data-[popup-open]:bg-(--ui-accent-wash) motion-reduce:transition-none";
-export const CHIP_ON =
-  "bg-(--ui-accent-tint) text-(--ui-active) hover:bg-(--ui-accent-tint) hover:text-(--ui-active)";
-/** A filter in force: a tool that is on, with its value and an ×. */
-const PILL = cn(
-  "inline-flex h-8 pointer-coarse:h-11 max-w-full min-w-0 items-center rounded-[4px_10px_4px_10px] text-[13px] font-semibold",
-  CHIP_ON,
-);
-
-/** The bar's glyphs, drawn as the artifact's (`S` in design-language.src.html): 15px, 1.8 stroke. */
-const GLYPH = {
-  table: "M4 6h16M4 12h16M4 18h10",
-  group: "M4 5h16M7 10h13M7 15h13M7 20h13",
-  filter: "M4 6h16M7 12h10M10 18h4",
-} as const;
-function BarGlyph({ name }: { name: keyof typeof GLYPH }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="size-[15px] flex-none fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.8]"
-    >
-      <path d={GLYPH[name]} />
-    </svg>
-  );
-}
-const POP = "w-72 gap-0 overflow-hidden bg-(--ui-paper) p-0 text-(--ui-ink)";
-const ROW =
-  "flex h-8 pointer-coarse:h-11 w-full cursor-pointer items-center gap-2 px-2 text-left text-[13px] text-(--ui-ink) select-none";
-
 const NUMBERS = new Set(["number", "money", "percent", "rate", "duration", "score"]);
 /** A field's kind as a small icon: a date, a figure, a choice, a person, a company, set or not, words. */
-function KindIcon({ field: f }: { field: FieldMeta }) {
+function kindIcon(f: FieldMeta): IconName {
   const shape = filterShape(f);
-  const name: IconName =
-    f.kind === "date"
-      ? "calendar"
-      : NUMBERS.has(f.kind)
-        ? "hash"
-        : shape === "states"
-          ? "dot"
-          : f.kind === "actor" || f.kind === "name"
-            ? "user"
-            : f.kind === "company"
-              ? "building"
-              : shape === "set"
-                ? "toggle"
-                : "text";
-  return <Icon name={name} className="size-3.5 shrink-0 text-(--ui-ink-3)" />;
+  return f.kind === "date"
+    ? "calendar"
+    : NUMBERS.has(f.kind)
+      ? "hash"
+      : shape === "states"
+        ? "dot"
+        : f.kind === "actor" || f.kind === "name"
+          ? "user"
+          : f.kind === "company"
+            ? "building"
+            : shape === "set"
+              ? "toggle"
+              : "text";
 }
 
-/**
- * What Filter opens: the fields to pick from (typing narrows them; the ones on screen first,
- * then the hidden ones, then a search for the typed text), then the picked one's control. Arrow
- * keys and Enter move and pick; Back returns to the fields. Each change applies at once.
- */
-/** One field's choices: its name, Clear when set, and its editor. `back` returns to the fields. */
-function FieldEditor({
+/** One field's control, with its counts read when it opens. */
+function FieldBody({
   field,
   place,
   facets,
-  back,
 }: {
   field: FieldMeta;
   place: Place;
   facets: (() => Promise<Facets | undefined>) | undefined;
-  back?: () => void;
 }) {
   const [counts, setCounts] = useState<Facets[string] | undefined>();
   const value = place.params.get(field.key);
   const set = (next: string | null) => place.go(place.link({ [field.key]: next, pg: null }), true);
-
   // read-ok: `facets` is the list's own read (its records api); this takes one field's counts.
   useEffect(() => {
     if (filterShape(field) !== "states" || !facets) return;
@@ -850,320 +799,46 @@ function FieldEditor({
       live = false;
     };
   }, [field, facets]);
-
-  return (
-    <div className="grid" data-filter-editor={field.key}>
-      <div className="flex h-10 items-center gap-1.5 border-b border-(--ui-hair) px-1">
-        {back ? (
-          <button
-            type="button"
-            aria-label="Back to fields"
-            {...tipProps("Back to fields", { as: "none" })}
-            onClick={back}
-            className="inline-flex size-7 items-center justify-center border-0 bg-transparent p-0 text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
-          >
-            <Icon name="left" className="size-4" />
-          </button>
-        ) : (
-          <span className="w-1.5" />
-        )}
-        <KindIcon field={field} />
-        <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal text-[13px] font-medium">
-          {field.label}
-        </span>
-        {value ? (
-          <button
-            type="button"
-            onClick={() => set(null)}
-            className="h-7 border-0 bg-transparent px-2 text-[12px] text-(--ui-ink-2) hover:text-(--ui-ink)"
-          >
-            Clear
-          </button>
-        ) : null}
-      </div>
-      <FieldFilter key={field.key} field={field} value={value} counts={counts} onChange={set} />
-    </div>
-  );
+  return <FieldFilter key={field.key} field={field} value={value} counts={counts} onChange={set} />;
 }
 
-function FilterPanel({
-  filters,
-  shown,
-  place,
-  many,
-  first,
-  start,
-  facets,
-  close,
-  phone,
-  byHover,
-}: {
-  filters: FieldMeta[];
-  shown: Set<string>;
-  /** Offered at the top of their group: `quickFilters`. */
-  first?: Set<string> | undefined;
-  place: Place;
-  /** The list's plural, when it searches. */
-  many: string | null;
-  /** The field to open on: a pill's own. */
-  start: FieldMeta | null;
-  facets: (() => Promise<Facets | undefined>) | undefined;
-  close: () => void;
-  /** In the phone's sheet: no keyboard on open, rows drill in, and the sheet scrolls. */
-  phone?: boolean | undefined;
-  /** Opened by the pointer resting on Filter: focus stays where it was. */
-  byHover?: boolean | undefined;
-}) {
-  const [field, setField] = useState<FieldMeta | null>(start);
-  const [text, setText] = useState("");
-  const id = useId();
-  const { params } = place;
-  // With a mouse, each field's choices open beside its row; keys and taps drill in.
-  const subs = useSubmenus();
-
-  const t = text.trim().toLowerCase();
-  const lead = (f: FieldMeta) => (first?.has(f.key) ? 0 : 1);
-  const match = filters
-    .filter((f) => f.label.toLowerCase().includes(t))
-    .sort((a, b) => lead(a) - lead(b));
-  const groups: [string, FieldMeta[]][] = [
-    ["On screen", match.filter((f) => shown.has(f.key))],
-    ["Hidden", match.filter((f) => !shown.has(f.key))],
-  ];
-  const order = groups.flatMap(([, fs]) => fs);
-  const searching = !!many && !!t;
-  const search = () => {
-    place.go(place.link({ q: text.trim(), pg: null }), true);
-    close();
-  };
-  const nav = useRoving(order.length + (searching ? 1 : 0));
-  const pick = (i: number) => {
-    const f = order[i];
-    if (f) setField(f);
-    else if (searching) search();
-  };
-
-  if (field)
-    return (
-      <FieldEditor
-        field={field}
-        place={place}
-        facets={facets}
-        back={() => {
-          setField(null);
-          setText("");
-        }}
-      />
-    );
-
-  const option = (i: number) => `${id}-${i}`;
-  return (
-    <div className="grid">
-      <label className="flex h-10 items-center gap-2 border-b border-(--ui-hair) px-3">
-        <Icon name="search" className="size-3.5 shrink-0 text-(--ui-ink-3)" />
-        <input
-          // edit-ok: search box
-          // biome-ignore lint/a11y/noAutofocus: the popover opened to type in this.
-          autoFocus={!phone && !byHover}
-          role="combobox"
-          aria-expanded
-          aria-controls={id}
-          aria-activedescendant={nav.at >= 0 ? option(nav.at) : undefined}
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            nav.setAt(0);
-          }}
-          onKeyDown={(e) => nav.keys(e, pick)}
-          placeholder="Filter by…"
-          aria-label="Filter by"
-          className="h-full min-w-0 flex-1 border-0 bg-transparent text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3)"
-        />
-      </label>
-      <div
-        id={id}
-        role="listbox"
-        aria-label="Fields"
-        className={cn("grid p-1", !phone && "max-h-[min(22rem,60vh)] overflow-y-auto")}
-      >
-        {groups.map(([label, fields]) =>
-          fields.length ? (
-            <div key={label} className="grid">
-              <span className="px-2 pt-2 pb-1 text-[11px] text-(--ui-ink-3)">{label}</span>
-              {fields.map((f) => {
-                const i = order.indexOf(f);
-                const v = params.get(f.key);
-                const face = (
-                  <>
-                    <KindIcon field={f} />
-                    <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">
-                      {f.label}
-                    </span>
-                    {v ? (
-                      <span className="max-w-[45%] wrap-anywhere whitespace-normal text-[12px] text-(--ui-ink-3)">
-                        {filterParts(f, v).value}
-                      </span>
-                    ) : null}
-                    {phone ? null : (
-                      <Icon name="right" className="size-3.5 shrink-0 text-(--ui-ink-3)" />
-                    )}
-                  </>
-                );
-                const row = {
-                  id: option(i),
-                  role: "option",
-                  tabIndex: -1,
-                  "aria-selected": i === nav.at,
-                  ref: inSight(i === nav.at),
-                  onMouseMove: () => nav.setAt(i),
-                  ...tipProps(v ? sayRaw(f, v) : undefined),
-                  className: cn(ROW, i === nav.at && "bg-(--ui-accent-wash)"),
-                } as const;
-                if (phone)
-                  return (
-                    // biome-ignore lint/a11y/useKeyWithClickEvents: the box's keys pick it.
-                    <div
-                      key={f.key}
-                      {...row}
-                      role="option"
-                      tabIndex={-1}
-                      onClick={() => setField(f)}
-                    >
-                      {face}
-                    </div>
-                  );
-                return (
-                  <Popover key={f.key} {...subs.rootOf(f.key)}>
-                    <PopoverTrigger
-                      {...subs.trigger}
-                      nativeButton={false}
-                      // An option may not carry aria-expanded (Base UI sets it on a trigger):
-                      // focus goes into the editor it opens, which says what it is.
-                      render={<div {...row} aria-expanded={undefined} data-filter-field={f.key} />}
-                    >
-                      {face}
-                    </PopoverTrigger>
-                    <PopoverContent
-                      aria-label={f.label}
-                      side="right"
-                      align="start"
-                      sideOffset={2}
-                      className={POP}
-                    >
-                      <FieldEditor field={f} place={place} facets={facets} />
-                    </PopoverContent>
-                  </Popover>
-                );
-              })}
-            </div>
-          ) : null,
-        )}
-        {searching ? (
-          // biome-ignore lint/a11y/useKeyWithClickEvents: the box's keys pick it.
-          <div
-            id={option(order.length)}
-            role="option"
-            tabIndex={-1}
-            aria-selected={nav.at === order.length}
-            ref={inSight(nav.at === order.length)}
-            onMouseMove={() => nav.setAt(order.length)}
-            onClick={search}
-            className={cn(
-              ROW,
-              order.length && "mt-1 border-t border-(--ui-hair)",
-              nav.at === order.length && "bg-(--ui-hover)",
-            )}
-          >
-            <Icon name="search" className="size-3.5 shrink-0 text-(--ui-ink-3)" />
-            <span className="wrap-anywhere whitespace-normal text-(--ui-ink-2)">
-              Search {many} for “{text.trim()}”
-            </span>
-          </div>
-        ) : !match.length ? (
-          <span className="px-2 py-2 text-[13px] text-(--ui-ink-2)">No field by that name.</span>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-/** A set filter in plain words: "Campaign is SEC RIA". Clicking it opens its editor; × drops it. */
-function FilterPill({
-  field,
-  place,
-  onOpen,
-  panel,
-}: {
-  field: FieldMeta;
-  place: Place;
-  /** At phone width: the sheet opens on this field instead. */
-  onOpen?: (() => void) | undefined;
-  panel: (close: () => void, byHover: boolean) => ReactNode;
-}) {
-  const pop = useHoverPop();
-  const raw = place.params.get(field.key) ?? "";
-  const { op, value } = filterParts(field, raw);
-  // The picked platforms' marks or kinds' tints lead the value: "Platform is [YT] YouTube".
-  const cues =
-    filterShape(field) === "states" ? raw.split(",").flatMap((id) => cueOf(field, id) ?? []) : [];
-  const face = (
-    <>
-      <span className="shrink-0">{field.label}</span>
-      <span className="shrink-0 font-normal">{op}</span>
-      {cues.length ? (
-        <span className="inline-flex shrink-0 items-center gap-1">
-          {cues.slice(0, 3).map((c) => (
-            <Cue key={c.label} state={c} />
-          ))}
-        </span>
-      ) : null}
-      <span className="min-w-0 max-w-[180px] wrap-anywhere whitespace-normal text-(--ui-ink)">
-        {value}
-      </span>
-    </>
-  );
-  const faceClass =
-    "inline-flex h-full min-w-0 cursor-pointer items-center gap-1.5 border-0 bg-transparent py-1.5 pr-1 pl-[9px] font-[inherit] text-inherit";
-  // The face cuts a long value short; the hover says all of it.
-  const tip = tipProps(sayRaw(field, raw));
-  return (
-    <span className={PILL}>
-      {onOpen ? (
-        <button type="button" onClick={onOpen} {...tip} className={faceClass}>
-          {face}
-        </button>
-      ) : (
-        <Popover {...pop.root}>
-          <PopoverTrigger {...pop.trigger} {...tip} className={faceClass}>
-            {face}
-          </PopoverTrigger>
-          <PopoverContent aria-label={`${field.label} filter`} align="start" className={POP}>
-            {panel(() => pop.setOpen(false), pop.byHover)}
-          </PopoverContent>
-        </Popover>
-      )}
-      <button
-        type="button"
-        aria-label={`Remove ${field.label} filter`}
-        {...tipProps("Remove this filter", { as: "none" })}
-        onClick={() => place.go(place.link({ [field.key]: null, pg: null }), true)}
-        className="mr-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-inherit [border-radius:3px_8px_3px_8px] hover:bg-(--ui-accent-wash)"
-      >
-        <Icon name="close" className="size-3.5" />
-      </button>
-    </span>
-  );
-}
-
-/** "Filter", with how many are on. */
-function FilterFace({ on }: { on: number }) {
-  return (
-    <>
-      <BarGlyph name="filter" />
-      <span data-hp>Filter</span>
-      {on ? <span className="tabular-nums">{on}</span> : null}
-    </>
-  );
+/** A records list's fields as the bar's: on screen first, the likely ones (`first`) leading each. */
+function barFieldsOf(
+  filters: FieldMeta[],
+  o: {
+    place: Place;
+    shown: Set<string>;
+    first: Set<string>;
+    facets: (() => Promise<Facets | undefined>) | undefined;
+  },
+): BarField[] {
+  const { place, shown, first } = o;
+  const lead = (f: FieldMeta) => (first.has(f.key) ? 0 : 1);
+  const on = filters.filter((f) => shown.has(f.key)).sort((a, b) => lead(a) - lead(b));
+  const off = filters.filter((f) => !shown.has(f.key)).sort((a, b) => lead(a) - lead(b));
+  return [...on, ...off].map((f) => {
+    const raw = place.params.get(f.key);
+    // The picked platforms' marks or kinds' tints lead the value: "Platform is [YT] YouTube".
+    const cues =
+      raw && filterShape(f) === "states" ? raw.split(",").flatMap((id) => cueOf(f, id) ?? []) : [];
+    return {
+      key: f.key,
+      label: f.label,
+      icon: kindIcon(f),
+      set: raw
+        ? {
+            ...filterParts(f, raw),
+            say: sayRaw(f, raw),
+            cues: cues.length
+              ? cues.slice(0, 3).map((c) => <Cue key={c.label} state={c} />)
+              : undefined,
+          }
+        : null,
+      editor: <FieldBody field={f} place={place} facets={o.facets} />,
+      clear: () => place.go(place.link({ [f.key]: null, pg: null }), true),
+      section: shown.has(f.key) ? "On screen" : "Hidden",
+    };
+  });
 }
 
 /**
@@ -1210,15 +885,6 @@ export function ListBar({
     ) : null;
   const first = useMemo(() => new Set(quickFilters(meta).map((f) => f.key)), [meta]);
   const narrowed = !!params.get("q") || on.length > 0;
-  const picker = useHoverPop();
-  const [sheet, setSheet] = useState<{ open: boolean; start: FieldMeta | null; n: number }>({
-    open: false,
-    start: null,
-    n: 0,
-  });
-  const openSheet = (start: FieldMeta | null) =>
-    setSheet((s) => ({ open: true, start, n: s.n + 1 }));
-  const shut = () => setSheet((s) => ({ ...s, open: false }));
 
   // Counts are read once per address, when a choice first asks.
   const load = useRef(facets);
@@ -1235,58 +901,22 @@ export function ListBar({
     };
   }, [key, has]);
 
-  const panel = (
-    start: FieldMeta | null,
-    close: () => void,
-    o: { phone?: boolean; byHover?: boolean } = {},
-  ) => (
-    <FilterPanel
-      filters={filters}
-      shown={shown}
-      place={place}
-      many={searchable ? many : null}
-      first={first}
-      start={start}
-      facets={counts}
-      close={close}
-      phone={o.phone}
-      byHover={o.byHover}
-    />
-  );
-  const filter = !filters.length ? null : narrow ? (
-    <button
-      type="button"
-      {...tipProps(sayFilters(params, filters))}
-      className={cn(CHIP, on.length && CHIP_ON)}
-      onClick={() => openSheet(null)}
-    >
-      <FilterFace on={on.length} />
-    </button>
-  ) : (
-    <Popover {...picker.root}>
-      <PopoverTrigger
-        {...picker.trigger}
-        {...tipProps(sayFilters(params, filters))}
-        className={cn(CHIP, on.length && CHIP_ON)}
-      >
-        <FilterFace on={on.length} />
-      </PopoverTrigger>
-      <PopoverContent aria-label="Filter" align="start" className={POP}>
-        {panel(null, () => picker.setOpen(false), { byHover: picker.byHover })}
-      </PopoverContent>
-    </Popover>
-  );
-  const pills = on
-    .flatMap((f) => (accountChip && f.key === account?.key ? [] : [f]))
-    .map((f) => (
-      <FilterPill
-        key={f.key}
-        field={f}
-        place={place}
-        onOpen={narrow ? () => openSheet(f) : undefined}
-        panel={(close, byHover) => panel(f, close, { byHover })}
-      />
-    ));
+  const fields = barFieldsOf(filters, { place, shown, first, facets: counts });
+  const tools = useFilterTools({
+    fields,
+    narrow,
+    search: searchable
+      ? { many, ask: (q: string) => place.go(place.link({ q, pg: null }), true) }
+      : undefined,
+    say: sayFilters(params, filters),
+    clearAll: () =>
+      place.go(
+        place.link({ pg: null, ...Object.fromEntries(filters.map((f) => [f.key, null])) }),
+        true,
+      ),
+  });
+  const filter = tools.tool;
+  const pills = tools.pills((f) => !(accountChip && f.key === account?.key));
   const clear = narrowed ? (
     <a
       href={place.link({
@@ -1374,47 +1004,12 @@ export function ListBar({
         </div>
       </div>
       {pills.length ? <div className="flex flex-wrap gap-0.5">{pills}</div> : null}
-      <Sheet open={sheet.open} onOpenChange={(o) => (o ? null : shut())}>
-        <SheetContent
-          // A phone opens it to tap, not type: no keyboard springs up.
-          initialFocus={false}
-          side="bottom"
-          className="max-h-[85dvh] gap-0 bg-(--ui-paper) text-(--ui-ink)"
-        >
-          <SheetHeader className="border-b border-(--ui-hair) p-4">
-            <SheetTitle className="text-[15px] font-semibold">Filter</SheetTitle>
-          </SheetHeader>
-          <div key={sheet.n} className="min-h-0 flex-1 overflow-y-auto">
-            {panel(sheet.start, shut, { phone: true })}
-          </div>
-          <SheetFooter className="flex-row justify-between border-t border-(--ui-hair) p-4">
-            <Button
-              tone="secondary"
-              size="dense"
-              disabled={!on.length}
-              onClick={() =>
-                place.go(
-                  place.link({
-                    pg: null,
-                    ...Object.fromEntries(filters.map((f) => [f.key, null])),
-                  }),
-                  true,
-                )
-              }
-            >
-              Clear all
-            </Button>
-            <Button size="dense" onClick={shut}>
-              Done
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+      {tools.sheet}
     </div>
   );
 }
 
-/** The search box: it asks once typing stops. */
+/** The search box on a records list: `?q=`, back to the first page. */
 export function SearchBox({
   place,
   label,
@@ -1425,60 +1020,12 @@ export function SearchBox({
   /** The glass alone at any width, as a phone's (a list beside its peek). */
   glass?: boolean;
 }) {
-  const asked = place.params.get("q") ?? "";
-  const [text, setText] = useState(asked);
-  /** He's typing: his words win until they're in the address. */
-  const typed = useRef(false);
-  // The address changed from elsewhere (a tab, Clear, a saved view): show what it asks.
-  useEffect(() => {
-    if (!typed.current) setText(asked);
-  }, [asked]);
-  useEffect(() => {
-    if (!typed.current) return;
-    if (text.trim() === asked) {
-      typed.current = false;
-      return;
-    }
-    const t = setTimeout(() => {
-      typed.current = false;
-      place.go(place.link({ q: text.trim() || null, pg: null }), true);
-    }, 250);
-    return () => clearTimeout(t);
-  }, [text, asked, place]);
   return (
-    // A tool like the bar's others (artifact `.tl` Search): no frame, the wash on hover and while
-    // typing. It hugs its placeholder and grows with the words, 160 to 224 px.
-    <label
-      className={cn(
-        CHIP,
-        "relative w-fit min-w-40 max-w-56 cursor-text focus-within:bg-(--ui-accent-wash)",
-        // A phone shows the glass alone (artifact `.tl` Search) and opens the field on a tap.
-        !asked &&
-          "max-[899.98px]:w-[33px] max-[899.98px]:min-w-0 max-[899.98px]:transition-[width,background-color,color] max-[899.98px]:duration-200 max-[899.98px]:ease-(--ui-ease) max-[899.98px]:focus-within:w-40",
-        asked && "max-[899.98px]:w-40",
-        glass &&
-          (asked
-            ? "w-40"
-            : "w-[33px] min-w-0 transition-[width,background-color,color] duration-200 ease-(--ui-ease) focus-within:w-40"),
-        asked && CHIP_ON,
-      )}
-    >
-      <Icon
-        name="search"
-        className="pointer-events-none size-[15px] flex-none [stroke-width:1.8]"
-      />
-      <input
-        // edit-ok: search box
-        type="search"
-        value={text}
-        onChange={(e) => {
-          typed.current = true;
-          setText(e.target.value);
-        }}
-        placeholder={`Search ${label}`}
-        aria-label={`Search ${label}`}
-        className="h-5 min-w-0 flex-1 border-0 bg-transparent p-0 text-[13px] font-semibold text-(--ui-ink) outline-none [field-sizing:content] placeholder:text-(--ui-ink-3) [&::-webkit-search-cancel-button]:hidden"
-      />
-    </label>
+    <SearchField
+      asked={place.params.get("q") ?? ""}
+      ask={(q) => place.go(place.link({ q, pg: null }), true)}
+      label={label}
+      glass={glass}
+    />
   );
 }
