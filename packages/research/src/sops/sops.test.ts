@@ -9,6 +9,7 @@ import {
   buildSop,
   driveSources,
   expandCites,
+  firstStep,
   numberCites,
   pageSource,
   readSopDir,
@@ -116,6 +117,16 @@ describe("sops", () => {
     expect(sopPrompt({ name: "x", ...again })).toContain("There is a current SOP below");
     expect(await readFile(join(topicDir(dir, "x"), "notes.md"), "utf8")).toBe("mine");
     expect(await readFile(join(topicDir(dir, "x"), "SKILL.md"), "utf8")).toContain("render x");
+  });
+
+  it("loads each set at the step that first names it when the door is over budget", async () => {
+    dir = await repo();
+    await addSource(dir, "x", { name: "file-a.md", md: "---\npriority: 5\n---\nsrc" }, WHO);
+    const reply = `# SOP\n\n## Prep\n\n1. Read\n2. Check XR-1\n\n<!-- set x-rules XR "Rules" -->\n- ${"word ".repeat(6000)}[file-a]\n<!-- /set -->\n`;
+    await buildSop(dir, "x", new FakeLlm({ respond: async () => reply }), WHO);
+    const door = await readFile(join(topicDir(dir, "x"), "SKILL.md"), "utf8");
+    expect(door).toContain('- `x-rules`: before "Prep", step 2.');
+    expect(door).not.toContain("render x-rules`");
   });
 
   it("splits a build doc into a guide and rule sets with fixed line ids", async () => {
@@ -302,5 +313,14 @@ describe("numbered citations", () => {
       body: "- A [1 0:05]\n",
       cites: ["youtube-abc"],
     });
+  });
+});
+
+describe("firstStep", () => {
+  it("names the heading and top-level step of the first line naming the prefix", () => {
+    const g = "# T\n\n## Look\n\n1. Watch\n\n### 2. Cut\n\n1. Trim\n2. Apply VE-3 here\n";
+    expect(firstStep(g, "VE")).toBe('"2. Cut", step 2');
+    expect(firstStep(g, "ZZ")).toBe("");
+    expect(firstStep("Apply VE-1 first", "VE")).toBe("");
   });
 });

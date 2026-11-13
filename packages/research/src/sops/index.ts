@@ -696,19 +696,59 @@ export async function extractPoints(
  * guide's `load` field narrows the sets to a subset by line id: `--only HK-9..HK-16` or
  * `--except MO-5..MO-9` (`knowledge render` flags; a range goes to the set that holds its prefix).
  */
+/** Door print budget: past ~30 KB tool output lands behind a 2 KB preview (sop-making SK-10). */
+const DOOR_INLINE = 24 * 1024;
+
+type DoorSet = { id: string; prefix: string; bytes: number };
+
+/** Where a set first matters: the heading (and top-level step) of the first guide line naming one of its ids. */
+export function firstStep(guide: string, prefix: string): string {
+  if (!prefix) return "";
+  const id = new RegExp(`\\b${prefix}-\\d+`);
+  let heading = "";
+  let step = "";
+  for (const line of guide.split("\n")) {
+    const h = /^#{2,3} (.+)$/.exec(line);
+    if (h) {
+      heading = (h[1] as string).trim();
+      step = "";
+      continue;
+    }
+    const n = /^(\d+)\. /.exec(line);
+    if (n) step = n[1] as string;
+    if (id.test(line)) return heading ? `"${heading}"${step ? `, step ${step}` : ""}` : "";
+  }
+  return "";
+}
+
 function skillMd(
   root: string,
   name: string,
   description: string,
-  sets: { own: string[]; shared: string[]; load: string },
+  sets: { own: DoorSet[]; shared: DoorSet[]; load: string; guide: string; bytes: number },
 ): string {
   const dir = topicDir(root, name);
   const q = JSON.stringify(dir);
   const knowledge = `knowledge --repo ${JSON.stringify(root)}`;
-  const ids = [...sets.own, ...sets.shared];
-  const rules = ids.length
-    ? `\n# Rule sets${sets.shared.length ? ` (another SOP owns ${sets.shared.join(", ")})` : ""}\n\n!\`${knowledge} render ${ids.join(" ")}${sets.load ? ` ${sets.load}` : ""}\`\n`
+  const all = [...sets.own, ...sets.shared];
+  const ids = all.map((s) => s.id);
+  const owner = sets.shared.length
+    ? ` (another SOP owns ${sets.shared.map((s) => s.id).join(", ")})`
     : "";
+  // --only/--except names one prefix: pass it only to the set that holds it (render errors otherwise)
+  const loadFor = (s: DoorSet) =>
+    sets.load && s.prefix && sets.load.includes(`${s.prefix}-`) ? ` ${sets.load}` : "";
+  const atStep = all
+    .map((s) => {
+      const at = firstStep(sets.guide, s.prefix);
+      return `- \`${s.id}\`${loadFor(s) ? ` (add \`${loadFor(s).trim()}\`)` : ""}: ${at ? `before ${at}` : "before you start"}.`;
+    })
+    .join("\n");
+  const rules = !ids.length
+    ? ""
+    : sets.bytes <= DOOR_INLINE
+      ? `\n# Rule sets${owner}\n\n!\`${knowledge} render ${ids.join(" ")}${sets.load ? ` ${sets.load}` : ""}\`\n`
+      : `\n# Rule sets${owner}\n\nEach set loads at its step. Write it into a file and read the whole file: \`${knowledge} render <set> > <scratch>/<set>.md\`. Its lines apply from that step on.\n\n${atStep}\n`;
   return `---
 name: sop-${name}
 description: ${JSON.stringify(`SOP: ${description}`)}
@@ -743,12 +783,23 @@ export async function writeSkill(root: string, name: string): Promise<string> {
   const file = join(topicDir(root, name), "SKILL.md");
   await mkdir(topicDir(root, name), { recursive: true });
   const load = String((guide.fm as { load?: string }).load ?? "");
+  const own = read.sets.map((s) => ({ id: s.id, prefix: s.prefix, bytes: s.body.length }));
+  const shared = read.sharedIds.map((id) => {
+    const body = readRecord(root, id)?.body ?? "";
+    return { id, prefix: [...prefixesIn([body])][0] ?? "", bytes: body.length };
+  });
+  const bytes = [...own, ...shared].reduce(
+    (n, s) => n + s.bytes,
+    guide.body.length + read.notes.length,
+  );
   await writeFile(
     file,
     skillMd(root, name, guide.fm.description ?? purposeOf(guide.body, name), {
-      own: read.sets.map((s) => s.id),
-      shared: read.sharedIds,
+      own,
+      shared,
       load,
+      guide: guide.body,
+      bytes,
     }),
   );
   return file;
