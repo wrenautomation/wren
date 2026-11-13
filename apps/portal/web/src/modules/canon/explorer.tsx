@@ -1,17 +1,8 @@
 /**
- * Canon › Explorer: the whole brain as one tree (designs/2026-11-12-explorer.md, step 2). Explorer
- * over PathsConsole's Canon tree; the address holds where it stands (`?at=`) and the view
- * (`?view=`). The root shows what needs a look beside its rows; an item opens whole in the preview.
+ * Canon in Explorer (designs/2026-11-12-explorer.md): its root's page (what needs a look beside
+ * the root's rows), its marks, and the preview of each kind of home.
  */
-import {
-  type Column,
-  homeOf,
-  type Item,
-  type Page,
-  type Shown,
-  segments,
-  type Whole,
-} from "@wren/core/paths";
+import { homeOf, segments, type Whole } from "@wren/core/paths";
 import type { ReferenceWhole } from "@wren/research/canon-console";
 import type {
   FileWhole,
@@ -22,38 +13,19 @@ import type {
   RuleSet,
   TopicWhole,
 } from "@wren/research/canon-library";
-import {
-  Empty,
-  EXPLORER_VIEWS,
-  Explorer,
-  type ExplorerRead,
-  type ExplorerView,
-  LoadFailed,
-  Loading,
-  num,
-  Tag,
-  type TagTone,
-  useSeen,
-} from "@wren/ui";
+import { Empty, type ExplorerView, LoadFailed, Loading, num, Tag, type TagTone } from "@wren/ui";
 import { call } from "../../api.js";
-import { PORTAL, useCall } from "../../load.js";
-import type { PageProps } from "../../module.js";
-import { href, navigate } from "../../route.js";
+import { useCall } from "../../load.js";
+import { href } from "../../route.js";
+import { explorerHref } from "../explorer/href.js";
 import { Markdown, Section, splitFrontmatter, typeName, withoutTitle } from "./parts.js";
 import { Code, FileBody, RecordBody } from "./record.js";
 import { Poster, ReferenceBody } from "./references.js";
 
-const HERE = "/canon/explorer";
 const ROOT = "canon";
 
-const READ: ExplorerRead = {
-  columns: (route) => call<Shown>("paths/columns", { route }),
-  children: (path, after) => call<Page>("paths/children", { path, ...(after ? { after } : {}) }),
-  find: (q, under) => call<{ items: Item[] }>("paths/find", { q, under }).then((r) => r.items),
-};
-
-/** A row's mark: a rule line's backing, a record's status. A line from his own source has none. */
-const MARKS: Record<string, { label: string; tone?: TagTone }> = {
+/** A row's mark: a line's backing, a record's status. A line from his own source has none. */
+export const CANON_MARKS: Record<string, { label: string; tone?: TagTone }> = {
   none: { label: "No source", tone: "warn" },
   agent: { label: "Agent source" },
   unknown: { label: "Source unknown" },
@@ -62,46 +34,22 @@ const MARKS: Record<string, { label: string; tone?: TagTone }> = {
   missing: { label: "Not in Canon", tone: "bad" },
 };
 
-const ERRORS = {
-  "not-indexed": (
+/** What fills an empty Canon folder: a reference from References, the rest from the repo. */
+export const canonFills = (route: string) =>
+  route === "canon/references" ? (
     <>
-      Canon reaches this page after the first sync: <code>wren canon sync</code>.
+      Save a reel or video in <a href="/canon/references">References</a>.
     </>
-  ),
-};
-
-const viewOf = (v: string | null): ExplorerView =>
-  EXPLORER_VIEWS.includes(v as ExplorerView) ? (v as ExplorerView) : "columns";
-
-/** A route's address: the root and Columns are the page's own. */
-export const explorerHref = (route: string, view: ExplorerView = "columns") =>
-  href(HERE, { at: route === ROOT ? null : route, view: view === "columns" ? null : view });
-
-export function ExplorerPage({ params }: PageProps) {
-  const route = params.get("at") || ROOT;
-  const view = viewOf(params.get("view"));
-  useSeen("list", { label: "Canon", icon: "book", text: `Canon, at ${route}` });
-  return (
-    <Explorer
-      route={route}
-      view={view}
-      name="Canon"
-      hrefFor={(r, v) => explorerHref(r, v ?? view)}
-      onRoute={(r, v) => navigate(explorerHref(r, v ?? view))}
-      read={READ}
-      scope={PORTAL}
-      marks={MARKS}
-      errorText={ERRORS}
-      preview={(w) => <Preview w={w} view={view} />}
-      folderPage={(c: Column) => (c.route === ROOT ? <RootPage view={view} /> : undefined)}
-    />
+  ) : (
+    <>
+      Canon fills from its git repo: each <code>wren canon sync</code> reads it again.
+    </>
   );
-}
 
 // --- the root ------------------------------------------------------------------------------------
 
 /** Beside the root's rows: what needs a look, the sets topics share, direction, records by type. */
-function RootPage({ view }: { view: ExplorerView }) {
+export function CanonRoot({ view }: { view: ExplorerView }) {
   const got = useCall("canon-home", () => call<Home>("canon/home", {}));
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading shape="rows" lines={6} />;
@@ -265,7 +213,7 @@ function citeHref(w: Whole, cites: readonly Link[], view: ExplorerView) {
 }
 
 /** An item's body by its home: the tree gives each kind of home its own `data`. */
-function Preview({ w, view }: { w: Whole; view: ExplorerView }) {
+export function CanonPreview({ w, view }: { w: Whole; view: ExplorerView }) {
   const [, area, a, layer, set, line] = segments(w.path);
   const body = w.body ?? "";
   if (area === "topics" && a) {
@@ -285,8 +233,8 @@ function Preview({ w, view }: { w: Whole; view: ExplorerView }) {
       return (
         <div className="flex max-w-[72ch] flex-col gap-2">
           <p className="m-0 text-[15px] leading-normal text-pretty wrap-anywhere">{body}</p>
-          {l && MARKS[l.backing] ? (
-            <span className="text-[12.5px] text-(--ui-ink-3)">{MARKS[l.backing]?.label}</span>
+          {l && CANON_MARKS[l.backing] ? (
+            <span className="text-[12.5px] text-(--ui-ink-3)">{CANON_MARKS[l.backing]?.label}</span>
           ) : null}
         </div>
       );

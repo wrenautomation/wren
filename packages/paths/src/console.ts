@@ -1,11 +1,17 @@
 /**
- * PathsConsole: Explorer's server roots (designs/2026-11-12-explorer.md D2). Canon runs here;
- * Weaver runs in the browser, beside `weaver serve`. A fresh adapter per call: its loads are
- * that call's.
+ * PathsConsole: Explorer's server roots (designs/2026-11-12-explorer.md D2). Canon and Vireo run
+ * here; Weaver runs in the browser, beside `weaver serve`. A fresh adapter per call: its loads
+ * are that call's. Vireo sees through the viewer's eyes (blind).
  */
 
 import { childrenAt, columns, homeAt, PathError, rootOf, wholeAt } from "@wren/core/paths";
-import { answer, PortalRefusal, type PortalRequest, portalService } from "@wren/core/portal";
+import {
+  answer,
+  PortalRefusal,
+  type PortalRequest,
+  portalService,
+  type SignedViewer,
+} from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type * as restate from "@wren/runtime";
 import { z } from "zod";
@@ -26,10 +32,10 @@ export type PathsConsoleApi = ReturnType<typeof pathsConsoleApi>;
 
 function pathsConsoleApi(d: PathsDeps) {
   const roots = serverRoots(d);
-  const adapter = (path: string) => {
+  const adapter = (req: Req, path: string) => {
     const make = roots[rootOf(path)];
     if (!make) throw new PortalRefusal(`unknown-path: no root ${rootOf(path)} here`, 404);
-    return make();
+    return make((req.viewer as SignedViewer).email);
   };
   const refuse = async <T>(fn: () => Promise<T>) => {
     try {
@@ -41,20 +47,21 @@ function pathsConsoleApi(d: PathsDeps) {
     }
   };
   return {
-    columns: (req: Req) => refuse(() => columns(adapter(String(req.route)), String(req.route))),
+    columns: (req: Req) =>
+      refuse(() => columns(adapter(req, String(req.route)), String(req.route))),
     children: (req: Req) =>
       refuse(() =>
         childrenAt(
-          adapter(String(req.path)),
+          adapter(req, String(req.path)),
           String(req.path),
           (req.after as string | null) ?? undefined,
         ),
       ),
-    whole: (req: Req) => refuse(() => wholeAt(adapter(String(req.path)), String(req.path))),
+    whole: (req: Req) => refuse(() => wholeAt(adapter(req, String(req.path)), String(req.path))),
     find: (req: Req) => {
       const under = (req.under as string | null) ?? "canon";
       return refuse(async () => {
-        const a = adapter(under);
+        const a = adapter(req, under);
         return { items: await a.find(String(req.q), await homeAt(a, under)) };
       });
     },

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   type Adapter,
+  across,
   aliasOf,
   childrenAt,
   columns,
@@ -10,8 +11,10 @@ import {
   join,
   linksOf,
   PathError,
+  type Reads,
   rebase,
   relationRow,
+  rooted,
   walk,
   wholeAt,
 } from "./paths.js";
@@ -152,5 +155,107 @@ describe("routes", () => {
   it("rebases rows onto a route, keeping a home row's own path", () => {
     expect(rebase("t/a", [SET])).toEqual([SET]);
     expect(rebase(join("t", "b"), [SET])[0]).toMatchObject({ path: "t/b/s1", original: "t/a/s1" });
+  });
+});
+
+// f: a root read here whose folder holds t's set as an alias; t is read on the far host
+const folders = (): Adapter => {
+  const f: Adapter = {
+    root: "f",
+    children: async (path) => {
+      if (path === "f") return { items: [{ path: "f/1", name: "One", kind: "folder" }] };
+      if (path === "f/1") return { items: [aliasOf("f/1", SET, "a")] };
+      throw new PathError("unknown-path", `nothing at ${path}`);
+    },
+    item: (path) => itemFromParent(f, path),
+    whole: async (path) => ({ ...(await f.item(path)), links: [] }),
+    find: async (q, under) => [{ path: `${under}/${q}`, name: q, kind: "folder" }],
+  };
+  return f;
+};
+
+const farHost = () => {
+  const calls: string[] = [];
+  const t = fixture();
+  const far: Reads = {
+    columns: (r) => {
+      calls.push(`columns ${r}`);
+      return columns(t, r);
+    },
+    children: (p, after) => {
+      calls.push(`children ${p}`);
+      return childrenAt(t, p, after);
+    },
+    find: async (_q, under) => {
+      calls.push(`find ${under}`);
+      return [];
+    },
+  };
+  return { far, calls };
+};
+
+describe("across", () => {
+  it("walks here, then sends the rest of the route to the far host in one call", async () => {
+    const { far, calls } = farHost();
+    const shown = await across({ f: folders() }, far).columns("f/1/s1/L-1");
+    expect(calls).toEqual(["columns t/a/s1/L-1"]);
+    expect(shown.columns.map((c) => [c.route, c.home])).toEqual([
+      ["f", "f"],
+      ["f/1", "f/1"],
+      ["f/1/s1", "t/a/s1"],
+      ["f/1/s1/L-1", "t/a/s1/L-1"],
+    ]);
+    // far rows read under the folder's route, their homes kept
+    expect(shown.columns[2]?.items[0]).toMatchObject({
+      path: "f/1/s1/L-1",
+      original: "t/a/s1/L-1",
+    });
+    expect(shown.whole?.path).toBe("t/a/s1/L-1");
+  });
+
+  it("reads a far root's route there, and a route that stays here only here", async () => {
+    const { far, calls } = farHost();
+    const r = across({ f: folders() }, far);
+    expect((await r.columns("t/a")).columns.map((c) => c.route)).toEqual(["t", "t/a"]);
+    expect((await r.columns("f/1")).columns.at(-1)?.items[0]).toMatchObject({
+      path: "f/1/s1",
+      original: "t/a/s1",
+    });
+    expect(calls).toEqual(["columns t/a"]);
+  });
+
+  it("pages and finds under a crossed route on the far host", async () => {
+    const { far, calls } = farHost();
+    const r = across({ f: folders() }, far);
+    expect((await r.children("f/1/s1")).items).toEqual([
+      { ...LINE, path: "f/1/s1/L-1", original: "t/a/s1/L-1" },
+    ]);
+    await r.find("x", "f/1/s1");
+    expect(await r.find("x", "f/1")).toEqual([{ path: "f/1/x", name: "x", kind: "folder" }]);
+    expect(calls).toEqual(["children t/a/s1", "find t/a/s1"]);
+  });
+
+  it("keeps the far error on the route asked", async () => {
+    const { far } = farHost();
+    const f = folders();
+    const dark = {
+      ...f,
+      children: async (path: string) =>
+        path === "f/1"
+          ? { items: [aliasOf("f/1", { path: "t/dark", name: "dark", kind: "topic" })] }
+          : f.children(path),
+    };
+    dark.item = (path) => itemFromParent(dark, path);
+    const shown = await across({ f: dark }, far).columns("f/1/dark");
+    expect(shown.columns.map((c) => c.route)).toEqual(["f", "f/1"]);
+    expect(shown.error).toMatchObject({ code: "offline", route: "f/1/dark" });
+  });
+});
+
+describe("rooted", () => {
+  it("sends each call to the root its path names", async () => {
+    const a = rooted({ t: fixture(), f: folders() }, "f");
+    expect(await homeAt(a, "f/1/s1/L-1")).toBe("t/a/s1/L-1");
+    await expect(a.children("x/1")).rejects.toMatchObject({ code: "unknown-path" });
   });
 });

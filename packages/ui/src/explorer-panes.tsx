@@ -29,13 +29,13 @@ import {
   AliasMark,
   aliased,
   type Ctx,
+  EmptyLevel,
   follow,
   iconOf,
   lastOf,
-  MarkOf,
+  markAfter,
   PathFailed,
   Preview,
-  quietMark,
   Row,
   Rows,
   rowsOf,
@@ -277,9 +277,11 @@ function TreeLevel({ t, c, level }: { t: TreeCtx; c: Column; level: number }) {
   const r = rowsOf(t, c);
   if (!r.items.length)
     return (
-      <p className={cn("m-0 py-1.5 text-[12.5px] text-(--ui-ink-3)", TEXT_EDGE)}>
-        {c.item.name} holds nothing yet.
-      </p>
+      <EmptyLevel
+        ctx={t}
+        c={c}
+        className={cn("py-1.5 text-[12.5px] text-(--ui-ink-3)", TEXT_EDGE)}
+      />
     );
   return (
     <>
@@ -369,9 +371,8 @@ function TreeNode({
             >
               {i.name}
               {alias ? <AliasMark /> : null}
-              {quietMark(mark)}
+              {markAfter(mark)}
             </span>
-            {mark ? <MarkOf mark={mark} /> : null}
             {i.sub ? (
               <span dir="auto" className="text-[12px]/[1.4] text-(--ui-ink-3) wrap-anywhere">
                 {i.sub}
@@ -474,9 +475,10 @@ const galleryLevel = (cols: Column[], whole: Whole | undefined) => {
 function DefaultTile({ i }: { i: Item }) {
   return (
     // the hairline keeps a tile with no poster from melting into the page
-    <span className="relative block aspect-[4/5] overflow-hidden bg-(--ui-band) shadow-[inset_0_0_0_1px_var(--ui-hair)] [border-radius:4px_10px_4px_10px]">
+    <span className="relative block aspect-[4/3] overflow-hidden bg-(--ui-band) shadow-[inset_0_0_0_1px_var(--ui-hair)] [border-radius:4px_10px_4px_10px]">
       {i.poster ? (
-        <Img src={i.poster} alt="" loading="lazy" className="size-full object-cover" />
+        // posters come wide, tall or square: shown whole, never cropped
+        <Img src={i.poster} alt="" loading="lazy" className="size-full object-contain" />
       ) : (
         <span className="grid size-full place-items-center text-(--ui-ink-3)">
           <Icon name={iconOf(i.kind)} size={24} />
@@ -489,11 +491,7 @@ function DefaultTile({ i }: { i: Item }) {
 function Tiles({ ctx, c, route }: { ctx: Ctx; c: Column; route: string }) {
   const r = rowsOf(ctx, c);
   if (!r.items.length)
-    return (
-      <p className="m-0 p-4 text-[13px] text-(--ui-ink-3) wrap-anywhere">
-        {c.item.name} holds nothing yet.
-      </p>
-    );
+    return <EmptyLevel ctx={ctx} c={c} className="p-4 text-[13px] text-(--ui-ink-3)" />;
   return (
     <div className="flex flex-col gap-2 p-3">
       <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-3 p-0">
@@ -600,10 +598,17 @@ export function Narrow({
       ) : whole ? (
         <>
           <Preview ctx={ctx} whole={whole} step={at} route={route} dim={false} />
-          <ItemRows ctx={ctx} at={at} whole={whole} route={route} />
+          <ItemRows ctx={ctx} at={at} whole={whole} route={route} gallery={view === "gallery"} />
         </>
       ) : (
         <>
+          {/* one order on every pane: Back, the title, then what it holds */}
+          <h2
+            dir="auto"
+            className="m-0 text-[19px]/[1.3] font-semibold text-(--ui-ink) wrap-anywhere"
+          >
+            {at === cols[0] ? ctx.p.name : at.item.name}
+          </h2>
           {listing(at)}
           {aside ? <div className="border-t border-(--ui-hair) pt-5">{aside}</div> : null}
         </>
@@ -618,15 +623,19 @@ function ItemRows({
   at,
   whole,
   route,
+  gallery,
 }: {
   ctx: Ctx;
   at: Column;
   whole: Whole;
   route: string;
+  gallery: boolean;
 }) {
   const listed = new Set(whole.links.filter((l) => l.items.length).map((l) => l.rel));
   const items = at.items.filter((i) => !(i.kind === "relation" && listed.has(lastOf(i.path))));
-  return items.length ? <Rows ctx={ctx} c={{ ...at, items }} route={route} /> : null;
+  if (!items.length) return null;
+  const c = { ...at, items };
+  return gallery ? <Tiles ctx={ctx} c={c} route={route} /> : <Rows ctx={ctx} c={c} route={route} />;
 }
 
 // --- find --------------------------------------------------------------------------------------

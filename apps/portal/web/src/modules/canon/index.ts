@@ -3,7 +3,6 @@
  * (designs/2026-11-12-canon-references.md). Wren's team only. Read only: edits stay in Canon.
  */
 import type { Module } from "../../module.js";
-import { ExplorerPage } from "./explorer.js";
 import { LibraryPage } from "./library.js";
 import { OutliersPage } from "./outliers.js";
 import { ReferencesPage } from "./references.js";
@@ -17,14 +16,6 @@ export const canon: Module = {
     "The second brain: every topic's guide, rules, skill and notes, every record, every reference.",
   requires: { audience: "team" },
   pages: [
-    {
-      id: "explorer",
-      label: "Explorer",
-      about:
-        "The whole brain as one tree: topics, their layers and lines, references, records, files. What needs a look beside the root.",
-      Page: ExplorerPage,
-      wide: true,
-    },
     {
       id: "library",
       label: "Library",
@@ -53,7 +44,7 @@ export const canon: Module = {
       about: "One topic whole: guide, rule sets, his notes, skill, sources and files.",
       Page: TopicPage,
       hidden: true,
-      lights: "explorer",
+      lights: "library",
     },
   ],
 };

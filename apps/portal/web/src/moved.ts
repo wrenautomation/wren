@@ -16,6 +16,7 @@ export const MOVED: Readonly<Record<string, string>> = {
   "/campaigns/variants": "/variants/batches",
   "/calendar/recordings": "/today/recordings",
   "/calendar/schedule": "/today/calendar",
+  "/canon/explorer": "/explorer/canon",
   "/clients/all": "/people/clients",
   "/documents/all": "/office/documents",
   "/engage/accounts": "/office/accounts",

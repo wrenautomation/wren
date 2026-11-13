@@ -14,6 +14,7 @@ import {
   itemFromParent,
   join,
   linksOf,
+  PAGE_SIZE,
   type Page,
   PathError,
   relationRow,
@@ -33,7 +34,6 @@ import type {
 } from "@wren/research/canon-library";
 
 const ROOT = "canon";
-const CANON_PAGE = 50;
 
 /** A record with what its home needs. */
 export type Placed = {
@@ -460,7 +460,7 @@ export function canonTree(src: CanonSource): Adapter {
       case "references": {
         const [id, rel] = rest;
         if (!id) {
-          const p = await src.references(offset, CANON_PAGE);
+          const p = await src.references(offset, PAGE_SIZE);
           return {
             items: p.rows.map((r) => ({
               path: join(ROOT, "references", r.id),
@@ -497,7 +497,7 @@ export function canonTree(src: CanonSource): Adapter {
           };
         const base = join(ROOT, "records", type);
         if (!id) {
-          const { rows, total } = await src.ofType(type, offset, CANON_PAGE);
+          const { rows, total } = await src.ofType(type, offset, PAGE_SIZE);
           const items = rows.map((r) => {
             const row = recordRow(r);
             return row.path === join(base, r.id) ? row : aliasOf(base, row);
@@ -657,7 +657,7 @@ export function canonTree(src: CanonSource): Adapter {
             : area === "references"
               ? { references: true }
               : {};
-      const records = area === "files" ? [] : await src.findRecords(words, where, CANON_PAGE);
+      const records = area === "files" ? [] : await src.findRecords(words, where, PAGE_SIZE);
       const topics =
         area && area !== "topics"
           ? []

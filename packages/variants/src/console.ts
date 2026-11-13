@@ -28,11 +28,10 @@ import {
   type Width,
 } from "@wrenautomation/vireo";
 import { z } from "zod";
+import { blindFeedback } from "./blind.js";
 import { VARIANTS_CONSOLE_APPS, VARIANTS_CONSOLE_ROUTES } from "./console-routes.js";
 import { variants } from "./index.js";
-
-/** s3:// → a URL the browser can play; absent in local runs (media shows as missing). An https:// link (a live page) needs no signer. */
-export type Sign = (uri: string) => Promise<string>;
+import { playableUrl, type Sign } from "./media-url.js";
 
 type Req = PortalRequest & Record<string, unknown>;
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email;
@@ -53,8 +52,7 @@ const refuse = async <T>(fn: () => Promise<T>) => {
 
 export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
   const v = variants(db);
-  const url = async (uri: string | null) =>
-    !uri ? null : /^https:\/\//i.test(uri) ? uri : sign ? sign(uri).catch(() => null) : null;
+  const url = playableUrl(sign);
   const media = async <T extends Pick<SampleRow, "media" | "poster">>(s: T) => ({
     ...s,
     mediaUrl: await url(s.media),
@@ -106,36 +104,15 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
     subjects: () => refuse(() => v.listSubjects()),
     subject: (req: Req) =>
       refuse(async () => {
-        const f = await v.feedback(num(req.id, "subject"));
-        const me = by(req);
-        // blind: an open batch shows no change, no parent and only his own calls until it closes;
-        // the name stays (it says what the sample tries, vireo 0.15.1)
-        const own = (x: (typeof f.batches)[number]["samples"][number]) => {
-          const mine = x.calls.find((c) => c.by === me);
-          return {
-            ...x,
-            change: null,
-            parents: [],
-            strength: null,
-            calls: mine ? [mine] : [],
-            score: mine?.score ?? null,
-            verdict: mine?.verdict ?? null,
-            notes: x.notes.filter((n) => n.by === me),
-          };
-        };
+        // blind: an open batch shows only his own calls and notes until it closes
+        const f = blindFeedback(await v.feedback(num(req.id, "subject")), by(req));
         return {
           ...f,
           batches: await Promise.all(
-            f.batches.map(async (b) => {
-              const open = b.state === "open";
-              return {
-                ...b,
-                why: open ? null : b.why,
-                goodRate: open ? null : b.goodRate,
-                judges: open ? [] : b.judges,
-                samples: await Promise.all(b.samples.map((x) => media(open ? own(x) : x))),
-              };
-            }),
+            f.batches.map(async (b) => ({
+              ...b,
+              samples: await Promise.all(b.samples.map((x) => media(x))),
+            })),
           ),
         };
       }),

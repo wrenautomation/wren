@@ -15,12 +15,13 @@ import {
   homeOf,
   type Item,
   PathError,
+  rooted,
   rootOf,
   segments,
   wholeAt,
 } from "@wren/core/paths";
 import type { Db } from "@wren/db";
-import { serverRoots } from "@wren/paths/roots";
+import { cliRoots } from "@wren/paths/roots";
 import type { Command } from "commander";
 import { isLoopback, syncHere } from "./canon.js";
 
@@ -141,16 +142,20 @@ export function registerPaths(
   const p = program
     .command("paths")
     .description(
-      "Canon (later Weaver, Vireo) as one tree of paths: canon/topics/<t>/sets/<set>/<line>, canon/references/<id> …",
+      "Canon, Vireo, Weaver and folders as one tree of paths: canon/topics/<t>/sets/<set>/<line>, canon/references/<id>, vireo/subjects/<slug>/batches/<batch>/<sample>, weaver/<run>/pages/<doc>, folders/<id>/… (Weaver reads weaver serve on this Mac)",
     );
   const run = (route: string, fn: (a: Adapter) => Promise<unknown>) =>
     withDb(async (db) => {
-      const make = serverRoots({ db, media: null, canonRemote: settings.canonRemote })[
-        rootOf(route)
-      ];
+      // an agent's eyes: Vireo hides nothing (blind is for a person judging)
+      const roots = cliRoots({ db, media: null, canonRemote: settings.canonRemote });
       try {
-        if (!make) throw new PathError("unknown-path", `no root ${rootOf(route)}: canon`);
-        print(await fn(make()));
+        if (!roots[rootOf(route)])
+          throw new PathError(
+            "unknown-path",
+            `no root ${rootOf(route)}: ${Object.keys(roots).join(", ")}`,
+          );
+        // one adapter over every root: a folder's alias walks on into vireo/ or weaver/
+        print(await fn(rooted(roots, rootOf(route))));
       } catch (e) {
         if (!(e instanceof PathError)) throw e;
         print({ error: e.code, message: e.message });

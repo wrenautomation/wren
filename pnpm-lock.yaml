@@ -1246,12 +1246,21 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/folders':
+        specifier: workspace:*
+        version: link:../folders
       '@wren/research':
         specifier: workspace:*
         version: link:../research
       '@wren/runtime':
         specifier: workspace:*
         version: link:../runtime
+      '@wren/variants':
+        specifier: workspace:*
+        version: link:../variants
+      '@wrenautomation/vireo':
+        specifier: 0.18.0
+        version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)

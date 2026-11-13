@@ -167,7 +167,7 @@ export const dataLook = (): DataLook => data;
  * of records is an array of objects; a list of plain values (tags, ids) and our own words (a
  * view's fields, its columns) stay, so the page still knows its shape.
  */
-function emptied(v: unknown): unknown {
+export function emptied(v: unknown): unknown {
   if (Array.isArray(v)) return v.some((x) => x && typeof x === "object") ? [] : v;
   if (v && typeof v === "object")
     return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, OURS.has(k) ? x : emptied(x)]));

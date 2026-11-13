@@ -43,6 +43,9 @@ const KIND_ICON: Record<string, IconName> = {
   file: "page",
   run: "pulse",
   page: "globe",
+  query: "search",
+  subject: "split",
+  batch: "boxes",
   sample: "image",
 };
 export const iconOf = (kind: string): IconName => KIND_ICON[kind] ?? "dot";
@@ -105,18 +108,16 @@ export const AliasMark = () => (
   />
 );
 
-/** A row's mark: a toned one is a tag; a neutral one reads as quiet words beside the name. */
-export function MarkOf({ mark }: { mark: { label: string; tone?: TagTone } }) {
-  return mark.tone && mark.tone !== "neutral" ? (
-    <Tag tone={mark.tone} className="self-start">
+/** A row's mark on the name's line: a toned one is a tag; a neutral one, quiet words. */
+export const markAfter = (mark: { label: string; tone?: TagTone } | undefined) =>
+  !mark ? null : mark.tone && mark.tone !== "neutral" ? (
+    // one line per row whatever its mark: row heights stay even
+    <Tag tone={mark.tone} className="ml-1.5 align-[1px] font-normal">
       {mark.label}
     </Tag>
-  ) : null;
-}
-export const quietMark = (mark: { label: string; tone?: TagTone } | undefined) =>
-  mark && (!mark.tone || mark.tone === "neutral") ? (
+  ) : (
     <span className="ml-1.5 text-[11.5px] font-normal text-(--ui-ink-3)">{mark.label}</span>
-  ) : null;
+  );
 
 /** One row: icon, name (↗ on an alias edge), its mark, the sub, the count and a chevron if it opens. */
 export function Row({
@@ -150,7 +151,8 @@ export function Row({
       onClick={follow(() => ctx.go(i.path))}
       aria-current={current ? "page" : on ? "true" : undefined}
       className={cn(
-        "grid grid-cols-[16px_minmax(0,1fr)_auto] items-start gap-x-2 rounded-[8px] px-2 py-1.5 text-(--ui-ink) no-underline transition-[background-color] duration-150 hover:bg-(--ui-fill) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--ui-focus)",
+        // a touch screen gets a 44 px target (CR-23)
+        "grid grid-cols-[16px_minmax(0,1fr)_auto] items-start content-center gap-x-2 rounded-[8px] px-2 py-1.5 pointer-coarse:min-h-11 text-(--ui-ink) no-underline transition-[background-color] duration-150 hover:bg-(--ui-fill) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--ui-focus)",
         on && "bg-(--ui-fill)",
         current && "bg-(--ui-accent-tint) hover:bg-(--ui-accent-tint)",
       )}
@@ -160,16 +162,16 @@ export function Row({
         <span dir="auto" className="text-[13.5px]/[1.4] font-medium wrap-anywhere">
           <Hit text={i.name} q={hit} />
           {alias ? <AliasMark /> : null}
-          {quietMark(mark)}
+          {markAfter(mark)}
         </span>
-        {mark ? <MarkOf mark={mark} /> : null}
+        {/* the edge first: where it lives, then what it is */}
+        {alias && i.from ? (
+          <span className="text-[12px]/[1.4] text-(--ui-ink-3) wrap-anywhere">from {i.from}</span>
+        ) : null}
         {i.sub ? (
           <span dir="auto" className="text-[12px]/[1.4] text-(--ui-ink-3) wrap-anywhere">
             {i.sub}
           </span>
-        ) : null}
-        {alias && i.from ? (
-          <span className="text-[12px]/[1.4] text-(--ui-ink-3) wrap-anywhere">from {i.from}</span>
         ) : null}
       </span>
       <span className="mt-[3px] flex items-center gap-1 text-[11.5px] text-(--ui-ink-3) tabular-nums">
@@ -198,15 +200,23 @@ export function rowsOf(ctx: Ctx, c: Column) {
   return ctx.pager.rowsOf(c.route, c.items, c.next);
 }
 
+/** A level that holds nothing; an empty state only when the product says what fills it. */
+export function EmptyLevel({ ctx, c, className }: { ctx: Ctx; c: Column; className: string }) {
+  const fills = ctx.p.emptyText?.(c);
+  return (
+    <div {...(fills ? { "data-empty": "" } : {})} className={className}>
+      <p className="m-0 text-pretty wrap-anywhere">
+        {c.item.name} holds nothing yet.{fills ? <> {fills}</> : null}
+      </p>
+    </div>
+  );
+}
+
 /** The rows of one level as a list; the row on the route is marked. */
 export function Rows({ ctx, c, route }: { ctx: Ctx; c: Column; route: string }) {
   const r = rowsOf(ctx, c);
   if (!r.items.length)
-    return (
-      <p className="m-0 px-3 py-2 text-[13px] text-(--ui-ink-3) wrap-anywhere">
-        {c.item.name} holds nothing yet.
-      </p>
-    );
+    return <EmptyLevel ctx={ctx} c={c} className="px-3 py-2 text-[13px] text-(--ui-ink-3)" />;
   return (
     <>
       <ul className="m-0 grid list-none gap-px p-0">
@@ -341,6 +351,7 @@ export function Preview({
           className="m-0 text-[19px]/[1.3] font-semibold text-(--ui-ink) wrap-anywhere"
         >
           {whole.name}
+          {alias ? <AliasMark /> : null}
         </h2>
         {sub ? (
           <p dir="auto" className="m-0 text-[13px]/[1.45] text-(--ui-ink-2) wrap-anywhere">

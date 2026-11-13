@@ -1,13 +1,13 @@
-/** Canon › Explorer: Explorer over the Canon tree (`paths/*`), each kind of home in the preview. Fake server: `web/src/mocks/`. */
+/** Explorer › Canon: Explorer over the Canon tree (`paths/*`), each kind of home in the preview. Fake server: `web/src/mocks/`. */
 import type { Meta } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { CANON_ROWS } from "../../../mocks/data/canon.js";
 import { CANON_HOME } from "../../../mocks/data/canon-library.js";
 import { ADMIN } from "../../../mocks/data/me.js";
 import { pageAt, tidy } from "../../../mocks/page.js";
-import { explorerHref } from "../../../modules/canon/explorer.js";
+import { explorerHref } from "../../../modules/explorer/href.js";
 
-const meta: Meta = { title: "Wren/Canon/Explorer" };
+const meta: Meta = { title: "Wren/Explorer/Canon" };
 export default meta;
 
 const WAIT = { timeout: 5000 };
@@ -15,9 +15,12 @@ const at = (route: string, view?: "list" | "gallery") => explorerHref(route, vie
 const REF = CANON_ROWS[0]?.id ?? "instagram-Fake1";
 const LONG = "writing-tells-and-a-much-longer-topic-name-that-wraps";
 
+/** One record open: an empty Canon holds none, so Empty mode has no state to check here. */
+const ONE = { me: ADMIN, empty: false } as const;
+
 /** The root: its four areas, and what needs a look beside them, every link a path in the tree. */
 export const Default = tidy(
-  pageAt("/canon/explorer", {
+  pageAt("/explorer/canon", {
     me: ADMIN,
     check: async (page) => {
       const view = within(page);
@@ -43,7 +46,7 @@ export const Default = tidy(
 /** A topic: its layers in the column; its size, posters and the whole page in the preview. */
 export const Topic = tidy(
   pageAt(at("canon/topics/video-editing"), {
-    me: ADMIN,
+    ...ONE,
     check: async (page) => {
       const view = within(page);
       await expect(
@@ -61,7 +64,7 @@ export const Topic = tidy(
 /** A rule set: its lines as markdown; a cite goes to its record's home in the tree. */
 export const RuleSet = tidy(
   pageAt(at("canon/topics/video-editing/sets/video-editing-cuts"), {
-    me: ADMIN,
+    ...ONE,
     check: async (page) => {
       const view = within(page);
       // the body's line, then its row's sub
@@ -80,7 +83,7 @@ export const RuleSet = tidy(
 /** One rule line: its text once, and the agent source behind it. */
 export const RuleLine = tidy(
   pageAt(at("canon/topics/video-editing/sets/video-editing-cuts/VC-3"), {
-    me: ADMIN,
+    ...ONE,
     check: async (page) => {
       const view = within(page);
       // once in the preview; at 1280 its column row too
@@ -99,7 +102,7 @@ export const RuleLine = tidy(
 /** A reference: the player and his note; the lines it backs are the preview's links. */
 export const Reference = tidy(
   pageAt(at(`canon/references/${REF}`), {
-    me: ADMIN,
+    ...ONE,
     check: async (page) => {
       const view = within(page);
       await expect(await view.findByText("His note", {}, WAIT)).toBeVisible();
@@ -111,7 +114,7 @@ export const Reference = tidy(
 /** A finding: fields whole, a cite not in Canon marked in its links. */
 export const Record = tidy(
   pageAt(at("canon/records/finding/cuts-land-on-the-kick-fake01"), {
-    me: ADMIN,
+    ...ONE,
     check: async (page) => {
       const view = within(page);
       await expect(await view.findByText("confidence", {}, WAIT)).toBeVisible();
@@ -124,7 +127,7 @@ export const Record = tidy(
 /** A direction doc: frontmatter as code, the rest as markdown. */
 export const File = tidy(
   pageAt(at("canon/files/direction/2026-11-12-personal-brand.md"), {
-    me: ADMIN,
+    ...ONE,
     check: async (page) => {
       const view = within(page);
       await expect(await view.findByText("date: 2026-11-12", {}, WAIT)).toBeVisible();
@@ -148,7 +151,7 @@ export const Gallery = tidy(
 
 /** Find under the root: the words matched, each result a link to its home. */
 export const Find = tidy(
-  pageAt("/canon/explorer", {
+  pageAt("/explorer/canon", {
     me: ADMIN,
     check: async (page) => {
       const view = within(page);
@@ -166,8 +169,10 @@ export const Find = tidy(
 );
 
 /** Before the first sync: the tree says how Canon gets here. */
-export const NotIndexed = pageAt("/canon/explorer", {
+export const NotIndexed = pageAt("/explorer/canon", {
   me: ADMIN,
+  // the first-run state already: Canon with no index
+  empty: false,
   answers: {
     "paths/columns": {
       columns: [],
@@ -180,9 +185,9 @@ export const NotIndexed = pageAt("/canon/explorer", {
   },
 });
 
-export const Loading = pageAt("/canon/explorer", { me: ADMIN, mode: "pending" });
+export const Loading = pageAt("/explorer/canon", { me: ADMIN, mode: "pending" });
 
-export const Failed = pageAt("/canon/explorer", {
+export const Failed = pageAt("/explorer/canon", {
   me: ADMIN,
   mode: "fails",
   check: async (page) => {

@@ -1,11 +1,13 @@
 /**
- * Explorer's answers (`paths/*`): the server's own Canon tree (`canonTree`) and walk over the
- * Canon mocks, so a page story reads the shapes and errors prod reads. Synthetic data only.
+ * Explorer's server answers (`paths/*`): the server's own trees (`canonTree`, `vireoTree`) and
+ * walk over the Canon and Variants mocks, so a page story reads the shapes and errors prod reads.
+ * Synthetic data only.
  */
-import { childrenAt, columns, homeAt, PathError, wholeAt } from "@wren/core/paths";
+import { childrenAt, columns, homeAt, PathError, rooted, rootOf, wholeAt } from "@wren/core/paths";
 import { type CanonSource, canonTree, type Placed } from "@wren/paths/canon-tree";
 import { PATH_ERROR_STATUS } from "@wren/paths/console-routes";
 import type { PathsConsoleApi } from "@wren/paths/restate";
+import { type VireoSource, vireoTree } from "@wren/paths/vireo-tree";
 import type {
   FileRef,
   FileWhole,
@@ -13,7 +15,7 @@ import type {
   RecordWhole,
   TopicWhole,
 } from "@wren/research/canon-library";
-import { type Refusal, refuse, serve } from "../api.js";
+import { dataLook, emptied, type Refusal, refuse, serve } from "../api.js";
 import { CANON_ROWS, referenceWhole } from "./canon.js";
 import {
   CANON_HOME,
@@ -23,6 +25,7 @@ import {
   canonRecord,
   canonRecordsWhole,
 } from "./canon-library.js";
+import { VIREO_SOURCE } from "./vireo-paths.js";
 
 // the server's VIDEO_KINDS (canon-console.ts): its module holds the database, so not imported here
 const VIDEO_KINDS = ["reel", "video"];
@@ -185,20 +188,63 @@ async function refused<T>(read: () => Promise<T>): Promise<T | Refusal> {
   }
 }
 
-// a fresh tree per call, as the server makes one per request
-const tree = () => canonTree(CANON_SOURCE);
+const none = async (what: string): Promise<never> => {
+  throw missing(what);
+};
+
+/** Empty mode: Canon indexed with no records, as a fresh repo reads. */
+const EMPTY_CANON: CanonSource = {
+  ...CANON_SOURCE,
+  home: async () => emptied(CANON_HOME) as typeof CANON_HOME,
+  topic: (name) => none(`topic ${name}`),
+  record: (id) => none(`record ${id}`),
+  reference: (id) => none(`reference ${id}`),
+  file: () => none("file"),
+  references: async () => ({ rows: [], next: null }),
+  rootFiles: async () => [],
+  placed: async () => [],
+  into: async () => null,
+  counts: async () => ({ topics: 0, references: 0, records: 0 }),
+  types: async () => [],
+  ofType: async () => ({ rows: [], total: 0 }),
+  findRecords: async () => [],
+};
+
+/** Empty mode: Vireo with no subjects or guides. */
+const EMPTY_VIREO: VireoSource = {
+  subjects: async () => [],
+  subject: (slug) => none(`subject ${slug}`),
+  guides: async () => [],
+  appliedIn: async () => [],
+};
+
+// fresh trees per call, as the server makes them per request; each path to its root's
+const at = (path: string) => {
+  const empty = dataLook() === "empty";
+  return rooted(
+    {
+      canon: canonTree(empty ? EMPTY_CANON : CANON_SOURCE),
+      vireo: vireoTree(empty ? EMPTY_VIREO : VIREO_SOURCE),
+    },
+    rootOf(path),
+  );
+};
 
 export const PATHS_ANSWERS = serve<PathsConsoleApi>("paths", {
-  columns: (b) => refused(() => columns(tree(), String(b.route))),
+  columns: (b) => refused(() => columns(at(String(b.route)), String(b.route))),
   children: (b) =>
     refused(() =>
-      childrenAt(tree(), String(b.path), typeof b.after === "string" ? b.after : undefined),
+      childrenAt(
+        at(String(b.path)),
+        String(b.path),
+        typeof b.after === "string" ? b.after : undefined,
+      ),
     ),
-  whole: (b) => refused(() => wholeAt(tree(), String(b.path))),
+  whole: (b) => refused(() => wholeAt(at(String(b.path)), String(b.path))),
   find: (b) =>
     refused(async () => {
-      const a = tree();
       const under = typeof b.under === "string" ? b.under : "canon";
+      const a = at(under);
       return { items: await a.find(String(b.q), await homeAt(a, under)) };
     }),
 });

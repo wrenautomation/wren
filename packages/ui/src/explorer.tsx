@@ -64,6 +64,8 @@ export interface ExplorerProps {
   marks?: Readonly<Record<string, { label: string; tone?: TagTone }>> | undefined;
   /** the way out of each path error, in the product's words */
   errorText?: Partial<Record<PathErrorCode, ReactNode>> | undefined;
+  /** what fills an empty folder and the way there (ui-design SV-8); none: it says only that it is empty */
+  emptyText?: ((c: Column) => ReactNode) | undefined;
   className?: string | undefined;
 }
 
@@ -290,13 +292,8 @@ export function Explorer(p: ExplorerProps) {
   return (
     <div ref={box} className={cn("flex min-w-0 flex-col gap-3", p.className)}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        {/* narrow: the pane's Back row names the parent; the crumb names only where it stands,
-            and a preview's own title does that */}
-        {wide ? (
-          <Crumbs crumbs={crumbs} ctx={ctx} />
-        ) : whole ? null : (
-          <Crumbs crumbs={crumbs.slice(-1)} ctx={ctx} />
-        )}
+        {/* narrow: no crumb; the pane's Back row names the parent, its title where it stands */}
+        {wide ? <Crumbs crumbs={crumbs} ctx={ctx} /> : null}
         <div
           className={cn(
             "flex min-w-0 items-center gap-2",

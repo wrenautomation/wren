@@ -97,6 +97,16 @@ export const join = (...parts: string[]) => parts.flatMap(segments).join("/");
 /** where a row leads: an alias row's home, else its own path */
 export const homeOf = (i: Item) => i.original ?? i.path;
 
+/** Rows in one page: Explorer's columns and `ls` read this many at a time. */
+export const PAGE_SIZE = 50;
+
+/** A page of rows held in memory, from `after` (an offset). */
+export const pageOf = (rows: Item[], after?: string): Page => {
+  const from = Number(after ?? 0) || 0;
+  const items = rows.slice(from, from + PAGE_SIZE);
+  return from + PAGE_SIZE < rows.length ? { items, next: String(from + PAGE_SIZE) } : { items };
+};
+
 /** A relation folder row under an item; none when it holds nothing. */
 export function relationRow(home: string, rel: string, items: Item[]): Item[] {
   return items.length
@@ -179,8 +189,13 @@ const codeOf = (e: unknown): PathErrorCode | null =>
 /**
  * A route to its homes, one segment at a time: `canon/topics/app-design/sets/ui-design-states/ST-2`
  * reaches ST-2's home under ui-design. An error stops the walk; the steps before it stand.
+ * `stop(home)`: the walk ends at that step and `rest` holds the segments left (a home read elsewhere).
  */
-export async function walk(a: Adapter, route: string): Promise<Walked> {
+export async function walk(
+  a: Adapter,
+  route: string,
+  stop?: (home: string) => boolean,
+): Promise<Walked & { rest?: string[] }> {
   const segs = segments(route);
   if (segs[0] !== a.root)
     return {
@@ -192,7 +207,7 @@ export async function walk(a: Adapter, route: string): Promise<Walked> {
   ];
   let home = a.root;
   let at: string = a.root;
-  for (const seg of segs.slice(1)) {
+  for (const [i, seg] of segs.slice(1).entries()) {
     at = join(at, seg);
     try {
       const item = await a.item(join(home, seg));
@@ -200,6 +215,7 @@ export async function walk(a: Adapter, route: string): Promise<Walked> {
       // moved: the route goes on from the new home; the old name stops here
       if (item.was) at = home;
       steps.push({ route: at, home, item });
+      if (stop?.(home)) return { steps, rest: segs.slice(i + 2) };
     } catch (e) {
       const code = codeOf(e);
       if (!code) throw e;
@@ -241,8 +257,11 @@ export const sizeLabel = (n: number) =>
       ? `${Math.round(n / 1024)} KB`
       : `${(n / 1024 / 1024).toFixed(1)} MB`;
 
-export async function columns(a: Adapter, route: string): Promise<Shown> {
-  const w = await walk(a, route);
+export const columns = async (a: Adapter, route: string): Promise<Shown> =>
+  columnsOf(a, await walk(a, route));
+
+/** Each step's first page of rows, then the last item whole when it is no folder. */
+async function columnsOf(a: Adapter, w: Walked, whole = true): Promise<Shown> {
   let error = w.error;
   const cols: Column[] = [];
   for (const s of w.steps) {
@@ -261,7 +280,8 @@ export async function columns(a: Adapter, route: string): Promise<Shown> {
     }
   }
   const last = cols.at(-1);
-  if (error || !last || isFolder(last.item)) return { columns: cols, ...(error ? { error } : {}) };
+  if (error || !whole || !last || isFolder(last.item))
+    return { columns: cols, ...(error ? { error } : {}) };
   try {
     return { columns: cols, whole: await a.whole(last.home) };
   } catch (e) {
@@ -298,4 +318,101 @@ export async function allChildren(a: Adapter, home: string): Promise<Item[]> {
     after = p.next;
   } while (after);
   return out;
+}
+
+/** Several roots as one adapter: each call goes to the root its path names. */
+export function rooted(roots: Readonly<Record<string, Adapter>>, root: string): Adapter {
+  const at = (path: string) => {
+    const a = roots[rootOf(path)];
+    if (!a) throw new PathError("unknown-path", `no root ${rootOf(path)} here`);
+    return a;
+  };
+  const own = roots[root];
+  return {
+    root,
+    children: async (path, after) => at(path).children(path, after),
+    item: async (path) => at(path).item(path),
+    whole: async (path) => at(path).whole(path),
+    find: async (q, under) => at(under ?? root).find(q, under),
+    ...(own?.stamp ? { stamp: own.stamp.bind(own) } : {}),
+  };
+}
+
+/** What Explorer reads: one host's routes (PathsConsole), or `across` roots read here and there. */
+export interface Reads {
+  columns(route: string): Promise<Shown>;
+  children(path: string, after?: string): Promise<Page>;
+  find(q: string, under: string): Promise<Item[]>;
+}
+
+const under = (path: string, top: string) => path === top || path.startsWith(`${top}/`);
+
+/** Rows under `from` moved under `to`; a moved row keeps its home in `original`. */
+function reroot(items: Item[], from: string, to: string): Item[] {
+  return items.map((i) =>
+    under(i.path, from)
+      ? { ...i, path: to + i.path.slice(from.length), original: i.original ?? i.path }
+      : i,
+  );
+}
+
+/**
+ * Roots read here (Weaver beside `weaver serve`, folders) and the rest on `far`
+ * (designs/2026-11-12-explorer.md D5). A route that walks from a root here into a far root sends
+ * its rest in one call; the answer reads as the route asked.
+ */
+export function across(here: Readonly<Record<string, Adapter>>, far: Reads): Reads {
+  const isFar = (path: string) => !here[rootOf(path)];
+  /** the walk here; `hand`: where it reached a far home, and the far route for the rest */
+  const cross = async (route: string) => {
+    const a = rooted(here, rootOf(route));
+    const w = await walk(a, route, isFar);
+    const last = w.steps.at(-1);
+    const hand =
+      w.rest && last ? { at: last.route, home: last.home, to: join(last.home, ...w.rest) } : null;
+    return { a, w, hand, home: last?.home ?? a.root };
+  };
+  const failed = (w: Walked) => {
+    if (w.error) throw new PathError(w.error.code, w.error.message);
+  };
+  return {
+    columns: async (route) => {
+      if (isFar(route)) return far.columns(route);
+      const { a, w, hand } = await cross(route);
+      if (!hand) return columnsOf(a, w);
+      const near = await columnsOf(a, { steps: w.steps.slice(0, -1) }, false);
+      if (near.error) return near;
+      const shown = await far.columns(hand.to);
+      const at = (r: string) => (under(r, hand.home) ? hand.at + r.slice(hand.home.length) : r);
+      // the far walk's own steps above the home are this route's steps already
+      const farCols = shown.columns.slice(segments(hand.home).length - 1).map((c) => ({
+        ...c,
+        route: at(c.route),
+        items: reroot(c.items, hand.home, hand.at),
+      }));
+      const e = shown.error;
+      return {
+        columns: [...near.columns, ...farCols],
+        ...(shown.whole ? { whole: shown.whole } : {}),
+        ...(e ? { error: { ...e, route: under(e.route, hand.home) ? at(e.route) : hand.at } } : {}),
+      };
+    },
+    children: async (route, after) => {
+      if (isFar(route)) return far.children(route, after);
+      const { a, w, hand, home } = await cross(route);
+      failed(w);
+      if (hand) {
+        const p = await far.children(hand.to, after);
+        return { ...p, items: reroot(p.items, hand.home, hand.at) };
+      }
+      const p = await a.children(home, after);
+      return { ...p, items: rebase(join(route), p.items) };
+    },
+    find: async (q, at) => {
+      if (isFar(at)) return far.find(q, at);
+      const { a, w, hand, home } = await cross(at);
+      failed(w);
+      return hand ? far.find(q, hand.to) : a.find(q, home);
+    },
+  };
 }

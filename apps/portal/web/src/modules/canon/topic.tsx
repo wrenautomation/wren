@@ -12,7 +12,7 @@ import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href } from "../../route.js";
-import { explorerHref } from "./explorer.js";
+import { explorerHref } from "../explorer/href.js";
 import { Markdown, Section, splitFrontmatter, VIDEO_KINDS, withoutTitle } from "./parts.js";
 import { Code, fileHref, OpenedHere, recordHref } from "./record.js";
 import { Poster } from "./references.js";

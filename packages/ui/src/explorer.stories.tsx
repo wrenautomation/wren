@@ -88,7 +88,10 @@ export const Folder: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await canvas.findByRole("link", { name: /bread-baking/ });
-    await expect(canvas.queryByRole("heading", { level: 2 })).toBeNull();
+    await expect(canvasElement.querySelector("article")).toBeNull();
+    // narrow: the pane's title names the folder, under Back
+    if (!wideIn(canvasElement))
+      await expect(canvas.getByRole("heading", { name: "Topics", level: 2 })).toBeVisible();
   },
 };
 
@@ -186,14 +189,14 @@ export const Alias: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await canvas.findByRole("heading", { name: "plating-color", level: 2 });
+    await canvas.findByRole("heading", { name: /^plating-color/, level: 2 });
     await expect(canvas.getByRole("link", { name: "Show original" })).toHaveAttribute(
       "href",
       expect.stringContaining(encodeURIComponent("canon/topics/plating/sets/plating-color")),
     );
-    // ↗ marks the edge only: the set's row, never the lines inside it
+    // ↗ marks the edge and the title only: the set's row (wide) and its preview, never its lines
     await expect(canvas.queryAllByRole("img", { name: "shown here from its home" })).toHaveLength(
-      wideIn(canvasElement) ? 1 : 0,
+      wideIn(canvasElement) ? 2 : 1,
     );
   },
 };
