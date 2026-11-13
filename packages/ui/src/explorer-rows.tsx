@@ -47,6 +47,10 @@ const KIND_ICON: Record<string, IconName> = {
   subject: "split",
   batch: "boxes",
   sample: "image",
+  "metro-line": "commit",
+  group: "area",
+  station: "dot",
+  flow: "workflow",
 };
 export const iconOf = (kind: string): IconName => KIND_ICON[kind] ?? "dot";
 export const within = (outer: string, inner: string) =>

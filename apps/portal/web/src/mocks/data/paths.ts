@@ -17,6 +17,7 @@ import {
 } from "@wren/core/paths";
 import { type CanonSource, canonTree, type Placed } from "@wren/paths/canon-tree";
 import { PATH_ERROR_STATUS } from "@wren/paths/console-routes";
+import { metroTree } from "@wren/paths/metro-tree";
 import type { PathsConsoleApi } from "@wren/paths/restate";
 import { type VireoSource, vireoTree } from "@wren/paths/vireo-tree";
 import type {
@@ -36,6 +37,7 @@ import {
   canonRecord,
   canonRecordsWhole,
 } from "./canon-library.js";
+import { SHAPE_FOCUS } from "./map.js";
 import { VIREO_SOURCE } from "./vireo-paths.js";
 
 // the server's VIDEO_KINDS (canon-console.ts): its module holds the database, so not imported here
@@ -257,6 +259,9 @@ const EMPTY_VIREO: VireoSource = {
   appliedIn: async () => [],
 };
 
+/** the focus page's shape: lines, a group, exits on no line */
+const METRO_SHAPE = { body: SHAPE_FOCUS, version: 3, at: "2026-11-10T09:00:00.000Z" };
+
 // fresh trees per call, as the server makes them per request; each path to its root's
 const at = (path: string) => {
   const empty = dataLook() === "empty";
@@ -264,6 +269,7 @@ const at = (path: string) => {
     {
       canon: canonTree(empty ? EMPTY_CANON : CANON_SOURCE),
       vireo: vireoTree(empty ? EMPTY_VIREO : VIREO_SOURCE),
+      metro: metroTree({ shape: async () => (empty ? null : METRO_SHAPE) }),
     },
     rootOf(path),
   );

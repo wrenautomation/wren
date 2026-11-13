@@ -101,6 +101,14 @@ export const RELATIONS: Record<string, string> = {
   "hit-by": "Hit by",
   hits: "Hits",
   into: "Replaced by",
+  "goes-to": "Goes to",
+  "comes-from": "Comes from",
+  "transfers-to": "Transfers to",
+  "transferred-from": "Transferred from",
+  "loops-to": "Loops to",
+  "looped-from": "Looped from",
+  opens: "Opens",
+  "opened-by": "Opened by",
 };
 
 export const segments = (path: string) => path.split("/").filter(Boolean);
@@ -163,6 +171,20 @@ export async function itemFromParent(a: Adapter, path: string, pages = 20): Prom
   throw new PathError("unknown-path", `nothing at ${path}`);
 }
 
+/** relation folders that point back at the item */
+const IN_RELS = [
+  "backed-by",
+  "cited-by",
+  "used-by",
+  "grew-into",
+  "applied-in",
+  "hit-by",
+  "comes-from",
+  "transferred-from",
+  "looped-from",
+  "opened-by",
+];
+
 /** Each relation folder under an item's home, with what it holds; a leaf holds none. */
 export async function linksOf(a: Adapter, item: Item): Promise<Link[]> {
   if (item.leaf) return [];
@@ -170,11 +192,7 @@ export async function linksOf(a: Adapter, item: Item): Promise<Link[]> {
   return Promise.all(
     rels.map(async (r) => ({
       rel: lastSegment(r.path),
-      dir: (["backed-by", "cited-by", "used-by", "grew-into", "applied-in", "hit-by"].includes(
-        lastSegment(r.path),
-      )
-        ? "in"
-        : "out") as Link["dir"],
+      dir: (IN_RELS.includes(lastSegment(r.path)) ? "in" : "out") as Link["dir"],
       label: r.name,
       items: (await a.children(r.path)).items,
     })),

@@ -7,6 +7,7 @@ import type { Media } from "@wren/research/canon-console";
 import { variants } from "@wren/variants";
 import { canonPaths } from "./canon.js";
 import { foldersTree } from "./folders-tree.js";
+import { metroPaths } from "./metro.js";
 import { vireoPaths } from "./vireo.js";
 import { type WeaverSource, weaverServe, weaverTree } from "./weaver-tree.js";
 
@@ -26,6 +27,7 @@ export function serverRoots(d: PathsDeps): Record<string, (viewer: string | null
   return {
     canon: () => canonPaths(d.db, d.canonRemote, d.media),
     vireo: (viewer) => vireoPaths(d.db, viewer, d.media),
+    metro: () => metroPaths(d.db),
   };
 }
 

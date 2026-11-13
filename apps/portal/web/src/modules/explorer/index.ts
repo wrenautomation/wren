@@ -28,6 +28,13 @@ const ROOTS: ExplorerRoot[] = [
       "Every research run on this Mac: the pages it read, their findings, the queries that hit them.",
   },
   {
+    id: "metro",
+    label: "Business map",
+    icon: "workflow",
+    about:
+      "The newest map as a tree: lines, their groups and stations, shared flows. Tracks show as links each way.",
+  },
+  {
     id: "folders",
     label: "Folders",
     icon: "folder",
@@ -40,7 +47,8 @@ export const explorer: Module = {
   id: "explorer",
   name: "Explorer",
   icon: "columns",
-  blurb: "Canon, Vireo, Weaver and your folders as one tree to walk, list or find in.",
+  blurb:
+    "Canon, Vireo, Weaver, the business map and your folders as one tree to walk, list or find in.",
   requires: { audience: "team" },
   pages: ROOTS.map((r) => ({
     id: r.id,

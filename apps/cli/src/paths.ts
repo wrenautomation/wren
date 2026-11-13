@@ -144,7 +144,7 @@ export function registerPaths(
   const p = program
     .command("paths")
     .description(
-      "Canon, Vireo, Weaver and folders as one tree of paths: canon/topics/<t>/sets/<set>/<line>, canon/references/<id>, vireo/subjects/<slug>/batches/<batch>/<sample>, weaver/<run>/pages/<doc>, folders/<id>/… (Weaver reads weaver serve on this Mac)",
+      "Canon, Vireo, Weaver, the business map and folders as one tree of paths: canon/topics/<t>/sets/<set>/<line>, canon/references/<id>, vireo/subjects/<slug>/batches/<batch>/<sample>, weaver/<run>/pages/<doc>, metro/lines/<line>/<group>/<station>, folders/<id>/… (Weaver reads weaver serve on this Mac)",
     );
   const run = (route: string, fn: (a: Adapter) => Promise<unknown>) =>
     withDb(async (db) => {

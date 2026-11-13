@@ -1,6 +1,6 @@
 /**
  * Explorer: every root as one Finder-style tree, a page per root (designs/2026-11-12-explorer.md
- * D5). Canon and Vireo read on the server (PathsConsole); Weaver and folders read here, beside
+ * D5). Canon, Vireo and the business map read on the server (PathsConsole); Weaver and folders read here, beside
  * `weaver serve` on this Mac. A walk from here into a server root hands its rest over in one call
  * (`across`). The address holds where it stands (`?at=`) and the view (`?view=`).
  */
@@ -23,6 +23,7 @@ import { Explorer, type ExplorerView, type IconName, type TagTone, useSeen } fro
 import type { ReactNode } from "react";
 import { call } from "../../api.js";
 import { PORTAL } from "../../load.js";
+import { METRO_MARKS, MetroPreview, metroFills } from "../../map/explorer.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { CANON_MARKS, CanonPreview, CanonRoot, canonFills } from "../canon/explorer.js";
@@ -67,6 +68,7 @@ const MARKS: Record<string, { label: string; tone?: TagTone }> = {
   ...CANON_MARKS,
   ...VIREO_MARKS,
   ...WEAVER_MARKS,
+  ...METRO_MARKS,
 };
 
 const ERRORS = {
@@ -88,6 +90,7 @@ const FILLS: Record<string, (c: Column) => ReactNode> = {
   canon: (c) => canonFills(c.route),
   vireo: (c) => vireoFills(c.route),
   weaver: (c) => weaverFills(c.route),
+  metro: (c) => metroFills(c.route),
   folders: (c) =>
     c.item.kind === "root" || c.item.kind === "folder" ? (
       <>
@@ -101,6 +104,7 @@ const PREVIEW: Record<string, (w: Whole, view: ExplorerView) => ReactNode> = {
   canon: (w, view) => <CanonPreview w={w} view={view} />,
   vireo: (w) => <VireoPreview w={w} />,
   weaver: (w) => <WeaverPreview w={w} />,
+  metro: (w) => <MetroPreview w={w} />,
 };
 
 /** A root with no preview of its own: the item's text. */

@@ -7,7 +7,7 @@
  * reattach to the capsule. A late track inside rings it amber; a bad station inside shows as a count.
  */
 
-import { type FoldNode, openKey } from "@wrenautomation/orrery";
+import { type FoldNode, lift, openKey } from "@wrenautomation/orrery";
 import { foldAt, foldSteps, foldWidth } from "./geometry.js";
 import { type Frame, type PlaceBox, placeMetro } from "./place.js";
 import {
@@ -16,7 +16,6 @@ import {
   type Mark,
   type MarkStation,
   type MetroScene,
-  type MetroTrack,
   type OpenedSpec,
   type Point,
   type SceneStation,
@@ -108,9 +107,54 @@ function treeOf(paths: readonly Path[]): { nodes: FoldNode[]; chain: Map<string,
   };
 }
 
-/** The node a leaf folds into: the outermost closed node on its path, inside open ones. */
+/**
+ * The node a leaf folds into: the outermost closed node on its path, inside open ones. Read from
+ * the leaf's own chain, not a parent walk: in a scene tree one group may sit in two line · zone nodes.
+ */
 const foldOf = (chain: readonly string[] | undefined, open: ReadonlySet<string>) =>
   chain?.find((k) => !open.has(k));
+
+/** ids may repeat across kinds (a group named as a station): a station's end is keyed apart */
+const AT = "\u0000";
+const NONE: ReadonlySet<string> = new Set();
+
+/**
+ * Tracks over folded runs (Orrery's `lift`, explorer D6): each end draws at the run that holds it;
+ * a track inside one run goes; a station's own loop stays. `merge`: rewired tracks with the same
+ * ends are one. An end a track lacks (a free point) never folds. In order, so the layout keeps it.
+ */
+function liftTracks<T>(
+  tracks: readonly T[],
+  ends: (t: T) => [string | undefined, string | undefined],
+  into: ReadonlyMap<string, string>,
+  merge: boolean,
+): { t: T; from?: string; to?: string }[] {
+  const edges = tracks.map((t, i) => {
+    const [a, b] = ends(t);
+    return { id: String(i), from: AT + (a ?? `?${i}a`), to: AT + (b ?? `?${i}b`), t };
+  });
+  const { lines, inside } = lift(edges, NONE, (id) =>
+    id.startsWith(AT) ? into.get(id.slice(1)) : undefined,
+  );
+  const kept = new Map(lines.map((l) => [l.edge.id, l]));
+  for (const [k, es] of inside)
+    if (k.startsWith(AT)) for (const edge of es) kept.set(edge.id, { edge, from: k, to: k });
+  const bare = (k: string, had: string | undefined) => (k.startsWith(AT) ? had : k);
+  const seen = new Set<string>();
+  return edges.flatMap((e): { t: T; from?: string; to?: string }[] => {
+    const l = kept.get(e.id);
+    if (!l) return [];
+    const [a, b] = ends(e.t);
+    const from = bare(l.from, a);
+    const to = bare(l.to, b);
+    const out = { t: e.t, ...(from ? { from } : {}), ...(to ? { to } : {}) };
+    if (from === a && to === b) return [out];
+    const pair = `${from}>${to}`;
+    if (merge && seen.has(pair)) return [];
+    seen.add(pair);
+    return [out];
+  });
+}
 
 const zoneOf = (scene: MetroScene, x: number) =>
   (scene.zones ?? []).findIndex(([a, b]) => x >= a && x < b);
@@ -228,15 +272,12 @@ export function foldScene(scene: MetroScene, open: ReadonlySet<string>): MetroSc
     const c = cap.get(k);
     return c ? [(c.cap[0] + c.cap[1]) / 2, c.y] : undefined;
   };
-  const tr = scene.tr.flatMap((r): MetroTrack[] => {
-    const ka = r.a ? into.get(r.a) : undefined;
-    const kb = r.b ? into.get(r.b) : undefined;
-    if (ka && ka === kb) return [];
-    if (!ka && !kb) return [r];
+  const tr = liftTracks(scene.tr, (r) => [r.a, r.b], into, false).map(({ t: r, from, to }) => {
+    if (from === r.a && to === r.b) return r;
     const { pts: _pts, at: _at, dot: _dot, cat: _cat, ...rest } = r;
     const pa = end(r.a, r.oa ?? r.o ?? 0) ?? r.pts?.[0];
     const pc = end(r.b, r.ob ?? r.o ?? 0) ?? r.pts?.[r.pts.length - 1];
-    return [{ ...rest, ...(pa ? { pa } : {}), ...(pc ? { pc } : {}) }];
+    return { ...rest, ...(pa ? { pa } : {}), ...(pc ? { pc } : {}) };
   });
   // A rail's label shows once: on the first track left on it.
   const lead = new Set<string>();
@@ -359,18 +400,10 @@ function foldRuns(
     });
     for (const s of m) into.set(s.id, k);
   }
-  const at = (id: string) => into.get(id) ?? id;
-  const seen = new Set<string>();
-  const tracks = view.tracks.flatMap((t): ViewTrack[] => {
-    const from = at(t.from);
-    const to = at(t.to);
-    if (from === to && from !== t.from) return [];
-    if (from === t.from && to === t.to) return [t];
-    const pair = `${from}>${to}`;
-    if (seen.has(pair)) return [];
-    seen.add(pair);
-    return [{ ...t, id: t.id ?? `${t.from}-${t.to}`, from, to }];
-  });
+  const tracks = liftTracks(view.tracks, (t) => [t.from, t.to], into, true).map(
+    ({ t, from = t.from, to = t.to }): ViewTrack =>
+      from === t.from && to === t.to ? t : { ...t, id: t.id ?? `${t.from}-${t.to}`, from, to },
+  );
   // The fold takes the place of the run's first station, so the stations keep their order.
   const first = new Map([...runs].map(([k, r]) => [k, r.m[0]?.id]));
   const stations = view.stations.flatMap((s): ViewStation[] => {
