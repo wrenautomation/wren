@@ -152,6 +152,8 @@ const OURS = new Set([
   "views",
   "fields",
   "columns",
+  // an enum with spaces ("In Progress"): a filter and a group key, never words a person wrote
+  "status",
 ]);
 /** The `data` toolbar: the table as written, stretched as prod (`stretch`), or with no records (`emptied`). */
 export type DataLook = "tidy" | "messy" | "empty";

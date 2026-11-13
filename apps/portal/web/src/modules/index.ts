@@ -1,9 +1,10 @@
 /**
  * The portal's apps: the product shell for a client and for Wren (`./places.ts`), Research and
- * Variants and Canon.
+ * Variants, Canon and Aerie.
  */
 
 import type { Module } from "../module.js";
+import { aerie } from "./aerie/index.js";
 import { canon } from "./canon/index.js";
 import { explorer } from "./explorer/index.js";
 import { CLIENT_PLACES, TEAM_PLACES } from "./places.js";
@@ -16,6 +17,7 @@ export const MODULES: Module[] = [
   ...TEAM_PLACES,
   research,
   canon,
+  aerie,
   variants,
   explorer,
 ];

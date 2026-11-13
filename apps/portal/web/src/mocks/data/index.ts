@@ -5,6 +5,7 @@
 import type { ProfileJourney } from "@wren/core/profile-records";
 import type { Row } from "@wren/core/records/serve";
 import type { Answers } from "../api.js";
+import { AERIE_ANSWERS } from "./aerie.js";
 import { APP_ANSWERS } from "./apps.js";
 import { CANON_ADDS, CANON_ANSWERS } from "./canon.js";
 import { CANON_LIBRARY_ANSWERS } from "./canon-library.js";
@@ -161,6 +162,7 @@ const BASE: Answers = {
   ...CANON_LIBRARY_ANSWERS,
   ...OUTLIER_ANSWERS,
   ...PATHS_ANSWERS,
+  ...AERIE_ANSWERS,
   "canon/adds": { rows: CANON_ADDS },
   "console/call:PieceList.list": { pieces: PIECES },
   "console/call:ContentDesk.waiting": STUDIO_WAITING,
