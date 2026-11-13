@@ -3,21 +3,23 @@
  * filters here, so a filter change reads nothing. `q` asks the server's ranked search for ids.
  */
 
-import { Empty, LoadFailed, Loading, useSeen } from "@wren/ui";
-import { compare, matches, viewOfAddress } from "@wrenautomation/aerie/core";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Empty, LoadFailed, Loading, useNarrow, useSeen } from "@wren/ui";
+import { compare, matches, type ViewLayout, viewOfAddress } from "@wrenautomation/aerie/core";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { ApiError } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
+import { addressOf, GROUP, TASKS, unfiltered, withoutText } from "./address.js";
+import { AerieBar } from "./bar.js";
 import { type TaskRow, useBoard, useRows, useSearch } from "./data.js";
 import { TaskList } from "./list.js";
 
-export const TASKS = "/aerie/tasks";
-/** how the page lays out, not what it shows: kept when filters clear */
-const LAYOUT = ["layout", "group", "sort"];
-const layoutOf = (p: URLSearchParams) =>
-  new URLSearchParams([...p].filter(([k]) => LAYOUT.includes(k)));
+export { TASKS };
+
 const NO_ACTOR = /^no Aerie actor for (.+)$/;
+/** the layouts that draw so far; the switch shows once a second lands */
+const LAYOUTS: readonly ViewLayout[] = ["list"];
+const NO_TASKS: TaskRow[] = [];
 
 /** the viewer's sign-in has no actor: say the one line that adds it */
 function NoActor({ error }: { error: ApiError }) {
@@ -34,65 +36,91 @@ export function TasksPage({ params }: PageProps) {
   const board = useBoard();
   const got = useRows();
   const search = useSearch(view.text);
+  const narrow = useNarrow();
   const open = params.get("task");
   const [washed, setWashed] = useState<ReadonlySet<string>>(new Set());
   // id → version once the mount's first read settles; later reads wash what moved past it
   const held = useRef<Map<string, number> | null>(null);
-  const rows = got.data?.rows;
+  const rows = got.data?.rows ?? NO_TASKS;
   useEffect(() => {
-    if (!rows || got.loading) return;
+    if (!got.data || got.loading) return;
     const was = held.current;
-    held.current = new Map(rows.map((t) => [t.id, t.version]));
+    held.current = new Map(got.data.rows.map((t) => [t.id, t.version]));
     if (!was) return;
-    const moved = rows.filter((t) => was.get(t.id) !== t.version).map((t) => t.id);
+    const moved = got.data.rows.filter((t) => was.get(t.id) !== t.version).map((t) => t.id);
     if (moved.length) setWashed(new Set(moved));
-  }, [rows, got.loading]);
+  }, [got.data, got.loading]);
   useSeen("list", { label: "Tasks", icon: "board", text: "Aerie tasks" });
 
+  // search ranks; while it reads or failed, the other filters still apply
+  const ranked = view.text ? search.data : null;
+  const hits = useMemo(() => (ranked ? new Set(ranked) : null), [ranked]);
   const shown = useMemo(() => {
     const ctx = { grants: board.data?.grants ?? [] };
-    const kept = (got.data?.rows ?? []).filter((t) => matches(t, view.filter, ctx));
-    // search ranks; while it reads or failed, the other filters still apply
-    if (view.text && search.data) {
+    const kept = rows.filter((t) => matches(t, view.filter, ctx));
+    if (ranked) {
       const at = new Map(kept.map((t) => [t.id, t]));
-      return search.data.flatMap((id) => at.get(id) ?? []);
+      return ranked.flatMap((id) => at.get(id) ?? []);
     }
     return kept.sort(compare(view.sort));
-  }, [got.data, board.data, view, search.data]);
+  }, [rows, board.data, view, ranked]);
 
   const err = got.error ?? board.error;
   if (err?.status === 403 && NO_ACTOR.test(err.message)) return <NoActor error={err} />;
-  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
-  if (!got.data) return <Loading shape="rows" lines={8} />;
   const at = (t: TaskRow) => href(TASKS, { task: t.id }, params);
 
-  if (!got.data.rows.length)
-    return (
+  let body: ReactNode;
+  if (got.error && !got.data) body = <LoadFailed error={got.error} onRetry={got.retry} />;
+  else if (!got.data) body = <Loading shape="rows" lines={8} />;
+  else if (!rows.length)
+    body = (
       <Empty title="No tasks yet" waits>
         Tasks land here from <code>aerie import</code>, <code>backlog task create</code> or an
         agent.
       </Empty>
     );
-  if (!shown.length)
-    return view.text && search.data ? (
-      <Empty action={<a href={href(TASKS, { q: null }, params)}>Clear search</a>}>
+  else if (!shown.length)
+    body = ranked ? (
+      <Empty action={<a href={addressOf(params, withoutText(view))}>Clear search</a>}>
         No task mentions “{view.text}”.
       </Empty>
     ) : (
-      <Empty action={<a href={href(TASKS, {}, layoutOf(params))}>Clear filters</a>}>
+      <Empty action={<a href={addressOf(params, unfiltered(view))}>Clear filters</a>}>
         No task matches these filters.
       </Empty>
     );
+  else
+    body = (
+      <TaskList
+        tasks={shown}
+        group={ranked ? null : (view.group ?? GROUP)}
+        open={open}
+        onOpen={(t) => navigate(at(t))}
+        hrefOf={at}
+        washed={washed}
+        onWashed={() => setWashed(new Set())}
+      />
+    );
 
   return (
-    <TaskList
-      tasks={shown}
-      group={view.text && search.data ? null : (view.group ?? "status")}
-      open={open}
-      onOpen={(t) => navigate(at(t))}
-      hrefOf={at}
-      washed={washed}
-      onWashed={() => setWashed(new Set())}
-    />
+    <div className="grid min-w-0 gap-3">
+      <div className="pb-2">
+        <AerieBar
+          params={params}
+          view={view}
+          board={board}
+          rows={rows}
+          hits={hits}
+          search={{
+            loading: !!view.text && search.loading,
+            error: search.error,
+            retry: search.retry,
+          }}
+          narrow={narrow}
+          layouts={LAYOUTS}
+        />
+      </div>
+      {body}
+    </div>
   );
 }

@@ -38,6 +38,13 @@ async function readRows(before: Rows | undefined): Promise<Rows> {
 
 export const useRows = () => useCall<Rows>("aerie/tasks", readRows, { live: LIVE });
 
+export type SavedView = Board["views"][number];
+
+/** the viewer's own view, kept by name (a taken name replaces it) */
+export const saveView = (v: Omit<SavedView, "id">) =>
+  aerieCall("saveView", v as unknown as Record<string, unknown>);
+export const deleteView = (name: string) => aerieCall("deleteView", { name });
+
 /** ids in rank order; the page keeps its other filters */
 export const useSearch = (text: string | undefined) =>
   useCall<string[]>(text ? `aerie/search:${text}` : null, () => aerieCall("search", { text }), {

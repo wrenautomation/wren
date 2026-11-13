@@ -51,6 +51,8 @@ export const AERIE_TASKS: Row[] = [
     assignees: ["@sam", "@peers:cc-1a2b3c4d"],
     summary: "The form sits under the fold on a phone and loses half its sign-ups.",
     labels: ["repo:site"],
+    milestone: "m-spring",
+    type: "feature",
     ac: [
       { text: "Form above the fold at 390", done: true },
       { text: "Same fields as before", done: false },
@@ -61,6 +63,7 @@ export const AERIE_TASKS: Row[] = [
     priority: "medium",
     assignees: ["@alex"],
     summary: "Two dates fit the calendar; each moves a different campaign.",
+    milestone: "m-spring",
     days: 1,
   }),
   row(
@@ -73,6 +76,7 @@ export const AERIE_TASKS: Row[] = [
       summary:
         "A worst-case title: one word longer than any row is wide, then a summary sentence that runs long on purpose so the row has to wrap it whole, never clip it with an ellipsis.",
       labels: ["repo:site", "worst-case"],
+      type: "bug",
     },
   ),
   row("EX-104", "Write the weekly numbers note", "To Do", "ops", {
@@ -116,13 +120,24 @@ const BOARD: AerieAnswer<"board"> = {
     { area: "growth", actor: "@alex", role: "manager" },
     { area: "dev/site", actor: "@sam", role: "doer" },
   ],
-  milestones: [],
+  milestones: [
+    { id: "m-spring", title: "Spring offer", description: null, total: 2, done: 0 },
+    { id: "m-later", title: "Later", description: null, total: 0, done: 0 },
+  ],
   actors: [
     { id: "@william", kind: "person", name: "William" },
     { id: "@alex", kind: "person", name: "Alex" },
     { id: "@sam", kind: "person", name: "Sam" },
   ],
-  views: [],
+  views: [
+    {
+      id: 1,
+      name: "Site work",
+      filter: { area: ["dev/site"], status: ["To Do", "In Progress"] },
+      sort: [{ field: "priority", dir: "asc" }],
+      layout: "list",
+    },
+  ],
   writes: false,
 };
 
@@ -138,4 +153,6 @@ export const AERIE_ANSWERS = serve<AerieApi>("aerie", {
     ).map((t) => t.id);
   },
   decisions: [],
+  saveView: (b) => ({ id: 2, ...(b as Omit<AerieAnswer<"saveView">, "id">) }),
+  deleteView: true,
 });

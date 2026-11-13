@@ -1,6 +1,6 @@
 /** Aerie › Tasks: the list grouped by status, search, and the states the page says. Fake server: `web/src/mocks/`. */
 import type { Meta } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { refuse } from "../../../mocks/api.js";
 import { ADMIN } from "../../../mocks/data/me.js";
 import { pageAt, storyHref, tidy } from "../../../mocks/page.js";
@@ -110,3 +110,70 @@ export const NoActor = pageAt("/aerie/tasks", {
 export const Failed = pageAt("/aerie/tasks", { me: ADMIN, mode: "fails" });
 
 export const Pending = pageAt("/aerie/tasks", { me: ADMIN, mode: "pending" });
+
+/** Every filter in force has a pill, even when nothing matches: two statuses, one exact area, a role. */
+export const BarPills = pageAt(
+  "/aerie/tasks?area=dev&sub=0&status=To+Do&status=In+Progress&who=%40william&role=owner",
+  {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByText("No task matches these filters.", {}, WAIT)).toBeVisible();
+      await expect(view.getByText("To Do, In Progress")).toBeVisible();
+      await expect(view.getByText("william as owner")).toBeVisible();
+    },
+  },
+);
+
+/** The address equals a saved view: its tab is on and Save view hides. */
+export const SavedViewOn = pageAt(
+  "/aerie/tasks?area=dev%2Fsite&status=To+Do&status=In+Progress&sort=priority",
+  {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      const tab = await view.findByRole("link", { name: /^Site work/ }, WAIT);
+      await expect(tab).toHaveAttribute("aria-current", "page");
+      await expect(view.queryByRole("button", { name: /Save view/ })).toBeNull();
+    },
+  },
+);
+
+/** Filter, then Status: each value with its count; a pick writes the address. */
+export const PicksStatus = pageAt("/aerie/tasks", {
+  me: ADMIN,
+  check: async (page) => {
+    const view = within(page);
+    await view.findByText(/^Move the sign-up form/, {}, WAIT);
+    await userEvent.click(view.getByRole("button", { name: /^Filter/ }));
+    await userEvent.click(await screen.findByRole("option", { name: /^Status/ }));
+    const list = await screen.findByRole("listbox", { name: "Status" });
+    await userEvent.click(within(list).getByRole("option", { name: /^Parked/ }));
+    await waitFor(() =>
+      expect(new URL(storyHref(), "http://x").searchParams.getAll("status")).toEqual(["Parked"]),
+    );
+  },
+});
+
+/** A taken name says it replaces the view. */
+export const SaveTaken = pageAt("/aerie/tasks?priority=high", {
+  me: ADMIN,
+  check: async (page) => {
+    const view = within(page);
+    await userEvent.click(await view.findByRole("button", { name: /Save view/ }, WAIT));
+    await userEvent.type(await screen.findByRole("textbox", { name: "View name" }), "Site work");
+    await expect(await screen.findByText(/Replaces your view/)).toBeVisible();
+    await expect(screen.getByRole("button", { name: "Replace view" })).toBeVisible();
+  },
+});
+
+/** The board fails alone: rows still draw; only All tasks shows. */
+export const BoardFailed = pageAt("/aerie/tasks", {
+  me: ADMIN,
+  answers: { "aerie/board": () => refuse(500, "board read failed") },
+  check: async (page) => {
+    const view = within(page);
+    await expect(await view.findByText(/^Move the sign-up form/, {}, WAIT)).toBeVisible();
+    await expect(view.queryByRole("link", { name: /^Site work/ })).toBeNull();
+  },
+});
