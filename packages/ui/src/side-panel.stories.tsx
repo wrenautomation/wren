@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
 import { PANEL, PanelAct, PanelClose, SidePanel } from "./side-panel.js";
 
 export default {
@@ -62,5 +62,45 @@ export const Closes: Story = {
     await waitFor(() => expect(c.queryByRole("complementary", { name: "Agent" })).toBeNull());
     await userEvent.click(c.getByRole("button", { name: "Closed. Open" }));
     await waitFor(() => expect(c.getByRole("complementary", { name: "Agent" })).toBeVisible());
+  },
+};
+
+const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
+
+/** Drags the left edge right (narrower) by `step` px per move, `ms` apart. */
+async function drag(edge: HTMLElement, moves: number, step: number, ms: number) {
+  const x = edge.getBoundingClientRect().left + 2;
+  fireEvent.pointerDown(edge, { pointerId: 1, button: 0, buttons: 1, clientX: x });
+  for (let i = 1; i <= moves; i++) {
+    await wait(ms);
+    fireEvent.pointerMove(edge, { pointerId: 1, buttons: 1, clientX: x + i * step });
+  }
+  fireEvent.pointerUp(edge, { pointerId: 1, clientX: x + moves * step });
+}
+
+/**
+ * The edge's motion (wide only; a phone has no edge): a key resize eases the width, a slow drag
+ * keeps the panel open, a flick shuts it short of the fold.
+ */
+export const Motion: Story = {
+  render: () => <Frame />,
+  play: async ({ canvasElement }) => {
+    if (window.innerWidth <= 900) return;
+    const c = within(canvasElement);
+    const panel = c.getByRole("complementary", { name: "Agent" });
+    const edge = c.getByRole("separator", { name: "Agent" });
+    // a key: the width eases (no data-resizing, width in the transition)
+    edge.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect(edge).toHaveAttribute("aria-valuenow", String(PANEL.width - 16));
+    await expect(panel).not.toHaveAttribute("data-resizing");
+    await expect(getComputedStyle(panel).transitionProperty).toContain("width");
+    // slow: 60px over ~600ms, stays open and narrower
+    await drag(edge, 4, 15, 150);
+    await waitFor(() => expect(edge).toHaveAttribute("aria-valuenow", String(PANEL.width - 76)));
+    await expect(panel).not.toHaveAttribute("data-resizing");
+    // a flick: 75px in ~50ms, still wider than the fold, shuts it
+    await drag(edge, 3, 25, 16);
+    await waitFor(() => expect(c.queryByRole("complementary", { name: "Agent" })).toBeNull());
   },
 };
