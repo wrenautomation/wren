@@ -1289,6 +1289,9 @@ importers:
       '@wren/folders':
         specifier: workspace:*
         version: link:../folders
+      '@wren/pipeline':
+        specifier: workspace:*
+        version: link:../pipeline
       '@wren/research':
         specifier: workspace:*
         version: link:../research
