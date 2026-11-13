@@ -6,22 +6,14 @@
  * tree, good rate, guides under test; Explorer › Vireo opens it. The agent writes through `wren variants`; these pages only judge.
  */
 import {
-  AskAgent,
   Button,
   cx,
-  dragItem,
-  Empty,
-  FolderMoveMenu,
-  type FolderNode,
-  FolderTree,
   handToChat,
   Icon,
   LoadFailed,
-  Loading,
   Seg,
   Tag,
   Textarea,
-  UnfiledDrop,
   useEdit,
   useSeen,
 } from "@wren/ui";
@@ -30,10 +22,7 @@ import { footageLength } from "@wrenautomation/vireo/sync";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { call } from "../../api.js";
-import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
-import type { PageProps } from "../../module.js";
-import { href, navigate } from "../../route.js";
 import { type Live, LiveView } from "./live.js";
 import { FramesProvider, useFrames, WIDTHS } from "./live-page.js";
 import {

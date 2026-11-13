@@ -5,30 +5,10 @@
  * the back and forth (every decision with its why and who made it). Picked runs, or all of them,
  * open on one graph. Read only: the agent and the CLI write. Live: serve sends an event per change.
  */
-import {
-  AskAgent,
-  Button,
-  cx,
-  dragItem,
-  Empty,
-  FolderMoveMenu,
-  type FolderNode,
-  FolderTree,
-  Icon,
-  LoadFailed,
-  Loading,
-  money,
-  relative,
-  Seg,
-  StateMark,
-  UnfiledDrop,
-  useRowsPick,
-} from "@wren/ui";
+import { Button, cx, Empty, Icon, LoadFailed, Loading, money, Seg, StateMark } from "@wren/ui";
 import { type ReactNode, useMemo, useState } from "react";
 import { embedOf, embedSite, youtubeId } from "../../embeds.js";
-import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
-import type { PageProps } from "../../module.js";
 import { PlayerSlot } from "../../player/index.js";
 import { href, navigate, useRoute } from "../../route.js";
 import { usePageRuns } from "../agent/drive.js";
@@ -127,11 +107,13 @@ function Opened({
   rows,
   params,
   here,
+  back,
 }: {
   open: string;
   rows: readonly RunRow[];
   params: URLSearchParams;
   here: string;
+  back: ReactNode;
 }) {
   const ids = useMemo(() => runsIn(open, rows), [open, rows]);
   // Back and forth draws no graph
