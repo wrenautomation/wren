@@ -202,7 +202,7 @@ describe("sops", () => {
     expect(repoSource.md).toContain("The whole readme.");
     expect(repoSource.md).not.toContain("nav");
     expect(repoSource.md).toContain('channel: "acme"');
-    expect(page.md).toContain('channel: "Emil Kowalski, A. Person"');
+    expect(page.md).toContain('channel: "Emil Kowalski; A. Person"');
     expect(page.md).toContain('site: "Emil"');
     expect(page.md).toMatch(/uploaded: "2026-10-01T09:00:00(\.000)?Z"/);
     const plain = await pageSource("https://example.com/plain", fetcher);
@@ -226,6 +226,9 @@ describe("sops", () => {
       expect(paper.name).toBe("arxiv-2512.00001.md");
       expect(paper.md).toContain("The abstract.");
       expect(paper.md).not.toContain("%PDF");
+      const html = await pageSource("https://arxiv.org/html/2512.00001", fetcher);
+      expect(html.name).toBe("arxiv-2512.00001.md");
+      expect(html.md).toContain("The abstract.");
       await expect(pageSource("https://example.com/a.pdf", fetcher)).rejects.toThrow(
         /no readable text/,
       );

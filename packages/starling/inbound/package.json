@@ -50,7 +50,7 @@
     "@wren/starling-sms": "workspace:*",
     "@wren/starling-studio": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
-    "@wrenautomation/weaver": "0.75.5",
+    "@wrenautomation/weaver": "0.75.6",
     "drizzle-orm": "0.45.2",
     "playwright-core": "1.63.0",
     "zod": "4.6.6"
