@@ -3,7 +3,7 @@
  * and Done is most of the board. A row: title, the description's first sentence, then chips.
  */
 
-import { Pill, type RowsColumn, type RowsLine, Tag } from "@wren/ui";
+import { Pill, type RowsColumn, type RowsLine, Tag, useNarrow } from "@wren/ui";
 import { groupTasks } from "@wrenautomation/aerie/core";
 import { useState } from "react";
 import { PageRows } from "../../page-rows.js";
@@ -12,6 +12,20 @@ import type { TaskRow } from "./data.js";
 import { groupLabel, peopleOf, statusColor, who } from "./look.js";
 
 const SHUT = ["status:Done"];
+
+function People({ task }: { task: TaskRow }) {
+  const people = peopleOf(task);
+  if (!people.length) return null;
+  return (
+    <span className="flex flex-wrap gap-1">
+      {people.map((p) => (
+        <Tag key={p.id} dot={p.holds} title={p.holds ? `${p.id} holds it now` : undefined}>
+          {who(p.id)}
+        </Tag>
+      ))}
+    </span>
+  );
+}
 
 const COLUMNS: RowsColumn<TaskRow>[] = [
   {
@@ -37,15 +51,7 @@ const COLUMNS: RowsColumn<TaskRow>[] = [
     label: "People",
     icon: "user",
     width: 180,
-    cell: (t) => (
-      <span className="flex flex-wrap gap-1">
-        {peopleOf(t).map((p) => (
-          <Tag key={p.id} dot={p.holds} title={p.holds ? `${p.id} holds it now` : undefined}>
-            {who(p.id)}
-          </Tag>
-        ))}
-      </span>
-    ),
+    cell: (t) => <People task={t} />,
   },
   {
     key: "priority",
@@ -82,6 +88,7 @@ export function TaskList({
   washed: ReadonlySet<string>;
   onWashed: () => void;
 }) {
+  const narrow = useNarrow();
   // the group's field shows on its fold; the phone's one column is the next that says most
   const columns = COLUMNS.filter((c) => c.key !== group).map((c, i) =>
     i === 0 ? { ...c, phone: true } : c,
@@ -120,12 +127,17 @@ export function TaskList({
         href: hrefOf,
         sub: (t) => (
           <span className="flex flex-col gap-0.5">
-            <span className="text-[12px] text-(--ui-ink-3) tabular-nums">{t.id}</span>
+            <span className="text-[12px] text-(--ui-ink-3) tabular-nums">
+              {t.id}
+              {/* a phone shows one column: priority rides on the id line */}
+              {narrow && t.priority && group !== "priority" ? ` · ${t.priority}` : null}
+            </span>
             {t.summary ? (
               <span className="text-[13.5px] leading-normal text-pretty wrap-anywhere text-(--ui-ink-2)">
                 {t.summary}
               </span>
             ) : null}
+            {narrow && group !== "people" ? <People task={t} /> : null}
           </span>
         ),
       }}
