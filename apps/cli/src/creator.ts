@@ -190,7 +190,7 @@ export function registerCreator(program: Command, withDb: WithDb, canon: CanonWr
     .option("-n, --posts <n>", `posts a read (default ${READ_POSTS})`, int)
     .option(
       "--account <platform=name...>",
-      "the autobrowse account that reads a site (instagram, tiktok, linkedin); a site with none refuses",
+      "the autobrowse account that reads a site (instagram, threads, x, tiktok, linkedin); a site with none refuses",
       many,
     )
     .option("--json", "JSON out")
