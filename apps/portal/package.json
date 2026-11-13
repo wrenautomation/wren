@@ -44,6 +44,7 @@
     "@wren/variants": "workspace:*",
     "@wren/voice": "workspace:*",
     "@wren/watch": "workspace:*",
+    "@wrenautomation/aerie": "0.4.2",
     "@wrenautomation/vireo": "0.18.0",
     "htmlparser2": "12.0.0",
     "mammoth": "1.13.0",
