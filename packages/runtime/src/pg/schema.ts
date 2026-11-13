@@ -277,7 +277,38 @@ const V9 = `
 DROP TABLE rt.pg_services;
 `;
 
-const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8, V9];
+const V10 = `
+-- portal speed (designs/2026-11-13-portal-speed.md): waited calls per route and lane over the last
+-- day and week, in seconds. started_at = first start, so a retry's wait counts as run.
+CREATE INDEX invocations_created ON rt.invocations (created_at);
+CREATE VIEW rt_admin.call_speed AS
+WITH calls AS (
+  SELECT i.service, i.handler,
+    CASE WHEN i.build LIKE 'arn:%' THEN 'lambda' WHEN i.build LIKE 'worker/%' THEN 'box' ELSE 'desk' END AS lane,
+    i.created_at,
+    extract(epoch FROM i.completed_at - i.created_at)::float8 AS total_s,
+    extract(epoch FROM coalesce(i.started_at, i.completed_at) - i.created_at)::float8 AS wait_s,
+    extract(epoch FROM i.completed_at - coalesce(i.started_at, i.completed_at))::float8 AS run_s,
+    i.error IS NOT NULL AS failed
+  FROM rt.invocations i
+  WHERE i.caller_waits AND i.completed_at IS NOT NULL AND i.created_at > now() - interval '7 days'
+)
+SELECT s.span, c.service, c.handler, c.lane,
+  count(*)::int AS calls,
+  percentile_cont(0.5) WITHIN GROUP (ORDER BY c.total_s) AS p50,
+  percentile_cont(0.9) WITHIN GROUP (ORDER BY c.total_s) AS p90,
+  percentile_cont(0.99) WITHIN GROUP (ORDER BY c.total_s) AS p99,
+  percentile_cont(0.9) WITHIN GROUP (ORDER BY c.wait_s) AS wait_p90,
+  percentile_cont(0.9) WITHIN GROUP (ORDER BY c.run_s) AS run_p90,
+  (count(*) FILTER (WHERE c.failed))::int AS failed,
+  rt_admin.iso(max(c.created_at)) AS last_at
+FROM calls c
+JOIN (VALUES ('day', interval '1 day'), ('week', interval '7 days')) AS s (span, width)
+  ON c.created_at > now() - s.width
+GROUP BY s.span, c.service, c.handler, c.lane;
+`;
+
+const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10];
 
 /** Bring schema `rt` up to date. One advisory lock, so parallel starts take turns. */
 export async function migrate(sql: postgres.Sql): Promise<void> {

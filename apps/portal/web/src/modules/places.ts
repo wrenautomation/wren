@@ -20,7 +20,7 @@ import { reactivation } from "./reactivation/index.js";
 import { settings } from "./settings/index.js";
 import { work } from "./work/index.js";
 import { inbox } from "./wren/inbox.js";
-import { clients, money, outbound, team } from "./wren/index.js";
+import { clients, money, outbound, system, team } from "./wren/index.js";
 
 /** A page taken from an old app: its new id, group or light; null clears one. */
 interface Take {
@@ -215,6 +215,7 @@ const officePlace: Module = {
     ...from(engage, [{ id: "accounts", as: "accounts" }], "Accounts"),
     ...from(team, [{ id: "all", as: "team" }, "grants"], "Team"),
     ...from(settings, ["look", "experiments"], "Workspace"),
+    ...from(system, ["speed"], "System"),
   ],
 };
 

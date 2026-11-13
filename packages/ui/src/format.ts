@@ -25,9 +25,13 @@ export function money(amount: number, currency: string, whole = false): string {
   }
 }
 
-/** Seconds as people say them: "38s", "2m 5s", "1h 4m", "3d 2h". */
+/** Seconds as people say them: "280ms", "3.9s", "38s", "2m 5s", "1h 4m", "3d 2h". */
 export function duration(seconds: number): string {
-  const s = Math.max(0, Math.round(seconds));
+  const x = Math.max(0, seconds);
+  // a page read takes ms; whole seconds would show "0s"
+  if (x < 1) return `${Math.round(x * 1000)}ms`;
+  if (x < 9.95) return `${x.toFixed(1)}s`;
+  const s = Math.round(x);
   if (s < 60) return `${s}s`;
   const two = (big: number, bu: string, small: number, su: string) =>
     small ? `${big}${bu} ${small}${su}` : `${big}${bu}`;

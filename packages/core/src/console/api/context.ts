@@ -40,6 +40,7 @@ import { type HandlerList, handlerRecord } from "../handlers.js";
 import { eventRecord, LOOPS_SQL, loopRecord, loopsOf } from "../loops.js";
 import { type AdminQuery, runningLoops } from "../runtime-admin.js";
 import { settingRecord } from "../settings.js";
+import { speedRecord } from "../speed.js";
 
 /** One of the access types (`./access-records.ts`), served to anyone signed in there. */
 export const isAccess = (id: unknown) => (ACCESS_TYPES as readonly unknown[]).includes(id);
@@ -93,7 +94,7 @@ export function consoleTypes({
 }): RecordType[] {
   return [
     ...records,
-    ...(admin ? [loopRecord(admin)] : []),
+    ...(admin ? [loopRecord(admin), speedRecord(admin)] : []),
     ...(handlerList ? [handlerRecord(handlerList)] : []),
     teamRecord,
     changeRecord,

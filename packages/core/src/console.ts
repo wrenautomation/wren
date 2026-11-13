@@ -92,5 +92,6 @@ export {
   settingsForm,
   shownSettings,
 } from "./console/settings.js";
+export { speedRecord } from "./console/speed.js";
 export { accountsLacking, lacking } from "./installs.js";
 export { toCsv } from "./records-serve.js";

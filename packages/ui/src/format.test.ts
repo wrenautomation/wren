@@ -27,16 +27,9 @@ describe("money", () => {
 
 describe("duration", () => {
   it("says seconds the way people do", () => {
-    expect([0, 38, 60, 125, 3600, 3840, 86_400, 266_400].map(duration)).toEqual([
-      "0s",
-      "38s",
-      "1m",
-      "2m 5s",
-      "1h",
-      "1h 4m",
-      "1d",
-      "3d 2h",
-    ]);
+    expect(
+      [0, 0.2794, 3.977, 9.97, 38, 60, 125, 3600, 3840, 86_400, 266_400].map(duration),
+    ).toEqual(["0ms", "279ms", "4.0s", "10s", "38s", "1m", "2m 5s", "1h", "1h 4m", "1d", "3d 2h"]);
   });
 });
 
