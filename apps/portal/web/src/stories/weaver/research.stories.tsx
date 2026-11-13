@@ -1,55 +1,21 @@
 /** Weaver in the portal, Research › Runs: the chat, Live, History, one run's graph and back and forth, runs together. Fake server: `web/src/mocks/`. */
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { HttpResponse, http, type RequestHandler, sse, type WebSocketHandler } from "msw";
+import type { RequestHandler, WebSocketHandler } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { freshStory } from "../../mocks/api.js";
 import COMMANDS from "../../mocks/data/agent/commands.json";
 import SETUPS from "../../mocks/data/agent/setups.json";
 import { resetFolders } from "../../mocks/data/folders.js";
 import { ADMIN } from "../../mocks/data/me.js";
-import { RESEARCH_ROWS, RESEARCH_VIEW } from "../../mocks/data/research.js";
 import { pageAt, tidy } from "../../mocks/page.js";
 import { fakeRelay, type TapeLine } from "../../mocks/relay.js";
-import { SERVE } from "../../modules/research/serve.js";
+import { REFUSED, SERVED } from "../../mocks/weaver-serve.js";
 
 const meta: Meta = { title: "Weaver/Research" };
 export default meta;
 
 /** The graph loads its drawing code late: a loaded Mac needs more than the 1 s default. */
 const LATE = { timeout: 8000 };
-
-const DOT =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 9"><rect width="16" height="9" fill="#9aa"/></svg>';
-
-const SERVED = [
-  http.get(`${SERVE}/runs`, () => HttpResponse.json({ v: 1, runs: RESEARCH_ROWS })),
-  // every listed run reads as the one fixture view: two runs together share all their sources
-  http.get(`${SERVE}/runs/:run`, ({ params }) =>
-    RESEARCH_ROWS.some((r) => r.run === params.run)
-      ? HttpResponse.json({ ...RESEARCH_VIEW, run: params.run })
-      : HttpResponse.json({ error: "no records" }, { status: 404 }),
-  ),
-  http.get(`${SERVE}/runs/:run/documents/:doc`, ({ params }) =>
-    HttpResponse.json({
-      id: params.doc,
-      url: "https://bakers.example/wholesale-guide",
-      title: "A wholesale guide for small bakers",
-      media: "text",
-      text: "Start with three cafes inside a short drive.",
-    }),
-  ),
-  // the graph's icons and video stills: offline, one tinted square
-  ...["https://icons.duckduckgo.com/*", "https://i.ytimg.com/*"].map((u) =>
-    http.get(u, () => new HttpResponse(DOT, { headers: { "content-type": "image/svg+xml" } })),
-  ),
-  // Open and quiet: a story sends no change.
-  sse(`${SERVE}/events`, () => {}),
-];
-
-const REFUSED = [
-  http.get(`${SERVE}/*`, () => HttpResponse.error()),
-  sse(`${SERVE}/events`, ({ client }) => client.error()),
-];
 
 const story = (
   at: string,
