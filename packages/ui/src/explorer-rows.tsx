@@ -81,7 +81,19 @@ export interface Ctx {
   p: ExplorerProps;
   pager: Pager;
   go: (route: string) => void;
+  look: Looks;
 }
+
+/** A column's look in Columns: rows, or tiles for a column of posters. */
+export type Look = "rows" | "tiles";
+export interface Looks {
+  of: (c: Column) => Look;
+  set: (route: string, look: Look) => void;
+}
+
+/** Half or more of its rows carry a poster: the column may draw as tiles. */
+export const postered = (c: Column) =>
+  c.items.length > 0 && c.items.filter((i) => i.poster).length * 2 >= c.items.length;
 
 // --- rows --------------------------------------------------------------------------------------
 

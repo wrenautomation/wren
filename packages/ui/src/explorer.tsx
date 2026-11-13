@@ -28,7 +28,15 @@ import { useCopy } from "./copy.js";
 import { useLoad } from "./data/query.js";
 import { MapPane, type MapRead } from "./explorer-map.js";
 import { FindResults, Narrow, WideColumns, WideGallery, WideList } from "./explorer-panes.js";
-import { type Ctx, follow, PathFailed, within } from "./explorer-rows.js";
+import {
+  type Ctx,
+  follow,
+  type Look,
+  type Looks,
+  PathFailed,
+  postered,
+  within,
+} from "./explorer-rows.js";
 import { LoadFailed } from "./feedback.js";
 import { Icon, type IconName } from "./icons.js";
 
@@ -149,12 +157,45 @@ function useMore(read: ExplorerRead) {
 }
 export type Pager = ReturnType<typeof useMore>;
 
+// a viewer's choices only: tiles is a poster column's default
+const LOOK_KEY = "wren:explorer:look";
+const LOOKS_KEPT = 200;
+const readLooks = (): Record<string, Look> => {
+  try {
+    return JSON.parse(localStorage.getItem(LOOK_KEY) ?? "{}") as Record<string, Look>;
+  } catch {
+    return {};
+  }
+};
+
+/** Each column's look, kept per column route on the device (as List folds). */
+function useLooks(): Looks {
+  const [looks, setLooks] = useState(readLooks);
+  return {
+    of: (c) => (postered(c) ? (looks[c.route] ?? "tiles") : "rows"),
+    set: (route, look) => {
+      // newest last: the oldest choices go past the cap
+      const { [route]: _, ...rest } = looks;
+      const next = Object.fromEntries(
+        Object.entries({ ...rest, [route]: look }).slice(-LOOKS_KEPT),
+      );
+      setLooks(next);
+      try {
+        localStorage.setItem(LOOK_KEY, JSON.stringify(next));
+      } catch {
+        // private window: the look lasts the page
+      }
+    },
+  };
+}
+
 export function Explorer(p: ExplorerProps) {
   const { view, read, scope, hrefFor, onRoute } = p;
   const box = useRef<HTMLDivElement>(null);
   const wide = useWide(box, WIDE);
   const got = useLoad<Shown>(`paths:columns:${p.route}`, () => read.columns(p.route), scope);
   const pager = useMore(read);
+  const look = useLooks();
   const shown = got.data;
   // the answer is this route's; else another's, held while this one reads (Moving)
   const settled = shown !== null && !got.placeholder;
@@ -176,7 +217,7 @@ export function Explorer(p: ExplorerProps) {
   const aside =
     settled && !error && !whole && last && isFolder(last.item) ? p.folderPage?.(last) : undefined;
   const go = (r: string) => onRoute(r, view);
-  const ctx: Ctx = { p, pager, go };
+  const ctx: Ctx = { p, pager, go, look };
 
   // the side a narrow pane slides in from: deeper comes from the right
   const depth = segments(route).length;

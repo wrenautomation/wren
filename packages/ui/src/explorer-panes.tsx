@@ -23,7 +23,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Button } from "./controls.js";
+import { Button, Seg } from "./controls.js";
 import { useLoad } from "./data/query.js";
 import {
   AliasMark,
@@ -36,6 +36,7 @@ import {
   markAfter,
   PathFailed,
   Preview,
+  postered,
   Row,
   Rows,
   rowsOf,
@@ -46,7 +47,7 @@ import {
 import { LoadFailed } from "./feedback.js";
 import { FoldChevron } from "./folders.js";
 import { num } from "./format.js";
-import { Icon } from "./icons.js";
+import { Icon, type IconName } from "./icons.js";
 import { Img } from "./image.js";
 
 // --- wide: columns -----------------------------------------------------------------------------
@@ -91,14 +92,71 @@ function PreviewSide({
   );
 }
 
+/** The column drawn as tiles: a poster column at the route's end, or the one whose tile is open. */
+function tilesAt(ctx: Ctx, cols: Column[], whole: Whole | undefined) {
+  const n = cols.length - 1;
+  const last = cols[n];
+  const up = cols[n - 1];
+  if (last && ctx.look.of(last) === "tiles") return n;
+  if (whole && up && ctx.look.of(up) === "tiles") return n - 1;
+  return -1;
+}
+
+/** An item's own column less the relations its preview lists already. */
+function unlisted(at: Column, whole: Whole): Column {
+  const listed = new Set(whole.links.filter((l) => l.items.length).map((l) => l.rel));
+  return {
+    ...at,
+    items: at.items.filter((i) => !(i.kind === "relation" && listed.has(lastOf(i.path)))),
+  };
+}
+
+/** Rows or tiles for one poster column. */
+function LookSwitch({ ctx, c, className }: { ctx: Ctx; c: Column; className?: string }) {
+  return (
+    <Seg
+      dense
+      label={`Show ${c.item.name} as`}
+      value={ctx.look.of(c)}
+      onChange={(v) => ctx.look.set(c.route, v)}
+      className={className}
+      items={[
+        { value: "rows", label: <LookLabel icon="list" text="Rows" /> },
+        { value: "tiles", label: <LookLabel icon="apps" text="Tiles" /> },
+      ]}
+    />
+  );
+}
+
+const LookLabel = ({ icon, text }: { icon: IconName; text: string }) => (
+  <span className="inline-flex items-center">
+    <Icon name={icon} size={14} />
+    <span className="sr-only">{text}</span>
+  </span>
+);
+
+// a look switch moves the column's width; its rows fade on their own
+const COL_MOTION =
+  "[transition:opacity_150ms_ease-out,translate_150ms_ease-out,width_200ms_var(--ui-ease),flex-grow_200ms_var(--ui-ease)]";
+
 export function WideColumns(props: PaneProps & { first: boolean }) {
   const { ctx, cols, whole, aside, error, waiting, first, route, onRetry } = props;
   const side = !!whole || !!aside;
   const strip = useRef<HTMLDivElement>(null);
   // the column a → opened: its first row takes focus once it reads
   const focusNext = useRef<{ into: string } | null>(null);
-  // a column with no rows under an item that has a body draws nothing: the preview speaks
-  const shownCols = cols.filter((c, n) => c.items.length || n < cols.length - 1 || !whole);
+  const at = tilesAt(ctx, cols, whole);
+  // a column with no rows under an item that has a body draws nothing: the preview speaks; under
+  // tiles, the preview's links leave the item's column too
+  const shownCols = cols.flatMap((c, n) => {
+    if (n < cols.length - 1 || !whole) return [c];
+    const own = at === n - 1 ? unlisted(c, whole) : c;
+    return own.items.length ? [own] : [];
+  });
+  // the switch shows only where tiles could draw: the end, or beside the open item
+  const end = (n: number) => n === cols.length - 1 || (n === cols.length - 2 && !!whole);
+  const tileable = (c: Column, n: number) =>
+    n === at || (postered(c) && end(n) && ctx.look.of(c) === "rows");
 
   // the last column stays in view: a new column, or the skeleton going
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the strip grows or settles
@@ -164,14 +222,28 @@ export function WideColumns(props: PaneProps & { first: boolean }) {
                 <Slow on what="this place" />
               </div>
             ))
-          : shownCols.map((c) => (
+          : shownCols.map((c, n) => (
               <section
                 key={c.route}
                 data-col={c.route}
+                data-look={n === at ? "tiles" : undefined}
                 aria-label={c.item.name}
-                className="flex w-[240px] flex-none flex-col overflow-y-auto border-r border-(--ui-hair) p-1.5 transition-[opacity,translate] duration-150 ease-out motion-safe:starting:-translate-x-2 starting:opacity-0"
+                className={cn(
+                  "flex flex-col overflow-y-auto border-r border-(--ui-hair) p-1.5 motion-safe:starting:-translate-x-2 starting:opacity-0",
+                  COL_MOTION,
+                  n !== at
+                    ? "w-[240px] flex-none"
+                    : side
+                      ? "w-[480px] flex-none"
+                      : "w-[480px] flex-[1_0_480px]",
+                )}
               >
-                <Rows ctx={ctx} c={c} route={route} />
+                {tileable(c, n) ? <LookSwitch ctx={ctx} c={c} className="mb-1.5 self-end" /> : null}
+                {n === at ? (
+                  <Tiles ctx={ctx} c={c} route={route} className="p-1.5" />
+                ) : (
+                  <Rows ctx={ctx} c={c} route={route} />
+                )}
               </section>
             ))}
         {waiting && !first ? (
@@ -488,12 +560,22 @@ function DefaultTile({ i }: { i: Item }) {
   );
 }
 
-function Tiles({ ctx, c, route }: { ctx: Ctx; c: Column; route: string }) {
+function Tiles({
+  ctx,
+  c,
+  route,
+  className = "p-3",
+}: {
+  ctx: Ctx;
+  c: Column;
+  route: string;
+  className?: string;
+}) {
   const r = rowsOf(ctx, c);
   if (!r.items.length)
     return <EmptyLevel ctx={ctx} c={c} className="p-4 text-[13px] text-(--ui-ink-3)" />;
   return (
-    <div className="flex flex-col gap-2 p-3">
+    <div className={cn("flex flex-col gap-2", className)}>
       <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-3 p-0">
         {r.items.map((i) => {
           const current = within(i.path, route);
@@ -502,6 +584,7 @@ function Tiles({ ctx, c, route }: { ctx: Ctx; c: Column; route: string }) {
               <a
                 data-row=""
                 data-path={i.path}
+                data-leaf={i.leaf ? "" : undefined}
                 href={ctx.p.hrefFor(i.path, ctx.p.view)}
                 onClick={follow(() => ctx.go(i.path))}
                 aria-current={i.path === route ? "page" : current ? "true" : undefined}
@@ -566,8 +649,9 @@ export function Narrow({
   const listing = (c: Column) =>
     view === "list" ? (
       <Tree ctx={ctx} cols={cols} route={route} />
-    ) : view === "gallery" ? (
-      <Tiles ctx={ctx} c={c} route={route} />
+    ) : view === "gallery" || ctx.look.of(c) === "tiles" ? (
+      // the pane's own edge: each tile's pad keeps it in line with the rows
+      <Tiles ctx={ctx} c={c} route={route} className="p-0" />
     ) : (
       <Rows ctx={ctx} c={c} route={route} />
     );
@@ -601,12 +685,17 @@ export function Narrow({
       ) : (
         <>
           {/* one order on every pane: Back, the title, then what it holds */}
-          <h2
-            dir="auto"
-            className="m-0 text-[19px]/[1.3] font-semibold text-(--ui-ink) wrap-anywhere"
-          >
-            {at.item.name}
-          </h2>
+          <div className="flex items-start justify-between gap-3">
+            <h2
+              dir="auto"
+              className="m-0 min-w-0 text-[19px]/[1.3] font-semibold text-(--ui-ink) wrap-anywhere"
+            >
+              {at.item.name}
+            </h2>
+            {view === "columns" && postered(at) ? (
+              <LookSwitch ctx={ctx} c={at} className="flex-none" />
+            ) : null}
+          </div>
           {listing(at)}
           {aside ? <div className="border-t border-(--ui-hair) pt-5">{aside}</div> : null}
         </>
@@ -629,10 +718,8 @@ function ItemRows({
   route: string;
   gallery: boolean;
 }) {
-  const listed = new Set(whole.links.filter((l) => l.items.length).map((l) => l.rel));
-  const items = at.items.filter((i) => !(i.kind === "relation" && listed.has(lastOf(i.path))));
-  if (!items.length) return null;
-  const c = { ...at, items };
+  const c = unlisted(at, whole);
+  if (!c.items.length) return null;
   return gallery ? <Tiles ctx={ctx} c={c} route={route} /> : <Rows ctx={ctx} c={c} route={route} />;
 }
 

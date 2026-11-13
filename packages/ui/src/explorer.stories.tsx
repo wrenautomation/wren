@@ -34,6 +34,12 @@ function Demo({
   folderPage?: ExplorerProps["folderPage"];
 }) {
   const [read] = useState(make);
+  // each story starts on the default looks: a switch in another story stays on the device
+  useState(() => {
+    try {
+      localStorage.removeItem("wren:explorer:look");
+    } catch {}
+  });
   const [route, setRoute] = useState(at);
   const [view, setView] = useState<ExplorerView>(first);
   return (
@@ -180,6 +186,67 @@ export const Gallery: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Show more" }));
     await waitFor(() => expect(canvasElement.querySelectorAll("a[data-row]")).toHaveLength(30));
     await expect(canvas.queryByRole("button", { name: "Show more" })).toBeNull();
+  },
+};
+
+const tilesCol = (el: HTMLElement) => el.querySelector<HTMLElement>('[data-look="tiles"]');
+
+/** Columns at a folder of posters: its column draws as tiles and fills the frame. */
+export const PosterColumn: Story = {
+  render: () => <Demo make={() => explorerRead()} at="canon/references" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await waitFor(() =>
+      expect(canvasElement.querySelectorAll("a[data-row]").length).toBeGreaterThan(20),
+    );
+    await canvas.findByRole("group", { name: "Show References as" });
+    if (!wideIn(canvasElement)) return;
+    const col = tilesCol(canvasElement) as HTMLElement;
+    await expect(col.getAttribute("data-col")).toBe("canon/references");
+    await waitFor(() => expect(col.getBoundingClientRect().width).toBeGreaterThan(480));
+  },
+};
+
+/** The switch: rows, then tiles again; the column's width moves with it. */
+export const PosterRows: Story = {
+  render: () => <Demo make={() => explorerRead()} at="canon/references" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const rows = await canvas.findByRole("button", { name: "Rows" });
+    await userEvent.click(rows);
+    await waitFor(() => expect(tilesCol(canvasElement)).toBeNull());
+    await expect(rows).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(canvas.getByRole("button", { name: "Tiles" }));
+    if (wideIn(canvasElement)) await waitFor(() => expect(tilesCol(canvasElement)).not.toBeNull());
+    await userEvent.click(canvas.getByRole("button", { name: "Rows" }));
+  },
+};
+
+/** A tile open: the tiles stay beside its preview; the preview lists its links, so no column. */
+export const TileOpen: Story = {
+  render: () => <Demo make={() => explorerRead()} at="canon/references/ref-1" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole("heading", { name: /./, level: 2 });
+    await settle(canvasElement);
+    if (!wideIn(canvasElement)) return;
+    const col = tilesCol(canvasElement) as HTMLElement;
+    await expect(col).not.toBeNull();
+    await expect(col.querySelector('a[aria-current="page"]')).not.toBeNull();
+    await expect(canvasElement.querySelector('[data-col="canon/references/ref-1"]')).toBeNull();
+  },
+};
+
+/** Past the open tile: the poster column draws as rows again. */
+export const PosterDeeper: Story = {
+  render: () => <Demo make={() => explorerRead()} at="canon/references/ref-1/backs" />,
+  play: async ({ canvasElement }) => {
+    await settle(canvasElement);
+    if (!wideIn(canvasElement)) return;
+    await waitFor(() =>
+      expect(canvasElement.querySelector('[data-col="canon/references"]')).not.toBeNull(),
+    );
+    await expect(tilesCol(canvasElement)).toBeNull();
   },
 };
 
