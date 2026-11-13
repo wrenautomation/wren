@@ -321,8 +321,8 @@ export function splitViews<T extends string>(
   return { tabs, more };
 }
 
-/** A view under More: its link, its count, whether it's open. */
-interface MoreView {
+/** A view as a tab: its link, its count, whether it's open. */
+export interface ViewTab {
   id: string;
   label: string;
   href: string;
@@ -332,7 +332,12 @@ interface MoreView {
   busy?: boolean | undefined;
   /** What the tab keeps, in words, on hover. */
   tip?: string | undefined;
+  /** The viewer's own view: no count; `menu` sits on it while open. */
+  saved?: boolean | undefined;
+  /** A word after its name ("Team"). */
+  badge?: string | undefined;
 }
+type MoreView = ViewTab;
 
 /** The views past the tabs, behind one button that names the open one when it's among them. */
 function MoreViews({ views, phone }: { views: MoreView[]; phone?: boolean }) {
@@ -410,7 +415,7 @@ export function ViewTabs({
   const lines = saved?.lines ?? [];
   const narrow = useNarrow();
   if (!meta.views.length && !lines.length) return null;
-  const all: (MoreView & { saved?: SavedViewLine; at?: number })[] = [
+  const all: (ViewTab & { line?: SavedViewLine; at?: number })[] = [
     ...meta.views.map((v, i) => ({
       id: v.id,
       label: v.label,
@@ -427,7 +432,9 @@ export function ViewTabs({
       on: String(v.id) === sv,
       busy: String(v.id) === sv ? loading : undefined,
       tip: `${saySaved(meta, v.params)}${v.shared ? " · Shared with the team" : ""}`,
-      saved: v,
+      saved: true,
+      badge: v.shared ? "Team" : undefined,
+      line: v,
       at,
     })),
   ];
@@ -437,13 +444,11 @@ export function ViewTabs({
     lines.map((v) => `sv:${v.id}`),
   );
   const byId = new Map(all.map((v) => [v.id, v]));
-  const tabs = split.tabs.flatMap((id) => byId.get(id) ?? []);
-  const more = split.more.flatMap((id) => byId.get(id) ?? []);
-  const open = all.find((v) => v.on && v.saved);
+  const open = all.find((v) => v.on && v.line);
   const menu =
-    open?.saved && keep && saved ? (
+    open?.line && keep && saved ? (
       <SavedMenu
-        view={open.saved}
+        view={open.line}
         at={open.at ?? 0}
         meta={meta}
         place={place}
@@ -451,14 +456,42 @@ export function ViewTabs({
         saved={saved}
       />
     ) : null;
+  return (
+    <ViewStrip
+      tabs={split.tabs.flatMap((id) => byId.get(id) ?? [])}
+      more={split.more.flatMap((id) => byId.get(id) ?? [])}
+      menu={menu}
+      row={`views:${meta.id}`}
+      narrow={narrow}
+    />
+  );
+}
+
+/**
+ * Views as tabs (artifact `.nt-top` tabs), the rest under More; the open saved view carries
+ * `menu`. A phone: iOS's segmented control, More and the menu beside it.
+ */
+export function ViewStrip({
+  tabs,
+  more,
+  menu,
+  row,
+  narrow,
+}: {
+  tabs: ViewTab[];
+  more: ViewTab[];
+  menu?: ReactNode;
+  /** The underline's row: one per strip (`TabBar`). */
+  row: string;
+  narrow: boolean;
+}) {
+  const open = [...tabs, ...more].find((v) => v.on && v.saved);
   if (narrow)
-    // A phone: iOS's segmented control, the saved views in it too; More and the open saved
-    // view's menu beside it.
     return (
       <div className="flex min-w-0 items-center gap-2">
         <Segmented label="Views" className="min-w-0 flex-1" items={tabs} />
         <MoreViews views={more} phone />
-        {menu}
+        {open ? menu : null}
       </div>
     );
   return (
@@ -474,12 +507,12 @@ export function ViewTabs({
             >
               {v.label}
             </a>
-            {v.saved.shared ? (
-              <span className="text-[11px] font-normal text-(--ui-ink-3)">Team</span>
+            {v.badge ? (
+              <span className="text-[11px] font-normal text-(--ui-ink-3)">{v.badge}</span>
             ) : null}
             <RingSlot on={!!v.busy} />
             {v.on ? menu : null}
-            {v.on ? <TabBar row={`views:${meta.id}`} /> : null}
+            {v.on ? <TabBar row={row} /> : null}
           </span>
         ) : (
           <a
@@ -492,7 +525,7 @@ export function ViewTabs({
             <span className="max-w-48 wrap-anywhere whitespace-normal">{v.label}</span>
             <span className="text-(--ui-ink-2)">{v.count !== undefined ? short(v.count) : ""}</span>
             <RingSlot on={!!v.busy} />
-            {v.on ? <TabBar row={`views:${meta.id}`} /> : null}
+            {v.on ? <TabBar row={row} /> : null}
           </a>
         ),
       )}
@@ -648,8 +681,7 @@ function SaveView({
   return (
     <SaveViewPop
       record={meta.id}
-      params={kept}
-      keep={keep}
+      save={(v) => keep.save({ ...v, record: meta.id, params: kept })}
       open={sv}
       onSaved={(v) => {
         saved.reload();
@@ -659,23 +691,36 @@ function SaveView({
   );
 }
 
+/** A view as Save view sees it: what Update names. */
+export interface SaveViewLine {
+  id: number;
+  name: string;
+}
+
 /**
- * The Save view chip and its popover: Update the open view, or save `params` under a new name,
- * the viewer's own or shared. A list's bar and the Map's views (`record` "map") use it.
+ * The Save view chip and its popover: Update the open view, or save under a new name, the
+ * viewer's own or shared. A list's bar, the Map's views and Aerie's tasks use it; `save` keeps
+ * the screen as the caller's store holds it.
  */
-export function SaveViewPop({
+export function SaveViewPop<V extends SaveViewLine>({
   record,
-  params,
-  keep,
+  save,
   open: sv,
+  share = true,
+  names,
   onSaved,
 }: {
+  /** Whose draft the name box keeps (a record id, "map"). */
   record: string;
-  params: string;
-  keep: KeepApi;
+  /** Update when `id` is set; else a new view named `name`. */
+  save: (v: { id?: number; name?: string; shared?: boolean }) => Promise<V>;
   /** The saved view on screen, which Update overwrites. */
-  open?: SavedViewLine | undefined;
-  onSaved: (v: SavedViewLine) => void;
+  open?: V | undefined;
+  /** Offer "Share with the team": the store keeps shared views. */
+  share?: boolean;
+  /** The viewer's view names, when a new view under one replaces it. */
+  names?: readonly string[] | undefined;
+  onSaved: (v: V) => void;
 }) {
   const form = useEditForm({
     key: `view:new:${record}`,
@@ -690,8 +735,9 @@ export function SaveViewPop({
   });
   const setOpen = pop.setOpen;
   const name = form.watch("name");
+  const taken = names?.includes(name.trim()) ? name.trim() : null;
   const [busy, setBusy] = useState(false);
-  const go = async (fn: () => Promise<SavedViewLine>) => {
+  const go = async (fn: () => Promise<V>) => {
     setBusy(true);
     setSaid(null);
     try {
@@ -709,7 +755,9 @@ export function SaveViewPop({
   const submit = form.onSend(
     (v) =>
       v.name.trim()
-        ? go(() => keep.save({ record, name: v.name.trim(), params, shared: v.shared }))
+        ? go(() =>
+            save(share ? { name: v.name.trim(), shared: v.shared } : { name: v.name.trim() }),
+          )
         : false,
     { clear: true },
   );
@@ -725,7 +773,7 @@ export function SaveViewPop({
             type="button"
             disabled={busy}
             className={cn(ITEM, "mb-1.5 border-b border-(--ui-hair) pb-1.5")}
-            onClick={() => void go(() => keep.save({ id: sv.id, record, params }))}
+            onClick={() => void go(() => save({ id: sv.id }))}
           >
             Update “{sv.name}”
           </button>
@@ -739,14 +787,19 @@ export function SaveViewPop({
             aria-label="View name"
             box={NAME_BOX}
           />
-          <CheckField
-            form={form}
-            name="shared"
-            label="Share with the team"
-            className="text-[13px] text-(--ui-ink-2)"
-          />
+          {share ? (
+            <CheckField
+              form={form}
+              name="shared"
+              label="Share with the team"
+              className="text-[13px] text-(--ui-ink-2)"
+            />
+          ) : null}
+          {taken ? (
+            <p className="text-[12px] text-(--ui-ink-2)">Replaces your view “{taken}”.</p>
+          ) : null}
           <Button tone="primary" type="submit" size="dense" busy={busy} disabled={!name.trim()}>
-            Save view
+            {taken ? "Replace view" : "Save view"}
           </Button>
           {said ? <p className="text-[12px] text-(--ui-bad)">{said}</p> : null}
         </form>

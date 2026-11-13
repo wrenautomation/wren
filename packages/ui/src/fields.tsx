@@ -746,42 +746,47 @@ export function FieldFilter({
 /** Past this many states a choice gets a search box. */
 const LONG = 8;
 
-/** States as a checkable list, with how many rows each would show; searchable when long. */
-function StatesFilter({
-  field: f,
-  value: v,
+/** One choice in a `PickList`: its face, and the words a search matches. */
+export interface PickListOption {
+  id: string;
+  face: ReactNode;
+  text: string;
+}
+
+/** Choices as a checkable list, with how many rows each would show; searchable when long. */
+export function PickList({
+  label,
+  options,
+  on,
   onChange,
   counts,
 }: {
-  field: FieldMeta;
-  value: string;
-  onChange: (next: string | null) => void;
-  counts: Readonly<Record<string, number>> | undefined;
+  label: string;
+  options: readonly PickListOption[];
+  on: ReadonlySet<string>;
+  /** The picked ids after a flip, in the list's order. */
+  onChange: (next: string[]) => void;
+  counts?: Readonly<Record<string, number>> | undefined;
 }) {
-  const all = Object.entries(f.states ?? {});
   const [text, setText] = useState("");
   const t = text.trim().toLowerCase();
-  const shown = t ? all.filter(([, st]) => st.label.toLowerCase().includes(t)) : all;
+  const shown = t ? options.filter((o) => o.text.toLowerCase().includes(t)) : options;
   const nav = useRoving(shown.length);
-  const on = new Set(v && v !== "+" && v !== "-" ? v.split(",") : []);
-  const flip = (id: string) => {
-    const next = new Set(on);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    onChange(next.size ? [...next].join(",") : null);
-  };
+  const flip = (id: string) =>
+    onChange(options.map((o) => o.id).filter((x) => (x === id ? !on.has(x) : on.has(x))));
   const pick = (i: number) => {
     const row = shown[i];
-    if (row) flip(row[0]);
+    if (row) flip(row.id);
   };
+  const short = options.length <= LONG;
   const list = (
     <div
       role="listbox"
       aria-multiselectable
-      aria-label={f.label}
+      aria-label={label}
       // biome-ignore lint/a11y/noAutofocus: the editor opened to pick in this list.
-      autoFocus={all.length <= LONG}
-      tabIndex={all.length <= LONG ? 0 : -1}
+      autoFocus={short}
+      tabIndex={short ? 0 : -1}
       onKeyDown={(e) => {
         if (e.key === " ") {
           e.preventDefault();
@@ -790,25 +795,23 @@ function StatesFilter({
       }}
       className="grid max-h-64 overflow-y-auto p-1 outline-none"
     >
-      {shown.map(([id, st], i) => (
+      {shown.map((o, i) => (
         // biome-ignore lint/a11y/useKeyWithClickEvents: the list's keys pick it.
         <div
-          key={id}
+          key={o.id}
           role="option"
           tabIndex={-1}
-          aria-selected={on.has(id)}
+          aria-selected={on.has(o.id)}
           ref={inSight(i === nav.at)}
           onMouseMove={() => nav.setAt(i)}
-          onClick={() => flip(id)}
+          onClick={() => flip(o.id)}
           className={cn(ROW, i === nav.at && "bg-(--ui-hover)")}
         >
-          <Tick on={on.has(id)} />
-          <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">
-            <StateMark state={st} />
-          </span>
+          <Tick on={on.has(o.id)} />
+          <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">{o.face}</span>
           {counts ? (
             <span className="text-[12px] text-(--ui-ink-3) tabular-nums">
-              {num(counts[id] ?? 0)}
+              {num(counts[o.id] ?? 0)}
             </span>
           ) : null}
         </div>
@@ -818,7 +821,7 @@ function StatesFilter({
       ) : null}
     </div>
   );
-  if (all.length <= LONG) return list;
+  if (short) return list;
   return (
     <>
       <div className="p-1 pb-0">
@@ -832,13 +835,42 @@ function StatesFilter({
             nav.setAt(0);
           }}
           onKeyDown={(e) => nav.keys(e, pick)}
-          placeholder={`Find a ${f.label.toLowerCase()}`}
-          aria-label={`Find a ${f.label.toLowerCase()}`}
+          placeholder={`Find a ${label.toLowerCase()}`}
+          aria-label={`Find a ${label.toLowerCase()}`}
           className={INPUT}
         />
       </div>
       {list}
     </>
+  );
+}
+
+/** A field's states as a `PickList`, kept as one comma list (`a,b`). */
+function StatesFilter({
+  field: f,
+  value: v,
+  onChange,
+  counts,
+}: {
+  field: FieldMeta;
+  value: string;
+  onChange: (next: string | null) => void;
+  counts: Readonly<Record<string, number>> | undefined;
+}) {
+  const options = Object.entries(f.states ?? {}).map(([id, st]) => ({
+    id,
+    face: <StateMark state={st} />,
+    text: st.label,
+  }));
+  const on = new Set(v && v !== "+" && v !== "-" ? v.split(",") : []);
+  return (
+    <PickList
+      label={f.label}
+      options={options}
+      on={on}
+      counts={counts}
+      onChange={(next) => onChange(next.length ? next.join(",") : null)}
+    />
   );
 }
 

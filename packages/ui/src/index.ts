@@ -253,6 +253,8 @@ export {
   FieldTotal,
   filterParts,
   filterShape,
+  PickList,
+  type PickListOption,
   readFilter,
   relative,
   StateMark,
@@ -260,8 +262,10 @@ export {
 } from "./fields.js";
 export {
   type BarField,
+  BarGlyph,
   CHIP,
   CHIP_ON,
+  POP,
   SearchField,
   useFilterTools,
 } from "./filter-bar.js";
@@ -370,11 +374,14 @@ export { Lineage, type LineageVersion } from "./lineage.js";
 export {
   type KeepApi,
   type SavedViewLine,
+  type SaveViewLine,
   SaveViewPop,
   TAB,
   tabTone,
   useNarrow,
   useSavedViews,
+  ViewStrip,
+  type ViewTab,
 } from "./list-bar.js";
 export {
   LIST_FORMS,

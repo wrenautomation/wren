@@ -201,8 +201,7 @@ export function ViewsMenu({
       {save && views.ready ? (
         <SaveViewPop
           record={MAP_VIEW_RECORD}
-          params={save.params}
-          keep={keep}
+          save={(v) => keep.save({ ...v, record: MAP_VIEW_RECORD, params: save.params })}
           open={save.from ?? undefined}
           onSaved={(v) => {
             views.reload();

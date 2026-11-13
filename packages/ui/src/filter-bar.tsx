@@ -3,6 +3,7 @@
  * one sheet), a pill per filter in force, and the search box. A list says what each field is
  * (`BarField`) and brings its own editor; `ListBar` is the records list's, Aerie's bar is its own.
  */
+import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { cn } from "cn";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
@@ -18,6 +19,7 @@ import { inSight, useRoving } from "./fields.js";
 import { tipProps } from "./hint.js";
 import { useHoverPop, useSubmenus } from "./hover-pop.js";
 import { Icon, type IconName } from "./icons.js";
+import { RingSlot } from "./motion.js";
 
 /**
  * A tool on the list's bar (artifact `.nt-top .tl button`): no frame, ink-3 at rest, the accent
@@ -138,6 +140,13 @@ function FilterPanel({
   const id = useId();
   // With a mouse, each field's choices open beside its row; keys and taps drill in.
   const subs = useSubmenus();
+  // Detached roots: a popover's portal inside the listbox adds a span axe rejects there.
+  const handles = useRef(new Map<string, PopoverPrimitive.Handle<unknown>>()).current;
+  const handleOf = (key: string) => {
+    const h = handles.get(key) ?? PopoverPrimitive.createHandle();
+    handles.set(key, h);
+    return h;
+  };
 
   const t = text.trim().toLowerCase();
   const order = fields.filter((f) => f.label.toLowerCase().includes(t));
@@ -246,26 +255,17 @@ function FilterPanel({
                   </div>
                 );
               return (
-                <Popover key={f.key} {...subs.rootOf(f.key)}>
-                  <PopoverTrigger
-                    {...subs.trigger}
-                    nativeButton={false}
-                    // An option may not carry aria-expanded (Base UI sets it on a trigger):
-                    // focus goes into the editor it opens, which says what it is.
-                    render={<div {...row} aria-expanded={undefined} data-filter-field={f.key} />}
-                  >
-                    {face}
-                  </PopoverTrigger>
-                  <PopoverContent
-                    aria-label={f.label}
-                    side="right"
-                    align="start"
-                    sideOffset={2}
-                    className={POP}
-                  >
-                    <FieldPane field={f} />
-                  </PopoverContent>
-                </Popover>
+                <PopoverTrigger
+                  key={f.key}
+                  handle={handleOf(f.key)}
+                  {...subs.trigger}
+                  nativeButton={false}
+                  // An option may not carry aria-expanded (Base UI sets it on a trigger):
+                  // focus goes into the editor it opens, which says what it is.
+                  render={<div {...row} aria-expanded={undefined} data-filter-field={f.key} />}
+                >
+                  {face}
+                </PopoverTrigger>
               );
             })}
           </div>
@@ -295,6 +295,21 @@ function FilterPanel({
           <span className="px-2 py-2 text-[13px] text-(--ui-ink-2)">No field by that name.</span>
         ) : null}
       </div>
+      {phone
+        ? null
+        : order.map((f) => (
+            <Popover key={f.key} handle={handleOf(f.key)} {...subs.rootOf(f.key)}>
+              <PopoverContent
+                aria-label={f.label}
+                side="right"
+                align="start"
+                sideOffset={2}
+                className={POP}
+              >
+                <FieldPane field={f} />
+              </PopoverContent>
+            </Popover>
+          ))}
     </div>
   );
 }
@@ -481,6 +496,8 @@ export function SearchField({
   ask,
   label,
   glass = false,
+  busy = false,
+  failed,
 }: {
   /** The text the address asks now. */
   asked: string;
@@ -488,8 +505,13 @@ export function SearchField({
   label: string;
   /** The glass alone at any width, as a phone's (a list beside its peek). */
   glass?: boolean;
+  /** The asked text still reads: the ring turns after it. */
+  busy?: boolean | undefined;
+  /** The asked text's read failed: the warn glyph and Retry. */
+  failed?: { retry: () => void } | undefined;
 }) {
   const [text, setText] = useState(asked);
+  const failId = useId();
   /** He's typing: his words win until they're in the address. */
   const typed = useRef(false);
   const askRef = useRef(ask);
@@ -529,8 +551,11 @@ export function SearchField({
       )}
     >
       <Icon
-        name="search"
-        className="pointer-events-none size-[15px] flex-none [stroke-width:1.8]"
+        name={failed ? "warn" : "search"}
+        className={cn(
+          "pointer-events-none size-[15px] flex-none [stroke-width:1.8]",
+          failed && "text-(--ui-bad)",
+        )}
       />
       <input
         // edit-ok: search box
@@ -542,8 +567,24 @@ export function SearchField({
         }}
         placeholder={`Search ${label}`}
         aria-label={`Search ${label}`}
+        aria-invalid={failed ? true : undefined}
+        aria-describedby={failed ? failId : undefined}
         className="h-5 min-w-0 flex-1 border-0 bg-transparent p-0 text-[13px] font-semibold text-(--ui-ink) outline-none [field-sizing:content] placeholder:text-(--ui-ink-3) [&::-webkit-search-cancel-button]:hidden"
       />
+      <RingSlot on={busy && !failed} />
+      {failed ? (
+        <button
+          type="button"
+          onClick={failed.retry}
+          {...tipProps("Search did not run")}
+          className="h-6 shrink-0 cursor-pointer border-0 bg-transparent px-1 text-[12px] font-semibold text-(--ui-bad) underline-offset-2 hover:underline"
+        >
+          <span id={failId} className="sr-only">
+            Search did not run.
+          </span>
+          Retry
+        </button>
+      ) : null}
     </label>
   );
 }
