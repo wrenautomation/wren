@@ -194,7 +194,7 @@ export function registerPaths(
     );
   p.command("map [root]")
     .description(
-      "the Map under a fold: boxes (open ones read whole, up to 300) and the links between them, bundled per pair of boxes",
+      "the Map under a fold: boxes (open ones read whole, up to 200) and the links between them, bundled per pair of boxes",
     )
     .option("--depth <n>", "levels open", (v) => Number.parseInt(v, 10), 1)
     .option("--open <paths>", "also open these, comma separated", "")
@@ -221,7 +221,12 @@ export function registerPaths(
             took.reads++;
             return timed(a.children(path, after), "readMs");
           },
-          ...(edges ? { edges: (home: string) => timed(edges(home), "edgesMs") } : {}),
+          ...(edges
+            ? {
+                edges: (home: string, shown?: ReadonlySet<string>) =>
+                  timed(edges(home, shown), "edgesMs"),
+              }
+            : {}),
         };
         const t0 = performance.now();
         const map = await mapAt(counted, { depth: Math.max(0, o.depth), open });

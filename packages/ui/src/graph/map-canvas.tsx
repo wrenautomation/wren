@@ -290,7 +290,8 @@ function MapLine({ id, data }: EdgeProps<Edge<LineData>>) {
         <EdgeLabelRenderer>
           <span
             className={cn(
-              "map-count pointer-events-none absolute top-0 left-0 h-[18px] rounded-full bg-(--ui-paper) px-1.5 text-[11px] leading-[18px] text-(--ui-ink-2) tabular-nums shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-opacity duration-200",
+              // above the lines (z 1000): a crossing line never covers the count
+              "map-count pointer-events-none absolute top-0 left-0 z-[1001] h-[18px] rounded-full bg-(--ui-paper) px-1.5 text-[11px] leading-[18px] text-(--ui-ink-2) tabular-nums shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-opacity duration-200",
               picked && "text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-active)]",
               dim && "opacity-25",
             )}
@@ -339,7 +340,7 @@ function nodesOf(map: MapIn, at: MapLaid): Node<BoxData>[] {
         data: {
           box: open ? b : { ...b, open: false },
           meta: metaOf(b, map.inside[b.path] ?? 0),
-          top: titleOf(b).top,
+          top: r.top ?? titleOf(b).top,
         },
       });
       if (open) walk(b.path, depth + 1);

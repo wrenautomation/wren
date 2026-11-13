@@ -50,13 +50,13 @@ const SPINE = "~spine:";
 const NAME_PX = 13;
 const META_PX = 12;
 
-/** An open box's title: its width (name, icon, close button) up to FRAME.most, then it wraps. */
-export function titleOf(b: MapBoxIn): { least: number; top: number } {
+/** An open box's title: its width (name, icon, close button) up to `most`, then it wraps. */
+export function titleOf(b: MapBoxIn, most: number = FRAME.most): { least: number; top: number } {
   const chrome = 2 * CARD.padX + CARD.icon + FRAME.close + 8;
   const words = `${b.name}${b.count != null ? `  ${b.count.toLocaleString("en-US")}` : ""}`;
   const want = textWidth(words, NAME_PX) + chrome;
-  const least = Math.min(FRAME.most, Math.max(FRAME.least, Math.ceil(want)));
-  const lines = linesOf(words, NAME_PX, FRAME.most - chrome);
+  const least = Math.min(most, Math.max(FRAME.least, Math.ceil(want)));
+  const lines = linesOf(words, NAME_PX, most - chrome);
   return { least, top: FRAME.top + (lines - 1) * CARD.line };
 }
 
@@ -86,6 +86,8 @@ export interface MapRect {
   y: number;
   width: number;
   height: number;
+  /** an open box: its title bar's height */
+  top?: number;
 }
 export interface MapLaid {
   width: number;
@@ -153,17 +155,25 @@ export async function layoutMap(map: MapIn, dir: "RIGHT" | "DOWN" = "RIGHT"): Pr
         spines.push({ id: `${SPINE}${spines.length}`, sources: [b.path], targets: [next.path] });
     });
   };
+  // down (a phone): a frame no wider than one card, so its title wraps instead
+  const most = dir === "DOWN" ? CARD.w + 2 * FRAME.side : FRAME.most;
+  const tops = new Map<string, number>();
   const nodeOf = (b: MapBoxIn): ElkNode => {
     const inner = kids.get(b.path) ?? [];
     if (b.open && inner.length) {
-      const t = titleOf(b);
+      const t = titleOf(b, most);
+      tops.set(b.path, t.top);
       spread(inner);
       return {
         id: b.path,
         layoutOptions: {
           "elk.padding": `[top=${t.top},left=${FRAME.side},bottom=${FRAME.bottom},right=${FRAME.side}]`,
           "elk.nodeSize.constraints": "MINIMUM_SIZE",
-          "elk.nodeSize.minimum": `(${t.least}, ${t.top + FRAME.bottom})`,
+          // elk reads a compound node's minimum in its own turned axes: down swaps them
+          "elk.nodeSize.minimum":
+            dir === "DOWN"
+              ? `(${t.top + FRAME.bottom}, ${t.least})`
+              : `(${t.least}, ${t.top + FRAME.bottom})`,
         },
         children: inner.map(nodeOf),
       };
@@ -195,6 +205,8 @@ export async function layoutMap(map: MapIn, dir: "RIGHT" | "DOWN" = "RIGHT"): Pr
       "elk.spacing.nodeNode": "20",
       "elk.spacing.edgeNode": "14",
       "elk.spacing.edgeEdge": "8",
+      // a lit line is up to ~5 px wide: its pill stays clear of it
+      "elk.spacing.edgeLabel": "6",
       "elk.spacing.componentComponent": "32",
       "elk.layered.spacing.nodeNodeBetweenLayers": "56",
       "elk.layered.spacing.edgeNodeBetweenLayers": "16",
@@ -236,7 +248,14 @@ export async function layoutMap(map: MapIn, dir: "RIGHT" | "DOWN" = "RIGHT"): Pr
   const laid: MapLaid = { width: out.width ?? 0, height: out.height ?? 0, boxes: {}, lines: {} };
   const walk = (n: ElkNode) => {
     for (const c of n.children ?? []) {
-      laid.boxes[c.id] = { x: c.x ?? 0, y: c.y ?? 0, width: c.width ?? 0, height: c.height ?? 0 };
+      const top = tops.get(c.id);
+      laid.boxes[c.id] = {
+        x: c.x ?? 0,
+        y: c.y ?? 0,
+        width: c.width ?? 0,
+        height: c.height ?? 0,
+        ...(top != null ? { top } : {}),
+      };
       walk(c);
     }
   };

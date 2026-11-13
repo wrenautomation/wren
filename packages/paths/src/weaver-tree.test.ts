@@ -1,4 +1,4 @@
-import { columns, homeAt, PathError, wholeAt } from "@wren/core/paths";
+import { columns, homeAt, lineAt, mapAt, PathError, wholeAt } from "@wren/core/paths";
 import { describe, expect, it } from "vitest";
 import { type WeaverSource, type WeaverView, weaverTree } from "./weaver-tree.js";
 
@@ -148,6 +148,43 @@ describe("weaverTree", () => {
     await expect(t.item("weaver/r9")).rejects.toMatchObject({ code: "unknown-path" });
     await expect(t.item("weaver/r1/pages/d9")).rejects.toMatchObject({ code: "unknown-path" });
     await expect(t.children("weaver/r1/queries/q1/d1/x")).rejects.toBeInstanceOf(PathError);
+  });
+
+  it("maps the root without one view: runs stay closed, rounds are lines", async () => {
+    const calls: string[] = [];
+    const m = await mapAt(weaverTree(source(calls)), { depth: 2, open: {} });
+    expect(m.boxes.map((b) => [b.path, b.open])).toEqual([
+      ["weaver/r2", false],
+      ["weaver/r1", false],
+    ]);
+    expect(m.lines.map((l) => [l.from, l.to, l.rels])).toEqual([
+      ["weaver/r1", "weaver/r2", { "grew-into": 1 }],
+    ]);
+    expect(m.inside).toEqual({});
+    expect(calls).toEqual(["runs"]);
+  });
+
+  it("maps an open run's hits as one line, and pages it", async () => {
+    const calls: string[] = [];
+    const t = weaverTree(source(calls));
+    const m = await mapAt(t, { depth: 2, open: { "weaver/r1": true } });
+    expect(m.lines.map((l) => [l.from, l.to, l.count]).sort()).toEqual([
+      ["weaver/r1", "weaver/r2", 1],
+      ["weaver/r1/queries", "weaver/r1/pages", 3],
+    ]);
+    expect(calls).toEqual(["runs", "view r1"]);
+    const page = await lineAt(
+      weaverTree(source()),
+      { path: "weaver/r1/queries", open: false },
+      { path: "weaver/r1/pages", open: false },
+    );
+    expect(page.edges.map((e) => `${e.from} ${e.to}`)).toEqual([
+      "weaver/r1/queries/q1 weaver/r1/pages/d1",
+      "weaver/r1/queries/q2 weaver/r1/pages/d1",
+      "weaver/r1/queries/q2 weaver/r1/pages/d2",
+    ]);
+    // no fold: every run's hits
+    expect((await weaverTree(source()).edges?.("weaver"))?.length).toBe(4);
   });
 
   it("passes the source's offline on", async () => {

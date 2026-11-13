@@ -61,8 +61,12 @@ export interface Adapter {
   find(q: string, under?: string): Promise<Item[]>;
   /** what an export's `.stamp` records: the version it read (a head commit, a ledger time) */
   stamp?(): Promise<Record<string, unknown>>;
-  /** every edge with an end under `home`, between home paths, one direction per pair (Map) */
-  edges?(home: string): Promise<PathEdge[]>;
+  /**
+   * every edge with an end under `home`, between home paths, one direction per pair (Map).
+   * `open`: the boxes the Map opened; an adapter may skip an edge that costs a read and has both
+   * ends in one closed box (it would only count as "inside"). No `open`: every edge.
+   */
+  edges?(home: string, open?: ReadonlySet<string>): Promise<PathEdge[]>;
 }
 
 /** A link between two homes, one way: `member` (an alias's other parent → the item), `backs` … */
@@ -95,6 +99,7 @@ export const RELATIONS: Record<string, string> = {
   applies: "Applies",
   "applied-in": "Applied in",
   "hit-by": "Hit by",
+  hits: "Hits",
   into: "Replaced by",
 };
 
@@ -466,8 +471,9 @@ const depthOf = (path: string) => segments(path).length - 1;
 /** The depth cut opens a box only up to this many rows: overview first, rows on a click. */
 const FOLD_ROWS = 12;
 /** A fold's own call on a box, else the depth cut (Orrery's `openSet` rule on paths). */
+// no count: unknown cost (a Weaver run reads its whole view), so the cut keeps it closed
 const asked = (fold: Fold, i: Item) =>
-  fold.open[i.path] ?? (depthOf(i.path) < fold.depth && (i.count ?? 0) <= FOLD_ROWS);
+  fold.open[i.path] ?? (depthOf(i.path) < fold.depth && i.count != null && i.count <= FOLD_ROWS);
 
 /**
  * The Map of a root under a fold: open boxes read all their rows (relation folders and aliases
@@ -508,7 +514,7 @@ export async function mapAt(a: Adapter, fold: Fold): Promise<PathMap> {
   }
   const shown = new Set(boxes.map((b) => b.path));
   const { lines, inside, outside } = lift(
-    a.edges ? await a.edges(root) : [],
+    a.edges ? await a.edges(root, open) : [],
     open,
     (p) => parentOf(p) || undefined,
     root,
@@ -544,7 +550,14 @@ export async function lineAt(
   after?: string,
 ): Promise<LinePage> {
   const at = (id: string, end: LineEnd) => id === end.path || (!end.open && under(id, end.path));
-  const all = (a.edges ? await a.edges(a.root) : []).filter(
+  // a shown box's parents are all open: the fold that drew this line, as far as it reaches
+  const open = new Set<string>();
+  for (const end of [from, to]) {
+    const s = segments(end.path);
+    for (let k = 1; k < s.length; k++) open.add(s.slice(0, k).join("/"));
+    if (end.open) open.add(end.path);
+  }
+  const all = (a.edges ? await a.edges(a.root, open) : []).filter(
     (e) => at(e.from, from) && at(e.to, to),
   );
   const start = Number(after ?? 0) || 0;

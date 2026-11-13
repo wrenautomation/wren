@@ -1,7 +1,8 @@
 /**
  * Weaver as a tree (designs/2026-11-12-explorer.md D4): `weaver/<run>/pages/<doc>/<finding>`,
  * `weaver/<run>/queries/<query>` (the pages it hit, as aliases). A page's `hit-by` holds its
- * queries; a run's `grew-from` / `grew-into` its rounds. Reads only through a `WeaverSource`:
+ * queries; a run's `grew-from` / `grew-into` its rounds. Map edges: `grew-into` (run → run) and
+ * `hits` (query → page, open runs only: each costs the run's view). Reads only through a `WeaverSource`:
  * `weaver serve` on the Mac (the browser, the CLI) or fixtures in a story. Browser-safe: core only.
  * One adapter per request: runs and views load once.
  */
@@ -15,6 +16,7 @@ import {
   linksOf,
   PAGE_SIZE,
   type Page,
+  type PathEdge,
   PathError,
   pageOf,
   relationRow,
@@ -310,6 +312,32 @@ export function weaverTree(src: WeaverSource): Adapter {
   const adapter: Adapter = {
     root: ROOT,
     children,
+    edges: async (at, open) => {
+      const inside = (p: string) => p === at || p.startsWith(`${at}/`);
+      const all = await runs();
+      const out: PathEdge[] = [];
+      for (const r of all.values())
+        if (r.parent && all.has(r.parent)) {
+          const from = join(ROOT, r.parent);
+          const to = join(ROOT, r.run);
+          out.push({ id: `grew-into:${from}>${to}`, from, to, rel: "grew-into" });
+        }
+      // a view is up to ~10 MB: a closed run's hits would only count as inside it
+      const want = [...all.keys()].filter((run) => {
+        const p = join(ROOT, run);
+        return (!open || open.has(p)) && (inside(p) || at.startsWith(`${p}/`));
+      });
+      const views = await Promise.all(want.map(async (run) => ({ run, x: await view(run) })));
+      for (const { run, x } of views)
+        for (const q of x.v.queries) {
+          const from = join(ROOT, run, "queries", q.id);
+          for (const d of x.pagesOf.get(q.id) ?? []) {
+            const to = join(ROOT, run, "pages", d.id);
+            out.push({ id: `hits:${from}>${to}`, from, to, rel: "hits" });
+          }
+        }
+      return out.filter((e) => inside(e.from) || inside(e.to));
+    },
     item: async (path) => {
       const segs = segments(path);
       const [root, run, area, a, b] = segs;

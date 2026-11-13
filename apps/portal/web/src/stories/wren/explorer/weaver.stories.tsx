@@ -11,7 +11,9 @@ import { relation, WAIT } from "./explorer-kit.js";
 const meta: Meta = { title: "Wren/Explorer/Weaver" };
 export default meta;
 
-const at = (route: string) => explorerHref(route);
+const at = (route: string, view?: "map") => explorerHref(route, view);
+const line = (page: HTMLElement, from: string, to: string) =>
+  page.querySelector(`[data-line="${from}>${to}"]`);
 
 /** A page reading `weaver serve`, which Empty mode leaves full. */
 const story = (
@@ -70,6 +72,36 @@ export const Query = tidy(
     await expect(await view.findByText("the ask's words", {}, WAIT)).toBeVisible();
     const open = view.getByRole("link", { name: "Open in Research" });
     await expect(decodeURIComponent(open.getAttribute("href") ?? "")).toContain("open=q:q1");
+  }),
+);
+
+/** The root as a map: runs stay closed (one view each is too dear); one round grew into the next. */
+export const MapRoot = tidy(
+  story(at("weaver", "map"), async (page) => {
+    await waitFor(() => expect(line(page, "weaver/r1", "weaver/r2")).not.toBeNull(), {
+      timeout: 10_000,
+    });
+    await expect(page.querySelector('[data-map="b:weaver/r1"]')?.hasAttribute("data-open")).toBe(
+      false,
+    );
+  }),
+);
+
+/** A run's queries in Map: its run opens; which queries hit which pages is one line. */
+export const MapRun = tidy(
+  story(at("weaver/r1/queries", "map"), async (page) => {
+    await waitFor(() => expect(line(page, "weaver/r1/queries", "weaver/r1/pages")).not.toBeNull(), {
+      timeout: 10_000,
+    });
+    await expect(
+      page.querySelector('[data-map="b:weaver/r1/queries"]')?.hasAttribute("data-picked"),
+    ).toBe(true);
+    // a picked folder lists its rows beside the map; each stays in Map
+    const rows = within(page).getByRole("region", { name: "Queries" });
+    await expect(within(rows).getAllByRole("link")[0]).toHaveAttribute(
+      "href",
+      at("weaver/r1/queries/q1", "map"),
+    );
   }),
 );
 

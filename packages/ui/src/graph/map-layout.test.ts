@@ -52,6 +52,25 @@ describe("layoutMap", () => {
     expect(end && end.y >= ay - 1 && end.y <= ay + x.height + 1).toBe(true);
   });
 
+  it("down (a phone): an open box is one card wide and only as tall as its rows", async () => {
+    const long = "How do small bakeries find wholesale buyers this year?";
+    const map: MapIn = {
+      root: "r",
+      boxes: [{ ...box("r/a", "r", true), name: long }, box("r/a/x", "r/a"), box("r/a/y", "r/a")],
+      lines: [{ id: "l1", from: "r/a/x", to: "r/a/y", count: 3, rels: { hits: 3 } }],
+      inside: {},
+      outside: {},
+    };
+    const at = await layoutMap(map, "DOWN");
+    const a = at.boxes["r/a"];
+    const y = at.boxes["r/a/y"];
+    if (!a || !y) throw new Error("not laid out");
+    // the title wraps to the card's column; elk's turned minimum once made it 360 tall
+    expect(a.width).toBe(228);
+    expect(a.top).toBeGreaterThan(titleOf(map.boxes[0] as never).top);
+    expect(a.height).toBe(y.y + y.height + 14);
+  });
+
   it("grows a card for a long name, never cuts it", async () => {
     const long = { ...MAP, boxes: [{ ...box("r/z", "r"), name: "A ".repeat(60) }] };
     const short = { ...MAP, boxes: [box("r/z", "r")] };

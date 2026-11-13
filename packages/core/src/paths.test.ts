@@ -289,7 +289,25 @@ describe("mapAt", () => {
     { id: "e4", from: "t/refs/r1", to: "v/x", rel: "applies" },
     { id: "e5", from: "t/refs/gone", to: "t/a", rel: "backs" },
   ];
-  const withEdges = () => ({ ...fixture(), edges: async () => EDGES });
+  // the root's rows with a count, as every real root sends them: the depth cut opens them
+  const withEdges = () => {
+    const f = fixture();
+    return {
+      ...f,
+      children: async (path: string, after?: string) => {
+        const p = await f.children(path, after);
+        return path === "t" ? { ...p, items: p.items.map((i) => ({ count: 1, ...i })) } : p;
+      },
+      edges: async () => EDGES,
+    };
+  };
+
+  it("keeps a row with no count closed: its size, and so its cost, is unknown", async () => {
+    const f = fixture();
+    const m = await mapAt(f, { depth: 2, open: {} });
+    expect(m.boxes.every((b) => !b.open)).toBe(true);
+    expect(f.reads).toEqual(["t"]);
+  });
 
   it("draws the open boxes and lifts each edge to the boxes that show", async () => {
     const m = await mapAt(withEdges(), { depth: 2, open: { "t/dark": false } });

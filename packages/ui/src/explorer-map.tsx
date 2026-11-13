@@ -5,6 +5,7 @@
  */
 import {
   type Column,
+  isFolder,
   type LineEnd,
   type LinePage,
   type PathEdge,
@@ -18,7 +19,7 @@ import {
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "./controls.js";
 import { useLoad } from "./data/query.js";
-import { type Ctx, follow, lastOf, PathFailed, Preview } from "./explorer-rows.js";
+import { type Ctx, follow, lastOf, PathFailed, Preview, Rows } from "./explorer-rows.js";
 import { LoadFailed } from "./feedback.js";
 import { num } from "./format.js";
 import { ExplorerMap, type MapLineIn, type MapPick } from "./graph/index.js";
@@ -141,6 +142,10 @@ export function MapPane({
     />
   );
 
+  // the root's rows are the map's own boxes: no list again
+  const last = cols.at(-1);
+  const folder =
+    last && route !== root && last.route === route && isFolder(last.item) ? last : null;
   const side = failedToo ? null : error && !line ? (
     <PathFailed ctx={ctx} error={error} onRetry={onRetry} />
   ) : line && map ? (
@@ -149,6 +154,14 @@ export function MapPane({
     <Preview ctx={ctx} whole={whole} step={cols.at(-1)} route={route} dim={dim} />
   ) : aside ? (
     <div className="transition-opacity duration-150 starting:opacity-0">{aside}</div>
+  ) : folder ? (
+    // a picked folder: its rows, as its column would show them; the header names it
+    <section
+      aria-label={folder.item.name}
+      className="-mx-2 transition-opacity duration-150 starting:opacity-0"
+    >
+      <Rows ctx={ctx} c={folder} route={route} />
+    </section>
   ) : map?.boxes.length ? (
     <p className="m-0 text-[13px] text-(--ui-ink-3)">Pick an item or a line to read it here.</p>
   ) : null;
