@@ -62,6 +62,7 @@ roles:
       - YOUTUBE_API_KEY
     plain: [NUM_*, SEARXNG_URL]
     # weaver reads its keys from this config's env files: the role's sentinel file
+    # a new key here also goes in that config's `keys` list, or weaver never loads its sentinel
     # READ_PROXY: signed-out reads (YouTube, pages) leave by the gate's read relay
     env:
       WEAVER_CONFIG: ~/.config/weaver/gated.json
