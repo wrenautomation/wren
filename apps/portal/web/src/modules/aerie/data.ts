@@ -38,10 +38,8 @@ async function readRows(before: Rows | undefined): Promise<Rows> {
 
 export const useRows = () => useCall<Rows>("aerie/tasks", readRows, { live: LIVE });
 
-
 /** ids in rank order; the page keeps its other filters */
 export const useSearch = (text: string | undefined) =>
   useCall<string[]>(text ? `aerie/search:${text}` : null, () => aerieCall("search", { text }), {
     kept: false,
   });
-
