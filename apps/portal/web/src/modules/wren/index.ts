@@ -329,7 +329,6 @@ const TEAM_ACTS: Action[] = [
 ];
 const TEAM_ACTIONS = TEAM_ACTS.map((a): Action => ({ ...a, requires: { needs: "team" } }));
 
-/** Wren's team: who signs in, as what, over which clients. An admin's alone. */
 /** How Wren itself runs: portal speed per route (designs/2026-11-13-portal-speed.md). */
 export const system: Module = {
   id: "system",
@@ -352,6 +351,7 @@ export const system: Module = {
   ],
 };
 
+/** Wren's team: who signs in, as what, over which clients. An admin's alone. */
 export const team: Module = {
   id: "team",
   name: "Team",
