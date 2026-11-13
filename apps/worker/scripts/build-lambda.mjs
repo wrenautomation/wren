@@ -5,7 +5,7 @@
  * Postgres box, `node app/box.mjs`), the niche templates beside it (the
  * niches resolve `../templates` from their module), the migrations (the db
  * resolves `../drizzle`, so the worker can migrate a new client's database:
- * the SQL files and the journal, not the snapshots; vireo's in `vireo-drizzle`), the sender roster when
+ * the SQL files and the journal, not the snapshots; vireo's in `vireo-drizzle`, aerie's in `aerie-drizzle`), the sender roster when
  * the repo has one, and playwright-core for the Browserbase render tier.
  * Node 22 runtime; nothing in the bundle needs a native module.
  */
@@ -95,6 +95,22 @@ if (
   vireoJournal.some((e) => !existsSync(resolve(vireoOut, `${e.tag}.sql`)))
 )
   throw new Error("bundle migrations: vireo's journal and SQL files differ");
+
+// Aerie's own migrations (the db resolves `../aerie-drizzle` when bundled)
+const aerieSrc = resolve(repo, "packages/db/node_modules/@wrenautomation/aerie/drizzle");
+const aerieOut = resolve(out, "aerie-drizzle");
+mkdirSync(resolve(aerieOut, "meta"), { recursive: true });
+cpSync(resolve(aerieSrc, "meta/_journal.json"), resolve(aerieOut, "meta/_journal.json"));
+for (const f of readdirSync(aerieSrc).filter((f) => f.endsWith(".sql")))
+  cpSync(resolve(aerieSrc, f), resolve(aerieOut, f));
+const aerieJournal = JSON.parse(
+  readFileSync(resolve(aerieOut, "meta/_journal.json"), "utf8"),
+).entries;
+if (
+  !aerieJournal.length ||
+  aerieJournal.some((e) => !existsSync(resolve(aerieOut, `${e.tag}.sql`)))
+)
+  throw new Error("bundle migrations: aerie's journal and SQL files differ");
 
 const roster = resolve(repo, "senders_config.toml");
 if (existsSync(roster)) cpSync(roster, resolve(out, "senders_config.toml"));

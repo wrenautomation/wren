@@ -308,6 +308,9 @@ importers:
       '@tanstack/react-router':
         specifier: 1.170.41
         version: 1.170.41(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@wren/aerie':
+        specifier: workspace:*
+        version: link:../../packages/aerie
       '@wren/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -559,6 +562,9 @@ importers:
       '@aws-sdk/client-lambda':
         specifier: 3.1136.0
         version: 3.1136.0
+      '@wren/aerie':
+        specifier: workspace:*
+        version: link:../../packages/aerie
       '@wren/books':
         specifier: workspace:*
         version: link:../../packages/books
@@ -686,6 +692,31 @@ importers:
       esbuild:
         specifier: 0.28.2
         version: 0.28.2
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/aerie:
+    dependencies:
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../core
+      '@wren/db':
+        specifier: workspace:*
+        version: link:../db
+      '@wren/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@wrenautomation/aerie':
+        specifier: 0.4.0
+        version: 0.4.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+      zod:
+        specifier: 4.6.6
+        version: 4.6.6
+    devDependencies:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -992,6 +1023,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@wrenautomation/aerie':
+        specifier: 0.4.0
+        version: 0.4.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/vireo':
         specifier: 0.18.0
         version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
@@ -6406,6 +6440,11 @@ packages:
   '@workflow/serde@4.1.0':
     resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
 
+  '@wrenautomation/aerie@0.4.0':
+    resolution: {integrity: sha512-E97gX31TAIBF1B8Hp4hMpOAS9i/F99xeu6W002vi0FYoHe62EJryRJAAxHtSKNEFWfv7LW2AFQT9eS9WgNCt3A==}
+    engines: {node: '>=22'}
+    hasBin: true
+
   '@wrenautomation/autobrowse@0.8.4':
     resolution: {integrity: sha512-17FRMdKyltfttDRJBBqWePjVH2fEURn/ELePC2NdDXsmGJ1uXibVHur+oID6CZMrOACpXvjovQ+l/h8mBUVJzA==}
     engines: {node: '>=24'}
@@ -7944,6 +7983,10 @@ packages:
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
 
+  fuse.js@7.1.0:
+    resolution: {integrity: sha512-trLf4SzuuUxfusZADLINj+dE8clK1frKdmqiJNb1Es75fmI5oY6X2mxLVUciLLjxqw/xr72Dhy+lER6dGd02FQ==}
+    engines: {node: '>=10'}
+
   fuzzysort@3.1.0:
     resolution: {integrity: sha512-sR9BNCjBg6LNgwvxlBd0sBABvQitkLzoVY9MYYROQVX/FvfJ4Mai9LsGhDgd8qYdds0bY77VzYd5iuB+v5rwQQ==}
 
@@ -8384,6 +8427,10 @@ packages:
 
   js-yaml@3.15.2:
     resolution: {integrity: sha512-6EuL879VkRA+1Cz578mKMiKvjPNEuk6+r1JaFzoSWejZmtf7xWbIyw1e3KkxlkzTIt9Taw6JBhEppG7utc1P+w==}
+    hasBin: true
+
+  js-yaml@4.1.0:
+    resolution: {integrity: sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==}
     hasBin: true
 
   js-yaml@4.3.2:
@@ -14548,6 +14595,44 @@ snapshots:
 
   '@workflow/serde@4.1.0': {}
 
+  '@wrenautomation/aerie@0.4.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.15
+      commander: 15.0.0
+      drizzle-orm: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
+      fuse.js: 7.1.0
+      js-yaml: 4.1.0
+      postgres: 3.4.9
+      zod: 4.6.6
+    transitivePeerDependencies:
+      - '@aws-sdk/client-rds-data'
+      - '@cloudflare/workers-types'
+      - '@libsql/client'
+      - '@libsql/client-wasm'
+      - '@neondatabase/serverless'
+      - '@op-engineering/op-sqlite'
+      - '@opentelemetry/api'
+      - '@planetscale/database'
+      - '@prisma/client'
+      - '@tidbcloud/serverless'
+      - '@types/better-sqlite3'
+      - '@types/pg'
+      - '@types/sql.js'
+      - '@upstash/redis'
+      - '@vercel/postgres'
+      - '@xata.io/client'
+      - better-sqlite3
+      - bun-types
+      - expo-sqlite
+      - gel
+      - knex
+      - kysely
+      - mysql2
+      - pg
+      - prisma
+      - sql.js
+      - sqlite3
+
   '@wrenautomation/autobrowse@0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))':
     dependencies:
       '@aws-sdk/client-acm': 3.1136.0
@@ -16149,6 +16234,8 @@ snapshots:
 
   function-bind@1.1.2: {}
 
+  fuse.js@7.1.0: {}
+
   fuzzysort@3.1.0: {}
 
   gensync@1.0.0-beta.2: {}
@@ -16594,6 +16681,10 @@ snapshots:
     dependencies:
       argparse: 1.0.10
       esprima: 4.0.1
+
+  js-yaml@4.1.0:
+    dependencies:
+      argparse: 2.0.1
 
   js-yaml@4.3.2:
     dependencies:

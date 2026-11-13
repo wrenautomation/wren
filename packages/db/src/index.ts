@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { MIGRATIONS as AERIE, migrateAerie } from "@wrenautomation/aerie/migrations";
 import { MIGRATIONS as VIREO } from "@wrenautomation/vireo/migrations";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate as drizzleMigrate } from "drizzle-orm/postgres-js/migrator";
@@ -21,6 +22,9 @@ const MIGRATIONS_FOLDER = new URL("../drizzle", import.meta.url).pathname;
 // bundled (Lambda, box): build-lambda copies vireo's SQL beside ours; else the package's own
 const VIREO_BUNDLED = new URL("../vireo-drizzle", import.meta.url).pathname;
 const VIREO_FOLDER = existsSync(VIREO_BUNDLED) ? VIREO_BUNDLED : VIREO.migrationsFolder;
+// Aerie's too (`aerie-drizzle`)
+const AERIE_BUNDLED = new URL("../aerie-drizzle", import.meta.url).pathname;
+const AERIE_FOLDER = existsSync(AERIE_BUNDLED) ? AERIE_BUNDLED : AERIE.migrationsFolder;
 
 interface DbOptions {
   max?: number;
@@ -83,6 +87,8 @@ export function cachedDb(databaseUrl: string, opts: Pick<DbOptions, "app"> = {})
 export async function migrate(db: Db): Promise<void> {
   // vireo (variants) keeps its own journal; first, since folders.filed points at vireo.subjects
   await drizzleMigrate(db, { ...VIREO, migrationsFolder: VIREO_FOLDER });
+  // Aerie keeps its own journal; as role `aerie` where it exists, so the Mac's aerie login keeps its tables
+  await migrateAerie(db, { role: "aerie", folder: AERIE_FOLDER });
   await drizzleMigrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
   await installAudit(db);
 }

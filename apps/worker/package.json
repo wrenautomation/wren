@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-lambda": "3.1136.0",
+    "@wren/aerie": "workspace:*",
     "@wren/books": "workspace:*",
     "@wren/calendar": "workspace:*",
     "@wren/config": "workspace:*",

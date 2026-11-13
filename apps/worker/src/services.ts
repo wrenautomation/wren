@@ -8,6 +8,7 @@
 import type { Settings } from "@wren/config";
 import type { Logger } from "pino";
 import { accountsServices } from "./services/accounts.js";
+import { aerieServices } from "./services/aerie.js";
 import { appsServices } from "./services/apps.js";
 import { booksServices } from "./services/books.js";
 import { calendarServices } from "./services/calendar.js";
@@ -65,6 +66,7 @@ const DOMAINS: ((deps: Deps) => AnyService[])[] = [
   booksServices,
   watchServices,
   variantsServices,
+  aerieServices,
   smsServices,
   peopleServices,
   reachServices,

@@ -93,6 +93,7 @@ export const PLATFORM = {
     WebhookSend:
       "a client's own URLs hear its events: subscriptions, signed deliveries, the retry ladder",
     VariantsConsole: "the taste loop: batches, his marks and notes, guides, the catalog, ships",
+    AerieConsole: "Aerie: every task and who does what; board, list, saved views, decisions",
     VariantsCollect: "every 6 h: each shipped sample's market numbers per segment",
     FoldersConsole: "Wren's folder tree: make, rename, move, drop, file",
     CanonConsole:

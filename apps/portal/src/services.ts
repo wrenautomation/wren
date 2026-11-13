@@ -4,6 +4,12 @@
  * a line; a route with no need doesn't type-check, and `test/inventory.test.ts` holds each map to
  * the handlers the service serves.
  */
+
+import {
+  AERIE_CONSOLE_APPS,
+  AERIE_CONSOLE_ROUTES,
+  AERIE_CONSOLE_WRITES,
+} from "@wren/aerie/console-routes";
 import {
   BOOKS_CONSOLE_APPS,
   BOOKS_CONSOLE_ROUTES,
@@ -200,6 +206,8 @@ export const SERVICES: Readonly<Record<string, Service>> = {
     VARIANTS_CONSOLE_APPS,
     VARIANTS_CONSOLE_WRITES,
   ),
+  // Aerie: every task and who does what (board, list, saved views, decisions).
+  aerie: service("AerieConsole", AERIE_CONSOLE_ROUTES, AERIE_CONSOLE_APPS, AERIE_CONSOLE_WRITES),
   // Canon › References: the index of Canon's sources, read only.
   canon: service("CanonConsole", CANON_CONSOLE_ROUTES, CANON_CONSOLE_APPS, CANON_CONSOLE_WRITES),
   // Explorer: any product's records as one tree of paths, with links between them.

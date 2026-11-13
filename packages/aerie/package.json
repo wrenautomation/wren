@@ -1,0 +1,26 @@
+{
+  "name": "@wren/aerie",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./console-routes": "./src/console-routes.ts",
+    "./restate": "./src/restate.ts"
+  },
+  "scripts": {
+    "test:unit": "vitest run src --passWithNoTests",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@wren/core": "workspace:*",
+    "@wren/db": "workspace:*",
+    "@wren/runtime": "workspace:*",
+    "@wrenautomation/aerie": "0.4.0",
+    "zod": "4.6.6"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}
