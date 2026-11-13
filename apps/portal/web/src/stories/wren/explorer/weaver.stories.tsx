@@ -38,12 +38,13 @@ export const Default = tidy(
   }),
 );
 
-/** A run: its pages and queries in the column; its counts in the preview. */
+/** A run: its pages and queries in the column; its graph and counts in the preview. */
 export const Run = tidy(
   story(at("weaver/r1"), async (page) => {
     const view = within(page);
     await expect(await view.findByText("3 queries", {}, WAIT)).toBeVisible();
-    await expect(view.getByRole("link", { name: "Open its graph" })).toHaveAttribute(
+    await expect(await view.findByRole("group", { name: /^The run as a web/ }, WAIT)).toBeVisible();
+    await expect(view.getByRole("link", { name: "Open the whole run" })).toHaveAttribute(
       "href",
       wholeHref("weaver/r1"),
     );

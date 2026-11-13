@@ -1,9 +1,11 @@
 /** Explorer › Business map: the newest map as one tree (`paths/*`): lines, groups, stations; tracks as links each way. Fake server: `web/src/mocks/`. */
 import type { Meta } from "@storybook/react-vite";
 import { expect, waitFor, within } from "storybook/test";
+import { focusAnswers } from "../../../mocks/data/map.js";
 import { ADMIN } from "../../../mocks/data/me.js";
 import { pageAt, tidy } from "../../../mocks/page.js";
 import { explorerHref } from "../../../modules/explorer/href.js";
+import { SHARED } from "../map/map-kit.js";
 import { linkTo, relation, WAIT } from "./explorer-kit.js";
 
 const meta: Meta = { title: "Wren/Explorer/Business map" };
@@ -11,8 +13,8 @@ export default meta;
 
 const at = (route: string, view?: "map") => explorerHref(route, view);
 const GROWTH = "metro/lines/growth";
-/** One part open: an empty map holds none, so Empty mode has no state to check here. */
-const ONE = { me: ADMIN, empty: false } as const;
+/** One part open: an empty map holds none, so Empty mode has no state to check here. The Map's own read (the preview's drawing) gets the shape the paths read. */
+const ONE = { me: ADMIN, empty: false, answers: focusAnswers(SHARED) } as const;
 
 /** The root: lines and the stations on no line; empty, where a map starts. */
 export const Default = tidy(
@@ -26,13 +28,15 @@ export const Default = tidy(
   }),
 );
 
-/** A line: its stations and groups in map order; the preview opens it on the Map. */
+/** A line: its stations and groups in map order; the preview draws its sub-line and opens it on the Map. */
 export const Line = tidy(
   pageAt(at(GROWTH), {
     ...ONE,
     check: async (page) => {
       const view = within(page);
       await linkTo(view, /^Sales talk/, at(`${GROWTH}/talk`));
+      // the Map's own drawing, focused on this line
+      await waitFor(() => expect(page.querySelector("svg.mm")).not.toBeNull(), WAIT);
       await expect(
         await view.findByRole("link", { name: "Open on the Map" }, WAIT),
       ).toHaveAttribute("href", "/map/line/growth");

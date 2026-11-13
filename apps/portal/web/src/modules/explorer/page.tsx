@@ -152,11 +152,14 @@ function fileOf(w: Whole, team: boolean): ReactNode {
   return null;
 }
 
-const PREVIEW: Record<string, (w: Whole, view: ExplorerView, team: boolean) => ReactNode> = {
+const PREVIEW: Record<
+  string,
+  (w: Whole, view: ExplorerView, team: boolean, client: string) => ReactNode
+> = {
   canon: (w, view) => <CanonPreview w={w} view={view} />,
   vireo: (w, _view, team) => <VireoPreview w={w} file={fileOf(w, team)} />,
   weaver: (w, _view, team) => <WeaverPreview w={w} file={fileOf(w, team)} />,
-  metro: (w) => <MetroPreview w={w} />,
+  metro: (w, _view, _team, client) => <MetroPreview w={w} client={client} />,
 };
 
 /** Weaver's root page: every run, or the ones picked, on one graph. */
@@ -214,7 +217,7 @@ export interface ExplorerRoot {
 
 /** One root's page: Explorer standing in that root. */
 export function rootPage(root: ExplorerRoot) {
-  return function RootPage({ params, team }: PageProps) {
+  return function RootPage({ params, team, client }: PageProps) {
     const route = params.get("at") || root.id;
     const view = viewOf(params.get("view"));
     useSeen("list", { label: root.label, icon: root.icon, text: `${root.label}, at ${route}` });
@@ -236,7 +239,7 @@ export function rootPage(root: ExplorerRoot) {
         marks={MARKS}
         errorText={ERRORS}
         emptyText={(c) => FILLS[rootOf(c.route)]?.(c)}
-        preview={(w) => PREVIEW[rootOf(w.path)]?.(w, view, team) ?? <Body text={w.body} />}
+        preview={(w) => PREVIEW[rootOf(w.path)]?.(w, view, team, client) ?? <Body text={w.body} />}
         folderPage={(c: Column) =>
           c.route === "canon" ? (
             <CanonRoot view={view} />

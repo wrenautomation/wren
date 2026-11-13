@@ -458,6 +458,30 @@
   min-width: max(760px, calc(var(--w, 0px) * 0.85));
   height: auto;
 }
+/* Peek: one part small beside its text (Explorer's preview). The frame's width, never above real
+   size (a station alone stays small) nor below 60% (a long line pans across). */
+.metro-peek .metro-stage {
+  width: 100%;
+}
+/* It pans in the page's gutter: the map keeps the text's edge, a cut label fades into the gutter. */
+.metro.metro-peek {
+  margin-inline: -16px;
+}
+.metro-peek .metro-host {
+  padding-inline: 16px;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 16px,
+    #000 calc(100% - 16px),
+    transparent
+  );
+}
+.metro-peek .mm {
+  width: max(min(100%, var(--w, 100%)), calc(var(--w, 0px) * 0.6));
+  height: auto;
+  margin-inline: auto;
+}
 /* Fill: the whole map shows in its frame, both ways, never above its real size. A full-page map.
    It sits at the top, centred across. It never shrinks below 60% of its real size: a wide map on a
    phone pans across in place. The stage is a size container, so the width can follow its height. */

@@ -9,9 +9,13 @@ import type {
   WeaverQuery,
   WeaverRun,
 } from "@wren/paths/weaver-tree";
-import { num, relative, Tag, type TagTone } from "@wren/ui";
-import type { ReactNode } from "react";
+import { LoadFailed, num, relative, Tag, type TagTone } from "@wren/ui";
+import { type ReactNode, useMemo } from "react";
+import { useCall } from "../../load.js";
 import { wholeHref } from "../explorer/href.js";
+import { runGraphOf } from "./graph.js";
+import { RunGraph } from "./run-lazy.js";
+import { viewOf } from "./serve.js";
 
 /** Weaver's row marks: a finding its check dropped. */
 export const WEAVER_MARKS: Record<string, { label: string; tone?: TagTone }> = {
@@ -61,6 +65,14 @@ function Finding({ f, bare = false }: { f: WeaverFinding; bare?: boolean }) {
   );
 }
 
+/** A run's graph in the preview, as its chat card draws it; the whole view has the rest. */
+function RunMap({ run }: { run: string }) {
+  const got = useCall(`research:view:${run}`, () => viewOf(run), { kept: false });
+  const graph = useMemo(() => (got.data ? runGraphOf(got.data) : undefined), [got.data]);
+  if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
+  return <RunGraph run={graph} card />;
+}
+
 const plural = (n: number, one: string, many = `${one}s`) => `${num(n)} ${n === 1 ? one : many}`;
 
 export function WeaverPreview({ w, file }: { w: Whole; file?: ReactNode }) {
@@ -76,7 +88,8 @@ export function WeaverPreview({ w, file }: { w: Whole; file?: ReactNode }) {
     };
     // the header holds its ask, its id, its pages and kept count
     return (
-      <div className="flex max-w-[72ch] flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-4">
+        <RunMap run={run} />
         <Facts
           items={[
             plural(d.queries, "query", "queries"),
@@ -85,7 +98,7 @@ export function WeaverPreview({ w, file }: { w: Whole; file?: ReactNode }) {
           ]}
         />
         <span className="flex items-center gap-2">
-          <a href={runHref(run)}>Open its graph</a>
+          <a href={runHref(run)}>Open the whole run</a>
           {file}
         </span>
       </div>
