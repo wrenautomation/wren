@@ -13,7 +13,6 @@ import {
   viewOfAddress,
 } from "@wrenautomation/aerie/core";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ApiError } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { addressOf, GROUP, TASKS, unfiltered, withoutText } from "./address.js";
@@ -30,23 +29,13 @@ import {
   useSearch,
 } from "./data.js";
 import { SHUT, shownOrder, TaskList } from "./list.js";
+import { isNoActor, NoActor } from "./no-actor.js";
 import { TaskSheet } from "./task.js";
 
 export { TASKS };
 
-const NO_ACTOR = /^no Aerie actor for (.+)$/;
 const LAYOUTS: readonly ViewLayout[] = ["list", "board", "columns"];
 const NO_TASKS: TaskRow[] = [];
-
-/** the viewer's sign-in has no actor: say the one line that adds it */
-function NoActor({ error }: { error: ApiError }) {
-  const email = NO_ACTOR.exec(error.message)?.[1] ?? "<email>";
-  return (
-    <Empty title={`No Aerie actor for ${email}`} waits>
-      Add one from the CLI: <code>aerie actor set &lt;id&gt; --email {email}</code>
-    </Empty>
-  );
-}
 
 export function TasksPage({ params }: PageProps) {
   const view = useMemo(() => viewOfAddress(params), [params]);
@@ -155,7 +144,7 @@ export function TasksPage({ params }: PageProps) {
   const taskAt = useCallback((id: string) => href(TASKS, { task: id }, params), [params]);
 
   const err = got.error ?? board.error;
-  if (err?.status === 403 && NO_ACTOR.test(err.message)) return <NoActor error={err} />;
+  if (isNoActor(err)) return <NoActor error={err} />;
   const at = (t: TaskRow) => taskAt(t.id);
   const boardOf = (tasks: TaskRow[] | null) => ({
     tasks,

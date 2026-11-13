@@ -43,6 +43,7 @@ import {
 import { Skeleton } from "./components/ui/skeleton.js";
 import { CHIP } from "./filter-bar.js";
 import { Icon } from "./icons.js";
+import { RisingNumber } from "./motion.js";
 import { Pill } from "./rows.js";
 import { TabBar } from "./tab-bar.js";
 import { scrollerOf, useLines } from "./table.js";
@@ -133,7 +134,7 @@ const CARD =
 const CARD_OPEN = "bg-[color-mix(in_srgb,var(--ui-ink)_5%,var(--ui-paper))]!";
 // wide: shows on the card's hover and focus within; a coarse pointer has no hover, so always
 const MOVE =
-  "absolute top-2 right-2 inline-flex size-7 cursor-pointer items-center justify-center rounded-(--ui-leaf-field) border-0 bg-transparent text-(--ui-ink-3) opacity-0 transition-opacity duration-150 ease-(--ui-ease) group-hover/card:opacity-100 group-focus-within/card:opacity-100 hover:bg-(--ui-hover) hover:text-(--ui-ink) focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-(--ui-focus) data-popup-open:opacity-100 data-popup-open:bg-(--ui-hover) disabled:cursor-default pointer-coarse:opacity-100 pointer-coarse:size-11 pointer-coarse:top-0 pointer-coarse:right-0 motion-reduce:transition-none";
+  "absolute top-2 right-2 inline-flex size-7 cursor-pointer items-center justify-center rounded-(--ui-leaf-button) border-0 bg-transparent text-(--ui-ink-3) opacity-0 transition-opacity duration-150 ease-(--ui-ease) group-hover/card:opacity-100 group-focus-within/card:opacity-100 hover:bg-(--ui-hover) hover:text-(--ui-ink) focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-(--ui-focus) data-popup-open:opacity-100 data-popup-open:bg-(--ui-hover) disabled:cursor-default pointer-coarse:opacity-100 pointer-coarse:size-11 pointer-coarse:top-0 pointer-coarse:right-0 motion-reduce:transition-none";
 const arrival = (id: string, lane: string) => `${id}\u0000${lane}`;
 
 /** a plain click opens in place; a modified one keeps the link's own way (new tab, window) */
@@ -407,24 +408,7 @@ function Cards<T>({
   );
 }
 
-/** a lane's count: a changed number rises in once (`ui-rise` keyframes), never on the first draw */
-function Count({ n }: { n: number }) {
-  const first = useRef(n);
-  const moved = useRef(false);
-  if (n !== first.current) moved.current = true;
-  return (
-    <b
-      key={n}
-      className={cn(
-        "flex-none font-semibold text-(--ui-ink) tabular-nums",
-        // 200 ms: a routine change stays under 300 (MV-9); `ui-rise` is 350 for Steps
-        moved.current && "animate-[ui-rise_200ms_var(--ui-ease)_both] motion-reduce:animate-none",
-      )}
-    >
-      {n}
-    </b>
-  );
-}
+const LANE_COUNT = "flex-none font-semibold text-(--ui-ink)";
 
 function Lane<T>({
   lane,
@@ -515,7 +499,7 @@ function Lane<T>({
           )}
         >
           <Icon name="down" size={15} className="-rotate-90 [stroke-width:1.8]" />
-          <Count n={lane.cards.length} />
+          <RisingNumber n={lane.cards.length} className={LANE_COUNT} />
           <Pill color={lane.color} className="[writing-mode:vertical-rl]">
             {lane.label}
           </Pill>
@@ -533,7 +517,7 @@ function Lane<T>({
             <Pill color={lane.color} className="min-w-0 shrink">
               {lane.label}
             </Pill>
-            <Count n={lane.cards.length} />
+            <RisingNumber n={lane.cards.length} className={LANE_COUNT} />
           </button>
           <div
             ref={setScroll}

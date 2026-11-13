@@ -5,7 +5,7 @@
  */
 import { applyEdit, type Edit, type Task } from "@wrenautomation/aerie/core";
 import type { AerieAnswer, AerieApi } from "@wrenautomation/aerie/http";
-import { onFreshStory, refuse, serve } from "../api.js";
+import { onFreshStory, type Refusal, refuse, serve } from "../api.js";
 import { ago } from "./shell.js";
 
 type Row = AerieAnswer<"tasks">[number];
@@ -284,6 +284,146 @@ function write(r: Row, edit: Edit & { area?: string }): Row {
   };
 }
 
+// ── decisions (D13): worst cases ride along: overdue, a blocked id that is archived, no options, long text
+type Decision = AerieAnswer<"decisions">[number];
+const hoursAgo = (h: number) => new Date(Date.now() - h * 36e5).toISOString();
+const dayFromNow = (d: number) => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
+
+export const AERIE_DECISIONS: Decision[] = [
+  {
+    id: 7,
+    question: "Which job queue should dispatch run on?",
+    options: [
+      { key: "a", text: "pg-boss", cost: "None: runs on the Postgres we have" },
+      { key: "b", text: "graphile-worker, with its cron", cost: "About a day more to wire" },
+    ],
+    recommendation: "a",
+    brief:
+      "Dispatch needs retries, a delay and one runner per lane.\n\n- Both run on our Postgres; no new host.\n- pg-boss ships cron and a dead-letter queue.\n- See [the queue notes](https://example.com/queue-notes).",
+    blocks: ["EX-101", "EX-990"],
+    area: "dev/site",
+    askedBy: "agent:claude-builder",
+    askedAt: hoursAgo(26),
+    due: dayFromNow(-1),
+  },
+  {
+    id: 8,
+    question: "Name for the weekly digest email?",
+    options: [
+      { key: "a", text: "The Weekly" },
+      { key: "b", text: "Numbers, Friday" },
+      { key: "c", text: "This week at the shop" },
+    ],
+    blocks: [],
+    area: "growth/email",
+    askedBy: "agent:claude-writer",
+    askedAt: hoursAgo(3),
+    due: dayFromNow(5),
+  },
+  {
+    id: 9,
+    question: "What should the holiday auto-reply say?",
+    options: [],
+    blocks: [],
+    askedBy: "@sam",
+    askedAt: hoursAgo(50),
+  },
+  {
+    id: 10,
+    question:
+      "Keep the old landing page at https://example.com/a-very-long-unbroken-path/with-no-spaces-at-all-anywhere-in-it-so-it-must-wrap after the new one ships, or send its visitors to the new page?",
+    options: [
+      {
+        key: "keep",
+        text: "Keep it up for six more weeks while the ads that point at it run out, then retire it and send its visitors on to the new page",
+        cost: "Two pages to keep in step: every price change lands twice until it goes",
+      },
+      { key: "send", text: "Send its visitors to the new page now" },
+    ],
+    recommendation: "send",
+    blocks: ["EX-102"],
+    area: "growth",
+    askedBy: "agent:claude-marketing-lead-with-a-long-name",
+    askedAt: hoursAgo(5),
+  },
+];
+
+const ANSWERED_DECISION: Decision = {
+  id: 3,
+  question: "Run the spring offer for two weeks or three?",
+  options: [
+    { key: "a", text: "Two weeks" },
+    { key: "b", text: "Three weeks", cost: "One more week of ad spend" },
+  ],
+  recommendation: "a",
+  blocks: ["EX-104"],
+  area: "growth",
+  askedBy: "agent:claude-marketing",
+  askedAt: hoursAgo(80),
+  answer: "b",
+  answeredBy: "@william",
+  answeredAt: hoursAgo(70),
+  why: "The first week is a warm-up.",
+};
+
+/** n open decisions, none blocking, for the Many story */
+export const manyDecisions = (n: number): Decision[] =>
+  Array.from({ length: n }, (_, i) => ({
+    id: 100 + i,
+    question: `Pick a subject line for send ${i + 1}`,
+    options: [
+      { key: "a", text: `Subject A${i + 1}` },
+      { key: "b", text: `Subject B${i + 1}` },
+    ],
+    blocks: [],
+    askedBy: "agent:claude-writer",
+    askedAt: hoursAgo(i + 1),
+  }));
+
+const answers = new Map<number, Decision>();
+onFreshStory(() => answers.clear());
+const decisionsNow = () =>
+  [...AERIE_DECISIONS, ANSWERED_DECISION].map((d) => answers.get(d.id) ?? d);
+
+/**
+ * `decide` as the route: answered once (409 after), and with web writes off (the board's default) one
+ * that blocks tasks is refused. A story that turns writes on passes `decideWith(true)`.
+ */
+export const decideWith =
+  (writes: boolean) =>
+  async (b: Record<string, unknown>): Promise<Decision | Refusal> => {
+    const d = decisionsNow().find((x) => x.id === b.id);
+    if (!d) return refuse(404, `no decision ${String(b.id)}`);
+    if (d.answeredAt) return refuse(409, `decision ${d.id} is answered (${d.answer})`);
+    if (d.blocks.length && !writes)
+      return refuse(
+        403,
+        `decision ${d.id} blocks ${d.blocks.join(", ")}: answer it in the CLI until the switch (setting web_writes)`,
+      );
+    const next: Decision = {
+      ...d,
+      answer: String(b.answer),
+      answeredBy: "@william",
+      answeredAt: new Date().toISOString(),
+      ...(b.why ? { why: String(b.why) } : {}),
+    };
+    answers.set(d.id, next);
+    return next;
+  };
+
+/** The 403 race: the board says writes on until a decide is refused (the switch went off between reads). */
+let raced = false;
+onFreshStory(() => {
+  raced = false;
+});
+export const WRITES_RACE = {
+  "aerie/board": () => ({ ...AERIE_BOARD, writes: !raced }),
+  "aerie/decide": (b: Record<string, unknown>) => {
+    raced = true;
+    return decideWith(false)(b);
+  },
+};
+
 export const AERIE_ANSWERS = serve<AerieApi>("aerie", {
   board: AERIE_BOARD,
   // a delta read (`updatedAfter`) answers the rows a story wrote since
@@ -309,7 +449,8 @@ export const AERIE_ANSWERS = serve<AerieApi>("aerie", {
     written.set(r.id, next);
     return next;
   },
-  decisions: [],
+  decisions: (b) => decisionsNow().filter((d) => (b.open === false) === !!d.answeredAt),
+  decide: decideWith(false),
   saveView: (b) => ({ id: 2, ...(b as Omit<AerieAnswer<"saveView">, "id">) }),
   deleteView: true,
 });

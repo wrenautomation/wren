@@ -45,6 +45,8 @@ export function storyTests(configDir: string, { empty = [] }: { empty?: string[]
         ],
         test: {
           name,
+          // a held press (`UNDO_MS`, 10 s) that a story lets land
+          testTimeout: 30_000,
           ...(include ? { include } : {}),
           setupFiles: [join(import.meta.dirname, "vitest.setup.ts")],
           browser: {

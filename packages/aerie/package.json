@@ -16,7 +16,7 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/runtime": "workspace:*",
-    "@wrenautomation/aerie": "0.4.5",
+    "@wrenautomation/aerie": "0.4.6",
     "zod": "4.6.6"
   },
   "devDependencies": {

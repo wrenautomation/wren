@@ -3,6 +3,7 @@
  * tenants (phase 6). Every route is Aerie's own (`@wrenautomation/aerie/http`), served by AerieConsole.
  */
 import type { Module } from "../../module.js";
+import { DecisionsPage } from "./decisions.js";
 import { TasksPage } from "./tasks.js";
 
 export const aerie: Module = {
@@ -21,6 +22,12 @@ export const aerie: Module = {
       about: "Every task, filtered and grouped as the address says. Open one to read it whole.",
       Page: TasksPage,
       wide: true,
+    },
+    {
+      id: "decisions",
+      label: "Decisions",
+      about: "What only a person decides: each with its brief, its options and the tasks it holds.",
+      Page: DecisionsPage,
     },
   ],
 };

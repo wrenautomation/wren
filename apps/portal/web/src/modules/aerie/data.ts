@@ -93,3 +93,49 @@ export function sayRefused(id: string, err: unknown) {
       : err,
   );
 }
+
+/** D13: open ones, or answered ones (`open: false`); live, so an `aerie ask` or a CLI answer shows */
+export type DecisionRow = AerieAnswer<"decisions">[number];
+export const useDecisions = (open: boolean) =>
+  useCall<DecisionRow[]>(
+    `aerie/decisions:${open ? "open" : "answered"}`,
+    () => aerieCall("decisions", { open }),
+    { live: LIVE },
+  );
+
+/** open: due first (none last), then oldest asked; answered: newest answer first */
+export function decisionOrder(rows: readonly DecisionRow[], open: boolean): DecisionRow[] {
+  const by = (d: DecisionRow) => (open ? [d.due ?? "￿", d.askedAt] : [d.answeredAt ?? ""]);
+  return [...rows].sort((a, b) => {
+    const [x, y] = [by(a), by(b)];
+    for (let i = 0; i < x.length; i++) {
+      const c = (x[i] as string).localeCompare(y[i] as string);
+      if (c) return open ? c : -c;
+    }
+    return a.id - b.id;
+  });
+}
+
+const ANSWERED = /^decision \d+ is answered \((.*)\)$/;
+
+/**
+ * The answer under the press's request id. A 409 naming this answer is this press landing twice
+ * (a reload sent it again): done. Another answer: say whose.
+ */
+export async function decide(d: DecisionRow, answer: string, why: string, requestId: string) {
+  try {
+    return await call<DecisionRow>("aerie/decide", {
+      id: d.id,
+      answer,
+      ...(why ? { why } : {}),
+      requestId,
+    });
+  } catch (err) {
+    const e = err as ApiError;
+    const was = e.status === 409 ? ANSWERED.exec(e.message)?.[1] : undefined;
+    if (was === answer) return d;
+    if (was !== undefined)
+      throw new Error(`Decision ${d.id} was answered elsewhere: ${was}.`, { cause: err });
+    throw err;
+  }
+}
