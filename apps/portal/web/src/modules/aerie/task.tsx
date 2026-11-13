@@ -216,7 +216,7 @@ function TaskHead({
   return (
     <div className="flex flex-col gap-2">
       <span className="flex flex-wrap items-center gap-1.5">
-        <code className="text-[13px] text-(--ui-ink-3)">{task.id}</code>
+        <span className="text-[13px] text-(--ui-ink-3) tabular-nums">{task.id}</span>
         {writes ? (
           <OnePick
             label="Status"

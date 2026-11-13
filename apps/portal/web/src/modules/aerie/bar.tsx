@@ -712,6 +712,7 @@ export function AerieBar({
   view,
   board,
   rows,
+  counted,
   hits,
   search,
   narrow,
@@ -721,6 +722,8 @@ export function AerieBar({
   view: AddressView;
   board: Load<Board>;
   rows: TaskRow[];
+  /** the rows' read landed: before it, a tab shows no count, never 0 */
+  counted: boolean;
   hits: ReadonlySet<string> | null;
   /** the search read: its ring and its failure */
   search: { loading: boolean; error: unknown; retry: () => void };
@@ -760,7 +763,7 @@ export function AerieBar({
       id: "all",
       label: "All tasks",
       href: addressOf(params, ALL),
-      count: rows.filter((t) => t.place === "tasks").length,
+      count: counted ? rows.filter((t) => t.place === "tasks").length : undefined,
       on: viewKey(ALL) === now,
     },
     ...saved.map((v) => ({

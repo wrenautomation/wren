@@ -12,7 +12,7 @@ import { groupLabel, peopleOf, statusColor, who } from "./look.js";
 
 /** folds that start shut: Done is most of the board */
 export const SHUT: ReadonlySet<string> = new Set(["status:Done"]);
-const foldKey = (group: string | null, key: string | null) =>
+export const foldKey = (group: string | null, key: string | null) =>
   group ? `${group}:${key ?? ""}` : "";
 
 /** the ids as the List shows them: group by group, each once, none from a shut fold (↑ ↓ walk it) */
@@ -28,7 +28,8 @@ export function shownOrder(
   return [...new Set(ids)];
 }
 
-function People({ task }: { task: TaskRow }) {
+/** assignees and holders as tags; a holder carries the dot */
+export function People({ task }: { task: TaskRow }) {
   const people = peopleOf(task);
   if (!people.length) return null;
   return (

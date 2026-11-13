@@ -517,14 +517,19 @@ export function BarLayout({
   const set = pills.length > 0;
   return (
     <div className={cn("grid gap-2", hug && "w-fit max-w-full")}>
-      <div className={cn("flex min-w-0 items-center gap-2", !narrow && "flex-wrap")}>
+      <div
+        className={cn(
+          "flex min-w-0 items-center gap-2",
+          // A phone keeps one line: the shape's tools and the tools drop their words.
+          narrow ? "[&_[data-hp]]:sr-only" : "flex-wrap",
+        )}
+      >
         {/* Whole, never clipped: when it runs out of room the tools wrap under it. */}
         {shape ? narrow ? shape : <div className="flex flex-none">{shape}</div> : null}
         <div
           className={cn(
             "ml-auto flex min-w-0 items-center gap-0.5",
-            // A phone keeps one line: the tools drop their words.
-            narrow ? "[&_[data-hp]]:sr-only" : "flex-wrap justify-end",
+            !narrow && "flex-wrap justify-end",
           )}
         >
           {set ? null : clear}

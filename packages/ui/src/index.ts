@@ -87,6 +87,7 @@ export {
   modelName,
   threadMessage,
 } from "./agent-thread.js";
+export { Board, type BoardLane } from "./board.js";
 export {
   Browser,
   type BrowserFolder,

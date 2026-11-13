@@ -11,6 +11,7 @@ import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { addressOf, GROUP, TASKS, unfiltered, withoutText } from "./address.js";
 import { AerieBar } from "./bar.js";
+import { TaskBoard } from "./board.js";
 import { type TaskRow, useBoard, useRows, useSearch } from "./data.js";
 import { SHUT, shownOrder, TaskList } from "./list.js";
 import { TaskSheet } from "./task.js";
@@ -18,8 +19,8 @@ import { TaskSheet } from "./task.js";
 export { TASKS };
 
 const NO_ACTOR = /^no Aerie actor for (.+)$/;
-/** the layouts that draw so far; the switch shows once a second lands */
-const LAYOUTS: readonly ViewLayout[] = ["list"];
+/** the layouts that draw so far */
+const LAYOUTS: readonly ViewLayout[] = ["list", "board"];
 const NO_TASKS: TaskRow[] = [];
 
 /** the viewer's sign-in has no actor: say the one line that adds it */
@@ -66,7 +67,9 @@ export function TasksPage({ params }: PageProps) {
     return kept.sort(compare(view.sort));
   }, [rows, board.data, view, ranked]);
 
-  const group = ranked ? null : (view.group ?? GROUP);
+  const onBoard = view.layout === "board";
+  // search ranks across groups on the List; the Board keeps its lanes (rank order inside each)
+  const group = ranked && !onBoard ? null : (view.group ?? GROUP);
   const [folded, setFolded] = useState<ReadonlySet<string>>(SHUT);
   const fold = (k: string) =>
     setFolded((s) => {
@@ -80,10 +83,24 @@ export function TasksPage({ params }: PageProps) {
   const err = got.error ?? board.error;
   if (err?.status === 403 && NO_ACTOR.test(err.message)) return <NoActor error={err} />;
   const at = (t: TaskRow) => taskAt(t.id);
+  const boardOf = (tasks: TaskRow[] | null) => ({
+    tasks,
+    group: group ?? GROUP,
+    open,
+    onOpen: (t: TaskRow) => navigate(at(t)),
+    hrefOf: at,
+    washed,
+    onWashed: () => setWashed(new Set()),
+    folded,
+    onFold: fold,
+    narrow,
+    only: view.filter.status,
+  });
 
   let body: ReactNode;
   if (got.error && !got.data) body = <LoadFailed error={got.error} onRetry={got.retry} />;
-  else if (!got.data) body = <Loading shape="rows" lines={8} />;
+  else if (!got.data)
+    body = onBoard ? <TaskBoard {...boardOf(null)} /> : <Loading shape="rows" lines={8} />;
   else if (!rows.length)
     body = (
       <Empty title="No tasks yet" waits>
@@ -101,6 +118,7 @@ export function TasksPage({ params }: PageProps) {
         No task matches these filters.
       </Empty>
     );
+  else if (onBoard) body = <TaskBoard {...boardOf(shown)} />;
   else
     body = (
       <TaskList
@@ -124,6 +142,7 @@ export function TasksPage({ params }: PageProps) {
           view={view}
           board={board}
           rows={rows}
+          counted={!!got.data}
           hits={hits}
           search={{
             loading: !!view.text && search.loading,
