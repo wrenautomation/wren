@@ -9,6 +9,7 @@ export {
   type ExplorerFixture,
   explorerAdapter,
   explorerFails,
+  explorerMap,
   explorerPending,
   explorerRead,
 } from "./explorer.js";

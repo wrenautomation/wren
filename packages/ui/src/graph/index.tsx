@@ -5,9 +5,12 @@
 import { lazy, Suspense, useMemo } from "react";
 import type { GraphProps } from "./canvas.js";
 import { journeyOf, type Touch } from "./journey.js";
+import type { MapCanvasProps } from "./map-canvas.js";
 
 export type { GraphDot, GraphEdit, GraphProps } from "./canvas.js";
 export { journeyOf, type Touch } from "./journey.js";
+export type { MapCanvasProps, MapPick } from "./map-canvas.js";
+export type { MapBoxIn, MapIn, MapLineIn } from "./map-layout.js";
 export {
   edgeId,
   GRAPH_DROP,
@@ -25,6 +28,26 @@ export {
   ribbonWidth,
   wireLines,
 } from "./model.js";
+
+const MapCanvas = lazy(() => import("./map-canvas.js"));
+/** Explorer's Map: boxes nest as folders nest, lines bundle the links between them. */
+export function ExplorerMap(props: MapCanvasProps) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          role="status"
+          aria-busy="true"
+          aria-label="Drawing the Map"
+          className="w-full border border-(--ui-hair) bg-(--ui-tile)"
+          style={{ height: props.height ?? 560 }}
+        />
+      }
+    >
+      <MapCanvas {...props} />
+    </Suspense>
+  );
+}
 
 const GraphCanvas = lazy(() => import("./canvas.js"));
 export function Graph(props: GraphProps) {

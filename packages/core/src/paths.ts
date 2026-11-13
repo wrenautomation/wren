@@ -436,7 +436,8 @@ export function across(here: Readonly<Record<string, Adapter>>, far: Reads): Rea
 }
 
 /** Boxes past this many do not open (designs/2026-11-12-explorer.md, Map: Cap). */
-const MAP_CAP = 300;
+// ELK, warm: 150 boxes 193 ms, 300 boxes 473 ms; 200 keeps an open near 280 ms
+const MAP_CAP = 200;
 
 /** A box on the Map: a home row, in the open box `parent` (the root for the top). */
 export interface MapBox extends Item {
@@ -462,8 +463,11 @@ export interface PathMap {
 
 /** depth 0: the root */
 const depthOf = (path: string) => segments(path).length - 1;
-/** A fold's own call on a box, over the depth cut (Orrery's `openSet` rule on paths). */
-const asked = (fold: Fold, path: string) => fold.open[path] ?? depthOf(path) < fold.depth;
+/** The depth cut opens a box only up to this many rows: overview first, rows on a click. */
+const FOLD_ROWS = 12;
+/** A fold's own call on a box, else the depth cut (Orrery's `openSet` rule on paths). */
+const asked = (fold: Fold, i: Item) =>
+  fold.open[i.path] ?? (depthOf(i.path) < fold.depth && (i.count ?? 0) <= FOLD_ROWS);
 
 /**
  * The Map of a root under a fold: open boxes read all their rows (relation folders and aliases
@@ -484,7 +488,7 @@ export async function mapAt(a: Adapter, fold: Fold): Promise<PathMap> {
     );
     const next: string[] = [];
     for (const { i, home } of rows.flat()) {
-      const want = !i.leaf && asked(fold, i.path);
+      const want = !i.leaf && asked(fold, i);
       boxes.push({ ...i, parent: home, open: want });
       if (want) next.push(i.path);
     }

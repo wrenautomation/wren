@@ -13,8 +13,13 @@ import {
   itemFromParent,
   join,
   linksOf,
+  mapAt,
+  type PathEdge,
   PathError,
+  type PathMap,
+  parentOf,
   relationRow,
+  segments,
   type Whole,
 } from "@wren/core/paths";
 import type { TagTone } from "../controls.js";
@@ -393,7 +398,24 @@ export interface ExplorerFixture {
   refs?: number;
   /** a home whose rows fail as offline */
   offline?: string;
+  /** an adapter with no `edges`: the Map draws boxes only */
+  noEdges?: boolean;
 }
+
+/** Worst case: links out to another root (the Map's "N links to vireo"). */
+const OUT_EDGES: PathEdge[] = ["BP-1", "BP-2", "BS-1"].map((id, n) => ({
+  id: `tests:${id}`,
+  from: join(
+    ROOT,
+    "topics",
+    "bread-baking",
+    "sets",
+    n < 2 ? "bread-baking-proofing" : "bread-baking-scoring",
+    id,
+  ),
+  to: "vireo/subjects/rye-loaf",
+  rel: "tested-by",
+}));
 
 /** The fixture tree as an adapter. */
 export function explorerAdapter(o: ExplorerFixture = {}): Adapter {
@@ -422,6 +444,19 @@ export function explorerAdapter(o: ExplorerFixture = {}): Adapter {
       if (!n) throw new PathError("unknown-path", `nothing at ${home}`);
       return { ...n.item, ...(n.body ? { body: n.body } : {}), links: await linksOf(a, n.item) };
     },
+    // Canon's three: an alias places its item, a guide cites, a reference backs; one way per pair
+    async edges(at) {
+      const out: PathEdge[] = o.worst ? [...OUT_EDGES] : [];
+      for (const n of tree.values()) {
+        const rel = n.item.kind === "relation" ? segments(n.item.path).at(-1) : "places";
+        if (rel !== "places" && rel !== "cites" && rel !== "backs") continue;
+        const from = rel === "places" ? n.item.path : parentOf(n.item.path);
+        for (const r of n.rows)
+          if (r.original && r.kind !== "relation")
+            out.push({ id: `${rel}:${from}>${r.original}`, from, to: r.original, rel });
+      }
+      return out.filter((e) => within(at, e.from) || within(at, e.to));
+    },
     async find(q, under = ROOT) {
       const s = q.toLowerCase();
       return [...tree.values()]
@@ -431,7 +466,9 @@ export function explorerAdapter(o: ExplorerFixture = {}): Adapter {
         .slice(0, 50);
     },
   };
-  return a;
+  if (!o.noEdges) return a;
+  const { edges: _, ...bare } = a;
+  return bare;
 }
 
 /** Explorer's reads over the fixture, each answer `ms` late. */
@@ -444,6 +481,12 @@ export function explorerRead(o: ExplorerFixture & { ms?: number } = {}): Explore
     find: async (q, under) => later(await a.find(q, await homeAt(a, under)), ms),
   };
 }
+
+/** The Map under a fold, through core's own `mapAt`: what `paths/map` answers. */
+export const explorerMap = (
+  fold: { depth: number; open: Record<string, boolean> },
+  o: ExplorerFixture = {},
+): Promise<PathMap> => mapAt(explorerAdapter(o), fold);
 
 /** Reads that never answer: the first skeleton, held. */
 export const explorerPending = (): ExplorerRead => ({

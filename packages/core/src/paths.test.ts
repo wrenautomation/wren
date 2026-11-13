@@ -357,7 +357,11 @@ describe("mapAt", () => {
       whole: async (path) => ({ path, name: path, kind: "area", links: [] }),
       find: async () => [],
     };
-    const m = await mapAt(big, { depth: 2, open: {} });
+    // the depth cut never asks a big box open: closed, not full
+    expect((await mapAt(big, { depth: 2, open: {} })).boxes[0]).toMatchObject({ open: false });
+    expect((await mapAt(big, { depth: 2, open: {} })).boxes[0]?.full).toBeUndefined();
+    reads.length = 0;
+    const m = await mapAt(big, { depth: 2, open: { "c/big": true } });
     expect(m.boxes).toEqual([
       {
         path: "c/big",
