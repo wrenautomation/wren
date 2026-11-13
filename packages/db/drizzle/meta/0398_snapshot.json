@@ -1,6 +1,6 @@
 {
-  "id": "59cec8e0-750c-40be-a5fa-515053c9f6b4",
-  "prevId": "48f6c80d-27d6-4016-85f7-5f2201f36ed5",
+  "id": "9c0d1d75-0b22-4899-bc22-ec3d1ebeb7ec",
+  "prevId": "39ea8d78-14b4-441c-81c9-c3b26a0d1f85",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -8547,7 +8547,7 @@
       "checkConstraints": {
         "ck_social_handles_platform": {
           "name": "ck_social_handles_platform",
-          "value": "(\"platform\")::text = ANY ((ARRAY['linkedin'::character varying, 'reddit'::character varying, 'youtube'::character varying, 'x'::character varying, 'instagram'::character varying, 'facebook'::character varying, 'tiktok'::character varying, 'google_business'::character varying])::text[])"
+          "value": "(\"platform\")::text = ANY ((ARRAY['linkedin'::character varying, 'reddit'::character varying, 'youtube'::character varying, 'x'::character varying, 'instagram'::character varying, 'threads'::character varying, 'facebook'::character varying, 'tiktok'::character varying, 'google_business'::character varying])::text[])"
         },
         "ck_social_handles_linked_by": {
           "name": "ck_social_handles_linked_by",
@@ -14672,6 +14672,462 @@
           "value": "(\"platform\")::text = ANY ((ARRAY['instagram'::character varying, 'x'::character varying, 'youtube'::character varying, 'linkedin'::character varying])::text[])"
         }
       },
+      "isRLSEnabled": false
+    },
+    "public.creator_posts": {
+      "name": "creator_posts",
+      "schema": "",
+      "columns": {
+        "platform": {
+          "name": "platform",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ref": {
+          "name": "ref",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "creator_id": {
+          "name": "creator_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "posted_at": {
+          "name": "posted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_seen": {
+          "name": "first_seen",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_seen": {
+          "name": "last_seen",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "score_count": {
+          "name": "score_count",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "multiple": {
+          "name": "multiple",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rank": {
+          "name": "rank",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "likes_multiple": {
+          "name": "likes_multiple",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "likes_rank": {
+          "name": "likes_rank",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "baseline_n": {
+          "name": "baseline_n",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scored_at": {
+          "name": "scored_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "record": {
+          "name": "record",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "ix_creator_posts_creator_id_posted_at": {
+          "name": "ix_creator_posts_creator_id_posted_at",
+          "columns": [
+            {
+              "expression": "creator_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "posted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ix_creator_posts_multiple": {
+          "name": "ix_creator_posts_multiple",
+          "columns": [
+            {
+              "expression": "multiple",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "fk_creator_posts_creator_id_tracked_creators": {
+          "name": "fk_creator_posts_creator_id_tracked_creators",
+          "tableFrom": "creator_posts",
+          "tableTo": "tracked_creators",
+          "columnsFrom": [
+            "creator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fk_creator_posts_platform_ref_platform_objects": {
+          "name": "fk_creator_posts_platform_ref_platform_objects",
+          "tableFrom": "creator_posts",
+          "tableTo": "platform_objects",
+          "columnsFrom": [
+            "platform",
+            "ref"
+          ],
+          "columnsTo": [
+            "platform",
+            "ref"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pk_creator_posts": {
+          "name": "pk_creator_posts",
+          "columns": [
+            "platform",
+            "ref"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.follower_count_days": {
+      "name": "follower_count_days",
+      "schema": "",
+      "columns": {
+        "creator_id": {
+          "name": "creator_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day": {
+          "name": "day",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "followers": {
+          "name": "followers",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "read_at": {
+          "name": "read_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fk_follower_count_days_creator_id_tracked_creators": {
+          "name": "fk_follower_count_days_creator_id_tracked_creators",
+          "tableFrom": "follower_count_days",
+          "tableTo": "tracked_creators",
+          "columnsFrom": [
+            "creator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pk_follower_count_days": {
+          "name": "pk_follower_count_days",
+          "columns": [
+            "creator_id",
+            "day"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.post_count_days": {
+      "name": "post_count_days",
+      "schema": "",
+      "columns": {
+        "platform": {
+          "name": "platform",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ref": {
+          "name": "ref",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day": {
+          "name": "day",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "counts": {
+          "name": "counts",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "read_at": {
+          "name": "read_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fk_post_count_days_platform_ref_platform_objects": {
+          "name": "fk_post_count_days_platform_ref_platform_objects",
+          "tableFrom": "post_count_days",
+          "tableTo": "platform_objects",
+          "columnsFrom": [
+            "platform",
+            "ref"
+          ],
+          "columnsTo": [
+            "platform",
+            "ref"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pk_post_count_days": {
+          "name": "pk_post_count_days",
+          "columns": [
+            "platform",
+            "ref",
+            "day"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tracked_creators": {
+      "name": "tracked_creators",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "handle_id": {
+          "name": "handle_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "niches": {
+          "name": "niches",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "added_by": {
+          "name": "added_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "added_at": {
+          "name": "added_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "platform_id": {
+          "name": "platform_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "read_at": {
+          "name": "read_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "read_fails": {
+          "name": "read_fails",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "read_error": {
+          "name": "read_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "record": {
+          "name": "record",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fk_tracked_creators_handle_id_social_handles": {
+          "name": "fk_tracked_creators_handle_id_social_handles",
+          "tableFrom": "tracked_creators",
+          "tableTo": "social_handles",
+          "columnsFrom": [
+            "handle_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pk_tracked_creators": {
+          "name": "pk_tracked_creators",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "uq_tracked_creators_handle_id": {
+          "name": "uq_tracked_creators_handle_id",
+          "nullsNotDistinct": false,
+          "columns": [
+            "handle_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.call_invites": {

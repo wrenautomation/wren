@@ -93,6 +93,9 @@ export const creatorPosts = pgTable(
     scoreCount: varchar("score_count", { length: 16 }),
     multiple: real("multiple"),
     rank: real("rank"),
+    /** the same score on likes, when the count is views (weaver 0.77.1: X scores on views) */
+    likesMultiple: real("likes_multiple"),
+    likesRank: real("likes_rank"),
     baselineN: integer("baseline_n"),
     scoredAt: timestamp("scored_at", { withTimezone: true }),
     /** promoted into Canon: the record id */

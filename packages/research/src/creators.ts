@@ -346,12 +346,15 @@ async function rescore(db: Queryable, creatorId: number): Promise<number> {
     // IG grid reads carry no reel views: likes until a read gives views
     const count = self.metrics[want] == null && self.metrics.likes != null ? "likes" : want;
     const s = scoreOf(self, posts, { count });
+    const l = count === "likes" ? s : scoreOf(self, posts, { count: "likes" });
     await db
       .update(cp)
       .set({
         scoreCount: s.count,
         multiple: s.multiple ?? null,
         rank: s.rank ?? null,
+        likesMultiple: l.multiple ?? null,
+        likesRank: l.rank ?? null,
         baselineN: s.n,
         scoredAt: sql`now()`,
       })
@@ -376,6 +379,8 @@ export interface FeedFilter {
   niche?: string;
   platforms?: string[];
   kinds?: string[];
+  /** the score the min and the order use: the post's own count (default) or likes */
+  on?: "count" | "likes";
   /** the least multiple */
   min?: number;
   /** posted in the last N days */
@@ -406,6 +411,10 @@ export interface FeedRow {
   /** Eden's band of the multiple (1-3x ... 50x+); none under 1x */
   band: string | null;
   rank: number | null;
+  /** the same score on likes; equals multiple when the count is likes */
+  likesMultiple: number | null;
+  likesBand: string | null;
+  likesRank: number | null;
   baselineN: number | null;
   record: string | null;
 }
@@ -418,8 +427,9 @@ const list = (xs: readonly (string | number)[]) =>
 
 /** Outlier posts, best multiple first: the CLI and the portal both read this. */
 export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]> {
-  const where = [sql`p.multiple is not null`];
-  if (f.min !== undefined) where.push(sql`p.multiple >= ${f.min}`);
+  const m = f.on === "likes" ? sql`p.likes_multiple` : sql`p.multiple`;
+  const where = [sql`${m} is not null`];
+  if (f.min !== undefined) where.push(sql`${m} >= ${f.min}`);
   if (f.days !== undefined)
     where.push(sql`p.posted_at >= now() - make_interval(days => ${f.days})`);
   if (f.niche) where.push(sql`${f.niche} = any(c.niches)`);
@@ -446,11 +456,13 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     score_count: string | null;
     multiple: number | null;
     rank: number | null;
+    likes_multiple: number | null;
+    likes_rank: number | null;
     baseline_n: number | null;
     record: string | null;
   }>(sql`select p.platform, p.ref, p.url, p.kind, p.posted_at, p.title, p.text, p.creator_id,
       h.handle, h.name, c.niches, fo.followers, co.counts, p.score_count, p.multiple, p.rank,
-      p.baseline_n, p.record
+      p.likes_multiple, p.likes_rank, p.baseline_n, p.record
     from creator_posts p
     join tracked_creators c on c.id = p.creator_id
     join social_handles h on h.id = c.handle_id
@@ -459,7 +471,7 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     left join lateral (select d.counts from post_count_days d
       where d.platform = p.platform and d.ref = p.ref order by d.day desc limit 1) co on true
     where ${sql.join(where, sql` and `)}
-    order by p.multiple desc, p.posted_at desc nulls last
+    order by ${m} desc, p.posted_at desc nulls last
     limit ${f.limit ?? 50}`);
   return [...rows].map((r) => ({
     platform: r.platform,
@@ -479,6 +491,9 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     multiple: r.multiple,
     band: r.multiple != null ? (bandOf(r.multiple) ?? null) : null,
     rank: r.rank,
+    likesMultiple: r.likes_multiple,
+    likesBand: r.likes_multiple != null ? (bandOf(r.likes_multiple) ?? null) : null,
+    likesRank: r.likes_rank,
     baselineN: r.baseline_n,
     record: r.record,
   }));

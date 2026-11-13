@@ -2780,6 +2780,13 @@
       "when": 1794547084907,
       "tag": "0397_creator_post_kinds",
       "breakpoints": true
+    },
+    {
+      "idx": 398,
+      "version": "7",
+      "when": 1794596829052,
+      "tag": "0398_creator_post_likes_score",
+      "breakpoints": true
     }
   ]
 }

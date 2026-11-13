@@ -29,7 +29,7 @@
     "@wren/starling-email": "workspace:*",
     "@wren/starling-outbound": "workspace:*",
     "@wren/video": "workspace:*",
-    "@wrenautomation/read": "0.76.1",
+    "@wrenautomation/read": "0.77.1",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.6"
   },

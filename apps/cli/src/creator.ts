@@ -299,6 +299,7 @@ export function registerCreator(program: Command, withDb: WithDb, canon: CanonWr
     .option("--preset <name>", "a preset; flags beside it override its values")
     .option("--niche <name>", "one niche")
     .option("--min <x>", "the least multiple over the creator's usual draw", Number.parseFloat)
+    .option("--on <score>", "count (the post's own: views, or likes) or likes", /^(count|likes)$/)
     .option("--since <days>", "posted in the last N days", int)
     .option("--platform <name...>", "platforms", many)
     .option("--kind <name...>", `kinds: ${POST_KINDS.join(", ")}`, many)
@@ -311,6 +312,7 @@ export function registerCreator(program: Command, withDb: WithDb, canon: CanonWr
         preset?: string;
         niche?: string;
         min?: number;
+        on?: "count" | "likes";
         since?: number;
         platform?: string[];
         kind?: string[];
@@ -327,6 +329,7 @@ export function registerCreator(program: Command, withDb: WithDb, canon: CanonWr
             ...base,
             ...(o.niche ? { niche: o.niche } : {}),
             ...(o.min !== undefined ? { min: o.min } : {}),
+            ...(o.on ? { on: o.on } : {}),
             ...(o.since !== undefined ? { days: o.since } : {}),
             ...(o.platform ? { platforms: o.platform } : {}),
             ...(o.kind ? { kinds: o.kind } : {}),

@@ -200,6 +200,46 @@ describe("creators", () => {
     ]);
   });
 
+  it("scores an X post on views and keeps its likes score beside it", async () => {
+    const x = await trackCreator(db(), {
+      platform: "x",
+      handle: "@viewer",
+      niches: ["views"],
+      addedBy: "william",
+    });
+    const tweet = (i: number, views: number, likes: number) => ({
+      platform: "x",
+      id: `${2000 + i}`,
+      url: `https://x.com/viewer/status/${2000 + i}`,
+      kind: "tweet",
+      date: daysAgo(i + 1),
+      text: `post ${i}`,
+      metrics: { views, likes },
+    });
+    await keepCreatorRead(
+      db(),
+      x.id,
+      {
+        creator: { platform: "x", handle: "viewer", url: "https://x.com/viewer" },
+        posts: [
+          tweet(0, 6000, 20),
+          tweet(1, 1000, 60),
+          ...[2, 3, 4, 5, 6].map((i) => tweet(i, 1000, 10)),
+        ],
+      },
+      "2026-11-13",
+    );
+    const byViews = await feedPosts(db(), { niche: "views", min: 2 });
+    expect(byViews.map((p) => [p.text, p.scoreCount, p.multiple, p.likesMultiple])).toEqual([
+      ["post 0", "views", 6, 2],
+    ]);
+    const byLikes = await feedPosts(db(), { niche: "views", min: 2, on: "likes" });
+    expect(byLikes.map((p) => [p.text, p.likesMultiple, p.likesBand, p.multiple])).toEqual([
+      ["post 1", 6, "5-10x", 1],
+      ["post 0", 2, "1-3x", 6],
+    ]);
+  });
+
   it("leaves the due list after a read, after 3 fails, and after remove", async () => {
     const c = await trackCreator(db(), {
       platform: "youtube",

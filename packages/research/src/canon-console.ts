@@ -480,6 +480,7 @@ const INPUTS = {
     niche: z.string().max(80).nullish(),
     platform: z.string().max(40).nullish(),
     kind: z.string().max(16).nullish(),
+    on: z.enum(["count", "likes"]).nullish(),
     limit: z.number().int().min(1).max(200).nullish(),
   },
   upload: {
@@ -496,6 +497,8 @@ interface FeedAsk {
   niche?: string | null;
   platform?: string | null;
   kind?: string | null;
+  /** the score the preset's min and the order use */
+  on?: "count" | "likes" | null;
   limit?: number | null;
 }
 export interface FeedPage extends FeedFacets {
@@ -509,6 +512,7 @@ async function feedPage(db: Db, a: FeedAsk): Promise<FeedPage> {
     ...(a.niche ? { niche: a.niche } : {}),
     ...(a.platform ? { platforms: [a.platform] } : {}),
     ...(a.kind ? { kinds: [a.kind] } : {}),
+    ...(a.on ? { on: a.on } : {}),
     limit: a.limit ?? 100,
   };
   const [facets, rows] = await Promise.all([feedFacets(db), feedPosts(db, f)]);
