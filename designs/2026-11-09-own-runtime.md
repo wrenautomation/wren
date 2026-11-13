@@ -252,9 +252,8 @@ Measured on prod 11-12 and 11-13. Lambda cold init: p50 3.9 s, p90 4.1 s, on 153
 
 - The read list: each portal service's routes less its writes. The table moves from `apps/portal/src/services.ts` to a new package, `@wren/portal-routes` (top layer). The Worker and the worker read the same table. Rejected: a copy in the worker held by a test (the worker cannot import an app; a copy drifts).
 - The read lane has its own 8 slots, apart from the box lane's 6. A slow site wait in the pool chain never queues a page.
-- It pins to the box build, strict, like the box lane. A superseded slot takes no new reads.
+- Not strict: a read is one step, so any build may run it, a row an old slot pinned included. A superseded slot finishes only its own read rows.
 - The Lambda lane skips the reads. `Lane.routes` and `Lane.exceptRoutes` match `service || '/' || handler`.
-- At start, open read rows pinned to another build move to this build, as box services do.
 - Reads share the services' pool of 6 on the box. Raise it if `rt timing` shows box-read waits.
 - A child call a read makes is its own row and runs on its own lane.
 
@@ -262,14 +261,16 @@ Measured on prod 11-12 and 11-13. Lambda cold init: p50 3.9 s, p90 4.1 s, on 153
 
 | Option | Measured (local; Lambda at 1 GB is about 3.5× slower) | For | Against |
 |---|---|---|---|
-| **B1. Lazy domains, esbuild code splitting (picked)** | Shared deps alone: 10.3 MB, 320 ms. One domain more: +5 ms. Everything: 29.5 MB, 780 ms | A turn loads deps and its own domain. Module load about 2.8 s → 1.2 s | A service → domain list (a test holds it to the built names); the registry grows per turn |
+| **B1. Lazy domains, esbuild code splitting (picked)** | Shared deps alone: 10.3 MB, 320 ms. One domain more: +5 ms. Everything: 29.5 MB, 780 ms | A turn loads deps and its own domain. Module load about 2.8 s → 1.2 s | The registry grows per turn |
 | B2. Minify | 16.7 MB, but 1.2 s: slower, as V8 compiles minified code eagerly | Smaller zip | Slower load |
 | B3. More memory (1 GB → 1.77 GB, one full vCPU) | About 1.7× on init and on every turn | One line | Twice the GB-seconds against the free tier: William's call |
 | B4. Provisioned concurrency; SnapStart | — | No cold start | Costs money; SnapStart has no Node runtime |
 
-- Each domain lists its service names. Lambda loads a domain on the first turn for one of its services, then keeps it. The box and local dev load all.
-- The Call form's handler list (`served()`) loads every domain first, on Lambda only.
-- After B1, measured: lazy imports inside `deps.ts` for the big vendors (stripe, imapflow, iconv-lite).
+- The box loads every domain, so it knows each service's domain. Its invoke sends `{rt, domain}`; the turn ask names the row's service. Lambda loads that domain on its first turn, then keeps it. No hand-kept list. Rejected: a name list per domain, held by a test (it drifts, and gated services make it a superset).
+- A miss loads every domain: an old box sends no domain, or a service moved to another domain.
+- The Call form's handler list (`served()`) loads every domain first.
+- `bound` (does this worker serve a service?) answers yes on Lambda until every domain is loaded, as viewAsApi's default does. A service gated off by settings then reads as served; prod sets every gate.
+- Split build, measured (local): the static load is 19.2 MB in 570 ms, not 10.3 MB. `deps.ts` holds the rest: the EC2 client (2.3 MB, `core/autobrowse/box.ts`), stripe, imapflow, iconv-lite. The Restate SDK (2.3 MB) stays: the executor needs it. Next: import those vendors on first use.
 
 ## VPSs
 
@@ -334,3 +335,5 @@ Both RackNerd boxes are 1 vCPU, 1 GB (Buffalo 490 MB free, LA 613 MB free). Too 
 - 2026-11-09: wren's Restate names go: `WREN_API_URL` and `WREN_API_TOKEN` (portal and phone Workers, deploy, CLI, config, weaver 0.61.0), after the host they reach. Two phases: new names beside the old in SSM, GitHub `production` and the egress gate, then the old go once the deploy proves the new. Caddy reads its bearer from the box env, so `/wren/prod/restate` is unused (kept until William says to delete it). Kept: the door's `/restate/...` paths (it speaks Restate's ingress protocol) and autobrowse's `RESTATE_*` names (autobrowse on npm still runs on a Restate for other operators; wren's door is one such ingress).
 - 2026-11-09: the door keeps the `/<Service>/<key>/<handler>` call shape and gains plain `/health` and `/calls/.../output` paths beside the `/restate/` ones (B in "Phase 7"), not an own REST shape or an RPC framework. Ranked: no caller breaks, a tested contract, plain names. Restate's data dir (252M) stays; its readable rows go to an archive schema before any delete.
 - 2026-11-09: Restate leftovers deleted on William's yes ("sure. go for it"): SSM `/wren/prod/restate` and `/wren/prod/cache`, `rt.pg_services` (V9), the box's Restate data dir, its watch file, the Redis dir, the stopped Restate/Redis containers and images, and the S3 `restate/` backups (9 GB). Caddy health checks use `/health`. Autobrowse traces and autotrack were never in Restate.
+- 2026-11-13: Group 5 A live (14970d397): the box's read lane serves 170 portal reads. A read through the door costs about 30 ms on the server (a refused call's 232 ms round trip subtracted), against a warm Lambda turn of 300 ms and a cold one of 4.9 s.
+- 2026-11-13: Group 5 B: the box names each turn's domain, not a name list per domain (it drifts; gated services make it a superset). A miss loads every domain.

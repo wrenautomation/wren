@@ -138,6 +138,8 @@ export async function startRt(o: {
   all: AnyService[];
   /** Services this process runs (box lane); the rest go to the Lambda. */
   box: readonly string[];
+  /** Service → domain: a Lambda turn names its domain, so Lambda loads only that code. */
+  domainOf?: ReadonlyMap<string, string>;
   /** `Service/handler` routes this process runs too (the portal's reads); the Lambda skips them. */
   reads?: readonly string[];
   /** Straight to Postgres: LISTEN needs a session, which PgBouncer's transaction mode drops. */
@@ -231,7 +233,9 @@ export async function startRt(o: {
                   new InvokeCommand({
                     FunctionName: fn,
                     InvocationType: "RequestResponse",
-                    Payload: Buffer.from(JSON.stringify({ rt: ask })),
+                    Payload: Buffer.from(
+                      JSON.stringify({ rt: ask, domain: o.domainOf?.get(ask.service ?? "") }),
+                    ),
                   }),
                 )
                 .catch(async (e: unknown) => {
@@ -322,11 +326,28 @@ export async function startRt(o: {
 }
 
 /** Lambda: one turn of a pg row, when the box's lambda lane invokes with `{rt}`. */
-export const isRtEvent = (e: unknown): e is { rt: TurnAsk } =>
+export interface RtEvent {
+  rt: TurnAsk;
+  /** the row's domain (`services.ts` DOMAINS); an old box leaves it out */
+  domain?: string;
+}
+
+export const isRtEvent = (e: unknown): e is RtEvent =>
   typeof e === "object" && e !== null && "rt" in e;
 
-/** One turn the box hands over: it loaded the row and writes the outcome (`remoteTurn`). */
-export function lambdaTurns(all: AnyService[], sql: postgres.Sql) {
-  const registry = new Registry(all as never);
-  return (e: { rt: TurnAsk }) => servedTurn({ sql, registry }, e.rt);
+/**
+ * One turn the box hands over: it loaded the row and writes the outcome (`remoteTurn`).
+ * `all` grows as Lambda loads domains; the registry follows it.
+ */
+export function lambdaTurns(all: () => readonly AnyService[], sql: postgres.Sql) {
+  let registry: Registry | undefined;
+  let size = -1;
+  return (e: RtEvent) => {
+    const now = all();
+    if (now.length !== size) {
+      registry = new Registry(now as never);
+      size = now.length;
+    }
+    return servedTurn({ sql, registry: registry as Registry }, e.rt);
+  };
 }

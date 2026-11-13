@@ -131,7 +131,7 @@ export function platformServices(deps: Deps): AnyService[] {
         );
       },
       admin: admin.query,
-      handlerList: () => (specs ??= new Registry(served()).specs()),
+      handlerList: async () => (specs ??= new Registry(await served()).specs()),
     }),
   );
   return services;

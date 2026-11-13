@@ -33,7 +33,7 @@ export function callsHandlers(ctx: ConsoleContext) {
       team(req);
       if (!handlerList) throw new PortalRefusal("this worker serves no handlers", 503);
       return async () =>
-        handlersOf(handlerList()).filter(
+        handlersOf(await handlerList()).filter(
           (h) => h.service === req.service && h.handler === req.handler,
         );
     },

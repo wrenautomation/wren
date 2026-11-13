@@ -1,6 +1,7 @@
 /**
- * The Lambda lane of the runtime (`rt.ts`): the box invokes with `{rt}`, one handler turn each.
- * Cold start: pull the secret env from SSM, build the services. The pool is per instance and small.
+ * The Lambda lane of the runtime (`rt.ts`): the box invokes with `{rt, domain}`, one handler turn
+ * each. Cold start: pull the secret env from SSM, build the shared deps. A domain's code loads on
+ * its first turn (designs/2026-11-09-own-runtime.md, "Group 5"). The pool is per instance and small.
  */
 
 import { loadSettings } from "@wren/config";
@@ -26,7 +27,7 @@ if (mailboxes && !process.env.WREN_MAILBOXES_FILE) process.env.WREN_MAILBOXES_FI
 const t1 = performance.now();
 const settings = loadSettings(process.env, { rootDir: ROOT });
 const log = pino({ level: settings.logLevel });
-const built = await buildServices(settings, log, { rootDir: ROOT, dbPoolMax: 2 });
+const built = await buildServices(settings, log, { rootDir: ROOT, dbPoolMax: 2, lazy: true });
 const ms = (a: number, b: number) => Math.round(b - a);
 log.info(
   { ...built.summary, initMs: { ssm: ms(t0, t1), build: ms(t1, performance.now()) } },
@@ -38,9 +39,10 @@ let sql: ReturnType<typeof rtSql> | undefined;
 let turns: ReturnType<typeof lambdaTurns> | undefined;
 
 /** One pg turn; any other event is refused (only the box's role may invoke). */
-export const handler = (event: unknown) => {
+export const handler = async (event: unknown) => {
   if (!isRtEvent(event)) throw new Error("not an rt turn");
+  await built.need(event.rt.service, event.domain);
   sql ??= rtSql(pooled(settings), 2, "wren-rt-lambda");
-  turns ??= lambdaTurns(built.services, sql);
+  turns ??= lambdaTurns(() => built.services, sql);
   return turns(event);
 };

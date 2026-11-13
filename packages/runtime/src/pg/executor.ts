@@ -106,6 +106,7 @@ export async function remoteTurn(
     id: c.id,
     attempt: c.attempt,
     leaseMs,
+    service: loaded.inv.service,
     defer: true,
     ...(wire.length < WIRE_MAX ? { loaded: wire } : {}),
   });

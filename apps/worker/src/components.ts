@@ -98,6 +98,8 @@ export const PLATFORM = {
     FoldersConsole: "Wren's folder tree: make, rename, move, drop, file",
     CanonConsole:
       "Canon's references for the portal: reels and videos, his notes, the rules they back",
+    CanonIndexSync: "on the box: Canon's git clone pulled and its records indexed, on each push",
+    PathsConsole: "Explorer: every product's records as one tree of paths, read in the portal",
   },
   records: {
     "console.ask": "every question asked of Claude Code",

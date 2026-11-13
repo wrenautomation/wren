@@ -195,14 +195,14 @@ export interface BuildOptions {
  * database, the model clients, notifiers, the fleet and its transport, each client's doors, and
  * the closures more than one domain wires in (texts, reach, mail, setups, briefs). `bound`
  * answers whether a service name is served here; the console portal asks it per call. `served`:
- * every service built, once all are (the console's handler list).
+ * every service, once all are built (the console's handler list; on Lambda it loads every domain).
  */
 export async function buildDeps(
   settings: Settings,
   log: Logger,
   opts: BuildOptions,
   bound: (service: string) => boolean,
-  served: () => readonly unknown[],
+  served: () => Promise<readonly unknown[]>,
 ) {
   // The executor hears every trigger; a reply also reaches AutoReply.
   const fireAll: FireTriggers = (ctx, req) => {

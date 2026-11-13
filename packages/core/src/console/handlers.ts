@@ -5,8 +5,8 @@
 import type { HandlerSpec } from "@wren/runtime/pg";
 import { defineRecord, type RecordType, status, text } from "../records.js";
 
-/** Every handler the worker serves; the worker passes its registry's `specs`. */
-export type HandlerList = () => readonly HandlerSpec[];
+/** Every handler the worker serves; the worker passes its registry's `specs`. Async on Lambda, which loads its domains on demand. */
+export type HandlerList = () => readonly HandlerSpec[] | Promise<readonly HandlerSpec[]>;
 
 /** One handler as the Call form reads it. */
 export interface HandlerRow {
@@ -177,7 +177,7 @@ export const handlerRecord = (handlerList: HandlerList): RecordType =>
     channel: null,
     name: { one: "handler", many: "handlers" },
     rows: async () =>
-      handlersOf(handlerList())
+      handlersOf(await handlerList())
         .filter((h) => h.public && !isPortal(h.service))
         .map((h) => ({
           id: `${h.service}/${h.handler}`,
@@ -229,7 +229,7 @@ export const handlerRecord = (handlerList: HandlerList): RecordType =>
     load: async (_db, id) => {
       const slash = id.indexOf("/");
       if (slash < 0) return null;
-      const input = inputSchemaOf(handlerList(), id.slice(0, slash), id.slice(slash + 1));
+      const input = inputSchemaOf(await handlerList(), id.slice(0, slash), id.slice(slash + 1));
       return { input, form: formOf(input) };
     },
   });

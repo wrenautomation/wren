@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Bundle the Lambda handler: dist/lambda.zip with app/lambda.mjs (one ESM
- * file, handler `app/lambda.handler`) and app/box.mjs (the pool chain on the
- * Postgres box, `node app/box.mjs`), the niche templates beside it (the
+ * Bundle the Lambda handler: dist/lambda.zip with app/lambda.mjs (ESM, handler
+ * `app/lambda.handler`) and app/box.mjs (the box worker, `node app/box.mjs`), split into
+ * shared chunks beside them so a Lambda cold start loads one domain's code (services.ts), the niche templates beside it (the
  * niches resolve `../templates` from their module), the migrations (the db
  * resolves `../drizzle`, so the worker can migrate a new client's database:
  * the SQL files and the journal, not the snapshots; vireo's in `vireo-drizzle`, aerie's in `aerie-drizzle`), the sender roster when
@@ -38,6 +38,8 @@ await build({
   outdir: resolve(out, "app"),
   outExtension: { ".js": ".mjs" },
   bundle: true,
+  // chunks stay in app/: modules find starter.yaml, ../templates and ../drizzle from their own URL
+  splitting: true,
   platform: "node",
   format: "esm",
   target: "node22",
@@ -57,8 +59,8 @@ await build({
 
 // Parse the bundle before shipping it: a duplicate top-level binding is a SyntaxError
 // the Lambda would only report at cold start, after publish, during register.
-for (const app of ["lambda", "box"])
-  execFileSync("node", ["--check", resolve(out, `app/${app}.mjs`)], { stdio: "inherit" });
+for (const f of readdirSync(resolve(out, "app")).filter((f) => f.endsWith(".mjs")))
+  execFileSync("node", ["--check", resolve(out, "app", f)], { stdio: "inherit" });
 
 // The starter shape beside the bundle: `starterShape()` reads it from its module's directory.
 cpSync(resolve(repo, "packages/pipeline/src/starter.yaml"), resolve(out, "app/starter.yaml"));

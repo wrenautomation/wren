@@ -48,6 +48,8 @@ export interface TurnAsk {
   attempt: number;
   leaseMs: number;
   loaded?: string;
+  /** the row's service: Lambda loads only that service's code (an old box leaves it out) */
+  service?: string;
   /** the box writes the outcome; an old box leaves this out and Lambda finishes as before */
   defer?: true;
 }

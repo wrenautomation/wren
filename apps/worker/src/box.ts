@@ -43,6 +43,7 @@ let wakes: { close(): Promise<void> } | null = null;
 const rt = await startRt({
   all: built.services,
   box: BOX_SERVICES,
+  domainOf: built.domainOf,
   // the portal's reads: a page never waits on a Lambda cold start
   reads: PORTAL_READS,
   databaseUrl,
