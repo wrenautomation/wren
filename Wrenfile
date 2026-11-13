@@ -58,6 +58,8 @@ roles:
       - WREN_API_TOKEN
       - SEARXNG_TOKEN
       - TYPESAFE_API_KEY
+      # `weaver posts <youtube channel>`: the key rides in `?key=`; the gate swaps the query too
+      - YOUTUBE_API_KEY
     plain: [NUM_*, SEARXNG_URL]
     # weaver reads its keys from this config's env files: the role's sentinel file
     # READ_PROXY: signed-out reads (YouTube, pages) leave by the gate's read relay
