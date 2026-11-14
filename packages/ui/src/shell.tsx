@@ -170,8 +170,8 @@ export interface Workspace {
 export interface Brand {
   name: string;
   href: string;
-  /** The square stamp image. */
-  stamp: string;
+  /** The square stamp image; none draws no logo. */
+  stamp?: string | undefined;
 }
 
 export function AppShell({
@@ -289,8 +289,29 @@ export function AppShell({
   // "Wren / Wren": the workspace name alone says it
   const twin = brand.name === workspace.current?.name;
   const host = () => root.current;
+  const logo = !!brand.stamp;
+  const named = !side && !twin;
   const custom = display ? (
-    <DisplayButton control={display} more={customize} onKeys={() => setKeys(true)} compact />
+    <>
+      {nav ? (
+        <button
+          type="button"
+          className={ICON_BUTTON}
+          aria-label={side ? "Bar on top" : "Sidebar"}
+          onClick={() =>
+            frameChange(() => display.set({ sidebar: d.sidebar === "top" ? "full" : "top" }))
+          }
+          {...tipProps(side ? "Bar on top" : "Sidebar", {
+            keys: "\\",
+            side: side ? "right" : "bottom",
+            as: "none",
+          })}
+        >
+          <Icon name={side ? "panel-top" : "panel"} />
+        </button>
+      ) : null}
+      <DisplayButton control={display} more={customize} onKeys={() => setKeys(true)} compact />
+    </>
   ) : null;
   return (
     <div
@@ -339,32 +360,25 @@ export function AppShell({
             folded && "min-[901px]:justify-center",
           )}
         >
-          <a
-            className={cx(
-              HOVER,
-              "flex h-9 flex-none items-center gap-[9px] rounded-(--ui-radius) pr-2 pl-1 text-[15px] font-semibold tracking-[-0.01em] no-underline",
-              side && "min-[901px]:h-auto min-[901px]:pr-0 min-[901px]:pl-2",
-            )}
-            href={brand.href}
-            aria-label={brand.name}
-            {...(folded ? tipProps(workspace.current?.name, { side: "right" }) : {})}
-          >
-            <Img
-              className={cx("flex-none", side && "min-[901px]:hidden")}
-              src={brand.stamp}
-              alt=""
-              width={26}
-              height={26}
-            />
-            {side ? (
-              <i
-                className="ui-mark h-[22px] w-[30px] flex-none max-[900px]:hidden"
-                aria-hidden="true"
-              />
-            ) : null}
-            {side || twin ? null : <span className="max-[900px]:hidden">{brand.name}</span>}
-          </a>
-          {side || twin ? null : (
+          {logo || named ? (
+            <a
+              className={cx(
+                HOVER,
+                "flex h-9 flex-none items-center gap-[9px] rounded-(--ui-radius) pr-2 pl-1 text-[15px] font-semibold tracking-[-0.01em] no-underline",
+                side && "min-[901px]:h-auto min-[901px]:pr-0 min-[901px]:pl-2",
+                !logo && "max-[900px]:hidden",
+              )}
+              href={brand.href}
+              aria-label={brand.name}
+              {...(folded ? tipProps(workspace.current?.name, { side: "right" }) : {})}
+            >
+              {logo ? (
+                <Img className="flex-none" src={brand.stamp} alt="" width={26} height={26} />
+              ) : null}
+              {named ? <span className="max-[900px]:hidden">{brand.name}</span> : null}
+            </a>
+          ) : null}
+          {!named ? null : (
             <span className={cx(SLASH, "max-[900px]:hidden")} aria-hidden="true">
               /
             </span>
@@ -1469,7 +1483,7 @@ export function Gate({
   className,
   children,
 }: {
-  stamp: string;
+  stamp?: string | undefined;
   title: string;
   theme?: Theme | undefined;
   className?: string | undefined;
@@ -1479,7 +1493,9 @@ export function Gate({
   return (
     <main className={cx("grid min-h-dvh place-items-center px-4 py-6", className)}>
       <div className="flex w-[min(440px,100%)] flex-col gap-3.5 rounded-(--ui-radius-sheet) bg-(--ui-paper) p-8 shadow-(--ui-raise) [&_form]:flex [&_form]:flex-col [&_form]:gap-3.5 [&_li]:flex [&_li]:items-center [&_li]:justify-between [&_li]:gap-3 [&_li]:border-b [&_li]:border-(--ui-hair) [&_li]:py-1.5 [&_p]:text-(--ui-ink-2) [&_ul]:list-none [&_ul]:border-t [&_ul]:border-(--ui-hair)">
-        <Img className="mb-1.5 flex-none" src={stamp} alt="" width={36} height={36} />
+        {stamp ? (
+          <Img className="mb-1.5 flex-none" src={stamp} alt="" width={36} height={36} />
+        ) : null}
         <h1 className="font-(family-name:--ui-font-display) text-[24px]/[1.2] font-(--ui-display-weight) tracking-[calc(-0.025em*var(--ui-display-squeeze))]">
           {title}
         </h1>

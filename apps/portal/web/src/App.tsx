@@ -80,7 +80,6 @@ import { ClientToday, WrenToday } from "./today.js";
 import { openViewAs, VIEW_AS_HREF, ViewAsPicker, ViewAsStrip } from "./view-as.js";
 import { appTotal, useWaiting } from "./waiting.js";
 
-const STAMP = "/wren-icon.png";
 const WORKSPACE_KEY = "wren.portal.workspace";
 const THEME_KEY = "wren.portal.theme";
 /** The look last shown, painted by public/look.js before `me` answers on the next load. */
@@ -364,7 +363,7 @@ export function App() {
   // An app by itself (D5b): its name and pages, no Wren navigation. His pick per app, Wren's team only.
   const alone =
     here && team && isApart(display.display, here.id, !!here.apart?.default)
-      ? { app: here, name: here.product ?? here.name, stamp: here.apart?.stamp ?? STAMP }
+      ? { app: here, name: here.product ?? here.name, stamp: here.apart?.stamp }
       : undefined;
   const flipApart = here
     ? () => display.set({ apart: { ...display.display.apart, [here.id]: !alone } })
@@ -473,13 +472,13 @@ export function App() {
 
   if (me.error && !me.data)
     return (
-      <Gate stamp={STAMP} title="Your client portal" theme={theme}>
+      <Gate title="Your client portal" theme={theme}>
         <LoadFailed error={me.error} onRetry={me.retry} />
       </Gate>
     );
   if (me.data && !current)
     return (
-      <Gate stamp={STAMP} title="Nothing here yet" theme={theme}>
+      <Gate title="Nothing here yet" theme={theme}>
         <p>
           This login isn't linked to a client list. Reply to your onboarding email and we'll add it.
         </p>
@@ -635,7 +634,7 @@ export function App() {
             brand={
               alone
                 ? { name: alone.name, href: home, stamp: alone.stamp }
-                : { name: "Wren", href: home, stamp: STAMP }
+                : { name: "Wren", href: home }
             }
             workspace={
               alone

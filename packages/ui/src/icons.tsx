@@ -96,6 +96,7 @@ import {
   OctagonX,
   PanelLeft,
   PanelRight,
+  PanelTop,
   Paperclip,
   Pause,
   Pencil,
@@ -229,6 +230,7 @@ const ICONS = {
   upload: Upload,
   // The frame: the panels, help, keys.
   panel: PanelLeft,
+  "panel-top": PanelTop,
   attach: Paperclip,
   help: CircleHelp,
   keys: Keyboard,

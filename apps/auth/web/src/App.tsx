@@ -9,7 +9,6 @@ import { Alert, Button, ButtonLink, Gate } from "@wren/ui";
 import { type FormEvent, useEffect, useState } from "react";
 import { nextOf } from "./next.js";
 
-const STAMP = "/wren-icon.png";
 const TITLE = "Sign in to Wren";
 /** A labelled text field. */
 const FIELD =
@@ -128,7 +127,7 @@ function Home() {
 
   if (!ready)
     return (
-      <Gate stamp={STAMP} title={TITLE}>
+      <Gate title={TITLE}>
         <p>One moment…</p>
       </Gate>
     );
@@ -188,7 +187,7 @@ function SignIn({ next, failed }: { next: string; failed: boolean }) {
   });
 
   return (
-    <Gate stamp={STAMP} title={TITLE}>
+    <Gate title={TITLE}>
       {problem ? <Alert>{problem}</Alert> : null}
       {note ? <p>{note}</p> : null}
       {!sent ? (
@@ -292,7 +291,7 @@ function EmailLink() {
     location.replace(PORTAL);
   });
   return (
-    <Gate stamp={STAMP} title={TITLE}>
+    <Gate title={TITLE}>
       {problem ? <Alert>{problem}</Alert> : <p>Signing in as {email}.</p>}
       {problem ? (
         <ButtonLink href="/" tone="secondary">
@@ -320,7 +319,7 @@ function Reset() {
 
   if (!token || done)
     return (
-      <Gate stamp={STAMP} title={done ? "Password set" : "That link has run out"}>
+      <Gate title={done ? "Password set" : "That link has run out"}>
         <p>{done ? "Sign in with it from now on." : "Ask for a new one from the sign-in page."}</p>
         <ButtonLink href="/" tone="primary">
           Sign in
@@ -328,7 +327,7 @@ function Reset() {
       </Gate>
     );
   return (
-    <Gate stamp={STAMP} title="Set your password">
+    <Gate title="Set your password">
       {problem ? <Alert>{problem}</Alert> : null}
       <form onSubmit={save}>
         <label className={FIELD}>
@@ -397,13 +396,9 @@ function Passkeys() {
     });
 
   if (!keys)
-    return (
-      <Gate stamp={STAMP} title="Passkeys">
-        {problem ? <Alert>{problem}</Alert> : <p>One moment…</p>}
-      </Gate>
-    );
+    return <Gate title="Passkeys">{problem ? <Alert>{problem}</Alert> : <p>One moment…</p>}</Gate>;
   return (
-    <Gate stamp={STAMP} title="Passkeys">
+    <Gate title="Passkeys">
       {problem ? <Alert>{problem}</Alert> : null}
       <p>
         Sign in with Face ID, Touch ID or your phone's screen lock instead of a code. A passkey
