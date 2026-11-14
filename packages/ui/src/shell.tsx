@@ -860,7 +860,11 @@ function AppCrumb({
               </span>
               <Icon name="down" size={14} className="flex-none" />
             </PopoverTrigger>
-            <PopoverContent align="start" className="max-h-[70dvh] w-60 overflow-y-auto p-1.5">
+            <PopoverContent
+              align="start"
+              aria-label={`${app.name} pages`}
+              className="max-h-[70dvh] w-60 overflow-y-auto p-1.5"
+            >
               <AppTabs app={app} />
             </PopoverContent>
           </Popover>
@@ -953,7 +957,11 @@ function TopGroup({ app, group, tabs }: { app: OpenApp; group: string; tabs: Nav
         ) : null}
         <Icon name="down" size={14} className="flex-none text-(--ui-ink-3)" />
       </PopoverTrigger>
-      <PopoverContent align="start" className="max-h-[70dvh] w-60 overflow-y-auto p-1.5">
+      <PopoverContent
+        align="start"
+        aria-label={group}
+        className="max-h-[70dvh] w-60 overflow-y-auto p-1.5"
+      >
         <nav aria-label={group}>
           <ul className="flex list-none flex-col gap-0.5">
             {tabs.map((t) => (
@@ -986,6 +994,7 @@ function AppsMenu({
       </PopoverTrigger>
       <PopoverContent
         align="start"
+        aria-label="Apps"
         className="max-h-[80dvh] w-[min(560px,calc(100vw-32px))] overflow-y-auto p-2"
       >
         <nav
@@ -1004,7 +1013,7 @@ function AppsMenu({
           ) : null}
           {areas.map((a) => (
             <div key={a.id} className="grid content-start gap-0.5">
-              <h2 className={GROUP}>{a.label}</h2>
+              {a.label ? <h2 className={GROUP}>{a.label}</h2> : null}
               {a.apps.map((x) => (
                 <a
                   key={x.id}

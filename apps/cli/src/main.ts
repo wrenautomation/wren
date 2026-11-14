@@ -289,7 +289,12 @@ registerAppReviews(program, withMainDb, rootDir);
 registerSocial(program, settings);
 const canonWrites = registerCanon(program, withMainDb, settings, rootDir);
 registerCapture(program, withMainDb, settings, rootDir, canonWrites);
-registerCreator(program, withMainDb, canonWrites);
+registerCreator(
+  program,
+  withMainDb,
+  canonWrites,
+  settings.mediaBucket ? { bucket: settings.mediaBucket } : null,
+);
 registerPaths(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerTouches(program, withMainDb);

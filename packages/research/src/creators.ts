@@ -377,6 +377,7 @@ export type FeedPreset = keyof typeof FEED_PRESETS;
 
 export interface FeedFilter {
   niche?: string;
+  niches?: string[];
   platforms?: string[];
   kinds?: string[];
   /** the score the min and the order use: the post's own count (default) or likes */
@@ -389,6 +390,10 @@ export interface FeedFilter {
   maxFollowers?: number;
   minLikes?: number;
   creatorIds?: number[];
+  /** every post (the feed), or scored ones only (default: the outlier list) */
+  all?: boolean;
+  /** newest first, or best multiple first (default) */
+  sort?: "new" | "multiple";
   limit?: number;
 }
 
@@ -417,6 +422,73 @@ export interface FeedRow {
   likesRank: number | null;
   baselineN: number | null;
   record: string | null;
+  /** its picture in the media bucket (`cache/posts/...`), once copied */
+  picture: string | null;
+  /** the platform's own picture link, from the stored item; IG links expire in days */
+  pictureLink: string | null;
+}
+
+const str = (v: unknown) => (typeof v === "string" && v ? v : null);
+const at = (v: unknown, ...path: (string | number)[]): unknown =>
+  path.reduce<unknown>(
+    (o, k) => (o && typeof o === "object" ? (o as Record<string | number, unknown>)[k] : undefined),
+    v,
+  );
+
+/** A post's picture link from the item a read stored: IG's poster or photo, X's first media. */
+function pictureLinkOf(platform: string, ref: string, raw: unknown): string | null {
+  if (platform === "instagram")
+    // a video's media_url is the mp4: its poster only
+    return (
+      str(at(raw, "thumbnail_url")) ??
+      (at(raw, "media_type") === "VIDEO" ? null : str(at(raw, "media_url")))
+    );
+  if (platform === "x")
+    return (
+      str(at(raw, "legacy", "extended_entities", "media", 0, "media_url_https")) ??
+      str(
+        at(
+          raw,
+          "quoted_status_result",
+          "result",
+          "legacy",
+          "extended_entities",
+          "media",
+          0,
+          "media_url_https",
+        ),
+      )
+    );
+  if (platform === "youtube") return `https://i.ytimg.com/vi/${ref}/hqdefault.jpg`;
+  return null;
+}
+
+/** The bucket key a post's picture is copied to. */
+export const pictureKeyOf = (platform: string, ref: string) =>
+  `cache/posts/${platform}/${ref.replace(/[^\w.-]/g, "_")}.jpg`;
+
+/** Posts with a picture link and no copy yet, newest first: what the copy step takes. */
+export async function postsToCopy(
+  db: Queryable,
+  o: { creatorIds?: number[]; limit?: number } = {},
+): Promise<{ platform: string; ref: string; link: string }[]> {
+  const rows = await db.execute<{ platform: string; ref: string; raw: unknown }>(sql`select
+      p.platform, p.ref, p.raw from creator_posts p
+    where p.picture is null and p.kind <> 'retweet'
+      ${o.creatorIds?.length ? sql`and p.creator_id in (${list(o.creatorIds)})` : sql``}
+    order by p.posted_at desc nulls last limit ${o.limit ?? 500}`);
+  return [...rows].flatMap((r) => {
+    const link = pictureLinkOf(r.platform, r.ref, r.raw);
+    return link ? [{ platform: r.platform, ref: r.ref, link }] : [];
+  });
+}
+
+/** The copy is in the bucket. */
+export async function setPicture(db: Queryable, platform: string, ref: string, key: string) {
+  await db
+    .update(cp)
+    .set({ picture: key })
+    .where(and(eq(cp.platform, platform), eq(cp.ref, ref)));
 }
 
 const list = (xs: readonly (string | number)[]) =>
@@ -428,11 +500,14 @@ const list = (xs: readonly (string | number)[]) =>
 /** Outlier posts, best multiple first: the CLI and the portal both read this. */
 export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]> {
   const m = f.on === "likes" ? sql`p.likes_multiple` : sql`p.multiple`;
-  const where = [sql`${m} is not null`];
+  // a retweet is the original's post, never the creator's
+  const where = [sql`p.kind <> 'retweet'`];
+  if (!f.all) where.push(sql`${m} is not null`);
   if (f.min !== undefined) where.push(sql`${m} >= ${f.min}`);
   if (f.days !== undefined)
     where.push(sql`p.posted_at >= now() - make_interval(days => ${f.days})`);
   if (f.niche) where.push(sql`${f.niche} = any(c.niches)`);
+  if (f.niches?.length) where.push(sql`c.niches && array[${list(f.niches)}]::text[]`);
   if (f.platforms?.length) where.push(sql`p.platform in (${list(f.platforms)})`);
   if (f.kinds?.length) where.push(sql`p.kind in (${list(f.kinds)})`);
   if (f.creatorIds?.length) where.push(sql`p.creator_id in (${list(f.creatorIds)})`);
@@ -460,9 +535,12 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     likes_rank: number | null;
     baseline_n: number | null;
     record: string | null;
+    picture: string | null;
+    raw: unknown;
   }>(sql`select p.platform, p.ref, p.url, p.kind, p.posted_at, p.title, p.text, p.creator_id,
       h.handle, h.name, c.niches, fo.followers, co.counts, p.score_count, p.multiple, p.rank,
-      p.likes_multiple, p.likes_rank, p.baseline_n, p.record
+      p.likes_multiple, p.likes_rank, p.baseline_n, p.record, p.picture,
+      case when p.picture is null then p.raw end as raw
     from creator_posts p
     join tracked_creators c on c.id = p.creator_id
     join social_handles h on h.id = c.handle_id
@@ -471,7 +549,7 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     left join lateral (select d.counts from post_count_days d
       where d.platform = p.platform and d.ref = p.ref order by d.day desc limit 1) co on true
     where ${sql.join(where, sql` and `)}
-    order by ${m} desc, p.posted_at desc nulls last
+    order by ${f.sort === "new" ? sql`p.posted_at desc nulls last, ${m} desc nulls last` : sql`${m} desc nulls last, p.posted_at desc nulls last`}
     limit ${f.limit ?? 50}`);
   return [...rows].map((r) => ({
     platform: r.platform,
@@ -496,6 +574,8 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     likesRank: r.likes_rank,
     baselineN: r.baseline_n,
     record: r.record,
+    picture: r.picture,
+    pictureLink: r.picture ? null : pictureLinkOf(r.platform, r.ref, r.raw),
   }));
 }
 
@@ -506,6 +586,10 @@ export interface FeedFacets {
   scored: number;
   niches: { value: string; n: number }[];
   platforms: { value: string; n: number }[];
+  /** kinds of their posts, with post counts */
+  kinds: { value: string; n: number }[];
+  /** active creators, with their post counts */
+  people: { id: number; handle: string; name: string | null; platform: string; n: number }[];
 }
 
 /** What the feed's picks offer: niches and platforms of active creators, with counts. */
@@ -523,11 +607,26 @@ export async function feedFacets(db: Queryable): Promise<FeedFacets> {
   const platforms = await db.execute<{ value: string; n: number }>(sql`select h.platform as value,
     count(*)::int as n from tracked_creators c join social_handles h on h.id = c.handle_id
     where c.active group by h.platform order by n desc, h.platform`);
+  const kinds = await db.execute<{ value: string; n: number }>(sql`select p.kind as value,
+    count(*)::int as n from creator_posts p join tracked_creators c on c.id = p.creator_id
+    where c.active and p.kind <> 'retweet' group by p.kind order by n desc, p.kind`);
+  const people = await db.execute<{
+    id: number;
+    handle: string;
+    name: string | null;
+    platform: string;
+    n: number;
+  }>(sql`select c.id, h.handle, h.name, h.platform,
+    (select count(*)::int from creator_posts p where p.creator_id = c.id and p.kind <> 'retweet') as n
+    from tracked_creators c join social_handles h on h.id = c.handle_id
+    where c.active order by lower(coalesce(h.name, h.handle))`);
   return {
     creators: head?.creators ?? 0,
     scored: head?.scored ?? 0,
     niches: [...niches],
     platforms: [...platforms],
+    kinds: [...kinds],
+    people: [...people],
   };
 }
 

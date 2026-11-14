@@ -477,9 +477,13 @@ const INPUTS = {
   retry: { id: z.number().int().positive() },
   feed: {
     preset: z.enum(Object.keys(FEED_PRESETS) as [FeedPreset, ...FeedPreset[]]).nullish(),
-    niche: z.string().max(80).nullish(),
-    platform: z.string().max(40).nullish(),
-    kind: z.string().max(16).nullish(),
+    niches: z.array(z.string().max(80)).max(50).nullish(),
+    platforms: z.array(z.string().max(40)).max(20).nullish(),
+    kinds: z.array(z.string().max(16)).max(20).nullish(),
+    creators: z.array(z.number().int().positive()).max(200).nullish(),
+    min: z.number().min(0).max(10_000).nullish(),
+    all: z.boolean().nullish().describe("every post, scored or not (the feed)"),
+    sort: z.enum(["new", "multiple"]).nullish(),
     on: z.enum(["count", "likes"]).nullish(),
     limit: z.number().int().min(1).max(200).nullish(),
   },
@@ -492,31 +496,54 @@ const INPUTS = {
 
 type Req = PortalRequest & Record<string, unknown>;
 
-interface FeedAsk {
+export interface FeedAsk {
   preset?: FeedPreset | null;
-  niche?: string | null;
-  platform?: string | null;
-  kind?: string | null;
+  niches?: string[] | null;
+  platforms?: string[] | null;
+  kinds?: string[] | null;
+  creators?: number[] | null;
+  /** the least multiple; over a preset's */
+  min?: number | null;
+  /** every post, scored or not */
+  all?: boolean | null;
+  sort?: "new" | "multiple" | null;
   /** the score the preset's min and the order use */
   on?: "count" | "likes" | null;
   limit?: number | null;
 }
+/** A post as the page shows it: `src` is its picture, signed from the bucket or the platform's. */
+export type FeedPost = FeedRow & { src: string | null };
 export interface FeedPage extends FeedFacets {
-  rows: FeedRow[];
+  rows: FeedPost[];
 }
 
-/** Canon › Outliers: the CLI's `wren feed`, a preset plus the picks. */
-async function feedPage(db: Db, a: FeedAsk): Promise<FeedPage> {
+const some = <T>(xs: T[] | null | undefined) => (xs?.length ? xs : undefined);
+
+/** Canon › Outliers and Studio › Inspiration (studio-suite D8): a preset plus the picks. */
+async function feedPage(db: Db, media: Media | null, a: FeedAsk): Promise<FeedPage> {
+  const preset: FeedFilter = a.preset ? FEED_PRESETS[a.preset] : {};
   const f: FeedFilter = {
-    ...(a.preset ? FEED_PRESETS[a.preset] : {}),
-    ...(a.niche ? { niche: a.niche } : {}),
-    ...(a.platform ? { platforms: [a.platform] } : {}),
-    ...(a.kind ? { kinds: [a.kind] } : {}),
+    ...preset,
+    ...(some(a.niches) ? { niches: a.niches as string[] } : {}),
+    ...(some(a.platforms) ? { platforms: a.platforms as string[] } : {}),
+    ...(some(a.kinds) ? { kinds: a.kinds as string[] } : {}),
+    ...(some(a.creators) ? { creatorIds: a.creators as number[] } : {}),
+    // never under the preset's own floor
+    ...(a.min != null ? { min: Math.max(a.min, preset.min ?? 0) } : {}),
+    ...(a.all && !a.preset ? { all: true } : {}),
+    ...(a.sort ? { sort: a.sort } : {}),
     ...(a.on ? { on: a.on } : {}),
     limit: a.limit ?? 100,
   };
   const [facets, rows] = await Promise.all([feedFacets(db), feedPosts(db, f)]);
-  return { ...facets, rows };
+  const src = (r: FeedRow) =>
+    r.picture && media
+      ? media.sign(`s3://${media.bucket}/${r.picture}`).catch(() => r.pictureLink)
+      : Promise.resolve(r.pictureLink);
+  return {
+    ...facets,
+    rows: await Promise.all(rows.map(async (r) => ({ ...r, src: await src(r) }))),
+  };
 }
 
 export function makeCanonConsole(db: Db, media: Media | null, remote: string) {
@@ -544,7 +571,7 @@ export function makeCanonConsole(db: Db, media: Media | null, remote: string) {
       record: h("record", (req) => library.record(String(req.id))),
       file: h("file", (req) => library.file(String(req.path))),
       adds: h("adds", async () => ({ rows: (await listAdds(db)).map(addRow) })),
-      feed: h("feed", (req) => feedPage(db, req as FeedAsk)),
+      feed: h("feed", (req) => feedPage(db, media, req as FeedAsk)),
       add: h("add", async (req) => {
         const what = String(req.what).trim();
         if (!whatOf(what)) throw new PortalRefusal("give a link that starts with https://", 400);

@@ -1,6 +1,6 @@
 {
-  "id": "39ea8d78-14b4-441c-81c9-c3b26a0d1f85",
-  "prevId": "0b38df44-e367-4ca2-9313-84ee4cdd20ef",
+  "id": "8e056b87-1423-4a22-9fef-14bcd3c9d1f5",
+  "prevId": "075df055-b2d4-4b0d-902b-7e2c20d61cc7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -14764,6 +14764,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "likes_multiple": {
+          "name": "likes_multiple",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "likes_rank": {
+          "name": "likes_rank",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
         "baseline_n": {
           "name": "baseline_n",
           "type": "integer",
@@ -14778,6 +14790,12 @@
         },
         "record": {
           "name": "record",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "picture": {
+          "name": "picture",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -35209,6 +35227,133 @@
         "ck_video_presence_part": {
           "name": "ck_video_presence_part",
           "value": "(\"part\")::text = ANY ((ARRAY['cuts'::character varying, 'text'::character varying, 'captions'::character varying, 'cover'::character varying, 'shapes'::character varying, 'shorts'::character varying, 'layout'::character varying, 'marks'::character varying, 'sound'::character varying])::text[])"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.video_projects": {
+      "name": "video_projects",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'long'"
+        },
+        "brief": {
+          "name": "brief",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "inspiration": {
+          "name": "inspiration",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "edit_id": {
+          "name": "edit_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subjects": {
+          "name": "subjects",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "folder": {
+          "name": "folder",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "by": {
+          "name": "by",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ix_video_projects_edit": {
+          "name": "ix_video_projects_edit",
+          "columns": [
+            {
+              "expression": "edit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "fk_video_projects_edit_id_video_edits": {
+          "name": "fk_video_projects_edit_id_video_edits",
+          "tableFrom": "video_projects",
+          "tableTo": "video_edits",
+          "columnsFrom": [
+            "edit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pk_video_projects": {
+          "name": "pk_video_projects",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ck_video_projects_kind": {
+          "name": "ck_video_projects_kind",
+          "value": "(\"kind\")::text = ANY ((ARRAY['long'::character varying, 'short'::character varying, 'ad'::character varying, 'demo'::character varying])::text[])"
         }
       },
       "isRLSEnabled": false

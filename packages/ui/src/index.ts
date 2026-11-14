@@ -269,6 +269,7 @@ export {
   BarLayout,
   CHIP,
   CHIP_ON,
+  chipClass,
   POP,
   SearchField,
   useFilterTools,
@@ -439,6 +440,7 @@ export type { PeekLine, PeekSpec } from "./peek.js";
 export { BottomSheet, type Segment, Segmented, SwipeRow, type Swipes } from "./phone.js";
 export { runs as tabRuns } from "./phone-nav.js";
 export { usePhone } from "./phone-shell.js";
+export { PickBar } from "./pick-bar.js";
 export {
   DeviceFrame,
   FeedPost,

@@ -29,6 +29,8 @@ export const CHIP =
   "inline-flex h-8 pointer-coarse:h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-[4px_10px_4px_10px] border-0 bg-transparent px-[9px] text-[13px] font-semibold whitespace-nowrap text-(--ui-ink-3) no-underline transition-[background-color,color] duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink) focus-visible:outline-2 focus-visible:outline-(--ui-focus) data-[popup-open]:bg-(--ui-accent-wash) motion-reduce:transition-none";
 export const CHIP_ON =
   "bg-(--ui-accent-tint) text-(--ui-active) hover:bg-(--ui-accent-tint) hover:text-(--ui-active)";
+/** CHIP, plus CHIP_ON when set. Merged: a plain join keeps `bg-transparent`, which wins. */
+export const chipClass = (on: unknown) => cn(CHIP, !!on && CHIP_ON);
 /** A filter in force: a tool that is on, with its value and an ×. */
 const PILL = cn(
   "inline-flex h-8 pointer-coarse:h-11 max-w-full min-w-0 items-center rounded-[4px_10px_4px_10px] text-[13px] font-semibold",

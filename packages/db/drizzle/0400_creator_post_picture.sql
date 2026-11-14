@@ -1,0 +1,1 @@
+ALTER TABLE "creator_posts" ADD COLUMN "picture" text;

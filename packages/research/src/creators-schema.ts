@@ -100,6 +100,8 @@ export const creatorPosts = pgTable(
     scoredAt: timestamp("scored_at", { withTimezone: true }),
     /** promoted into Canon: the record id */
     record: text("record"),
+    /** its picture, copied into the media bucket: the key (`cache/posts/<platform>/<ref>.jpg`) */
+    picture: text("picture"),
   },
   (t) => [
     primaryKey({ columns: [t.platform, t.ref], name: "pk_creator_posts" }),

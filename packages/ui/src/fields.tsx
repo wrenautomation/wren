@@ -605,7 +605,7 @@ export const inSight = (on: boolean) =>
 const INPUT =
   "h-8 w-full min-w-0 border border-(--ui-edge) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus-visible:border-(--ui-focus) focus-visible:shadow-[0_0_0_1px_var(--ui-focus)]";
 const ROW =
-  "flex h-8 w-full cursor-pointer items-center gap-2.5 px-2 text-left text-[13px] text-(--ui-ink) select-none";
+  "flex min-h-8 w-full cursor-pointer items-center gap-2.5 px-2 py-1.5 text-left text-[13px] text-(--ui-ink) select-none";
 const SEGMENT =
   "h-7 flex-1 border-0 bg-transparent px-2 text-[12px] text-(--ui-ink-2) hover:text-(--ui-ink) aria-pressed:bg-(--ui-hover) aria-pressed:text-(--ui-ink) aria-pressed:font-medium";
 

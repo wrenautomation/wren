@@ -187,6 +187,60 @@ States, step 1 (each row is a story in `stories/wren/studio/studio.stories.tsx`)
 | All | narrow (390) | top bar with stamp and name; page tabs under the Studio header | width | — | — |
 | All | wide (1280) | stamp, "Studio / name", sidebar of four pages | width | — | — |
 
+### D8. Creator posts: a feed, a gallery, filters, select (11-14)
+
+William: Outliers "needs to be like a gallery". Inspiration "a more standard feed with the creators that i told you", the high outliers with "some sort of subtle highlight vs other ones just normal so i can still see everything". Filters "like how jira or notion does their filters". The Save to Canon button on every row goes: "maybe like a select mechanism".
+
+The creators are `tracked_creators` (13 on 11-14, all `added_by` william). Scored posts: 674. 10x and up: 52 (the top 8%).
+
+**Pictures.** Where a post's picture comes from:
+
+| | A. The platform link | B. A copy in the media bucket | C. Copy on first view |
+|---|---|---|---|
+| How | `raw` link at read time | the read copies it to `cache/posts/<platform>/<ref>.jpg`; column `picture` holds the key; the feed signs it | the portal fetches and keeps it when a page asks |
+| Lasts | IG links expire in days; a post past the last 60 read loses it | always | only if the link still works at first view |
+| Cost | none | cents a month of S3 | cents, plus a Lambda fetch per new post |
+
+Picked B. It keeps the data (hard rule) and the refresh already runs on the Mac with bucket access (`canon-files.ts`). A post not copied yet shows A's link. X gives a stable `pbs.twimg.com` link (204 of 387 posts have one); a text-only post has none and shows as text.
+
+**One part, two layouts.** `CreatorPosts` serves both pages, like a Notion database with two views. Two pages with their own parts would copy the filters, the select and the cards.
+
+| | Feed | Gallery |
+|---|---|---|
+| Default on | Studio › Inspiration | Canon › Outliers |
+| Shows | every post of his creators, newest first | scored posts, best multiple first |
+| Card | one column (max 640 px): name, @handle, platform, age; the whole text (clamp at 8 lines, More); the picture; counts; "4.2x usual" in quiet ink | a grid (min 200 px a card, 2 across on a phone): the picture (4:5, cover), the multiple large, @handle, age; a text post fills the frame with its words |
+| 10x and up | the card gets the accent wash and a "38x usual" tag | the tile gets the wash; its multiple is in the accent ink |
+
+A Feed | Gallery switch on the bar flips it; the address keeps it (`layout`).
+
+**The bar** (the kit: `useFilterTools`, `PickList`, `BarLayout`, `ViewStrip`): presets as tabs (All posts, Breakouts, Hidden gems, Viral now, All-time greats); Filter with Creator, Platform, Kind and Niche (each a multi-pick with counts) and Times usual (any, 3x, 5x, 10x); Sort (Newest, Times usual); Select; Feed | Gallery. Address: `preset`, `creator`, `platform`, `kind`, `niche` (comma lists), `min`, `sort`, `layout`.
+
+**Select.** Select on the bar turns on picking: each card shows a box, a click picks it. A post in Canon shows "In Canon" and takes no pick. A bar at the foot (`PickBar`, in the kit) says "3 picked", Save to Canon, Done. Esc or Done ends it. Save files each link through the Add queue as now; each saved post says "Filing into Canon" until the queue files it, then "In Canon". Picks that fail stay picked, with the reason.
+
+States (each row a story in `stories/wren/studio/` or `stories/wren/canon/`):
+
+| State | Shows | Enters on | Next | Motion |
+|---|---|---|---|---|
+| loading | skeleton cards in the layout's shape | open, a filter change | typical, failed | cards fade in (150 ms) |
+| no creators | "No creators tracked yet", the command | answer with 0 creators | — | none |
+| none scored (gallery) | "N creators tracked", waits for scores | answer, 0 scored | — | none |
+| typical feed | cards newest first; 10x+ tinted | answer | select, gallery, filter | none on read |
+| typical gallery | grid best first; 10x+ tinted | answer, `layout=gallery` | select, feed | none on read |
+| no picture | text card (feed: text only; gallery: words fill the frame) | no key, no link | — | none |
+| picture fails | the text card | the image errors | — | fade (150 ms) |
+| long text | wraps whole; past 8 lines, More | worst-case fixture | open text | height eases (200 ms) |
+| filtered empty | "No post fits these filters", Clear filters | answer `[]` with filters | loading | none |
+| load failed | alert, Try again; the bar stays | refused | loading | none |
+| select | boxes on cards; foot bar "N picked" | Select | saving, off | boxes and bar fade and rise (150 ms) |
+| saving | Save busy, cards stay | Save | saved, part failed | ring |
+| saved | each "Filing into Canon"; select ends | all queued | typical | tag fades in (200 ms) |
+| part failed | "2 saved. 1 not saved: reason"; failed stay picked | some refused | saving | none |
+| narrow (390) | one column feed; 2-across gallery; Filter in a sheet; tabs as segments | width | — | — |
+| wide (1280) | feed 640 px; gallery 4–5 across | width | — | — |
+
+Not in this step: creator avatars (a letter stands in), video playback (the picture links out), the "Make one like this" action (WA-1381.5).
+
 ### D7. Commands
 
 Agent drives, code is tools. JSON out.
@@ -220,3 +274,5 @@ The meta video films this build: autobrowse takes of each page as it lands.
 - 2026-11-13: goldfish review: 45 findings (critic 15, reader 16, zoom-out 6, overlaps merged), 27 applied, 8 rejected or shrunk (host deferred so its path map and cookie points drop; variant rows replaced by Vireo samples; balanced-grid fit dropped). Picked D1 A without `stage` (Pieces), D2 variants in Vireo, D3 A one recording, D4 `OneBatch` embedded, D5 A one-app frame on `app.` (host deferred). Open: none for William; spend on ads waits on his yes at step 4.
 - 2026-11-13: step 1 built. D5 changed: the frame is always on for `/studio/*` (a `?frame=` param drops on in-page links), the viewer's name replaces the workspace, Studio stays a Wren sidebar place with no link back. D6 changed: Content's `studio` page keeps its id and is relabeled "Write" (no address moves). State table added.
 - 2026-11-14: D5b added (William: any app apart or in Wren, a top bar like a standard site, for all of Wren too). Picked A, the viewer's layout pref, over the address, a host per app and the module flag. `Module.standalone` became `Module.apart`; `Sidebar` `hidden` became `top`; `AppColumn` removed. Outliers got column heads ("Times usual").
+- 2026-11-14: Wren logo hidden everywhere (William), the `\` key got a button. D8 added: pictures copied to the bucket (B over the raw link and copy on view); one `CreatorPosts` part with Feed and Gallery layouts; Notion-style bar; select replaces Save on each row. The mood board idea gave way to his later "more standard feed".
+- 2026-11-14: D8 built. Changes from the spec: the foot bar ends with Done, not Clear; a saved post reads "Filing into Canon" while the Add queue works; a gallery tile shows 10x+ by its wash and accent number, with no tag.

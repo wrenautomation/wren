@@ -3,9 +3,9 @@
  * numbers. Opens by itself until he moves it into Wren (`|`). Wren's team only.
  */
 import type { Module } from "../../module.js";
-import { OutliersPage } from "../canon/outliers.js";
 import { MARKETING_PAGES } from "../marketing/pages.js";
 import { EditPage } from "./edit.js";
+import { InspirationPage } from "./inspiration.js";
 import { ProjectsPage } from "./projects.js";
 
 // the drafts list, as a tab of its own
@@ -31,8 +31,8 @@ export const studio: Module = {
     {
       id: "inspiration",
       label: "Inspiration",
-      about: "Posts of tracked creators that beat their own usual draw, best multiple first.",
-      Page: OutliersPage,
+      about: "Every post of the creators you track, newest first. Big outliers stand out.",
+      Page: InspirationPage,
       wide: true,
     },
     {

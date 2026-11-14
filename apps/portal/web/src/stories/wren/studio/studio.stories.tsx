@@ -178,13 +178,68 @@ export const NewProjectFailed = pageAt("/studio/projects", {
   },
 });
 
+/** Inspiration (D8): every post as a feed, newest first; 10x+ washed with its tag, the rest quiet. */
 export const Inspiration = tidy(
   pageAt("/studio/inspiration", {
     me: ADMIN,
     answers: canonAddAnswers([]),
     check: async (page) => {
       await alone(page);
-      await expect(await within(page).findByText("312x", {}, WAIT)).toBeVisible();
+      const view = within(page);
+      await expect(await view.findByText("312x usual", {}, WAIT)).toBeVisible();
+      await expect(view.getByText("2.3x usual")).toBeVisible();
+      // newest first: the X post from hours ago leads
+      const [first] = view.getAllByRole("article");
+      await expect(first).toHaveTextContent(/best CRM/);
+      await expect(view.getByRole("link", { name: "All posts" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+    },
+  }),
+);
+
+/** A post past 8 lines folds; More opens the rest. */
+export const InspirationLongPost = tidy(
+  pageAt("/studio/inspiration?creator=4", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      const more = await view.findByRole("button", { name: "More" }, WAIT);
+      await userEvent.click(more);
+      await expect(more).toHaveAttribute("aria-expanded", "true");
+      await expect(view.getByText(/Nobody notices a good edit/)).toBeVisible();
+    },
+  }),
+);
+
+/** The same posts as a gallery. */
+export const InspirationGallery = tidy(
+  pageAt("/studio/inspiration?layout=gallery", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByText("312x", {}, WAIT)).toBeVisible();
+      await expect(view.getByText("Not scored yet")).toBeVisible();
+    },
+  }),
+);
+
+/** The feed's skeleton: the read never answers. */
+export const InspirationLoading = pageAt("/studio/inspiration", { me: ADMIN, mode: "pending" });
+
+/** Select in the feed: a box on each card, the bar at the foot. */
+export const InspirationSelecting = tidy(
+  pageAt("/studio/inspiration", {
+    me: ADMIN,
+    answers: canonAddAnswers([]),
+    check: async (page) => {
+      const view = within(page);
+      await userEvent.click(await view.findByRole("button", { name: "Select" }, WAIT));
+      const [one] = await view.findAllByRole("button", { name: /^Pick / }, WAIT);
+      if (!one) throw new Error("no pick box");
+      await userEvent.click(one);
+      await expect(await view.findByText("1 picked", {}, WAIT)).toBeVisible();
     },
   }),
 );
@@ -204,7 +259,9 @@ export const EditNotFilmed = pageAt("/studio/edit?project=3", {
 export const EditFilmed = pageAt("/studio/edit?project=2", {
   me: ADMIN,
   check: async (page) => {
-    await expect(await within(page).findByRole("link", { name: /Projects/ }, WAIT)).toBeVisible();
+    // the record's own way back, under the frame's Projects tab
+    const main = await within(page).findByRole("main", {}, WAIT);
+    await expect(await within(main).findByRole("link", { name: /Projects/ }, WAIT)).toBeVisible();
   },
 });
 

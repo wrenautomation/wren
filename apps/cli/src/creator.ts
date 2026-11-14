@@ -4,6 +4,9 @@
  * shim); rows land in `tracked_creators`, `creator_posts` and the day tables; promote writes Canon.
  */
 import { spawnSync } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { parseHandle } from "@wren/core/touches";
 import type { Db } from "@wren/db";
 import {
@@ -22,9 +25,13 @@ import {
   markPostPromoted,
   markReadFailed,
   POST_KINDS,
+  pictureKeyOf,
+  postsToCopy,
+  setPicture,
   trackCreator,
   untrackCreator,
 } from "@wren/research/creators";
+import { type MediaStoreOptions, putKey } from "@wren/starling-inbound";
 import type { Command } from "commander";
 import type { CanonWrites } from "./canon.js";
 
@@ -102,7 +109,53 @@ const feedLine = (p: FeedRow) =>
     p.title ?? p.text?.replace(/\s+/g, " ").slice(0, 100) ?? "",
   ].join("  ");
 
-export function registerCreator(program: Command, withDb: WithDb, canon: CanonWrites): void {
+/**
+ * Each post's picture into the media bucket, once (studio-suite D8 B): IG's links expire in days.
+ * A link the platform refuses (4xx) marks the post `''`, so no run asks again.
+ */
+async function copyPictures(
+  db: Db,
+  media: MediaStoreOptions,
+  o: { creatorIds?: number[]; limit?: number } = {},
+): Promise<{ copied: number; gone: number; failed: number }> {
+  const todo = await postsToCopy(db, o);
+  const out = { copied: 0, gone: 0, failed: 0 };
+  if (!todo.length) return out;
+  const dir = await mkdtemp(join(tmpdir(), "creator-pictures-"));
+  try {
+    for (const p of todo) {
+      try {
+        const res = await fetch(p.link, { signal: AbortSignal.timeout(20_000) });
+        if (res.status >= 400 && res.status < 500) {
+          await setPicture(db, p.platform, p.ref, "");
+          out.gone++;
+          continue;
+        }
+        if (!res.ok || !res.headers.get("content-type")?.startsWith("image/"))
+          throw new Error(`${res.status} ${res.headers.get("content-type")}`);
+        const file = join(dir, "p.jpg");
+        await writeFile(file, Buffer.from(await res.arrayBuffer()));
+        const key = pictureKeyOf(p.platform, p.ref);
+        await putKey(file, key, media);
+        await setPicture(db, p.platform, p.ref, key);
+        out.copied++;
+      } catch {
+        // a 5xx or a timeout: the next run asks again
+        out.failed++;
+      }
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+  return out;
+}
+
+export function registerCreator(
+  program: Command,
+  withDb: WithDb,
+  canon: CanonWrites,
+  media: MediaStoreOptions | null,
+): void {
   const creator = program
     .command("creator")
     .description(
@@ -227,11 +280,10 @@ export function registerCreator(program: Command, withDb: WithDb, canon: CanonWr
             }
             try {
               const read = readCreator(c.url, o.posts ?? READ_POSTS, accounts);
-              out.push({
-                id: c.id,
-                handle: c.handle,
-                ...(await keepCreatorRead(db, c.id, read, day)),
-              });
+              const kept = await keepCreatorRead(db, c.id, read, day);
+              // right after the read: IG's picture links are freshest now
+              const pictures = media ? await copyPictures(db, media, { creatorIds: [c.id] }) : null;
+              out.push({ id: c.id, handle: c.handle, ...kept, ...(pictures ? { pictures } : {}) });
             } catch (e) {
               const error = e instanceof Error ? e.message : String(e);
               await markReadFailed(db, c.id, error);
@@ -241,6 +293,27 @@ export function registerCreator(program: Command, withDb: WithDb, canon: CanonWr
           if (o.json) console.log(JSON.stringify(out, null, 2));
           else for (const r of out) console.log(JSON.stringify(r));
         }),
+    );
+
+  creator
+    .command("pictures")
+    .description(
+      "copy post pictures into the media bucket (cache/posts/); refresh does it per creator, this catches up",
+    )
+    .option("--id <n...>", "only these creators", (v, acc: number[] = []) => [...acc, int(v)])
+    .option("--limit <n>", "posts a run (default 500)", int)
+    .action((o: { id?: number[]; limit?: number }) =>
+      withDb(async (db) => {
+        if (!media) throw new Error("creator pictures needs WREN_MEDIA_BUCKET");
+        console.log(
+          JSON.stringify(
+            await copyPictures(db, media, {
+              ...(o.id?.length ? { creatorIds: o.id } : {}),
+              ...(o.limit ? { limit: o.limit } : {}),
+            }),
+          ),
+        );
+      }),
     );
 
   creator

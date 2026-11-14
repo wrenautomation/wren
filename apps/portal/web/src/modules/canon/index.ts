@@ -27,7 +27,7 @@ export const canon: Module = {
       id: "outliers",
       label: "Outliers",
       about:
-        "Posts of tracked creators that beat their own usual draw, best multiple first. Save one to Canon.",
+        "Posts of tracked creators that beat their own usual draw, as a gallery. Select posts to save to Canon.",
       Page: OutliersPage,
       wide: true,
     },
