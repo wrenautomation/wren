@@ -205,8 +205,12 @@ export interface Module {
   requires?: Access;
   /** Reached from the client's name at top left, never the sidebar. */
   menu?: true;
-  /** A product of its own: its name and this stamp, its pages alone, no Wren navigation. */
-  standalone?: { stamp: string };
+  /**
+   * By itself (designs/2026-11-13-studio-suite.md D5b): its name, its pages in the top bar, no
+   * Wren navigation. Each viewer picks per app (`Display.apart`); `default` is the pick before his,
+   * `stamp` its mark (Wren's when left out). Any app can open by itself.
+   */
+  apart?: { stamp?: string; default?: boolean };
   /**
    * Out of the sidebar, the dock and the area list, yet its routes, quick capture and ⌘K still
    * work (⌘K tags its pages "parked"). Its pages are not counted or read for Today. Wren's

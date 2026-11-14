@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { DISPLAY, displayDiff, displayVars, dragged, PAGES, readDisplay, SIDE } from "./display.js";
+import {
+  DISPLAY,
+  displayDiff,
+  displayVars,
+  dragged,
+  isApart,
+  PAGES,
+  readDisplay,
+  SIDE,
+} from "./display.js";
 
 describe("readDisplay", () => {
   it("is the defaults for nothing kept", () => {
@@ -24,11 +33,23 @@ describe("readDisplay", () => {
 });
 
 describe("sidebar", () => {
-  it("reads the old fold as icons, and hidden as no width", () => {
+  it("reads the old fold as icons, the old hidden as top, and top as no width", () => {
     expect(readDisplay({ sideShut: true }).sidebar).toBe("icons");
-    expect(readDisplay({ sideShut: true, sidebar: "hidden" }).sidebar).toBe("hidden");
+    expect(readDisplay({ sideShut: true, sidebar: "hidden" }).sidebar).toBe("top");
     expect(readDisplay({ sidebar: "gone" }).sidebar).toBe("full");
-    expect(displayVars({ ...DISPLAY, sidebar: "hidden" })["--layout-side"]).toBe("0px");
+    expect(displayVars({ ...DISPLAY, sidebar: "top" })["--layout-side"]).toBe("0px");
+  });
+});
+
+describe("apart", () => {
+  it("keeps boolean choices only, and his choice beats the app's default", () => {
+    const d = readDisplay({ apart: { studio: false, vireo: true, bad: "yes" } });
+    expect(d.apart).toEqual({ studio: false, vireo: true });
+    expect(isApart(d, "studio", true)).toBe(false);
+    expect(isApart(d, "weaver", true)).toBe(true);
+    expect(isApart(DISPLAY, "vireo")).toBe(false);
+    expect(displayDiff(readDisplay({}))).toBeNull();
+    expect(displayDiff(d)).toEqual({ apart: { studio: false, vireo: true } });
   });
 });
 

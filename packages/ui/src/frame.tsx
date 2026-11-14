@@ -128,7 +128,8 @@ export const FRAME_KEYS: KeySection = {
     ["⌥ ↑ ↓", "The app's page above or below"],
     ["G, then a letter", "A page of the app you're in"],
     ["[", "Fold or open the sidebar"],
-    ["\\", "Hide or show the sidebar"],
+    ["\\", "The sidebar, or a bar on top"],
+    ["|", "The app by itself, or in Wren"],
     ["]", "Hide or show the app's pages"],
     ["N", "A quick note"],
     ["?", "These keys"],
@@ -427,14 +428,14 @@ export function DisplayPanel({
   const { display: d, set } = control;
   return (
     <div className="grid gap-4">
-      {/* Three choices: a row of its own, so "Hidden" never clips. */}
+      {/* Three choices: a row of its own, so "Top bar" never clips. */}
       <Segmented
         label="Sidebar"
         value={d.sidebar}
         options={[
           ["full", "Full"],
           ["icons", "Icons"],
-          ["hidden", "Hidden"],
+          ["top", "Top bar"],
         ]}
         onChange={(v) => frameChange(() => set({ sidebar: v }))}
       />
@@ -492,8 +493,8 @@ export function DisplayPanel({
         />
       </div>
       <p className="text-[12.5px] text-(--ui-ink-2)">
-        Drag a panel's edge to size it. <Key>[</Key> folds the sidebar, <Key>{"\\"}</Key> hides it,{" "}
-        <Key>]</Key> hides the pages.
+        Drag a panel's edge to size it. <Key>[</Key> folds the sidebar, <Key>{"\\"}</Key> swaps it
+        for a bar on top, <Key>]</Key> hides the pages, <Key>|</Key> opens the app by itself.
       </p>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-(--ui-hair) pt-3 text-[13px]">
         {more}

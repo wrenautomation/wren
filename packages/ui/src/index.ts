@@ -189,6 +189,7 @@ export {
   DISPLAY,
   DISPLAY_PREF,
   type Display,
+  isApart,
   LOOK_PREF,
   readDisplay,
 } from "./display.js";
@@ -298,6 +299,7 @@ export {
   type DisplayControl,
   DisplayPanel,
   FRAME_KEYS,
+  frameChange,
   Key,
   type KeyLine,
   KeyList,

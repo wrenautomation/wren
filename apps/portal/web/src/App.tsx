@@ -17,7 +17,9 @@ import {
   dropPreloadedLook,
   EDITS,
   Empty,
+  frameChange,
   Gate,
+  isApart,
   LOOK_PREF,
   LoadFailed,
   Loading,
@@ -38,6 +40,7 @@ import {
   type Theme,
   Toasts,
   themeVars,
+  tipProps,
   togglePin,
   useDisplay,
   useHand,
@@ -338,8 +341,6 @@ export function App() {
     installed,
   });
   const here = apps.find((m) => m.id === route.path[0]);
-  // a product of its own (Studio): its pages alone, no Wren navigation
-  const alone = here?.standalone ? { app: here, stamp: here.standalone.stamp } : undefined;
   const pages = here?.pages.map((p) => p.id).join(",");
   // biome-ignore lint/correctness/useExhaustiveDependencies: `pages` names what `here` gives.
   const keys = useMemo(() => goKeys(here), [here?.id, pages]);
@@ -347,10 +348,6 @@ export function App() {
   // Menu apps (the account) are reached from the client's name, not the sidebar.
   const cards = apps.filter((m) => !m.menu);
   const [only] = cards;
-  // One app needs no Today: its first page is home.
-  const launcher = cards.length > 1 && !alone ? "/" : undefined;
-  const homeLabel = homeOf(team);
-  const home = alone ? firstOf(alone.app) : (launcher ?? (only ? firstOf(only) : "/"));
   // A client's account is Back office (places.ts).
   const account = team ? undefined : apps.find((m) => m.id === "office");
 
@@ -364,6 +361,18 @@ export function App() {
   // keeps a layout per workspace. A sample keeps it in the browser.
   const mine = operator ? keepOf(null, { app: "", asClient: false }) : keeper;
   const display = useDisplay(mine);
+  // An app by itself (D5b): its name and pages, no Wren navigation. His pick per app, Wren's team only.
+  const alone =
+    here && team && isApart(display.display, here.id, !!here.apart?.default)
+      ? { app: here, name: here.product ?? here.name, stamp: here.apart?.stamp ?? STAMP }
+      : undefined;
+  const flipApart = here
+    ? () => display.set({ apart: { ...display.display.apart, [here.id]: !alone } })
+    : undefined;
+  // One app needs no Today: its first page is home.
+  const launcher = cards.length > 1 && !alone ? "/" : undefined;
+  const homeLabel = homeOf(team);
+  const home = alone ? firstOf(alone.app) : (launcher ?? (only ? firstOf(only) : "/"));
   const myLook = usePref<unknown>(operator ? mine : undefined, LOOK_PREF);
   // ⌘K finds records as you type in each app here that can (`find`: people, clients, deals,
   // workflows, templates, pages); never on a sample.
@@ -457,7 +466,7 @@ export function App() {
   // A route's loader reads ahead in this workspace; a sample reads nothing ahead.
   setWorkspace(current && me.data ? { id: current.id, team, demo: sample } : null);
   const label = at.kind === "page" ? at.page.label : at.kind === "launcher" ? "Today" : null;
-  const tabName = alone ? alone.app.name : current && `${current.name} · Wren Client Portal`;
+  const tabName = alone ? alone.name : current && `${current.name} · Wren Client Portal`;
   useEffect(() => {
     if (label && tabName) document.title = `${label} · ${tabName}`;
   }, [label, tabName]);
@@ -625,7 +634,7 @@ export function App() {
           <AppShell
             brand={
               alone
-                ? { name: alone.app.name, href: home, stamp: alone.stamp }
+                ? { name: alone.name, href: home, stamp: alone.stamp }
                 : { name: "Wren", href: home, stamp: STAMP }
             }
             workspace={
@@ -684,6 +693,17 @@ export function App() {
             }
             actions={
               <>
+                {alone && flipApart ? (
+                  <Button
+                    tone="quiet"
+                    size="sm"
+                    icon="back"
+                    onClick={() => frameChange(flipApart)}
+                    {...tipProps("Back into Wren", { keys: "|" })}
+                  >
+                    Wren
+                  </Button>
+                ) : null}
                 {operator && !viewing && onDemo === false && !alone ? (
                   <Button tone="quiet" size="sm" onClick={() => openViewAs()}>
                     View as
@@ -710,12 +730,24 @@ export function App() {
             theme={theme}
             display={display}
             customize={
-              wren && !alone ? (
-                <a className={MORE_LINK} href="/office/look">
-                  Colors and type
-                </a>
-              ) : null
+              <>
+                {wren && !alone ? (
+                  <a className={MORE_LINK} href="/office/look">
+                    Colors and type
+                  </a>
+                ) : null}
+                {open && team && flipApart && !alone ? (
+                  <button
+                    type="button"
+                    className={MORE_LINK}
+                    onClick={() => frameChange(flipApart)}
+                  >
+                    Open {open.module.product ?? open.module.name} by itself
+                  </button>
+                ) : null}
+              </>
             }
+            onApart={team ? flipApart : undefined}
             onGo={navigate}
             at={`${location.pathname}${location.search}`}
             deep={!!open && route.path.length > 2}

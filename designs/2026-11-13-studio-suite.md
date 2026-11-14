@@ -109,6 +109,46 @@ B later, only if the film should show the URL. Then it uses the `app.` sign-in o
 
 Standalone check, for every page: no Wren brand, no area list, no other app's pages, tab title "Studio".
 
+### D5b. Any app, in Wren or by itself; a top bar (11-14)
+
+William (11-14): every page "should be able to be separated or decoupled (or at least weaver vireo and studio), should be easily configurable per thing". He must be able to switch back. With no Wren sidebar, the app's pages go in a header bar "like a standard site", and that view should exist for all of Wren too.
+
+Target: each app opens **in Wren** (the sidebar) or **by itself** (its name, its pages, nothing else). Each viewer picks per app; Studio starts by itself, every other app in Wren. With no sidebar, a computer shows one top bar: brand, the app's pages as tabs, the viewer's buttons, a hairline under it. That replaces the second sidebar (`AppColumn`).
+
+Where the choice lives:
+
+| | A. Viewer's layout pref | B. In the address | C. A host per app | D. Module flag (now) |
+|---|---|---|---|---|
+| Per viewer, switchable | Yes | Per link | No | No |
+| A shared link opens | The viewer's own frame | The sender's frame | That app | That app |
+| Cost | `Display.apart` + a key | Every in-app link must carry it; step 1 found links drop `?frame` | Sign-in per host (D5 B) | Built |
+
+Ranked: switchable per viewer first, no broken links second, cost third. Pick A. C can sit on top later (a host only sets the default).
+
+How:
+- `Display.apart: Record<appId, boolean>` over the module's default (`Module.apart: { stamp?, default? }`, which replaces `standalone`). No stamp: Wren's stamp with the app's product name.
+- `Sidebar` becomes `full | icons | top`. `top` replaces `hidden` (a stored `hidden` reads as `top`). `\` flips full and top.
+- Top bar (shell `TopBar`, computer only; the phone keeps `AppHead`): brand, then Apps (every area and app; Wren frame only), then the app's tabs, then the viewer's buttons. A group of 2 or more pages is one tab with a menu; a lone page is a link. Too many tabs: the row scrolls sideways.
+- By itself = the top bar with the app as brand and no Apps menu, plus a "Wren" button at the right that puts it back. `|` (Shift `\`) flips the app on screen. The Layout panel names both keys.
+- The demo (no `areas`) gets the top bar too: one code path for "no sidebar on a computer".
+- The crumb drops its app › page line under the top bar (the lit tab says it); its buttons stay.
+
+Rejected: a second pages column under a top bar (his "instead of another sidebar"); two bar rows (brand, then tabs) since Studio has 4 tabs and groups fold into menus.
+
+States (story in `shell.stories` or `studio.stories`):
+
+| State | Shows | Enters by | Next | Motion out |
+|---|---|---|---|---|
+| In Wren, sidebar (`InWren`) | Wren sidebar, the app's pages under its row | Layout "Open X by itself" off, `\|` | top bar, by itself | view-transition fade (`frameChange`) |
+| In Wren, top bar (`WrenTopBar`) | Wren brand, Apps, the app's tabs, hairline | `\`, Layout "Top bar" | sidebar, by itself | fade |
+| By itself (`Projects`) | app stamp, viewer's name, tabs, "Wren" button | module default, `\|`, Layout | in Wren | fade |
+| Back into Wren (`BackIntoWren`) | Wren frame, tab title "… Wren Client Portal" | "Wren" button | by itself (`\|`) | fade |
+| Apps or group menu open | popover under the tab, current item lit | click, Enter | closed, a page | Base UI popover fade |
+| Many tabs | the tab row scrolls sideways | narrow window | — | instant (no state change) |
+| Demo, no areas (`shell--top-bar`) | brand, tabs, buttons; no Apps | no `areas` | — | — |
+| Phone, 900 px and under | `AppHead` and the dock; no top bar | width | — | instant (layout by width) |
+| Less motion | every switch at once | `prefers-reduced-motion`, Display motion "less" | — | instant by choice |
+
 ### D6. Pages
 
 The Studio app (`Module`: `id: "studio"`, `standalone: { stamp }`, `requires: { audience: "team" }`, Wren's workspace).
@@ -179,3 +219,4 @@ The meta video films this build: autobrowse takes of each page as it lands.
 - 2026-11-13: William set the shape (sub-sidebar pages, standalone look, hooks in scripts, tests embedded, combos for shorts and ads); shell and address left to us.
 - 2026-11-13: goldfish review: 45 findings (critic 15, reader 16, zoom-out 6, overlaps merged), 27 applied, 8 rejected or shrunk (host deferred so its path map and cookie points drop; variant rows replaced by Vireo samples; balanced-grid fit dropped). Picked D1 A without `stage` (Pieces), D2 variants in Vireo, D3 A one recording, D4 `OneBatch` embedded, D5 A one-app frame on `app.` (host deferred). Open: none for William; spend on ads waits on his yes at step 4.
 - 2026-11-13: step 1 built. D5 changed: the frame is always on for `/studio/*` (a `?frame=` param drops on in-page links), the viewer's name replaces the workspace, Studio stays a Wren sidebar place with no link back. D6 changed: Content's `studio` page keeps its id and is relabeled "Write" (no address moves). State table added.
+- 2026-11-14: D5b added (William: any app apart or in Wren, a top bar like a standard site, for all of Wren too). Picked A, the viewer's layout pref, over the address, a host per app and the module flag. `Module.standalone` became `Module.apart`; `Sidebar` `hidden` became `top`; `AppColumn` removed. Outliers got column heads ("Times usual").

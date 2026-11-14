@@ -1,9 +1,10 @@
 /**
  * The app frame: one white window on the gray canvas. The sidebar on the canvas holds whose
  * workspace this is, home, the pins, every app under its area and, at its foot, the viewer's own
- * buttons. The open app's pages run down the window's left edge, so the sidebar never changes
- * shape (designs/2026-10-11-portal-look.md). On a phone the sidebar becomes a bar, the open app's
- * pages tabs that scroll sideways, and home lists the apps.
+ * buttons; the open app's pages fold out under its row (designs/2026-10-11-portal-look.md). With
+ * no sidebar (his `top`, an app by itself, the demo) one bar on top holds the brand, the app's pages
+ * as tabs and his buttons (designs/2026-11-13-studio-suite.md D5b). On a phone the sidebar becomes
+ * a bar, the open app's pages tabs that scroll sideways, and home lists the apps.
  */
 import {
   type CSSProperties,
@@ -20,7 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover
 import { Skeleton } from "./components/ui/skeleton.js";
 import { PinButton, type PinLine, PinnedRail } from "./customize.js";
 import { WritesIndicator } from "./data/status.js";
-import { DISPLAY, type Display, displayVars, PAGES, SIDE } from "./display.js";
+import { DISPLAY, type Display, displayVars, SIDE } from "./display.js";
 import { cx, num, short } from "./format.js";
 import {
   DisplayButton,
@@ -196,6 +197,7 @@ export function AppShell({
   at,
   deep = false,
   aside,
+  onApart,
   className,
   children,
 }: {
@@ -241,6 +243,8 @@ export function AppShell({
   deep?: boolean | undefined;
   /** A column at the window's right that outlives the page (the agent's `SidePanel`). */
   aside?: ReactNode;
+  /** Opens the app on screen by itself, or back in Wren: `|`. */
+  onApart?: (() => void) | undefined;
   className?: string | undefined;
   children: ReactNode;
 }) {
@@ -258,7 +262,7 @@ export function AppShell({
   const walk = usePhoneWalk({ app, dock, home, at: here });
   const main = useRef<HTMLElement>(null);
   useScrollKeep(phone, here);
-  useFrameKeys(display, app, onGo, () => setKeys((o) => !o));
+  useFrameKeys(display, app, onGo, () => setKeys((o) => !o), onApart);
   useShowKeys(useCallback(() => setKeys(true), []));
   // Rows, counts and motion reach the popups too, which sit outside the frame.
   useLayoutEffect(() => {
@@ -276,12 +280,14 @@ export function AppShell({
   }, [page]);
 
   // Every app by area: the sidebar, which on a computer also holds whose workspace this is and
-  // the viewer's own buttons. Without areas (the demo), a slim bar over the window holds those.
+  // the viewer's own buttons. Without areas (the demo, an app by itself), the top bar holds those.
   const nav = !!areas?.length;
-  // Hidden, a computer draws the frame as with no sidebar (a slim bar, the app's pages at the
-  // window's left); a phone keeps its own. `side`: the sidebar's layout, computer-only classes.
-  const side = nav && d.sidebar !== "hidden";
+  // `top`: a computer draws the top bar, Apps in it; a phone keeps its own. `side`: the
+  // sidebar's layout, computer-only classes.
+  const side = nav && d.sidebar !== "top";
   const folded = side && d.sidebar === "icons";
+  // "Wren / Wren": the workspace name alone says it
+  const twin = brand.name === workspace.current?.name;
   const host = () => root.current;
   const custom = display ? (
     <DisplayButton control={display} more={customize} onKeys={() => setKeys(true)} compact />
@@ -320,6 +326,8 @@ export function AppShell({
           nav &&
             !app &&
             "max-[900px]:sticky max-[900px]:top-0 max-[900px]:z-20 max-[900px]:border-b max-[900px]:border-(--ui-hair) max-[900px]:bg-(--ui-glass) max-[900px]:backdrop-blur-[16px]",
+          // the top bar's hairline, where no canvas parts it from the window
+          !side && !d.frame && "min-[901px]:border-b min-[901px]:border-(--ui-hair)",
         )}
       >
         <div
@@ -354,9 +362,9 @@ export function AppShell({
                 aria-hidden="true"
               />
             ) : null}
-            {side ? null : <span className="max-[900px]:hidden">{brand.name}</span>}
+            {side || twin ? null : <span className="max-[900px]:hidden">{brand.name}</span>}
           </a>
-          {side ? null : (
+          {side || twin ? null : (
             <span className={cx(SLASH, "max-[900px]:hidden")} aria-hidden="true">
               /
             </span>
@@ -379,6 +387,12 @@ export function AppShell({
             </a>
           ) : null}
         </div>
+        {side ? null : (
+          <div className="flex min-w-0 flex-1 items-center gap-1 max-[900px]:hidden">
+            {nav && areas ? <AppsMenu areas={areas} home={home} app={app} /> : null}
+            {app ? <TopTabs app={app} /> : null}
+          </div>
+        )}
         {actions || custom || agent ? (
           <div
             className={cx(
@@ -472,10 +486,6 @@ export function AppShell({
           // frame: the side panel sizes off it (side-panel.tsx)
           className="@container/frame flex min-h-0 min-w-0 flex-1 max-[900px]:block"
         >
-          {/* With a sidebar, the open app's pages fold out under its row there instead. */}
-          {app && !side && !d.pagesShut ? (
-            <AppColumn app={app} display={display} host={host} />
-          ) : null}
           <div
             // The page's ground, a shade under paper, so its panels read raised on it.
             className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:thin] max-[900px]:overflow-visible"
@@ -521,7 +531,9 @@ export function AppShell({
               ref={main}
               tabIndex={-1}
             >
-              {app && !bleed ? <AppCrumb app={app} pins={pins} display={display} /> : null}
+              {app && !bleed ? (
+                <AppCrumb app={app} pins={pins} display={display} top={!side} />
+              ) : null}
               <FrameProvider value={display ?? null}>{children}</FrameProvider>
             </main>
             {/* Offline, or writes not yet answered: one mark for the whole portal. */}
@@ -584,18 +596,19 @@ const forFrame = (e: KeyboardEvent) =>
   !typingAt(e) &&
   !(e.target instanceof Element && e.target.closest("[role=dialog],[role=menu],[role=listbox]"));
 
-/** [ folds the sidebar, \\ hides it, ] hides the pages, ? lists every key, ⌥↑ and ⌥↓ step through the app's pages. */
+/** [ folds the sidebar, \\ swaps it for the top bar, | opens the app by itself, ] hides the pages, ? lists every key, ⌥↑ and ⌥↓ step through the app's pages. */
 function useFrameKeys(
   display: DisplayControl | undefined,
   app: OpenApp | null,
   onGo: ((href: string) => void) | undefined,
   onKeys: () => void,
+  onApart: (() => void) | undefined,
 ) {
-  const now = useRef({ display, app, onGo, onKeys });
-  now.current = { display, app, onGo, onKeys };
+  const now = useRef({ display, app, onGo, onKeys, onApart });
+  now.current = { display, app, onGo, onKeys, onApart };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const { display, app, onGo, onKeys } = now.current;
+      const { display, app, onGo, onKeys, onApart } = now.current;
       if (!display || !forFrame(e)) return;
       const d: Display = display.display;
       if (e.altKey) {
@@ -610,7 +623,11 @@ function useFrameKeys(
         frameChange(() => display.set({ sidebar: d.sidebar === "full" ? "icons" : "full" }));
       } else if (e.key === "\\") {
         e.preventDefault();
-        frameChange(() => display.set({ sidebar: d.sidebar === "hidden" ? "full" : "hidden" }));
+        frameChange(() => display.set({ sidebar: d.sidebar === "top" ? "full" : "top" }));
+      } else if (e.key === "|") {
+        if (!app || !onApart) return;
+        e.preventDefault();
+        frameChange(onApart);
       } else if (e.key === "]") {
         e.preventDefault();
         display.set({ pagesShut: !d.pagesShut });
@@ -783,13 +800,23 @@ function AppCrumb({
   app,
   pins,
   display,
+  top,
 }: {
   app: OpenApp;
   pins: RailPins | undefined;
   display: DisplayControl | undefined;
+  /** Under the top bar: its lit tab names the page, so only the buttons stay. */
+  top: boolean;
 }) {
   const page = app.tabs.find((t) => t.id === app.current);
   const paged = app.tabs.length > 1;
+  if (top && paged)
+    return app.action || pins ? (
+      <div className="-my-1.5 flex min-h-8 items-center justify-end gap-1.5 max-[900px]:hidden [&:not(:has(+:is(h1,header),+*>:is(h1,header):first-child))]:mb-2">
+        {app.action}
+        {pins ? <PinButton pinned={pins.here} onToggle={pins.onToggle} compact /> : null}
+      </div>
+    ) : null;
   const hidden = !!(display?.display.pagesShut || display?.display.sidebar === "icons") && paged;
   return (
     // Over a title the crumb leaves no gap; over anything else (a failure, a list) it keeps 8 px.
@@ -839,39 +866,151 @@ function AppCrumb({
   );
 }
 
-/** The open app's pages on a computer, down the window's left edge, under its bar. */
-function AppColumn({
-  app,
-  display,
-  host,
-}: {
-  app: OpenApp;
-  display: DisplayControl | undefined;
-  host: () => HTMLElement | null;
-}) {
+/** A tab in the top bar: the sidebar row's leaf and tint, on one line. */
+const TOP_TAB = cx(
+  "ui-nav-sweep inline-flex h-8 flex-none items-center gap-1.5 rounded-(--ui-leaf-nav) border-0 bg-transparent px-2.5 text-[14px] whitespace-nowrap text-(--ui-ink-2) no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink) data-[popup-open]:bg-(--ui-accent-wash) data-[popup-open]:text-(--ui-ink)",
+  NAV_ON,
+);
+
+/**
+ * The open app's pages in the top bar: a lone page is a link, a group a menu of its pages. Past
+ * the bar's width the row scrolls sideways, the lit tab scrolled into view.
+ */
+function TopTabs({ app }: { app: OpenApp }) {
+  const row = useRef<HTMLUListElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new tab on screen scrolls again.
+  useEffect(() => {
+    const ul = row.current;
+    const on = ul?.querySelector<HTMLElement>("[aria-current]");
+    if (!ul || !on || ul.scrollWidth <= ul.clientWidth) return;
+    ul.scrollLeft = on.offsetLeft - (ul.clientWidth - on.offsetWidth) / 2;
+  }, [app.current]);
   if (app.tabs.length < 2) return null;
   return (
-    <div className="relative flex min-h-0 flex-none max-[900px]:hidden">
-      <div className="w-(--layout-pages) overflow-y-auto border-r border-(--ui-hair) px-2 py-3 [scrollbar-width:thin]">
-        <AppTabs app={app} />
-      </div>
-      {display ? (
-        <Resizer
-          label="Pages"
-          width={display.display.pages}
-          shut={false}
-          shutPx={0}
-          range={PAGES}
-          host={host}
-          cssVar="--layout-pages"
-          className="-right-[5px]"
-          onDone={(n) =>
-            display.set(n.shut ? { pagesShut: true } : { pages: n.width, pagesShut: false })
-          }
-          onReset={() => display.set({ pages: DISPLAY.pages })}
-        />
-      ) : null}
-    </div>
+    <nav aria-label={`${app.name} pages`} className="min-w-0">
+      <ul
+        ref={row}
+        className="flex list-none items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {runs(app.tabs).flatMap((r) =>
+          headed(r)
+            ? [
+                <li key={`g:${r.group}`} className="flex-none">
+                  <TopGroup app={app} group={r.group ?? ""} tabs={r.tabs} />
+                </li>,
+              ]
+            : r.tabs.map((t) => (
+                <li key={t.id} className="flex-none">
+                  <a
+                    className={TOP_TAB}
+                    href={t.href}
+                    aria-current={t.id === app.current ? "page" : undefined}
+                  >
+                    {t.label}
+                    {t.count !== undefined ? (
+                      <span className={COUNT} {...waits(t.count)}>
+                        {short(t.count)}
+                      </span>
+                    ) : null}
+                  </a>
+                </li>
+              )),
+        )}
+      </ul>
+    </nav>
+  );
+}
+
+/** A group of pages in the top bar: its name, lit when one of its pages is on screen. */
+function TopGroup({ app, group, tabs }: { app: OpenApp; group: string; tabs: NavItem[] }) {
+  const on = tabs.some((t) => t.id === app.current);
+  const n = total(tabs);
+  return (
+    <Popover>
+      <PopoverTrigger className={TOP_TAB} aria-current={on ? "true" : undefined}>
+        {group}
+        {n !== undefined ? (
+          <span className={COUNT} {...waits(n)}>
+            {short(n)}
+          </span>
+        ) : null}
+        <Icon name="down" size={14} className="flex-none text-(--ui-ink-3)" />
+      </PopoverTrigger>
+      <PopoverContent align="start" className="max-h-[70dvh] w-60 overflow-y-auto p-1.5">
+        <nav aria-label={group}>
+          <ul className="flex list-none flex-col gap-0.5">
+            {tabs.map((t) => (
+              <li key={t.id}>
+                <SideTab t={t} on={t.id === app.current} />
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** Every app by area, from the top bar: what the sidebar lists, behind one button. */
+function AppsMenu({
+  areas,
+  home,
+  app,
+}: {
+  areas: NavArea[];
+  home: NavHome | undefined;
+  app: OpenApp | null;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger className={cx(TOP_TAB, "gap-2")} aria-label="Apps">
+        <Icon name="apps" size={16} />
+        <span className="max-[1100px]:hidden">Apps</span>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="max-h-[80dvh] w-[min(560px,calc(100vw-32px))] overflow-y-auto p-2"
+      >
+        <nav
+          aria-label="Apps"
+          className="grid gap-x-2 [grid-template-columns:repeat(auto-fill,minmax(160px,1fr))]"
+        >
+          {home && !home.row ? (
+            <a
+              className={cx(NAV_ROW, NAV_ON)}
+              href={home.href}
+              aria-current={!app ? "page" : undefined}
+            >
+              <Icon name={home.icon ?? "home"} size={16} />
+              {home.label}
+            </a>
+          ) : null}
+          {areas.map((a) => (
+            <div key={a.id} className="grid content-start gap-0.5">
+              <h2 className={GROUP}>{a.label}</h2>
+              {a.apps.map((x) => (
+                <a
+                  key={x.id}
+                  className={cx(NAV_ROW, NAV_ON, x.off && "opacity-60")}
+                  href={x.id === home?.row ? home.href : x.href}
+                  aria-current={
+                    x.id === app?.id || (!app && x.id === home?.row) ? "page" : undefined
+                  }
+                >
+                  <Icon name={x.icon} size={16} />
+                  <span className="min-w-0 wrap-anywhere">{x.name}</span>
+                  {x.count ? (
+                    <span className={COUNT} {...waits(x.count)}>
+                      {short(x.count)}
+                    </span>
+                  ) : null}
+                </a>
+              ))}
+            </div>
+          ))}
+        </nav>
+      </PopoverContent>
+    </Popover>
   );
 }
 

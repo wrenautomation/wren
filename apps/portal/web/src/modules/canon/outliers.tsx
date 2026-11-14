@@ -182,13 +182,23 @@ export function OutliersPage({ params }: PageProps) {
           </Empty>
         )
       ) : (
-        <ul aria-label="Outlier posts" className="m-0 grid list-none gap-5 p-0">
-          {data.rows.map((r) => (
-            <li key={`${r.platform}:${r.ref}`} className="min-w-0">
-              <Row r={r} />
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* column heads; each multiple also says it to a screen reader */}
+          <div
+            aria-hidden="true"
+            className="-mb-2 grid grid-cols-[3.75rem_minmax(0,1fr)] gap-x-3 text-[12px] leading-tight font-medium text-(--ui-ink-3) @min-[720px]/main:grid-cols-[5rem_minmax(0,1fr)_auto]"
+          >
+            <span>Times usual</span>
+            <span className="self-end">Post, and the creator's usual draw</span>
+          </div>
+          <ul aria-label="Outlier posts" className="m-0 grid list-none gap-5 p-0">
+            {data.rows.map((r) => (
+              <li key={`${r.platform}:${r.ref}`} className="min-w-0">
+                <Row r={r} />
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );
@@ -232,6 +242,7 @@ function Row({ r }: { r: FeedRow }) {
         {r.multiple != null
           ? `${r.multiple >= 100 ? Math.round(r.multiple) : r.multiple.toFixed(1)}x`
           : "?"}
+        <span className="sr-only"> times the creator's usual {count ?? "draw"}</span>
       </p>
       <a
         href={r.url}

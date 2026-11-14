@@ -14,14 +14,37 @@ export default meta;
 
 const WAIT = { timeout: 5000 };
 
-/** Standalone: Studio's name, its pages alone, the viewer's name, no Wren place. */
+/** By itself (D5b): Studio's name, its pages, the viewer's name, a way back into Wren, no Wren place. */
 async function alone(page: HTMLElement) {
   const view = within(page);
   await expect(await view.findByText("Avery", {}, WAIT)).toBeVisible();
   await expect(view.queryByRole("link", { name: /^Map/ })).toBeNull();
   await expect(view.queryByRole("link", { name: /^Canon/ })).toBeNull();
   await expect(view.queryByRole("button", { name: "View as" })).toBeNull();
+  await expect(view.getByRole("button", { name: "Wren" })).toBeVisible();
   await waitFor(() => expect(document.title).toMatch(/· Studio$/));
+}
+
+/** His layout pref, kept for the story: `apart` per app, the sidebar. */
+const layout = (display: Record<string, unknown>) => {
+  const mine: Record<string, unknown> = { display };
+  return {
+    "console/prefs": () => mine,
+    "console/setPref": (b: Record<string, unknown>) => {
+      mine[String(b.key)] = b.value;
+      return { ok: true };
+    },
+  };
+};
+
+/** The top bar on a computer: the app's pages as tabs, the one on screen lit. */
+async function tabsUp(page: HTMLElement, lit: string) {
+  if (innerWidth <= 900) return;
+  const tabs = await within(page).findByRole("navigation", { name: /pages$/ }, WAIT);
+  await expect(within(tabs).getByRole("link", { name: lit })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
 }
 
 /** Typical: an idea with a batch to score, a rendered edit waiting on him, a posted one. */
@@ -39,6 +62,59 @@ export const Projects = tidy(
     },
   }),
 );
+
+/** Back into Wren: the Wren button puts Studio under Wren's sidebar; | takes it out again. */
+export const BackIntoWren = pageAt("/studio/projects", {
+  me: ADMIN,
+  answers: layout({}),
+  check: async (page) => {
+    const view = within(page);
+    await alone(page);
+    await tabsUp(page, "Projects");
+    await userEvent.click(view.getByRole("button", { name: "Wren" }));
+    await waitFor(() => expect(view.queryByRole("button", { name: "Wren" })).toBeNull(), WAIT);
+    await waitFor(() => expect(document.title).toMatch(/Wren Client Portal$/), WAIT);
+  },
+});
+
+/** In Wren, `|` takes the app out again. */
+export const KeyApart = pageAt("/studio/projects", {
+  me: ADMIN,
+  answers: layout({ apart: { studio: false } }),
+  check: async (page) => {
+    const view = within(page);
+    await expect(await view.findByText(/edits my videos while I sleep/, {}, WAIT)).toBeVisible();
+    if (innerWidth <= 900) return;
+    await userEvent.keyboard("|");
+    await waitFor(() => expect(view.getByRole("button", { name: "Wren" })).toBeVisible(), WAIT);
+  },
+});
+
+/** He moved Studio into Wren: Wren's sidebar, Studio's pages under its row. */
+export const InWren = pageAt("/studio/projects", {
+  me: ADMIN,
+  answers: layout({ apart: { studio: false } }),
+  check: async (page) => {
+    const view = within(page);
+    await expect(await view.findByText(/edits my videos while I sleep/, {}, WAIT)).toBeVisible();
+    await expect(view.queryByRole("button", { name: "Wren" })).toBeNull();
+    await waitFor(() => expect(document.title).toMatch(/Wren Client Portal$/));
+  },
+});
+
+/** All of Wren with the top bar (\\): Apps, then the app's tabs, then his buttons. */
+export const WrenTopBar = pageAt("/studio/inspiration", {
+  me: ADMIN,
+  answers: { ...canonAddAnswers([]), ...layout({ sidebar: "top", apart: { studio: false } }) },
+  check: async (page) => {
+    await tabsUp(page, "Inspiration");
+    if (innerWidth <= 900) return;
+    await userEvent.click(within(page).getByRole("button", { name: "Apps" }));
+    await expect(
+      await within(document.body).findByRole("navigation", { name: "Apps" }, WAIT),
+    ).toBeVisible();
+  },
+});
 
 export const ProjectsEmpty = pageAt("/studio/projects", {
   me: ADMIN,

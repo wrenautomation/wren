@@ -12,8 +12,8 @@ export const LOOK_PREF = "look";
 export type Density = "roomy" | "snug";
 export type TextSize = "small" | "normal" | "large";
 export type Motion = "system" | "less";
-/** The sidebar on a computer: full, folded to its icons, or hidden (the window alone, a slim bar on top). */
-export type Sidebar = "full" | "icons" | "hidden";
+/** The sidebar on a computer: full, folded to its icons, or none (a top bar holds the app's pages). */
+export type Sidebar = "full" | "icons" | "top";
 
 export interface Display {
   /** The sidebar's width, open. */
@@ -29,6 +29,8 @@ export interface Display {
   /** What waits in each app, beside it in the sidebar. */
   counts: boolean;
   motion: Motion;
+  /** Per app id: opened by itself (true) or in Wren (false), over the app's own default. */
+  apart: Readonly<Record<string, boolean>>;
 }
 
 export const DISPLAY: Display = {
@@ -41,6 +43,7 @@ export const DISPLAY: Display = {
   frame: true,
   counts: true,
   motion: "system",
+  apart: {},
 };
 
 /** Widths a drag stays in; past `fold` toward the window, the panel folds instead. */
@@ -52,7 +55,7 @@ export const ZOOM: Readonly<Record<TextSize, number>> = { small: 0.92, normal: 1
 const DENSITIES: readonly Density[] = ["roomy", "snug"];
 const TEXTS: readonly TextSize[] = ["small", "normal", "large"];
 const MOTIONS: readonly Motion[] = ["system", "less"];
-const SIDEBARS: readonly Sidebar[] = ["full", "icons", "hidden"];
+const SIDEBARS: readonly Sidebar[] = ["full", "icons", "top"];
 
 const clamp = (n: number, lo: number, hi: number) => Math.round(Math.min(hi, Math.max(lo, n)));
 const width = (v: unknown, lo: number, hi: number, d: number) =>
@@ -67,8 +70,12 @@ export function readDisplay(v: unknown): Display {
     typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
   return {
     side: width(o.side, SIDE.min, SIDE.max, DISPLAY.side),
-    // `sideShut: true` was the fold before `sidebar` (11-13)
-    sidebar: oneOf(o.sidebar, SIDEBARS, o.sideShut === true ? "icons" : DISPLAY.sidebar),
+    // `sideShut: true` was the fold before `sidebar` (11-13); `hidden` became `top` (11-14)
+    sidebar: oneOf(
+      o.sidebar === "hidden" ? "top" : o.sidebar,
+      SIDEBARS,
+      o.sideShut === true ? "icons" : DISPLAY.sidebar,
+    ),
     pages: width(o.pages, PAGES.min, PAGES.max, DISPLAY.pages),
     pagesShut: flag(o.pagesShut, DISPLAY.pagesShut),
     density: oneOf(o.density, DENSITIES, DISPLAY.density),
@@ -76,14 +83,26 @@ export function readDisplay(v: unknown): Display {
     frame: flag(o.frame, DISPLAY.frame),
     counts: flag(o.counts, DISPLAY.counts),
     motion: oneOf(o.motion, MOTIONS, DISPLAY.motion),
+    apart: flags(o.apart),
   };
 }
+
+/** Only boolean entries of a plain object. */
+function flags(v: unknown): Record<string, boolean> {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) return {};
+  return Object.fromEntries(Object.entries(v).filter(([, b]) => typeof b === "boolean"));
+}
+
+/** Whether the app opens by itself: his choice, else the app's default. */
+export const isApart = (d: Display, app: string, byDefault = false): boolean =>
+  d.apart[app] ?? byDefault;
 
 /** Only what differs from the defaults: what's kept. Nothing differs, nothing is kept (null). */
 export function displayDiff(d: Display): Partial<Display> | null {
   const out: Partial<Display> = {};
   for (const k of Object.keys(DISPLAY) as (keyof Display)[])
-    if (d[k] !== DISPLAY[k]) Object.assign(out, { [k]: d[k] });
+    if (k === "apart" ? Object.keys(d.apart).length : d[k] !== DISPLAY[k])
+      Object.assign(out, { [k]: d[k] });
   return Object.keys(out).length ? out : null;
 }
 

@@ -1,6 +1,6 @@
 /**
  * Studio (designs/2026-11-13-studio-suite.md): one app that holds a video from the idea to live
- * numbers. A product of its own: its own frame, its pages alone. Wren's team only.
+ * numbers. Opens by itself until he moves it into Wren (`|`). Wren's team only.
  */
 import type { Module } from "../../module.js";
 import { OutliersPage } from "../canon/outliers.js";
@@ -19,7 +19,7 @@ export const studio: Module = {
   icon: "video",
   blurb: "Every video from the idea to live numbers: projects, inspiration, the edit, publishing.",
   requires: { audience: "team" },
-  standalone: { stamp: STUDIO_STAMP },
+  apart: { stamp: STUDIO_STAMP, default: true },
   pages: [
     {
       id: "projects",

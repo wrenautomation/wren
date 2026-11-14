@@ -120,22 +120,25 @@ export const Folded: Story = {
   ),
 };
 
-/** Hidden (\): a slim bar over the window and the app's pages at its left, as in a demo video. A phone keeps its tabs. \ again brings the sidebar back. */
-export const Hidden: Story = {
+/** Top bar (\): no sidebar; the bar on top holds Apps, the app's pages as tabs (a group a menu) and his buttons. A phone keeps its tabs. \ again brings the sidebar back. */
+export const TopBar: Story = {
   render: () => (
-    <Framed sidebar="hidden">
+    <Framed sidebar="top">
       <Page title="Waiting" />
     </Framed>
   ),
   play: async ({ canvasElement }) => {
     const frame = canvasElement.querySelector("[data-side]");
-    await expect(frame).toHaveAttribute("data-side", "hidden");
+    await expect(frame).toHaveAttribute("data-side", "top");
     if (innerWidth <= 900) return;
-    await expect(within(canvasElement).queryByRole("navigation", { name: "Apps" })).toBeNull();
+    const view = within(canvasElement);
+    await expect(view.queryByRole("navigation", { name: "Apps" })).toBeNull();
+    await expect(view.getByRole("button", { name: "Apps" })).toBeVisible();
+    await expect(view.getByRole("navigation", { name: /pages$/ })).toBeVisible();
     // The change runs inside a view transition: it lands a frame later.
     await userEvent.keyboard("\\");
     await waitFor(() => expect(frame).toHaveAttribute("data-side", "full"));
     await userEvent.keyboard("\\");
-    await waitFor(() => expect(frame).toHaveAttribute("data-side", "hidden"));
+    await waitFor(() => expect(frame).toHaveAttribute("data-side", "top"));
   },
 };
