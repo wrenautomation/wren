@@ -8,7 +8,7 @@ import {
   type BarField,
   BarLayout,
   CHIP,
-  CHIP_ON,
+  chipClass,
   Icon,
   type IconName,
   PickList,
@@ -544,7 +544,7 @@ function SortTool({ view, go }: { view: AddressView; go: (s: Sort[]) => void }) 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        className={cn(CHIP, on && CHIP_ON)}
+        className={chipClass(on)}
         {...tipProps(
           on
             ? `Sorted by ${sortLabel(on.field)}, ${on.dir === "asc" ? "ascending" : "descending"}`

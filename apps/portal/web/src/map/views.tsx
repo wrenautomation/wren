@@ -7,7 +7,6 @@
 import { MAP_VIEW_RECORD, partsOf, partsParam } from "@wren/pipeline/metro-parts";
 import {
   CHIP,
-  CHIP_ON,
   Icon,
   type KeepApi,
   type Pref,
@@ -137,7 +136,7 @@ export function ViewsMenu({
   const isHome = !!current && home.value === current.id;
   const whole = href("/", { window: params.get("window"), client: params.get("client"), whole: 1 });
   const row =
-    "flex min-h-8 pointer-coarse:min-h-11 w-full items-center gap-2 rounded-(--ui-leaf-nav) px-1.5 py-1 text-left text-[13px] text-(--ui-ink) no-underline hover:bg-(--ui-accent-wash)";
+    "flex min-h-8 pointer-coarse:min-h-11 w-full items-center gap-2 rounded-(--ui-leaf-nav) px-1.5 py-1 text-left text-[13px] text-(--ui-ink) no-underline hover:bg-(--ui-accent-wash) aria-[current=true]:bg-(--ui-accent-tint) aria-[current=true]:text-(--ui-active)";
   return (
     <div className="flex items-center gap-1">
       <Popover open={open} onOpenChange={setOpen}>
@@ -162,7 +161,7 @@ export function ViewsMenu({
                 <li key={v.id}>
                   <a
                     href={viewHref(v, params)}
-                    className={`${row} ${v.id === current?.id ? CHIP_ON : ""}`}
+                    className={row}
                     aria-current={v.id === current?.id || undefined}
                   >
                     <span className="min-w-0 flex-1 font-semibold wrap-anywhere">{v.name}</span>
