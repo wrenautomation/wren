@@ -112,6 +112,25 @@
   top: 8px;
   z-index: 3;
 }
+/* full screen (useFullScreen): the facts and the stage; the legend, help and batch stay in the page */
+.vt[data-full] {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  height: 100dvh;
+  padding: 12px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  background: var(--ui-canvas);
+  animation: ui-fade 0.16s var(--ui-ease);
+}
+.vt[data-full] .vt-stage {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+.vt[data-full] > :is(.vt-legend, .vt-cap, .vt-detail) {
+  display: none;
+}
 /* a sample opened in place */
 .vt-open {
   position: absolute;

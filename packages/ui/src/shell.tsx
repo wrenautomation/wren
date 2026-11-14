@@ -483,8 +483,9 @@ export function AppShell({
           />
         ) : null}
         <div
-          // frame: the side panel sizes off it (side-panel.tsx)
-          className="@container/frame flex min-h-0 min-w-0 flex-1 max-[900px]:block"
+          // frame: the side panel sizes off it (side-panel.tsx). A container is a stacking context:
+          // with a part in full screen (useFullScreen) it lifts over the nav (z-10) and the phone head (z-20)
+          className="@container/frame flex min-h-0 min-w-0 flex-1 max-[900px]:block has-[[data-full]]:relative has-[[data-full]]:z-50"
         >
           <div
             // The page's ground, a shade under paper, so its panels read raised on it.
@@ -512,6 +513,8 @@ export function AppShell({
                 "[zoom:var(--layout-zoom)]",
                 // pages size off main, not the viewport: the agent panel narrows main
                 "@container/main mx-auto outline-none",
+                // a part in full screen: over the phone head (z-5), as the frame over the nav
+                "has-[[data-full]]:relative has-[[data-full]]:z-50",
                 bleed
                   ? "h-full max-[900px]:h-auto"
                   : fill

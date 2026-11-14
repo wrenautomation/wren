@@ -9,7 +9,7 @@ import type {
   WeaverQuery,
   WeaverRun,
 } from "@wren/paths/weaver-tree";
-import { LoadFailed, num, relative, Tag, type TagTone } from "@wren/ui";
+import { ButtonLink, LoadFailed, num, relative, Tag, type TagTone } from "@wren/ui";
 import { type ReactNode, useMemo } from "react";
 import { useCall } from "../../load.js";
 import { wholeHref } from "../explorer/href.js";
@@ -98,7 +98,9 @@ export function WeaverPreview({ w, file }: { w: Whole; file?: ReactNode }) {
           ]}
         />
         <span className="flex items-center gap-2">
-          <a href={runHref(run)}>Open the whole run</a>
+          <ButtonLink tone="secondary" size="dense" icon="expand" href={runHref(run)}>
+            Open the whole run
+          </ButtonLink>
           {file}
         </span>
       </div>

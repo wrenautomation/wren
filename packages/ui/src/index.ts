@@ -311,6 +311,7 @@ export {
   useFrame,
   usePageKeys,
 } from "./frame.js";
+export { FULL_LAYER, type FullScreen, useFullScreen } from "./full-screen.js";
 export {
   edgeId,
   GRAPH_DROP,
@@ -700,4 +701,4 @@ export {
   type ZoomStage,
   type ZoomStageOpts,
 } from "./zoom/stage.js";
-export { ZoomTools, type ZoomToolsProps } from "./zoom/tools.js";
+export { FullScreenButton, ZoomTools, type ZoomToolsProps } from "./zoom/tools.js";

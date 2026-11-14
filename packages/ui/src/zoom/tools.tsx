@@ -1,5 +1,6 @@
-/** Zoom in, out and fit: the same three buttons on every graph (GraphFrame, the variants tree). */
+/** Zoom in, out, fit and full screen: the same buttons on every graph (GraphFrame, the variants tree). */
 import { cn } from "cn";
+import type { FullScreen } from "../full-screen.js";
 import { tipProps } from "../hint.js";
 import { Icon } from "../icons.js";
 
@@ -14,10 +15,20 @@ export interface ZoomToolsProps {
   onRest?: (() => void) | undefined;
   /** all of it shows at rest; when not, the fit button says so in words */
   fits?: boolean | undefined;
+  /** useFullScreen() of the part: adds the full-screen button */
+  full?: FullScreen | undefined;
   className?: string | undefined;
 }
 
-export function ZoomTools({ onIn, onOut, onFit, onRest, fits = true, className }: ZoomToolsProps) {
+export function ZoomTools({
+  onIn,
+  onOut,
+  onFit,
+  onRest,
+  fits = true,
+  full,
+  className,
+}: ZoomToolsProps) {
   return (
     <div className={cn("flex gap-px", className)}>
       <button
@@ -52,6 +63,29 @@ export function ZoomTools({ onIn, onOut, onFit, onRest, fits = true, className }
         <Icon name="fit" className="size-3.5" />
         {fits ? null : "Fit all"}
       </button>
+      {full ? <FullScreenButton full={full} /> : null}
     </div>
+  );
+}
+
+/** The full-screen switch, in the zoom tools' look: alone on a part with no zoom tools (the metro map). */
+export function FullScreenButton({
+  full,
+  className,
+}: {
+  full: FullScreen;
+  className?: string | undefined;
+}) {
+  return (
+    <button
+      type="button"
+      className={cn(TOOL, className)}
+      {...tipProps(full.label, full.full ? { keys: "Esc", as: "none" } : { as: "none" })}
+      aria-label={full.label}
+      aria-pressed={full.full}
+      onClick={full.toggle}
+    >
+      <Icon name={full.icon} className="size-3.5" />
+    </button>
   );
 }

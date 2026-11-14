@@ -21,6 +21,7 @@ import {
   useState,
 } from "react";
 import { Empty, Loading } from "../../feedback.js";
+import { useFullScreen } from "../../full-screen.js";
 import { useZoomStage } from "../../zoom/stage.js";
 import { Bars } from "./bars.js";
 import { RunDock } from "./dock.js";
@@ -331,6 +332,12 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     pend.current.fit = ms;
     setFitN((n) => n + 1);
   };
+  const fs = useFullScreen();
+  // full screen, and back: fit the web to its new room
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the settled size is the cue
+  useEffect(() => {
+    if (fs.settled) askFit(300);
+  }, [fs.settled]);
   const toRound = (r: number) => {
     setRound(r);
     if (pick?.t === "s" && r && (L.byId.get(pick.id)?.s.r ?? 0) > r) setPick(null);
@@ -647,10 +654,12 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       const api = dockRef.current;
-      if (e.key === "Escape") {
-        if (api?.hasMaximizedGroup()) api.exitMaximizedGroup();
-        else if (live.current.pick) setPick(null);
-      }
+      if (e.key !== "Escape") return;
+      // used: full screen holds (useFullScreen skips a prevented Esc)
+      if (api?.hasMaximizedGroup()) api.exitMaximizedGroup();
+      else if (live.current.pick) setPick(null);
+      else return;
+      e.preventDefault();
     };
     addEventListener("keydown", k);
     return () => removeEventListener("keydown", k);
@@ -943,6 +952,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
     <div
       ref={rootRef}
       className={cls("rg", card && "card")}
+      data-full={fs.full || undefined}
       onKeyDown={W.navKey}
       onMouseDown={W.navMouse}
       onMouseUp={W.navMouse}
@@ -956,6 +966,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
         step={step}
         toRound={toRound}
         panes={W.panes}
+        full={fs}
         zoomBy={(k) => Z.scaleBy(k)}
         reset={() => {
           setHole(null);
@@ -966,7 +977,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
           askFit(400);
         }}
       />
-      {card ? null : (
+      {card || fs.full ? null : (
         <div className="runhead">
           <h3>{head.t}</h3>
           {head.ask && wide ? <p className="ask">{head.ask}</p> : null}
@@ -1011,14 +1022,14 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
         web
       )}
       {/* under the graph: the graph comes first */}
-      {card ? null : (
+      {card || fs.full ? null : (
         <p className="lookcap">
           {L.run.runs
             ? "Each tinted card is a run: its ask and its note. Lines run to the sources it kept findings from; a source two runs read links them. Click a run to open its searches."
             : "Each tinted card is a search and its best answer. Lines run to every source it found: gray until the source holds a finding, then in its color; a thicker line carries more."}
         </p>
       )}
-      {card ? null : (
+      {card || fs.full ? null : (
         <Summary
           L={L}
           hole={hole}
@@ -1028,8 +1039,8 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
           }}
         />
       )}
-      {card ? null : <Key runs={!!L.run.runs} />}
-      {card ? null : (
+      {card || fs.full ? null : <Key runs={!!L.run.runs} />}
+      {card || fs.full ? null : (
         <Table
           L={L}
           F={F}

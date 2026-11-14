@@ -2610,3 +2610,23 @@
 .rg .rg-panel.dk .spw > .xs {
   right: 10px;
 }
+
+/* 11-14 full screen (useFullScreen, WA-1382): the bar and the web (or the dock) fill the screen;
+   the head, caption, summary and table stay in the page. */
+.rg[data-full] {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  animation: ui-fade 0.16s var(--ui-ease);
+}
+.rg[data-full] .rg-dock,
+.rg[data-full] .rg-stage:not(.dk) {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}

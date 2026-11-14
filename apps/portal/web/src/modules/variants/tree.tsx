@@ -6,6 +6,7 @@
 import {
   Button,
   Seg,
+  useFullScreen,
   useSeen,
   useZoomStage,
   type ZoomBox,
@@ -223,6 +224,19 @@ export function SubjectTree({
   };
   const fitAll = () =>
     Z.fit({ x0: G.AX - 20, y0: 0, x1: G.W, y1: t.height }, room(), { min: 0.3, ms: MOVE_MS });
+  const fs = useFullScreen();
+  // full screen shows the whole tree; back in the page, 1:1 on the sample again
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the settled size is the cue
+  useEffect(() => {
+    if (!fs.settled) return;
+    const f = requestAnimationFrame(() => {
+      if (fs.full) {
+        fitAll();
+        stage?.focus({ preventScroll: true });
+      } else rest(MOVE_MS);
+    });
+    return () => cancelAnimationFrame(f);
+  }, [fs.settled]);
   const nodes = useRef(new Map<number, SVGGElement>());
   const uid = useId().replace(/:/g, "");
   const isKept = (s: TNode) => kept[s.id] ?? s.kept;
@@ -401,7 +415,7 @@ export function SubjectTree({
     );
   };
   return (
-    <div className="vt">
+    <div className="vt" data-full={fs.full || undefined}>
       <div className="vt-sum">
         <span className="vt-fact">
           <b>{full.rounds.length}</b> batches
@@ -585,6 +599,7 @@ export function SubjectTree({
           onOut={() => Z.scaleBy(0.8)}
           onFit={fitAll}
           onRest={() => rest(MOVE_MS)}
+          full={fs}
         />
       </section>
       <div className="vt-legend">

@@ -71,6 +71,7 @@ function PartMap({ part, client }: { part: MetroPart | null; client: string }) {
       controls={false}
       intro={false}
       bare
+      fullScreen
       className="metro-peek"
     />
   );

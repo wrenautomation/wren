@@ -31,6 +31,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { FULL_LAYER, type FullScreen, useFullScreen } from "../full-screen.js";
 import { ZoomTools } from "../zoom/tools.js";
 
 const PAN_STEP = 80;
@@ -64,10 +65,12 @@ function Controls({
   moved,
   quiet,
   fits,
+  full,
 }: {
   rest: Viewport;
   moved: () => void;
   quiet: boolean;
+  full: FullScreen;
   /** All of it shows at rest; when not, the fit button says so in words. */
   fits: boolean;
 }) {
@@ -79,11 +82,13 @@ function Controls({
         "m-2!",
         // On a bare graph they show on hover or focus, so they never sit on a step.
         quiet &&
+          !full.full &&
           "opacity-0 transition-opacity duration-200 group-focus-within/frame:opacity-100 group-hover/frame:opacity-100",
       )}
     >
       <ZoomTools
         fits={fits}
+        full={full}
         onIn={() => {
           moved();
           void rf.zoomIn(EASE);
@@ -125,6 +130,21 @@ export function GraphFrame({
   // Moved by hand: drag pans from here on, even when it all fit.
   const [moved, setMoved] = useState(false);
   const touched = useCallback(() => setMoved(true), []);
+  const full = useFullScreen();
+  // full screen shows all of it; back in the page, it goes back to where it rests
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the settled size is the cue
+  useEffect(() => {
+    const r = rf.current;
+    if (!r || !full.settled) return;
+    const t = requestAnimationFrame(() => {
+      if (full.full) {
+        setMoved(true);
+        void r.fitView({ padding: 0.08, ...EASE });
+        box.current?.focus({ preventScroll: true });
+      } else void r.setViewport(rest, EASE);
+    });
+    return () => cancelAnimationFrame(t);
+  }, [full.settled]);
   useEffect(() => {
     if (!active) return;
     const off = (e: PointerEvent) => {
@@ -177,8 +197,10 @@ export function GraphFrame({
         !bare && "bg-(--ui-graph)",
         !bare && !flush && "border border-(--ui-hair)",
         className,
+        full.full && [FULL_LAYER, "animate-[ui-fade_0.16s_var(--ui-ease)] bg-(--ui-graph)"],
       )}
-      style={{ height }}
+      data-full={full.full || undefined}
+      style={full.full ? undefined : { height }}
       onPointerDown={() => setActive(true)}
       onKeyDown={onKey}
     >
@@ -204,10 +226,10 @@ export function GraphFrame({
         elementsSelectable={false}
         panOnDrag={!fits || moved}
         panOnScroll={false}
-        zoomOnScroll={active}
+        zoomOnScroll={active || full.full}
         zoomOnPinch
         zoomOnDoubleClick={false}
-        preventScrolling={active}
+        preventScrolling={active || full.full}
         deleteKeyCode={null}
         selectionKeyCode={null}
         multiSelectionKeyCode={null}
@@ -225,7 +247,7 @@ export function GraphFrame({
             color="color-mix(in oklch, var(--ui-ink-3) 45%, transparent)"
           />
         )}
-        <Controls rest={rest} moved={touched} quiet={!!bare} fits={fits} />
+        <Controls rest={rest} moved={touched} quiet={!!bare} fits={fits} full={full} />
         {minimap ? (
           <MiniMap
             pannable

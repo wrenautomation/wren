@@ -598,6 +598,7 @@ export function FocusPage({
           controls={false}
           intro={false}
           bare
+          fullScreen
           className="metro-fit"
           ghost={ghostKey}
         />

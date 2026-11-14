@@ -534,6 +534,7 @@
 }
 /* The frame fills the room it is given, so the host can centre the map in it. */
 .metro {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -1385,4 +1386,27 @@
   .mlay-knob {
     transition: none;
   }
+}
+/* Full screen (useFullScreen, WA-1382): the corner button, and the map as a fill frame over the page. */
+.metro-full {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+}
+.metro-peek > .metro-full {
+  right: 24px;
+}
+.metro[data-full] {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  height: auto;
+  margin: 0;
+  padding-top: 48px;
+  background: var(--ui-canvas);
+  animation: ui-fade 0.16s var(--ui-ease);
+}
+.metro:has(> .metro-full) .metro-legend.over {
+  right: 48px;
 }

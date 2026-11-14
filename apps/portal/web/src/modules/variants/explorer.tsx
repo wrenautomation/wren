@@ -5,7 +5,18 @@
  */
 import { segments, type Whole } from "@wren/core/paths";
 import type { VireoGuide, VireoSample } from "@wren/paths/vireo-tree";
-import { AskAgent, Empty, Img, LoadFailed, Loading, num, Tag, type TagTone, Video } from "@wren/ui";
+import {
+  AskAgent,
+  ButtonLink,
+  Empty,
+  Img,
+  LoadFailed,
+  Loading,
+  num,
+  Tag,
+  type TagTone,
+  Video,
+} from "@wren/ui";
 import type { ReactNode } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -101,10 +112,12 @@ export function SubjectWhole({
   return <SubjectDetail id={s.id} params={params} onBack={onBack} back="Explorer" />;
 }
 
-/** The Open link and the item's ⋯ (its folder), on one line. */
+/** The open-whole button and the item's ⋯ (its folder), on one line. */
 const OpenLine = ({ to, label, file }: { to: string; label: string; file?: ReactNode }) => (
   <span className="flex items-center gap-2">
-    <a href={to}>{label}</a>
+    <ButtonLink tone="secondary" size="dense" icon="expand" href={to}>
+      {label}
+    </ButtonLink>
     {file}
   </span>
 );

@@ -32,7 +32,9 @@ import {
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../controls.js";
 import { cx } from "../format.js";
+import { useFullScreen } from "../full-screen.js";
 import { Icon } from "../icons.js";
+import { FullScreenButton } from "../zoom/tools.js";
 import { MetroSvg } from "./draw.js";
 import { type FocusSpec, focusScene, nameOf, partsOfSpec, specKey } from "./focus.js";
 import { autoZoom, type MetroZoom, viewZoom } from "./fold.js";
@@ -91,6 +93,8 @@ export interface MetroMapProps {
   className?: string | undefined;
   /** The page's key: its layout is kept in this browser, and its skeleton draws it next time. */
   ghost?: string | undefined;
+  /** A full-screen button in the corner; the map fills the screen there. */
+  fullScreen?: boolean | undefined;
   /** More controls beside the depth buttons. */
   children?: ReactNode;
 }
@@ -181,6 +185,7 @@ function useScenes(zoom: MetroZoom) {
 }
 
 export function MetroMap(props: MetroMapProps) {
+  const fs = useFullScreen();
   const { onPick, controls = true, still, bare, className } = props;
   const zoom = useMemo<MetroZoom>(
     () =>
@@ -519,7 +524,9 @@ export function MetroMap(props: MetroMapProps) {
   const caps = scene.st.filter((s) => "cap" in s || "ring" in s || "badge" in s).length;
   return (
     <div
-      className={cx("metro", className)}
+      // full screen: the whole map in the screen, whatever fit the page gave it
+      className={cx("metro", fs.full ? "metro-fill" : className)}
+      data-full={fs.full || undefined}
       data-depth={depth}
       {...(focus ? { "data-focus": specKey(focus) } : {})}
     >
@@ -585,6 +592,7 @@ export function MetroMap(props: MetroMapProps) {
           <MetroSkeleton label="Drawing your map" ghost={props.ghost} />
         )}
       </div>
+      {props.fullScreen ? <FullScreenButton full={fs} className="metro-full" /> : null}
     </div>
   );
 }

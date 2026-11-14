@@ -43,6 +43,20 @@ Hidden is for a product that must look standalone, as in a demo video. On a comp
 
 A drag ends the same way in Hidden as in Full: the resizer is only drawn in Full and Icons. A second key press during a fade skips the first one (the browser's rule), with no error.
 
+## Full screen on every graph (WA-1382)
+
+One hook, `useFullScreen` (`packages/ui/src/full-screen.tsx`), and one button, `FullScreenButton` (expand and shrink icons, "Full screen" and "Exit full screen"). They are on: GraphFrame (every React Flow graph) and the Vireo tree through `ZoomTools`, the run graph's bar, and the metro map's corner in the explorer and on a focus page. The Map page is already a full page and gets none. In the explorer, "Open the whole run" and "Open its tree" become buttons with the expand icon.
+
+| State | Shows | Enters by | Next | Motion out |
+|---|---|---|---|---|
+| In the page | the part at its own size, the button with an expand icon | default; Exit, Esc | Full screen | the layer fades in, 160 ms (rare: standard, MV-1) |
+| Full screen (computer) | the browser full screen; the part fills it: graph, tree facts and stage, run bar and web or dock, map fill | the button | In the page | instant: the browser's own exit animation plays (MO-4) |
+| Full screen, browser refused or iPhone | the part as a fixed layer over the page, browser bars stay | the button | In the page (button, Esc) | instant: the part goes back to its place, then rests |
+| Esc used by the part | a card or a pick closes, full screen holds | Esc while a card, pick or filled dock group is open | Full screen | the part's own |
+| Narrow (390) | the layer fills the phone; the tree keeps its facts | the button | In the page | as above |
+
+On entry the part fits all: a graph shows its whole, the tree fits, the run web fits. On exit it rests where it started. The fit waits for the browser's switch to finish (`settled`), so it fits the final size.
+
 ## Wren's Settings app
 
 Layout, Look (his own colors in Wren's workspace; a client's workspace keeps the client's look), Guide (every app by area with its pages, built from the live module list, then the keys). Clients get Layout under Account → Your settings.
@@ -52,3 +66,4 @@ Layout, Look (his own colors in Wren's workspace; a client's workspace keeps the
 - 2026-10-11: frame vars are `--layout-*`, not `--ui-*`: a client's look can't set widths.
 - 2026-10-11: text size zooms `main` only. Zooming the frame broke fixed flyouts and `100dvh`.
 - 2026-11-13: the sidebar gets a third state, hidden, as a `sidebar` field that replaces `sideShut` (an old `sideShut: true` reads as icons). Hidden reuses the no-areas frame, not a new one: one top bar to keep right. Rejected: a full-screen "demo mode" that also hides the bar. The slim bar keeps Layout in reach to bring the sidebar back. (WA-1380)
+- 2026-11-14: full screen asks the browser to full-screen the page root, and the part becomes a fixed layer over it. Rejected: the part's own `requestFullscreen`, because tips and menus portaled to `<body>` would not show. Rejected: the layer alone, because the browser's bars and tabs would stay. iPhone has no element full screen, so it gets the layer alone. The shell's frame and `main` are containers, so each is a stacking context: they lift to z-50 while they hold a `[data-full]` part (`has-[[data-full]]`), else the nav and the phone head paint over the layer. Rejected: a portal to `<body>`, because it remounts the graph and loses its view. (WA-1382)

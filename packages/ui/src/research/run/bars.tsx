@@ -1,4 +1,5 @@
-/** The graph's toolbar: round (or run) filter, the dock's panes, zoom and reset. */
+/** The graph's toolbar: round (or run) filter, the dock's panes, zoom, reset and full screen. */
+import type { FullScreen } from "../../full-screen.js";
 import { Icon } from "../../icons.js";
 import type { Indexed } from "./model.js";
 
@@ -20,9 +21,10 @@ export interface BarsProps {
   zoomBy: (k: number) => void;
   reset: () => void;
   panes?: PaneBar | undefined;
+  full?: FullScreen | undefined;
 }
 
-export function Bars({ L, round, step, toRound, zoomBy, reset, panes }: BarsProps) {
+export function Bars({ L, round, step, toRound, zoomBy, reset, panes, full }: BarsProps) {
   const Step = step === "run" ? "Run" : "Round";
   const runs = L.run.runs;
   return (
@@ -111,6 +113,18 @@ export function Bars({ L, round, step, toRound, zoomBy, reset, panes }: BarsProp
         <button type="button" className="btn" onClick={reset}>
           Reset
         </button>
+        {full ? (
+          <button
+            type="button"
+            className="btn ib"
+            aria-label={full.label}
+            aria-pressed={full.full}
+            title={full.full ? `${full.label} (Esc)` : full.label}
+            onClick={full.toggle}
+          >
+            <Icon name={full.icon} size={15} />
+          </button>
+        ) : null}
       </span>
     </div>
   );
