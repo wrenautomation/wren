@@ -16,6 +16,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { flushSync } from "react-dom";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +56,22 @@ const mirror = (d: Display) => {
     else localStorage.removeItem(MIRROR);
   } catch {}
 };
+
+/**
+ * A change to the frame's layout (the sidebar's state): the old frame cross-fades into the new one
+ * (a view transition), so the window never jumps. Less motion, or no view transitions: at once.
+ */
+export function frameChange(change: () => void): void {
+  const less =
+    document.documentElement.dataset.motion === "less" ||
+    matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (less || typeof document.startViewTransition !== "function") {
+    change();
+    return;
+  }
+  // A second key press skips the first fade; its `ready` rejects, which is no fault.
+  document.startViewTransition(() => flushSync(change)).ready.catch(() => {});
+}
 
 export interface DisplayControl {
   display: Display;
@@ -111,6 +128,7 @@ export const FRAME_KEYS: KeySection = {
     ["⌥ ↑ ↓", "The app's page above or below"],
     ["G, then a letter", "A page of the app you're in"],
     ["[", "Fold or open the sidebar"],
+    ["\\", "Hide or show the sidebar"],
     ["]", "Hide or show the app's pages"],
     ["N", "A quick note"],
     ["?", "These keys"],
@@ -409,16 +427,18 @@ export function DisplayPanel({
   const { display: d, set } = control;
   return (
     <div className="grid gap-4">
+      {/* Three choices: a row of its own, so "Hidden" never clips. */}
+      <Segmented
+        label="Sidebar"
+        value={d.sidebar}
+        options={[
+          ["full", "Full"],
+          ["icons", "Icons"],
+          ["hidden", "Hidden"],
+        ]}
+        onChange={(v) => frameChange(() => set({ sidebar: v }))}
+      />
       <div className="grid grid-cols-2 gap-3">
-        <Segmented
-          label="Sidebar"
-          value={d.sideShut ? "icons" : "full"}
-          options={[
-            ["full", "Full"],
-            ["icons", "Icons"],
-          ]}
-          onChange={(v) => set({ sideShut: v === "icons" })}
-        />
         <Segmented
           label="App's pages"
           value={d.pagesShut ? "off" : "on"}
@@ -428,16 +448,16 @@ export function DisplayPanel({
           ]}
           onChange={(v) => set({ pagesShut: v === "off" })}
         />
+        <Segmented
+          label="Rows"
+          value={d.density}
+          options={[
+            ["roomy", "Roomy"],
+            ["snug", "Snug"],
+          ]}
+          onChange={(density) => set({ density })}
+        />
       </div>
-      <Segmented
-        label="Rows"
-        value={d.density}
-        options={[
-          ["roomy", "Roomy"],
-          ["snug", "Snug"],
-        ]}
-        onChange={(density) => set({ density })}
-      />
       <Segmented
         label="Text"
         value={d.text}
@@ -472,8 +492,8 @@ export function DisplayPanel({
         />
       </div>
       <p className="text-[12.5px] text-(--ui-ink-2)">
-        Drag a panel's edge to size it. <Key>[</Key> folds the sidebar, <Key>]</Key> hides the
-        pages.
+        Drag a panel's edge to size it. <Key>[</Key> folds the sidebar, <Key>{"\\"}</Key> hides it,{" "}
+        <Key>]</Key> hides the pages.
       </p>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-(--ui-hair) pt-3 text-[13px]">
         {more}

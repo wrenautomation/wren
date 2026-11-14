@@ -1,4 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { type ReactNode, useState } from "react";
+import { expect, userEvent, waitFor, within } from "storybook/test";
+import { DISPLAY, type Display, type Sidebar } from "./display.js";
 import { Empty as EmptyLine, Loading as Ghosts } from "./feedback.js";
 import {
   SHELL,
@@ -26,6 +29,18 @@ type Story = StoryObj;
 const Page = ({ title }: { title: string }) => (
   <PageHeader title={title} lede="The page runs here, inside the window." />
 );
+
+/** The shell with its own frame state, so [ and \ change it as on the portal. */
+function Framed({ sidebar, children }: { sidebar: Sidebar; children: ReactNode }) {
+  const [display, setDisplay] = useState<Display>({ ...DISPLAY, sidebar });
+  const set = (patch: Partial<Display> | null) =>
+    setDisplay((d) => (patch ? { ...d, ...patch } : DISPLAY));
+  return (
+    <AppShell {...SHELL} display={{ display, set }}>
+      {children}
+    </AppShell>
+  );
+}
 
 /** Wren's sidebar: the Map, Inbox, People, Money, Admin, then pins; the open app's pages down the window's edge. On a phone, the app bar and tabs. */
 export const Default: Story = {
@@ -94,4 +109,33 @@ export const AgentAtWork: Story = {
       <Page title="Waiting" />
     </AppShell>
   ),
+};
+
+/** Folded to icons ([): the marks alone; the app's pages stay at the sidebar's edge. */
+export const Folded: Story = {
+  render: () => (
+    <Framed sidebar="icons">
+      <Page title="Waiting" />
+    </Framed>
+  ),
+};
+
+/** Hidden (\): a slim bar over the window and the app's pages at its left, as in a demo video. A phone keeps its tabs. \ again brings the sidebar back. */
+export const Hidden: Story = {
+  render: () => (
+    <Framed sidebar="hidden">
+      <Page title="Waiting" />
+    </Framed>
+  ),
+  play: async ({ canvasElement }) => {
+    const frame = canvasElement.querySelector("[data-side]");
+    await expect(frame).toHaveAttribute("data-side", "hidden");
+    if (innerWidth <= 900) return;
+    await expect(within(canvasElement).queryByRole("navigation", { name: "Apps" })).toBeNull();
+    // The change runs inside a view transition: it lands a frame later.
+    await userEvent.keyboard("\\");
+    await waitFor(() => expect(frame).toHaveAttribute("data-side", "full"));
+    await userEvent.keyboard("\\");
+    await waitFor(() => expect(frame).toHaveAttribute("data-side", "hidden"));
+  },
 };

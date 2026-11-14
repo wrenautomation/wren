@@ -23,16 +23,25 @@ describe("readDisplay", () => {
   });
 });
 
+describe("sidebar", () => {
+  it("reads the old fold as icons, and hidden as no width", () => {
+    expect(readDisplay({ sideShut: true }).sidebar).toBe("icons");
+    expect(readDisplay({ sideShut: true, sidebar: "hidden" }).sidebar).toBe("hidden");
+    expect(readDisplay({ sidebar: "gone" }).sidebar).toBe("full");
+    expect(displayVars({ ...DISPLAY, sidebar: "hidden" })["--layout-side"]).toBe("0px");
+  });
+});
+
 describe("displayDiff", () => {
   it("keeps only changes, and nothing for the defaults", () => {
     expect(displayDiff(DISPLAY)).toBeNull();
-    expect(displayDiff({ ...DISPLAY, sideShut: true })).toEqual({ sideShut: true });
+    expect(displayDiff({ ...DISPLAY, sidebar: "icons" })).toEqual({ sidebar: "icons" });
   });
 });
 
 describe("displayVars", () => {
   it("draws a folded sidebar at its icons' width and drops the frame when off", () => {
-    expect(displayVars({ ...DISPLAY, sideShut: true, frame: false, text: "large" })).toEqual({
+    expect(displayVars({ ...DISPLAY, sidebar: "icons", frame: false, text: "large" })).toEqual({
       "--layout-side": `${SIDE.shut}px`,
       "--layout-pages": `${DISPLAY.pages}px`,
       "--layout-zoom": "1.08",

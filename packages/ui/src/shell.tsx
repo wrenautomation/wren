@@ -26,6 +26,7 @@ import {
   DisplayButton,
   type DisplayControl,
   FrameProvider,
+  frameChange,
   KeysSheet,
   Resizer,
   typingAt,
@@ -277,7 +278,10 @@ export function AppShell({
   // Every app by area: the sidebar, which on a computer also holds whose workspace this is and
   // the viewer's own buttons. Without areas (the demo), a slim bar over the window holds those.
   const nav = !!areas?.length;
-  const folded = nav && d.sideShut;
+  // Hidden, a computer draws the frame as with no sidebar (a slim bar, the app's pages at the
+  // window's left); a phone keeps its own. `side`: the sidebar's layout, computer-only classes.
+  const side = nav && d.sidebar !== "hidden";
+  const folded = side && d.sidebar === "icons";
   const host = () => root.current;
   const custom = display ? (
     <DisplayButton control={display} more={customize} onKeys={() => setKeys(true)} compact />
@@ -286,11 +290,11 @@ export function AppShell({
     <div
       ref={root}
       style={displayVars(d) as CSSProperties}
-      data-side={folded ? "icons" : "full"}
+      data-side={nav ? d.sidebar : undefined}
       data-phone-nav={nav ? "" : undefined}
       className={cx(
         "relative",
-        nav
+        side
           ? "grid h-dvh grid-cols-[calc(var(--layout-side)_+_var(--ui-frame))_minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)_auto] [grid-template-areas:'bar_bar'_'top_window'_'nav_window'_'me_window']"
           : "flex h-dvh flex-col",
         // A phone: one column that scrolls as the page, nothing past its sides, clear of the notch.
@@ -310,7 +314,7 @@ export function AppShell({
       <header
         className={cx(
           "flex h-[54px] min-w-0 flex-none items-center gap-1.5 px-[calc(var(--ui-frame)+8px)] max-[900px]:h-[calc(52px+env(safe-area-inset-top))] max-[900px]:bg-(--ui-canvas) max-[900px]:px-2 max-[900px]:pt-[env(safe-area-inset-top)]",
-          nav && "min-[901px]:contents",
+          side && "min-[901px]:contents",
           // A phone: inside an app the bar at the top takes its place, and these move to Apps.
           nav && app && "max-[900px]:hidden",
           nav &&
@@ -321,7 +325,7 @@ export function AppShell({
         <div
           className={cx(
             "flex min-w-0 items-center gap-1.5",
-            nav &&
+            side &&
               // The artifact's `.brand` in `.side`: 14 px over the side, 4 over the line, 14 under it.
               "min-[901px]:gap-0 [grid-area:top] z-10 min-[901px]:mt-(--ui-frame) min-[901px]:pt-[18px] min-[901px]:pb-[14px] min-[901px]:pr-[11px] min-[901px]:pl-[calc(var(--ui-frame)+10px)]",
             folded && "min-[901px]:justify-center",
@@ -331,34 +335,34 @@ export function AppShell({
             className={cx(
               HOVER,
               "flex h-9 flex-none items-center gap-[9px] rounded-(--ui-radius) pr-2 pl-1 text-[15px] font-semibold tracking-[-0.01em] no-underline",
-              nav && "min-[901px]:h-auto min-[901px]:pr-0 min-[901px]:pl-2",
+              side && "min-[901px]:h-auto min-[901px]:pr-0 min-[901px]:pl-2",
             )}
             href={brand.href}
             aria-label={brand.name}
             {...(folded ? tipProps(workspace.current?.name, { side: "right" }) : {})}
           >
             <Img
-              className={cx("flex-none", nav && "min-[901px]:hidden")}
+              className={cx("flex-none", side && "min-[901px]:hidden")}
               src={brand.stamp}
               alt=""
               width={26}
               height={26}
             />
-            {nav ? (
+            {side ? (
               <i
                 className="ui-mark h-[22px] w-[30px] flex-none max-[900px]:hidden"
                 aria-hidden="true"
               />
             ) : null}
-            {nav ? null : <span className="max-[900px]:hidden">{brand.name}</span>}
+            {side ? null : <span className="max-[900px]:hidden">{brand.name}</span>}
           </a>
-          {nav ? null : (
+          {side ? null : (
             <span className={cx(SLASH, "max-[900px]:hidden")} aria-hidden="true">
               /
             </span>
           )}
           <div className={cx("flex min-w-0 items-center gap-1.5", folded && "min-[901px]:hidden")}>
-            <WorkspaceName workspace={workspace} brand={nav} />
+            <WorkspaceName workspace={workspace} brand={side} />
           </div>
           {workspace.chip ? (
             <a
@@ -379,7 +383,7 @@ export function AppShell({
           <div
             className={cx(
               "ml-auto flex flex-none items-center gap-1.5",
-              nav &&
+              side &&
                 "[grid-area:me] z-10 min-[901px]:mr-2.5 min-[901px]:mb-(--ui-frame) min-[901px]:ml-[calc(var(--ui-frame)+10px)] min-[901px]:flex-wrap min-[901px]:border-t min-[901px]:border-(--ui-hair) min-[901px]:py-2.5",
               folded && "min-[901px]:hidden",
             )}
@@ -422,7 +426,7 @@ export function AppShell({
         ) : null}
       </header>
 
-      {nav ? (
+      {side ? (
         <SideNav
           app={app}
           home={home}
@@ -432,20 +436,20 @@ export function AppShell({
           pages={!d.pagesShut}
         />
       ) : null}
-      {nav && display ? (
+      {side && display ? (
         <Resizer
           label="Sidebar"
           width={d.side}
-          shut={d.sideShut}
+          shut={folded}
           shutPx={SIDE.shut}
           range={SIDE}
           host={host}
           cssVar="--layout-side"
           style={{ left: "calc(var(--layout-side) + var(--ui-frame) - 5px)" }}
           onDone={(n) =>
-            display.set(n.shut ? { sideShut: true } : { side: n.width, sideShut: false })
+            display.set(n.shut ? { sidebar: "icons" } : { side: n.width, sidebar: "full" })
           }
-          onReset={() => display.set({ side: DISPLAY.side, sideShut: false })}
+          onReset={() => display.set({ side: DISPLAY.side, sidebar: "full" })}
         />
       ) : null}
       <div
@@ -453,12 +457,12 @@ export function AppShell({
           "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-(--ui-radius-sheet) bg-(--ui-paper) shadow-[var(--ui-raise),var(--ui-lift)] max-[900px]:m-0 max-[900px]:shadow-none max-[900px]:block max-[900px]:overflow-visible max-[900px]:rounded-none",
           // The sidebar lives inside the window's card: the card spans both columns, the
           // sidebar's ground is painted at its left, and the sidebar's cells sit above it.
-          nav
+          side
             ? "relative [grid-area:2/1/-1/-1] mx-(--ui-frame) my-(--ui-frame) min-[901px]:pl-(--layout-side)"
             : "mx-(--ui-frame) mb-(--ui-frame)",
         )}
       >
-        {nav ? (
+        {side ? (
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-y-0 left-0 w-(--layout-side) border-r border-(--ui-hair) bg-(--ui-ground) max-[900px]:hidden"
@@ -469,7 +473,7 @@ export function AppShell({
           className="@container/frame flex min-h-0 min-w-0 flex-1 max-[900px]:block"
         >
           {/* With a sidebar, the open app's pages fold out under its row there instead. */}
-          {app && !nav && !d.pagesShut ? (
+          {app && !side && !d.pagesShut ? (
             <AppColumn app={app} display={display} host={host} />
           ) : null}
           <div
@@ -580,7 +584,7 @@ const forFrame = (e: KeyboardEvent) =>
   !typingAt(e) &&
   !(e.target instanceof Element && e.target.closest("[role=dialog],[role=menu],[role=listbox]"));
 
-/** [ folds the sidebar, ] hides the pages, ? lists every key, ⌥↑ and ⌥↓ step through the app's pages. */
+/** [ folds the sidebar, \\ hides it, ] hides the pages, ? lists every key, ⌥↑ and ⌥↓ step through the app's pages. */
 function useFrameKeys(
   display: DisplayControl | undefined,
   app: OpenApp | null,
@@ -603,7 +607,10 @@ function useFrameKeys(
         onGo(to.href);
       } else if (e.key === "[") {
         e.preventDefault();
-        display.set({ sideShut: !d.sideShut });
+        frameChange(() => display.set({ sidebar: d.sidebar === "full" ? "icons" : "full" }));
+      } else if (e.key === "\\") {
+        e.preventDefault();
+        frameChange(() => display.set({ sidebar: d.sidebar === "hidden" ? "full" : "hidden" }));
       } else if (e.key === "]") {
         e.preventDefault();
         display.set({ pagesShut: !d.pagesShut });
@@ -783,7 +790,7 @@ function AppCrumb({
 }) {
   const page = app.tabs.find((t) => t.id === app.current);
   const paged = app.tabs.length > 1;
-  const hidden = !!(display?.display.pagesShut || display?.display.sideShut) && paged;
+  const hidden = !!(display?.display.pagesShut || display?.display.sidebar === "icons") && paged;
   return (
     // Over a title the crumb leaves no gap; over anything else (a failure, a list) it keeps 8 px.
     <div className="-my-1.5 flex min-h-8 min-w-0 items-center gap-2 max-[900px]:hidden [&:not(:has(+:is(h1,header),+*>:is(h1,header):first-child))]:mb-2">

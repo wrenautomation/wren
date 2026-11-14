@@ -12,12 +12,13 @@ export const LOOK_PREF = "look";
 export type Density = "roomy" | "snug";
 export type TextSize = "small" | "normal" | "large";
 export type Motion = "system" | "less";
+/** The sidebar on a computer: full, folded to its icons, or hidden (the window alone, a slim bar on top). */
+export type Sidebar = "full" | "icons" | "hidden";
 
 export interface Display {
   /** The sidebar's width, open. */
   side: number;
-  /** Folded to its icons. */
-  sideShut: boolean;
+  sidebar: Sidebar;
   /** The open app's page column's width, open. */
   pages: number;
   pagesShut: boolean;
@@ -32,7 +33,7 @@ export interface Display {
 
 export const DISPLAY: Display = {
   side: 190,
-  sideShut: false,
+  sidebar: "full",
   pages: 208,
   pagesShut: false,
   density: "roomy",
@@ -51,6 +52,7 @@ export const ZOOM: Readonly<Record<TextSize, number>> = { small: 0.92, normal: 1
 const DENSITIES: readonly Density[] = ["roomy", "snug"];
 const TEXTS: readonly TextSize[] = ["small", "normal", "large"];
 const MOTIONS: readonly Motion[] = ["system", "less"];
+const SIDEBARS: readonly Sidebar[] = ["full", "icons", "hidden"];
 
 const clamp = (n: number, lo: number, hi: number) => Math.round(Math.min(hi, Math.max(lo, n)));
 const width = (v: unknown, lo: number, hi: number, d: number) =>
@@ -65,7 +67,8 @@ export function readDisplay(v: unknown): Display {
     typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
   return {
     side: width(o.side, SIDE.min, SIDE.max, DISPLAY.side),
-    sideShut: flag(o.sideShut, DISPLAY.sideShut),
+    // `sideShut: true` was the fold before `sidebar` (11-13)
+    sidebar: oneOf(o.sidebar, SIDEBARS, o.sideShut === true ? "icons" : DISPLAY.sidebar),
     pages: width(o.pages, PAGES.min, PAGES.max, DISPLAY.pages),
     pagesShut: flag(o.pagesShut, DISPLAY.pagesShut),
     density: oneOf(o.density, DENSITIES, DISPLAY.density),
@@ -87,7 +90,7 @@ export function displayDiff(d: Display): Partial<Display> | null {
 /** The frame's CSS variables for a Display. */
 export function displayVars(d: Display): Record<string, string> {
   return {
-    "--layout-side": `${d.sideShut ? SIDE.shut : d.side}px`,
+    "--layout-side": `${d.sidebar === "full" ? d.side : d.sidebar === "icons" ? SIDE.shut : 0}px`,
     "--layout-pages": `${d.pages}px`,
     "--layout-zoom": String(ZOOM[d.text]),
     ...(d.frame ? {} : { "--ui-frame": "0px" }),
