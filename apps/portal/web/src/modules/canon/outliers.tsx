@@ -25,7 +25,6 @@ import { href, navigate } from "../../route.js";
 import { ERROR } from "../work/bits.js";
 import { Pick } from "./parts.js";
 
-const HERE = "/canon/outliers";
 const FILTERS = ["preset", "niche", "platform", "kind"] as const;
 const PRESETS: Record<string, string> = {
   "": "Every outlier",
@@ -83,7 +82,9 @@ export function OutliersPage({ params }: PageProps) {
       q.platform ? `, on ${platformName(q.platform)}` : ""
     }${q.kind ? `, ${q.kind}s` : ""}`,
   });
-  const set = (k: string, v: string | null) => navigate(href(HERE, { [k]: v || null }, params));
+  // Canon's page, and Studio's Inspiration
+  const here = location.pathname;
+  const set = (k: string, v: string | null) => navigate(href(here, { [k]: v || null }, params));
 
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Ghosts />;
@@ -168,7 +169,7 @@ export function OutliersPage({ params }: PageProps) {
         filtered ? (
           <Empty
             action={
-              <a href={href(HERE, Object.fromEntries(FILTERS.map((k) => [k, null])), params)}>
+              <a href={href(here, Object.fromEntries(FILTERS.map((k) => [k, null])), params)}>
                 Clear filters
               </a>
             }

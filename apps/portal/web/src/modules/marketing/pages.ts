@@ -116,18 +116,20 @@ export const CONVERSATION_TOP = {
 export const MARKETING_PAGES = {
   inbox: { id: "inbox", ...INBOX_PAGE },
   approve: APPROVAL_PAGE,
+  // Labeled Write: Studio is the video suite's app (designs/2026-11-13-studio-suite.md, D6).
+  // The id stays, so every /campaigns/studio link still lands.
   studio: {
     id: "studio",
-    label: "Studio",
+    label: "Write",
     about: "Make posts, threads, carousels, stories, blog posts and videos, and finish drafts.",
     Page: StudioPage,
     wide: true,
   },
-  // Write folded into Studio; its old links land in Studio's New.
+  // The old Write page; its links land in Write's New.
   write: {
     id: "write",
     label: "Write",
-    about: "Opens Studio's New.",
+    about: "Opens Write's New.",
     hidden: true,
     lights: "studio",
     Page: WritePage,
@@ -143,7 +145,7 @@ export const MARKETING_PAGES = {
     template: "list",
     record: "marketing.draft",
     empty: {
-      next: "Nothing waits on you or is scheduled. Make something in Studio.",
+      next: "Nothing waits on you or is scheduled. Make something in Write.",
       waiting: "No draft waits on you.",
       scheduled: "Nothing is scheduled.",
       rejected: "Nothing was turned down.",

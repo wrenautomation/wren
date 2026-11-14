@@ -70,6 +70,7 @@ import { registerPages } from "./pages.js";
 import { registerPaths } from "./paths.js";
 import { registerPeople } from "./people.js";
 import { type PipelineWrites, registerPipeline } from "./pipeline.js";
+import { registerProject } from "./project.js";
 import { registerReach } from "./reach.js";
 import { registerReview } from "./review.js";
 import { registerShape } from "./shape.js";
@@ -358,6 +359,7 @@ registerPeople(program, {
   },
 });
 registerVideo(program, withMainDb, settings, rootDir);
+registerProject(program, withMainDb, actor);
 registerSitePages(
   program,
   withMainDb,

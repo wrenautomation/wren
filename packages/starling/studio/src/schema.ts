@@ -284,3 +284,51 @@ export const videoPresence = pgTable(
   ],
 );
 export type VideoPresence = typeof videoPresence.$inferSelect;
+
+/** What a project makes: a long video, a Short, an ad, a product demo. */
+export const PROJECT_KINDS = ["long", "short", "ad", "demo"] as const;
+export type ProjectKind = (typeof PROJECT_KINDS)[number];
+
+/** A ref a project starts from: a tracked creator's post (`creator_posts` id) or a Canon record. */
+export interface ProjectInspiration {
+  kind: "post" | "canon";
+  ref: string;
+  /** Why it inspires this one, in a sentence. */
+  why?: string | undefined;
+}
+
+/**
+ * One video from the idea on (designs/2026-11-13-studio-suite.md, D1). It holds only what comes
+ * before footage; once filmed, `edit_id` names the edit and Pieces gives the state. No stage column.
+ */
+export const videoProjects = pgTable(
+  "video_projects",
+  {
+    id: serial("id"),
+    title: text("title").notNull(),
+    kind: varchar("kind", { length: 8, enum: PROJECT_KINDS }).notNull().default("long"),
+    brief: text("brief").notNull().default(""),
+    inspiration: jsonb("inspiration").$type<ProjectInspiration[]>().notNull().default([]),
+    /** Null until it is filmed (`wren video add --project`). */
+    editId: integer("edit_id"),
+    /** Vireo subject id per part kind under test: `hook`, `title`, `cta`, `thumbnail`, `combo`, `edit`. */
+    subjects: jsonb("subjects").$type<Record<string, number>>().notNull().default({}),
+    /** The Vireo folder its subjects sit in. */
+    folder: integer("folder"),
+    /** An agent's session id, or a person's email. */
+    by: varchar("by", { length: 320 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_video_projects" }),
+    foreignKey({
+      columns: [t.editId],
+      foreignColumns: [videoEdits.id],
+      name: "fk_video_projects_edit_id_video_edits",
+    }).onDelete("set null"),
+    index("ix_video_projects_edit").on(t.editId),
+    oneOf("ck_video_projects_kind", t.kind, PROJECT_KINDS),
+  ],
+);
+export type VideoProject = typeof videoProjects.$inferSelect;

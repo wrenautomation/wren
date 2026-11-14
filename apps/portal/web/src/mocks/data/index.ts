@@ -21,6 +21,7 @@ import { OUTLIER_ANSWERS } from "./outliers.js";
 import { PATHS_ANSWERS } from "./paths.js";
 import { recordsAnswers } from "./records.js";
 import { ago, SHELL } from "./shell.js";
+import { STUDIO_ANSWERS } from "./studio-projects.js";
 import { VARIANTS_ANSWERS } from "./variants.js";
 
 /** A person's journey by their id: 1 open with a fit, 2 stale, 3 dropped, 4 done; the rest have none. */
@@ -163,6 +164,7 @@ const BASE: Answers = {
   ...OUTLIER_ANSWERS,
   ...PATHS_ANSWERS,
   ...AERIE_ANSWERS,
+  ...STUDIO_ANSWERS,
   "canon/adds": { rows: CANON_ADDS },
   "console/call:PieceList.list": { pieces: PIECES },
   "console/call:ContentDesk.waiting": STUDIO_WAITING,

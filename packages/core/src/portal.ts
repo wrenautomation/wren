@@ -537,6 +537,8 @@ export interface Me {
   demo: boolean;
   /** Wren's team: every client, and the tools to post to them. */
   operator: boolean;
+  /** The signed-in person's first name, from their email; none on the demo. */
+  name?: string;
   /** A team login's role, and what it may do in Wren's own apps. */
   team?: { role: RoleId; wren: Permission[]; flags: Record<string, string>; grants?: Grant[] };
   /** Under View as: who this is, where, and whether changes go through (designs/2026-10-14-view-as.md). */
@@ -550,6 +552,12 @@ export interface Me {
     act: boolean;
     sandbox: boolean;
   };
+}
+
+/** "jane.doe@x.com" → "Jane". */
+export function firstNameOf(email: string): string {
+  const word = email.split("@")[0]?.split(/[._+-]/)[0] ?? "";
+  return word ? word[0]?.toUpperCase() + word.slice(1) : email;
 }
 
 /** Who you are to the portal. The demo host sees its client as `demoName`, never its real name. */
@@ -621,6 +629,7 @@ export async function portalMe(
     }),
     demo: isDemo(viewer),
     operator: isOperator(viewer),
+    ...(isDemo(viewer) ? {} : { name: firstNameOf(viewer.email) }),
     ...(viewing
       ? {
           as: {

@@ -1,6 +1,6 @@
 {
-  "id": "0b38df44-e367-4ca2-9313-84ee4cdd20ef",
-  "prevId": "59cec8e0-750c-40be-a5fa-515053c9f6b4",
+  "id": "075df055-b2d4-4b0d-902b-7e2c20d61cc7",
+  "prevId": "9c0d1d75-0b22-4899-bc22-ec3d1ebeb7ec",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -14704,7 +14704,7 @@
         },
         "kind": {
           "name": "kind",
-          "type": "varchar(8)",
+          "type": "varchar(16)",
           "primaryKey": false,
           "notNull": true
         },
@@ -14760,6 +14760,18 @@
         },
         "rank": {
           "name": "rank",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "likes_multiple": {
+          "name": "likes_multiple",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "likes_rank": {
+          "name": "likes_rank",
           "type": "real",
           "primaryKey": false,
           "notNull": false
@@ -14862,12 +14874,7 @@
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "ck_creator_posts_kind": {
-          "name": "ck_creator_posts_kind",
-          "value": "(\"kind\")::text = ANY ((ARRAY['video'::character varying, 'short'::character varying, 'reel'::character varying, 'post'::character varying])::text[])"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.follower_count_days": {
@@ -35214,6 +35221,133 @@
         "ck_video_presence_part": {
           "name": "ck_video_presence_part",
           "value": "(\"part\")::text = ANY ((ARRAY['cuts'::character varying, 'text'::character varying, 'captions'::character varying, 'cover'::character varying, 'shapes'::character varying, 'shorts'::character varying, 'layout'::character varying, 'marks'::character varying, 'sound'::character varying])::text[])"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.video_projects": {
+      "name": "video_projects",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'long'"
+        },
+        "brief": {
+          "name": "brief",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "inspiration": {
+          "name": "inspiration",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "edit_id": {
+          "name": "edit_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subjects": {
+          "name": "subjects",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "folder": {
+          "name": "folder",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "by": {
+          "name": "by",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ix_video_projects_edit": {
+          "name": "ix_video_projects_edit",
+          "columns": [
+            {
+              "expression": "edit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "fk_video_projects_edit_id_video_edits": {
+          "name": "fk_video_projects_edit_id_video_edits",
+          "tableFrom": "video_projects",
+          "tableTo": "video_edits",
+          "columnsFrom": [
+            "edit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pk_video_projects": {
+          "name": "pk_video_projects",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ck_video_projects_kind": {
+          "name": "ck_video_projects_kind",
+          "value": "(\"kind\")::text = ANY ((ARRAY['long'::character varying, 'short'::character varying, 'ad'::character varying, 'demo'::character varying])::text[])"
         }
       },
       "isRLSEnabled": false

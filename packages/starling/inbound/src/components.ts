@@ -259,7 +259,7 @@ export const CONTENT_COMPONENTS = [
     }),
     requires: { components: ["content.posting"] },
     provides: {
-      services: ["VideoDesk"],
+      services: ["VideoDesk", "VideoProjectDesk"],
       records: ["marketing.video", "library.media"],
       templates: [
         "prompt:content/video-ask",

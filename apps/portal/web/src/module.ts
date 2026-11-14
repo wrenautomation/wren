@@ -205,6 +205,8 @@ export interface Module {
   requires?: Access;
   /** Reached from the client's name at top left, never the sidebar. */
   menu?: true;
+  /** A product of its own: its name and this stamp, its pages alone, no Wren navigation. */
+  standalone?: { stamp: string };
   /**
    * Out of the sidebar, the dock and the area list, yet its routes, quick capture and ⌘K still
    * work (⌘K tags its pages "parked"). Its pages are not counted or read for Today. Wren's

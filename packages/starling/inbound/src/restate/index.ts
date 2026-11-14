@@ -17,3 +17,4 @@ export * from "./social.js";
 export * from "./social-inbox.js";
 export * from "./social-push.js";
 export * from "./video-desk.js";
+export * from "./video-projects.js";

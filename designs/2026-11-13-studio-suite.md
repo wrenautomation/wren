@@ -103,7 +103,7 @@ Vireo keeps its own page. Studio embeds `OneBatch` (exported, with an `onBack` i
 | Work | `App.tsx` only: `brand` = Studio, no `areas`, no launcher | A new site kind before the `ours` test (`apps/portal/src/hosts.ts:80-81`), a workspace pin, sign-in | A second build and deploy | Built (f2a75eeac) |
 | Change to `shell.tsx` | None | None | — | — |
 
-Pick A. `/studio/*` on `app.` draws the one-app frame when the page asks for it (`?frame=product`, kept while moving between Studio's pages). Without it, Studio is an ordinary app in Wren's frame.
+Pick A. `/studio/*` on `app.` always draws the one-app frame: the Studio stamp (`public/studio-icon.svg`), the viewer's name in place of the workspace, Studio's pages in the sidebar, tab title `<page> · Studio`. No launcher, area list, dock, pins, View as, Account, customize or palette. A module opts in with `standalone: { stamp }` (`module.ts`). No `?frame=product` param: in-page links drop it, so the frame would flicker away. Studio stays a place in Wren's sidebar (`areas.ts`); the frame has no link back to Wren.
 
 B later, only if the film should show the URL. Then it uses the `app.` sign-in on the new host (`AUTH_ORIGIN` for every own subdomain, `apps/portal/web/src/api.ts:116`; the host in `WREN_AUTH_APPS`), never the client handoff: it refuses Wren's team (`packages/core/src/clients/domains.ts:173-175`).
 
@@ -111,7 +111,7 @@ Standalone check, for every page: no Wren brand, no area list, no other app's pa
 
 ### D6. Pages
 
-The Studio app (`Module`: `id: "studio"`, `product: "Studio"`, Wren's workspace).
+The Studio app (`Module`: `id: "studio"`, `standalone: { stamp }`, `requires: { audience: "team" }`, Wren's workspace).
 
 | Page | Holds | Built from |
 |---|---|---|
@@ -122,7 +122,30 @@ The Studio app (`Module`: `id: "studio"`, `product: "Studio"`, Wren's workspace)
 | Combos | Shorts and ad combos (D3), formats, the combos batch | new |
 | Publish | Drafts, ads, schedule, live numbers per combo and per part, thumbnail batch | content desk, Vireo live |
 
-Content's page `studio` (`modules/marketing/pages.ts:120`) gives up the name: the hidden `write` page there becomes its visible page, and `moved.ts` sends old `studio` links on.
+Content's page `studio` (`modules/marketing/pages.ts:120`) keeps its id and its links, and its label becomes "Write". The hidden `write` page stays hidden. No `moved.ts` entry: no address changes.
+
+Edit takes `?project=<id>` (Finish on its edit), `?video=<id>` (any recording) or neither (the newest recordings). Publish is Content's drafts page under Studio's name.
+
+States, step 1 (each row is a story in `stories/wren/studio/studio.stories.tsx`):
+
+| Page | State | Shows | Enters on | Next | Motion |
+|---|---|---|---|---|---|
+| Projects | loading | skeleton rows | open | typical, empty, failed | rows fade in (150 ms) |
+| Projects | typical | title, kind, brief, stage tag, "N to score", references | list answers | new project form | none on read |
+| Projects | empty | "No project yet", what a project holds, New project | list answers `[]` | form | none |
+| Projects | load failed | alert with the reason, Try again | list refused (after retries) | loading | none |
+| Projects | long text | titles and briefs wrap whole | worst-case fixture | — | — |
+| New project | open | title, kind (Long video, Short, Ad, Demo), Add, Cancel | New project | added, add failed, closed | form fades in (150 ms) |
+| New project | added | the project heads the list | add answers | typical | new row fades in (150 ms) |
+| New project | add failed | the reason under the form; typed words stay | add refused | open | none |
+| Inspiration | typical | outliers, best multiple first | open | — | as Outliers |
+| Edit | no project | newest recordings, each opens here | `/studio/edit` | a video | as Write's shelf |
+| Edit | not filmed | title, how to tie a recording, Copy the command | `?project=` with no edit | — | none |
+| Edit | no such project | "This project isn't here", All projects | `?project=` unknown | Projects | none |
+| Edit | project filmed | Finish on its edit, back to Projects | `?project=` with an edit | — | as Finish |
+| Publish | typical | the drafts table | open | — | as drafts |
+| All | narrow (390) | top bar with stamp and name; page tabs under the Studio header | width | — | — |
+| All | wide (1280) | stamp, "Studio / name", sidebar of four pages | width | — | — |
 
 ### D7. Commands
 
@@ -131,7 +154,7 @@ Agent drives, code is tools. JSON out.
 - `wren project new|show|list|set` (`video_projects`; `set` writes title, brief, kind, inspiration).
 - `wren project part add|set|choose` (`video_script_parts`; `choose` sets `chosen`).
 - `wren project combos propose|add|render` (`video_combos`; `render` adds the Vireo sample).
-- `wren video add --project <id>` (sets `edit_id`, writes the script).
+- `wren video add --project <id>` (sets `edit_id`, writes the script); `wren project film <id> <video>` ties a recording made outside it.
 - Vireo batches through `wren variants` as now.
 
 ## Build order
@@ -155,3 +178,4 @@ The meta video films this build: autobrowse takes of each page as it lands.
 
 - 2026-11-13: William set the shape (sub-sidebar pages, standalone look, hooks in scripts, tests embedded, combos for shorts and ads); shell and address left to us.
 - 2026-11-13: goldfish review: 45 findings (critic 15, reader 16, zoom-out 6, overlaps merged), 27 applied, 8 rejected or shrunk (host deferred so its path map and cookie points drop; variant rows replaced by Vireo samples; balanced-grid fit dropped). Picked D1 A without `stage` (Pieces), D2 variants in Vireo, D3 A one recording, D4 `OneBatch` embedded, D5 A one-app frame on `app.` (host deferred). Open: none for William; spend on ads waits on his yes at step 4.
+- 2026-11-13: step 1 built. D5 changed: the frame is always on for `/studio/*` (a `?frame=` param drops on in-page links), the viewer's name replaces the workspace, Studio stays a Wren sidebar place with no link back. D6 changed: Content's `studio` page keeps its id and is relabeled "Write" (no address moves). State table added.

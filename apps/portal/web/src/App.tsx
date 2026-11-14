@@ -338,6 +338,8 @@ export function App() {
     installed,
   });
   const here = apps.find((m) => m.id === route.path[0]);
+  // a product of its own (Studio): its pages alone, no Wren navigation
+  const alone = here?.standalone ? { app: here, stamp: here.standalone.stamp } : undefined;
   const pages = here?.pages.map((p) => p.id).join(",");
   // biome-ignore lint/correctness/useExhaustiveDependencies: `pages` names what `here` gives.
   const keys = useMemo(() => goKeys(here), [here?.id, pages]);
@@ -346,9 +348,9 @@ export function App() {
   const cards = apps.filter((m) => !m.menu);
   const [only] = cards;
   // One app needs no Today: its first page is home.
-  const launcher = cards.length > 1 ? "/" : undefined;
+  const launcher = cards.length > 1 && !alone ? "/" : undefined;
   const homeLabel = homeOf(team);
-  const home = launcher ?? (only ? firstOf(only) : "/");
+  const home = alone ? firstOf(alone.app) : (launcher ?? (only ? firstOf(only) : "/"));
   // A client's account is Back office (places.ts).
   const account = team ? undefined : apps.find((m) => m.id === "office");
 
@@ -455,9 +457,10 @@ export function App() {
   // A route's loader reads ahead in this workspace; a sample reads nothing ahead.
   setWorkspace(current && me.data ? { id: current.id, team, demo: sample } : null);
   const label = at.kind === "page" ? at.page.label : at.kind === "launcher" ? "Today" : null;
+  const tabName = alone ? alone.app.name : current && `${current.name} · Wren Client Portal`;
   useEffect(() => {
-    if (label && current) document.title = `${label} · ${current.name} · Wren Client Portal`;
-  }, [label, current]);
+    if (label && tabName) document.title = `${label} · ${tabName}`;
+  }, [label, tabName]);
 
   if (me.error && !me.data)
     return (
@@ -542,7 +545,7 @@ export function App() {
         ...(waiting[m.id]?.[p.id] ? { count: waiting[m.id]?.[p.id] } : {}),
       })),
   });
-  const fixed = sidebarOf(cards);
+  const fixed = alone ? [] : sidebarOf(cards);
   const listed = new Set(fixed.map((f) => f.app.id));
   // Wren's home is the Map place's row: `/` draws the metro map, its pages fold under it.
   const homeRow = team && listed.has("map") ? "map" : undefined;
@@ -559,37 +562,38 @@ export function App() {
     : undefined;
 
   // A phone's bottom tabs at home: the Map, then Inbox, People and his first pin; Apps comes after.
-  const dock: DockItem[] | undefined = launcher
-    ? [
-        // The Map's number is its Move lines (Wren's only): what waits on him, across the apps.
-        {
-          id: "home",
-          label: homeLabel,
-          icon: homeIcon(homeLabel),
-          href: launcher,
-          count: wren ? moves.count : undefined,
-          on: !open,
-        },
-        ...dockOf(cards, pins).map((d) =>
-          "pin" in d
-            ? {
-                id: `pin:${d.pin.href}`,
-                label: d.pin.label,
-                icon: d.pin.icon,
-                href: d.pin.href,
-                on: onPage === d.pin.href,
-              }
-            : {
-                id: d.app.id,
-                label: d.label,
-                icon: d.app.icon,
-                href: firstOf(d.app),
-                count: appTotal(waiting[d.app.id]),
-                on: open?.module.id === d.app.id,
-              },
-        ),
-      ]
-    : undefined;
+  const dock: DockItem[] | undefined =
+    launcher && !alone
+      ? [
+          // The Map's number is its Move lines (Wren's only): what waits on him, across the apps.
+          {
+            id: "home",
+            label: homeLabel,
+            icon: homeIcon(homeLabel),
+            href: launcher,
+            count: wren ? moves.count : undefined,
+            on: !open,
+          },
+          ...dockOf(cards, pins).map((d) =>
+            "pin" in d
+              ? {
+                  id: `pin:${d.pin.href}`,
+                  label: d.pin.label,
+                  icon: d.pin.icon,
+                  href: d.pin.href,
+                  on: onPage === d.pin.href,
+                }
+              : {
+                  id: d.app.id,
+                  label: d.label,
+                  icon: d.app.icon,
+                  href: firstOf(d.app),
+                  count: appTotal(waiting[d.app.id]),
+                  on: open?.module.id === d.app.id,
+                },
+          ),
+        ]
+      : undefined;
 
   // The app's action opens its page: one way in, not a tab as well.
   const openTabs = open
@@ -619,13 +623,26 @@ export function App() {
         {/* A failure's raw text, under its plain sentence: Wren's team only. */}
         <ShowRawErrors value={team}>
           <AppShell
-            brand={{ name: "Wren", href: home, stamp: STAMP }}
-            workspace={{
-              current,
-              chip: demo ? { label: "Sample company", href: `/${REACTIVATION}/real` } : undefined,
-              href: account ? firstOf(account) : undefined,
-              label: "Account",
-            }}
+            brand={
+              alone
+                ? { name: alone.app.name, href: home, stamp: alone.stamp }
+                : { name: "Wren", href: home, stamp: STAMP }
+            }
+            workspace={
+              alone
+                ? {
+                    current: current && { id: current.id, name: me.data?.name ?? "You" },
+                    label: "",
+                  }
+                : {
+                    current,
+                    chip: demo
+                      ? { label: "Sample company", href: `/${REACTIVATION}/real` }
+                      : undefined,
+                    href: account ? firstOf(account) : undefined,
+                    label: "Account",
+                  }
+            }
             launcher={launcher}
             home={
               launcher
@@ -635,7 +652,7 @@ export function App() {
             areas={areas}
             dock={dock}
             bar={viewing ? <ViewAsStrip me={me.data} /> : undefined}
-            pins={railPins}
+            pins={alone ? undefined : railPins}
             app={
               open
                 ? {
@@ -667,12 +684,12 @@ export function App() {
             }
             actions={
               <>
-                {operator && !viewing && onDemo === false ? (
+                {operator && !viewing && onDemo === false && !alone ? (
                   <Button tone="quiet" size="sm" onClick={() => openViewAs()}>
                     View as
                   </Button>
                 ) : null}
-                {account ? (
+                {account && !alone ? (
                   <ButtonLink href={firstOf(account)} tone="quiet" size="sm">
                     Account
                   </ButtonLink>
@@ -693,7 +710,7 @@ export function App() {
             theme={theme}
             display={display}
             customize={
-              wren ? (
+              wren && !alone ? (
                 <a className={MORE_LINK} href="/office/look">
                   Colors and type
                 </a>
@@ -816,7 +833,7 @@ export function App() {
         {!operator && onDemo === false && current && current.id !== WREN.id ? (
           <SurveyCard client={current.id} />
         ) : null}
-        {jump === null ? null : (
+        {jump === null || alone ? null : (
           <Suspense fallback={null}>
             <CommandPalette
               open={jump}

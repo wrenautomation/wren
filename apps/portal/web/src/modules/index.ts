@@ -9,6 +9,7 @@ import { canon } from "./canon/index.js";
 import { explorer } from "./explorer/index.js";
 import { CLIENT_PLACES, TEAM_PLACES } from "./places.js";
 import { research } from "./research/index.js";
+import { studio } from "./studio/index.js";
 import { variants } from "./variants/index.js";
 
 export const MODULES: Module[] = [
@@ -20,6 +21,7 @@ export const MODULES: Module[] = [
   aerie,
   variants,
   explorer,
+  studio,
 ];
 
 /**

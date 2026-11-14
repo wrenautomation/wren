@@ -98,13 +98,13 @@ function StudioHome(props: PageProps) {
         hero
         kicker={
           <>
-            Studio · <span className="max-sm:hidden">{weekOf()}</span>
+            Write · <span className="max-sm:hidden">{weekOf()}</span>
             <span className="sm:hidden">this week</span>
           </>
         }
         title={
           !plan.data || n === 0 ? (
-            "Studio"
+            "Write"
           ) : (
             <>
               <span className="max-sm:hidden">The plan still asks for {pieces}</span>

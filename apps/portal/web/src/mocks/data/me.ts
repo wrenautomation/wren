@@ -36,5 +36,6 @@ export const OWNER: Me = {
 export const ADMIN: Me = {
   ...OWNER,
   operator: true,
+  name: "Avery",
   team: { role: "admin", wren: [...PERMISSIONS], flags: {} },
 };

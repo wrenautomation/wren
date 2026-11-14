@@ -128,6 +128,7 @@ import {
   withFallback,
   wordAt,
 } from "@wren/starling-studio";
+import { linkEdit, showProject } from "@wren/starling-studio/projects";
 import { capturePage } from "@wren/video";
 import type { Command } from "commander";
 import { desc, sql } from "drizzle-orm";
@@ -220,6 +221,7 @@ export function registerStudio(
     .option("--offset <s>", "camera minus main seconds, when the camera file has no audio", Number)
     .option("--model <file>", "a whisper.cpp model other than large-v3-turbo")
     .option("--no-align", "keep whisper's word times (skip the WhisperX pass)")
+    .option("--project <id>", "the Studio project this recording films (`wren project`)")
     .addHelpText("after", OBS_NOTE)
     .action(
       async (
@@ -231,8 +233,14 @@ export function registerStudio(
           offset?: number;
           model?: string;
           align: boolean;
+          project?: string;
         },
       ) => {
+        const projectId = o.project === undefined ? undefined : Number(o.project);
+        if (projectId !== undefined && !(Number.isInteger(projectId) && projectId > 0))
+          throw new Error(`--project takes a project id: ${o.project}`);
+        // refused before the long ingest, not after it
+        if (projectId !== undefined) await withDb((db) => showProject(db, projectId));
         const camBox = o.cam?.split(",").map(Number);
         if (camBox && (camBox.length !== 4 || camBox.some((n) => !(n >= 0))))
           throw new Error("--cam is x,y,w,h in pixels");
@@ -257,6 +265,10 @@ export function registerStudio(
             log: (l) => console.log(l),
           }),
         );
+        if (projectId !== undefined) {
+          await withDb((db) => linkEdit(db, projectId, e.id));
+          console.log(`project ${projectId} films video ${e.id}`);
+        }
         const cut = e.cuts.filter((c) => c.state === "cut");
         console.log(
           `video ${e.id}: ${e.words.length} words, ${cut.length} silence cuts (${cut.reduce((n, c) => n + c.to - c.from, 0).toFixed(1)}s), ${e.cuts.length - cut.length} proposals${e.tracks.cam ? `, camera offset ${e.tracks.cam.offsetS}s` : ""}`,

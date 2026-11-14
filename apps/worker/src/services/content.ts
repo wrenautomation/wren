@@ -37,6 +37,7 @@ import {
   makeSocialDesk,
   makeSocialPush,
   makeVideoDesk,
+  makeVideoProjects,
   socialPushed,
 } from "@wren/starling-inbound/restate";
 import { draftDm } from "@wren/starling-outbound";
@@ -84,6 +85,8 @@ export function contentServices(deps: Deps): AnyService[] {
     }),
     // Marketing's Today and Pieces: each piece with its branches (designs/2026-10-13-primitives-first.md).
     makePieces({ db, site: settings.siteBaseUrl.replace(/\/+$/, "") }),
+    // Studio's Projects: a video from the idea on (designs/2026-11-13-studio-suite.md).
+    makeVideoProjects({ db }),
   ];
   // Content channels (LinkedIn, YouTube) over autobrowse's `sites` service, as the `Content` service.
   // Bound with no channel of Wren's too: a client's connected accounts post and read through it.

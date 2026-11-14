@@ -25,7 +25,7 @@ export function said<P extends string>(results: Result<P>[], go: Go, name: Recor
     made.length === 0
       ? "Nothing was made."
       : go === "draft"
-        ? `${made.length} saved as drafts. They wait in Studio.`
+        ? `${made.length} saved as drafts. They wait in Write.`
         : go === "now"
           ? `${made.length} posting on the next pass, within a few minutes.`
           : `${made.length} scheduled at the next slots.`,

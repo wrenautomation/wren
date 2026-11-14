@@ -13,6 +13,7 @@
     "./player": "./frames/player.tsx",
     "./edit": "./src/edit.ts",
     "./marks": "./src/marks.ts",
+    "./projects": "./src/projects.ts",
     "./presence": "./src/presence.ts",
     "./change": "./src/change.ts",
     "./storyboard": "./src/storyboard.ts",

@@ -25,9 +25,9 @@ export const studioVideos = <T extends ListPage>(page: T): T => {
   return page;
 };
 
-/** Studio's link to a video's editor. */
-const studioVideoHref = (id: string | number, keep?: URLSearchParams) =>
-  href(STUDIO, { video: String(id), make: null }, keep);
+/** A video's editor, on the page at `at`. */
+const studioVideoHref = (id: string | number, keep?: URLSearchParams, at = STUDIO) =>
+  href(at, { video: String(id), make: null }, keep);
 
 const shelf = () =>
   wrenRecords("marketing").list({
@@ -59,7 +59,8 @@ function Poster({ thumb, title }: { thumb: Thumb | undefined; title: string }) {
   );
 }
 
-export function VideoShelf({ params }: { params: URLSearchParams }) {
+/** `at`: the page that opens each video (Write, or the Studio app's Edit). */
+export function VideoShelf({ params, at = STUDIO }: { params: URLSearchParams; at?: string }) {
   const load = useCall("studio:shelf", shelf);
   const pieces = usePieces();
   const byVideo = new Map(
@@ -95,7 +96,7 @@ export function VideoShelf({ params }: { params: URLSearchParams }) {
           stop.
         </Empty>
       ) : (
-        <ul className="m-0 grid list-none gap-3 p-0 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))] max-[640px]:-mx-4 max-[640px]:flex max-[640px]:snap-x max-[640px]:snap-mandatory max-[640px]:overflow-x-auto max-[640px]:px-4 max-[640px]:pb-2 max-[640px]:[scrollbar-width:none]">
+        <ul className="m-0 grid list-none gap-3 p-0 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))] max-[640px]:-mx-4 max-[640px]:flex max-[640px]:snap-x max-[640px]:snap-mandatory max-[640px]:overflow-x-auto max-[640px]:scroll-px-4 max-[640px]:px-4 max-[640px]:pb-2 max-[640px]:[scrollbar-width:none]">
           {rows.map((r) => {
             const went = wentTo(byVideo.get(String(r.id)));
             const s = shelfState(r, went.length > 0);
@@ -105,7 +106,7 @@ export function VideoShelf({ params }: { params: URLSearchParams }) {
                 className="min-w-0 max-[640px]:w-[72%] max-[640px]:shrink-0 max-[640px]:snap-start"
               >
                 <a
-                  href={studioVideoHref(r.id, params)}
+                  href={studioVideoHref(r.id, params, at)}
                   className={cx(CARD, LIFT, "group grid overflow-hidden")}
                 >
                   <span className="relative block aspect-video overflow-hidden bg-black">
@@ -144,8 +145,13 @@ export function VideoShelf({ params }: { params: URLSearchParams }) {
   );
 }
 
-/** A video's editor inside Studio: the Recordings page's record, full width, back to Studio. */
-export function StudioVideo({ id, ...props }: PageProps & { id: string }) {
+/** A video's editor in place: the Recordings page's record, full width, back to the page at `at`. */
+export function StudioVideo({
+  id,
+  at = STUDIO,
+  back,
+  ...props
+}: PageProps & { id: string; at?: string; back?: { href: string; label: string } }) {
   if (!videos) return null;
   return (
     <TemplatePage
@@ -154,8 +160,8 @@ export function StudioVideo({ id, ...props }: PageProps & { id: string }) {
       path="/campaigns/videos"
       id={id}
       app="marketing"
-      at={STUDIO}
-      back={{ href: href(STUDIO, { video: null }, props.params), label: "Studio" }}
+      at={at}
+      back={back ?? { href: href(at, { video: null }, props.params), label: "Write" }}
       wide
     />
   );

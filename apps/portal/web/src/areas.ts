@@ -22,6 +22,7 @@ const PLACES = [
   { label: "Explorer", app: "explorer", area: "work" },
   { label: "Research", app: "research", area: "work" },
   { label: "Variants", app: "variants", area: "work" },
+  { label: "Studio", app: "studio", area: "work" },
   { label: "Canon", app: "canon", area: "work" },
   { label: "Aerie", app: "aerie", area: "work" },
   { label: "People", app: "people", area: "core" },

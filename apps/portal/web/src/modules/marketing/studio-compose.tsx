@@ -69,7 +69,7 @@ function summary(posts: { results: WriteResult[] }[], go: Go): string[] {
     made.length === 0
       ? "Nothing was made."
       : go === "draft"
-        ? `${made.length} saved as drafts. They wait in Studio.`
+        ? `${made.length} saved as drafts. They wait in Write.`
         : go === "now"
           ? `${made.length} posting on the next pass, within a few minutes.`
           : `${made.length} scheduled: ${made
@@ -174,7 +174,7 @@ export function Compose(
       ) : make === "video" ? (
         <Section>
           <p className={cx("m-0 max-w-[70ch] text-[13.5px]", QUIET)}>
-            A video starts from a recording. Record with OBS or Cap on the Mac. It shows in Studio's
+            A video starts from a recording. Record with OBS or Cap on the Mac. It shows in Write's
             videos a minute after you stop, and the editor cuts it for you to review.
           </p>
         </Section>
