@@ -119,7 +119,9 @@ const COUNTS: [CountKey, IconName, string][] = [
   ["shares", "repeat", "shares"],
   ["saves", "bookmark", "saves"],
 ];
-const isVideo = (r: FeedPost) => ["video", "short", "reel", "live"].includes(r.kind);
+/** a video kind, or a post with a copied video (an X post with a clip) */
+const isVideo = (r: FeedPost) =>
+  r.videoSrc != null || ["video", "short", "reel", "live"].includes(r.kind);
 /** views on a video read as plays (TikTok, YouTube) */
 const countIcon = (r: FeedPost, k: CountKey): IconName =>
   k === "views" && isVideo(r) ? "play" : (COUNTS.find(([c]) => c === k)?.[1] ?? "dot");

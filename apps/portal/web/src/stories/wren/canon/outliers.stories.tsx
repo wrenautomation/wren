@@ -424,6 +424,78 @@ export const DetailAlsoOn = tidy(
   }),
 );
 
+/** A copied video (WA-1391): it plays on open, muted, with its controls in view. */
+export const DetailVideo = tidy(
+  pageAt("/canon/outliers?post=instagram:FakeReel007", {
+    me: ADMIN,
+    answers: { "canon/feed": OUTLIERS },
+    check: async () => {
+      const box = await panel();
+      const video = box.getByLabelText("Reel by Maya Cuts") as HTMLVideoElement;
+      await expect(video.tagName).toBe("VIDEO");
+      await expect(video).toHaveAttribute("src", "/outliers/reel.mp4");
+      await expect(video.muted).toBe(true);
+      await waitFor(() => expect(video.paused).toBe(false), WAIT);
+      // the whole frame fits the sheet: its controls show without a scroll
+      await expect(video.getBoundingClientRect().bottom).toBeLessThanOrEqual(window.innerHeight);
+    },
+  }),
+);
+
+/**
+ * YouTube, or a reel IG gave no file of: its picture behind Play; the player loads only on the click,
+ * a ring on Play until it does.
+ */
+export const DetailEmbed = tidy(
+  pageAt("/canon/outliers?post=youtube:FakeVid0002", {
+    me: ADMIN,
+    check: async () => {
+      const box = await panel();
+      const frame = () => document.querySelector("[role=dialog] iframe");
+      await expect(frame()).toBeNull();
+      await userEvent.click(box.getByRole("button", { name: /^Play / }));
+      await waitFor(() => expect(frame()).not.toBeNull(), WAIT);
+      await expect(box.getByRole("button", { name: /^Loading / })).toHaveAttribute(
+        "aria-busy",
+        "true",
+      );
+      await expect(frame()?.getAttribute("src")).toMatch(
+        /^https:\/\/www\.youtube-nocookie\.com\/embed\//,
+      );
+    },
+  }),
+);
+
+/**
+ * A mouse that rests on a tile with a copied video plays it, muted, over the picture; leave stops
+ * it. Reduced motion (the test browsers): the tile stays still.
+ */
+export const TileHover = tidy(
+  pageAt("/canon/outliers", {
+    me: ADMIN,
+    answers: { "canon/feed": OUTLIERS },
+    check: async (page) => {
+      const tile = (await within(page).findByText(/^Day 3 of editing/, {}, WAIT)).closest(
+        "article",
+      ) as HTMLElement;
+      await expect(tile.querySelector("video")).toBeNull();
+      await userEvent.hover(tile);
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        await new Promise((r) => setTimeout(r, 400));
+        await expect(tile.querySelector("video")).toBeNull();
+        return;
+      }
+      await waitFor(() => {
+        const v = tile.querySelector("video");
+        expect(v?.muted).toBe(true);
+        expect(getComputedStyle(v as HTMLVideoElement).opacity).toBe("1");
+      }, WAIT);
+      await userEvent.unhover(tile);
+      await waitFor(() => expect(tile.querySelector("video")).toBeNull(), WAIT);
+    },
+  }),
+);
+
 const R = OUTLIER_ROWS as (typeof OUTLIER_ROWS)[number][];
 const WORDS = [
   R[1],

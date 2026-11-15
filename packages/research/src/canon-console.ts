@@ -539,9 +539,14 @@ export interface FeedAsk {
 }
 /**
  * A post as the page shows it: `src` its small picture (the tile), `full` the whole one (the
- * detail); from the CDN, else signed from the bucket, else the platform's own link.
+ * detail); from the CDN, else signed from the bucket, else the platform's own link. `videoSrc`: its
+ * copied video, the same way (WA-1391).
  */
-export type FeedPost = FeedRow & { src: string | null; full: string | null };
+export type FeedPost = FeedRow & {
+  src: string | null;
+  full: string | null;
+  videoSrc: string | null;
+};
 /** A creator person as the strip and the filter show them: `src`, their face, signed. */
 export type FeedPersonShown = FeedPerson & { src: string | null };
 export interface FeedPage extends Omit<FeedFacets, "people"> {
@@ -583,7 +588,12 @@ async function feedPage(db: Db, media: Media | null, a: FeedAsk): Promise<FeedPa
     rows: await Promise.all(
       rows.map(async (r) => {
         const full = await sign(r.picture, r.pictureLink);
-        return { ...r, src: r.pictureSmall ? await sign(r.pictureSmall, full) : full, full };
+        return {
+          ...r,
+          src: r.pictureSmall ? await sign(r.pictureSmall, full) : full,
+          full,
+          videoSrc: await sign(r.video, null),
+        };
       }),
     ),
   };

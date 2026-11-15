@@ -14,10 +14,11 @@
 # img-src https: Research's run graph draws each page's own picture (og:image), a video's still and a
 # site's icon from any host (modules/research/graph.ts); through /media, one view costs 100+ Worker calls.
 # The graph's <img> sends no referrer. A TikTok avatar is TikTok's CDN; a post's video preview is a signed S3 link (media-src).
+# media-src cloudfront: Outliers plays a creator post's copied video from the media CDN (WREN_MEDIA_ORIGIN, WA-1391).
 # style-src hashes: the stylesheets of a site page's and a slide's preview, srcdoc frames that keep
 # this policy (test/preview-styles.test.ts names a changed one).
 /*
-  Content-Security-Policy: default-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob: https://*.s3.us-east-1.amazonaws.com; style-src 'self' 'sha256-3ujlhpl+EV0g5RElZhtAkAmAQtjKr3SFJ1zM+XJZslY=' 'sha256-QcvA7qH8btG+M8jA1iC9hSD+LThUanM9HZ0xqGOfTjo='; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' http://127.0.0.1:4747 http://127.0.0.1:4748 ws://127.0.0.1:4748 https://auth.wrenautomation.com https://*.s3.us-east-1.amazonaws.com https://registry.npmjs.org https://huggingface.co https://*.hf.co; frame-src 'self' https://www.youtube-nocookie.com https://www.instagram.com https://www.tiktok.com https://platform.twitter.com https://*.pages.dev; frame-ancestors 'none'; base-uri 'none'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob: https://*.s3.us-east-1.amazonaws.com https://*.cloudfront.net; style-src 'self' 'sha256-3ujlhpl+EV0g5RElZhtAkAmAQtjKr3SFJ1zM+XJZslY=' 'sha256-QcvA7qH8btG+M8jA1iC9hSD+LThUanM9HZ0xqGOfTjo='; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' http://127.0.0.1:4747 http://127.0.0.1:4748 ws://127.0.0.1:4748 https://auth.wrenautomation.com https://*.s3.us-east-1.amazonaws.com https://registry.npmjs.org https://huggingface.co https://*.hf.co; frame-src 'self' https://www.youtube-nocookie.com https://www.instagram.com https://www.tiktok.com https://platform.twitter.com https://*.pages.dev; frame-ancestors 'none'; base-uri 'none'; form-action 'self'
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex

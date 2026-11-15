@@ -7,8 +7,8 @@
  * desk's own (a rendered video on the Mac): it stays a path, and the desk reads its disk.
  */
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { createReadStream, existsSync } from "node:fs";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import { extname } from "node:path";
 import {
   GetObjectCommand,
@@ -181,7 +181,9 @@ export async function putKey(
     new PutObjectCommand({
       Bucket: o.bucket,
       Key: key,
-      Body: await readFile(path),
+      // streamed: a video can be hundreds of MB
+      Body: createReadStream(path),
+      ContentLength: (await stat(path)).size,
       ContentType: MEDIA_TYPES[extname(path).toLowerCase()] ?? "application/octet-stream",
       ...(cacheControl ? { CacheControl: cacheControl } : {}),
     }),

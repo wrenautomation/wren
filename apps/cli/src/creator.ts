@@ -1,13 +1,17 @@
 /**
- * `wren creator add | list | remove | refresh | pictures | rescore | promote` and `wren feed`: the creator index
+ * `wren creator add | list | remove | refresh | pictures | videos | rescore | promote` and `wren feed`: the creator index
  * (designs/2026-11-12-eden-method.md §3, option A). Reads go through `weaver posts` (the key-gate
  * shim); rows land in `tracked_creators`, `creator_posts` and the day tables; promote writes Canon.
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { createWriteStream } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import type { ReadableStream as WebStream } from "node:stream/web";
 import { parseHandle } from "@wren/core/touches";
 import type { Db } from "@wren/db";
 import {
@@ -36,10 +40,13 @@ import {
   rescore,
   setAvatar,
   setPicture,
+  setVideo,
   smallKeyOf,
   smallsToMake,
   trackCreator,
   untrackCreator,
+  videoKeyOf,
+  videosToCopy,
 } from "@wren/research/creators";
 import { getKey, type MediaStoreOptions, putKey } from "@wren/starling-inbound";
 import type { Command } from "commander";
@@ -129,11 +136,6 @@ const feedLine = (p: FeedRow) =>
   ].join("  ");
 
 /**
- * Each post's picture and each profile picture into the media bucket, once (studio-suite D8 B,
- * D10): IG's links expire in days. A link the platform refuses (4xx) marks the row `''`, so no run
- * asks again. A fresh read (`creatorIds`) copies its profile picture again: the link may change.
- */
-/**
  * The small copy a tile or a face shows (WA-1390): webp, its short side 640 px (a 250 px tile at
  * 2x, landscape too) or 192 for a face; never larger than the full one. Named by its hash, so
  * kept for good. `''`: the picture would not decode.
@@ -187,6 +189,11 @@ async function makeSmalls(
   return out;
 }
 
+/**
+ * Each post's picture and each profile picture into the media bucket, once (studio-suite D8 B,
+ * D10): IG's links expire in days. A link the platform refuses (4xx) marks the row `''`, so no run
+ * asks again. A fresh read (`creatorIds`) copies its profile picture again: the link may change.
+ */
 async function copyPictures(
   db: Db,
   media: MediaStoreOptions,
@@ -227,6 +234,48 @@ async function copyPictures(
         // a face's key is rewritten on a fresh read: a day, not for good
         await putKey(file, t.key, media, "public, max-age=86400");
         await t.mark(t.key, await putSmall(file, t.key, media));
+        out.copied++;
+      } catch {
+        // a 5xx or a timeout: the next run asks again
+        out.failed++;
+      }
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+  return out;
+}
+
+/**
+ * Each IG reel's and X video's file into the media bucket, once (WA-1391), streamed to disk: a
+ * video can be hundreds of MB. A refused link (4xx) marks the row `''`. Named by ref: a post's
+ * video never changes, so kept for good.
+ */
+async function copyVideos(
+  db: Db,
+  media: MediaStoreOptions,
+  o: { creatorIds?: number[]; limit?: number } = {},
+): Promise<{ copied: number; gone: number; failed: number }> {
+  const todo = await videosToCopy(db, o);
+  const out = { copied: 0, gone: 0, failed: 0 };
+  if (!todo.length) return out;
+  const dir = await mkdtemp(join(tmpdir(), "creator-videos-"));
+  try {
+    for (const v of todo) {
+      try {
+        const res = await fetch(v.link, { signal: AbortSignal.timeout(300_000) });
+        if (res.status >= 400 && res.status < 500) {
+          await setVideo(db, v.platform, v.ref, "");
+          out.gone++;
+          continue;
+        }
+        if (!res.ok || !res.body || !res.headers.get("content-type")?.startsWith("video/"))
+          throw new Error(`${res.status} ${res.headers.get("content-type")}`);
+        const file = join(dir, "v.mp4");
+        await pipeline(Readable.fromWeb(res.body as WebStream), createWriteStream(file));
+        const key = videoKeyOf(v.platform, v.ref);
+        await putKey(file, key, media, "public, max-age=31536000, immutable");
+        await setVideo(db, v.platform, v.ref, key);
         out.copied++;
       } catch {
         // a 5xx or a timeout: the next run asks again
@@ -415,9 +464,17 @@ export function registerCreator(
             try {
               const read = readCreator(c.url, o.posts ?? READ_POSTS, accounts);
               const kept = await keepCreatorRead(db, c.id, read, day);
-              // right after the read: IG's picture links are freshest now
-              const pictures = media ? await copyPictures(db, media, { creatorIds: [c.id] }) : null;
-              out.push({ id: c.id, handle: c.handle, ...kept, ...(pictures ? { pictures } : {}) });
+              // right after the read: IG's picture and video links are freshest now
+              const mine = { creatorIds: [c.id] };
+              const pictures = media ? await copyPictures(db, media, mine) : null;
+              const videos = media ? await copyVideos(db, media, mine) : null;
+              out.push({
+                id: c.id,
+                handle: c.handle,
+                ...kept,
+                ...(pictures ? { pictures } : {}),
+                ...(videos ? { videos } : {}),
+              });
             } catch (e) {
               const error = e instanceof Error ? e.message : String(e);
               await markReadFailed(db, c.id, error);
@@ -447,6 +504,27 @@ export function registerCreator(
             })),
             smalls: await makeSmalls(db, media, o.limit ? { limit: o.limit } : {}),
           }),
+        );
+      }),
+    );
+
+  creator
+    .command("videos")
+    .description(
+      "copy IG reels' and X videos' files into the media bucket (cache/posts/); refresh does it per creator, this catches up. IG's links expire in days",
+    )
+    .option("--id <n...>", "only these creators", (v, acc: number[] = []) => [...acc, int(v)])
+    .option("--limit <n>", "posts a run (default 500)", int)
+    .action((o: { id?: number[]; limit?: number }) =>
+      withDb(async (db) => {
+        if (!media) throw new Error("creator videos needs WREN_MEDIA_BUCKET");
+        console.log(
+          JSON.stringify(
+            await copyVideos(db, media, {
+              ...(o.id?.length ? { creatorIds: o.id } : {}),
+              ...(o.limit ? { limit: o.limit } : {}),
+            }),
+          ),
         );
       }),
     );

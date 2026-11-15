@@ -517,6 +517,8 @@ export interface FeedRow {
   pictureSmall: string | null;
   /** the platform's own picture link, from the stored item; IG links expire in days */
   pictureLink: string | null;
+  /** its video in the media bucket (`videoKeyOf`), once copied; `''` refused */
+  video: string | null;
 }
 
 const str = (v: unknown) => (typeof v === "string" && v ? v : null);
@@ -552,6 +554,59 @@ function pictureLinkOf(platform: string, ref: string, raw: unknown): string | nu
     );
   if (platform === "youtube") return `https://i.ytimg.com/vi/${ref}/hqdefault.jpg`;
   return null;
+}
+
+/**
+ * A post's video file from the item a read stored (WA-1391): IG's `media_url` (left out for a reel
+ * with licensed music; expires in days), X's best mp4. YouTube gives none: its player plays it.
+ */
+function videoLinkOf(platform: string, raw: unknown): string | null {
+  if (platform === "instagram")
+    return at(raw, "media_type") === "VIDEO" ? str(at(raw, "media_url")) : null;
+  if (platform === "x") {
+    const media = (at(raw, "legacy", "extended_entities", "media") ??
+      at(raw, "quoted_status_result", "result", "legacy", "extended_entities", "media")) as unknown;
+    const variants = at(media, 0, "video_info", "variants");
+    if (!Array.isArray(variants)) return null;
+    const best = variants
+      .filter((v) => at(v, "content_type") === "video/mp4" && str(at(v, "url")))
+      .sort((a, b) => Number(at(b, "bitrate") ?? 0) - Number(at(a, "bitrate") ?? 0))[0];
+    return best ? str(at(best, "url")) : null;
+  }
+  return null;
+}
+
+/** The bucket key a post's video is copied to: by ref, a post's video never changes. */
+export const videoKeyOf = (platform: string, ref: string) =>
+  `cache/posts/${platform}/${ref.replace(/[^\w.-]/g, "_")}.mp4`;
+
+/**
+ * Posts with a video file and no copy yet, newest first: what `creator videos` copies. The link
+ * test runs in SQL, so posts with none never fill the limit.
+ */
+export async function videosToCopy(
+  db: Queryable,
+  o: { creatorIds?: number[]; limit?: number } = {},
+): Promise<{ platform: string; ref: string; link: string }[]> {
+  const rows = await db.execute<{ platform: string; ref: string; raw: unknown }>(sql`select
+      p.platform, p.ref, p.raw from creator_posts p
+    where p.video is null and p.kind <> 'retweet'
+      and ((p.platform = 'instagram' and p.raw->>'media_type' = 'VIDEO' and p.raw ? 'media_url')
+        or (p.platform = 'x' and jsonb_path_exists(p.raw, 'strict $.**.video_info')))
+      ${o.creatorIds?.length ? sql`and p.creator_id in (${list(o.creatorIds)})` : sql``}
+    order by p.posted_at desc nulls last limit ${o.limit ?? 500}`);
+  return [...rows].flatMap((r) => {
+    const link = videoLinkOf(r.platform, r.raw);
+    return link ? [{ platform: r.platform, ref: r.ref, link }] : [];
+  });
+}
+
+/** The video is in the bucket (`''`: the platform refused it). */
+export async function setVideo(db: Queryable, platform: string, ref: string, key: string) {
+  await db
+    .update(cp)
+    .set({ video: key })
+    .where(and(eq(cp.platform, platform), eq(cp.ref, ref)));
 }
 
 /** The bucket key a post's picture is copied to. */
@@ -755,12 +810,13 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     record: string | null;
     picture: string | null;
     picture_small: string | null;
+    video: string | null;
     raw: unknown;
   }>(sql`select * from (select p.platform, p.ref, p.url, p.kind, p.posted_at, p.title, p.text,
       p.creator_id, c.person_id, ${personName} as person,
       h.handle, h.name, c.niches, fo.followers, co.counts, p.score_count, p.multiple,
       p.rank, p.likes_multiple, p.likes_rank, p.baseline_n, p.baseline, p.likes_baseline, p.record,
-      p.picture, p.picture_small, case when p.picture is null then p.raw end as raw,
+      p.picture, p.picture_small, p.video, case when p.picture is null then p.raw end as raw,
       ${key} as sort_key, ${tie} as sort_tie,
       row_number() over (partition by c.person_id order by ${key} desc nulls last, ${tie} desc nulls last) as nth,
       count(*) over (partition by c.person_id)::int as creator_posts,
@@ -808,6 +864,7 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     picture: r.picture,
     pictureSmall: r.picture_small,
     pictureLink: r.picture ? null : pictureLinkOf(r.platform, r.ref, r.raw),
+    video: r.video,
   }));
 }
 

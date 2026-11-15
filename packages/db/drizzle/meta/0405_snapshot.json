@@ -1,6 +1,6 @@
 {
-  "id": "279a172f-631f-4f67-8b0c-713090fdc1b4",
-  "prevId": "656edad2-0051-4f12-a233-c68f65e1b86b",
+  "id": "fe8c0044-2432-4bb3-833f-f4dfd89fb8bc",
+  "prevId": "475b6a1a-3c89-4697-9315-5f7aa2376103",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -14856,6 +14856,18 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "picture_small": {
+          "name": "picture_small",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "video": {
+          "name": "video",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -15157,6 +15169,18 @@
         },
         "record": {
           "name": "record",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "picture": {
+          "name": "picture",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "picture_small": {
+          "name": "picture_small",
           "type": "text",
           "primaryKey": false,
           "notNull": false

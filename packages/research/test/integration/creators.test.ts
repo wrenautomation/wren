@@ -17,10 +17,13 @@ import {
   pictureKeyOf,
   setAvatar,
   setPicture,
+  setVideo,
   smallKeyOf,
   smallsToMake,
   trackCreator,
   untrackCreator,
+  videoKeyOf,
+  videosToCopy,
 } from "../../src/creators.js";
 
 let pg: TestPostgres;
@@ -172,6 +175,86 @@ describe("creators", () => {
     // a small copy that could not be made: the face falls back to the full one
     const facets = await feedFacets(db());
     expect(facets.people[0]?.accounts[0]?.picture).toBe("cache/creators/youtube/maker.jpg");
+  });
+
+  it("copies only posts with a video file: IG reels IG gave a file of, X's best mp4", async () => {
+    const ig = await trackCreator(db(), {
+      platform: "instagram",
+      handle: "maker.ig",
+      niches: [],
+      addedBy: "william",
+    });
+    const x = await trackCreator(db(), {
+      platform: "x",
+      handle: "maker_x",
+      niches: [],
+      addedBy: "william",
+    });
+    const post = (platform: string, id: string, kind: string, data: unknown) => ({
+      platform,
+      id,
+      url: `https://example.test/${id}`,
+      kind,
+      date: daysAgo(1),
+      metrics: { views: 100, likes: 10 },
+      data,
+    });
+    await keepCreatorRead(
+      db(),
+      ig.id,
+      {
+        creator: { platform: "instagram", handle: "maker.ig", url: "https://example.test/ig" },
+        posts: [
+          post("instagram", "reel1", "reel", {
+            media_type: "VIDEO",
+            media_url: "https://cdn.example.test/reel1.mp4",
+          }),
+          // licensed music: IG leaves the file out
+          post("instagram", "reel2", "reel", { media_type: "VIDEO" }),
+          post("instagram", "photo1", "photo", {
+            media_type: "IMAGE",
+            media_url: "https://cdn.example.test/photo1.jpg",
+          }),
+        ],
+      },
+      "2026-11-15",
+    );
+    const variants = [
+      { content_type: "application/x-mpegURL", url: "https://video.example.test/pl.m3u8" },
+      { content_type: "video/mp4", bitrate: 832000, url: "https://video.example.test/low.mp4" },
+      { content_type: "video/mp4", bitrate: 2176000, url: "https://video.example.test/high.mp4" },
+    ];
+    await keepCreatorRead(
+      db(),
+      x.id,
+      {
+        creator: { platform: "x", handle: "maker_x", url: "https://example.test/x" },
+        posts: [
+          post("x", "111", "post", {
+            legacy: { extended_entities: { media: [{ video_info: { variants } }] } },
+          }),
+          post("x", "222", "post", { legacy: { full_text: "words only" } }),
+        ],
+      },
+      "2026-11-15",
+    );
+
+    const todo = await videosToCopy(db());
+    expect(todo.sort((a, b) => a.ref.localeCompare(b.ref))).toEqual([
+      { platform: "x", ref: "111", link: "https://video.example.test/high.mp4" },
+      { platform: "instagram", ref: "reel1", link: "https://cdn.example.test/reel1.mp4" },
+    ]);
+    expect(videoKeyOf("x", "111")).toBe("cache/posts/x/111.mp4");
+    await setVideo(db(), "x", "111", videoKeyOf("x", "111"));
+    // the platform refused it: never asked again
+    await setVideo(db(), "instagram", "reel1", "");
+    expect(await videosToCopy(db())).toEqual([]);
+    expect(await videosToCopy(db(), { creatorIds: [ig.id] })).toEqual([]);
+
+    const feed = await feedPosts(db(), { all: true });
+    expect(feed.find((p) => p.ref === "111")?.video).toBe("cache/posts/x/111.mp4");
+    expect(feed.find((p) => p.ref === "reel1")?.video).toBe("");
+    expect(feed.find((p) => p.ref === "reel2")?.video).toBeNull();
   });
 
   it("joins accounts into one person: feed, filter, groups, facets; reach sorts; removed hides", async () => {

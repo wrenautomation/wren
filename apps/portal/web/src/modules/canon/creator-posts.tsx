@@ -40,7 +40,7 @@ import {
   type ViewTab,
 } from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type PointerEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -786,6 +786,85 @@ function OpenLink({ open, r }: { open: string; r: FeedPost }) {
   );
 }
 
+/** A mouse that can hover, and a viewer who allows motion: the only ones a tile plays for (MV-1). */
+const HOVER_PLAYS =
+  "(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)";
+
+/**
+ * YouTube's grid (WA-1391): a mouse that rests 250 ms on a tile with a copied video plays it, muted.
+ * Never on touch, the keyboard or reduced motion. `on`: the tile's pointer handlers.
+ */
+function useHoverClip(src: string | null) {
+  const [live, setLive] = useState(false);
+  const wait = useRef<number | undefined>(undefined);
+  const [can] = useState(() => typeof matchMedia === "function" && matchMedia(HOVER_PLAYS).matches);
+  useEffect(() => () => window.clearTimeout(wait.current), []);
+  if (!src || !can) return { src: null, live: false, on: {} };
+  return {
+    src,
+    live,
+    on: {
+      onPointerEnter: (e: PointerEvent) => {
+        if (e.pointerType !== "mouse") return;
+        window.clearTimeout(wait.current);
+        wait.current = window.setTimeout(() => setLive(true), 250);
+      },
+      onPointerLeave: () => {
+        window.clearTimeout(wait.current);
+        setLive(false);
+      },
+    },
+  };
+}
+
+/**
+ * The tile's video over its picture: fades in on its first frame, out on leave, then unmounts (no
+ * download for a tile left alone). Zooms with the picture.
+ */
+function HoverClip({ src, live }: { src: string; live: boolean }) {
+  const [mounted, setMounted] = useState(false);
+  const [shown, setShown] = useState(false);
+  const shownNow = useRef(false);
+  shownNow.current = shown;
+  const video = useRef<HTMLVideoElement | null>(null);
+  useEffect(() => {
+    if (live) {
+      setMounted(true);
+      // back on the tile mid fade-out: it still plays, so no new `playing` comes
+      if (video.current && !video.current.paused) setShown(true);
+    }
+    // never shown: nothing to fade
+    else if (!shownNow.current) setMounted(false);
+    else setShown(false);
+  }, [live]);
+  if (!mounted) return null;
+  return (
+    <video
+      ref={(v) => {
+        video.current = v;
+        // the property, not only the attribute: a browser lets only a muted video autoplay
+        if (v) v.muted = true;
+      }}
+      src={src}
+      muted
+      loop
+      autoPlay
+      playsInline
+      preload="auto"
+      aria-hidden
+      tabIndex={-1}
+      onPlaying={() => live && setShown(true)}
+      onTransitionEnd={(e) => {
+        if (e.propertyName === "opacity" && !live) setMounted(false);
+      }}
+      className={cn(
+        "pointer-events-none absolute inset-0 block size-full object-cover opacity-0 transition-[opacity,scale] duration-200 ease-(--ui-ease) group-hover/tile:scale-[1.03] motion-reduce:group-hover/tile:scale-100",
+        shown && "opacity-100",
+      )}
+    />
+  );
+}
+
 /** the gallery grid: 12 px across, 24 px down (D10) */
 const GALLERY =
   "grid grid-cols-2 gap-x-3 gap-y-6 @min-[720px]/main:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]";
@@ -813,13 +892,17 @@ function Tile({
 }) {
   const hot = (r.multiple ?? 0) >= HOT;
   const pic = usePicture(r);
+  const clip = useHoverClip(pic.src ? r.videoSrc : null);
   const ago = age(r.postedAt);
   const words = r.title ?? r.text ?? `${kindName(r.kind)} by ${nameOf(r)}`;
   const perFol = reach ? perFollowerText(r) : null;
   // a text tile already shows its words in the frame
   const hook = pic.src ? hookOf(r) : null;
   return (
-    <article className="group/tile relative grid content-start gap-1.5 rounded-[4px_10px_4px_10px]">
+    <article
+      className="group/tile relative grid content-start gap-1.5 rounded-[4px_10px_4px_10px]"
+      {...clip.on}
+    >
       <div
         className={cn(
           "relative aspect-[4/5] overflow-hidden rounded-[4px_10px_4px_10px] bg-(--ui-hover)",
@@ -849,6 +932,7 @@ function Tile({
             {words}
           </p>
         )}
+        {clip.src ? <HoverClip src={clip.src} live={clip.live} /> : null}
         {canon ? (
           // paper under the tint: it sits on a picture
           <span className="absolute top-2 left-2 rounded-(--ui-leaf-chip) bg-(--ui-paper)">

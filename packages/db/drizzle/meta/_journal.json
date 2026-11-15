@@ -2829,6 +2829,13 @@
       "when": 1794769418079,
       "tag": "0404_creator_picture_small",
       "breakpoints": true
+    },
+    {
+      "idx": 405,
+      "version": "7",
+      "when": 1794776549332,
+      "tag": "0405_creator_post_video",
+      "breakpoints": true
     }
   ]
 }

@@ -136,6 +136,8 @@ export const creatorPosts = pgTable(
     picture: text("picture"),
     /** the tile's picture: `picture` made small (`….small.webp`); null until made */
     pictureSmall: text("picture_small"),
+    /** its video, copied into the media bucket (`cache/posts/<platform>/<ref>.mp4`, WA-1391); `''` refused */
+    video: text("video"),
   },
   (t) => [
     primaryKey({ columns: [t.platform, t.ref], name: "pk_creator_posts" }),

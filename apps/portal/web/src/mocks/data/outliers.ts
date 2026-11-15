@@ -68,6 +68,8 @@ const base = (o: RowIn & Pick<FeedPost, "personId" | "person">): FeedPost => ({
   pictureLink: null,
   src: shot("#6d5bd0", "#e0a458"),
   full: null,
+  video: null,
+  videoSrc: null,
   ...o,
 });
 
@@ -185,6 +187,8 @@ export const OUTLIER_ROWS: FeedPost[] = [
     followers: 31_000,
     niches: ["automation"],
     src: shot("#1f2937", "#4b5563"),
+    video: "cache/posts/x/1890000000000000006.mp4",
+    videoSrc: "/variants/cut-1.mp4",
   }),
   row({
     ref: "FakeReel007",
@@ -206,6 +210,9 @@ export const OUTLIER_ROWS: FeedPost[] = [
     text: "Day 3 of editing one reel a day and today it is the hook: the cut I almost threw away. It ended up doing 10x my usual, so here is the timeline frame by frame.\n\n#editing #reels",
     counts: { views: 3_100, likes: 140 },
     src: shot("#38a169", "#9ae6b4"),
+    // copied: the tile plays it on hover, the panel on open (synthetic, `.storybook/public/outliers`)
+    video: "cache/posts/instagram/FakeReel007.mp4",
+    videoSrc: "/outliers/reel.mp4",
   }),
   row({
     ref: "1890000000000000008",
