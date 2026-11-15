@@ -577,6 +577,12 @@ function avatarLinkOf(platform: string, raw: unknown): string | null {
   if (platform === "instagram") return str(at(raw, "profile_picture_url"));
   if (platform === "x")
     return str(at(raw, "avatar", "image_url"))?.replace("_normal.", "_400x400.") ?? null;
+  if (platform === "youtube")
+    return (
+      str(at(raw, "snippet", "thumbnails", "high", "url")) ??
+      str(at(raw, "snippet", "thumbnails", "medium", "url")) ??
+      str(at(raw, "snippet", "thumbnails", "default", "url"))
+    );
   return (
     str(at(raw, "avatar")) ?? str(at(raw, "avatar", "url")) ?? str(at(raw, "thumbnail")) ?? null
   );
