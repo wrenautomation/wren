@@ -54,6 +54,7 @@ import { s3MediaStore } from "@wrenautomation/read/s3";
 import type { Command } from "commander";
 import {
   fileSourceOf,
+  getCanonFiles,
   POST_LINK,
   posterOf,
   postFiles,
@@ -451,6 +452,23 @@ export function registerCanon(
         why: `source files: ${added.length} kept`,
       });
       console.log(JSON.stringify({ id, files: files.length, added: files.length - kept.length }));
+    });
+
+  source
+    .command("get <id>")
+    .description(
+      "a source's kept files (a picture, slides, a reel's poster) from the bucket into a folder, one path a line, to open with Read",
+    )
+    .option("--out <dir>", "the folder (default: a new temp folder)")
+    .action(async (id: string, o: { out?: string }) => {
+      const fm = loadWorking(root).docs.find((l) => l.doc.fm.id === id)?.doc.fm as
+        | { files?: SourceFile[] }
+        | undefined;
+      if (!fm) throw new Error(`no source ${id}`);
+      if (!fm.files?.length) throw new Error(`${id} keeps no files`);
+      const dir = o.out ? resolve(o.out) : await mkdtemp(join(tmpdir(), `canon-${id}-`));
+      await mkdir(dir, { recursive: true });
+      for (const path of await getCanonFiles(fm.files, dir, bucketOf("files"))) console.log(path);
     });
 
   source

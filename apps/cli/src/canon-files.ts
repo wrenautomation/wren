@@ -110,6 +110,22 @@ export async function fileSourceOf(
   }
 }
 
+/** A source's kept files from the bucket into `dir`, named as kept (slide or time first). */
+export async function getCanonFiles(
+  files: SourceFile[],
+  dir: string,
+  o: MediaStoreOptions,
+): Promise<string[]> {
+  const out: string[] = [];
+  for (const f of files) {
+    const name = f.name ?? basename(f.key);
+    const to = join(dir, f.at ? `${f.at.replace(/[^\w.-]+/g, "-")}-${name}` : name);
+    await getKey(f.key, to, o);
+    out.push(to);
+  }
+  return out;
+}
+
 /** An Instagram post link (`/p/`): a carousel, or a single picture. */
 export const POST_LINK = /^https?:\/\/(www\.)?instagram\.com\/p\/[\w-]+/i;
 

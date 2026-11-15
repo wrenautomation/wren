@@ -181,6 +181,8 @@ ingests a source into Canon (`../canon`, private, `@wrenautomation/knowledge`): 
 record tagged with the SOP's name, one commit with a by and a why. A video is
 its captions plus an `## On screen` section: frames picked where the picture changes, read by
 Claude (Cohere past a failure), with the documents and slides shown; `--no-screen` skips that.
+`wren source get <id> [--out <dir>]` copies a source's kept files (a picture, slides, a poster)
+from the bucket to a folder and prints one path a line.
 `wren topic sync <name>` writes `standard.md` (the numbers off the breakdowns of Canon sources the
 front matter of `notes.md` names: `kinds`, `platforms`, `topic`, `set`) and `calls.md` (your keep /
 tune / drop calls on those pieces, rolled up and cited by Canon source id).
