@@ -241,6 +241,45 @@ States (each row a story in `stories/wren/studio/` or `stories/wren/canon/`):
 
 Not in this step: creator avatars (a letter stands in), video playback (the picture links out), the "Make one like this" action (WA-1381.5).
 
+### D9. Post detail, counts, group by creator (11-14)
+
+William on D8: "needs to be able to click or hover on each individual piece to look at details… still not telling me what 14x usual means… not showing the views, likes… typical creator information". "Copy what common platforms do": Instagram, X, YouTube. And "allow me to display by creator at least, not just newest".
+
+**Counts.** X's action row: an icon and a short number for views, likes, comments, shares, saves; a count the read lacks is left out. A gallery tile shows views on the picture (TikTok, YouTube: ▶ 1.2M); a hover shows likes and comments on it (Instagram's grid).
+
+**Detail.** A click on a card or tile opens the post in the record panel (DESIGN.md: right sheet 560 px at sm+, bottom sheet on a phone). Instagram opens a centred modal; the panel wins by the source order (repo rules over platform feel), and the list stays in view beside it. The address holds it (`post=<platform>:<ref>`), so Back closes it and a link opens it. The panel copies the Instagram and X post page:
+
+1. The creator: letter, name, @handle · platform, followers, niches, "All posts" (the creator filter).
+2. Title and the whole text (no clamp in a panel), the picture, the full time and age.
+3. Counts as full numbers with icons.
+4. "Why it stands out": "140K views, 14x @maya's usual. Their usual reel gets 10K views: the median of their last 30 reels." Then the likes multiple and the rank ("top 5% of their reels"). Not scored: why (fewer than 5 posts of the kind).
+5. Open on the platform; Save to Canon (or In Canon, Filing).
+
+A hover on "14x usual" shows the first sentence (`tipProps`).
+
+The usual number is the score's `base` (weaver `scoreOf`), not stored until now. New columns `creator_posts.baseline` and `likes_baseline`; `wren creator rescore` fills them from stored counts, no new reads.
+
+**Sort and group.** Sort: Newest, Times usual, Most views, Most likes. Group (Notion's "Group by"): None or Creator. Grouped, each creator is a section (YouTube's channel shelf): a header with name, @handle, platform, followers, the post count; their top 12 posts by the sort; "All N posts" sets the creator filter. The server ranks inside each creator (`row_number() over (partition by creator)`), so the page limit never cuts a group short. Groups go in order of their best post by the sort. Address: `sort`, `group`.
+
+| State | Shows | Enters on | Next | Motion |
+|---|---|---|---|---|
+| card hover | pointer; tile: likes and comments over the picture | hover | detail | overlay fades (150 ms) |
+| multiple hover | the tip sentence | hover or focus | — | the kit tip |
+| detail typical | panel: creator, text, picture, counts, why, actions | click, `post=` | closed, another post | sheet slides (kit) |
+| detail no picture | the text only | no `src` | — | none |
+| detail not scored | "Not scored yet" and why | `multiple` null | — | none |
+| detail no base | the multiple and its window, no usual number | `baseline` null | — | none |
+| detail long text | the whole text, wrapped | worst-case fixture | — | none |
+| detail in Canon | "In Canon" in place of Save | `record` | — | none |
+| detail saving | Save busy | Save | filing, failed | ring |
+| detail filing | "Filing into Canon" | queued | — | tag fades (200 ms) |
+| detail save failed | alert with the reason, Save again | refused | saving | none |
+| detail gone | "This post isn't in this list", Close | `post=` not in rows | closed | none |
+| detail narrow | bottom sheet | width < sm | — | sheet rises (kit) |
+| grouped typical | a section a creator, 12 at most each | `group=creator` | ungrouped, All N | list fades (150 ms) |
+| grouped more | "All N posts" under the section | creator with > 12 | creator filter | none |
+| grouped gallery | the same sections, each a grid | both | — | none |
+
 ### D7. Commands
 
 Agent drives, code is tools. JSON out.
@@ -276,3 +315,4 @@ The meta video films this build: autobrowse takes of each page as it lands.
 - 2026-11-14: D5b added (William: any app apart or in Wren, a top bar like a standard site, for all of Wren too). Picked A, the viewer's layout pref, over the address, a host per app and the module flag. `Module.standalone` became `Module.apart`; `Sidebar` `hidden` became `top`; `AppColumn` removed. Outliers got column heads ("Times usual").
 - 2026-11-14: Wren logo hidden everywhere (William), the `\` key got a button. D8 added: pictures copied to the bucket (B over the raw link and copy on view); one `CreatorPosts` part with Feed and Gallery layouts; Notion-style bar; select replaces Save on each row. The mood board idea gave way to his later "more standard feed".
 - 2026-11-14: D8 built. Changes from the spec: the foot bar ends with Done, not Clear; a saved post reads "Filing into Canon" while the Add queue works; a gallery tile shows 10x+ by its wash and accent number, with no tag.
+- 2026-11-14: D9 built. Changes from the spec: no band row in the detail (it restated the multiple); a card under its creator's head drops the creator line; picture overlays use new kit tokens `--ui-media-veil`, `--ui-media-fade`, `--ui-media-ink-shadow`. Fresh-eye review: fixed the tip's grammar, the not-scored wording and the section head's edge; kept the blurred sheet backdrop, the icon-only bar at 390 and the first focus (kit parts), play for video views and an eye for post views, and the dot-joined meta lines (platform convention).

@@ -225,6 +225,21 @@ export const InspirationGallery = tidy(
   }),
 );
 
+/** The feed by creator (D9): newest creator first, each card with its counts. */
+export const InspirationGrouped = tidy(
+  pageAt("/studio/inspiration?group=creator", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByRole("heading", { name: "Maya Cuts" }, WAIT)).toBeVisible();
+      const [first] = view.getAllByRole("region");
+      await expect(first).toHaveAccessibleName("Agents Daily");
+      await expect(view.getByRole("region", { name: "Maya Cuts" })).toHaveTextContent("2 posts");
+      await expect(view.getAllByRole("list", { name: "Counts" }).length).toBeGreaterThan(3);
+    },
+  }),
+);
+
 /** The feed's skeleton: the read never answers. */
 export const InspirationLoading = pageAt("/studio/inspiration", { me: ADMIN, mode: "pending" });
 

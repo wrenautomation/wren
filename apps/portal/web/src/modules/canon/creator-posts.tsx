@@ -1,12 +1,13 @@
 /**
  * Posts of his tracked creators, as a Feed or a Gallery (studio-suite D8): Canon › Outliers and
- * Studio › Inspiration are this part with other defaults. Presets are tabs; Filter, Sort, Select
- * and the layout sit on the bar. The address holds every pick: `preset`, `creator`, `platform`,
- * `kind`, `niche` (comma lists), `min`, `sort`, `layout`. Select files the picked posts through
- * the Add box's queue as his sources.
+ * Studio › Inspiration are this part with other defaults. Presets are tabs; Filter, Sort, Group,
+ * Select and the layout sit on the bar. The address holds every pick: `preset`, `creator`,
+ * `platform`, `kind`, `niche` (comma lists), `min`, `sort`, `group`, `layout`, and `post`, the post
+ * open in the record panel (D9). Select files the picked posts through the Add box's queue as his
+ * sources.
  */
 import type { AddRow, FeedAsk, FeedPage, FeedPost } from "@wren/research/canon-console";
-import type { FeedPreset } from "@wren/research/creators";
+import type { FeedPreset, FeedSort } from "@wren/research/creators";
 import {
   type BarField,
   BarLayout,
@@ -27,7 +28,6 @@ import {
   Segmented,
   Skeleton,
   short,
-  Tag,
   tipProps,
   useFilterTools,
   useNarrow,
@@ -41,11 +41,37 @@ import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
-
-const cn = (...xs: (string | false | null | undefined)[]) => xs.filter(Boolean).join(" ");
+import { type OneSave, PostDetail } from "./post-detail.js";
+import {
+  age,
+  type Canon,
+  CanonTag,
+  CountRow,
+  cn,
+  countIcon,
+  followersText,
+  HOT,
+  keyOf,
+  kindName,
+  Letter,
+  nameOf,
+  platformName,
+  tall,
+  times,
+  Usual,
+  usePicture,
+  usualTip,
+  when,
+} from "./post-parts.js";
 
 export type Layout = "feed" | "gallery";
-type Sort = "new" | "multiple";
+type Sort = FeedSort;
+const SORTS: [Sort, string, string][] = [
+  ["new", "Newest", "Newest first"],
+  ["multiple", "Times usual", "Times usual, best first"],
+  ["views", "Most views", "Most views first"],
+  ["likes", "Most likes", "Most likes first"],
+];
 /** what a page shows before he picks anything */
 export interface PostsStart {
   layout: Layout;
@@ -58,8 +84,6 @@ export interface PostsStart {
   label: string;
 }
 
-/** 10x and up: the accent wash and its tag (the top 8% on 11-14) */
-const HOT = 10;
 const PRESETS: [string, string, string][] = [
   ["breakouts", "Breakouts", "Under 50K followers, 5x and up, last 3 months"],
   ["hidden-gems", "Hidden gems", "Under 20K followers, 10x and up, last 6 months"],
@@ -71,45 +95,8 @@ const MINS: [string, string][] = [
   ["5", "5x and up"],
   ["10", "10x and up"],
 ];
-const PLATFORMS: Record<string, string> = {
-  youtube: "YouTube",
-  tiktok: "TikTok",
-  instagram: "Instagram",
-  x: "X",
-  threads: "Threads",
-  linkedin: "LinkedIn",
-};
-const KINDS: Record<string, string> = {
-  video: "Video",
-  short: "Short",
-  live: "Live",
-  reel: "Reel",
-  post: "Post",
-  photo: "Photo",
-  carousel: "Carousel",
-  quote: "Quote",
-  reply: "Reply",
-};
 const LISTS = ["creator", "platform", "kind", "niche"] as const;
 const FILTERS = [...LISTS, "min"] as const;
-const platformName = (p: string) => PLATFORMS[p] ?? p;
-const kindName = (k: string) => KINDS[k] ?? k;
-const keyOf = (r: FeedPost) => `${r.platform}:${r.ref}`;
-const times = (m: number) => `${m >= 10 ? Math.round(m) : m.toFixed(1)}x`;
-
-/** "3 days ago", from an ISO time */
-function age(at: string | null, now = Date.now()): string | null {
-  if (!at) return null;
-  const hours = Math.floor((now - Date.parse(at)) / 3_600_000);
-  if (Number.isNaN(hours)) return null;
-  if (hours < 1) return "just now";
-  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 60) return `${days} ${days === 1 ? "day" : "days"} ago`;
-  const months = Math.floor(days / 30);
-  return months < 24 ? `${months} months ago` : `${Math.floor(days / 365)} years ago`;
-}
-
 const listOf = (params: URLSearchParams, k: string) =>
   (params.get(k) ?? "").split(",").filter(Boolean);
 
@@ -117,10 +104,8 @@ const listOf = (params: URLSearchParams, k: string) =>
 function askOf(params: URLSearchParams, start: PostsStart) {
   const preset = params.get("preset") || null;
   const min = Number(params.get("min"));
-  const sort: Sort =
-    params.get("sort") === "new" || params.get("sort") === "multiple"
-      ? (params.get("sort") as Sort)
-      : start.sort;
+  const sort: Sort = SORTS.find(([id]) => id === params.get("sort"))?.[0] ?? start.sort;
+  const group = params.get("group") === "creator" ? ("creator" as const) : null;
   const layout: Layout =
     params.get("layout") === "feed" || params.get("layout") === "gallery"
       ? (params.get("layout") as Layout)
@@ -134,8 +119,9 @@ function askOf(params: URLSearchParams, start: PostsStart) {
     min: min > 0 ? min : null,
     all: start.all,
     sort,
+    group,
   };
-  return { ask, preset, sort, layout };
+  return { ask, preset, sort, group, layout };
 }
 
 interface Save {
@@ -145,7 +131,7 @@ interface Save {
 }
 
 export function CreatorPosts({ params, start }: PageProps & { start: PostsStart }) {
-  const { ask, preset, sort, layout } = askOf(params, start);
+  const { ask, preset, sort, group, layout } = askOf(params, start);
   const got = useCall(`canon-feed:${JSON.stringify(ask)}`, () =>
     call<FeedPage>("canon/feed", { ...ask }),
   );
@@ -170,6 +156,19 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
       else n.set(keyOf(r), r);
       return n;
     });
+  // one post saved from its panel
+  const [one, setOne] = useState<(OneSave & { key: string }) | null>(null);
+  const saveOne = async (r: FeedPost) => {
+    const k = keyOf(r);
+    setOne({ key: k, busy: true, error: null });
+    try {
+      await call<AddRow>("canon/add", { what: r.url, fileName: null, note: null });
+      setFiled((s) => new Set([...s, k]));
+      setOne(null);
+    } catch (e) {
+      setOne({ key: k, busy: false, error: e instanceof Error ? e.message : String(e) });
+    }
+  };
   const saveAll = async () => {
     const list = [...picked.values()];
     setSave({ busy: true, note: null, bad: false });
@@ -210,7 +209,7 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
     label: start.label,
     icon: "chart",
     text: [
-      `${start.label}: ${presetName ?? start.first}, as a ${layout}, ${sort === "new" ? "newest" : "best multiple"} first`,
+      `${start.label}: ${presetName ?? start.first}, as a ${layout}, ${SORTS.find(([id]) => id === sort)?.[2].toLowerCase()}${group ? ", grouped by creator" : ""}`,
       ...on.map((f) => f.set?.say),
       data ? `${num(data.rows.length)} posts shown` : null,
     ]
@@ -266,6 +265,9 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
   const clearAll = link({ preset: null, ...Object.fromEntries(FILTERS.map((k) => [k, null])) });
   const rows = data?.rows ?? [];
   const shownCreators = new Set(rows.map((r) => r.creatorId)).size;
+  const canonOf = (r: FeedPost): Canon => (r.record ? "in" : filed.has(keyOf(r)) ? "filing" : null);
+  const openKey = params.get("post");
+  const opened = openKey && data ? (rows.find((r) => keyOf(r) === openKey) ?? null) : undefined;
 
   return (
     <div className={cn("flex flex-col gap-4", picking && "pb-28")}>
@@ -287,6 +289,16 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
             <>
               {tools.tool}
               <SortTool sort={sort} go={(s) => go({ sort: s === start.sort ? null : s })} />
+              <button
+                type="button"
+                aria-pressed={!!group}
+                {...tipProps("A section a creator, their top 12 each")}
+                className={chipClass(!!group)}
+                onClick={() => go({ group: group ? null : "creator" })}
+              >
+                <Icon name="people" className="size-[15px] [stroke-width:1.8]" />
+                <span data-hp>By creator</span>
+              </button>
               <button
                 type="button"
                 aria-pressed={picking}
@@ -328,35 +340,70 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
             {num(rows.length)} {rows.length === 1 ? "post" : "posts"} from {num(shownCreators)}{" "}
             {shownCreators === 1 ? "creator" : "creators"}
           </p>
-          <ul
-            aria-label={start.label}
+          <div
             aria-busy={got.placeholder || undefined}
             className={cn(
-              "m-0 list-none p-0 transition-opacity duration-150",
+              "grid gap-8 transition-opacity duration-150",
               got.placeholder && "opacity-60",
-              layout === "feed"
-                ? "grid max-w-[640px] gap-2"
-                : "grid grid-cols-2 gap-x-2 gap-y-3 @min-[720px]/main:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]",
             )}
           >
-            {rows.map((r) => {
-              const k = keyOf(r);
-              const canon = r.record ? "in" : filed.has(k) ? "filing" : null;
-              const pick: PickState | null =
-                picking && !canon
-                  ? { on: picked.has(k), off: save.busy, flip: () => flip(r) }
-                  : null;
-              return (
-                <li key={k} className="min-w-0 [animation:ui-fade_.15s_both]">
-                  {layout === "feed" ? (
-                    <FeedCard r={r} canon={canon} pick={pick} />
-                  ) : (
-                    <Tile r={r} canon={canon} pick={pick} />
+            {(group ? sections(rows) : [rows]).map((part) => {
+              const head = group ? part[0] : null;
+              const list = (
+                <ul
+                  aria-label={head ? `${nameOf(head)}'s posts` : start.label}
+                  className={cn(
+                    "m-0 list-none p-0",
+                    layout === "feed"
+                      ? "grid max-w-[640px] gap-2"
+                      : "grid grid-cols-2 gap-x-2 gap-y-3 @min-[720px]/main:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]",
                   )}
-                </li>
+                >
+                  {part.map((r) => {
+                    const k = keyOf(r);
+                    const canon = canonOf(r);
+                    const pick: PickState | null =
+                      picking && !canon
+                        ? { on: picked.has(k), off: save.busy, flip: () => flip(r) }
+                        : null;
+                    const open = link({ post: k });
+                    return (
+                      <li key={k} className="min-w-0 [animation:ui-fade_.15s_both]">
+                        {layout === "feed" ? (
+                          <FeedCard r={r} canon={canon} pick={pick} open={open} inGroup={!!head} />
+                        ) : (
+                          <Tile r={r} canon={canon} pick={pick} open={open} inGroup={!!head} />
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              );
+              if (!head) return <div key="all">{list}</div>;
+              const total = head.creatorPosts ?? part.length;
+              return (
+                <section
+                  key={head.creatorId}
+                  aria-label={nameOf(head)}
+                  className="grid gap-3 [animation:ui-fade_.15s_both]"
+                >
+                  <CreatorHead r={head} n={total} layout={layout} />
+                  {list}
+                  {total > part.length ? (
+                    <a
+                      href={link({ creator: String(head.creatorId), group: null })}
+                      className={cn(
+                        "justify-self-start text-[13px] font-semibold text-(--ui-ink-2) hover:text-(--ui-ink)",
+                        layout === "feed" ? "mx-4" : "mx-1.5",
+                      )}
+                    >
+                      All {num(total)} posts by {nameOf(head)}
+                    </a>
+                  ) : null}
+                </section>
               );
             })}
-          </ul>
+          </div>
         </>
       )}
       {picking ? (
@@ -370,6 +417,19 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
               Save to Canon
             </Button>
           }
+        />
+      ) : null}
+      {opened !== undefined ? (
+        <PostDetail
+          key={openKey ?? ""}
+          r={opened}
+          canon={opened ? canonOf(opened) : null}
+          save={one && opened && one.key === keyOf(opened) ? one : null}
+          onSave={() => opened && saveOne(opened)}
+          creatorHref={
+            opened ? link({ creator: String(opened.creatorId), group: null, post: null }) : null
+          }
+          onClose={() => go({ post: null })}
         />
       ) : null}
     </div>
@@ -497,7 +557,7 @@ function SortTool({ sort, go }: { sort: Sort; go: (s: Sort) => void }) {
   const [open, setOpen] = useState(false);
   const row =
     "flex h-8 pointer-coarse:h-11 w-full cursor-pointer items-center gap-2 border-0 bg-transparent px-2 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) aria-[current=true]:font-semibold";
-  const label = sort === "new" ? "Newest" : "Times usual";
+  const label = SORTS.find(([id]) => id === sort)?.[1] ?? "Newest";
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger className={CHIP} {...tipProps(`Sorted by ${label.toLowerCase()}`)}>
@@ -505,12 +565,7 @@ function SortTool({ sort, go }: { sort: Sort; go: (s: Sort) => void }) {
         <span data-hp>{label}</span>
       </PopoverTrigger>
       <PopoverContent aria-label="Sort" align="end" className={cn(POP, "w-48 p-1")}>
-        {(
-          [
-            ["new", "Newest first"],
-            ["multiple", "Times usual, best first"],
-          ] as const
-        ).map(([id, text]) => (
+        {SORTS.map(([id, , text]) => (
           <button
             key={id}
             type="button"
@@ -535,7 +590,6 @@ interface PickState {
   off: boolean;
   flip: () => void;
 }
-type Canon = "in" | "filing" | null;
 
 /** In select mode: the whole card picks; a box in its corner says which. */
 function PickCover({ r, pick }: { r: FeedPost; pick: PickState }) {
@@ -566,94 +620,107 @@ function PickCover({ r, pick }: { r: FeedPost; pick: PickState }) {
   );
 }
 
-function CanonTag({ canon }: { canon: Canon }) {
-  if (!canon) return null;
+/** grouped rows, one list a creator, in the server's order */
+function sections(rows: FeedPost[]): FeedPost[][] {
+  const by = new Map<number, FeedPost[]>();
+  for (const r of rows) by.set(r.creatorId, [...(by.get(r.creatorId) ?? []), r]);
+  return [...by.values()];
+}
+
+/** a section's head: who, where, how many (YouTube's channel shelf) */
+function CreatorHead({ r, n, layout }: { r: FeedPost; n: number; layout: Layout }) {
   return (
-    <Tag tone="accent" className={canon === "filing" ? "[animation:ui-fade_.2s_both]" : undefined}>
-      {canon === "filing" ? "Filing into Canon" : "In Canon"}
-    </Tag>
+    // on the cards' own edge: their padding
+    <header
+      className={cn("flex min-w-0 items-center gap-3", layout === "feed" ? "px-4" : "px-1.5")}
+    >
+      <Letter r={r} />
+      <div className="grid min-w-0 gap-0.5">
+        <h2 className="m-0 text-[15px] leading-snug font-semibold wrap-anywhere text-(--ui-ink)">
+          {nameOf(r)}
+        </h2>
+        <p className="m-0 text-[13px] leading-snug wrap-anywhere text-(--ui-ink-3)">
+          {[
+            r.name ? `@${r.handle}` : null,
+            platformName(r.platform),
+            followersText(r.followers),
+            `${num(n)} ${n === 1 ? "post" : "posts"}`,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      </div>
+    </header>
   );
 }
 
-/** "38x usual": the tag on a hot post, quiet words on the rest */
-function Usual({ r, loud }: { r: FeedPost; loud: boolean }) {
-  if (r.multiple == null) return null;
-  const tip = r.baselineN
-    ? `${times(r.multiple)} the median ${r.scoreCount ?? "count"} of their last ${r.baselineN} posts`
-    : undefined;
-  return loud ? (
-    <Tag tone="accent" title={tip}>
-      {times(r.multiple)} usual
-    </Tag>
-  ) : (
-    <span title={tip} className="text-[13px] whitespace-nowrap text-(--ui-ink-3) tabular-nums">
-      {times(r.multiple)} usual
-    </span>
+/** the card's own link: a click anywhere opens the post in the panel; links and tips sit over it */
+function OpenLink({ open, r }: { open: string; r: FeedPost }) {
+  return (
+    <a
+      href={open}
+      className="absolute inset-0 z-[1] rounded-[inherit] outline-offset-2 focus-visible:outline-2 focus-visible:outline-(--ui-focus)"
+    >
+      <span className="sr-only">
+        Open {nameOf(r)}'s {kindName(r.kind).toLowerCase()}
+        {r.title ? `: ${r.title}` : ""}
+      </span>
+    </a>
   );
 }
 
-/** a picture only where the post has one that loads; else null, and the words carry it */
-function usePicture(r: FeedPost) {
-  const [bad, setBad] = useState(false);
-  return { src: r.src && !bad ? r.src : null, fail: () => setBad(true) };
-}
-
-const tall = (r: FeedPost) =>
-  r.kind === "reel" || r.kind === "short" || r.platform === "instagram" || r.platform === "tiktok";
-
-function counts(r: FeedPost) {
-  return (["views", "likes", "comments"] as const)
-    .filter((k) => r.counts[k] != null)
-    .map((k) => `${short(r.counts[k] as number)} ${k}`)
-    .join(" · ");
-}
-
-function FeedCard({ r, canon, pick }: { r: FeedPost; canon: Canon; pick: PickState | null }) {
+function FeedCard({
+  r,
+  canon,
+  pick,
+  open,
+  inGroup,
+}: {
+  r: FeedPost;
+  canon: Canon;
+  pick: PickState | null;
+  open: string;
+  /** under its creator's head: no creator line */
+  inGroup: boolean;
+}) {
   const hot = (r.multiple ?? 0) >= HOT;
   const pic = usePicture(r);
-  const when = age(r.postedAt);
-  const name = r.name ?? `@${r.handle}`;
+  const ago = age(r.postedAt);
   return (
     <article
       className={cn(
         "relative grid gap-3 rounded-[6px_14px_6px_14px] p-4 transition-colors duration-150",
-        hot && "bg-(--ui-accent-wash) dark:bg-(--ui-accent-tint)",
+        hot ? "bg-(--ui-accent-wash) dark:bg-(--ui-accent-tint)" : !pick && "hover:bg-(--ui-hover)",
       )}
     >
       <header className="flex min-w-0 items-start gap-3">
-        <span
-          aria-hidden
-          className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-(--ui-accent-tint) text-[14px] font-semibold text-(--ui-active)"
-        >
-          {(r.name ?? r.handle)
-            .replace(/^[^\p{L}\p{N}]+/u, "")
-            .slice(0, 1)
-            .toUpperCase() || "?"}
-        </span>
-        <div className="grid min-w-0 flex-1 gap-0.5">
-          <p className="m-0 text-[14px] leading-snug font-semibold wrap-anywhere text-(--ui-ink)">
-            {name}
+        {inGroup ? (
+          <p className="m-0 min-w-0 flex-1 text-[13px] leading-snug text-(--ui-ink-3)">
+            <span title={when(r.postedAt) ?? undefined}>{ago ?? kindName(r.kind)}</span>
           </p>
-          <p className="m-0 text-[13px] leading-snug wrap-anywhere text-(--ui-ink-3)">
-            {[r.name ? `@${r.handle}` : null, platformName(r.platform)].filter(Boolean).join(" · ")}
-            {when ? (
-              <>
-                {" "}
-                <span className="whitespace-nowrap">
-                  ·{" "}
-                  <a
-                    href={r.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-inherit hover:underline"
-                  >
-                    {when}
-                  </a>
-                </span>
-              </>
-            ) : null}
-          </p>
-        </div>
+        ) : (
+          <>
+            <Letter r={r} />
+            <div className="grid min-w-0 flex-1 gap-0.5">
+              <p className="m-0 text-[14px] leading-snug font-semibold wrap-anywhere text-(--ui-ink)">
+                {nameOf(r)}
+              </p>
+              <p className="m-0 text-[13px] leading-snug wrap-anywhere text-(--ui-ink-3)">
+                {[r.name ? `@${r.handle}` : null, platformName(r.platform)]
+                  .filter(Boolean)
+                  .join(" · ")}
+                {ago ? (
+                  <>
+                    {" "}
+                    <span className="whitespace-nowrap" title={when(r.postedAt) ?? undefined}>
+                      · {ago}
+                    </span>
+                  </>
+                ) : null}
+              </p>
+            </div>
+          </>
+        )}
         <div
           className={cn("flex shrink-0 flex-wrap items-center justify-end gap-1.5", pick && "mr-8")}
         >
@@ -662,23 +729,15 @@ function FeedCard({ r, canon, pick }: { r: FeedPost; canon: Canon; pick: PickSta
         </div>
       </header>
       {r.title ? (
-        <a
-          href={r.url}
-          target="_blank"
-          rel="noreferrer"
-          className="text-[15px] leading-snug font-semibold wrap-anywhere text-(--ui-ink) no-underline hover:underline"
-        >
+        <p className="m-0 text-[15px] leading-snug font-semibold wrap-anywhere text-(--ui-ink)">
           {r.title}
-        </a>
+        </p>
       ) : null}
       {r.text ? <Body text={r.text} /> : null}
       {pic.src ? (
-        <a
-          href={r.url}
-          target="_blank"
-          rel="noreferrer"
+        <div
           className={cn(
-            "block overflow-hidden rounded-[6px]",
+            "overflow-hidden rounded-[6px]",
             tall(r) ? "w-[min(100%,320px)]" : "w-full",
           )}
         >
@@ -688,11 +747,10 @@ function FeedCard({ r, canon, pick }: { r: FeedPost; canon: Canon; pick: PickSta
             onError={pic.fail}
             className={cn("block w-full object-cover", tall(r) ? "aspect-[4/5]" : "aspect-video")}
           />
-        </a>
+        </div>
       ) : null}
-      {counts(r) ? (
-        <p className="m-0 text-[13px] text-(--ui-ink-2) tabular-nums">{counts(r)}</p>
-      ) : null}
+      <CountRow r={r} className="text-[13px] text-(--ui-ink-2)" />
+      <OpenLink open={open} r={r} />
       {pick ? <PickCover r={r} pick={pick} /> : null}
     </article>
   );
@@ -733,52 +791,106 @@ function Body({ text }: { text: string }) {
   );
 }
 
-function Tile({ r, canon, pick }: { r: FeedPost; canon: Canon; pick: PickState | null }) {
+/** the count a tile shows on its picture: the one its score is on (TikTok's plays) */
+function TileCount({ r, onPicture }: { r: FeedPost; onPicture: boolean }) {
+  const k = r.scoreCount === "likes" ? "likes" : r.counts.views != null ? "views" : "likes";
+  const n = r.counts[k];
+  if (n == null) return null;
+  return (
+    <span
+      className={cn(
+        "absolute bottom-2 left-2 inline-flex items-center gap-1 text-[12.5px] font-semibold tabular-nums",
+        onPicture ? "text-white [text-shadow:var(--ui-media-ink-shadow)]" : "text-(--ui-ink-2)",
+      )}
+    >
+      <Icon name={countIcon(r, k)} className="size-3.5 [stroke-width:2.2]" />
+      {short(n)}
+      <span className="sr-only"> {k}</span>
+    </span>
+  );
+}
+
+function Tile({
+  r,
+  canon,
+  pick,
+  open,
+  inGroup,
+}: {
+  r: FeedPost;
+  canon: Canon;
+  pick: PickState | null;
+  open: string;
+  /** under its creator's head: no creator line */
+  inGroup: boolean;
+}) {
   const hot = (r.multiple ?? 0) >= HOT;
   const pic = usePicture(r);
-  const when = age(r.postedAt);
+  const ago = age(r.postedAt);
   const words = r.title ?? r.text ?? `${kindName(r.kind)} by @${r.handle}`;
+  const more = (["likes", "comments"] as const).filter((k) => r.counts[k] != null);
   return (
     <article
       className={cn(
-        "relative grid gap-1.5 rounded-[6px_14px_6px_14px] p-1.5",
+        "group/tile relative grid gap-1.5 rounded-[6px_14px_6px_14px] p-1.5",
         hot && "bg-(--ui-accent-wash) dark:bg-(--ui-accent-tint)",
       )}
     >
-      <a
-        href={r.url}
-        target="_blank"
-        rel="noreferrer"
-        className="relative block aspect-[4/5] overflow-hidden rounded-[4px_10px_4px_10px] bg-(--ui-hover) no-underline"
-      >
+      <div className="relative aspect-[4/5] overflow-hidden rounded-[4px_10px_4px_10px] bg-(--ui-hover)">
         {pic.src ? (
-          <Img
-            src={pic.src}
-            alt={words}
-            onError={pic.fail}
-            className="block size-full object-cover"
-          />
+          <>
+            <Img
+              src={pic.src}
+              alt={words}
+              onError={pic.fail}
+              className="block size-full object-cover"
+            />
+            <span
+              aria-hidden
+              className="absolute inset-x-0 bottom-0 h-14 bg-(image:--ui-media-fade)"
+            />
+          </>
         ) : (
-          // a text post fills the frame with its words; the post opens the rest
+          // a text post fills the frame with its words; the panel opens the rest
           <p
             className={cn(
-              "m-0 h-full overflow-hidden p-3 text-[13.5px] leading-[1.45] whitespace-pre-line wrap-anywhere text-(--ui-ink) [animation:ui-fade_.15s_both] [mask-image:linear-gradient(#000_75%,transparent)]",
+              "m-0 h-full overflow-hidden p-3 pb-8 text-[13.5px] leading-[1.45] whitespace-pre-line wrap-anywhere text-(--ui-ink) [animation:ui-fade_.15s_both] [mask-image:linear-gradient(#000_70%,transparent)]",
               pick && "pr-9",
+              canon && "pt-10",
             )}
           >
             {words}
           </p>
         )}
+        <TileCount r={r} onPicture={!!pic.src} />
         {canon ? (
           // paper under the tint: it sits on a picture
-          <span className="absolute bottom-2 left-2 rounded-(--ui-leaf-chip) bg-(--ui-paper)">
+          <span className="absolute top-2 left-2 rounded-(--ui-leaf-chip) bg-(--ui-paper)">
             <CanonTag canon={canon} />
           </span>
         ) : null}
-      </a>
+        {more.length && !pick ? (
+          // Instagram's grid: likes and comments over the picture on hover
+          <div
+            aria-hidden
+            className="absolute inset-0 flex items-center justify-center bg-(--ui-media-veil) text-white opacity-0 transition-opacity duration-150 group-hover/tile:opacity-100"
+          >
+            <CountRow
+              r={r}
+              only={more}
+              className="justify-center gap-x-5 text-[14px] font-semibold"
+            />
+          </div>
+        ) : null}
+      </div>
       <div className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 px-0.5">
         {r.multiple != null ? (
-          <>
+          <span
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: the tip opens on focus too
+            tabIndex={0}
+            {...tipProps(usualTip(r))}
+            className="relative z-[2] inline-flex items-baseline gap-x-1.5 rounded-[4px] outline-offset-2 focus-visible:outline-2 focus-visible:outline-(--ui-focus)"
+          >
             <span
               className={cn(
                 "text-[20px] leading-tight font-semibold tabular-nums",
@@ -788,15 +900,22 @@ function Tile({ r, canon, pick }: { r: FeedPost; canon: Canon; pick: PickState |
               {times(r.multiple)}
             </span>
             <span className="text-[12.5px] text-(--ui-ink-3)">usual</span>
-          </>
+          </span>
         ) : (
           <span className="text-[12.5px] leading-[25px] text-(--ui-ink-3)">Not scored yet</span>
         )}
       </div>
-      <p className="m-0 px-0.5 text-[12.5px] leading-snug wrap-anywhere text-(--ui-ink-2)">
-        @{r.handle}
-        {when ? <span className="text-(--ui-ink-3)"> · {when}</span> : null}
-      </p>
+      {inGroup ? (
+        ago ? (
+          <p className="m-0 px-0.5 text-[12.5px] leading-snug text-(--ui-ink-3)">{ago}</p>
+        ) : null
+      ) : (
+        <p className="m-0 px-0.5 text-[12.5px] leading-snug wrap-anywhere text-(--ui-ink-2)">
+          @{r.handle}
+          {ago ? <span className="text-(--ui-ink-3)"> · {ago}</span> : null}
+        </p>
+      )}
+      <OpenLink open={open} r={r} />
       {pick ? <PickCover r={r} pick={pick} /> : null}
     </article>
   );

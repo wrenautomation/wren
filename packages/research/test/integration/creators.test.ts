@@ -115,6 +115,19 @@ describe("creators", () => {
     expect(n).toBe(12);
     const top = await feedPosts(db(), {});
     expect(top[0]?.multiple).toBe(10);
+    // the usual draw behind the multiple
+    expect(top[0]?.baseline).toBe(100);
+    expect(top[0]?.creatorPosts).toBeNull();
+
+    const byViews = await feedPosts(db(), { sort: "views" });
+    expect(byViews.slice(0, 2).map((p) => p.title)).toEqual(["video 0", "video 5"]);
+
+    // grouped: the creator's top 2 by the sort, and how many fit
+    const grouped = await feedPosts(db(), { group: "creator", perCreator: 2, sort: "views" });
+    expect(grouped.map((p) => [p.title, p.creatorPosts])).toEqual([
+      ["video 0", 6],
+      ["video 5", 6],
+    ]);
   });
 
   it("keeps every kind; a retweet is never scored; a reel with no views scores on likes", async () => {

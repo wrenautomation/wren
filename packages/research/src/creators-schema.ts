@@ -97,6 +97,9 @@ export const creatorPosts = pgTable(
     likesMultiple: real("likes_multiple"),
     likesRank: real("likes_rank"),
     baselineN: integer("baseline_n"),
+    /** the creator's usual draw: the median count behind `multiple`, and behind `likes_multiple` */
+    baseline: real("baseline"),
+    likesBaseline: real("likes_baseline"),
     scoredAt: timestamp("scored_at", { withTimezone: true }),
     /** promoted into Canon: the record id */
     record: text("record"),

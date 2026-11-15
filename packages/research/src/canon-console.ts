@@ -33,6 +33,7 @@ import {
   type FeedFilter,
   type FeedPreset,
   type FeedRow,
+  type FeedSort,
   feedFacets,
   feedPosts,
 } from "./creators.js";
@@ -483,7 +484,8 @@ const INPUTS = {
     creators: z.array(z.number().int().positive()).max(200).nullish(),
     min: z.number().min(0).max(10_000).nullish(),
     all: z.boolean().nullish().describe("every post, scored or not (the feed)"),
-    sort: z.enum(["new", "multiple"]).nullish(),
+    sort: z.enum(["new", "multiple", "views", "likes"]).nullish(),
+    group: z.enum(["creator"]).nullish().describe("a section per creator, their top 12 each"),
     on: z.enum(["count", "likes"]).nullish(),
     limit: z.number().int().min(1).max(200).nullish(),
   },
@@ -506,7 +508,9 @@ export interface FeedAsk {
   min?: number | null;
   /** every post, scored or not */
   all?: boolean | null;
-  sort?: "new" | "multiple" | null;
+  sort?: FeedSort | null;
+  /** a section per creator */
+  group?: "creator" | null;
   /** the score the preset's min and the order use */
   on?: "count" | "likes" | null;
   limit?: number | null;
@@ -533,7 +537,9 @@ async function feedPage(db: Db, media: Media | null, a: FeedAsk): Promise<FeedPa
     ...(a.all && !a.preset ? { all: true } : {}),
     ...(a.sort ? { sort: a.sort } : {}),
     ...(a.on ? { on: a.on } : {}),
-    limit: a.limit ?? 100,
+    ...(a.group ? { group: a.group } : {}),
+    // grouped: 12 a creator, every creator
+    limit: a.limit ?? (a.group ? 200 : 100),
   };
   const [facets, rows] = await Promise.all([feedFacets(db), feedPosts(db, f)]);
   const src = (r: FeedRow) =>

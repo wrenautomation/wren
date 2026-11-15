@@ -1,5 +1,5 @@
 /**
- * Canon › Outliers: the gallery's state rows (studio-suite D8). The feed's rows are Studio ›
+ * Canon › Outliers: the gallery's state rows (studio-suite D8, D9). The feed's rows are Studio ›
  * Inspiration's (`stories/wren/studio/`). Fake server: `web/src/mocks/`.
  */
 import type { Meta } from "@storybook/react-vite";
@@ -8,6 +8,7 @@ import { refuse } from "../../../mocks/api.js";
 import { canonAddAnswers } from "../../../mocks/data/canon.js";
 import { ADMIN } from "../../../mocks/data/me.js";
 import {
+  OUTLIER_ROWS,
   OUTLIERS,
   OUTLIERS_NONE_SCORED,
   OUTLIERS_NONE_TRACKED,
@@ -188,6 +189,173 @@ export const SavePartFailed = tidy(
         /1 saved\. 1 not saved: sign in/,
       );
       await expect(view.getByText("1 picked")).toBeVisible();
+    },
+  }),
+);
+
+/** the record panel, once it is up */
+async function panel() {
+  return within(await within(document.body).findByRole("dialog", {}, WAIT));
+}
+
+const ADDED = (b: Record<string, unknown>) => ({
+  id: 1,
+  what: String(b.what),
+  fileName: null,
+  note: null,
+  person: "william",
+  state: "pending",
+  error: null,
+  records: [],
+  at: new Date().toISOString(),
+});
+
+/** One post open (D9): every count in full, the usual draw beside it, Save. */
+export const Detail = tidy(
+  pageAt("/canon/outliers?post=youtube:FakeVid0001", {
+    me: ADMIN,
+    check: async () => {
+      const box = await panel();
+      await expect(box.getByText("Why it stands out")).toBeVisible();
+      await expect(
+        box.getByText(/This video got 412,000 views, 312x @cutsbymaya's usual/),
+      ).toBeVisible();
+      await expect(
+        box.getByText(
+          /Their usual video gets 1,319 views: the median of @cutsbymaya's last 30 videos/,
+        ),
+      ).toBeVisible();
+      await expect(box.getByRole("button", { name: "Save to Canon" })).toBeVisible();
+    },
+  }),
+);
+
+/** A score with no stored usual draw (before the rescore): the multiple alone; In Canon, no Save. */
+export const DetailNoBase = tidy(
+  pageAt("/canon/outliers?post=linkedin:FakePost004", {
+    me: ADMIN,
+    check: async () => {
+      const box = await panel();
+      await expect(box.getByText(/5\.1x the median of @ops-notes's last 30 posts/)).toBeVisible();
+      await expect(box.getByText("In Canon")).toBeVisible();
+      await expect(box.queryByRole("button", { name: "Save to Canon" })).toBeNull();
+    },
+  }),
+);
+
+/** A post with no score yet: says when it gets one. */
+export const DetailNotScored = tidy(
+  pageAt("/canon/outliers?post=instagram:FakeReel007", {
+    me: ADMIN,
+    answers: { "canon/feed": OUTLIERS },
+    check: async () => {
+      const box = await panel();
+      await expect(box.getByRole("heading", { name: "Score" })).toBeVisible();
+      await expect(box.getByText(/^Not scored yet\. A post gets a score/)).toBeVisible();
+    },
+  }),
+);
+
+/** The address names a post the list no longer holds. */
+export const DetailGone = tidy(
+  pageAt("/canon/outliers?post=youtube:NoSuchVideo", {
+    me: ADMIN,
+    check: async () => {
+      const box = await panel();
+      await expect(box.getByText("This post isn't in this list")).toBeVisible();
+    },
+  }),
+);
+
+/** Save from the panel: it files, and the tag says so. */
+export const DetailSaved = tidy(
+  pageAt("/canon/outliers?post=youtube:FakeVid0001", {
+    me: ADMIN,
+    answers: { ...canonAddAnswers([]), "canon/add": ADDED },
+    check: async () => {
+      const box = await panel();
+      await userEvent.click(box.getByRole("button", { name: "Save to Canon" }));
+      // the tag fades in from 0
+      await waitFor(() => expect(box.getByText("Filing into Canon")).toBeVisible(), SAVE);
+    },
+  }),
+);
+
+/** Save refused: the reason under the button; Save stays to try again. */
+export const DetailSaveFailed = tidy(
+  pageAt("/canon/outliers?post=youtube:FakeVid0002", {
+    me: ADMIN,
+    answers: { "canon/add": () => refuse(403, "sign in to add to Canon") },
+    check: async () => {
+      const box = await panel();
+      await userEvent.click(box.getByRole("button", { name: "Save to Canon" }));
+      await expect(await box.findByRole("alert", {}, SAVE)).toHaveTextContent(
+        "Not saved: sign in to add to Canon",
+      );
+      await expect(box.getByRole("button", { name: "Save to Canon" })).toBeEnabled();
+    },
+  }),
+);
+
+/** A tile's multiple says what it means on hover and focus. */
+export const UsualTip = tidy(
+  pageAt("/canon/outliers", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      const best = await view.findByText("312x", {}, WAIT);
+      await expect(best.parentElement).toHaveAccessibleDescription(
+        "412K views, 312x their usual 1,319 (the median of @cutsbymaya's last 30 videos)",
+      );
+    },
+  }),
+);
+
+/** By creator: a section a creator, their best first; the head says who and how many. */
+export const Grouped = tidy(
+  pageAt("/canon/outliers?group=creator", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByRole("heading", { name: "Maya Cuts" }, WAIT)).toBeVisible();
+      await expect(view.getByRole("region", { name: "Agents Daily" })).toHaveTextContent("2 posts");
+      await expect(view.getByRole("button", { name: "By creator" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    },
+  }),
+);
+
+const MANY = Array.from({ length: 12 }, (_, i) => ({
+  ...(OUTLIER_ROWS[0] as (typeof OUTLIER_ROWS)[number]),
+  ref: `FakeVidM${String(i).padStart(3, "0")}`,
+  multiple: 40 - i * 3,
+  creatorPosts: 30,
+}));
+
+/** A creator with more posts than the section holds: a link to all of them. */
+export const GroupedMore = tidy(
+  pageAt("/canon/outliers?group=creator", {
+    me: ADMIN,
+    answers: { "canon/feed": { ...OUTLIERS, rows: MANY } },
+    check: async (page) => {
+      await expect(
+        await within(page).findByRole("link", { name: "All 30 posts by Maya Cuts" }, WAIT),
+      ).toHaveAttribute("href", expect.stringContaining("creator=1"));
+    },
+  }),
+);
+
+/** Sort by views: the most watched first; the chip names the sort. */
+export const SortViews = tidy(
+  pageAt("/canon/outliers?sort=views", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByRole("button", { name: /Most views/ }, WAIT)).toBeVisible();
+      const [first] = view.getAllByRole("link", { name: /^Open / });
+      await expect(first).toHaveAccessibleName(/^Open Bartholomew/);
     },
   }),
 );

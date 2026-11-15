@@ -1,5 +1,5 @@
 /**
- * `wren creator add | list | remove | refresh | promote` and `wren feed`: the creator index
+ * `wren creator add | list | remove | refresh | pictures | rescore | promote` and `wren feed`: the creator index
  * (designs/2026-11-12-eden-method.md §3, option A). Reads go through `weaver posts` (the key-gate
  * shim); rows land in `tracked_creators`, `creator_posts` and the day tables; promote writes Canon.
  */
@@ -27,6 +27,7 @@ import {
   POST_KINDS,
   pictureKeyOf,
   postsToCopy,
+  rescore,
   setPicture,
   trackCreator,
   untrackCreator,
@@ -313,6 +314,21 @@ export function registerCreator(
             }),
           ),
         );
+      }),
+    );
+
+  creator
+    .command("rescore")
+    .description(
+      "score every creator's stored posts again (no reads): multiples, ranks, usual draws",
+    )
+    .option("--id <n...>", "only these creators", (v, acc: number[] = []) => [...acc, int(v)])
+    .action((o: { id?: number[] }) =>
+      withDb(async (db) => {
+        const all = await listCreators(db, { all: true, ...(o.id?.length ? { ids: o.id } : {}) });
+        let scored = 0;
+        for (const c of all) scored += await rescore(db, c.id);
+        console.log(JSON.stringify({ creators: all.length, scored }));
       }),
     );
 

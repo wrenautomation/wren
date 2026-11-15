@@ -17,7 +17,17 @@ const shot = (a: string, b: string) =>
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><defs><linearGradient id="g" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="400" height="500" fill="url(#g)"/><circle cx="200" cy="210" r="70" fill="#fff" fill-opacity=".35"/><rect x="90" y="330" width="220" height="22" rx="11" fill="#fff" fill-opacity=".4"/></svg>`,
   )}`;
 
-const row = (o: Partial<FeedPost> & Pick<FeedPost, "ref" | "handle" | "multiple">): FeedPost => ({
+const row = (o: Partial<FeedPost> & Pick<FeedPost, "ref" | "handle" | "multiple">): FeedPost => {
+  const r = base(o);
+  // the usual draw the server stores: the count over the multiple
+  const n = r.counts[r.scoreCount as "views" | "likes"];
+  return {
+    ...r,
+    baseline:
+      "baseline" in o ? (o.baseline ?? null) : r.multiple && n ? Math.round(n / r.multiple) : null,
+  };
+};
+const base = (o: Partial<FeedPost> & Pick<FeedPost, "ref" | "handle" | "multiple">): FeedPost => ({
   platform: "youtube",
   url: `https://www.youtube.com/watch?v=${o.ref}`,
   kind: "video",
@@ -36,6 +46,9 @@ const row = (o: Partial<FeedPost> & Pick<FeedPost, "ref" | "handle" | "multiple"
   likesBand: null,
   likesRank: null,
   baselineN: 30,
+  baseline: null,
+  likesBaseline: null,
+  creatorPosts: null,
   record: null,
   picture: null,
   pictureLink: null,
@@ -65,6 +78,9 @@ export const OUTLIER_ROWS: FeedPost[] = [
     handle: "cutsbymaya",
     name: "Maya Cuts",
     multiple: 312.4,
+    rank: 1,
+    likesMultiple: 41,
+    likesBand: "10-50x",
     postedAt: daysAgo(6),
     src: shot("#d0475b", "#f2b366"),
   }),
@@ -94,7 +110,10 @@ export const OUTLIER_ROWS: FeedPost[] = [
     text: "編集のコツ 🎬✂️ three cuts that hold a viewer, with the timeline on screen",
     followers: null,
     postedAt: null,
-    counts: { views: 88_000 },
+    counts: { views: 88_000, likes: 6_400, comments: 212, shares: 1_900, saves: 3_050 },
+    likesMultiple: 9.4,
+    likesBand: "5-10x",
+    rank: 4,
     // the link expired: the card falls back to its text
     src: "/missing/FakeReel003.jpg",
   }),
@@ -114,6 +133,7 @@ export const OUTLIER_ROWS: FeedPost[] = [
     followers: 9_100,
     niches: ["automation"],
     record: "linkedin-FakePost004",
+    baseline: null,
     src: null,
   }),
   row({
@@ -238,8 +258,23 @@ export const OUTLIERS_NONE_SCORED: FeedPage = {
 const has = (xs: unknown, v: string | number) =>
   !Array.isArray(xs) || !xs.length || xs.map(String).includes(String(v));
 const time = (r: FeedPost) => (r.postedAt ? Date.parse(r.postedAt) : 0);
+/** the sort's key, high first, as the server's `sort_key` */
+const keyOf = (r: FeedPost, sort: unknown) =>
+  sort === "new"
+    ? time(r)
+    : sort === "views" || sort === "likes"
+      ? (r.counts[sort] ?? -1)
+      : (r.multiple ?? -1);
+/** grouped: each creator's top 12, creators by their best post */
+function grouped(rows: FeedPost[], sort: unknown): FeedPost[] {
+  const by = new Map<number, FeedPost[]>();
+  for (const r of rows) by.set(r.creatorId, [...(by.get(r.creatorId) ?? []), r]);
+  return [...by.values()]
+    .sort((a, b) => keyOf(b[0] as FeedPost, sort) - keyOf(a[0] as FeedPost, sort))
+    .flatMap((g) => g.slice(0, 12).map((r) => ({ ...r, creatorPosts: g.length })));
+}
 
-/** `canon/feed`, filtered and sorted as the server does (presets by multiple only). */
+/** `canon/feed`, filtered, sorted and grouped as the server does. */
 export const OUTLIER_ANSWERS = {
   "canon/feed": (b: Record<string, unknown>): FeedPage => {
     const preset = typeof b.preset === "string" ? PRESET_MIN[b.preset] : undefined;
@@ -252,11 +287,11 @@ export const OUTLIER_ANSWERS = {
         has(b.platforms, r.platform) &&
         has(b.kinds, r.kind) &&
         has(b.creators, r.creatorId),
-    ).sort((x, y) =>
-      b.sort === "new"
-        ? time(y) - time(x)
-        : (y.multiple ?? -1) - (x.multiple ?? -1) || time(y) - time(x),
+    ).sort(
+      (x, y) =>
+        keyOf(y, b.sort) - keyOf(x, b.sort) ||
+        (b.sort === "new" ? (y.multiple ?? -1) - (x.multiple ?? -1) : time(y) - time(x)),
     );
-    return { ...OUTLIERS, rows };
+    return { ...OUTLIERS, rows: b.group === "creator" ? grouped(rows, b.sort) : rows };
   },
 };

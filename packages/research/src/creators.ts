@@ -318,7 +318,7 @@ export async function keepCreatorRead(
 }
 
 /** Score every stored post of a creator against the creator's other posts of its kind. */
-async function rescore(db: Queryable, creatorId: number): Promise<number> {
+export async function rescore(db: Queryable, creatorId: number): Promise<number> {
   const rows = await db.execute<{
     platform: string;
     ref: string;
@@ -356,6 +356,8 @@ async function rescore(db: Queryable, creatorId: number): Promise<number> {
         likesMultiple: l.multiple ?? null,
         likesRank: l.rank ?? null,
         baselineN: s.n,
+        baseline: s.base ?? null,
+        likesBaseline: l.base ?? null,
         scoredAt: sql`now()`,
       })
       .where(and(eq(cp.platform, r.platform), eq(cp.ref, r.ref)));
@@ -375,6 +377,8 @@ export const FEED_PRESETS = {
 } as const satisfies Record<string, FeedFilter>;
 export type FeedPreset = keyof typeof FEED_PRESETS;
 
+export type FeedSort = "new" | "multiple" | "views" | "likes";
+
 export interface FeedFilter {
   niche?: string;
   niches?: string[];
@@ -392,8 +396,11 @@ export interface FeedFilter {
   creatorIds?: number[];
   /** every post (the feed), or scored ones only (default: the outlier list) */
   all?: boolean;
-  /** newest first, or best multiple first (default) */
-  sort?: "new" | "multiple";
+  /** newest first, best multiple first (default), most views or most likes first */
+  sort?: FeedSort;
+  /** a section per creator: their top `perCreator` by the sort, sections by their best post */
+  group?: "creator";
+  perCreator?: number;
   limit?: number;
 }
 
@@ -421,6 +428,11 @@ export interface FeedRow {
   likesBand: string | null;
   likesRank: number | null;
   baselineN: number | null;
+  /** the creator's usual draw on `scoreCount`: the median behind `multiple`; likes' behind `likesMultiple` */
+  baseline: number | null;
+  likesBaseline: number | null;
+  /** grouped by creator: the creator's posts that fit the filters, past the ones shown */
+  creatorPosts: number | null;
   record: string | null;
   /** its picture in the media bucket (`cache/posts/...`), once copied */
   picture: string | null;
@@ -514,6 +526,15 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
   if (f.minFollowers !== undefined) where.push(sql`fo.followers >= ${f.minFollowers}`);
   if (f.maxFollowers !== undefined) where.push(sql`fo.followers < ${f.maxFollowers}`);
   if (f.minLikes !== undefined) where.push(sql`(co.counts->>'likes')::bigint >= ${f.minLikes}`);
+  const grouped = f.group === "creator";
+  const count = (k: "views" | "likes") => sql`(co.counts->>${k})::bigint`;
+  const key =
+    f.sort === "new"
+      ? sql`p.posted_at`
+      : f.sort === "views" || f.sort === "likes"
+        ? count(f.sort)
+        : m;
+  const tie = f.sort === "new" ? m : sql`p.posted_at`;
   const rows = await db.execute<{
     platform: string;
     ref: string;
@@ -534,13 +555,20 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     likes_multiple: number | null;
     likes_rank: number | null;
     baseline_n: number | null;
+    baseline: number | null;
+    likes_baseline: number | null;
+    creator_posts: number | null;
     record: string | null;
     picture: string | null;
     raw: unknown;
-  }>(sql`select p.platform, p.ref, p.url, p.kind, p.posted_at, p.title, p.text, p.creator_id,
-      h.handle, h.name, c.niches, fo.followers, co.counts, p.score_count, p.multiple, p.rank,
-      p.likes_multiple, p.likes_rank, p.baseline_n, p.record, p.picture,
-      case when p.picture is null then p.raw end as raw
+  }>(sql`select * from (select p.platform, p.ref, p.url, p.kind, p.posted_at, p.title, p.text,
+      p.creator_id, h.handle, h.name, c.niches, fo.followers, co.counts, p.score_count, p.multiple,
+      p.rank, p.likes_multiple, p.likes_rank, p.baseline_n, p.baseline, p.likes_baseline, p.record,
+      p.picture, case when p.picture is null then p.raw end as raw,
+      ${key} as sort_key, ${tie} as sort_tie,
+      row_number() over (partition by p.creator_id order by ${key} desc nulls last, ${tie} desc nulls last) as nth,
+      count(*) over (partition by p.creator_id)::int as creator_posts,
+      max(${key}) over (partition by p.creator_id) as best
     from creator_posts p
     join tracked_creators c on c.id = p.creator_id
     join social_handles h on h.id = c.handle_id
@@ -548,8 +576,9 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
       where f.creator_id = c.id order by f.day desc limit 1) fo on true
     left join lateral (select d.counts from post_count_days d
       where d.platform = p.platform and d.ref = p.ref order by d.day desc limit 1) co on true
-    where ${sql.join(where, sql` and `)}
-    order by ${f.sort === "new" ? sql`p.posted_at desc nulls last, ${m} desc nulls last` : sql`${m} desc nulls last, p.posted_at desc nulls last`}
+    where ${sql.join(where, sql` and `)}) x
+    ${grouped ? sql`where x.nth <= ${f.perCreator ?? 12}` : sql``}
+    order by ${grouped ? sql`x.best desc nulls last, x.creator_id, x.nth` : sql`x.sort_key desc nulls last, x.sort_tie desc nulls last`}
     limit ${f.limit ?? 50}`);
   return [...rows].map((r) => ({
     platform: r.platform,
@@ -573,6 +602,9 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     likesBand: r.likes_multiple != null ? (bandOf(r.likes_multiple) ?? null) : null,
     likesRank: r.likes_rank,
     baselineN: r.baseline_n,
+    baseline: r.baseline,
+    likesBaseline: r.likes_baseline,
+    creatorPosts: grouped ? r.creator_posts : null,
     record: r.record,
     picture: r.picture,
     pictureLink: r.picture ? null : pictureLinkOf(r.platform, r.ref, r.raw),
