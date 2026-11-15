@@ -1,6 +1,6 @@
 {
-  "id": "656edad2-0051-4f12-a233-c68f65e1b86b",
-  "prevId": "8e056b87-1423-4a22-9fef-14bcd3c9d1f5",
+  "id": "475b6a1a-3c89-4697-9315-5f7aa2376103",
+  "prevId": "a8d39a80-78b0-46e2-8bd8-a7dbbcc32297",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -14674,6 +14674,51 @@
       },
       "isRLSEnabled": false
     },
+    "public.creator_people": {
+      "name": "creator_people",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "added_by": {
+          "name": "added_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "added_at": {
+          "name": "added_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "pk_creator_people": {
+          "name": "pk_creator_people",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.creator_posts": {
       "name": "creator_posts",
       "schema": "",
@@ -14808,6 +14853,12 @@
         },
         "picture": {
           "name": "picture",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "picture_small": {
+          "name": "picture_small",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -15040,6 +15091,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
         "niches": {
           "name": "niches",
           "type": "text[]",
@@ -15109,10 +15166,51 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "picture": {
+          "name": "picture",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "picture_small": {
+          "name": "picture_small",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "ix_tracked_creators_person_id": {
+          "name": "ix_tracked_creators_person_id",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
+        "fk_tracked_creators_person_id_creator_people": {
+          "name": "fk_tracked_creators_person_id_creator_people",
+          "tableFrom": "tracked_creators",
+          "tableTo": "creator_people",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
         "fk_tracked_creators_handle_id_social_handles": {
           "name": "fk_tracked_creators_handle_id_social_handles",
           "tableFrom": "tracked_creators",

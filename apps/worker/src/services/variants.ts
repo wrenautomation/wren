@@ -13,6 +13,7 @@ export function variantsServices(deps: Deps): AnyService[] {
         bucket: signer.bucket,
         sign: (uri) => signer.host.host(uri),
         signPut: (f) => signMediaPut({ bucket: signer.bucket }, f),
+        ...(deps.settings.mediaOrigin ? { origin: deps.settings.mediaOrigin } : {}),
       }
     : null;
   return [

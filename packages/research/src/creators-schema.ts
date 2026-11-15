@@ -82,6 +82,8 @@ export const trackedCreators = pgTable(
     record: text("record"),
     /** the profile picture, copied into the media bucket: the key (`cache/creators/<platform>/<handle>.jpg`) */
     picture: text("picture"),
+    /** the face the page shows: `picture` made small (`….small.webp`); null until made */
+    pictureSmall: text("picture_small"),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_tracked_creators" }),
@@ -132,6 +134,8 @@ export const creatorPosts = pgTable(
     record: text("record"),
     /** its picture, copied into the media bucket: the key (`cache/posts/<platform>/<ref>.jpg`) */
     picture: text("picture"),
+    /** the tile's picture: `picture` made small (`….small.webp`); null until made */
+    pictureSmall: text("picture_small"),
   },
   (t) => [
     primaryKey({ columns: [t.platform, t.ref], name: "pk_creator_posts" }),

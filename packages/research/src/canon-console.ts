@@ -57,7 +57,12 @@ export interface Media {
   bucket: string;
   sign: Sign;
   signPut?: SignPut;
+  /** the CDN for creator pictures (`cache/posts/`, `cache/creators/`): stable URLs, no signing */
+  origin?: string;
 }
+
+/** the keys the media CDN serves (deploy/terraform/media.tf) */
+const ON_CDN = /^cache\/(posts|creators)\//;
 
 /** what the Add box takes as a file: Canon keeps pictures and PDFs (canon-files) */
 const ADD_FILE_TYPES: Record<string, string> = {
@@ -520,8 +525,11 @@ export interface FeedAsk {
   on?: "count" | "likes" | null;
   limit?: number | null;
 }
-/** A post as the page shows it: `src` is its picture, signed from the bucket or the platform's. */
-export type FeedPost = FeedRow & { src: string | null };
+/**
+ * A post as the page shows it: `src` its small picture (the tile), `full` the whole one (the
+ * detail); from the CDN, else signed from the bucket, else the platform's own link.
+ */
+export type FeedPost = FeedRow & { src: string | null; full: string | null };
 /** A creator person as the strip and the filter show them: `src`, their face, signed. */
 export type FeedPersonShown = FeedPerson & { src: string | null };
 export interface FeedPage extends Omit<FeedFacets, "people"> {
@@ -550,15 +558,21 @@ async function feedPage(db: Db, media: Media | null, a: FeedAsk): Promise<FeedPa
     limit: a.limit ?? (a.group ? 200 : 100),
   };
   const [facets, rows] = await Promise.all([feedFacets(db), feedPosts(db, f)]);
-  const sign = (key: string | null, or: string | null) =>
-    key && media ? media.sign(`s3://${media.bucket}/${key}`).catch(() => or) : Promise.resolve(or);
+  const sign = (key: string | null, or: string | null) => {
+    if (!key || !media) return Promise.resolve(or);
+    if (media.origin && ON_CDN.test(key)) return Promise.resolve(`${media.origin}/${key}`);
+    return media.sign(`s3://${media.bucket}/${key}`).catch(() => or);
+  };
   // a person's face: their first account with a copied picture
   const face = (p: FeedPerson) => sign(p.accounts.find((a) => a.picture)?.picture ?? null, null);
   return {
     ...facets,
     people: await Promise.all(facets.people.map(async (p) => ({ ...p, src: await face(p) }))),
     rows: await Promise.all(
-      rows.map(async (r) => ({ ...r, src: await sign(r.picture, r.pictureLink) })),
+      rows.map(async (r) => {
+        const full = await sign(r.picture, r.pictureLink);
+        return { ...r, src: r.pictureSmall ? await sign(r.pictureSmall, full) : full, full };
+      }),
     ),
   };
 }

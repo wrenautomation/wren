@@ -144,7 +144,7 @@ function Body({
   face: string | null;
   also: Account[];
 }) {
-  const pic = usePicture(r);
+  const pic = usePicture(r, true);
   const hot = (r.multiple ?? 0) >= HOT;
   const posted = when(r.postedAt);
   const reach = perFollower(r);

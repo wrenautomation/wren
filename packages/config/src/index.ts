@@ -268,6 +268,8 @@ export const settingsSchema = z.object({
   contentVoicePath: z.string().min(1).optional(),
   /** An S3 bucket a local media file is hosted in (presigned URL) for platforms that only take URLs. Unset = URLs only. */
   mediaBucket: z.string().min(1).optional(),
+  /** The CDN in front of the media bucket's creator pictures (deploy/terraform/media.tf); unset = signed URLs. */
+  mediaOrigin: z.string().url().optional(),
   /** The private S3 bucket for client files (`clients/<id>/`); unset = the portal refuses uploads. */
   filesBucket: z.string().min(1).optional(),
   /** The private S3 bucket archived page HTML moves to (`pages/<id>.html.gz`); unset = pages stay in Postgres. */
@@ -692,6 +694,7 @@ export const ENV_KEYS = {
   tiktokPostVia: "WREN_TIKTOK_POST_VIA",
   contentVoicePath: "WREN_CONTENT_VOICE",
   mediaBucket: "WREN_MEDIA_BUCKET",
+  mediaOrigin: "WREN_MEDIA_ORIGIN",
   filesBucket: "WREN_FILES_BUCKET",
   pagesBucket: "WREN_PAGES_BUCKET",
   canonRemote: "WREN_CANON_REMOTE",

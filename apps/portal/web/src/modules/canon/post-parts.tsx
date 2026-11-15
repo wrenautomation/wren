@@ -219,10 +219,14 @@ export function CanonTag({ canon }: { canon: Canon }) {
   );
 }
 
-/** a picture only where the post has one that loads; else null, and the words carry it */
-export function usePicture(r: FeedPost) {
+/**
+ * A picture only where the post has one that loads; else null, and the words carry it. `full`:
+ * the whole picture (the detail), else the small one (the tile).
+ */
+export function usePicture(r: FeedPost, full = false) {
   const [bad, setBad] = useState(false);
-  return { src: r.src && !bad ? r.src : null, fail: () => setBad(true) };
+  const src = full ? (r.full ?? r.src) : r.src;
+  return { src: src && !bad ? src : null, fail: () => setBad(true) };
 }
 
 /**

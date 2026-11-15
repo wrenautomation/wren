@@ -21,13 +21,13 @@
     "@wren/browser": "workspace:*",
     "@wren/calendar": "workspace:*",
     "@wren/config": "workspace:*",
+    "@wren/content-standard": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/delivery": "workspace:*",
     "@wren/egress": "workspace:*",
     "@wren/experiments": "workspace:*",
     "@wren/folders": "workspace:*",
-    "@wren/content-standard": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/niches": "workspace:*",
     "@wren/offers": "workspace:*",
@@ -61,7 +61,8 @@
     "commander": "15.0.0",
     "drizzle-orm": "0.45.2",
     "playwright": "1.63.0",
-    "playwright-core": "1.63.0"
+    "playwright-core": "1.63.0",
+    "sharp": "0.35.4"
   },
   "devDependencies": {
     "esbuild": "0.28.2",

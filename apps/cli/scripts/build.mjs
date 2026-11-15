@@ -30,7 +30,7 @@ await build({
   sourcemap: false,
   minify: false,
   // Native, or ships its own browser drivers: resolved from apps/cli/node_modules at run time.
-  external: ["@duckdb/node-api", "playwright", "playwright-core"],
+  external: ["@duckdb/node-api", "playwright", "playwright-core", "sharp"],
   // Same banner as the Lambda build: bundled CJS deps call require() for node builtins,
   // and the alias keeps clear of a dep that imports `createRequire` by name.
   banner: {

@@ -1,6 +1,7 @@
 # The media store: a video or image a post carries. The CLI uploads it (by
 # content hash), the worker signs a day-long GET URL that Graph, TikTok, X and
-# the autobrowse box fetch. Private; nothing public reads it directly.
+# the autobrowse box fetch. Private; only the media CDN below reads it, and only
+# the creator pictures (public posts' and profiles' pictures, copied).
 
 resource "aws_s3_bucket" "media" {
   bucket_prefix = "${local.prefix}-media-"
@@ -59,9 +60,79 @@ data "aws_iam_policy_document" "worker_media" {
     resources = [
       "${aws_s3_bucket.media.arn}/cache/*/*.mp4",
       "${aws_s3_bucket.media.arn}/cache/*/*.jpg",
+      "${aws_s3_bucket.media.arn}/cache/*/*.webp",
       "${aws_s3_bucket.media.arn}/canon/*",
     ]
   }
+}
+
+# Creator pictures for the portal's Outliers (WA-1390): stable URLs the browser keeps,
+# HTTP/2 and 3, an edge copy. Signed S3 URLs changed every load, so nothing cached.
+resource "aws_cloudfront_origin_access_control" "media" {
+  name                              = "${local.prefix}-media"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+resource "aws_cloudfront_distribution" "media" {
+  enabled         = true
+  comment         = "${local.prefix} creator pictures"
+  is_ipv6_enabled = true
+  http_version    = "http2and3"
+  price_class     = "PriceClass_100"
+
+  origin {
+    origin_id                = "media"
+    domain_name              = aws_s3_bucket.media.bucket_regional_domain_name
+    origin_access_control_id = aws_cloudfront_origin_access_control.media.id
+  }
+
+  default_cache_behavior {
+    target_origin_id       = "media"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    # videos.tf
+    cache_policy_id = data.aws_cloudfront_cache_policy.optimized.id
+    compress        = true
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+}
+
+data "aws_iam_policy_document" "media_cdn" {
+  statement {
+    sid     = "CloudFrontReadsCreatorPictures"
+    actions = ["s3:GetObject"]
+    resources = [
+      "${aws_s3_bucket.media.arn}/cache/posts/*",
+      "${aws_s3_bucket.media.arn}/cache/creators/*",
+    ]
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [aws_cloudfront_distribution.media.arn]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "media" {
+  bucket     = aws_s3_bucket.media.id
+  policy     = data.aws_iam_policy_document.media_cdn.json
+  depends_on = [aws_s3_bucket_public_access_block.media]
 }
 
 resource "aws_iam_role_policy" "worker_media" {

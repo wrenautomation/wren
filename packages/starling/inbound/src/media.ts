@@ -170,13 +170,20 @@ export async function storedHead(
  * A file at a fixed key, not its hash: the sound kit's bucket files (`sfx/<id>.wav`), whose
  * licence keeps them out of the public repo.
  */
-export async function putKey(path: string, key: string, o: MediaStoreOptions): Promise<string> {
+export async function putKey(
+  path: string,
+  key: string,
+  o: MediaStoreOptions,
+  /** `Cache-Control` for a CDN and the browser (the media CDN, WA-1390) */
+  cacheControl?: string,
+): Promise<string> {
   await clientOf(o).send(
     new PutObjectCommand({
       Bucket: o.bucket,
       Key: key,
       Body: await readFile(path),
       ContentType: MEDIA_TYPES[extname(path).toLowerCase()] ?? "application/octet-stream",
+      ...(cacheControl ? { CacheControl: cacheControl } : {}),
     }),
   );
   return `s3://${o.bucket}/${key}`;

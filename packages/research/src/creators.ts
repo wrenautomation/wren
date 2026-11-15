@@ -513,6 +513,8 @@ export interface FeedRow {
   record: string | null;
   /** its picture in the media bucket (`cache/posts/...`), once copied */
   picture: string | null;
+  /** its small copy (`smallKeyOf`): what a tile shows; null until made, `''` when none could be */
+  pictureSmall: string | null;
   /** the platform's own picture link, from the stored item; IG links expire in days */
   pictureLink: string | null;
 }
@@ -612,17 +614,77 @@ export async function avatarsToCopy(
   });
 }
 
-/** The profile picture is in the bucket (`''`: the platform refused it). */
-export async function setAvatar(db: Queryable, id: number, key: string) {
-  await db.update(tc).set({ picture: key }).where(eq(tc.id, id));
+/**
+ * The small copy's key (WA-1390): beside the full one, named by its bytes' hash, so a CDN and
+ * the browser keep it for good.
+ */
+export const smallKeyOf = (key: string, hash: string) =>
+  key.replace(/\.jpg$/, `.${hash.slice(0, 12)}.small.webp`);
+
+/**
+ * The profile picture is in the bucket (`''`: the platform refused it). `small`: its small copy;
+ * `''` when none could be made, null to leave as is.
+ */
+export async function setAvatar(
+  db: Queryable,
+  id: number,
+  key: string,
+  small: string | null = null,
+) {
+  await db
+    .update(tc)
+    .set({ picture: key, ...(small != null || key === "" ? { pictureSmall: small } : {}) })
+    .where(eq(tc.id, id));
 }
 
-/** The copy is in the bucket. */
-export async function setPicture(db: Queryable, platform: string, ref: string, key: string) {
+/** The copy is in the bucket; `small` as in `setAvatar`. */
+export async function setPicture(
+  db: Queryable,
+  platform: string,
+  ref: string,
+  key: string,
+  small: string | null = null,
+) {
   await db
     .update(cp)
-    .set({ picture: key })
+    .set({ picture: key, ...(small != null || key === "" ? { pictureSmall: small } : {}) })
     .where(and(eq(cp.platform, platform), eq(cp.ref, ref)));
+}
+
+/** Copies in the bucket with no small copy yet: what `creator pictures` makes small. */
+export async function smallsToMake(
+  db: Queryable,
+  o: { limit?: number } = {},
+): Promise<{ key: string; mark: (small: string) => Promise<void> }[]> {
+  const faces = await db.execute<{ id: number; key: string }>(
+    sql`select id, picture as key from tracked_creators
+      where picture <> '' and picture_small is null`,
+  );
+  const posts = await db.execute<{ platform: string; ref: string; key: string }>(
+    sql`select platform, ref, picture as key from creator_posts
+      where picture <> '' and picture_small is null
+      order by posted_at desc nulls last limit ${o.limit ?? 2000}`,
+  );
+  return [
+    ...[...faces].map((f) => ({
+      key: f.key,
+      mark: (small: string) =>
+        db
+          .update(tc)
+          .set({ pictureSmall: small })
+          .where(eq(tc.id, f.id))
+          .then(() => undefined),
+    })),
+    ...[...posts].map((p) => ({
+      key: p.key,
+      mark: (small: string) =>
+        db
+          .update(cp)
+          .set({ pictureSmall: small })
+          .where(and(eq(cp.platform, p.platform), eq(cp.ref, p.ref)))
+          .then(() => undefined),
+    })),
+  ];
 }
 
 const list = (xs: readonly (string | number)[]) =>
@@ -692,12 +754,13 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     creator_posts: number | null;
     record: string | null;
     picture: string | null;
+    picture_small: string | null;
     raw: unknown;
   }>(sql`select * from (select p.platform, p.ref, p.url, p.kind, p.posted_at, p.title, p.text,
       p.creator_id, c.person_id, ${personName} as person,
       h.handle, h.name, c.niches, fo.followers, co.counts, p.score_count, p.multiple,
       p.rank, p.likes_multiple, p.likes_rank, p.baseline_n, p.baseline, p.likes_baseline, p.record,
-      p.picture, case when p.picture is null then p.raw end as raw,
+      p.picture, p.picture_small, case when p.picture is null then p.raw end as raw,
       ${key} as sort_key, ${tie} as sort_tie,
       row_number() over (partition by c.person_id order by ${key} desc nulls last, ${tie} desc nulls last) as nth,
       count(*) over (partition by c.person_id)::int as creator_posts,
@@ -743,6 +806,7 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     creatorPosts: grouped ? r.creator_posts : null,
     record: r.record,
     picture: r.picture,
+    pictureSmall: r.picture_small,
     pictureLink: r.picture ? null : pictureLinkOf(r.platform, r.ref, r.raw),
   }));
 }
@@ -770,7 +834,7 @@ export type FeedPerson = {
     handle: string;
     name: string | null;
     url: string | null;
-    /** the profile picture's bucket key */
+    /** the profile picture's bucket key: its small copy once made */
     picture: string | null;
     followers: number | null;
   }[];
@@ -799,7 +863,7 @@ export async function feedFacets(db: Queryable): Promise<FeedFacets> {
     (select count(*)::int from creator_posts p join tracked_creators c2 on c2.id = p.creator_id
       where c2.person_id = pe.id and c2.active and p.kind <> 'retweet') as n,
     (select json_agg(json_build_object('id', c3.id, 'platform', h3.platform, 'handle', h3.handle,
-        'name', h3.name, 'url', h3.url, 'picture', nullif(c3.picture, ''),
+        'name', h3.name, 'url', h3.url, 'picture', coalesce(nullif(c3.picture_small, ''), nullif(c3.picture, '')),
         'followers', (select f.followers from follower_count_days f
           where f.creator_id = c3.id order by f.day desc limit 1)) order by h3.platform)
       from tracked_creators c3 join social_handles h3 on h3.id = c3.handle_id

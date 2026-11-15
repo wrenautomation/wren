@@ -14,6 +14,11 @@ import {
   listCreators,
   MAX_READ_FAILS,
   markReadFailed,
+  pictureKeyOf,
+  setAvatar,
+  setPicture,
+  smallKeyOf,
+  smallsToMake,
   trackCreator,
   untrackCreator,
 } from "../../src/creators.js";
@@ -131,6 +136,42 @@ describe("creators", () => {
       ["video 0", 6],
       ["video 5", 6],
     ]);
+  });
+
+  it("keeps a small copy beside each picture; the backfill takes only the ones without", async () => {
+    const c = await trackCreator(db(), {
+      platform: "youtube",
+      handle: "@maker",
+      niches: [],
+      addedBy: "william",
+    });
+    await keepCreatorRead(db(), c.id, read([1000, 100, 100]), "2026-11-12");
+    const key = pictureKeyOf("youtube", "vid0aaaaaaa");
+    const small = smallKeyOf(key, "ab12cd34ef56ff");
+    expect(small).toBe("cache/posts/youtube/vid0aaaaaaa.ab12cd34ef56.small.webp");
+    await setPicture(db(), "youtube", "vid0aaaaaaa", key, small);
+    // copied before small copies: the backfill's
+    await setPicture(db(), "youtube", "vid1aaaaaaa", pictureKeyOf("youtube", "vid1aaaaaaa"));
+    // gone at the platform: nothing to make
+    await setPicture(db(), "youtube", "vid2aaaaaaa", "");
+    await setAvatar(db(), c.id, "cache/creators/youtube/maker.jpg");
+
+    const todo = await smallsToMake(db());
+    expect(todo.map((t) => t.key).sort()).toEqual([
+      "cache/creators/youtube/maker.jpg",
+      "cache/posts/youtube/vid1aaaaaaa.jpg",
+    ]);
+    for (const t of todo) await t.mark("");
+    expect(await smallsToMake(db())).toEqual([]);
+
+    const feed = await feedPosts(db(), { all: true });
+    expect(feed.find((p) => p.ref === "vid0aaaaaaa")).toMatchObject({
+      picture: key,
+      pictureSmall: small,
+    });
+    // a small copy that could not be made: the face falls back to the full one
+    const facets = await feedFacets(db());
+    expect(facets.people[0]?.accounts[0]?.picture).toBe("cache/creators/youtube/maker.jpg");
   });
 
   it("joins accounts into one person: feed, filter, groups, facets; reach sorts; removed hides", async () => {

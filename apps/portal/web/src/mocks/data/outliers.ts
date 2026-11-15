@@ -34,6 +34,8 @@ const row = (o: RowIn): FeedPost => {
   const n = r.counts[r.scoreCount as "views" | "likes"];
   return {
     ...r,
+    // one picture serves tile and detail here
+    full: "full" in o ? (o.full ?? null) : r.src,
     baseline:
       "baseline" in o ? (o.baseline ?? null) : r.multiple && n ? Math.round(n / r.multiple) : null,
   };
@@ -62,8 +64,10 @@ const base = (o: RowIn & Pick<FeedPost, "personId" | "person">): FeedPost => ({
   creatorPosts: null,
   record: null,
   picture: null,
+  pictureSmall: null,
   pictureLink: null,
   src: shot("#6d5bd0", "#e0a458"),
+  full: null,
   ...o,
 });
 

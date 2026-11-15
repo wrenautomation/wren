@@ -831,6 +831,9 @@ function Tile({
             src={pic.src}
             // the hook below already says it
             alt={hook ? "" : words}
+            // 100-200 tiles: only the ones near the screen load
+            loading="lazy"
+            decoding="async"
             onError={pic.fail}
             className="block size-full object-cover transition-transform duration-200 ease-(--ui-ease) group-hover/tile:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover/tile:scale-100"
           />
