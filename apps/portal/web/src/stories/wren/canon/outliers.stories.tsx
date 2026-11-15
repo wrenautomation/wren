@@ -424,6 +424,46 @@ export const DetailAlsoOn = tidy(
   }),
 );
 
+const R = OUTLIER_ROWS as (typeof OUTLIER_ROWS)[number][];
+const WORDS = [
+  R[1],
+  R[6],
+  R[5],
+  // a picture with no words: no hook line
+  { ...R[0], ref: "FakeVidNoWords", title: null, text: null, multiple: 7 },
+  // worst case: one huge line, no sentence end; the hook stops at 8 lines
+  {
+    ...R[6],
+    ref: "FakeReelOneLine",
+    text: `${"one take no cuts just talking straight to camera about the edit ".repeat(10)}#editing`,
+    multiple: 2,
+  },
+].filter((r) => r != null);
+
+/** Under each picture its hook (PT-6): the title, else the text's first line, else nothing. */
+export const TileWords = tidy(
+  pageAt("/canon/outliers", {
+    me: ADMIN,
+    answers: { "canon/feed": { ...OUTLIERS, rows: WORDS } },
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByText(/^The one edit that tripled/, {}, WAIT)).toBeVisible();
+      await expect(view.getByText(/^My agent's morning/)).toBeVisible();
+      // a long first line stops at its first sentence; the tags below it never show
+      await expect(
+        view.getByText(
+          /^Day 3 of editing one reel a day and today it is the hook: the cut I almost threw away\.$/,
+        ),
+      ).toBeVisible();
+      // the huge line is clamped: its hook is no taller than 8 lines
+      const huge = view.getByText(/^one take no cuts/);
+      await expect(huge.getBoundingClientRect().height).toBeLessThanOrEqual(8 * 14 * 1.35 + 1);
+      // a picture with a hook below it has no alt of its own: no double reading
+      await expect(view.queryByRole("img", { name: /^The one edit/ })).toBeNull();
+    },
+  }),
+);
+
 /** Sort by views: the most watched first; the chip names the sort. */
 export const SortViews = tidy(
   pageAt("/canon/outliers?sort=views", {

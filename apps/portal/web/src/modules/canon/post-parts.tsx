@@ -225,5 +225,22 @@ export function usePicture(r: FeedPost) {
   return { src: r.src && !bad ? r.src : null, fail: () => setBad(true) };
 }
 
+/**
+ * The words that sell a post on its tile (PT-6, YouTube's grid): its title, else its text's first
+ * line. A first line past 120 characters stops at its first sentence end; whole words, no ellipsis.
+ */
+export function hookOf(r: FeedPost): string | null {
+  const title = r.title?.trim();
+  if (title) return title;
+  const first = r.text
+    ?.split("\n")
+    .map((l) => l.trim())
+    .find(Boolean);
+  if (!first || first.length <= 120) return first ?? null;
+  // a sentence of 40 characters or more: a "Wow." opener is no hook alone
+  const end = /[.!?](?=\s)/.exec(first.slice(40));
+  return end ? first.slice(0, 40 + end.index + 1) : first;
+}
+
 export const tall = (r: FeedPost) =>
   r.kind === "reel" || r.kind === "short" || r.platform === "instagram" || r.platform === "tiktok";

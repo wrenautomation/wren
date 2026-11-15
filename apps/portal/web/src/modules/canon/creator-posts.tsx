@@ -55,6 +55,7 @@ import {
   Face,
   followersText,
   HOT,
+  hookOf,
   keyOf,
   kindName,
   nameOf,
@@ -815,6 +816,8 @@ function Tile({
   const ago = age(r.postedAt);
   const words = r.title ?? r.text ?? `${kindName(r.kind)} by ${nameOf(r)}`;
   const perFol = reach ? perFollowerText(r) : null;
+  // a text tile already shows its words in the frame
+  const hook = pic.src ? hookOf(r) : null;
   return (
     <article className="group/tile relative grid content-start gap-1.5 rounded-[4px_10px_4px_10px]">
       <div
@@ -826,7 +829,8 @@ function Tile({
         {pic.src ? (
           <Img
             src={pic.src}
-            alt={words}
+            // the hook below already says it
+            alt={hook ? "" : words}
             onError={pic.fail}
             className="block size-full object-cover transition-transform duration-200 ease-(--ui-ease) group-hover/tile:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover/tile:scale-100"
           />
@@ -849,7 +853,13 @@ function Tile({
           </span>
         ) : null}
       </div>
-      <div className="mt-1 flex min-w-0 flex-wrap items-baseline gap-x-1.5">
+      {hook ? (
+        // ST-28: only a freak one-line caption reaches 8 lines; the tile opens the rest
+        <p className="m-0 mt-1 line-clamp-8 text-[14px] leading-[1.35] font-semibold wrap-anywhere text-(--ui-ink)">
+          {hook}
+        </p>
+      ) : null}
+      <div className={cn("flex min-w-0 flex-wrap items-baseline gap-x-1.5", !hook && "mt-1")}>
         {r.multiple != null ? (
           <span
             // biome-ignore lint/a11y/noNoninteractiveTabindex: the tip opens on focus too
@@ -905,7 +915,9 @@ function Ghosts() {
         {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
           <div key={i} className="grid gap-1.5">
             <Skeleton className="aspect-[4/5] w-full" />
-            <Skeleton className="mt-1 h-5 w-28" />
+            <Skeleton className="mt-1 h-4 w-[85%]" />
+            <Skeleton className="h-4 w-[55%]" />
+            <Skeleton className="h-5 w-28" />
             <Skeleton className="h-3 w-32" />
             <Skeleton className="h-3 w-24" />
           </div>

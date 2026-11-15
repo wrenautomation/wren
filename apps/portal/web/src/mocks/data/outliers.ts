@@ -198,7 +198,8 @@ export const OUTLIER_ROWS: FeedPost[] = [
     band: null,
     postedAt: daysAgo(0.5),
     title: null,
-    text: "Day 3 of editing one reel a day",
+    // one long first line: the tile keeps its first sentence
+    text: "Day 3 of editing one reel a day and today it is the hook: the cut I almost threw away. It ended up doing 10x my usual, so here is the timeline frame by frame.\n\n#editing #reels",
     counts: { views: 3_100, likes: 140 },
     src: shot("#38a169", "#9ae6b4"),
   }),
