@@ -1,7 +1,7 @@
 /**
  * Canon › one topic (`/canon/topic?t=<name>`), in layer order: the skill (the door an agent loads),
  * the procedure (guide), the rule sets line by line with what backs each line, and the references
- * behind them. Evidence, checks, his notes, conflicts and files sit beside the layers. Any link opens
+ * behind them. Sources, checks, his notes, conflicts and files sit beside the layers. Any link opens
  * the record or file beside the page.
  */
 import { sizeLabel } from "@wren/core/paths";
@@ -69,7 +69,7 @@ function Whole({ t, params }: { t: TopicWhole; params: URLSearchParams }) {
     ["references", `References (${t.references.length})`, t.references.length > 0],
   ];
   const beside: [string, string, boolean][] = [
-    ["evidence", `Evidence (${t.evidence.length})`, t.evidence.length > 0],
+    ["sources", `Sources (${t.sources.length})`, t.sources.length > 0],
     ["checks", `Checks (${checks.length})`, checks.length > 0],
     ["notes", "His notes", t.notes != null],
     ["conflicts", `Conflicts (${t.conflicts.length})`, t.conflicts.length > 0],
@@ -252,15 +252,15 @@ function Whole({ t, params }: { t: TopicWhole; params: URLSearchParams }) {
         </Section>
       )}
 
-      {t.evidence.length > 0 && (
+      {t.sources.length > 0 && (
         <Section
-          title={`Evidence (${t.evidence.length})`}
-          id="evidence"
+          title={`Sources (${t.sources.length})`}
+          id="sources"
           about="Every other source under the procedure and its sets, at any depth."
         >
           <Fold summary={<span>Show every source</span>}>
             <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-              {t.evidence.map((s) => (
+              {t.sources.map((s) => (
                 <li key={s.id} className="flex flex-wrap items-baseline gap-x-2 text-[13.5px]">
                   <a
                     href={

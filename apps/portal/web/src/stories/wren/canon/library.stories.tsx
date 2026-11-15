@@ -43,7 +43,7 @@ export const TopicLayers = tidy(
     check: async (page) => {
       const view = within(page);
       const nav = await view.findByRole("navigation", { name: "On this page" }, WAIT);
-      await expect(within(nav).getByRole("link", { name: "References (4)" })).toBeVisible();
+      await expect(within(nav).getByRole("link", { name: "References (6)" })).toBeVisible();
       // the skill: guide, notes, then the sets, with the line filter
       await expect(view.getByText("only WC-1")).toBeVisible();
       const line = page.querySelector("#line-VC-2") as HTMLElement;

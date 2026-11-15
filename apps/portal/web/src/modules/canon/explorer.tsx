@@ -267,7 +267,7 @@ function TopicSummary({ t, view }: { t: TopicWhole; view: ExplorerView }) {
     `${t.sets.length} ${t.sets.length === 1 ? "rule set" : "rule sets"}, ${num(lines)} lines`,
     t.borrowed.length ? `${t.borrowed.length} borrowed` : null,
     `${num(t.references.length)} references`,
-    `${num(t.evidence.length)} other sources`,
+    `${num(t.sources.length)} other sources`,
     // skill and notes: the column beside lists them
     t.guide ? null : "no guide",
   ].filter(Boolean);

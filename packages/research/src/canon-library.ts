@@ -101,8 +101,8 @@ export interface TopicWhole {
   conflicts: (Link & { body: string; state: string | null; lines: string[] })[];
   /** sources tagged `reference` under the guide and sets: the examples, with posters */
   references: (Reference & { backs: string[] })[];
-  /** every other source under the guide and sets, at any depth */
-  evidence: SourceUnder[];
+  /** every other source under the guide and sets, at any depth: where the rules came from */
+  sources: SourceUnder[];
   /** the repo on GitHub, for files the index keeps as size only */
   github: string;
 }
@@ -134,6 +134,8 @@ export interface RecordWhole {
   body: string;
   /** frontmatter whole, minus what has its own field */
   data: Data;
+  /** a source's picture (its first image file, else its poster), signed; null for the rest */
+  picture: string | null;
   cites: Link[];
   citedBy: Link[];
   github: string;
@@ -420,9 +422,9 @@ export function canonLibraryApi(
             .map(({ topic, title }) => ({ topic, title })),
         };
       });
-      const sources = under.filter((u) => u.type === "source");
+      const cited = under.filter((u) => u.type === "source");
       const isRef = (u: SourceRow) => strs(u.data.tags).includes("reference");
-      const shaped = await references(sources.filter(isRef));
+      const shaped = await references(cited.filter(isRef));
       const file = (p: string) => files.find((f) => f.path === `topics/${name}/${p}`)?.body ?? null;
       const notes = file("notes.md");
       return {
@@ -454,7 +456,7 @@ export function canonLibraryApi(
           lines: strs(c.data.lines),
         })),
         references: shaped.map((r) => ({ ...r, backs: backs.get(r.id) ?? [] })),
-        evidence: sources
+        sources: cited
           .filter((u) => !isRef(u))
           .map((u) => ({
             id: u.id,
@@ -554,15 +556,18 @@ export function canonLibraryApi(
         path: string;
         topic: string | null;
         body: string;
+        created: string;
         data: Data;
       }>(
-        sql`select id, type, title, status, path, coalesce(topic, data->>'topic') as topic, body, data from canon.knowledge_records where repo = ${REPO} and id = ${id}`,
+        sql`select id, type, title, status, path, coalesce(topic, data->>'topic') as topic, body, created, data from canon.knowledge_records where repo = ${REPO} and id = ${id}`,
       );
       if (!r) throw new PortalRefusal("no such record", 404);
       const by = await db.execute<Link>(
         sql`select k.id, k.type, k.title, k.status from canon.knowledge_cites c join canon.knowledge_records k on k.repo = c.repo and k.id = c."from" where c.repo = ${REPO} and c."to" = ${id} order by k.type, k.id`,
       );
       const { id: _i, type: _t, title: _ti, status: _s, topic: _to, ...data } = r.data;
+      // the page's shaper signs pictures; this module holds no media store
+      const [shaped] = r.type === "source" ? await references([r]) : [];
       return {
         id: r.id,
         type: r.type,
@@ -572,6 +577,7 @@ export function canonLibraryApi(
         topic: r.topic,
         body: r.body,
         data,
+        picture: shaped?.poster ?? null,
         cites: await links(strs(r.data.cites)),
         citedBy: by,
         github: blob(r.path),

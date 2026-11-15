@@ -43,7 +43,13 @@ export function Poster({
       )}
     >
       {r.poster ? (
-        <Img src={r.poster} alt="" className="size-full object-cover" loading="lazy" />
+        <Img
+          src={r.poster}
+          alt=""
+          // a shot shows whole (Notion's "Fit image"); a video still fills
+          className={cx("size-full", r.kind === "image" ? "object-contain" : "object-cover")}
+          loading="lazy"
+        />
       ) : (
         <span className="grid size-full place-items-center text-(--ui-ink-3)">
           <Icon

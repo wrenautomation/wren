@@ -127,6 +127,32 @@ export const Record = tidy(
   }),
 );
 
+/** A topic's references: shots filed as pictures show their picture on the tile. */
+export const TopicShots = tidy(
+  pageAt(at("canon/topics/video-editing/references"), {
+    ...ONE,
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByRole("link", { name: /^A list app/ }, WAIT)).toBeVisible();
+      await waitFor(() =>
+        expect(page.querySelector('img[src="/canon/shot-wide.svg"]')).not.toBeNull(),
+      );
+    },
+  }),
+);
+
+/** A shot open: the picture whole above its fields. */
+export const ShotOpened = tidy(
+  pageAt(at("canon/records/source/image-fakeshotwide1"), {
+    ...ONE,
+    check: async (page) => {
+      await expect(
+        await within(page).findByRole("img", { name: /^A list app/ }, WAIT),
+      ).toBeVisible();
+    },
+  }),
+);
+
 /** A direction doc: frontmatter as code, the rest as markdown. */
 export const File = tidy(
   pageAt(at("canon/files/direction/2026-11-12-personal-brand.md"), {

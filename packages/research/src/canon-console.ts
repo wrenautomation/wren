@@ -190,6 +190,14 @@ export function youtubeId(url: string): string | null {
 const savedOf = (d: Data, created: string) =>
   str(obj(d.saved)?.at) ?? str(d.saved) ?? str(d.created) ?? created;
 
+/** the bucket key of a record's first picture: `files[]` with role image, else an image type */
+function imageKeyOf(d: Data): string | null {
+  const files = Array.isArray(d.files) ? d.files.map(obj).filter((f): f is Data => !!f) : [];
+  const pic =
+    files.find((f) => f.role === "image") ?? files.find((f) => str(f.type)?.startsWith("image/"));
+  return pic ? str(pic.key) : null;
+}
+
 /** A source row as the page shows it: poster and player from the media bucket or the platform. */
 export async function referenceOf(
   r: { id: string; title: string; created: string; data: Data },
@@ -221,6 +229,10 @@ export async function referenceOf(
       poster = `https://i.ytimg.com/vi/${v}/hqdefault.jpg`;
       embed = `https://www.youtube-nocookie.com/embed/${v}`;
     }
+  } else if (media) {
+    // a shot filed as a picture: its first image file is the poster
+    const key = imageKeyOf(d);
+    if (key) poster = await media.sign(`s3://${media.bucket}/${key}`).catch(() => null);
   }
   return {
     id: r.id,

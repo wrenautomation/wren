@@ -237,12 +237,12 @@ describe("canonLibraryApi", () => {
     expect(topic.conflicts).toEqual([
       expect.objectContaining({ id: "conflict-cuts", state: "open", lines: ["VC-1"] }),
     ]);
-    // tagged reference: shaped, with the lines it backs; the rest is evidence
+    // tagged reference: shaped, with the lines it backs; the rest are sources
     expect(topic.references).toEqual([
       expect.objectContaining({ id: "youtube-abc12345678", backs: ["VC-1"] }),
     ]);
     // through the set the guide borrows
-    expect(topic.evidence).toEqual([
+    expect(topic.sources).toEqual([
       expect.objectContaining({ id: "web-example-com", kind: "page", backs: ["WC-1"] }),
     ]);
     expect(topic.github).toBe("https://github.com/example-org/canon");
@@ -277,6 +277,7 @@ describe("canonLibraryApi", () => {
     expect(finding).toMatchObject({
       type: "finding",
       body: "Every cut sits on a kick.",
+      picture: null,
       cites: [{ id: "youtube-abc12345678", type: "source", title: "A talk", status: "live" }],
       citedBy: [{ id: "video-editing-cuts", type: "rule" }],
       github: "https://github.com/example-org/canon/blob/main/findings/cuts-land-on-the-beat.md",

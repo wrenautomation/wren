@@ -242,7 +242,7 @@ export function canonTree(src: CanonSource): Adapter {
     if (!set) throw new PathError("unknown-path", `${owner} owns no set ${id}`);
     return { t, set };
   };
-  /** a source under a topic as a row: a reference (poster) or plain evidence */
+  /** a source under a topic as a row: a reference (poster) or a plain source */
   const sourceRows = (t: TopicWhole) => {
     const m = new Map<string, Item>();
     for (const r of t.references)
@@ -259,7 +259,7 @@ export function canonTree(src: CanonSource): Adapter {
         kind: "reference",
         ...(r.poster ? { poster: r.poster } : {}),
       });
-    for (const e of t.evidence) m.set(e.id, recordRow({ ...e, type: "source", kind: e.kind }));
+    for (const e of t.sources) m.set(e.id, recordRow({ ...e, type: "source", kind: e.kind }));
     return m;
   };
 
@@ -300,12 +300,12 @@ export function canonTree(src: CanonSource): Adapter {
           kind: "layer",
           count: t.references.length,
         });
-      if (t.evidence.length)
+      if (t.sources.length)
         rows.push({
-          path: join(base, "evidence"),
-          name: "Evidence",
+          path: join(base, "sources"),
+          name: "Sources",
           kind: "layer",
-          count: t.evidence.length,
+          count: t.sources.length,
         });
       if (checks.length)
         rows.push({
@@ -340,7 +340,7 @@ export function canonTree(src: CanonSource): Adapter {
     }
     const at = join(base, layer);
     // these hold alias rows only: a row under one reads at its home
-    if (under.length && ["skill", "notes", "references", "evidence", "conflicts"].includes(layer))
+    if (under.length && ["skill", "notes", "references", "sources", "conflicts"].includes(layer))
       throw new PathError("unknown-path", `${join(at, ...under)} is an alias: read it at its home`);
     switch (layer) {
       case "skill":
@@ -380,10 +380,10 @@ export function canonTree(src: CanonSource): Adapter {
         return setRows(name, id, deeper);
       }
       case "references":
-      case "evidence": {
+      case "sources": {
         const rows = sourceRows(t);
         const ids =
-          layer === "references" ? t.references.map((r) => r.id) : t.evidence.map((e) => e.id);
+          layer === "references" ? t.references.map((r) => r.id) : t.sources.map((e) => e.id);
         return ids.flatMap((i) => {
           const r = rows.get(i);
           return r ? [aliasOf(at, r)] : [];

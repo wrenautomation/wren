@@ -49,7 +49,7 @@ const PLACED = new Map<string, Placed>();
 const place = (r: Placed) => PLACED.set(r.id, r);
 for (const r of [...CANON_ROWS, ...CANON_TOPIC.references])
   place({ id: r.id, type: "source", title: r.title, status: "live", kind: r.kind });
-for (const e of CANON_TOPIC.evidence)
+for (const e of CANON_TOPIC.sources)
   place({ id: e.id, type: "source", title: e.title, status: e.status, kind: e.kind });
 for (const s of [...CANON_TOPIC.sets, ...CANON_TOPIC.borrowed])
   place({ id: s.id, type: "rule", title: s.title, status: "live", topic: s.topic });
@@ -90,14 +90,14 @@ function thinTopic(name: string): TopicWhole | null {
     files: [],
     conflicts: [],
     references: [],
-    evidence: [],
+    sources: [],
     github: CANON_TOPIC.github,
   };
 }
 
 /** A reference as its source record (prod's records hold every source); cited by the records that cite it. */
 function sourceRecord(id: string): RecordWhole | null {
-  const r = CANON_ROWS.find((x) => x.id === id);
+  const r = [...CANON_ROWS, ...CANON_TOPIC.references].find((x) => x.id === id);
   if (!r) return null;
   const by = new Map<string, Link>();
   for (const x of [...CANON_RECORDS.map((l) => canonRecord(l.id)), ...canonRecordsWhole()])
@@ -112,6 +112,7 @@ function sourceRecord(id: string): RecordWhole | null {
     topic: null,
     body: r.note?.text ?? "",
     data: { kind: r.kind, url: r.url, by: "agent-1" },
+    picture: r.poster,
     cites: [],
     citedBy: [...by.values()],
     github: `${CANON_TOPIC.github}/blob/main/sources/${id}.md`,

@@ -4,7 +4,7 @@
  */
 import { sizeLabel } from "@wren/core/paths";
 import type { FileWhole, Link, RecordWhole } from "@wren/research/canon-library";
-import { DetailSheet, Empty, Icon, LoadFailed, Loading, Tag, useSeen } from "@wren/ui";
+import { DetailSheet, Empty, Icon, Img, LoadFailed, Loading, Tag, useSeen } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { href, navigate } from "../../route.js";
@@ -129,6 +129,16 @@ export function RecordBody({
           </a>
         </span>
       </div>
+      {r.picture && (
+        // whole, never cropped; a click opens it full size
+        <a href={r.picture} target="_blank" rel="noreferrer" className="block">
+          <Img
+            src={r.picture}
+            alt={r.title}
+            className="block h-auto max-h-[70vh] max-w-full bg-(--ui-band) object-contain ring-1 ring-(--ui-hair) [border-radius:4px_10px_4px_10px]"
+          />
+        </a>
+      )}
       {typeof r.data.description === "string" && (
         <p className="m-0 text-[14px] leading-normal text-pretty">{r.data.description}</p>
       )}
