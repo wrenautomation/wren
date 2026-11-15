@@ -40,7 +40,6 @@ import {
   SORT_FIELDS,
   type Sort,
   type SortField,
-  STATUSES,
   type ViewLayout,
 } from "@wrenautomation/aerie/core";
 import { type ReactNode, useMemo, useState } from "react";
@@ -48,7 +47,7 @@ import type { Load } from "../../load.js";
 import { navigate } from "../../route.js";
 import { addressOf, GROUP, unfiltered, viewKey, withoutText } from "./address.js";
 import { type Board, deleteView, type SavedView, saveView, type TaskRow } from "./data.js";
-import { statusColor, who } from "./look.js";
+import { statusColor, statusesOf, who } from "./look.js";
 
 const cn = (...xs: (string | false | null | undefined)[]) => xs.filter(Boolean).join(" ");
 const ROLES: readonly AreaRole[] = ["owner", "manager", "doer", "watcher"];
@@ -380,7 +379,7 @@ function fieldsOf(c: Ctx, board: Load<Board>): BarField[] {
       label: "Status",
       icon: "selected",
       section: "Task",
-      known: STATUSES,
+      known: statusesOf(b),
       values: (t) => [t.status],
       face: (id) => (
         <span className="inline-flex items-center gap-2">

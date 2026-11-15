@@ -5,11 +5,11 @@
  */
 
 import { Board, type BoardLane, type BoardMove, Icon, Pill } from "@wren/ui";
-import { fieldOf, groupTasks } from "@wrenautomation/aerie/core";
+import { fieldOf } from "@wrenautomation/aerie/core";
 import { useMemo } from "react";
 import type { TaskRow } from "./data.js";
 import { foldKey, People } from "./list.js";
-import { groupLabel, statusColor } from "./look.js";
+import { groupLabel, groupsOf, statusColor } from "./look.js";
 
 /** a card: title, id, the first sentence, then chips; the lane's own field is left out */
 function Face({ t, group }: { t: TaskRow; group: string }) {
@@ -51,10 +51,11 @@ function lanesOf(
   tasks: TaskRow[],
   group: string,
   only: readonly string[] | undefined,
+  statuses: readonly string[],
 ): { lanes: BoardLane<TaskRow>[]; values: Map<string, string | null> } {
   const seen = new Set<string>();
   const values = new Map<string, string | null>();
-  const groups = groupTasks(tasks, group, { all: true });
+  const groups = groupsOf(tasks, group, statuses, true);
   const keep = group === "status" && only?.length ? new Set(only) : null;
   const kept = groups.filter((g) => g.tasks.length || !keep || keep.has(g.key ?? ""));
   const lanes = kept.map((g) => {
@@ -89,6 +90,7 @@ export function TaskBoard({
   onFold,
   narrow,
   only,
+  statuses,
   move,
 }: {
   /** null: loading */
@@ -103,6 +105,8 @@ export function TaskBoard({
   onFold: (key: string) => void;
   narrow: boolean;
   only?: readonly string[] | undefined;
+  /** the board's status order: a lane each */
+  statuses: readonly string[];
   /** writes on: a move from one group value to another (null: the empty group) */
   move?:
     | {
@@ -111,7 +115,10 @@ export function TaskBoard({
       }
     | undefined;
 }) {
-  const made = useMemo(() => (tasks ? lanesOf(tasks, group, only) : null), [tasks, group, only]);
+  const made = useMemo(
+    () => (tasks ? lanesOf(tasks, group, only, statuses) : null),
+    [tasks, group, only, statuses],
+  );
   const field = fieldOf(group);
   const moves = useMemo<BoardMove<TaskRow> | undefined>(() => {
     if (!move || !made || !field?.move) return undefined;

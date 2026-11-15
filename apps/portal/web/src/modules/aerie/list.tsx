@@ -4,11 +4,10 @@
  */
 
 import { Pill, type RowsColumn, type RowsLine, Tag, useNarrow } from "@wren/ui";
-import { groupTasks } from "@wrenautomation/aerie/core";
 import { PageRows } from "../../page-rows.js";
 import { dayLabel } from "../work/bits.js";
 import type { TaskRow } from "./data.js";
-import { groupLabel, peopleOf, statusColor, who } from "./look.js";
+import { groupLabel, groupsOf, peopleOf, statusColor, who } from "./look.js";
 
 /** folds that start shut: Done is most of the board */
 export const SHUT: ReadonlySet<string> = new Set(["status:Done"]);
@@ -20,8 +19,9 @@ export function shownOrder(
   tasks: TaskRow[],
   group: string | null,
   folded: ReadonlySet<string>,
+  statuses: readonly string[],
 ): string[] {
-  const groups = group ? groupTasks(tasks, group) : [{ key: null, tasks }];
+  const groups = group ? groupsOf(tasks, group, statuses) : [{ key: null, tasks }];
   const ids = groups
     .filter((g) => !folded.has(foldKey(group, g.key)))
     .flatMap((g) => g.tasks.map((t) => t.id));
@@ -96,10 +96,13 @@ export function TaskList({
   onWashed,
   folded,
   onFold,
+  statuses,
 }: {
   tasks: TaskRow[];
   /** a `FIELDS` key that groups; none: one run */
   group: string | null;
+  /** the board's status order */
+  statuses: readonly string[];
   open: string | null;
   onOpen: (t: TaskRow) => void;
   hrefOf: (t: TaskRow) => string;
@@ -116,7 +119,7 @@ export function TaskList({
   );
   const lines: RowsLine<TaskRow>[] = [];
   let index = 0;
-  const groups = group ? groupTasks(tasks, group) : [{ key: null, tasks }];
+  const groups = group ? groupsOf(tasks, group, statuses) : [{ key: null, tasks }];
   const seen = new Set<string>();
   for (const g of groups) {
     const at = foldKey(group, g.key);

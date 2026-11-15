@@ -1,13 +1,26 @@
 /** How Aerie's values read: one colour per status (a lane; Done is quiet), words for empty values. */
 
 import { lineColor } from "@wren/ui";
-import { holdersOf, MARK } from "@wrenautomation/aerie/core";
-import type { TaskRow } from "./data.js";
+import { groupTasks, holdersOf, MARK, STATUSES } from "@wrenautomation/aerie/core";
+import type { Board, TaskRow } from "./data.js";
 
-/** lanes in board order (`STATUSES`); amber stays "late" only, so Needs Human Input gets a lane too */
+/** the board's columns (its config.yml, `board.statuses`); aerie's default while the board loads */
+export const statusesOf = (b: Board | null | undefined): readonly string[] =>
+  b?.statuses ?? STATUSES;
+
+/** groups in board order; status lanes take the board's own list */
+export const groupsOf = (
+  tasks: TaskRow[],
+  group: string,
+  statuses: readonly string[],
+  all = false,
+) => groupTasks(tasks, group, { all, ...(group === "status" ? { order: statuses } : {}) });
+
+/** a colour per known status; amber stays "late" only, so Needs Human Input gets a lane too. Others: grey */
 const LANE: Record<string, number> = {
   "To Do": 0,
   "In Progress": 1,
+  "In Testing": 4,
   "Needs Human Input": 3,
   Backlog: 5,
   Parked: 6,

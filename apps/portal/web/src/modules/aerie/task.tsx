@@ -17,7 +17,7 @@ import {
   useSeen,
 } from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
-import { holdersOf, lineage, PRIORITIES, STATUSES } from "@wrenautomation/aerie/core";
+import { holdersOf, lineage, PRIORITIES } from "@wrenautomation/aerie/core";
 import { type ReactNode, useEffect, useState } from "react";
 import type { Load } from "../../load.js";
 import { navigate } from "../../route.js";
@@ -32,7 +32,7 @@ import {
   type TaskWhole,
   useTask,
 } from "./data.js";
-import { peopleOf, statusColor, who } from "./look.js";
+import { peopleOf, statusColor, statusesOf, who } from "./look.js";
 
 type Whole = TaskWhole["task"];
 type TaskEvent = TaskWhole["events"][number];
@@ -154,7 +154,14 @@ export function TaskBody({ id, rows, board, hrefOf, onWrote, bare = false }: Tas
   return (
     <div className="flex flex-col gap-6">
       {head ? (
-        <TaskHead task={head} writes={writes} busy={busy} onPick={pick} bare={bare} />
+        <TaskHead
+          task={head}
+          writes={writes}
+          busy={busy}
+          onPick={pick}
+          bare={bare}
+          statuses={statusesOf(board.data)}
+        />
       ) : (
         <HeadSkeleton />
       )}
@@ -206,9 +213,11 @@ function TaskHead({
   busy,
   onPick,
   bare,
+  statuses,
 }: {
   bare: boolean;
   task: Head;
+  statuses: readonly string[];
   writes: boolean;
   busy: boolean;
   onPick: (edit: TaskPick) => void;
@@ -228,7 +237,7 @@ function TaskHead({
           <OnePick
             label="Status"
             value={task.status}
-            options={STATUSES.map((s) => ({ id: s, text: s }))}
+            options={statuses.map((s) => ({ id: s, text: s }))}
             busy={busy}
             onPick={(s) => onPick({ status: s })}
           >

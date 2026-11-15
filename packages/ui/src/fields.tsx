@@ -786,7 +786,8 @@ export function PickList({
       aria-label={label}
       // biome-ignore lint/a11y/noAutofocus: the editor opened to pick in this list.
       autoFocus={short}
-      tabIndex={short ? 0 : -1}
+      // always a tab stop: a long list scrolls; its keys work after the search box
+      tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === " ") {
           e.preventDefault();

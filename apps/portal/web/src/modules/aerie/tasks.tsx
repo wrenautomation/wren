@@ -29,6 +29,7 @@ import {
   useSearch,
 } from "./data.js";
 import { SHUT, shownOrder, TaskList } from "./list.js";
+import { statusesOf } from "./look.js";
 import { isNoActor, NoActor } from "./no-actor.js";
 import { TaskSheet } from "./task.js";
 
@@ -140,7 +141,11 @@ export function TasksPage({ params }: PageProps) {
       if (!next.delete(k)) next.add(k);
       return next;
     });
-  const order = useMemo(() => shownOrder(shown, group, folded), [shown, group, folded]);
+  const statuses = statusesOf(board.data);
+  const order = useMemo(
+    () => shownOrder(shown, group, folded, statuses),
+    [shown, group, folded, statuses],
+  );
   const taskAt = useCallback((id: string) => href(TASKS, { task: id }, params), [params]);
 
   const err = got.error ?? board.error;
@@ -158,6 +163,7 @@ export function TasksPage({ params }: PageProps) {
     onFold: fold,
     narrow,
     only: view.filter.status,
+    statuses,
     move,
   });
 
@@ -205,6 +211,7 @@ export function TasksPage({ params }: PageProps) {
         onWashed={() => setWashed(new Set())}
         folded={folded}
         onFold={fold}
+        statuses={statuses}
       />
     );
 

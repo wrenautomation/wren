@@ -172,6 +172,15 @@ export const AERIE_BOARD: AerieAnswer<"board"> = {
     },
   ],
   writes: false,
+  statuses: [
+    "To Do",
+    "In Progress",
+    "In Testing",
+    "Needs Human Input",
+    "Backlog",
+    "Parked",
+    "Done",
+  ],
 };
 
 type Whole = AerieAnswer<"task">;
