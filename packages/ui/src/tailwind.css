@@ -137,14 +137,6 @@
   --ui-term-prompt: #f0a074; /* the $ */
   --ui-term-bad: #ff8f86;
   --ui-scrim: color-mix(in srgb, var(--ui-shade) 16%, transparent);
-  /* On a picture, either look: white counts need the dark under them. */
-  --ui-media-veil: color-mix(in srgb, var(--ui-shade) 38%, transparent);
-  --ui-media-fade: linear-gradient(
-    to top,
-    color-mix(in srgb, var(--ui-shade) 45%, transparent),
-    transparent
-  );
-  --ui-media-ink-shadow: 0 1px 2px color-mix(in srgb, var(--ui-shade) 60%, transparent);
   /* Under a graph's dot grid: paper with a little lavender, light or night alike. */
   --ui-graph: color-mix(in srgb, var(--ui-accent) 11%, var(--ui-paper));
   /* The five chart series, in this order. Each pair next to each other stays apart for colour-blind

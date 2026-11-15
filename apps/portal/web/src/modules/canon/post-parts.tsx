@@ -1,6 +1,6 @@
 /** What a creator post's card, tile and detail share (studio-suite D8-D10): names, counts, the usual line. */
 import type { FeedPost } from "@wren/research/canon-console";
-import { Icon, type IconName, Img, num, short, Tag, tipProps } from "@wren/ui";
+import { Icon, type IconName, Img, num, short, Tag } from "@wren/ui";
 import { useState } from "react";
 
 export const cn = (...xs: (string | false | null | undefined)[]) => xs.filter(Boolean).join(" ");
@@ -112,28 +112,6 @@ export function usualWhy(r: FeedPost): string[] {
   ];
 }
 
-/** "38x their usual views" with its hover line: a tag on a hot post, quiet words on the rest */
-export function Usual({ r, loud }: { r: FeedPost; loud: boolean }) {
-  if (r.multiple == null) return null;
-  const words = `${times(r.multiple)} ${usualWords(r)}`;
-  return (
-    <span
-      // biome-ignore lint/a11y/noNoninteractiveTabindex: the tip opens on focus too
-      tabIndex={0}
-      {...tipProps(usualTip(r))}
-      className="relative z-[2] inline-flex rounded-[4px] outline-offset-2 focus-visible:outline-2 focus-visible:outline-(--ui-focus)"
-    >
-      {loud ? (
-        <Tag tone="accent">{words}</Tag>
-      ) : (
-        <span className="text-[13px] whitespace-nowrap text-(--ui-ink-3) tabular-nums">
-          {words}
-        </span>
-      )}
-    </span>
-  );
-}
-
 const COUNTS: [CountKey, IconName, string][] = [
   ["views", "eye", "views"],
   ["likes", "heart", "likes"],
@@ -215,7 +193,7 @@ export function Face({ name, src, size }: { name: string; src: string | null; si
 }
 
 /** the creator's first letter in a round tint: when no face is stored */
-export function Letter({ name, px = 36 }: { name: string; px?: number }) {
+function Letter({ name, px = 36 }: { name: string; px?: number }) {
   return (
     <span
       aria-hidden
