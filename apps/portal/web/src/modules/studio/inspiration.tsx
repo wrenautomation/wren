@@ -7,7 +7,6 @@ import type { PageProps } from "../../module.js";
 import { CreatorPosts, type PostsStart } from "../canon/creator-posts.js";
 
 const INSPIRATION: PostsStart = {
-  layout: "feed",
   sort: "new",
   all: true,
   first: "All posts",

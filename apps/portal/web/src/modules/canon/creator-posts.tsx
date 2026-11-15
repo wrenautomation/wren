@@ -1,12 +1,18 @@
 /**
- * Posts of his tracked creators, as a Feed or a Gallery (studio-suite D8): Canon › Outliers and
- * Studio › Inspiration are this part with other defaults. Presets are tabs; Filter, Sort, Group,
- * Select and the layout sit on the bar. The address holds every pick: `preset`, `creator`,
- * `platform`, `kind`, `niche` (comma lists), `min`, `sort`, `group`, `layout`, and `post`, the post
- * open in the record panel (D9). Select files the picked posts through the Add box's queue as his
- * sources.
+ * Posts of his tracked creators as a gallery (studio-suite D8-D10): Canon › Outliers and Studio ›
+ * Inspiration are this part with other defaults. A strip of creator faces sits on top (YouTube's
+ * subscriptions bar); presets are tabs; Filter, Sort, Group and Select sit on the bar. The address
+ * holds every pick: `preset`, `creator` (person ids), `platform`, `kind`, `niche` (comma lists),
+ * `min`, `sort`, `group`, and `post`, the post open in the record panel (D9). Select files the
+ * picked posts through the Add box's queue as his sources.
  */
-import type { AddRow, FeedAsk, FeedPage, FeedPost } from "@wren/research/canon-console";
+import type {
+  AddRow,
+  FeedAsk,
+  FeedPage,
+  FeedPersonShown,
+  FeedPost,
+} from "@wren/research/canon-console";
 import type { FeedPreset, FeedSort } from "@wren/research/creators";
 import {
   type BarField,
@@ -23,11 +29,9 @@ import {
   num,
   PickBar,
   PickList,
+  PlatformTile,
   POP,
-  type Segment,
-  Segmented,
   Skeleton,
-  short,
   tipProps,
   useFilterTools,
   useNarrow,
@@ -36,7 +40,7 @@ import {
   type ViewTab,
 } from "@wren/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/popover";
-import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -48,33 +52,31 @@ import {
   CanonTag,
   CountRow,
   cn,
-  countIcon,
+  Face,
   followersText,
   HOT,
   keyOf,
   kindName,
-  Letter,
   nameOf,
+  perFollowerText,
   platformName,
-  tall,
   times,
-  Usual,
+  UsualRule,
   usePicture,
   usualTip,
-  when,
+  usualWords,
 } from "./post-parts.js";
 
-export type Layout = "feed" | "gallery";
 type Sort = FeedSort;
 const SORTS: [Sort, string, string][] = [
   ["new", "Newest", "Newest first"],
-  ["multiple", "Times usual", "Times usual, best first"],
+  ["multiple", "Times their usual", "Times their usual, best first"],
   ["views", "Most views", "Most views first"],
   ["likes", "Most likes", "Most likes first"],
+  ["reach", "Views per follower", "Most views per follower first"],
 ];
 /** what a page shows before he picks anything */
 export interface PostsStart {
-  layout: Layout;
   sort: Sort;
   /** every post, or scored ones only */
   all: boolean;
@@ -106,13 +108,9 @@ function askOf(params: URLSearchParams, start: PostsStart) {
   const min = Number(params.get("min"));
   const sort: Sort = SORTS.find(([id]) => id === params.get("sort"))?.[0] ?? start.sort;
   const group = params.get("group") === "creator" ? ("creator" as const) : null;
-  const layout: Layout =
-    params.get("layout") === "feed" || params.get("layout") === "gallery"
-      ? (params.get("layout") as Layout)
-      : start.layout;
   const ask: FeedAsk = {
     preset: preset as FeedPreset | null,
-    creators: listOf(params, "creator").map(Number).filter(Number.isFinite),
+    people: listOf(params, "creator").map(Number).filter(Number.isFinite),
     platforms: listOf(params, "platform"),
     kinds: listOf(params, "kind"),
     niches: listOf(params, "niche"),
@@ -121,7 +119,7 @@ function askOf(params: URLSearchParams, start: PostsStart) {
     sort,
     group,
   };
-  return { ask, preset, sort, group, layout };
+  return { ask, preset, sort, group };
 }
 
 interface Save {
@@ -131,7 +129,7 @@ interface Save {
 }
 
 export function CreatorPosts({ params, start }: PageProps & { start: PostsStart }) {
-  const { ask, preset, sort, group, layout } = askOf(params, start);
+  const { ask, preset, sort, group } = askOf(params, start);
   const got = useCall(`canon-feed:${JSON.stringify(ask)}`, () =>
     call<FeedPage>("canon/feed", { ...ask }),
   );
@@ -209,7 +207,7 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
     label: start.label,
     icon: "chart",
     text: [
-      `${start.label}: ${presetName ?? start.first}, as a ${layout}, ${SORTS.find(([id]) => id === sort)?.[2].toLowerCase()}${group ? ", grouped by creator" : ""}`,
+      `${start.label}: ${presetName ?? start.first}, ${SORTS.find(([id]) => id === sort)?.[2].toLowerCase()}${group ? ", grouped by creator" : ""}`,
       ...on.map((f) => f.set?.say),
       data ? `${num(data.rows.length)} posts shown` : null,
     ]
@@ -255,27 +253,28 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
       on: preset === id,
     })),
   ].map((t) => ({ ...t, busy: t.on && got.placeholder }));
-  const layouts: Segment[] = (["feed", "gallery"] as const).map((l) => ({
-    id: l,
-    label: l === "feed" ? "Feed" : "Gallery",
-    href: link({ layout: l === start.layout ? null : l }),
-    on: layout === l,
-  }));
   const filtered = !!preset || FILTERS.some((k) => params.has(k));
   const clearAll = link({ preset: null, ...Object.fromEntries(FILTERS.map((k) => [k, null])) });
   const rows = data?.rows ?? [];
-  const shownCreators = new Set(rows.map((r) => r.creatorId)).size;
+  const shownCreators = new Set(rows.map((r) => r.personId)).size;
+  const personOf = (id: number) => data?.people.find((p) => p.id === id);
   const canonOf = (r: FeedPost): Canon => (r.record ? "in" : filed.has(keyOf(r)) ? "filing" : null);
   const openKey = params.get("post");
   const opened = openKey && data ? (rows.find((r) => keyOf(r) === openKey) ?? null) : undefined;
 
   return (
     <div className={cn("flex flex-col gap-4", picking && "pb-28")}>
+      {data?.people.length ? (
+        <CreatorStrip
+          people={data.people}
+          on={new Set(listOf(params, "creator"))}
+          link={(id) => link({ creator: id, group: null, post: null })}
+        />
+      ) : null}
       <div className="grid gap-2">
         <ViewStrip tabs={tabs} more={[]} row="views:creator-posts" narrow={narrow} />
         <BarLayout
           narrow={narrow}
-          shape={<Segmented label="Layout" items={layouts} />}
           pills={on.length ? tools.pills() : []}
           clear={
             on.length ? (
@@ -292,7 +291,7 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
               <button
                 type="button"
                 aria-pressed={!!group}
-                {...tipProps("A section a creator, their top 12 each")}
+                {...tipProps("A section per creator, their top 12 each")}
                 className={chipClass(!!group)}
                 onClick={() => go({ group: group ? null : "creator" })}
               >
@@ -316,7 +315,7 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
       {got.error && !data ? (
         <LoadFailed error={got.error} onRetry={got.retry} />
       ) : !data ? (
-        <Ghosts layout={layout} />
+        <Ghosts />
       ) : !rows.length ? (
         filtered ? (
           <Empty title="No post fits these filters" action={<a href={clearAll}>Clear filters</a>}>
@@ -336,10 +335,15 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
         )
       ) : (
         <>
-          <p className="m-0 text-[13px] text-(--ui-ink-3)">
-            {num(rows.length)} {rows.length === 1 ? "post" : "posts"} from {num(shownCreators)}{" "}
-            {shownCreators === 1 ? "creator" : "creators"}
-          </p>
+          <div className="grid gap-1">
+            <p className="m-0 text-[13px] text-(--ui-ink-3)">
+              {num(rows.length)} {rows.length === 1 ? "post" : "posts"} from {num(shownCreators)}{" "}
+              {shownCreators === 1 ? "creator" : "creators"}
+            </p>
+            {rows.some((r) => r.multiple != null) ? (
+              <UsualRule likes={rows.some((r) => r.scoreCount === "likes")} />
+            ) : null}
+          </div>
           <div
             aria-busy={got.placeholder || undefined}
             className={cn(
@@ -352,12 +356,7 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
               const list = (
                 <ul
                   aria-label={head ? `${nameOf(head)}'s posts` : start.label}
-                  className={cn(
-                    "m-0 list-none p-0",
-                    layout === "feed"
-                      ? "grid max-w-[640px] gap-2"
-                      : "grid grid-cols-2 gap-x-2 gap-y-3 @min-[720px]/main:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]",
-                  )}
+                  className={cn("m-0 list-none p-0", GALLERY)}
                 >
                   {part.map((r) => {
                     const k = keyOf(r);
@@ -369,11 +368,14 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
                     const open = link({ post: k });
                     return (
                       <li key={k} className="min-w-0 [animation:ui-fade_.15s_both]">
-                        {layout === "feed" ? (
-                          <FeedCard r={r} canon={canon} pick={pick} open={open} inGroup={!!head} />
-                        ) : (
-                          <Tile r={r} canon={canon} pick={pick} open={open} inGroup={!!head} />
-                        )}
+                        <Tile
+                          r={r}
+                          canon={canon}
+                          pick={pick}
+                          open={open}
+                          inGroup={!!head}
+                          reach={sort === "reach"}
+                        />
                       </li>
                     );
                   })}
@@ -383,19 +385,16 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
               const total = head.creatorPosts ?? part.length;
               return (
                 <section
-                  key={head.creatorId}
+                  key={head.personId}
                   aria-label={nameOf(head)}
                   className="grid gap-3 [animation:ui-fade_.15s_both]"
                 >
-                  <CreatorHead r={head} n={total} layout={layout} />
+                  <CreatorHead r={head} person={personOf(head.personId)} n={total} />
                   {list}
                   {total > part.length ? (
                     <a
-                      href={link({ creator: String(head.creatorId), group: null })}
-                      className={cn(
-                        "justify-self-start text-[13px] font-semibold text-(--ui-ink-2) hover:text-(--ui-ink)",
-                        layout === "feed" ? "mx-4" : "mx-1.5",
-                      )}
+                      href={link({ creator: String(head.personId), group: null })}
+                      className="justify-self-start text-[13px] font-semibold text-(--ui-ink-2) hover:text-(--ui-ink)"
                     >
                       All {num(total)} posts by {nameOf(head)}
                     </a>
@@ -427,7 +426,13 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
           save={one && opened && one.key === keyOf(opened) ? one : null}
           onSave={() => opened && saveOne(opened)}
           creatorHref={
-            opened ? link({ creator: String(opened.creatorId), group: null, post: null }) : null
+            opened ? link({ creator: String(opened.personId), group: null, post: null }) : null
+          }
+          face={opened ? (personOf(opened.personId)?.src ?? null) : null}
+          also={
+            opened
+              ? (personOf(opened.personId)?.accounts ?? []).filter((a) => a.id !== opened.creatorId)
+              : []
           }
           onClose={() => go({ post: null })}
         />
@@ -477,10 +482,7 @@ function fieldsOf(
     };
   };
   const people = data?.people ?? [];
-  const who = (id: string) => {
-    const p = people.find((x) => String(x.id) === id);
-    return p ? (p.name ?? `@${p.handle}`) : `Creator ${id}`;
-  };
+  const who = (id: string) => people.find((x) => String(x.id) === id)?.name ?? `Creator ${id}`;
   const min = params.get("min");
   const minName = MINS.find(([id]) => id === min)?.[1] ?? (min ? `${min}x and up` : "");
   return [
@@ -490,14 +492,12 @@ function fieldsOf(
       "user",
       people.map((p) => ({
         id: String(p.id),
-        text: `${p.name ?? ""} ${p.handle}`,
+        text: [p.name, ...p.accounts.map((a) => a.handle)].join(" "),
         n: p.n,
         face: (
           <span>
-            {p.name ?? `@${p.handle}`}
-            <span className="text-(--ui-ink-3)">
-              {p.name ? ` @${p.handle}` : ""} · {platformName(p.platform)}
-            </span>
+            {p.name}
+            <span className="text-(--ui-ink-3)"> · {platformsOf(p)}</span>
           </span>
         ),
       })),
@@ -536,12 +536,12 @@ function fieldsOf(
     ),
     {
       key: "min",
-      label: "Times usual",
+      label: "Times their usual",
       icon: "chart",
-      set: min ? { op: "is", value: minName, say: `Times usual is ${minName}` } : null,
+      set: min ? { op: "is", value: minName, say: `Times their usual is ${minName}` } : null,
       editor: (
         <PickList
-          label="Times usual"
+          label="Times their usual"
           options={MINS.map(([id, text]) => ({ id, face: text, text }))}
           on={new Set(min ? [min] : [])}
           // one at a time: the row just ticked, or none
@@ -597,12 +597,13 @@ function PickCover({ r, pick }: { r: FeedPost; pick: PickState }) {
     <button
       type="button"
       aria-pressed={pick.on}
-      aria-label={`Pick ${r.title ?? r.text?.slice(0, 80) ?? `@${r.handle}'s post`}`}
+      aria-label={`Pick ${r.title ?? r.text?.slice(0, 80) ?? `${nameOf(r)}'s post`}`}
       disabled={pick.off}
       onClick={pick.flip}
       className={cn(
-        "absolute inset-0 z-10 flex cursor-pointer items-start justify-end rounded-[inherit] border-0 bg-transparent p-2.5 outline-offset-2 focus-visible:outline-2 focus-visible:outline-(--ui-focus) disabled:cursor-default",
-        pick.on && "outline-2 outline-(--ui-active) -outline-offset-2",
+        "absolute inset-0 z-10 flex cursor-pointer items-start justify-end rounded-[inherit] border-0 p-2.5 outline-offset-2 focus-visible:outline-2 focus-visible:outline-(--ui-focus) disabled:cursor-default",
+        // a tint, not an outline: the outline marks a hot post
+        pick.on ? "bg-(--ui-active)/12" : "bg-transparent",
       )}
     >
       <span
@@ -620,37 +621,152 @@ function PickCover({ r, pick }: { r: FeedPost; pick: PickState }) {
   );
 }
 
-/** grouped rows, one list a creator, in the server's order */
+/** grouped rows, one list a creator person, in the server's order */
 function sections(rows: FeedPost[]): FeedPost[][] {
   const by = new Map<number, FeedPost[]>();
-  for (const r of rows) by.set(r.creatorId, [...(by.get(r.creatorId) ?? []), r]);
+  for (const r of rows) by.set(r.personId, [...(by.get(r.personId) ?? []), r]);
   return [...by.values()];
 }
 
-/** a section's head: who, where, how many (YouTube's channel shelf) */
-function CreatorHead({ r, n, layout }: { r: FeedPost; n: number; layout: Layout }) {
+/** "YouTube, X" */
+const platformsOf = (p: FeedPersonShown) =>
+  [...new Set(p.accounts.map((a) => platformName(a.platform)))].join(", ");
+
+/** a platform's mark and its name for a screen reader: every post says where it is from (D10) */
+function Where({ platform }: { platform: string }) {
   return (
-    // on the cards' own edge: their padding
-    <header
-      className={cn("flex min-w-0 items-center gap-3", layout === "feed" ? "px-4" : "px-1.5")}
-    >
-      <Letter r={r} />
+    <>
+      <PlatformTile mark={platform} className="mt-px shrink-0" />
+      <span className="sr-only">{platformName(platform)}</span>
+    </>
+  );
+}
+
+/** a section's head: who, where, how many (YouTube's channel shelf); each account with its mark */
+function CreatorHead({
+  r,
+  person,
+  n,
+}: {
+  r: FeedPost;
+  person: FeedPersonShown | undefined;
+  n: number;
+}) {
+  const accounts = person?.accounts.length
+    ? person.accounts
+    : [{ id: r.creatorId, platform: r.platform, handle: r.handle, followers: r.followers }];
+  return (
+    <header className="flex min-w-0 items-center gap-3">
+      <Face name={nameOf(r)} src={person?.src ?? null} size={40} />
       <div className="grid min-w-0 gap-0.5">
         <h2 className="m-0 text-[15px] leading-snug font-semibold wrap-anywhere text-(--ui-ink)">
           {nameOf(r)}
         </h2>
-        <p className="m-0 text-[13px] leading-snug wrap-anywhere text-(--ui-ink-3)">
-          {[
-            r.name ? `@${r.handle}` : null,
-            platformName(r.platform),
-            followersText(r.followers),
-            `${num(n)} ${n === 1 ? "post" : "posts"}`,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
+        <ul className="m-0 flex list-none flex-wrap items-center gap-x-3 gap-y-0.5 p-0 text-[13px] leading-snug text-(--ui-ink-3)">
+          {accounts.map((a) => (
+            <li key={a.id} className="inline-flex min-w-0 items-center gap-1.5 wrap-anywhere">
+              <PlatformTile mark={a.platform} />
+              <span>
+                <span className="sr-only">{platformName(a.platform)} </span>@{a.handle}
+                {followersText(a.followers) ? ` · ${followersText(a.followers)}` : ""}
+              </span>
+            </li>
+          ))}
+          <li>
+            {num(n)} {n === 1 ? "post" : "posts"}
+          </li>
+        </ul>
       </div>
     </header>
+  );
+}
+
+/**
+ * The creators he tracks, one face each (YouTube's subscriptions bar): a tap shows only that
+ * creator's posts, a second tap shows all again. Each face wears its platforms' marks. Scrolls
+ * across inside itself when they outgrow the width.
+ */
+function CreatorStrip({
+  people,
+  on,
+  link,
+}: {
+  people: FeedPersonShown[];
+  on: Set<string>;
+  link: (id: string | null) => string;
+}) {
+  const item =
+    "group/face flex w-[76px] shrink-0 snap-start flex-col items-center gap-1.5 rounded-[8px] py-1 text-center no-underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-(--ui-focus)";
+  const ring = (lit: boolean) =>
+    cn(
+      "relative rounded-full p-[3px] outline-2 -outline-offset-2 transition-[outline-color] duration-150",
+      lit ? "outline-(--ui-active)" : "outline-transparent group-hover/face:outline-(--ui-hair)",
+    );
+  // a face picked off screen (390, a link in): scroll the row to it, never the page
+  const row = useRef<HTMLUListElement>(null);
+  const first = [...on][0];
+  useEffect(() => {
+    const ul = row.current;
+    const lit = first && ul?.querySelector<HTMLElement>(`[data-person="${first}"]`);
+    if (!ul || !lit) return;
+    const left = lit.offsetLeft - ul.offsetLeft;
+    if (left < ul.scrollLeft || left + lit.offsetWidth > ul.scrollLeft + ul.clientWidth)
+      ul.scrollTo({ left: left - 8, behavior: "smooth" });
+  }, [first]);
+  const label = (lit: boolean) =>
+    cn(
+      "text-[12px] leading-tight wrap-anywhere hyphens-auto",
+      lit ? "font-semibold text-(--ui-ink)" : "text-(--ui-ink-2)",
+    );
+  return (
+    <nav aria-label="Creators">
+      <ul
+        ref={row}
+        className="-mx-1 m-0 flex list-none snap-x gap-1 overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:thin]"
+      >
+        <li>
+          <a href={link(null)} aria-current={!on.size || undefined} className={item}>
+            <span className={ring(!on.size)}>
+              <span className="grid size-12 place-items-center rounded-full bg-(--ui-hover) text-(--ui-ink-2)">
+                <Icon name="people" className="size-5 [stroke-width:1.8]" />
+              </span>
+            </span>
+            <span className={label(!on.size)}>All</span>
+          </a>
+        </li>
+        {people.map((p) => {
+          const lit = on.has(String(p.id));
+          const marks = [...new Set(p.accounts.map((a) => a.platform))];
+          return (
+            <li key={p.id} data-person={p.id}>
+              <a
+                href={link(lit && on.size === 1 ? null : String(p.id))}
+                aria-current={lit || undefined}
+                {...tipProps(
+                  `${p.name}: ${platformsOf(p)}, ${num(p.n)} ${p.n === 1 ? "post" : "posts"}`,
+                )}
+                className={item}
+              >
+                <span className={ring(lit)}>
+                  <Face name={p.name} src={p.src} size={48} />
+                  <span className="absolute -right-0.5 -bottom-0.5 flex">
+                    {marks.slice(0, 3).map((m) => (
+                      <PlatformTile
+                        key={m}
+                        mark={m}
+                        className="-ml-1 outline-2 outline-(--ui-paper) first:ml-0"
+                      />
+                    ))}
+                  </span>
+                </span>
+                {/* the tip names the platforms and the count: the description */}
+                <span className={label(lit)}>{p.name}</span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
 
@@ -669,153 +785,21 @@ function OpenLink({ open, r }: { open: string; r: FeedPost }) {
   );
 }
 
-function FeedCard({
-  r,
-  canon,
-  pick,
-  open,
-  inGroup,
-}: {
-  r: FeedPost;
-  canon: Canon;
-  pick: PickState | null;
-  open: string;
-  /** under its creator's head: no creator line */
-  inGroup: boolean;
-}) {
-  const hot = (r.multiple ?? 0) >= HOT;
-  const pic = usePicture(r);
-  const ago = age(r.postedAt);
-  return (
-    <article
-      className={cn(
-        "relative grid gap-3 rounded-[6px_14px_6px_14px] p-4 transition-colors duration-150",
-        hot ? "bg-(--ui-accent-wash) dark:bg-(--ui-accent-tint)" : !pick && "hover:bg-(--ui-hover)",
-      )}
-    >
-      <header className="flex min-w-0 items-start gap-3">
-        {inGroup ? (
-          <p className="m-0 min-w-0 flex-1 text-[13px] leading-snug text-(--ui-ink-3)">
-            <span title={when(r.postedAt) ?? undefined}>{ago ?? kindName(r.kind)}</span>
-          </p>
-        ) : (
-          <>
-            <Letter r={r} />
-            <div className="grid min-w-0 flex-1 gap-0.5">
-              <p className="m-0 text-[14px] leading-snug font-semibold wrap-anywhere text-(--ui-ink)">
-                {nameOf(r)}
-              </p>
-              <p className="m-0 text-[13px] leading-snug wrap-anywhere text-(--ui-ink-3)">
-                {[r.name ? `@${r.handle}` : null, platformName(r.platform)]
-                  .filter(Boolean)
-                  .join(" · ")}
-                {ago ? (
-                  <>
-                    {" "}
-                    <span className="whitespace-nowrap" title={when(r.postedAt) ?? undefined}>
-                      · {ago}
-                    </span>
-                  </>
-                ) : null}
-              </p>
-            </div>
-          </>
-        )}
-        <div
-          className={cn("flex shrink-0 flex-wrap items-center justify-end gap-1.5", pick && "mr-8")}
-        >
-          <CanonTag canon={canon} />
-          <Usual r={r} loud={hot} />
-        </div>
-      </header>
-      {r.title ? (
-        <p className="m-0 text-[15px] leading-snug font-semibold wrap-anywhere text-(--ui-ink)">
-          {r.title}
-        </p>
-      ) : null}
-      {r.text ? <Body text={r.text} /> : null}
-      {pic.src ? (
-        <div
-          className={cn(
-            "overflow-hidden rounded-[6px]",
-            tall(r) ? "w-[min(100%,320px)]" : "w-full",
-          )}
-        >
-          <Img
-            src={pic.src}
-            alt={r.title ?? r.text ?? ""}
-            onError={pic.fail}
-            className={cn("block w-full object-cover", tall(r) ? "aspect-[4/5]" : "aspect-video")}
-          />
-        </div>
-      ) : null}
-      <CountRow r={r} className="text-[13px] text-(--ui-ink-2)" />
-      <OpenLink open={open} r={r} />
-      {pick ? <PickCover r={r} pick={pick} /> : null}
-    </article>
-  );
-}
+/** the gallery grid: 12 px across, 24 px down (D10) */
+const GALLERY =
+  "grid grid-cols-2 gap-x-3 gap-y-6 @min-[720px]/main:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]";
 
-/** The post's words, whole; past 8 lines it folds, and More opens the rest. */
-function Body({ text }: { text: string }) {
-  const ref = useRef<HTMLParagraphElement>(null);
-  /** the whole text's height, once it runs past 8 lines */
-  const [full, setFull] = useState<number | null>(null);
-  const [open, setOpen] = useState(false);
-  const long = full != null;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: measured again per text
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (el) setFull(el.scrollHeight > el.clientHeight + 1 ? el.scrollHeight : null);
-  }, [text]);
-  return (
-    <div className="grid justify-items-start gap-1">
-      <p
-        ref={ref}
-        style={{ maxHeight: open && full ? full : "12em" }}
-        className="m-0 overflow-hidden text-[14.5px] leading-[1.5] whitespace-pre-line wrap-anywhere text-(--ui-ink) transition-[max-height] duration-200 ease-(--ui-ease) motion-reduce:transition-none"
-      >
-        {text}
-      </p>
-      {long ? (
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={() => setOpen((o) => !o)}
-          className="relative z-20 h-7 cursor-pointer border-0 bg-transparent p-0 text-[13px] font-semibold text-(--ui-ink-2) hover:text-(--ui-ink)"
-        >
-          {open ? "Less" : "More"}
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
-/** the count a tile shows on its picture: the one its score is on (TikTok's plays) */
-function TileCount({ r, onPicture }: { r: FeedPost; onPicture: boolean }) {
-  const k = r.scoreCount === "likes" ? "likes" : r.counts.views != null ? "views" : "likes";
-  const n = r.counts[k];
-  if (n == null) return null;
-  return (
-    <span
-      className={cn(
-        "absolute bottom-2 left-2 inline-flex items-center gap-1 text-[12.5px] font-semibold tabular-nums",
-        onPicture ? "text-white [text-shadow:var(--ui-media-ink-shadow)]" : "text-(--ui-ink-2)",
-      )}
-    >
-      <Icon name={countIcon(r, k)} className="size-3.5 [stroke-width:2.2]" />
-      {short(n)}
-      <span className="sr-only"> {k}</span>
-    </span>
-  );
-}
-
+/**
+ * A gallery tile, Instagram's grid with YouTube's lines under it (D10): one frame, no wash. A hot
+ * post outlines its frame and inks its multiple; hover zooms the picture.
+ */
 function Tile({
   r,
   canon,
   pick,
   open,
   inGroup,
+  reach,
 }: {
   r: FeedPost;
   canon: Canon;
@@ -823,38 +807,34 @@ function Tile({
   open: string;
   /** under its creator's head: no creator line */
   inGroup: boolean;
+  /** sorted by views per follower: show it */
+  reach: boolean;
 }) {
   const hot = (r.multiple ?? 0) >= HOT;
   const pic = usePicture(r);
   const ago = age(r.postedAt);
-  const words = r.title ?? r.text ?? `${kindName(r.kind)} by @${r.handle}`;
-  const more = (["likes", "comments"] as const).filter((k) => r.counts[k] != null);
+  const words = r.title ?? r.text ?? `${kindName(r.kind)} by ${nameOf(r)}`;
+  const perFol = reach ? perFollowerText(r) : null;
   return (
-    <article
-      className={cn(
-        "group/tile relative grid gap-1.5 rounded-[6px_14px_6px_14px] p-1.5",
-        hot && "bg-(--ui-accent-wash) dark:bg-(--ui-accent-tint)",
-      )}
-    >
-      <div className="relative aspect-[4/5] overflow-hidden rounded-[4px_10px_4px_10px] bg-(--ui-hover)">
+    <article className="group/tile relative grid content-start gap-1.5 rounded-[4px_10px_4px_10px]">
+      <div
+        className={cn(
+          "relative aspect-[4/5] overflow-hidden rounded-[4px_10px_4px_10px] bg-(--ui-hover)",
+          hot && "outline-2 outline-(--ui-active) outline-offset-2",
+        )}
+      >
         {pic.src ? (
-          <>
-            <Img
-              src={pic.src}
-              alt={words}
-              onError={pic.fail}
-              className="block size-full object-cover"
-            />
-            <span
-              aria-hidden
-              className="absolute inset-x-0 bottom-0 h-14 bg-(image:--ui-media-fade)"
-            />
-          </>
+          <Img
+            src={pic.src}
+            alt={words}
+            onError={pic.fail}
+            className="block size-full object-cover transition-transform duration-200 ease-(--ui-ease) group-hover/tile:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover/tile:scale-100"
+          />
         ) : (
           // a text post fills the frame with its words; the panel opens the rest
           <p
             className={cn(
-              "m-0 h-full overflow-hidden p-3 pb-8 text-[13.5px] leading-[1.45] whitespace-pre-line wrap-anywhere text-(--ui-ink) [animation:ui-fade_.15s_both] [mask-image:linear-gradient(#000_70%,transparent)]",
+              "m-0 h-full overflow-hidden p-3 text-[13.5px] leading-[1.45] whitespace-pre-line wrap-anywhere text-(--ui-ink) [animation:ui-fade_.15s_both] [mask-image:linear-gradient(#000_75%,transparent)]",
               pick && "pr-9",
               canon && "pt-10",
             )}
@@ -862,34 +842,20 @@ function Tile({
             {words}
           </p>
         )}
-        <TileCount r={r} onPicture={!!pic.src} />
         {canon ? (
           // paper under the tint: it sits on a picture
           <span className="absolute top-2 left-2 rounded-(--ui-leaf-chip) bg-(--ui-paper)">
             <CanonTag canon={canon} />
           </span>
         ) : null}
-        {more.length && !pick ? (
-          // Instagram's grid: likes and comments over the picture on hover
-          <div
-            aria-hidden
-            className="absolute inset-0 flex items-center justify-center bg-(--ui-media-veil) text-white opacity-0 transition-opacity duration-150 group-hover/tile:opacity-100"
-          >
-            <CountRow
-              r={r}
-              only={more}
-              className="justify-center gap-x-5 text-[14px] font-semibold"
-            />
-          </div>
-        ) : null}
       </div>
-      <div className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 px-0.5">
+      <div className="mt-1 flex min-w-0 flex-wrap items-baseline gap-x-1.5">
         {r.multiple != null ? (
           <span
             // biome-ignore lint/a11y/noNoninteractiveTabindex: the tip opens on focus too
             tabIndex={0}
             {...tipProps(usualTip(r))}
-            className="relative z-[2] inline-flex items-baseline gap-x-1.5 rounded-[4px] outline-offset-2 focus-visible:outline-2 focus-visible:outline-(--ui-focus)"
+            className="relative z-[2] inline-flex flex-wrap items-baseline gap-x-1.5 rounded-[4px] outline-offset-2 focus-visible:outline-2 focus-visible:outline-(--ui-focus)"
           >
             <span
               className={cn(
@@ -899,61 +865,52 @@ function Tile({
             >
               {times(r.multiple)}
             </span>
-            <span className="text-[12.5px] text-(--ui-ink-3)">usual</span>
+            <span className="text-[12.5px] text-(--ui-ink-3)">{usualWords(r)}</span>
           </span>
         ) : (
           <span className="text-[12.5px] leading-[25px] text-(--ui-ink-3)">Not scored yet</span>
         )}
       </div>
-      {inGroup ? (
-        ago ? (
-          <p className="m-0 px-0.5 text-[12.5px] leading-snug text-(--ui-ink-3)">{ago}</p>
-        ) : null
-      ) : (
-        <p className="m-0 px-0.5 text-[12.5px] leading-snug wrap-anywhere text-(--ui-ink-2)">
-          @{r.handle}
-          {ago ? <span className="text-(--ui-ink-3)"> · {ago}</span> : null}
-        </p>
-      )}
+      <CountRow
+        r={r}
+        only={["views", "likes", "comments"]}
+        className="text-[12.5px] text-(--ui-ink-2)"
+      />
+      {perFol ? <p className="m-0 text-[12.5px] text-(--ui-ink-2) tabular-nums">{perFol}</p> : null}
+      {/* the mark holds its own column: a long handle wraps beside it, never under it */}
+      <p className="m-0 flex min-w-0 items-start gap-1.5 text-[12.5px] leading-snug text-(--ui-ink-2)">
+        <Where platform={r.platform} />
+        <span className="min-w-0 wrap-anywhere">
+          {inGroup ? null : <>@{r.handle}</>}
+          {ago ? (
+            <span className="whitespace-nowrap text-(--ui-ink-3)">
+              {inGroup ? "" : " · "}
+              {ago}
+            </span>
+          ) : null}
+        </span>
+      </p>
       <OpenLink open={open} r={r} />
       {pick ? <PickCover r={r} pick={pick} /> : null}
     </article>
   );
 }
 
-/** skeletons in the layout's shape */
-function Ghosts({ layout }: { layout: Layout }) {
+/** skeletons in the gallery's shape */
+function Ghosts() {
   return (
     <div role="status" className="grid gap-4">
       <span className="sr-only">Loading posts</span>
-      {layout === "feed" ? (
-        <div className="grid max-w-[640px] gap-2">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="grid gap-3 p-4">
-              <div className="flex items-center gap-3">
-                <Skeleton className="size-9 rounded-full" />
-                <div className="grid flex-1 gap-1.5">
-                  <Skeleton className="h-3.5 w-40" />
-                  <Skeleton className="h-3 w-56" />
-                </div>
-              </div>
-              <Skeleton className="h-4 w-[90%]" />
-              <Skeleton className="h-4 w-[70%]" />
-              <Skeleton className="aspect-video w-full" />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-x-2 gap-y-3 @min-[720px]/main:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
-          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <div key={i} className="grid gap-1.5 p-1.5">
-              <Skeleton className="aspect-[4/5] w-full" />
-              <Skeleton className="h-5 w-16" />
-              <Skeleton className="h-3 w-24" />
-            </div>
-          ))}
-        </div>
-      )}
+      <div className={GALLERY}>
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+          <div key={i} className="grid gap-1.5">
+            <Skeleton className="aspect-[4/5] w-full" />
+            <Skeleton className="mt-1 h-5 w-28" />
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

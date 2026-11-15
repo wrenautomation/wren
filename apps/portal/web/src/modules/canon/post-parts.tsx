@@ -1,11 +1,11 @@
-/** What a creator post's card, tile and detail share (studio-suite D8, D9): names, counts, the usual line. */
+/** What a creator post's card, tile and detail share (studio-suite D8-D10): names, counts, the usual line. */
 import type { FeedPost } from "@wren/research/canon-console";
-import { Icon, type IconName, num, short, Tag, tipProps } from "@wren/ui";
+import { Icon, type IconName, Img, num, short, Tag, tipProps } from "@wren/ui";
 import { useState } from "react";
 
 export const cn = (...xs: (string | false | null | undefined)[]) => xs.filter(Boolean).join(" ");
 
-/** 10x and up: the accent wash and its tag (the top 8% on 11-14) */
+/** 10x and up: accent ink, the card's wash, the tile's outline (the top 8% on 11-14) */
 export const HOT = 10;
 
 const PLATFORMS: Record<string, string> = {
@@ -33,7 +33,13 @@ const kindWord = (k: string) => kindName(k).toLowerCase();
 const kindsWord = (k: string) => kindWord(k).replace(/y$/, "ie").concat("s");
 export const keyOf = (r: FeedPost) => `${r.platform}:${r.ref}`;
 export const times = (m: number) => `${m >= 10 ? Math.round(m) : m.toFixed(1)}x`;
-export const nameOf = (r: Pick<FeedPost, "name" | "handle">) => r.name ?? `@${r.handle}`;
+/** the creator person's name (D10): theirs, else their first account's */
+export const nameOf = (r: Pick<FeedPost, "person">) => r.person;
+/** "@maker · YouTube": the account, unless the name already is the handle */
+export const accountOf = (r: Pick<FeedPost, "person" | "handle" | "platform">) =>
+  [r.person === `@${r.handle}` ? null : `@${r.handle}`, platformName(r.platform)]
+    .filter(Boolean)
+    .join(" · ");
 
 /** "3 days ago", from an ISO time */
 export function age(at: string | null, now = Date.now()): string | null {
@@ -57,6 +63,20 @@ export const followersText = (n: number | null) =>
 
 type CountKey = keyof FeedPost["counts"];
 const metricOf = (r: FeedPost): CountKey => (r.scoreCount === "likes" ? "likes" : "views");
+/** "their usual views": what the multiple counts, always said (D10) */
+export const usualWords = (r: FeedPost) => `their usual ${metricOf(r)}`;
+
+/** views ÷ the account's newest follower count; none without both */
+export function perFollower(r: FeedPost): number | null {
+  const v = r.counts.views;
+  return v != null && r.followers ? v / r.followers : null;
+}
+export const ratio = (x: number) => (x >= 10 ? num(Math.round(x)) : x.toFixed(x >= 1 ? 1 : 2));
+/** "32 views per follower" */
+export function perFollowerText(r: FeedPost): string | null {
+  const x = perFollower(r);
+  return x == null ? null : `${ratio(x)} views per follower`;
+}
 
 /** "the median of @maya's last 30 reels" */
 function windowOf(r: FeedPost) {
@@ -65,13 +85,14 @@ function windowOf(r: FeedPost) {
     : `@${r.handle}'s median`;
 }
 
-/** The hover line on "14x usual": "88K views, 12x their usual 7.3K (the median of @e's last 30 reels)" */
+/** The hover line on "14x their usual views": "88K views; they usually get 7.3K (the median of @e's last 30 reels)" */
 export function usualTip(r: FeedPost): string | null {
   if (r.multiple == null) return null;
   const metric = metricOf(r);
   const n = r.counts[metric];
-  if (r.baseline == null) return `${times(r.multiple)} ${windowOf(r)} ${metric}`;
-  return `${n != null ? `${short(n)} ${metric}, ` : ""}${times(r.multiple)} their usual ${short(r.baseline)} (${windowOf(r)})`;
+  if (r.baseline == null || n == null)
+    return `${times(r.multiple)} ${usualWords(r)} (${windowOf(r)})`;
+  return `${short(n)} ${metric}; they usually get ${short(r.baseline)} (${windowOf(r)})`;
 }
 
 /** The detail's sentences: what the post drew, and the creator's usual draw beside it. */
@@ -91,10 +112,10 @@ export function usualWhy(r: FeedPost): string[] {
   ];
 }
 
-/** "38x usual" with its hover line: a tag on a hot post, quiet words on the rest */
+/** "38x their usual views" with its hover line: a tag on a hot post, quiet words on the rest */
 export function Usual({ r, loud }: { r: FeedPost; loud: boolean }) {
   if (r.multiple == null) return null;
-  const words = `${times(r.multiple)} usual`;
+  const words = `${times(r.multiple)} ${usualWords(r)}`;
   return (
     <span
       // biome-ignore lint/a11y/noNoninteractiveTabindex: the tip opens on focus too
@@ -122,7 +143,7 @@ const COUNTS: [CountKey, IconName, string][] = [
 ];
 const isVideo = (r: FeedPost) => ["video", "short", "reel", "live"].includes(r.kind);
 /** views on a video read as plays (TikTok, YouTube) */
-export const countIcon = (r: FeedPost, k: CountKey): IconName =>
+const countIcon = (r: FeedPost, k: CountKey): IconName =>
   k === "views" && isVideo(r) ? "play" : (COUNTS.find(([c]) => c === k)?.[1] ?? "dot");
 
 /**
@@ -164,23 +185,44 @@ export function CountRow({
   );
 }
 
-/** the creator's first letter in a round tint: no avatars stored yet */
-export function Letter({
-  r,
-  size = "md",
-}: {
-  r: Pick<FeedPost, "name" | "handle">;
-  size?: "md" | "lg";
-}) {
+/**
+ * The rule behind every multiple, once above the posts (D10: "I still don't know what that
+ * means"). Instagram's line only when a shown post scores on likes.
+ */
+export function UsualRule({ likes }: { likes: boolean }) {
+  return (
+    <p className="m-0 max-w-[72ch] text-[13px] leading-[1.5] text-(--ui-ink-3)">
+      <span className="font-semibold text-(--ui-ink-2)">10x their usual views</span> means 10 times
+      the median views of that creator's recent posts of the same kind.
+      {likes ? " A post with no view count counts likes." : ""}
+    </p>
+  );
+}
+
+/** a creator's face: their copied profile picture, else their first letter */
+export function Face({ name, src, size }: { name: string; src: string | null; size: number }) {
+  const [bad, setBad] = useState(false);
+  if (!src || bad) return <Letter name={name} px={size} />;
+  return (
+    <Img
+      src={src}
+      alt=""
+      onError={() => setBad(true)}
+      style={{ width: size, height: size }}
+      className="block shrink-0 rounded-full bg-(--ui-hover) object-cover"
+    />
+  );
+}
+
+/** the creator's first letter in a round tint: when no face is stored */
+export function Letter({ name, px = 36 }: { name: string; px?: number }) {
   return (
     <span
       aria-hidden
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full bg-(--ui-accent-tint) font-semibold text-(--ui-active)",
-        size === "lg" ? "size-11 text-[17px]" : "size-9 text-[14px]",
-      )}
+      style={{ width: px, height: px, fontSize: Math.round(px * 0.4) }}
+      className="inline-flex shrink-0 items-center justify-center rounded-full bg-(--ui-accent-tint) font-semibold text-(--ui-active)"
     >
-      {(r.name ?? r.handle)
+      {name
         .replace(/^[^\p{L}\p{N}]+/u, "")
         .slice(0, 1)
         .toUpperCase() || "?"}

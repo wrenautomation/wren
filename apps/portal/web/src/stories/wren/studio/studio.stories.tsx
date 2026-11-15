@@ -178,7 +178,7 @@ export const NewProjectFailed = pageAt("/studio/projects", {
   },
 });
 
-/** Inspiration (D8): every post as a feed, newest first; 10x+ washed with its tag, the rest quiet. */
+/** Inspiration (D10): every post in the gallery, newest first; the strip over it; unscored posts say so. */
 export const Inspiration = tidy(
   pageAt("/studio/inspiration", {
     me: ADMIN,
@@ -186,8 +186,9 @@ export const Inspiration = tidy(
     check: async (page) => {
       await alone(page);
       const view = within(page);
-      await expect(await view.findByText("312x usual", {}, WAIT)).toBeVisible();
-      await expect(view.getByText("2.3x usual")).toBeVisible();
+      await expect(await view.findByText("312x", {}, WAIT)).toBeVisible();
+      await expect(view.getByText("Not scored yet")).toBeVisible();
+      await expect(view.getByRole("navigation", { name: "Creators" })).toBeVisible();
       // newest first: the X post from hours ago leads
       const [first] = view.getAllByRole("article");
       await expect(first).toHaveTextContent(/best CRM/);
@@ -199,43 +200,18 @@ export const Inspiration = tidy(
   }),
 );
 
-/** A post past 8 lines folds; More opens the rest. */
-export const InspirationLongPost = tidy(
-  pageAt("/studio/inspiration?creator=4", {
-    me: ADMIN,
-    check: async (page) => {
-      const view = within(page);
-      const more = await view.findByRole("button", { name: "More" }, WAIT);
-      await userEvent.click(more);
-      await expect(more).toHaveAttribute("aria-expanded", "true");
-      await expect(view.getByText(/Nobody notices a good edit/)).toBeVisible();
-    },
-  }),
-);
-
-/** The same posts as a gallery. */
-export const InspirationGallery = tidy(
-  pageAt("/studio/inspiration?layout=gallery", {
-    me: ADMIN,
-    check: async (page) => {
-      const view = within(page);
-      await expect(await view.findByText("312x", {}, WAIT)).toBeVisible();
-      await expect(view.getByText("Not scored yet")).toBeVisible();
-    },
-  }),
-);
-
-/** The feed by creator (D9): newest creator first, each card with its counts. */
+/** By creator (D10): one section a person over their accounts; the head shows each account's mark. */
 export const InspirationGrouped = tidy(
   pageAt("/studio/inspiration?group=creator", {
     me: ADMIN,
     check: async (page) => {
       const view = within(page);
-      await expect(await view.findByRole("heading", { name: "Maya Cuts" }, WAIT)).toBeVisible();
+      const maya = await view.findByRole("region", { name: "Maya Cuts" }, WAIT);
+      await expect(maya).toHaveTextContent("2 posts");
+      await expect(maya).toHaveTextContent(/Instagram @cutsbymaya · 52K followers/);
+      await expect(maya).toHaveTextContent(/YouTube @cutsbymaya · 18\.4K followers/);
       const [first] = view.getAllByRole("region");
       await expect(first).toHaveAccessibleName("Agents Daily");
-      await expect(view.getByRole("region", { name: "Maya Cuts" })).toHaveTextContent("2 posts");
-      await expect(view.getAllByRole("list", { name: "Counts" }).length).toBeGreaterThan(3);
     },
   }),
 );
@@ -243,7 +219,7 @@ export const InspirationGrouped = tidy(
 /** The feed's skeleton: the read never answers. */
 export const InspirationLoading = pageAt("/studio/inspiration", { me: ADMIN, mode: "pending" });
 
-/** Select in the feed: a box on each card, the bar at the foot. */
+/** Select: a box on each tile, the bar at the foot. */
 export const InspirationSelecting = tidy(
   pageAt("/studio/inspiration", {
     me: ADMIN,

@@ -1,0 +1,1 @@
+ALTER TABLE "tracked_creators" ADD COLUMN "picture" text;

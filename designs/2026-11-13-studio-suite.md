@@ -280,6 +280,74 @@ The usual number is the score's `base` (weaver `scoreOf`), not stored until now.
 | grouped more | "All N posts" under the section | creator with > 12 | creator filter | none |
 | grouped gallery | the same sections, each a grid | both | — | none |
 
+### D10. Counts everywhere, a plain multiple, gallery only, a creator strip, views per follower, one creator on many platforms (11-15)
+
+William on D9: "show views whenever possible (views likes comments)"; "you didnt change number x usual i still dk what that means"; the gallery "has a lot of tiny flaws"; score the view-to-follower gap (reel `instagram-Dfqf2zsOa8X`: a small account with a huge video marks a format people want and few make); "make the creator tracking multiplatform"; remove Zac Regan (done 11-15: `creator remove 4`). Later on 11-15: "copy the youtuber subscriber bar concept for being able to quickly navigate the creators you are following or tracking"; "if multiplatform is correctly supported UI obviously needs to indicate easily what platform its from"; "remove the feed view it doesn't look good".
+
+Found on 11-15:
+
+- Instagram reels carry no views: 0 of 274 (the business-discovery read gives likes and comments only). X posts carry views on 380 of 387. Sent to weaver dev; weaver 0.77.3 reads reel views (`view_count`), pinned here. Posts read before it score on likes until the next refresh and `creator rescore`.
+- The refresh never passes the bare Instagram login (`--account instagram=instagram`): it is William's own account (agreed with weaver dev).
+- The feed and its facets still show removed creators. Fixed here: every read filters `active`.
+- The daily read failed on 11-14 (database connect timeout on wake). The launchd job now tries 3 times, 10 minutes apart.
+
+**Feed view removed.** The gallery is the only layout; `layout=` drops. Studio › Inspiration and Canon › Outliers both show it.
+
+**Creator strip** (YouTube's subscriptions bar). A row of faces over the bar: All first, then one face per person, by post count. A tap shows only that person (`creator=<id>`); a tap on the lit face goes back to All. The lit face gets a ring (150 ms). Each face wears its platforms' marks at its corner. The tip names the platforms and the post count. Past the width, the row scrolls across inside itself. Faces are the profile pictures, copied to the bucket like post pictures (`tracked_creators.picture`, migration 0403; `creator pictures` copies them); no picture: the first letter.
+
+**Platform on every post.** Each tile's last line starts with the platform mark (`PlatformTile`, screen readers hear its name). The section head lists each account with its mark, handle and followers. The detail's "Also on" names the platform of each other account.
+
+**Counts.** Each tile shows views, likes and comments under the picture (YouTube's grid: numbers under the thumbnail). The hover overlay goes: it showed the same numbers twice. `wren feed` prints them too.
+
+**The multiple says what it counts.** "312x usual" becomes "312x their usual views" ("likes" when the score is on likes). The tile shows "312x" large with "their usual views" beside it. One line above the posts says the rule: "312x their usual views: this post's views ÷ the median of that creator's recent posts of the same kind." The filter and sort say "Times their usual". The tip and the detail keep the real numbers ("412K views; they usually get 1.3K").
+
+**Gallery polish** (shots `d10-before/`):
+
+| Flaw | Fix | Rule |
+|---|---|---|
+| A washed tile and a plain tile differ in size and edge: the grid looks ragged | No wash on tiles. A 10x+ tile gets an accent outline on its picture and the multiple in accent ink | ST-6, ST-11 |
+| A text tile in a wash is a grey box in a tint box | One surface: the text frame alone | ST-6 |
+| The count on a text tile sits over its words | Counts move under the picture | SV-16 |
+| Gaps 8 px across, 12 px down, with padding only on washed tiles | Tiles have no padding; 12 px across, 24 px down | ST-1 |
+| Hover veil repeats the counts | Hover zooms the picture 3% (reduced motion: none) | MO |
+
+**Views per follower** (step 1 of the reel's method; the finder is WA-1386, parked). Views ÷ the creator's newest follower count, computed in the feed query. Sort "Most views per follower"; the detail adds "Views per follower: 32 (412K views, 13K followers)". A post with no views (Instagram today) has none and sorts last. The follower count is today's, not the post day's: an old post on a grown account reads low.
+
+**One creator on many platforms.** Today a tracked creator is one account on one platform (`tracked_creators.handle_id`). Options:
+
+| | A. A person table over the accounts | B. Split person and account tables | C. Core `people` via `social_handles.person_id` | D. The Canon person record as the key |
+|---|---|---|---|---|
+| How | new `creator_people` (name, who added, when); `tracked_creators.person_id` | `tracked_creators` becomes the person; a new `creator_accounts` takes the handle, reads and fails; posts point at accounts | link each handle to a `people` row | group by `tracked_creators.record` |
+| Fit | accounts stay the unit of reads and scores, as now | cleanest names | `people` is the CRM table: `company_id` and compliance are required | needs a promote before any grouping; git is slow |
+| Change | one table, one column; reads unchanged | every query, the CLI, the tests and the mocks move | small | none in the database |
+| Niches | per account (an X account and an IG account can differ) | per person | — | — |
+
+Picked A. A score is per account by nature (a usual on X says nothing about Instagram), so the account stays the unit. B buys tidier names for a large migration and no new behavior. C bends a CRM table. D blocks on Canon.
+
+- CLI: `wren creator add <urls...> --person "<name>"` adds several accounts as one person; `wren creator link <ids...>` joins accounts already tracked; `creator list` shows the person.
+- Feed: the Creator filter lists people; `creator=` takes person ids. "By creator" makes one section per person, its head naming each platform. The detail shows "Also on" with the other accounts.
+- His creators get their other accounts where they post (YouTube, TikTok, X, LinkedIn), found by search and checked on the profile.
+
+States (new or changed rows; the rest stand as D8 and D9):
+
+| State | Shows | Enters on | Next | Motion |
+|---|---|---|---|---|
+| gallery typical | even tiles: picture, multiple, counts, @handle · age | answer | detail, select | none on read |
+| gallery hot | accent outline on the picture; multiple in accent | `multiple` ≥ 10 | — | none |
+| gallery no counts | the counts row left out | read has none | — | none |
+| gallery likes only | "their usual likes"; heart and comments | Instagram | — | none |
+| tile hover | picture zooms 3% | hover | detail | 200 ms ease |
+| sort per follower | best views per follower first; none last | `sort=reach` | — | list fades (150 ms) |
+| detail per follower | the views-per-follower fact | views and followers known | — | none |
+| detail also on | the other accounts, each a link | a person with 2+ accounts | — | none |
+| grouped by person | one section per person; head lists each account's mark, handle, followers | `group=creator` | All N | list fades (150 ms) |
+| strip typical | All lit, then faces with platform marks | answer with people | strip picked | none on read |
+| strip picked | the face's ring lit; only that person's posts | tap a face (`creator=<id>`) | All, another face | ring 150 ms; list fades (150 ms) |
+| strip many | the row scrolls across inside itself | more faces than the width | — | native scroll |
+| face no picture | first letter in a circle | no `picture`, or it fails to load | — | instant (swap on error) |
+| tile platform | platform mark and its name for screen readers | every tile | — | none |
+| no feed layout | the gallery | any old `layout=feed` link | — | none |
+
 ### D7. Commands
 
 Agent drives, code is tools. JSON out.
@@ -316,3 +384,4 @@ The meta video films this build: autobrowse takes of each page as it lands.
 - 2026-11-14: Wren logo hidden everywhere (William), the `\` key got a button. D8 added: pictures copied to the bucket (B over the raw link and copy on view); one `CreatorPosts` part with Feed and Gallery layouts; Notion-style bar; select replaces Save on each row. The mood board idea gave way to his later "more standard feed".
 - 2026-11-14: D8 built. Changes from the spec: the foot bar ends with Done, not Clear; a saved post reads "Filing into Canon" while the Add queue works; a gallery tile shows 10x+ by its wash and accent number, with no tag.
 - 2026-11-14: D9 built. Changes from the spec: no band row in the detail (it restated the multiple); a card under its creator's head drops the creator line; picture overlays use new kit tokens `--ui-media-veil`, `--ui-media-fade`, `--ui-media-ink-shadow`. Fresh-eye review: fixed the tip's grammar, the not-scored wording and the section head's edge; kept the blurred sheet backdrop, the icon-only bar at 390 and the first focus (kit parts), play for video views and an eye for post views, and the dot-joined meta lines (platform convention).
+- 2026-11-15: D10 built. William's later calls added the creator strip, a platform mark on every post and the end of the Feed layout. Faces copy to the bucket like post pictures (0403). weaver 0.77.3 gives reel views. The strip's tip carries the platforms; the face's name stays the person's name alone.

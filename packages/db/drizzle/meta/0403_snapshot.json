@@ -1,6 +1,6 @@
 {
-  "id": "075df055-b2d4-4b0d-902b-7e2c20d61cc7",
-  "prevId": "9c0d1d75-0b22-4899-bc22-ec3d1ebeb7ec",
+  "id": "a8d39a80-78b0-46e2-8bd8-a7dbbcc32297",
+  "prevId": "279a172f-631f-4f67-8b0c-713090fdc1b4",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -14674,6 +14674,51 @@
       },
       "isRLSEnabled": false
     },
+    "public.creator_people": {
+      "name": "creator_people",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "added_by": {
+          "name": "added_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "added_at": {
+          "name": "added_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "pk_creator_people": {
+          "name": "pk_creator_people",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.creator_posts": {
       "name": "creator_posts",
       "schema": "",
@@ -14782,6 +14827,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "baseline": {
+          "name": "baseline",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "likes_baseline": {
+          "name": "likes_baseline",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
         "scored_at": {
           "name": "scored_at",
           "type": "timestamp with time zone",
@@ -14790,6 +14847,12 @@
         },
         "record": {
           "name": "record",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "picture": {
+          "name": "picture",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -15022,6 +15085,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
         "niches": {
           "name": "niches",
           "type": "text[]",
@@ -15091,10 +15160,45 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "picture": {
+          "name": "picture",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "ix_tracked_creators_person_id": {
+          "name": "ix_tracked_creators_person_id",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
+        "fk_tracked_creators_person_id_creator_people": {
+          "name": "fk_tracked_creators_person_id_creator_people",
+          "tableFrom": "tracked_creators",
+          "tableTo": "creator_people",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
         "fk_tracked_creators_handle_id_social_handles": {
           "name": "fk_tracked_creators_handle_id_social_handles",
           "tableFrom": "tracked_creators",

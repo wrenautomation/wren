@@ -18,6 +18,7 @@ import {
 import { and, asc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import {
   creatorPosts as cp,
+  creatorPeople,
   followerCountDays,
   postCountDays,
   type TrackedCreator,
@@ -65,20 +66,35 @@ export interface CreatorRead {
 
 export class HandleError extends Error {}
 
-/** Track a creator, or widen a tracked one's niches; a retired one comes back. */
+/**
+ * Track a creator's account, or widen a tracked one's niches; a retired one comes back. `personId`
+ * puts it under that person (D10); with none, a new account gets a person of its own and a tracked
+ * one keeps its person.
+ */
 export async function trackCreator(
   db: Db,
-  o: { platform: string; handle: string; niches: string[]; note?: string; addedBy: string },
+  o: {
+    platform: string;
+    handle: string;
+    niches: string[];
+    note?: string;
+    addedBy: string;
+    personId?: number;
+  },
 ): Promise<TrackedCreator & { handle: string; url: string | null; added: boolean }> {
   const ref = normalizeHandle(o.platform, o.handle);
   if (!ref || ref.handle.includes(":"))
     throw new HandleError(`not a ${o.platform} handle or profile URL: ${o.handle}`);
   return atomic(db, async (tx) => {
     const h = await resolveHandle(tx, ref);
+    const [had] = await tx.select({ personId: tc.personId }).from(tc).where(eq(tc.handleId, h.id));
+    const personId =
+      o.personId ?? had?.personId ?? (await newPerson(tx, { addedBy: o.addedBy })).id;
     const [row] = await tx
       .insert(tc)
       .values({
         handleId: h.id,
+        personId,
         niches: [...new Set(o.niches)].sort(),
         note: o.note ?? null,
         addedBy: o.addedBy,
@@ -86,6 +102,7 @@ export async function trackCreator(
       .onConflictDoUpdate({
         target: tc.handleId,
         set: {
+          personId,
           niches: sql.raw(
             `(select coalesce(array_agg(distinct x order by x), '{}') from unnest(tracked_creators.niches || excluded.niches) x)`,
           ),
@@ -100,9 +117,56 @@ export async function trackCreator(
   });
 }
 
+/** A new creator person; no name: their first account's name or handle stands in. */
+export async function newPerson(db: Queryable, o: { name?: string; addedBy: string }) {
+  const [p] = await db
+    .insert(creatorPeople)
+    .values({ name: o.name ?? null, addedBy: o.addedBy })
+    .returning({ id: creatorPeople.id });
+  return p as { id: number };
+}
+
+/** The person with this name (any case), or none. */
+export async function personNamed(db: Queryable, name: string) {
+  const [p] = await db
+    .select({ id: creatorPeople.id })
+    .from(creatorPeople)
+    .where(sql`lower(${creatorPeople.name}) = lower(${name})`)
+    .orderBy(asc(creatorPeople.id))
+    .limit(1);
+  return p ?? null;
+}
+
+/**
+ * Join tracked accounts into one person: the first account's person, or `personId`. A name renames
+ * that person. The people left with no account stay, with no account.
+ */
+export async function linkAccounts(
+  db: Db,
+  ids: number[],
+  o: { name?: string; personId?: number } = {},
+): Promise<{ personId: number; accounts: number[] }> {
+  if (!ids.length) throw new HandleError("name at least one tracked account");
+  return atomic(db, async (tx) => {
+    const rows = await tx
+      .select({ id: tc.id, personId: tc.personId })
+      .from(tc)
+      .where(inArray(tc.id, ids));
+    const missing = ids.filter((id) => !rows.some((r) => r.id === id));
+    if (missing.length) throw new HandleError(`no tracked account ${missing.join(", ")}`);
+    const first = rows.find((r) => r.id === ids[0]) as { personId: number };
+    const personId = o.personId ?? first.personId;
+    await tx.update(tc).set({ personId }).where(inArray(tc.id, ids));
+    if (o.name)
+      await tx.update(creatorPeople).set({ name: o.name }).where(eq(creatorPeople.id, personId));
+    return { personId, accounts: ids };
+  });
+}
+
 const tableColumns = {
   id: tc.id,
   handleId: tc.handleId,
+  personId: tc.personId,
   niches: tc.niches,
   note: tc.note,
   addedBy: tc.addedBy,
@@ -128,6 +192,9 @@ export async function untrackCreator(db: Queryable, id: number): Promise<boolean
 
 export interface CreatorLine {
   id: number;
+  personId: number;
+  /** the person's name, else null */
+  person: string | null;
   platform: string;
   handle: string;
   url: string | null;
@@ -151,6 +218,8 @@ export async function listCreators(
   const rows = await db
     .select({
       id: tc.id,
+      personId: tc.personId,
+      person: creatorPeople.name,
       platform: socialHandles.platform,
       handle: socialHandles.handle,
       url: socialHandles.url,
@@ -168,6 +237,7 @@ export async function listCreators(
     })
     .from(tc)
     .innerJoin(socialHandles, eq(socialHandles.id, tc.handleId))
+    .innerJoin(creatorPeople, eq(creatorPeople.id, tc.personId))
     .where(
       and(
         o.all ? undefined : eq(tc.active, true),
@@ -175,7 +245,7 @@ export async function listCreators(
         o.ids ? inArray(tc.id, o.ids) : undefined,
       ),
     )
-    .orderBy(asc(socialHandles.platform), asc(socialHandles.handle));
+    .orderBy(asc(tc.personId), asc(socialHandles.platform), asc(socialHandles.handle));
   return rows;
 }
 
@@ -377,7 +447,8 @@ export const FEED_PRESETS = {
 } as const satisfies Record<string, FeedFilter>;
 export type FeedPreset = keyof typeof FEED_PRESETS;
 
-export type FeedSort = "new" | "multiple" | "views" | "likes";
+/** `reach`: views per follower (D10), the small-account-big-video test */
+export type FeedSort = "new" | "multiple" | "views" | "likes" | "reach";
 
 export interface FeedFilter {
   niche?: string;
@@ -394,11 +465,13 @@ export interface FeedFilter {
   maxFollowers?: number;
   minLikes?: number;
   creatorIds?: number[];
+  /** creator people: any of their accounts */
+  personIds?: number[];
   /** every post (the feed), or scored ones only (default: the outlier list) */
   all?: boolean;
-  /** newest first, best multiple first (default), most views or most likes first */
+  /** newest first, best multiple first (default), most views, most likes, most views per follower */
   sort?: FeedSort;
-  /** a section per creator: their top `perCreator` by the sort, sections by their best post */
+  /** a section per creator person: their top `perCreator` by the sort, sections by their best post */
   group?: "creator";
   perCreator?: number;
   limit?: number;
@@ -412,7 +485,11 @@ export interface FeedRow {
   postedAt: string | null;
   title: string | null;
   text: string | null;
+  /** the account */
   creatorId: number;
+  /** the person the account is one of, and their name (theirs, else the first account's) */
+  personId: number;
+  person: string;
   handle: string;
   name: string | null;
   niches: string[];
@@ -431,7 +508,7 @@ export interface FeedRow {
   /** the creator's usual draw on `scoreCount`: the median behind `multiple`; likes' behind `likesMultiple` */
   baseline: number | null;
   likesBaseline: number | null;
-  /** grouped by creator: the creator's posts that fit the filters, past the ones shown */
+  /** grouped: the person's posts that fit the filters, past the ones shown */
   creatorPosts: number | null;
   record: string | null;
   /** its picture in the media bucket (`cache/posts/...`), once copied */
@@ -495,6 +572,45 @@ export async function postsToCopy(
   });
 }
 
+/** A profile's picture link, as the read gave it; X's `_normal` is 48 px, `_400x400` the full one. */
+function avatarLinkOf(platform: string, raw: unknown): string | null {
+  if (platform === "instagram") return str(at(raw, "profile_picture_url"));
+  if (platform === "x")
+    return str(at(raw, "avatar", "image_url"))?.replace("_normal.", "_400x400.") ?? null;
+  return (
+    str(at(raw, "avatar")) ?? str(at(raw, "avatar", "url")) ?? str(at(raw, "thumbnail")) ?? null
+  );
+}
+
+/** The bucket key a profile picture is copied to. */
+const avatarKeyOf = (platform: string, handle: string) =>
+  `cache/creators/${platform}/${handle.replace(/[^\w.-]/g, "_")}.jpg`;
+
+/**
+ * Tracked accounts whose profile picture to copy: these ids (a fresh read: the link may have
+ * changed), else every active one with no copy yet.
+ */
+export async function avatarsToCopy(
+  db: Queryable,
+  o: { creatorIds?: number[] } = {},
+): Promise<{ id: number; key: string; link: string }[]> {
+  const rows = await db.execute<{ id: number; platform: string; handle: string; raw: unknown }>(
+    sql`select c.id, h.platform, h.handle, c.raw from tracked_creators c
+      join social_handles h on h.id = c.handle_id
+      where c.active and c.raw is not null
+      ${o.creatorIds?.length ? sql`and c.id in (${list(o.creatorIds)})` : sql`and c.picture is null`}`,
+  );
+  return [...rows].flatMap((r) => {
+    const link = avatarLinkOf(r.platform, r.raw);
+    return link ? [{ id: r.id, key: avatarKeyOf(r.platform, r.handle), link }] : [];
+  });
+}
+
+/** The profile picture is in the bucket (`''`: the platform refused it). */
+export async function setAvatar(db: Queryable, id: number, key: string) {
+  await db.update(tc).set({ picture: key }).where(eq(tc.id, id));
+}
+
 /** The copy is in the bucket. */
 export async function setPicture(db: Queryable, platform: string, ref: string, key: string) {
   await db
@@ -509,11 +625,16 @@ const list = (xs: readonly (string | number)[]) =>
     sql`, `,
   );
 
+/** a person's name: theirs, else their first account's name or @handle (`pe` the person row) */
+const personName = sql`coalesce(pe.name, (select coalesce(h1.name, '@' || h1.handle)
+  from tracked_creators c1 join social_handles h1 on h1.id = c1.handle_id
+  where c1.person_id = pe.id order by c1.active desc, c1.id limit 1))`;
+
 /** Outlier posts, best multiple first: the CLI and the portal both read this. */
 export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]> {
   const m = f.on === "likes" ? sql`p.likes_multiple` : sql`p.multiple`;
-  // a retweet is the original's post, never the creator's
-  const where = [sql`p.kind <> 'retweet'`];
+  // a retweet is the original's post, never the creator's; a removed creator's posts stay unshown
+  const where = [sql`p.kind <> 'retweet'`, sql`c.active`];
   if (!f.all) where.push(sql`${m} is not null`);
   if (f.min !== undefined) where.push(sql`${m} >= ${f.min}`);
   if (f.days !== undefined)
@@ -523,6 +644,7 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
   if (f.platforms?.length) where.push(sql`p.platform in (${list(f.platforms)})`);
   if (f.kinds?.length) where.push(sql`p.kind in (${list(f.kinds)})`);
   if (f.creatorIds?.length) where.push(sql`p.creator_id in (${list(f.creatorIds)})`);
+  if (f.personIds?.length) where.push(sql`c.person_id in (${list(f.personIds)})`);
   if (f.minFollowers !== undefined) where.push(sql`fo.followers >= ${f.minFollowers}`);
   if (f.maxFollowers !== undefined) where.push(sql`fo.followers < ${f.maxFollowers}`);
   if (f.minLikes !== undefined) where.push(sql`(co.counts->>'likes')::bigint >= ${f.minLikes}`);
@@ -533,7 +655,9 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
       ? sql`p.posted_at`
       : f.sort === "views" || f.sort === "likes"
         ? count(f.sort)
-        : m;
+        : f.sort === "reach"
+          ? sql`(co.counts->>'views')::float8 / nullif(fo.followers, 0)`
+          : m;
   const tie = f.sort === "new" ? m : sql`p.posted_at`;
   const rows = await db.execute<{
     platform: string;
@@ -544,6 +668,8 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     title: string | null;
     text: string | null;
     creator_id: number;
+    person_id: number;
+    person: string;
     handle: string;
     name: string | null;
     niches: string[];
@@ -562,15 +688,17 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     picture: string | null;
     raw: unknown;
   }>(sql`select * from (select p.platform, p.ref, p.url, p.kind, p.posted_at, p.title, p.text,
-      p.creator_id, h.handle, h.name, c.niches, fo.followers, co.counts, p.score_count, p.multiple,
+      p.creator_id, c.person_id, ${personName} as person,
+      h.handle, h.name, c.niches, fo.followers, co.counts, p.score_count, p.multiple,
       p.rank, p.likes_multiple, p.likes_rank, p.baseline_n, p.baseline, p.likes_baseline, p.record,
       p.picture, case when p.picture is null then p.raw end as raw,
       ${key} as sort_key, ${tie} as sort_tie,
-      row_number() over (partition by p.creator_id order by ${key} desc nulls last, ${tie} desc nulls last) as nth,
-      count(*) over (partition by p.creator_id)::int as creator_posts,
-      max(${key}) over (partition by p.creator_id) as best
+      row_number() over (partition by c.person_id order by ${key} desc nulls last, ${tie} desc nulls last) as nth,
+      count(*) over (partition by c.person_id)::int as creator_posts,
+      max(${key}) over (partition by c.person_id) as best
     from creator_posts p
     join tracked_creators c on c.id = p.creator_id
+    join creator_people pe on pe.id = c.person_id
     join social_handles h on h.id = c.handle_id
     left join lateral (select f.followers from follower_count_days f
       where f.creator_id = c.id order by f.day desc limit 1) fo on true
@@ -578,7 +706,7 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
       where d.platform = p.platform and d.ref = p.ref order by d.day desc limit 1) co on true
     where ${sql.join(where, sql` and `)}) x
     ${grouped ? sql`where x.nth <= ${f.perCreator ?? 12}` : sql``}
-    order by ${grouped ? sql`x.best desc nulls last, x.creator_id, x.nth` : sql`x.sort_key desc nulls last, x.sort_tie desc nulls last`}
+    order by ${grouped ? sql`x.best desc nulls last, x.person_id, x.nth` : sql`x.sort_key desc nulls last, x.sort_tie desc nulls last`}
     limit ${f.limit ?? 50}`);
   return [...rows].map((r) => ({
     platform: r.platform,
@@ -589,6 +717,8 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     title: r.title,
     text: r.text,
     creatorId: r.creator_id,
+    personId: r.person_id,
+    person: r.person,
     handle: r.handle,
     name: r.name,
     niches: r.niches,
@@ -620,16 +750,33 @@ export interface FeedFacets {
   platforms: { value: string; n: number }[];
   /** kinds of their posts, with post counts */
   kinds: { value: string; n: number }[];
-  /** active creators, with their post counts */
-  people: { id: number; handle: string; name: string | null; platform: string; n: number }[];
+  /** creator people with an active account, with their post counts and accounts */
+  people: FeedPerson[];
 }
+
+export type FeedPerson = {
+  id: number;
+  name: string;
+  n: number;
+  accounts: {
+    id: number;
+    platform: string;
+    handle: string;
+    name: string | null;
+    url: string | null;
+    /** the profile picture's bucket key */
+    picture: string | null;
+    followers: number | null;
+  }[];
+};
 
 /** What the feed's picks offer: niches and platforms of active creators, with counts. */
 export async function feedFacets(db: Queryable): Promise<FeedFacets> {
   const [head] = [
     ...(await db.execute<{ creators: number; scored: number }>(sql`select
-      (select count(*)::int from tracked_creators where active) as creators,
-      (select count(*)::int from creator_posts where multiple is not null) as scored`)),
+      (select count(distinct person_id)::int from tracked_creators where active) as creators,
+      (select count(*)::int from creator_posts p join tracked_creators c on c.id = p.creator_id
+        where c.active and p.multiple is not null) as scored`)),
   ];
   const niches = await db.execute<{
     value: string;
@@ -642,16 +789,18 @@ export async function feedFacets(db: Queryable): Promise<FeedFacets> {
   const kinds = await db.execute<{ value: string; n: number }>(sql`select p.kind as value,
     count(*)::int as n from creator_posts p join tracked_creators c on c.id = p.creator_id
     where c.active and p.kind <> 'retweet' group by p.kind order by n desc, p.kind`);
-  const people = await db.execute<{
-    id: number;
-    handle: string;
-    name: string | null;
-    platform: string;
-    n: number;
-  }>(sql`select c.id, h.handle, h.name, h.platform,
-    (select count(*)::int from creator_posts p where p.creator_id = c.id and p.kind <> 'retweet') as n
-    from tracked_creators c join social_handles h on h.id = c.handle_id
-    where c.active order by lower(coalesce(h.name, h.handle))`);
+  const people = await db.execute<FeedPerson>(sql`select pe.id, ${personName} as name,
+    (select count(*)::int from creator_posts p join tracked_creators c2 on c2.id = p.creator_id
+      where c2.person_id = pe.id and c2.active and p.kind <> 'retweet') as n,
+    (select json_agg(json_build_object('id', c3.id, 'platform', h3.platform, 'handle', h3.handle,
+        'name', h3.name, 'url', h3.url, 'picture', nullif(c3.picture, ''),
+        'followers', (select f.followers from follower_count_days f
+          where f.creator_id = c3.id order by f.day desc limit 1)) order by h3.platform)
+      from tracked_creators c3 join social_handles h3 on h3.id = c3.handle_id
+      where c3.person_id = pe.id and c3.active) as accounts
+    from creator_people pe
+    where exists (select 1 from tracked_creators c where c.person_id = pe.id and c.active)
+    order by lower(${personName})`);
   return {
     creators: head?.creators ?? 0,
     scored: head?.scored ?? 0,

@@ -47,7 +47,7 @@
     "@wrenautomation/knowledge": "0.75.6",
     "@wrenautomation/models": "0.77.1",
     "@wrenautomation/read": "0.77.1",
-    "@wrenautomation/weaver": "0.77.1",
+    "@wrenautomation/weaver": "0.77.3",
     "csv-parse": "7.0.2",
     "drizzle-orm": "0.45.2",
     "libphonenumber-js": "1.13.14",

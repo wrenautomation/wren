@@ -1,5 +1,5 @@
 /**
- * Canon › Outliers: the gallery's state rows (studio-suite D8, D9). The feed's rows are Studio ›
+ * Canon › Outliers: the gallery's state rows (studio-suite D8, D9, D10). The feed's rows are Studio ›
  * Inspiration's (`stories/wren/studio/`). Fake server: `web/src/mocks/`.
  */
 import type { Meta } from "@storybook/react-vite";
@@ -32,7 +32,7 @@ async function pick(page: HTMLElement, n: number) {
   return view;
 }
 
-/** Typical: a grid, best multiple first; 10x+ washed; a text post fills its frame; In Canon. */
+/** Typical: the creator strip over a grid, best multiple first; a text post fills its frame; In Canon. */
 export const Outliers = tidy(
   pageAt("/canon/outliers", {
     me: ADMIN,
@@ -40,6 +40,8 @@ export const Outliers = tidy(
     check: async (page) => {
       const view = within(page);
       await expect(await view.findByText("312x", {}, WAIT)).toBeVisible();
+      // every tile says its platform (D10)
+      await expect(view.getAllByText("YouTube").length).toBeGreaterThan(1);
       await expect(view.getByText(/We stopped sending weekly reports/)).toBeVisible();
       await expect(view.getByText("In Canon")).toBeVisible();
       await expect(view.getByRole("link", { name: "All outliers" })).toHaveAttribute(
@@ -93,7 +95,7 @@ export const NoneScored = tidy(
     me: ADMIN,
     answers: { "canon/feed": OUTLIERS_NONE_SCORED },
     check: async (page) => {
-      await expect(await within(page).findByText("7 creators tracked", {}, WAIT)).toBeVisible();
+      await expect(await within(page).findByText("5 creators tracked", {}, WAIT)).toBeVisible();
     },
   }),
 );
@@ -305,7 +307,51 @@ export const UsualTip = tidy(
       const view = within(page);
       const best = await view.findByText("312x", {}, WAIT);
       await expect(best.parentElement).toHaveAccessibleDescription(
-        "412K views, 312x their usual 1,319 (the median of @cutsbymaya's last 30 videos)",
+        "412K views; they usually get 1,319 (the median of @cutsbymaya's last 30 videos)",
+      );
+    },
+  }),
+);
+
+/** The strip (D10, YouTube's subscriptions bar): All lit, a face per person with its platforms. */
+export const Strip = tidy(
+  pageAt("/canon/outliers", {
+    me: ADMIN,
+    check: async (page) => {
+      const bar = within(await within(page).findByRole("navigation", { name: "Creators" }, WAIT));
+      await expect(bar.getByRole("link", { name: "All" })).toHaveAttribute("aria-current", "true");
+      await expect(bar.getByRole("link", { name: "Maya Cuts" })).toHaveAccessibleDescription(
+        "Maya Cuts: Instagram, YouTube, 118 posts",
+      );
+      await expect(bar.getAllByRole("link")).toHaveLength(6);
+    },
+  }),
+);
+
+/** A face tapped: its ring lit, only that person's posts; a second tap goes back to All. */
+export const StripPicked = tidy(
+  pageAt("/canon/outliers?creator=5", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      const bar = within(await view.findByRole("navigation", { name: "Creators" }, WAIT));
+      const face = bar.getByRole("link", { name: "Agents Daily" });
+      await expect(face).toHaveAttribute("aria-current", "true");
+      await expect(face).toHaveAttribute("href", expect.not.stringContaining("creator="));
+      await expect(await view.findByText(/best CRM/, {}, WAIT)).toBeVisible();
+      await expect(view.queryByText("312x")).toBeNull();
+    },
+  }),
+);
+
+/** A hot post (10x+) outlines its frame and inks its multiple. */
+export const HotTile = tidy(
+  pageAt("/canon/outliers", {
+    me: ADMIN,
+    check: async (page) => {
+      const best = await within(page).findByText("312x", {}, WAIT);
+      await expect(getComputedStyle(best).color).not.toBe(
+        getComputedStyle(within(page).getByText("5.1x")).color,
       );
     },
   }),
@@ -343,6 +389,37 @@ export const GroupedMore = tidy(
       await expect(
         await within(page).findByRole("link", { name: "All 30 posts by Maya Cuts" }, WAIT),
       ).toHaveAttribute("href", expect.stringContaining("creator=1"));
+    },
+  }),
+);
+
+/** Sort by views per follower: a small account's big post first; each tile says the ratio. */
+export const SortReach = tidy(
+  pageAt("/canon/outliers?sort=reach", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      await expect(
+        await view.findByRole("button", { name: /Views per follower/ }, WAIT),
+      ).toBeVisible();
+      const [first] = view.getAllByRole("link", { name: /^Open / });
+      await expect(first).toHaveAccessibleName(/^Open Maya Cuts/);
+      await expect(view.getByText("22 views per follower")).toBeVisible();
+    },
+  }),
+);
+
+/** One person on two platforms: the panel names the other account. */
+export const DetailAlsoOn = tidy(
+  pageAt("/canon/outliers?post=youtube:FakeVid0001", {
+    me: ADMIN,
+    check: async () => {
+      const box = await panel();
+      await expect(box.getByRole("heading", { name: "Also on" })).toBeVisible();
+      await expect(box.getByRole("region", { name: "Also on" })).toHaveTextContent(
+        "Instagram @cutsbymaya · 52K followers",
+      );
+      await expect(box.getByText("Views per follower")).toBeVisible();
     },
   }),
 );

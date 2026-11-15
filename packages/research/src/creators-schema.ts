@@ -36,12 +36,31 @@ export const POST_KINDS = [
   "retweet",
 ] as const;
 
+/**
+ * One creator, as a person, over their accounts on each platform (studio-suite D10 A). Scores stay
+ * per account: a usual on X says nothing about Instagram.
+ */
+export const creatorPeople = pgTable(
+  "creator_people",
+  {
+    id: serial("id").notNull(),
+    /** as he names them; null: their first account's name or handle */
+    name: text("name"),
+    addedBy: text("added_by").notNull(),
+    addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.id], name: "pk_creator_people" })],
+);
+export type CreatorPerson = typeof creatorPeople.$inferSelect;
+
 export const trackedCreators = pgTable(
   "tracked_creators",
   {
     id: serial("id").notNull(),
     /** one account on one platform */
     handleId: integer("handle_id").notNull(),
+    /** the person this account is one of */
+    personId: integer("person_id").notNull(),
     /** niche tags (`ai-automation`): the feed filters on them */
     niches: text("niches").array().notNull().default([]),
     /** why it is tracked, in the adder's words */
@@ -61,10 +80,18 @@ export const trackedCreators = pgTable(
     readError: text("read_error"),
     /** promoted into Canon: the `creator-…` person record */
     record: text("record"),
+    /** the profile picture, copied into the media bucket: the key (`cache/creators/<platform>/<handle>.jpg`) */
+    picture: text("picture"),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_tracked_creators" }),
     unique("uq_tracked_creators_handle_id").on(t.handleId),
+    index("ix_tracked_creators_person_id").on(t.personId),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [creatorPeople.id],
+      name: "fk_tracked_creators_person_id_creator_people",
+    }),
     foreignKey({
       columns: [t.handleId],
       foreignColumns: [socialHandles.id],

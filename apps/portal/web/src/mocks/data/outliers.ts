@@ -1,5 +1,5 @@
 /** Canon › Outliers and Studio › Inspiration: made-up creators and posts, worst case included. */
-import type { FeedPage, FeedPost } from "@wren/research/canon-console";
+import type { FeedPage, FeedPersonShown, FeedPost } from "@wren/research/canon-console";
 
 /** each preset's least multiple (server: `FEED_PRESETS`) */
 const PRESET_MIN: Record<string, number> = {
@@ -17,8 +17,19 @@ const shot = (a: string, b: string) =>
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><defs><linearGradient id="g" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="400" height="500" fill="url(#g)"/><circle cx="200" cy="210" r="70" fill="#fff" fill-opacity=".35"/><rect x="90" y="330" width="220" height="22" rx="11" fill="#fff" fill-opacity=".4"/></svg>`,
   )}`;
 
-const row = (o: Partial<FeedPost> & Pick<FeedPost, "ref" | "handle" | "multiple">): FeedPost => {
-  const r = base(o);
+/** a round face drawn inline */
+const face = (a: string, b: string) =>
+  `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" fill="${a}"/><circle cx="48" cy="38" r="18" fill="${b}"/><ellipse cx="48" cy="92" rx="34" ry="28" fill="${b}"/></svg>`,
+  )}`;
+
+type RowIn = Partial<FeedPost> & Pick<FeedPost, "ref" | "handle" | "multiple">;
+const row = (o: RowIn): FeedPost => {
+  const r = base({
+    personId: o.creatorId ?? 1,
+    person: o.name ?? `@${o.handle}`,
+    ...o,
+  });
   // the usual draw the server stores: the count over the multiple
   const n = r.counts[r.scoreCount as "views" | "likes"];
   return {
@@ -27,7 +38,7 @@ const row = (o: Partial<FeedPost> & Pick<FeedPost, "ref" | "handle" | "multiple"
       "baseline" in o ? (o.baseline ?? null) : r.multiple && n ? Math.round(n / r.multiple) : null,
   };
 };
-const base = (o: Partial<FeedPost> & Pick<FeedPost, "ref" | "handle" | "multiple">): FeedPost => ({
+const base = (o: RowIn & Pick<FeedPost, "personId" | "person">): FeedPost => ({
   platform: "youtube",
   url: `https://www.youtube.com/watch?v=${o.ref}`,
   kind: "video",
@@ -178,7 +189,11 @@ export const OUTLIER_ROWS: FeedPost[] = [
     kind: "reel",
     handle: "cutsbymaya",
     name: "Maya Cuts",
-    creatorId: 1,
+    // Maya's second account: one person, two platforms
+    creatorId: 6,
+    personId: 1,
+    person: "Maya Cuts",
+    followers: 52_000,
     multiple: null,
     band: null,
     postedAt: daysAgo(0.5),
@@ -193,7 +208,9 @@ export const OUTLIER_ROWS: FeedPost[] = [
     url: "https://x.com/ops-notes/status/1890000000000000008",
     kind: "post",
     handle: "ops-notes",
-    creatorId: 4,
+    creatorId: 7,
+    personId: 4,
+    person: "@ops-notes",
     multiple: 3.2,
     postedAt: daysAgo(2),
     title: null,
@@ -205,8 +222,54 @@ export const OUTLIER_ROWS: FeedPost[] = [
   }),
 ];
 
+const account = (
+  id: number,
+  platform: string,
+  handle: string,
+  followers: number | null,
+  name: string | null = null,
+) => ({ id, platform, handle, name, url: null, picture: null, followers });
+
+/** the strip's people: Maya on two platforms, a long name with no face, a one-letter handle */
+export const PEOPLE: FeedPersonShown[] = [
+  {
+    id: 1,
+    name: "Maya Cuts",
+    n: 118,
+    src: face("#f2b366", "#8a3b2e"),
+    accounts: [
+      account(6, "instagram", "cutsbymaya", 52_000),
+      account(1, "youtube", "cutsbymaya", 18_400),
+    ],
+  },
+  {
+    id: 2,
+    name: "Bartholomew Featherstonehaugh-Montgomery the Third",
+    n: 41,
+    src: null,
+    accounts: [
+      account(2, "youtube", "a_very_long_handle_for_a_creator_who_never_stops", 2_480_000),
+    ],
+  },
+  { id: 3, name: "@e", n: 12, src: null, accounts: [account(3, "instagram", "e", null)] },
+  {
+    id: 4,
+    name: "@ops-notes",
+    n: 30,
+    src: face("#cbd5e1", "#334155"),
+    accounts: [account(4, "linkedin", "ops-notes", 9_100), account(7, "x", "ops-notes", 9_100)],
+  },
+  {
+    id: 5,
+    name: "Agents Daily",
+    n: 41,
+    src: face("#1f2937", "#9ca3af"),
+    accounts: [account(5, "x", "agentsdaily", 31_000)],
+  },
+];
+
 export const OUTLIERS: FeedPage = {
-  creators: 7,
+  creators: 5,
   scored: 212,
   niches: [
     { value: "video-editing", n: 5 },
@@ -224,19 +287,7 @@ export const OUTLIERS: FeedPage = {
     { value: "video", n: 52 },
     { value: "reel", n: 20 },
   ],
-  people: [
-    { id: 1, handle: "cutsbymaya", name: "Maya Cuts", platform: "youtube", n: 88 },
-    {
-      id: 2,
-      handle: "a_very_long_handle_for_a_creator_who_never_stops",
-      name: "Bartholomew Featherstonehaugh-Montgomery the Third",
-      platform: "youtube",
-      n: 41,
-    },
-    { id: 3, handle: "e", name: null, platform: "instagram", n: 12 },
-    { id: 4, handle: "ops-notes", name: null, platform: "linkedin", n: 30 },
-    { id: 5, handle: "agentsdaily", name: "Agents Daily", platform: "x", n: 41 },
-  ],
+  people: PEOPLE,
   rows: OUTLIER_ROWS,
 };
 
@@ -264,11 +315,15 @@ const keyOf = (r: FeedPost, sort: unknown) =>
     ? time(r)
     : sort === "views" || sort === "likes"
       ? (r.counts[sort] ?? -1)
-      : (r.multiple ?? -1);
-/** grouped: each creator's top 12, creators by their best post */
+      : sort === "reach"
+        ? r.counts.views != null && r.followers
+          ? r.counts.views / r.followers
+          : -1
+        : (r.multiple ?? -1);
+/** grouped: each person's top 12, people by their best post */
 function grouped(rows: FeedPost[], sort: unknown): FeedPost[] {
   const by = new Map<number, FeedPost[]>();
-  for (const r of rows) by.set(r.creatorId, [...(by.get(r.creatorId) ?? []), r]);
+  for (const r of rows) by.set(r.personId, [...(by.get(r.personId) ?? []), r]);
   return [...by.values()]
     .sort((a, b) => keyOf(b[0] as FeedPost, sort) - keyOf(a[0] as FeedPost, sort))
     .flatMap((g) => g.slice(0, 12).map((r) => ({ ...r, creatorPosts: g.length })));
@@ -286,7 +341,7 @@ export const OUTLIER_ANSWERS = {
         (!Array.isArray(b.niches) || !b.niches.length || r.niches.some((n) => has(b.niches, n))) &&
         has(b.platforms, r.platform) &&
         has(b.kinds, r.kind) &&
-        has(b.creators, r.creatorId),
+        has(b.people, r.personId),
     ).sort(
       (x, y) =>
         keyOf(y, b.sort) - keyOf(x, b.sort) ||

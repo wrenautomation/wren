@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { parseHandle } from "@wren/core/touches";
 import type { Db } from "@wren/db";
 import {
+  avatarsToCopy,
   type CreatorRead,
   creatorSource,
   dueCreators,
@@ -17,17 +18,22 @@ import {
   type FeedFilter,
   type FeedPreset,
   type FeedRow,
+  type FeedSort,
   feedPosts,
   HandleError,
   keepCreatorRead,
+  linkAccounts,
   listCreators,
   markCreatorPromoted,
   markPostPromoted,
   markReadFailed,
+  newPerson,
   POST_KINDS,
+  personNamed,
   pictureKeyOf,
   postsToCopy,
   rescore,
+  setAvatar,
   setPicture,
   trackCreator,
   untrackCreator,
@@ -98,6 +104,14 @@ function readCreator(url: string, n: number, accounts: Record<string, string>): 
   return JSON.parse(r.stdout) as CreatorRead;
 }
 
+const short = new Intl.NumberFormat("en", { notation: "compact" });
+/** views, likes, comments where read (D10: shown whenever there) */
+const countsOf = (c: FeedRow["counts"]) =>
+  (["views", "likes", "comments"] as const)
+    .filter((k) => c[k] != null)
+    .map((k) => `${short.format(c[k] as number)} ${k}`)
+    .join(" · ");
+
 const feedLine = (p: FeedRow) =>
   [
     `${(p.multiple ?? 0).toFixed(1)}x`.padStart(7),
@@ -105,30 +119,43 @@ const feedLine = (p: FeedRow) =>
     p.platform.padEnd(9),
     p.kind.padEnd(5),
     `@${p.handle}`,
+    countsOf(p.counts),
     p.postedAt?.slice(0, 10) ?? "",
     p.url,
     p.title ?? p.text?.replace(/\s+/g, " ").slice(0, 100) ?? "",
   ].join("  ");
 
 /**
- * Each post's picture into the media bucket, once (studio-suite D8 B): IG's links expire in days.
- * A link the platform refuses (4xx) marks the post `''`, so no run asks again.
+ * Each post's picture and each profile picture into the media bucket, once (studio-suite D8 B,
+ * D10): IG's links expire in days. A link the platform refuses (4xx) marks the row `''`, so no run
+ * asks again. A fresh read (`creatorIds`) copies its profile picture again: the link may change.
  */
 async function copyPictures(
   db: Db,
   media: MediaStoreOptions,
   o: { creatorIds?: number[]; limit?: number } = {},
 ): Promise<{ copied: number; gone: number; failed: number }> {
-  const todo = await postsToCopy(db, o);
+  const todo: { link: string; key: string; mark: (key: string) => Promise<void> }[] = [
+    ...(await avatarsToCopy(db, o.creatorIds ? { creatorIds: o.creatorIds } : {})).map((a) => ({
+      link: a.link,
+      key: a.key,
+      mark: (key: string) => setAvatar(db, a.id, key),
+    })),
+    ...(await postsToCopy(db, o)).map((p) => ({
+      link: p.link,
+      key: pictureKeyOf(p.platform, p.ref),
+      mark: (key: string) => setPicture(db, p.platform, p.ref, key),
+    })),
+  ];
   const out = { copied: 0, gone: 0, failed: 0 };
   if (!todo.length) return out;
   const dir = await mkdtemp(join(tmpdir(), "creator-pictures-"));
   try {
-    for (const p of todo) {
+    for (const t of todo) {
       try {
-        const res = await fetch(p.link, { signal: AbortSignal.timeout(20_000) });
+        const res = await fetch(t.link, { signal: AbortSignal.timeout(20_000) });
         if (res.status >= 400 && res.status < 500) {
-          await setPicture(db, p.platform, p.ref, "");
+          await t.mark("");
           out.gone++;
           continue;
         }
@@ -136,9 +163,8 @@ async function copyPictures(
           throw new Error(`${res.status} ${res.headers.get("content-type")}`);
         const file = join(dir, "p.jpg");
         await writeFile(file, Buffer.from(await res.arrayBuffer()));
-        const key = pictureKeyOf(p.platform, p.ref);
-        await putKey(file, key, media);
-        await setPicture(db, p.platform, p.ref, key);
+        await putKey(file, t.key, media);
+        await t.mark(t.key);
         out.copied++;
       } catch {
         // a 5xx or a timeout: the next run asks again
@@ -169,15 +195,34 @@ export function registerCreator(
     .option("--platform <name>", "the platform of bare handles")
     .requiredOption("--niche <name...>", "niches (repeat or comma list)", many)
     .option("--note <text>", "why tracked, in the adder's words")
+    .option(
+      "--person <id or name>",
+      "the creator these accounts belong to: a person id or name (a new name makes the person)",
+    )
     .option("--by <name>", "who added them", "william")
     .option("--json", "JSON out")
     .action(
       (
         profiles: string[],
-        o: { platform?: string; niche: string[]; note?: string; by: string; json?: boolean },
+        o: {
+          platform?: string;
+          niche: string[];
+          note?: string;
+          person?: string;
+          by: string;
+          json?: boolean;
+        },
       ) =>
         withDb(async (db) => {
           const out: Record<string, unknown>[] = [];
+          const personId = o.person
+            ? /^\d+$/.test(o.person)
+              ? int(o.person)
+              : (
+                  (await personNamed(db, o.person)) ??
+                  (await newPerson(db, { name: o.person, addedBy: o.by }))
+                ).id
+            : undefined;
           for (const p of profiles) {
             const platform = o.platform ?? parseHandle(p)?.platform;
             if (!platform) {
@@ -190,9 +235,17 @@ export function registerCreator(
                 handle: p,
                 niches: o.niche,
                 ...(o.note ? { note: o.note } : {}),
+                ...(personId ? { personId } : {}),
                 addedBy: o.by,
               });
-              out.push({ id: c.id, platform, handle: c.handle, niches: c.niches, added: c.added });
+              out.push({
+                id: c.id,
+                personId: c.personId,
+                platform,
+                handle: c.handle,
+                niches: c.niches,
+                added: c.added,
+              });
             } catch (e) {
               if (!(e instanceof HandleError)) throw e;
               out.push({ profile: p, error: e.message });
@@ -217,6 +270,7 @@ export function registerCreator(
           console.log(
             [
               String(r.id).padStart(4),
+              `p${r.personId}${r.person ? ` ${r.person}` : ""}`.padEnd(18),
               r.platform.padEnd(9),
               `@${r.handle}`.padEnd(24),
               `${r.followers ?? "?"} fol`.padEnd(12),
@@ -230,6 +284,23 @@ export function registerCreator(
               .filter(Boolean)
               .join("  "),
           );
+      }),
+    );
+
+  creator
+    .command("link <ids...>")
+    .description("join tracked accounts into one creator person: the first account's person")
+    .option("--name <name>", "the person's name")
+    .action((ids: string[], o: { name?: string }) =>
+      withDb(async (db) => {
+        try {
+          const r = await linkAccounts(db, ids.map(int), o.name ? { name: o.name } : {});
+          console.log(JSON.stringify(r));
+        } catch (e) {
+          if (!(e instanceof HandleError)) throw e;
+          console.log(JSON.stringify({ error: e.message }));
+          process.exitCode = 1;
+        }
       }),
     );
 
@@ -299,7 +370,7 @@ export function registerCreator(
   creator
     .command("pictures")
     .description(
-      "copy post pictures into the media bucket (cache/posts/); refresh does it per creator, this catches up",
+      "copy post and profile pictures into the media bucket (cache/posts/, cache/creators/); refresh does it per creator, this catches up",
     )
     .option("--id <n...>", "only these creators", (v, acc: number[] = []) => [...acc, int(v)])
     .option("--limit <n>", "posts a run (default 500)", int)
@@ -394,6 +465,11 @@ export function registerCreator(
     .option("--kind <name...>", `kinds: ${POST_KINDS.join(", ")}`, many)
     .option("--min-followers <n>", "creators at or over N followers", int)
     .option("--max-followers <n>", "creators under N followers", int)
+    .option(
+      "--sort <order>",
+      "new, multiple (default), views, likes, reach (views per follower)",
+      /^(new|multiple|views|likes|reach)$/,
+    )
     .option("--limit <n>", "rows (default 50)", int)
     .option("--json", "JSON out")
     .action(
@@ -407,6 +483,7 @@ export function registerCreator(
         kind?: string[];
         minFollowers?: number;
         maxFollowers?: number;
+        sort?: FeedSort;
         limit?: number;
         json?: boolean;
       }) =>
@@ -424,6 +501,7 @@ export function registerCreator(
             ...(o.kind ? { kinds: o.kind } : {}),
             ...(o.minFollowers !== undefined ? { minFollowers: o.minFollowers } : {}),
             ...(o.maxFollowers !== undefined ? { maxFollowers: o.maxFollowers } : {}),
+            ...(o.sort ? { sort: o.sort } : {}),
             ...(o.limit !== undefined ? { limit: o.limit } : {}),
           };
           const rows = await feedPosts(db, f);

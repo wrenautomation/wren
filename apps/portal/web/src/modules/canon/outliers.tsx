@@ -6,7 +6,6 @@ import type { PageProps } from "../../module.js";
 import { CreatorPosts, type PostsStart } from "./creator-posts.js";
 
 const OUTLIERS: PostsStart = {
-  layout: "gallery",
   sort: "multiple",
   all: false,
   first: "All outliers",

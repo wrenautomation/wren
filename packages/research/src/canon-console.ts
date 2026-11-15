@@ -31,6 +31,7 @@ import {
   FEED_PRESETS,
   type FeedFacets,
   type FeedFilter,
+  type FeedPerson,
   type FeedPreset,
   type FeedRow,
   type FeedSort,
@@ -481,11 +482,14 @@ const INPUTS = {
     niches: z.array(z.string().max(80)).max(50).nullish(),
     platforms: z.array(z.string().max(40)).max(20).nullish(),
     kinds: z.array(z.string().max(16)).max(20).nullish(),
-    creators: z.array(z.number().int().positive()).max(200).nullish(),
+    people: z.array(z.number().int().positive()).max(200).nullish().describe("creator people"),
     min: z.number().min(0).max(10_000).nullish(),
     all: z.boolean().nullish().describe("every post, scored or not (the feed)"),
-    sort: z.enum(["new", "multiple", "views", "likes"]).nullish(),
-    group: z.enum(["creator"]).nullish().describe("a section per creator, their top 12 each"),
+    sort: z.enum(["new", "multiple", "views", "likes", "reach"]).nullish(),
+    group: z
+      .enum(["creator"])
+      .nullish()
+      .describe("a section per creator person, their top 12 each"),
     on: z.enum(["count", "likes"]).nullish(),
     limit: z.number().int().min(1).max(200).nullish(),
   },
@@ -503,7 +507,8 @@ export interface FeedAsk {
   niches?: string[] | null;
   platforms?: string[] | null;
   kinds?: string[] | null;
-  creators?: number[] | null;
+  /** creator people: any of their accounts */
+  people?: number[] | null;
   /** the least multiple; over a preset's */
   min?: number | null;
   /** every post, scored or not */
@@ -517,7 +522,10 @@ export interface FeedAsk {
 }
 /** A post as the page shows it: `src` is its picture, signed from the bucket or the platform's. */
 export type FeedPost = FeedRow & { src: string | null };
-export interface FeedPage extends FeedFacets {
+/** A creator person as the strip and the filter show them: `src`, their face, signed. */
+export type FeedPersonShown = FeedPerson & { src: string | null };
+export interface FeedPage extends Omit<FeedFacets, "people"> {
+  people: FeedPersonShown[];
   rows: FeedPost[];
 }
 
@@ -531,7 +539,7 @@ async function feedPage(db: Db, media: Media | null, a: FeedAsk): Promise<FeedPa
     ...(some(a.niches) ? { niches: a.niches as string[] } : {}),
     ...(some(a.platforms) ? { platforms: a.platforms as string[] } : {}),
     ...(some(a.kinds) ? { kinds: a.kinds as string[] } : {}),
-    ...(some(a.creators) ? { creatorIds: a.creators as number[] } : {}),
+    ...(some(a.people) ? { personIds: a.people as number[] } : {}),
     // never under the preset's own floor
     ...(a.min != null ? { min: Math.max(a.min, preset.min ?? 0) } : {}),
     ...(a.all && !a.preset ? { all: true } : {}),
@@ -542,13 +550,16 @@ async function feedPage(db: Db, media: Media | null, a: FeedAsk): Promise<FeedPa
     limit: a.limit ?? (a.group ? 200 : 100),
   };
   const [facets, rows] = await Promise.all([feedFacets(db), feedPosts(db, f)]);
-  const src = (r: FeedRow) =>
-    r.picture && media
-      ? media.sign(`s3://${media.bucket}/${r.picture}`).catch(() => r.pictureLink)
-      : Promise.resolve(r.pictureLink);
+  const sign = (key: string | null, or: string | null) =>
+    key && media ? media.sign(`s3://${media.bucket}/${key}`).catch(() => or) : Promise.resolve(or);
+  // a person's face: their first account with a copied picture
+  const face = (p: FeedPerson) => sign(p.accounts.find((a) => a.picture)?.picture ?? null, null);
   return {
     ...facets,
-    rows: await Promise.all(rows.map(async (r) => ({ ...r, src: await src(r) }))),
+    people: await Promise.all(facets.people.map(async (p) => ({ ...p, src: await face(p) }))),
+    rows: await Promise.all(
+      rows.map(async (r) => ({ ...r, src: await sign(r.picture, r.pictureLink) })),
+    ),
   };
 }
 

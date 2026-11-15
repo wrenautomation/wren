@@ -7,8 +7,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   type CreatorRead,
   dueCreators,
+  feedFacets,
   feedPosts,
   keepCreatorRead,
+  linkAccounts,
   listCreators,
   MAX_READ_FAILS,
   markReadFailed,
@@ -27,6 +29,7 @@ beforeEach(() =>
     "follower_count_days",
     "creator_posts",
     "tracked_creators",
+    "creator_people",
     "social_handles",
     "platform_objects",
   ]),
@@ -128,6 +131,72 @@ describe("creators", () => {
       ["video 0", 6],
       ["video 5", 6],
     ]);
+  });
+
+  it("joins accounts into one person: feed, filter, groups, facets; reach sorts; removed hides", async () => {
+    const yt = await trackCreator(db(), {
+      platform: "youtube",
+      handle: "@maker",
+      niches: ["editing"],
+      addedBy: "w",
+    });
+    const x = await trackCreator(db(), {
+      platform: "x",
+      handle: "maker_x",
+      niches: ["editing"],
+      addedBy: "w",
+    });
+    expect(x.personId).not.toBe(yt.personId);
+    await keepCreatorRead(db(), yt.id, read([1000, 100, 100, 100, 100, 100], 1_000), "2026-11-12");
+    // the X account: 5x the views, 10x the followers
+    const xRead = read([5000, 100, 100, 100, 100, 100], 10_000);
+    xRead.creator = {
+      platform: "x",
+      handle: "maker_x",
+      id: "99",
+      url: "https://x.com/maker_x",
+      followers: 10_000,
+    };
+    xRead.posts = xRead.posts.map((p, i) => ({
+      ...p,
+      platform: "x",
+      id: String(1000 + i),
+      url: `https://x.com/maker_x/status/${1000 + i}`,
+      kind: "post" as const,
+      title: `post ${i}`,
+    }));
+    await keepCreatorRead(db(), x.id, xRead, "2026-11-12");
+
+    const linked = await linkAccounts(db(), [yt.id, x.id], { name: "The Maker" });
+    expect(linked.personId).toBe(yt.personId);
+    const lines = await listCreators(db());
+    expect(new Set(lines.map((l) => l.person))).toEqual(new Set(["The Maker"]));
+
+    // one section, the person's top 2 over both accounts
+    const grouped = await feedPosts(db(), { group: "creator", perCreator: 2, sort: "views" });
+    expect(grouped.map((p) => [p.person, p.creatorPosts])).toEqual([
+      ["The Maker", 12],
+      ["The Maker", 12],
+    ]);
+    expect(await feedPosts(db(), { personIds: [yt.personId], limit: 100 })).toHaveLength(12);
+
+    // views per follower: the small account's video first
+    const reach = await feedPosts(db(), { sort: "reach", limit: 2 });
+    expect(reach.map((p) => p.title)).toEqual(["video 0", "post 0"]);
+
+    const facets = await feedFacets(db());
+    expect(facets.creators).toBe(1);
+    expect(facets.people).toHaveLength(1);
+    expect(facets.people[0]).toMatchObject({ name: "The Maker", n: 12 });
+    expect(facets.people[0]?.accounts.map((a) => [a.platform, a.followers])).toEqual([
+      ["x", 10_000],
+      ["youtube", 1_000],
+    ]);
+
+    // a removed account leaves the feed, the counts and the facets
+    await untrackCreator(db(), x.id);
+    expect(await feedPosts(db(), { limit: 100 })).toHaveLength(6);
+    expect((await feedFacets(db())).people[0]?.accounts).toHaveLength(1);
   });
 
   it("keeps every kind; a retweet is never scored; a reel with no views scores on likes", async () => {
