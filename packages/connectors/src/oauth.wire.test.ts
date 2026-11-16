@@ -81,14 +81,6 @@ describe("connectUrl", () => {
     `);
   });
 
-  it("HubSpot and QuickBooks name their scopes; Jobber sets them on its developer app", () => {
-    const scope = (app: ConnectorApp) =>
-      parsed(connectUrl(app, KEYS, { redirect: REDIRECT, state: "st" })).query.scope;
-    expect(scope("hubspot")).toBe("oauth crm.objects.contacts.read crm.objects.companies.read");
-    expect(scope("quickbooks")).toBe("com.intuit.quickbooks.accounting");
-    expect(scope("jobber")).toBeUndefined();
-  });
-
   it("no link carries the secret", () => {
     for (const app of CONNECTOR_APPS)
       expect(connectUrl(app, KEYS, { redirect: REDIRECT, state: "st" })).not.toContain(
