@@ -195,7 +195,7 @@ describe("the Inbox app's hands", () => {
     expect((await view()).map((r) => r.queue)).toEqual(["held", "held", "needs_you"]);
     expect((await view())[0]).toMatchObject({
       held: 1,
-      others: "/inbox/mail?view=held&fromAddress=~deals@shop.example",
+      others: "/today/mail?view=held&fromAddress=~deals@shop.example",
     });
     // A new email from them is held by the rule, in code.
     await pg.db.insert(mail).values({ ...newRow("d"), fromAddress: "deals@shop.example" });
