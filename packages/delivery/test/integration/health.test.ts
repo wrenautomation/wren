@@ -371,7 +371,8 @@ describe("the console", () => {
       view: "all",
       where: { client: "acme" },
     });
-    expect(inputs.rows.map((r) => [r.part, r.age])).toContainEqual(["results", "fresh"]);
+    // age reads the wall clock: the 2026-10-30 result is past its 14 days for good
+    expect(inputs.rows.map((r) => [r.part, r.age])).toContainEqual(["results", "stale"]);
     expect(inputs.rows.find((r) => r.part === "results")?.rows).toBe(
       "/project/results?client=acme",
     );

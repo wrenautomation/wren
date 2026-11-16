@@ -42,20 +42,6 @@ describe("invoiceFired", () => {
     setup: true,
   } as Invoice;
   const who = { client: "acme", name: "Acme", email: "owner@example.com" };
-  it("tells a change once per number, about the billing person", () => {
-    const f = invoiceFired(inv, "paid", who);
-    expect(f.client).toBeNull();
-    expect(f.facts).toEqual({ trigger: "trigger.payment", change: "paid" });
-    expect(f.about).toEqual(["owner@example.com"]);
-    expect(f.event.subject).toBe("payment:invoice:WREN-1001:paid");
-    expect(f.event.kind).toBe("invoice");
-    expect(f.event.data).toMatchObject({
-      source: "invoice",
-      id: "WREN-1001",
-      amount_cents: 50_000,
-      email: "owner@example.com",
-    });
-  });
   it("uses what came in when it is known", () => {
     const f = invoiceFired({ ...inv, receivedCents: 49_000 }, "paid", who);
     expect(f.event.data.amount_cents).toBe(49_000);

@@ -247,7 +247,7 @@ describe("the Friday digest", () => {
     expect(text).toContain("- Delivered: Cleaned list");
     expect(text).toMatch(/We need \d+ things from you/);
     expect(text).toMatch(
-      /5 Great: https:\/\/app\.example\/map\/overview\?client=acme&e=\d+&pulse=5/,
+      /5 Great: https:\/\/app\.example\/project\/overview\?client=acme&e=\d+&pulse=5/,
     );
     await pass("2026-10-09T17:00:00Z");
     expect(take(mail)).toEqual([]);
