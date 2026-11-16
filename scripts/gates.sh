@@ -126,7 +126,10 @@ offers() {
   if [ -d ../lander ]; then echo "==> offers snapshot" && pnpm -s offers:export "$LANDER_OFFERS" --check;
   else echo "==> offers snapshot: no ../lander, skipped"; fi
 }
-unit() { echo "==> unit tests" && pnpm turbo run test:unit $WIDE; }
+# The UI under redesign (portal, ui) reports on its own (unit-ui); every other package's unit tests
+# hold the deploy (WA-1397). --continue: one red package must not hide the next.
+unit() { echo "==> unit tests (all but portal, ui)" && pnpm turbo run test:unit $WIDE --continue --filter='!@wren/portal' --filter='!@wren/ui'; }
+unit_ui() { echo "==> unit tests (portal, ui)" && pnpm turbo run test:unit $WIDE --continue --filter=@wren/portal --filter=@wren/ui; }
 # One Postgres per package run, not per file (packages/db/src/testing-global-setup.ts): it migrates a
 # template once, and each file clones it in about half a second. About 50 files change what a whole
 # server shares (logins, client databases, settings) and keep a Postgres of their own: `{ own: true }`.
@@ -201,6 +204,7 @@ case "${1:-all}" in
   changed) changed ;;
   ui) ui ;;
   unit) unit ;;
+  unit-ui) unit_ui ;;
   stories) stories ;;
   visual) visual ;;
   look) look ;;
@@ -211,6 +215,6 @@ case "${1:-all}" in
   scorecard) scorecard ;;
   # lint's source checks without biome and the full typecheck (the push script runs those its own way).
   checks) cli && offers && map && layers && isolation && writes && edits && reads && libs && drift && exports && size && determinism ;;
-  all) lint && unit && visual && schema && integration && echo "==> all gates green" ;;
-  *) echo "usage: $0 [lint|changed|ui|checks|unit|stories|visual|look|match|schema|drift|scorecard|integration|all]" >&2; exit 2 ;;
+  all) lint && unit && unit_ui && visual && schema && integration && echo "==> all gates green" ;;
+  *) echo "usage: $0 [lint|changed|ui|checks|unit|unit-ui|stories|visual|look|match|schema|drift|scorecard|integration|all]" >&2; exit 2 ;;
 esac

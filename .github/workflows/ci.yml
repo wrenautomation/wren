@@ -17,7 +17,7 @@ jobs:
     strategy:
       # No fail-fast: a red unit run must not cancel lint or schema, which hold the deploy.
       fail-fast: false
-      matrix: { gate: [lint, unit, schema] }
+      matrix: { gate: [lint, unit, unit-ui, schema] }
     name: ${{ matrix.gate }}
     runs-on: ${{ github.event_name != 'pull_request' && vars.WORK_RUNNER || 'ubuntu-latest' }}
     concurrency: { group: "ci-${{ github.ref }}-${{ matrix.gate }}", cancel-in-progress: true }
