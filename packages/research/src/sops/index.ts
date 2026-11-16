@@ -763,7 +763,7 @@ function skillMd(
       ? `\n# Rule sets${owner}\n\n!\`${knowledge} render ${ids.join(" ")}${sets.load ? ` ${sets.load}` : ""}\`\n`
       : `\n# Rule sets${owner}\n\nEach set loads at its step. Write it into a file and read the whole file: \`${knowledge} render <set> > <scratch>/<set>.md\`. Its lines apply from that step on.\n\n${atStep}\n`;
   return `---
-name: sop-${name}
+name: ${name}
 description: ${JSON.stringify(`SOP: ${description}`)}
 ---
 

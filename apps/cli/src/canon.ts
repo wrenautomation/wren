@@ -8,7 +8,7 @@
  * through autobrowse's `drive` site on this machine.
  */
 import { spawnSync } from "node:child_process";
-import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, symlink, unlink } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { homedir, hostname, tmpdir } from "node:os";
 import { basename, extname, join, resolve } from "node:path";
 import { ingressOf, type Settings } from "@wren/config";
@@ -598,14 +598,17 @@ export function registerCanon(
   topic
     .command("link <name>")
     .description(
-      "expose the topic as the Claude Code skill `sop-<name>` (topics/<name>/, symlinked in ~/.claude/skills)",
+      "write the topic's SKILL.md, then link every skill under its parent door (Canon link-skills.mjs: `<parent>:<name>`, default parent canon)",
     )
     .action(async (name: string) => {
-      await writeSkill(root, name);
-      const to = join(homedir(), ".claude", "skills", `sop-${name}`);
-      await unlink(to).catch(() => {});
-      await symlink(topicDir(root, name), to, "dir");
-      console.log(to);
+      console.log(await writeSkill(root, name));
+      // one linker for all of Canon: the guide's `parent` field decides (SK-11..SK-13)
+      const r = spawnSync(
+        "node",
+        [join(root, "topics", "sop-making", "checks", "link-skills.mjs")],
+        { stdio: "inherit" },
+      );
+      if (r.status !== 0) throw new Error("link-skills.mjs failed");
     });
 
   topic

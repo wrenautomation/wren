@@ -29,7 +29,7 @@ Build a code page only when the page needs a layout, a calculator or media a tem
    - Claims about us only when a fact says it.
    - No number that isn't in the offer or the facts.
    - No client names.
-   - Run the `humanizer` skill on the copy.
+   - Run skill `content-playbook:writing-tells` on the copy (both humanizer passes and its check).
    - Lander repo rules: copy as "I", claims above the fold, square buttons.
 5. **Show William.** Send a local preview or screenshots at 1440 and 390 wide, plus the copy. Stop here until he says yes.
 6. **Deploy, only on his yes.**

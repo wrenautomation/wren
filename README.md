@@ -193,7 +193,7 @@ Iterate: edit notes.md, call on pieces (`wren source call <source> <path> keep|t
 `wren topic extract <name> [source]` lists every point a source makes as finding records tagged with
 the SOP (cited, generated only); build reads the points instead of the raw source.
 `notes.md`, `calls.md`, `standard.md`, `refs/` and `SKILL.md` sit in `topics/<name>/`. `knowledge render <name>`
-prints the SOP with its Sources list. `wren topic link <name>` symlinks the topic into `~/.claude/skills/sop-<name>`
+prints the SOP with its Sources list. `wren topic link <name>` writes the SKILL.md and links it under its parent door as `<parent>:<name>` (Canon `link-skills.mjs`; default parent `canon`)
 so Claude Code can follow the SOP as a skill. A non-text source (PDF, image) lands in `refs/`.
 
 ## Claude setups in a page

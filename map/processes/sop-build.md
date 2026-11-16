@@ -39,7 +39,7 @@ SOPs change weekly, so the loop is edit `notes.md` or the guide, call on pieces,
 | `wren source` | add, breakdown, call, ads (`source-pieces.ts`) |
 | `wren topic` | cite, sync, build, extract, link, push, list (`canon.ts`) |
 | autobrowse `drive` site | exports Docs for `drive:` sources |
-| `~/.claude/skills/sop-<name>` | symlink from `topic link`; `SKILL.md` renders the guide and points at refs/ |
+| `topics/<parent>/skills/<name>` | link from `topic link` (Canon `link-skills.mjs`, by the guide's `parent`); loads as `<parent>:<name>`; `SKILL.md` renders the guide and points at refs/ |
 
 ## See
 
