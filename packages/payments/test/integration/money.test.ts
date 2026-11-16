@@ -450,6 +450,11 @@ describe("reconcile", () => {
       .from(payEvents)
       .where(and(eq(payEvents.link, id), eq(payEvents.result, "drift")));
     expect(drift).toHaveLength(1);
+    // status counts the last 30 days by the wall clock, not NOW
+    await pg.db
+      .update(payEvents)
+      .set({ at: new Date() })
+      .where(and(eq(payEvents.link, id), eq(payEvents.result, "drift")));
     expect((await api().status(ADA)).drift).toBe(1);
   });
 
