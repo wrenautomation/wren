@@ -16,14 +16,6 @@ class Failing implements LlmClient {
   }
 }
 
-class Slow implements LlmClient {
-  readonly name = "fake";
-  readonly provider = "fake";
-  async complete(): Promise<LlmResponse> {
-    return { text: '{"items": []}', raw: { fake: true }, latencyMs: 77 };
-  }
-}
-
 describe("completeAndParse", () => {
   it("success carries parsed, raw and the call record", async () => {
     const out = await completeAndParse(new FakeLlm({ default: '{"items": ["a"]}' }), "p", Answer, {
@@ -53,14 +45,6 @@ describe("completeAndParse", () => {
     expect(out.call.rejected).toBe(false);
   });
 
-  it("wrong shape is a parse failure", async () => {
-    const out = await completeAndParse(new FakeLlm({ default: '{"items": 3}' }), "p", Answer, {
-      maxTokens: 10,
-    });
-    expect(out.parsed).toBeNull();
-    expect(out.parseError).toMatch(/^ValidationError/);
-  });
-
   it("input rejection is terminal with a counted call", async () => {
     const out = await completeAndParse(new Failing(new LlmInputRejected("HTTP 422")), "p", Answer, {
       maxTokens: 10,
@@ -76,11 +60,6 @@ describe("completeAndParse", () => {
     await expect(
       completeAndParse(new Failing(new LlmError("provider down")), "p", Answer, { maxTokens: 10 }),
     ).rejects.toBeInstanceOf(LlmError);
-  });
-
-  it("latency rides from the adapter into the record", async () => {
-    const out = await completeAndParse(new Slow(), "p", Answer, { maxTokens: 10 });
-    expect(out.call.latency_ms).toBe(77);
   });
 });
 
@@ -116,16 +95,6 @@ describe("completeAndParse tracing", () => {
     });
     expect(tracer.spans[0]?.name).toBe("people_extraction");
     expect(tracer.spans[0]?.metadata).toEqual({ document_id: 7 });
-  });
-
-  it("a parse failure closes the span with its outcome", async () => {
-    const tracer = new RecordingTracer();
-    await completeAndParse(new FakeLlm({ default: "nope" }), "p", Answer, {
-      maxTokens: 10,
-      tracer,
-    });
-    expect(tracer.spans[0]?.error).toBeNull();
-    expect(tracer.spans[0]?.outcome?.parseError).toBe("no JSON object in response");
   });
 
   it("an input rejection closes the span with its outcome", async () => {

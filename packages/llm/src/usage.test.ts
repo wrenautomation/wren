@@ -27,10 +27,6 @@ describe("observeUsage", () => {
       provider: "anthropic",
       usage: { input: 100, output: 8, cache_read: 60, cache_write: 10 },
     });
-  });
-
-  it("keeps the client's name and provider", () => {
-    const llm = observeUsage(claude(BODY), { part: "x", record: () => {} });
     expect([llm.name, llm.provider]).toEqual(["claude-test", "anthropic"]);
   });
 

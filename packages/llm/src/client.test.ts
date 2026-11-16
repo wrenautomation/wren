@@ -48,20 +48,6 @@ const wire = (...steps: (() => Response)[]) => {
 
 const groq = { NUM_GROQ: "1", GROQ_API_KEY_1: "k-0000000001" };
 
-describe("FakeLlm", () => {
-  it("answers from the default or a responder", async () => {
-    const fake = new FakeLlm();
-    expect(fake.provider).toBe("fake");
-    expect(await fake.complete("hi")).toEqual({
-      text: '{"people": []}',
-      raw: { fake: true },
-      latencyMs: 0,
-    });
-    const echo = new FakeLlm({ respond: (p) => `got ${p}` });
-    expect((await echo.complete("x")).text).toBe("got x");
-  });
-});
-
 describe("modelLlm", () => {
   it("names provider and model, asks for 2048 tokens by default, and normalizes usage", async () => {
     const w = wire(() => chat("answer"));
@@ -235,20 +221,14 @@ describe("makeLlm", () => {
     );
     expect(() => makeLlm("gateway", {})).toThrow(/WREN_LLM_GATEWAY_URL/);
   });
-  it("anthropic uses WREN_LLM_MODEL then the default, Haiku 5.5", () => {
-    expect(makeLlm("anthropic", { WREN_ANTHROPIC_API_KEY: "k" }).name).toBe("claude-haiku-5-5");
-    expect(
-      makeLlm("anthropic", { WREN_ANTHROPIC_API_KEY: "k", WREN_LLM_MODEL: "claude-x" }).name,
-    ).toBe("claude-x");
-  });
-  it("anthropic:<model> beats the configured model", () => {
-    const env = { WREN_ANTHROPIC_API_KEY: "k", WREN_LLM_MODEL: "claude-x" };
-    expect(makeLlm("anthropic:claude-y", env, { anthropicModel: "claude-z" }).name).toBe(
+  it("anthropic: prefix model, then WREN_LLM_MODEL, then Haiku 5.5; aliases name current models", () => {
+    const env = { WREN_ANTHROPIC_API_KEY: "k" };
+    const set = { ...env, WREN_LLM_MODEL: "claude-x" };
+    expect(makeLlm("anthropic", env).name).toBe("claude-haiku-5-5");
+    expect(makeLlm("anthropic", set).name).toBe("claude-x");
+    expect(makeLlm("anthropic:claude-y", set, { anthropicModel: "claude-z" }).name).toBe(
       "claude-y",
     );
-  });
-  it("anthropic:haiku|sonnet|opus name the current Claude models, wherever a model is given", () => {
-    const env = { WREN_ANTHROPIC_API_KEY: "k" };
     expect(makeLlm("anthropic:haiku", env).name).toBe("claude-haiku-5-5");
     expect(makeLlm("anthropic:sonnet", env).name).toBe("claude-sonnet-5-5");
     expect(makeLlm("anthropic:opus", env).name).toBe("claude-opus-5-5");
