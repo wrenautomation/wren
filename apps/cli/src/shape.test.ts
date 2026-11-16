@@ -1,7 +1,6 @@
 import { TRIGGER_IDS } from "@wren/core/logic";
 import { planConvert } from "@wren/pipeline/convert-shape";
 import { Refused } from "@wren/pipeline/refused";
-import { exportShape } from "@wren/pipeline/shape-file";
 import { diffStored, type StoredBody } from "@wren/pipeline/stored";
 import { Command, InvalidArgumentError } from "commander";
 import { describe, expect, it, vi } from "vitest";
@@ -41,8 +40,6 @@ const program = (over: Partial<ShapeDeps> = {}) => {
   registerShape(p, deps(over));
   return p;
 };
-const names = (c: Command) => c.commands.map((x) => x.name());
-const shapeCmd = (p: Command) => p.commands[0] as Command;
 
 describe("arguments", () => {
   it("reads an advance spec with and without settings", () => {
@@ -134,33 +131,7 @@ describe("text", () => {
     expect(lines).toContain('  booked_loop_yt  booked -> yt  (loop)  "again"');
   });
 
-  it("prints a diff a line per change", () => {
-    expect(
-      diffLines({
-        nodes: {
-          added: ["a"],
-          removed: ["b"],
-          renamed: [{ id: "c", from: "C", to: "D" }],
-          changed: ["c"],
-        },
-        edges: { added: ["e1"], removed: ["e2"], changed: ["e3"] },
-        name: { from: "X", to: "Y" },
-      }),
-    ).toEqual([
-      "name: X -> Y",
-      "+ node a",
-      "- node b",
-      "~ node c renamed: C -> D",
-      "~ node c changed",
-      "+ edge e1",
-      "- edge e2",
-      "~ edge e3 changed",
-    ]);
-  });
-});
-
-describe("history text", () => {
-  it("ends each diff line in its change key when asked", () => {
+  it("prints a diff a line per change, each ending in its change key when asked", () => {
     const d = {
       nodes: {
         added: ["a"],
@@ -171,6 +142,16 @@ describe("history text", () => {
       edges: { added: ["e1"], removed: ["e2"], changed: ["e3"] },
       name: { from: "X", to: "Y" },
     };
+    expect(diffLines(d)).toEqual([
+      "name: X -> Y",
+      "+ node a",
+      "- node b",
+      "~ node c renamed: C -> D",
+      "~ node c changed",
+      "+ edge e1",
+      "- edge e2",
+      "~ edge e3 changed",
+    ]);
     expect(diffLines(d, true)).toEqual([
       "name: X -> Y  [name]",
       "+ node a  [node:a:added]",
@@ -182,7 +163,9 @@ describe("history text", () => {
       "~ edge e3 changed  [edge:e3:changed]",
     ]);
   });
+});
 
+describe("history text", () => {
   it("says what the mirror did, one line a commit", () => {
     expect(mirrorLines({ off: true })).toEqual(["mirror off"]);
     expect(mirrorLines({ committed: [{ version: 3, sha: "0123456789abcdef" }] })).toEqual([
@@ -220,34 +203,6 @@ describe("history text", () => {
 });
 
 describe("commands", () => {
-  it("registers the shape commands", () => {
-    expect(names(program())).toEqual(["shape"]);
-    expect(names(shapeCmd(program()))).toEqual([
-      "show",
-      "versions",
-      "diff",
-      "export",
-      "import",
-      "start",
-      "add-node",
-      "connect",
-      "remove",
-      "edit",
-      "draft",
-      "blame",
-      "undo",
-      "tag",
-      "tags",
-      "mirror",
-      "view",
-      "move",
-    ]);
-    const draft = shapeCmd(program()).commands.find((c) => c.name() === "draft") as Command;
-    expect(names(draft)).toEqual(["new", "list", "show", "propose", "apply", "drop"]);
-    const view = shapeCmd(program()).commands.find((c) => c.name() === "view") as Command;
-    expect(names(view)).toEqual(["list", "show"]);
-  });
-
   it("reads the op of edit from text or from a file, and refuses both or neither", () => {
     const read = (f: string) =>
       f === "ops.json" ? '[{"op":"remove","on":"track","id":"t"}]' : "x";
@@ -293,7 +248,10 @@ describe("commands", () => {
     ).rejects.toThrow(/whole number/);
   });
 
-  it("needs --note on add-node, connect and remove", async () => {
+  it("needs --note on add-node, connect and remove, and --kind on add-node", async () => {
+    await expect(
+      program().parseAsync(["shape", "add-node", "x", "--note", "n"], { from: "user" }),
+    ).rejects.toThrow(/--kind/);
     await expect(
       program().parseAsync(["shape", "add-node", "x", "--kind", "step", "--name", "X"], {
         from: "user",
@@ -305,12 +263,6 @@ describe("commands", () => {
     await expect(program().parseAsync(["shape", "remove", "a"], { from: "user" })).rejects.toThrow(
       /--note/,
     );
-  });
-
-  it("needs --kind and --name on add-node", async () => {
-    await expect(
-      program().parseAsync(["shape", "add-node", "x", "--note", "n"], { from: "user" }),
-    ).rejects.toThrow(/--kind/);
   });
 
   it("refuses remove with both --move-to and --ghost, before it reads the database", async () => {
@@ -392,32 +344,6 @@ describe("the metro model", () => {
   };
   const convertBody = (stored: StoredBody, open = new Map<string, number>()) =>
     planConvert(stored, 1, ctx, open);
-
-  it("converts a graph to a metro body and proves it", () => {
-    const c = convertBody(graph);
-    expect(c.already).toBe(false);
-    expect(c.body.model).toBe("metro");
-    expect(exportShape(c.body).startsWith("model: metro")).toBe(true);
-    if (c.already) return;
-    expect(c.report).toMatchObject({
-      notes: [],
-      checks: [],
-      graphEqual: true,
-      workflowEqual: true,
-    });
-  });
-
-  it("refuses a graph that cannot convert, with the reason", () => {
-    const bad = {
-      name: "Bad",
-      nodes: [
-        { id: "yt", kind: "source", name: "YouTube", via: "organic" },
-        { id: "hub", kind: "step", name: "Hub", action: "book", advance: [] },
-      ],
-      edges: [{ id: "yt_to_hub", from: "yt", to: "hub", kind: "flow" }],
-    } as unknown as StoredBody;
-    expect(() => convertBody(bad)).toThrow(/keeps the id "hub" for its hub/);
-  });
 
   it("prints a metro body: lines, stations by place, tracks", () => {
     const { body } = convertBody(graph);

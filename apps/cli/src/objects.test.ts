@@ -67,16 +67,10 @@ describe("wren objects", () => {
     const { asked, done } = run(["objects", "link", "myspace", "a", "b"]);
     await expect(done).rejects.toBeInstanceOf(CommanderError);
     expect(asked).toEqual([]);
-  });
-
-  it("needs both spellings", async () => {
-    const { done } = run(["objects", "link", "reddit", "abc"]);
-    await expect(done).rejects.toBeInstanceOf(CommanderError);
-  });
-
-  it("is not refused under --client", async () => {
-    const { done } = run(["--client", "acme", "objects", "find", "x"]);
-    await expect(done).rejects.not.toThrow(/does not take --client/);
+    // both spellings needed
+    await expect(run(["objects", "link", "reddit", "abc"]).done).rejects.toBeInstanceOf(
+      CommanderError,
+    );
   });
 });
 

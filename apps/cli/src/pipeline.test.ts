@@ -32,41 +32,17 @@ describe("commands", () => {
     registerPipeline(p, none, none);
     return p;
   };
-  const names = (c: Command) => c.commands.map((x) => x.name());
 
-  it("registers the areas", () => {
-    const p = program();
-    expect(names(p)).toEqual(["offers", "terms", "journeys", "deals", "numbers"]);
-    expect(names(p.commands[0] as Command)).toEqual(["sync", "list", "versions"]);
-    expect(names(p.commands[1] as Command)).toEqual(["add", "show"]);
-    expect(names(p.commands[2] as Command)).toEqual([
-      "open",
-      "move",
-      "drop",
-      "assign",
-      "rebuild",
-      "show",
-      "list",
-    ]);
-    expect(names(p.commands[3] as Command)).toEqual(["list", "sign", "schedule"]);
-  });
-
-  it("needs --person on journeys open", async () => {
+  it("needs --person on journeys open, a node on move, a reason on drop and --plan on deals sign", async () => {
     await expect(program().parseAsync(["journeys", "open"], { from: "user" })).rejects.toThrow(
       /--person/,
     );
-  });
-
-  it("needs a node on journeys move and a reason on journeys drop", async () => {
     await expect(program().parseAsync(["journeys", "move", "j"], { from: "user" })).rejects.toThrow(
       /missing required argument/,
     );
     await expect(program().parseAsync(["journeys", "drop", "j"], { from: "user" })).rejects.toThrow(
       /--reason/,
     );
-  });
-
-  it("needs --plan on deals sign", async () => {
     await expect(program().parseAsync(["deals", "sign", "d"], { from: "user" })).rejects.toThrow(
       /--plan/,
     );

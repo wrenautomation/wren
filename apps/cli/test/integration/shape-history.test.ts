@@ -271,9 +271,6 @@ describe("wren shape history", () => {
     );
     expect((await run("edit", "by-ops", "--ops", file)).err).toEqual([]);
 
-    const both = await run("edit", "by-ops", op, "--ops", file);
-    expect(both.err[0]).toMatch(/Not both, not neither/);
-    process.exitCode = undefined;
     const bad = await run("edit", "by-ops", '{"op":"remove","on":"station","id":"nope"}');
     expect(bad.err.join(" ")).toMatch(/nope/);
     process.exitCode = undefined;
