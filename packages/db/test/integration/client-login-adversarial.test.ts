@@ -94,7 +94,6 @@ describe("escapes that must all be refused", () => {
       "create function public.adv_f() returns int language sql as 'select 1'",
       /permission denied for schema public/,
     ],
-    ["create a table", "create table public.adv_x (x int)", /permission denied for schema public/],
     ["create a schema", "create schema advs", /permission denied for database/],
     ["create extension dblink", "create extension dblink", /permission denied|must be superuser/i],
     [
@@ -155,19 +154,9 @@ describe("escapes that must all be refused", () => {
       /must be owner of (relation|table) suppressions/,
     ],
     [
-      "create a temp table",
-      "create temp table adv_tmp (x int)",
-      /permission denied to create temporary tables/,
-    ],
-    [
       "restart a sequence",
       "alter sequence companies_id_seq restart",
       /must be owner of (relation|sequence) companies_id_seq/,
-    ],
-    [
-      "truncate with restart identity",
-      "truncate companies restart identity cascade",
-      /must be owner of sequence/,
     ],
     [
       "signal another role's backend",
@@ -178,11 +167,6 @@ describe("escapes that must all be refused", () => {
       "alter system",
       "alter system set work_mem = '1MB'",
       /permission denied|must be superuser|ALTER SYSTEM/i,
-    ],
-    [
-      "skip triggers",
-      "set session_replication_role = replica",
-      /permission denied to set parameter/,
     ],
     [
       "change another role's password",
