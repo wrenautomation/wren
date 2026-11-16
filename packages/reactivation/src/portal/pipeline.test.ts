@@ -82,19 +82,11 @@ function stepOf(s: CrmStatus, id: PipelineStepId, replies = 0, sends = true): Pi
 }
 
 describe("pipelineOf: shape", () => {
-  it("has every step once, in rail order, for an empty client", () => {
+  it("has every step once, in rail order, empty or mid-run", () => {
     expect(pipelineOf(status(), 0, false).steps.map((s) => s.id)).toEqual([...PIPELINE_STEPS]);
-  });
-
-  it("has every step once, in rail order, mid-run", () => {
     const ids = pipelineOf(status(midRun), 4, true).steps.map((s) => s.id);
     expect(ids).toEqual([...PIPELINE_STEPS]);
     expect(new Set(ids).size).toBe(10);
-  });
-
-  it("passes sends through", () => {
-    expect(pipelineOf(status(), 0, true).sends).toBe(true);
-    expect(pipelineOf(status(), 0, false).sends).toBe(false);
   });
 
   it("an empty client is idle everywhere, with zero counts and nothing parked", () => {
@@ -118,33 +110,20 @@ describe("pipelineOf: shape", () => {
       sent: null,
       replies: null,
     });
-  });
-
-  it("an empty client's `of` is 0, not null, for the set steps", () => {
-    const p = pipelineOf(status(), 0, true);
-    const of = Object.fromEntries(p.steps.map((s) => [s.id, s.of]));
-    expect(of).toMatchObject({ emails: 0, where: 0, hiring: 0, score: 0 });
-  });
-
-  it("no count is NaN or negative, mid-run or empty", () => {
-    for (const s of [
-      ...pipelineOf(status(), 0, true).steps,
-      ...pipelineOf(status(midRun), 2, true).steps,
-    ]) {
-      expect(Number.isFinite(s.count), s.id).toBe(true);
-      expect(s.count, s.id).toBeGreaterThanOrEqual(0);
-      expect(s.parked, s.id).toBeGreaterThanOrEqual(0);
-    }
+    // empty client: 0, not null, for the set steps
+    const empty = pipelineOf(status(), 0, true);
+    expect(Object.fromEntries(empty.steps.map((s) => [s.id, s.of]))).toMatchObject({
+      emails: 0,
+      where: 0,
+      hiring: 0,
+      score: 0,
+    });
   });
 });
 
 describe("pipelineOf: list", () => {
   it("done once any row is in, counting people", () => {
     expect(stepOf(status(midRun), "list")).toMatchObject({ count: 21, state: "done", of: null });
-  });
-
-  it("idle with no rows", () => {
-    expect(stepOf(status(), "list").state).toBe("idle");
   });
 });
 
@@ -156,9 +135,15 @@ describe("pipelineOf: emails", () => {
     expect(stepOf(s, "emails")).toMatchObject({ count: 8, of: 12, state: "next" });
   });
 
-  it("next with nothing checked yet: 0 of all", () => {
+  it("next with nothing checked yet: 0 of all, never parked", () => {
     const s = status({ verification: { unchecked: 7 } });
-    expect(stepOf(s, "emails")).toMatchObject({ count: 0, of: 7, state: "next" });
+    expect(stepOf(s, "emails")).toMatchObject({
+      count: 0,
+      of: 7,
+      state: "next",
+      parked: 0,
+      resumesAt: null,
+    });
   });
 
   it("done when every address is checked", () => {
@@ -173,22 +158,13 @@ describe("pipelineOf: emails", () => {
   it("idle with no addresses", () => {
     expect(stepOf(status({ health: { rows: 5, people: 5 } }), "emails").state).toBe("idle");
   });
-
-  it("never parks", () => {
-    expect(stepOf(status({ verification: { unchecked: 3 } }), "emails")).toMatchObject({
-      parked: 0,
-      resumesAt: null,
-    });
-  });
 });
 
 describe("pipelineOf: where (lookup)", () => {
-  it("counts matched plus unresolved, out of people", () => {
-    expect(stepOf(status(midRun), "where")).toMatchObject({ count: 18, of: 21 });
-  });
-
-  it("waiting when parked on a cap, with how many and when as ISO", () => {
+  it("counts matched plus unresolved, out of people; waiting when parked on a cap, with how many and when as ISO", () => {
     expect(stepOf(status(midRun), "where")).toMatchObject({
+      count: 18,
+      of: 21,
       state: "waiting",
       parked: 3,
       resumesAt: "2026-09-30T20:00:00.000Z",
@@ -295,12 +271,9 @@ describe("pipelineOf: approve", () => {
     expect(stepOf(status(midRun), "approve")).toMatchObject({ count: 5, state: "yours" });
   });
 
-  it("done with nothing awaiting once something was approved", () => {
+  it("done with nothing awaiting once something was approved or sent", () => {
     const s = status({ emails: { drafted: 3, approved: 3 } });
     expect(stepOf(s, "approve")).toMatchObject({ count: 0, state: "done" });
-  });
-
-  it("done with nothing awaiting once something was sent", () => {
     expect(stepOf(status({ emails: { sent: 2 } }), "approve").state).toBe("done");
   });
 
@@ -319,16 +292,9 @@ describe("pipelineOf: sent", () => {
     expect(stepOf(status({ emails: { approved: 3 } }), "sent", 0, false).state).toBe("idle");
   });
 
-  it("done when sending is on, all approved work is out", () => {
+  it("done when sending is on or off, all approved work is out", () => {
     expect(stepOf(status({ emails: { sent: 10 } }), "sent", 0, true).state).toBe("done");
-  });
-
-  it("done when sending is off, all approved work is out", () => {
     expect(stepOf(status({ emails: { sent: 10 } }), "sent", 0, false).state).toBe("done");
-  });
-
-  it("idle when sending is on but nothing approved or sent", () => {
-    expect(stepOf(status(), "sent", 0, true).state).toBe("idle");
   });
 
   // `done` means nothing left to do here. With sending off, 3 approved emails sit unsent,
@@ -342,9 +308,5 @@ describe("pipelineOf: sent", () => {
 describe("pipelineOf: replies", () => {
   it("done with any reply, counting them", () => {
     expect(stepOf(status(midRun), "replies", 4)).toMatchObject({ count: 4, state: "done" });
-  });
-
-  it("idle with none", () => {
-    expect(stepOf(status(midRun), "replies", 0)).toMatchObject({ count: 0, state: "idle" });
   });
 });

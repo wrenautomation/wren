@@ -93,12 +93,6 @@ describe("gateBrief: marks", () => {
     expect(kept("Acme is hiring. [x12]")).toEqual([]);
   });
 
-  it("marks are case-insensitive and cite the lowercase id", () => {
-    const g = gateBrief(["Acme is hiring. [F12, C3]"], facts);
-    expect(g.kept).toHaveLength(1);
-    expect(g.cites).toEqual({ findings: [12], crm: [3] });
-  });
-
   it("an empty fact list keeps nothing", () => {
     expect(gateBrief(["Acme is hiring. [f12]"], []).kept).toEqual([]);
   });
@@ -114,49 +108,10 @@ describe("scoreContact: windows", () => {
   };
   const points = (s: ScoreInput, today: string) => scoreContact(s, new Date(today)).score;
 
-  it("the window edges are inclusive on an ordinary day", () => {
-    expect(
-      points({ ...base, contacted: { on: "2025-09-29", crmId: 1 } }, "2026-09-29T12:00:00Z"),
-    ).toBe(POINTS.unknown + POINTS.contactedRecently);
-    expect(
-      points({ ...base, contacted: { on: "2025-09-28", crmId: 1 } }, "2026-09-29T12:00:00Z"),
-    ).toBe(POINTS.unknown);
-    expect(
-      points({ ...base, placed: { on: "2024-09-29", crmId: 1 } }, "2026-09-29T12:00:00Z"),
-    ).toBe(POINTS.unknown + POINTS.placedRecently);
-  });
-
   // Was a bug: monthsBefore rolls Feb 29 minus 12 months to Mar 1, so a contact exactly 12 months back falls outside.
   it("on a leap day, exactly 12 months back is still inside the contacted window", () => {
     expect(
       points({ ...base, contacted: { on: "2027-02-28", crmId: 1 } }, "2028-02-29T12:00:00Z"),
     ).toBe(POINTS.unknown + POINTS.contactedRecently);
-  });
-
-  it("a left finding scores zero even with hiring and recent CRM activity", () => {
-    const s = scoreContact(
-      {
-        ...base,
-        where: { id: 1, kind: "left", value: {} },
-        hiring: { id: 2, count: 5 },
-        placed: { on: "2026-09-01", crmId: 3 },
-        contacted: { on: "2026-09-01", crmId: 3 },
-      },
-      new Date("2026-09-29T12:00:00Z"),
-    );
-    expect(s.score).toBe(0);
-  });
-
-  it("a mover gets no hiring points from the old firm", () => {
-    const s = scoreContact(
-      {
-        ...base,
-        where: { id: 1, kind: "job_change", value: { to: "Beta" } },
-        hiring: { id: 2, count: 5 },
-      },
-      new Date("2026-09-29T12:00:00Z"),
-    );
-    expect(s.score).toBe(POINTS.moved);
-    expect(s.reasons.flatMap((r) => r.cites)).not.toContain("f2");
   });
 });

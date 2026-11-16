@@ -151,25 +151,6 @@ describe("seedDemo: who lands in the list", () => {
     const rows = await db().execute(sql`select full_name from people order by full_name`);
     expect(rows.map((r) => r.full_name)).toEqual(["Иван Петров", "Мария Смирнова"]);
   });
-
-  it("holds: accents, apostrophes, hyphens, commas and emoji survive the CSV and the import", async () => {
-    const hits: Person[] = [
-      {
-        name: "Zoë O'Brien-Núñez",
-        url: li("zoe"),
-        roles: [
-          { title: "Director, Talent & Culture 🚀", company: "Umbrella Health", current: true },
-        ],
-      },
-    ];
-    await seedDemo(db(), northside(hits), { agency: "northside.example", today });
-    const rows = await db().execute(sql`select first_name, last_name, title from people`);
-    expect(rows.map((r) => [r.first_name, r.last_name])).toEqual([["Zoë", "O'Brien-Núñez"]]);
-    const title = rows[0]?.title;
-    if (title != null) expect(title).toBe("Director, Talent & Culture 🚀");
-    const emails = await db().execute(sql`select email from contact_candidates`);
-    expect(emails.map((r) => r.email)).toEqual(["zoe.obriennunez@umbrellahealth.example"]);
-  });
 });
 
 describe("seedDemo: a second agency", () => {

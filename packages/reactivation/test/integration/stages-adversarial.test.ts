@@ -313,17 +313,6 @@ describe("briefs: which facts", () => {
     expect(b).toEqual({ state: "empty", text: "" });
     expect(await briefsDue(db())).toBe(0);
   });
-
-  it("a brief isn't due again when the same facts are read again on a later day", async () => {
-    const jane = await personId("Jane");
-    await finding({ kind: "still_there", person: jane, value: {}, daysAgo: 3 });
-    await lookedUp(jane);
-    await scoreCrmContacts(db());
-    await writeCrmBriefs(db(), citesFirstFinding("Still there."));
-    await db().execute(sql`update findings set observed_at = now()`);
-    await scoreCrmContacts(db());
-    expect(await briefsDue(db())).toBe(0);
-  });
 });
 
 describe("ranked list", () => {

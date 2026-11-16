@@ -191,13 +191,6 @@ describe("Reactivation loop", () => {
     });
     expect((await loop("nobody").status()).last?.stopped).toBe("no such client");
   });
-
-  it("a block that no longer parses idles rather than failing every pass", async () => {
-    await addClient({ reactivation: { on: true, approval: "sometimes" } });
-    const out = await loop().sync();
-    expect(out.error).toBeNull();
-    expect(out.stats?.off).toBe("the reactivation block does not parse");
-  });
 });
 
 describe("clientSendScope", () => {

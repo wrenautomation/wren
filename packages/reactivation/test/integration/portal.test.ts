@@ -347,6 +347,7 @@ describe("logins", () => {
         },
       ],
       demo: false,
+      name: "William",
       operator: true,
       team: { role: "admin", wren: [...PERMISSIONS], flags: { post_now: "off" } },
     });
@@ -387,6 +388,7 @@ describe("logins", () => {
         },
       ],
       demo: false,
+      name: "Owner",
       operator: false,
     });
     expect((await api.overview(owner)).people).toBeGreaterThan(0);

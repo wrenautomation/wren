@@ -141,7 +141,7 @@ describe("hiringLine", () => {
     expect(hiringLine("Acme", hiring(1)).line).toBe("Acme is hiring: 1 open role");
   });
 
-  it("no openings, capped, unresolved", () => {
+  it("no openings, capped, unresolved, or hiring with no finding", () => {
     const r = (state: "no_openings" | "capped" | "unresolved", retryAt: Date | null = null) =>
       hiringLine("Acme", { state, finding: null, retryAt });
     expect(r("no_openings")).toMatchObject({ kind: "did", line: "Acme has no open roles" });
@@ -151,9 +151,6 @@ describe("hiringLine", () => {
     });
     expect(r("capped").line).toBe("Acme waits. Today's checks ran out.");
     expect(r("unresolved")).toMatchObject({ kind: "did", line: "Couldn't tell if Acme is hiring" });
-  });
-
-  it("hiring with no finding: couldn't tell", () => {
     expect(hiringLine("Acme", { state: "hiring", finding: null, retryAt: null }).line).toBe(
       "Couldn't tell if Acme is hiring",
     );
@@ -331,14 +328,11 @@ describe("stageDone", () => {
 
   // The replay leaves parked units out of a stage's count, and the Run view
   // tallies them as waiting, not handled: the live done line should agree.
-  it("signals: a parked company isn't counted as checked", () => {
+  it("a parked company or person isn't counted as handled", () => {
     expect(stageDone({ stage: "signals", stats: signals })).toMatchObject({
       line: "Checked 2 companies: 1 hiring",
       count: 2,
     });
-  });
-
-  it("lookup: a parked person isn't counted as looked up", () => {
     const parked = { ...lookup, matched: 2, capped: 1 };
     expect(stageDone({ stage: "lookup", stats: parked })).toMatchObject({
       line: "Looked up 2 people: 0 moved, 0 left",

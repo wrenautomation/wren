@@ -430,7 +430,9 @@ describe("briefs", () => {
       citations: { findings: [where], crm: [] },
     });
     expect(await briefsDue(db())).toBe(0);
+    // same facts read again later, then rescored: not due
     await db().execute(sql`update findings set observed_at = now() + interval '1 day'`);
+    await scoreCrmContacts(db());
     expect(await briefsDue(db())).toBe(0);
     await db().execute(
       sql`update findings set value = '{"title": "VP Talent"}'::jsonb where id = ${where}`,

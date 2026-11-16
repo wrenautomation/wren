@@ -213,7 +213,10 @@ describe("the client changes under a running loop", () => {
     await loop().sync();
     await settle(ALL_RUNNING);
     await setBlock({ ...SENDING, approval: "sometimes" });
-    expect((await loop().sync()).stats?.off).toBe("the reactivation block does not parse");
+    // idles, not a failed pass
+    const out = await loop().sync();
+    expect(out.error).toBeNull();
+    expect(out.stats?.off).toBe("the reactivation block does not parse");
     await settle(ALL_STOPPED);
   });
 });

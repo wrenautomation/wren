@@ -168,20 +168,6 @@ function failOnce(db: Db, pattern: RegExp): Db {
 }
 
 describe("never twice", () => {
-  it("an ambiguous send is found on the next pass, not sent again", async () => {
-    await reply(JANE, "interested");
-    let lose = true;
-    const t = quiet({ ambiguousAfter: () => lose });
-    const first = await pass(t);
-    expect(first).toMatchObject({ forwarded: 0, failed: 1 });
-    lose = false;
-    const second = await pass(t);
-    expect(second).toMatchObject({ forwarded: 0, found: 1, failed: 0 });
-    const third = await pass(t);
-    expect(third).toMatchObject({ forwarded: 0, found: 0 });
-    expect(sentFrom(t)).toHaveLength(1);
-  });
-
   it("when find itself fails, nothing is sent blind; it goes once find answers", async () => {
     await reply(JANE, "interested");
     const down = quiet({ findFails: new Error("mailbox search 503") });
@@ -428,15 +414,6 @@ describe("from where, and what it says", () => {
 });
 
 describe("what the operator hears", () => {
-  it("sent lines never name the contact or their address", async () => {
-    await reply(JANE, "interested");
-    await reply(BOB, "meeting_booked", { wroteAs: null });
-    const t = quiet();
-    const out = await pass(t);
-    expect(out.sent).toHaveLength(2);
-    expect(out.sent.join("\n")).not.toMatch(/jane|bob|doe|roe|umbrella/i);
-  });
-
   it("a forward that went but was only confirmed by find is still announced", async () => {
     // Was a bug: forward.ts:121 counts a forward confirmed by find as `found`
     // and pushes nothing to `sent`. After an ambiguous send the operator heard
@@ -464,6 +441,8 @@ describe("failures and limits", () => {
     expect(out).toMatchObject({ forwarded: 1, failed: 1 });
     expect(out.errors[0]).toMatch(/^handoff \d+: 550 no such user$/);
     expect(sentFrom(t).map((e) => e.to)).toEqual([LEE]);
+    // the refused one waits for the next pass
+    expect((await handoffRows()).map((r) => r.forwarded)).toEqual([false, true]);
   });
 
   it("limit bounds rows opened and forwarded per pass; the rest go next pass", async () => {

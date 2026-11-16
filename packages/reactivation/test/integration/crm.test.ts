@@ -323,12 +323,6 @@ describe("verify", () => {
     expect(await count("verifications")).toBe(5);
   });
 
-  it("leaves a non-authoritative valid as a candidate", async () => {
-    await importCsv("Name,Email,Company\nVal Id,ok@acme.com,Acme\n");
-    await checkCrmEmails(db(), new CountingVerifier(false), new StubChecker());
-    expect(await candidateState("ok@acme.com")).toEqual(["candidate"]);
-  });
-
   it("aborts on a verifier throw, keeps what it checked, and resumes the rest", async () => {
     await importCsv(
       [
@@ -368,6 +362,8 @@ describe("verify", () => {
   it("lets an authoritative verifier check what a weaker one already saw", async () => {
     await importCsv("Name,Email,Company\nVal Id,ok@acme.com,Acme\n");
     await checkCrmEmails(db(), new CountingVerifier(false), new StubChecker());
+    // a weak valid leaves it a candidate
+    expect(await candidateState("ok@acme.com")).toEqual(["candidate"]);
     const strong = new (class extends CountingVerifier {
       override readonly name = "strong";
     })(true);

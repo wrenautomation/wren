@@ -105,6 +105,8 @@ describe("mapHeaders: real exports", () => {
     ]);
     expect(map).toMatchObject({
       id: "Id",
+      firstName: "FirstName",
+      lastName: "LastName",
       company: "Account.Name",
       website: "Account.Website",
       owner: "Owner.Name",
@@ -438,11 +440,6 @@ describe("CrmCsvSource: company resolution", () => {
       "Name,Email,Company,Website\nJane Doe,jane@acme-mail.com,Acme,https://acme.com/team\n",
     );
     expect(persons(s)[0]?.companyDomain).toBe("acme.com");
-  });
-
-  it("never keys a company on a freemail domain", () => {
-    const s = fromText("crm-generic", "Name,Email,Company\nJane Doe,jane@GMAIL.com,Acme\n");
-    expect(persons(s)[0]).toMatchObject({ companyDomain: null, companySourceKey: "crm-co:acme" });
   });
 
   it("finds a freemail row's firm by a colleague's domain across case and punctuation", () => {

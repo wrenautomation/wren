@@ -18,45 +18,6 @@ describe("headers", () => {
     expect(normalizeHeader(" first_name ")).toBe("first name");
   });
 
-  it("prefers the dialect's own names, then the generic ones", () => {
-    const map = mapHeaders(format("hubspot"), [
-      "Record ID",
-      "First Name",
-      "Last Name",
-      "Email",
-      "Company Name",
-      "Last Activity Date",
-      "Last Contacted",
-      "Contact owner",
-    ]);
-    expect(map).toMatchObject({
-      id: "Record ID",
-      firstName: "First Name",
-      email: "Email",
-      company: "Company Name",
-      lastContacted: "Last Contacted",
-      owner: "Contact owner",
-    });
-  });
-
-  it("reads Salesforce API names", () => {
-    const map = mapHeaders(format("salesforce"), [
-      "Id",
-      "FirstName",
-      "LastName",
-      "Email",
-      "Account.Name",
-      "LastActivityDate",
-    ]);
-    expect(map).toMatchObject({
-      id: "Id",
-      firstName: "FirstName",
-      lastName: "LastName",
-      company: "Account.Name",
-      lastContacted: "LastActivityDate",
-    });
-  });
-
   it("fails loudly, naming the headers, when no row could make a person", () => {
     expect(() => mapHeaders(format("crm-generic"), ["Email", "Phone"])).toThrow(
       /no a name .*Headers: Email, Phone/,

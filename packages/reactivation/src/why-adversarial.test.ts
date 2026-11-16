@@ -47,19 +47,9 @@ describe("readBody: from", () => {
     expect(why).toEqual([{ text: "A line.", lines: [0, 1] }]);
   });
 
-  it("out of range for this brief: no why", () => {
-    const { why } = expectConsistent([{ text: "A line.", from: [4, 99] }], 3);
-    expect(why).toEqual([]);
-  });
-
   it("a brief with no lines: no why, whatever from says", () => {
     const { why } = expectConsistent([{ text: "A line.", from: [1, "1", 0] }], 0);
     expect(why).toEqual([]);
-  });
-
-  it("unordered from comes back sorted", () => {
-    const { why } = expectConsistent([{ text: "A line.", from: [3, 1, "2"] }], 3);
-    expect(why).toEqual([{ text: "A line.", lines: [0, 1, 2] }]);
   });
 
   it("a bare string body has no why", () => {

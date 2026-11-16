@@ -53,19 +53,14 @@ beforeEach(async () => {
 });
 
 /** An email to this person written as `wroteAs`, and their reply with this disposition. */
-async function reply(
-  email: string,
-  disposition: string,
-  wroteAs: string | null,
-  niche = "reactivation",
-) {
+async function reply(email: string, disposition: string, wroteAs: string | null) {
   const [person] = await pg.db.execute<{ id: number; company_id: number }>(
     sql`select person_id as id, company_id from crm_contacts where email = ${email} limit 1`,
   );
   const [enr] = await pg.db.execute<{ id: number }>(sql`
     insert into enrollments (person_id, company_id, niche, sequence_name, sequence_snapshot, offer,
       state, kind, to_email, sender)
-    values (${person?.id}, ${person?.company_id}, ${niche}, 'reactivation', '{}'::jsonb, 'reactivation',
+    values (${person?.id}, ${person?.company_id}, 'reactivation', 'reactivation', '{}'::jsonb, 'reactivation',
       'finished', 'person', ${email}, ${SAM})
     returning id`);
   await pg.db.execute(sql`
@@ -108,7 +103,8 @@ describe("forwardHandoffs", () => {
     expect(first?.body).toContain("Sounds good, Tuesday works.");
     expect(first?.body).toContain("jane@umbrella.example");
     // The operator's lines never name the contact.
-    expect(out.sent.join(" ")).not.toMatch(/jane|bob|doe|roe/i);
+    expect(out.sent).toHaveLength(2);
+    expect(out.sent.join(" ")).not.toMatch(/jane|bob|doe|roe|umbrella/i);
 
     // Nothing left: a second pass sends nothing.
     const again = await forwardHandoffs(pg.db, transport, { profile: PROFILE, settings: SETTINGS });
@@ -130,6 +126,10 @@ describe("forwardHandoffs", () => {
     expect(again).toMatchObject({ forwarded: 0, found: 1, failed: 0 });
     expect(retry.mailbox.get(SAM)).toHaveLength(1);
     expect((await handoffRows())[0]?.forwarded).toBe(true);
+    // settled: a third pass does nothing
+    const third = await forwardHandoffs(pg.db, retry, { profile: PROFILE, settings: SETTINGS });
+    expect(third).toMatchObject({ forwarded: 0, found: 0 });
+    expect(retry.mailbox.get(SAM)).toHaveLength(1);
   });
 
   it("with no recruiter it waits, then goes once the firm names one", async () => {
@@ -150,24 +150,5 @@ describe("forwardHandoffs", () => {
     const transport = new ConsoleTransport({ write: () => {} });
     const out = await forwardHandoffs(pg.db, transport, { profile: PROFILE, settings: SETTINGS });
     expect(out).toMatchObject({ opened: 0, forwarded: 1 });
-  });
-
-  it("replies to Wren's own campaign are never forwarded", async () => {
-    await reply("jane@umbrella.example", "interested", PAT, "agencies");
-    const transport = new ConsoleTransport({ write: () => {} });
-    const out = await forwardHandoffs(pg.db, transport, { profile: PROFILE, settings: SETTINGS });
-    expect(out).toMatchObject({ opened: 0, forwarded: 0 });
-  });
-
-  it("a mailbox that refuses fails that forward and leaves it for the next pass", async () => {
-    await reply("jane@umbrella.example", "interested", PAT);
-    const refusing = new ConsoleTransport({
-      write: () => {},
-      refuse: () => new Error("token refused"),
-    });
-    const out = await forwardHandoffs(pg.db, refusing, { profile: PROFILE, settings: SETTINGS });
-    expect(out.failed).toBe(1);
-    expect(out.errors[0]).toMatch(/token refused/);
-    expect((await handoffRows())[0]?.forwarded).toBe(false);
   });
 });

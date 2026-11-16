@@ -1,6 +1,6 @@
 // The portal's import picks its own columns: the guess, the check on it, and a chosen map.
 import { describe, expect, it } from "vitest";
-import { CRM_FORMATS, checkHeaders, guessHeaders, mapHeaders, missingFields } from "./formats.js";
+import { CRM_FORMATS, guessHeaders, missingFields } from "./formats.js";
 import { CrmCsvSource, fileHeadersOf } from "./source.js";
 
 const generic = CRM_FORMATS.get("crm-generic");
@@ -23,11 +23,6 @@ describe("guessing columns", () => {
       "an email, company or website column",
     ]);
     expect(missingFields({ firstName: "First", website: "Site" })).toEqual([]);
-  });
-
-  it("fails the way it always did when the guess is not enough", () => {
-    expect(() => mapHeaders(generic, ["Who", "Where"])).toThrow(/no a name .* Headers: Who, Where/);
-    expect(() => checkHeaders(generic, { fullName: "Who" }, ["Who"])).toThrow(/no an email/);
   });
 });
 

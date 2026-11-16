@@ -41,6 +41,7 @@ describe("scoreContact", () => {
         where: where("left", { from: "Acme Staffing" }),
         hiring: { id: 9, count: 3 },
         placed: { on: "2026-09-01", crmId: 1 },
+        contacted: { on: "2026-09-01", crmId: 1 },
       },
       today,
     );
@@ -68,6 +69,7 @@ describe("scoreContact", () => {
       today,
     );
     expect(s.reasons).toEqual([{ reason: "Moved to Beta, now VP Ops", points: 70, cites: ["f5"] }]);
+    expect(s.score).toBe(POINTS.moved);
     expect(s.nextStep).toBe("reach_out");
   });
 

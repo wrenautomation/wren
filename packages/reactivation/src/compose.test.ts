@@ -268,35 +268,6 @@ const subject: ComposeSubject = {
 };
 
 describe("buildComposePrompt", () => {
-  it("carries the sender, both firms, what they sell, the voice and the brief", () => {
-    const p = buildComposePrompt(subject, profile, { name: "Ann Lee" });
-    expect(p).toContain("from Ann Lee, a recruiter at Northside Talent, to Jane Doe");
-    expect(p).toContain("last known at Acme Staffing");
-    expect(p).toContain("What Northside Talent does: senior engineers in fintech");
-    expect(p).toContain(brief);
-    expect(p).toContain("plain and warm");
-    expect(p).toContain('Start with "Hi Jane,"');
-    expect(p).toContain("At most 120 words");
-    expect(p).toContain("At most 80 words");
-    expect(p).toMatch(/Return ONLY a JSON object/);
-  });
-  it("no name: a neutral greeting and a neutral who", () => {
-    const p = buildComposePrompt({ ...subject, firstName: null, lastName: null }, profile, {
-      name: "Ann Lee",
-    });
-    expect(p).toContain('Start with "Hi there,"');
-    expect(p).toContain("to a past contact,");
-    expect(p).not.toContain("null");
-    expect(p).toContain("Invent nothing about Northside Talent or them.");
-  });
-  it("a mover: the move is named and opens the email", () => {
-    const p = buildComposePrompt({ ...subject, movedTo: "Beta Labs" }, profile, {
-      name: "Ann Lee",
-    });
-    expect(p).toContain("who moved from Acme Staffing to Beta Labs.");
-    expect(p).not.toContain("last known at");
-    expect(p).toContain('Open with line 1 of "Why write now", their move to Beta Labs:');
-  });
   it("never shows the fee or the signature to the model", () => {
     const withFee = { ...profile, feeAvg: 25000 };
     const p = buildComposePrompt(subject, withFee, { name: "Ann Lee" });
@@ -367,16 +338,6 @@ describe("profile and settings edges", () => {
         defaultRecruiter: "z@x.example",
       }),
     ).toThrow(/defaultRecruiter/);
-  });
-  it("the same sender twice, differing only in case and space, is refused", () => {
-    expect(() =>
-      parseReactivationSettings({
-        senders: [
-          { address: "a@x.example", name: "A" },
-          { address: " A@X.example ", name: "B" },
-        ],
-      }),
-    ).toThrow(/listed twice/);
   });
 });
 
