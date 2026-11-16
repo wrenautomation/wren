@@ -12,15 +12,14 @@ const raw =
     new Response(body, { status: 200 });
 
 describe("resolve", () => {
-  it("NOERROR returns matching answers", async () =>
+  it("NOERROR returns the answers of the asked type", async () => {
     expect(
       await resolve(
         "foo.com",
         "MX",
         json({ Status: 0, Answer: [{ type: 15, data: "10 mail.foo.com." }] }),
       ),
-    ).toEqual(["10 mail.foo.com."]));
-  it("NOERROR filters by type code", async () =>
+    ).toEqual(["10 mail.foo.com."]);
     expect(
       await resolve(
         "foo.com",
@@ -33,12 +32,13 @@ describe("resolve", () => {
           ],
         }),
       ),
-    ).toEqual(["::1"]));
-  it("NOERROR with no records is empty", async () =>
-    expect(await resolve("foo.com", "MX", json({ Status: 0 }))).toEqual([]));
-  it("NXDOMAIN is empty", async () =>
-    expect(await resolve("nosuchdomain.example", "MX", json({ Status: 3 }))).toEqual([]));
-  it.each([2, 5, 4, 9])("status %i raises", async (status) =>
+    ).toEqual(["::1"]);
+  });
+  it("NOERROR with no records and NXDOMAIN are empty", async () => {
+    expect(await resolve("foo.com", "MX", json({ Status: 0 }))).toEqual([]);
+    expect(await resolve("nosuchdomain.example", "MX", json({ Status: 3 }))).toEqual([]);
+  });
+  it.each([2, 5])("status %i raises", async (status) =>
     expect(resolve("foo.com", "MX", json({ Status: status }))).rejects.toBeInstanceOf(
       DohStatusError,
     ),

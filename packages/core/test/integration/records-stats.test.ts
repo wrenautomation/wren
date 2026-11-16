@@ -116,7 +116,7 @@ const ask = { record: "test.event", view: "all", period: 7 } as const;
 const usd = { cur: "USD" };
 
 describe("recordsStats", () => {
-  it("counts this week so far against the same stretch of last week, by day", async () => {
+  it("counts this week so far against the same stretch of last week, by day; an empty prior is zero", async () => {
     const s = await api.stats({ ...ask, where: usd }, NOW);
     expect([s.value, s.prior, s.currency]).toEqual([4, 2, null]);
     expect(s.series.map((d) => d.at.slice(0, 10))).toEqual([
@@ -129,6 +129,10 @@ describe("recordsStats", () => {
       "2026-03-10",
     ]);
     expect(s.series.map((d) => d.value)).toEqual([1, 0, 0, 0, 0, 0, 3]);
+    // an empty prior period is zero, and the series still covers every day
+    const b = await api.stats({ ...ask, view: "b" }, NOW);
+    expect([b.value, b.prior]).toEqual([2, 0]);
+    expect(b.series).toHaveLength(7);
   });
 
   it("sums a money field and names its currency; mixed currencies are refused", async () => {
@@ -136,12 +140,6 @@ describe("recordsStats", () => {
     expect([s.value, s.prior, s.currency]).toEqual([17, 11, "USD"]);
     expect(s.series.at(-1)?.value).toBe(7);
     await refused(api.stats({ ...ask, sum: "amt" }, NOW));
-  });
-
-  it("an empty prior period is zero, and the series still covers every day", async () => {
-    const s = await api.stats({ ...ask, view: "b" }, NOW);
-    expect([s.value, s.prior]).toEqual([2, 0]);
-    expect(s.series).toHaveLength(7);
   });
 
   it("today, by the asker's zone: Chicago's day began at 05:00 UTC", async () => {
@@ -286,7 +284,7 @@ describe("recordsStats", () => {
 });
 
 describe("a type whose rows come from code", () => {
-  it("filters, sorts, pages and counts like a view, read once per serve", async () => {
+  it("filters, sorts, pages, counts and has stats like a view, read once per serve", async () => {
     calls = 0;
     const fresh = serveRecords([event, tally], pg.db);
     const page = await fresh.list({ record: "test.tally", view: "on", limit: 1 });
@@ -297,6 +295,8 @@ describe("a type whose rows come from code", () => {
     const all = await fresh.list({ record: "test.tally", view: "all" });
     expect(all.rows.map((r) => r.hits)).toEqual([3, 7, 12]);
     expect(calls).toBe(1);
+    const s = await api.stats({ record: "test.tally", view: "on", period: 1 }, NOW);
+    expect([s.value, s.prior]).toEqual([1, 1]);
   });
 
   it("gets one, with what points at it either way", async () => {
@@ -309,10 +309,5 @@ describe("a type whose rows come from code", () => {
     const of = await api.list({ record: "test.tally", of: { record: "test.event", id: 2 } });
     expect(of.rows.map((r) => r.id)).toEqual(["Ann Doe", "Cy Poe"]);
     await refused(api.get({ record: "test.tally", id: "Nobody" }), 404);
-  });
-
-  it("has stats like any type", async () => {
-    const s = await api.stats({ record: "test.tally", view: "on", period: 1 }, NOW);
-    expect([s.value, s.prior]).toEqual([1, 1]);
   });
 });

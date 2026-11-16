@@ -89,7 +89,7 @@ describe("lines kept on main, written in the workspace", () => {
       kind: "form",
       channel: "site",
       summary: "Quote page sent",
-      link: `/people/submissions/${id}`,
+      link: null,
       source: "site_forms",
     });
     expect(l[0]?.body).toBe(

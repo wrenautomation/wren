@@ -92,10 +92,18 @@ describe("domains", () => {
       "rr.com",
       "suddenlink.net",
       "midconetwork.com",
+      "gpcom.net",
+      "web.de",
+      "mail.ru",
+      "yahoo.fr",
+      "hotmail.fr",
+      "outlook.de",
+      "qq.com",
     ]) {
       expect(isFreemail(d), d).toBe(true);
     }
     expect(isFreemail("wrenautomation.com")).toBe(false);
+    expect(isFreemail("acme-staffing.com")).toBe(false);
   });
   it("role localparts, plus-tags stripped, bare words never", () => {
     expect(isRoleLocalpart("info@x.com")).toBe(true);
@@ -119,16 +127,5 @@ describe("registrableDomain", () => {
     expect(registrableDomain("www.acme.godaddysites.com")).toBe("acme.godaddysites.com");
     expect(registrableDomain("acme.wixsite.com")).toBe("acme.wixsite.com");
     expect(registrableDomain("acme.blogspot.com")).toBe("acme.blogspot.com");
-  });
-});
-
-describe("isFreemail breadth", () => {
-  it("knows freemail beyond the US majors, and keeps our ISP additions", () => {
-    for (const d of ["web.de", "mail.ru", "yahoo.fr", "hotmail.fr", "outlook.de", "qq.com"]) {
-      expect(isFreemail(d), d).toBe(true);
-    }
-    expect(isFreemail("gpcom.net")).toBe(true);
-    expect(isFreemail("midconetwork.com")).toBe(true);
-    expect(isFreemail("acme-staffing.com")).toBe(false);
   });
 });

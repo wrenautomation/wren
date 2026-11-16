@@ -11,13 +11,12 @@ describe("itemLink", () => {
       `https://www.linkedin.com/feed/update/${POST}/?commentUrn=${enc(urn)}`,
     );
   });
-  it("LinkedIn: a whole comment URN, post taken from it", () => {
+  it("LinkedIn: post taken from a whole comment URN or the row's url", () => {
     const urn = `urn:li:comment:(${POST},7100)`;
     expect(itemLink("linkedin", "comment", { externalId: urn })).toBe(
       `https://www.linkedin.com/feed/update/${POST}/?commentUrn=${enc(urn)}`,
     );
-  });
-  it("LinkedIn: post taken from the row's url", () => {
+    // post taken from the row's url
     const url = `https://www.linkedin.com/feed/update/${POST}/`;
     expect(itemLink("linkedin", "comment", { externalId: "7100", url })).toContain(
       `/feed/update/${POST}/?commentUrn=`,
@@ -41,22 +40,19 @@ describe("itemLink", () => {
     expect(itemLink("linkedin", "dm", { url })).toBe(url);
     expect(itemLink("linkedin", "dm", { url: "https://www.linkedin.com/in/sam/" })).toBeNull();
   });
-  it("Reddit: t1_ and t3_ ids and bare ids", () => {
+  it("Reddit: t1_ and t3_ ids, bare ids, post from the thread url, none without a comment id", () => {
     const want = "https://www.reddit.com/comments/abc123/_/def456/";
     expect(itemLink("reddit", "comment", { externalId: "t1_def456", post: "t3_abc123" })).toBe(
       want,
     );
     expect(itemLink("reddit", "reply", { externalId: "def456", post: "abc123" })).toBe(want);
-  });
-  it("Reddit: post taken from the thread url", () => {
+    // post taken from the thread url
     expect(
       itemLink("reddit", "comment", {
         externalId: "t1_def456",
         url: "https://www.reddit.com/r/test/comments/abc123/a_title/",
       }),
-    ).toBe("https://www.reddit.com/comments/abc123/_/def456/");
-  });
-  it("Reddit: no link without a comment id", () => {
+    ).toBe(want);
     expect(itemLink("reddit", "comment", { post: "abc123" })).toBeNull();
   });
   it("X: a status by its id", () => {

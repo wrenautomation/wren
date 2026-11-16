@@ -233,7 +233,7 @@ describe("backfill, timeline and records", () => {
       "text_sent",
     ]);
     expect(lines[1]).toMatchObject({ summary: "Quick question", body: "Hi Eve, one line." });
-    expect(lines[3]?.link).toMatch(/^\/marketing\/texts\/\d+$/);
+    expect(lines[3]?.link).toMatch(/^\/today\/messages\/text:\d+$/);
     expect(lines[0]?.who).toBe("Eve Park");
     const row = await one(
       sql`select name, emails, phones, channels, consent, keys from profile_records`,

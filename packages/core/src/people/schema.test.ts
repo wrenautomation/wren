@@ -9,8 +9,10 @@ import {
 } from "./schema.js";
 
 describe("smartCase", () => {
-  it("all-upper titles", () => expect(smartCase("NESS")).toBe("Ness"));
-  it("all-lower titles", () => expect(smartCase("suresh")).toBe("Suresh"));
+  it("one-case names title", () => {
+    expect(smartCase("NESS")).toBe("Ness");
+    expect(smartCase("suresh")).toBe("Suresh");
+  });
   it("mixed case is the filer's claim", () => expect(smartCase("VanWinkle")).toBe("VanWinkle"));
   it("apostrophes and hyphens get per-run caps", () =>
     expect(smartCase("O'BRIEN-SMITH")).toBe("O'Brien-Smith"));
@@ -68,12 +70,12 @@ describe("personRow", () => {
       raw: {},
       ...overrides,
     });
-  it("company identity required", () =>
-    expect(() => row({ companySourceKey: null })).toThrow(/company source_key or domain/));
-  it("company domain is enough", () =>
+  it("company identity required; a domain is enough", () => {
+    expect(() => row({ companySourceKey: null })).toThrow(/company source_key or domain/);
     expect(row({ companySourceKey: null, companyDomain: "firm.example" }).companyDomain).toBe(
       "firm.example",
-    ));
+    );
+  });
   it("blank name rejected", () => expect(() => row({ fullName: "   " })).toThrow(/empty name/));
   it("overlong source key rejected", () =>
     expect(() => row({ sourceKey: `crd-ind:${"9".repeat(64)}` })).toThrow(/longer than 64/));

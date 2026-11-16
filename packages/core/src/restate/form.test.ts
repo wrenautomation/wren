@@ -15,9 +15,7 @@ describe("formOptions", () => {
     expect(input.deserialize(new Uint8Array())).toBeUndefined();
     expect(input.deserialize(bytes("null"))).toBeUndefined();
     expect(input.deserialize(bytes("{}"))).toEqual({});
-  });
-
-  it("keeps the JSON content type an optional input loses", () => {
+    // keeps the JSON content type an optional input loses
     expect(serdeOf(NO_INPUT).accept).toBe("application/json");
   });
 

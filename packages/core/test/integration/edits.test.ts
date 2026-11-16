@@ -240,13 +240,12 @@ describe("edits", () => {
   });
 
   it("the facts list saves as one record: checked, with who, and Undo", async () => {
-    // Its part has its own editor, so Settings leaves it out: one history, not two.
-    expect(settingRecord(FACTS_COMPONENTS).id).toBe("console.setting");
+    // No own editor since WA-1207: Settings lists it.
     const rows = await serveRecords([settingRecord(FACTS_COMPONENTS)], pg.db).list({
       record: "console.setting",
       view: "all",
     });
-    expect(rows.rows).toEqual([]);
+    expect(rows.rows.map((r) => r.id)).toEqual(["drafts.facts:facts"]);
     const first = await editState(pg.db, factsRecord, FACTS_ID);
     expect(first?.values).toEqual({ facts: DEFAULT_FACTS.join("\n") });
     const mine = ["I build automations for small firms.", "Our code is public."];

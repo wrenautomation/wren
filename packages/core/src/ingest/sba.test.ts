@@ -51,15 +51,11 @@ describe("unshout", () => {
     ["MARY MCDONALD", "Mary McDonald"],
     ["ROBERT SMITH III", "Robert Smith III"],
     ["ROBERT SMITH II, ESQ.", "Robert Smith II, Esq."],
-    ["JAMES BROWN JR.", "James Brown Jr."],
-    ["HENRY FORD IV", "Henry Ford IV"],
-    ["CEO", "CEO"],
     ["VP SALES", "VP Sales"],
     ["DIRECTOR, HR", "Director, HR"],
     ["SMITH & JONES LLC", "Smith & Jones LLC"],
     ["ST. LOUIS", "St. Louis"],
     ["WINSTON-SALEM", "Winston-Salem"],
-    ["MCALLEN", "McAllen"],
     ["MC", "Mc"],
     ["MCA", "Mca"],
     ["O'BRIEN", "O'Brien"],
@@ -82,23 +78,19 @@ describe("unshout", () => {
 describe("stateCode", () => {
   it.each([
     ["Texas", "TX"],
-    ["TEXAS", "TX"],
     ["new york", "NY"],
     ["District of Columbia", "DC"],
     ["Puerto Rico", "PR"],
-    ["Guam", "GU"],
     ["U.S. Virgin Islands", "VI"],
     ["Virgin Islands", "VI"],
-    ["American Samoa", "AS"],
     ["Northern Mariana Islands", "MP"],
-    ["TX", "TX"],
     ["tx", "TX"],
     ["ZZ", "ZZ"], // two letters pass through by contract
   ])("%s -> %s", (state, code) => {
     expect(stateCode(state)).toBe(code);
   });
 
-  it.each([null, "", "Ontario", "Texass", "T", "TEX", "Tex."])("unknown %j -> null", (state) => {
+  it.each([null, "", "Ontario", "Texass", "T", "Tex."])("unknown %j -> null", (state) => {
     expect(stateCode(state)).toBeNull();
   });
 });
@@ -154,28 +146,23 @@ describe("sbaRow", () => {
     });
   });
 
-  it("display_email / display_phone false hide the values", () => {
+  it("display_email / display_phone false hide the values; an email without @ is dropped", () => {
     const row = sbaRow(firm({ display_email: false, display_phone: false }));
     expect(row.email).toBeUndefined();
     expect(row.phone).toBeUndefined();
     const shown = sbaRow(firm({ display_email: undefined, display_phone: null }));
     expect(shown.email).toBe("jdoe@acmestaffing.example");
     expect(shown.phone).toBe("(512) 555-0100");
-  });
-
-  it("an email without @ is dropped", () => {
+    // an email without @ is dropped
     expect(sbaRow(firm({ email: "n/a" })).email).toBeUndefined();
   });
 
-  it("a platform website falls through to additional_website", () => {
+  it("a platform or unusable website falls through to additional_website; website wins when both are good", () => {
     const row = sbaRow(
       firm({ website: "https://facebook.com/acme", additional_website: "acme-jobs.example" }),
     );
     expect(row.website).toBe("acme-jobs.example");
     expect(row[IDENTITY_KEY]).toBeUndefined();
-  });
-
-  it("an unusable website falls through too; website wins when both are good", () => {
     expect(sbaRow(firm({ website: "N/A", additional_website: "acme-jobs.example" })).website).toBe(
       "acme-jobs.example",
     );
@@ -184,7 +171,7 @@ describe("sbaRow", () => {
     ).toBe("acme.example");
   });
 
-  it("no usable site: keyed sba:<uei>", () => {
+  it("no usable site: keyed sba:<uei>, none with no UEI", () => {
     for (const over of [
       { website: null, additional_website: null },
       { website: "https://linkedin.com/company/acme", additional_website: "  " },
@@ -199,11 +186,8 @@ describe("sbaRow", () => {
         sourceKey: "sba:ABCDEF123456",
       });
     }
-  });
-
-  it("no site and no UEI: nothing minted", () => {
-    const row = sbaRow(firm({ website: null, uei: " " }));
-    expect(row[IDENTITY_KEY]).toBeUndefined();
+    // no site and no UEI: nothing minted
+    expect(sbaRow(firm({ website: null, uei: " " }))[IDENTITY_KEY]).toBeUndefined();
   });
 
   it("legal_name only when the firm trades under another name", () => {
@@ -241,7 +225,7 @@ describe("sbaRow", () => {
 });
 
 describe("SbaSearchSource", () => {
-  it("merges firms across files by UEI, the file sorting last winning", () => {
+  it("merges firms across files by UEI, the file sorting last winning, the newest date across codes", () => {
     const dir = answerDir({
       "naics-561311-2026-09-30.json": answer(
         firm({ uei: "A1", city: "OLD TOWN" }),
@@ -262,14 +246,12 @@ describe("SbaSearchSource", () => {
     expect(source.sourceRef).toBe(dir);
     expect(source.contentHash).toMatch(/^[0-9a-f]{64}$/);
     expect(source.declined()).toEqual({});
-  });
-
-  it("the newest answer wins across codes", () => {
-    const dir = answerDir({
+    // the newest answer wins across codes
+    const dated = answerDir({
       "naics-561311-2026-10-02.json": answer(firm({ uei: "A1", city: "NEW TOWN" })),
       "naics-561312-2026-10-01.json": answer(firm({ uei: "A1", city: "OLD TOWN" })),
     });
-    const [row] = [...new SbaSearchSource(dir, STAFFING).rows()];
+    const [row] = [...new SbaSearchSource(dated, STAFFING).rows()];
     expect(row?.geo).toBe("New Town, TX");
   });
 

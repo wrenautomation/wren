@@ -81,11 +81,9 @@ describe("render", () => {
     expect(render(t, { x: "there" }, "s").body).toBe("Blah there. Next.");
     expect(render(t, {}, "s").body).toBe("Next.");
   });
-  it("tidy preserves authored indentation", () => {
+  it("tidy preserves authored indentation, ellipsis and punctuation combos", () => {
     const t = template([text("1. Onboarding\n   - intake forms\n   - contracts")]);
     expect(render(t, {}, "s").body).toBe("1. Onboarding\n   - intake forms\n   - contracts");
-  });
-  it("tidy preserves authored ellipsis and punctuation combos", () => {
     expect(render(template([text("Really...\n\nOr is it!?")]), {}, "s").body).toBe(
       "Really...\n\nOr is it!?",
     );
@@ -165,12 +163,10 @@ describe("version", () => {
     expect(a.version).toBe(template([variants("greet", ["Hey", "Hi"]), text(" there.")]).version);
     expect(a.version).not.toBe(b.version);
   });
-  it("is unaffected by renaming a variant point", () => {
+  it("ignores variant point names and the template name", () => {
     const a = template([variants("v1", ["Hey", "Hi"]), text(" there.")]);
     const b = template([variants("bank", ["Hey", "Hi"]), text(" there.")]);
     expect(a.version).toBe(b.version);
-  });
-  it("excludes the template name", () => {
     const body = [text("Hi there.")];
     expect(template(body, null, "opener").version).toBe(template(body, null, "followup").version);
   });

@@ -2,12 +2,10 @@ import { describe, expect, it } from "vitest";
 import { cleanComment, plainComment, postsFor, stockPhrases } from "./our-posts.js";
 
 describe("cleanComment", () => {
-  it("turns dashes into commas", () => {
+  it("turns dashes into commas, leaves hyphenated words alone", () => {
     expect(cleanComment(" Speed wins — every time – mostly -- trust me ")).toBe(
       "Speed wins, every time, mostly, trust me",
     );
-  });
-  it("leaves hyphenated words alone", () => {
     expect(cleanComment("A follow-up in 5 minutes")).toBe("A follow-up in 5 minutes");
   });
 });
@@ -28,13 +26,11 @@ describe("postsFor", () => {
 });
 
 describe("stockPhrases", () => {
-  it("names the stock moves", () => {
+  it("names the stock moves, passes a plain comment", () => {
     expect(stockPhrases("You're right, speed matters.")).toHaveLength(1);
     expect(stockPhrases("Ryan's point on AI tools hits home.")).toHaveLength(1);
     expect(stockPhrases("It's not about the tools, it's about people.")).toHaveLength(1);
     expect(stockPhrases("Speed matters. What's one task you automated?")).toHaveLength(1);
-  });
-  it("passes a plain comment", () => {
     expect(
       stockPhrases("Vetting is where it breaks. Call them the same day or lose them."),
     ).toEqual([]);

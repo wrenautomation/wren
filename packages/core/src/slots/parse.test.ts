@@ -101,6 +101,7 @@ describe("parseTemplate", () => {
       /opener:3: unclosed \{ \}/,
     );
     expect(() => parseTemplate("opener", "[[a | b")).toThrow(/unclosed \[\[ \]\]/);
+    expect(() => parseTemplate("opener", "[[a | b")).toThrow(AuthoringError);
     expect(() => parseTemplate("opener", "((x {a}")).toThrow(/unclosed \(\( \)\)/);
   });
   it("bad field name refused", () => {
@@ -113,24 +114,20 @@ describe("parseTemplate", () => {
   it("empty subject line refused", () => {
     expect(() => parseTemplate("opener", "subject:   \n\nHi.")).toThrow(/ride the thread/);
   });
-  it("subject near-misses refused", () => {
+  it("subject near-misses refused, the exact form parses", () => {
     expect(() => parseTemplate("opener", " subject: Quick question\n\nHi.\n")).toThrow(
       /opener:1: this line looks like a subject header/,
     );
     expect(() => parseTemplate("opener", "subject : Quick question\n\nHi.\n")).toThrow(
       /opener:1: this line looks like a subject header/,
     );
-  });
-  it("subject exact form still parses", () => {
     const t = parseTemplate("opener", "subject: Quick question\n\nHi.\n");
     expect(t.subject).not.toBeNull();
     expect(render(t, {}, "s").subject).toBe("Quick question");
   });
-  it("empty body refused", () => {
+  it("empty body refused, comments alone included", () => {
     expect(() => parseTemplate("opener", "subject: Hi\n\n\n")).toThrow(/no body/);
-  });
-  it("errors are AuthoringError", () => {
-    expect(() => parseTemplate("opener", "[[a | b")).toThrow(AuthoringError);
+    expect(() => parseTemplate("opener", "## just notes\n## more notes\n")).toThrow(/no body/);
   });
 });
 
@@ -161,9 +158,6 @@ describe("comments", () => {
     expect(() => parseTemplate("opener", "## note\n subject: X\n\nHi.\n")).toThrow(
       /opener:2: this line looks like a subject header/,
     );
-  });
-  it("a comment-only file has no body", () => {
-    expect(() => parseTemplate("opener", "## just notes\n## more notes\n")).toThrow(/no body/);
   });
 });
 
@@ -208,15 +202,12 @@ describe("loadTemplates", () => {
     const d = tmp();
     expect(() => loadTemplates(join(d, "missing"))).toThrow(/does not exist/);
   });
-  it("a BOM-prefixed file parses its subject", () => {
+  it("a BOM-prefixed file parses its subject, a mid-file BOM is refused", () => {
     const d = tmp();
     writeFileSync(join(d, "opener.email"), "﻿subject: Quick question\n\nHi.\n");
     const templates = loadTemplates(d);
     expect(templates.get("opener")?.subject).not.toBeNull();
     expect(render(templates.get("opener") as never, {}, "s").subject).toBe("Quick question");
-  });
-  it("a mid-file BOM is refused", () => {
-    const d = tmp();
     writeFileSync(join(d, "opener.email"), "subject: Quick question\n\nHi ﻿there.\n");
     expect(() => loadTemplates(d)).toThrow(/opener:3/);
   });
@@ -239,11 +230,9 @@ describe("preview", () => {
     expect(outs).toHaveLength(6);
     expect(new Set(outs.map(([, r]) => `${r.subject}|${r.body}`)).size).toBe(6);
     expect(outs[0]?.[0]).toEqual({ v1: 0, v2: 0 });
-  });
-  it("enumerate without variants yields one", () => {
-    const outs = [...enumerateRenders(parseTemplate("followup", "Bump {first_name|there}."), {})];
-    expect(outs).toHaveLength(1);
-    expect(outs[0]?.[1].body).toBe("Bump there.");
+    const one = [...enumerateRenders(parseTemplate("followup", "Bump {first_name|there}."), {})];
+    expect(one).toHaveLength(1);
+    expect(one[0]?.[1].body).toBe("Bump there.");
   });
 });
 

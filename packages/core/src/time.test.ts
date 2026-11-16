@@ -27,11 +27,9 @@ describe("tz", () => {
     expect(zonedInstant(CHI, 2026, 9, 8, 8, 0)).toEqual(new Date(Date.UTC(2026, 8, 8, 13, 0)));
     expect(zonedInstant(CHI, 2026, 1, 8, 8, 0)).toEqual(new Date(Date.UTC(2026, 0, 8, 14, 0)));
   });
-  it("an ambiguous wall time is its first occurrence", () => {
+  it("an ambiguous wall time is its first occurrence, a nonexistent one takes the pre-transition offset", () => {
     // 2026-11-01 01:30 happens twice in Chicago; the CDT one comes first.
     expect(zonedInstant(CHI, 2026, 11, 1, 1, 30)).toEqual(new Date(Date.UTC(2026, 10, 1, 6, 30)));
-  });
-  it("a nonexistent wall time is read with the pre-transition offset", () => {
     // 2026-03-08 02:30 never happens in Chicago; CST (-6) reads it as 08:30 UTC.
     expect(zonedInstant(CHI, 2026, 3, 8, 2, 30)).toEqual(new Date(Date.UTC(2026, 2, 8, 8, 30)));
   });

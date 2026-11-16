@@ -16,7 +16,7 @@ describe("every platform has a rule", () => {
     expect([...CANON_PLATFORMS].sort()).toEqual([...PLATFORMS].sort());
   });
 
-  it("reads an API id as itself, trimmed", () => {
+  it("reads an API id as itself, trimmed, and a Facebook group as a group", () => {
     for (const p of [
       "youtube",
       "x",
@@ -29,6 +29,7 @@ describe("every platform has a rule", () => {
       expect(canonRef(p, "post", "  12345  ")).toBe("12345");
       expect(canonRef(p, "comment", "c-9")).toBe("c-9");
     }
+    expect(canonRef("facebook", "group", "example-group")).toBe("example-group");
   });
 
   it("refuses an unknown platform, an empty spelling and a spelling with spaces", () => {
@@ -147,13 +148,16 @@ describe("linkedin", () => {
     expect(() => canonRef("linkedin", "group", "1")).toThrow(CanonError);
   });
 
-  it("prefers the API URN over the feed's activity URN", () => {
+  it("prefers the API URN over the feed's activity URN, and the first spelling elsewhere", () => {
     const act = "urn:li:activity:1";
     expect(preferRef("linkedin", act, "urn:li:ugcPost:2")).toBe("urn:li:ugcPost:2");
     expect(preferRef("linkedin", act, "urn:li:share:3")).toBe("urn:li:share:3");
     expect(preferRef("linkedin", "urn:li:ugcPost:2", act)).toBe("urn:li:ugcPost:2");
     expect(preferRef("linkedin", "urn:li:share:3", "urn:li:ugcPost:2")).toBe("urn:li:share:3");
     expect(preferRef("linkedin", act, "urn:li:activity:9")).toBe(act);
+    // off LinkedIn the first spelling stays
+    expect(preferRef("reddit", "t3_a", "t3_b")).toBe("t3_a");
+    expect(preferRef("x", "1", "2")).toBe("1");
   });
 });
 
@@ -232,10 +236,6 @@ describe("instagram, threads, facebook, google_business", () => {
     ).toThrow(CanonError);
     expect(fromUrl("https://www.instagram.com/p/Cabc123/")).toBeNull();
   });
-
-  it("reads a Facebook group as a group", () => {
-    expect(canonRef("facebook", "group", "example-group")).toBe("example-group");
-  });
 });
 
 describe("fromUrl", () => {
@@ -253,6 +253,12 @@ describe("normalUrl", () => {
     );
     expect(normalUrl("https://example.com/")).toBe("https://example.com");
     expect(normalUrl("example.com/a/b/")).toBe("https://example.com/a/b");
+    // one form for many spellings
+    expect(normalUrl("https://www.reddit.com/r/example/comments/abc1/title/")).toBe(
+      normalUrl("https://REDDIT.com/r/example/comments/abc1/title?utm_source=x"),
+    );
+    // text that is no URL comes back trimmed
+    expect(normalUrl("  t3_abc ")).toBe("t3_abc");
   });
 
   it("keeps a YouTube watch id and drops the rest of the query", () => {
@@ -260,22 +266,5 @@ describe("normalUrl", () => {
       "https://youtube.com/watch?v=dQw4w9WgXcQ",
     );
     expect(normalUrl("https://youtu.be/dQw4w9WgXcQ?si=1")).toBe("https://youtu.be/dQw4w9WgXcQ");
-  });
-
-  it("gives one form for many spellings", () => {
-    const a = normalUrl("https://www.reddit.com/r/example/comments/abc1/title/");
-    const b = normalUrl("https://REDDIT.com/r/example/comments/abc1/title?utm_source=x");
-    expect(a).toBe(b);
-  });
-
-  it("returns text that is no URL, trimmed", () => {
-    expect(normalUrl("  t3_abc ")).toBe("t3_abc");
-  });
-});
-
-describe("preferRef", () => {
-  it("keeps the first spelling off LinkedIn", () => {
-    expect(preferRef("reddit", "t3_a", "t3_b")).toBe("t3_a");
-    expect(preferRef("x", "1", "2")).toBe("1");
   });
 });

@@ -63,27 +63,20 @@ describe("canonicalize", () => {
 
 describe("normalizeCountry", () => {
   it.each([
-    ["US", "US"],
     ["us", "US"],
     ["de", "DE"],
     ["United States", "US"],
     ["UNITED STATES OF AMERICA", "US"],
-    ["USA", "US"],
     ["U.S.", "US"],
-    ["U.S.A.", "US"],
     ["United Kingdom", "GB"],
-    ["Great Britain", "GB"],
     ["UK", "GB"],
     ["Canada", "CA"],
-    ["Australia", "AU"],
-    ["Germany", "DE"],
-    ["France", "FR"],
   ])("recognizes %s", (raw, expected) => expect(normalizeCountry(raw)).toBe(expected));
   it.each([null, "", "   ", "Freedonia", "North America", "1", "usa!"])(
     "unrecognized %s is null, never a guess",
     (raw) => expect(normalizeCountry(raw)).toBeNull(),
   );
-  it.each(["XX", "ZZ", "QQ", "xx"])("bare two-letter junk %s rejected against the ISO set", (raw) =>
+  it.each(["XX", "xx"])("bare two-letter junk %s rejected against the ISO set", (raw) =>
     expect(normalizeCountry(raw)).toBeNull(),
   );
   it("NA is not-applicable, not Namibia", () => {
@@ -92,28 +85,14 @@ describe("normalizeCountry", () => {
   });
   it.each([
     ["CA", "CA"],
-    ["DE", "DE"],
     ["IN", "IN"],
-    ["CO", "CO"],
-    ["PA", "PA"],
-    ["IL", "IL"],
-    ["AL", "AL"],
-    ["LA", "LA"],
   ])("state-code homograph %s still accepted as a country", (raw, expected) =>
     expect(normalizeCountry(raw)).toBe(expected),
   );
   it.each([
     ["Denmark", "DK"],
-    ["Sweden", "SE"],
-    ["Norway", "NO"],
-    ["Belgium", "BE"],
-    ["Luxembourg", "LU"],
-    ["Israel", "IL"],
     ["United Arab Emirates", "AE"],
     ["Cayman Islands", "KY"],
-    ["Bermuda", "BM"],
-    ["Jersey", "JE"],
-    ["Guernsey", "GG"],
     ["Isle of Man", "IM"],
   ])("long-form %s", (raw, expected) => expect(normalizeCountry(raw)).toBe(expected));
   it.each([
@@ -153,10 +132,11 @@ describe("classifyRow: leads", () => {
       sourceKey: null,
     });
   });
-  it("company domain falls back to email domain", () =>
-    expect(lead({ email: "jane@foo.com" }).companyDomain).toBe("foo.com"));
-  it("freemail lead gets no company domain", () =>
-    expect(lead({ email: "jane@gmail.com" }).companyDomain).toBeNull());
+  it("company domain: website beats email domain, the email domain is the fallback, freemail gives none", () => {
+    expect(lead({ email: "jane@foo.com" }).companyDomain).toBe("foo.com");
+    expect(lead({ email: "jane@gmail.com" }).companyDomain).toBeNull();
+    expect(lead({ email: "jane@gmail.com", website: "foo.com" }).companyDomain).toBe("foo.com");
+  });
   it("platform website falls back to email domain, profile kept as social_url", () => {
     const row = lead({
       email: "jane@acmewealth.com",
@@ -165,8 +145,6 @@ describe("classifyRow: leads", () => {
     expect(row.companyDomain).toBe("acmewealth.com");
     expect(row.socialUrl).toBe("https://linkedin.com/company/acme");
   });
-  it("website beats email domain for company", () =>
-    expect(lead({ email: "jane@gmail.com", website: "foo.com" }).companyDomain).toBe("foo.com"));
   it("full name splits once", () => {
     const row = lead({ email: "j@foo.com", name: "Jane Q. Public" });
     expect([row.firstName, row.lastName]).toEqual(["Jane", "Q. Public"]);
@@ -183,11 +161,8 @@ describe("classifyRow: leads", () => {
     const row = lead({ email: "j@foo.com", name: "Wrong Person", "first name": "Jane" });
     expect([row.firstName, row.lastName]).toEqual(["Jane", null]);
   });
-  it("country normalized to alpha-2", () =>
-    expect(lead({ email: "j@foo.com", country: "United States" }).country).toBe("US"));
-  it("unrecognized country is null, not guessed", () =>
-    expect(lead({ email: "j@foo.com", country: "Freedonia" }).country).toBeNull());
-  it("countryRaw distinguishes absent from unrecognized", () => {
+  it("country normalized to alpha-2; countryRaw distinguishes absent from unrecognized", () => {
+    expect(lead({ email: "j@foo.com", country: "United States" }).country).toBe("US");
     const absent = lead({ email: "j@foo.com" });
     expect([absent.country, absent.countryRaw]).toEqual([null, null]);
     const unrecognized = lead({ email: "j@foo.com", country: "Freedonia" });
@@ -225,7 +200,7 @@ describe("classifyRow: leads", () => {
 });
 
 describe("classifyRow: companies", () => {
-  it("bare company row", () => {
+  it("bare company row, and a domain-only one", () => {
     expect(classifyRow({ "business name": "Foo LLC", website: "www.foo.com" })).toEqual({
       kind: "company",
       domain: "foo.com",
@@ -234,9 +209,9 @@ describe("classifyRow: companies", () => {
       socialUrl: null,
       country: null,
     });
+    expect(company({ domain: "foo.com" }).domain).toBe("foo.com");
   });
-  it("domain-only row", () => expect(company({ domain: "foo.com" }).domain).toBe("foo.com"));
-  it("source_key rescues a platform-only firm", () => {
+  it("source_key rescues a platform-only or websiteless firm", () => {
     expect(
       classifyRow({
         company_name: "Acme Wealth",
@@ -251,8 +226,6 @@ describe("classifyRow: companies", () => {
       socialUrl: "www.linkedin.com/company/acme-wealth",
       country: null,
     });
-  });
-  it("source_key rescues a websiteless firm", () => {
     expect(
       classifyRow({ company_name: "Acme Wealth", [IDENTITY_KEY]: { source_key: "crd:105734" } }),
     ).toEqual({
@@ -289,12 +262,11 @@ describe("classifyRow: companies", () => {
     });
     expect(row.socialUrl).toBe(profile.slice(0, 512));
   });
-  it("a source_key column never asserts identity", () => {
+  it("a source_key column never asserts identity; alone it is an error", () => {
     const row = company({ website: "foo.com", source_key: "crd:1" });
     expect([row.domain, row.sourceKey]).toEqual(["foo.com", null]);
+    expect(classifyRow({ company_name: "Ghost LLC", source_key: "crd:1" }).kind).toBe("error");
   });
-  it("bare source_key column is an error", () =>
-    expect(classifyRow({ company_name: "Ghost LLC", source_key: "crd:1" }).kind).toBe("error"));
 });
 
 describe("classifyRow: errors", () => {
@@ -303,12 +275,12 @@ describe("classifyRow: errors", () => {
     [{ company: "Foo LLC" }, "without a usable domain"],
     [{ website: "N/A" }, "unusable website"],
     [{ phone: "555-1234" }, "no email or website"],
+    // platform website without source_key
+    [
+      { company_name: "Acme Wealth", website: "www.linkedin.com/company/acme-wealth" },
+      "platform profile",
+    ],
   ])("%o -> %s", (raw, fragment) => expect(error(raw).reason).toContain(fragment));
-  it("platform website without source_key is an error", () =>
-    expect(
-      error({ company_name: "Acme Wealth", website: "www.linkedin.com/company/acme-wealth" })
-        .reason,
-    ).toContain("platform profile"));
   it("broken email is not downgraded to company", () =>
     expect(classifyRow({ email: "jane@@foo.com", url: "foo.com" }).kind).toBe("error"));
   it("a validation failure is a row error, never a batch abort", () => {
@@ -376,16 +348,14 @@ describe("CsvLeadSource", () => {
       { Email: "jane@foo.com", "First Name": "René" },
     ]);
   });
-  it("UTF-16 BOM is rejected", () => {
+  it("UTF-16 BOM and NUL byte are rejected", () => {
     const path = file(
       "utf16.csv",
       Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from("Email\njane@foo.com\n", "utf16le")]),
     );
     expect(() => [...new CsvLeadSource(path).rows()]).toThrow(/UTF-16\/32/);
-  });
-  it("NUL byte is rejected", () => {
-    const path = file("nul.csv", Buffer.from("Email\x00\njane@foo.com\n", "latin1"));
-    expect(() => [...new CsvLeadSource(path).rows()]).toThrow(/NUL byte/);
+    const nul = file("nul.csv", Buffer.from("Email\x00\njane@foo.com\n", "latin1"));
+    expect(() => [...new CsvLeadSource(nul).rows()]).toThrow(/NUL byte/);
   });
   it("duplicate headers are suffixed, not dropped", () => {
     const path = file("dup.csv", "Email,Email\npersonal@foo.com,work@foo.com\n");

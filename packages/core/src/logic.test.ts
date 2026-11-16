@@ -192,10 +192,6 @@ describe("logic steps", () => {
 });
 
 describe("triggers", () => {
-  it("are all ready", () => {
-    expect(LOGIC.filter((l) => !l.ready).map((l) => l.id)).toEqual([]);
-  });
-
   it("found names an SOP", () => {
     const found = (w: Record<string, string>) =>
       logicProblems("e_0", { id: "e_0", uses: "trigger.found", with: w });

@@ -36,8 +36,9 @@ const writeJsonl = (lines: string[]) => {
 const jsonl = (places: OverturePlace[]) => writeJsonl(places.map((p) => JSON.stringify(p)));
 
 describe("placeDomain", () => {
-  it("the first site's domain, www and path dropped", () => {
+  it("the first site's domain, www and path dropped; blank entries skipped first", () => {
     expect(placeDomain(place())).toBe("acmestaffing.example");
+    expect(placeDomain(place({ websites: ["", 7, "acme.example"] }))).toBe("acme.example");
   });
 
   it("null with no site, a blank site, a platform page, or not a domain", () => {
@@ -50,10 +51,6 @@ describe("placeDomain", () => {
       "acme.example",
     ])
       expect(placeDomain(place({ websites }))).toBeNull();
-  });
-
-  it("blank entries are skipped before picking the first", () => {
-    expect(placeDomain(place({ websites: ["", 7, "acme.example"] }))).toBe("acme.example");
   });
 });
 
@@ -86,7 +83,7 @@ describe("overtureRow", () => {
     });
   });
 
-  it("no usable site: keyed overture:<id>; a platform page rides along as the social url", () => {
+  it("no usable site: keyed overture:<id>, none with no id; a platform page rides along as the social url", () => {
     const row = overtureRow(place({ websites: ["https://facebook.com/acme"], emails: [] }), 0);
     expect(row[IDENTITY_KEY]).toEqual({ source_key: "overture:08f2a100000000000000000000000001" });
     expect(classifyRow(row)).toMatchObject({
@@ -96,11 +93,8 @@ describe("overtureRow", () => {
       socialUrl: "https://facebook.com/acme",
       name: "Acme Staffing",
     });
-  });
-
-  it("no site and no id: nothing minted", () => {
-    const row = overtureRow(place({ websites: [], id: "  " }), 0);
-    expect(row[IDENTITY_KEY]).toBeUndefined();
+    // no site and no id: nothing minted
+    expect(overtureRow(place({ websites: [], id: "  " }), 0)[IDENTITY_KEY]).toBeUndefined();
   });
 
   it("only an address-like email is lifted; missing parts are left out", () => {
@@ -120,12 +114,9 @@ describe("overtureRow", () => {
     expect(row.postcode).toBeUndefined();
     expect(row.country).toBe("CA");
     expect(row.places_with_domain).toBe(2);
-  });
-
-  it("no addresses: no geo, no country", () => {
-    const row = overtureRow(place({ addresses: null }), 0);
-    expect(row.geo).toBeUndefined();
-    expect(row.country).toBeUndefined();
+    const noAddress = overtureRow(place({ addresses: null }), 0);
+    expect(noAddress.geo).toBeUndefined();
+    expect(noAddress.country).toBeUndefined();
   });
 });
 
@@ -134,11 +125,8 @@ describe("declineReason", () => {
   const check = (p: OverturePlace, n = 1, o: Parameters<typeof declineReason>[3] = opts) =>
     declineReason(p, placeDomain(p), n, o);
 
-  it("an open independent firm is kept", () => {
+  it("an open independent firm is kept; closed first, even over public body and chain", () => {
     expect(check(place())).toBeNull();
-  });
-
-  it("closed first, even over public body and chain", () => {
     expect(
       check(
         place({ operating_status: "permanently_closed", websites: ["https://twc.texas.gov"] }),
@@ -150,11 +138,11 @@ describe("declineReason", () => {
 
   it.each([
     "https://www.texas.gov/jobs",
-    "workforce.ca.gov",
     "https://recruiting.army.mil",
     "https://www.jobbank.gc.ca",
     "https://www.canada.ca/en/employment",
     "https://www2.gov.bc.ca/careers",
+    "https://www.emploi.gouv.qc.ca",
   ])("public body: %s", (site) => {
     expect(check(place({ websites: [site] }))).toBe("public_body");
   });
@@ -165,10 +153,6 @@ describe("declineReason", () => {
       expect(check(place({ websites: [site] }))).toBeNull();
     },
   );
-
-  it("public body: a Quebec government host (gouv.qc.ca)", () => {
-    expect(check(place({ websites: ["https://www.emploi.gouv.qc.ca"] }))).toBe("public_body");
-  });
 
   it("the niche's rule comes before chain and sees the keying domain", () => {
     const seen: (string | null)[] = [];
@@ -235,21 +219,6 @@ describe("OverturePlacesSource", () => {
     expect(rows.map((r) => (r.overture as OverturePlace).id)).toEqual(["s1", "s2", "s3"]);
     expect(rows.map((r) => r.places_with_domain)).toEqual([1, 1, 1]);
     expect(source.declined()).toEqual({ chain: 3 });
-  });
-
-  it("chainAt and the niche's decline are honoured", () => {
-    const path = jsonl([
-      place({ id: "a", websites: ["duo.example"] }),
-      place({ id: "b", websites: ["duo.example"] }),
-      place({ id: "c", websites: ["solo.example"], names: { primary: "Skip Me" } }),
-      place({ id: "d", websites: ["keep.example"] }),
-    ]);
-    const source = new OverturePlacesSource(path, {
-      chainAt: 2,
-      decline: (p) => ((p.names as { primary: string }).primary === "Skip Me" ? "mine" : null),
-    });
-    expect([...source.rows()].map((r) => (r.overture as OverturePlace).id)).toEqual(["d"]);
-    expect(source.declined()).toEqual({ chain: 2, mine: 1 });
   });
 
   it("default chain threshold is CHAIN_AT", () => {

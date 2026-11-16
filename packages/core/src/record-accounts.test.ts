@@ -86,6 +86,8 @@ describe("declaring a record's account", () => {
     expect(on?.account).toBe(true);
     expect(on?.states?.["reddit@one"]).toMatchObject({ label: "u/synthetic_one", mark: "reddit" });
     expect(meta.fields.find((f) => f.key === "words")?.account).toBeUndefined();
+    // undeclared: no account
+    expect(metaOf(rec(undefined), false).account).toBeUndefined();
   });
   it("a field kept to some platforms offers only their accounts", () => {
     setRecordAccounts(SYNTH);
@@ -106,8 +108,5 @@ describe("declaring a record's account", () => {
   });
   it("only an accountField can be the account", () => {
     expect(() => rec("words")).toThrow(/must be an accountField/);
-  });
-  it("undeclared, the record has no account", () => {
-    expect(metaOf(rec(undefined), false).account).toBeUndefined();
   });
 });

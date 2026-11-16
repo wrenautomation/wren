@@ -78,9 +78,7 @@ describe("versionMark", () => {
     expect(mark({ ...card, text: "Other words" })).toBe(mark(card));
     expect(mark({ ...card, version: 4 })).not.toBe(mark(card));
     expect(mark({ ...card, blocked: 1 })).not.toBe(mark(card));
-  });
-
-  it("keeps two rows at the same version apart", () => {
+    // two rows at one version stay apart
     expect(mark({ ...card, id: "c2" })).not.toBe(mark(card));
   });
 

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   type ArmRow,
-  armLabel,
   armOf,
   DEFAULT_ARMS,
   draftModelsSchema,
@@ -50,13 +49,6 @@ describe("draftModelsSchema", () => {
     ];
     expect(draftModelsSchema.safeParse({ arms: twice }).success).toBe(false);
     expect(draftModelsSchema.safeParse({ arms: [{ model: "a", weight: 0 }] }).success).toBe(false);
-  });
-});
-
-describe("armLabel", () => {
-  it("names the two default arms the way William reads them", () => {
-    expect(armLabel("gateway:free")).toBe("Gemini 3.8 Flash");
-    expect(armLabel("cohere:command-a-03-2025")).toBe("Command A");
   });
 });
 
@@ -154,10 +146,8 @@ const row = (by: string, decided: number, unedited: number, armed = true): ArmRo
 
 describe("verdict", () => {
   const N = MIN_DECIDED_PER_ARM;
-  it("waits for two arms", () => {
+  it("waits for two arms, with enough decided drafts on each", () => {
     expect(verdict([row("a", N, 30)]).winner).toBeNull();
-  });
-  it("waits for enough decided drafts on each", () => {
     const v = verdict([row("a", N, 30), row("b", N - 1, 5)]);
     expect(v.winner).toBeNull();
     expect(v.says).toContain("Too early");

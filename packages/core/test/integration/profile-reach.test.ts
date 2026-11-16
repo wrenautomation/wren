@@ -57,7 +57,7 @@ describe("handleUrl", () => {
     );
     expect(handleUrl("linkedin", "urn:li:member:12345")).toBeNull();
     expect(handleUrl("instagram", "name:ann example")).toBeNull();
-    expect(handleUrl("tiktok", "ann_ex")).toBeNull();
+    expect(handleUrl("tiktok", "ann_ex")).toBe("https://www.tiktok.com/@ann_ex");
   });
 });
 

@@ -24,7 +24,7 @@ const quiet = () => {
 };
 
 describe("runFeed", () => {
-  it("writes a line with every field, and defaults the rest to null", async () => {
+  it("writes a line with every field, and defaults the rest (and an empty detail) to null", async () => {
     const run = await newRun();
     const feed = runFeed(pg.db, run);
     await feed.emit({
@@ -38,7 +38,8 @@ describe("runFeed", () => {
       traceId: "a".repeat(32),
     });
     await feed.emit({ step: "lookup", kind: "started", line: "Finding where each person is now" });
-    const [full, bare] = await readFeed(pg.db, run);
+    await feed.emit({ step: "s", kind: "did", line: "hi", detail: "" });
+    const [full, bare, empty] = await readFeed(pg.db, run);
     expect(full).toMatchObject({
       step: "lookup",
       kind: "found",
@@ -51,6 +52,7 @@ describe("runFeed", () => {
     expect(full).not.toHaveProperty("traceId");
     expect(Number.isNaN(Date.parse(full?.at ?? ""))).toBe(false);
     expect(bare).toMatchObject({ subject: null, count: null, source: null, detail: null });
+    expect(empty?.detail).toBeNull(); // an empty detail is stored as null
     const [row] = await pg.db
       .select()
       .from(runEvents)
@@ -58,7 +60,7 @@ describe("runFeed", () => {
     expect(row?.traceId).toBe("a".repeat(32));
   });
 
-  it("cuts a long line to 300 and a long detail to 500, ending in an ellipsis", async () => {
+  it("cuts a long line to 300 and a long detail to 500, ending in an ellipsis; exactly at the cap stays", async () => {
     const run = await newRun();
     await runFeed(pg.db, run).emit({
       step: "s",
@@ -66,28 +68,17 @@ describe("runFeed", () => {
       line: "x".repeat(400),
       detail: "y".repeat(900),
     });
-    const [l] = await readFeed(pg.db, run);
-    expect(l?.line).toBe(`${"x".repeat(299)}…`);
-    expect(l?.detail).toBe(`${"y".repeat(499)}…`);
-  });
-
-  it("leaves a line of exactly 300 and a detail of exactly 500 as they are", async () => {
-    const run = await newRun();
     await runFeed(pg.db, run).emit({
       step: "s",
       kind: "did",
       line: "x".repeat(300),
       detail: "y".repeat(500),
     });
-    const [l] = await readFeed(pg.db, run);
-    expect(l?.line).toBe("x".repeat(300));
-    expect(l?.detail).toBe("y".repeat(500));
-  });
-
-  it("an empty detail is stored as null", async () => {
-    const run = await newRun();
-    await runFeed(pg.db, run).emit({ step: "s", kind: "did", line: "hi", detail: "" });
-    expect((await readFeed(pg.db, run))[0]?.detail).toBeNull();
+    const [l, exact] = await readFeed(pg.db, run);
+    expect(l?.line).toBe(`${"x".repeat(299)}…`);
+    expect(l?.detail).toBe(`${"y".repeat(499)}…`);
+    expect(exact?.line).toBe("x".repeat(300));
+    expect(exact?.detail).toBe("y".repeat(500));
   });
 
   it("never splits an emoji at the cut", async () => {
@@ -134,7 +125,7 @@ describe("runFeed", () => {
 });
 
 describe("readFeed", () => {
-  it("only this run's lines, oldest first", async () => {
+  it("only this run's lines, oldest first; none for a run with no lines", async () => {
     const [a, b] = [await newRun(), await newRun()];
     const fa = runFeed(pg.db, a);
     const fb = runFeed(pg.db, b);
@@ -144,9 +135,10 @@ describe("readFeed", () => {
     const lines = await readFeed(pg.db, a);
     expect(lines.map((l) => l.line)).toEqual(["a1", "a2"]);
     expect(lines[0]?.seq).toBeLessThan(lines[1]?.seq ?? 0);
+    expect(await readFeed(pg.db, await newRun())).toEqual([]); // a run with no lines
   });
 
-  it("after a cursor: only the lines past it; past the end: none", async () => {
+  it("after a cursor: only the lines past it; past the end: none; a limit takes the oldest", async () => {
     const run = await newRun();
     const feed = runFeed(pg.db, run);
     for (const line of ["1", "2", "3"]) await feed.emit({ step: "s", kind: "did", line });
@@ -154,27 +146,16 @@ describe("readFeed", () => {
     const after = await readFeed(pg.db, run, { after: all[0]?.seq ?? 0 });
     expect(after.map((l) => l.line)).toEqual(["2", "3"]);
     expect(await readFeed(pg.db, run, { after: all[2]?.seq ?? 0 })).toEqual([]);
-  });
-
-  it("a limit takes the oldest lines first", async () => {
-    const run = await newRun();
-    const feed = runFeed(pg.db, run);
-    for (const line of ["1", "2", "3"]) await feed.emit({ step: "s", kind: "did", line });
+    // a limit takes the oldest lines first
     expect((await readFeed(pg.db, run, { limit: 2 })).map((l) => l.line)).toEqual(["1", "2"]);
-  });
-
-  it("a run with no lines reads as none", async () => {
-    expect(await readFeed(pg.db, await newRun())).toEqual([]);
   });
 });
 
 describe("errorText", () => {
-  it("an error: its name and message", () => {
+  it("an error: its name and message; anything else as a string", () => {
     expect(errorText(new TypeError("bad input"))).toBe("TypeError: bad input");
     expect(errorText(new Error(""))).toBe("Error: ");
-  });
-
-  it("anything else: as a string", () => {
+    // anything else: as a string
     expect(errorText("plain")).toBe("plain");
     expect(errorText(429)).toBe("429");
     expect(errorText(null)).toBe("null");

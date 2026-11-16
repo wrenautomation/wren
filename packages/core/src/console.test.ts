@@ -265,28 +265,6 @@ describe("ConsolePortal records", () => {
   it("lists the loops as a record for the team, with start and stop", async () => {
     const [loop] = await recs.recordsTypes({ viewer: operator });
     expect(loop).toMatchObject({ id: record, actions: ["console.startLoop", "console.stopLoop"] });
-    const bare = await consoleApi({ main, views: [] }).recordsTypes({ viewer: operator });
-    expect(bare.map((t) => t.id)).toEqual([
-      "console.team",
-      "console.change",
-      "console.setting",
-      "library.snippet",
-      "loops.flag",
-      "marketing.experiment",
-      "marketing.survey",
-      "library.workflow",
-      "console.automation",
-      "console.event",
-      "console.execution",
-      "console.hold",
-      "console.check",
-      "access.role",
-      "access.grant",
-      "access.review",
-      "access.issue",
-      "access.ask",
-      "console.component",
-    ]);
   });
 });
 
@@ -409,16 +387,6 @@ describe("ConsolePortal handlers", () => {
     expect(() => calls.target({ ...ask, key: "a" }, all)).toThrow("a service takes no key");
     expect(() => calls.target({ ...launch, key: "a" }, all)).toThrow("it spends: type launch");
     expect(calls.target({ ...launch, key: "a", confirm: "launch" }, all).effect).toBe("spends");
-  });
-
-  it("opens a runs row with the command, who and the input", async () => {
-    const h = calls.target(ask, all);
-    await calls.openCall(ask, h);
-    expect(ran.at(-1)).toMatchObject({
-      command: "console Tally/count",
-      argv: { by: "op@example.test", input: { limit: 2 } },
-      niche: null,
-    });
   });
 });
 

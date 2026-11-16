@@ -307,6 +307,8 @@ describe("mapAt", () => {
     const m = await mapAt(f, { depth: 2, open: {} });
     expect(m.boxes.every((b) => !b.open)).toBe(true);
     expect(f.reads).toEqual(["t"]);
+    // no edges on the adapter: no lines
+    expect(m.lines).toEqual([]);
   });
 
   it("draws the open boxes and lifts each edge to the boxes that show", async () => {
@@ -353,12 +355,6 @@ describe("mapAt", () => {
     const first = await lineAt(big, ...ends);
     expect([first.edges.length, first.count, first.next]).toEqual([PAGE_SIZE, PAGE_SIZE + 1, "50"]);
     expect((await lineAt(big, ...ends, first.next)).edges.map((e) => e.id)).toEqual(["m50"]);
-  });
-
-  it("draws boxes with no lines when the adapter has no edges", async () => {
-    const m = await mapAt(fixture(), { depth: 1, open: {} });
-    expect(m.boxes.every((b) => !b.open)).toBe(true);
-    expect(m.lines).toEqual([]);
   });
 
   it("holds a box closed past the cap, and never reads it", async () => {

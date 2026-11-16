@@ -51,11 +51,13 @@ describe("updateClient: products", () => {
     expect((await findClient(pg.db, "acme"))?.products).toEqual(c.products);
   });
 
-  it("null removes that product; null for one never set is a no-op", async () => {
+  it("null removes that product; null for one never set is a no-op; none left is {}", async () => {
     const c = await updateClient(pg.db, "acme", {
       products: { reactivation: null, missing: null },
     });
     expect(c.products).toEqual({ other: { x: 1 } });
+    const none = await updateClient(pg.db, "acme", { products: { other: null } });
+    expect(none.products).toEqual({});
   });
 
   it("a new product is added", async () => {
@@ -83,11 +85,6 @@ describe("updateClient: products", () => {
     expect((await updateClient(pg.db, "acme", { buysOk: true })).buysOk).toBe(true);
     expect((await updateClient(pg.db, "acme", { name: "Acme Co" })).buysOk).toBe(true);
     expect((await updateClient(pg.db, "acme", { buysOk: false })).buysOk).toBe(false);
-  });
-
-  it("removing every product leaves an empty object, not null", async () => {
-    const c = await updateClient(pg.db, "acme", { products: { reactivation: null, other: null } });
-    expect(c.products).toEqual({});
   });
 
   // Was a bug (minor): an undefined block is dropped by JSON on write, so it silently removes the

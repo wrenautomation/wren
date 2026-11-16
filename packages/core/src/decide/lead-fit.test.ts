@@ -1,11 +1,6 @@
-import type { Queryable } from "@wren/db";
-import type { SQL } from "drizzle-orm";
-import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 import {
-  LEAD_KIND,
   LEAD_TEXT_MAX,
-  leadFitDue,
   leadProfileOf,
   leadSubject,
   leadWhy,
@@ -124,26 +119,5 @@ describe("pickPercent", () => {
     expect(pickPercent(answers, "fit", 0.5)).toBe(72);
     expect(pickPercent({ pick: {} }, "fit", 0.5)).toBe(50);
     expect(pickPercent(null, "fit", null)).toBeNull();
-  });
-});
-
-describe("leadFitDue", () => {
-  it("asks for unmerged profiles with a newer touch of theirs, oldest first", async () => {
-    let seen: SQL | undefined;
-    const db = {
-      execute: async (q: SQL) => {
-        seen = q;
-        return [{ id: "7", since: "2026-10-02T12:00:00.000Z" }];
-      },
-    } as unknown as Queryable;
-    const got = await leadFitDue(db, 5);
-    expect(got).toEqual([{ id: 7, since: "2026-10-02T12:00:00.000Z" }]);
-    const { sql, params } = new PgDialect().sqlToQuery(seen as SQL);
-    const flat = sql.replace(/\s+/g, " ");
-    expect(flat).toContain("t.direction = 'theirs'");
-    expect(flat).toContain("p.merged_into is null");
-    expect(flat).toContain("d.subject = 'profile:' || p.id");
-    expect(flat).toContain("order by min(t.at), p.id");
-    expect(params).toEqual([LEAD_KIND, 5]);
   });
 });

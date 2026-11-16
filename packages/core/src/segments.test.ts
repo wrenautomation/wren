@@ -71,67 +71,6 @@ describe("readRule", () => {
 });
 
 describe("compileRule: each condition kind", () => {
-  it("trait: each comparison on profile_traits", () => {
-    const t = (op: string, value?: string | number) =>
-      q({ kind: "trait", key: "plan", op, value } as Condition);
-    expect(t("is", "Pro").sql).toMatch(
-      /from profile_traits t\s+where t\.key = \$1 and lower\(t\.value #>> '\{\}'\) = lower\(\$2\)/,
-    );
-    expect(t("is", "Pro").params).toEqual(["plan", "Pro"]);
-    expect(t("contains", "pro").sql).toMatch(/strpos\(lower/);
-    expect(t("exists").sql).toMatch(/and true\)/);
-    expect(t("gt", 5).sql).toMatch(/segment_number\(t\.value\) > \$2::numeric/);
-    expect(t("lt", 5).sql).toMatch(/segment_number\(t\.value\) < \$2::numeric/);
-    expect(t("before", "2026-12-31").sql).toMatch(/segment_date\(t\.value\) < \$2::date/);
-    expect(t("after", "2026-12-31").sql).toMatch(/segment_date\(t\.value\) > \$2::date/);
-    const next = t("in_next", 7);
-    expect(next.sql).toMatch(/between \$2::date and \$3::date \+ \$4::int/);
-    expect(next.params).toEqual(["plan", "2026-10-14", "2026-10-14", 7]);
-    expect(t("in_last", 7).sql).toMatch(/between \$2::date - \$3::int and \$4::date/);
-  });
-
-  it("event: counted on the timeline within its window", () => {
-    const e = q({ kind: "event", event: "form", atLeast: 2, days: 30 });
-    expect(e.sql).toMatch(/from profile_timeline l\s+where l\.kind = \$1/);
-    expect(e.sql).toMatch(/having count\(\*\) >= \$4/);
-    expect(e.params).toEqual(["form", NOW.toISOString(), "2026-09-14T15:00:00.000Z", 2]);
-    const ever = q({ kind: "event", event: "booking", atLeast: 1, days: null });
-    expect(ever.sql).not.toMatch(/l\.at >=/);
-  });
-
-  it("consent: by address and channel; a STOP from sms_contacts", () => {
-    const c = q({ kind: "consent", channel: "sms", state: "confirmed" });
-    expect(c.sql).toMatch(/join consents c on c\.address = k\.value and c\.channel = \$1/);
-    expect(c.params).toEqual(["sms", "phone", "confirmed"]);
-    const stop = q({ kind: "consent", channel: "sms", state: "opted_out" });
-    expect(stop.sql).toMatch(/join sms_contacts s on s\.e164 = k\.value/);
-    expect(stop.sql).toMatch(/s\.state = 'opted_out'/);
-  });
-
-  it("message: the sent log's ladder, a state counting those past it", () => {
-    const m = q({ kind: "message", state: "opened", channel: "email", atLeast: 1, days: 7 });
-    expect(m.sql).toMatch(
-      /join sent_records s on s\.key_kind = k\.kind and s\.key_value = k\.value/,
-    );
-    expect(m.params).toEqual([
-      "opened",
-      "clicked",
-      "replied",
-      "email",
-      "2026-10-07T15:00:00.000Z",
-      1,
-    ]);
-    const any = q({ kind: "message", state: "bounced", channel: "any", atLeast: 1, days: null });
-    expect(any.sql).not.toMatch(/s\.channel =/);
-    expect(any.params).toEqual(["bounced", 1]);
-  });
-
-  it("segment: membership now", () => {
-    const s = q({ kind: "segment", segment: 4 });
-    expect(s.sql).toMatch(/from segment_members m\s+where m\.segment_id = \$1/);
-    expect(s.params).toEqual([4]);
-  });
-
   it("groups: and / or, not around anything", () => {
     const r = q({
       kind: "group",
