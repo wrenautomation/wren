@@ -26,8 +26,10 @@ if [ -z "${CI:-}" ] && [ -z "${CHECKS_TMP:-}" ]; then
   rm -rf "$TMPDIR" && mkdir -p "$TMPDIR"
 fi
 WIDE=${CI:+--concurrency=100%}
+# One tsc at a time on the Mac: each takes ~2.8 GB, three at once swapped a 16 GB Mac (11-16).
+TSC=${WIDE:---concurrency=1}
 lint() {
-  echo "==> biome check" && pnpm biome check --error-on-warnings . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE &&
+  echo "==> biome check" && pnpm biome check --error-on-warnings . && echo "==> typecheck" && pnpm turbo run typecheck $TSC &&
     cli && offers && map && layers && isolation && writes && sends && moved && edits && reads && libs && drift && exports && size && determinism
 }
 # File size (designs/2026-10-24-code-quality-handoff.md): no source file over 1200 lines, a tripwire for
@@ -177,13 +179,13 @@ changed() {
       echo "==> biome, this session's files" &&
       { [ -z "$files" ] || pnpm -s biome check --error-on-warnings --no-errors-on-unmatched --files-ignore-unknown=true $files; } &&
       echo "==> typecheck, this session's packages and their dependents" &&
-      { [ -z "$filters" ] || pnpm turbo run typecheck $filters --output-logs=errors-only; }
+      { [ -z "$filters" ] || pnpm turbo run typecheck $filters $TSC --output-logs=errors-only; }
     return
   fi
   echo "==> biome, changed since origin/main" &&
     pnpm -s biome check --error-on-warnings --changed --since=origin/main --no-errors-on-unmatched &&
     echo "==> typecheck, changed since origin/main" &&
-    pnpm turbo run typecheck --filter="...[origin/main]" --output-logs=errors-only
+    pnpm turbo run typecheck --filter="...[origin/main]" $TSC --output-logs=errors-only
 }
 # UI-only work: Biome on the files changed since origin/main (and not yet committed), typecheck of
 # @wren/ui and @wren/portal only, the portal's source guards, and the artifact match. No tests
@@ -196,7 +198,7 @@ ui() {
     echo "==> biome, changed files" &&
     { [ -z "$files" ] || pnpm -s biome check --no-errors-on-unmatched --files-ignore-unknown=true $files; } &&
     echo "==> typecheck @wren/ui @wren/portal" &&
-    pnpm turbo run typecheck --filter=@wren/ui --filter=@wren/portal --output-logs=errors-only &&
+    pnpm turbo run typecheck --filter=@wren/ui --filter=@wren/portal $TSC --output-logs=errors-only &&
     writes && sends && moved && edits && reads && libs && match
 }
 case "${1:-all}" in
