@@ -80,18 +80,16 @@ const PERF = {
 const PHASE = { id: "set-up", name: "Set up", from: 1, to: 2, deliverables: [], asks: [] };
 
 describe("defineOffer", () => {
-  it("accepts a well-formed offer", () => {
+  it("accepts a well-formed offer with a nested page", () => {
     expect(defineOffer(offer({ application: app })).id).toBe("test-offer");
+    expect(defineOffer(offer({ page: "/recruiting/lead-reactivation" })).page).toBe(
+      "/recruiting/lead-reactivation",
+    );
   });
   it("takes a performance price: setup, then per unit up to a cap", () => {
     expect(defineOffer(offer({ price: PERF })).price).toEqual(PERF);
     expect(defineOffer(offer({ price: { ...PERF, upfront: 0, cap: null } })).price.kind).toBe(
       "performance",
-    );
-  });
-  it("takes a nested page: the service, then the offer", () => {
-    expect(defineOffer(offer({ page: "/recruiting/lead-reactivation" })).page).toBe(
-      "/recruiting/lead-reactivation",
     );
   });
   it.each([
