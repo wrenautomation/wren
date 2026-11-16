@@ -4,6 +4,7 @@
  */
 import type { Speaker } from "@wren/ui/research/run";
 import type { BoardPage } from "./board.js";
+import type { PageTraits } from "./serve.js";
 
 /** One yes/no trait; null: unknown for that page (not counted on either side). */
 interface Trait {
@@ -81,11 +82,23 @@ function traits(pages: readonly BoardPage[], at: number): Trait[] {
       },
     },
   ];
+  // stored traits: over the run's median, or over 0 for a count most pages lack
+  const measured = MEASURED.flatMap(({ key, over, label }) => {
+    const known = pages.flatMap((p) => {
+      const v = p.d?.traits?.[key];
+      return v == null ? [] : [v];
+    });
+    if (!known.length) return [];
+    const m = over === "median" ? median(known) : 0;
+    const of = (p: BoardPage) => p.d?.traits?.[key];
+    return [{ id: `t:${key}`, label: label(round1(m)), test: (p: BoardPage) => below(m, of(p)) }];
+  });
   // one trait per platform and speaker the run met
   const platforms = new Set(pages.map((p) => p.r.platform));
   const speakers = new Set(pages.flatMap((p) => (p.d ? [p.d.speaker.value] : [])));
   return [
     ...fixed,
+    ...measured,
     ...[...platforms].map((k) => ({
       id: `on:${k}`,
       label: `are on ${PLATFORM_NAME[k] ?? k}`,
@@ -104,6 +117,29 @@ function traits(pages: readonly BoardPage[], at: number): Trait[] {
     }),
   ];
 }
+
+const MEASURED: {
+  key: keyof PageTraits;
+  over: "median" | "zero";
+  label: (m: number) => string;
+}[] = [
+  { key: "cutsPerMin", over: "median", label: (m) => `cut more than ${m} times a minute` },
+  { key: "wordsPerS", over: "median", label: (m) => `speak more than ${m} words a second` },
+  { key: "wordsPerCut", over: "median", label: (m) => `say more than ${m} words a cut` },
+  { key: "changePicks", over: "median", label: (m) => `change the picture more than ${m} times` },
+  { key: "pointsAtScreen", over: "zero", label: () => "point at the screen in words" },
+  { key: "onScreenLines", over: "zero", label: () => "show text on screen" },
+  { key: "words", over: "median", label: (m) => `run over ${m} words` },
+  { key: "tables", over: "zero", label: () => "have a table" },
+];
+
+function median(xs: number[]): number {
+  const s = [...xs].sort((a, b) => a - b);
+  const mid = s.length >> 1;
+  return s.length % 2 ? (s[mid] as number) : ((s[mid - 1] as number) + (s[mid] as number)) / 2;
+}
+
+const round1 = (x: number) => Math.round(x * 10) / 10;
 
 /** a < b; null when either is unknown */
 const below = (a: number | null | undefined, b: number | null | undefined) =>

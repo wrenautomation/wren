@@ -87,6 +87,20 @@ export interface RunDocument extends Who {
   judge?: Answers;
   verdict?: { quality: string; gap?: string };
   person?: string;
+  /** Countable facts from its stored text (weaver 0.80.0); a missing key = not known. */
+  traits?: PageTraits;
+}
+
+export interface PageTraits {
+  cutsPerMin?: number;
+  wordsPerS?: number;
+  wordsPerCut?: number;
+  changePicks?: number;
+  pointsAtScreen?: number;
+  /** absent on a skim: frames picked, not read */
+  onScreenLines?: number;
+  words?: number;
+  tables?: number;
 }
 
 export interface RunFinding extends Who {
