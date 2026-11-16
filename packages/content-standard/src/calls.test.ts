@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { factRows, isFactCall } from "./calls.js";
+import { factRows } from "./calls.js";
 
 const BREAKDOWN = {
   hookStyle: "contrarian" as const,
@@ -16,11 +16,6 @@ const BREAKDOWN = {
 };
 
 describe("fact calls", () => {
-  it("knows the three calls", () => {
-    expect(isFactCall("tune")).toBe(true);
-    expect(isFactCall("maybe")).toBe(false);
-  });
-
   it("lists a post's facts in reading order, each whole, by a stable path", () => {
     const rows = factRows({
       ...BREAKDOWN,

@@ -21,30 +21,23 @@ const ad = (o: Partial<LibraryAd> = {}): LibraryAd => ({
 });
 
 describe("isWinner", () => {
-  it("long runner while active", () => {
+  it("a long runner while active, or three versions of one creative", () => {
     expect(isWinner(ad({ daysRunning: 30 }))).toBe(true);
     expect(isWinner(ad({ daysRunning: 29 }))).toBe(false);
-  });
-  it("an ended long runner is no winner on days alone", () => {
+    // an ended long runner is no winner on days alone
     expect(isWinner(ad({ active: false, daysRunning: 90 }))).toBe(false);
-  });
-  it("three versions of one creative", () => {
     expect(isWinner(ad({ active: false, versions: 3 }))).toBe(true);
     expect(isWinner(ad({ versions: 2 }))).toBe(false);
   });
 });
 
 describe("adTitle", () => {
-  it("headline, else the first body line", () => {
+  it("headline, else the first body line; skips a DPA template line; no copy: the library id", () => {
     expect(adTitle(ad({ headline: "Hire in 48 hours" }))).toBe("Acme Staffing: Hire in 48 hours");
     expect(adTitle(ad({ body: "\n  Need staff?\nCall us" }))).toBe("Acme Staffing: Need staff?");
-  });
-  it("skips a DPA template line", () => {
     expect(adTitle(ad({ headline: "{{product.name}}", cards: [{ headline: "Card one" }] }))).toBe(
       "Acme Staffing: Card one",
     );
-  });
-  it("no copy: the library id", () => {
     expect(adTitle(ad({ advertiser: null }))).toBe("Ad: 100200300");
   });
 });
@@ -83,12 +76,11 @@ describe("page", () => {
     expect(adFactsSchema.parse(full)).toEqual(full);
     expect(md).toContain("Headline: H\nCTA: Apply");
     expect(md.trim().endsWith("hello")).toBe(true);
+    // no fence: null
+    expect(adFactsOf("## Copy\n\nx")).toBeNull();
   });
   it("an unknown format is null, not a bad enum", () => {
     expect(adFacts(ad({ format: "reels-magic" }), { speech: null, cuts: null }).format).toBeNull();
-  });
-  it("no fence: null", () => {
-    expect(adFactsOf("## Copy\n\nx")).toBeNull();
   });
   it("cards in the copy", () => {
     expect(adCopy(ad({ cards: [{ headline: "One", link: "https://x" }] }))).toBe(
