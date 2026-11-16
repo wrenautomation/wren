@@ -227,7 +227,6 @@ describe("commands", () => {
       "versions",
       "diff",
       "export",
-      "convert",
       "import",
       "start",
       "add-node",
@@ -527,47 +526,6 @@ describe("the metro model", () => {
     for (const ok of ["node", "edge", "line", "station", "track", "group", "frame", "flow"])
       expect(blameOnArg(ok)).toBe(ok);
     expect(() => blameOnArg("hub")).toThrow(InvalidArgumentError);
-  });
-
-  /** What `convert` reads from the database, in one piece. */
-  const reads = (versions: { number: number; body: StoredBody }[]) =>
-    (async () => ({ all: versions, ctx, open: new Map<string, number>() })) as never;
-
-  it("prints a version as a metro file and the report, without --write, and writes nothing", async () => {
-    const versions = [
-      { number: 1, body: graph },
-      { number: 2, body: graph },
-    ];
-    const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    const err = vi.spyOn(console, "error").mockImplementation(() => {});
-    process.exitCode = undefined;
-    await program({ withDb: reads(versions) }).parseAsync(["shape", "convert", "--version", "1"], {
-      from: "user",
-    });
-    const out = write.mock.calls.map((c) => String(c[0])).join("");
-    const report = err.mock.calls.map((c) => String(c[0]));
-    write.mockRestore();
-    err.mockRestore();
-    expect(out.startsWith("model: metro")).toBe(true);
-    // The file is alone on stdout, so a pipe stays a file; the report is on stderr.
-    expect(report).toContain("checks: ok");
-    expect(report).toContain("graph equal: yes");
-    expect(report).toContain("workflow equal: yes");
-    expect(report.some((l) => l.startsWith("deal rule signed: "))).toBe(true);
-    expect(process.exitCode).toBeUndefined();
-  });
-
-  it("says when the version is missing", async () => {
-    const err = vi.spyOn(console, "error").mockImplementation(() => {});
-    process.exitCode = undefined;
-    await program({ withDb: reads([{ number: 1, body: graph }]) }).parseAsync(
-      ["shape", "convert", "--version", "9"],
-      { from: "user" },
-    );
-    expect(err).toHaveBeenCalledWith(expect.stringContaining("no version 9"));
-    expect(process.exitCode).toBe(1);
-    process.exitCode = undefined;
-    err.mockRestore();
   });
 });
 
