@@ -49,8 +49,8 @@ await_gates() {
   local out t=0 newer
   while :; do
     out="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest" --jq '
-      [.jobs[] | select(.name == "lint" or .name == "schema")]
-      | if length < 2 or any(.status != "completed") then "wait"
+      [.jobs[] | select(.name == "lint" or .name == "unit" or .name == "schema")]
+      | if length < 3 or any(.status != "completed") then "wait"
         elif all(.conclusion == "success") then "pass"
         else "fail " + ([.[] | select(.conclusion != "success") | .name + "=" + .conclusion] | join(" ")) end')" || out=wait
     case "$out" in
@@ -62,7 +62,7 @@ await_gates() {
         --jq ".workflow_runs[0] | select(.id != $GITHUB_RUN_ID and .run_number > ${GITHUB_RUN_NUMBER:-0}) | .id")" || newer=
       [ -z "$newer" ] || { echo "::error::gates: run $newer is newer; it deploys"; return 1; }
     fi
-    [ $t -lt 1200 ] || { echo "::error::gates: no lint and schema result after 20 min"; return 1; }
+    [ $t -lt 1200 ] || { echo "::error::gates: no lint, unit and schema result after 20 min"; return 1; }
     sleep 2
     t=$((t + 2))
   done

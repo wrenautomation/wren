@@ -5,9 +5,9 @@ on:
 # Many sessions push to main: a newer push cancels the older run's checks, and deploy
 # follows the newest green one. The gates run side by side on turbo's remote cache, so a
 # package nobody touched is not retested. Deploy starts beside the gates: it builds while they
-# run and changes nothing live until lint and schema pass (deploy.sh await_gates). Unit,
-# integration and story tests report on their own and never hold a deploy: tests must not slow
-# the redesign (William, 10-27, WA-917). The deploy
+# run and changes nothing live until lint, unit and schema pass (deploy.sh await_gates). unit-ui
+# (portal, ui), integration and story tests report on their own while the redesign runs
+# (WA-917); unit holds again since 11-16 (WA-1397). The deploy
 # job is never cancelled: a newer run waits for it.
 # Runner: the repo variable WORK_RUNNER (`wren-work`) puts push and dispatch jobs on the work box
 # (designs/2026-11-10-work-box.md); unset, they run hosted. A pull request always runs hosted:
@@ -15,7 +15,7 @@ on:
 jobs:
   gates:
     strategy:
-      # No fail-fast: a red unit run must not cancel lint or schema, which hold the deploy.
+      # No fail-fast: a red gate must not cancel the others; each one reports.
       fail-fast: false
       matrix: { gate: [lint, unit, unit-ui, schema] }
     name: ${{ matrix.gate }}
