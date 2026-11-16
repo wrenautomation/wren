@@ -162,16 +162,12 @@ describe("launch", () => {
 
 describe("credentialBreach", () => {
   const init = (apiKeySource: string) => ({ type: "system", subtype: "init", apiKeySource });
-  it("plan wants none", () => {
+  it("plan wants none, key wants the env key, other frames pass", () => {
     expect(credentialBreach(init("none"), { kind: "plan" })).toBeNull();
     expect(credentialBreach(init("ANTHROPIC_API_KEY"), { kind: "plan" })).toMatch(/expects/);
     expect(credentialBreach(init("apiKeyHelper"), { kind: "plan" })).toMatch(/expects/);
-  });
-  it("key wants the env key", () => {
     expect(credentialBreach(init("ANTHROPIC_API_KEY"), { kind: "key", key: "k" })).toBeNull();
     expect(credentialBreach(init("none"), { kind: "key", key: "k" })).toMatch(/expects/);
-  });
-  it("ignores other frames", () => {
     expect(credentialBreach({ type: "assistant" }, { kind: "plan" })).toBeNull();
   });
 });
