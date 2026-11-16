@@ -361,10 +361,14 @@ const fakeContent = restate.service({
 });
 
 const prompts: string[] = [];
+// The slow draft lands only when the test lets it: past the planner's wait however loaded the runner is (WA-1402).
+const slowDrafts: (() => void)[] = [];
+const landSlowDrafts = () => {
+  for (const land of slowDrafts.splice(0)) land();
+};
 const llm = new FakeLlm({
   respond: async (prompt) => {
-    // A draft that outlasts the planner's wait, then lands.
-    if (prompt.includes("a slow idea")) await new Promise((r) => setTimeout(r, 2_500));
+    if (prompt.includes("a slow idea")) await new Promise<void>((r) => slowDrafts.push(r));
     calls += 1;
     prompts.push(prompt);
     const reddit = prompt.includes("a Reddit text post");
@@ -440,7 +444,8 @@ beforeAll(async () => {
         db: pg.db,
         zone: "UTC",
         notifier,
-        draftWaitMs: 1_500,
+        // wide: a normal draft never meets it on a loaded runner; the slow one waits on landSlowDrafts
+        draftWaitMs: 4_000,
         liveCampaigns: async () => campaigns,
       }),
     ],
@@ -448,10 +453,12 @@ beforeAll(async () => {
   });
 });
 afterAll(async () => {
+  landSlowDrafts();
   await env?.stop();
   await pg?.stop();
 });
 beforeEach(async () => {
+  landSlowDrafts();
   await truncate(pg.db, [
     "content_ideas",
     "content_drafts",
@@ -1714,8 +1721,9 @@ describe("daily drafts (PostPlan with draft on)", () => {
       timeouts?: { call: string; unit: string | null; held?: boolean }[];
     };
     const last = async () => (await planner().status()).last as Last;
-    // The late draft lands on its own; the idea is opened again, as if it had failed.
+    // The late draft lands; the idea is opened again, as if it had failed.
     const reopen = async () => {
+      landSlowDrafts();
       await vi.waitFor(
         async () => expect(await listDrafts(pg.db, { ideaId: slow.id })).not.toHaveLength(0),
         { timeout: 10_000, interval: 200 },
@@ -1726,7 +1734,7 @@ describe("daily drafts (PostPlan with draft on)", () => {
     const first = await last();
     expect(first.stats?.drafted).toEqual([]);
     expect(first.stats?.skipped).toEqual([
-      expect.stringMatching(/ContentDesk\/draft gave no answer in 2 s/),
+      expect.stringMatching(/ContentDesk\/draft gave no answer in 4 s/),
     ]);
     expect(first.timeouts).toMatchObject([{ call: "ContentDesk/draft", unit: `idea ${slow.id}` }]);
     // The next idea was never asked: it would have waited on the desk's lock.
