@@ -153,6 +153,11 @@ for (let i = 0; i < N; i++) {
     url,
     ...named,
     media: MEDIA[ch.site],
+    // picks run short and new, the rest longer and older: the board's splits have a gap to find
+    ...(video ? { length: i < PICKS ? 18 + ((i * 13) % 40) : 30 + ((i * 47) % 600) } : {}),
+    date: new Date(Date.UTC(2026, 10, 10) - (i < PICKS ? i : 5 + ((i * 11) % 200)) * 86_400_000)
+      .toISOString()
+      .slice(0, 10),
     // every ninth page has no picture: the tile falls back
     ...(i % 9 === 4 ? {} : { image: poster(i, ch.site === "tiktok" || ch.site === "instagram") }),
     chars: 1_200 + i * 53,

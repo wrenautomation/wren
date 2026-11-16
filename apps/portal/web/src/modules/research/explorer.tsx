@@ -207,12 +207,7 @@ export function WeaverPreview({ w, file }: { w: Whole; file?: ReactNode }) {
         <a href={doc.url} target="_blank" rel="noreferrer" className="self-start">
           {doc.media === "video" ? "Open the video" : "Open the page"}
         </a>
-        {w.body ? (
-          <section className="flex flex-col gap-2">
-            <h3 className="m-0 text-[13px] font-medium text-(--ui-ink-2)">The page as read</h3>
-            <Text text={w.body} />
-          </section>
-        ) : null}
+        {/* no page body: a wall of text on each move (William 11-16); the run's panel holds it */}
         <a href={runHref(run, `d:${doc.id}`)} className="self-start">
           Open in its run
         </a>

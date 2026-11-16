@@ -10,6 +10,7 @@ import { embedSite, youtubeId } from "../../embeds.js";
 import { GALLERY_DENSE, Tile, Where } from "../canon/gallery.js";
 import { atOf, usePicture } from "../canon/post-parts.js";
 import type { BriefPattern, PageSignals, ReadPick, RunDocument, RunView } from "./serve.js";
+import { pickSplits } from "./splits.js";
 import { host } from "./tree.js";
 
 type Link = (p: Record<string, string | null>) => string;
@@ -260,6 +261,96 @@ export function Wall({ pages, link }: { pages: readonly BoardPage[]; link: Link 
           Show all {shown.length}
         </Button>
       ) : null}
+    </section>
+  );
+}
+
+/** when the run began: its first search (the view has no start of its own) */
+function startOf(view: RunView): number {
+  const t = view.queries.map((q) => Date.parse(q.at)).filter((n) => !Number.isNaN(n));
+  return t.length ? Math.min(...t) : Date.now();
+}
+
+const pct = (x: { yes: number; of: number }) => Math.round((x.of ? x.yes / x.of : 0) * 100);
+
+/** One share as a bar on a 0 to 100 track; sweeps in from the left on first show (MO-3). */
+function ShareBar({
+  label,
+  x,
+  strong,
+}: {
+  label: string;
+  x: { yes: number; of: number };
+  strong?: boolean;
+}) {
+  const p = pct(x);
+  return (
+    <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2 text-[12.5px] tabular-nums">
+      <span className={strong ? "text-(--ui-ink)" : "text-(--ui-ink-3)"}>{label}</span>
+      <span className="h-1.5 overflow-hidden rounded-full bg-(--ui-hover)">
+        <span
+          className={cx(
+            "block h-full origin-left rounded-full transition-transform duration-300 ease-(--ui-ease) starting:scale-x-0 motion-reduce:transition-none",
+            strong ? "bg-(--chart-1)" : "bg-(--ui-ink-3)",
+          )}
+          style={{ width: `${p}%` }}
+        />
+      </span>
+      <span className={strong ? "text-(--ui-ink)" : "text-(--ui-ink-3)"}>
+        {p}%{" "}
+        <span className="text-(--ui-ink-3)">
+          ({x.yes} of {x.of})
+        </span>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Option E: what sets the picks apart from the rest, computed from the view (splits.ts). Each
+ * row: the line, picks against the rest as bars, the picks that have it.
+ */
+export function Splits({
+  view,
+  pages,
+  link,
+}: {
+  view: RunView;
+  pages: ReadonlyMap<string, BoardPage>;
+  link: Link;
+}) {
+  const rows = useMemo(() => pickSplits([...pages.values()], startOf(view)), [pages, view]);
+  if (!rows.length) return null;
+  return (
+    <section aria-labelledby="board-splits" className="grid gap-3">
+      <h3 id="board-splits" className="m-0 text-[15px] font-semibold">
+        What sets the picks apart
+      </h3>
+      <ul className="m-0 grid list-none gap-5 p-0 @min-[720px]/main:grid-cols-2 @min-[720px]/main:gap-x-8">
+        {rows.map((s) => (
+          <li key={s.id} className="grid min-w-0 content-start gap-2">
+            <p className="m-0 text-[14.5px] leading-[1.4] wrap-anywhere">
+              <span className="font-semibold tabular-nums">
+                {s.picks.yes} of {s.picks.of}
+              </span>{" "}
+              picks {s.label}
+            </p>
+            <div className="grid gap-1">
+              <ShareBar label="Picks" x={s.picks} strong />
+              <ShareBar label="Rest" x={s.rest} />
+            </div>
+            {s.on.length ? (
+              <ul aria-label="The picks" className="m-0 flex list-none flex-wrap gap-1.5 p-0">
+                {s.on.map((x) => (
+                  <li key={x.s.id}>
+                    <Thumb p={x} open={link({ open: `d:${x.s.id}` })} className="size-10" />
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

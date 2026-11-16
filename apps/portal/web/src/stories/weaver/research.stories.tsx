@@ -107,6 +107,7 @@ export const Board = story(
     await p.findByRole("list", { name: "Pages read" }, LATE);
     await p.findByText("Walk in with samples; the first order comes on the spot.");
     await p.findByRole("button", { name: "Show all 168" });
+    await p.findByRole("heading", { name: "What sets the picks apart" });
   },
   [http.get(`${SERVE}/runs/rb`, () => HttpResponse.json({ ...BOARD_VIEW, run: "rb" })), ...SERVED],
 );

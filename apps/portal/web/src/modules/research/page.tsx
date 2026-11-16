@@ -28,7 +28,7 @@ import { GALLERY, Ghosts, Tile } from "../canon/gallery.js";
 import { PostDetail } from "../canon/post-detail.js";
 import { QUIET } from "../work/bits.js";
 import { RowsPanel } from "../work/rows-panel.js";
-import { boardPages, Patterns, Wall } from "./board.js";
+import { boardPages, Patterns, Splits, Wall } from "./board.js";
 import { RunsCanvas } from "./canvas.js";
 import {
   type Moment,
@@ -711,6 +711,7 @@ function References({
           <p className={cx("m-0 text-[13px]", QUIET)}>The agent has not picked pages yet.</p>
         )}
       </section>
+      <Splits view={view} pages={pages} link={link} />
       <Patterns view={view} pages={pages} link={link} />
       <Wall pages={rest} link={link} />
       {opened !== undefined ? (
