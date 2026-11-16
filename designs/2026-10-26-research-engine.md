@@ -1572,3 +1572,14 @@ Decision:
 - Plan files keep every version (`plans/<kind>/v<n>.json`). `learn --versions` lists them, and `learn --back <v>` restores one as the next version.
 - A rule change is a trial until the next run of the kind proves it. Compare kept findings per read, thin facets and cost against the last run on the old version. If it did worse, go `--back`. Change one thing per version. Build changes from failures first, at about 3:1. These are skill rules, not code: our runs have no automatic score.
 - Not taken: auto-written layers and code helpers. They regress past depth 2, and they need an automatic scorer we lack.
+
+## 11-15: X search and follow, faster video reads, the read list (engine 0.78.0–0.79.1)
+
+William asked for X search "asap", faster video reads at full concurrency, an X creator's posts in follow, and a read list the agent ranks ("based on all the signals is this a good video to look at").
+
+Decision:
+- Source `x`, only as the account `WEAVER_ACCOUNTS` names (`x=x@wren`). Search: the desk's `GET /web/search` (autobrowse 34db8c5), 100 posts a search, 60 searches a day, so only a query pinned to x.com. A preset maps to `product` (top, latest) plus a `since:` operator. Follow: a profile's or a status's author's own posts through the creator reader (`/web/{u}/posts`), 100 at most; `--since` and `--q` filter that one read. Each hit keeps the tweet whole as `data`.
+- Video reads behind `READ_PROXY` skip the serial queue. The per-site caps in hosts.ts set the pace (YouTube 6). The serial queue caused the 208 s median wait before a YouTube open.
+- Read list: `add pick --rank <n>`, 1 best. The latest pick per page holds. The brief gains `readList` (ranked, then unranked, each with its why) and `unpicked` (read pages off the list). Both show the signals: score, kept and dropped findings, quality verdict. The agent ranks; the engine only orders by its ranks. Skill step 7: rank before `stop` on a content ask.
+- Not taken: a new record type for the ordered list. Picks already mean "worth it" and promote reads them; a rank field kept one seam. A re-pick moves a page; a dropped page keeps its old rank until re-picked.
+- weaver serve had been stuck on 0.68.1. It runs 0.79.1 now with the shim. A release repoints both.
