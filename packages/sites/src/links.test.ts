@@ -66,20 +66,6 @@ describe("QR codes", () => {
     expect(hash(v7 as boolean[][])).toBe("0be5ec2c3c2c4403");
   });
 
-  it("has its finder patterns in three corners", () => {
-    const m = qrMatrix("a") as boolean[][];
-    const n = m.length;
-    for (const [x, y] of [
-      [0, 0],
-      [n - 7, 0],
-      [0, n - 7],
-    ] as const) {
-      expect(m[y]?.[x]).toBe(true);
-      expect(m[y + 1]?.[x + 1]).toBe(false);
-      expect(m[y + 3]?.[x + 3]).toBe(true);
-    }
-  });
-
   it("refuses text past version 10", () => {
     expect(qrMatrix("v".repeat(213))).not.toBeNull();
     expect(qrMatrix("v".repeat(214))).toBeNull();

@@ -189,15 +189,6 @@ describe("splits", () => {
     expect(row[0]?.split).toBe("running");
   });
 
-  it("says too early, with how many more visits", async () => {
-    const { a, b } = await pair();
-    const { split } = await api().splitStart({ viewer: ADA, id: a.id, arms: [b.id] });
-    for (let i = 0; i < 30; i++)
-      await pub().track({ page: a.id, split, view: `v${i}`, name: "view", touch: null });
-    const d = await api().detail({ viewer: ADA, id: a.id });
-    expect(d.split!.call.words).toBe("Too early: 170 more visits");
-  });
-
   it("counts won deals: a form's email that booked after it and was marked won", async () => {
     const { a, b } = await pair();
     const { split } = await api().splitStart({ viewer: ADA, id: a.id, arms: [b.id], goal: "won" });

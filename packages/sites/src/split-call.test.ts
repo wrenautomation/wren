@@ -11,9 +11,6 @@ describe("splitCall", () => {
     expect(call.more).toBe(MIN_VISITS - 40 + MIN_VISITS - 80);
     expect(call.words).toBe("Too early: 80 more visits");
     expect(call.leader).toBeNull();
-  });
-
-  it("says one visit, not one visits", () => {
     expect(
       splitCall([
         { label: "A", visits: 99, goals: 0 },

@@ -203,9 +203,7 @@ describe("tracking and forms", () => {
       async () => ({ status: 202 }),
     );
     expect(res.status).toBe(202);
-    const [e] = await pg.db.execute<{ id: string; pages: unknown }>(
-      sql`select id, pages from site_forms`,
-    );
+    const [e] = await pg.db.execute<{ pages: unknown }>(sql`select pages from site_forms`);
     expect(e?.pages).toEqual([
       { path: "/", at: 1790000000000 },
       { path: "/pricing", at: 1790000060000 },
@@ -214,7 +212,7 @@ describe("tracking and forms", () => {
     const [l] = await pg.db.execute<{ summary: string; body: string; link: string }>(
       sql`select summary, body, link from profile_timeline where kind = 'form'`,
     );
-    expect(l?.link).toBe(`/people/submissions/${e?.id}`);
+    expect(l?.link).toBeNull(); // form lines link nowhere since WA-1067
     expect(l?.body).toContain("Pages seen first: /, /pricing");
     // A bad list loses nothing: the form is kept without one.
     await withOpen.form(

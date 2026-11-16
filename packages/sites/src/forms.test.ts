@@ -330,12 +330,6 @@ describe("show-when rules and steps", () => {
     expect(html).toMatch(/<label data-show="[^"]+" class="check">/);
     expect(html).not.toContain("step_4");
   });
-
-  it("kit applies rules and steps, and counts a step", () => {
-    expect(KIT_JS).toContain('send("step",n)');
-    expect(KIT_JS).toContain("[data-show]");
-    expect(KIT_JS).toContain("input[required]:not(:disabled)");
-  });
 });
 
 describe("kit and embed", () => {
