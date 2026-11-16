@@ -45,7 +45,7 @@ describe("call recordings", () => {
       channel: "calendar",
       source: "call_recordings",
       sourceId: "7",
-      link: "/calendar/recordings/7",
+      link: "/today/recordings/7",
     });
     expect(line.summary).toBe(`Call recorded, 30 min: ${NOTES.summary}`);
     expect(line.body).toContain("Needs\n- More calls in winter");
