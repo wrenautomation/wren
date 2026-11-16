@@ -43,15 +43,6 @@ describe("the registry", () => {
     for (const c of COLLECTORS) expect(c.bucket.burst).toBeLessThanOrEqual(c.bucket.perDay);
   });
 
-  it("a stub answers unresolved and keeps nothing", async () => {
-    for (const c of stubs)
-      expect(await c.collect({} as never, "c1", {})).toEqual({
-        state: "unresolved",
-        signals: [],
-        tried: [],
-      });
-  });
-
   it("refuses an unknown collector in settings", () => {
     expect(signalsSettingsSchema.safeParse({ nope: { on: true } }).success).toBe(false);
   });

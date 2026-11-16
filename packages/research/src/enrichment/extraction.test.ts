@@ -24,15 +24,9 @@ describe("parseExtraction", () => {
     expect(result.people).toEqual([]);
   });
 
-  it("no json is a reason string", () => {
+  it("no json, malformed json or a wrong shape is a reason string", () => {
     expect(typeof parseExtraction("I could not find any people on this page.")).toBe("string");
-  });
-
-  it("malformed json is a reason string", () => {
     expect(typeof parseExtraction('{"people": [')).toBe("string");
-  });
-
-  it("wrong shape is a reason string", () => {
     expect(typeof parseExtraction('{"people": ["just a string"]}')).toBe("string");
   });
 

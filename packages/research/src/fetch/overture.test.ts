@@ -39,16 +39,13 @@ const fetcherAnswering = (status: number, body: string, seen: string[] = []) =>
   });
 
 describe("parseReleases", () => {
-  it("dated release prefixes only, newest first", () => {
+  it("dated release prefixes only, newest first; none is empty", () => {
     expect(parseReleases(LISTING_XML)).toEqual([
       "2025-09-24.0",
       "2025-08-20.1",
       "2025-08-20.0",
       "2025-07-23",
     ]);
-  });
-
-  it("a listing with no releases is empty", () => {
     expect(parseReleases("<ListBucketResult></ListBucketResult>")).toEqual([]);
   });
 });

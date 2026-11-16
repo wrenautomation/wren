@@ -99,6 +99,8 @@ describe("findBoards: token parsing", () => {
       "https://www.bamboohr.com/applicant-tracking-system/",
       "https://marketplace.bamboohr.com/",
       "https://api.lever.co/v0/postings/x",
+      "https://api.lever.co/v0/",
+      "https://apply.workable.com/api/v1/",
       "https://jobs.ashbyhq.com/api/non-user-graphql",
     ].join(" ");
     expect(findBoards(marketing)).toEqual([]);

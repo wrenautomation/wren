@@ -103,7 +103,7 @@ describe("groundOpener", () => {
     });
   });
 
-  it("rejects exclamation, question, em dash, en dash and spaced hyphen as style", () => {
+  it("rejects exclamation, question, every dash, spaced hyphen and a line break as style", () => {
     const quote = "places nurses in Tulsa hospitals";
     for (const line of [
       "You place nurses in Tulsa hospitals!",
@@ -111,22 +111,14 @@ describe("groundOpener", () => {
       "You place nurses — in Tulsa hospitals.",
       "You place nurses – in Tulsa hospitals.",
       "You place nurses - in Tulsa hospitals.",
+      "You place nurses ― in Tulsa hospitals.",
+      "You place nurses -- in Tulsa hospitals.",
+      "You place nurses.\nIn Tulsa hospitals.",
     ]) {
       expect(groundOpener(propose(line, quote), PAGES), line).toEqual({
         opener: null,
         rejected: "style",
       });
-    }
-  });
-
-  it("rejects the other dashes and a line break as style", () => {
-    const quote = "places nurses in Tulsa hospitals";
-    for (const line of [
-      "You place nurses ― in Tulsa hospitals.",
-      "You place nurses -- in Tulsa hospitals.",
-      "You place nurses.\nIn Tulsa hospitals.",
-    ]) {
-      expect(groundOpener(propose(line, quote), PAGES).rejected, line).toBe("style");
     }
   });
 
@@ -324,20 +316,15 @@ describe("groundOpener", () => {
     expect(r.rejected).toBeNull();
   });
 
-  it("strips a straight possessive before looking the name up", () => {
-    const r = groundOpener(
-      propose("You place nurses in Tulsa's hospitals.", "places nurses in Tulsa hospitals"),
-      PAGES,
-    );
-    expect(r.rejected).toBeNull();
-  });
-
-  it("strips a curly possessive before looking the name up", () => {
-    const r = groundOpener(
-      propose("You place nurses in Tulsa’s hospitals.", "places nurses in Tulsa hospitals"),
-      PAGES,
-    );
-    expect(r.rejected).toBeNull();
+  it("strips a straight or curly possessive before looking the name up", () => {
+    for (const line of [
+      "You place nurses in Tulsa's hospitals.",
+      "You place nurses in Tulsa’s hospitals.",
+    ])
+      expect(
+        groundOpener(propose(line, "places nurses in Tulsa hospitals"), PAGES).rejected,
+        line,
+      ).toBeNull();
   });
 
   it("does not count a name that only appears inside a longer word", () => {

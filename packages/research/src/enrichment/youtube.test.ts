@@ -74,16 +74,11 @@ describe("reads", () => {
     expect(api.calls[0]?.query.forHandle).toBe("@examplestaffing");
     expect(c).toMatchObject({ title: "Example Staffing", subscribers: 120, videos: 14 });
     expect(c?.uploads).toBe("UUabcdefghijklmnopqrstuv");
-    expect(await readChannel(fakeApi({ channels: {} }).get, { by: "id", value: "x" })).toBeNull();
-  });
-
-  it("asks for every part, and keeps the channel's whole answer", async () => {
-    const api = fakeApi({ channels: CHANNEL });
-    const c = await readChannel(api.get, { by: "id", value: "UCabcdefghijklmnopqrstuv" });
     expect(api.calls[0]?.query.part?.split(",")).toEqual(
       expect.arrayContaining(["brandingSettings", "topicDetails", "status", "localizations"]),
     );
     expect(c?.raw).toBe(CHANNEL.items[0]);
+    expect(await readChannel(fakeApi({ channels: {} }).get, { by: "id", value: "x" })).toBeNull();
   });
 
   it("uploads newest first, gone videos dropped, a 404 playlist is none", async () => {

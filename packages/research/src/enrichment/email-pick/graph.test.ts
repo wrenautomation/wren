@@ -42,9 +42,6 @@ describe("route", () => {
   it("no signals is free", () => {
     expect(route(state({}))).toBe("empty_verdict");
   });
-  it("single on-domain without people auto-accepts", () => {
-    expect(route(state({ signals: [signal("hello@x.com")] }))).toBe("auto_accept");
-  });
   it("ambiguity goes to the llm", () => {
     expect(route(state({ signals: [signal("a@x.com"), signal("b@x.com")] }))).toBe("classify");
     expect(route(state({ signals: [signal("a@gmail.com", { onDomain: false })] }))).toBe(

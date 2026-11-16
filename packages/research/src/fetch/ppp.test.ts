@@ -64,9 +64,6 @@ describe("parsePppFileLinks", () => {
         release: "230930",
       },
     ]);
-  });
-
-  it("a page with no loan links is empty", () => {
     expect(parsePppFileLinks("<html></html>")).toEqual([]);
   });
 });

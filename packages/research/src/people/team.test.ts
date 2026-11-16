@@ -10,10 +10,8 @@ const p = (
 ): TeamProfile => ({ name, url, headline: null, roles });
 
 describe("teamQuery", () => {
-  it("searches the firm's bare name", () => {
+  it("searches the firm's bare name; none worth a search is not searched", () => {
     expect(teamQuery(firm)).toBe("Acme Staffing");
-  });
-  it("a firm with no name worth a search is not searched", () => {
     expect(teamQuery({ name: "AB", domain: null })).toBeNull();
   });
 });

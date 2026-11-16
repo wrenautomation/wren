@@ -285,10 +285,11 @@ describe("runProfiles", () => {
   });
 
   it("the LinkedIn alt reads only when set; its cap stops LinkedIn, not the stage", async () => {
+    // Site `linkedin` only: the company step reads `linkedin-pages` (WA-1113).
     const { jane, bob, ann } = await seed();
     const off = fakeSites(routes());
     await run(off.sites, [bob]);
-    expect(off.keys().filter((k) => k.startsWith("linkedin"))).toEqual([]);
+    expect(off.keys().filter((k) => k.startsWith("linkedin "))).toEqual([]);
 
     await truncate(db(), ["person_lookups", "company_lookups"]);
     const ledger = await openRun(db(), { command: PROFILES_COMMAND, argv: {} });
@@ -313,7 +314,7 @@ describe("runProfiles", () => {
     });
     expect(stats.stopped).toBeNull();
     expect(stats.people_matched + stats.people_unresolved).toBe(2);
-    const li = capped.calls.filter((c) => c.key.startsWith("linkedin"));
+    const li = capped.calls.filter((c) => c.key.startsWith("linkedin "));
     expect(li).toHaveLength(1);
     expect(await profilesParkedUntil(db())).toBeNull();
     expect((await linkedinParkedUntil(db()))?.getTime()).toBeGreaterThan(Date.now());
@@ -323,7 +324,7 @@ describe("runProfiles", () => {
     const next = fakeSites(routes());
     const later = await run(next.sites, [ann], { linkedin: "alt@example.com" });
     expect(later.stopped).toBeNull();
-    expect(next.keys().filter((k) => k.startsWith("linkedin"))).toEqual([]);
+    expect(next.keys().filter((k) => k.startsWith("linkedin "))).toEqual([]);
   });
 
   it("a failed Exa read stops the run at that person; nobody after is asked", async () => {

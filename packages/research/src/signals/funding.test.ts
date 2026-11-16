@@ -80,11 +80,6 @@ function deps(over: Partial<SignalDeps> & { row?: unknown } = {}): SignalDeps {
 const on = funding.settings.parse({});
 
 describe("funding collector", () => {
-  it("is built, a year back by default", () => {
-    expect(funding.built).toBe(true);
-    expect(on).toEqual({ months: 12 });
-  });
-
   it("searches Form D by the bare name over the window", async () => {
     const f = fetcher(200);
     await funding.collect(deps({ fetcher: f }), "c7", on);

@@ -114,18 +114,7 @@ describe("extraction", () => {
     expect((await runExtraction(db(), llm)).selected).toBe(0);
   });
 
-  it("parse failure is persisted not applied", async () => {
-    await crawledCompany();
-    await runExtraction(db(), new FakeLlm({ default: "no json here, sorry" }));
-    const failed = await db()
-      .select()
-      .from(enrichments)
-      .where(sql`${enrichments.output}->>'parse_error' IS NOT NULL`);
-    expect(failed.length).toBeGreaterThan(0);
-    expect((await applyExtractions(db())).enrichments_applied).toBe(0);
-  });
-
-  it("parse failure is retried next run and success then caches", async () => {
+  it("parse failure is persisted not applied, retried next run, and success then caches", async () => {
     await crawledCompany();
     const first = await runExtraction(
       db(),
@@ -133,6 +122,12 @@ describe("extraction", () => {
     );
     expect(first.selected).toBeGreaterThan(0);
     expect(first.parse_errors).toBe(first.selected);
+    const failed = await db()
+      .select()
+      .from(enrichments)
+      .where(sql`${enrichments.output}->>'parse_error' IS NOT NULL`);
+    expect(failed).toHaveLength(first.selected);
+    expect((await applyExtractions(db())).enrichments_applied).toBe(0);
     const second = await runExtraction(db(), new FakeLlm({ default: EXTRACTION_JSON }));
     expect(second.selected).toBe(first.selected);
     expect(second.extracted).toBe(second.selected);

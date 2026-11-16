@@ -94,7 +94,7 @@ describe("youtubeSearchUnit", () => {
       throw err;
     };
 
-  it("spent units stop the pass; another API error skips the search", async () => {
+  it("spent units stop the pass; another API error skips the search; a non-API error is thrown", async () => {
     const stats = emptyYouTubeSearchStats();
     const quota = await youtubeSearchUnit(
       db,
@@ -113,9 +113,6 @@ describe("youtubeSearchUnit", () => {
     expect(bad.outcome).toBe("error");
     expect(countYouTubeSearchUnit(stats, bad)).toBeNull();
     expect(stats.errors).toBe(1);
-  });
-
-  it("anything that isn't the API's error is thrown", async () => {
     await expect(
       youtubeSearchUnit(db, failing(new Error("network")), { q: "a", niche: "n" }),
     ).rejects.toThrow("network");

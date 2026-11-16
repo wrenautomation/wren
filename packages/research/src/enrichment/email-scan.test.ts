@@ -58,18 +58,15 @@ describe("scanPage", () => {
     expect(scan(html).map((s) => s.email)).toEqual(["real.person@acme.com"]);
   });
 
-  it("on_domain is www- and subdomain-blind", () => {
+  it("on_domain is www- and subdomain-blind; no company domain means off-domain", () => {
     const s = byEmail(scan("<p>a@acme.com b@www.acme.com c@mail.acme.com d@other.com</p>"));
     expect(s.get("a@acme.com")?.on_domain).toBe(true);
     expect(s.get("b@www.acme.com")?.on_domain).toBe(true);
     expect(s.get("c@mail.acme.com")?.on_domain).toBe(true);
     expect(s.get("d@other.com")?.on_domain).toBe(false);
-  });
-
-  it("no company domain means off-domain", () => {
-    const s = scan("<p>a@acme.com</p>", null);
-    expect(s).toHaveLength(1);
-    expect(s[0]?.on_domain).toBe(false);
+    const none = scan("<p>a@acme.com</p>", null);
+    expect(none).toHaveLength(1);
+    expect(none[0]?.on_domain).toBe(false);
   });
 
   it("case folding dedupes", () => {

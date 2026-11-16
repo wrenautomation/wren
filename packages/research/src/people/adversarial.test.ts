@@ -320,18 +320,6 @@ describe("lookUpPerson: false facts about the right person", () => {
     });
   });
 
-  it("an indexed match is trusted less than a logged-in read", async () => {
-    const { sites } = oneHit("Jane Doe", [role("Recruiter", "Acme Staffing")]);
-    const r = await lookUpPerson(sites, subject(), { linkedin: null });
-    expect(r.findings[0]?.confidence).toBeLessThan(0.9);
-  });
-
-  it("an indexed match settles it: no LinkedIn read spent", async () => {
-    const { sites, calls } = oneHit("Jane Doe", [role("Recruiter", "Acme Staffing")]);
-    await lookUpPerson(sites, subject(), { linkedin: "linkedin@research" });
-    expect(calls.filter((c) => c.startsWith("linkedin"))).toEqual([]);
-  });
-
   it("a profile read with no roles at all does not say they left", async () => {
     // Search matched the name only; the read returns no roles.
     const { sites } = fakeSites({

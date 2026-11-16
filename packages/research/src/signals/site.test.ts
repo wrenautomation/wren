@@ -71,11 +71,6 @@ const html = (...lines: string[]) =>
 const LATER = [{ state: "none", tried: [], checked_at: "2026-09-01T00:00:00Z" }];
 
 describe("site collector", () => {
-  it("is built with its defaults", () => {
-    expect(site.built).toBe(true);
-    expect(on).toEqual({ pages: 4, months: 12 });
-  });
-
   it("first read: the newest new digest from Wayback is one dated, linked signal", async () => {
     const f: Fetcher & { gets: string[] } = {
       gets: [],

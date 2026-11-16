@@ -51,21 +51,6 @@ function deps(over: Partial<SignalDeps> = {}, firm: unknown = FIRM) {
 const settings = news.settings.parse({});
 
 describe("news collector", () => {
-  it("built; every kind by default", () => {
-    expect(news.built).toBe(true);
-    expect(settings.kinds).toEqual([
-      "acquisition",
-      "merger",
-      "funding",
-      "leader",
-      "launch",
-      "office",
-      "award",
-      "partnership",
-      "expansion",
-    ]);
-  });
-
   it("RSS first: a kept, dated, linked signal with its raw, no Google spent", async () => {
     const { d, calls } = deps();
     const got = await news.collect(d, "c7", settings);

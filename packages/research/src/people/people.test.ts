@@ -23,9 +23,12 @@ describe("sameName", () => {
 });
 
 describe("firms", () => {
-  it("reads a domain's label", () => {
+  it("reads a domain's registrable label under any public suffix, private ones too", () => {
     expect(domainLabel("acme-staffing.co.uk")).toBe("acme staffing");
     expect(domainLabel("www.globex.com")).toBe("globex");
+    expect(domainLabel("acme.on.ca")).toBe("acme");
+    expect(domainLabel("acme-staffing.myshopify.com")).toBe("acme staffing");
+    expect(domainLabel("careers.acme.com.br")).toBe("acme");
   });
   it("sameCompany", () => {
     expect(sameCompany("The Acme Group, Inc.", "Acme Group")).toBe(true);
@@ -317,13 +320,5 @@ describe("lookUpPerson", () => {
     const r = await lookUpPerson(sites, subject({ lastName: null }), { linkedin: null });
     expect(r.state).toBe("unresolved");
     expect(calls).toEqual([]);
-  });
-});
-
-describe("domainLabel by the public suffix list", () => {
-  it("reads the registrable label under any suffix, private ones too", () => {
-    expect(domainLabel("acme.on.ca")).toBe("acme");
-    expect(domainLabel("acme-staffing.myshopify.com")).toBe("acme staffing");
-    expect(domainLabel("careers.acme.com.br")).toBe("acme");
   });
 });

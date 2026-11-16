@@ -66,11 +66,7 @@ describe("siteName", () => {
     expect(
       siteName("<title>Recruitment Agency for Startups</title>", "northside.example"),
     ).toBeNull();
-  });
-});
-
-describe("siteName on a subdomain", () => {
-  it("matches the title to the registrable label, not the first one", () => {
+    // A subdomain: the registrable label, not the first one.
     expect(
       siteName("<title>Jobs | Northside Talent</title>", "careers.northsidetalent.co.uk"),
     ).toBe("Northside Talent");

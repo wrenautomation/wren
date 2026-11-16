@@ -3,12 +3,10 @@ import { describe, expect, it } from "vitest";
 import { domainOf, FETCH_TIER_DAYS, shouldWrite } from "./tier-memory.js";
 
 describe("domainOf", () => {
-  it("lowercases the host and drops a leading www.", () => {
+  it("lowercases the host and drops a leading www.; null for a non-URL", () => {
     expect(domainOf("https://WWW.Example.COM/a?b=1")).toBe("example.com");
     expect(domainOf("http://shop.example.com:8080/")).toBe("shop.example.com");
     expect(domainOf("https://wwwx.example.com")).toBe("wwwx.example.com");
-  });
-  it("is null for a string that is not a URL", () => {
     expect(domainOf("not a url")).toBeNull();
   });
 });

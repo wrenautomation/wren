@@ -8,10 +8,8 @@ const resp = {
 };
 
 describe("pageRow", () => {
-  it("records a plain fetch as httpx", () => {
+  it("records a plain fetch as httpx; a cached page keeps its tier", () => {
     expect(pageRow(1, "https://a.example/", resp)).toMatchObject({ fetchTier: "httpx" });
-  });
-  it("keeps the tier of a page served from the shared cache", () => {
     expect(pageRow(1, "https://a.example/", { ...resp, tier: "render" })).toMatchObject({
       fetchTier: "render",
     });

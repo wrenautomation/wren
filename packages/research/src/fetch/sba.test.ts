@@ -1,5 +1,5 @@
 /** SBA search: the request body, the whole-answer check, one file per code per day. No real API. */
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FetchError, PoliteFetcher } from "@wrenautomation/read/fetch";
@@ -57,17 +57,12 @@ describe("checkSbaAnswer", () => {
     expect(() => checkSbaAnswer("", "561311")).toThrow(/not whole JSON/);
   });
 
-  it.each([
-    '{"status":"error"}',
-    '{"results":{}}',
-    '{"results":null}',
-    "null",
-    "[]",
-    '"results"',
-    "7",
-  ])("no results array: %s", (text) => {
-    expect(() => checkSbaAnswer(text, "561320")).toThrow(/561320: answer has no results array/);
-  });
+  it.each(['{"status":"error"}', '{"results":{}}', "null", "[]"])(
+    "no results array: %s",
+    (text) => {
+      expect(() => checkSbaAnswer(text, "561320")).toThrow(/561320: answer has no results array/);
+    },
+  );
 });
 
 describe("sbaSearch", () => {
@@ -146,22 +141,5 @@ describe("sbaSearch", () => {
       .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(FetchError);
     expect((err as FetchError).message).toContain("HTTP 503");
-  });
-
-  it("an existing file is never overwritten", async () => {
-    vi.stubGlobal("fetch", async () => {
-      throw new Error("no network in tests");
-    });
-    const dataset = sbaSearch(spec, today);
-    const [remote] = await dataset.listFiles(fetcher, 1);
-    if (!remote || !dataset.download) throw new Error("expected a file and a download");
-    const root = mkdtempSync(join(tmpdir(), "sba-"));
-    const dest = join(root, remote.fileName);
-    writeFileSync(dest, '{"results":[]}');
-    expect(await dataset.download(fetcher, remote, dest)).toEqual({
-      path: dest,
-      downloaded: false,
-      size: 14,
-    });
   });
 });

@@ -6,14 +6,10 @@ import { gatePage, registryDigits } from "./gate.js";
 const GENERIC = new Set(["wealth", "management", "advisors", "capital"]);
 
 describe("nameTokens", () => {
-  it("drops legal suffixes and stopwords", () =>
-    expect(nameTokens("The Acme Wealth Management, LLC")).toEqual([
-      "acme",
-      "wealth",
-      "management",
-    ]));
-  it("ampersand reads as 'and' and is dropped", () =>
-    expect(nameTokens("Smith & Jones Capital")).toEqual(["smith", "jones", "capital"]));
+  it("drops legal suffixes and stopwords; ampersand reads as 'and' and is dropped", () => {
+    expect(nameTokens("The Acme Wealth Management, LLC")).toEqual(["acme", "wealth", "management"]);
+    expect(nameTokens("Smith & Jones Capital")).toEqual(["smith", "jones", "capital"]);
+  });
 });
 
 describe("domainCandidates", () => {

@@ -53,6 +53,7 @@ describe("captures", () => {
       read: 1,
       added: 1,
     });
+    expect(await keepSaved(db(), "william", "x-bookmarks", [])).toEqual({ read: 0, added: 0 });
   });
 
   it("files a row out of the queue and stops a row after the retry limit", async () => {
@@ -64,9 +65,5 @@ describe("captures", () => {
     expect(await captureCounts(db(), "william")).toEqual([
       { source: "instagram-saved", read: 2, filed: 1, waiting: 0, failed: 1 },
     ]);
-  });
-
-  it("reads nothing for an empty answer", async () => {
-    expect(await keepSaved(db(), "william", "x-bookmarks", [])).toEqual({ read: 0, added: 0 });
   });
 });

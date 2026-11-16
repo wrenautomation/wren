@@ -83,11 +83,6 @@ describe("findBoards", () => {
     ]);
   });
 
-  it("skips the ATS's own pages", () => {
-    expect(findBoards("https://www.workable.com/ https://api.lever.co/v0/")).toEqual([]);
-    expect(findBoards("https://apply.workable.com/api/v1/")).toEqual([]);
-  });
-
   it("builds the public API url", () => {
     const [b] = findBoards("https://jobs.ashbyhq.com/Acme%20Staffing");
     expect(b?.api).toBe("https://api.ashbyhq.com/posting-api/job-board/Acme%20Staffing");

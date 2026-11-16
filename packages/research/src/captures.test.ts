@@ -48,6 +48,11 @@ describe("x bookmarks", () => {
       author: "example_author",
     });
     expect(xHasVideo(s?.raw)).toBe(false);
+    const video = {
+      ...tweet,
+      legacy: { ...tweet.legacy, extended_entities: { media: [{ type: "video" }] } },
+    };
+    expect(xHasVideo(video)).toBe(true);
     const src = xSource(s?.raw, s?.url ?? "", "2026-11-12");
     expect(src.name).toBe("x-100.md");
     expect(src.md).toContain('title: "@example_author: First line here"');
@@ -69,14 +74,6 @@ describe("x bookmarks", () => {
     const md = xSource(long, "https://x.com/a/status/100", "2026-11-12").md;
     expect(md).toContain("The whole long text");
     expect(md).toContain("## Article: A title\n\nPreview\n\nhttps://x.com/i/article/7");
-  });
-
-  it("knows a video", () => {
-    const v = {
-      ...tweet,
-      legacy: { ...tweet.legacy, extended_entities: { media: [{ type: "video" }] } },
-    };
-    expect(xHasVideo(v)).toBe(true);
   });
 
   it("skips an item with no id", () => {

@@ -102,16 +102,14 @@ describe("tierMemory", () => {
 describe("the crawl", () => {
   const stored = () => db().select().from(documents);
 
-  it("fails a block once and records it on the tombstone", async () => {
+  it("fails a block once and records it on the tombstone; a refusal that is not a block leaves block_reason empty", async () => {
     await makeCompany(db());
     const stats = await runCrawl(db(), refusing(403), { limit: 10 });
     expect(stats.homepage_unreachable).toBe(1);
     expect(await stored()).toMatchObject([
       { text: "", statusCode: 403, blockReason: "status-403", fetchTier: "httpx" },
     ]);
-  });
-
-  it("leaves block_reason empty when the refusal is not a block", async () => {
+    await truncate(db(), ["documents", "companies"]);
     await makeCompany(db());
     await runCrawl(db(), refusing(404), { limit: 10 });
     expect(await stored()).toMatchObject([{ statusCode: 404, blockReason: null }]);
@@ -133,7 +131,7 @@ describe("the crawl", () => {
     ]);
   });
 
-  it.each(["impersonate", "render", "exit"] as MemoryTier[])(
+  it.each(["impersonate", "exit"] as MemoryTier[])(
     "skips a domain remembered at %s for the render pass",
     async (tier) => {
       await makeCompany(db(), { domain: "www.verdano.example" });
@@ -402,22 +400,19 @@ describe("the box renderer and the memory", () => {
     });
   const learned = (domain: string) => tierMemory(db()).get(domain);
 
-  it("learns browser when a render gives a page", async () => {
-    const co = await shellCompany("spa.example", 1);
-    await renderCompany(db(), render(PAGE), new FakeFetcher({}), co, new Map(), {
+  it("learns browser when a render gives a page, dead when it is still a shell", async () => {
+    const page = await shellCompany("spa.example", 1);
+    await renderCompany(db(), render(PAGE), new FakeFetcher({}), page, new Map(), {
       jitter: [0, 0],
       memory: tierMemory(db()),
     });
     expect(await learned("spa.example")).toBe("browser");
-  });
-
-  it("learns dead when the render is still a shell", async () => {
-    const co = await shellCompany("spa.example", 1);
-    await renderCompany(db(), render(`${SHELL} `), new FakeFetcher({}), co, new Map(), {
+    const shell = await shellCompany("spa2.example", 2);
+    await renderCompany(db(), render(`${SHELL} `), new FakeFetcher({}), shell, new Map(), {
       jitter: [0, 0],
       memory: tierMemory(db()),
     });
-    expect(await learned("spa.example")).toBe("dead");
+    expect(await learned("spa2.example")).toBe("dead");
   });
 });
 

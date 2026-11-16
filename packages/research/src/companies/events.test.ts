@@ -180,11 +180,8 @@ describe("kinds", () => {
     hit("Acme Staffing named to a fastest-growing list"),
   ];
 
-  it("the default keeps today's 4 and drops the rest", () => {
+  it("the default keeps today's 4 and drops the rest; extra kinds read when asked", () => {
     expect(readEvents(extra, firm, "google", NOW)).toEqual([]);
-  });
-
-  it("extra kinds read when asked", () => {
     expect(readEvents(extra, firm, "google", NOW, NEWS_KINDS).map((e) => e.kind)).toEqual([
       "office",
       "launch",
@@ -216,7 +213,7 @@ const RSS = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><
 </channel></rss>`;
 
 describe("readRss", () => {
-  it("reads items as hits with ISO dates and the item as raw", () => {
+  it("reads items as hits with ISO dates and the item as raw; not a feed is null", () => {
     const hits = readRss(RSS);
     expect(hits).toHaveLength(2);
     expect(hits?.[0]).toMatchObject({
@@ -227,9 +224,6 @@ describe("readRss", () => {
       raw: { source: { url: "https://trade.example", name: "Trade Daily" } },
     });
     expect(hits?.[1]).toMatchObject({ title: "Undated & ignored", date: null });
-  });
-
-  it("not a feed is null", () => {
     expect(readRss("<html>consent</html>")).toBeNull();
   });
 });
