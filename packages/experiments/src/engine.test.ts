@@ -117,7 +117,7 @@ describe("evaluateLocus", () => {
     expect(r.shares.a1).toBe(0.9);
   });
 
-  it("the guard retires a high-negative allele whatever its fitness", () => {
+  it("the guard retires a high-negative allele whatever its fitness, but never the last one", () => {
     const r = locus([
       counts(400, 12, { negatives: 30 }),
       counts(400, 10, { negatives: 2 }),
@@ -125,11 +125,7 @@ describe("evaluateLocus", () => {
     ]);
     expect(r.retire).toEqual([{ allele: "a0", reason: "guard" }]);
     expect(Object.keys(r.shares)).toEqual(["a1", "a2"]);
-  });
-
-  it("never retires the last live allele", () => {
-    const r = locus([counts(400, 0, { negatives: 40 })]);
-    expect(r.retire).toEqual([]);
+    expect(locus([counts(400, 0, { negatives: 40 })]).retire).toEqual([]);
   });
 
   it("is stagnant when the best held for the window and spent at maxAlleles", () => {
