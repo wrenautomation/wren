@@ -1583,3 +1583,10 @@ Decision:
 - Read list: `add pick --rank <n>`, 1 best. The latest pick per page holds. The brief gains `readList` (ranked, then unranked, each with its why) and `unpicked` (read pages off the list). Both show the signals: score, kept and dropped findings, quality verdict. The agent ranks; the engine only orders by its ranks. Skill step 7: rank before `stop` on a content ask.
 - Not taken: a new record type for the ordered list. Picks already mean "worth it" and promote reads them; a rank field kept one seam. A re-pick moves a page; a dropped page keeps its old rank until re-picked.
 - weaver serve had been stuck on 0.68.1. It runs 0.79.1 now with the shim. A release repoints both.
+
+## 11-16: see reads pass the cap; a period-cap 429 is refused (0.79.3)
+
+- The tree cap counts each page once. `open --see` on a page the run read passes it. A see read adds a document but no page; the X demo-refs run spent its cap on skims and could not --see its top 10.
+- A 429 whose message names a month's or day's cap is `Refused`, not `Transient`: a wait never clears it. Cohere's monthly cap had `read --see` wait 4 passes per 8-frame chunk, 9+ min on a 20 s clip.
+- Frame eye: Cohere, then gemini-3.5-flash-lite (91% on the WA-1316 seed). In a run, `open --see` uses Claude Sonnet and prices each call.
+- Cost of an X skim: proxy bandwidth only, ~3.5 MB (~$0.0035 at DataImpulse $1/GB); whisper runs here. The ledger does not hold relay bytes; a spend report adds `relay-usage.jsonl` over the run's window.
