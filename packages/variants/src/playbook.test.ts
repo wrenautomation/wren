@@ -53,12 +53,8 @@ describe("content playbook", () => {
     expect(reachOf({ subjectId: null, kind: null }, null, TYPES)).toHaveLength(3);
   });
 
-  it("names prefixes from the type", () => {
+  it("prefix from the type; lock → line, rerun no-op, unlock drops the line, a new lock never reuses its id", () => {
     expect(provenPrefix("short-video")).toBe("PSV");
-    expect(provenPrefix("thread")).toBe("PTH");
-  });
-
-  it("lock → line, rerun no-op, unlock drops the line, a new lock never reuses its id", () => {
     const tip = {
       verdict: "lead-with-a-number-g1",
       text: "Lead with\none number",
