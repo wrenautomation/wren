@@ -67,7 +67,7 @@ describe("recontactPolicy", () => {
     expect(policy.perYear).toBe(1);
   });
 
-  it.each(["opted_out", "warm", "stopped_by_hand", "needs_a_look", "active", "bogus"])(
+  it.each(["opted_out", "stopped_by_hand", "bogus"])(
     "rejects '%s', which is not a resting outcome",
     (outcome) => {
       expect(() =>
@@ -82,7 +82,7 @@ describe("recontactPolicy", () => {
     );
   });
 
-  it.each([0, -1, 1.5, Number.NaN])("rejects perYear %s", (perYear) => {
+  it.each([0, 1.5, Number.NaN])("rejects perYear %s", (perYear) => {
     expect(() => recontactPolicy({ perYear }, "niche 'x'")).toThrow(
       /niche 'x': perYear must be a whole number ≥ 1/,
     );

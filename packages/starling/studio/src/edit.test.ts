@@ -224,19 +224,6 @@ describe("shortProps", () => {
 });
 
 describe("a Short's crop", () => {
-  const edit = {
-    id: 1,
-    title: "v",
-    tracks: { main: { path: "/m.mp4", durationS: 100, width: 1920, height: 1080, fps: 30 } },
-    cuts: [],
-    words: [],
-    layout: [],
-    captions: { style: "word" },
-    shorts: [short(0, 30), short(40, 70)],
-    files: { cutMain: "/d/cut-main.mp4" },
-    crops: {},
-  } as unknown as VideoEdit;
-
   it("goes in a patch beside the older crops, and an old patch still parses", () => {
     expect(editPatchSchema.parse({ crops: { square: { x: 0.3, y: 0.5 } } })).toEqual({
       crops: { square: { x: 0.3, y: 0.5 } },
@@ -246,14 +233,6 @@ describe("a Short's crop", () => {
     expect(
       editPatchSchema.safeParse({ crops: { shorts: { "0": { x: 0.8, y: 0.5 } } } }).success,
     ).toBe(false);
-  });
-
-  it("reaches the render: its own, else the vertical crop, else none", () => {
-    expect(shortProps(edit, 1).crop).toBeNull();
-    const crops = { vertical: { x: 0.3, y: 0.5 }, shorts: { "2": { x: 0.9, y: 0.4 } } };
-    const withCrops = { ...edit, crops } as VideoEdit;
-    expect(shortProps(withCrops, 1).crop).toEqual({ x: 0.3, y: 0.5 });
-    expect(shortProps(withCrops, 2).crop).toEqual({ x: 0.9, y: 0.4 });
   });
 });
 

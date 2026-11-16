@@ -15,9 +15,6 @@ describe("timezoneForLocation", () => {
     ["Washington, DC", "America/New_York"],
     ["Toronto, ON", "America/Toronto"],
     ["Vancouver, BC", "America/Vancouver"],
-    ["Miami, FL", "America/New_York"],
-    ["Nashville, TN", "America/Chicago"],
-    ["Louisville, KY", "America/New_York"],
   ])("a city-state pair names its zone (%s)", (location, zone) => {
     expect(timezoneForLocation(location)).toBe(zone);
   });

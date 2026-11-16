@@ -6,13 +6,12 @@ const THURSDAY = new Date("2026-09-17T00:00:00Z");
 const SUNDAY = new Date("2026-09-20T00:00:00Z");
 
 describe("weekSlipped", () => {
-  it("is false before Thursday even with nothing drafted", () =>
-    expect(weekSlipped(WEDNESDAY, 0)).toBe(false));
-  it("is true Thursday onward with nothing drafted", () => {
+  it("is true Thursday onward with nothing drafted; false before, or once anything was drafted", () => {
+    expect(weekSlipped(WEDNESDAY, 0)).toBe(false);
     expect(weekSlipped(THURSDAY, 0)).toBe(true);
     expect(weekSlipped(SUNDAY, 0)).toBe(true);
+    expect(weekSlipped(SUNDAY, 1)).toBe(false);
   });
-  it("is false once anything was drafted", () => expect(weekSlipped(SUNDAY, 1)).toBe(false));
 });
 
 describe("startOfWeekUtc", () => {

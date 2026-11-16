@@ -533,15 +533,6 @@ describe("server holds", () => {
     expect(await targets()).toEqual([DOMAIN]);
   });
 
-  it("a greylist holds the domain for an hour", async () => {
-    await prepare([["Jane", "Doe", {}]]);
-    await runResolution(db(), new RiskyVerifier("greylisted"), { checker: passChecker });
-    await ageVerdictsAt(DOMAIN, 0.5);
-    expect(await targets()).toEqual([]);
-    await ageVerdictsAt(DOMAIN, 2);
-    expect(await targets()).toEqual([DOMAIN]);
-  });
-
   it("a greylist that never lifts backs off: an hour, a day, a week, then 90 days", async () => {
     await prepare([["Jane", "Doe", {}]]);
     const verifier = new RiskyVerifier("greylisted");

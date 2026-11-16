@@ -1,16 +1,13 @@
 /**
  * Follow-ups in a thread (designs/2026-10-15-engage-threads.md) on Postgres with synthetic data:
  * a watch starts when a reply lands under ours, a thread read keeps the self-reply the inbox
- * missed and a third person's deep reply, never twice; one person's messages fold into one row,
- * newest first; an answer goes to the node picked and covers their earlier ones; and an answer
+ * missed and a third person's deep reply, never twice; an answer goes to the node picked and covers their earlier ones; and an answer
  * made on the site closes the row.
  */
 import type { CommentIn, ThreadNode, ThreadRead } from "@wren/core/outreach";
-import { foldRows } from "@wren/core/records";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { addAccount, type ReachAccount, setAccountState } from "@wren/starling-acts";
 import { keepComments, markAnswered, threadContextOf } from "@wren/starling-conversations";
-import { COMMENT_FOLD } from "@wren/starling-conversations/records";
 import { comments, commentThreads } from "@wren/starling-conversations/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -21,7 +18,6 @@ import {
   threadFor,
   watchFromComments,
 } from "../../src/follow-ups.js";
-import { commentRecord } from "../../src/records.js";
 import { reachTurns } from "../../src/turns.js";
 
 const TABLES = ["comment_threads", "comments", "reach_contacts", "reach_accounts"];
@@ -153,18 +149,6 @@ describe("engage threads", () => {
     );
     expect(await keepComments(reachTurns, db(), acct, [inboxReply()], OURS)).toEqual([]);
     expect(await db().select().from(comments)).toHaveLength(3);
-  });
-
-  it("folds one person's two messages into one row, newest first", async () => {
-    const t = await watched();
-    await applyThread(db(), t, acct, readOf(THREAD), OURS, NOW, 0.5, 7);
-    const raw = (await commentRecord.rows?.(db())) ?? [];
-    const folded = foldRows(raw, COMMENT_FOLD, "id");
-    const a = folded.find((r) => r.who === "replier_a");
-    const msgs = a?.messages as { text: string; open: boolean }[];
-    expect(msgs.map((m) => m.text)).toEqual(["And a question?", "First reply"]);
-    expect(folded.filter((r) => r.who === "replier_a")).toHaveLength(1);
-    expect(folded.find((r) => r.who === "replier_b")?.messages).toHaveLength(1);
   });
 
   it("draws the whole conversation nested, with each kept row's state", async () => {

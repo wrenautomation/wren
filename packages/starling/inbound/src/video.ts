@@ -461,7 +461,7 @@ export function alsoText(platform: AlsoPlatform, title: string, description: str
 }
 
 /** TikTok's fields for a clip: public with comments, duet and stitch on, the way a post goes out by default. */
-export function tiktokFields() {
+function tiktokFields() {
   return fieldsOf("tiktok", {
     privacy: "PUBLIC_TO_EVERYONE",
     allowComment: true,

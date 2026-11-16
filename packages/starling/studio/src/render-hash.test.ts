@@ -116,12 +116,8 @@ describe("outputHashes", () => {
     ]);
   });
 
-  it("changes a crop's own format alone", () => {
+  it("changes a crop's own format alone, the Short whose own crop moved, and every Short for the vertical one", () => {
     expect(changed(base(), { crops: { square: { x: 0.3, y: 0.5 } } })).toEqual(["square"]);
-    expect(changed(base(), { crops: { vertical: { x: 0.3, y: 0.5 } } })).toContain("vertical");
-  });
-
-  it("changes the Short whose own crop moved, and every Short for the vertical one", () => {
     const own = { shorts: { "2": { x: 0.3, y: 0.5 } } };
     expect(changed(base(), { crops: own })).toEqual(["short-2"]);
     expect(changed(base(), { crops: { vertical: { x: 0.3, y: 0.5 } } }).sort()).toEqual([

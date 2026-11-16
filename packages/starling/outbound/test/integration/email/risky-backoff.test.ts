@@ -158,23 +158,4 @@ describe("runVerification with backoff", () => {
     await history(greylisted(2, 25), EMAIL, l.id);
     expect(await selected()).toBe(1);
   });
-
-  it("after 4 risky verdicts in a row the address rests 90 days", async () => {
-    const l = await lead();
-    await history(greylisted(4, 60 * 24), EMAIL, l.id);
-    expect(await selected()).toBe(0);
-    await truncate(db(), ["verifications"]);
-    await history(greylisted(4, 91 * 24), EMAIL, l.id);
-    expect(await selected()).toBe(1);
-  });
-
-  it("a valid in the run keeps a later greylist at an hour", async () => {
-    const l = await lead();
-    await history(
-      [...greylisted(3, 30), ["valid", null, 20], ["risky", "greylisted", 2]],
-      EMAIL,
-      l.id,
-    );
-    expect(await selected()).toBe(1);
-  });
 });

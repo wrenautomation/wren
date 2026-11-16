@@ -60,8 +60,9 @@ describe("followUpsOf", () => {
   ]);
   const known = new Set(["t1_a1"]);
 
-  it("catches a self-reply under our comment that the inbox missed", () => {
+  it("catches a self-reply and a deep third-person reply, takes the talker anywhere, skips strangers, ours and what is kept", () => {
     const got = followUpsOf(thread, { ours: OURS, talking: ["replier_a"], known });
+    expect(got.map((c) => c.ref)).toEqual(["t1_a2", "t1_b1", "t1_a3"]);
     const a2 = got.find((c) => c.ref === "t1_a2");
     expect(a2).toMatchObject({
       handle: "replier_a",
@@ -70,24 +71,10 @@ describe("followUpsOf", () => {
       post: "t3_post",
     });
     expect(a2?.raw).toMatchObject({ via: "thread", parentAuthor: "replier_a" });
-  });
-
-  it("catches a third person's deep reply to the follow-up", () => {
-    const got = followUpsOf(thread, { ours: OURS, talking: ["replier_a"], known });
     expect(got.find((c) => c.ref === "t1_b1")).toMatchObject({
       handle: "replier_b",
       kind: "thread_reply",
     });
-  });
-
-  it("takes the talking person anywhere, skips strangers, ours and what is kept", () => {
-    const refs = followUpsOf(thread, { ours: OURS, talking: ["replier_a"], known }).map(
-      (c) => c.ref,
-    );
-    expect(refs).toEqual(["t1_a2", "t1_b1", "t1_a3"]);
-    expect(refs).not.toContain("t1_a1");
-    expect(refs).not.toContain("t1_x2");
-    expect(refs).not.toContain("t1_ours2");
   });
 
   it("never doubles: a second pass over the same read with the first's refs kept finds nothing", () => {

@@ -27,11 +27,8 @@ const talk = (n: number) =>
 describe("stress parser", () => {
   const words = said("we made 40 calls. and booked 12 meetings. in a week.");
 
-  it("reads indexes checked against their words", () => {
+  it("reads indexes checked against their words: a miscounted one moves, a lost one drops", () => {
     expect(parseStress('{"stress":[{"i":2,"w":"40"},{"i":6,"w":"12"}]}', words)).toEqual([2, 6]);
-  });
-
-  it("moves a miscounted index to the word it names, drops one it can't find", () => {
     expect(parseStress('{"stress":[{"i":3,"w":"40"},{"i":6,"w":"revenue"}]}', words)).toEqual([2]);
   });
 

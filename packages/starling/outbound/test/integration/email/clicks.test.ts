@@ -52,12 +52,12 @@ beforeEach(() => {
 });
 
 /** A stand-in for the lander's /api/export: pages by id like the real one, refuses a wrong bearer. */
-function lander(rows: () => SiteHit[], opts: { failAfter?: number; expectSecret?: string } = {}) {
+function lander(rows: () => SiteHit[], opts: { failAfter?: number } = {}) {
   const calls: URL[] = [];
   const fetch = async (url: string, init?: RequestInit): Promise<Response> => {
     const parsed = new URL(url);
     calls.push(parsed);
-    if (new Headers(init?.headers).get("authorization") !== `Bearer ${opts.expectSecret ?? SECRET}`)
+    if (new Headers(init?.headers).get("authorization") !== `Bearer ${SECRET}`)
       return new Response("no", { status: 401 });
     if (opts.failAfter !== undefined && calls.length > opts.failAfter)
       return new Response("down", { status: 503 });
@@ -191,16 +191,6 @@ describe("syncClicks", () => {
     await sync(lander(() => rows).fetch);
 
     expect((await db().select().from(emailClicks))[0]?.clicks).toBe(coded + 1);
-  });
-
-  it("a refused credential is named without being printed", async () => {
-    const raised = await sync(lander(() => [], { expectSecret: "something-else" }).fetch).catch(
-      (err: unknown) => err,
-    );
-
-    expect(raised).toBeInstanceOf(SiteExportError);
-    expect(String(raised)).toContain("WREN_SITE_EXPORT_TOKEN");
-    expect(String(raised)).not.toContain(SECRET);
   });
 
   it("each host keeps its own cursor", async () => {

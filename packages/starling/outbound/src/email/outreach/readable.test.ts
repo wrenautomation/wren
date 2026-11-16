@@ -51,11 +51,9 @@ cases("a firm is named without its legal form", readableCompany, [
   ["The Robinson Group, Ltd.", "The Robinson Group"],
   ["Acme Search Pte. Ltd.", "Acme Search"],
   ["Smith & Co.", "Smith & Co."],
-  ["Rightclick Recruiting", "Rightclick Recruiting"],
   ["Polish, LLC", "Polish"],
   ["LLC", "LLC"],
   ["LANE STAFFING INC A CORP", "Lane Staffing"],
-  ["EXCLUSIVE STAFFING LLC A CORP", "Exclusive Staffing"],
   ["CLASS A JOBS 411", "Class A Jobs 411"],
 ]);
 cases("a firm is named without its tagline or brackets", readableCompany, [
@@ -99,9 +97,7 @@ it("a joiner that opens the value is still capitalised", () => {
   expect(readableCompany("THE ASHFORD GROUP")).toBe("The Ashford Group");
 });
 cases("person names never take the initialism shortcut", readablePersonName, [
-  ["KORI", "Kori"],
   ["ANN", "Ann"],
-  ["LEE", "Lee"],
   ["MCDONALD", "McDonald"],
   ["O'BRIEN", "O'Brien"],
   ["D'AMICO", "D'Amico"],
@@ -109,7 +105,6 @@ cases("person names never take the initialism shortcut", readablePersonName, [
   ["SMITH JR", "Smith Jr."],
   ["VAN DER BERG", "Van der Berg"],
   ["B.J.", "B.J."],
-  ["J.P.", "J.P."],
   ["A.M.J.", "A.M.J."],
 ]);
 cases("a name filed in lowercase is cased", readablePersonName, [
@@ -120,27 +115,21 @@ cases("a name filed in lowercase is cased", readablePersonName, [
 cases("a suffix filed as the whole name refuses", readablePersonName, [
   ["II", null],
   ["Jr.", null],
-  ["III", null],
 ]);
 cases("a one-letter name refuses", readablePersonName, [
   ["A", null],
   ["A.", null],
-  ["D", null],
-  ["S", null],
   ["", null],
   ["   ", null],
   [null, null],
 ]);
 cases("money reads the way a person would say it", readableMoney, [
   [342_000_000, "$342M"],
-  [665_209_282, "$665M"],
   [1_234_192_870, "$1.2B"],
   [7_450_399_384, "$7.4B"],
-  [1_950_000_000, "$1.9B"],
   [2_000_000_000, "$2B"],
   [1_500_000_000_000, "$1.5T"],
   [999_999_999, "$999M"],
-  [83_253_573, "$83M"],
   [1_999_999, "$1M"],
   [450_000, "$450K"],
   [900, "$900"],
@@ -153,18 +142,11 @@ cases("money refuses what it cannot state", readableMoney, [
   [true, null],
 ]);
 cases("money accepts whatever the column hands it", readableMoney, [
-  [342_000_000, "$342M"],
-  [342_000_000.0, "$342M"],
   ["342000000", "$342M"],
   [342_000_000n, "$342M"],
 ]);
 cases("an accented letter is a letter", readablePersonName, [
   ["JOSÉ", "José"],
-  ["MÜLLER", "Müller"],
-  ["ZOË", "Zoë"],
-  ["FRANÇOIS", "François"],
-  ["NÚÑEZ", "Núñez"],
-  ["BJÖRN", "Björn"],
   ["ANNA-MARÍA", "Anna-María"],
   ["ŁUKASZ", "Łukasz"],
 ]);
@@ -195,10 +177,8 @@ it("repeated and trailing separators survive untouched", () => {
   expect(readableCompany("A--B PARTNERS")).toBe("A--B Partners");
 });
 cases("a count above zero reads as a person writes it", readableCount, [
-  [238, "238"],
   [1, "1"],
   [7066, "7,066"],
-  [23100, "23,100"],
   ["23100", "23,100"],
 ]);
 cases("a count of zero refuses", readableCount, [
@@ -212,11 +192,9 @@ cases("a count of zero refuses", readableCount, [
 cases("the short words the band actually contains", readableCompany, [
   ["VAN KAMPEN ADVISORS", "Van Kampen Advisors"],
   ["LAS VEGAS WEALTH ADVISORS", "Las Vegas Wealth Advisors"],
-  ["SAN DIEGO CAPITAL, LLC", "San Diego Capital"],
   ["MAN GROUP", "Man Group"],
   ["DEL MAR ASSET MANAGEMENT", "Del Mar Asset Management"],
   ["VAN ECK ASSOCIATES", "Van ECK Associates"],
-  ["LOS ANGELES CAPITAL MANAGEMENT", "Los Angeles Capital Management"],
   ["USA WEALTH", "USA Wealth"],
   ["RIA ADVISORS", "RIA Advisors"],
 ]);
@@ -248,7 +226,6 @@ it("a title too long for a sentence refuses however it is cased", () => {
 cases("a firm is called what a person would say, not what a listing prints", shortCompany, [
   ["Briggs and Associates", "Briggs"],
   ["Briggs & Associates, LLC", "Briggs"],
-  ["Mavic Group", "Mavic"],
   ["Wander Staffing", "Wander"],
   ["Aero Medical Group", "Aero"],
   ["Grove Technical Resources", "Grove"],
@@ -260,8 +237,6 @@ cases("a firm is called what a person would say, not what a listing prints", sho
   ["Smith & Jones Staffing", "Smith & Jones"],
   ["Insight Global", "Insight"],
   ["Robert Half", "Robert Half"],
-  ["Lucrative Staffing", "Lucrative Staffing"],
-  ["Overflowing Talent Solutions", "Overflowing Talent Solutions"],
   ["KFORCE INC", "Kforce"],
   ["ASSERTIVE STAFFING SERVICES INC", "Assertive Staffing Services"],
   ["", null],

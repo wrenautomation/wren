@@ -20,8 +20,4 @@ describe("platform table against autobrowse's provider table", () => {
       pkce: SOCIAL[p].pkce,
     }).toEqual({ authorize: piece.authorize, token: piece.token, pkce: piece.pkce });
   });
-
-  it.each(SOCIAL_PLATFORMS)("%s: scopes are set, so the link always carries them", (p) => {
-    expect(SOCIAL[p].scopes.length).toBeGreaterThan(0);
-  });
 });

@@ -207,7 +207,7 @@ describe("marketing.inbox: email replies and texts", () => {
           type: "email",
           state: "waiting",
           answer: "needs_you",
-          url: `/inbox/replies/${toAnswer}`,
+          url: `/today/replies/${toAnswer}`,
         }),
         expect.objectContaining({
           id: `text:${unread}`,
@@ -226,7 +226,7 @@ describe("marketing.inbox: email replies and texts", () => {
     expect(email.find((r) => r.id === `email:${invite}`)).toMatchObject({
       state: "answered",
       answer: "sent",
-      url: `/inbox/replies/${invite}`,
+      url: `/today/replies/${invite}`,
     });
     const texts = (await api.list({ record: inboxRecord.id, view: "texts", limit: 50 })).rows;
     expect(texts.find((r) => r.id === `text:${answered}`)).toMatchObject({ state: "answered" });

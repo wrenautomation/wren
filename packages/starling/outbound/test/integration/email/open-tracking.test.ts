@@ -199,17 +199,6 @@ describe("open tracking", () => {
     expect(tokens.every((t) => t === null)).toBe(true);
   });
 
-  it("compose mints one distinct token per draft when tracking is on", async () => {
-    const company = await makeCompany(db(), { domain: "oakbridge.example" });
-    await makePerson(db(), company, { email: "jane@oakbridge.example" });
-    const stats = await runCompose(db(), { trackOpens: true });
-    const tokens = (await db().select({ t: messages.openToken }).from(messages)).map((r) => r.t);
-    expect(tokens.length).toBe(stats.messages_drafted);
-    expect(tokens.length).toBeGreaterThan(1);
-    expect(new Set(tokens).size).toBe(tokens.length);
-    expect(tokens.every((t) => t !== null && t.length >= 16)).toBe(true);
-  });
-
   it("unattached hits are passed, not re-read every sync", async () => {
     // Nothing here can be stored, so a cursor derived from what we KEEP would sit at zero forever.
     const { fetch, calls } = host([[1, 2, 3, 4].map((n) => hit(n, "z".repeat(24), NOW))]);

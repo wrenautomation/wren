@@ -222,9 +222,6 @@ describe("rankPost", () => {
     expect(elsewhere.off).toMatch(/^not about recruit/);
     expect(rank(post()).off).toBeNull();
     expect(isJobAd(post().text)).toBe(false);
-  });
-
-  it("job posts are off with their reason", () => {
     expect(rank(post({ text: "#hiring Office Coordinator. Apply here." })).off).toBe("a job ad");
     expect(
       rank(post({ text: "Our recruiting agency can get you a job this week. Students welcome." }))
@@ -551,14 +548,12 @@ describe("ownCircle", () => {
     text,
   });
 
-  it("finds a UWaterloo student on Instagram and Threads", () => {
+  it("finds a UWaterloo student on Instagram and Threads; leaves a Waterloo business owner, and X", () => {
     expect(ownCircle(post("instagram", "first week done", "SE '29 @ uwaterloo"))).toBe(true);
     expect(ownCircle(post("threads", "co-op hunt at Waterloo is wild"))).toBe(true);
     expect(ownCircle(post("instagram", "", "University of Waterloo"))).toBe(true);
     expect(ownCircle(post("threads", "", "cs 2029"))).toBe(true);
-  });
-
-  it("leaves a Waterloo business owner, and X", () => {
+    // A Waterloo business owner and X are not the circle.
     expect(ownCircle(post("instagram", "Our Waterloo bakery hit 20 staff"))).toBe(false);
     expect(ownCircle(post("x", "", "SE '29 @ uwaterloo"))).toBe(false);
   });
@@ -585,15 +580,12 @@ describe("ytPostOf", () => {
     statistics: { likeCount: "3", commentCount: "1" },
   });
 
-  it("drops gaming and news videos and ones not in English", () => {
+  it("drops gaming and news videos and ones not in English; keeps a how-to video in English", () => {
     expect(ytPostOf(video({ categoryId: "20" }))?.off).toBe("a gaming video");
     expect(ytPostOf(video({ categoryId: "25" }))?.off).toBe("a news video");
     expect(ytPostOf(video({ categoryId: "27", defaultAudioLanguage: "tr" }))?.off).toBe(
       "not in English",
     );
-  });
-
-  it("keeps a how-to video in English", () => {
     const p = ytPostOf(video({ categoryId: "26", defaultAudioLanguage: "en-US" }));
     expect(p?.off).toBeUndefined();
     expect(p?.handle).toBe("UCx");

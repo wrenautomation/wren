@@ -11,25 +11,20 @@ describe("newestPerWho", () => {
     ]);
   });
 
-  it("drops one whose newest row says it left, older rows too", () => {
+  it("drops one whose newest row says it left, and shows one who came back", () => {
     expect(newestPerWho([row("a", true, 2), row("a", false, 1), row("b")])).toEqual([row("b")]);
-  });
-
-  it("shows one who came back after it left", () => {
     expect(newestPerWho([row("a", false, 2), row("a", true, 1)])).toEqual([row("a", false, 2)]);
   });
 });
 
 describe("spanOfMarks", () => {
-  it("covers every mark, a moment's own time as its end", () => {
+  it("covers every mark, a moment's own time as its end; one moment alone; nothing for no mark", () => {
     expect(
       spanOfMarks([
         { start: 4, end: 6 },
         { start: 9, end: null },
       ]),
     ).toEqual({ start: 4, end: 9 });
-  });
-  it("is one moment for one moment, and nothing for no mark", () => {
     expect(spanOfMarks([{ start: 4, end: null }])).toEqual({ start: 4 });
     expect(spanOfMarks([])).toEqual({});
   });

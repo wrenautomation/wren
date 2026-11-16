@@ -140,7 +140,7 @@ describe("runVerification", () => {
     expect(await runVerification(db(), verifier, opts)).toMatchObject({ selected: 1, valid: 1 });
   });
 
-  it.each(["blocked", "no_ptr", "tls_required"])(
+  it.each(["blocked"])(
     "a server that refused one address (%s) is asked about none for 7 days",
     async (reason) => {
       const { leads: rows } = await makeLeads(

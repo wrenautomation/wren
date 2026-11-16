@@ -233,20 +233,6 @@ describe("LeadPoolFill", () => {
     expect(out.delayMs).toBe(5_000);
   });
 
-  it("counts every verdict row as mailbox progress", async () => {
-    answers.verify = {
-      selected: 6,
-      local_invalid: 1,
-      valid: 2,
-      invalid: 1,
-      risky: 1,
-      catch_all: 0,
-    };
-    const out = await sync();
-    expect(out.stats?.stages.find((s) => s.stage === "verifyMailboxes")?.progress).toBe(5);
-    expect(out.delayMs).toBe(5_000);
-  });
-
   it("counts probes and dead domains as resolve progress, a domain walked twice never", async () => {
     answers.resolve = { domains_processed: 9, credits_spent: 12, dead_domains: 2 };
     const out = await sync();

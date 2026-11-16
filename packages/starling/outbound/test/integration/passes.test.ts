@@ -36,7 +36,8 @@ const TABLES = [
   "draft_events",
   "wren_settings",
 ];
-const NOW = new Date("2026-10-13T15:00:00Z");
+// The wall clock, to the hour: passedOn checks a rest against the database's now().
+const NOW = new Date(Math.floor(Date.now() / 3_600_000) * 3_600_000);
 const DAY = 86_400_000;
 
 let pg: TestPostgres;

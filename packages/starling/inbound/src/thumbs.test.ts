@@ -4,19 +4,15 @@ import { draftPicture, videoPicture } from "./thumbs.js";
 
 describe("draftPicture", () => {
   const base = { platform: "linkedin" as const, extra: {}, title: null };
-  it("its image first", () => {
+  it("its image, else its video plays; words only: none", () => {
     expect(draftPicture({ ...base, media: { kind: "image", source: "s3://b/a.png" } })).toEqual({
       source: "s3://b/a.png",
       kind: "image",
     });
-  });
-  it("a video plays when nothing stills it", () => {
     expect(draftPicture({ ...base, media: { kind: "video", source: "v.mp4" } })).toEqual({
       source: "v.mp4",
       kind: "video",
     });
-  });
-  it("words only: none", () => {
     expect(draftPicture({ ...base, media: null })).toBeNull();
   });
 });
