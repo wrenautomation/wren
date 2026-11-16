@@ -16,7 +16,7 @@ const X_LONG_POST_MAX = 25_000;
 /** An X account's subscription as `GET /2/users/me` says it (`user.fields=subscription_type`). */
 type XSubscription = "None" | "Basic" | "Premium" | "PremiumPlus";
 /**
- * A fact about Wren's X account (@wren_automation): Premium since 2026-10-07. Check it with
+ * A fact about Wren's X account (@itswilljin, "Will Jin"; @wren_automation until 2026-11-15): Premium since 2026-10-07. Check it with
  * autobrowse `site call x GET /2/users/me --body '{"user.fields":"subscription_type"}'`;
  * change it here if the subscription lapses.
  */
