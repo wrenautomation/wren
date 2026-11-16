@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1136.0",
+    "@wren/config": "workspace:*",
     "playwright": "1.63.0"
   },
   "devDependencies": {

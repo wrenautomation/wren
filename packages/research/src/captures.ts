@@ -7,7 +7,7 @@ import { resolveObjects } from "@wren/core/objects";
 import { atomic, type Db } from "@wren/db";
 import { and, asc, eq, isNull, lt, sql } from "drizzle-orm";
 import { type Capture, type CaptureSource, captures as t } from "./captures-schema.js";
-import type { Source } from "./sops/index.js";
+import type { Source } from "./topic-build/index.js";
 
 export { CAPTURE_SOURCES, type Capture, type CaptureSource } from "./captures-schema.js";
 

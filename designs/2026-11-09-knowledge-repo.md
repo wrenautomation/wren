@@ -298,3 +298,5 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
     readers. Old design docs keep their text: they are history.
 - 11-12 (WA-1281, William): the second brain view is Explorer, a Finder-style browser with Columns by
   default; the graph-kit view becomes its Map view (`designs/2026-11-12-explorer.md`).
+- 2026-11-16 (WA-1408, William: "sure rename it"): `packages/research/src/sops/` is now `topic-build/` (export
+  `@wren/research/topic-build`). It holds the code that builds topics, not SOPs. The root `sops -> canon` link is gone.

@@ -72,6 +72,8 @@ desk pulls its calls from the door, so it needs no inbound tunnel.
 
 Total ≈ $27/month.
 
+S3 from the Mac: every S3 client takes `s3Options()` (`@wren/config/s3`), and the CLI's media store takes `mediaStore()` (`apps/cli/src/media-store.ts`). With `S3_STORE_ACCESS_KEY_ID` and `S3_STORE_SECRET_ACCESS_KEY` in the repo's env file (IAM user `mac-s3-store`, from SSM `/wren/mac-s3-store`), they use that static key, so an expired login stops no S3 read or write. SSM, Lambda and the rest still need the login. Lambda never takes the key (WA-1409).
+
 ## Operating
 
 ### The door (any HTTP client; the bearer is `WREN_API_TOKEN`, an old name kept)

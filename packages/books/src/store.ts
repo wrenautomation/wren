@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { s3Options } from "@wren/config/s3";
 
 /**
  * Where a document's bytes live. Keys are content addresses, so a put of the
@@ -32,7 +33,7 @@ export function storeKey(hash: string, mediaType: string): string {
 
 /** A private S3 bucket (credentials from the default chain). */
 export function s3Store(bucket: string, opts: { client?: S3Client; region?: string } = {}) {
-  const client = opts.client ?? new S3Client(opts.region ? { region: opts.region } : {});
+  const client = opts.client ?? new S3Client(s3Options({ region: opts.region }));
   return {
     async put(key, bytes, mediaType) {
       await client.send(

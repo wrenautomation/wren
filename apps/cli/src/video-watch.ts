@@ -1,6 +1,6 @@
 /**
  * `wren video watch <url|file>`: read a video with the shared core (`watch` in
- * @wren/research/sops): ffmpeg's cuts and frames picked where the picture changes, the ear's speech,
+ * @wren/research/topic-build): ffmpeg's cuts and frames picked where the picture changes, the ear's speech,
  * Claude's read of the frames (Cohere when Claude fails). Prints the Speech, On screen and Cuts
  * sections, or `--json`. One path for every read (WA-904): no whole-video model.
  * `source add` and studio use the same core through `watchEyes`.

@@ -9,6 +9,7 @@
 import { promisify } from "node:util";
 import { gunzip, gzip } from "node:zlib";
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { s3Options } from "@wren/config/s3";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, isNotNull, lt, sql } from "drizzle-orm";
 import { documents } from "./schema.js";
@@ -25,7 +26,10 @@ export interface PageStore {
 export const pageKey = (documentId: number) => `pages/${documentId}.html.gz`;
 
 /** A private S3 bucket (credentials from the default chain). */
-export function s3PageStore(bucket: string, client: S3Client = new S3Client({})): PageStore {
+export function s3PageStore(
+  bucket: string,
+  client: S3Client = new S3Client(s3Options()),
+): PageStore {
   return {
     async put(key, html) {
       await client.send(

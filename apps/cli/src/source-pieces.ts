@@ -37,9 +37,9 @@ import { DESK } from "@wren/core/autobrowse/restate";
 import { type LlmClient, loadLlmEnv, makeLlm } from "@wren/llm";
 import { type Loaded, loadWorking, write } from "@wrenautomation/knowledge";
 import type { Model } from "@wrenautomation/models";
-import { s3MediaStore } from "@wrenautomation/read/s3";
 import { type MediaStore, renderWatched, watchFile } from "@wrenautomation/read/video";
 import type { Command } from "commander";
+import { mediaStore } from "./media-store.js";
 import { ingressSites } from "./sites.js";
 import { watchEyes } from "./video-watch.js";
 
@@ -211,7 +211,7 @@ export function registerSourcePieces(
         const answer = o.ads ? await keptAds(o.ads) : await pull(settings, o);
         if (answer.found === false) throw new Error(`no Ad Library page for ${o.page}`);
         const { eye, ear } = watchEyes(settings, rootDir);
-        const store = settings.mediaBucket ? s3MediaStore(settings.mediaBucket) : undefined;
+        const store = settings.mediaBucket ? mediaStore(settings.mediaBucket) : undefined;
         const media = {
           eye,
           ...(ear ? { ear } : {}),

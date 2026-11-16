@@ -8,6 +8,7 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { s3Options } from "@wren/config/s3";
 
 export { FILE_TYPES, MAX_FILE_BYTES, typeOfName } from "./routes.js";
 
@@ -37,10 +38,9 @@ export interface FileStore {
 
 export function s3Files(o: { bucket: string; region?: string }): FileStore {
   // A presigned URL can't carry a checksum of bytes it hasn't seen; only add one when S3 needs it.
-  const s3 = new S3Client({
-    ...(o.region ? { region: o.region } : {}),
-    requestChecksumCalculation: "WHEN_REQUIRED",
-  });
+  const s3 = new S3Client(
+    s3Options({ region: o.region, requestChecksumCalculation: "WHEN_REQUIRED" }),
+  );
   return {
     putUrl: (key, type, size) =>
       getSignedUrl(
@@ -82,7 +82,7 @@ export async function putLocalFile(
   type: string,
 ): Promise<number> {
   const { size } = await stat(path);
-  const s3 = new S3Client(o.region ? { region: o.region } : {});
+  const s3 = new S3Client(s3Options({ region: o.region }));
   await s3.send(
     new PutObjectCommand({
       Bucket: o.bucket,

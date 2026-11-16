@@ -44,13 +44,12 @@ import {
   videoSource,
   writeSkill,
   youtubeSource,
-} from "@wren/research/sops";
+} from "@wren/research/topic-build";
 import * as clients from "@wren/runtime/clients";
 import { getKey, parseStored, pushPlaybook } from "@wren/starling-inbound";
 import { loadWorking, type SourceFile, write } from "@wrenautomation/knowledge";
 import { claudeCode } from "@wrenautomation/models/command";
 import { PoliteFetcher, userAgent } from "@wrenautomation/read/fetch";
-import { s3MediaStore } from "@wrenautomation/read/s3";
 import type { Command } from "commander";
 import {
   fileSourceOf,
@@ -62,6 +61,7 @@ import {
   putCanonFile,
   reelVideoOf,
 } from "./canon-files.js";
+import { mediaStore } from "./media-store.js";
 import { breakdownLlm, breakdownSource, registerSourcePieces } from "./source-pieces.js";
 import { watchEyes } from "./video-watch.js";
 
@@ -203,7 +203,7 @@ export function registerCanon(
     let sources: Source[];
     // files per source name: a post's slides, a picture
     const filesOf = new Map<string, SourceFile[]>();
-    const store = settings.mediaBucket ? s3MediaStore(settings.mediaBucket) : undefined;
+    const store = settings.mediaBucket ? mediaStore(settings.mediaBucket) : undefined;
     // a kind the record name cannot tell: an X video is a reel
     const kinds = new Map<string, string>();
     if (opts.made) sources = [opts.made];

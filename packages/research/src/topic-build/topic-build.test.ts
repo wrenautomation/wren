@@ -36,7 +36,7 @@ async function repo(): Promise<string> {
   return d;
 }
 
-describe("sops", () => {
+describe("topic-build", () => {
   let dir = "";
   afterEach(() => (dir ? rm(dir, { recursive: true, force: true }) : undefined));
 

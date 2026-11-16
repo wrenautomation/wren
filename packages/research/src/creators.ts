@@ -24,7 +24,7 @@ import {
   type TrackedCreator,
   trackedCreators as tc,
 } from "./creators-schema.js";
-import type { Source } from "./sops/index.js";
+import type { Source } from "./topic-build/index.js";
 
 export { POST_KINDS, type TrackedCreator } from "./creators-schema.js";
 

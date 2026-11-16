@@ -18,6 +18,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { s3Options } from "@wren/config/s3";
 import { isStoredMedia, type MediaHost } from "@wren/starling-core";
 
 export const MEDIA_TYPES: Record<string, string> = {
@@ -44,7 +45,7 @@ export interface MediaStoreOptions {
 }
 
 const clientOf = (o: MediaStoreOptions) =>
-  o.client ?? new S3Client(o.region ? { region: o.region } : {});
+  o.client ?? new S3Client(s3Options({ region: o.region }));
 
 /** What to do when the laptop's AWS session is gone. */
 export const AWS_LOGIN_HINT =
@@ -116,10 +117,7 @@ export async function signMediaPut(
   // a presigned PUT carries no checksum of its own: only the one signed here
   const s3 =
     o.client ??
-    new S3Client({
-      ...(o.region ? { region: o.region } : {}),
-      requestChecksumCalculation: "WHEN_REQUIRED",
-    });
+    new S3Client(s3Options({ region: o.region, requestChecksumCalculation: "WHEN_REQUIRED" }));
   const url = await getSignedUrl(
     s3,
     new PutObjectCommand({

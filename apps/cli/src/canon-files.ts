@@ -8,7 +8,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, extname, join } from "node:path";
-import type { Source } from "@wren/research/sops";
+import type { Source } from "@wren/research/topic-build";
 import {
   getKey,
   keyExists,
@@ -18,7 +18,6 @@ import {
 } from "@wren/starling-inbound";
 import type { SourceFile } from "@wrenautomation/knowledge";
 import type { Model } from "@wrenautomation/models";
-import { s3MediaStore } from "@wrenautomation/read/s3";
 import {
   download,
   fetchPostItem,
@@ -27,6 +26,7 @@ import {
   type WatchOptions,
   watch,
 } from "@wrenautomation/read/video";
+import { mediaStore } from "./media-store.js";
 
 const sha = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
@@ -218,7 +218,7 @@ export async function reelVideoOf(
   const dir = await mkdtemp(join(tmpdir(), "canon-reel-"));
   try {
     await download(url, o.ytDlp, dir, {
-      store: s3MediaStore(o.bucket),
+      store: mediaStore(o.bucket),
       // a store write that fails must fail the reel, not warn
       warn: (line) => {
         throw new Error(line);

@@ -6,6 +6,7 @@
 import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { s3Options } from "@wren/config/s3";
 import type { Encoded } from "./encode.js";
 
 export interface PublishOptions {
@@ -36,7 +37,7 @@ export async function publish(
   o: PublishOptions,
 ): Promise<Published> {
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(id)) throw new Error(`bad video id "${id}"`);
-  const s3 = o.client ?? new S3Client(o.region ? { region: o.region } : {});
+  const s3 = o.client ?? new S3Client(s3Options({ region: o.region }));
   const url = (ext: string) => `${o.origin}/v/${id}.${ext}`;
   const done = { id, mp4: url("mp4"), poster: url("jpg"), meta: url("json") };
   const put = async (ext: string, body: Buffer | string, type: string) => {

@@ -26,7 +26,7 @@
     "./schema": "./src/schema.ts",
     "./signals": "./src/signals/collectors.ts",
     "./social-schema": "./src/social-schema.ts",
-    "./sops": "./src/sops/index.ts",
+    "./topic-build": "./src/topic-build/index.ts",
     "./enrichment": "./src/enrichment/index.ts",
     "./restate": "./src/restate/index.ts",
     "./creators": "./src/creators.ts"

@@ -803,6 +803,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: 3.1136.0
         version: 3.1136.0
+      '@wren/config':
+        specifier: workspace:*
+        version: link:../config
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -2505,6 +2508,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: 3.1136.0
         version: 3.1136.0
+      '@wren/config':
+        specifier: workspace:*
+        version: link:../config
       playwright:
         specifier: 1.63.0
         version: 1.63.0
