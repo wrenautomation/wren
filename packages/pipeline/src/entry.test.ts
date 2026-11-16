@@ -146,9 +146,7 @@ describe("opensAt", () => {
 
   it("lets a node cause open where a feed-fed source opens", () => {
     expect(opensAt(partner, "engaged", false, { channel: "x" })).toBe(true);
-  });
-
-  it("never lets a node cause open at a manual source's node", () => {
+    // never at a manual source's node
     expect(opensAt(partner, "signed", false, {})).toBe(false);
   });
 

@@ -137,12 +137,6 @@ describe("gateWhy", () => {
     expect(lowerable(b)).toEqual([]);
   });
 
-  it("refuses to run a gate that breaks a rule", () => {
-    const b = logic();
-    b.tracks.push(track("fork", "both"));
-    expect(lowerable(b)).toContain('Track "fork_to_both" runs logic station to logic station.');
-  });
-
   it("refuses a second track out of the station before a gate, logic to logic, an arm with no trigger", () => {
     const b = logic();
     b.tracks.push(track("sent", "won"), track("fork", "both"));
@@ -153,6 +147,7 @@ describe("gateWhy", () => {
       'Arm "race_to_replied" of race "race" leads to "replied", which has no trigger to win it.',
     ]);
     expect(why(b, "fork")).toContain('Track "fork_to_both" runs logic station to logic station.');
+    expect(lowerable(b)).toContain('Track "fork_to_both" runs logic station to logic station.');
   });
 
   it("refuses a hub track into a gate and a join with two tracks out", () => {

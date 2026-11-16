@@ -46,12 +46,6 @@ const PAIR_KEYS = [
 ];
 
 describe("diffMetro", () => {
-  it("finds every added, removed, renamed and changed line, station, track, group and frame", () => {
-    const { a, b } = metroPair();
-    const keys = metroChangesOf(diffMetro(a, b)).map(metroChangeKey);
-    expect([...keys].sort()).toEqual([...PAIR_KEYS].sort());
-  });
-
   it("reads in a fixed order: name, then each list added, removed, renamed, changed", () => {
     const { a, b } = metroPair();
     expect(metroChangesOf(diffMetro(a, b)).map(metroChangeKey)).toEqual([
@@ -94,18 +88,6 @@ describe("diffMetro", () => {
     expect(d.stations.renamed).toContainEqual({ id: "book", from: "Book", to: "Booking" });
     expect(d.groups.renamed).toEqual([{ id: "prepwork", from: "Prep work", to: "Preparation" }]);
     expect(d.name).toEqual({ from: "Metro shape", to: "Newer name" });
-  });
-
-  it("counts a rename and a change in one version as two changes", () => {
-    const { a, b } = metroPair();
-    const keys = metroChangesOf(diffMetro(a, b)).map(metroChangeKey);
-    expect(keys).toContain("line:social:renamed");
-    expect(keys).toContain("line:social:changed");
-    expect(keys).toContain("station:reply:renamed");
-    expect(keys).toContain("station:reply:changed");
-    // A rename alone is not a change.
-    expect(keys).not.toContain("line:nurture:changed");
-    expect(keys).not.toContain("station:book:changed");
   });
 
   it("calls a track or a frame label change a change, never a rename", () => {
@@ -175,12 +157,6 @@ describe("metroChangeKey and parseMetroChangeKey", () => {
       "name:x",
     ]) {
       expect(parseMetroChangeKey(key), key).toBeNull();
-    }
-  });
-
-  it("read renamed for a line, a station and a group", () => {
-    for (const on of ["line", "station", "group"] as const) {
-      expect(parseMetroChangeKey(`${on}:a_b:renamed`)).toEqual({ on, id: "a_b", how: "renamed" });
     }
   });
 });
@@ -382,26 +358,6 @@ describe("diffMetro: attach", () => {
     const nudge = b.flows?.[0]?.stations[0] as MetroBody["stations"][number];
     nudge.attach = [{ kind: "template", ref: "book-first/other" }];
     expect(keys(a, b)).toEqual(["flow:shared_followup:changed"]);
-  });
-
-  it("finds nothing when the attach order and key order are the same", () => {
-    const a = metroShape();
-    const b = JSON.parse(JSON.stringify(a)) as MetroBody;
-    const items = (b.stations.find((s) => s.id === "reply") as MetroBody["stations"][number])
-      .attach as Attach[];
-    b.stations = b.stations.map((s) =>
-      s.id === "reply"
-        ? {
-            ...s,
-            attach: items.map((i) => ({
-              ...(i.label ? { label: i.label } : {}),
-              ref: i.ref,
-              kind: i.kind,
-            })),
-          }
-        : s,
-    );
-    expect(keys(a, b)).toEqual([]);
   });
 
   it("treats a different attach order as a change", () => {

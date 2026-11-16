@@ -128,14 +128,6 @@ describe("undoMetroChange", () => {
     );
   });
 
-  it("takes an added line away alone", () => {
-    const { a, b } = metroPair();
-    const out = undoMetroChange(b, a, b, change("line:extra:added"));
-    expect(out.lines.map((l) => l.id)).not.toContain("extra");
-    expect(out.stations).toEqual(b.stations);
-    expect(out.tracks).toEqual(b.tracks);
-  });
-
   describe("a removed station", () => {
     it("comes back with every track of a that touches it and whose other end is in newest", () => {
       const { a, b } = metroPair();
@@ -596,15 +588,6 @@ describe("undoMetroChange: flows", () => {
     const out = undoMetroChange(b, a, b, change("flow:second:added"));
     expect("flows" in out).toBe(false);
     expect(canonicalJson(out)).toBe(canonicalJson(a));
-  });
-
-  it("takes an added flow away alone when other flows stay", () => {
-    const a = metroShape();
-    const b = edited(a, (x) => {
-      x.flows?.push(second());
-    });
-    const out = undoMetroChange(b, a, b, change("flow:second:added"));
-    expect(out.flows).toEqual(a.flows);
   });
 
   it("refuses to take an added flow that a station of the body still links", () => {

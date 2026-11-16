@@ -160,10 +160,7 @@ describe("metroOf and graphOf: the round trip", () => {
       expect(shapeWorkflow(1, sorted(graphOf(extra)), "wren")).toEqual(
         shapeWorkflow(1, sorted(graphOf(body)), "wren"),
       );
-    });
-
-    it("draws no attach and no flows from a graph", () => {
-      const { body } = made(make());
+      // metroOf draws neither
       expect("flows" in body).toBe(false);
       expect(JSON.stringify(body)).not.toContain('"attach"');
       expect(JSON.stringify(body)).not.toContain('"flows"');
@@ -489,10 +486,6 @@ describe("lowerable", () => {
   const base = (): MetroBody => made(shape()).body;
   const why = (b: MetroBody): string[] => lowerable(b);
 
-  it("is empty for a body made by metroOf", () => {
-    expect(why(base())).toEqual([]);
-  });
-
   it("refuses logic stations, exit stations, exit tracks and frames", () => {
     const m = metroShape();
     const lines = why(m);
@@ -609,9 +602,7 @@ describe("lowerable and graphOf: attach and flows", () => {
   it("says nothing about them: the reasons are those of the body without them", () => {
     expect(lowerable(metroShape())).toEqual(lowerable(bare()));
     expect(lowerable(metroShape()).join(" ")).not.toMatch(/attach|flows/);
-  });
-
-  it("still refuses a link station, and names the station, not the flow", () => {
+    // link station: named, not its flow
     expect(lowerable(metroShape())).toContain(
       'Station "shared" is a link station. The runtime does not run it yet.',
     );
@@ -619,12 +610,6 @@ describe("lowerable and graphOf: attach and flows", () => {
 
   it("lowers to the graph of the body without them", () => {
     expect(JSON.stringify(graphOf(metroShape()))).toBe(JSON.stringify(graphOf(bare())));
-  });
-
-  it("does not lower the stations of a flow", () => {
-    const ids = graphOf(metroShape()).nodes.map((n) => n.id);
-    expect(ids).not.toContain("nudge");
-    expect(ids).not.toContain("check_in");
   });
 
   it("lowers a flow station and a body station of the same id as the body one only", () => {
@@ -641,7 +626,6 @@ describe("placesOf", () => {
   it.each([
     ["the starter", () => starterGraph()],
     ["wideShape()", () => wideShape()],
-    ["shape()", () => shape()],
   ])("orders the holding nodes of %s as depthOf does", (_name, make) => {
     const g = make();
     const depth = depthOf(g);

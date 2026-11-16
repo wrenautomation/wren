@@ -309,11 +309,12 @@ describe("undoStoredChange guards", () => {
   const g = shape();
   const m = metroShape();
 
-  it("refuses a metro key on a graph newest version", () => {
+  it("refuses a metro or flow key on a graph newest version", () => {
     for (const change of [
       { on: "station", id: "book", how: "changed" },
       { on: "line", id: "growth", how: "renamed" },
       { on: "group", id: "g", how: "added" },
+      { on: "flow", id: "shared_followup", how: "added" },
     ] as const) {
       const run = () => undoStoredChange(g, g, g, change);
       expect(run).toThrow(Refused);
@@ -325,13 +326,6 @@ describe("undoStoredChange guards", () => {
     expect(() => undoStoredChange(m, g, g, { on: "node", id: "booked", how: "changed" })).toThrow(
       /on the metro model now/,
     );
-  });
-
-  it("refuses a flow key on a graph newest version", () => {
-    const run = () =>
-      undoStoredChange(g, g, g, { on: "flow", id: "shared_followup", how: "added" });
-    expect(run).toThrow(Refused);
-    expect(run).toThrow(ON_GRAPH);
   });
 
   it("undoes a flow key on a metro newest version, and an attach as a change of its owner", () => {

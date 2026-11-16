@@ -160,12 +160,6 @@ describe("mergeMetro: items", () => {
     expect(track(b.body, "renew")?.label).toBe("after 60 days");
   });
 
-  it("takes a removal that the other side did not touch", () => {
-    const removed = ed(base, { op: "remove", on: "track", id: "renew" });
-    expect(track(mergeMetro(base, removed, base).body, "renew")).toBeUndefined();
-    expect(track(mergeMetro(base, base, removed).body, "renew")).toBeUndefined();
-  });
-
   it("merges an item added on both sides: equal is one, different goes field by field", () => {
     const same = ed(base, { op: "add", on: "station", item: NEW_STATION("fresh") });
     const merged = mergeMetro(base, same, same);

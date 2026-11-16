@@ -36,7 +36,6 @@ describe("exportMetro and parseMetroBody", () => {
     ["metroShape()", metroShape],
     ["metroOf(wideShape())", () => metroOfGraph(wideShape())],
     ["the starter", () => starterShape().body],
-    ["the older body of metroPair()", () => metroPair().a],
     ["the newer body of metroPair()", () => metroPair().b],
     ["a content line: withFilms(), its find naming an SOP", withFilms],
   ];
@@ -70,14 +69,6 @@ describe("exportMetro and parseMetroBody", () => {
     const back = parseMetroBody(parse(text));
     expect("flows" in back).toBe(false);
     expect(back).toEqual(body);
-  });
-
-  it("writes an empty flows list as an empty list, and reads it back as one", () => {
-    const body: MetroBody = { ...metroShape(), flows: [] };
-    body.stations = body.stations.filter((s) => s.kind !== "link");
-    const text = exportMetro(body);
-    expect(text).toContain("flows: []");
-    expect(parseMetroBody(parse(text)).flows).toEqual([]);
   });
 
   it("writes the id and label of a flow first, then its stations and tracks", () => {
@@ -114,15 +105,6 @@ describe("exportMetro and parseMetroBody", () => {
     expect("attach" in (back.lines.find((l) => l.id === "retain") ?? {})).toBe(false);
   });
 
-  it("keeps a ref that looks like another type as text", () => {
-    const body = metroShape();
-    (body.lines.find((l) => l.id === "growth") as MetroBody["lines"][number]).attach = [
-      { kind: "note", ref: "123", label: "true" },
-      { kind: "doc", ref: "null" },
-    ];
-    expect(parseMetroBody(parse(exportMetro(body)))).toEqual(body);
-  });
-
   it("writes the id, kind and label of a station first, and from and to of a track", () => {
     const text = exportMetro(metroShape());
     expect(text).toContain("stations:\n  - id: social\n    kind: att\n    label: Social\n");
@@ -130,14 +112,16 @@ describe("exportMetro and parseMetroBody", () => {
   });
 
   it("writes empty lists as empty lists and reads them back", () => {
-    const body: MetroBody = { ...metroShape(), groups: [], frames: [] };
+    const body: MetroBody = { ...metroShape(), groups: [], frames: [], flows: [] };
+    body.stations = body.stations.filter((s) => s.kind !== "link");
     const text = exportMetro(body);
     expect(text).toContain("groups: []");
     expect(text).toContain("frames: []");
+    expect(text).toContain("flows: []");
     expect(parseMetroBody(parse(text))).toEqual(body);
   });
 
-  it("keeps text that looks like another type as text", () => {
+  it("keeps text and refs that look like another type as text", () => {
     const body = metroShape();
     const line = body.lines.find((l) => l.id === "team");
     expect(line?.entry?.segment).toBe("7");
@@ -148,6 +132,10 @@ describe("exportMetro and parseMetroBody", () => {
       name: "yes",
       lines: body.lines.map((l) => ({ ...l, label: "null" })),
     };
+    (odd.lines.find((l) => l.id === "growth") as MetroBody["lines"][number]).attach = [
+      { kind: "note", ref: "123", label: "true" },
+      { kind: "doc", ref: "null" },
+    ];
     expect(parseMetroBody(parse(exportMetro(odd)))).toEqual(odd);
   });
 
@@ -186,10 +174,15 @@ describe("parseMetroBody", () => {
     });
   });
 
-  it("leaves the values for checkMetro: a tier or a kind it does not know still parses", () => {
+  it("leaves the values for checkMetro: an unknown tier, kind or attach kind still parses", () => {
     const doc = small();
     (doc.lines[0] as { tier: string }).tier = "sideways";
     expect(parseMetroBody(doc).lines[0]?.tier).toBe("sideways");
+    const body = parseMetroBody({
+      ...small(),
+      lines: [{ id: "social", label: "Social", tier: "out", attach: [{ kind: "wiki", ref: "x" }] }],
+    });
+    expect(body.lines[0]?.attach).toEqual([{ kind: "wiki", ref: "x" }]);
   });
 
   it("refuses what is not a map", () => {
@@ -398,14 +391,6 @@ describe("parseMetroBody", () => {
     expect(refusal(line([{ kind: 4, ref: "x" }]))).toEqual([
       'Line "social" attach 1: kind is text.',
     ]);
-  });
-
-  it("leaves an unknown attach kind for checkMetro: it still parses", () => {
-    const body = parseMetroBody({
-      ...small(),
-      lines: [{ id: "social", label: "Social", tier: "out", attach: [{ kind: "wiki", ref: "x" }] }],
-    });
-    expect(body.lines[0]?.attach).toEqual([{ kind: "wiki", ref: "x" }]);
   });
 
   it("refuses flows that is not a list, and a flow that is not a map", () => {

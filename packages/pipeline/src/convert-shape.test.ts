@@ -228,16 +228,13 @@ describe("reportLines", () => {
     deals: [],
   };
 
-  it("says notes none and checks ok for a clean report", () => {
+  it("says none and ok for a clean report, and lists each note, each check and no otherwise", () => {
     expect(reportLines(base)).toEqual([
       "notes: none",
       "checks: ok",
       "graph equal: yes",
       "workflow equal: yes",
     ]);
-  });
-
-  it("lists each note and each check, and graph and workflow no", () => {
     expect(
       reportLines({
         ...base,

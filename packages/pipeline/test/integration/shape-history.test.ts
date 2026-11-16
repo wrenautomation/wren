@@ -346,8 +346,7 @@ describe("save, then mirror", () => {
   } as never;
   const req = op();
 
-  it("runs the save, then the mirror, and answers the save", async () => {
-    calls.length = 0;
+  it("runs the save, then the mirror, and skips the mirror when the save is refused", async () => {
     const api = { mirror: async () => ({ committed: [] }) };
     expect(
       await saveThenMirror(ctx, api, "shape version", req, async () => ({ version: 7 })),
@@ -355,11 +354,7 @@ describe("save, then mirror", () => {
       version: 7,
     });
     expect(calls).toEqual(["shape version", "shape mirror"]);
-  });
-
-  it("skips the mirror when the save is refused", async () => {
     calls.length = 0;
-    const api = { mirror: async () => ({ committed: [] }) };
     await expect(
       saveThenMirror(ctx, api, "shape undo", req, async () => {
         throw new Refused(["Nothing changed."]);

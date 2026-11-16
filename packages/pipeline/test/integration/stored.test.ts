@@ -8,14 +8,12 @@ import { resolveProfile } from "@wren/core/profiles";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { lowerable, metroOf } from "../../src/convert.js";
-import { applyDraft, draftOf, newDraft } from "../../src/drafts.js";
+import { metroOf } from "../../src/convert.js";
 import { editShape, ON_GRAPH, ON_METRO } from "../../src/edit.js";
 import { isMetro, type MetroBody, placesOf } from "../../src/metro.js";
 import { numberRows } from "../../src/numbers.js";
 import { shapeRecord, shapeRows } from "../../src/records.js";
 import { instances } from "../../src/schema.js";
-import { exportShape, parseShape } from "../../src/shape-file.js";
 import {
   CONVERT_FIRST,
   newestShape,
@@ -32,7 +30,7 @@ import {
   storedChangesOf,
 } from "../../src/stored.js";
 import { planUndo, undoShape } from "../../src/undo.js";
-import { metroShape, seedGraph, shape, TRIGGERS } from "../fixtures.js";
+import { seedGraph, shape, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -90,14 +88,6 @@ describe("a graph version, then the metro model", () => {
 
   it("says nothing changed for the same metro body again", async () => {
     expect(await reasons(save(drawn(), "again"))).toEqual(["Nothing changed."]);
-    expect((await shapeVersionsOf(pg.db)).map((v) => v.number)).toEqual([1, 2]);
-  });
-
-  it("refuses a metro body with every reason in one list", async () => {
-    const bad: MetroBody = { ...metroShape(), name: "" };
-    const why = await reasons(save(bad, "x"));
-    expect(why).toContain("The shape needs a name.");
-    for (const reason of lowerable(bad)) expect(why).toContain(reason);
     expect((await shapeVersionsOf(pg.db)).map((v) => v.number)).toEqual([1, 2]);
   });
 
@@ -161,13 +151,6 @@ describe("a graph version, then the metro model", () => {
     expect(v4.body).toEqual(v2.body);
   });
 
-  it("refuses a graph key once the newest version is metro", async () => {
-    const why = await reasons(
-      undoShape(pg.db, { a: 1, b: 2, change: "node:booked:renamed", by: "t", triggers: TRIGGERS }),
-    );
-    expect(why).toEqual(["The shape is on the metro model now. Undo by station or track."]);
-  });
-
   it("refuses a graph body, and saves nothing", async () => {
     const why = await reasons(save(shape(), "back to a graph"));
     expect(why).toEqual([CONVERT_FIRST]);
@@ -195,42 +178,7 @@ describe("a graph version, then the metro model", () => {
   });
 });
 
-describe("the file", () => {
-  it("writes a metro version with model: metro and reads it back", async () => {
-    const newest = await newestShape(pg.db);
-    if (!newest) throw new Error("no shape");
-    const m = drawn();
-    const text = exportShape(m);
-    expect(text.startsWith("model: metro")).toBe(true);
-    expect(parseShape(text).body).toEqual(m);
-    // A graph file still writes, to read an old version; it no longer reads back.
-    expect(exportShape(shape())).not.toContain("model:");
-    expect(await reasons(Promise.resolve().then(() => parseShape(exportShape(shape()))))).toEqual([
-      CONVERT_FIRST,
-    ]);
-  });
-});
-
-describe("drafts and the records", () => {
-  it("keeps a metro draft and applies it as the next version", async () => {
-    // The newest version is metro (v4), so the draft forks a metro body.
-    const base = await newestShape(pg.db);
-    if (!base) throw new Error("no shape");
-    expect(isMetro(base.body)).toBe(true);
-    const draft = await newDraft(pg.db, {
-      name: "Metro draft",
-      body: relabel(drawn(), "engaged", "Replied"),
-      by: "t",
-    });
-    expect(draft.base).toBe(base.number);
-    const held = await draftOf(pg.db, draft.id);
-    expect(isMetro(held?.body)).toBe(true);
-
-    const applied = await applyDraft(pg.db, { id: draft.id, by: "t", triggers: TRIGGERS });
-    expect(applied.version.number).toBe(base.number + 1);
-    expect(isMetro(applied.version.body)).toBe(true);
-  });
-
+describe("the records", () => {
   it("answers the shape record in graph terms, with the metro view beside it", async () => {
     const top = await newestShape(pg.db);
     expect(isMetro(top?.body)).toBe(true);

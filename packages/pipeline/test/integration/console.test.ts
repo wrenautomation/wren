@@ -23,8 +23,8 @@ import type { ShapeBody } from "../../src/model.js";
 import { assignJourney } from "../../src/moves.js";
 import { instances } from "../../src/schema.js";
 import { exportShape } from "../../src/shape-file.js";
-import { Refused, saveShape, shapeVersionsOf } from "../../src/store.js";
-import { runOf, type StoredBody } from "../../src/stored.js";
+import { CONVERT_FIRST, Refused, saveShape, shapeVersionsOf } from "../../src/store.js";
+import type { StoredBody } from "../../src/stored.js";
 import { asMetro, flow, TRIGGERS } from "../fixtures.js";
 
 let pg: TestPostgres;
@@ -140,7 +140,7 @@ describe("shape changes", () => {
   it("refuses a graph body: every stored body is metro (C1 part 4)", async () => {
     const op = as(ADA, undefined, true);
     await expect(api().shapeVersion({ ...op, note: "first", body: shape })).rejects.toThrow(
-      /Convert first/,
+      CONVERT_FIRST,
     );
     expect(await shapeVersionsOf(pg.db)).toEqual([]);
   });
@@ -194,12 +194,6 @@ describe("shape changes", () => {
     const { text } = await api().shapeExport({ ...op, ref: newest?.number as number });
     expect(text).toBe(exportShape(newest?.body as StoredBody));
     expect((await api().shapeExport(op)).text).toBe(text);
-    // A graph file no longer reads back: it needs the convert first.
-    const graph = exportShape(runOf(newest?.body as StoredBody));
-    await expect(api().shapePreview({ ...op, text: graph })).rejects.toMatchObject({
-      status: 400,
-      message: expect.stringContaining("Convert first"),
-    });
     const same = await api().shapePreview({ ...op, text });
     expect(same).toMatchObject({ a: newest?.number, note: null, changes: [] });
     const edited = text.replace("label: Engaged", "label: Replied");

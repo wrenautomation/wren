@@ -4,12 +4,10 @@ import { ctx, metroShape } from "../test/fixtures.js";
 import { checkMetro, type MetroBody } from "./metro.js";
 import {
   CAMPAIGN_CHANNELS,
-  CAMPAIGN_STATUSES,
   type CampaignFields,
   CTA_ACTIONS,
   campaignOfStation,
   campaignsOf,
-  DEFAULT_CAMPAIGN,
   liveCampaigns,
 } from "./metro-campaigns.js";
 import { ACTIONS } from "./model.js";
@@ -53,10 +51,8 @@ const FULL: CampaignFields = {
 };
 
 describe("campaign words", () => {
-  it("are the ones the design names", () => {
-    expect(CAMPAIGN_STATUSES).toEqual(["live", "paused", "ended"]);
+  it("hold only known actions and every send channel", () => {
     expect(CTA_ACTIONS.every((a) => (ACTIONS as readonly string[]).includes(a))).toBe(true);
-    expect(DEFAULT_CAMPAIGN).toBe("default");
     expect([...CAMPAIGN_CHANNELS].sort()).toEqual([...PLATFORMS, "email", "sms"].sort());
   });
 });

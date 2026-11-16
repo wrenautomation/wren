@@ -78,6 +78,7 @@ describe("shapeWorkflow", () => {
     expect(by.get("s_booked")?.with).toEqual({ node: "booked" });
     expect(by.get("s_standard")?.with).toEqual({ node: "standard" });
     expect(by.get("dropped")?.with).toEqual({ node: "dropped" });
+    expect(wf().nodes.some((n) => n.uses === "trigger.journey")).toBe(false);
   });
 
   it("carries a node's research to its stage node", () => {
@@ -159,10 +160,6 @@ describe("shapeWorkflow", () => {
     expect(wires(w)).toContain("e_list.out -> m_booked.lead");
     expect(w.nodes.some((n) => n.id === "e_none")).toBe(false);
     expect(checkWorkflows([w], [])).toEqual([]);
-  });
-
-  it("builds no trigger.journey node", () => {
-    expect(wf().nodes.some((n) => n.uses === "trigger.journey")).toBe(false);
   });
 
   it("gives every node and port a valid id and passes the workflow check", () => {

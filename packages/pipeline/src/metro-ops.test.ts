@@ -172,7 +172,7 @@ describe("add", () => {
 });
 
 describe("rename", () => {
-  it("renames a line, a station and a group, and trims the label", () => {
+  it("renames a line, a station, a group and the shape, and trims the label", () => {
     const b = run([
       { op: "rename", on: "line", id: "growth", label: "  Growth plan  " },
       { op: "rename", on: "station", id: "reply", label: "Answer" },
@@ -181,9 +181,6 @@ describe("rename", () => {
     expect(b.lines.find((l) => l.id === "growth")?.label).toBe("Growth plan");
     expect(station(b, "reply")?.label).toBe("Answer");
     expect(group(b, "closing")?.label).toBe("Close");
-  });
-
-  it("renames the shape", () => {
     expect(run({ op: "rename", on: "shape", name: " Better " }).name).toBe("Better");
   });
 

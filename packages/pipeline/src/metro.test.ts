@@ -518,7 +518,6 @@ describe("checkMetro: logic stations", () => {
     (b: MetroBody) => {
       b.tracks = b.tracks.filter((t) => !ids.includes(t.id));
     };
-  const BRANCHES = (kind: string, id: string) => `${kind} "${id}"`;
 
   it("wants a condition with 2 or 3 branches", () => {
     expect(says(without("qualify_to_fork", "qualify_to_book"))).toEqual([
@@ -627,7 +626,6 @@ describe("checkMetro: logic stations", () => {
     expect(says((b) => (track(b, "reply_to_qualify").weight = 5))).toEqual([
       'Track "reply_to_qualify" has a weight, but "reply" is not an A/B.',
     ]);
-    expect(BRANCHES("Race", "wait")).toBe('Race "wait"');
   });
 });
 
@@ -914,15 +912,6 @@ describe("checkMetro: flows", () => {
     ).toEqual([]);
   });
 
-  it("wants a flow for every link, so a body with no flows cannot link", () => {
-    expect(says((b) => delete b.flows)).toEqual([
-      'Link "shared" names flow "shared_followup", which is not in the shape.',
-    ]);
-    expect(says((b) => (b.flows = []))).toEqual([
-      'Link "shared" names flow "shared_followup", which is not in the shape.',
-    ]);
-  });
-
   it("wants flow ids in the id rule, unique, and a label", () => {
     expect(says((b) => (followup(b).id = "Bad Flow"))).toEqual([
       'Flow id "Bad Flow" must be lowercase letters, digits and underscores, starting with a letter.',
@@ -1061,7 +1050,7 @@ describe("checkMetro: flows", () => {
     ]);
   });
 
-  it("wants a link of the body to name a flow of the body", () => {
+  it("wants a link of the body to name a flow of the body, so a body with no flows cannot link", () => {
     expect(says((b) => (station(b, "shared").flow = "ghost"))).toEqual([
       'Link "shared" names flow "ghost", which is not in the shape.',
     ]);
@@ -1069,6 +1058,10 @@ describe("checkMetro: flows", () => {
     expect(says((b) => (station(b, "shared").flow = "other"))).toEqual([
       'Link "shared" names flow "other", which is not in the shape.',
     ]);
+    // no flows key or an empty list: a link names nothing
+    const none = ['Link "shared" names flow "shared_followup", which is not in the shape.'];
+    expect(says((b) => delete b.flows)).toEqual(none);
+    expect(says((b) => (b.flows = []))).toEqual(none);
   });
 
   it("lets a flow link to another flow", () => {

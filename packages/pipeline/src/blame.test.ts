@@ -109,6 +109,7 @@ describe("historyOf, nodes", () => {
   it("gives nothing for an unknown id or no versions", () => {
     expect(historyOf([ver(1, shape())], "nowhere")).toEqual([]);
     expect(historyOf([], "yt")).toEqual([]);
+    expect(historyOf([ver(1, shape())], "gone", "edge")).toEqual([]);
   });
 });
 
@@ -130,9 +131,5 @@ describe("historyOf, edges", () => {
     const next = grown([], [flow("proposal", "booked", { id: "yt" })]);
     expect(hows([ver(1, shape()), ver(2, next)], "yt", "edge")).toEqual(["2:added"]);
     expect(hows([ver(1, shape()), ver(2, next)], "yt")).toEqual(["1:added"]);
-  });
-
-  it("gives nothing for an unknown edge", () => {
-    expect(historyOf([ver(1, shape())], "gone", "edge")).toEqual([]);
   });
 });

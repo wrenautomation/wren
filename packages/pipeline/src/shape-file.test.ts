@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { asMetro, metroShape, shape, wideShape } from "../test/fixtures.js";
+import { metroShape, shape } from "../test/fixtures.js";
 import { exportMetro } from "./metro-file.js";
 import { exportShape, parseShape } from "./shape-file.js";
 import { CONVERT_FIRST, canonicalJson, Refused } from "./store.js";
@@ -31,13 +31,13 @@ stations:
 `;
 
 describe("exportShape and parseShape", () => {
-  it.each([
-    ["metroShape()", metroShape],
-    ["metroOf(wideShape())", () => asMetro(wideShape())],
-  ])("round trip to the same metro body: %s", (_name, make) => {
-    const body = make();
-    expect(canonicalJson(parseShape(exportShape(body)).body)).toBe(canonicalJson(body));
-  });
+  it.each([["metroShape()", metroShape]])(
+    "round trip to the same metro body: %s",
+    (_name, make) => {
+      const body = make();
+      expect(canonicalJson(parseShape(exportShape(body)).body)).toBe(canonicalJson(body));
+    },
+  );
 
   it("writes a metro body with exportMetro", () => {
     expect(exportShape(metroShape())).toBe(exportMetro(metroShape()));

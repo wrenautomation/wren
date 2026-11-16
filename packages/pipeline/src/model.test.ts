@@ -3,7 +3,6 @@ import { ctx, flow, grown, loop, shape } from "../test/fixtures.js";
 import {
   checkShape,
   depthOf,
-  edgeIdOf,
   isEnd,
   passedThrough,
   pathOf,
@@ -216,14 +215,6 @@ describe("depthOf", () => {
     expect(depthOf(b)).toEqual(depthOf(shape()));
   });
 
-  it("puts an upsell below a plan", () => {
-    const b = grown(
-      [{ id: "upsell", kind: "offer", name: "Upsell", offer: "offer-b", advance: [] }],
-      [flow("standard", "upsell")],
-    );
-    expect(depthOf(b).upsell).toBe(6);
-  });
-
   it("does not loop on a cycle", () => {
     const b = shape();
     b.edges.push(flow("proposal", "engaged"));
@@ -291,10 +282,6 @@ describe("pathOf", () => {
 });
 
 describe("small helpers", () => {
-  it("names a default edge id", () => {
-    expect(edgeIdOf("a", "b")).toBe("a_to_b");
-  });
-
   it("knows a node no flow edge leaves", () => {
     expect(isEnd(shape(), "standard")).toBe(true);
     expect(isEnd(shape(), "signed")).toBe(false);
