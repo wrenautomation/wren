@@ -38,9 +38,10 @@ describe("zoomExpressions", () => {
     return { z: zz, x: evalExpr(x, v), y: evalExpr(y, v) };
   };
 
-  it("is the whole frame outside the zoom", () => {
+  it("is the whole frame outside the zoom, and a plain full frame with no zooms", () => {
     expect(at(0)).toEqual({ z: 1, x: 0, y: 0 });
     expect(at(7)).toEqual({ z: 1, x: 0, y: 0 });
+    expect(zoomExpressions([], 2560, 1440)).toEqual({ z: "1", x: "0", y: "0" });
   });
 
   it("holds the full zoom between the ramps, kept inside the frame", () => {
@@ -63,10 +64,6 @@ describe("zoomExpressions", () => {
       expect(v.x + 2560 / v.z).toBeLessThanOrEqual(2560 + 1e-6);
       expect(v.y + 1440 / v.z).toBeLessThanOrEqual(1440 + 1e-6);
     }
-  });
-
-  it("is a plain full frame with no zooms", () => {
-    expect(zoomExpressions([], 2560, 1440)).toEqual({ z: "1", x: "0", y: "0" });
   });
 });
 
