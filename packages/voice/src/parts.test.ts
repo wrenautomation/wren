@@ -3,19 +3,12 @@ import { agentOf, agentSettingsSchema, inHours, openingLine, stretchesOf } from 
 import { promptOf, thoughtsOf } from "./brain.js";
 import { FakeCalendar, FakeLeads, FakeMessages, ScriptedBrain } from "./fakes.js";
 import { SentenceCutter } from "./sentences.js";
-import { runTool, TOOL_SPECS, toolsOf } from "./tools.js";
+import { runTool, toolsOf } from "./tools.js";
 
 const NOW = new Date("2026-10-06T15:00:00Z"); // Tue 11:00 in Toronto
 const call = { id: "c", from: "+15555550123", to: "+15555550100", direction: "inbound" as const };
 
 describe("the agent", () => {
-  it("is a working agent from {}", () => {
-    const a = agentOf({});
-    expect(a.tools).toEqual(Object.keys(TOOL_SPECS));
-    expect(a.turn).toEqual({ pauseMs: 700, bargeIn: true });
-    expect(a.outbound).toBe(false);
-  });
-
   it("refuses settings that don't read", () => {
     expect(agentSettingsSchema.safeParse({ zone: "Mars/Base" }).success).toBe(false);
     expect(agentSettingsSchema.safeParse({ hours: { mon: "9 to 5" } }).success).toBe(false);

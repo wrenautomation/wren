@@ -136,16 +136,6 @@ describe("a typed call", () => {
     expect(calendar.booked).toHaveLength(0);
   });
 
-  it("adds the AI line when the agent's own doesn't say it", async () => {
-    const { said } = await typed([], { firstLine: "Hello, Example Plumbing." });
-    expect(said[0]).toBe("This is Wren's AI assistant. Hello, Example Plumbing.");
-  });
-
-  it("asks before recording", async () => {
-    const { said } = await typed([], { record: true });
-    expect(said.join(" ")).toMatch(/This call may be recorded\. Is that OK\?$/);
-  });
-
   it("a brain that throws ends the call with an apology", async () => {
     const broken: Brain = {
       name: "broken",

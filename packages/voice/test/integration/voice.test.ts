@@ -172,6 +172,8 @@ describe("a saved call", () => {
     expect(rec).toMatchObject({ who: "Sam Example", outcome: "booked", turns: 3 });
     expect(typeof rec?.heard).toBe("number");
 
+    // the view keeps 30 days by the wall clock; the call ran at the fixed OPEN
+    await pg.db.update(voiceTurns).set({ at: new Date() }).where(sql`call_id = ${id}`);
     const stages = await pg.db.execute<{ stage: string; p50: number; turns: number }>(
       sql`select stage, p50, turns from voice_latency order by rank`,
     );
