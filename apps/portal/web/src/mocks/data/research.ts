@@ -104,8 +104,20 @@ export const RESEARCH_VIEW: RunView = {
       },
     ],
     patterns: [
-      { text: "Samples win cafes: walking in with product beats a cold pitch.", findings: ["f1"] },
-      { text: "Start close: the first buyers sit within a short drive.", findings: ["f2"] },
+      {
+        id: "pt1",
+        round: 1,
+        text: "Samples win cafes: walking in with product beats a cold pitch.",
+        findings: ["f1"],
+        sources: 1,
+      },
+      {
+        id: "pt2",
+        round: 1,
+        text: "Start close: the first buyers sit within a short drive.",
+        findings: ["f2"],
+        sources: 1,
+      },
     ],
     cost: { total: { usd: 0.42 } },
   },

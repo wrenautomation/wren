@@ -37,10 +37,25 @@ const ytOf = (u: string) => (/youtu/.test(u) ? (u.match(/[?&]v=([\w-]{11})/)?.[1
 const day = (d: string) =>
   new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
-/** One source per channel, subreddit or site. */
-function skey(url: string, channel?: string): [string, string, GraphSource["site"]] {
+/** social sites whose pages belong to an author, not to the site */
+const SOCIAL = /(^|\.)(x\.com|twitter\.com|instagram\.com|tiktok\.com|threads\.net|linkedin\.com)$/;
+const PROFILE: Record<string, (c: string) => string> = {
+  "x.com": (c) => `https://x.com/${c}`,
+  "twitter.com": (c) => `https://x.com/${c}`,
+  "instagram.com": (c) => `https://www.instagram.com/${c}/`,
+  "tiktok.com": (c) => `https://www.tiktok.com/@${c}`,
+  "threads.net": (c) => `https://www.threads.net/@${c}`,
+};
+
+/** One source per channel, author, subreddit or site; a social author keeps its site's host. */
+function skey(
+  url: string,
+  channel?: string,
+): [key: string, name: string, site: GraphSource["site"], host?: string] {
   const h = host(url);
   if (channel && /youtu/.test(h)) return [`yt:${channel}`, channel, "youtube"];
+  // 11-16: 176 x.com pages from 142 authors drew as one "x.com" source
+  if (channel && SOCIAL.test(h)) return [`so:${h}:${channel.toLowerCase()}`, channel, "web", h];
   if (h.endsWith("reddit.com")) {
     const m = url.match(/\/r\/([^/]+)/);
     return m?.[1]
@@ -65,6 +80,8 @@ interface Brief {
 
 type Acc = Omit<GraphSource, "id" | "kind" | "fmt" | "icon" | "thumb" | "og" | "home"> & {
   key: string;
+  /** a social author's site */
+  host?: string | undefined;
   cls: Record<string, number>;
   fmts: Record<string, number>;
   yts: (string | null)[];
@@ -75,11 +92,12 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
   const hitBy = new Map(view.hits.map((h) => [h.id, h]));
   const docOfHit = new Map(view.documents.map((d) => [d.hit, d]));
   const src = new Map<string, Acc>();
-  const S = (key: string, name: string, site: GraphSource["site"]) => {
+  const S = (key: string, name: string, site: GraphSource["site"], h?: string) => {
     let s = src.get(key);
     if (!s) {
       s = {
         key,
+        host: h,
         name,
         site,
         cls: {},
@@ -103,8 +121,7 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
   );
   for (const d of view.documents) {
     const h = hitBy.get(d.hit);
-    const [k, l, site] = skey(d.url, d.channel ?? h?.channel);
-    const s = S(k, l, site);
+    const s = S(...skey(d.url, d.channel ?? h?.channel));
     const pf =
       topK(d.judge?.format) ??
       (ytOf(d.url) ? "video" : /reddit\.com/.test(d.url) ? "thread" : null);
@@ -138,8 +155,7 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
   // kept hits never read: the run's coverage gap
   for (const h of view.hits) {
     if (h.call?.verdict !== "keep" || docOfHit.has(h.id)) continue;
-    const [k, l, site] = skey(h.url, h.channel);
-    const s = S(k, l, site);
+    const s = S(...skey(h.url, h.channel));
     const c = h.speaker.value;
     if (!s.pages.length) s.cls[c] = (s.cls[c] ?? 0) + 0.5;
     s.r = Math.min(s.r, h.round ?? 1);
@@ -183,7 +199,10 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
       const yt = s.yts[i];
       if (yt && p.kept) p.th = thumb(yt);
     });
-    const order = s.pages.map((p, i) => [p, i] as const).sort((a, b) => b[0].kept - a[0].kept);
+    // the poster: the best pick, then the most-kept page (WA-1405: every read page has one)
+    const order = s.pages
+      .map((p, i) => [p, i] as const)
+      .sort((a, b) => (a[0].pick ?? 999) - (b[0].pick ?? 999) || b[0].kept - a[0].kept);
     const best = order[0];
     if (best && !best[0].th && s.yts[best[1]]) best[0].th = thumb(s.yts[best[1]] as string);
     const fmt =
@@ -194,12 +213,14 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
       site: s.site,
       kind: (topK(s.cls) ?? "other") as Speaker,
       fmt,
-      icon: icon(s.site === "web" ? s.name : s.site === "youtube" ? "youtube.com" : "reddit.com"),
+      icon: icon(
+        s.site === "web" ? (s.host ?? s.name) : s.site === "youtube" ? "youtube.com" : "reddit.com",
+      ),
       thumb: best?.[0].th ?? null,
-      // the most-kept page's picture, as the artifact (round 11 prep)
-      og: order.find(([p]) => p.kept && p.og)?.[0].og ?? null,
-      home:
-        s.site === "web"
+      og: order.find(([p]) => p.og)?.[0].og ?? null,
+      home: s.host
+        ? (PROFILE[s.host.replace(/^www\./, "")]?.(s.name) ?? null)
+        : s.site === "web"
           ? `https://${s.name}`
           : s.site === "reddit"
             ? `https://www.reddit.com/${s.name}`

@@ -6,8 +6,18 @@
  * why and who made it. Picked runs, or all of them, open on one graph. Read only: the agent and the CLI write. Live: serve sends an event per change.
  */
 
-import type { FeedPost } from "@wren/research/canon-console";
-import { Button, cx, Empty, Icon, LoadFailed, Loading, money, Seg, StateMark } from "@wren/ui";
+import {
+  Button,
+  cx,
+  Empty,
+  Facts,
+  Icon,
+  LoadFailed,
+  Loading,
+  money,
+  Seg,
+  StateMark,
+} from "@wren/ui";
 import { type ReactNode, useMemo, useState } from "react";
 import { embedOf, embedSite, youtubeId } from "../../embeds.js";
 import { useCall } from "../../load.js";
@@ -16,12 +26,13 @@ import { href, navigate, useRoute } from "../../route.js";
 import { usePageRuns } from "../agent/drive.js";
 import { GALLERY, Ghosts, Tile } from "../canon/gallery.js";
 import { PostDetail } from "../canon/post-detail.js";
-import { UsualRule } from "../canon/post-parts.js";
 import { QUIET } from "../work/bits.js";
 import { RowsPanel } from "../work/rows-panel.js";
+import { boardPages, Patterns, Wall } from "./board.js";
 import { RunsCanvas } from "./canvas.js";
 import {
   type Moment,
+  type PageSignals,
   pageOf,
   type ReadPick,
   type RunDocument,
@@ -47,12 +58,12 @@ const TABS = [
   { value: "graph", label: "Graph" },
   { value: "talk", label: "Back and forth" },
 ] as const;
-/** The address's tab; none: references when the run has picks, else the graph. `list`: old links. */
+/** The address's tab; none: references when the run has read pages, else the graph. `list`: old links. */
 function tabOf(t: string | null, view: RunView | undefined): Tab | null {
   if (t === "talk" || t === "graph") return t;
   if (t === "refs" || t === "list") return "refs";
   if (!view) return null;
-  return view.brief.readList?.length ? "refs" : "graph";
+  return view.brief.readList?.length || view.brief.unpicked?.length ? "refs" : "graph";
 }
 const LINK = "inline-flex items-center gap-1 wrap-anywhere text-(--ui-ink) underline";
 const PRE =
@@ -209,6 +220,7 @@ function OneRun({
           onChange={(t) => go({ tab: t, open: null })}
         />
       </div>
+      {view ? <RunHead view={view} row={row} /> : null}
       {tab === "graph" ? (
         <RunsCanvas runs={ids} rows={rows} title="" />
       ) : got.error && !view ? (
@@ -219,45 +231,62 @@ function OneRun({
         ) : (
           <Ghosts label="Loading the run" />
         )
+      ) : tab === "refs" ? (
+        <References view={view} card={card} go={go} link={link} />
       ) : (
-        <>
-          <RunHead view={view} row={row} />
-          {tab === "refs" ? (
-            <References view={view} card={card} go={go} link={link} />
-          ) : (
-            <Talk view={view} card={card} go={go} />
-          )}
-        </>
+        <Talk view={view} card={card} go={go} />
       )}
     </div>
   );
 }
 
+/** the brief's question, for a run the list has no row for */
+const askOf = (view: RunView) => {
+  const ask = view.brief.ask as { text?: unknown } | undefined;
+  return typeof ask?.text === "string" ? ask.text : null;
+};
+
 function RunHead({ view, row }: { view: RunView; row: RunRow | null }) {
   const kept = view.findings.filter((f) => f.kept).length;
   const total = view.spend.reduce((a, s) => a + s.usd, 0);
+  const picks = view.brief.readList?.length;
+  // the rows are cost detail: a tap opens them, at 390 too
+  const spend: ReactNode = view.spend.length ? (
+    <details>
+      <summary className="cursor-pointer">{usd(total)}</summary>
+      <ul className={cx("m-0 mt-1 grid list-none gap-0.5 p-0 text-[12.5px]", QUIET)}>
+        {view.spend.map((s) => (
+          <li key={`${s.source} ${s.op}`}>
+            {s.source} {s.op}: {plural(s.calls, "call")}
+            {s.failed ? ` (${s.failed} failed)` : ""}, {usd(s.usd)}
+          </li>
+        ))}
+      </ul>
+    </details>
+  ) : (
+    usd(total)
+  );
+  const items: [string, ReactNode][] = [
+    ["Picks", picks ?? 0],
+    ["Pages read", view.documents.length],
+    ["Searches", view.queries.length],
+    ["Findings", `${kept} kept of ${view.findings.length}`],
+    ["Spend", spend],
+    [
+      "Status",
+      `${row?.next ? `next: round ${row.next.round} ${row.next.step}` : "stopped"}${row?.note ? ` (${row.note})` : ""}`,
+    ],
+  ];
   return (
-    <header className="grid gap-1.5">
+    <header className="grid gap-2.5">
       <h2 className="m-0 text-[18px] leading-[1.35] font-semibold wrap-anywhere">
-        {row?.ask || view.run}
+        {row?.ask || askOf(view) || view.run}
       </h2>
-      <p className={cx("m-0 text-[13px] tabular-nums", QUIET)}>
-        {plural(view.queries.length, "query", "queries")} · {plural(view.hits.length, "hit")} ·{" "}
-        {plural(view.documents.length, "page")} read · {kept} kept of{" "}
-        {plural(view.findings.length, "finding")} · {usd(total)}
-        {row?.next ? ` · next: round ${row.next.round} ${row.next.step}` : " · stopped"}
-        {row?.note ? ` (${row.note})` : ""}
-      </p>
-      {view.spend.length ? (
-        <p className={cx("m-0 text-[12.5px] tabular-nums", QUIET)}>
-          {view.spend
-            .map(
-              (s) =>
-                `${s.source} ${s.op} ${s.calls}${s.failed ? ` (${s.failed} failed)` : ""} ${usd(s.usd)}`,
-            )
-            .join(" · ")}
-        </p>
-      ) : null}
+      {/* two short columns side by side: the posters stay near the top, at 390 too */}
+      <div className="flex flex-wrap gap-x-6 gap-y-1.5">
+        <Facts items={items.slice(0, 3)} className="tabular-nums" />
+        <Facts items={items.slice(3)} className="tabular-nums" />
+      </div>
     </header>
   );
 }
@@ -610,65 +639,6 @@ function PostEmbed(d: { id: string; url: string; title?: string | undefined }) {
   );
 }
 
-/** The site a pick is on: a social platform's mark, else its host (the tile's mark reads hosts). */
-function platformOf(url: string): string {
-  if (youtubeId(url)) return "youtube";
-  return embedSite(url) ?? host(url);
-}
-
-const SOCIAL = new Set(["x", "instagram", "tiktok"]);
-
-/**
- * A pick as a gallery post (WA-1404): the page's picture (a video's poster), its counts, and its score
- * (the multiple over the creator's last n posts). Followers come back from views per follower.
- */
-export function postOf(p: ReadPick, d: RunDocument | undefined): FeedPost {
-  const platform = platformOf(p.url);
-  const words = d?.title ?? p.title ?? null;
-  const views = p.metrics?.views;
-  const s = p.score;
-  const who = p.channel ?? d?.channel ?? host(p.url);
-  return {
-    platform,
-    ref: p.id,
-    url: p.url,
-    kind: d?.media === "video" ? "video" : "post",
-    postedAt: d?.date ?? null,
-    // a social post is its words; a page has a title
-    title: SOCIAL.has(platform) ? null : words,
-    text: SOCIAL.has(platform) ? words : null,
-    creatorId: 0,
-    personId: 0,
-    person: who,
-    handle: who,
-    name: null,
-    niches: [],
-    followers: views !== undefined && s?.perFollower ? Math.round(views / s.perFollower) : null,
-    counts: p.metrics ?? {},
-    scoreCount: s?.count ?? null,
-    multiple: s?.multiple ?? null,
-    band: s?.band ?? null,
-    // weaver's rank is a place among their posts, not the feed's top percent
-    rank: null,
-    likesMultiple: s?.likes?.multiple ?? null,
-    likesBand: s?.likes?.band ?? null,
-    likesRank: null,
-    baselineN: s?.n ?? null,
-    baseline: s?.base ?? null,
-    likesBaseline: s?.likes?.base ?? null,
-    creatorPosts: null,
-    record: null,
-    picture: null,
-    pictureSmall: null,
-    pictureLink: d?.image ?? null,
-    video: null,
-    src: d?.image ?? null,
-    full: d?.image ?? null,
-    // weaver keeps no playable file: the detail plays the post's own embed
-    videoSrc: null,
-  };
-}
-
 /** The why's "Copy: …" sentence, the tile's line; the whole why opens in the detail. */
 export function copyOf(why: string): string | null {
   const m = /\bCopy(?: first)?:\s*(.+)$/s.exec(why);
@@ -683,7 +653,8 @@ const lengthOf = (d: RunDocument | undefined) => {
 
 /**
  * The run's references, best first (weaver `brief.readList`, WA-1404): a gallery feed (PT-6, the
- * Outliers tiles). A tile opens the post whole, with the agent's why and the findings it gave.
+ * Outliers tiles). Under it the board (WA-1405): pattern shelves, then every other page read.
+ * Any tile opens the post whole, with the agent's why (a pick) and the findings it gave.
  */
 function References({
   view,
@@ -697,45 +668,51 @@ function References({
   link: Link;
 }) {
   const list = view.brief.readList;
-  const docs = useMemo(() => new Map(view.documents.map((d) => [d.id, d])), [view]);
-  const rows = useMemo(
-    () => (list ?? []).map((p) => ({ p, d: docs.get(p.id), r: postOf(p, docs.get(p.id)) })),
-    [list, docs],
-  );
-  if (!rows.length)
+  const pages = useMemo(() => boardPages(view), [view]);
+  const picks = (list ?? []).flatMap((p) => pages.get(p.id) ?? []);
+  const rest = useMemo(() => [...pages.values()].filter((x) => !x.pick), [pages]);
+  const openId = card?.startsWith("d:") ? card.slice(2) : null;
+  const opened = openId ? (pages.get(openId) ?? null) : undefined;
+  if (!pages.size)
     return (
       <Empty title="No references yet" waits>
         {list
-          ? "The agent ranks the pages it read with weaver add pick. They show here, best first."
+          ? "The agent has not ranked the pages it read yet. They show here, best first, once it does."
           : "This weaver serve sends no read list. Run weaver 0.79.0 or later."}
       </Empty>
     );
-  const openId = card?.startsWith("d:") ? card.slice(2) : null;
-  const opened = openId ? (rows.find((x) => x.p.id === openId) ?? null) : undefined;
   return (
-    <div className="grid gap-4">
-      <div className="grid gap-1">
-        <p className={cx("m-0 text-[13px]", QUIET)}>
-          {plural(rows.length, "reference")}, best first, picked by the agent
-        </p>
-        {rows.some((x) => x.r.multiple != null) ? <UsualRule likes={false} /> : null}
-      </div>
-      <ul aria-label="References" className={cx("m-0 list-none p-0", GALLERY)}>
-        {rows.map(({ p, d, r }) => (
-          <li key={p.id} className="min-w-0 [animation:ui-fade_.15s_both]">
-            <Tile
-              r={r}
-              canon={null}
-              open={link({ open: `d:${p.id}` })}
-              rank={p.rank}
-              length={lengthOf(d)}
-              note={copyOf(p.why)}
-              // a score comes only from the agent's follow reads, never on its own
-              unscored={null}
-            />
-          </li>
-        ))}
-      </ul>
+    <div className="grid gap-8">
+      <section aria-labelledby="board-picks" className="grid gap-3">
+        <h3 id="board-picks" className="m-0 text-[15px] font-semibold">
+          Picks <span className="font-normal text-(--ui-ink-3) tabular-nums">{picks.length}</span>
+        </h3>
+        {picks.length ? (
+          <ul aria-label="References" className={cx("m-0 list-none p-0", GALLERY)}>
+            {picks.flatMap(({ pick: p, d, r }) => {
+              if (!p) return [];
+              return (
+                <li key={p.id} className="min-w-0 [animation:ui-fade_.15s_both]">
+                  <Tile
+                    r={r}
+                    canon={null}
+                    open={link({ open: `d:${p.id}` })}
+                    rank={p.rank}
+                    length={lengthOf(d)}
+                    note={copyOf(p.why)}
+                    // a score comes only from the agent's follow reads, never on its own
+                    unscored={null}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className={cx("m-0 text-[13px]", QUIET)}>The agent has not picked pages yet.</p>
+        )}
+      </section>
+      <Patterns view={view} pages={pages} link={link} />
+      <Wall pages={rest} link={link} />
       {opened !== undefined ? (
         <PostDetail
           key={openId ?? ""}
@@ -745,39 +722,51 @@ function References({
           creatorHref={null}
           face={null}
           also={[]}
-          about="A reference, whole: the post, why the agent picked it and what it gave."
+          about="A page the run read, whole: the post, its numbers and what it gave."
           onClose={() => go({ open: null })}
         >
-          {opened ? <PickWhy view={view} p={opened.p} d={opened.d} /> : null}
+          {opened ? <PageWhy view={view} s={opened.s} pick={opened.pick} d={opened.d} /> : null}
         </PostDetail>
       ) : null}
     </div>
   );
 }
 
-/** The detail's own part for a pick: the agent's why, its verdict, the findings, the stored copy. */
-function PickWhy({ view, p, d }: { view: RunView; p: ReadPick; d: RunDocument | undefined }) {
-  const findings = view.findings.filter((f) => f.document === p.id);
+/** The detail's own part: a pick's why, the page's verdict, the findings, the stored copy. */
+function PageWhy({
+  view,
+  s,
+  pick,
+  d,
+}: {
+  view: RunView;
+  s: PageSignals;
+  pick: ReadPick | undefined;
+  d: RunDocument | undefined;
+}) {
+  const findings = view.findings.filter((f) => f.document === s.id);
   return (
     <>
-      <section aria-labelledby="pick-why" className="grid gap-2">
-        <h3 id="pick-why" className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">
-          Why it's a reference{p.rank != null ? ` (rank ${p.rank})` : ""}
-        </h3>
-        <p className="m-0 text-[14px] leading-[1.5] text-(--ui-ink)">{p.why}</p>
-        {d?.verdict ? (
-          <p className={cx("m-0 text-[12.5px]", QUIET)}>
-            The page reads {d.verdict.quality}
-            {d.verdict.gap ? `; gap: ${d.verdict.gap}` : ""}
-          </p>
-        ) : null}
-      </section>
+      {pick ? (
+        <section aria-labelledby="pick-why" className="grid gap-2">
+          <h3 id="pick-why" className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">
+            Why it's a reference{pick.rank != null ? ` (rank ${pick.rank})` : ""}
+          </h3>
+          <p className="m-0 text-[14px] leading-[1.5] text-(--ui-ink)">{pick.why}</p>
+        </section>
+      ) : null}
+      {d?.verdict ? (
+        <p className={cx("m-0 text-[12.5px]", QUIET)}>
+          The page reads {d.verdict.quality}
+          {d.verdict.gap ? `; gap: ${d.verdict.gap}` : ""}
+        </p>
+      ) : null}
       <section aria-labelledby="pick-findings" className="grid gap-2">
         <h3 id="pick-findings" className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">
-          Findings ({p.kept} kept of {p.kept + p.dropped})
+          Findings ({s.kept} kept of {s.kept + s.dropped})
         </h3>
         <Findings findings={findings} />
-        <StoredCopy run={view.run} id={p.id} />
+        <StoredCopy run={view.run} id={s.id} />
       </section>
     </>
   );

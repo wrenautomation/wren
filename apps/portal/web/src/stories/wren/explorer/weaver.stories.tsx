@@ -1,11 +1,13 @@
 /** Explorer › Weaver: the runs on this Mac as one tree, read beside `weaver serve`. Fake server: `web/src/mocks/`. */
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { RequestHandler, WebSocketHandler } from "msw";
+import { HttpResponse, http, type RequestHandler, type WebSocketHandler } from "msw";
 import { expect, waitFor, within } from "storybook/test";
 import { ADMIN } from "../../../mocks/data/me.js";
+import { BOARD_VIEW } from "../../../mocks/data/research-board.js";
 import { pageAt, tidy } from "../../../mocks/page.js";
 import { REFUSED, SERVED } from "../../../mocks/weaver-serve.js";
 import { explorerHref, wholeHref } from "../../../modules/explorer/href.js";
+import { SERVE } from "../../../modules/research/serve.js";
 import { relation, WAIT } from "./explorer-kit.js";
 
 const meta: Meta = { title: "Wren/Explorer/Weaver" };
@@ -38,17 +40,32 @@ export const Default = tidy(
   }),
 );
 
-/** A run: its pages and queries in the column; its graph and counts in the preview. */
+/** A run: its pages and queries in the column; its top picks and counts in the preview. */
 export const Run = tidy(
   story(at("weaver/r1"), async (page) => {
     const view = within(page);
     await expect(await view.findByText("3 queries", {}, WAIT)).toBeVisible();
-    await expect(await view.findByRole("group", { name: /^The run as a web/ }, WAIT)).toBeVisible();
+    await expect(await view.findByRole("heading", { name: /^\d+ picks?$/ }, WAIT)).toBeVisible();
     await expect(view.getByRole("link", { name: "Open the whole run" })).toHaveAttribute(
       "href",
       wholeHref("weaver/r1"),
     );
   }),
+);
+
+/** Worst case: 180 pages read, 12 picks; the preview shows the top 6 by rank. */
+export const RunBoard = tidy(
+  story(
+    at("weaver/r1"),
+    async (page) => {
+      const view = within(page);
+      await expect(
+        await view.findByRole("heading", { name: "Top 6 of 12 picks" }, WAIT),
+      ).toBeVisible();
+      await expect(await view.findByRole("link", { name: /^Open pick 1: / }, WAIT)).toBeVisible();
+    },
+    [http.get(`${SERVE}/runs/:run`, () => HttpResponse.json(BOARD_VIEW)), ...SERVED],
+  ),
 );
 
 /** A page it read: its source and text in the preview; its findings are its rows. */

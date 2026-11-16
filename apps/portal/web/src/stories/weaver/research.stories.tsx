@@ -6,6 +6,7 @@ import COMMANDS from "../../mocks/data/agent/commands.json";
 import SETUPS from "../../mocks/data/agent/setups.json";
 import { ADMIN } from "../../mocks/data/me.js";
 import { RESEARCH_VIEW } from "../../mocks/data/research.js";
+import { BOARD_VIEW } from "../../mocks/data/research-board.js";
 import { pageAt, tidy } from "../../mocks/page.js";
 import { fakeRelay, type TapeLine } from "../../mocks/relay.js";
 import { REFUSED, SERVED } from "../../mocks/weaver-serve.js";
@@ -57,7 +58,6 @@ export const BackAndForth = story(wholeHref("weaver/r1", { tab: "talk" }), async
 export const References = story(wholeHref("weaver/r1"), async (page) => {
   const p = within(page);
   await p.findByRole("list", { name: "References" });
-  await p.findByText("4 references, best first, picked by the agent");
   await p.findByText("Copy: the walk-in with samples, then the first order's numbers.");
 });
 
@@ -97,6 +97,18 @@ export const ReferencesEmpty = story(
     ),
     ...SERVED,
   ],
+);
+
+/** Worst case: 180 pages over 30 channels, 12 picks, 5 patterns, posters missing on some. */
+export const Board = story(
+  wholeHref("weaver/rb"),
+  async (page) => {
+    const p = within(page);
+    await p.findByRole("list", { name: "Pages read" }, LATE);
+    await p.findByText("Walk in with samples; the first order comes on the spot.");
+    await p.findByRole("button", { name: "Show all 168" });
+  },
+  [http.get(`${SERVE}/runs/rb`, () => HttpResponse.json({ ...BOARD_VIEW, run: "rb" })), ...SERVED],
 );
 
 /** serve is not running: the page says how to start it, never an empty list. */

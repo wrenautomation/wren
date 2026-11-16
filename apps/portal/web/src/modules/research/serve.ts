@@ -138,8 +138,8 @@ export interface PickScore {
   likes?: Omit<PickScore, "likes" | "perFollower">;
 }
 
-/** One row of the agent's read list (weaver 0.79.0 `brief.readList`); `id` is the page's. */
-export interface ReadPick {
+/** A read page's counts and score (weaver 0.79.0 `PageSignals`); `brief.unpicked` holds the rest, best score first. */
+export interface PageSignals {
   id: string;
   url: string;
   title?: string;
@@ -149,6 +149,10 @@ export interface ReadPick {
   kept: number;
   dropped: number;
   quality?: string;
+}
+
+/** One row of the agent's read list (weaver 0.79.0 `brief.readList`); `id` is the page's. */
+export interface ReadPick extends PageSignals {
   /** Absent: picked, not ranked (after the ranked ones). */
   rank?: number;
   why: string;
@@ -156,11 +160,25 @@ export interface ReadPick {
   by: string;
 }
 
+/** What several findings say together (weaver `brief.patterns`); `sources` counts distinct sites. */
+export interface BriefPattern {
+  id: string;
+  round: number;
+  text: string;
+  findings: string[];
+  sources: number;
+}
+
 export interface RunView {
   v: 1;
   run: string;
   /** The agent's brief: v1 reads `people` and `readList` (the rest is agent-shaped, see the design log). */
-  brief: { people?: RunPerson[]; readList?: ReadPick[] } & Record<string, unknown>;
+  brief: {
+    people?: RunPerson[];
+    readList?: ReadPick[];
+    unpicked?: PageSignals[];
+    patterns?: BriefPattern[];
+  } & Record<string, unknown>;
   queries: RunQuery[];
   hits: RunHit[];
   documents: RunDocument[];

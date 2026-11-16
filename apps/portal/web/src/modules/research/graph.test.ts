@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { RESEARCH_ROWS, RESEARCH_VIEW } from "../../mocks/data/research.js";
+import { BOARD_VIEW } from "../../mocks/data/research-board.js";
 import { runGraphOf } from "./graph.js";
 
 describe("a run as the graph's data", () => {
@@ -28,5 +29,31 @@ describe("a run as the graph's data", () => {
     expect(yt?.pick).toBe(1);
     const web = g.sources.find((s) => s.name === "bakers.example");
     expect(web?.pick).toBeUndefined();
+  });
+});
+
+describe("a social run as the graph's data (WA-1405)", () => {
+  const g = runGraphOf(BOARD_VIEW);
+
+  it("makes one source per author on a social site, not one per site", () => {
+    const x = g.sources.filter((s) => s.icon?.includes("/x.com."));
+    expect(x.map((s) => s.name).sort()).toEqual([
+      "a_very_long_handle_that_never_wraps_well",
+      "bakehouse_ops",
+      "crumbandco",
+      "rackandroll",
+      "sourdoughsally",
+    ]);
+    expect(x.find((s) => s.name === "crumbandco")?.home).toBe("https://x.com/crumbandco");
+  });
+
+  it("gives a source its best pick's picture, else any page's", () => {
+    const withPick = g.sources.filter((s) => s.pick != null);
+    for (const s of withPick) {
+      const best = s.pages.filter((p) => p.og).sort((a, b) => (a.pick ?? 999) - (b.pick ?? 999))[0];
+      expect(s.og).toBe(best?.og ?? null);
+    }
+    const posters = g.sources.filter((s) => s.pages.some((p) => p.og));
+    expect(posters.every((s) => s.og)).toBe(true);
   });
 });
