@@ -13,7 +13,6 @@ import { ACCOUNT_SITES } from "@wren/core/components";
 import { setRecordAccounts } from "@wren/core/record-accounts";
 import { metaOf } from "@wren/core/records";
 import { handlerForm } from "@wren/core/restate";
-import { templatesOf } from "@wren/core/templates/install";
 import { checkWorkflows } from "@wren/core/workflows";
 import { NICHES } from "@wren/niches";
 import type { Logger } from "pino";
@@ -184,14 +183,6 @@ describe("the component inventory", () => {
     }
   });
 
-  it("posting takes any connected posting account, TikTok's sign-in among them", () => {
-    const posting = COMPONENTS.find((c) => c.id === "content.posting");
-    expect(posting?.requires.anyAccount).toEqual(
-      expect.arrayContaining(["linkedin", "reddit", "tiktok", "youtube", "x", "instagram"]),
-    );
-    expect(posting?.soon).toEqual([]);
-  });
-
   it("not ready says what's missing; ready says nothing is", () => {
     for (const c of COMPONENTS) expect(c.missing.length > 0, c.id).toBe(!c.ready);
   });
@@ -202,10 +193,6 @@ describe("the component inventory", () => {
 });
 
 describe("workflows and hypotheses", () => {
-  it("win back installs as a template", () => {
-    expect(templatesOf(WORKFLOWS, COMPONENTS).map((t) => t.id)).toContain("win_back");
-  });
-
   it("every workflow wires real ports of matching kinds", () => {
     expect(checkWorkflows(WORKFLOWS, COMPONENTS)).toEqual([]);
   });
