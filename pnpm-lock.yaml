@@ -232,8 +232,8 @@ importers:
         specifier: 0.18.0
         version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/weaver':
-        specifier: 0.79.2
-        version: 0.79.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.79.3
+        version: 0.79.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       commander:
         specifier: 15.0.0
         version: 15.0.0
@@ -745,8 +745,8 @@ importers:
         specifier: 0.68.12
         version: 0.68.12
       '@wrenautomation/weaver':
-        specifier: 0.79.2
-        version: 0.79.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.79.3
+        version: 0.79.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       ws:
         specifier: 8.21.0
         version: 8.21.0
@@ -1568,8 +1568,8 @@ importers:
         specifier: 0.77.1
         version: 0.77.1(@aws-sdk/client-s3@3.1136.0)
       '@wrenautomation/weaver':
-        specifier: 0.79.2
-        version: 0.79.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.79.3
+        version: 0.79.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       csv-parse:
         specifier: 7.0.2
         version: 7.0.2
@@ -2056,8 +2056,8 @@ importers:
         specifier: 0.8.4
         version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       '@wrenautomation/weaver':
-        specifier: 0.79.2
-        version: 0.79.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.79.3
+        version: 0.79.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -6567,8 +6567,8 @@ packages:
     peerDependencies:
       '@electric-sql/pglite': ^0.5.11
 
-  '@wrenautomation/knowledge@0.79.2':
-    resolution: {integrity: sha512-ESw9msdwRfqvvsoDetbdkP4OsI87yF7rgpeAj3G8J0Jb+BU8/to0S/RlW2H/Jz9m7oVSvJ/eW7CnTEQddPMubg==}
+  '@wrenautomation/knowledge@0.79.3':
+    resolution: {integrity: sha512-w5s/n+X42yR/jN3SryrztCviI9/yy88hePi89dy5Pex2SHCWjCWfHcsjeGQ+Yb9CUHeTNquqUfxSRYpnF8On3w==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
@@ -6582,8 +6582,8 @@ packages:
     resolution: {integrity: sha512-v1o64JN+fZ/yUKPFdhgV8bCrjtcgzDTFIHyQPJr1g9KxvmQDV7ePr4zMfTauOW5zDWAAAIQHkjK2fCEJDhsVYw==}
     engines: {node: '>=24'}
 
-  '@wrenautomation/models@0.79.2':
-    resolution: {integrity: sha512-fgxbA1XzrXJqCUx8ppxvpoaelqwI6cttSzcmaD5jaVczeLhgOdVMIIXpdTc4l/1lC9Gx+0JPjC3r6xTwAu8/7Q==}
+  '@wrenautomation/models@0.79.3':
+    resolution: {integrity: sha512-q+R/R0Adxy2znUHo+Fok6Pe9ZAdEZ8sciOvXa646XtEmf1C9HkyYf3PYcY9iYrGsTlh7NVKhFkYlsSwK6tCbFg==}
     engines: {node: '>=24'}
 
   '@wrenautomation/orrery@0.77.0':
@@ -6607,8 +6607,8 @@ packages:
       '@aws-sdk/client-s3':
         optional: true
 
-  '@wrenautomation/read@0.79.2':
-    resolution: {integrity: sha512-qjoTN/ejNZXSU1dz/XbgrtbDKBFlQiiIiA6DJSP3/ylG1gYihNbSWzuemrXvxbV7n1QxSeVBGM4506QPOWH+AQ==}
+  '@wrenautomation/read@0.79.3':
+    resolution: {integrity: sha512-ef0Mq7PZkOhevJF4+PDuKXt2fTvhDRTs6rdunWjDclAVrrRkku/1WWQJH2o+eIROEelXmFOTAm7Uh8YqQ7Hm3w==}
     engines: {node: '>=24'}
     peerDependencies:
       '@aws-sdk/client-s3': ^3.1136.0
@@ -6621,8 +6621,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@wrenautomation/weaver@0.79.2':
-    resolution: {integrity: sha512-QIGldcb8WouFhJXhYTRXbPU+h/Pv3r7TALzqH1clfLJSuAuLuRU44mwH4UXq0CYGbyoDn9LHymg62oMmeFaUzw==}
+  '@wrenautomation/weaver@0.79.3':
+    resolution: {integrity: sha512-mkzj+49xH9rZmMCXAVc4OWLLr1fpTNcc/q6gc+fPDjl1JjtTa7QJ9sLUtwjsPhxsvmyLv8QxzLuLCOih23fviA==}
     engines: {node: '>=24'}
     hasBin: true
 
@@ -14912,7 +14912,7 @@ snapshots:
       - sql.js
       - sqlite3
 
-  '@wrenautomation/knowledge@0.79.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
+  '@wrenautomation/knowledge@0.79.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
     dependencies:
       '@electric-sql/pglite': 0.5.15
       commander: 15.0.0
@@ -14973,7 +14973,7 @@ snapshots:
       ai: 7.0.155(zod@4.6.6)
       zod: 4.6.6
 
-  '@wrenautomation/models@0.79.2':
+  '@wrenautomation/models@0.79.3':
     dependencies:
       '@ai-sdk/anthropic': 4.0.90(zod@4.6.6)
       '@ai-sdk/cohere': 4.0.71(zod@4.6.6)
@@ -15018,9 +15018,9 @@ snapshots:
     transitivePeerDependencies:
       - '@napi-rs/canvas'
 
-  '@wrenautomation/read@0.79.2(@aws-sdk/client-s3@3.1136.0)':
+  '@wrenautomation/read@0.79.3(@aws-sdk/client-s3@3.1136.0)':
     dependencies:
-      '@wrenautomation/models': 0.79.2
+      '@wrenautomation/models': 0.79.3
       culori: 4.0.2
       entities: 8.1.0
       htmlparser2: 12.0.0
@@ -15071,12 +15071,12 @@ snapshots:
       - sql.js
       - sqlite3
 
-  '@wrenautomation/weaver@0.79.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
+  '@wrenautomation/weaver@0.79.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
     dependencies:
       '@hono/node-server': 2.1.3(hono@4.13.12)
-      '@wrenautomation/knowledge': 0.79.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
-      '@wrenautomation/models': 0.79.2
-      '@wrenautomation/read': 0.79.2(@aws-sdk/client-s3@3.1136.0)
+      '@wrenautomation/knowledge': 0.79.3(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+      '@wrenautomation/models': 0.79.3
+      '@wrenautomation/read': 0.79.3(@aws-sdk/client-s3@3.1136.0)
       commander: 15.0.0
       hono: 4.13.12
       htmlparser2: 12.0.0
