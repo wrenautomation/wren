@@ -86,12 +86,12 @@ echo "ci run $run"
 # The gates' joint conclusion and the deploy job's, once both are known; API errors retry. The
 # latest attempt's jobs only (a re-run's first attempt stays in the run as cancelled), and a
 # failure outranks a cancel; none is final while any gate still runs. Unit (all but portal, ui)
-# holds again since 11-16 (WA-1397); unit-ui, integration and stories report only. A red gate stops the deploy before it changes
+# and the 8 integration shards hold again since 11-16 (WA-1397); unit-ui and stories report only. A red gate stops the deploy before it changes
 # anything (deploy=failure, "gates: ..." in its log); a newer push cancels this run's gates (ci=cancelled, deploy=failure).
 # deploy/scripts/ci-steps.sh await_gates reads the same jobs the same way.
-STATUS='[.jobs[] | select(.name == "lint" or .name == "unit" or .name == "schema")] as $g
+STATUS='[.jobs[] | select(.name == "lint" or .name == "unit" or .name == "schema" or (.name | startswith("integration (")))] as $g
   | ([.jobs[] | select(.name | startswith("deploy"))] | first) as $d
-  | (if ($g | length) < 3 or any($g[]; .status != "completed") then "pending"
+  | (if ($g | length) < 11 or any($g[]; .status != "completed") then "pending"
      elif any($g[]; .conclusion == "failure") then "failure"
      elif all($g[]; .conclusion == "success") then "success"
      else ($g | map(select(.conclusion != "success")) | first | .conclusion) end) as $ci

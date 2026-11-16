@@ -4,7 +4,7 @@
 #   await <name...>        wait for each (10 min cap), print its log, fail if any failed or ran out
 #   ssm_run <comment> <file.json>   run a command doc on the box, print its output, fail unless Success
 #   box_script <name> <script> [args...]   install deploy/scripts/<script> on the box as wren-box-<name> and run it
-#   await_gates            wait for this run's lint, unit and schema jobs; fail unless all three pass
+#   await_gates            wait for this run's lint, unit, schema and 8 integration jobs; fail unless all pass
 D="$RUNNER_TEMP/bg"
 mkdir -p "$D"
 
@@ -49,8 +49,8 @@ await_gates() {
   local out t=0 newer
   while :; do
     out="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest" --jq '
-      [.jobs[] | select(.name == "lint" or .name == "unit" or .name == "schema")]
-      | if length < 3 or any(.status != "completed") then "wait"
+      [.jobs[] | select(.name == "lint" or .name == "unit" or .name == "schema" or (.name | startswith("integration (")))]
+      | if length < 11 or any(.status != "completed") then "wait"
         elif all(.conclusion == "success") then "pass"
         else "fail " + ([.[] | select(.conclusion != "success") | .name + "=" + .conclusion] | join(" ")) end')" || out=wait
     case "$out" in
@@ -62,7 +62,7 @@ await_gates() {
         --jq ".workflow_runs[0] | select(.id != $GITHUB_RUN_ID and .run_number > ${GITHUB_RUN_NUMBER:-0}) | .id")" || newer=
       [ -z "$newer" ] || { echo "::error::gates: run $newer is newer; it deploys"; return 1; }
     fi
-    [ $t -lt 1200 ] || { echo "::error::gates: no lint, unit and schema result after 20 min"; return 1; }
+    [ $t -lt 1200 ] || { echo "::error::gates: no lint, unit, schema and integration result after 20 min"; return 1; }
     sleep 2
     t=$((t + 2))
   done

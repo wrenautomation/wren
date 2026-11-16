@@ -15,7 +15,7 @@ Shipping:
 - Check: `peers check` (it runs `scripts/gates.sh changed` in place on your files and their packages only; args pass through: `peers check ui`). Never run `gates.sh` in this shared checkout: another session's unfinished work fails it. Turbo keeps one cache (`~/Library/Caches/wren_automation/turbo/wren`), so a package that passed once is a hit.
 - Commit with `git commit -- <paths>`: other sessions stage files here.
 - Push with `scripts/push.sh <commit>`. It merges origin/main if it moved, pushes, waits for CI's gates and the deploy, then syncs the folder copy. CI is the judge: no local rerun.
-- CI deploys `main` once lint (biome, types, guards), unit and schema pass. Unit covers every package but portal and ui (WA-1397, 11-16): a red unit test holds the deploy; fix it or, if the code changed on purpose, rewrite it. `unit-ui` (portal, ui), integration and story tests report only during the redesign (WA-917).
+- CI deploys `main` once lint (biome, types, guards), unit, schema and the 8 integration shards pass (WA-1397, 11-16). Unit covers every package but portal and ui. A red test holds the deploy: fix the code, or rewrite the test if the code changed on purpose. `unit-ui` (portal, ui) and story tests report only during the redesign (WA-917).
 - Env change: diff SSM first, then `deploy/scripts/push-secrets.sh` (it overwrites the whole parameter), then `gh workflow run deploy.yml --ref main`.
 
 Hard rules: repo is public (no lead data, amounts, client names, secrets; tests use synthetic data).
