@@ -67,8 +67,9 @@ export const when = (at: string | null) => (at ? WHEN.format(new Date(at)) : nul
 export const followersText = (n: number | null) =>
   n == null ? null : `${short(n)} ${n === 1 ? "follower" : "followers"}`;
 
-type CountKey = keyof FeedPost["counts"];
-const metricOf = (r: FeedPost): CountKey => (r.scoreCount === "likes" ? "likes" : "views");
+export type CountKey = keyof FeedPost["counts"];
+/** the count a score is on */
+export const metricOf = (r: FeedPost): CountKey => (r.scoreCount === "likes" ? "likes" : "views");
 /** "their usual views": what the multiple counts, always said (D10) */
 export const usualWords = (r: FeedPost) => `their usual ${metricOf(r)}`;
 

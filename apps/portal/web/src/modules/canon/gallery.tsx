@@ -10,11 +10,13 @@ import {
   atOf,
   type Canon,
   CanonTag,
+  type CountKey,
   CountRow,
   cn,
   HOT,
   hookOf,
   kindName,
+  metricOf,
   nameOf,
   perFollowerText,
   platformName,
@@ -27,6 +29,10 @@ import {
 /** the gallery grid: 12 px across, 24 px down (D10) */
 export const GALLERY =
   "grid grid-cols-2 gap-x-3 gap-y-6 @min-[720px]/main:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]";
+
+/** a poster wall of `dense` tiles: 3 across on a phone, 150 px columns wide (WA-1405) */
+export const GALLERY_DENSE =
+  "grid grid-cols-3 gap-x-2.5 gap-y-4 @min-[720px]/main:grid-cols-[repeat(auto-fill,minmax(150px,1fr))]";
 
 /** a platform's mark and its name for a screen reader: every post says where it is from (D10) */
 export function Where({ platform }: { platform: string }) {
@@ -157,6 +163,7 @@ export function Tile({
   note,
   cover,
   unscored = "Not scored yet",
+  dense = false,
 }: {
   r: FeedPost;
   canon: Canon;
@@ -173,6 +180,8 @@ export function Tile({
   cover?: ReactNode;
   /** the line where a score would be; null where none will come (a web page) */
   unscored?: ReactNode;
+  /** a wall tile (GALLERY_DENSE): the frame, the multiple, one count, who; no hook, no note */
+  dense?: boolean;
 }) {
   const hot = (r.multiple ?? 0) >= HOT;
   const pic = usePicture(r);
@@ -181,7 +190,11 @@ export function Tile({
   const words = r.title ?? r.text ?? `${kindName(r.kind)} by ${nameOf(r)}`;
   const perFol = reach ? perFollowerText(r) : null;
   // a text tile already shows its words in the frame
-  const hook = pic.src ? hookOf(r) : null;
+  const hook = pic.src && !dense ? hookOf(r) : null;
+  // the count the score is on
+  const counts: CountKey[] = dense
+    ? [r.scoreCount ? metricOf(r) : r.counts.views != null ? "views" : "likes"]
+    : ["views", "likes", "comments"];
   const corner = rank != null || canon;
   return (
     <article
@@ -209,7 +222,8 @@ export function Tile({
           // a text post fills the frame with its words; the panel opens the rest
           <p
             className={cn(
-              "m-0 h-full overflow-hidden p-3 text-[13.5px] leading-[1.45] whitespace-pre-line wrap-anywhere text-(--ui-ink) [animation:ui-fade_.15s_both] [mask-image:linear-gradient(#000_75%,transparent)]",
+              "m-0 h-full overflow-hidden leading-[1.45] whitespace-pre-line wrap-anywhere text-(--ui-ink) [animation:ui-fade_.15s_both] [mask-image:linear-gradient(#000_75%,transparent)]",
+              dense ? "p-2 text-[12px]" : "p-3 text-[13.5px]",
               !!cover && "pr-9",
               corner && "pt-10",
             )}
@@ -257,30 +271,30 @@ export function Tile({
           >
             <span
               className={cn(
-                "text-[20px] leading-tight font-semibold tabular-nums",
+                "leading-tight font-semibold tabular-nums",
+                dense ? "text-[15px]" : "text-[20px]",
                 hot ? "text-(--ui-active)" : "text-(--ui-ink)",
               )}
             >
               {times(r.multiple)}
             </span>
-            <span className="text-[12.5px] text-(--ui-ink-3)">{usualWords(r)}</span>
+            {dense ? null : (
+              <span className="text-[12.5px] text-(--ui-ink-3)">{usualWords(r)}</span>
+            )}
           </span>
         ) : unscored ? (
           <span className="text-[12.5px] leading-[25px] text-(--ui-ink-3)">{unscored}</span>
         ) : null}
       </div>
-      <CountRow
-        r={r}
-        only={["views", "likes", "comments"]}
-        className="text-[12.5px] text-(--ui-ink-2)"
-      />
+      <CountRow r={r} only={counts} className="text-[12.5px] text-(--ui-ink-2)" />
       {perFol ? <p className="m-0 text-[12.5px] text-(--ui-ink-2) tabular-nums">{perFol}</p> : null}
       {/* the mark holds its own column: a long handle wraps beside it, never under it */}
       <p className="m-0 flex min-w-0 items-start gap-1.5 text-[12.5px] leading-snug text-(--ui-ink-2)">
         <Where platform={r.platform} />
         <span className="min-w-0 wrap-anywhere">
           {inGroup ? null : atOf(r)}
-          {ago ? (
+          {/* a wall: who only; 100 px columns at 390 */}
+          {ago && !dense ? (
             <span className="whitespace-nowrap text-(--ui-ink-3)">
               {inGroup ? "" : " · "}
               {ago}
@@ -288,7 +302,7 @@ export function Tile({
           ) : null}
         </span>
       </p>
-      {note ? (
+      {note && !dense ? (
         <p className="m-0 text-[12.5px] leading-[1.45] wrap-anywhere text-(--ui-ink-2)">{note}</p>
       ) : null}
       <OpenLink open={open} r={r} />
