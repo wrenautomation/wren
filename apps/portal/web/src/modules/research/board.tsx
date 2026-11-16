@@ -99,7 +99,7 @@ export function boardPages(view: RunView): Map<string, BoardPage> {
 }
 
 /** the wall shows this many until asked; pictures load lazily */
-export const WALL_FIRST = 60;
+const WALL_FIRST = 60;
 
 type Sort = "score" | "likes" | "new";
 const SORTS = [
@@ -119,7 +119,7 @@ const byLikes = (a: PageSignals, b: PageSignals) =>
 const at = (p: BoardPage) => (p.d?.date ? Date.parse(p.d.date) || 0 : 0);
 
 /** A pattern's pages: the documents its findings sit on, picks first by rank, then by score. */
-export function patternPages(
+function patternPages(
   p: BriefPattern,
   view: RunView,
   pages: ReadonlyMap<string, BoardPage>,
