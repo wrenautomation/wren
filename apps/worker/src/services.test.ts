@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { loadSettings } from "@wren/config";
 import type * as restate from "@wren/runtime";
 import type { Logger } from "pino";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { buildServices } from "./services.js";
 
 /** A logger that keeps every line; pino's shape is all the worker uses. */
@@ -88,6 +88,9 @@ async function contentOf(env: Record<string, string>) {
 const POST = { text: "hi", extra: { subreddit: "r/smallbusiness", title: "A title" } };
 
 describe("contentFor: reddit", () => {
+  // first buildServices loads every service module: ~2.5 s here, ~5 s on CI; paid once, outside the tests' 5 s
+  beforeAll(() => contentOf({ WREN_CONTENT_CHANNELS: "reddit" }), 30_000);
+
   it("without WREN_REDDIT_* goes through the Mac's desk, never waking the box", async () => {
     const { handlers, lines } = await contentOf({
       WREN_CONTENT_CHANNELS: "reddit",
