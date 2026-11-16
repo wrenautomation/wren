@@ -35,11 +35,17 @@ export const keyOf = (r: FeedPost) => `${r.platform}:${r.ref}`;
 export const times = (m: number) => `${m >= 10 ? Math.round(m) : m.toFixed(1)}x`;
 /** the creator person's name (D10): theirs, else their first account's */
 export const nameOf = (r: Pick<FeedPost, "person">) => r.person;
+/** "@maker"; a page with no account (a weaver pick) has its site there, with no "@" */
+export const atOf = (r: Pick<FeedPost, "handle" | "url">) => {
+  let site: string | null = null;
+  try {
+    site = new URL(r.url).hostname.replace(/^www\./, "");
+  } catch {}
+  return r.handle === site ? r.handle : `@${r.handle}`;
+};
 /** "@maker · YouTube": the account, unless the name already is the handle */
-export const accountOf = (r: Pick<FeedPost, "person" | "handle" | "platform">) =>
-  [r.person === `@${r.handle}` ? null : `@${r.handle}`, platformName(r.platform)]
-    .filter(Boolean)
-    .join(" · ");
+export const accountOf = (r: Pick<FeedPost, "person" | "handle" | "platform" | "url">) =>
+  [r.person === atOf(r) ? null : atOf(r), platformName(r.platform)].filter(Boolean).join(" · ");
 
 /** "3 days ago", from an ISO time */
 export function age(at: string | null, now = Date.now()): string | null {

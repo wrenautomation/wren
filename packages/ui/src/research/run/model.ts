@@ -76,6 +76,8 @@ export interface GraphPage {
   /** format: video, article, paper, thread ... */
   f: string;
   e: Evidence;
+  /** its place on the agent's read list, best first (WA-1404) */
+  pick?: number;
 }
 
 export interface GraphFinding {
@@ -111,6 +113,8 @@ export interface GraphSource {
   kept: number;
   /** findings in claims */
   used: number;
+  /** its best page's place on the read list */
+  pick?: number;
   fs: GraphFinding[];
   /** claim index → findings for it */
   claims: Record<number, number>;

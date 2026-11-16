@@ -1,28 +1,22 @@
 /**
  * A weaver run whole (designs/2026-11-05-research-web.md, 11-08, 11-10), opened from Explorer ›
  * Weaver (WA-1373); the list and its folders are Explorer's now.
- * One run opens full width as its graph (round 13: claims, sources, searches, dropped hits) and
- * the back and forth (every decision with its why and who made it). Picked runs, or all of them,
- * open on one graph. Read only: the agent and the CLI write. Live: serve sends an event per change.
+ * One run opens on its references, best first (WA-1404: reference first), else its graph (round
+ * 13: claims, sources, searches, dropped hits); the back and forth holds every decision with its
+ * why and who made it. Picked runs, or all of them, open on one graph. Read only: the agent and the CLI write. Live: serve sends an event per change.
  */
-import {
-  Button,
-  cx,
-  Empty,
-  Icon,
-  LoadFailed,
-  Loading,
-  money,
-  Seg,
-  StateMark,
-  short,
-} from "@wren/ui";
+
+import type { FeedPost } from "@wren/research/canon-console";
+import { Button, cx, Empty, Icon, LoadFailed, Loading, money, Seg, StateMark } from "@wren/ui";
 import { type ReactNode, useMemo, useState } from "react";
 import { embedOf, embedSite, youtubeId } from "../../embeds.js";
 import { useCall } from "../../load.js";
 import { PlayerSlot } from "../../player/index.js";
 import { href, navigate, useRoute } from "../../route.js";
 import { usePageRuns } from "../agent/drive.js";
+import { GALLERY, Ghosts, Tile } from "../canon/gallery.js";
+import { PostDetail } from "../canon/post-detail.js";
+import { UsualRule } from "../canon/post-parts.js";
 import { QUIET } from "../work/bits.js";
 import { RowsPanel } from "../work/rows-panel.js";
 import { RunsCanvas } from "./canvas.js";
@@ -31,6 +25,7 @@ import {
   pageOf,
   type ReadPick,
   type RunDocument,
+  type RunFinding,
   type RunHit,
   type RunQuery,
   type RunRow,
@@ -42,16 +37,23 @@ import {
 } from "./serve.js";
 import { host, keptBy, toneOf } from "./tree.js";
 
-type Tab = "graph" | "list" | "talk";
+type Tab = "refs" | "graph" | "talk";
 type Go = (p: Record<string, string | null>) => void;
+type Link = (p: Record<string, string | null>) => string;
 
-// PT-7: a view is a tab over the same run
+// PT-7: a view is a tab over the same run; references first (WA-1404)
 const TABS = [
+  { value: "refs", label: "References" },
   { value: "graph", label: "Graph" },
-  { value: "list", label: "Read list" },
   { value: "talk", label: "Back and forth" },
 ] as const;
-const tabOf = (t: string | null): Tab => (t === "talk" || t === "list" ? t : "graph");
+/** The address's tab; none: references when the run has picks, else the graph. `list`: old links. */
+function tabOf(t: string | null, view: RunView | undefined): Tab | null {
+  if (t === "talk" || t === "graph") return t;
+  if (t === "refs" || t === "list") return "refs";
+  if (!view) return null;
+  return view.brief.readList?.length ? "refs" : "graph";
+}
 const LINK = "inline-flex items-center gap-1 wrap-anywhere text-(--ui-ink) underline";
 const PRE =
   "m-0 max-h-[420px] overflow-auto border border-(--ui-hair) bg-(--ui-tile) p-2.5 text-[13px] leading-[1.55] whitespace-pre-wrap wrap-anywhere text-(--ui-ink)";
@@ -131,9 +133,8 @@ function Opened({
   back: ReactNode;
 }) {
   const ids = useMemo(() => runsIn(open, rows), [open, rows]);
-  // only the graph tab draws a graph
-  usePageRuns(tabOf(params.get("tab")) === "graph" ? ids : undefined);
-  const go = (p: Record<string, string | null>) => navigate(href(here, p, params), true);
+  const link: Link = (p) => href(here, p, params);
+  const go: Go = (p) => navigate(link(p), true);
   const [one] = ids;
   if (ids.length === 1 && one)
     return (
@@ -142,9 +143,26 @@ function Opened({
         row={rows.find((r) => r.run === one) ?? null}
         params={params}
         go={go}
+        link={link}
         back={back}
       />
     );
+  return <ManyRuns ids={ids} rows={rows} open={open} back={back} />;
+}
+
+/** Several runs on one graph. */
+function ManyRuns({
+  ids,
+  rows,
+  open,
+  back,
+}: {
+  ids: string[];
+  rows: readonly RunRow[];
+  open: string;
+  back: ReactNode;
+}) {
+  usePageRuns(ids);
   return (
     <div className="grid min-w-0 gap-4">
       <div className="justify-self-start">{back}</div>
@@ -162,20 +180,24 @@ function OneRun({
   row,
   params,
   go,
+  link,
   back,
 }: {
   run: string;
   row: RunRow | null;
   params: URLSearchParams;
   go: Go;
+  link: Link;
   back: ReactNode;
 }) {
-  const tab = tabOf(params.get("tab"));
   const card = params.get("open");
   const ids = useMemo(() => [run], [run]);
   const rows = useMemo(() => (row ? [row] : []), [row]);
   const got = useViews(ids);
   const view = got.views?.[0];
+  const tab = tabOf(params.get("tab"), view);
+  // only the graph tab draws a graph
+  usePageRuns(tab === "graph" ? ids : undefined);
   return (
     <div className="grid min-w-0 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -183,7 +205,7 @@ function OneRun({
         <Seg
           label="What to show"
           items={TABS}
-          value={tab}
+          value={tab ?? "refs"}
           onChange={(t) => go({ tab: t, open: null })}
         />
       </div>
@@ -192,12 +214,16 @@ function OneRun({
       ) : got.error && !view ? (
         <LoadFailed error={got.error} onRetry={got.retry} />
       ) : !view ? (
-        <Loading lines={8} />
+        tab === "talk" ? (
+          <Loading lines={8} />
+        ) : (
+          <Ghosts label="Loading the run" />
+        )
       ) : (
         <>
           <RunHead view={view} row={row} />
-          {tab === "list" ? (
-            <ReadList view={view} card={card} go={go} />
+          {tab === "refs" ? (
+            <References view={view} card={card} go={go} link={link} />
           ) : (
             <Talk view={view} card={card} go={go} />
           )}
@@ -451,20 +477,6 @@ function PageCard({ view, d, go }: { view: RunView; d: RunDocument; go: Go }) {
   const findings = view.findings.filter((f) => f.document === d.id);
   const kept = keptBy(view).get(d.id) ?? 0;
   const person = d.person ? view.brief.people?.find((p) => p.id === d.person) : undefined;
-  const [text, setText] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState<string | null>(null);
-  const show = async () => {
-    setBusy(true);
-    setFailed(null);
-    try {
-      setText((await pageOf(view.run, d.id)).text);
-    } catch (err) {
-      setFailed(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
   return (
     <Box
       title={
@@ -500,50 +512,74 @@ function PageCard({ view, d, go }: { view: RunView; d: RunDocument; go: Go }) {
       </p>
       <Judge answers={d.judge} />
       <PostEmbed id={d.id} url={d.url} title={d.title} />
-      {findings.length ? (
-        <ol className="m-0 grid list-none gap-2 p-0">
-          {findings.map((f) => (
-            <li key={f.id} className="grid gap-1">
-              <span className={cx("text-[13.5px]", !f.kept && "opacity-70")}>
-                {f.text}
-                {f.date ? <span className={QUIET}> ({f.date})</span> : null}
-              </span>
-              {f.quote ? <q className={cx("text-[12.5px] italic", QUIET)}>{f.quote}</q> : null}
-              <span className="text-[12px]">
-                {/* state: dot + word, no side stripe */}
-                <span
-                  aria-hidden
-                  className={cx(
-                    "mr-1.5 inline-block size-1.5 rounded-full align-middle",
-                    f.kept ? "bg-(--ui-good)" : "bg-(--ui-hair)",
-                  )}
-                />
-                {f.kept ? "Kept" : "Not kept"}
-                {` · ${f.evidence.value}`} · <Who x={f} />
-                {f.checks.map((c) => (
-                  <span key={c.at} className={c.ok ? undefined : "text-(--ui-bad)"}>
-                    {" "}
-                    · check {c.ok ? "backed" : "failed"}: {c.why}
-                  </span>
-                ))}
-              </span>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <p className={cx("m-0 text-[13px]", QUIET)}>No findings on this page.</p>
-      )}
-      {text !== null ? (
-        <pre className={PRE}>{text}</pre>
-      ) : (
-        <span className="flex flex-wrap items-center gap-3">
-          <Button size="dense" tone="secondary" busy={busy} onClick={() => void show()}>
-            Show the stored copy
-          </Button>
-          {failed ? <span className="text-[12.5px] text-(--ui-bad)">{failed}</span> : null}
-        </span>
-      )}
+      <Findings findings={findings} />
+      <StoredCopy run={view.run} id={d.id} />
     </Box>
+  );
+}
+
+/** A page's findings: each with its quote, kept or not, its evidence, who and its checks. */
+function Findings({ findings }: { findings: readonly RunFinding[] }) {
+  return findings.length ? (
+    <ol className="m-0 grid list-none gap-2 p-0">
+      {findings.map((f) => (
+        <li key={f.id} className="grid gap-1">
+          <span className={cx("text-[13.5px]", !f.kept && "opacity-70")}>
+            {f.text}
+            {f.date ? <span className={QUIET}> ({f.date})</span> : null}
+          </span>
+          {f.quote ? <q className={cx("text-[12.5px] italic", QUIET)}>{f.quote}</q> : null}
+          <span className="text-[12px]">
+            {/* state: dot + word, no side stripe */}
+            <span
+              aria-hidden
+              className={cx(
+                "mr-1.5 inline-block size-1.5 rounded-full align-middle",
+                f.kept ? "bg-(--ui-good)" : "bg-(--ui-hair)",
+              )}
+            />
+            {f.kept ? "Kept" : "Not kept"}
+            {` · ${f.evidence.value}`} · <Who x={f} />
+            {f.checks.map((c) => (
+              <span key={c.at} className={c.ok ? undefined : "text-(--ui-bad)"}>
+                {" "}
+                · check {c.ok ? "backed" : "failed"}: {c.why}
+              </span>
+            ))}
+          </span>
+        </li>
+      ))}
+    </ol>
+  ) : (
+    <p className={cx("m-0 text-[13px]", QUIET)}>No findings on this page.</p>
+  );
+}
+
+/** The text weaver kept of a page, on ask. */
+function StoredCopy({ run, id }: { run: string; id: string }) {
+  const [text, setText] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
+  const show = async () => {
+    setBusy(true);
+    setFailed(null);
+    try {
+      setText((await pageOf(run, id)).text);
+    } catch (err) {
+      setFailed(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return text !== null ? (
+    <pre className={PRE}>{text}</pre>
+  ) : (
+    <span className="flex flex-wrap items-center gap-3">
+      <Button size="dense" tone="secondary" busy={busy} onClick={() => void show()}>
+        Show the stored copy
+      </Button>
+      {failed ? <span className="text-[12.5px] text-(--ui-bad)">{failed}</span> : null}
+    </span>
   );
 }
 
@@ -574,102 +610,176 @@ function PostEmbed(d: { id: string; url: string; title?: string | undefined }) {
   );
 }
 
-const scoreOf = (p: ReadPick): string => {
+/** The site a pick is on: a social platform's mark, else its host (the tile's mark reads hosts). */
+function platformOf(url: string): string {
+  if (youtubeId(url)) return "youtube";
+  return embedSite(url) ?? host(url);
+}
+
+const SOCIAL = new Set(["x", "instagram", "tiktok"]);
+
+/**
+ * A pick as a gallery post (WA-1404): the page's picture (a video's poster), its counts, and its score
+ * (the multiple over the creator's last n posts). Followers come back from views per follower.
+ */
+export function postOf(p: ReadPick, d: RunDocument | undefined): FeedPost {
+  const platform = platformOf(p.url);
+  const words = d?.title ?? p.title ?? null;
+  const views = p.metrics?.views;
   const s = p.score;
-  if (s?.multiple !== undefined) return `${s.multiple.toFixed(1)}x usual`;
-  if (s?.perFollower !== undefined) return `${short(Math.round(s.perFollower))} per follower`;
-  return "";
+  const who = p.channel ?? d?.channel ?? host(p.url);
+  return {
+    platform,
+    ref: p.id,
+    url: p.url,
+    kind: d?.media === "video" ? "video" : "post",
+    postedAt: d?.date ?? null,
+    // a social post is its words; a page has a title
+    title: SOCIAL.has(platform) ? null : words,
+    text: SOCIAL.has(platform) ? words : null,
+    creatorId: 0,
+    personId: 0,
+    person: who,
+    handle: who,
+    name: null,
+    niches: [],
+    followers: views !== undefined && s?.perFollower ? Math.round(views / s.perFollower) : null,
+    counts: p.metrics ?? {},
+    scoreCount: s?.count ?? null,
+    multiple: s?.multiple ?? null,
+    band: s?.band ?? null,
+    // weaver's rank is a place among their posts, not the feed's top percent
+    rank: null,
+    likesMultiple: s?.likes?.multiple ?? null,
+    likesBand: s?.likes?.band ?? null,
+    likesRank: null,
+    baselineN: s?.n ?? null,
+    baseline: s?.base ?? null,
+    likesBaseline: s?.likes?.base ?? null,
+    creatorPosts: null,
+    record: null,
+    picture: null,
+    pictureSmall: null,
+    pictureLink: d?.image ?? null,
+    video: null,
+    src: d?.image ?? null,
+    full: d?.image ?? null,
+    // weaver keeps no playable file: the detail plays the post's own embed
+    videoSrc: null,
+  };
+}
+
+/** The why's "Copy: …" sentence, the tile's line; the whole why opens in the detail. */
+export function copyOf(why: string): string | null {
+  const m = /\bCopy(?: first)?:\s*(.+)$/s.exec(why);
+  return m?.[1] ? `Copy: ${m[1].trim()}` : null;
+}
+
+/** seconds; old serves send a string */
+const lengthOf = (d: RunDocument | undefined) => {
+  const n = Number(d?.length);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
 };
 
-/** The agent's picks, best first (weaver `brief.readList`); PT-16: picture, title, counts, why. */
-function ReadList({ view, card, go }: { view: RunView; card: string | null; go: Go }) {
+/**
+ * The run's references, best first (weaver `brief.readList`, WA-1404): a gallery feed (PT-6, the
+ * Outliers tiles). A tile opens the post whole, with the agent's why and the findings it gave.
+ */
+function References({
+  view,
+  card,
+  go,
+  link,
+}: {
+  view: RunView;
+  card: string | null;
+  go: Go;
+  link: Link;
+}) {
   const list = view.brief.readList;
-  const pictures = useMemo(() => new Map(view.documents.map((d) => [d.id, d.image])), [view]);
-  if (!list?.length)
+  const docs = useMemo(() => new Map(view.documents.map((d) => [d.id, d])), [view]);
+  const rows = useMemo(
+    () => (list ?? []).map((p) => ({ p, d: docs.get(p.id), r: postOf(p, docs.get(p.id)) })),
+    [list, docs],
+  );
+  if (!rows.length)
     return (
-      <Empty title="No picks yet" waits>
+      <Empty title="No references yet" waits>
         {list
           ? "The agent ranks the pages it read with weaver add pick. They show here, best first."
           : "This weaver serve sends no read list. Run weaver 0.79.0 or later."}
       </Empty>
     );
+  const openId = card?.startsWith("d:") ? card.slice(2) : null;
+  const opened = openId ? (rows.find((x) => x.p.id === openId) ?? null) : undefined;
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 @min-[1140px]/main:grid-cols-[minmax(0,1fr)_minmax(340px,440px)]">
-      <RowsPanel<ReadPick>
-        rows={list}
-        rowKey={(p) => p.id}
-        label="the read list"
-        noun="pick"
-        open={{ id: card?.slice(2) ?? null, onOpen: (p) => go({ open: `d:${p.id}` }) }}
-        name={{
-          label: "Page",
-          icon: "play",
-          title: (p) => p.title || [p.channel, host(p.url)].filter(Boolean).join(" · "),
-          mark: (p) => <PickMark rank={p.rank} image={pictures.get(p.id)} />,
-          sub: (p) => (
-            <span className={cx("text-[12.5px] whitespace-normal", QUIET)}>
-              {p.channel ? `${p.channel} · ` : ""}
-              {p.why}
-            </span>
-          ),
-        }}
-        columns={[
-          {
-            key: "score",
-            label: "Score",
-            icon: "chart",
-            width: 150,
-            phone: true,
-            cell: scoreOf,
-          },
-          {
-            key: "views",
-            label: "Views",
-            icon: "eye",
-            width: 90,
-            align: "end",
-            cell: (p) => (p.metrics?.views !== undefined ? short(p.metrics.views) : ""),
-          },
-          {
-            key: "kept",
-            label: "Findings",
-            icon: "check",
-            width: 90,
-            align: "end",
-            cell: (p) => (p.kept || p.dropped ? `${p.kept} of ${p.kept + p.dropped}` : ""),
-          },
-          { key: "by", label: "By", icon: "user", width: 150, quiet: true, cell: (p) => p.by },
-        ]}
-      />
-      {card ? <Card view={view} id={card} go={go} /> : null}
+    <div className="grid gap-4">
+      <div className="grid gap-1">
+        <p className={cx("m-0 text-[13px]", QUIET)}>
+          {plural(rows.length, "reference")}, best first, picked by the agent
+        </p>
+        {rows.some((x) => x.r.multiple != null) ? <UsualRule likes={false} /> : null}
+      </div>
+      <ul aria-label="References" className={cx("m-0 list-none p-0", GALLERY)}>
+        {rows.map(({ p, d, r }) => (
+          <li key={p.id} className="min-w-0 [animation:ui-fade_.15s_both]">
+            <Tile
+              r={r}
+              canon={null}
+              open={link({ open: `d:${p.id}` })}
+              rank={p.rank}
+              length={lengthOf(d)}
+              note={copyOf(p.why)}
+              // a score comes only from the agent's follow reads, never on its own
+              unscored={null}
+            />
+          </li>
+        ))}
+      </ul>
+      {opened !== undefined ? (
+        <PostDetail
+          key={openId ?? ""}
+          r={opened?.r ?? null}
+          canon={null}
+          save={null}
+          creatorHref={null}
+          face={null}
+          also={[]}
+          about="A reference, whole: the post, why the agent picked it and what it gave."
+          onClose={() => go({ open: null })}
+        >
+          {opened ? <PickWhy view={view} p={opened.p} d={opened.d} /> : null}
+        </PostDetail>
+      ) : null}
     </div>
   );
 }
 
-/** Rank, then the page's picture when it has one. */
-function PickMark({ rank, image }: { rank: number | undefined; image: string | undefined }) {
+/** The detail's own part for a pick: the agent's why, its verdict, the findings, the stored copy. */
+function PickWhy({ view, p, d }: { view: RunView; p: ReadPick; d: RunDocument | undefined }) {
+  const findings = view.findings.filter((f) => f.document === p.id);
   return (
-    <span className="flex shrink-0 items-center gap-2">
-      <span className={cx("w-6 text-end text-[13px] tabular-nums", QUIET)}>
-        {rank ?? (
-          <>
-            <span aria-hidden>–</span>
-            <span className="sr-only">not ranked</span>
-          </>
-        )}
-      </span>
-      {/* the slot holds without a picture, so titles keep one edge; a phone gives the title the room */}
-      {image ? (
-        <img
-          src={image}
-          alt=""
-          loading="lazy"
-          className="h-9 w-16 border border-(--ui-hair) bg-(--ui-tile) object-cover @max-[640px]/main:hidden"
-        />
-      ) : (
-        <span aria-hidden className="h-9 w-16 @max-[640px]/main:hidden" />
-      )}
-    </span>
+    <>
+      <section aria-labelledby="pick-why" className="grid gap-2">
+        <h3 id="pick-why" className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">
+          Why it's a reference{p.rank != null ? ` (rank ${p.rank})` : ""}
+        </h3>
+        <p className="m-0 text-[14px] leading-[1.5] text-(--ui-ink)">{p.why}</p>
+        {d?.verdict ? (
+          <p className={cx("m-0 text-[12.5px]", QUIET)}>
+            The page reads {d.verdict.quality}
+            {d.verdict.gap ? `; gap: ${d.verdict.gap}` : ""}
+          </p>
+        ) : null}
+      </section>
+      <section aria-labelledby="pick-findings" className="grid gap-2">
+        <h3 id="pick-findings" className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">
+          Findings ({p.kept} kept of {p.kept + p.dropped})
+        </h3>
+        <Findings findings={findings} />
+        <StoredCopy run={view.run} id={p.id} />
+      </section>
+    </>
   );
 }
 

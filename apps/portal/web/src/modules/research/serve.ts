@@ -79,7 +79,7 @@ export interface RunDocument extends Who {
   media: string;
   date?: string;
   length?: number;
-  /** The page's picture (og:image); weaver 0.52.0. */
+  /** The page's picture (og:image); a video's poster (weaver 0.79.5). */
   image?: string;
   chars: number;
   speaker: Known<Speaker>;
@@ -134,6 +134,8 @@ export interface PickScore {
   rank?: number;
   n: number;
   base?: number;
+  /** the same score on likes */
+  likes?: Omit<PickScore, "likes" | "perFollower">;
 }
 
 /** One row of the agent's read list (weaver 0.79.0 `brief.readList`); `id` is the page's. */

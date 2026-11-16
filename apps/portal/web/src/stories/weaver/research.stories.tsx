@@ -34,9 +34,9 @@ const story = (
   };
 };
 
-/** One run opens whole in Explorer as its graph: the claims web, the shelf, the summary. */
+/** One run's graph tab: picks wear their rank; the claims web, the shelf, the summary. */
 export const Graph = tidy(
-  story(wholeHref("weaver/r1"), async (page) => {
+  story(wholeHref("weaver/r1", { tab: "graph" }), async (page) => {
     const p = within(page);
     await p.findByRole("button", { name: "Explorer" }, LATE);
     await waitFor(() => expect(page.querySelector(".rg .rg-nodes [data-n]")).not.toBeNull(), LATE);
@@ -53,21 +53,39 @@ export const BackAndForth = story(wholeHref("weaver/r1", { tab: "talk" }), async
   await p.findByText("the page gives no source");
 });
 
-/** The agent's picks, best first, each with its why; a row opens its page beside the list. */
-export const ReadList = story(wholeHref("weaver/r1", { tab: "list" }), async (page) => {
+/** A run with picks opens on its references: a gallery, best first. */
+export const References = story(wholeHref("weaver/r1"), async (page) => {
   const p = within(page);
-  await p.findByText(/the one to copy first/);
-  await p.findByText("14.2x usual");
-  await p.findByText("42 per follower");
-  await userEvent.click(p.getByRole("button", { name: "How I landed 12 cafe accounts" }));
-  await p.findByText("Show the stored copy");
+  await p.findByRole("list", { name: "References" });
+  await p.findByText("4 references, best first, picked by the agent");
+  await p.findByText("Copy: the walk-in with samples, then the first order's numbers.");
 });
 
-/** No picks yet: the list says who fills it. Run r2: the page keeps r1's view across stories. */
-export const ReadListEmpty = story(
-  wholeHref("weaver/r2", { tab: "list" }),
+/** A tile opens the post whole: why it stands out, why it's a reference, its findings. */
+export const ReferenceOpen = story(wholeHref("weaver/r1"), async (page) => {
+  const p = within(page);
+  await userEvent.click(
+    await p.findByRole("link", { name: "Open Maya Baker's video: How I landed 12 cafe accounts" }),
+  );
+  // the sheet sits in the body's top layer
+  const sheet = within(await within(document.body).findByRole("dialog", {}, LATE));
+  await sheet.findByText("Why it's a reference (rank 1)");
+  await sheet.findByText("Show the stored copy");
+});
+
+/** An X pick opened from the address: its words whole, X's player behind Play, no findings yet. */
+export const ReferenceX = story(wholeHref("weaver/r1", { open: "d:d4" }), async () => {
+  const sheet = within(await within(document.body).findByRole("dialog", {}, LATE));
+  await sheet.findByRole("button", { name: "Play Video by crumbandco" });
+  await sheet.findByText("Findings (0 kept of 0)");
+  await sheet.findByText("No findings on this page.");
+});
+
+/** No picks yet: the page says who fills it. Run r2: the page keeps r1's view across stories. */
+export const ReferencesEmpty = story(
+  wholeHref("weaver/r2", { tab: "refs" }),
   async (page) => {
-    await within(page).findByText("No picks yet", {}, LATE);
+    await within(page).findByText("No references yet", {}, LATE);
   },
   [
     http.get(`${SERVE}/runs/r2`, () =>

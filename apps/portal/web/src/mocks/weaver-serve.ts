@@ -27,8 +27,9 @@ export const SERVED = [
     }),
   ),
   // icons and video stills: offline, one tinted square
-  ...["https://icons.duckduckgo.com/*", "https://i.ytimg.com/*"].map((u) =>
-    http.get(u, () => new HttpResponse(DOT, { headers: { "content-type": "image/svg+xml" } })),
+  ...["https://icons.duckduckgo.com/*", "https://i.ytimg.com/*", "https://pbs.twimg.com/*"].map(
+    (u) =>
+      http.get(u, () => new HttpResponse(DOT, { headers: { "content-type": "image/svg+xml" } })),
   ),
   // open and quiet: a story sends no change
   sse(`${SERVE}/events`, () => {}),

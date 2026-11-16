@@ -98,6 +98,9 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
     return s;
   };
   const pageOf = new Map<string, [Acc, number]>();
+  const picks = new Map(
+    (view.brief.readList ?? []).flatMap((p) => (p.rank != null ? [[p.id, p.rank] as const] : [])),
+  );
   for (const d of view.documents) {
     const h = hitBy.get(d.hit);
     const [k, l, site] = skey(d.url, d.channel ?? h?.channel);
@@ -115,7 +118,8 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
       t: d.title ?? d.url,
       u: d.url,
       d: d.date ?? null,
-      len: d.length ?? 0,
+      // old serves send a string
+      len: Number(d.length) || 0,
       kept: 0,
       th: null,
       og: d.image ?? null,
@@ -123,6 +127,11 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
       f: pf ?? "other",
       e: d.evidence.value,
     };
+    const pick = picks.get(d.id);
+    if (pick != null) {
+      page.pick = pick;
+      s.pick = Math.min(s.pick ?? pick, pick);
+    }
     s.pages.push(page);
     s.yts.push(ytOf(d.url));
   }
@@ -202,6 +211,7 @@ export function runGraphOf(view: RunView, row?: RunRow | null): RunGraphData {
       used: s.used,
       fs: s.fs,
       claims: s.claims,
+      ...(s.pick != null ? { pick: s.pick } : {}),
     };
   });
   const sid = new Map([...src.values()].map((s, i) => [s.key, i]));

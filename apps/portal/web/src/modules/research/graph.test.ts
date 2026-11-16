@@ -21,4 +21,12 @@ describe("a run as the graph's data", () => {
     expect(g.dropped.map((d) => d.t)).toContain("Bakery software for every shop");
     expect(g.funnel.findings).toBe(2);
   });
+
+  it("marks read-list picks with their rank, a source with its best page's", () => {
+    const yt = g.sources.find((s) => s.site === "youtube");
+    expect(yt?.pages[0]?.pick).toBe(1);
+    expect(yt?.pick).toBe(1);
+    const web = g.sources.find((s) => s.name === "bakers.example");
+    expect(web?.pick).toBeUndefined();
+  });
 });

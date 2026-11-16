@@ -17,7 +17,7 @@ import {
   Tag,
   useSeen,
 } from "@wren/ui";
-import { useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { embedOf, youtubeId } from "../../embeds.js";
 import {
   accountOf,
@@ -59,18 +59,24 @@ export function PostDetail({
   face,
   also,
   onClose,
+  about = "A creator post, whole: its counts and why it stands out.",
+  children,
 }: {
   /** null: the address names a post this list no longer holds */
   r: FeedPost | null;
   canon: Canon;
   save: OneSave | null;
-  onSave: () => void;
+  /** absent: no Save to Canon (a page that files elsewhere) */
+  onSave?: (() => void) | undefined;
   creatorHref: string | null;
   /** the creator's copied profile picture */
   face: string | null;
   /** the creator's other tracked accounts */
   also: Account[];
   onClose: () => void;
+  about?: string;
+  /** the page's own sections, after why it stands out (a weaver pick: its why and findings) */
+  children?: ReactNode;
 }) {
   useSeen(
     "record",
@@ -114,7 +120,7 @@ export function PostDetail({
   return (
     <DetailSheet
       title={r.title ?? `${nameOf(r)}'s ${kindName(r.kind).toLowerCase()}`}
-      about="A creator post, whole: its counts and why it stands out."
+      about={about}
       onClose={onClose}
     >
       <Body
@@ -125,7 +131,9 @@ export function PostDetail({
         creatorHref={creatorHref}
         face={face}
         also={also}
-      />
+      >
+        {children}
+      </Body>
     </DetailSheet>
   );
 }
@@ -138,14 +146,16 @@ function Body({
   creatorHref,
   face,
   also,
+  children,
 }: {
   r: FeedPost;
   canon: Canon;
   save: OneSave | null;
-  onSave: () => void;
+  onSave: (() => void) | undefined;
   creatorHref: string | null;
   face: string | null;
   also: Account[];
+  children: ReactNode;
 }) {
   const pic = usePicture(r, true);
   const hot = (r.multiple ?? 0) >= HOT;
@@ -253,6 +263,8 @@ function Body({
         ) : null}
       </section>
 
+      {children}
+
       {also.length ? (
         <section aria-labelledby="post-also" className="grid gap-2">
           <h3 id="post-also" className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">
@@ -296,11 +308,11 @@ function Body({
           </ButtonLink>
           {canon ? (
             <CanonTag canon={canon} />
-          ) : (
+          ) : onSave ? (
             <Button size="dense" tone="primary" busy={save?.busy ?? false} onClick={onSave}>
               Save to Canon
             </Button>
-          )}
+          ) : null}
         </div>
         {save?.error ? (
           <p role="alert" className="m-0 text-[13px] text-(--ui-bad)">
@@ -314,7 +326,7 @@ function Body({
 
 /**
  * The post's video where one plays (WA-1391), else its picture linked out. A copied file plays on
- * open, as X and Instagram do; YouTube's player and IG's embed (a reel IG gave no file of) load on
+ * open, as X and Instagram do; YouTube's player and IG's and X's embeds (a video with no file) load on
  * Play: third-party pages, heavy, so never on open. Not the shared player: it cannot sit in a modal
  * sheet (the sheet's top layer covers it and takes its clicks as outside ones).
  */
@@ -329,14 +341,16 @@ function PostMedia({
 }) {
   const [bad, setBad] = useState(false);
   const yt = r.platform === "youtube" ? (youtubeId(r.url) ?? r.ref) : null;
-  const embed = yt
+  const embed: { src: string; box: string; wait?: string } | null = yt
     ? {
         src: `https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt)}?autoplay=1&playsinline=1&rel=0`,
         box: tall(r) ? "aspect-[9/16] h-[min(560px,55dvh)] max-w-full" : "aspect-video w-full",
       }
     : r.platform === "instagram" && r.kind === "reel" && !r.videoSrc
       ? igEmbed(r.url)
-      : null;
+      : r.platform === "x" && r.kind === "video" && !r.videoSrc
+        ? xEmbed(r.url)
+        : null;
   const frame = tall(r) ? "w-[min(100%,360px)]" : "w-full";
   if (r.videoSrc && !bad)
     return (
@@ -355,6 +369,7 @@ function PostMedia({
       <PostEmbed
         src={embed.src}
         box={embed.box}
+        wait={embed.wait}
         poster={poster}
         title={r.title ?? `${kindName(r.kind)} by ${nameOf(r)}`}
         onPosterFail={onPosterFail}
@@ -382,6 +397,17 @@ function PostMedia({
 const igEmbed = (url: string) => {
   const e = embedOf("instagram", url);
   return e ? { src: e.src, box: cn("w-full", e.box) } : null;
+};
+
+/**
+ * X's post page: its own player plays the clip (a weaver pick with no kept file). X's card is 620 px
+ * tall; until Play the poster takes a short frame, so the why and the counts stay on screen.
+ */
+const xEmbed = (url: string) => {
+  const e = embedOf("x", url);
+  return e
+    ? { src: e.src, box: cn("w-full", e.box), wait: "h-[min(300px,40dvh)] w-full max-w-[550px]" }
+    : null;
 };
 
 /** A copied file: plays on open, muted (MO-30); its own controls turn the sound on. */
@@ -426,12 +452,15 @@ function PostVideo({
 function PostEmbed({
   src,
   box,
+  wait,
   poster,
   title,
   onPosterFail,
 }: {
   src: string;
   box: string;
+  /** the box until Play, when the embed's own is too tall for a poster; grows on Play */
+  wait?: string | undefined;
   poster: string | null;
   title: string;
   onPosterFail: () => void;
@@ -440,7 +469,12 @@ function PostEmbed({
   const [loaded, setLoaded] = useState(false);
   const frame = useRef<HTMLIFrameElement>(null);
   return (
-    <div className={cn("group/play relative overflow-hidden rounded-[6px] bg-black", box)}>
+    <div
+      className={cn(
+        "group/play relative overflow-hidden rounded-[6px] bg-black transition-[height] duration-200 ease-(--ui-ease) motion-reduce:transition-none",
+        on || !wait ? box : wait,
+      )}
+    >
       {poster ? (
         <Img
           src={poster}

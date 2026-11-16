@@ -1592,6 +1592,26 @@
   font-weight: 500;
   color: var(--ink2);
 }
+/* a read-list pick's place: the references lead (WA-1404) */
+.rg .rk {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+.rg .pgn .rk {
+  margin-top: 1px;
+}
 .rg .fdn {
   width: 214px;
   background: var(--paper);

@@ -283,7 +283,7 @@ export function SourceMark({
   sMax?: number;
 }) {
   const s = n.s;
-  const label = `${s.name}: ${countOf(n)}`;
+  const label = `${s.pick != null ? `Reference ${s.pick}: ` : ""}${s.name}: ${countOf(n)}`;
   if (tier === "card") {
     const p = pic(s);
     const big = s.kept > 1 && s.kept >= sMax * 0.5;
@@ -295,6 +295,7 @@ export function SourceMark({
           </span>
         ) : null}
         <span className="nm">
+          <Rank n={s.pick} />
           <Ico s={s} />
           <b>{s.name}</b>
         </span>
@@ -319,12 +320,18 @@ export function SourceMark({
         label={label}
         m={m}
       >
+        <Rank n={s.pick} />
         <Ico s={s} />
         <b>{s.name}</b>
         {s.kept ? <em>{s.kept}</em> : null}
       </Mark>
     );
   return <Mark className={cls(`nd dt k-${n.k}`, !s.pages.length && "gh")} label={label} m={m} />;
+}
+
+/** A read-list pick's place (WA-1404): the references lead, so the graph marks them. */
+function Rank({ n }: { n: number | undefined }) {
+  return n != null ? <i className="rk">{n}</i> : null;
 }
 
 /** A search as a hub: the query, its answer, then counts, evidence and who speaks. */
@@ -447,12 +454,18 @@ export function WebMark({
     if (!pg) return null;
     const nf = t === "p" ? s.fs.filter((f) => f.p === b).length : 0;
     const im = t === "p" ? (s.pages[b]?.th ?? s.pages[b]?.og ?? null) : null;
+    const rank = t === "p" ? s.pages[b]?.pick : undefined;
     const sub =
       t === "v"
         ? `Not read · ${stepAt(L.run, pg.r)}`
         : `${nf ? pl(nf, "finding") : "No finding"} · ${stepAt(L.run, pg.r)}`;
     return (
-      <Mark className={cls(`nd pgn k-${g.k}`, t === "v" && "ur")} label={`${pg.t} ${sub}`} m={m}>
+      <Mark
+        className={cls(`nd pgn k-${g.k}`, t === "v" && "ur")}
+        label={`${rank != null ? `Reference ${rank}: ` : ""}${pg.t} ${sub}`}
+        m={m}
+      >
+        <Rank n={rank} />
         {im ? <Img className="pt" src={im} /> : <Glyph f={(t === "p" && s.pages[b]?.f) || s.fmt} />}
         <span>
           <b>{pg.t}</b>
