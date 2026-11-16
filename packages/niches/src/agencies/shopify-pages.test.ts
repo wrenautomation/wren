@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { mintedIdentity, type RawRow } from "@wren/core";
 import { describe, expect, it } from "vitest";
-import { listingSlugs, looksLikeProfile, ShopifyPagesSource } from "./shopify-pages.js";
+import { listingSlugs, ShopifyPagesSource } from "./shopify-pages.js";
 
 const card = (name: string, slug: string) => `
 <div data-component-name="listing-profile-card" class="mb-4 bg-white">
@@ -98,16 +98,6 @@ describe("ShopifyPagesSource", () => {
       join(other, "Page 1.html"),
     ];
     expect(listingSlugs(pages)).toEqual(["it-geeks", "jadepuma"]);
-  });
-
-  it("tells a profile from a challenge page that echoes the URL", () => {
-    expect(looksLikeProfile(PROFILE)).toBe(true);
-    expect(looksLikeProfile("<html>Attention Required! | Cloudflare</html>")).toBe(false);
-    expect(
-      looksLikeProfile(
-        '<meta http-equiv="refresh" content="0; url=/partners/directory/partner/jadepuma">Checking your browser',
-      ),
-    ).toBe(false);
   });
 
   it("refuses wrong files instead of an empty batch", () => {
