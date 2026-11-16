@@ -11,15 +11,6 @@ describe("loadSettings", () => {
     // Form texts: US and Canada only; any other number gets the email alone.
     expect(s.smsFormCountries).toEqual(["US", "CA"]);
   });
-  it("reads the enrichment settings", () => {
-    const s = loadSettings({
-      WREN_DATABASE_URL: "postgresql://u:p@h:1/d",
-      WREN_FETCH_CONTACT: "ops@example.com",
-      WREN_LLM: "groq:llama",
-    });
-    expect(s.fetchContact).toBe("ops@example.com");
-    expect(s.llm).toBe("groq:llama");
-  });
   it("names the env var when a value is missing or invalid", () => {
     expect(() => loadSettings({})).toThrow(/WREN_DATABASE_URL/);
     expect(() =>
@@ -33,13 +24,17 @@ describe("loadSettings", () => {
     );
     expect(s.contentVoicePath).toBe("/srv/wren/voice.md");
   });
-  it("reads the inbox-side settings and leaves the secrets unset by default", () => {
+  it("reads the enrichment and inbox-side settings and leaves the secrets unset by default", () => {
     const s = loadSettings({
       WREN_DATABASE_URL: "postgresql://u:p@h:1/d",
+      WREN_FETCH_CONTACT: "ops@example.com",
+      WREN_LLM: "groq:llama",
       WREN_POSTMASTER_USER: "will@example.com",
       WREN_PIXEL_EXPORT_TOKEN: "s3cret",
       WREN_SITE_EXPORT_TOKEN: "s1te",
     });
+    expect(s.fetchContact).toBe("ops@example.com");
+    expect(s.llm).toBe("groq:llama");
     expect(s.siteExportToken).toBe("s1te");
     expect(s.postmasterUser).toBe("will@example.com");
     expect(s.pixelExportToken).toBe("s3cret");
