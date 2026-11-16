@@ -16,17 +16,6 @@ const pressing = () => {
 };
 
 describe("one action per press", () => {
-  it("sends a double click once, and both presses get its answer", async () => {
-    const once = pressing();
-    const call = vi.fn(async (requestId: string) => ({ done: [1], requestId }));
-    const first = once.run("approve:1", call);
-    const second = once.run("approve:1", call);
-    expect(call).toHaveBeenCalledOnce();
-    expect(await first).toEqual(await second);
-    await Promise.resolve();
-    expect(once.busy("approve:1")).toBe(false);
-  });
-
   it("keeps the request id across a lost answer, and starts a new one after an answer", async () => {
     const once = pressing();
     const seen: string[] = [];

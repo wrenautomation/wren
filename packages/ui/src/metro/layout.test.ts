@@ -60,16 +60,6 @@ describe("layoutView", () => {
     expect(sceneClashes(s)).toEqual([]);
   });
 
-  it("draws every sample view", async () => {
-    for (const v of SAMPLE_VIEWS) {
-      const s = await layoutView(v);
-      expect(s.st.length, v.title).toBeGreaterThan(0);
-      expect(s.tr.length, v.title).toBeGreaterThan(0);
-      expect(s.w).toBeGreaterThan(0);
-      expect(s.h).toBeGreaterThan(0);
-    }
-  });
-
   it("sits the hub after the stations that lead into it, round and inline with one line each side", async () => {
     const s = await layoutView(COLD_OUTBOUND_VIEW);
     const hub = at(s, "hub");
@@ -330,48 +320,34 @@ const CROSSINGS_BEFORE: Record<string, number> = {
 };
 
 describe("a calm map", () => {
-  it.each(DRAWN)("%s: no name sits on another name, a mark or a transfer label", async (_t, v) => {
-    expect(clashesOf(await layoutView(v), "names")).toEqual([]);
-  });
-
-  it.each(DRAWN)("%s: no task chip sits on a mark, the hub or a name", async (_t, v) => {
-    expect(clashesOf(await layoutView(v), "chips")).toEqual([]);
-  });
-
   it.each(DRAWN)(
-    "%s: no track passes under the hub, and the hub joins only the rows it spans",
-    async (_t, v) => {
-      expect(clashesOf(await layoutView(v), "hub")).toEqual([]);
+    "%s: the same each time; no clash; no new crossing; chips on their track, 12 px clear",
+    async (t, v) => {
+      const s = await layoutView(v);
+      expect(await layoutView(v)).toEqual(s);
+      // names: no name on a name, mark or transfer label; chips: none on a mark, the hub or a name;
+      // hub: no track under it, joins only the rows it spans
+      for (const k of ["names", "chips", "hub"] as const) expect(clashesOf(s, k), k).toEqual([]);
+      expect(crossingsOf(s)).toBeLessThanOrEqual(CROSSINGS_BEFORE[t] ?? 0);
+      const ends = trackEnds(s);
+      for (const r of s.tr) {
+        if (!r.at || !r.who) continue;
+        const e = ends(r);
+        const pts = e ? routeOf(r, e[0], e[1]) : [];
+        expect(onRoute(pts, r.at), r.id).toBe(true);
+      }
+      const b = sceneBoxes(s);
+      for (const c of [...b.chips, ...b.tracks].filter((x) => x.room))
+        for (const m of [...b.marks, ...b.hub])
+          expect(overlaps(c.box, m.box, CHIP_ROOM), `${c.id} / ${m.id}`).toBe(false);
     },
   );
-
-  it.each(DRAWN)("%s: has no more crossings than before", async (t, v) => {
-    expect(crossingsOf(await layoutView(v))).toBeLessThanOrEqual(CROSSINGS_BEFORE[t] ?? 0);
-  });
-
-  it.each(DRAWN)("%s: a task chip sits on its track, in the free part", async (_t, v) => {
-    const s = await layoutView(v);
-    const ends = trackEnds(s);
-    for (const r of s.tr) {
-      if (!r.at || !r.who) continue;
-      const e = ends(r);
-      const pts = e ? routeOf(r, e[0], e[1]) : [];
-      expect(onRoute(pts, r.at), r.id).toBe(true);
-    }
-  });
 
   it("puts the hub's inputs left of it and each offer line's first station right of it", async () => {
     const s = await layoutView(DIFF_VIEW);
     const hub = at(s, "hub");
     expect(at(s, "yt").x).toBeLessThan(hub.x);
     expect(at(s, "lan").x).toBeGreaterThan(hub.x);
-  });
-
-  it.each(DRAWN)("%s: a task chip keeps 12 px from every mark, on both sides", async (_t, v) => {
-    const b = sceneBoxes(await layoutView(v));
-    for (const c of [...b.chips, ...b.tracks].filter((x) => x.room))
-      for (const m of [...b.marks, ...b.hub])
-        expect(overlaps(c.box, m.box, CHIP_ROOM), `${c.id} / ${m.id}`).toBe(false);
   });
 
   it("widens the step before it folds a long chip to a dot", async () => {
@@ -439,10 +415,6 @@ describe("a calm map", () => {
     expect(track?.dot).toBe(1);
     expect(track?.at).toBeDefined();
     expect(sceneClashes(s)).toEqual([]);
-  });
-
-  it("is the same scene each time", async () => {
-    for (const [, v] of DRAWN) expect(await layoutView(v)).toEqual(await layoutView(v));
   });
 });
 

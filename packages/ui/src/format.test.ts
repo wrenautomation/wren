@@ -14,208 +14,105 @@ import {
   waited,
 } from "./format.js";
 
-describe("money", () => {
-  it("shows cents in a list and whole units in a tile", () => {
+describe("format", () => {
+  it("money: cents in a list, whole units in a tile, the code for an unknown currency", () => {
     expect(money(1250, "USD")).toBe("$1,250.00");
     expect(money(1250.5, "USD", true)).toBe("$1,251");
     expect(money(900, "EUR")).toBe("€900.00");
-  });
-  it("falls back to the code for a currency it can't read", () => {
     expect(money(1250, "nope")).toBe("nope 1,250.00");
   });
-});
 
-describe("duration", () => {
-  it("says seconds the way people do", () => {
+  it("duration and waited: the way people say them", () => {
     expect(
       [0, 0.2794, 3.977, 9.97, 38, 60, 125, 3600, 3840, 86_400, 266_400].map(duration),
     ).toEqual(["0ms", "279ms", "4.0s", "10s", "38s", "1m", "2m 5s", "1h", "1h 4m", "1d", "3d 2h"]);
-  });
-});
-
-describe("num", () => {
-  it("formats zero", () => {
-    expect(num(0)).toBe("0");
-  });
-
-  it("keeps the minus sign on negative numbers", () => {
-    expect(num(-1234567)).toBe("-1,234,567");
-  });
-
-  it("adds thousands separators to large numbers", () => {
-    expect(num(1234567)).toBe("1,234,567");
+    expect([0.33, 0.001, 1, 6, 30, 47.4, 47.6, 50, 100].map(waited)).toEqual([
+      "20 minutes",
+      "1 minute",
+      "1 hour",
+      "6 hours",
+      "30 hours",
+      "47 hours",
+      "2 days",
+      "2 days",
+      "4 days",
+    ]);
   });
 
-  it("does not add a separator under 1000", () => {
-    expect(num(999)).toBe("999");
-  });
-});
-
-describe("month", () => {
-  it("returns empty string for null", () => {
-    expect(month(null)).toBe("");
+  it("num: separators from 1000, the minus kept", () => {
+    expect([0, 999, 1234567, -1234567].map(num)).toEqual(["0", "999", "1,234,567", "-1,234,567"]);
   });
 
-  it("returns empty string for empty string", () => {
-    expect(month("")).toBe("");
+  it("month: year alone past a bad month; empty for no date", () => {
+    const cases: [string | null, string][] = [
+      [null, ""],
+      ["", ""],
+      ["not-a-date", ""],
+      ["2025-03-14", "Mar 2025"],
+      ["2025-01-01", "Jan 2025"],
+      ["2025-12-25", "Dec 2025"],
+      ["2025", "2025"],
+      ["2025-13-01", "2025"],
+    ];
+    expect(cases.map(([d]) => month(d))).toEqual(cases.map(([, w]) => w));
   });
 
-  it("formats a normal YYYY-MM-DD day", () => {
-    expect(month("2025-03-14")).toBe("Mar 2025");
-  });
-
-  it("handles the December boundary (month index 12)", () => {
-    expect(month("2025-12-25")).toBe("Dec 2025");
-  });
-
-  it("handles the January boundary (month index 1)", () => {
-    expect(month("2025-01-01")).toBe("Jan 2025");
-  });
-
-  it("shows just the year when there's no month", () => {
-    expect(month("2025")).toBe("2025");
-  });
-
-  it("shows just the year when the month is out of range", () => {
-    expect(month("2025-13-01")).toBe("2025");
-  });
-
-  it("returns empty string for a string that isn't a date", () => {
-    expect(month("not-a-date")).toBe("");
-  });
-});
-
-describe("ago", () => {
-  const T = (s: string) => new Date(s);
-
-  it("returns 'never' for null", () => {
+  it("ago: calendar months, then years at 12 and 24", () => {
+    const now = new Date("2025-06-01T00:00:00Z");
     expect(ago(null)).toBe("never");
+    expect(ago("", now)).toBe("never");
+    expect(ago("not-a-date", now)).toBe("");
+    expect(ago("2025-06-01", now)).toBe("this month");
+    expect(ago("2025-06-01", new Date("2025-06-30T00:00:00Z"))).toBe("this month");
+    expect(ago("2025-06-01T23:59:59.999Z", now)).toBe("this month");
+    expect(ago("2025-05-31", now)).toBe("1 mo ago");
+    expect(ago("2025-01-01", new Date("2025-03-01T00:00:00Z"))).toBe("2 mo ago");
+    expect(ago("2024-06-01", now)).toBe("1 yr ago");
+    expect(ago("2024-06-01", new Date("2026-05-01T00:00:00Z"))).toBe("1 yr ago");
+    expect(ago("2024-06-01", new Date("2026-06-01T00:00:00Z"))).toBe("2 yrs ago");
   });
 
-  it("returns 'never' for empty string", () => {
-    expect(ago("", T("2025-06-01T00:00:00Z"))).toBe("never");
+  it("hostOf: lowercase, one www. off; null with no scheme", () => {
+    const cases: [string | null, string | null][] = [
+      [null, null],
+      ["", null],
+      ["not a url", null],
+      ["acme.com", null],
+      ["https://www.acme.com/jobs", "acme.com"],
+      ["https://acme.com", "acme.com"],
+      ["https://www.www.acme.com", "www.acme.com"],
+      ["https://WWW.ACME.COM", "acme.com"],
+      ["ftp://ftp.acme.com", "ftp.acme.com"],
+    ];
+    expect(cases.map(([u]) => hostOf(u))).toEqual(cases.map(([, w]) => w));
   });
 
-  it("returns 'this month' for the same day", () => {
-    expect(ago("2025-06-01", T("2025-06-01T00:00:00Z"))).toBe("this month");
+  it("initials: the first two words, uppercase, spaces collapsed", () => {
+    expect(
+      [
+        "Sample recruiting firm",
+        "Acme",
+        "",
+        "   ",
+        "  Acme   Corp  ",
+        "acme corp",
+        "One Two Three",
+      ].map(initials),
+    ).toEqual(["SR", "A", "", "", "AC", "AC", "OT"]);
   });
 
-  it("returns 'this month' for a later day in the same calendar month", () => {
-    expect(ago("2025-06-01", T("2025-06-30T00:00:00Z"))).toBe("this month");
-  });
-
-  it("counts 1 month after crossing one calendar-month boundary", () => {
-    expect(ago("2025-05-31", T("2025-06-01T00:00:00Z"))).toBe("1 mo ago");
-  });
-
-  it("pluralizes months below the year boundary", () => {
-    expect(ago("2025-01-01", T("2025-03-01T00:00:00Z"))).toBe("2 mo ago");
-  });
-
-  it("switches from months to a year at exactly 12 months", () => {
-    expect(ago("2024-06-01", T("2025-06-01T00:00:00Z"))).toBe("1 yr ago");
-  });
-
-  it("stays singular just under 24 months", () => {
-    expect(ago("2024-06-01", T("2026-05-01T00:00:00Z"))).toBe("1 yr ago"); // 23 months
-  });
-
-  it("pluralizes at exactly 24 months", () => {
-    expect(ago("2024-06-01", T("2026-06-01T00:00:00Z"))).toBe("2 yrs ago");
-  });
-
-  it("ignores a time-of-day component beyond the date", () => {
-    expect(ago("2025-06-01T23:59:59.999Z", T("2025-06-01T00:00:00Z"))).toBe("this month");
-  });
-
-  it("returns empty string for a day it can't read, not NaN", () => {
-    expect(ago("not-a-date", T("2025-06-01T00:00:00Z"))).toBe("");
-  });
-});
-
-describe("hostOf", () => {
-  it("returns null for null", () => {
-    expect(hostOf(null)).toBeNull();
-  });
-
-  it("returns null for empty string", () => {
-    expect(hostOf("")).toBeNull();
-  });
-
-  it("returns null for a non-URL string", () => {
-    expect(hostOf("not a url")).toBeNull();
-  });
-
-  it("returns null for a bare domain with no scheme", () => {
-    expect(hostOf("acme.com")).toBeNull();
-  });
-
-  it("strips a leading www.", () => {
-    expect(hostOf("https://www.acme.com/jobs")).toBe("acme.com");
-  });
-
-  it("leaves a host with no www. unchanged", () => {
-    expect(hostOf("https://acme.com")).toBe("acme.com");
-  });
-
-  it("only strips one leading www.", () => {
-    expect(hostOf("https://www.www.acme.com")).toBe("www.acme.com");
-  });
-
-  it("lowercases a mixed-case host", () => {
-    expect(hostOf("https://WWW.ACME.COM")).toBe("acme.com");
-  });
-
-  it("works for non-http schemes", () => {
-    expect(hostOf("ftp://ftp.acme.com")).toBe("ftp.acme.com");
-  });
-});
-
-describe("initials", () => {
-  it("takes the first letters of the first two words", () => {
-    expect(initials("Sample recruiting firm")).toBe("SR");
-  });
-
-  it("handles a single word", () => {
-    expect(initials("Acme")).toBe("A");
-  });
-
-  it("returns empty string for empty string", () => {
-    expect(initials("")).toBe("");
-  });
-
-  it("returns empty string for whitespace only", () => {
-    expect(initials("   ")).toBe("");
-  });
-
-  it("collapses extra internal and surrounding spaces", () => {
-    expect(initials("  Acme   Corp  ")).toBe("AC");
-  });
-
-  it("uppercases lowercase names", () => {
-    expect(initials("acme corp")).toBe("AC");
-  });
-
-  it("drops words past the second", () => {
-    expect(initials("One Two Three")).toBe("OT");
-  });
-});
-
-describe("cx", () => {
-  it("returns empty string for no args", () => {
+  it("cx: drops falsy parts with no double space", () => {
     expect(cx()).toBe("");
-  });
-
-  it("drops false, null and undefined", () => {
-    expect(cx("a", false, null, undefined, "b")).toBe("a b");
-  });
-
-  it("returns empty string when everything is falsy", () => {
     expect(cx(false, null, undefined)).toBe("");
+    expect(cx("a", false, null, undefined, "", "b")).toBe("a b");
   });
 
-  it("drops empty strings without leaving a double space", () => {
-    expect(cx("a", "", "b")).toBe("a b");
+  it("ellipsize: whole characters, so an emoji is never split", () => {
+    expect(ellipsize("Visits", 20)).toBe("Visits");
+    expect(ellipsize("A label that keeps going well past the width", 20)).toBe(
+      "A label that keeps …",
+    );
+    expect(ellipsize("🚀🔥👩🏽‍💻abc", 3)).toBe("🚀🔥…");
   });
 });
 
@@ -227,92 +124,42 @@ describe("soon", () => {
   // Some ICU builds put a narrow no-break space before AM/PM.
   const said = (s: string | null) => s?.replace(/\s/g, " ") ?? null;
 
-  it("later today is just the time", () => {
-    expect(said(soon(at(2026, 8, 30, 20, 0), now))).toBe("8:00 PM");
-  });
-
-  it("a minute from now is just the time", () => {
+  it("today is the time; tomorrow says so; to 6 days the weekday; then month and day", () => {
     expect(said(soon(at(2026, 8, 30, 10, 1), now))).toBe("10:01 AM");
-  });
-
-  it("the last minute of today is still today", () => {
     expect(said(soon(at(2026, 8, 30, 23, 59), now))).toBe("11:59 PM");
-  });
-
-  it("tomorrow says tomorrow", () => {
     expect(said(soon(at(2026, 9, 1, 8, 0), now))).toBe("tomorrow 8:00 AM");
-  });
-
-  it("just past midnight is tomorrow, even minutes away", () => {
-    const late = new Date(2026, 8, 30, 23, 58);
-    expect(said(soon(at(2026, 9, 1, 0, 1), late))).toBe("tomorrow 12:01 AM");
-  });
-
-  it("2 days out is the weekday", () => {
-    expect(said(soon(at(2026, 9, 2, 9, 30), now))).toBe("Fri 9:30 AM");
-  });
-
-  it("6 days out is still the weekday", () => {
+    expect(said(soon(at(2026, 9, 1, 0, 1), new Date(2026, 8, 30, 23, 58)))).toBe(
+      "tomorrow 12:01 AM",
+    );
+    expect(said(soon(at(2026, 9, 3, 9, 0), now))).toBe("Sat 9:00 AM");
     expect(said(soon(at(2026, 9, 6, 20, 0), now))).toBe("Tue 8:00 PM");
-  });
-
-  it("7 days out is month and day, no time", () => {
     expect(soon(at(2026, 9, 7, 8, 0), now)).toBe("Oct 7");
-  });
-
-  it("weeks out is month and day", () => {
-    expect(soon(at(2026, 9, 30, 8, 0), now)).toBe("Oct 30");
-  });
-
-  it("next year drops the year", () => {
     expect(soon(at(2027, 0, 5, 8, 0), now)).toBe("Jan 5");
   });
 
-  it("crosses a month boundary: Jan 31 to Feb 1 is tomorrow", () => {
+  it("crosses month, year and daylight-saving changes by calendar day", () => {
     expect(said(soon(at(2026, 1, 1, 9, 0), new Date(2026, 0, 31, 22, 0)))).toBe("tomorrow 9:00 AM");
-  });
-
-  it("crosses a month boundary: Sep 30 to Oct 3 is the weekday", () => {
-    expect(said(soon(at(2026, 9, 3, 9, 0), now))).toBe("Sat 9:00 AM");
-  });
-
-  it("crosses a year boundary: Dec 31 to Jan 1 is tomorrow", () => {
     expect(said(soon(at(2027, 0, 1, 7, 0), new Date(2026, 11, 31, 18, 0)))).toBe(
       "tomorrow 7:00 AM",
     );
-  });
-
-  it("counts calendar days across a daylight-saving change", () => {
     const sat = new Date(2026, 2, 7, 12, 0); // US clocks jump forward Sun Mar 8
     expect(said(soon(at(2026, 2, 9, 12, 0), sat))).toBe("Mon 12:00 PM");
     expect(said(soon(at(2026, 2, 13, 12, 0), sat))).toBe("Fri 12:00 PM");
     expect(soon(at(2026, 2, 14, 12, 0), sat)).toBe("Mar 14");
   });
 
-  it("the past is null", () => {
-    expect(soon(at(2026, 8, 30, 9, 0), now)).toBeNull();
-    expect(soon(at(2025, 8, 30, 20, 0), now)).toBeNull();
-  });
-
-  it("exactly now is null", () => {
-    expect(soon(now.toISOString(), now)).toBeNull();
-  });
-
-  it("a millisecond ago is null", () => {
-    expect(soon(new Date(now.getTime() - 1).toISOString(), now)).toBeNull();
-  });
-
-  it("null is null", () => {
-    expect(soon(null, now)).toBeNull();
-  });
-
-  it("empty string is null", () => {
-    expect(soon("", now)).toBeNull();
-  });
-
-  it("garbage is null", () => {
-    expect(soon("not-a-date", now)).toBeNull();
-    expect(soon("2026-13-45", now)).toBeNull();
+  it("the past, now, and no date are null", () => {
+    for (const d of [
+      at(2026, 8, 30, 9, 0),
+      at(2025, 8, 30, 20, 0),
+      now.toISOString(),
+      new Date(now.getTime() - 1).toISOString(),
+      null,
+      "",
+      "not-a-date",
+      "2026-13-45",
+    ])
+      expect(soon(d, now), String(d)).toBeNull();
   });
 });
 
@@ -328,32 +175,4 @@ describe("linkLabel", () => {
     ["https://wise.com/pay/r/abc", "In Wise", "Open"],
     ["https://www.acme.example/jobs", "Site", "acme.example"],
   ])("%s reads %s", (href, label, want) => expect(linkLabel(href, label)).toBe(want));
-});
-
-describe("ellipsize", () => {
-  it("keeps a short label, cuts a long one with an ellipsis", () => {
-    expect(ellipsize("Visits", 20)).toBe("Visits");
-    expect(ellipsize("A label that keeps going well past the width", 20)).toBe(
-      "A label that keeps …",
-    );
-  });
-  it("counts whole characters, so an emoji is never split", () => {
-    expect(ellipsize("🚀🔥👩🏽‍💻abc", 3)).toBe("🚀🔥…");
-  });
-});
-
-describe("waited", () => {
-  it("says a wait in the largest plain unit", () => {
-    expect([0.33, 0.001, 1, 6, 30, 47.4, 47.6, 50, 100].map(waited)).toEqual([
-      "20 minutes",
-      "1 minute",
-      "1 hour",
-      "6 hours",
-      "30 hours",
-      "47 hours",
-      "2 days",
-      "2 days",
-      "4 days",
-    ]);
-  });
 });

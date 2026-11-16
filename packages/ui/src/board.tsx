@@ -130,7 +130,7 @@ const LEAST = 420;
 const FADE = "animate-[ui-fade_150ms_var(--ui-ease)] motion-reduce:animate-none";
 // DESIGN.md cards: the panel leaf, paper, raise; one hover signal (a fill)
 const CARD =
-  "group/card block rounded-(--ui-leaf-panel) bg-(--ui-paper) p-3 text-(--ui-ink) no-underline shadow-(--ui-raise) transition-[background-color,opacity] duration-150 ease-(--ui-ease) hover:bg-[color-mix(in_srgb,var(--ui-accent)_4%,var(--ui-paper))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus) motion-reduce:transition-none";
+  "group/card block rounded-(--ui-leaf-panel) bg-(--ui-paper) p-3 text-(--ui-ink) no-underline shadow-(--ui-raise) transition-[background-color,opacity] duration-150 ease-(--ui-ease) hover:bg-[color-mix(in_srgb,var(--ui-link)_4%,var(--ui-paper))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-focus) motion-reduce:transition-none";
 const CARD_OPEN = "bg-[color-mix(in_srgb,var(--ui-ink)_5%,var(--ui-paper))]!";
 // wide: shows on the card's hover and focus within; a coarse pointer has no hover, so always
 const MOVE =
@@ -484,7 +484,7 @@ function Lane<T>({
           show(e.currentTarget, true);
       }}
       style={{ width: shut ? STRIP_W : LANE_W } as CSSProperties}
-      className="flex h-full flex-none flex-col rounded-(--ui-leaf-panel) bg-(--ui-fill) transition-[width,background-color,box-shadow] duration-200 ease-(--ui-ease) data-over:bg-[color-mix(in_srgb,var(--ui-accent)_10%,var(--ui-fill))] data-over:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--ui-accent)_55%,transparent)] motion-reduce:transition-none"
+      className="flex h-full flex-none flex-col rounded-(--ui-leaf-panel) bg-(--ui-fill) transition-[width,background-color,box-shadow] duration-200 ease-(--ui-ease) data-over:bg-[color-mix(in_srgb,var(--ui-active)_10%,var(--ui-fill))] data-over:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--ui-active)_55%,transparent)] motion-reduce:transition-none"
     >
       {shut ? (
         <button

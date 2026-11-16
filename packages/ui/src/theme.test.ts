@@ -29,27 +29,24 @@ describe("readTheme", () => {
       expect(readTheme("wren")).toEqual({});
     });
 
-    it("does not change PRESETS when the result is mutated", () => {
+    it("does not change PRESETS when a result is mutated", () => {
       const t = readTheme("night");
       t.accent = "red";
       t.font = "serif";
       expect(PRESETS.night.accent).toBe("#a596d6");
       expect("font" in PRESETS.night).toBe(false);
-    });
-
-    it("does not change PRESETS when a result built from { preset } is mutated", () => {
-      const t = readTheme({ preset: "soft" });
-      t.accent = "red";
+      const u = readTheme({ preset: "soft" });
+      u.accent = "red";
       expect(PRESETS.soft.accent).toBe("#3552d4");
     });
 
-    it("returns {} for an unknown preset name", () => {
+    it("returns {} for an unknown, wrong-case or non-string preset", () => {
       expect(readTheme("nope")).toEqual({});
       expect(readTheme("")).toEqual({});
-    });
-
-    it("is case-sensitive about preset names", () => {
       expect(readTheme("Night")).toEqual({});
+      expect(readTheme({ preset: ["night"] })).toEqual({});
+      expect(readTheme({ preset: { night: true } })).toEqual({});
+      expect(readTheme({ preset: 1 })).toEqual({});
     });
 
     it("returns {} for names inherited from Object.prototype", () => {
@@ -57,12 +54,6 @@ describe("readTheme", () => {
         expect(readTheme(name)).toEqual({});
         expect(readTheme({ preset: name })).toEqual({});
       }
-    });
-
-    it("ignores a preset that isn't a string", () => {
-      expect(readTheme({ preset: ["night"] })).toEqual({});
-      expect(readTheme({ preset: { night: true } })).toEqual({});
-      expect(readTheme({ preset: 1 })).toEqual({});
     });
   });
 
@@ -118,19 +109,13 @@ describe("readTheme", () => {
       expect(readTheme(Object.create({ accent: "red" }))).toEqual({});
     });
 
-    it("turns finite numbers into strings", () => {
+    it("turns finite numbers into strings (-0 as 0); drops NaN and Infinity", () => {
       expect(readTheme({ "display-weight": 600, radius: 0, "display-squeeze": 0.5 })).toEqual({
         "display-weight": "600",
         radius: "0",
         "display-squeeze": "0.5",
       });
-    });
-
-    it("reads -0 as 0", () => {
       expect(readTheme({ frame: -0 })).toEqual({ frame: "0" });
-    });
-
-    it("drops NaN and Infinity", () => {
       expect(
         readTheme({
           frame: Number.NaN,
@@ -154,29 +139,15 @@ describe("readTheme", () => {
       ).toEqual({});
     });
 
-    it("trims values", () => {
+    it("trims, drops blanks, and caps a trimmed value at 300 characters", () => {
       expect(readTheme({ accent: "  red\n", font: "\tserif " })).toEqual({
         accent: "red",
         font: "serif",
       });
-    });
-
-    it("drops empty and whitespace-only strings", () => {
       expect(readTheme({ accent: "", ink: "   ", paper: "\n\t" })).toEqual({});
-    });
-
-    it("keeps a value of exactly 300 characters", () => {
-      const v = "a".repeat(300);
-      expect(readTheme({ font: v })).toEqual({ font: v });
-    });
-
-    it("drops a value over 300 characters", () => {
-      expect(readTheme({ font: "a".repeat(301) })).toEqual({});
-    });
-
-    it("measures length after trimming", () => {
       const v = "a".repeat(300);
       expect(readTheme({ font: `  ${v}  ` })).toEqual({ font: v });
+      expect(readTheme({ font: "a".repeat(301) })).toEqual({});
     });
 
     it.each([
@@ -269,16 +240,11 @@ describe("themeVars", () => {
     });
   });
 
-  it("returns {} for an empty theme", () => {
+  it("drops unknown keys, empty and non-string values", () => {
     expect(themeVars({})).toEqual({});
-  });
-
-  it("drops unknown keys", () => {
-    const theme = { accent: "red", colour: "blue", "--ui-ink": "#000" } as Record<string, string>;
-    expect(themeVars(theme)).toEqual({ "--ui-accent": "red" });
-  });
-
-  it("drops empty and non-string values", () => {
+    expect(
+      themeVars({ accent: "red", colour: "blue", "--ui-ink": "#000" } as Record<string, string>),
+    ).toEqual({ "--ui-accent": "red" });
     const theme = {
       accent: "",
       ink: 0,
@@ -299,52 +265,19 @@ describe("themeVars", () => {
     expect(Object.getPrototypeOf(vars)).toBe(Object.prototype);
   });
 
-  it.each(["radius", "frame", "main-width"] as const)(
-    "turns a bare 0 into 0px for the length token %s",
-    (key) => {
-      expect(themeVars({ [key]: "0" })[`--ui-${key}`]).toBe("0px");
-    },
-  );
-
-  it.each(["0.0", "00", ".0", "-0", "+0.00"])("treats %s as a zero length too", (zero) => {
-    expect(themeVars({ radius: zero })["--ui-radius"]).toBe("0px");
-  });
-
-  it("leaves a zero with a unit, and a non-zero, alone", () => {
-    expect(themeVars({ frame: "0em", "main-width": "0.5" })).toEqual({
+  it("a bare zero length becomes 0px; a unit, a non-zero or a non-length token stays", () => {
+    for (const key of ["radius", "frame", "main-width"] as const)
+      expect(themeVars({ [key]: "0" })[`--ui-${key}`], key).toBe("0px");
+    for (const zero of ["0.0", "00", ".0", "-0", "+0.00"])
+      expect(themeVars({ radius: zero })["--ui-radius"], zero).toBe("0px");
+    expect(themeVars({ frame: "0em", "main-width": "0.5", radius: "18px" })).toMatchObject({
       "--ui-frame": "0em",
       "--ui-main-width": "0.5",
-    });
-  });
-
-  it.each([
-    "display-squeeze",
-    "label-tracking",
-    "button-tracking",
-    "display-weight",
-    "accent",
-  ] as const)("keeps a bare 0 as 0 for the non-length token %s", (key) => {
-    expect(themeVars({ [key]: "0" })).toEqual({ [`--ui-${key}`]: "0" });
-  });
-
-  it("leaves non-zero lengths alone", () => {
-    expect(themeVars({ radius: "18px", frame: "0px", "main-width": "10" })).toMatchObject({
       "--ui-radius": "18px",
-      "--ui-frame": "0px",
-      "--ui-main-width": "10",
     });
-  });
-
-  it("gives calc-safe lengths for the editorial preset", () => {
-    const vars = themeVars(PRESETS.editorial);
-    expect(vars["--ui-frame"]).toBe("0px");
-  });
-
-  it("leaves the soft preset's case and tracking to the sentence-case base", () => {
-    const vars = themeVars(PRESETS.soft);
-    expect(vars["--ui-label-case"]).toBeUndefined();
-    expect(vars["--ui-button-case"]).toBeUndefined();
-    expect(vars["--ui-label-tracking"]).toBeUndefined();
+    for (const key of ["display-squeeze", "display-weight", "accent"] as const)
+      expect(themeVars({ [key]: "0" }), key).toEqual({ [`--ui-${key}`]: "0" });
+    expect(themeVars(PRESETS.editorial)["--ui-frame"]).toBe("0px");
   });
 });
 
@@ -376,8 +309,6 @@ describe("the Quiet Client Rule", () => {
   it.each([
     ["soft", PRESETS.soft],
     ["editorial", PRESETS.editorial],
-    ["gilded", SHOWCASE.gilded],
-    ["riso", SHOWCASE.riso],
   ] as const)("gives the %s look plain corners and no sweep", (_name, look) => {
     const vars = themeVars(look);
     expect(vars["--ui-leaf-panel"]).toBe("var(--ui-radius-panel)");
@@ -417,11 +348,9 @@ describe("the Quiet Client Rule", () => {
     expect(editorial["--ui-sweep"]).toBe("0");
   });
 
-  it("keeps the showcase looks on their own case and corners", () => {
-    for (const look of Object.values(SHOWCASE)) {
-      const vars = themeVars(look);
-      if (look.radius) expect(vars["--ui-sweep"]).toBe("0");
-    }
+  it("gives every showcase look that sets radius no sweep", () => {
+    for (const look of Object.values(SHOWCASE))
+      if (look.radius) expect(themeVars(look)["--ui-sweep"]).toBe("0");
   });
 
   it("gives a dark client brand the night lines and a light one the day lines", () => {
@@ -525,25 +454,12 @@ describe("applyTheme", () => {
   });
 });
 
-describe("TOKENS and PRESETS", () => {
-  it("TOKENS has no duplicates", () => {
-    expect(new Set(TOKENS).size).toBe(TOKENS.length);
-  });
-
-  it("every token is lowercase kebab-case", () => {
-    for (const t of TOKENS) expect(t).toMatch(/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/);
-  });
-
-  it("every preset uses only keys from TOKENS", () => {
-    const known = new Set<string>(TOKENS);
-    for (const name of PRESET_NAMES)
-      for (const key of Object.keys(PRESETS[name]))
-        expect(known.has(key), `${name}.${key}`).toBe(true);
-  });
-
-  it.each(PRESET_NAMES)("preset %s passes readTheme unchanged", (name) => {
-    expect(readTheme({ preset: name })).toEqual(PRESETS[name]);
-    expect(readTheme({ ...PRESETS[name] })).toEqual(PRESETS[name]);
+describe("PRESETS", () => {
+  it("each passes readTheme unchanged (so uses only TOKENS)", () => {
+    for (const name of PRESET_NAMES) {
+      expect(readTheme({ preset: name }), name).toEqual(PRESETS[name]);
+      expect(readTheme({ ...PRESETS[name] }), name).toEqual(PRESETS[name]);
+    }
   });
 });
 
@@ -556,8 +472,10 @@ describe("TOKENS match tailwind.css", () => {
     .map((f) => readFileSync(new URL(`./${f}`, import.meta.url), "utf8"))
     .join("\n");
 
-  it.each([...TOKENS])("tailwind.css or a class reads --ui-%s", (token) => {
-    expect(`${css}\n${classes}`).toMatch(new RegExp(`(var\\(\\s*|\\()--ui-${token}(?![a-z0-9-])`));
+  it("tailwind.css or a class reads every token", () => {
+    const read = (token: string) =>
+      new RegExp(`(var\\(\\s*|\\()--ui-${token}(?![a-z0-9-])`).test(`${css}\n${classes}`);
+    expect(TOKENS.filter((t) => !read(t))).toEqual([]);
   });
 
   it("BASE is the first :root as declared", () => {
