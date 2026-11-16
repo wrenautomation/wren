@@ -101,32 +101,26 @@ describe("fold", () => {
     expect(text?.type === "text" && text.text.length).toBeGreaterThan(0);
   });
 
-  it("a no shows on the ask's card", () => {
-    let s = said(EMPTY, "touch it");
-    s = asked(s, { id: "t1", name: "Bash", input: { command: "touch x" }, why: "writes a file" });
-    s = answered(s, "t1", false);
-    expect(s.messages[1]?.parts[0]).toMatchObject({
-      ask: { why: "writes a file", allowed: false },
-    });
-  });
-
-  it("answered marks the ask once", () => {
+  it("answered marks the ask once; a no shows on the ask's card; picks are kept", () => {
     let s = said(EMPTY, "go");
     s = asked(s, { id: "t1", name: "Bash", input: { command: "ls" }, why: "check" });
     expect(s.messages[1]?.parts[0]).toMatchObject({ ask: { why: "check" } });
     s = answered(s, "t1", true);
     expect(s.messages[1]?.parts[0]).toMatchObject({ ask: { allowed: true } });
     expect(answered(s, "nope", false)).toBe(s);
-  });
-
-  it("answered keeps AskUserQuestion's picks on its part", () => {
-    let s = said(EMPTY, "go");
+    let no = said(EMPTY, "touch it");
+    no = asked(no, { id: "t1", name: "Bash", input: { command: "touch x" }, why: "writes a file" });
+    no = answered(no, "t1", false);
+    expect(no.messages[1]?.parts[0]).toMatchObject({
+      ask: { why: "writes a file", allowed: false },
+    });
+    // AskUserQuestion keeps the exact picks
     const input = {
       questions: [{ question: "Which list?", options: [{ label: "A" }, { label: "B" }] }],
     };
-    s = asked(s, { id: "q1", name: "AskUserQuestion", input });
-    s = answered(s, "q1", true, { "Which list?": "B" });
-    expect(s.messages[1]?.parts[0]).toMatchObject({
+    let q = asked(said(EMPTY, "go"), { id: "q1", name: "AskUserQuestion", input });
+    q = answered(q, "q1", true, { "Which list?": "B" });
+    expect(q.messages[1]?.parts[0]).toMatchObject({
       ask: { allowed: true },
       answers: { "Which list?": "B" },
     });

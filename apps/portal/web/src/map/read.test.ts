@@ -81,6 +81,7 @@ describe("readMap", () => {
     const { map } = await readMap("c1", "30");
     expect(calls.map((c) => c.path)).toEqual(["pipeline/mapRead"]);
     expect(calls[0]?.args.window).toBe("30");
+    expect("body" in (calls[0]?.args ?? {})).toBe(false);
     expect(map?.stations.get("hub")?.now).toBe(42);
     expect(map?.stations.get("engaged")?.medianDays).toBe(4);
     expect(map?.tracks.get("engaged_to_booked")).toBe(9);
@@ -93,11 +94,6 @@ describe("readMap", () => {
   it("keeps one line row for each currency", async () => {
     const { map } = await readMap("c1", "30");
     expect(map?.lines.get("starter")?.map((r) => r.collected?.currency)).toEqual(["CAD", "USD"]);
-  });
-
-  it("sends no shape body", async () => {
-    await readMap("c1", "30");
-    expect(calls.every((c) => !("body" in c.args))).toBe(true);
   });
 });
 

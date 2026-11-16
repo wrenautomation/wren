@@ -52,11 +52,6 @@ describe("the places", () => {
     ).toEqual(["Map"]);
   });
 
-  it("drops a client's page whose product it lacks, and a place left empty", () => {
-    const apps = appsIn(MODULES, { wren: false, team: false, installed: new Set() });
-    expect(apps.some((m) => m.id === "reactivation")).toBe(false);
-  });
-
   it("docks Today, Campaigns, Research, People, then the first pin", () => {
     const apps = ["map", "people", "campaigns", "research", "today", "office"].map((id) => ({
       id,

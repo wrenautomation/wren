@@ -25,16 +25,12 @@ describe("mapParamsOf", () => {
 });
 
 describe("foldsOf", () => {
-  it("is null when the address names no folds", () => {
+  it("reads depth, open and close; null with no folds; drops a bad depth", () => {
     expect(foldsOf(new URLSearchParams("look=layers"))).toBeNull();
-  });
-  it("reads depth, open and close", () => {
     expect(foldsOf(new URLSearchParams("depth=1&open=a,b&close=c"))).toEqual({
       depth: 1,
       open: { a: true, b: true, c: false },
     });
-  });
-  it("drops a bad depth", () => {
     expect(foldsOf(new URLSearchParams("depth=-2&open=a"))).toEqual({ open: { a: true } });
   });
 });

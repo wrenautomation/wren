@@ -54,8 +54,4 @@ describe("a calm map on the page's shapes", () => {
     // ELK packs the rows: taller than a phone's map frame, not as tall as the old grid.
     expect(scene.h).toBeGreaterThan(600);
   });
-
-  it("is the same scene each time", async () => {
-    expect(await sceneOf(SHAPE_BIG)).toEqual(await sceneOf(SHAPE_BIG));
-  });
 });

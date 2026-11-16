@@ -101,17 +101,13 @@ describe("unfurl route", () => {
   const ok = { signedIn: async () => "amy@wren.example", capped: async () => false };
   const get = (u: string) =>
     new Request(`https://app.test/api/unfurl?url=${encodeURIComponent(u)}`);
-  it("refuses a stranger", async () => {
+  it("refuses a stranger, a private address, and past the cap", async () => {
     const r = await unfurl(get("https://site.example/"), {
       ...ok,
       signedIn: async () => new Response(null, { status: 401 }),
     });
     expect(r.status).toBe(401);
-  });
-  it("refuses a private address", async () => {
     expect((await unfurl(get("http://127.0.0.1/"), ok)).status).toBe(400);
-  });
-  it("refuses past the cap", async () => {
     expect(
       (await unfurl(get("https://site.example/"), { ...ok, capped: async () => true })).status,
     ).toBe(429);

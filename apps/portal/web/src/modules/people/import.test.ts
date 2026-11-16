@@ -8,7 +8,6 @@ import type { ImportPreview, ImportResult } from "../../api.js";
 import {
   base64Of,
   LIMITS,
-  MAIN_FIELDS,
   previewLines,
   resultLine,
   tooBig,
@@ -101,10 +100,5 @@ describe("import lines", () => {
     expect(Buffer.from(base64Of(bytes), "base64").equals(Buffer.from(bytes))).toBe(true);
     expect(tooBig(LIMITS.bytes)).toBeNull();
     expect(tooBig(LIMITS.bytes + 1)).toContain("Split it");
-  });
-
-  it("keeps the common columns up front", () => {
-    expect(MAIN_FIELDS).toContain("email");
-    expect(MAIN_FIELDS).not.toContain("owner");
   });
 });

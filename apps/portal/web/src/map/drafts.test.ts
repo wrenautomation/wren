@@ -153,10 +153,8 @@ describe("diff sides", () => {
 });
 
 describe("proposalsLine", () => {
-  it("says nothing when none wait", () => {
+  it("says how many wait, nothing when none", () => {
     expect(proposalsLine(0)).toBeNull();
-  });
-  it("says how many wait", () => {
     expect(proposalsLine(1)).toBe("1 shape proposal waits");
     expect(proposalsLine(3)).toBe("3 shape proposals wait");
   });

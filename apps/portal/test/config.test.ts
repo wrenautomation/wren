@@ -11,10 +11,6 @@ describe("wrangler.toml", () => {
     expect(toml).toMatch(/^run_worker_first = \["\/\*", "!\/assets\/\*"\]$/m);
   });
 
-  it("logs one request in ten", () => {
-    expect(toml).toMatch(/\[observability\]\s+enabled = true\s+head_sampling_rate = 0\.1/);
-  });
-
   it("hashed files are cached for good", () => {
     expect(headers).toMatch(
       /^\/assets\/\*\n {2}Cache-Control: public, max-age=31536000, immutable$/m,

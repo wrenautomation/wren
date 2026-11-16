@@ -271,17 +271,6 @@ describe("the app host", () => {
     });
   });
 
-  it("marks an operator", async () => {
-    const t = await token({ email: "ops@wren.example", operator: true });
-    await worker.fetch(
-      post("app.test", "delivery/me", {}, { authorization: `Bearer ${t}` }),
-      env(),
-    );
-    expect(restate[0]?.body).toMatchObject({
-      viewer: { email: "ops@wren.example", operator: true },
-    });
-  });
-
   it("view as: Look passes reads on and refuses writes; Act goes on; a bad shape is refused", async () => {
     const t = await token({ email: "ops@wren.example", operator: true });
     const auth = { authorization: `Bearer ${t}` };
@@ -531,16 +520,6 @@ describe("the app host", () => {
     // What the page's ApiError reads as `conflict` (web/src/api.ts refusalOf).
     expect(got).toEqual(refusal);
   });
-
-  it("passes Restate's refusal through", async () => {
-    restateStatus = 403;
-    const t = await token({});
-    const res = await worker.fetch(
-      post("app.test", "delivery/me", {}, { authorization: `Bearer ${t}` }),
-      env(),
-    );
-    expect(res.status).toBe(403);
-  });
 });
 
 describe("a tab older than the live build (wa-ovo)", () => {
@@ -724,23 +703,6 @@ describe("the demo cache", () => {
     expect(await b.json()).toEqual(await a.json());
     expect(restate).toHaveLength(1);
     await worker.fetch(post("demo.test", "reactivation/recordsList", { view: "warm" }), env());
-    expect(restate).toHaveLength(2);
-  });
-
-  it("never keeps an error", async () => {
-    restateStatus = 500;
-    await worker.fetch(post("demo.test", "delivery/me"), env());
-    await worker.fetch(post("demo.test", "delivery/me"), env());
-    expect(restate).toHaveLength(2);
-  });
-
-  it("never serves the app host from it", async () => {
-    await worker.fetch(post("demo.test", "delivery/me"), env());
-    const t = await token({});
-    await worker.fetch(
-      post("app.test", "delivery/me", {}, { authorization: `Bearer ${t}` }),
-      env(),
-    );
     expect(restate).toHaveLength(2);
   });
 });

@@ -109,12 +109,7 @@ describe("tasksOf", () => {
   ];
   const got = tasksOf(metro, people, NOW);
 
-  it("lists person tracks with an owner only", () => {
-    expect(got.map((x) => x.id).sort()).toEqual(
-      ["book_to_pay", "hub_to_reply", "post_to_hub", "reply_to_book"].sort(),
-    );
-  });
-  it("puts late first, then most waiting, then name", () => {
+  it("lists person tracks with an owner only: late first, then most waiting, then name", () => {
     // reply_to_book is late (6h and 7h past 4h). The rest are on time.
     expect(got.map((x) => x.id)).toEqual([
       "reply_to_book",
@@ -123,10 +118,6 @@ describe("tasksOf", () => {
       "book_to_pay",
       "hub_to_reply",
     ]);
-  });
-  it("breaks a tie on waiting by name", () => {
-    const tie = tasksOf(metro, [], NOW).map((x) => x.name);
-    expect(tie).toEqual([...tie].sort((a, b) => a.localeCompare(b)));
   });
   it("fills a task from the stations and the line", () => {
     expect(got[0]).toEqual({

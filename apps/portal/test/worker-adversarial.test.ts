@@ -324,13 +324,17 @@ describe("the demo cache", () => {
     expect(restate).toHaveLength(2);
   });
 
-  it("a 4xx is never kept", async () => {
-    restateReply = () => Response.json({ message: "no demo" }, { status: 404 });
-    await worker.fetch(post("demo.test", "delivery/me"), env());
-    restateReply = () => Response.json({ ok: true });
-    const res = await worker.fetch(post("demo.test", "delivery/me"), env());
-    expect(res.status).toBe(200);
-    expect(restate).toHaveLength(2);
+  it("a 4xx or 5xx is never kept", async () => {
+    for (const status of [404, 500]) {
+      store = new Map();
+      restate = [];
+      restateReply = () => Response.json({ message: "no demo" }, { status });
+      await worker.fetch(post("demo.test", "delivery/me"), env());
+      restateReply = () => Response.json({ ok: true });
+      const res = await worker.fetch(post("demo.test", "delivery/me"), env());
+      expect(res.status).toBe(200);
+      expect(restate).toHaveLength(2);
+    }
   });
 
   it("the cached answer is not cacheable by the browser or a shared proxy", async () => {

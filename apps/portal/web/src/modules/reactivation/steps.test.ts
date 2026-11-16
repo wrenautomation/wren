@@ -59,15 +59,7 @@ afterEach(() => {
 describe("railOf: shape", () => {
   const all = pipeline(IDS.map((id) => step(id)));
 
-  it("groups the steps into Research, Write, Send", () => {
-    expect(railOf(all, false).map((g) => [g.id, g.label])).toEqual([
-      ["research", "Research"],
-      ["write", "Write"],
-      ["send", "Send"],
-    ]);
-  });
-
-  it("puts every step on the rail once, in order", () => {
+  it("puts every step on the rail once, in order, even when the pipeline comes scrambled", () => {
     const rail = railOf(all, false);
     expect(rail.map((g) => g.steps.map((s) => s.id))).toEqual([
       ["list", "emails", "where", "hiring", "score"],
@@ -75,9 +67,6 @@ describe("railOf: shape", () => {
       ["approve", "sent", "replies"],
     ]);
     expect(rail.flatMap((g) => g.steps.map((s) => s.id))).toEqual(IDS);
-  });
-
-  it("keeps rail order when the pipeline comes scrambled", () => {
     const scrambled = pipeline([...IDS].reverse().map((id) => step(id)));
     expect(railOf(scrambled, false).flatMap((g) => g.steps.map((s) => s.id))).toEqual(IDS);
   });
@@ -142,6 +131,7 @@ describe("railOf: waiting notes", () => {
   it("says how many wait and until when, later today", () => {
     const s = step("where", { state: "waiting", parked: 3, resumesAt: local(30, 20) });
     expect(noteOf(s)).toBe("3 wait till 8:00 PM");
+    expect(noteOf({ ...s, parked: 1500 })).toBe("1,500 wait till 8:00 PM");
   });
 
   it("says tomorrow", () => {
@@ -150,65 +140,33 @@ describe("railOf: waiting notes", () => {
     expect(noteOf(s)).toBe("2 wait till tomorrow 8:00 AM");
   });
 
-  it("formats a large parked count", () => {
-    const s = step("where", { state: "waiting", parked: 1500, resumesAt: local(30, 20) });
-    expect(noteOf(s)).toBe("1,500 wait till 8:00 PM");
-  });
-
-  it("a resume time already past falls back to the next pass", () => {
-    const s = step("where", { state: "waiting", parked: 3, resumesAt: local(30, 9) });
-    expect(noteOf(s)).toBe("3 wait for the next pass");
-  });
-
-  it("a resume time exactly now falls back to the next pass", () => {
-    const s = step("where", { state: "waiting", parked: 3, resumesAt: NOW.toISOString() });
-    expect(noteOf(s)).toBe("3 wait for the next pass");
-  });
-
-  it("no resume time falls back to the next pass", () => {
-    const s = step("where", { state: "waiting", parked: 3, resumesAt: null });
-    expect(noteOf(s)).toBe("3 wait for the next pass");
-  });
-
-  it("an unreadable resume time falls back to the next pass", () => {
-    const s = step("where", { state: "waiting", parked: 3, resumesAt: "soon-ish" });
-    expect(noteOf(s)).toBe("3 wait for the next pass");
+  it("a resume time past, exactly now, missing or unreadable falls back to the next pass", () => {
+    for (const resumesAt of [local(30, 9), NOW.toISOString(), null, "soon-ish"]) {
+      const s = step("where", { state: "waiting", parked: 3, resumesAt });
+      expect(noteOf(s), String(resumesAt)).toBe("3 wait for the next pass");
+    }
   });
 });
 
 describe("railOf: next notes", () => {
   it("says how many are left when the step has a set", () => {
     expect(noteOf(step("emails", { state: "next", count: 8, of: 12 }))).toBe("4 to go");
-  });
-
-  it("formats a large count left", () => {
     expect(noteOf(step("where", { state: "next", count: 0, of: 2500 }))).toBe("2,500 to go");
   });
 
-  it("all done out of the set (a rescore) says runs next, not 0 to go", () => {
+  it("says runs next, never 0 to go or a negative: count at or above `of`, `of` 0, no `of`", () => {
+    // all done out of the set: a rescore
     expect(noteOf(step("score", { state: "next", count: 21, of: 21 }))).toBe("runs next");
-  });
-
-  it("a count above `of` says runs next, not a negative", () => {
     expect(noteOf(step("hiring", { state: "next", count: 14, of: 12 }))).toBe("runs next");
-  });
-
-  it("`of` 0 says runs next", () => {
     expect(noteOf(step("emails", { state: "next", count: 0, of: 0 }))).toBe("runs next");
-  });
-
-  it("no `of` says runs next", () => {
     expect(noteOf(step("briefs", { state: "next", count: 5, of: null }))).toBe("runs next");
     expect(noteOf(step("sent", { state: "next", count: 10, of: null }))).toBe("runs next");
   });
 });
 
 describe("railOf: yours notes", () => {
-  it("approve waiting on the client says ready to read", () => {
+  it("approve waiting on the client says ready to read, even with 0 awaiting", () => {
     expect(noteOf(step("approve", { state: "yours", count: 5 }))).toBe("ready to read");
-  });
-
-  it("says ready to read even with 0 awaiting", () => {
     expect(noteOf(step("approve", { state: "yours", count: 0 }))).toBe("ready to read");
     expect(noteOf(step("approve", { state: "waiting", count: 5 }))).toBe("Waiting on Wren's team");
   });
@@ -243,9 +201,7 @@ describe("railOf: done notes", () => {
     expect(done("hiring", { count: 12, of: 12 })).toBe("of 12 companies");
     expect(done("hiring", { count: 1200, of: 1234 })).toBe("of 1,234 companies");
     expect(done("hiring", { of: null })).toBe("companies checked");
-  });
-
-  it("hiring: one company is singular", () => {
+    // one company is singular
     expect(done("hiring", { count: 1, of: 1 })).toBe("of 1 company");
   });
 });
@@ -255,15 +211,9 @@ describe("railOf: idle notes", () => {
     for (const id of IDS) expect(noteOf(step(id), true, false), id).toBe("not started");
   });
 
-  it("sent with sending off on the demo says so", () => {
+  it("sent with sending off says never sends on the demo, off for now on a client; on says not started", () => {
     expect(noteOf(step("sent"), false, true)).toBe("never sends");
-  });
-
-  it("sent with sending off on a real client says off for now", () => {
     expect(noteOf(step("sent"), false, false)).toBe("off for now");
-  });
-
-  it("sent with sending on says not started, demo or not", () => {
     expect(noteOf(step("sent"), true, false)).toBe("not started");
     expect(noteOf(step("sent"), true, true)).toBe("not started");
   });

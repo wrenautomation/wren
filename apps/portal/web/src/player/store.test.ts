@@ -48,14 +48,15 @@ describe("player store", () => {
     expect(store.getState().item?.id).toBe("clip:1");
   });
 
-  it("docks by hand, and a slot claims it back", () => {
-    const { store } = make();
+  it("docks by hand, and a slot claims it back on the same page", () => {
+    const { store, go } = make();
     const a = slot();
     store.play(item(), { anchor: a });
     store.dock();
     expect(store.getState().mode).toBe("mini");
     store.expand();
     expect(store.getState().mode).toBe("full");
+    expect(go).not.toHaveBeenCalled();
   });
 
   it("expand without a slot opens the item's page", () => {
@@ -63,14 +64,6 @@ describe("player store", () => {
     store.play(item());
     store.expand();
     expect(go).toHaveBeenCalledWith("/research/sources/1");
-  });
-
-  it("expand with a slot stays on the page", () => {
-    const { store, go } = make();
-    store.play(item(), { anchor: slot() });
-    store.dock();
-    store.expand();
-    expect(go).not.toHaveBeenCalled();
   });
 
   it("the same id keeps its place, and a new address waits for a pause", () => {
