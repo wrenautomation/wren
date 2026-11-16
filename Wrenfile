@@ -68,6 +68,9 @@ roles:
       WEAVER_CONFIG: ~/.config/weaver/gated.json
       READ_PROXY: http://127.0.0.1:4776
       READ_PROXY_SESSIONS: "1"
+      # the relay's byte log and DataImpulse's price: a run's cost adds its proxy bytes
+      READ_PROXY_USAGE: ~/.config/wren/egress/gate/relay-usage.jsonl
+      READ_PROXY_USD_PER_GB: "1"
   desk:
     port: 4763
     mode: report
