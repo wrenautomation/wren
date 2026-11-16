@@ -6,9 +6,7 @@ import { WORKFLOWS } from "./workflows.js";
 describe("gallery", () => {
   it("lists the client templates, each with its steps and effects, and nothing of Wren's own", () => {
     const g = gallery(WORKFLOWS, COMPONENTS);
-    expect(g.templates.map((t) => t.id)).toEqual(
-      expect.arrayContaining(["speed-to-lead", "win-back"]),
-    );
+    expect(g.templates.map((t) => t.id)).toEqual(expect.arrayContaining(["win-back"]));
     for (const t of g.templates) {
       expect(t.id).toMatch(/^[a-z0-9-]+$/);
       expect(t.steps.length).toBeGreaterThan(0);

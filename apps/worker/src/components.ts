@@ -115,6 +115,7 @@ export const PLATFORM = {
     "console.change": "who changed what, from the audit log",
     "console.event": "every executor arrival, failed ones with Retry",
     "console.execution": "each subject's walk through a workflow, its path lit",
+    "console.speed": "calls a caller waited on, per route and lane, p50 to p99",
     "delivery.change": "who changed an account's rows, from the audit log",
     "delivery.messaging": "an account's message rules: the per-person cap and link tags",
     "wren.parked": "parked ideas and their triggers",
