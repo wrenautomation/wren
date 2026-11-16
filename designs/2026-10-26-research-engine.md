@@ -1590,3 +1590,5 @@ Decision:
 - A 429 whose message names a month's or day's cap is `Refused`, not `Transient`: a wait never clears it. Cohere's monthly cap had `read --see` wait 4 passes per 8-frame chunk, 9+ min on a 20 s clip.
 - Frame eye: Cohere, then gemini-3.5-flash-lite (91% on the WA-1316 seed). In a run, `open --see` uses Claude Sonnet and prices each call.
 - Cost of an X skim: proxy bandwidth only, ~3.5 MB (~$0.0035 at DataImpulse $1/GB); whisper runs here. The ledger does not hold relay bytes; a spend report adds `relay-usage.jsonl` over the run's window.
+- 0.79.4: a run's cost adds its relay bytes. Each open's proxy sessions are `<run>.<hit>.s<n>` (read `withExitTag`, AsyncLocalStorage, so no call-site changes). The brief sums the relay log (`READ_PROXY_USAGE`) by run at `READ_PROXY_USD_PER_GB`. Not taken: the run's time window over the log, which mixes overlapping runs; and a spend record at open time, which races the relay's write. Page fetches go out with no session and stay unattributed.
+- X demo-refs run (WA-1403): $0.87 in total for 165 pages and 11 see reads. The relay was $0.54 of it. Follows on the top 4 makers found a bigger outlier than search did.
