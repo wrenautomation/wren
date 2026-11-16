@@ -441,7 +441,7 @@ export interface RoleRows {
   table: string;
   column: string;
   count: number;
-  /** The first rows' ids (at most 20). */
+  /** The first rows' ids (at most 20): the primary key, its columns joined by "/". */
   ids: string[];
 }
 
@@ -449,6 +449,22 @@ const onPlatform = (role: ObjectRole, platform: string, as?: string) =>
   as
     ? sql`${sql.identifier(as)}.${sql.identifier(role.platform)} = ${platform}`
     : sql`${sql.identifier(role.platform)} = ${platform}`;
+
+/** Each table's primary key columns, in key order. */
+async function primaryKeys(db: Queryable, tables: string[]): Promise<Map<string, string[]>> {
+  const rows = await db.execute<{ t: string; cols: string[] }>(sql`
+    select c.relname t, array_agg(a.attname::text order by k.n) cols
+    from pg_index i
+    join pg_class c on c.oid = i.indrelid
+    cross join lateral unnest(i.indkey) with ordinality k(attnum, n)
+    join pg_attribute a on a.attrelid = i.indrelid and a.attnum = k.attnum
+    where i.indisprimary and i.indrelid = any(array[${sql.join(
+      tables.map((t) => sql`to_regclass(${t})`),
+      sql`, `,
+    )}]::oid[])
+    group by c.relname`);
+  return new Map(rows.map((r) => [r.t, r.cols]));
+}
 
 /** The role rows that name any of these spellings: which table and which ids hold the object. */
 export async function roleRowsOf(
@@ -462,9 +478,16 @@ export async function roleRowsOf(
     refs.map((r) => sql`${r}`),
     sql`, `,
   );
+  const keys = await primaryKeys(db, [...new Set(OBJECT_ROLES.map((r) => r.table))]);
   for (const role of OBJECT_ROLES) {
+    // a row's id: its primary key, less the platform the filter fixes (creator_posts has no id)
+    const cols = (keys.get(role.table) ?? ["id"]).filter((c) => c !== role.platform);
+    const id = sql`concat_ws('/', ${sql.join(
+      cols.map((c) => sql`${sql.identifier(c)}::text`),
+      sql`, `,
+    )})`;
     const [r] = await db.execute<{ n: number; ids: string[] | null }>(sql`
-      select count(*)::int n, (array_agg(id::text order by id))[1:20] ids
+      select count(*)::int n, (array_agg(${id} order by ${id}))[1:20] ids
       from ${sql.identifier(role.table)}
       where ${onPlatform(role, platform)} and ${sql.identifier(role.column)} in (${list})`);
     if (r && r.n > 0)

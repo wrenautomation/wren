@@ -691,7 +691,13 @@ describe("roles", () => {
     );
     const missing: string[] = [];
     for (const r of OBJECT_ROLES) {
-      for (const c of [r.column, r.platform, ...(r.key ?? []), "id"])
+      // id: only a refuse link names rows by it; roleRowsOf reads the primary key
+      for (const c of [
+        r.column,
+        r.platform,
+        ...(r.key ?? []),
+        ...(r.twin === "refuse" ? ["id"] : []),
+      ])
         if (!cols.has(`${r.table}.${c}`)) missing.push(`${r.table}.${c}`);
     }
     for (const h of ITEM_HOMES)
