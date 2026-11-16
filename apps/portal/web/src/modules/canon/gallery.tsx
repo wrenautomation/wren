@@ -286,11 +286,26 @@ export function Tile({
           <span className="text-[12.5px] leading-[25px] text-(--ui-ink-3)">{unscored}</span>
         ) : null}
       </div>
-      <CountRow r={r} only={counts} className="text-[12.5px] text-(--ui-ink-2)" />
+      {dense ? (
+        // 100 px columns: the mark ends the count line, the handle gets the whole width
+        <div className="flex min-w-0 items-center justify-between gap-1.5">
+          <CountRow r={r} only={counts} className="text-[12.5px] text-(--ui-ink-2)" />
+          <span className="ml-auto inline-flex">
+            <Where platform={r.platform} />
+          </span>
+        </div>
+      ) : (
+        <CountRow r={r} only={counts} className="text-[12.5px] text-(--ui-ink-2)" />
+      )}
       {perFol ? <p className="m-0 text-[12.5px] text-(--ui-ink-2) tabular-nums">{perFol}</p> : null}
       {/* the mark holds its own column: a long handle wraps beside it, never under it */}
-      <p className="m-0 flex min-w-0 items-start gap-1.5 text-[12.5px] leading-snug text-(--ui-ink-2)">
-        <Where platform={r.platform} />
+      <p
+        className={cn(
+          "m-0 flex min-w-0 items-start gap-1.5 leading-snug text-(--ui-ink-2)",
+          dense ? "text-[12px]" : "text-[12.5px]",
+        )}
+      >
+        {dense ? null : <Where platform={r.platform} />}
         <span className="min-w-0 wrap-anywhere">
           {inGroup ? null : atOf(r)}
           {/* a wall: who only; 100 px columns at 390 */}
