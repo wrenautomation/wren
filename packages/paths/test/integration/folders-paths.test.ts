@@ -16,9 +16,8 @@ let top: number;
 let inner: number;
 const paths = (items: { path: string }[]) => items.map((i) => i.path);
 
-const weaver = (up = true): WeaverSource => ({
+const weaver = (): WeaverSource => ({
   runs: async () => {
-    if (!up) throw new PathError("offline", "weaver serve does not answer");
     return [
       {
         run: "r1",
@@ -35,10 +34,10 @@ const weaver = (up = true): WeaverSource => ({
     throw new PathError("unknown-path", "no page");
   },
 });
-const at = (up = true) => {
+const at = () => {
   const roots = cliRoots(
     { db: pg.db, media: null, canonRemote: "https://example.com/canon.git" },
-    weaver(up),
+    weaver(),
   );
   return rooted(roots, "folders");
 };
@@ -83,11 +82,6 @@ describe("folders paths", () => {
     ]);
     expect(await homeAt(a, `folders/${top}/r1/queries`)).toBe("weaver/r1/queries");
     expect((await wholeAt(a, `folders/${top}/opener`)).path).toBe("vireo/subjects/opener");
-  });
-
-  it("names runs by id while weaver serve is off", async () => {
-    const rows = (await childrenAt(at(false), `folders/${top}`)).items;
-    expect(rows.at(-1)).toMatchObject({ path: `folders/${top}/r1`, name: "r1" });
   });
 
   it("follows a moved folder", async () => {

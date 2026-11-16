@@ -284,7 +284,7 @@ describe("canonPaths", () => {
       ["Procedure", null],
       ["Rule sets", 2],
       ["References", 1],
-      ["Evidence", 1],
+      ["Sources", 1],
       ["Notes", null],
       ["Conflicts", 1],
       ["Files", 1],
