@@ -1,14 +1,16 @@
 /** Weaver in the portal: Research › Runs (the chat, Live), and a run opened whole in Explorer › Weaver (its graph, back and forth, runs together). Fake server: `web/src/mocks/`. */
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { RequestHandler, WebSocketHandler } from "msw";
+import { HttpResponse, http, type RequestHandler, type WebSocketHandler } from "msw";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import COMMANDS from "../../mocks/data/agent/commands.json";
 import SETUPS from "../../mocks/data/agent/setups.json";
 import { ADMIN } from "../../mocks/data/me.js";
+import { RESEARCH_VIEW } from "../../mocks/data/research.js";
 import { pageAt, tidy } from "../../mocks/page.js";
 import { fakeRelay, type TapeLine } from "../../mocks/relay.js";
 import { REFUSED, SERVED } from "../../mocks/weaver-serve.js";
 import { wholeHref } from "../../modules/explorer/href.js";
+import { SERVE } from "../../modules/research/serve.js";
 
 const meta: Meta = { title: "Weaver/Research" };
 export default meta;
@@ -50,6 +52,34 @@ export const BackAndForth = story(wholeHref("weaver/r1", { tab: "talk" }), async
   await p.findByText("numbers only; skip vendor pages");
   await p.findByText("the page gives no source");
 });
+
+/** The agent's picks, best first, each with its why; a row opens its page beside the list. */
+export const ReadList = story(wholeHref("weaver/r1", { tab: "list" }), async (page) => {
+  const p = within(page);
+  await p.findByText(/the one to copy first/);
+  await p.findByText("14.2x usual");
+  await p.findByText("42 per follower");
+  await userEvent.click(p.getByRole("button", { name: "How I landed 12 cafe accounts" }));
+  await p.findByText("Show the stored copy");
+});
+
+/** No picks yet: the list says who fills it. Run r2: the page keeps r1's view across stories. */
+export const ReadListEmpty = story(
+  wholeHref("weaver/r2", { tab: "list" }),
+  async (page) => {
+    await within(page).findByText("No picks yet", {}, LATE);
+  },
+  [
+    http.get(`${SERVE}/runs/r2`, () =>
+      HttpResponse.json({
+        ...RESEARCH_VIEW,
+        run: "r2",
+        brief: { ...RESEARCH_VIEW.brief, readList: [] },
+      }),
+    ),
+    ...SERVED,
+  ],
+);
 
 /** serve is not running: the page says how to start it, never an empty list. */
 export const NoServe = story(

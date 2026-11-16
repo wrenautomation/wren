@@ -125,11 +125,40 @@ export interface RunPerson {
   profiles?: string[];
 }
 
+/** weaver `Score`: over the author's usual (`multiple`), else views per follower. */
+export interface PickScore {
+  count: string;
+  multiple?: number;
+  perFollower?: number;
+  band?: string;
+  rank?: number;
+  n: number;
+  base?: number;
+}
+
+/** One row of the agent's read list (weaver 0.79.0 `brief.readList`); `id` is the page's. */
+export interface ReadPick {
+  id: string;
+  url: string;
+  title?: string;
+  channel?: string;
+  metrics?: Partial<Record<"views" | "likes" | "comments" | "shares" | "saves", number>>;
+  score?: PickScore;
+  kept: number;
+  dropped: number;
+  quality?: string;
+  /** Absent: picked, not ranked (after the ranked ones). */
+  rank?: number;
+  why: string;
+  /** The agent's id. */
+  by: string;
+}
+
 export interface RunView {
   v: 1;
   run: string;
-  /** The agent's brief: v1 reads `people` only (the rest is agent-shaped, see the design log). */
-  brief: { people?: RunPerson[] } & Record<string, unknown>;
+  /** The agent's brief: v1 reads `people` and `readList` (the rest is agent-shaped, see the design log). */
+  brief: { people?: RunPerson[]; readList?: ReadPick[] } & Record<string, unknown>;
   queries: RunQuery[];
   hits: RunHit[];
   documents: RunDocument[];

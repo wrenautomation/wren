@@ -5,7 +5,18 @@
  * the back and forth (every decision with its why and who made it). Picked runs, or all of them,
  * open on one graph. Read only: the agent and the CLI write. Live: serve sends an event per change.
  */
-import { Button, cx, Empty, Icon, LoadFailed, Loading, money, Seg, StateMark } from "@wren/ui";
+import {
+  Button,
+  cx,
+  Empty,
+  Icon,
+  LoadFailed,
+  Loading,
+  money,
+  Seg,
+  StateMark,
+  short,
+} from "@wren/ui";
 import { type ReactNode, useMemo, useState } from "react";
 import { embedOf, embedSite, youtubeId } from "../../embeds.js";
 import { useCall } from "../../load.js";
@@ -18,6 +29,7 @@ import { RunsCanvas } from "./canvas.js";
 import {
   type Moment,
   pageOf,
+  type ReadPick,
   type RunDocument,
   type RunHit,
   type RunQuery,
@@ -30,13 +42,16 @@ import {
 } from "./serve.js";
 import { host, keptBy, toneOf } from "./tree.js";
 
-type Tab = "graph" | "talk";
+type Tab = "graph" | "list" | "talk";
 type Go = (p: Record<string, string | null>) => void;
 
+// PT-7: a view is a tab over the same run
 const TABS = [
   { value: "graph", label: "Graph" },
+  { value: "list", label: "Read list" },
   { value: "talk", label: "Back and forth" },
 ] as const;
+const tabOf = (t: string | null): Tab => (t === "talk" || t === "list" ? t : "graph");
 const LINK = "inline-flex items-center gap-1 wrap-anywhere text-(--ui-ink) underline";
 const PRE =
   "m-0 max-h-[420px] overflow-auto border border-(--ui-hair) bg-(--ui-tile) p-2.5 text-[13px] leading-[1.55] whitespace-pre-wrap wrap-anywhere text-(--ui-ink)";
@@ -116,8 +131,8 @@ function Opened({
   back: ReactNode;
 }) {
   const ids = useMemo(() => runsIn(open, rows), [open, rows]);
-  // Back and forth draws no graph
-  usePageRuns(params.get("tab") === "talk" ? undefined : ids);
+  // only the graph tab draws a graph
+  usePageRuns(tabOf(params.get("tab")) === "graph" ? ids : undefined);
   const go = (p: Record<string, string | null>) => navigate(href(here, p, params), true);
   const [one] = ids;
   if (ids.length === 1 && one)
@@ -155,7 +170,7 @@ function OneRun({
   go: Go;
   back: ReactNode;
 }) {
-  const tab: Tab = params.get("tab") === "talk" ? "talk" : "graph";
+  const tab = tabOf(params.get("tab"));
   const card = params.get("open");
   const ids = useMemo(() => [run], [run]);
   const rows = useMemo(() => (row ? [row] : []), [row]);
@@ -181,7 +196,11 @@ function OneRun({
       ) : (
         <>
           <RunHead view={view} row={row} />
-          <Talk view={view} card={card} go={go} />
+          {tab === "list" ? (
+            <ReadList view={view} card={card} go={go} />
+          ) : (
+            <Talk view={view} card={card} go={go} />
+          )}
         </>
       )}
     </div>
@@ -552,6 +571,105 @@ function PostEmbed(d: { id: string; url: string; title?: string | undefined }) {
       className={cx("w-full border border-(--ui-hair) bg-(--ui-paper)", e.box)}
       item={{ id: `research:${d.id}`, kind: "embed", src: e.src, title: d.title ?? `${site} post` }}
     />
+  );
+}
+
+const scoreOf = (p: ReadPick): string => {
+  const s = p.score;
+  if (s?.multiple !== undefined) return `${s.multiple.toFixed(1)}x usual`;
+  if (s?.perFollower !== undefined) return `${short(Math.round(s.perFollower))} per follower`;
+  return "";
+};
+
+/** The agent's picks, best first (weaver `brief.readList`); PT-16: picture, title, counts, why. */
+function ReadList({ view, card, go }: { view: RunView; card: string | null; go: Go }) {
+  const list = view.brief.readList;
+  const pictures = useMemo(() => new Map(view.documents.map((d) => [d.id, d.image])), [view]);
+  if (!list?.length)
+    return (
+      <Empty title="No picks yet" waits>
+        {list
+          ? "The agent ranks the pages it read with weaver add pick. They show here, best first."
+          : "This weaver serve sends no read list. Run weaver 0.79.0 or later."}
+      </Empty>
+    );
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 @min-[1140px]/main:grid-cols-[minmax(0,1fr)_minmax(340px,440px)]">
+      <RowsPanel<ReadPick>
+        rows={list}
+        rowKey={(p) => p.id}
+        label="the read list"
+        noun="pick"
+        open={{ id: card?.slice(2) ?? null, onOpen: (p) => go({ open: `d:${p.id}` }) }}
+        name={{
+          label: "Page",
+          icon: "play",
+          title: (p) => p.title || [p.channel, host(p.url)].filter(Boolean).join(" · "),
+          mark: (p) => <PickMark rank={p.rank} image={pictures.get(p.id)} />,
+          sub: (p) => (
+            <span className={cx("text-[12.5px] whitespace-normal", QUIET)}>
+              {p.channel ? `${p.channel} · ` : ""}
+              {p.why}
+            </span>
+          ),
+        }}
+        columns={[
+          {
+            key: "score",
+            label: "Score",
+            icon: "chart",
+            width: 150,
+            phone: true,
+            cell: scoreOf,
+          },
+          {
+            key: "views",
+            label: "Views",
+            icon: "eye",
+            width: 90,
+            align: "end",
+            cell: (p) => (p.metrics?.views !== undefined ? short(p.metrics.views) : ""),
+          },
+          {
+            key: "kept",
+            label: "Findings",
+            icon: "check",
+            width: 90,
+            align: "end",
+            cell: (p) => (p.kept || p.dropped ? `${p.kept} of ${p.kept + p.dropped}` : ""),
+          },
+          { key: "by", label: "By", icon: "user", width: 150, quiet: true, cell: (p) => p.by },
+        ]}
+      />
+      {card ? <Card view={view} id={card} go={go} /> : null}
+    </div>
+  );
+}
+
+/** Rank, then the page's picture when it has one. */
+function PickMark({ rank, image }: { rank: number | undefined; image: string | undefined }) {
+  return (
+    <span className="flex shrink-0 items-center gap-2">
+      <span className={cx("w-6 text-end text-[13px] tabular-nums", QUIET)}>
+        {rank ?? (
+          <>
+            <span aria-hidden>–</span>
+            <span className="sr-only">not ranked</span>
+          </>
+        )}
+      </span>
+      {/* the slot holds without a picture, so titles keep one edge; a phone gives the title the room */}
+      {image ? (
+        <img
+          src={image}
+          alt=""
+          loading="lazy"
+          className="h-9 w-16 border border-(--ui-hair) bg-(--ui-tile) object-cover @max-[640px]/main:hidden"
+        />
+      ) : (
+        <span aria-hidden className="h-9 w-16 @max-[640px]/main:hidden" />
+      )}
+    </span>
   );
 }
 
