@@ -138,7 +138,7 @@ function Toggle({
       <span
         className={cn(
           "flex size-4 flex-none items-center justify-center rounded-[4px] border border-(--ui-hair-strong)",
-          on && "border-(--ui-accent) bg-(--ui-accent) text-(--ui-on-accent)",
+          on && "border-(--ui-active) bg-(--ui-active) text-(--ui-on-accent)",
         )}
       >
         {on ? <Icon name="check" className="size-3" /> : null}

@@ -46,7 +46,7 @@ const EYEBROW =
 // one key column for every row of a card (subgrid): "keep" and "a" share the text edge
 const ROW =
   "col-span-2 grid w-full grid-cols-subgrid items-baseline rounded-(--ui-leaf-button) px-3 py-2.5 text-left";
-const ACCENT = "shadow-[inset_0_0_0_1.5px_var(--ui-accent)] bg-(--ui-accent-wash)";
+const ACCENT = "shadow-[inset_0_0_0_1.5px_var(--ui-active)] bg-(--ui-accent-wash)";
 const HOVER = "[@media(hover:hover)_and_(pointer:fine)]:hover:bg-(--ui-hover)";
 const FIELD =
   "w-full rounded-(--ui-leaf-button) border-0 bg-(--ui-paper) px-3 py-2 text-[13.5px] text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)] outline-none placeholder:text-(--ui-ink-3) focus:shadow-[inset_0_0_0_1px_var(--ui-ink-3)]";
@@ -363,7 +363,7 @@ function Option({
             {o.text}
           </span>
           {recommended ? (
-            <span className="text-[11.5px] font-semibold text-(--ui-accent)">Recommended</span>
+            <span className="text-[11.5px] font-semibold text-(--ui-primary)">Recommended</span>
           ) : null}
         </span>
         {o.cost ? (

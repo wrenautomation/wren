@@ -19,7 +19,7 @@ export const aerie: Module = {
     {
       id: "tasks",
       label: "Tasks",
-      about: "Every task, filtered and grouped as the address says. Open one to read it whole.",
+      about: "Every task, filtered and grouped as the address says.",
       Page: TasksPage,
       wide: true,
     },
