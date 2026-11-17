@@ -130,11 +130,14 @@ export function DictateField({
   off = false,
   label,
   className,
+  onHearing,
   children,
 }: {
   target: RefObject<Field | null>;
   /** No mic, the box only: one he can't write in. */
   off?: boolean | undefined;
+  /** the mic starts or stops hearing (a page that marks its words as spoken) */
+  onHearing?: ((on: boolean) => void) | undefined;
   /** A one-line input: the mic sits in its right end. */
   line?: boolean | undefined;
   label?: string | undefined;
@@ -143,6 +146,13 @@ export function DictateField({
 }) {
   const status = useDictateStatus();
   const [hearing, setHearing] = useState(false);
+  // stable: Dictate's effect lists it, so a new function each render would fire it each render
+  const tell = useRef(onHearing);
+  tell.current = onHearing;
+  const [heard] = useState(() => (on: boolean) => {
+    setHearing(on);
+    tell.current?.(on);
+  });
   const engine = useContext(Engine);
   const shows = !off && engine !== null && status.state !== "off";
   return (
@@ -159,7 +169,7 @@ export function DictateField({
         <Dictate
           target={target}
           label={label}
-          onHearing={setHearing}
+          onHearing={heard}
           className={cn(
             "absolute",
             line ? "top-1 right-1 h-6 min-w-6 px-1.5" : "right-1.5 bottom-1.5 h-7 min-w-7",

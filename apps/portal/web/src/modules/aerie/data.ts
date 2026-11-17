@@ -182,3 +182,31 @@ export const useFeed = (words: string) =>
 /** the page below the lowest seq held */
 export const readOlder = (words: string, before: number) =>
   aerieCall("feed", { ...(words ? { words } : {}), before, limit: FEED_PAGE });
+
+/** Intake (aerie D19, WA-1420): one receipt per filing, newest first; its tasks in any place */
+export type Receipt = AerieAnswer<"intake">;
+export const INTAKE_PAGE = 20;
+export interface Receipts {
+  rows: Receipt[];
+  end: boolean;
+}
+
+export const useReceipts = () =>
+  useCall<Receipts>("aerie/intakes", () => aerieCall("intakes", { limit: INTAKE_PAGE }), {
+    live: LIVE,
+  });
+
+/** the page below the lowest id held */
+export const readOlderReceipts = (before: number) =>
+  aerieCall("intakes", { before, limit: INTAKE_PAGE });
+
+/** the words as filed; `ear` names the dictation adapter when any of them were spoken */
+export const fileWords = (words: string, ear: string | null) =>
+  aerieCall("intake", { words, kind: ear ? "voice" : "text", ...(ear ? { ear } : {}) });
+
+/** one list newest first, an id once; the first copy wins (page one is the fresher read) */
+export const mergeReceipts = (rows: Receipt[]) => {
+  const seen = new Map<number, Receipt>();
+  for (const r of rows) if (!seen.has(r.id)) seen.set(r.id, r);
+  return [...seen.values()].sort((a, b) => b.id - a.id);
+};

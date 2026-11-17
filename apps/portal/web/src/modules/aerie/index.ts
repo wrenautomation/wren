@@ -5,6 +5,7 @@
 import type { Module } from "../../module.js";
 import { DecisionsPage } from "./decisions.js";
 import { HistoryPage } from "./history.js";
+import { IntakePage } from "./intake.js";
 import { TasksPage } from "./tasks.js";
 
 export const aerie: Module = {
@@ -21,6 +22,12 @@ export const aerie: Module = {
       about: "Every task, filtered and grouped as the address says.",
       Page: TasksPage,
       wide: true,
+    },
+    {
+      id: "intake",
+      label: "Intake",
+      about: "Type or say the work once; each task it makes, and who holds it.",
+      Page: IntakePage,
     },
     {
       id: "decisions",

@@ -571,6 +571,113 @@ export const feedOf =
       .slice(0, typeof b.limit === "number" ? b.limit : 100);
   };
 
+type Receipt = AerieAnswer<"intake">;
+const task = (id: string) => AERIE_TASKS.find((t) => t.id === id) as Row;
+const SPLIT_TASK = row("EX-310", "Split intake 7", "To Do", "inbox", {
+  days: 0.02,
+  assignees: ["@claude"],
+});
+
+/** one per receipt state; worst cases: missed sentences, a maybe-dup, a model error, an unbroken word */
+export const AERIE_RECEIPTS: Receipt[] = [
+  {
+    id: 8,
+    kind: "voice",
+    by: "@ada",
+    at: minsAgo(4),
+    words:
+      "Move the sign-up form onto the new layout and fix the footer link while you're there. " +
+      "Also write up the weekly numbers note. And remind me to call the printer.",
+    state: "split",
+    splitBy: "claude-haiku",
+    missed: ["And remind me to call the printer."],
+    tasks: [task("EX-101"), { ...task("EX-108"), labels: ["maybe-dup"] }, task("EX-104")],
+  },
+  {
+    id: 7,
+    kind: "text",
+    by: "@sam",
+    at: minsAgo(30),
+    words: "Check why the follow-up emails stopped on Tuesday and pause the sequence until then.",
+    state: "waiting",
+    error: "the model did not answer in 60 s",
+    missed: [],
+    tasks: [SPLIT_TASK],
+  },
+  {
+    id: 6,
+    kind: "text",
+    by: "@william",
+    at: minsAgo(60 * 26),
+    words:
+      "Rename https://example.com/a/very/long/path/that/never/breaks/on/its/own/and/runs/past/the/edge in every doc.",
+    state: "held",
+    missed: [],
+    tasks: [],
+  },
+  {
+    id: 5,
+    kind: "voice",
+    by: "@ada",
+    at: minsAgo(60 * 50),
+    words: "Never mind the last thing.",
+    state: "split",
+    splitBy: "session",
+    missed: [],
+    tasks: [],
+  },
+];
+
+/** n receipts, newest first, each with one task: the Many story */
+export const manyReceipts = (n: number): Receipt[] =>
+  Array.from({ length: n }, (_, i) => ({
+    id: n - i,
+    kind: i % 2 ? "voice" : "text",
+    by: "@sam",
+    at: minsAgo(i * 90),
+    words: `Piece of work number ${n - i}, said in a sentence.`,
+    state: "split",
+    splitBy: "claude-haiku",
+    missed: [],
+    tasks: [row(`EX-${500 + i}`, `Piece of work number ${n - i}`, "To Do", "ops")],
+  }));
+
+/** a story's filings, newest first, ahead of the rows it serves */
+const filed: Receipt[] = [];
+onFreshStory(() => {
+  filed.length = 0;
+});
+
+/** the route on `rows`: `before` an id cursor; `limit` */
+export const receiptsOf =
+  (rows: readonly Receipt[]) =>
+  (b: Record<string, unknown>): AerieAnswer<"intakes"> => {
+    const limit = typeof b.limit === "number" ? b.limit : 20;
+    const page = [...filed, ...rows]
+      .filter((r) => (typeof b.before === "number" ? r.id < b.before : true))
+      .slice(0, limit);
+    return { rows: page, end: page.length < limit };
+  };
+
+/** File: no model on the fake server, so a "Split intake" task waits for a session */
+export const fileInto =
+  (rows: readonly Receipt[]) =>
+  (b: Record<string, unknown>): Receipt => {
+    const id = Math.max(0, ...rows.map((r) => r.id), ...filed.map((r) => r.id)) + 1;
+    const r: Receipt = {
+      id,
+      kind: b.kind === "voice" ? "voice" : "text",
+      by: "@ada",
+      at: new Date().toISOString(),
+      words: String(b.words),
+      state: "waiting",
+      missed: [],
+      tasks: [{ ...SPLIT_TASK, id: `EX-${400 + id}`, title: `Split intake ${id}` }],
+    };
+    filed.unshift(r);
+    return r;
+  };
+
 export const AERIE_ANSWERS = serve<AerieApi>("aerie", {
   board: AERIE_BOARD,
   // a delta read (`updatedAfter`) answers the rows a story wrote since
@@ -599,6 +706,8 @@ export const AERIE_ANSWERS = serve<AerieApi>("aerie", {
   decisions: (b) => decisionsNow().filter((d) => (b.open === false) === !!d.answeredAt),
   decide: decideWith(false),
   feed: feedOf(AERIE_FEED),
+  intakes: receiptsOf(AERIE_RECEIPTS),
+  intake: fileInto(AERIE_RECEIPTS),
   saveView: (b) => ({ id: 2, ...(b as Omit<AerieAnswer<"saveView">, "id">) }),
   deleteView: true,
 });
