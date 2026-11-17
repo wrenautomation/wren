@@ -1,0 +1,1 @@
+CREATE INDEX "ix_creator_finds_person_id" ON "creator_finds" USING btree ("person_id");

@@ -98,6 +98,7 @@ export const PLATFORM = {
     FoldersConsole: "Wren's folder tree: make, rename, move, drop, file",
     CanonConsole:
       "Canon's references for the portal: reels and videos, his notes, the rules they back",
+    CreatorFindDesk: "Add creator: a find's search and pick on the Mac, then its first reads",
     CanonIndexSync: "on the box: Canon's git clone pulled and its records indexed, on each push",
     PathsConsole: "Explorer: every product's records as one tree of paths, read in the portal",
   },

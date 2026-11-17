@@ -256,6 +256,7 @@ export const creatorFinds = pgTable(
     uniqueIndex("ux_creator_finds_open_input_key")
       .on(t.inputKey)
       .where(sql`${t.state} in ('waiting', 'finding')`),
+    index("ix_creator_finds_person_id").on(t.personId),
     foreignKey({
       columns: [t.personId],
       foreignColumns: [creatorPeople.id],
