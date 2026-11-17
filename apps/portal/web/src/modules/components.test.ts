@@ -59,7 +59,10 @@ describe("places and components", () => {
       "office",
       "research",
       "canon",
+      "aerie",
       "variants",
+      "explorer",
+      "studio",
     ]);
   });
 });
