@@ -47,6 +47,8 @@ export interface PanelCtx {
   dock?: (() => void) | undefined;
   dq: string;
   setDq: (v: string) => void;
+  /** the host's player for a page URL; null: none plays there */
+  media?: ((url: string) => ReactNode) | undefined;
 }
 
 const Out = ({
@@ -364,36 +366,55 @@ function SourcePanel({ c, n }: { c: PanelCtx; n: GNode }) {
       {x.p.d ? <small> {day(x.p.d)}</small> : null}
     </li>
   ));
-  const pic = picOf(s) ? <Frame img={picOf(s)} icon={s.icon} fmt={s.fmt} kind={s.kind} /> : null;
+  // a page plays in place, as on References; with no page told, the first that plays leads
+  const play = (u: string) => c.media?.(u) ?? null;
+  const lead = told.length ? null : (s.pages.map((p) => play(p.u)).find(Boolean) ?? null);
+  // a told page that plays already shows the picture: no source poster above it
+  const tellsPlay = told.some((x) => c.media?.(x.p.u));
+  const pic =
+    lead ??
+    (!tellsPlay && picOf(s) ? (
+      <Frame img={picOf(s)} icon={s.icon} fmt={s.fmt} kind={s.kind} />
+    ) : null);
   const none = !s.pages.length ? (
     <p className="gh">A search found this and the run kept it, but nothing read it yet.</p>
   ) : null;
-  const pgHead = (x: (typeof told)[number]) => (
-    <a className="pgh" href={x.p.u} target="_blank" rel="noopener">
-      <Frame
-        img={x.p.th ?? x.p.og}
-        icon={s.icon}
-        fmt={x.p.f || s.fmt}
-        kind={s.kind}
-        len={x.p.len}
-        sm
-      />
-      <span>
-        <b>{x.p.t}</b>
-        <small>
-          {[
-            day(x.p.d),
-            clock(x.p.len),
-            stepAt(c.L.run, x.p.r),
-            x.p.kept ? pl(x.p.kept, "finding") : "",
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </small>
-        <small className="go">{s.site === "youtube" ? "Open the video" : "Open the page"}</small>
-      </span>
-    </a>
-  );
+  const pgHead = (x: (typeof told)[number]) => {
+    const m = play(x.p.u);
+    return (
+      <>
+        {m}
+        <a className="pgh" href={x.p.u} target="_blank" rel="noopener">
+          {m ? null : (
+            <Frame
+              img={x.p.th ?? x.p.og}
+              icon={s.icon}
+              fmt={x.p.f || s.fmt}
+              kind={s.kind}
+              len={x.p.len}
+              sm
+            />
+          )}
+          <span>
+            <b>{x.p.t}</b>
+            <small>
+              {[
+                day(x.p.d),
+                clock(x.p.len),
+                stepAt(c.L.run, x.p.r),
+                x.p.kept ? pl(x.p.kept, "finding") : "",
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </small>
+            <small className="go">
+              {s.site === "youtube" ? "Open the video" : "Open the page"}
+            </small>
+          </span>
+        </a>
+      </>
+    );
+  };
   const rest = (
     <>
       {quiet.length ? (
@@ -752,6 +773,8 @@ function PagePanel({ c, n, b }: { c: PanelCtx; n: GNode; b: number }) {
   if (!pg) return null;
   const fs = s.fs.filter((f) => f.p === b);
   const open = s.site === "youtube" ? "Open the video" : "Open the page";
+  // the post plays in place, as on References; else the poster links out
+  const player = c.media?.(pg.u) ?? null;
   const found = fs.length ? (
     fs.map((f) => <Finding key={s.fs.indexOf(f)} c={c} s={s} f={f} claim />)
   ) : (
@@ -776,22 +799,29 @@ function PagePanel({ c, n, b }: { c: PanelCtx; n: GNode; b: number }) {
           </p>
         </>
       }
-      stack={found}
+      stack={
+        <>
+          {player}
+          {found}
+        </>
+      }
       side={
-        <a className="pgh" href={pg.u} target="_blank" rel="noopener">
-          <Frame
-            img={pg.th ?? pg.og ?? picOf(s)}
-            icon={s.icon}
-            fmt={pg.f || s.fmt}
-            kind={s.kind}
-            len={pg.len}
-          />
-          <span>
-            <b>{pg.t}</b>
-            <small>{[day(pg.d), clock(pg.len)].filter(Boolean).join(" · ")}</small>
-            <small className="go">{open}</small>
-          </span>
-        </a>
+        player ?? (
+          <a className="pgh" href={pg.u} target="_blank" rel="noopener">
+            <Frame
+              img={pg.th ?? pg.og ?? picOf(s)}
+              icon={s.icon}
+              fmt={pg.f || s.fmt}
+              kind={s.kind}
+              len={pg.len}
+            />
+            <span>
+              <b>{pg.t}</b>
+              <small>{[day(pg.d), clock(pg.len)].filter(Boolean).join(" · ")}</small>
+              <small className="go">{open}</small>
+            </span>
+          </a>
+        )
       }
       main={found}
     />

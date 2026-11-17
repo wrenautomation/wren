@@ -324,6 +324,12 @@ function Body({
   );
 }
 
+/** The detail's player alone, for a page shown elsewhere (the weaver graph's side panel). */
+export function PostPlayer({ r }: { r: FeedPost }) {
+  const pic = usePicture(r, true);
+  return <PostMedia r={r} poster={pic.src} onPosterFail={pic.fail} />;
+}
+
 /**
  * The post's video where one plays (WA-1391), else its picture linked out. A copied file plays on
  * open, as X and Instagram do; YouTube's player and IG's and X's embeds (a video with no file) load on

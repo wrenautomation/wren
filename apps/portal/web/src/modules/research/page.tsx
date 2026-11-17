@@ -19,13 +19,11 @@ import {
   StateMark,
 } from "@wren/ui";
 import { type ReactNode, useMemo, useState } from "react";
-import { embedOf, embedSite, youtubeId } from "../../embeds.js";
 import { useCall } from "../../load.js";
-import { PlayerSlot } from "../../player/index.js";
 import { href, navigate, useRoute } from "../../route.js";
 import { usePageRuns } from "../agent/drive.js";
 import { GALLERY, Ghosts, Tile } from "../canon/gallery.js";
-import { PostDetail } from "../canon/post-detail.js";
+import { PostDetail, PostPlayer } from "../canon/post-detail.js";
 import { QUIET } from "../work/bits.js";
 import { RowsPanel } from "../work/rows-panel.js";
 import { boardPages, Patterns, Splits, Wall } from "./board.js";
@@ -503,6 +501,8 @@ function Judge({ answers }: { answers: Record<string, Record<string, number>> | 
 }
 
 function PageCard({ view, d, go }: { view: RunView; d: RunDocument; go: Go }) {
+  // the References player, so a page plays the same on every tab
+  const post = useMemo(() => boardPages(view).get(d.id)?.r, [view, d.id]);
   const findings = view.findings.filter((f) => f.document === d.id);
   const kept = keptBy(view).get(d.id) ?? 0;
   const person = d.person ? view.brief.people?.find((p) => p.id === d.person) : undefined;
@@ -540,7 +540,7 @@ function PageCard({ view, d, go }: { view: RunView; d: RunDocument; go: Go }) {
         ) : null}
       </p>
       <Judge answers={d.judge} />
-      <PostEmbed id={d.id} url={d.url} title={d.title} />
+      {post ? <PostPlayer r={post} /> : null}
       <Findings findings={findings} />
       <StoredCopy run={view.run} id={d.id} />
     </Box>
@@ -609,33 +609,6 @@ function StoredCopy({ run, id }: { run: string; id: string }) {
       </Button>
       {failed ? <span className="text-[12.5px] text-(--ui-bad)">{failed}</span> : null}
     </span>
-  );
-}
-
-/** A video or post in its own player, where the CSP lets one in; else nothing (the link is above). */
-function PostEmbed(d: { id: string; url: string; title?: string | undefined }) {
-  const vid = youtubeId(d.url);
-  if (vid)
-    return (
-      <PlayerSlot
-        className="aspect-video w-full max-w-[720px]"
-        item={{
-          id: `research:${d.id}`,
-          kind: "youtube",
-          src: vid,
-          title: d.title ?? d.url,
-          ratio: 16 / 9,
-        }}
-      />
-    );
-  const site = embedSite(d.url);
-  const e = site ? embedOf(site, d.url) : null;
-  if (!e) return null;
-  return (
-    <PlayerSlot
-      className={cx("w-full border border-(--ui-hair) bg-(--ui-paper)", e.box)}
-      item={{ id: `research:${d.id}`, kind: "embed", src: e.src, title: d.title ?? `${site} post` }}
-    />
   );
 }
 

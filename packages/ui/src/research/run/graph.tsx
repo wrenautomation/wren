@@ -80,9 +80,11 @@ export interface RunGraphProps {
   failed?: ReactNode;
   /** in a chat card: no run head, summary, key or table; a shorter stage */
   card?: boolean | undefined;
+  /** A page's own player, by its URL (the host's post viewer); null: the poster links out. */
+  media?: ((url: string) => ReactNode) | undefined;
 }
 
-export function RunGraph({ run, failed, card }: RunGraphProps) {
+export function RunGraph({ run, failed, card, media }: RunGraphProps) {
   if (failed)
     return (
       <Empty title="This run didn't load">
@@ -90,10 +92,18 @@ export function RunGraph({ run, failed, card }: RunGraphProps) {
       </Empty>
     );
   if (!run) return <Loading shape="cards" lines={3} heading label="Loading the run" />;
-  return <Graph key={run.rid} run={run} card={card} />;
+  return <Graph key={run.rid} run={run} card={card} media={media} />;
 }
 
-function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined }) {
+function Graph({
+  run,
+  card,
+  media,
+}: {
+  run: RunGraphData;
+  card?: boolean | undefined;
+  media?: RunGraphProps["media"];
+}) {
   const L = useMemo(() => indexRun(run), [run]);
   // a live run: sources that got their first finding since the last data, to flash once
   const prevL = useRef<Indexed | null>(null);
@@ -845,6 +855,7 @@ function Graph({ run, card }: { run: RunGraphData; card?: boolean | undefined })
       : undefined,
     dq,
     setDq,
+    media,
   });
   const aw = W.active;
   const awCur = curOf(aw);

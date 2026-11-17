@@ -112,6 +112,21 @@ export const Board = story(
   [http.get(`${SERVE}/runs/rb`, () => HttpResponse.json({ ...BOARD_VIEW, run: "rb" })), ...SERVED],
 );
 
+/** A graph node opens its page in the References player (WA-1414), not a poster link. */
+export const GraphPlays = story(
+  wholeHref("weaver/rb", { tab: "graph" }),
+  async (page) => {
+    await waitFor(() => expect(page.querySelector(".rg .rg-nodes [data-n]")).not.toBeNull(), LATE);
+    const nodes = [...page.querySelectorAll<HTMLElement>(".rg .rg-nodes [data-n]")];
+    for (const n of nodes.slice(0, 30)) {
+      await userEvent.click(n);
+      if (within(page).queryAllByRole("button", { name: /^Play / }).length) break;
+    }
+    await within(page).findAllByRole("button", { name: /^Play / }, LATE);
+  },
+  [http.get(`${SERVE}/runs/rb`, () => HttpResponse.json({ ...BOARD_VIEW, run: "rb" })), ...SERVED],
+);
+
 /** serve is not running: the page says how to start it, never an empty list. */
 export const NoServe = story(
   wholeHref("weaver/r1"),
