@@ -23,6 +23,8 @@ export interface LinkPreview {
   title?: string | undefined;
   line?: string | undefined;
   image?: string | undefined;
+  /** the page's own picture address (https): what a board pin keeps as its poster */
+  imageUrl?: string | undefined;
   icon?: string | undefined;
 }
 

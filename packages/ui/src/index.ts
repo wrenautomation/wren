@@ -443,6 +443,15 @@ export { runs as tabRuns } from "./phone-nav.js";
 export { usePhone } from "./phone-shell.js";
 export { PickBar } from "./pick-bar.js";
 export {
+  type BoardPin,
+  type PinAdd,
+  type PinAt,
+  PinBoard,
+  type PinBoardProps,
+  type PinKind,
+  type PinPlace,
+} from "./pin-board/index.js";
+export {
   DeviceFrame,
   FeedPost,
   type MessageKind,

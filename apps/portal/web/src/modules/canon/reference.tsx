@@ -6,6 +6,7 @@ import type { Reference, ReferenceWhole } from "@wren/research/canon-console";
 import { cx, Icon, Img, num, Tag, Video, type VideoMark } from "@wren/ui";
 import { useEffect, useRef, useState } from "react";
 import { href } from "../../route.js";
+import { PinToBoard } from "../variants/pin-to.js";
 import { dayLabel } from "../work/bits.js";
 import { Section, VIDEO_KINDS } from "./parts.js";
 
@@ -161,6 +162,9 @@ export function ReferenceBody({ r, bare }: { r: ReferenceWhole; bare?: boolean }
         {stats.length > 0 && (
           <span className="text-[13px] text-(--ui-ink-3) tabular-nums">{stats.join(" · ")}</span>
         )}
+      </div>
+      <div>
+        <PinToBoard pin={{ url: r.url, title: r.title, poster: r.poster, from: { canon: r.id } }} />
       </div>
       {r.note && (
         <Section title="His note">

@@ -229,8 +229,8 @@ importers:
         specifier: 0.77.1
         version: 0.77.1(@aws-sdk/client-s3@3.1136.0)
       '@wrenautomation/vireo':
-        specifier: 0.18.0
-        version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.19.0
+        version: 0.19.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/weaver':
         specifier: 0.79.5
         version: 0.79.5(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
@@ -378,8 +378,8 @@ importers:
         specifier: 0.8.10
         version: 0.8.10(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/vireo':
-        specifier: 0.18.0
-        version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.19.0
+        version: 0.19.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       htmlparser2:
         specifier: 12.0.0
         version: 12.0.0
@@ -1042,8 +1042,8 @@ importers:
         specifier: 0.8.10
         version: 0.8.10(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/vireo':
-        specifier: 0.18.0
-        version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.19.0
+        version: 0.19.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1178,8 +1178,8 @@ importers:
   packages/experiments:
     dependencies:
       '@wrenautomation/vireo':
-        specifier: 0.18.0
-        version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.19.0
+        version: 0.19.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       zod:
         specifier: 4.6.6
         version: 4.6.6
@@ -1203,8 +1203,8 @@ importers:
         specifier: workspace:*
         version: link:../runtime
       '@wrenautomation/vireo':
-        specifier: 0.18.0
-        version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.19.0
+        version: 0.19.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1314,8 +1314,8 @@ importers:
         specifier: workspace:*
         version: link:../variants
       '@wrenautomation/vireo':
-        specifier: 0.18.0
-        version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.19.0
+        version: 0.19.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -2484,8 +2484,8 @@ importers:
         specifier: 0.82.0
         version: 0.82.0(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/vireo':
-        specifier: 0.18.0
-        version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.19.0
+        version: 0.19.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -6615,7 +6615,7 @@ packages:
       '@aws-sdk/client-s3':
         optional: true
 
-  '@wrenautomation/vireo@0.18.0':
+  '@wrenautomation/vireo@0.19.0':
     resolution: {integrity: sha512-yPNmzYiqCJMN5eC2qzMw4IbhQYtkY/5qBZ9S+aahfE+MvWZbPiOUyS8ZsTkNK1/uu2SLKI1FHyp4YMcf+R6+SQ==}
     engines: {node: '>=22'}
     hasBin: true
@@ -14994,7 +14994,7 @@ snapshots:
     transitivePeerDependencies:
       - '@napi-rs/canvas'
 
-  '@wrenautomation/vireo@0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
+  '@wrenautomation/vireo@0.19.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
     dependencies:
       '@aws-sdk/client-s3': 3.1136.0
       '@aws-sdk/s3-request-presigner': 3.1136.0

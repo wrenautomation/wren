@@ -18,6 +18,12 @@ export const VARIANTS_CONSOLE_ROUTES = {
   setGuide: "wren:team",
   steer: "wren:team",
   unsteer: "wren:team",
+  board: "wren:team",
+  pin: "wren:team",
+  pinMove: "wren:team",
+  pinEdit: "wren:team",
+  unpin: "wren:team",
+  pinKeep: "wren:team",
 } as const satisfies Record<string, Need>;
 /** Variants: its own app, beside Research. */
 export const VARIANTS_CONSOLE_APPS = { "*": "variants" } as const satisfies RouteApps<
@@ -34,4 +40,9 @@ export const VARIANTS_CONSOLE_WRITES: readonly (keyof typeof VARIANTS_CONSOLE_RO
   "setGuide",
   "steer",
   "unsteer",
+  "pin",
+  "pinMove",
+  "pinEdit",
+  "unpin",
+  "pinKeep",
 ];

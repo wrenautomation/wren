@@ -21,6 +21,8 @@ export interface Preview {
   title?: string;
   line?: string;
   image?: string;
+  /** the page's own picture address: a board pin keeps it as its poster */
+  imageUrl?: string;
   icon?: string;
 }
 
@@ -178,6 +180,7 @@ export async function preview(u: URL): Promise<Preview> {
     if (head.title) out.title = head.title;
     if (head.line) out.line = head.line;
     if (image) out.image = image;
+    if (head.image?.startsWith("https://")) out.imageUrl = head.image;
     if (icon) out.icon = icon;
   } catch {}
   return out;

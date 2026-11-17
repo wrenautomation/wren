@@ -66,6 +66,7 @@ describe("preview", () => {
     expect(p.host).toBe("site.example");
     expect(p.title).toBe("Open & graph title");
     expect(p.image).toBe("data:image/png;base64,iVBORw==");
+    expect(p.imageUrl).toBe("https://www.site.example/img/card.png");
     expect(p.icon).toBe("data:image/png;base64,iVBORw==");
   });
   it("drops an image over its cap", async () => {

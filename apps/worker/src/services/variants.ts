@@ -1,6 +1,7 @@
 /** Variants: the review page, and the live numbers loop (designs/2026-11-05-variants.md). */
 import { makeFoldersConsole } from "@wren/folders/restate";
 import { makePathsConsole } from "@wren/paths/restate";
+import { enqueueAdd } from "@wren/research/canon-adds";
 import { type Media, makeCanonConsole } from "@wren/research/canon-console";
 import { signMediaPut } from "@wren/starling-inbound";
 import { makeVariantsCollect, makeVariantsConsole } from "@wren/variants/restate";
@@ -17,7 +18,11 @@ export function variantsServices(deps: Deps): AnyService[] {
       }
     : null;
   return [
-    makeVariantsConsole(deps.db, signer ? (uri) => signer.host.host(uri) : null),
+    // a kept board pin goes to Canon's Add queue (vireo board B4); uploads land in the media bucket
+    makeVariantsConsole(deps.db, signer ? (uri) => signer.host.host(uri) : null, {
+      keep: ({ what, note, by }) => enqueueAdd(deps.db, { what, note, askedBy: by }),
+      ...(signer ? { bucket: signer.bucket } : {}),
+    }),
     makeVariantsCollect({ db: deps.db, ...deps.notify }),
     // the one folder tree: Variants subjects, agent chats, Weaver runs (designs/2026-11-08-folders.md)
     makeFoldersConsole(deps.db),

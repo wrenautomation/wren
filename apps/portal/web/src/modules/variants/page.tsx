@@ -23,6 +23,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
+import { SubjectBoard } from "./board.js";
 import { type Live, LiveView } from "./live.js";
 import { FramesProvider, useFrames, WIDTHS } from "./live-page.js";
 import {
@@ -473,6 +474,11 @@ export function SampleCard({
 }
 
 /** One subject whole, opened from Explorer › Vireo (WA-1373): its tree, live numbers, guides. */
+const SUBJECT_VIEWS = [
+  { value: "board", label: "Board" },
+  { value: "tree", label: "Tree" },
+] as const;
+
 export function SubjectDetail({
   id,
   params,
@@ -490,6 +496,9 @@ export function SubjectDetail({
   );
   const tip = useEdit(`variants:subject:${id}:tip`, "");
   const [guides, setGuides] = useState<Guide[]>([]);
+  const [view, setView] = useState<"tree" | "board">(
+    params.get("show") === "board" ? "board" : "tree",
+  );
   useEffect(() => setGuides(got.data?.guides ?? []), [got.data]);
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <TreeGhost />;
@@ -530,15 +539,27 @@ export function SubjectDetail({
           <p className="m-0 max-w-[70ch] text-[13px] text-(--ui-ink-2)">{v.subject.brief}</p>
         )}
       </div>
-      <SubjectTree
-        subject={v.subject}
-        batches={v.batches}
-        guides={guides}
-        params={params}
-        steers={v.steers ?? []}
-        pruned={v.pruned}
-        onSteered={got.retry}
+      <Seg
+        dense
+        label="Show"
+        items={SUBJECT_VIEWS}
+        value={view}
+        onChange={setView}
+        className="self-start"
       />
+      {view === "board" ? (
+        <SubjectBoard subject={v.subject.id} />
+      ) : (
+        <SubjectTree
+          subject={v.subject}
+          batches={v.batches}
+          guides={guides}
+          params={params}
+          steers={v.steers ?? []}
+          pruned={v.pruned}
+          onSteered={got.retry}
+        />
+      )}
       {v.live && v.live.rows.length > 0 && <LiveView live={v.live} picks={v} />}
       <section className="flex flex-col gap-2">
         <h3 className="m-0 text-[13px] font-semibold text-(--ui-ink-2)">Guides</h3>

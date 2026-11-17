@@ -38,9 +38,10 @@ const PAN_STEP = 80;
 const ZOOM = { min: 0.15, max: 2 };
 const EASE = { duration: 180 };
 
-interface FrameProps {
+/** N: the graph's own node type, so its handlers keep their data type */
+interface FrameProps<N extends Node = Node> {
   label: string;
-  nodes: Node[];
+  nodes: N[];
   edges: Edge[];
   nodeTypes: NodeTypes;
   edgeTypes: EdgeTypes;
@@ -54,7 +55,7 @@ interface FrameProps {
   flush?: boolean | undefined;
   minimap?: boolean | undefined;
   /** React Flow's events and switches this graph needs (clicks, connecting, sizes). */
-  flow?: Partial<ReactFlowProps> | undefined;
+  flow?: Partial<ReactFlowProps<N>> | undefined;
   /** Drawn over the graph in its box: a hover card. */
   children?: ReactNode;
   className?: string | undefined;
@@ -107,7 +108,7 @@ function Controls({
   );
 }
 
-export function GraphFrame({
+export function GraphFrame<N extends Node = Node>({
   label,
   nodes,
   edges,
@@ -122,9 +123,9 @@ export function GraphFrame({
   flow,
   children,
   className,
-}: FrameProps) {
+}: FrameProps<N>) {
   const box = useRef<HTMLElement>(null);
-  const rf = useRef<ReactFlowInstance | null>(null);
+  const rf = useRef<ReactFlowInstance<N> | null>(null);
   // Clicked into: the wheel zooms. Clicking anywhere else gives the wheel back to the page.
   const [active, setActive] = useState(false);
   // Moved by hand: drag pans from here on, even when it all fit.
@@ -204,7 +205,7 @@ export function GraphFrame({
       onPointerDown={() => setActive(true)}
       onKeyDown={onKey}
     >
-      <ReactFlow
+      <ReactFlow<N>
         aria-label={label}
         nodes={nodes}
         edges={edges}

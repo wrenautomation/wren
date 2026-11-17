@@ -11,6 +11,7 @@ import { FPS, getEdit, keepSegments, shortCutsOver } from "@wren/starling-studio
 import { variants } from "@wren/variants";
 import { promoteVerdicts } from "@wren/variants/knowledge";
 import { contentTypesIn, pushCanon, readPlaybook } from "@wren/variants/playbook";
+import { readPage } from "@wrenautomation/read/text";
 import type { Source } from "@wrenautomation/vireo";
 import { registerCommands } from "@wrenautomation/vireo/cli";
 import { type Bucket, s3Bucket } from "@wrenautomation/vireo/media";
@@ -41,6 +42,20 @@ export function registerVariants(
     ...(settings.mediaBucket ? { bucket: checked(settings.mediaBucket) } : {}),
     // a live page with no poster: the render Lambda shoots one (vireo `posters`)
     shoot: (url) => renderLambda(settings.renderFunction ?? "wren-prod-render").shot(url),
+    // a board link's title and still from its own page head (og:image)
+    unfurl: async (url) => {
+      const res = await fetch(url, {
+        headers: {
+          "user-agent": "WrenPreview/1 (+https://wrenautomation.com)",
+          accept: "text/html",
+        },
+        redirect: "follow",
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok || !/html/i.test(res.headers.get("content-type") ?? "")) return {};
+      const page = readPage(await res.text(), res.url || url);
+      return { title: page.title || null, poster: page.image ?? null };
+    },
     // a batch file's `studio: {edit, format}` → the cut's footage spans
     resolve: async (raw, db) => {
       const x = raw.studio as { edit: number; format?: "long" | "short" } | undefined;

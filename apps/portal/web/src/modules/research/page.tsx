@@ -24,6 +24,7 @@ import { href, navigate, useRoute } from "../../route.js";
 import { usePageRuns } from "../agent/drive.js";
 import { GALLERY, Ghosts, Tile } from "../canon/gallery.js";
 import { PostDetail, PostPlayer } from "../canon/post-detail.js";
+import { PinToBoard } from "../variants/pin-to.js";
 import { QUIET } from "../work/bits.js";
 import { RowsPanel } from "../work/rows-panel.js";
 import { boardPages, Patterns, Splits, Wall } from "./board.js";
@@ -699,7 +700,19 @@ function References({
           about="A page the run read, whole: the post, its numbers and what it gave."
           onClose={() => go({ open: null })}
         >
-          {opened ? <PageWhy view={view} s={opened.s} pick={opened.pick} d={opened.d} /> : null}
+          {opened ? (
+            <>
+              <PinToBoard
+                pin={{
+                  url: opened.s.url,
+                  title: opened.r.title ?? opened.r.text,
+                  poster: opened.r.full,
+                  from: { weaver: { run: view.run, page: opened.s.id } },
+                }}
+              />
+              <PageWhy view={view} s={opened.s} pick={opened.pick} d={opened.d} />
+            </>
+          ) : null}
         </PostDetail>
       ) : null}
     </div>

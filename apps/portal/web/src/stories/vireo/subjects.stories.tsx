@@ -61,3 +61,21 @@ export const TreeOpen = pageAt(wholeHref(HERO), {
     await expect(within(open).getByText("Path")).toBeInTheDocument();
   },
 });
+
+/** The subject's board (vireo board B1): a frame, links, a picture, a sample, a note. A pin opens on the side. */
+export const Board = pageAt(wholeHref(HERO, { show: "board" }), {
+  ...ONE,
+  check: async (page) => {
+    const pin = await within(page).findByText(/^Hand-drawn star map/, {}, { timeout: 8000 });
+    await expect(within(page).getAllByText("Canon").length).toBeGreaterThan(0);
+    await userEvent.click(pin);
+    const side = await within(page).findByRole("complementary", { name: "Pin" });
+    await expect(within(side).getByRole("button", { name: "Keep" })).toBeInTheDocument();
+  },
+});
+
+/** The board has not come back: a still box in its place. */
+export const BoardLoading = pageAt(wholeHref(HERO, { show: "board" }), {
+  ...ONE,
+  answers: { "variants/board": null },
+});

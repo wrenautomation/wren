@@ -60,6 +60,8 @@ export function SidePanel({
       <motion.aside
         ref={host}
         aria-label={label}
+        // phone sheet inside a page: lifts frame + main over the phone head and tabs (shell.tsx has-[[data-full]])
+        data-full={phone && !gone ? "" : undefined}
         style={{ "--panel-w": `${width}px` } as MotionStyle}
         initial={false}
         animate={open ? { opacity: 1, x: 0, y: 0 } : shut}

@@ -3,6 +3,7 @@
 import { TAP, type Verdict } from "@wrenautomation/vireo/calls";
 import { type Answers, refuse } from "../api.js";
 import { ago } from "./shell.js";
+import { BOARD_ANSWERS } from "./variants-board.js";
 import { NOTES_ONLY, TREE_SUBJECT } from "./variants-tree.js";
 
 /** A call as vireo stores it: the score and its zone. */
@@ -493,6 +494,7 @@ const listOf = (q: Record<string, unknown>) => {
 };
 
 export const VARIANTS_ANSWERS: Answers = {
+  ...BOARD_ANSWERS,
   "variants/batches": (b: Record<string, unknown>) => listOf(b),
   "variants/batch": (b: Record<string, unknown>) => {
     const r = BATCHES.find((x) => refOf(x) === b.ref || String(x.id) === String(b.ref));

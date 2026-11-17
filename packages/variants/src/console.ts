@@ -20,6 +20,11 @@ import {
   GUIDE_STATES,
   KINDS,
   type Kind,
+  type NewPin,
+  PIN_KINDS,
+  type PinMove,
+  type PinRow,
+  type PinView,
   type SampleRow,
   TONES,
   VERDICTS,
@@ -50,9 +55,35 @@ const refuse = async <T>(fn: () => Promise<T>) => {
   }
 };
 
-export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
+/** The host's side of the board (vireo B4, upload): Canon's add queue, the media bucket. */
+export interface BoardPorts {
+  /** a kept pin's link or file as a Canon add; its id goes on the pin */
+  keep?: (a: { what: string; note: string; by: string }) => Promise<{ id: number }>;
+  /** the bucket uploads land in: a pin's file must be one of its objects */
+  bucket?: string;
+}
+
+export function variantsConsoleApi(db: Db, sign: Sign | null = null, ports: BoardPorts = {}) {
   const v = variants(db);
   const url = playableUrl(sign);
+  /** a pin with its file, poster and sample signed for the browser */
+  const pinMedia = async (p: PinView | PinRow) => {
+    const s = "sample" in p ? p.sample : undefined;
+    return {
+      ...p,
+      fileUrl: await url(p.file),
+      posterUrl: await url(p.poster),
+      ...(s
+        ? { sample: { ...s, mediaUrl: await url(s.media), posterUrl: await url(s.poster) } }
+        : {}),
+    };
+  };
+  /** an uploaded file must be one this host's bucket took: never a key from elsewhere */
+  const ownFile = (f: unknown) => {
+    if (f == null) return;
+    if (!ports.bucket || !String(f).startsWith(`s3://${ports.bucket}/`))
+      throw new PortalRefusal("that file isn't one uploaded here", 400);
+  };
   const media = async <T extends Pick<SampleRow, "media" | "poster">>(s: T) => ({
     ...s,
     mediaUrl: await url(s.media),
@@ -268,6 +299,59 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null) {
         }
       }),
     unsteer: (req: Req) => refuse(() => v.unsteer(num(req.id, "steer"), by(req))),
+    /** A subject's board (vireo B1): every pin at its board position, media signed. */
+    board: (req: Req) =>
+      refuse(async () => {
+        const b = await v.board(num(req.subject, "subject"));
+        return { ...b, pins: await Promise.all(b.pins.map(pinMedia)) };
+      }),
+    pin: (req: Req) =>
+      refuse(async () => {
+        const list = (req.pins as NewPin[]) ?? [];
+        for (const p of list) ownFile(p.file);
+        const rows = await v.pin(num(req.subject, "subject"), list, by(req));
+        return Promise.all(rows.map(pinMedia));
+      }),
+    pinMove: (req: Req) => refuse(() => v.movePins((req.moves as PinMove[]) ?? [], by(req))),
+    pinEdit: (req: Req) =>
+      refuse(async () =>
+        pinMedia(
+          await v.editPin(
+            {
+              id: num(req.id, "pin"),
+              ...(req.title !== undefined ? { title: req.title as string | null } : {}),
+              ...(req.body !== undefined ? { body: req.body as string | null } : {}),
+              ...(req.url !== undefined ? { url: req.url as string | null } : {}),
+            },
+            by(req),
+          ),
+        ),
+      ),
+    unpin: (req: Req) =>
+      refuse(() =>
+        v.unpin(
+          ((req.ids as unknown[]) ?? []).map((x) => num(x, "pin")),
+          by(req),
+        ),
+      ),
+    /** A person keeps a pin (vireo B4): first keep enqueues the Canon add; un-keep leaves Canon. */
+    pinKeep: (req: Req) =>
+      refuse(async () => {
+        const on = req.on !== false;
+        let row = await v.keepPin(num(req.id, "pin"), on, by(req));
+        const what = row.url ?? row.file;
+        if (on && !row.canon && what && ports.keep) {
+          const { subject } = await v.board(row.subjectId);
+          const words = [row.title, row.body, row.why].filter(Boolean).join("\n\n");
+          const add = await ports.keep({
+            what,
+            note: `Kept from the Vireo board of ${subject.name}.${words ? `\n\n${words}` : ""}`,
+            by: by(req),
+          });
+          row = await v.setPinCanon(row.id, `add:${add.id}`, by(req));
+        }
+        return pinMedia(row);
+      }),
   };
 }
 
@@ -344,10 +428,63 @@ const INPUTS = {
     why: z.string().max(2000).nullish(),
   },
   unsteer: { id: ID },
+  board: { subject: ID },
+  pin: {
+    subject: ID,
+    pins: z
+      .array(
+        z.object({
+          kind: z.enum(PIN_KINDS).nullish(),
+          url: z.string().max(2048).nullish(),
+          file: z.string().max(512).nullish().describe("s3:// from canon/upload"),
+          poster: z.string().max(2048).nullish(),
+          title: z.string().max(300).nullish(),
+          body: z.string().max(8000).nullish(),
+          sampleId: z.number().int().nullish(),
+          frameId: z.number().int().nullish(),
+          // a run's References tab names its run and page; Canon's gallery, its record (board B6)
+          from: z
+            .union([
+              z.object({ weaver: z.object({ run: z.string(), page: z.string() }) }),
+              z.object({ canon: z.string().max(200) }),
+            ])
+            .nullish(),
+          x: z.number().nullish(),
+          y: z.number().nullish(),
+          w: z.number().positive().nullish(),
+          h: z.number().positive().nullish(),
+        }),
+      )
+      .min(1)
+      .max(200),
+  },
+  pinMove: {
+    moves: z
+      .array(
+        z.object({
+          id: z.number().int(),
+          x: z.number().optional(),
+          y: z.number().optional(),
+          w: z.number().positive().nullable().optional(),
+          h: z.number().positive().nullable().optional(),
+          z: z.number().int().optional(),
+          frameId: z.number().int().nullable().optional(),
+        }),
+      )
+      .max(500),
+  },
+  pinEdit: {
+    id: ID,
+    title: z.string().max(300).nullish(),
+    body: z.string().max(8000).nullish(),
+    url: z.string().max(2048).nullish(),
+  },
+  unpin: { ids: z.array(ID).min(1).max(500) },
+  pinKeep: { id: ID, on: z.boolean().nullish() },
 } as const;
 
-export function makeVariantsConsole(db: Db, sign: Sign | null) {
-  const api = variantsConsoleApi(db, sign);
+export function makeVariantsConsole(db: Db, sign: Sign | null, ports: BoardPorts = {}) {
+  const api = variantsConsoleApi(db, sign, ports);
   const h = (k: keyof typeof INPUTS) =>
     serviceHandler(
       { input: z.looseObject({ ...PORTAL_FIELDS, ...INPUTS[k] }) },
@@ -371,6 +508,12 @@ export function makeVariantsConsole(db: Db, sign: Sign | null) {
     setGuide: h("setGuide"),
     steer: h("steer"),
     unsteer: h("unsteer"),
+    board: h("board"),
+    pin: h("pin"),
+    pinMove: h("pinMove"),
+    pinEdit: h("pinEdit"),
+    unpin: h("unpin"),
+    pinKeep: h("pinKeep"),
   };
   return portalService({
     name: "VariantsConsole",

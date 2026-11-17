@@ -24,7 +24,7 @@ export interface BoardPage {
 }
 
 /** The site a pick is on: a social platform's mark, else its host (the tile's mark reads hosts). */
-function platformOf(url: string): string {
+export function platformOf(url: string): string {
   if (youtubeId(url)) return "youtube";
   return embedSite(url) ?? host(url);
 }
