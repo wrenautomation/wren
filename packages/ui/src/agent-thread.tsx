@@ -646,7 +646,7 @@ function Welcome({
         <h2 className="m-0 text-[22px]/tight font-semibold tracking-[-0.01em] text-(--ui-ink)">
           {title}
         </h2>
-        {text ? <p className="m-0 max-w-prose text-[14px] text-(--ui-ink-2)">{text}</p> : null}
+        {text ? <p className="m-0 max-w-prose text-[14px] text-(--ui-ink)">{text}</p> : null}
       </div>
       {suggestions?.length ? (
         <div className="grid gap-2 sm:grid-cols-2">
@@ -847,7 +847,7 @@ const Thinking: ReasoningMessagePartComponent = ({ text, status }) => {
         {status.type === "running" ? "Thinking" : "Thought"}
         <Icon name="down" size={12} className="transition-transform group-open:rotate-180" />
       </summary>
-      <p className="mt-1.5 mb-0 whitespace-pre-wrap border-(--ui-hair) border-l-2 pl-3 text-[13.5px] text-(--ui-ink-2)">
+      <p className="mt-1.5 mb-0 whitespace-pre-wrap border-(--ui-hair) border-l-2 pl-3 text-[13.5px] text-(--ui-ink)">
         {text}
       </p>
     </details>

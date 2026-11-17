@@ -71,7 +71,7 @@ export function PageSeen({
                 </button>
               </span>
               {p.off ? null : (
-                <pre className="m-0 max-h-32 overflow-y-auto rounded-[8px] bg-(--ui-canvas) px-2.5 py-2 font-mono text-[11.5px]/[1.55] whitespace-pre-wrap text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair)] [overflow-wrap:anywhere]">
+                <pre className="m-0 max-h-32 overflow-y-auto rounded-[8px] bg-(--ui-canvas) px-2.5 py-2 font-mono text-[11.5px]/[1.55] whitespace-pre-wrap text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)] [overflow-wrap:anywhere]">
                   {p.text}
                 </pre>
               )}

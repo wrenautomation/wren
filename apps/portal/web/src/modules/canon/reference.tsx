@@ -238,7 +238,7 @@ export function ReferenceBody({ r, bare }: { r: ReferenceWhole; bare?: boolean }
           </summary>
           <div className="mt-2 flex flex-col gap-3 text-[13.5px] leading-normal whitespace-pre-line wrap-anywhere">
             {r.caption && <p className="m-0">{r.caption}</p>}
-            {r.transcript && <p className="m-0 text-(--ui-ink-2)">{r.transcript}</p>}
+            {r.transcript && <p className="m-0 text-(--ui-ink)">{r.transcript}</p>}
           </div>
         </details>
       )}

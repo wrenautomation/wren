@@ -54,7 +54,7 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
     <div className={cn(ROOT, "grid max-w-[760px] min-w-0 gap-6")}>
       <PageTitle title={title ?? cap(meta.name.many)} />
       {!rows.length ? (
-        <p className="text-[14px] text-(--ui-ink-2)">
+        <p className="text-[14px] text-(--ui-ink)">
           {emptyOf(empty, meta.views[0]?.id, meta.name.many)}
         </p>
       ) : null}

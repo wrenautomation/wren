@@ -318,7 +318,7 @@ export function Tile({
         </span>
       </p>
       {note && !dense ? (
-        <p className="m-0 text-[12.5px] leading-[1.45] wrap-anywhere text-(--ui-ink-2)">{note}</p>
+        <p className="m-0 text-[12.5px] leading-[1.45] wrap-anywhere text-(--ui-ink)">{note}</p>
       ) : null}
       <OpenLink open={open} r={r} />
       {cover}

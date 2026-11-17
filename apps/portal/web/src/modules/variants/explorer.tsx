@@ -162,14 +162,14 @@ export function VireoPreview({ w, file }: { w: Whole; file?: ReactNode }) {
     return (
       <div className="flex max-w-[72ch] flex-col gap-4">
         {b.blind ? (
-          <p className="m-0 text-[14px] text-(--ui-ink-2)">
+          <p className="m-0 text-[14px] text-(--ui-ink)">
             Open: its why, lineage and guides stay hidden until you mark it.
           </p>
         ) : w.body ? (
           <Text text={w.body} />
         ) : null}
         {b.note ? (
-          <blockquote className="m-0 text-[14px] text-(--ui-ink-2) italic">{b.note}</blockquote>
+          <blockquote className="m-0 text-[14px] text-(--ui-ink) italic">{b.note}</blockquote>
         ) : null}
         <Facts
           items={[

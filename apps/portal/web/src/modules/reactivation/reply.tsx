@@ -33,7 +33,7 @@ export const REPLY_EXAMPLE = (
   <section className="mt-2 max-w-[72ch] rounded-(--ui-radius) border border-dashed border-(--ui-ink-3) px-5 py-4 text-[14.5px] leading-[1.6] text-pretty">
     <Tag>Example</Tag>
     <h2 className="mt-3 text-[15px] font-semibold">When someone replies</h2>
-    <p className="text-(--ui-ink-2)">
+    <p className="text-(--ui-ink)">
       Nobody replies to a sample company. Here's what happens when someone replies to yours.
     </p>
     <ol className="mt-3 list-decimal space-y-2 pl-5">
@@ -48,7 +48,7 @@ export const REPLY_EXAMPLE = (
       <li>
         If they're interested or want a meeting, Wren forwards it to the recruiter the email was
         written as. It shows here under Interested, like this:
-        <blockquote className="my-2 border-l-2 border-(--ui-ink-3) pl-3 text-(--ui-ink-2) italic">
+        <blockquote className="my-2 border-l-2 border-(--ui-ink-3) pl-3 text-(--ui-ink) italic">
           "Good timing. We just opened two engineering roles. Free Thursday afternoon?"
         </blockquote>
         <span className="text-[13px] text-(--ui-ink-2)">

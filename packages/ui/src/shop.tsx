@@ -160,7 +160,7 @@ function Shop({
                       </span>
                     </h2>
                     {g.blurb ? (
-                      <p className="text-[13px] text-pretty text-(--ui-ink-2)">{g.blurb}</p>
+                      <p className="text-[13px] text-pretty text-(--ui-ink)">{g.blurb}</p>
                     ) : null}
                   </header>
                 ) : null}
@@ -181,7 +181,7 @@ function Shop({
             ))}
           </div>
         ) : (
-          <div className="grid justify-items-start gap-2 py-10 text-[14px] text-(--ui-ink-2)">
+          <div className="grid justify-items-start gap-2 py-10 text-[14px] text-(--ui-ink)">
             {narrowed ? `No ${many} match these filters.` : emptyOf(empty, ask.view, many)}
             {narrowed ? (
               <a
@@ -353,7 +353,7 @@ function Card({
           </span>
         ))}
         {meta.subtitle ? (
-          <span className="text-[13px]/[1.45] text-pretty text-(--ui-ink-2)">
+          <span className="text-[13px]/[1.45] text-pretty text-(--ui-ink)">
             {textOf(row[meta.subtitle])}
           </span>
         ) : null}

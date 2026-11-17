@@ -912,9 +912,9 @@ function Pass({ p }: { p: Step }) {
           </Tag>
         </span>
       ) : null}
-      {p.state === "done" ? <span className="text-(--ui-ink-2)">{p.what}.</span> : null}
+      {p.state === "done" ? <span className="text-(--ui-ink)">{p.what}.</span> : null}
       {p.reply ? (
-        <span className="whitespace-pre-wrap break-words text-(--ui-ink-2)">{p.reply}</span>
+        <span className="whitespace-pre-wrap break-words text-(--ui-ink)">{p.reply}</span>
       ) : null}
       {p.notes?.length ? (
         <ul className="grid list-disc gap-0.5 pl-5">

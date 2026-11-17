@@ -203,7 +203,7 @@ function SubjectMoved({ id }: { id: string }) {
 /** A root with no preview of its own: the item's text. */
 const Body = ({ text }: { text: string | undefined }) =>
   text ? (
-    <div className="max-w-[72ch] text-[14px]/[1.6] whitespace-pre-wrap text-(--ui-ink-2) wrap-anywhere">
+    <div className="max-w-[72ch] text-[14px]/[1.6] whitespace-pre-wrap text-(--ui-ink) wrap-anywhere">
       {text}
     </div>
   ) : null;

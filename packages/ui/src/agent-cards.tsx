@@ -113,7 +113,7 @@ export function LinkCard({ url, preview }: { url: URL; preview?: LinkPreview | u
             </span>
           ) : null}
           {p.line ? (
-            <span className="text-[12.5px]/[1.45] text-(--ui-ink-2) wrap-anywhere">{p.line}</span>
+            <span className="text-[12.5px]/[1.45] text-(--ui-ink) wrap-anywhere">{p.line}</span>
           ) : null}
         </span>
       </a>
@@ -323,7 +323,7 @@ export function Choices(props: DataMessagePartProps<ChoicesData>) {
                   <span className="grid min-w-0 flex-1 gap-0.5">
                     <span className="text-[14px] font-medium wrap-anywhere">{o.label}</span>
                     {o.description ? (
-                      <span className={cx("text-[12.5px]/[1.45]", "text-(--ui-ink-3)")}>
+                      <span className={cx("text-[12.5px]/[1.45]", "text-(--ui-ink)")}>
                         {o.description}
                       </span>
                     ) : null}

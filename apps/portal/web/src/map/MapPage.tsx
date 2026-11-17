@@ -99,7 +99,7 @@ function NoShape({
     }
   };
   return (
-    <div className="flex max-w-xl flex-col items-start gap-4 p-8 text-[14.5px] text-(--ui-ink-2)">
+    <div className="flex max-w-xl flex-col items-start gap-4 p-8 text-[14.5px] text-(--ui-ink)">
       <p>No shape yet. A shape is the road from first contact to money.</p>
       <ul aria-label="Parts of a shape" className="flex list-none flex-wrap gap-2">
         {["Source", "Step", "Wait", "Offer"].map((k) => (
@@ -132,10 +132,10 @@ function NoShape({
 /** What the map area says when the stored body cannot be drawn: the server's reasons, one each. */
 function CannotDraw({ errors }: { errors: readonly string[] }) {
   return (
-    <div className="flex max-w-xl flex-col gap-2 p-8 text-[14.5px] text-(--ui-ink-2)">
+    <div className="flex max-w-xl flex-col gap-2 p-8 text-[14.5px] text-(--ui-ink)">
       <p>This shape cannot be drawn on the map.</p>
       {errors.length ? (
-        <ul aria-label="Why" className="list-none space-y-0.5 text-[13.5px] text-(--ui-ink-3)">
+        <ul aria-label="Why" className="list-none space-y-0.5 text-[13.5px] text-(--ui-ink)">
           {errors.map((e) => (
             <li key={e}>{e}</li>
           ))}

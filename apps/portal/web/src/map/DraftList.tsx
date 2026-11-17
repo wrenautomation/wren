@@ -48,7 +48,7 @@ function DiffLines({ diff, what = "difference" }: { diff: DiffRead; what?: strin
   if (!diff.data) return <Loading lines={3} />;
   const lines = diff.data.changes;
   return lines.length ? (
-    <ul className="list-none space-y-0.5 text-(--ui-ink-2)">
+    <ul className="list-none space-y-0.5 text-(--ui-ink)">
       {lines.map((l) => (
         <li key={l.key}>{l.line}</li>
       ))}
@@ -250,8 +250,8 @@ function DraftItem({
         <StateMark state={DRAFT_LOOK[row.state]} />
       </div>
       <p className="text-[12.5px] text-(--ui-ink-3)">{facts.join(" · ")}</p>
-      {row.note ? <p className="text-(--ui-ink-2)">{row.note}</p> : null}
-      {row.dropReason ? <p className="text-(--ui-ink-2)">Dropped: {row.dropReason}</p> : null}
+      {row.note ? <p className="text-(--ui-ink)">{row.note}</p> : null}
+      {row.dropReason ? <p className="text-(--ui-ink)">Dropped: {row.dropReason}</p> : null}
       <div className="flex flex-wrap gap-1">
         <Button
           tone="quiet"

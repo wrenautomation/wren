@@ -148,7 +148,7 @@ function Row({ p, went, waits, to }: { p: Project; went: string[]; waits: number
         <span className="text-[12px] text-(--ui-ink-3)">{KIND_LABEL[p.kind]}</span>
       </span>
       {p.brief ? (
-        <span className="line-clamp-[8] text-[13px] leading-[1.45] whitespace-pre-line text-(--ui-ink-2)">
+        <span className="line-clamp-[8] text-[13px] leading-[1.45] whitespace-pre-line text-(--ui-ink)">
           {p.brief}
         </span>
       ) : null}

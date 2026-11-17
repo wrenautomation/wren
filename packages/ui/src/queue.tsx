@@ -210,7 +210,7 @@ function Queue({
         <ListSkeleton />
       ) : !rows.length ? (
         ((ask.q || ask.where ? null : example) ?? (
-          <p className="py-10 text-center text-[13px] text-(--ui-ink-2)">
+          <p className="py-10 text-center text-[13px] text-(--ui-ink)">
             {ask.q || ask.where
               ? `No ${meta.name.many} match these filters.`
               : emptyOf(empty, ask.view, meta.name.many)}
@@ -359,7 +359,7 @@ function Queue({
               ? here.map((a) => {
                   const why = blockedOf(a, row);
                   return why ? (
-                    <p key={a.id} className="m-0 text-[13px] text-(--ui-ink-2)">
+                    <p key={a.id} className="m-0 text-[13px] text-(--ui-ink)">
                       {why}
                     </p>
                   ) : null;

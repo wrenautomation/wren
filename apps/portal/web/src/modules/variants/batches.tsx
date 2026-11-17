@@ -356,7 +356,7 @@ function BatchRow({ row: r, params }: { row: ListRow; params: URLSearchParams })
         >
           {r.subject.name}
         </span>
-        {r.title && <span className="text-[13px] text-(--ui-ink-2)">{r.title}</span>}
+        {r.title && <span className="text-[13px] text-(--ui-ink)">{r.title}</span>}
         <span className="text-[12px] text-(--ui-ink-3) tabular-nums">
           Batch {r.n} · {dayLabel(r.createdAt)} · {r.samples} samples
           {r.judges != null && r.judges > 1 && ` · ${r.judges} people`}
@@ -389,7 +389,7 @@ function BatchRow({ row: r, params }: { row: ListRow; params: URLSearchParams })
           )}
         </span>
         {r.why && (
-          <span className="text-[13px] text-(--ui-ink-2)">
+          <span className="text-[13px] text-(--ui-ink)">
             <span className="text-(--ui-ink-3)">Agent: </span>
             {r.why}
           </span>
@@ -599,7 +599,7 @@ function BatchView({
             )}
           </Rename>
         </div>
-        {r.subject.brief && <p className="m-0 text-[13px] text-(--ui-ink-2)">{r.subject.brief}</p>}
+        {r.subject.brief && <p className="m-0 text-[13px] text-(--ui-ink)">{r.subject.brief}</p>}
         <p className="m-0 text-[12px] text-(--ui-ink-3)">
           Batch {r.n} · {dayLabel(r.createdAt)} · {r.samples.length} samples
           {r.goodRate != null && ` · ${pct(r.goodRate)} good or better`}
@@ -611,7 +611,7 @@ function BatchView({
           </div>
         )}
         {r.why && (
-          <p className="m-0 mt-1 text-[13px] text-(--ui-ink-2)">
+          <p className="m-0 mt-1 text-[13px] text-(--ui-ink)">
             <span className="text-(--ui-ink-3)">Agent: </span>
             {r.why}
           </p>

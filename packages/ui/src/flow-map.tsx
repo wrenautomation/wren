@@ -48,7 +48,7 @@ export function FlowMap({
   /** The whole drawing at rest, smaller if it must be: a preview. */
   fit?: boolean | undefined;
 }) {
-  if (!boxes.length) return <p className="text-[14px] text-(--ui-ink-2)">Nothing to draw.</p>;
+  if (!boxes.length) return <p className="text-[14px] text-(--ui-ink)">Nothing to draw.</p>;
   return (
     <Suspense fallback={<div className="min-h-40" />}>
       <FlowMapGraph boxes={boxes} label={label} edit={edit} tools={tools} fit={fit} />

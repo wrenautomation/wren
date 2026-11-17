@@ -97,7 +97,7 @@ function Card({
 export function Numbers({ lines, window }: { lines: readonly string[]; window: Window }) {
   return (
     <section aria-label="Numbers">
-      <ul className="list-none space-y-0.5 text-(--ui-ink-2)">
+      <ul className="list-none space-y-0.5 text-(--ui-ink)">
         {lines.map((l) => (
           <li key={l}>{l}</li>
         ))}
@@ -181,7 +181,7 @@ function Tracks({
       <h3 className={h3}>Crossings {windowSays(window)}</h3>
       {(["in", "out"] as const).map((dir) =>
         lists[dir].length ? (
-          <ul key={dir} className="mb-2 list-none space-y-0.5 text-(--ui-ink-2)">
+          <ul key={dir} className="mb-2 list-none space-y-0.5 text-(--ui-ink)">
             {lists[dir].map((r) => (
               <li key={r.id}>
                 <button
@@ -334,7 +334,7 @@ function TrackPanel(p: PartProps & { id: string }) {
   return (
     <Card name={`${nameOf(t.from)} to ${nameOf(t.to)}`} kind="Track" onClose={p.onClose}>
       <LineChip data={data} line={t.line} onOpen={p.onOpen} />
-      <ul className="list-none space-y-0.5 text-(--ui-ink-2)">
+      <ul className="list-none space-y-0.5 text-(--ui-ink)">
         {facts.map((f) => (
           <li key={f}>{f}</li>
         ))}

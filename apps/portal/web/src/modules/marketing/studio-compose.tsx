@@ -524,11 +524,11 @@ function PlatformCard({
         ) : null}
       </div>
       {!on ? null : ai ? (
-        <p className="m-0 text-[13px] leading-[1.45] text-(--ui-ink-2)">
+        <p className="m-0 text-[13px] leading-[1.45] text-(--ui-ink)">
           Wren writes this version when you send.
         </p>
       ) : shown.length === 0 ? (
-        <p className="m-0 text-[13px] leading-[1.45] text-(--ui-ink-2)">
+        <p className="m-0 text-[13px] leading-[1.45] text-(--ui-ink)">
           Your words show here as they will post.
         </p>
       ) : (
@@ -544,7 +544,7 @@ function PlatformCard({
               ) : (
                 <>
                   {v.title ? <b className="text-[14px]">{v.title}</b> : null}
-                  <p className="m-0 text-[13px] leading-[1.45] whitespace-pre-wrap text-(--ui-ink-2)">
+                  <p className="m-0 text-[13px] leading-[1.45] whitespace-pre-wrap text-(--ui-ink)">
                     {v.text}
                   </p>
                   <span className="text-[11px] text-(--ui-ink-3) tabular-nums">

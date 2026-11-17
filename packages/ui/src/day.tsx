@@ -354,7 +354,7 @@ function Day({
                                   {titleOf(meta, it.row)}
                                 </span>
                                 {sub ? (
-                                  <span className="block wrap-anywhere whitespace-normal text-[13px] text-(--ui-ink-2)">
+                                  <span className="block wrap-anywhere whitespace-normal text-[13px] text-(--ui-ink)">
                                     {sub}
                                   </span>
                                 ) : null}

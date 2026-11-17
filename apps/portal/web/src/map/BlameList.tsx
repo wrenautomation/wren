@@ -50,7 +50,7 @@ export function BlameList({
                     <span className="text-(--ui-ink-2)"> · {blameHow(l)}</span>
                   </span>
                   {l.note ? (
-                    <span className="block wrap-anywhere whitespace-normal text-(--ui-ink-2)">
+                    <span className="block wrap-anywhere whitespace-normal text-(--ui-ink)">
                       {l.note}
                     </span>
                   ) : null}

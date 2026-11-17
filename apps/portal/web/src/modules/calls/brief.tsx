@@ -136,7 +136,7 @@ function OutcomeLine({
         <StateMark state={state} />
         {reason ? <span className="text-pretty">{reason}</span> : null}
       </div>
-      {next ? <p className="text-[13px] text-(--ui-ink-2)">{next}</p> : null}
+      {next ? <p className="text-[13px] text-(--ui-ink)">{next}</p> : null}
       {by || at ? (
         <p className="text-[12px] text-(--ui-ink-3)">
           {[by ? `Marked by ${by}` : null, at ? dayOf(at) : null].filter(Boolean).join(" · ")}

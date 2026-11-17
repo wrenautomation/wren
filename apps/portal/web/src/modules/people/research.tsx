@@ -194,7 +194,7 @@ export function Research({ research, act }: { research: ResearchDetail; act: Rec
   };
   if (!research.run && !research.findings.length)
     return (
-      <p className="text-(--ui-ink-2)">
+      <p className="text-(--ui-ink)">
         Not researched yet. Press Research this person to look for their pages and job.
       </p>
     );
@@ -218,7 +218,7 @@ export function Research({ research, act }: { research: ResearchDetail; act: Rec
           ) : null;
         })
       ) : research.run && !researching(research) ? (
-        <p className="text-(--ui-ink-2)">The run found nothing to add.</p>
+        <p className="text-(--ui-ink)">The run found nothing to add.</p>
       ) : null}
       {said ? (
         <p

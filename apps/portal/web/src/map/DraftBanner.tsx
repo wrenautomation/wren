@@ -43,12 +43,12 @@ export function DraftBanner({
   return (
     <div role="status" aria-label="Open draft" className={BANNER}>
       <span className="font-semibold">{row.name}</span>
-      <span className="text-(--ui-ink-2)">
+      <span className="text-(--ui-ink)">
         from version {row.base} · {row.createdBy}
       </span>
       <StateMark state={DRAFT_LOOK[row.state]} />
       {liveMoved(row.base, newest) ? (
-        <span className="text-(--ui-ink-2)">Live moved to version {newest} since</span>
+        <span className="text-(--ui-ink)">Live moved to version {newest} since</span>
       ) : null}
       {canEdit && can.propose ? (
         <Button

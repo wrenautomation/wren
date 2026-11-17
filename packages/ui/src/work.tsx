@@ -192,7 +192,7 @@ function Step({ s }: { s: RunWorkStep }) {
           <p
             className={cx(
               "text-[13px]",
-              s.tone === "dropped" ? "text-(--ui-ink-3)" : "text-(--ui-ink-2)",
+              s.tone === "dropped" ? "text-(--ui-ink-3)" : "text-(--ui-ink)",
             )}
           >
             {s.result}
@@ -315,7 +315,7 @@ export function RunWorkTrail({
         </div>
       ) : null}
       {!work.steps.length && !work.facts.length && !work.reasons.length ? (
-        <p className="text-[13px] text-(--ui-ink-2)">Nothing more to show for this line.</p>
+        <p className="text-[13px] text-(--ui-ink)">Nothing more to show for this line.</p>
       ) : null}
     </section>
   );

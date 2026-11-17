@@ -439,7 +439,7 @@ function FolderMenu({
         ) : (
           <div className="grid gap-2 p-2">
             <p className="m-0 text-[13px] font-medium text-(--ui-ink)">Delete “{f.name}”?</p>
-            <p className="m-0 text-[12.5px]/[1.45] text-(--ui-ink-2)">
+            <p className="m-0 text-[12.5px]/[1.45] text-(--ui-ink)">
               {holds(count, under.size - 1, noun, parent?.name)}
             </p>
             <div className="flex justify-end gap-1.5 pt-1">

@@ -144,7 +144,7 @@ export function HandlerForm({
           />
         ))}
         {!keyed && !form.length ? (
-          <p className="text-[14px] text-(--ui-ink-2)">It takes no input.</p>
+          <p className="text-[14px] text-(--ui-ink)">It takes no input.</p>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
           <Button tone="primary" size="dense" type="submit" busy={busy}>
@@ -204,7 +204,7 @@ export function HandlerForm({
 /** An object as a record, a line per field; anything else as JSON. */
 function AnswerView({ value }: { value: unknown }) {
   if (value === null || value === undefined)
-    return <p className="text-[14px] text-(--ui-ink-2)">It answered nothing.</p>;
+    return <p className="text-[14px] text-(--ui-ink)">It answered nothing.</p>;
   if (typeof value !== "object" || Array.isArray(value) || !Object.keys(value).length)
     return <pre className={PRE}>{JSON.stringify(value, null, 2)}</pre>;
   const items = Object.entries(value).map(([k, v]): [string, ReactNode] => [

@@ -159,7 +159,7 @@ export function BatchCard({ row: r, onAsk }: { row: Whole; onAsk?: OnAsk }) {
       </ul>
       {!open && <Tally counts={countsOf(samples)} />}
       {r.why ? (
-        <p className="m-0 text-[13px]/[1.5] text-(--ui-ink-2)">
+        <p className="m-0 text-[13px]/[1.5] text-(--ui-ink)">
           <span className="text-(--ui-ink-3)">Agent: </span>
           {r.why}
         </p>
@@ -220,7 +220,7 @@ export function SubjectCard({ v, onAsk }: { v: SubjectView; onAsk?: OnAsk }) {
       }
       onAsk={onAsk}
     >
-      {s.brief ? <p className="m-0 text-[13px]/[1.5] text-(--ui-ink-2)">{s.brief}</p> : null}
+      {s.brief ? <p className="m-0 text-[13px]/[1.5] text-(--ui-ink)">{s.brief}</p> : null}
       {v.batches.length ? (
         <TreeCard
           subject={s}

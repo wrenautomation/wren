@@ -257,7 +257,7 @@ export function InsertSnippet({
                   <span className="wrap-anywhere whitespace-normal text-[13px] font-medium text-(--ui-ink)">
                     {s.title}
                   </span>
-                  <span className="text-[12px] text-(--ui-ink-2)">{s.body}</span>
+                  <span className="text-[12px] text-(--ui-ink)">{s.body}</span>
                 </button>
                 <FavoriteStar
                   on={fav.ids.includes(s.id)}

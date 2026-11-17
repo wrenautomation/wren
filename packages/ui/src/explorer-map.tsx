@@ -123,7 +123,7 @@ export function MapPane({
       Laying out the map
     </div>
   ) : !map.boxes.length ? (
-    <div className="p-4 text-[14px] text-(--ui-ink-2)">
+    <div className="p-4 text-[14px] text-(--ui-ink)">
       {(cols[0] && ctx.p.emptyText?.(cols[0])) ?? "Nothing here yet."}
     </div>
   ) : (

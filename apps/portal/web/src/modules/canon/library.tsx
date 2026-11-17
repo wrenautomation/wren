@@ -160,7 +160,7 @@ function Records({ params }: { params: URLSearchParams }) {
                   <span>Changed {dayLabel(r.updated)}</span>
                 </span>
                 {r.summary && (
-                  <p className="m-0 max-w-[90ch] text-[13.5px] leading-normal text-pretty text-(--ui-ink-2) wrap-anywhere">
+                  <p className="m-0 max-w-[90ch] text-[13.5px] leading-normal text-pretty text-(--ui-ink) wrap-anywhere">
                     {r.summary}
                   </p>
                 )}

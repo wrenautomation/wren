@@ -747,7 +747,7 @@ export function FindResults({
   if (!load.data) return <Slow on={load.pending} what={`“${q}”`} />;
   if (!load.data.length)
     return (
-      <div className="flex flex-col gap-2 p-4 text-[13.5px] text-(--ui-ink-2)">
+      <div className="flex flex-col gap-2 p-4 text-[13.5px] text-(--ui-ink)">
         <p className="m-0 wrap-anywhere">
           No match for “{q}” in {underName}.
         </p>

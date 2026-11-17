@@ -164,7 +164,7 @@ export function RecordIssues({
           ))}
         </ol>
       ) : (
-        <p className="py-2 text-[14px] text-(--ui-ink-2)">No issues on this {meta.name.one}.</p>
+        <p className="py-2 text-[14px] text-(--ui-ink)">No issues on this {meta.name.one}.</p>
       )}
       {mayRaise ? (
         <div className="grid gap-2">

@@ -452,7 +452,7 @@ export function RecordBody({
             {/* A title with no spaces (a profile link) breaks, not runs under the actions. */}
             <h2 className={`${PAGE_TITLE} wrap-anywhere`}>{titleOf(meta, row)}</h2>
             {sub ? (
-              <p className="mt-0.5 text-[14px] text-(--ui-ink-2)">
+              <p className="mt-0.5 text-[14px] text-(--ui-ink)">
                 {subCue ? (
                   <span className="mr-1.5 inline-flex align-[-0.1em]">
                     <Cue state={subCue} size={15} />
@@ -512,7 +512,7 @@ export function RecordBody({
         {shown.map((a) => {
           const why = blockedOf(a, row);
           return why ? (
-            <p key={a.id} className="m-0 text-[13px] text-(--ui-ink-2)">
+            <p key={a.id} className="m-0 text-[13px] text-(--ui-ink)">
               {why}
             </p>
           ) : null;
@@ -819,7 +819,7 @@ function Activity({
             <span className="min-w-0 text-[14px]">
               {l.kind ? <span className="font-medium">{words(l.kind)}</span> : null}
               {l.kind && l.what ? <span className="text-(--ui-ink-3)"> · </span> : null}
-              <span className="text-(--ui-ink-2)">{l.what}</span>
+              <span className="text-(--ui-ink)">{l.what}</span>
               {links && l.link ? (
                 <>
                   <span className="text-(--ui-ink-3)"> · </span>

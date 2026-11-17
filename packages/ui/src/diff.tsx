@@ -74,9 +74,7 @@ export function Diff({
 }) {
   const lines = useMemo(() => lineDiff(a, b), [a, b]);
   if (!lines.some((l) => l.op !== " "))
-    return (
-      <p className={cx("text-[14px] text-(--ui-ink-2)", className)}>The words are the same.</p>
-    );
+    return <p className={cx("text-[14px] text-(--ui-ink)", className)}>The words are the same.</p>;
   const pairs = pairsOf(lines);
   const split = (
     <div

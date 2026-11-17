@@ -61,7 +61,7 @@ function Chip({
           className="min-w-0 flex-1 resize-none bg-transparent text-[13px]/[1.45] text-(--ui-ink) outline-none"
         />
       ) : (
-        <span className="min-w-0 flex-1 text-[13px]/[1.45] wrap-anywhere text-(--ui-ink-2)">
+        <span className="min-w-0 flex-1 text-[13px]/[1.45] wrap-anywhere text-(--ui-ink)">
           {t.text}
         </span>
       )}

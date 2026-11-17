@@ -92,7 +92,7 @@ export function PeekView({
           {recent.length ? (
             recent.map((m) => <Msg key={`${m.at} ${m.text}`} line={m} />)
           ) : (
-            <p className="m-0 text-[13px] text-(--ui-ink-3)">Nothing has happened yet.</p>
+            <p className="m-0 text-[13px] text-(--ui-ink)">Nothing has happened yet.</p>
           )}
         </section>
       ) : null}

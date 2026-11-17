@@ -611,7 +611,7 @@ export function TopRecords({
       ) : !page.data ? (
         <Loading shape="rows" lines={3} label={`Loading ${top.label}`} className="px-0 pt-2 pb-0" />
       ) : !rows.length ? (
-        <p className="m-0 pt-3 text-[13px] text-(--ui-ink-2)">{top.empty}</p>
+        <p className="m-0 pt-3 text-[13px] text-(--ui-ink)">{top.empty}</p>
       ) : (
         <ul className="-mx-3 m-0 mt-2 grid grid-cols-[minmax(0,1fr)] list-none p-0 text-[13px]">
           {rows.map((r) => (
@@ -629,7 +629,7 @@ export function TopRecords({
                     {cap(titleOf(meta, r) || textOf(r.id))}
                   </span>
                   {line && r[line.key] ? (
-                    <span className="text-pretty text-(--ui-ink-2)">
+                    <span className="text-pretty text-(--ui-ink)">
                       <FieldCell field={line} cell={r[line.key]} />
                     </span>
                   ) : null}

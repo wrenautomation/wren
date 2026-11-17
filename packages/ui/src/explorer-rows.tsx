@@ -299,7 +299,7 @@ export function PathFailed({
     blind: <>Hidden while its batch is open.</>,
   };
   return (
-    <div className="flex flex-col gap-2 px-3 py-3 text-[13.5px]/[1.5] text-(--ui-ink-2)">
+    <div className="flex flex-col gap-2 px-3 py-3 text-[13.5px]/[1.5] text-(--ui-ink)">
       <b className="font-semibold text-(--ui-ink)">{said[error.code]}</b>
       {own ? <span className="text-pretty">{own}</span> : null}
       {error.code === "unknown-path" && up ? (
@@ -354,7 +354,7 @@ export function Preview({
     >
       {moved ? (
         // the one sign the address changed: content, not a caption
-        <p className="m-0 flex items-start gap-2 self-start rounded-[8px] bg-(--ui-band) px-2.5 py-1.5 text-[13px]/[1.45] text-(--ui-ink-2) wrap-anywhere">
+        <p className="m-0 flex items-start gap-2 self-start rounded-[8px] bg-(--ui-band) px-2.5 py-1.5 text-[13px]/[1.45] text-(--ui-ink) wrap-anywhere">
           <Icon name="moveTo" size={15} className="mt-[2px] flex-none text-(--ui-ink-3)" />
           <span>
             “{lastOf(moved)}” moved: this is {whole.name}.

@@ -487,7 +487,7 @@ export function History({
   const [busy, setBusy] = useState<number | null>(null);
   if (!lines.length)
     return (
-      <p className="py-6 text-[14px] text-(--ui-ink-2)">
+      <p className="py-6 text-[14px] text-(--ui-ink)">
         Every change to this {meta.name.one} shows here, with who made it and Undo.
       </p>
     );

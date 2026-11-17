@@ -292,7 +292,7 @@ function PostHead({ c }: { c: ThreadContext }) {
           {p.text ? (
             <p
               className={cx(
-                "text-[14px] leading-[1.6] whitespace-pre-line text-pretty text-(--ui-ink-2)",
+                "text-[14px] leading-[1.6] whitespace-pre-line text-pretty text-(--ui-ink)",
                 !long && "line-clamp-4",
               )}
             >

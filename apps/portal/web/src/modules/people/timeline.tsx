@@ -190,15 +190,13 @@ function ReachFacts({ reach }: { reach: Reach }) {
     }),
   ];
   const items = [...who, ...addresses];
-  if (!items.length)
-    return <p className="text-(--ui-ink-2)">No email, phone or site handle yet.</p>;
+  if (!items.length) return <p className="text-(--ui-ink)">No email, phone or site handle yet.</p>;
   return <Facts items={items} />;
 }
 
 /** Their newest lines on a short rail, then every kind counted, each a link to its lines. */
 function Counts({ detail }: { detail: Detail }) {
-  if (!detail.total)
-    return <p className="text-(--ui-ink-2)">Nothing has happened with them yet.</p>;
+  if (!detail.total) return <p className="text-(--ui-ink)">Nothing has happened with them yet.</p>;
   const lines = detail.lines ?? [];
   return (
     <div className="grid gap-4">
@@ -309,7 +307,7 @@ function NotLoaded({ parts }: { parts: string[] }) {
 function Visits({ visits }: { visits: Visit[] }) {
   return (
     <div className="grid gap-2">
-      <p className="text-(--ui-ink-2)">
+      <p className="text-(--ui-ink)">
         Read live from the site's log by their visitor cookie. Not kept here.
       </p>
       {visits.length ? (
@@ -329,7 +327,7 @@ function Visits({ visits }: { visits: Visit[] }) {
           )}
         />
       ) : (
-        <p className="text-(--ui-ink-2)">No visits found.</p>
+        <p className="text-(--ui-ink)">No visits found.</p>
       )}
     </div>
   );

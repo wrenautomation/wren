@@ -51,7 +51,7 @@ export function AppCard({
           <b className="min-w-0 font-semibold">{name}</b>
         </span>
         {note ? <span className="text-[12.5px] text-(--ui-ink-3)">{note}</span> : null}
-        <span className="text-[13px] text-pretty text-(--ui-ink-2)">{blurb}</span>
+        <span className="text-[13px] text-pretty text-(--ui-ink)">{blurb}</span>
         {children ? <span className="mt-auto pt-2.5">{children}</span> : null}
       </a>
     </li>

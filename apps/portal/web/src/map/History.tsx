@@ -69,7 +69,7 @@ function Restore({
           <p className="text-[12.5px] text-(--ui-ink-2)">
             This saves a new version with the shape as it was. It changes:
           </p>
-          <ul className="list-none space-y-0.5 text-(--ui-ink-2)">
+          <ul className="list-none space-y-0.5 text-(--ui-ink)">
             {lines.map((l) => (
               <li key={l}>{l}</li>
             ))}
@@ -214,7 +214,7 @@ export function History({
                       />
                       <span className="min-w-0 flex-1">
                         <span className="block font-semibold">Version {v.number}</span>
-                        <span className="block wrap-anywhere whitespace-normal text-(--ui-ink-2)">
+                        <span className="block wrap-anywhere whitespace-normal text-(--ui-ink)">
                           {v.note || "No note"}
                         </span>
                         <span className="block text-[12.5px] text-(--ui-ink-3)">
@@ -335,7 +335,7 @@ function Changes({
         {refLabel(a)} to {refLabel(b).toLowerCase()}
       </h3>
       {lines.length ? (
-        <ul className="list-none space-y-0.5 text-(--ui-ink-2)">
+        <ul className="list-none space-y-0.5 text-(--ui-ink)">
           {lines.map((l) =>
             typeof a === "number" && typeof b === "number" ? (
               <UndoLine

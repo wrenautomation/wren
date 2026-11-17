@@ -52,7 +52,7 @@ export function SetupCard({
             <div className="grid min-w-0 gap-0.5">
               <span className="text-[12.5px] text-(--ui-ink-2)">Next · {p.next.name}</span>
               <span className="text-[15px] font-medium text-pretty">{p.next.step}</span>
-              <span className="text-[13px] text-pretty text-(--ui-ink-2)">
+              <span className="text-[13px] text-pretty text-(--ui-ink)">
                 {[p.next.who, p.next.why].filter(Boolean).join(" · ")}
               </span>
             </div>

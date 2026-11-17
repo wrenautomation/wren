@@ -77,11 +77,11 @@ export function AddOn({
         />
         <span className="grid gap-0.5">
           <span className="text-[15px] font-medium">{String(row.name)}</span>
-          <span className="text-[14px] text-(--ui-ink-2)">{String(row.blurb)}</span>
+          <span className="text-[14px] text-(--ui-ink)">{String(row.blurb)}</span>
         </span>
       </label>
       {done ? (
-        <p className="text-[14px] text-(--ui-ink-2)">{done}</p>
+        <p className="text-[14px] text-(--ui-ink)">{done}</p>
       ) : (
         <div className="flex gap-2">
           <Button

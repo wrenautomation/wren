@@ -510,7 +510,7 @@ export function FocusPage({
   if (!data || !metro || !focus || !view || !asked) {
     const [one] = "parts" in at ? at.parts : [];
     return (
-      <div className={`${PAD} grid gap-2 py-6 text-[14.5px] text-(--ui-ink-2)`}>
+      <div className={`${PAD} grid gap-2 py-6 text-[14.5px] text-(--ui-ink)`}>
         <p>
           {atView && !saved
             ? `There is no saved view ${at.view} here.`
@@ -561,7 +561,7 @@ export function FocusPage({
               </ol>
             </nav>
             <h1 className="text-[22px] tracking-[-.02em]">{focus.name}</h1>
-            <p className="text-[13.5px] text-(--ui-ink-2)">
+            <p className="text-[13.5px] text-(--ui-ink)">
               {focus.word} · {numbers.join(" · ")}
             </p>
             {gone ? (

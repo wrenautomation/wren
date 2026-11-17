@@ -51,13 +51,13 @@ function Save({
           {preview.a === null ? "The file adds" : `Against version ${preview.a}, the file changes`}
         </h3>
         {lines.length ? (
-          <ul className="max-h-[40dvh] list-none space-y-0.5 overflow-y-auto text-[13.5px] text-(--ui-ink-2)">
+          <ul className="max-h-[40dvh] list-none space-y-0.5 overflow-y-auto text-[13.5px] text-(--ui-ink)">
             {lines.map((l) => (
               <li key={l.key}>{l.line}</li>
             ))}
           </ul>
         ) : (
-          <p className="text-(--ui-ink-3)">The file matches the newest version. Nothing to save.</p>
+          <p className="text-(--ui-ink)">The file matches the newest version. Nothing to save.</p>
         )}
         {moves.length ? (
           <p className="mt-2 text-[13px] text-(--ui-ink-2)">

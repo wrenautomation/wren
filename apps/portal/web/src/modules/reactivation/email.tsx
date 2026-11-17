@@ -222,7 +222,7 @@ function Why({ d, line }: { d: EmailDetail; line: WhyLine }) {
             children: sources.length ? (
               <SourceCards sources={sources} lit={lit} />
             ) : (
-              <p className="text-(--ui-ink-2)">These lines cite nothing we found.</p>
+              <p className="text-(--ui-ink)">These lines cite nothing we found.</p>
             ),
           },
         ]}

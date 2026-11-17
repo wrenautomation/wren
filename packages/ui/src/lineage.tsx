@@ -14,7 +14,7 @@ export interface LineageVersion {
 const LineageGraph = lazy(() => import("./lineage-graph.js"));
 
 export function Lineage({ versions }: { versions: readonly LineageVersion[] }) {
-  if (!versions.length) return <p className="text-[14px] text-(--ui-ink-2)">No versions yet.</p>;
+  if (!versions.length) return <p className="text-[14px] text-(--ui-ink)">No versions yet.</p>;
   return (
     <Suspense fallback={<div className="min-h-20" />}>
       <LineageGraph versions={versions} />

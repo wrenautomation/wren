@@ -71,7 +71,7 @@ const WIDTHS = ["w-[92%]", "w-[92%]", "w-[74%]", "w-[58%]"];
  * as a place to fill. Its title in ink (in red when it failed), then one line, then its button.
  */
 const STATE =
-  "grid gap-1 rounded-[6px_14px_6px_14px] border border-(--ui-hair) p-4 text-[13.5px] leading-[1.55] text-(--ui-ink-2)";
+  "grid gap-1 rounded-[6px_14px_6px_14px] border border-(--ui-hair) p-4 text-[13.5px] leading-[1.55] text-(--ui-ink)";
 const STATE_TITLE = "text-[14.5px] font-semibold text-(--ui-ink)";
 const STATE_BUTTON = "mt-1.5 justify-self-start";
 
@@ -111,7 +111,7 @@ export function InDevelopment({
   return (
     <div
       className={cx(
-        "flex max-w-[72ch] flex-wrap items-baseline gap-x-3 gap-y-1.5 rounded-[6px_14px_6px_14px] border border-(--ui-hair) px-4 py-3 text-[13.5px] text-pretty text-(--ui-ink-2)",
+        "flex max-w-[72ch] flex-wrap items-baseline gap-x-3 gap-y-1.5 rounded-[6px_14px_6px_14px] border border-(--ui-hair) px-4 py-3 text-[13.5px] text-pretty text-(--ui-ink)",
         className,
       )}
     >

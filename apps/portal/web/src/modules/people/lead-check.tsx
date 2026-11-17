@@ -84,12 +84,12 @@ function Chip({ id, fit }: { id: string; fit: LeadFit }) {
           <p>{pick.why}</p>
         </div>
       ) : out ? null : fit.failed ? (
-        <p className="text-(--ui-ink-2)">The judge could not answer: {fit.failed}</p>
+        <p className="text-(--ui-ink)">The judge could not answer: {fit.failed}</p>
       ) : (
-        <p className="text-(--ui-ink-2)">The judge has not said yet.</p>
+        <p className="text-(--ui-ink)">The judge has not said yet.</p>
       )}
       {call ? (
-        <p className="text-(--ui-ink-2)">
+        <p className="text-(--ui-ink)">
           You called them: {call.name}, {day(call.at)}.
           {call.overrode ? " You overrode the judge." : ""}
         </p>

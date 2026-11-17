@@ -121,7 +121,7 @@ export function DraftTurns({ turns }: { turns: readonly DraftTurnLine[] }) {
             </span>
           ) : null}
           {t.reply ? (
-            <span className="whitespace-pre-wrap break-words text-(--ui-ink-2)">
+            <span className="whitespace-pre-wrap break-words text-(--ui-ink)">
               Claude: {t.reply}
             </span>
           ) : null}

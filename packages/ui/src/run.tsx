@@ -203,8 +203,8 @@ const STAGE =
 const KIND: Record<RunLineKind, string> = {
   started: `mt-2 ${STAGE}`,
   done: `mt-0.5 text-(--ui-good-ink) ${STAGE}`,
-  did: "text-[14px] text-(--ui-ink-2)",
-  waiting: "text-[14px] text-(--ui-ink-2)",
+  did: "text-[14px] text-(--ui-ink)",
+  waiting: "text-[14px] text-(--ui-ink)",
   found: "text-[14px] font-medium",
   failed: "text-[14px]",
 };

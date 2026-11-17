@@ -84,7 +84,7 @@ export function UndoLine({
               <p className="text-[12.5px] text-(--ui-ink-2)">
                 This saves a new version on version {preview.data.newest}. It changes:
               </p>
-              <ul className="list-none space-y-0.5 text-(--ui-ink-2)">
+              <ul className="list-none space-y-0.5 text-(--ui-ink)">
                 {lines.map((l) => (
                   <li key={l}>{l}</li>
                 ))}

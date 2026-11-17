@@ -563,7 +563,7 @@ export default function MapCanvas({
           The Map could not be drawn: {failed}
         </p>
       ) : !map.boxes.length ? (
-        <p className="text-[14px] text-(--ui-ink-2)">Nothing here to draw.</p>
+        <p className="text-[14px] text-(--ui-ink)">Nothing here to draw.</p>
       ) : !view ? (
         <div
           className={cn("w-full bg-(--ui-tile)", !flush && "border border-(--ui-hair)")}

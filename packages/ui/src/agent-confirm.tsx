@@ -112,7 +112,7 @@ export function ConfirmCard({
             ))}
           </dl>
           {c.preview ? (
-            <div className="max-h-48 overflow-y-auto rounded-[10px] bg-(--ui-canvas) p-3 text-[13px]/[1.5] text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair)]">
+            <div className="max-h-48 overflow-y-auto rounded-[10px] bg-(--ui-canvas) p-3 text-[13px]/[1.5] text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)]">
               {c.preview}
             </div>
           ) : null}

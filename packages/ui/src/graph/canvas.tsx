@@ -1127,7 +1127,7 @@ function HoverCard({
               <span className="text-[11.5px] text-(--ui-ink-2)">{node.state.label}</span>
             ) : null}
           </span>
-          {node.note ? <span className="text-(--ui-ink-2)">{node.note}</span> : null}
+          {node.note ? <span className="text-(--ui-ink)">{node.note}</span> : null}
           {[node.number, node.more].map((n) =>
             n ? (
               <span key={n.label} className="tabular-nums">

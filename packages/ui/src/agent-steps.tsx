@@ -327,7 +327,7 @@ function Terminal({ parts }: { parts: readonly Part[] }) {
           <li key={id} className="grid gap-1.5 [animation:ui-fade_.2s_both]">
             {said || done ? (
               <div className="flex min-w-0 items-baseline gap-2 px-1.5 text-[13px]">
-                <span className="min-w-0 flex-1 wrap-anywhere text-(--ui-ink-2)">{said}</span>
+                <span className="min-w-0 flex-1 wrap-anywhere text-(--ui-ink)">{said}</span>
                 {done ? (
                   <span
                     className={cx(
@@ -466,7 +466,7 @@ const StepRow: ToolCallMessagePartComponent = (t) => {
           </pre>
           {waits ? (
             <div className="grid gap-2">
-              <span className="text-[13.5px] text-(--ui-ink-2)">
+              <span className="text-[13.5px] text-(--ui-ink)">
                 Claude agent asks to run this{ask?.prompt ? `: ${ask.prompt.toLowerCase()}` : "."}
               </span>
               <div className="flex gap-2">

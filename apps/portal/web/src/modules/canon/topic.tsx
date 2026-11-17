@@ -88,7 +88,7 @@ function Whole({ t, params }: { t: TopicWhole; params: URLSearchParams }) {
           {t.title}
         </h2>
         {t.description && (
-          <p className="m-0 max-w-[70ch] text-[14.5px] leading-normal text-pretty text-(--ui-ink-2)">
+          <p className="m-0 max-w-[70ch] text-[14.5px] leading-normal text-pretty text-(--ui-ink)">
             {t.description}
           </p>
         )}

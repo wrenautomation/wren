@@ -90,7 +90,7 @@ export function MetroPreview({ w, client }: { w: Whole; client: string }) {
     <div className="flex min-w-0 flex-col gap-4">
       <PartMap part={part} client={client} />
       {text ? (
-        <p className="m-0 max-w-[72ch] text-[14px]/[1.6] whitespace-pre-wrap text-(--ui-ink-2) wrap-anywhere">
+        <p className="m-0 max-w-[72ch] text-[14px]/[1.6] whitespace-pre-wrap text-(--ui-ink) wrap-anywhere">
           {text}
         </p>
       ) : null}

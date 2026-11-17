@@ -1135,7 +1135,7 @@ function Versions({ client, id, at }: { client: string; id: number; at: string }
               {v.name ? `, ${v.name}` : ""}
             </span>
           </span>
-          <pre className="m-0 overflow-x-auto whitespace-pre-wrap font-mono text-[12.5px] text-(--ui-ink-2)">
+          <pre className="m-0 overflow-x-auto whitespace-pre-wrap font-mono text-[12.5px] text-(--ui-ink)">
             {v.rule ? ruleText(v.rule) : "People added by hand."}
           </pre>
         </li>

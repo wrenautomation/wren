@@ -51,7 +51,7 @@ export function ExplorerMap(props: MapCanvasProps) {
 
 const GraphCanvas = lazy(() => import("./canvas.js"));
 export function Graph(props: GraphProps) {
-  if (!props.nodes.length) return <p className="text-[14px] text-(--ui-ink-2)">Nothing to draw.</p>;
+  if (!props.nodes.length) return <p className="text-[14px] text-(--ui-ink)">Nothing to draw.</p>;
   return (
     <Suspense
       fallback={
@@ -74,6 +74,6 @@ export function Journey({
   zone?: string | undefined;
 }) {
   const g = useMemo(() => journeyOf(touches, zone), [touches, zone]);
-  if (!g.nodes.length) return <p className="text-[14px] text-(--ui-ink-2)">No touches yet.</p>;
+  if (!g.nodes.length) return <p className="text-[14px] text-(--ui-ink)">No touches yet.</p>;
   return <Graph {...g} label={label} layout="lanes" tools={g.nodes.length > 8} name={label} />;
 }
