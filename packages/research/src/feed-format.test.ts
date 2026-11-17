@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { secondsOf } from "./creators.js";
 import { formatOf } from "./feed-format.js";
 
 describe("formatOf", () => {
@@ -18,5 +19,21 @@ describe("formatOf", () => {
     ["threads", "post", "post"],
   ])("%s %s is %s", (platform, kind, want) => {
     expect(formatOf(platform, kind)).toBe(want);
+  });
+});
+
+describe("secondsOf", () => {
+  it("reads each platform's stored length", () => {
+    expect(secondsOf("youtube", "PT1M7S")).toBe(67);
+    expect(secondsOf("youtube", "PT1H2M5S")).toBe(3725);
+    expect(secondsOf("youtube", "PT50S")).toBe(50);
+    expect(secondsOf("tiktok", "34")).toBe(34);
+    expect(secondsOf("x", "47280")).toBe(47);
+  });
+  it("gives null for none, a live's P0D and junk", () => {
+    expect(secondsOf("instagram", null)).toBeNull();
+    expect(secondsOf("youtube", "P0D")).toBeNull();
+    expect(secondsOf("youtube", "soon")).toBeNull();
+    expect(secondsOf("tiktok", "0")).toBeNull();
   });
 });

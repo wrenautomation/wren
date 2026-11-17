@@ -174,7 +174,7 @@ export function Tile({
   reach?: boolean;
   /** a pick's place, best first */
   rank?: number | undefined;
-  /** a video's length in seconds */
+  /** a video's length in seconds; else the post's own */
   length?: number | undefined;
   note?: ReactNode;
   cover?: ReactNode;
@@ -196,6 +196,7 @@ export function Tile({
     ? [r.scoreCount ? metricOf(r) : r.counts.views != null ? "views" : "likes"]
     : ["views", "likes", "comments"];
   const corner = rank != null || canon;
+  const secs = length ?? r.seconds;
   return (
     <article
       className="group/tile relative grid content-start gap-1.5 rounded-[4px_10px_4px_10px]"
@@ -248,10 +249,10 @@ export function Tile({
             ) : null}
           </span>
         ) : null}
-        {length ? (
+        {secs ? (
           <span className="absolute right-2 bottom-2 rounded-[4px] bg-black/75 px-1 py-px text-[12px] font-semibold text-white tabular-nums">
             <span className="sr-only">Length </span>
-            {clock(length)}
+            {clock(secs)}
           </span>
         ) : null}
       </div>

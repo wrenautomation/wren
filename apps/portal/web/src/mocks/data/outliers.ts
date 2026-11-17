@@ -71,6 +71,7 @@ const base = (o: RowIn & Pick<FeedPost, "personId" | "person">): FeedPost => ({
   src: shot("#6d5bd0", "#e0a458"),
   full: null,
   video: null,
+  seconds: null,
   videoSrc: null,
   ...o,
 });
@@ -94,6 +95,7 @@ const LONG_TEXT = [
 export const OUTLIER_ROWS: FeedPost[] = [
   row({
     ref: "FakeVid0001",
+    seconds: 754,
     handle: "cutsbymaya",
     name: "Maya Cuts",
     multiple: 312.4,
@@ -105,6 +107,7 @@ export const OUTLIER_ROWS: FeedPost[] = [
   }),
   row({
     ref: "FakeVid0002",
+    seconds: 3725,
     handle: "a_very_long_handle_for_a_creator_who_never_stops",
     creatorId: 2,
     name: "Bartholomew Featherstonehaugh-Montgomery the Third",

@@ -530,6 +530,8 @@ export interface FeedRow {
   pictureLink: string | null;
   /** its video in the media bucket (`videoKeyOf`), once copied; `''` refused */
   video: string | null;
+  /** video length; IG gives none; optional: weaver's board rows have none */
+  seconds?: number | null;
 }
 
 const str = (v: unknown) => (typeof v === "string" && v ? v : null);
@@ -538,6 +540,20 @@ const at = (v: unknown, ...path: (string | number)[]): unknown =>
     (o, k) => (o && typeof o === "object" ? (o as Record<string | number, unknown>)[k] : undefined),
     v,
   );
+
+/** A video's length in seconds from its stored length: YouTube ISO (`PT1M7S`), TikTok seconds, X ms. */
+export function secondsOf(platform: string, v: string | null): number | null {
+  if (!v) return null;
+  if (platform === "youtube") {
+    const m = /^P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(v);
+    if (!m) return null;
+    const [d = 0, h = 0, mi = 0, s = 0] = m.slice(1).map((x) => Number(x ?? 0));
+    return d * 86400 + h * 3600 + mi * 60 + s || null;
+  }
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(platform === "x" ? n / 1000 : n);
+}
 
 /** A post's picture link from the item a read stored: IG's poster or photo, X's first media. */
 function pictureLinkOf(platform: string, ref: string, raw: unknown): string | null {
@@ -824,12 +840,15 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     picture: string | null;
     picture_small: string | null;
     video: string | null;
+    length: string | null;
     raw: unknown;
   }>(sql`select * from (select p.platform, p.ref, p.url, p.kind, p.posted_at, p.title, p.text,
       p.creator_id, c.person_id, ${personName} as person,
       h.handle, h.name, c.niches, fo.followers, co.counts, p.score_count, p.multiple,
       p.rank, p.likes_multiple, p.likes_rank, p.baseline_n, p.baseline, p.likes_baseline, p.record,
       p.picture, p.picture_small, p.video, case when p.picture is null then p.raw end as raw,
+      coalesce(p.raw->'contentDetails'->>'duration', p.raw->>'duration',
+        p.raw#>>'{legacy,extended_entities,media,0,video_info,duration_millis}') as length,
       ${key} as sort_key, ${tie} as sort_tie,
       ${part} as part,
       row_number() over (partition by ${part} order by ${key} desc nulls last, ${tie} desc nulls last) as nth,
@@ -879,6 +898,7 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
     pictureSmall: r.picture_small,
     pictureLink: r.picture ? null : pictureLinkOf(r.platform, r.ref, r.raw),
     video: r.video,
+    seconds: secondsOf(r.platform, r.length),
   }));
 }
 
