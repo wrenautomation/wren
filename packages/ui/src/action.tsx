@@ -1155,7 +1155,9 @@ export function useRun(
  * when the tab shows, and a read reads again then.
  */
 export const say = {
-  done: (line: string) => void (WRITES.showing() && toast.success(line)),
+  /** `go`: one button on the line, to where the write landed */
+  done: (line: string, go?: { label: string; onClick: () => void }) =>
+    void (WRITES.showing() && toast.success(line, go ? { action: go } : undefined)),
   failed: (err: unknown) =>
     void (WRITES.showing() && toast.error(err instanceof Error ? err.message : String(err))),
   /** Wren was deployed since this tab opened: one line until he reloads, with the reload on it. */

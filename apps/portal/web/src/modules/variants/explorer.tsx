@@ -145,7 +145,17 @@ export function VireoPreview({ w, file }: { w: Whole; file?: ReactNode }) {
             `${num(d.guides)} ${d.guides === 1 ? "guide" : "guides"} under test`,
           ]}
         />
-        <OpenLine to={wholeHref(w.path)} label="Open its tree" file={file} />
+        <span className="flex flex-wrap items-center gap-2">
+          <ButtonLink
+            tone="secondary"
+            size="dense"
+            icon="board"
+            href={wholeHref(w.path, { show: "board" })}
+          >
+            Open its board
+          </ButtonLink>
+          <OpenLine to={wholeHref(w.path)} label="Open its tree" file={file} />
+        </span>
       </div>
     );
   }

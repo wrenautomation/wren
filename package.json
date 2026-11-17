@@ -44,6 +44,9 @@
       "@anthropic-ai/claude-agent-sdk-win32-arm64": "-",
       "dockview": "8.6.2",
       "dockview-core": "8.6.2"
+    },
+    "patchedDependencies": {
+      "stripe@22.6.2": "patches/stripe@22.6.2.patch"
     }
   }
 }

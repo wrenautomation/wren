@@ -1,0 +1,39 @@
+diff --git a/cjs/stripe.core.js b/cjs/stripe.core.js
+index 42cebd66f45f8f46f9bacb2737c348c69b368030..85d4e84047b6a315c837d1929183e9a8c161c3c2 100644
+--- a/cjs/stripe.core.js
++++ b/cjs/stripe.core.js
+@@ -139,7 +139,7 @@ class Stripe {
+         const runtimeVersion = platformFunctions.getRuntimeVersion();
+         if (env?.CLAUDECODE || env?.CLAUDE_CODE_CHILD_SESSION) {
+             try {
+-                platformFunctions.writeStderr('<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />\n');
++                // wren patch: hint line dropped, it breaks agent-read CLI output
+             }
+             catch {
+                 // never let hint emission crash the SDK
+diff --git a/esm/stripe.core.js b/esm/stripe.core.js
+index 5ac37fe01758b53f6660a276fb058faba2d22469..d20514f6dca3449979930db26e387b564e526547 100644
+--- a/esm/stripe.core.js
++++ b/esm/stripe.core.js
+@@ -136,7 +136,7 @@ export class Stripe {
+         const runtimeVersion = platformFunctions.getRuntimeVersion();
+         if (env?.CLAUDECODE || env?.CLAUDE_CODE_CHILD_SESSION) {
+             try {
+-                platformFunctions.writeStderr('<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />\n');
++                // wren patch: hint line dropped, it breaks agent-read CLI output
+             }
+             catch {
+                 // never let hint emission crash the SDK
+diff --git a/esm/stripe.esm.node.js b/esm/stripe.esm.node.js
+index 6de441f6933189b2f65d95e7a376a2499b6e038b..447b5dadedc74784619ce7c2e5cae7d367337fe5 100644
+--- a/esm/stripe.esm.node.js
++++ b/esm/stripe.esm.node.js
+@@ -137,7 +137,7 @@ export class Stripe {
+         const runtimeVersion = platformFunctions.getRuntimeVersion();
+         if (env?.CLAUDECODE || env?.CLAUDE_CODE_CHILD_SESSION) {
+             try {
+-                platformFunctions.writeStderr('<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />\n');
++                // wren patch: hint line dropped, it breaks agent-read CLI output
+             }
+             catch {
+                 // never let hint emission crash the SDK

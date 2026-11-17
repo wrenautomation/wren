@@ -7,6 +7,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@wren/ui/components/ui/
 import { useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
+import { navigate } from "../../route.js";
+import { wholeHref } from "../explorer/href.js";
 
 export interface PinOut {
   url: string;
@@ -17,6 +19,7 @@ export interface PinOut {
 
 interface SubjectRow {
   id: number;
+  slug: string;
   name: string;
   state?: string;
 }
@@ -42,7 +45,10 @@ export function PinToBoard({ pin }: { pin: PinOut }) {
         subject: s.id,
         pins: [{ url: pin.url, title: pin.title, poster: lasting(pin.poster), from: pin.from }],
       });
-      say.done(`Pinned to ${s.name}`);
+      say.done(`Pinned to ${s.name}`, {
+        label: "Open board",
+        onClick: () => navigate(wholeHref(`vireo/subjects/${s.slug}`, { show: "board" })),
+      });
     } catch (e) {
       say.failed(e);
     } finally {

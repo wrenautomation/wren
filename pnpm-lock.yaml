@@ -16,6 +16,11 @@ overrides:
   dockview: 8.6.2
   dockview-core: 8.6.2
 
+patchedDependencies:
+  stripe@22.6.2:
+    hash: zpi23xynavkcheu4nfvg2f3vfy
+    path: patches/stripe@22.6.2.patch
+
 importers:
 
   .:
@@ -1355,7 +1360,7 @@ importers:
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@electric-sql/pglite@0.5.15)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
       stripe:
         specifier: 22.6.2
-        version: 22.6.2(@types/node@26.6.4)
+        version: 22.6.2(patch_hash=zpi23xynavkcheu4nfvg2f3vfy)(@types/node@26.6.4)
       zod:
         specifier: 4.6.6
         version: 4.6.6
@@ -18959,7 +18964,7 @@ snapshots:
 
   strip-indent@4.1.1: {}
 
-  stripe@22.6.2(@types/node@26.6.4):
+  stripe@22.6.2(patch_hash=zpi23xynavkcheu4nfvg2f3vfy)(@types/node@26.6.4):
     optionalDependencies:
       '@types/node': 26.6.4
 

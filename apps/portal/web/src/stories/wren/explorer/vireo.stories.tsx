@@ -61,6 +61,10 @@ export const Subject = tidy(
         "href",
         wholeHref(HERO),
       );
+      await expect(view.getByRole("link", { name: "Open its board" })).toHaveAttribute(
+        "href",
+        wholeHref(HERO, { show: "board" }),
+      );
       await expect(view.getByRole("button", { name: "More for Hero background" })).toBeVisible();
     },
   }),
