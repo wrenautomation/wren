@@ -1,5 +1,7 @@
 /** Canon › Outliers and Studio › Inspiration: made-up creators and posts, worst case included. */
+
 import type { FeedPage, FeedPersonShown, FeedPost } from "@wren/research/canon-console";
+import { formatOf } from "@wren/research/feed-format";
 
 /** each preset's least multiple (server: `FEED_PRESETS`) */
 const PRESET_MIN: Record<string, number> = {
@@ -332,10 +334,13 @@ const keyOf = (r: FeedPost, sort: unknown) =>
           ? r.counts.views / r.followers
           : -1
         : (r.multiple ?? -1);
-/** grouped: each person's top 12, people by their best post */
-function grouped(rows: FeedPost[], sort: unknown): FeedPost[] {
-  const by = new Map<number, FeedPost[]>();
-  for (const r of rows) by.set(r.personId, [...(by.get(r.personId) ?? []), r]);
+/** grouped: each person's (or platform's) top 12, sections by their best post */
+function grouped(rows: FeedPost[], sort: unknown, group: unknown): FeedPost[] {
+  const by = new Map<string, FeedPost[]>();
+  for (const r of rows) {
+    const k = group === "platform" ? r.platform : String(r.personId);
+    by.set(k, [...(by.get(k) ?? []), r]);
+  }
   return [...by.values()]
     .sort((a, b) => keyOf(b[0] as FeedPost, sort) - keyOf(a[0] as FeedPost, sort))
     .flatMap((g) => g.slice(0, 12).map((r) => ({ ...r, creatorPosts: g.length })));
@@ -353,12 +358,13 @@ export const OUTLIER_ANSWERS = {
         (!Array.isArray(b.niches) || !b.niches.length || r.niches.some((n) => has(b.niches, n))) &&
         has(b.platforms, r.platform) &&
         has(b.kinds, r.kind) &&
+        (!b.format || formatOf(r.platform, r.kind) === b.format) &&
         has(b.people, r.personId),
     ).sort(
       (x, y) =>
         keyOf(y, b.sort) - keyOf(x, b.sort) ||
         (b.sort === "new" ? (y.multiple ?? -1) - (x.multiple ?? -1) : time(y) - time(x)),
     );
-    return { ...OUTLIERS, rows: b.group === "creator" ? grouped(rows, b.sort) : rows };
+    return { ...OUTLIERS, rows: b.group ? grouped(rows, b.sort, b.group) : rows };
   },
 };

@@ -3,6 +3,7 @@ import { makeFoldersConsole } from "@wren/folders/restate";
 import { makePathsConsole } from "@wren/paths/restate";
 import { enqueueAdd } from "@wren/research/canon-adds";
 import { type Media, makeCanonConsole } from "@wren/research/canon-console";
+import { makeCreatorFindDesk } from "@wren/research/creator-find-desk";
 import { signMediaPut } from "@wren/starling-inbound";
 import { makeVariantsCollect, makeVariantsConsole } from "@wren/variants/restate";
 import type { AnyService, Deps } from "./deps.js";
@@ -28,6 +29,8 @@ export function variantsServices(deps: Deps): AnyService[] {
     makeFoldersConsole(deps.db),
     // Canon: reads schema `canon` (designs/2026-11-12-canon-references.md)
     makeCanonConsole(deps.db, media, deps.settings.canonRemote),
+    // Add creator: the find's desk calls (designs/2026-11-16-creator-add.md D2)
+    makeCreatorFindDesk(deps.db),
     // Explorer's server roots: Canon as a tree (designs/2026-11-12-explorer.md)
     makePathsConsole({ db: deps.db, media, canonRemote: deps.settings.canonRemote }),
   ];

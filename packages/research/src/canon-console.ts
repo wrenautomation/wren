@@ -27,16 +27,21 @@ import {
 } from "./canon-adds.js";
 import { CANON_CONSOLE_APPS, CANON_CONSOLE_ROUTES } from "./canon-console-routes.js";
 import { canonLibraryApi, lineText, type RecordFilters } from "./canon-library.js";
+import { findShown, isLinkInput, openFind, profileLink, trackTicked } from "./creator-find.js";
+import { CREATOR_FIND_DESK, type CreatorFindDesk } from "./creator-find-desk.js";
 import {
+  FEED_FORMATS,
   FEED_PRESETS,
   type FeedFacets,
   type FeedFilter,
+  type FeedFormat,
   type FeedPerson,
   type FeedPreset,
   type FeedRow,
   type FeedSort,
   feedFacets,
   feedPosts,
+  untrackCreator,
 } from "./creators.js";
 
 const REPO = "canon";
@@ -501,17 +506,34 @@ const INPUTS = {
     niches: z.array(z.string().max(80)).max(50).nullish(),
     platforms: z.array(z.string().max(40)).max(20).nullish(),
     kinds: z.array(z.string().max(16)).max(20).nullish(),
+    format: z
+      .enum(FEED_FORMATS)
+      .nullish()
+      .describe("long (YouTube videos), short (Shorts, reels, TikTok), post (the rest)"),
     people: z.array(z.number().int().positive()).max(200).nullish().describe("creator people"),
     min: z.number().min(0).max(10_000).nullish(),
     all: z.boolean().nullish().describe("every post, scored or not (the feed)"),
     sort: z.enum(["new", "multiple", "views", "likes", "reach"]).nullish(),
     group: z
-      .enum(["creator"])
+      .enum(["creator", "platform"])
       .nullish()
-      .describe("a section per creator person, their top 12 each"),
+      .describe("a section per creator person or per platform, its top 12 each"),
     on: z.enum(["count", "likes"]).nullish(),
     limit: z.number().int().min(1).max(200).nullish(),
   },
+  creatorFind: {
+    input: z.string().min(2).max(500).describe("a person's name or one profile link"),
+    niche: z.string().min(1).max(80),
+  },
+  creatorFindShow: { id: z.number().int().positive() },
+  creatorTrack: {
+    id: z.number().int().positive().describe("the find"),
+    picks: z
+      .array(z.object({ platform: z.string().max(40), handle: z.string().max(200) }))
+      .min(1)
+      .max(40),
+  },
+  creatorRemove: { creatorId: z.number().int().positive() },
   upload: {
     name: z.string().min(1).max(300),
     size: z.number().int().positive(),
@@ -526,6 +548,7 @@ export interface FeedAsk {
   niches?: string[] | null;
   platforms?: string[] | null;
   kinds?: string[] | null;
+  format?: FeedFormat | null;
   /** creator people: any of their accounts */
   people?: number[] | null;
   /** the least multiple; over a preset's */
@@ -533,8 +556,8 @@ export interface FeedAsk {
   /** every post, scored or not */
   all?: boolean | null;
   sort?: FeedSort | null;
-  /** a section per creator */
-  group?: "creator" | null;
+  /** a section per creator or per platform */
+  group?: "creator" | "platform" | null;
   /** the score the preset's min and the order use */
   on?: "count" | "likes" | null;
   limit?: number | null;
@@ -566,6 +589,7 @@ async function feedPage(db: Db, media: Media | null, a: FeedAsk): Promise<FeedPa
     ...(some(a.niches) ? { niches: a.niches as string[] } : {}),
     ...(some(a.platforms) ? { platforms: a.platforms as string[] } : {}),
     ...(some(a.kinds) ? { kinds: a.kinds as string[] } : {}),
+    ...(a.format ? { format: a.format } : {}),
     ...(some(a.people) ? { personIds: a.people as number[] } : {}),
     // never under the preset's own floor
     ...(a.min != null ? { min: Math.max(a.min, preset.min ?? 0) } : {}),
@@ -611,6 +635,20 @@ export function makeCanonConsole(db: Db, media: Media | null, remote: string) {
       { input: z.looseObject({ ...PORTAL_FIELDS, ...INPUTS[k] }) },
       (_: restate.Context, req: Req): Promise<unknown> => answer(() => fn(req)),
     );
+  // a write that sends to the Mac: the row first, journaled, then the send
+  const hx = <K extends keyof typeof INPUTS>(
+    k: K,
+    fn: (ctx: restate.Context, req: Req) => Promise<unknown>,
+  ) =>
+    serviceHandler(
+      { input: z.looseObject({ ...PORTAL_FIELDS, ...INPUTS[k] }) },
+      (ctx: restate.Context, req: Req): Promise<unknown> => answer(() => fn(ctx, req)),
+    );
+  const shown = async (id: number) => {
+    const f = await findShown(db, id);
+    if (!f) throw new PortalRefusal("no such find", 404);
+    return f;
+  };
   return portalService({
     name: "CanonConsole",
     main: db,
@@ -627,6 +665,41 @@ export function makeCanonConsole(db: Db, media: Media | null, remote: string) {
       file: h("file", (req) => library.file(String(req.path))),
       adds: h("adds", async () => ({ rows: (await listAdds(db)).map(addRow) })),
       feed: h("feed", (req) => feedPage(db, media, req as FeedAsk)),
+      creatorFind: hx("creatorFind", async (ctx, req) => {
+        const input = String(req.input).trim();
+        if (isLinkInput(input) && !profileLink(input))
+          throw new PortalRefusal("Not a profile link", 400);
+        const by = emailOf(req);
+        const o = await ctx.run("open", () =>
+          openFind(db, { input, niche: String(req.niche).trim(), requestedBy: by }).then((x) => ({
+            id: x.find.id,
+            opened: x.opened,
+          })),
+        );
+        if (o.opened)
+          ctx.serviceSendClient<CreatorFindDesk>(CREATOR_FIND_DESK).finding({ id: o.id });
+        return shown(o.id);
+      }),
+      creatorFindShow: h("creatorFindShow", (req) => shown(Number(req.id))),
+      creatorTrack: hx("creatorTrack", async (ctx, req) => {
+        const id = Number(req.id);
+        const by = emailOf(req);
+        const ids = await ctx.run("track", () =>
+          trackTicked(db, {
+            id,
+            picks: req.picks as { platform: string; handle: string }[],
+            by,
+          }).catch((e: Error) => {
+            throw new PortalRefusal(e.message, 409);
+          }),
+        );
+        if (ids.length) ctx.serviceSendClient<CreatorFindDesk>(CREATOR_FIND_DESK).reading({ ids });
+        return shown(id);
+      }),
+      creatorRemove: h("creatorRemove", async (req) => {
+        emailOf(req);
+        return { removed: await untrackCreator(db, Number(req.creatorId)) };
+      }),
       add: h("add", async (req) => {
         const what = String(req.what).trim();
         if (!whatOf(what)) throw new PortalRefusal("give a link that starts with https://", 400);

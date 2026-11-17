@@ -4,6 +4,7 @@
  * per day) and rescores their posts with weaver's `scoreOf`; `feedPosts` is the outlier feed the
  * CLI and the portal share.
  */
+
 import { resolveObjects } from "@wren/core/objects";
 import { normalizeHandle, resolveHandle } from "@wren/core/touches";
 import { socialHandles } from "@wren/core/touches-schema";
@@ -24,6 +25,7 @@ import {
   type TrackedCreator,
   trackedCreators as tc,
 } from "./creators-schema.js";
+import type { FeedFormat } from "./feed-format.js";
 import type { Source } from "./topic-build/index.js";
 
 export { POST_KINDS, type TrackedCreator } from "./creators-schema.js";
@@ -447,6 +449,14 @@ export const FEED_PRESETS = {
 } as const satisfies Record<string, FeedFilter>;
 export type FeedPreset = keyof typeof FEED_PRESETS;
 
+export { FEED_FORMATS, type FeedFormat, formatOf } from "./feed-format.js";
+
+/** `formatOf` in SQL */
+const formatSql = sql`case
+  when p.platform = 'youtube' and p.kind in ('video', 'live') then 'long'
+  when (p.platform = 'youtube' and p.kind = 'short') or (p.platform = 'instagram' and p.kind = 'reel') or p.platform = 'tiktok' then 'short'
+  else 'post' end`;
+
 /** `reach`: views per follower (D10), the small-account-big-video test */
 export type FeedSort = "new" | "multiple" | "views" | "likes" | "reach";
 
@@ -455,6 +465,7 @@ export interface FeedFilter {
   niches?: string[];
   platforms?: string[];
   kinds?: string[];
+  format?: FeedFormat;
   /** the score the min and the order use: the post's own count (default) or likes */
   on?: "count" | "likes";
   /** the least multiple */
@@ -471,8 +482,8 @@ export interface FeedFilter {
   all?: boolean;
   /** newest first, best multiple first (default), most views, most likes, most views per follower */
   sort?: FeedSort;
-  /** a section per creator person: their top `perCreator` by the sort, sections by their best post */
-  group?: "creator";
+  /** a section per creator person or per platform: its top `perCreator` by the sort, sections by their best post */
+  group?: "creator" | "platform";
   perCreator?: number;
   limit?: number;
 }
@@ -508,7 +519,7 @@ export interface FeedRow {
   /** the creator's usual draw on `scoreCount`: the median behind `multiple`; likes' behind `likesMultiple` */
   baseline: number | null;
   likesBaseline: number | null;
-  /** grouped: the person's posts that fit the filters, past the ones shown */
+  /** grouped: the section's posts (the person's or the platform's) that fit the filters, past the ones shown */
   creatorPosts: number | null;
   record: string | null;
   /** its picture in the media bucket (`cache/posts/...`), once copied */
@@ -766,12 +777,14 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
   if (f.niches?.length) where.push(sql`c.niches && array[${list(f.niches)}]::text[]`);
   if (f.platforms?.length) where.push(sql`p.platform in (${list(f.platforms)})`);
   if (f.kinds?.length) where.push(sql`p.kind in (${list(f.kinds)})`);
+  if (f.format) where.push(sql`${formatSql} = ${f.format}`);
   if (f.creatorIds?.length) where.push(sql`p.creator_id in (${list(f.creatorIds)})`);
   if (f.personIds?.length) where.push(sql`c.person_id in (${list(f.personIds)})`);
   if (f.minFollowers !== undefined) where.push(sql`fo.followers >= ${f.minFollowers}`);
   if (f.maxFollowers !== undefined) where.push(sql`fo.followers < ${f.maxFollowers}`);
   if (f.minLikes !== undefined) where.push(sql`(co.counts->>'likes')::bigint >= ${f.minLikes}`);
-  const grouped = f.group === "creator";
+  const grouped = !!f.group;
+  const part = f.group === "platform" ? sql`p.platform` : sql`c.person_id::text`;
   const count = (k: "views" | "likes") => sql`(co.counts->>${k})::bigint`;
   const key =
     f.sort === "new"
@@ -818,9 +831,10 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
       p.rank, p.likes_multiple, p.likes_rank, p.baseline_n, p.baseline, p.likes_baseline, p.record,
       p.picture, p.picture_small, p.video, case when p.picture is null then p.raw end as raw,
       ${key} as sort_key, ${tie} as sort_tie,
-      row_number() over (partition by c.person_id order by ${key} desc nulls last, ${tie} desc nulls last) as nth,
-      count(*) over (partition by c.person_id)::int as creator_posts,
-      max(${key}) over (partition by c.person_id) as best
+      ${part} as part,
+      row_number() over (partition by ${part} order by ${key} desc nulls last, ${tie} desc nulls last) as nth,
+      count(*) over (partition by ${part})::int as creator_posts,
+      max(${key}) over (partition by ${part}) as best
     from creator_posts p
     join tracked_creators c on c.id = p.creator_id
     join creator_people pe on pe.id = c.person_id
@@ -831,7 +845,7 @@ export async function feedPosts(db: Queryable, f: FeedFilter): Promise<FeedRow[]
       where d.platform = p.platform and d.ref = p.ref order by d.day desc limit 1) co on true
     where ${sql.join(where, sql` and `)}) x
     ${grouped ? sql`where x.nth <= ${f.perCreator ?? 12}` : sql``}
-    order by ${grouped ? sql`x.best desc nulls last, x.person_id, x.nth` : sql`x.sort_key desc nulls last, x.sort_tie desc nulls last`}
+    order by ${grouped ? sql`x.best desc nulls last, x.part, x.nth` : sql`x.sort_key desc nulls last, x.sort_tie desc nulls last`}
     limit ${f.limit ?? 50}`);
   return [...rows].map((r) => ({
     platform: r.platform,

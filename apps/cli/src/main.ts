@@ -75,6 +75,7 @@ import { registerReach } from "./reach.js";
 import { registerReview } from "./review.js";
 import { registerShape } from "./shape.js";
 import { registerSitePages } from "./site-pages.js";
+import { ingressSites } from "./sites.js";
 import { registerSms } from "./sms.js";
 import { registerSocial } from "./social.js";
 import { registerTemplates } from "./templates.js";
@@ -294,6 +295,15 @@ registerCreator(
   withMainDb,
   canonWrites,
   settings.mediaBucket ? { bucket: settings.mediaBucket } : null,
+  {
+    sites: () => ingressSites(settings, "wren:creator-find"),
+    llm: () => {
+      if (settings.llm === "fake")
+        throw new Error("creator find picks with a real model; WREN_LLM is fake");
+      loadLlmEnv(settings.llmEnvPath, rootDir);
+      return makeLlm(settings.llm, process.env, { anthropicModel: "haiku" });
+    },
+  },
 );
 registerPaths(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);

@@ -5,6 +5,7 @@
  */
 import { platformObjects } from "@wren/core/objects-schema";
 import { socialHandles } from "@wren/core/touches-schema";
+import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -19,6 +20,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
 
@@ -195,3 +197,70 @@ export const followerCountDays = pgTable(
     }),
   ],
 );
+
+/** a find's state (WA-1416 D6): waits for the desk, searches, done, or failed with its reason */
+export const FIND_STATES = ["waiting", "finding", "found", "failed"] as const;
+export type FindState = (typeof FIND_STATES)[number];
+
+/** one candidate account a find saw; `creatorId` once tracked */
+export interface FindCandidate {
+  platform: string;
+  handle: string;
+  url: string;
+  /** the display name, from the hit title or the API */
+  name: string | null;
+  followers: number | null;
+  label: "main" | "alternate" | "fan" | "other person" | "not a profile";
+  why: string;
+  /** where it came from: searxng, perplexity, youtube-api, bio, link */
+  sources: string[];
+  /** tracked by this find, or already before it */
+  creatorId: number | null;
+  tracked: "auto" | "tick" | "before" | null;
+  readError: string | null;
+  /** every field the search and the pick gave (keep data) */
+  raw?: unknown;
+}
+
+/**
+ * One "Add creator" from Studio (WA-1416): the input, the desk's steps, every candidate it saw.
+ * One open find per normalized input.
+ */
+export const creatorFinds = pgTable(
+  "creator_finds",
+  {
+    id: serial("id").notNull(),
+    /** as typed: a name or a profile link */
+    input: text("input").notNull(),
+    /** lowercased, trimmed: the dedupe key */
+    inputKey: text("input_key").notNull(),
+    /** the person's name, once known (a link input: from its first read) */
+    name: text("name"),
+    niche: text("niche").notNull(),
+    personId: integer("person_id"),
+    state: varchar("state", { length: 16 }).$type<FindState>().notNull().default("waiting"),
+    /** `searching`, `picking`, `reading 2 of 4` */
+    step: text("step"),
+    candidates: jsonb("candidates").$type<FindCandidate[]>().notNull().default([]),
+    /** the weaver ledger run */
+    runId: text("run_id"),
+    /** the search's spend in dollars, from the ledger */
+    usd: real("usd"),
+    error: text("error"),
+    requestedBy: text("requested_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_creator_finds" }),
+    uniqueIndex("ux_creator_finds_open_input_key")
+      .on(t.inputKey)
+      .where(sql`${t.state} in ('waiting', 'finding')`),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [creatorPeople.id],
+      name: "fk_creator_finds_person_id_creator_people",
+    }),
+  ],
+);
+export type CreatorFind = typeof creatorFinds.$inferSelect;

@@ -17,6 +17,11 @@ export const CANON_CONSOLE_ROUTES = {
   upload: "wren:team",
   // outlier posts of tracked creators (designs/2026-11-12-eden-method.md §4)
   feed: "wren:team",
+  // Add creator (designs/2026-11-16-creator-add.md): the find runs on the Mac
+  creatorFind: "wren:team",
+  creatorFindShow: "wren:team",
+  creatorTrack: "wren:team",
+  creatorRemove: "wren:team",
 } as const satisfies Record<string, Need>;
 export const CANON_CONSOLE_APPS = { "*": "canon" } as const satisfies RouteApps<
   typeof CANON_CONSOLE_ROUTES
@@ -26,4 +31,7 @@ export const CANON_CONSOLE_WRITES: readonly (keyof typeof CANON_CONSOLE_ROUTES)[
   "add",
   "retry",
   "upload",
+  "creatorFind",
+  "creatorTrack",
+  "creatorRemove",
 ];

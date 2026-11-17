@@ -323,7 +323,9 @@ export const Strip = tidy(
       await expect(bar.getByRole("link", { name: "Maya Cuts" })).toHaveAccessibleDescription(
         "Maya Cuts: Instagram, YouTube, 118 posts",
       );
-      await expect(bar.getAllByRole("link")).toHaveLength(6);
+      // All, five faces, Add
+      await expect(bar.getAllByRole("link")).toHaveLength(7);
+      await expect(bar.getByRole("link", { name: "Add" })).toBeVisible();
     },
   }),
 );
@@ -365,10 +367,64 @@ export const Grouped = tidy(
       const view = within(page);
       await expect(await view.findByRole("heading", { name: "Maya Cuts" }, WAIT)).toBeVisible();
       await expect(view.getByRole("region", { name: "Agents Daily" })).toHaveTextContent("2 posts");
-      await expect(view.getByRole("button", { name: "By creator" })).toHaveAttribute(
+      await expect(view.getByRole("button", { name: "By creator" })).toBeVisible();
+    },
+  }),
+);
+
+/** By platform: a section a platform, the best first; its head is the mark, the name, the count. */
+export const GroupedByPlatform = tidy(
+  pageAt("/canon/outliers?group=platform", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByRole("heading", { name: "Instagram" }, WAIT)).toBeVisible();
+      await expect(view.getByRole("heading", { name: "X" })).toBeVisible();
+      await expect(view.getByRole("region", { name: "LinkedIn" })).toHaveTextContent("1 post");
+    },
+  }),
+);
+
+/** The Group menu: none, by creator, by platform; a pick groups the page. */
+export const GroupMenu = tidy(
+  pageAt("/canon/outliers", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      await userEvent.click(await view.findByRole("button", { name: "Group" }, WAIT));
+      const menu = within(document.body);
+      // a pick navigates, which the story harness cannot: GroupedByPlatform shows the result
+      await expect(
+        await menu.findByRole("button", { name: "By platform, top 12 each" }),
+      ).toBeVisible();
+    },
+  }),
+);
+
+/** Shorts: reels, Shorts and TikToks only; the switch says which. */
+export const FormatShorts = tidy(
+  pageAt("/canon/outliers?format=short", {
+    me: ADMIN,
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByRole("button", { name: "Shorts" }, WAIT)).toHaveAttribute(
         "aria-pressed",
         "true",
       );
+      await waitFor(() => expect(view.getAllByText("Instagram").length).toBeGreaterThan(0), WAIT);
+      await expect(view.queryByText("YouTube")).toBeNull();
+    },
+  }),
+);
+
+/** Long-form with nothing in it: the empty state offers to clear the filters. */
+export const FormatEmpty = tidy(
+  pageAt("/canon/outliers?format=long&platform=x", {
+    me: ADMIN,
+    check: async (page) => {
+      await expect(
+        await within(page).findByText("No post fits these filters", {}, WAIT),
+      ).toBeVisible();
     },
   }),
 );

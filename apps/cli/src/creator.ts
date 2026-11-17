@@ -1,5 +1,5 @@
 /**
- * `wren creator add | list | remove | refresh | pictures | videos | rescore | promote` and `wren feed`: the creator index
+ * `wren creator add | find | list | remove | refresh | pictures | videos | rescore | promote` and `wren feed`: the creator index
  * (designs/2026-11-12-eden-method.md §3, option A). Reads go through `weaver posts` (the key-gate
  * shim); rows land in `tracked_creators`, `creator_posts` and the day tables; promote writes Canon.
  */
@@ -12,8 +12,29 @@ import { join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as WebStream } from "node:stream/web";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { parseHandle } from "@wren/core/touches";
 import type { Db } from "@wren/db";
+import { completeAndParse, type LlmClient } from "@wren/llm";
+import {
+  applyPick,
+  autoTracks,
+  type CreatorFind,
+  candidatesOf,
+  type FindCandidate,
+  type FindHit,
+  findById,
+  findQueries,
+  isLinkInput,
+  openFind,
+  PICK,
+  PICK_SYSTEM,
+  personForFind,
+  pickPrompt,
+  profileLink,
+  setFind,
+  trackedOf,
+} from "@wren/research/creator-find";
 import {
   avatarsToCopy,
   type CreatorRead,
@@ -49,6 +70,7 @@ import {
   videosToCopy,
 } from "@wren/research/creators";
 import { getKey, type MediaStoreOptions, putKey } from "@wren/starling-inbound";
+import { findCreators } from "@wren/starling-outbound/creator-search";
 import type { Command } from "commander";
 import type { CanonWrites } from "./canon.js";
 
@@ -288,11 +310,232 @@ async function copyVideos(
   return out;
 }
 
+/** `weaver <args>` with JSON on stdin; its JSON answer (log lines before it skipped) */
+function weaverJson<T>(args: string[], stdin?: string): T {
+  const r = spawnSync("weaver", args, {
+    encoding: "utf8",
+    input: stdin,
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  if (r.error) throw r.error;
+  if (r.status !== 0) throw new Error(`weaver ${args[0]}: ${(r.stderr || r.stdout).trim()}`);
+  const at = r.stdout.search(/^\{/m);
+  if (at < 0) throw new Error(`weaver ${args[0]}: no JSON in its answer`);
+  return JSON.parse(r.stdout.slice(at)) as T;
+}
+
+interface LedgerRecord {
+  type: string;
+  url?: string;
+  title?: string;
+  snippet?: string;
+  sources?: string[];
+  usd?: number;
+}
+
+/** what a find needs past the database: the autobrowse door, a model */
+export interface FindDeps {
+  sites: () => SiteClient;
+  llm: () => LlmClient;
+}
+
+const FIND_BY = "wren-creator-find";
+
+/** One find, start to `found` (designs/2026-11-16-creator-add.md D2-D4). Throws on failure. */
+async function runFind(
+  db: Db,
+  find: CreatorFind,
+  accounts: Record<string, string>,
+  deps: FindDeps,
+) {
+  const step = (s: string) => setFind(db, find.id, { state: "finding", step: s, error: null });
+  const niches = [find.niche];
+  const day = new Date().toISOString().slice(0, 10);
+  let name = find.name;
+  let given: {
+    platform: string;
+    handle: string;
+    url: string;
+    creatorId: number;
+    personId: number;
+    readError: string | null;
+  } | null = null;
+
+  // a link: track it, read it, take the name from the read (D4)
+  if (isLinkInput(find.input)) {
+    const p = profileLink(find.input);
+    if (!p) throw new Error(`Not a profile link: ${find.input}`);
+    await step("reading the link");
+    const c = await trackCreator(db, {
+      ...p,
+      niches,
+      note: "Studio add: the given link",
+      addedBy: find.requestedBy,
+    });
+    let readError: string | null = null;
+    try {
+      const read = readCreator(p.url, READ_POSTS, accounts);
+      await keepCreatorRead(db, c.id, read, day);
+      name = name ?? read.creator.name ?? null;
+    } catch (e) {
+      readError = e instanceof Error ? e.message : String(e);
+      await markReadFailed(db, c.id, readError);
+    }
+    if (name && c.added) await linkAccounts(db, [c.id], { name });
+    given = { ...p, creatorId: c.id, personId: c.personId, readError };
+  } else name = find.input.trim().replace(/\s+/g, " ");
+
+  if (!name) {
+    // the link read failed: nothing to search on
+    const only: FindCandidate = {
+      ...(given as NonNullable<typeof given>),
+      name: null,
+      followers: null,
+      label: "main",
+      why: "the given link",
+      sources: ["link"],
+      tracked: "auto",
+    };
+    await setFind(db, find.id, {
+      state: "found",
+      step: null,
+      personId: given?.personId as number,
+      candidates: [only],
+    });
+    return { find: find.id, state: "found", track: [only.creatorId] };
+  }
+  await setFind(db, find.id, { state: "finding", step: "searching", name });
+
+  // site-pinned search, one weaver run a find: hits and spend stay in the ledger (D1)
+  const plan = weaverJson<{ run: string }>([
+    "plan",
+    `every account of ${name}`,
+    "--kind",
+    "person",
+    "--sources",
+    "searxng",
+    "perplexity",
+    "--no-model",
+    "--no-judge",
+    "--by",
+    FIND_BY,
+  ]);
+  const search = weaverJson<{ wrote: LedgerRecord[] }>(
+    ["search", plan.run, "--no-model", "--no-judge", "--by", FIND_BY],
+    JSON.stringify(findQueries(name)),
+  );
+  const usd = search.wrote.reduce((n, r) => n + (r.type === "spend" ? (r.usd ?? 0) : 0), 0);
+  const hits: FindHit[] = search.wrote
+    .filter((r) => r.type === "hit" && r.url)
+    .map((r) => ({
+      url: r.url as string,
+      title: r.title ?? null,
+      snippet: r.snippet ?? null,
+      sources: r.sources ?? [],
+      raw: r,
+    }));
+  // YouTube from its API: names and subscriber counts the search lacks
+  const yt = await findCreators(deps.sites(), name, { only: ["youtube"] });
+  for (const h of yt.hits)
+    hits.push({
+      url: h.url,
+      name: h.name,
+      followers: h.followers,
+      sources: ["youtube-api"],
+      raw: h,
+    });
+  await setFind(db, find.id, { step: "picking", runId: plan.run, usd });
+
+  let cands = candidatesOf(hits);
+  if (given && !cands.some((c) => c.platform === given?.platform && c.handle === given?.handle))
+    cands.unshift({
+      platform: given.platform,
+      handle: given.handle,
+      url: given.url,
+      name,
+      followers: null,
+      label: "main",
+      why: "the given link",
+      sources: ["link"],
+      creatorId: null,
+      tracked: null,
+      readError: null,
+    });
+  if (cands.length) {
+    const picked = await completeAndParse(
+      deps.llm(),
+      pickPrompt(name, given?.url ?? null, cands),
+      PICK,
+      {
+        maxTokens: 3_000,
+        system: PICK_SYSTEM,
+        name: "creator_find_pick",
+        metadata: { find: find.id, run: plan.run },
+      },
+    );
+    if (!picked.parsed)
+      throw new Error(
+        `the pick failed: ${picked.parseError ?? picked.providerRejected ?? "no answer"} (${(picked.rawText ?? "").slice(0, 300)})`,
+      );
+    cands = applyPick(cands, picked.parsed);
+  }
+
+  // what tracks itself (D3), to which person (D4)
+  const isGiven = (c: FindCandidate) =>
+    given && c.platform === given.platform && c.handle === given.handle;
+  const passing = autoTracks(cands, name).filter((c) => !isGiven(c));
+  const before = await trackedOf(db, cands);
+  const keyOf = (c: FindCandidate) => `${c.platform}:${c.handle.toLowerCase()}`;
+  const personId = given
+    ? given.personId
+    : (await personForFind(db, { name, passing, addedBy: find.requestedBy })).id;
+  const track: number[] = [];
+  for (const c of cands) {
+    const had = before.get(keyOf(c));
+    if (isGiven(c)) {
+      Object.assign(c, {
+        creatorId: given?.creatorId,
+        tracked: "auto",
+        label: "main",
+        readError: given?.readError ?? null,
+      });
+      continue;
+    }
+    if (had) {
+      Object.assign(c, { creatorId: had.id, tracked: "before" });
+      continue;
+    }
+    if (!passing.includes(c)) continue;
+    const t = await trackCreator(db, {
+      platform: c.platform,
+      handle: c.handle,
+      niches,
+      note: `Studio add: search, main, name matches (${c.sources.join(", ")})`,
+      addedBy: find.requestedBy,
+      personId,
+    });
+    Object.assign(c, { creatorId: t.id, tracked: "auto" });
+    track.push(t.id);
+  }
+  await setFind(db, find.id, { state: "found", step: null, personId, candidates: cands });
+  return {
+    find: find.id,
+    state: "found",
+    run: plan.run,
+    usd,
+    personId,
+    track,
+    youtubeFailed: yt.failed,
+    candidates: cands.map(({ raw: _raw, ...c }) => c),
+  };
+}
+
 export function registerCreator(
   program: Command,
   withDb: WithDb,
   canon: CanonWrites,
   media: MediaStoreOptions | null,
+  deps: FindDeps,
 ): void {
   const creator = program
     .command("creator")
@@ -364,6 +607,48 @@ export function registerCreator(
           }
           for (const r of out) console.log(JSON.stringify(r));
           if (out.some((r) => r.error)) process.exitCode = 1;
+        }),
+    );
+
+  creator
+    .command("find [input]")
+    .description(
+      "every account of one person from a name or a profile link (WA-1416): site-pinned search (SearXNG, Perplexity) + the YouTube API, a Haiku pick; tracks what passes the name rule. Reads come after, with refresh --id",
+    )
+    .option("--niche <name>", "the niche for what it tracks (a new find)")
+    .option("--request <id>", "run the Studio find with this id (its input and niche)", int)
+    .option(
+      "--account <platform=name...>",
+      "the labeled login that reads a given link (as refresh)",
+      many,
+    )
+    .option("--by <name>", "who asked (a new find)", "william")
+    .option("--json", "JSON out")
+    .action(
+      (
+        input: string | undefined,
+        o: { niche?: string; request?: number; account?: string[]; by: string; json?: boolean },
+      ) =>
+        withDb(async (db) => {
+          let find: CreatorFind | null;
+          if (o.request != null) {
+            find = await findById(db, o.request);
+            if (!find) throw new Error(`no find ${o.request}`);
+          } else {
+            if (!input || !o.niche)
+              throw new Error("creator find takes <input> and --niche, or --request");
+            find = (await openFind(db, { input, niche: o.niche, requestedBy: o.by })).find;
+          }
+          const f = find;
+          try {
+            const out = await runFind(db, f, accountsOf(o.account), deps);
+            console.log(JSON.stringify(out, null, o.json ? 2 : 0));
+          } catch (e) {
+            const error = e instanceof Error ? e.message : String(e);
+            await setFind(db, f.id, { state: "failed", step: null, error });
+            console.log(JSON.stringify({ find: f.id, state: "failed", error }));
+            process.exitCode = 1;
+          }
         }),
     );
 

@@ -29,7 +29,10 @@
     "./topic-build": "./src/topic-build/index.ts",
     "./enrichment": "./src/enrichment/index.ts",
     "./restate": "./src/restate/index.ts",
-    "./creators": "./src/creators.ts"
+    "./creator-find": "./src/creator-find.ts",
+    "./creator-find-desk": "./src/creator-find-desk.ts",
+    "./creators": "./src/creators.ts",
+    "./feed-format": "./src/feed-format.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",

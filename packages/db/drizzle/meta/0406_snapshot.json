@@ -1,6 +1,6 @@
 {
-  "id": "a8d39a80-78b0-46e2-8bd8-a7dbbcc32297",
-  "prevId": "279a172f-631f-4f67-8b0c-713090fdc1b4",
+  "id": "10259945-b14c-4e98-a05f-389797a8548c",
+  "prevId": "fe8c0044-2432-4bb3-833f-f4dfd89fb8bc",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -14674,6 +14674,151 @@
       },
       "isRLSEnabled": false
     },
+    "public.creator_finds": {
+      "name": "creator_finds",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input": {
+          "name": "input",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input_key": {
+          "name": "input_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "niche": {
+          "name": "niche",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'waiting'"
+        },
+        "step": {
+          "name": "step",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "candidates": {
+          "name": "candidates",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usd": {
+          "name": "usd",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "requested_by": {
+          "name": "requested_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ux_creator_finds_open_input_key": {
+          "name": "ux_creator_finds_open_input_key",
+          "columns": [
+            {
+              "expression": "input_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"creator_finds\".\"state\" in ('waiting', 'finding')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "fk_creator_finds_person_id_creator_people": {
+          "name": "fk_creator_finds_person_id_creator_people",
+          "tableFrom": "creator_finds",
+          "tableTo": "creator_people",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pk_creator_finds": {
+          "name": "pk_creator_finds",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.creator_people": {
       "name": "creator_people",
       "schema": "",
@@ -14853,6 +14998,18 @@
         },
         "picture": {
           "name": "picture",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "picture_small": {
+          "name": "picture_small",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "video": {
+          "name": "video",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -15163,6 +15320,12 @@
         },
         "picture": {
           "name": "picture",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "picture_small": {
+          "name": "picture_small",
           "type": "text",
           "primaryKey": false,
           "notNull": false

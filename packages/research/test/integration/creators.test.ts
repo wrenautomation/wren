@@ -308,6 +308,21 @@ describe("creators", () => {
     const reach = await feedPosts(db(), { sort: "reach", limit: 2 });
     expect(reach.map((p) => p.title)).toEqual(["video 0", "post 0"]);
 
+    // a section per platform, the best platform first
+    const byPlatform = await feedPosts(db(), { group: "platform", perCreator: 2, sort: "views" });
+    expect(byPlatform.map((p) => [p.platform, p.creatorPosts])).toEqual([
+      ["x", 6],
+      ["x", 6],
+      ["youtube", 6],
+      ["youtube", 6],
+    ]);
+    // format: YouTube `video` is long-form; X is posts; none is short
+    const long = await feedPosts(db(), { format: "long", limit: 100 });
+    expect(new Set(long.map((p) => p.platform))).toEqual(new Set(["youtube"]));
+    expect(long).toHaveLength(6);
+    expect(await feedPosts(db(), { format: "post", limit: 100 })).toHaveLength(6);
+    expect(await feedPosts(db(), { format: "short", limit: 100 })).toEqual([]);
+
     const facets = await feedFacets(db());
     expect(facets.creators).toBe(1);
     expect(facets.people).toHaveLength(1);

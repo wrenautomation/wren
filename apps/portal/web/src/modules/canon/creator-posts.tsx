@@ -3,7 +3,8 @@
  * Inspiration are this part with other defaults. A strip of creator faces sits on top (YouTube's
  * subscriptions bar); presets are tabs; Filter, Sort, Group and Select sit on the bar. The address
  * holds every pick: `preset`, `creator` (person ids), `platform`, `kind`, `niche` (comma lists),
- * `min`, `sort`, `group`, and `post`, the post open in the record panel (D9). Select files the
+ * `min`, `sort`, `group` (creator or platform), `format` (WA-1416 D5), `add` (the Add creator
+ * sheet, WA-1416 D7), and `post`, the post open in the record panel (D9). Select files the
  * picked posts through the Add box's queue as his sources.
  */
 import type {
@@ -13,7 +14,7 @@ import type {
   FeedPersonShown,
   FeedPost,
 } from "@wren/research/canon-console";
-import type { FeedPreset, FeedSort } from "@wren/research/creators";
+import type { FeedFormat, FeedPreset, FeedSort } from "@wren/research/creators";
 import {
   type BarField,
   BarLayout,
@@ -30,6 +31,7 @@ import {
   PickList,
   PlatformTile,
   POP,
+  Seg,
   tipProps,
   useFilterTools,
   useNarrow,
@@ -43,6 +45,7 @@ import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
+import { AddCreator } from "./creator-add.js";
 import { GALLERY, Ghosts, Tile } from "./gallery.js";
 import { type OneSave, PostDetail } from "./post-detail.js";
 import {
@@ -87,6 +90,19 @@ const MINS: [string, string][] = [
   ["5", "5x and up"],
   ["10", "10x and up"],
 ];
+/** YouTube's channel tabs (Videos, Shorts, Posts) over every platform */
+const FORMATS: [FeedFormat | "", string][] = [
+  ["", "All"],
+  ["long", "Long-form"],
+  ["short", "Shorts"],
+  ["post", "Posts"],
+];
+type Group = "creator" | "platform";
+const GROUPS: [Group | "", string, string][] = [
+  ["", "No groups", "Group"],
+  ["creator", "By creator, top 12 each", "By creator"],
+  ["platform", "By platform, top 12 each", "By platform"],
+];
 const LISTS = ["creator", "platform", "kind", "niche"] as const;
 const FILTERS = [...LISTS, "min"] as const;
 const listOf = (params: URLSearchParams, k: string) =>
@@ -97,19 +113,21 @@ function askOf(params: URLSearchParams, start: PostsStart) {
   const preset = params.get("preset") || null;
   const min = Number(params.get("min"));
   const sort: Sort = SORTS.find(([id]) => id === params.get("sort"))?.[0] ?? start.sort;
-  const group = params.get("group") === "creator" ? ("creator" as const) : null;
+  const group = GROUPS.find(([id]) => id && id === params.get("group"))?.[0] || null;
+  const format = FORMATS.find(([id]) => id && id === params.get("format"))?.[0] || null;
   const ask: FeedAsk = {
     preset: preset as FeedPreset | null,
     people: listOf(params, "creator").map(Number).filter(Number.isFinite),
     platforms: listOf(params, "platform"),
     kinds: listOf(params, "kind"),
+    format,
     niches: listOf(params, "niche"),
     min: min > 0 ? min : null,
     all: start.all,
     sort,
     group,
   };
-  return { ask, preset, sort, group };
+  return { ask, preset, sort, group, format };
 }
 
 interface Save {
@@ -119,7 +137,7 @@ interface Save {
 }
 
 export function CreatorPosts({ params, start }: PageProps & { start: PostsStart }) {
-  const { ask, preset, sort, group } = askOf(params, start);
+  const { ask, preset, sort, group, format } = askOf(params, start);
   const got = useCall(`canon-feed:${JSON.stringify(ask)}`, () =>
     call<FeedPage>("canon/feed", { ...ask }),
   );
@@ -183,6 +201,16 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
   };
 
   const data = got.data;
+  const { retry: feedAgain } = got;
+  const adding = params.get("add");
+  const addSheet = adding ? (
+    <AddCreator
+      at={adding}
+      niche={listOf(params, "niche")[0] ?? null}
+      go={(at) => go({ add: at })}
+      onTracked={feedAgain}
+    />
+  ) : null;
   const fields = fieldsOf(params, data, go);
   const on = fields.filter((f) => f.set);
   const tools = useFilterTools({
@@ -197,7 +225,7 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
     label: start.label,
     icon: "chart",
     text: [
-      `${start.label}: ${presetName ?? start.first}, ${SORTS.find(([id]) => id === sort)?.[2].toLowerCase()}${group ? ", grouped by creator" : ""}`,
+      `${start.label}: ${presetName ?? start.first}, ${SORTS.find(([id]) => id === sort)?.[2].toLowerCase()}${format ? `, ${FORMATS.find(([id]) => id === format)?.[1].toLowerCase()} only` : ""}${group ? `, grouped by ${group}` : ""}`,
       ...on.map((f) => f.set?.say),
       data ? `${num(data.rows.length)} posts shown` : null,
     ]
@@ -207,30 +235,35 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
 
   if (data && !data.creators)
     return (
-      <Empty
-        title="No creators tracked yet"
-        action={<CopyButton text="wren creator add  --niche " label="Copy the command" />}
-      >
-        Track one from the CLI:
-        {/* breaks only between the parts, never inside a flag */}
-        <code className="my-1.5 flex flex-wrap gap-x-[1ch] font-mono text-[12.5px]">
-          <span className="whitespace-nowrap">wren creator add &lt;profile URL&gt;</span>
-          <span className="whitespace-nowrap">--niche &lt;name&gt;</span>
-        </code>
-        A daily read stores their posts, and each post gets its multiple over their usual draw.
-      </Empty>
+      <>
+        <Empty
+          title="No creators tracked yet"
+          action={
+            <Button tone="primary" icon="plus" onClick={() => go({ add: "new" })}>
+              Add creator
+            </Button>
+          }
+        >
+          Type a name or paste a profile link. The Mac finds their accounts and tracks them. A daily
+          read stores their posts, and each post gets its multiple over their usual draw.
+        </Empty>
+        {addSheet}
+      </>
     );
   if (data && !data.scored && !start.all)
     return (
-      <Empty
-        title={`${num(data.creators)} ${data.creators === 1 ? "creator" : "creators"} tracked`}
-        waits
-        action={<CopyButton text="wren creator refresh" label="Copy the command" />}
-      >
-        No post has a score yet. A post gets one once its creator has 5 read posts of its kind. The
-        daily read runs it; <code className="font-mono text-[12.5px]">wren creator refresh</code>{" "}
-        runs it now.
-      </Empty>
+      <>
+        <Empty
+          title={`${num(data.creators)} ${data.creators === 1 ? "creator" : "creators"} tracked`}
+          waits
+          action={<CopyButton text="wren creator refresh" label="Copy the command" />}
+        >
+          No post has a score yet. A post gets one once its creator has 5 read posts of its kind.
+          The daily read runs it;{" "}
+          <code className="font-mono text-[12.5px]">wren creator refresh</code> runs it now.
+        </Empty>
+        {addSheet}
+      </>
     );
 
   const tabs: ViewTab[] = [
@@ -243,8 +276,12 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
       on: preset === id,
     })),
   ].map((t) => ({ ...t, busy: t.on && got.placeholder }));
-  const filtered = !!preset || FILTERS.some((k) => params.has(k));
-  const clearAll = link({ preset: null, ...Object.fromEntries(FILTERS.map((k) => [k, null])) });
+  const filtered = !!preset || !!format || FILTERS.some((k) => params.has(k));
+  const clearAll = link({
+    preset: null,
+    format: null,
+    ...Object.fromEntries(FILTERS.map((k) => [k, null])),
+  });
   const rows = data?.rows ?? [];
   const shownCreators = new Set(rows.map((r) => r.personId)).size;
   const personOf = (id: number) => data?.people.find((p) => p.id === id);
@@ -252,6 +289,20 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
   const openKey = params.get("post");
   const opened = openKey && data ? (rows.find((r) => keyOf(r) === openKey) ?? null) : undefined;
 
+  const formatSeg = (
+    <Seg
+      label="Format"
+      dense
+      fill={narrow}
+      items={FORMATS.map(([value, label]) => ({
+        value,
+        label,
+        busy: value === (format ?? "") && got.placeholder,
+      }))}
+      value={format ?? ""}
+      onChange={(v) => go({ format: v || null, post: null })}
+    />
+  );
   return (
     <div className={cn("flex flex-col gap-4", picking && "pb-28")}>
       {data?.people.length ? (
@@ -259,12 +310,17 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
           people={data.people}
           on={new Set(listOf(params, "creator"))}
           link={(id) => link({ creator: id, group: null, post: null })}
+          add={link({ add: "new", post: null })}
         />
       ) : null}
+      {addSheet}
       <div className="grid gap-2">
         <ViewStrip tabs={tabs} more={[]} row="views:creator-posts" narrow={narrow} />
+        {/* phone: four choices plus the tools pass 390, so the switch takes its own row */}
+        {narrow ? formatSeg : null}
         <BarLayout
           narrow={narrow}
+          shape={narrow ? undefined : formatSeg}
           pills={on.length ? tools.pills() : []}
           clear={
             on.length ? (
@@ -278,16 +334,7 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
             <>
               {tools.tool}
               <SortTool sort={sort} go={(s) => go({ sort: s === start.sort ? null : s })} />
-              <button
-                type="button"
-                aria-pressed={!!group}
-                {...tipProps("A section per creator, their top 12 each")}
-                className={chipClass(!!group)}
-                onClick={() => go({ group: group ? null : "creator" })}
-              >
-                <Icon name="people" className="size-[15px] [stroke-width:1.8]" />
-                <span data-hp>By creator</span>
-              </button>
+              <GroupTool group={group} go={(g) => go({ group: g })} />
               <button
                 type="button"
                 aria-pressed={picking}
@@ -341,11 +388,17 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
               got.placeholder && "opacity-60",
             )}
           >
-            {(group ? sections(rows) : [rows]).map((part) => {
+            {(group ? sections(rows, group) : [rows]).map((part) => {
               const head = group ? part[0] : null;
               const list = (
                 <ul
-                  aria-label={head ? `${nameOf(head)}'s posts` : start.label}
+                  aria-label={
+                    !head
+                      ? start.label
+                      : group === "platform"
+                        ? `${platformName(head.platform)} posts`
+                        : `${nameOf(head)}'s posts`
+                  }
                   className={cn("m-0 list-none p-0", GALLERY)}
                 >
                   {part.map((r) => {
@@ -373,6 +426,24 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
               );
               if (!head) return <div key="all">{list}</div>;
               const total = head.creatorPosts ?? part.length;
+              const more =
+                "justify-self-start text-[13px] font-semibold text-(--ui-ink-2) hover:text-(--ui-ink)";
+              if (group === "platform")
+                return (
+                  <section
+                    key={head.platform}
+                    aria-label={platformName(head.platform)}
+                    className="grid gap-3 [animation:ui-fade_.15s_both]"
+                  >
+                    <PlatformHead r={head} n={total} />
+                    {list}
+                    {total > part.length ? (
+                      <a href={link({ platform: head.platform, group: null })} className={more}>
+                        All {num(total)} posts on {platformName(head.platform)}
+                      </a>
+                    ) : null}
+                  </section>
+                );
               return (
                 <section
                   key={head.personId}
@@ -384,7 +455,7 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
                   {total > part.length ? (
                     <a
                       href={link({ creator: String(head.personId), group: null })}
-                      className="justify-self-start text-[13px] font-semibold text-(--ui-ink-2) hover:text-(--ui-ink)"
+                      className={more}
                     >
                       All {num(total)} posts by {nameOf(head)}
                     </a>
@@ -543,10 +614,49 @@ function fieldsOf(
   ];
 }
 
+const MENU_ROW =
+  "flex h-8 pointer-coarse:h-11 w-full cursor-pointer items-center gap-2 border-0 bg-transparent px-2 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) aria-[current=true]:font-semibold";
+
+/** Group: none, a section per creator, or one per platform */
+function GroupTool({ group, go }: { group: Group | null; go: (g: Group | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const label = GROUPS.find(([id]) => id === (group ?? ""))?.[2] ?? "Group";
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className={chipClass(!!group)}
+        {...tipProps(group ? `Grouped ${label.toLowerCase()}` : "Group the posts")}
+      >
+        <Icon
+          name={group === "platform" ? "globe" : "people"}
+          className="size-[15px] [stroke-width:1.8]"
+        />
+        <span data-hp>{label}</span>
+      </PopoverTrigger>
+      <PopoverContent aria-label="Group" align="end" className={cn(POP, "w-56 p-1")}>
+        {GROUPS.map(([id, text]) => (
+          <button
+            key={id || "none"}
+            type="button"
+            aria-current={(group ?? "") === id}
+            className={MENU_ROW}
+            onClick={() => {
+              go(id || null);
+              setOpen(false);
+            }}
+          >
+            <span className="flex-1">{text}</span>
+            {(group ?? "") === id ? <Icon name="check" className="size-3.5" /> : null}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function SortTool({ sort, go }: { sort: Sort; go: (s: Sort) => void }) {
   const [open, setOpen] = useState(false);
-  const row =
-    "flex h-8 pointer-coarse:h-11 w-full cursor-pointer items-center gap-2 border-0 bg-transparent px-2 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover) aria-[current=true]:font-semibold";
+  const row = MENU_ROW;
   const label = SORTS.find(([id]) => id === sort)?.[1] ?? "Newest";
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -611,11 +721,29 @@ function PickCover({ r, pick }: { r: FeedPost; pick: PickState }) {
   );
 }
 
-/** grouped rows, one list a creator person, in the server's order */
-function sections(rows: FeedPost[]): FeedPost[][] {
-  const by = new Map<number, FeedPost[]>();
-  for (const r of rows) by.set(r.personId, [...(by.get(r.personId) ?? []), r]);
+/** grouped rows, one list a creator person or a platform, in the server's order */
+function sections(rows: FeedPost[], group: Group): FeedPost[][] {
+  const by = new Map<string, FeedPost[]>();
+  for (const r of rows) {
+    const k = group === "platform" ? r.platform : String(r.personId);
+    by.set(k, [...(by.get(k) ?? []), r]);
+  }
   return [...by.values()];
+}
+
+/** a platform section's head: its mark, its name, how many */
+function PlatformHead({ r, n }: { r: FeedPost; n: number }) {
+  return (
+    <header className="flex min-w-0 items-center gap-2.5">
+      <PlatformTile mark={r.platform} />
+      <h2 className="m-0 text-[15px] leading-snug font-semibold text-(--ui-ink)">
+        {platformName(r.platform)}
+      </h2>
+      <span className="text-[13px] text-(--ui-ink-3)">
+        {num(n)} {n === 1 ? "post" : "posts"}
+      </span>
+    </header>
+  );
 }
 
 /** "YouTube, X" */
@@ -670,10 +798,13 @@ function CreatorStrip({
   people,
   on,
   link,
+  add,
 }: {
   people: FeedPersonShown[];
   on: Set<string>;
   link: (id: string | null) => string;
+  /** the Add creator sheet */
+  add: string;
 }) {
   const item =
     "group/face flex w-[76px] shrink-0 snap-start flex-col items-center gap-1.5 rounded-[8px] py-1 text-center no-underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-(--ui-focus)";
@@ -712,6 +843,16 @@ function CreatorStrip({
               </span>
             </span>
             <span className={label(!on.size)}>All</span>
+          </a>
+        </li>
+        <li>
+          <a href={add} {...tipProps("Find a creator's accounts and track them")} className={item}>
+            <span className={ring(false)}>
+              <span className="grid size-12 place-items-center rounded-full border border-dashed border-(--ui-hair) text-(--ui-ink-2) group-hover/face:text-(--ui-ink)">
+                <Icon name="plus" className="size-5 [stroke-width:1.8]" />
+              </span>
+            </span>
+            <span className={label(false)}>Add</span>
           </a>
         </li>
         {people.map((p) => {

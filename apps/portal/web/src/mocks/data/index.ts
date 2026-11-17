@@ -10,6 +10,7 @@ import { APP_ANSWERS } from "./apps.js";
 import { CANON_ADDS, CANON_ANSWERS } from "./canon.js";
 import { CANON_LIBRARY_ANSWERS } from "./canon-library.js";
 import { CLIENT_PAGE_ANSWERS } from "./client-pages.js";
+import { CREATOR_FIND_ANSWERS } from "./creator-find.js";
 import { FOLDERS_ANSWERS } from "./folders.js";
 import { JOURNEY_DETAIL, JOURNEY_ROWS, JOURNEY_WRITES } from "./journeys.js";
 import { MAP_ANSWERS } from "./map.js";
@@ -162,6 +163,7 @@ const BASE: Answers = {
   ...CANON_ANSWERS,
   ...CANON_LIBRARY_ANSWERS,
   ...OUTLIER_ANSWERS,
+  ...CREATOR_FIND_ANSWERS,
   ...PATHS_ANSWERS,
   ...AERIE_ANSWERS,
   ...STUDIO_ANSWERS,
