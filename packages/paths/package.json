@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "@testcontainers/postgresql": "12.1.0",
-    "@wrenautomation/knowledge": "0.82.0",
+    "@wrenautomation/knowledge": "0.83.0",
     "typescript": "5.9.3",
     "vitest": "5.0.1"
   }

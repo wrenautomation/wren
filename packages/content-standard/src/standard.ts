@@ -363,7 +363,7 @@ export function callsMarkdown(scope: SopScope, calls: SopCall[], at = new Date()
   const head = [
     "# Calls",
     "",
-    `His keep / tune / drop calls on the pieces this SOP covers (${scopeLine(scope)}), as of ${at.toISOString().slice(0, 10)}. Code writes this file from his Canon verdicts; a call changes with \`wren source call\`.`,
+    `The owner's keep / tune / drop calls on the pieces this SOP covers (${scopeLine(scope)}), as of ${at.toISOString().slice(0, 10)}. Code writes this file from the owner's Canon verdicts; a call changes with \`wren source call\`.`,
   ];
   if (!calls.length) return `${head.join("\n")}\n\nNo calls yet.\n`;
   const { patterns, own } = rulesOf(calls);

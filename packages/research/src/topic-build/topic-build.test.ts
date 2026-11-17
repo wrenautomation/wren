@@ -128,6 +128,8 @@ describe("topic-build", () => {
     const door = await readFile(join(topicDir(dir, "x"), "SKILL.md"), "utf8");
     expect(door).toContain('- `x-rules`: before "Prep", step 2.');
     expect(door).not.toContain("render x-rules`");
+    expect(door).not.toContain(dir);
+    expect(door).toContain('ls -d "$KNOWLEDGE_DIR"/topics/x/refs/*');
   });
 
   it("splits a build doc into a guide and rule sets with fixed line ids", async () => {
@@ -349,13 +351,14 @@ describe("firstStep", () => {
       "# Acme's notes\n\n- Site facts.\n",
     );
     const run = (client: string) =>
-      execFileSync("sh", ["-c", clientNotes(root, "seo")], {
-        env: { PATH: process.env.PATH, KNOWLEDGE_CLIENT: client },
+      execFileSync("sh", ["-c", clientNotes("seo")], {
+        env: { PATH: process.env.PATH, KNOWLEDGE_DIR: root, KNOWLEDGE_CLIENT: client },
       }).toString();
     expect(run("acme")).toContain("- Site facts.");
     expect(run("")).toBe("(none)\n");
     expect(run("other")).toBe("(none)\n");
-    expect(clientNotes(root, "seo")).not.toContain("acme");
+    expect(clientNotes("seo")).not.toContain("acme");
+    expect(clientNotes("seo")).not.toContain(root);
     await rm(root, { recursive: true, force: true });
   });
 });

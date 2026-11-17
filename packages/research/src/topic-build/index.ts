@@ -734,21 +734,22 @@ export function firstStep(guide: string, prefix: string): string {
   return "";
 }
 
+/** The door's Canon folder: `$KNOWLEDGE_DIR`, so a door names no one's home path (the base stays licensable) */
+const DOOR_ROOT = '"$KNOWLEDGE_DIR"';
+
 /** The door's command for `clients/$KNOWLEDGE_CLIENT/topics/<name>/notes.md`; the base never names a client. */
-export function clientNotes(root: string, name: string): string {
-  const path = `${JSON.stringify(join(root, "clients"))}/"$KNOWLEDGE_CLIENT"/topics/${name}/notes.md`;
+export function clientNotes(name: string): string {
+  const path = `${DOOR_ROOT}/clients/"$KNOWLEDGE_CLIENT"/topics/${name}/notes.md`;
   return `[ -n "$KNOWLEDGE_CLIENT" ] && awk 'NR==1 && /^---$/ {f=1; next} f && /^---$/ {f=0; next} !f' ${path} 2>/dev/null || echo "(none)"`;
 }
 
 function skillMd(
-  root: string,
   name: string,
   description: string,
   sets: { own: DoorSet[]; shared: DoorSet[]; load: string; guide: string; bytes: number },
 ): string {
-  const dir = topicDir(root, name);
-  const q = JSON.stringify(dir);
-  const knowledge = `knowledge --repo ${JSON.stringify(root)}`;
+  const q = `${DOOR_ROOT}/topics/${name}`;
+  const knowledge = "knowledge";
   const all = [...sets.own, ...sets.shared];
   const ids = all.map((s) => s.id);
   const owner = sets.shared.length
@@ -775,7 +776,7 @@ description: ${JSON.stringify(`SOP: ${description}`)}
 
 Follow this SOP start to finish. Its examples and prompts are the bar. Every loaded rule line applies; the procedure names a rule by its id.
 
-!\`knowledge --repo ${JSON.stringify(root)} render ${name} | grep -v '^<!-- set '\`
+!\`${knowledge} render ${name} | grep -v '^<!-- set '\`
 
 # The owner's notes (they beat every source)
 
@@ -783,11 +784,11 @@ Follow this SOP start to finish. Its examples and prompts are the bar. Every loa
 
 # The client's notes (they beat the owner's notes)
 
-!\`${clientNotes(root, name)}\`
+!\`${clientNotes(name)}\`
 ${rules}
-Reference files (designs, PDFs, images) in \`${dir}/refs/\`; open the relevant ones before writing:
+Reference files (designs, PDFs, images); open the relevant ones before writing:
 
-!\`ls ${q}/refs 2>/dev/null || echo "(none)"\`
+!\`ls -d ${q}/refs/* 2>/dev/null || echo "(none)"\`
 `;
 }
 
@@ -817,7 +818,7 @@ export async function writeSkill(root: string, name: string): Promise<string> {
   );
   await writeFile(
     file,
-    skillMd(root, name, guide.fm.description ?? purposeOf(guide.body, name), {
+    skillMd(name, guide.fm.description ?? purposeOf(guide.body, name), {
       own,
       shared,
       load,

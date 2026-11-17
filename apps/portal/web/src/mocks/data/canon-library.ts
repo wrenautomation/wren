@@ -358,7 +358,7 @@ export const CANON_HOME: Home = {
   ],
   other: [
     { path: "knowledge.json", size: 64, text: true },
-    { path: "shapes/README.md", size: 900, text: true },
+    { path: "clients/README.md", size: 900, text: true },
   ],
   conflicts: [
     link("conflict-cut-length-fake", "conflict", "Two sources disagree on the first cut"),

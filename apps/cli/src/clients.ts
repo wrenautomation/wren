@@ -130,7 +130,7 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
     .option("--why <text>", "kept in the audit log and the mirror commit", "removed")
     .action(async (id: string, opts: { yes?: boolean; why: string }) => {
       const plan = await withMainDb((db) => clientRemoval(db, settings.databaseUrl, id));
-      const mirror = `${settings.shapesGithubRepo}:shapes/${id}.yaml`;
+      const mirror = `${settings.shapesGithubRepo}:clients/${id}/shape.yaml`;
       const view = { id, name: plan.client.name, main: plan.main, database: plan.database, mirror };
       if (!opts.yes) {
         console.log(JSON.stringify({ dryRun: true, ...view }, null, 2));

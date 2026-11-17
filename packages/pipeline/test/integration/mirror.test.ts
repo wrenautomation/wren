@@ -95,12 +95,14 @@ describe("mirrorShapes", () => {
         { version: 3, sha: "c3000000" },
       ],
     });
-    expect(gh.commits.map((c) => c.path)).toEqual(Array(3).fill("shapes/wren.yaml"));
+    expect(gh.commits.map((c) => c.path)).toEqual(Array(3).fill("clients/wren/shape.yaml"));
     expect(gh.commits[0]?.message).toBe("shape wren v1: change 1\n\nAuthor: ada@example.test");
     const versions = await shapeVersionsOf(pg.db);
-    expect(gh.files.get("shapes/wren.yaml")?.text).toBe(exportShape(versions[2]?.body as never));
+    expect(gh.files.get("clients/wren/shape.yaml")?.text).toBe(
+      exportShape(versions[2]?.body as never),
+    );
     expect(await rows()).toMatchObject([
-      { version: 1, repo: "o/shapes", path: "shapes/wren.yaml", sha: "c1000000" },
+      { version: 1, repo: "o/shapes", path: "clients/wren/shape.yaml", sha: "c1000000" },
       { version: 2, sha: "c2000000" },
       { version: 3, sha: "c3000000" },
     ]);
@@ -125,7 +127,7 @@ describe("mirrorShapes", () => {
     const gh = fakeGithub();
     const r = await mirrorShapes(pg.db, { files: gh.repo, repo: "o/shapes", workspace: "acme" });
     expect(committed(r).length).toBeGreaterThan(0);
-    expect(gh.commits.every((c) => c.path === "shapes/acme.yaml")).toBe(true);
+    expect(gh.commits.every((c) => c.path === "clients/acme/shape.yaml")).toBe(true);
     expect(gh.commits.at(-1)?.message.split("\n")[0]).toBe("shape acme v4: first line second line");
   });
 

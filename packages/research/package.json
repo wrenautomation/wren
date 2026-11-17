@@ -47,7 +47,7 @@
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/runtime": "workspace:*",
-    "@wrenautomation/knowledge": "0.82.0",
+    "@wrenautomation/knowledge": "0.83.0",
     "@wrenautomation/models": "0.77.1",
     "@wrenautomation/read": "0.77.1",
     "@wrenautomation/weaver": "0.79.5",

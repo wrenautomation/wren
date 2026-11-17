@@ -300,7 +300,7 @@ describe("the mirror step", () => {
     const r = await a.mirror(op());
     expect(r).toMatchObject({ committed: [{ version: 4 }] });
     const last = github.commits.at(-1);
-    expect(last?.path).toBe("shapes/wren.yaml");
+    expect(last?.path).toBe("clients/wren/shape.yaml");
     expect(last?.message).toBe(`shape wren v4: renamed\n\nAuthor: ${ADA}`);
     // A client's file is named by the client.
     const acme = await a.mirror({ ...as(OWNER, "acme") });

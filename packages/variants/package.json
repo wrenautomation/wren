@@ -24,7 +24,7 @@
     "@wren/runtime": "workspace:*",
     "@wren/sites": "workspace:*",
     "@wren/starling-inbound": "workspace:*",
-    "@wrenautomation/knowledge": "0.82.0",
+    "@wrenautomation/knowledge": "0.83.0",
     "@wrenautomation/vireo": "0.19.1",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.6"

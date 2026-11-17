@@ -1,6 +1,6 @@
 /**
  * The shape's git mirror (designs/2026-10-19-business-map.md, "History like git"): every version
- * lands as one commit of `shapes/<workspace>.yaml` in a private repo, so git log and git blame
+ * lands as one commit of `clients/<workspace>/shape.yaml` in Canon (beside the client overlay), so git log and git blame
  * read the shape's history. The database stays the source of truth; the mirror is a copy that
  * catches up. A failed mirror never fails a save: the next run commits what is missing, oldest first.
  */
@@ -24,7 +24,7 @@ export type MirrorResult =
   | { off: true }
   | { off?: undefined; committed: MirrorCommit[]; failed?: string };
 
-const mirrorPath = (workspace: string) => `shapes/${workspace}.yaml`;
+const mirrorPath = (workspace: string) => `clients/${workspace}/shape.yaml`;
 
 /** A commit's subject line stays one line, whatever the note holds. */
 const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();

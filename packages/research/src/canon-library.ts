@@ -62,7 +62,7 @@ export interface Home {
   topics: Topic[];
   types: Counted[];
   direction: (FileRef & { title: string })[];
-  /** knowledge.json, shapes/, hooks/: files outside topics and direction */
+  /** knowledge.json, hooks/: files outside topics and direction */
   other: FileRef[];
   conflicts: Link[];
   /** rule sets a guide of another topic cites: the many-to-many between topics */
