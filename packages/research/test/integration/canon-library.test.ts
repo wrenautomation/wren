@@ -3,7 +3,7 @@
  * topic whole, every record with filters and file matches, one record with both link ways, a file.
  */
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
@@ -38,6 +38,40 @@ afterAll(async () => {
 const put = (root: string, path: string, text: string | Buffer) => {
   mkdirSync(join(root, path, ".."), { recursive: true });
   writeFileSync(join(root, path), text);
+};
+
+/** What the base answers: home, both topics, the base's records, one record. */
+const answers = async (api: ReturnType<typeof canonLibraryApi>) => ({
+  home: await api.home(),
+  topic: await api.topic("video-editing"),
+  other: await api.topic("writing-tells"),
+  records: await api.records({ client: "base" }),
+  rules: await api.records({ client: "base", type: "rule" }),
+  record: await api.record("video-editing-cuts"),
+});
+/** The answers less what a client adds: the head, client fields, the client facet. */
+const baseOnly = ({
+  home,
+  topic,
+  other,
+  records,
+  rules,
+  record,
+}: Awaited<ReturnType<typeof answers>>) => {
+  const bare = (t: typeof topic) => ({
+    ...t,
+    clients: [],
+    sets: t.sets.map((s) => ({ ...s, rules: s.rules.map((r) => ({ ...r, overrides: [] })) })),
+  });
+  const rows = (r: typeof records) => ({ ...r, facets: { ...r.facets, client: [] } });
+  return {
+    home: { ...home, head: null, clients: [] },
+    topic: bare(topic),
+    other: bare(other),
+    records: rows(records),
+    rules: rows(rules),
+    record,
+  };
 };
 
 describe("canonLibraryApi", () => {
@@ -292,6 +326,121 @@ describe("canonLibraryApi", () => {
     });
     expect((await api.file("direction/2026-11-12-brand.md")).body).toContain("YouTube first.");
     await expect(api.file("nope.md")).rejects.toThrow(/no such file/);
+
+    // a client's overlay: the base answers stay as they were; the client shows in fields of its own
+    const base = await answers(api);
+    await write(
+      repo,
+      [
+        {
+          op: "add",
+          type: "rule",
+          id: "acme-video-editing-cuts",
+          title: "Acme cuts",
+          topic: "video-editing",
+          client: "acme",
+          prefix: "AV",
+          cites: ["video-editing-cuts"],
+          replaces: [{ line: "AV-1", base: "VC-2", set: "video-editing-cuts" }],
+          body: "# Acme cuts\n\n- **AV-1** Hold the first frame on the logo.\n- **AV-2** Cut on the snare.\n",
+        },
+      ],
+      me,
+    );
+    await write(
+      repo,
+      [
+        {
+          op: "add",
+          type: "guide",
+          id: "acme-video-editing",
+          title: "Acme video editing",
+          topic: "video-editing",
+          client: "acme",
+          description: "Acme's way.",
+          cites: ["acme-video-editing-cuts"],
+          body: "# Acme video editing\n\n1. Cut on the snare [1].\n",
+        },
+      ],
+      me,
+    );
+    put(repo, "clients/acme/topics/video-editing/notes.md", "# Notes\n\nLogo first.");
+    git(repo, ["add", "-A"]);
+    git(repo, ["commit", "-q", "-m", "acme"]);
+    await syncCanonIndex(pg.db, pg.url, "canon", { dir: tmp(), remote: repo, token: null });
+    const withClient = await answers(api);
+    expect(withClient.home.clients).toEqual([
+      { client: "acme", records: 2, sets: 1, overrides: 1, stale: 0 },
+    ]);
+    const vc2 = withClient.topic.sets[0]?.rules.find((r) => r.id === "VC-2");
+    expect(vc2?.overrides).toEqual([
+      {
+        client: "acme",
+        set: "acme-video-editing-cuts",
+        topic: "video-editing",
+        line: "AV-1",
+        text: "Hold the first frame on the logo.",
+        stale: false,
+      },
+    ]);
+    expect(withClient.topic.clients).toEqual([
+      {
+        client: "acme",
+        sets: [{ id: "acme-video-editing-cuts", type: "rule", title: "Acme cuts", status: "live" }],
+        notes: "# Notes\n\nLogo first.",
+      },
+    ]);
+    expect(withClient.record.client).toBeNull();
+    expect((await api.record("acme-video-editing")).client).toBe("acme");
+    expect((await api.records({})).facets.client).toEqual([
+      { value: "base", n: 7 },
+      { value: "acme", n: 2 },
+    ]);
+    expect((await api.records({ client: "acme" })).rows.map((r) => [r.id, r.client])).toEqual([
+      ["acme-video-editing", "acme"],
+      ["acme-video-editing-cuts", "acme"],
+    ]);
+    // with the client fields cleared, every base answer is the one before
+    expect(baseOnly(withClient)).toEqual(baseOnly(base));
+
+    // one client whole: its lines and the base line each stands in for
+    const acme = await api.client("acme");
+    expect(acme.summary).toEqual(withClient.home.clients[0]);
+    expect(acme.records.map((r) => r.id).sort()).toEqual([
+      "acme-video-editing",
+      "acme-video-editing-cuts",
+    ]);
+    expect(acme.files.map((f) => f.path)).toEqual(["clients/acme/topics/video-editing/notes.md"]);
+    expect(acme.sets[0]?.rules).toEqual([
+      {
+        id: "AV-1",
+        text: "Hold the first frame on the logo.",
+        replaces: {
+          set: "video-editing-cuts",
+          topic: "video-editing",
+          line: "VC-2",
+          text: "Hold the first frame.",
+          stale: false,
+          gone: false,
+        },
+      },
+      { id: "AV-2", text: "Cut on the snare.", replaces: null },
+    ]);
+    await expect(api.client("nobody")).rejects.toThrow(/no such client/);
+
+    // the base drops VC-2: the client line keeps its text, its base line reads gone
+    const at = join(repo, (await api.record("video-editing-cuts")).path);
+    writeFileSync(at, readFileSync(at, "utf8").replace(/^- \*\*VC-2\*\*.*\n/m, ""));
+    git(repo, ["commit", "-qam", "drop VC-2"]);
+    await syncCanonIndex(pg.db, pg.url, "canon", { dir: tmp(), remote: repo, token: null });
+    expect((await api.client("acme")).sets[0]?.rules[0]?.replaces).toEqual({
+      set: "video-editing-cuts",
+      topic: "video-editing",
+      line: "VC-2",
+      text: null,
+      stale: true,
+      gone: true,
+    });
   });
 
   it("answers indexed: false before the first sync", async () => {
@@ -300,6 +449,8 @@ describe("canonLibraryApi", () => {
       const api = canonLibraryApi(fresh.db, REMOTE, shapes);
       expect(await api.home()).toMatchObject({ indexed: false, topics: [] });
       expect(await api.records({})).toMatchObject({ indexed: false, rows: [] });
+      expect(await api.clients()).toEqual([]);
+      await expect(api.client("acme")).rejects.toThrow(/no index/);
     } finally {
       await fresh.stop();
     }

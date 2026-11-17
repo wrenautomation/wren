@@ -101,6 +101,8 @@ export const RELATIONS: Record<string, string> = {
   "hit-by": "Hit by",
   hits: "Hits",
   into: "Replaced by",
+  replaces: "Replaces",
+  "overridden-by": "Overridden by",
   "goes-to": "Goes to",
   "comes-from": "Comes from",
   "transfers-to": "Transfers to",

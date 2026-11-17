@@ -4,7 +4,9 @@
  * References open on groups (`by-topic/<topic>`, `yours`, `by-creator/<handle>`, `all`); a row
  * in a group keeps its home, `canon/references/<id>` (WA-1375).
  * A set another topic borrows shows there as an alias; `backs`, `cites` and `used-by` are
- * relation folders. Reads only through a `CanonSource`: the index on a server (`canon.ts`), or
+ * relation folders. Each client's overlay (D7): `canon/clients/<c>/topics/<t>/sets/<id>/<line>`
+ * (`replaces` its base line; the base line's `overridden-by` back), `…/records/<type>/<id>`,
+ * `…/files/<path>`. Reads only through a `CanonSource`: the index on a server (`canon.ts`), or
  * fixtures in a story, so both walk the same tree. Browser-safe: core and types only.
  * One adapter per request: topics and records load once.
  */
@@ -27,6 +29,8 @@ import {
 } from "@wren/core/paths";
 import type { Reference, ReferenceWhole } from "@wren/research/canon-console";
 import type {
+  ClientSummary,
+  ClientWhole,
   canonEdges,
   FileRef,
   FileWhole,
@@ -56,6 +60,8 @@ export type Placed = {
   status: string;
   topic?: string | null;
   kind?: string | null;
+  /** null or none: the base */
+  client?: string | null;
 };
 
 /** Which references a group holds: those a topic cites, his own saves, one creator's; none: all. */
@@ -74,11 +80,13 @@ export interface ReferenceGroups {
   yours: number;
 }
 
-/** Where a find looks: one topic, one type, or the references. */
+/** Where a find looks: one topic, one type, or the references; and whose records. */
 export interface FindUnder {
   topic?: string;
   type?: string;
   references?: boolean;
+  /** null: the base only; `*`: every client, not the base; a client id: that client only; none: all */
+  client?: string | null;
 }
 
 /** What the tree reads. Each read of one thing rejects with PathError `unknown-path` when it is not there. */
@@ -110,6 +118,10 @@ export interface CanonSource {
   types(): Promise<{ type: string; n: number }[]>;
   /** a page of one type's records, newest first */
   ofType(type: string, offset: number, limit: number): Promise<{ rows: Placed[]; total: number }>;
+  /** each client's overlay at a glance; none: no Clients area */
+  clients(): Promise<ClientSummary[]>;
+  /** one client's overlay whole */
+  client(id: string): Promise<ClientWhole>;
   /** records whose title or id holds every word, live first */
   findRecords(words: readonly string[], under: FindUnder, limit: number): Promise<Placed[]>;
   /** the Canon commit the index holds */
@@ -166,9 +178,16 @@ export function canonTree(src: CanonSource): Adapter {
   /**
    * A record's home: live guides and sets under their topic, video sources under references. A
    * retired record leaves its topic (the topic shows live ones): it sits under records/.
+   * A client's (D7): its live sets under `clients/<c>/topics/<t>/sets`, the rest under
+   * `clients/<c>/records/<type>` (a client guide too: two on one topic would share a home).
    */
   const recordHome = (r: Placed): string => {
     const live = r.status === "live";
+    if (r.client) {
+      const at = join(ROOT, "clients", r.client);
+      if (live && r.type === "rule" && r.topic) return join(at, "topics", r.topic, "sets", r.id);
+      return join(at, "records", r.type ?? "missing", r.id);
+    }
     if (live && r.type === "guide" && r.topic) return join(ROOT, "topics", r.topic, "guide");
     if (live && r.type === "rule" && r.topic) return join(ROOT, "topics", r.topic, "sets", r.id);
     if (r.type === "source" && r.kind && src.videoKinds.includes(r.kind))
@@ -207,6 +226,14 @@ export function canonTree(src: CanonSource): Adapter {
   const rootFiles = once(async () => {
     await indexed();
     return src.rootFiles();
+  });
+  const clientList = once(async () => {
+    await indexed();
+    return src.clients();
+  });
+  const client = memo(async (id: string) => {
+    await indexed();
+    return src.client(id);
   });
   const placed = async (ids: string[]): Promise<Map<string, Placed>> =>
     ids.length ? new Map((await src.placed(ids)).map((r) => [r.id, r])) : new Map();
@@ -443,9 +470,189 @@ export function canonTree(src: CanonSource): Adapter {
       return r ? [r] : [];
     });
     const lineHome = join(home, seg);
-    if (!deeper.length) return relationRow(lineHome, "backed-by", backers);
-    if (deeper[0] === "backed-by") return relation(lineHome, "backed-by", backers);
-    throw new PathError("unknown-path", `${seg} has no ${deeper[0]}`);
+    // each client line in its place (D7)
+    const overrides = line.overrides.map(
+      (o): Item => ({
+        path: join(ROOT, "clients", o.client, "topics", o.topic ?? "", "sets", o.set, o.line),
+        name: o.line,
+        // whose: a mark reads one fixed word
+        sub: `${o.client}: ${o.text}`,
+        kind: "line",
+        ...(o.stale ? { mark: "stale" } : {}),
+      }),
+    );
+    if (!deeper.length)
+      return [
+        ...relationRow(lineHome, "backed-by", backers),
+        ...relationRow(lineHome, "overridden-by", overrides),
+      ];
+    if (deeper.length === 1 && deeper[0] === "backed-by")
+      return relation(lineHome, "backed-by", backers);
+    if (deeper.length === 1 && deeper[0] === "overridden-by")
+      return relation(lineHome, "overridden-by", overrides);
+    throw new PathError("unknown-path", `${seg} has no ${deeper.join("/")}`);
+  };
+
+  /** Under a client (D7): its topics, sets and lines, its records, its files. */
+  const clientRows = async (id: string, rest: string[], offset: number): Promise<Page> => {
+    const c = await client(id);
+    const at = join(ROOT, "clients", id);
+    const [part, ...under] = rest;
+    const topics = [
+      ...new Set([
+        ...c.sets.map((s) => s.topic),
+        ...c.files.flatMap((f) => {
+          const m = /^clients\/[^/]+\/topics\/([^/]+)\//.exec(f.path);
+          return m?.[1] ? [m[1]] : [];
+        }),
+      ]),
+    ].sort();
+    const notesOf = (t: string) =>
+      c.files.find((f) => f.path === `clients/${id}/topics/${t}/notes.md`);
+    if (!part) {
+      const rows: Item[] = [];
+      if (topics.length)
+        rows.push({ path: join(at, "topics"), name: "Topics", kind: "area", count: topics.length });
+      rows.push({
+        path: join(at, "records"),
+        name: "Records",
+        kind: "area",
+        count: c.records.length,
+      });
+      if (c.files.length)
+        rows.push({ path: join(at, "files"), name: "Files", kind: "area", count: c.files.length });
+      return { items: rows };
+    }
+    switch (part) {
+      case "topics": {
+        const [t, layer, setId, line, rel, more] = under;
+        if (!t)
+          return {
+            items: topics.map((name) => ({
+              path: join(at, "topics", name),
+              name,
+              kind: "topic",
+              count: c.sets.filter((s) => s.topic === name).length,
+            })),
+          };
+        if (!topics.includes(t)) throw new PathError("unknown-path", `${id} has no topic ${t}`);
+        const tAt = join(at, "topics", t);
+        const sets = c.sets.filter((s) => s.topic === t);
+        if (!layer) {
+          const rows: Item[] = [];
+          if (sets.length)
+            rows.push({
+              path: join(tAt, "sets"),
+              name: "Rule sets",
+              kind: "layer",
+              count: sets.length,
+            });
+          if (notesOf(t))
+            rows.push({
+              path: join(tAt, "notes"),
+              name: "Notes",
+              sub: "notes.md",
+              kind: "notes",
+              leaf: true,
+            });
+          return { items: rows };
+        }
+        if (layer === "notes" && notesOf(t) && !setId) return { items: [] };
+        if (layer !== "sets") throw new PathError("unknown-path", `${id}'s ${t} has no ${layer}`);
+        if (!setId)
+          return {
+            items: sets.map((s) => ({
+              path: join(tAt, "sets", s.id),
+              name: s.id,
+              sub: s.title,
+              kind: "set",
+              count: s.lines,
+            })),
+          };
+        const s = sets.find((x) => x.id === setId);
+        if (!s) throw new PathError("unknown-path", `${id}'s ${t} has no set ${setId}`);
+        const home = join(tAt, "sets", s.id);
+        if (!line)
+          return {
+            items: [
+              ...s.rules.map((r) => ({
+                path: join(home, r.id),
+                name: r.id,
+                sub: r.text,
+                kind: "line",
+                ...(r.replaces ? { mark: r.replaces.stale ? "stale" : "override" } : {}),
+              })),
+              ...relationRow(home, "cites", await rowsOf(s.cites)),
+            ],
+          };
+        if (line === "cites" && !rel)
+          return { items: relation(home, "cites", await rowsOf(s.cites)) };
+        const r = s.rules.find((x) => x.id === line);
+        if (!r) throw new PathError("unknown-path", `${s.id} has no line ${line}`);
+        const rp = r.replaces;
+        // a base line gone or its set retired: the preview says so; no row to open
+        const target: Item[] =
+          rp && !rp.gone && rp.topic
+            ? [
+                {
+                  path: join(ROOT, "topics", rp.topic, "sets", rp.set, rp.line),
+                  name: rp.line,
+                  sub: rp.text ?? "",
+                  kind: "line",
+                  ...(rp.stale ? { mark: "stale" } : {}),
+                },
+              ]
+            : [];
+        const lineHome = join(home, r.id);
+        if (!rel) return { items: relationRow(lineHome, "replaces", target) };
+        if (rel === "replaces" && more === undefined)
+          return { items: relation(lineHome, "replaces", target) };
+        throw new PathError(
+          "unknown-path",
+          `${r.id} has no ${[rel, more].filter(Boolean).join("/")}`,
+        );
+      }
+      case "records": {
+        const [type, rid, rel] = under;
+        if (!type) {
+          const n = new Map<string, number>();
+          for (const r of c.records) n.set(r.type, (n.get(r.type) ?? 0) + 1);
+          return {
+            items: [...n]
+              .sort(([a, x], [b, y]) => y - x || a.localeCompare(b))
+              .map(([t, count]) => ({
+                path: join(at, "records", t),
+                name: t,
+                kind: "type",
+                count,
+              })),
+          };
+        }
+        const base = join(at, "records", type);
+        if (!rid) {
+          const all = c.records.filter((r) => r.type === type);
+          const items = all.slice(offset, offset + PAGE_SIZE).map((r) => {
+            const row = recordRow({ ...r, client: id });
+            return row.path === join(base, r.id)
+              ? row
+              : { ...row, path: join(base, r.id), original: row.path };
+          });
+          const next = offset + items.length;
+          return { items, ...(next < all.length ? { next: String(next) } : {}) };
+        }
+        return { items: await recordRelations(join(base, rid), rid, rel) };
+      }
+      case "files":
+        return {
+          items: fileTree(
+            join(at, "files", ...under),
+            `clients/${id}/${under.map((u) => `${u}/`).join("")}`,
+            c.files,
+          ),
+        };
+      default:
+        throw new PathError("unknown-path", `${id} has no ${part}`);
+    }
   };
 
   const backsOf = async (id: string): Promise<Item[]> =>
@@ -521,6 +728,25 @@ export function canonTree(src: CanonSource): Adapter {
     return null;
   };
 
+  /** A record's relation rows at `home`, or one relation's targets. */
+  const recordRelations = async (home: string, id: string, rel?: string): Promise<Item[]> => {
+    const r = await record(id);
+    const into = async () => {
+      const to = await movedTo(id);
+      return to ? [recordRow(to)] : [];
+    };
+    if (!rel)
+      return [
+        ...relationRow(home, "into", await into()),
+        ...relationRow(home, "cites", await rowsOf(r.cites)),
+        ...relationRow(home, "cited-by", await rowsOf(r.citedBy)),
+      ];
+    if (rel === "into") return relation(home, rel, await into());
+    if (rel === "cites") return relation(home, rel, await rowsOf(r.cites));
+    if (rel === "cited-by") return relation(home, rel, await rowsOf(r.citedBy));
+    throw new PathError("unknown-path", `${id} has no ${rel}`);
+  };
+
   const children = async (path: string, after?: string): Promise<Page> => {
     await indexed();
     const [root, area, ...rest] = segments(path);
@@ -528,7 +754,7 @@ export function canonTree(src: CanonSource): Adapter {
     const offset = Number(after ?? 0) || 0;
     switch (area) {
       case undefined: {
-        const [n, files] = await Promise.all([src.counts(), rootFiles()]);
+        const [n, files, clients] = await Promise.all([src.counts(), rootFiles(), clientList()]);
         return {
           items: [
             { path: join(ROOT, "topics"), name: "Topics", kind: "area", count: n.topics },
@@ -540,6 +766,17 @@ export function canonTree(src: CanonSource): Adapter {
             },
             { path: join(ROOT, "records"), name: "Records", kind: "area", count: n.records },
             { path: join(ROOT, "files"), name: "Files", kind: "area", count: files.length },
+            // only once a client has an overlay
+            ...(clients.length
+              ? [
+                  {
+                    path: join(ROOT, "clients"),
+                    name: "Clients",
+                    kind: "area",
+                    count: clients.length,
+                  },
+                ]
+              : []),
           ],
         };
       }
@@ -611,29 +848,33 @@ export function canonTree(src: CanonSource): Adapter {
           const { rows, total } = await src.ofType(type, offset, PAGE_SIZE);
           const items = rows.map((r) => {
             const row = recordRow(r);
-            return row.path === join(base, r.id) ? row : aliasOf(base, row);
+            // named by its id: a guide's home ends in `guide`, so aliasOf would make records/guide/guide
+            return row.path === join(base, r.id)
+              ? row
+              : { ...row, path: join(base, r.id), original: row.path };
           });
           const next = offset + rows.length;
           return { items, ...(next < total ? { next: String(next) } : {}) };
         }
-        const home = join(base, id);
-        const r = await record(id);
-        const into = async () => {
-          const to = await movedTo(id);
-          return to ? [recordRow(to)] : [];
-        };
-        if (!rel)
+        return { items: await recordRelations(join(base, id), id, rel) };
+      }
+      case "clients": {
+        const [id, ...under] = rest;
+        if (!id)
           return {
-            items: [
-              ...relationRow(home, "into", await into()),
-              ...relationRow(home, "cites", await rowsOf(r.cites)),
-              ...relationRow(home, "cited-by", await rowsOf(r.citedBy)),
-            ],
+            items: (await clientList()).map((c) => ({
+              path: join(ROOT, "clients", c.client),
+              name: c.client,
+              kind: "client",
+              count: c.records,
+              ...(c.overrides
+                ? {
+                    sub: `${c.overrides} override${c.overrides === 1 ? "" : "s"}${c.stale ? `, ${c.stale} stale` : ""}`,
+                  }
+                : {}),
+            })),
           };
-        if (rel === "into") return { items: relation(home, rel, await into()) };
-        if (rel === "cites") return { items: relation(home, rel, await rowsOf(r.cites)) };
-        if (rel === "cited-by") return { items: relation(home, rel, await rowsOf(r.citedBy)) };
-        throw new PathError("unknown-path", `${id} has no ${rel}`);
+        return clientRows(id, under, offset);
       }
       case "files":
         return {
@@ -688,7 +929,7 @@ export function canonTree(src: CanonSource): Adapter {
       if (root !== ROOT) throw new PathError("unknown-path", `not a Canon path: ${path}`);
       if (!area) return { path: ROOT, name: "Canon", kind: "root" };
       if (segs.length === 2) {
-        if (!["topics", "references", "records", "files"].includes(area))
+        if (!["topics", "references", "records", "files", "clients"].includes(area))
           throw new PathError("unknown-path", `Canon has no ${area}`);
         return { path, name: area[0]?.toUpperCase() + area.slice(1), kind: "area" };
       }
@@ -720,7 +961,8 @@ export function canonTree(src: CanonSource): Adapter {
         const id = segs[flat ? 3 : 4];
         if (id && segs.length === (flat ? 4 : 5)) {
           const r = (await placed([id])).get(id);
-          if (!r) throw new PathError("unknown-path", `no reference ${id}`);
+          // a client's record never opens at a base path
+          if (!r || r.client) throw new PathError("unknown-path", `no reference ${id}`);
           return recordRow(r);
         }
         throw new PathError("unknown-path", `nothing at ${path}`);
@@ -732,11 +974,32 @@ export function canonTree(src: CanonSource): Adapter {
       ) {
         const id = (area === "references" ? a : b) as string;
         const r = (await placed([id])).get(id);
-        if (!r || (area === "records" && r.type !== a))
+        if (!r || r.client || (area === "records" && r.type !== a))
           throw new PathError("unknown-path", `no ${area === "records" ? a : "reference"} ${id}`);
         return recordRow(r);
       }
       if (area === "records" && a && segs.length === 3) return { path, name: a, kind: "type" };
+      if (area === "clients" && a) {
+        const c = await client(a);
+        const [, , , part, x, y] = segs;
+        if (segs.length === 3) return { path, name: a, kind: "client", count: c.summary.records };
+        // a record by id, straight: its type's list pages
+        if (part === "records" && x && y && segs.length === 6) {
+          const r = (await placed([y])).get(y);
+          if (!r || r.client !== a || r.type !== x)
+            throw new PathError("unknown-path", `${a} has no ${x} ${y}`);
+          return recordRow(r);
+        }
+        if (part === "files" && segs.length > 4) {
+          const rel = `clients/${a}/${segs.slice(4).join("/")}`;
+          if (c.files.some((f) => f.path === rel))
+            return { path, name: segs.at(-1) ?? rel, kind: "file", leaf: true };
+          if (c.files.some((f) => f.path.startsWith(`${rel}/`)))
+            return { path, name: segs.at(-1) ?? rel, kind: "folder" };
+          throw new PathError("unknown-path", `no file ${rel}`);
+        }
+        return itemFromParent(adapter, path);
+      }
       if (area === "files") {
         const rel = segs.slice(2).join("/");
         const files = await rootFiles();
@@ -766,6 +1029,34 @@ export function canonTree(src: CanonSource): Adapter {
       const [, area, a, layer, set, line] = segments(home);
       const links = await linksOf(adapter, it);
       const out: Whole = { ...it, links };
+      if (area === "clients" && a) {
+        const c = await client(a);
+        const segs = segments(home);
+        const [, , , part, t, sub, setId, lineId] = segs;
+        if (!part) return { ...out, data: c.summary };
+        if (part === "topics" && t && sub === "notes") {
+          const f = await src.file(`clients/${a}/topics/${t}/notes.md`);
+          return { ...out, body: f.body ?? "", data: f };
+        }
+        const s =
+          part === "topics" && sub === "sets"
+            ? c.sets.find((x) => x.id === setId && x.topic === t)
+            : undefined;
+        if (s && !lineId) return { ...out, body: s.body, data: s };
+        if (s && lineId) {
+          const l = s.rules.find((r) => r.id === lineId);
+          return { ...out, body: l?.text ?? "", data: { set: s.id, setTitle: s.title, line: l } };
+        }
+        if (part === "records" && sub) {
+          const r = await record(sub);
+          return { ...out, body: r.body, data: r };
+        }
+        if (part === "files" && it.kind === "file") {
+          const f = await src.file(`clients/${a}/${segs.slice(4).join("/")}`);
+          return { ...out, body: f.body ?? "", data: f };
+        }
+        return out;
+      }
       if (area === "topics" && a) {
         const t = await topic(a);
         if (!layer) return { ...out, data: t };
@@ -804,15 +1095,35 @@ export function canonTree(src: CanonSource): Adapter {
       const words = q.split(/\s+/).filter(Boolean);
       if (!words.length) return [];
       const [, area, a] = segments(under ?? ROOT);
+      // the root finds everything; a base area the base only; Clients the clients (D7)
       const where: FindUnder =
-        area === "topics" && a
-          ? { topic: a }
-          : area === "records" && a
-            ? { type: a }
-            : area === "references"
-              ? { references: true }
-              : {};
+        area === "clients"
+          ? { client: a ?? "*" }
+          : area === "topics" && a
+            ? { topic: a, client: null }
+            : area === "records" && a
+              ? { type: a, client: null }
+              : area === "references"
+                ? { references: true, client: null }
+                : area
+                  ? { client: null }
+                  : {};
       const records = area === "files" ? [] : await src.findRecords(words, where, PAGE_SIZE);
+      const has = (text: string) =>
+        words.every((x) => text.toLowerCase().includes(x.toLowerCase()));
+      const clientFiles =
+        area === "clients" && a
+          ? (await client(a)).files
+              .filter((f) => has(f.path))
+              .map(
+                (f): Item => ({
+                  path: join(ROOT, "clients", a, "files", f.path.slice(`clients/${a}/`.length)),
+                  name: f.path,
+                  kind: "file",
+                  leaf: true,
+                }),
+              )
+          : [];
       const topics =
         area && area !== "topics"
           ? []
@@ -845,7 +1156,7 @@ export function canonTree(src: CanonSource): Adapter {
                   leaf: true,
                 }),
               );
-      return [...topics, ...records.map(recordRow), ...files];
+      return [...topics, ...records.map(recordRow), ...files, ...clientFiles];
     },
     stamp: async () => {
       await indexed();

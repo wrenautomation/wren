@@ -1,6 +1,7 @@
 /**
  * Canon's tree on a server: `canonTree` (canon-tree.ts) over schema `canon`, read through the
- * library, never the repo. One adapter per request: topics and records load once; edges once per head.
+ * library, never the repo. The base, and each client's overlay under `canon/clients` (D7); Wren's
+ * team only (PathsConsole). One adapter per request: topics and records load once; edges once per head.
  */
 
 import { PathError } from "@wren/core/paths";
@@ -20,7 +21,7 @@ import { type SQL, sql } from "drizzle-orm";
 import { type CanonSource, canonTree, type Placed } from "./canon-tree.js";
 
 const REPO = "canon";
-const PLACED = sql`id, type, title, status, coalesce(topic, data->>'topic') as topic, data->>'kind' as kind`;
+const PLACED = sql`id, type, title, status, coalesce(topic, data->>'topic') as topic, data->>'kind' as kind, client`;
 const VIDEO = sql.join(
   VIDEO_KINDS.map((k) => sql`${k}`),
   sql`, `,
@@ -62,6 +63,8 @@ function canonSource(db: Db, remote: string, media: Media | null): CanonSource {
     record: (id) => library.record(id).catch(missing(`record ${id}`)),
     reference: (id) => console.reference(id).catch(missing(`reference ${id}`)),
     file: (path) => library.file(path).catch(missing("file")),
+    clients: () => library.clients(),
+    client: (id) => library.client(id).catch(missing(`client ${id}`)),
     references: async (after, limit, by = {}) => {
       const f = {
         handle: by.handle ?? null,
@@ -83,7 +86,7 @@ function canonSource(db: Db, remote: string, media: Media | null): CanonSource {
       const [topics, creators, yours] = await Promise.all([
         db.execute<{ topic: string; n: number }>(
           // each topic's walk down its cites, as `usedBy` reads one
-          sql`with recursive down(topic, id) as (select topic, id from canon.knowledge_records where repo = ${REPO} and status = 'live' and type in ('guide', 'rule') and topic is not null union select down.topic, c."to" from canon.knowledge_cites c join down on c."from" = down.id where c.repo = ${REPO}) select d.topic, count(distinct r.id)::int as n from down d join canon.knowledge_records r on r.repo = ${REPO} and r.id = d.id where ${all} group by 1 order by n desc, 1`,
+          sql`with recursive down(topic, id) as (select topic, id from canon.knowledge_records where repo = ${REPO} and client is null and status = 'live' and type in ('guide', 'rule') and topic is not null union select down.topic, c."to" from canon.knowledge_cites c join down on c."from" = down.id where c.repo = ${REPO}) select d.topic, count(distinct r.id)::int as n from down d join canon.knowledge_records r on r.repo = ${REPO} and r.id = d.id where ${all} group by 1 order by n desc, 1`,
         ),
         db.execute<{ handle: string; platform: string; n: number }>(
           sql`select r.data->>'handle' as handle, min(${PLATFORM_SQL}) as platform, count(*)::int as n from canon.knowledge_records r where ${all} and coalesce(r.data->>'handle', '') <> '' and strpos(r.data->>'handle', '/') = 0 group by 1 order by n desc, 1`,
@@ -96,7 +99,7 @@ function canonSource(db: Db, remote: string, media: Media | null): CanonSource {
     },
     rootFiles: () =>
       db.execute<FileRef>(
-        sql`select path, size, body is not null as text from canon.knowledge_files where repo = ${REPO} and path not like 'topics/%' order by path`,
+        sql`select path, size, body is not null as text from canon.knowledge_files where repo = ${REPO} and client is null and path not like 'topics/%' order by path`,
       ),
     placed: async (ids) =>
       !ids.length
@@ -115,19 +118,21 @@ function canonSource(db: Db, remote: string, media: Media | null): CanonSource {
     },
     foldedGuide: async (name) => {
       const [g] = await db.execute<{ id: string }>(
-        sql`select id from canon.knowledge_records where repo = ${REPO} and type = 'guide' and status = 'retired' and data ? 'into' and (id = ${name} or topic = ${name}) order by (id = ${name}) desc limit 1`,
+        sql`select id from canon.knowledge_records where repo = ${REPO} and client is null and type = 'guide' and status = 'retired' and data ? 'into' and (id = ${name} or topic = ${name}) order by (id = ${name}) desc limit 1`,
       );
       return g?.id ?? null;
     },
     counts: async () => {
       const [references, records, topics] = await Promise.all([
         count(
-          sql`select count(*)::int as n from canon.knowledge_records where repo = ${REPO} and type = 'source' and status = 'live' and data->>'kind' in (${VIDEO})`,
+          sql`select count(*)::int as n from canon.knowledge_records where repo = ${REPO} and client is null and type = 'source' and status = 'live' and data->>'kind' in (${VIDEO})`,
         ),
-        count(sql`select count(*)::int as n from canon.knowledge_records where repo = ${REPO}`),
+        count(
+          sql`select count(*)::int as n from canon.knowledge_records where repo = ${REPO} and client is null`,
+        ),
         count(
           sql`select count(*)::int as n from (
-                select topic as t from canon.knowledge_records where repo = ${REPO} and status = 'live' and type in ('guide', 'rule') and topic is not null
+                select topic as t from canon.knowledge_records where repo = ${REPO} and client is null and status = 'live' and type in ('guide', 'rule') and topic is not null
                 union
                 select split_part(path, '/', 2) from canon.knowledge_files where repo = ${REPO} and path like 'topics/%/%'
               ) x`,
@@ -137,15 +142,15 @@ function canonSource(db: Db, remote: string, media: Media | null): CanonSource {
     },
     types: () =>
       db.execute<{ type: string; n: number }>(
-        sql`select type, count(*)::int as n from canon.knowledge_records where repo = ${REPO} group by type order by n desc, type`,
+        sql`select type, count(*)::int as n from canon.knowledge_records where repo = ${REPO} and client is null group by type order by n desc, type`,
       ),
     ofType: async (type, offset, limit) => {
       const [rows, total] = await Promise.all([
         db.execute<Placed>(
-          sql`select ${PLACED} from canon.knowledge_records where repo = ${REPO} and type = ${type} order by updated desc, id limit ${limit} offset ${offset}`,
+          sql`select ${PLACED} from canon.knowledge_records where repo = ${REPO} and client is null and type = ${type} order by updated desc, id limit ${limit} offset ${offset}`,
         ),
         count(
-          sql`select count(*)::int as n from canon.knowledge_records where repo = ${REPO} and type = ${type}`,
+          sql`select count(*)::int as n from canon.knowledge_records where repo = ${REPO} and client is null and type = ${type}`,
         ),
       ]);
       return { rows, total };
@@ -153,6 +158,9 @@ function canonSource(db: Db, remote: string, media: Media | null): CanonSource {
     findRecords: (words, under, limit) => {
       const like = (w: string) => `%${w.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
       const w: SQL[] = [sql`repo = ${REPO}`];
+      if (under.client === null) w.push(sql`client is null`);
+      else if (under.client === "*") w.push(sql`client is not null`);
+      else if (under.client !== undefined) w.push(sql`client = ${under.client}`);
       for (const word of words) w.push(sql`(title ilike ${like(word)} or id ilike ${like(word)})`);
       if (under.topic) w.push(sql`coalesce(topic, data->>'topic') = ${under.topic}`);
       if (under.type) w.push(sql`type = ${under.type}`);

@@ -28,6 +28,7 @@ const KIND_ICON: Record<string, IconName> = {
   layer: "stack",
   relation: "link",
   topic: "book",
+  client: "building",
   skill: "bolt",
   guide: "doc",
   notes: "note",

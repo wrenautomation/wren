@@ -35,6 +35,7 @@ const FILLERS = 51;
 let pg: TestPostgres;
 let a: Adapter;
 let head: string;
+let repo: string;
 const dirs: string[] = [];
 const tmp = () => {
   const d = mkdtempSync(join(tmpdir(), "canon-paths-"));
@@ -46,10 +47,32 @@ const put = (root: string, path: string, text: string | Buffer) => {
   writeFileSync(join(root, path), text);
 };
 const paths = (items: { path: string }[]) => items.map((i) => i.path);
+/** Every node under canon, each home walked once and each leaf whole, a find and every link. */
+const everything = async (b: Adapter) => {
+  const nodes: unknown[] = [];
+  const wholes: Record<string, unknown> = {};
+  const seen = new Set<string>();
+  const down = async (route: string): Promise<void> => {
+    // a route the tree lists but cannot open counts as its error, the same both times
+    const home = await homeAt(b, route).catch((e: Error) => {
+      nodes.push({ route, error: e.message });
+      return null;
+    });
+    if (home === null || seen.has(home)) return;
+    seen.add(home);
+    for (const i of await allChildren(b, home)) {
+      nodes.push(i);
+      if (i.leaf) wholes[i.path] = await wholeAt(b, i.path).catch((e: Error) => e.message);
+      else await down(i.path);
+    }
+  };
+  await down("canon");
+  return { nodes, wholes, find: await b.find("cuts"), edges: await b.edges?.("canon") };
+};
 
 beforeAll(async () => {
   pg = await startTestPostgres({ own: true });
-  const repo = tmp();
+  repo = tmp();
   git(repo, ["init", "-q", "-b", "main"]);
   git(repo, ["config", "user.email", "t@example.com"]);
   git(repo, ["config", "user.name", "t"]);
@@ -502,6 +525,138 @@ describe("canonPaths", () => {
     expect(page.edges.map((e) => [e.rel, e.to])).toEqual([
       ["backs", `${sets}/video-editing-cuts/VC-1`],
     ]);
+  });
+
+  it("puts a client's overlay under Clients and leaves the base as it was", async () => {
+    const before = await everything(a);
+    await write(
+      repo,
+      [
+        {
+          op: "add",
+          type: "rule",
+          id: "acme-video-editing-cuts",
+          title: "Acme cuts",
+          topic: "video-editing",
+          client: "acme",
+          prefix: "AV",
+          cites: ["video-editing-cuts", "video-editing-old"],
+          replaces: [
+            { line: "AV-1", base: "VC-2", set: "video-editing-cuts" },
+            // written against older words: stale
+            { line: "AV-2", base: "VC-1", set: "video-editing-cuts", seen: "0000000000000000" },
+            // its base set retired: nothing to open
+            { line: "AV-3", base: "VO-1", set: "video-editing-old" },
+          ],
+          body: "# Acme cuts\n\n- **AV-1** Hold the first frame on the logo.\n- **AV-2** Cut on the snare.\n- **AV-3** Hold two frames.\n",
+        },
+      ],
+      { by: "agent-1", why: "test" },
+    );
+    await write(
+      repo,
+      [
+        {
+          op: "add",
+          type: "guide",
+          id: "acme-video-editing",
+          title: "Acme video editing cuts",
+          topic: "video-editing",
+          client: "acme",
+          cites: ["acme-video-editing-cuts"],
+          body: "# Acme video editing\n\n1. Cut on the snare [1].\n",
+        },
+      ],
+      { by: "agent-1", why: "test" },
+    );
+    put(repo, "clients/acme/topics/video-editing/notes.md", "# Notes\n\nLogo first.");
+    git(repo, ["add", "-A"]);
+    git(repo, ["commit", "-q", "-m", "acme"]);
+    await syncCanonIndex(pg.db, pg.url, "canon", { dir: tmp(), remote: repo, token: null });
+    const b = canonPaths(pg.db, REMOTE, null);
+    expect(await b.stamp?.()).not.toEqual({ root: "canon", head });
+    const after = await everything(b);
+    expect(after.nodes.length).toBeGreaterThan(100);
+    // every row the tree lists opens
+    expect(after.nodes.filter((n) => (n as { error?: string }).error)).toEqual([]);
+
+    // the base less what the overlay adds: the Clients area, overridden-by rows, client find hits
+    const C = "canon/clients/acme";
+    const added = (p: string) => p.startsWith("canon/clients") || p.includes("/overridden-by");
+    const baseOf = (e: typeof before) => ({
+      ...e,
+      nodes: e.nodes.filter((n) => !added((n as { path: string }).path)),
+      find: e.find.filter((i) => !added(i.path)),
+      wholes: Object.fromEntries(Object.entries(e.wholes).filter(([p]) => !added(p))),
+    });
+    expect(baseOf(after)).toEqual(baseOf(before));
+    // find ranks by score: compare as a set
+    expect(
+      after.find
+        .filter((i) => added(i.path))
+        .map((i) => i.path)
+        .sort(),
+    ).toEqual([
+      `${C}/records/guide/acme-video-editing`,
+      `${C}/topics/video-editing/sets/acme-video-editing-cuts`,
+    ]);
+
+    expect(await allChildren(b, "canon/clients")).toEqual([
+      { path: C, name: "acme", kind: "client", count: 2, sub: "3 overrides, 1 stale" },
+    ]);
+    expect(paths(await allChildren(b, C))).toEqual([`${C}/topics`, `${C}/records`, `${C}/files`]);
+    const set = `${C}/topics/video-editing/sets/acme-video-editing-cuts`;
+    expect(paths(await allChildren(b, `${C}/topics/video-editing`))).toEqual([
+      `${C}/topics/video-editing/sets`,
+      `${C}/topics/video-editing/notes`,
+    ]);
+    expect((await allChildren(b, set)).map((i) => [i.path, (i as { mark?: string }).mark])).toEqual(
+      [
+        [`${set}/AV-1`, "override"],
+        [`${set}/AV-2`, "stale"],
+        [`${set}/AV-3`, "override"],
+        [`${set}/cites`, undefined],
+      ],
+    );
+    // a client line opens its base line; the base line lists it back
+    expect(await allChildren(b, `${set}/AV-1/replaces`)).toEqual([
+      expect.objectContaining({
+        path: `${set}/AV-1/replaces/VC-2`,
+        original: `${T}/sets/video-editing-cuts/VC-2`,
+      }),
+    ]);
+    expect(await allChildren(b, `${T}/sets/video-editing-cuts/VC-1/overridden-by`)).toEqual([
+      expect.objectContaining({ original: `${set}/AV-2`, mark: "stale" }),
+    ]);
+    expect(await allChildren(b, `${set}/AV-3`)).toEqual([]);
+    expect((await wholeAt(b, `${set}/AV-3`)).data).toMatchObject({
+      line: {
+        id: "AV-3",
+        replaces: { set: "video-editing-old", topic: null, text: null, gone: true },
+      },
+    });
+    expect((await wholeAt(b, `${T}/sets/video-editing-cuts/VC-2`)).data).toMatchObject({
+      line: { overrides: [{ client: "acme", line: "AV-1", topic: "video-editing" }] },
+    });
+    // records by type; a live set's row goes to its topic home
+    expect(await allChildren(b, `${C}/records/rule`)).toEqual([
+      expect.objectContaining({ path: `${C}/records/rule/acme-video-editing-cuts`, original: set }),
+    ]);
+    expect((await wholeAt(b, `${C}/records/guide/acme-video-editing`)).body).toContain("snare");
+    expect((await wholeAt(b, `${C}/topics/video-editing/notes`)).body).toContain("Logo first");
+    expect((await wholeAt(b, `${C}/files/topics/video-editing/notes.md`)).body).toContain(
+      "Logo first",
+    );
+    // a client record never opens at a base path
+    expect((await walk(b, "canon/records/guide/acme-video-editing")).error).toMatchObject({
+      code: "unknown-path",
+    });
+    // find: the root finds all; a base area the base; a client its own records and files
+    expect(paths(await b.find("acme", "canon/topics"))).toEqual([]);
+    expect(paths(await b.find("acme", C))).toEqual(
+      expect.arrayContaining([set, `${C}/records/guide/acme-video-editing`]),
+    );
+    expect(paths(await b.find("notes", C))).toEqual([`${C}/files/topics/video-editing/notes.md`]);
   });
 
   it("answers not-indexed before the first sync", async () => {

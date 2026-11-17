@@ -304,6 +304,8 @@ export const PLATFORM_SQL = sql`coalesce(r.data->>'platform', split_part(r.id, '
 export function referencesWhere(f: Filters, skip?: Facetted): SQL {
   const w: SQL[] = [
     sql`r.repo = ${REPO}`,
+    // the base only: a client's sources sit in its own area (designs/2026-11-09-knowledge-repo.md Clients)
+    sql`r.client is null`,
     sql`r.type = 'source'`,
     sql`r.status = 'live'`,
     sql`r.data->>'kind' in (${sql.join(
@@ -321,7 +323,7 @@ export function referencesWhere(f: Filters, skip?: Facetted): SQL {
   // a topic's references: down its cites from its live guide and sets (canon-library topic page)
   if (f.usedBy)
     w.push(
-      sql`r.id in (with recursive down(id) as (select id from canon.knowledge_records where repo = ${REPO} and status = 'live' and type in ('guide', 'rule') and topic = ${f.usedBy} union select c."to" from canon.knowledge_cites c join down on c."from" = down.id where c.repo = ${REPO}) select id from down)`,
+      sql`r.id in (with recursive down(id) as (select id from canon.knowledge_records where repo = ${REPO} and client is null and status = 'live' and type in ('guide', 'rule') and topic = ${f.usedBy} union select c."to" from canon.knowledge_cites c join down on c."from" = down.id where c.repo = ${REPO}) select id from down)`,
     );
   if (f.q?.trim()) {
     const like = `%${f.q.trim().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
@@ -411,7 +413,7 @@ export function canonConsoleApi(db: Db, media: Media | null = null) {
         sql`with recursive up(id) as (
               select ${id}::text
               union
-              select c."from" from canon.knowledge_cites c join up on c."to" = up.id where c.repo = ${REPO}
+              select c."from" from canon.knowledge_cites c join up on c."to" = up.id where c.repo = ${REPO} and c.client is null
             )
             select k.id, k.type, k.title, k.body, k.data from canon.knowledge_records k join up using (id)
             where k.repo = ${REPO} and k.status = 'live'`,

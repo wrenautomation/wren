@@ -4,6 +4,7 @@
  */
 import type { Reference } from "@wren/research/canon-console";
 import type {
+  ClientWhole,
   canonLibraryApi,
   FileWhole,
   Home,
@@ -17,6 +18,8 @@ import { CANON_ROWS } from "./canon.js";
 import { ago } from "./shell.js";
 
 const GITHUB = "https://github.com/example-org/canon";
+/** the base's name in the client facet, as the server's `BASE` */
+const BASE = "base";
 const HEAD = "5fe93471aa0c2b9d4e6f7a8b9c0d1e2f3a4b5c6d";
 
 const link = (id: string, type: string | null, title: string | null, status = "live"): Link => ({
@@ -119,18 +122,38 @@ export const CANON_TOPIC: TopicWhole = {
           text: "Cut on the beat, never between beats. [1] [2 at 0:03]",
           backing: "human",
           sources: ["instagram-Fake1", "instagram-Fake4"],
+          overrides: [],
         },
         {
           id: "VC-2",
           text: "Hold the first frame for a third of a second. [notes]",
           backing: "human",
           sources: ["web-example-editing-guide"],
+          overrides: [
+            {
+              client: "client-a",
+              set: "client-a-video-editing-cuts",
+              topic: "video-editing",
+              line: "CA-1",
+              text: "Hold the first frame for half a second: their viewers read the logo.",
+              stale: false,
+            },
+            {
+              client: "client-b",
+              set: "client-b-video-editing",
+              topic: "video-editing",
+              line: "CB-2",
+              text: "Open on the product, no held frame.",
+              stale: true,
+            },
+          ],
         },
         {
           id: "VC-3",
           text: "Never cut away from the speaker mid-word. [3]",
           backing: "agent",
           sources: ["youtube-fakeVideo01"],
+          overrides: [],
         },
       ],
       usedBy: [],
@@ -149,6 +172,7 @@ export const CANON_TOPIC: TopicWhole = {
           text: "Show captions one word at a time, in time with the voice. [1]",
           backing: "human",
           sources: ["instagram-Fake1"],
+          overrides: [],
         },
       ],
       usedBy: [{ topic: "content-principles", title: "Content principles" }],
@@ -164,14 +188,38 @@ export const CANON_TOPIC: TopicWhole = {
       cites: [],
       lines: 2,
       rules: [
-        { id: "WC-1", text: "One idea per line on screen.", backing: "none", sources: [] },
-        { id: "WC-2", text: "No word the viewer must look up.", backing: "none", sources: [] },
+        {
+          id: "WC-1",
+          text: "One idea per line on screen.",
+          backing: "none",
+          sources: [],
+          overrides: [],
+        },
+        {
+          id: "WC-2",
+          text: "No word the viewer must look up.",
+          backing: "none",
+          sources: [],
+          overrides: [],
+        },
       ],
       usedBy: [{ topic: "content-principles", title: "Content principles" }],
     },
   ],
   skill: SKILL,
   notes: NOTES,
+  clients: [
+    {
+      client: "client-a",
+      sets: [link("client-a-video-editing-cuts", "rule", "Client A: Cuts")],
+      notes: "# Notes\n\n- Their logo shows in the first frame. (2026-11-16)\n",
+    },
+    {
+      client: "client-b",
+      sets: [link("client-b-video-editing", "rule", "Client B: Video")],
+      notes: null,
+    },
+  ],
   files: [
     { path: "topics/video-editing/checks/cuts-on-beat.mjs", size: 1_830, text: true },
     { path: "topics/video-editing/counts.tsv", size: 412, text: true },
@@ -329,6 +377,10 @@ export const CANON_HOME: Home = {
       users: ["content-principles"],
     },
   ],
+  clients: [
+    { client: "client-a", records: 3, sets: 1, overrides: 1, stale: 0 },
+    { client: "client-b", records: 1, sets: 1, overrides: 2, stale: 2 },
+  ],
   stale: [
     {
       id: "video-editing",
@@ -355,6 +407,7 @@ export const CANON_HOME: Home = {
 };
 
 const row = (r: Partial<RecordRow> & Pick<RecordRow, "id" | "type" | "title">): RecordRow => ({
+  client: null,
   status: "live",
   topic: null,
   updated: ago(1),
@@ -413,6 +466,37 @@ export const CANON_RECORDS: RecordRow[] = [
     topic: "video-editing",
     summary: "His note says hold the first frame; an agent source says cut at once.",
   }),
+  row({
+    id: "client-a-video-editing-cuts",
+    type: "rule",
+    title: "Client A: Cuts",
+    topic: "video-editing",
+    client: "client-a",
+    summary: "Client A's own cuts: the logo holds the first frame.",
+  }),
+  row({
+    id: "client-a-video-editing",
+    type: "guide",
+    title: "Client A: Video editing",
+    topic: "video-editing",
+    client: "client-a",
+    summary: "How Client A's videos are cut.",
+  }),
+  row({
+    id: "web-client-a-brand-sheet",
+    type: "source",
+    title: "Client A brand sheet",
+    client: "client-a",
+    summary: "Their colors, logo and words to avoid.",
+  }),
+  row({
+    id: "client-b-video-editing",
+    type: "rule",
+    title: "Client B: Video",
+    topic: "video-editing",
+    client: "client-b",
+    summary: "Client B opens on the product.",
+  }),
   ...Array.from({ length: 50 }, (_, i) =>
     row({
       id: `finding-fake-${i}`,
@@ -429,6 +513,7 @@ const RECORD: Record<string, RecordWhole> = {
     id: "cuts-land-on-the-kick-fake01",
     type: "finding",
     title: "Cuts land on the kick drum",
+    client: null,
     status: "live",
     path: "findings/cuts-land-on-the-kick-fake01.md",
     topic: null,
@@ -453,6 +538,7 @@ const RECORD: Record<string, RecordWhole> = {
     id: "web-example-editing-guide",
     type: "source",
     title: "An editing guide on a made-up site",
+    client: null,
     status: "retired",
     path: "sources/web-example-editing-guide.md",
     topic: null,
@@ -477,7 +563,16 @@ const RECORD: Record<string, RecordWhole> = {
   },
 };
 
+const CLIENT_A_NOTES = "clients/client-a/topics/video-editing/notes.md";
+
 const FILES: Record<string, FileWhole> = {
+  [CLIENT_A_NOTES]: {
+    path: CLIENT_A_NOTES,
+    size: 64,
+    text: true,
+    body: "# Notes\n\n- Their logo shows in the first frame. (2026-11-16)\n",
+    github: `${GITHUB}/blob/main/${CLIENT_A_NOTES}`,
+  },
   "direction/2026-11-12-personal-brand.md": {
     path: "direction/2026-11-12-personal-brand.md",
     size: 2_400,
@@ -524,6 +619,7 @@ export const CANON_LIBRARY_ANSWERS = serve<ReturnType<typeof canonLibraryApi>>("
       (skip === "type" || !s("type") || r.type === s("type")) &&
       (skip === "status" || !s("status") || r.status === s("status")) &&
       (skip === "topic" || !s("topic") || r.topic === s("topic")) &&
+      (skip === "client" || !s("client") || (r.client ?? BASE) === s("client")) &&
       (!q || `${r.title} ${r.id} ${r.summary}`.toLowerCase().includes(q));
     const rows = CANON_RECORDS.filter((r) => keep(r));
     const after = typeof b.after === "number" ? b.after : 0;
@@ -540,6 +636,10 @@ export const CANON_LIBRARY_ANSWERS = serve<ReturnType<typeof canonLibraryApi>>("
         status: counted(
           CANON_RECORDS.filter((r) => keep(r, "status")),
           (r) => r.status,
+        ),
+        client: counted(
+          CANON_RECORDS.filter((r) => keep(r, "client")),
+          (r) => r.client ?? BASE,
         ),
         topic: counted(
           CANON_RECORDS.filter((r) => keep(r, "topic")),
@@ -563,6 +663,12 @@ export const CANON_LIBRARY_ANSWERS = serve<ReturnType<typeof canonLibraryApi>>("
     if (!f) throw new Error("no such file");
     return f;
   },
+  clients: () => canonClients(),
+  client: (b) => {
+    const c = canonClient(String(b.id));
+    if (!c) throw new Error("no such client");
+    return c;
+  },
 });
 
 /** A record whole, as `canon/record` answers; null when Canon has none. */
@@ -573,6 +679,7 @@ export function canonRecord(id: string): RecordWhole | null {
   if (!listed) return null;
   return {
     id: listed.id,
+    client: listed.client,
     type: listed.type,
     title: listed.title,
     status: listed.status,
@@ -592,3 +699,103 @@ export const canonRecordsWhole = (): readonly RecordWhole[] => Object.values(REC
 
 /** A file whole, as `canon/file` answers; null when the mocks hold none. */
 export const canonFile = (path: string): FileWhole | null => FILES[path] ?? null;
+
+const clientRecords = (client: string) =>
+  CANON_RECORDS.filter((r) => r.client === client).map(({ id, type, title, status, topic }) => ({
+    id,
+    type,
+    title,
+    status,
+    topic,
+    kind: type === "source" ? "web" : null,
+  }));
+
+/** Each client's overlay whole, as `canon/client` answers: a fresh override, a stale one, a gone one. */
+const CLIENTS: Record<string, ClientWhole> = {
+  "client-a": {
+    client: "client-a",
+    summary: CANON_HOME.clients[0] as ClientWhole["summary"],
+    records: clientRecords("client-a"),
+    sets: [
+      {
+        id: "client-a-video-editing-cuts",
+        title: "Client A: Cuts",
+        topic: "video-editing",
+        prefix: "CA",
+        body: "# Client A: Cuts\n\n- **CA-1** Hold the first frame for half a second: their viewers read the logo.\n- **CA-2** Never cut on the logo sting.\n",
+        lines: 2,
+        rules: [
+          {
+            id: "CA-1",
+            text: "Hold the first frame for half a second: their viewers read the logo.",
+            replaces: {
+              set: "video-editing-cuts",
+              topic: "video-editing",
+              line: "VC-2",
+              text: "Hold the first frame for a third of a second.",
+              stale: false,
+              gone: false,
+            },
+          },
+          { id: "CA-2", text: "Never cut on the logo sting.", replaces: null },
+        ],
+        cites: [link("video-editing-cuts", "rule", "Video editing: Cuts")],
+      },
+    ],
+    files: [{ path: CLIENT_A_NOTES, size: 64, text: true }],
+  },
+  "client-b": {
+    client: "client-b",
+    summary: CANON_HOME.clients[1] as ClientWhole["summary"],
+    records: clientRecords("client-b"),
+    sets: [
+      {
+        id: "client-b-video-editing",
+        title: "Client B: Video",
+        topic: "video-editing",
+        prefix: "CB",
+        body: "# Client B: Video\n\n- **CB-1** Show the price in the first three seconds.\n- **CB-2** Open on the product, no held frame.\n- **CB-3** Cut every two seconds at most.\n",
+        lines: 3,
+        rules: [
+          { id: "CB-1", text: "Show the price in the first three seconds.", replaces: null },
+          {
+            id: "CB-2",
+            text: "Open on the product, no held frame.",
+            replaces: {
+              set: "video-editing-cuts",
+              topic: "video-editing",
+              line: "VC-2",
+              text: "Hold the first frame for a third of a second.",
+              stale: true,
+              gone: false,
+            },
+          },
+          {
+            id: "CB-3",
+            text: "Cut every two seconds at most.",
+            replaces: {
+              set: "video-editing-cuts",
+              topic: "video-editing",
+              line: "VC-4",
+              text: null,
+              stale: true,
+              gone: true,
+            },
+          },
+        ],
+        cites: [link("video-editing-cuts", "rule", "Video editing: Cuts")],
+      },
+    ],
+    files: [],
+  },
+};
+
+/** Each client at a glance, as `canon/clients` answers. */
+export function canonClients() {
+  return CANON_HOME.clients;
+}
+
+/** A client whole, as `canon/client` answers; null when the mocks hold none. */
+export function canonClient(id: string): ClientWhole | null {
+  return CLIENTS[id] ?? null;
+}

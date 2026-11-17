@@ -5,6 +5,9 @@
 import { homeOf, segments, type Whole } from "@wren/core/paths";
 import type { ReferenceWhole } from "@wren/research/canon-console";
 import type {
+  ClientLine,
+  ClientRuleSet,
+  ClientSummary,
   FileWhole,
   Home,
   Link,
@@ -24,7 +27,10 @@ import { Poster, ReferenceBody } from "./reference.js";
 
 const ROOT = "canon";
 
-/** A row's mark: a line's backing, a record's status. A line from his own source has none. */
+/**
+ * A row's mark: a line's backing, a record's status, a client line's override. A line from his own
+ * source has none.
+ */
 export const CANON_MARKS: Record<string, { label: string; tone?: TagTone }> = {
   none: { label: "No source", tone: "warn" },
   agent: { label: "Agent source" },
@@ -32,6 +38,9 @@ export const CANON_MARKS: Record<string, { label: string; tone?: TagTone }> = {
   retired: { label: "Retired" },
   draft: { label: "Draft" },
   missing: { label: "Not in Canon", tone: "bad" },
+  override: { label: "Override" },
+  // the base line changed or went since the client wrote it
+  stale: { label: "Stale", tone: "warn" },
 };
 
 /** What fills an empty Canon folder: a reference from Library's Add box, the rest from the repo. */
@@ -251,6 +260,7 @@ export function CanonPreview({ w, view }: { w: Whole; view: ExplorerView }) {
     if (layer === "notes") return <Markdown text={body} className="max-w-[72ch]" />;
     if (w.data) return <FileBody f={w.data as FileWhole} bare />;
   }
+  if (area === "clients" && a) return <ClientPreview w={w} view={view} />;
   if (area === "references" && w.data) return <ReferenceBody r={w.data as ReferenceWhole} bare />;
   if (area === "records" && w.data) {
     const r = w.data as RecordWhole;
@@ -258,6 +268,60 @@ export function CanonPreview({ w, view }: { w: Whole; view: ExplorerView }) {
   }
   if (area === "files" && w.data) return <FileBody f={w.data as FileWhole} bare />;
   return body ? <Markdown text={body} className="max-w-[72ch]" /> : null;
+}
+
+/** A client's home (D7): its overlay at a glance, a set, a line; the relations list the base line. */
+function ClientPreview({ w, view }: { w: Whole; view: ExplorerView }) {
+  const [, , , part, t, sub, , line] = segments(w.path);
+  const body = w.body ?? "";
+  if (!part) {
+    const c = w.data as ClientSummary | undefined;
+    if (!c) return null;
+    const facts = [
+      `${num(c.records)} ${c.records === 1 ? "record" : "records"}`,
+      `${num(c.sets)} ${c.sets === 1 ? "rule set" : "rule sets"}`,
+      `${num(c.overrides)} ${c.overrides === 1 ? "override" : "overrides"}`,
+    ];
+    return (
+      <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-(--ui-ink-3)">
+        {facts.map((f) => (
+          <span key={f}>{f}</span>
+        ))}
+        {c.stale > 0 && <Tag tone="warn">{num(c.stale)} stale</Tag>}
+      </span>
+    );
+  }
+  if (part === "topics" && t && sub === "sets" && line) {
+    const l = (w.data as { line?: ClientLine } | undefined)?.line;
+    return (
+      <div className="flex max-w-[72ch] flex-col gap-2">
+        <p className="m-0 text-[15px] leading-normal text-pretty wrap-anywhere">{body}</p>
+        {l?.replaces?.gone && <Gone r={l.replaces} />}
+      </div>
+    );
+  }
+  if (part === "topics" && t && sub === "sets") {
+    const s = w.data as ClientRuleSet | undefined;
+    if (!s) return null;
+    return <Markdown text={withoutTitle(body)} cites={s.cites} open={citeHref(w, s.cites, view)} />;
+  }
+  if (part === "topics" && sub === "notes")
+    return <Markdown text={body} className="max-w-[72ch]" />;
+  if (part === "records" && w.data) {
+    const r = w.data as RecordWhole;
+    return <RecordBody r={r} open={citeHref(w, r.cites, view)} bare />;
+  }
+  if (w.data && "path" in (w.data as object)) return <FileBody f={w.data as FileWhole} bare />;
+  return body ? <Markdown text={body} className="max-w-[72ch]" /> : null;
+}
+
+/** A base line gone: no `replaces` row to open, so the preview says so. */
+function Gone({ r }: { r: NonNullable<ClientLine["replaces"]> }) {
+  return (
+    <p className="m-0 mt-2 text-[13px] text-(--ui-ink-3)">
+      Replaces {r.line} in {r.set}. Base line gone: the set dropped it or was retired.
+    </p>
+  );
 }
 
 /** A topic at a glance: its layers' sizes, its references' posters, the way to the whole page. */

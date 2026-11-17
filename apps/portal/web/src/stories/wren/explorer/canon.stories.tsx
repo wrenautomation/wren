@@ -102,6 +102,88 @@ export const RuleLine = tidy(
   }),
 );
 
+const linkTo = (page: HTMLElement, path: string) => page.querySelector(`a[href="${at(path)}"]`);
+
+/** A base line clients replace: its overridden-by relation lists each client line, "Stale" where the base moved on. */
+export const LineOverridden = tidy(
+  pageAt(at("canon/topics/video-editing/sets/video-editing-cuts/VC-2"), {
+    ...ONE,
+    check: async (page) => {
+      const view = within(page);
+      const [text] = await view.findAllByText(
+        "client-a: Hold the first frame for half a second: their viewers read the logo.",
+        {},
+        WAIT,
+      );
+      await waitFor(() => expect(text).toBeVisible(), WAIT);
+      await expect(
+        linkTo(
+          page,
+          "canon/clients/client-a/topics/video-editing/sets/client-a-video-editing-cuts/CA-1",
+        ),
+      ).not.toBeNull();
+      await expect(view.getAllByText("Stale").length).toBeGreaterThan(0);
+    },
+  }),
+);
+
+const CLIENT_B = "canon/clients/client-b/topics/video-editing/sets/client-b-video-editing";
+
+/** A client's root: its overlay at a glance, stale overrides flagged. */
+export const Client = tidy(
+  pageAt(at("canon/clients/client-b"), {
+    ...ONE,
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByText("2 overrides", {}, WAIT)).toBeVisible();
+      await expect(view.getByText("2 stale")).toBeVisible();
+    },
+  }),
+);
+
+const BASE_VC2 = "Hold the first frame for a third of a second.";
+
+/** A client line: its replaces relation lists the base line as the base reads now. */
+export const ClientLine = tidy(
+  pageAt(at("canon/clients/client-a/topics/video-editing/sets/client-a-video-editing-cuts/CA-1"), {
+    ...ONE,
+    check: async (page) => {
+      const view = within(page);
+      const [base] = await view.findAllByText(BASE_VC2, {}, WAIT);
+      await waitFor(() => expect(base).toBeVisible(), WAIT);
+      await expect(
+        linkTo(page, "canon/topics/video-editing/sets/video-editing-cuts/VC-2"),
+      ).not.toBeNull();
+      await expect(view.queryByText("Stale")).toBeNull();
+    },
+  }),
+);
+
+/** A client line whose base line changed since: "Stale" on the base line's row. */
+export const ClientLineStale = tidy(
+  pageAt(at(`${CLIENT_B}/CB-2`), {
+    ...ONE,
+    check: async (page) => {
+      const view = within(page);
+      const [base] = await view.findAllByText(BASE_VC2, {}, WAIT);
+      await waitFor(() => expect(base).toBeVisible(), WAIT);
+      await expect(view.getAllByText("Stale").length).toBeGreaterThan(0);
+    },
+  }),
+);
+
+/** A client line whose base line is gone: said plainly, nothing to open. */
+export const ClientLineGone = tidy(
+  pageAt(at(`${CLIENT_B}/CB-3`), {
+    ...ONE,
+    check: async (page) => {
+      const view = within(page);
+      await expect(await view.findByText(/Base line gone/, {}, WAIT)).toBeVisible();
+      await expect(view.queryByRole("link", { name: "VC-4" })).toBeNull();
+    },
+  }),
+);
+
 /** A reference: the player and his note; the lines it backs are the preview's links. */
 export const Reference = tidy(
   pageAt(at(`canon/references/${REF}`), {

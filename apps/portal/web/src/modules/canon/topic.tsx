@@ -426,6 +426,22 @@ function Line({
               <Tag tone="bad">Conflict</Tag>
             </a>
           ))}
+          {l.overrides.map((o) => (
+            <a
+              key={`${o.client} ${o.line}`}
+              href={explorerHref(
+                o.topic
+                  ? `canon/clients/${o.client}/topics/${o.topic}/sets/${o.set}/${o.line}`
+                  : `canon/clients/${o.client}`,
+              )}
+              title={o.text}
+              className="no-underline"
+            >
+              <Tag tone={o.stale ? "warn" : "neutral"}>
+                {o.client} {o.stale ? "override, stale" : "override"}
+              </Tag>
+            </a>
+          ))}
           {shown.map((r) => (
             <a
               key={r.id}

@@ -33,6 +33,8 @@ import {
   CANON_HOME,
   CANON_RECORDS,
   CANON_TOPIC,
+  canonClient,
+  canonClients,
   canonFile,
   canonRecord,
   canonRecordsWhole,
@@ -56,7 +58,14 @@ for (const s of [...CANON_TOPIC.sets, ...CANON_TOPIC.borrowed])
 for (const c of CANON_TOPIC.conflicts)
   place({ id: c.id, type: "conflict", title: c.title, status: "live", topic: CANON_TOPIC.name });
 for (const r of CANON_RECORDS)
-  place({ id: r.id, type: r.type, title: r.title, status: r.status, topic: r.topic });
+  place({
+    id: r.id,
+    type: r.type,
+    title: r.title,
+    status: r.status,
+    topic: r.topic,
+    client: r.client,
+  });
 for (const r of canonRecordsWhole())
   place({
     id: r.id,
@@ -91,6 +100,7 @@ function thinTopic(name: string): TopicWhole | null {
     conflicts: [],
     references: [],
     sources: [],
+    clients: [],
     github: CANON_TOPIC.github,
   };
 }
@@ -110,6 +120,7 @@ function sourceRecord(id: string): RecordWhole | null {
     status: "live",
     path: `sources/${id}.md`,
     topic: null,
+    client: null,
     body: r.note?.text ?? "",
     data: { kind: r.kind, url: r.url, by: "agent-1" },
     picture: r.poster,
@@ -246,6 +257,12 @@ export const CANON_SOURCE: CanonSource = {
       )
       .sort((a, b) => Number(b.status === "live") - Number(a.status === "live"))
       .slice(0, limit),
+  clients: async () => canonClients(),
+  client: async (id) => {
+    const c = canonClient(id);
+    if (!c) throw missing(`client ${id}`);
+    return c;
+  },
   head: async () => CANON_HOME.head,
   edges: async () => CANON_EDGES,
 };
@@ -281,6 +298,8 @@ const EMPTY_CANON: CanonSource = {
   types: async () => [],
   ofType: async () => ({ rows: [], total: 0 }),
   findRecords: async () => [],
+  clients: async () => [],
+  client: (id) => none(`client ${id}`),
   edges: async () => ({ places: [], cites: [], backs: [] }),
 };
 
