@@ -4,16 +4,16 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
 <style>
 /* One reading column. Tokens, then parts, then the Metro map, its zoom, the app, and what changes in the code. App token names. */
-:root{--canvas:#f3f1ec;--paper:#fff;--ink:#0e0e0e;--ink-2:#56564f;--ink-3:#63645e;--accent:#6a5a93;--on-accent:#faf7f2;
+:root{--canvas:#f3f1ec;--paper:#fff;--ink:#0e0e0e;--ink-2:#40403c;--ink-3:#56564f;--accent:#6a5a93;--on-accent:#faf7f2;
  --good:#17803d;--warn:#b7791f;--bad:#c31c15;--l0:#6a5a93;--l1:#2f8a80;--l2:#c0567f;--l3:#3d78b8;--mask:url(data:image/png;base64,MARK);
  --hair:color-mix(in srgb,var(--ink) 11%,transparent);--fill:color-mix(in srgb,var(--ink) 5%,transparent);
  --tint:color-mix(in srgb,var(--accent) 10%,transparent);--wash:color-mix(in srgb,var(--accent) 6%,transparent);
  --edge:color-mix(in srgb,var(--accent) 72%,#000);
  --raise:0 0 0 1px var(--hair),0 1px 2px rgb(14 14 14/.04),0 4px 14px -6px rgb(40 30 70/.10);
  --body:"Figtree",system-ui,-apple-system,sans-serif;--spring:cubic-bezier(.2,.9,.25,1.12);--ease:cubic-bezier(.16,1,.3,1);color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--canvas:#0d0d0c;--paper:#171716;--ink:#f2f0ea;--ink-2:#a9a79f;--ink-3:#8f8d86;--accent:#a596d6;--on-accent:#15121f;--good:#4cc27a;--warn:#e0a64a;--bad:#ff6b5e;
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--canvas:#0d0d0c;--paper:#171716;--ink:#f2f0ea;--ink-2:#bfbdb6;--ink-3:#a9a79f;--accent:#a596d6;--on-accent:#15121f;--good:#4cc27a;--warn:#e0a64a;--bad:#ff6b5e;
  --l0:#a596d6;--l1:#5cc3b6;--l2:#e588ac;--l3:#7fb0e6;--edge:#7a69ad;--raise:0 0 0 1px var(--hair),0 6px 18px -8px rgb(0 0 0/.6);color-scheme:dark}}
-:root[data-theme="dark"]{--canvas:#0d0d0c;--paper:#171716;--ink:#f2f0ea;--ink-2:#a9a79f;--ink-3:#8f8d86;--accent:#a596d6;--on-accent:#15121f;--good:#4cc27a;--warn:#e0a64a;--bad:#ff6b5e;
+:root[data-theme="dark"]{--canvas:#0d0d0c;--paper:#171716;--ink:#f2f0ea;--ink-2:#bfbdb6;--ink-3:#a9a79f;--accent:#a596d6;--on-accent:#15121f;--good:#4cc27a;--warn:#e0a64a;--bad:#ff6b5e;
  --l0:#a596d6;--l1:#5cc3b6;--l2:#e588ac;--l3:#7fb0e6;--edge:#7a69ad;--raise:0 0 0 1px var(--hair),0 6px 18px -8px rgb(0 0 0/.6);color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--canvas);color:var(--ink);font:15px/1.55 var(--body);-webkit-font-smoothing:antialiased;padding-block:36px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}

@@ -44,12 +44,12 @@ const ACTIONS = "flex flex-wrap items-center gap-2.5";
 export const NAV_LABEL =
   "px-2 pt-3 pb-1 text-[12px] leading-[1.55] font-semibold text-(--ui-ink-3)";
 /**
- * A row in the sidebar (the artifact's `.nav`): 6 px by 8, 14 px ink-2, a leaf of 3 and 12; the
+ * A row in the sidebar (the artifact's `.nav`): 6 px by 8, 14 px ink (text roles, 11-16), a leaf of 3 and 12; the
  * row on screen is tinted and bolder, and `ui-nav-sweep` draws its arc. Hover is the wash a task
  * row takes. Snug density takes 3 px off each side.
  */
 export const NAV_ROW =
-  "ui-nav-sweep flex w-full min-w-0 items-center gap-[9px] rounded-(--ui-leaf-nav) px-2 py-1.5 in-data-[density=snug]:py-[3px] text-[14px] leading-[1.55] text-(--ui-ink-2) no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink) [&>svg]:[stroke-width:1.8]";
+  "ui-nav-sweep flex w-full min-w-0 items-center gap-[9px] rounded-(--ui-leaf-nav) px-2 py-1.5 in-data-[density=snug]:py-[3px] text-[14px] leading-[1.55] text-(--ui-ink) no-underline transition-colors duration-150 ease-(--ui-ease) hover:bg-(--ui-accent-wash) hover:text-(--ui-ink) [&>svg]:[stroke-width:1.8]";
 /** The sidebar row on screen (`.nav[aria-current]`). */
 export const NAV_ON =
   "aria-[current=page]:bg-(--ui-accent-tint) aria-[current=page]:font-semibold aria-[current=page]:text-(--ui-ink) aria-[current=true]:bg-(--ui-accent-tint) aria-[current=true]:font-semibold aria-[current=true]:text-(--ui-ink)";

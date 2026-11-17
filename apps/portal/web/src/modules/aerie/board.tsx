@@ -9,36 +9,53 @@ import { fieldOf } from "@wrenautomation/aerie/core";
 import { useMemo } from "react";
 import type { TaskRow } from "./data.js";
 import { foldKey, People } from "./list.js";
-import { groupLabel, groupsOf, statusColor } from "./look.js";
+import { groupLabel, groupsOf, peopleOf, priorityColor, statusColor } from "./look.js";
 
-/** a card: title, id, the first sentence, then chips; the lane's own field is left out */
+/** a card (Linear's): meta line, title, summary, one row of state; the lane's own field is left out */
 function Face({ t, group }: { t: TaskRow; group: string }) {
   return (
     <span className="grid gap-1">
-      <span className="text-[14px] leading-snug font-semibold text-pretty wrap-anywhere">
-        {t.title}
-      </span>
-      <span className="text-[12px] text-(--ui-ink-3) tabular-nums">{t.id}</span>
-      {t.summary ? (
-        <span className="text-[13px] leading-normal text-pretty wrap-anywhere text-(--ui-ink-2)">
-          {t.summary}
-        </span>
-      ) : null}
-      <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-(--ui-ink-3)">
-        {group !== "status" ? (
-          <Pill color={statusColor(t.status)} className="whitespace-nowrap">
-            {t.status}
-          </Pill>
-        ) : null}
+      <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-[12px] font-medium text-(--ui-ink-3)">
+        <span className="tabular-nums">{t.id}</span>
         {group !== "area" ? (
           <span className="inline-flex min-w-0 items-center gap-1 wrap-anywhere">
-            <Icon name="folder" size={13} className="flex-none" />
+            <Icon name="folder" size={12} className="flex-none" />
             {t.area}
           </span>
         ) : null}
-        {group !== "priority" && t.priority ? <span>{t.priority}</span> : null}
-        <People task={t} />
       </span>
+      <span className="text-[14px] leading-snug font-semibold text-pretty wrap-anywhere text-(--ui-ink)">
+        {t.title}
+      </span>
+      {t.summary ? (
+        <span className="text-[13px] leading-normal text-pretty wrap-anywhere text-(--ui-ink)">
+          {t.summary}
+        </span>
+      ) : null}
+      <State t={t} group={group} />
+    </span>
+  );
+}
+
+/** status, priority and people as tinted chips; nothing when the lane says it all */
+function State({ t, group }: { t: TaskRow; group: string }) {
+  const status = group !== "status";
+  // low is the quiet default: the List column shows it, a card does not
+  const priority = group !== "priority" && t.priority && t.priority !== "low" ? t.priority : null;
+  if (!status && !priority && !peopleOf(t).length) return null;
+  return (
+    <span className="mt-1 flex flex-wrap items-center gap-1">
+      {status ? (
+        <Pill color={statusColor(t.status)} className="whitespace-nowrap">
+          {t.status}
+        </Pill>
+      ) : null}
+      {priority ? (
+        <Pill color={priorityColor(priority)} className="whitespace-nowrap">
+          {priority}
+        </Pill>
+      ) : null}
+      <People task={t} />
     </span>
   );
 }

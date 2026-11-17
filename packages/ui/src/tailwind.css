@@ -26,8 +26,8 @@
   --ui-canvas: #f3f1ec; /* the ground the app sits on */
   --ui-paper: #fff; /* windows and cards */
   --ui-ink: #0e0e0e;
-  --ui-ink-2: #56564f; /* secondary text, 7.4:1 on white */
-  --ui-ink-3: #63645e; /* faint text, 4.5:1 on every ground like all text */
+  --ui-ink-2: #40403c; /* secondary text, 10:1 on white */
+  --ui-ink-3: #56564f; /* metadata only (ids, times, counts), 6.6:1 on canvas */
   --ui-accent: #6a5a93; /* Smoky Lavender, deeper than the pfp's #8270b0: 4.5:1 on every ground */
   --ui-on-accent: #faf7f2;
   --ui-good: #17803d;

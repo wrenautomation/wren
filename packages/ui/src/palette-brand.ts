@@ -152,8 +152,9 @@ export function brandTheme(brand: BrandInput): { theme: Theme; report: ContrastL
     paper: dark ? s.surfaceContainer : s.surfaceContainerLowest,
     tile: s.surfaceContainerHigh,
     ink: s.onSurface,
-    "ink-2": s.onSurfaceVariant,
-    "ink-3": s.outline,
+    // gray steps up: secondary 30% toward ink, metadata takes the old secondary
+    "ink-2": Blend.cam16Ucs(s.onSurfaceVariant, s.onSurface, 0.3),
+    "ink-3": s.onSurfaceVariant,
     accent: s.primary,
     "on-accent": s.onPrimary,
     good,

@@ -28,6 +28,10 @@ const LANE: Record<string, number> = {
 
 export const statusColor = (s: string) => (s in LANE ? lineColor(LANE[s] as number) : undefined);
 
+/** priority as a tinted pill: high red, medium amber, low plain */
+const PRIORITY: Record<string, string> = { high: "var(--ui-bad)", medium: "var(--ui-warn)" };
+export const priorityColor = (p: string) => PRIORITY[p];
+
 /** a group's head: the field's value, or what its absence means */
 export function groupLabel(by: string, key: string | null): string {
   if (key !== null) return key;

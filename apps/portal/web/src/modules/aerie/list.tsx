@@ -7,7 +7,7 @@ import { Pill, type RowsColumn, type RowsLine, Tag, useNarrow } from "@wren/ui";
 import { PageRows } from "../../page-rows.js";
 import { dayLabel } from "../work/bits.js";
 import type { TaskRow } from "./data.js";
-import { groupLabel, groupsOf, peopleOf, statusColor, who } from "./look.js";
+import { groupLabel, groupsOf, peopleOf, priorityColor, statusColor, who } from "./look.js";
 
 /** folds that start shut: Done is most of the board */
 export const SHUT: ReadonlySet<string> = new Set(["status:Done"]);
@@ -74,7 +74,12 @@ const COLUMNS: RowsColumn<TaskRow>[] = [
     label: "Priority",
     icon: "gauge",
     width: 90,
-    cell: (t) => (t.priority ? <span className="text-[13.5px]">{t.priority}</span> : null),
+    cell: (t) =>
+      t.priority ? (
+        <Pill color={priorityColor(t.priority)} className="whitespace-nowrap">
+          {t.priority}
+        </Pill>
+      ) : null,
   },
   {
     key: "updated",
@@ -150,7 +155,7 @@ export function TaskList({
         href: hrefOf,
         sub: (t) => (
           <span className="flex flex-col gap-0.5">
-            <span className="text-[12px] text-(--ui-ink-3) tabular-nums">
+            <span className="text-[12px] font-medium text-(--ui-ink-3) tabular-nums">
               {/* a phone shows one column (status, or area under a status group): the rest ride here */}
               {[
                 t.id,
@@ -161,7 +166,7 @@ export function TaskList({
                 .join(" · ")}
             </span>
             {t.summary ? (
-              <span className="text-[13.5px] leading-normal text-pretty wrap-anywhere text-(--ui-ink-2)">
+              <span className="text-[13.5px] leading-normal text-pretty wrap-anywhere text-(--ui-ink)">
                 {t.summary}
               </span>
             ) : null}

@@ -194,7 +194,7 @@ function NotFound({ id }: { id: string }) {
   return (
     <div className="flex flex-col gap-2 pt-2">
       <h2 className="m-0 text-[18px] leading-snug font-semibold">No task {id}</h2>
-      <p className="m-0 text-[14px] text-pretty text-(--ui-ink-2)">
+      <p className="m-0 text-[14px] text-pretty text-(--ui-ink)">
         It was renamed or deleted. An archived task still opens here.
       </p>
     </div>
@@ -483,7 +483,7 @@ function TaskParts({
                 <span className="font-medium">{who(e.by)}</span> {eventSays(e)}
                 <span className="text-(--ui-ink-3)"> · {dayLabel(e.at)}</span>
               </span>
-              {e.why && <span className="text-[13px] text-pretty text-(--ui-ink-2)">{e.why}</span>}
+              {e.why && <span className="text-[13px] text-pretty text-(--ui-ink)">{e.why}</span>}
             </li>
           ))}
         </ol>

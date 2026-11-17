@@ -655,7 +655,7 @@ function Welcome({
               key={s}
               prompt={s}
               send
-              className="rounded-(--ui-leaf-box) bg-(--ui-paper) px-3.5 py-3 text-left text-[13.5px] text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-[color,box-shadow] duration-150 hover:text-(--ui-ink) hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3)]"
+              className="rounded-(--ui-leaf-box) bg-(--ui-paper) px-3.5 py-3 text-left text-[13.5px] text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-[color,box-shadow] duration-150 hover:text-(--ui-ink) hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3)]"
             >
               {s}
             </ThreadPrimitive.Suggestion>

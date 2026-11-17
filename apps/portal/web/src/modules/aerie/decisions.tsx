@@ -251,7 +251,7 @@ function DecisionCard({
         {d.question}
       </h3>
       {d.brief ? (
-        <div className="min-w-0 text-[13.5px]/[1.55] text-(--ui-ink-2) wrap-anywhere">
+        <div className="min-w-0 text-[13.5px]/[1.55] text-(--ui-ink) wrap-anywhere">
           <Markdown text={d.brief} />
         </div>
       ) : null}
@@ -300,7 +300,7 @@ function DecisionCard({
       )}
 
       {answered ? (
-        <p className="m-0 text-[12.5px] text-(--ui-ink-2)">
+        <p className="m-0 text-[13px] text-(--ui-ink)">
           <span className="wrap-anywhere text-pretty">
             {d.options.some((o) => o.key === d.answer) ? `${d.answer}` : `“${d.answer}”`} from{" "}
             {who(d.answeredBy ?? "")}

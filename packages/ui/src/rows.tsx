@@ -718,7 +718,7 @@ export function Rows<T>(p: RowsProps<T>) {
                     ) : null}
                   </div>
                   {side ? (
-                    <div className="max-w-[40%] flex-none wrap-anywhere whitespace-normal pr-1 text-right text-[13.5px] text-(--ui-ink-2)">
+                    <div className="max-w-[40%] flex-none wrap-anywhere whitespace-normal pr-1 text-right text-[13.5px] text-(--ui-ink)">
                       {side}
                     </div>
                   ) : null}
@@ -968,7 +968,7 @@ export function Rows<T>(p: RowsProps<T>) {
                         // When it happened reads quieter than what it is.
                         c.quiet
                           ? "text-(--ui-ink-3) tabular-nums"
-                          : "text-[13.5px] text-(--ui-ink-2)",
+                          : "text-[13.5px] text-(--ui-ink)",
                         c.className,
                       )}
                     >

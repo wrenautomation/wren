@@ -41,7 +41,7 @@ export const WREN_COLORS: Partial<Record<Token, string>> = {
   canvas: "#f3f1ec",
   paper: "#ffffff",
   ink: "#0e0e0e",
-  "ink-2": "#56564f",
+  "ink-2": "#40403c",
   accent: "#6a5a93",
   "on-accent": "#faf7f2",
   good: "#17803d",

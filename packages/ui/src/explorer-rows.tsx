@@ -370,7 +370,7 @@ export function Preview({
           {alias ? <AliasMark /> : null}
         </h2>
         {sub ? (
-          <p dir="auto" className="m-0 text-[13px]/[1.45] text-(--ui-ink-2) wrap-anywhere">
+          <p dir="auto" className="m-0 text-[13px]/[1.45] text-(--ui-ink) wrap-anywhere">
             {sub}
           </p>
         ) : null}
@@ -387,7 +387,7 @@ export function Preview({
       {ctx.p.preview ? (
         ctx.p.preview(whole, route)
       ) : body ? (
-        <div className="max-w-[72ch] text-[14px]/[1.6] whitespace-pre-wrap text-(--ui-ink-2) wrap-anywhere">
+        <div className="max-w-[72ch] text-[14px]/[1.6] whitespace-pre-wrap text-(--ui-ink) wrap-anywhere">
           {body}
         </div>
       ) : null}
