@@ -6616,7 +6616,7 @@ packages:
         optional: true
 
   '@wrenautomation/vireo@0.19.0':
-    resolution: {integrity: sha512-yPNmzYiqCJMN5eC2qzMw4IbhQYtkY/5qBZ9S+aahfE+MvWZbPiOUyS8ZsTkNK1/uu2SLKI1FHyp4YMcf+R6+SQ==}
+    resolution: {integrity: sha512-ojM6K6jdQi1D96tuQA25Q6kfVxFl4L/3X3hVDPRjIWWgmcIFN6fgPSU6+KifpvtdeUZ2nYct7W2XpvtvrZZU3A==}
     engines: {node: '>=22'}
     hasBin: true
 
