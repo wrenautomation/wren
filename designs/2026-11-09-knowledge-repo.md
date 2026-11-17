@@ -82,9 +82,37 @@ Tool skills (handoff, stageshow, variations) stay in wj_skills for now. Later th
 
 ## Clients
 
-One repo per client on a self-hosted Forgejo, once clients write. No API caps (GitHub allows about
-80 writes a minute, 500 an hour per account), a client's data is one repo they can take with them, and
-deleting it is one step. The admin view reads one index over all repos, keyed by repo.
+Reversed 11-16 (WA-1413). The 11-09 plan was one repo per client on a self-hosted Forgejo. Now Canon is one
+repo: a general base, plus one overlay folder per client. Wren is client #1.
+
+- **Why one repo:** clients never use git. They read through agents and the portal. Only Wren's staff and
+  agents can open the repo, so the read path is where access control goes. Many repos would mean N
+  checkouts, and links across repos would break: an override and its stale mark need base and client rows
+  in one table. ServiceNow and Salesforce keep base and customer changes the same way.
+- **Layout:** `clients/<id>/` copies the base layout (`sources/`, `rules/<topic>/`, `guides/`,
+  `conflicts/`, `topics/<topic>/notes.md`) and adds `client.json`. The scope comes from the path only.
+  A client record's id starts with `<id>-`. A set prefix stays unique in the repo (RW-17).
+- **Links:** a base record never cites a client record. A client record cites base or its own client.
+  The lint refuses both faults, so the base stays licensable alone.
+- **Overrides:** a client set lists `replaces: [{line: WR-3, base: CP-15, seen: <hash>}]` and cites the base
+  set. `stale` flags the client line when the text of CP-15 no longer matches `seen`. A render for the
+  client (`--client <id>`, or `KNOWLEDGE_CLIENT`) shows WR-3 in the place of CP-15 and adds the client's
+  sets for that topic.
+- **Index and access:** records, cites and files carry `client` (null = base). The admin reads everything
+  (main, a superuser). A client read connects as `canon_client_read` and sets `knowledge.client` per
+  transaction (`readCanonAs`). Knowledge makes the row policy with the tables: a login that does not own
+  them sees base rows plus that client's rows; with no client set, the base only. `canon-index.ts` grants
+  the login on each pass, with default privileges, so a schema bump's rebuilt tables stay readable.
+- **Limit:** the policy guards our own server code. A session on `canon_client_read` can set any client,
+  so it is not a wall against whoever holds that login. A client never gets it.
+- **Versions:** each record keeps `version`, and git keeps every copy. The base gets release tags
+  (`base-YYYY.MM.DD`, then `.2` and up the same day; `knowledge release`). A client's `client.json` names
+  the base release its overlay was last checked against. A license ships a base release, without `clients/`.
+- **Names:** `client.json` lists the client's names (people, brand, domains, home paths). The audit fails on
+  any of them in a base file. Lowercase tool commands (`wren source add`) are tools, not names; they stay
+  in the base for now. A licensee needs those tools, so they are an open gap for a license.
+- **Trade-off taken:** to delete a client completely, you must rewrite git history (`git filter-repo`). To
+  take a client's data away, copy its folder. Both are rare. Many repos would cost more every day.
 
 ## Order
 
@@ -300,3 +328,6 @@ Steps 1 to 4 do not touch the wren runtime, so they do not wait for WA-1217.
   default; the graph-kit view becomes its Map view (`designs/2026-11-12-explorer.md`).
 - 2026-11-16 (WA-1408, William: "sure rename it"): `packages/research/src/sops/` is now `topic-build/` (export
   `@wren/research/topic-build`). It holds the code that builds topics, not SOPs. The root `sops -> canon` link is gone.
+- 2026-11-16 (WA-1413, William: one central store with access control, option C; Wren is "our own first
+  client"): Canon gets client overlays in `clients/<id>/`, line overrides with stale per line, base release
+  tags and an index row policy (knowledge 0.81). The 11-09 repo-per-client plan is dropped. See Clients.

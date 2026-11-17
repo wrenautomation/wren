@@ -2,7 +2,8 @@
  * Canon's prod index (designs/2026-11-12-canon-references.md, D1 option C). Git is the truth; schema
  * `canon` is a copy any pass can rebuild. The box keeps a bare clone, fetches `main` on each push
  * (GitHub webhook → phone Worker → `CanonIndexSync/<repo>/sync`) and hourly, then runs knowledge's
- * diff sync as `canon_index`: a login that writes schema `canon` only. Main reads it.
+ * diff sync as `canon_index`: a login that writes schema `canon` only. Main reads it all (the admin
+ * view); `canon_client_read` reads the base plus one client's overlay (`readCanonAs`).
  */
 import { execFileSync } from "node:child_process";
 import { createHmac } from "node:crypto";
@@ -10,27 +11,31 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Notifier } from "@wren/core/notify";
 import { exclusiveHandler, makeLoopObject, NO_INPUT, runPass } from "@wren/core/restate";
-import { createDb, type Db, scramVerifier } from "@wren/db";
+import { createDb, type Db, scramVerifier, type Tx } from "@wren/db";
 import * as restate from "@wren/runtime";
-import { type Db as IndexDb, RecordIndex, type Synced } from "@wrenautomation/knowledge";
+import { ClientId, type Db as IndexDb, RecordIndex, type Synced } from "@wrenautomation/knowledge";
 import { sql } from "drizzle-orm";
 
 const CANON_SCHEMA = "canon";
 const CANON_ROLE = "canon_index";
+// reads one client's overlay: not the tables' owner, so knowledge's row policy applies to it
+const CANON_CLIENT_ROLE = "canon_client_read";
 const HOUR_MS = 3_600_000;
 
 /** Derived from main's password, as client logins are: no secret to store or rotate. */
-export function canonIndexUrl(mainUrl: string): string {
+function derivedUrl(mainUrl: string, role: string): string {
   const url = new URL(mainUrl);
   if (!url.password)
-    throw new Error("main's database URL has no password; canon_index derives its own");
+    throw new Error(`main's database URL has no password; ${role} derives its own`);
   const password = createHmac("sha256", decodeURIComponent(url.password))
-    .update(`wren canon index:${CANON_ROLE}`)
+    .update(`wren canon index:${role}`)
     .digest("hex");
-  url.username = CANON_ROLE;
+  url.username = role;
   url.password = password;
   return url.toString();
 }
+export const canonIndexUrl = (mainUrl: string) => derivedUrl(mainUrl, CANON_ROLE);
+const canonClientUrl = (mainUrl: string) => derivedUrl(mainUrl, CANON_CLIENT_ROLE);
 
 /**
  * Schema, login and grants, as main (a superuser). Safe to run each pass. `canon_index` owns what it
@@ -38,25 +43,51 @@ export function canonIndexUrl(mainUrl: string): string {
  * new tables too (default privileges).
  */
 async function ensureCanonIndex(main: Db, mainUrl: string): Promise<void> {
-  const reader = new URL(mainUrl).username;
-  const password = new URL(canonIndexUrl(mainUrl)).password;
   const run = (text: string) => main.execute(sql.raw(text));
   const attrs = "LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS";
-  const found = await main.execute(sql`select 1 from pg_roles where rolname = ${CANON_ROLE}`);
-  if (found.length === 0) await run(`CREATE ROLE ${CANON_ROLE} ${attrs}`);
-  await run(`ALTER ROLE ${CANON_ROLE} ${attrs} PASSWORD '${scramVerifier(password)}'`);
-  await run(`ALTER ROLE ${CANON_ROLE} SET search_path = ${CANON_SCHEMA}`);
-  await run(`CREATE SCHEMA IF NOT EXISTS ${CANON_SCHEMA}`);
   const [db] = await main.execute<{ name: string }>(sql`select current_database() as name`);
-  await run(
-    `GRANT CONNECT ON DATABASE "${(db?.name ?? "").replaceAll('"', '""')}" TO ${CANON_ROLE}`,
-  );
+  const database = `"${(db?.name ?? "").replaceAll('"', '""')}"`;
+  const login = async (role: string, url: string) => {
+    const found = await main.execute(sql`select 1 from pg_roles where rolname = ${role}`);
+    if (found.length === 0) await run(`CREATE ROLE ${role} ${attrs}`);
+    await run(`ALTER ROLE ${role} ${attrs} PASSWORD '${scramVerifier(new URL(url).password)}'`);
+    await run(`ALTER ROLE ${role} SET search_path = ${CANON_SCHEMA}`);
+    await run(`GRANT CONNECT ON DATABASE ${database} TO ${role}`);
+  };
+  await login(CANON_ROLE, canonIndexUrl(mainUrl));
+  await login(CANON_CLIENT_ROLE, canonClientUrl(mainUrl));
+  await run(`CREATE SCHEMA IF NOT EXISTS ${CANON_SCHEMA}`);
   await run(`GRANT USAGE, CREATE ON SCHEMA ${CANON_SCHEMA} TO ${CANON_ROLE}`);
-  const as = `"${reader.replaceAll('"', '""')}"`;
-  await run(
-    `ALTER DEFAULT PRIVILEGES FOR ROLE ${CANON_ROLE} IN SCHEMA ${CANON_SCHEMA} GRANT SELECT ON TABLES TO ${as}`,
-  );
-  await run(`GRANT SELECT ON ALL TABLES IN SCHEMA ${CANON_SCHEMA} TO ${as}`);
+  await run(`GRANT USAGE ON SCHEMA ${CANON_SCHEMA} TO ${CANON_CLIENT_ROLE}`);
+  // main and the client reader read every table canon_index makes, a rebuild's too
+  for (const as of [`"${new URL(mainUrl).username.replaceAll('"', '""')}"`, CANON_CLIENT_ROLE]) {
+    await run(
+      `ALTER DEFAULT PRIVILEGES FOR ROLE ${CANON_ROLE} IN SCHEMA ${CANON_SCHEMA} GRANT SELECT ON TABLES TO ${as}`,
+    );
+    await run(`GRANT SELECT ON ALL TABLES IN SCHEMA ${CANON_SCHEMA} TO ${as}`);
+  }
+}
+
+/** A pool on `canon_client_read`. Read through `readCanonAs`; close it when done. */
+export function canonClientDb(mainUrl: string) {
+  return createDb(canonClientUrl(mainUrl), { max: 2, app: "wren-canon-client" });
+}
+
+/**
+ * Read schema `canon` as one client: the base plus that client's overlay, by knowledge's row policy.
+ * The client is set per transaction, so a pooled connection never keeps it. A guard for our own
+ * code, not a wall: the login could set any client. Admin reads stay on main.
+ */
+export async function readCanonAs<T>(
+  reader: Db,
+  client: string,
+  read: (tx: Tx) => Promise<T>,
+): Promise<T> {
+  const id = ClientId.parse(client);
+  return reader.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('knowledge.client', ${id}, true)`);
+    return read(tx);
+  });
 }
 
 export interface CanonCheckout {
