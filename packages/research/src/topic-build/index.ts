@@ -734,6 +734,12 @@ export function firstStep(guide: string, prefix: string): string {
   return "";
 }
 
+/** The door's command for `clients/$KNOWLEDGE_CLIENT/topics/<name>/notes.md`; the base never names a client. */
+export function clientNotes(root: string, name: string): string {
+  const path = `${JSON.stringify(join(root, "clients"))}/"$KNOWLEDGE_CLIENT"/topics/${name}/notes.md`;
+  return `[ -n "$KNOWLEDGE_CLIENT" ] && awk 'NR==1 && /^---$/ {f=1; next} f && /^---$/ {f=0; next} !f' ${path} 2>/dev/null || echo "(none)"`;
+}
+
 function skillMd(
   root: string,
   name: string,
@@ -774,6 +780,10 @@ Follow this SOP start to finish. Its examples and prompts are the bar. Every loa
 # The owner's notes (they beat every source)
 
 !\`awk 'NR==1 && /^---$/ {f=1; next} f && /^---$/ {f=0; next} !f' ${q}/notes.md 2>/dev/null || echo "(none)"\`
+
+# The client's notes (they beat the owner's notes)
+
+!\`${clientNotes(root, name)}\`
 ${rules}
 Reference files (designs, PDFs, images) in \`${dir}/refs/\`; open the relevant ones before writing:
 

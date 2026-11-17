@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   addSource,
   buildSop,
+  clientNotes,
   driveSources,
   expandCites,
   firstStep,
@@ -338,5 +339,23 @@ describe("firstStep", () => {
     expect(firstStep(g, "VE")).toBe('"2. Cut", step 2');
     expect(firstStep(g, "ZZ")).toBe("");
     expect(firstStep("Apply VE-1 first", "VE")).toBe("");
+  });
+  it("loads the client's notes only when KNOWLEDGE_CLIENT is set", async () => {
+    const { execFileSync } = await import("node:child_process");
+    const root = await mkdtemp(join(tmpdir(), "client-notes-"));
+    await mkdir(join(root, "clients/acme/topics/seo"), { recursive: true });
+    await writeFile(
+      join(root, "clients/acme/topics/seo/notes.md"),
+      "# Acme's notes\n\n- Site facts.\n",
+    );
+    const run = (client: string) =>
+      execFileSync("sh", ["-c", clientNotes(root, "seo")], {
+        env: { PATH: process.env.PATH, KNOWLEDGE_CLIENT: client },
+      }).toString();
+    expect(run("acme")).toContain("- Site facts.");
+    expect(run("")).toBe("(none)\n");
+    expect(run("other")).toBe("(none)\n");
+    expect(clientNotes(root, "seo")).not.toContain("acme");
+    await rm(root, { recursive: true, force: true });
   });
 });
