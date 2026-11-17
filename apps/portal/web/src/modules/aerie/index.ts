@@ -4,6 +4,7 @@
  */
 import type { Module } from "../../module.js";
 import { DecisionsPage } from "./decisions.js";
+import { HistoryPage } from "./history.js";
 import { TasksPage } from "./tasks.js";
 
 export const aerie: Module = {
@@ -13,8 +14,6 @@ export const aerie: Module = {
   blurb: "Every task of every kind: who does it, who manages it, and what it waits on.",
   product: "Aerie",
   requires: { audience: "team" },
-  // off the sidebar until a row opens its task (DetailSheet); the address still reaches it
-  parked: true,
   pages: [
     {
       id: "tasks",
@@ -28,6 +27,12 @@ export const aerie: Module = {
       label: "Decisions",
       about: "What only a person decides: each with its brief, its options and the tasks it holds.",
       Page: DecisionsPage,
+    },
+    {
+      id: "history",
+      label: "History",
+      about: "Every change to every task, newest first: who did what, and why.",
+      Page: HistoryPage,
     },
   ],
 };

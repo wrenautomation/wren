@@ -55,3 +55,66 @@ export const peopleOf = (t: TaskRow) => [
 
 /** an actor id as a name: "@william" → "william" */
 export const who = (id: string) => id.replace(/^@/, "");
+
+/** an edit's fields named: a short value shows, a long text field names itself */
+const SHORT = new Set(["status", "priority", "area", "place", "milestone", "type", "parentId"]);
+const FIELD_WORD: Record<string, string> = {
+  parentId: "parent",
+  ac: "acceptance criteria",
+  dod: "definition of done",
+  appendPlan: "plan",
+  appendNotes: "notes",
+  finalSummary: "final summary",
+  appendFinalSummary: "final summary",
+  clearFinalSummary: "final summary",
+  addLabels: "labels",
+  removeLabels: "labels",
+  addDeps: "dependencies",
+  clearDeps: "dependencies",
+  addAliases: "areas",
+  removeAliases: "areas",
+};
+/** the kinds that are not edits, said plainly (store.ts event + log) */
+const KIND_SAYS: Record<string, string> = {
+  create: "made it",
+  filed: "filed it from a note",
+  "run.start": "started a run",
+};
+/** run.result outcomes (run/port.ts RunResult) */
+const RUN_SAYS: Record<string, string> = {
+  done: "finished a run",
+  failed: "had a run fail",
+  "needs-input": "stopped a run for input",
+  stopped: "stopped a run",
+};
+
+export interface EventLike {
+  kind: string;
+  body: unknown;
+}
+
+/** an event as a plain phrase after the actor's name ("set status to Done") */
+export function eventSays(e: EventLike): string {
+  const body = (e.body ?? {}) as Record<string, unknown>;
+  if (e.kind === "import")
+    return typeof body.place === "string" ? `imported it (${body.place})` : "imported it";
+  if (e.kind === "routed")
+    return typeof body.runner === "string" ? `sent it to ${body.runner}` : "routed it";
+  if (e.kind === "run.result") return RUN_SAYS[String(body.outcome)] ?? "ended a run";
+  if (e.kind !== "edit") return KIND_SAYS[e.kind] ?? e.kind.replace(/[._]/g, " ");
+  const said = new Set<string>();
+  for (const [k, v] of Object.entries(body)) {
+    const word = FIELD_WORD[k] ?? k;
+    if (SHORT.has(k)) said.add(v == null ? `cleared ${word}` : `set ${word} to ${String(v)}`);
+    else said.add(`changed ${word}`);
+  }
+  return said.size ? [...said].join(", ") : "edited it";
+}
+
+/** an event's own words: the why, else a run's summary or question */
+export function eventText(e: EventLike & { why?: string | null }): string | null {
+  const body = (e.body ?? {}) as Record<string, unknown>;
+  for (const t of [e.why, body.summary, body.question])
+    if (typeof t === "string" && t.trim()) return t.trim();
+  return null;
+}

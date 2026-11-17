@@ -13,9 +13,11 @@ export const PAGE_TITLE =
   "font-(family-name:--ui-font-display) text-[22px] leading-[1.55] font-semibold tracking-[calc(-0.02em*var(--ui-display-squeeze))] text-balance";
 /** The artifact's `h3`: 16 px, 650, -0.01em. */
 export const SECTION_TITLE = "text-[16px] leading-[1.55] font-semibold tracking-[-0.01em]";
-/** A group's label: sentence case, 12.5 px, 650, ink-3. A look can set case and tracking back. */
-export const GROUP_LABEL =
-  "text-[12.5px] leading-4 font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-3) [text-transform:var(--ui-label-case)]";
+/** A label's type, no color: sentence case, 12.5 px, 650. A look can set case and tracking back. */
+export const LABEL_TYPE =
+  "text-[12.5px] leading-4 font-semibold tracking-(--ui-label-tracking) [text-transform:var(--ui-label-case)]";
+/** A group's label: LABEL_TYPE in ink-3. */
+export const GROUP_LABEL = `${LABEL_TYPE} text-(--ui-ink-3)`;
 
 /**
  * A flat part's head: its title and a link or tabs at the right, on the page itself, no panel

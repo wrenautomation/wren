@@ -2,7 +2,7 @@
  * Canon's shared parts: the search box, a filter select, a titled section, and Markdown with Canon's cites: `[n]` links to the record it names.
  */
 import type { Link } from "@wren/research/canon-library";
-import { cx, GROUP_LABEL } from "@wren/ui";
+import { cx, LABEL_TYPE } from "@wren/ui";
 import { type ReactNode, useEffect, useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -79,7 +79,7 @@ export function Section({
 }) {
   return (
     <section id={id} className="flex scroll-mt-4 flex-col gap-1.5">
-      <h3 className={cx("m-0", GROUP_LABEL)}>{title}</h3>
+      <h3 className={cx("m-0 text-(--ui-ink)", LABEL_TYPE)}>{title}</h3>
       {about && <p className="m-0 -mt-1 text-[13px] text-pretty text-(--ui-ink-3)">{about}</p>}
       {children}
     </section>

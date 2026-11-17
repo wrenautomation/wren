@@ -445,6 +445,132 @@ export const WRITES_RACE = {
   },
 };
 
+// ── history (D16 History): every kind; worst cases ride along: a task gone (no title), an unknown kind,
+// a long why, a failed run with its summary; times relative to now, so Today and Yesterday group
+type FeedRow = AerieAnswer<"feed">[number];
+const minsAgo = (m: number) => new Date(Date.now() - m * 6e4).toISOString();
+const ev = (
+  seq: number,
+  mins: number,
+  task: [string, string | null],
+  by: string,
+  kind: string,
+  body: Record<string, unknown> = {},
+  why: string | null = null,
+): FeedRow => ({ seq, taskId: task[0], title: task[1], at: minsAgo(mins), by, kind, why, body });
+
+const SIGNUP: [string, string] = ["EX-101", "Move the sign-up page to the new layout"];
+const DIGEST: [string, string] = ["EX-104", "Weekly digest email for clients"];
+const QUEUE: [string, string] = ["EX-103", "Pick the job queue for scheduled sends"];
+const BOUNCED: [string, string] = ["EX-102", "Clean up the bounced addresses"];
+const OLD: [string, string] = ["EX-105", "Import the old board"];
+
+export const AERIE_FEED: FeedRow[] = [
+  ev(
+    40,
+    4,
+    SIGNUP,
+    "@sam",
+    "edit",
+    { status: "Done" },
+    "Shipped behind the flag; the old page redirects.",
+  ),
+  ev(39, 9, DIGEST, "@runner:claude", "run.result", {
+    outcome: "failed",
+    summary:
+      "The send step timed out twice at the mail provider (504). Nothing was sent; the draft is saved.",
+  }),
+  ev(38, 12, DIGEST, "@runner:claude", "run.start", { runner: "claude", model: "sonnet" }),
+  ev(
+    37,
+    14,
+    DIGEST,
+    "@router",
+    "routed",
+    { runner: "claude", model: "sonnet" },
+    "Copy work with a clear brief: the writing lane.",
+  ),
+  ev(
+    36,
+    30,
+    ["EX-108", "Answer the holiday auto-reply question"],
+    "@william",
+    "filed",
+    { intake: 12 },
+    "From the Monday note: holiday hours need an auto-reply.",
+  ),
+  ev(35, 55, ["EX-990", null], "@alex", "edit", { place: "archive" }),
+  ev(
+    34,
+    70,
+    QUEUE,
+    "@peers:cc-1a2b3c4d",
+    "edit",
+    { priority: "high", appendNotes: ["x"] },
+    "Blocks two sends this week; a decision waits on it (graphile-worker or pg-boss), and the notes hold the comparison with load numbers from the last three weeks of sends.",
+  ),
+  ev(33, 95, QUEUE, "@runner:claude", "run.result", {
+    outcome: "needs-input",
+    question: "Which queue: graphile-worker or pg-boss?",
+  }),
+  ev(32, 26 * 60, BOUNCED, "@runner:codex", "run.result", {
+    outcome: "done",
+    summary: "Removed 214 bounced addresses; kept the list in the run folder.",
+  }),
+  ev(31, 27 * 60, BOUNCED, "@sam", "create"),
+  ev(30, 28 * 60, OLD, "@william", "import", { place: "tasks" }),
+  ev(29, 29 * 60, OLD, "@william", "label.sync"),
+  ev(
+    28,
+    4 * 24 * 60,
+    [
+      "EX-106",
+      "A task title long enough to wrap twice on a phone, so the row holds three lines of text and cuts none of it",
+    ],
+    "@an-agent-with-a-very-long-actor-name-that-does-not-break",
+    "edit",
+    { status: "In Progress" },
+  ),
+];
+
+/** n events across tasks, newest first, an hour apart: the Many story */
+export const manyFeed = (n: number): FeedRow[] =>
+  Array.from({ length: n }, (_, i) =>
+    i % 3
+      ? ev(
+          n - i,
+          i * 60,
+          [`EX-${200 + (i % 9)}`, `Task ${200 + (i % 9)} in a long list`],
+          "@sam",
+          "edit",
+          { status: SPREAD[i % SPREAD.length] },
+        )
+      : ev(
+          n - i,
+          i * 60,
+          [`EX-${200 + (i % 9)}`, `Task ${200 + (i % 9)} in a long list`],
+          "@runner:claude",
+          "run.start",
+          { runner: "claude" },
+        ),
+  );
+
+/** the route on `rows`: every word in the title, why, kind or body; `before` a seq cursor; `limit` */
+export const feedOf =
+  (rows: readonly FeedRow[]) =>
+  (b: Record<string, unknown>): FeedRow[] => {
+    const words =
+      typeof b.words === "string" ? b.words.toLowerCase().split(/\s+/).filter(Boolean) : [];
+    const hit = (r: FeedRow) => {
+      const all =
+        `${r.title ?? ""} ${r.why ?? ""} ${r.kind} ${JSON.stringify(r.body)}`.toLowerCase();
+      return words.every((w) => all.includes(w));
+    };
+    return rows
+      .filter((r) => (typeof b.before === "number" ? r.seq < b.before : true) && hit(r))
+      .slice(0, typeof b.limit === "number" ? b.limit : 100);
+  };
+
 export const AERIE_ANSWERS = serve<AerieApi>("aerie", {
   board: AERIE_BOARD,
   // a delta read (`updatedAfter`) answers the rows a story wrote since
@@ -472,6 +598,7 @@ export const AERIE_ANSWERS = serve<AerieApi>("aerie", {
   },
   decisions: (b) => decisionsNow().filter((d) => (b.open === false) === !!d.answeredAt),
   decide: decideWith(false),
+  feed: feedOf(AERIE_FEED),
   saveView: (b) => ({ id: 2, ...(b as Omit<AerieAnswer<"saveView">, "id">) }),
   deleteView: true,
 });

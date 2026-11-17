@@ -369,6 +369,7 @@ export {
   FRAME_BODY,
   FRAME_HEAD,
   GROUP_LABEL,
+  LABEL_TYPE,
   PAGE_TITLE,
   PageHeader,
   PageTitle,

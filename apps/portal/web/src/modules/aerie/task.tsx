@@ -32,7 +32,7 @@ import {
   type TaskWhole,
   useTask,
 } from "./data.js";
-import { peopleOf, statusColor, statusesOf, who } from "./look.js";
+import { eventSays, peopleOf, priorityColor, statusColor, statusesOf, who } from "./look.js";
 
 type Whole = TaskWhole["task"];
 type TaskEvent = TaskWhole["events"][number];
@@ -166,7 +166,7 @@ export function TaskBody({ id, rows, board, hrefOf, onWrote, bare = false }: Tas
         <HeadSkeleton />
       )}
       {board.data && !writes && (
-        <p className="m-0 -mt-3 flex items-start gap-1.5 text-[13px] leading-snug text-(--ui-ink-3)">
+        <p className="m-0 -mt-3 flex items-start gap-1.5 text-[13px] leading-snug text-(--ui-ink)">
           <Icon name="lock" className="mt-0.5 size-3.5 shrink-0" />
           Edits from the web open at the switch (setting web_writes)
         </p>
@@ -228,7 +228,11 @@ function TaskHead({
       {task.status}
     </Pill>
   );
-  const priority = task.priority ? <Tag>{task.priority}</Tag> : null;
+  const priority = task.priority ? (
+    <Pill color={priorityColor(task.priority)} className="whitespace-nowrap">
+      {task.priority}
+    </Pill>
+  ) : null;
   return (
     <div className="flex flex-col gap-2">
       <span className="flex flex-wrap items-center gap-1.5">
@@ -563,38 +567,4 @@ function rolesOf(grants: Board["grants"], areas: string[]): [string, string][] {
     by.set(word, [...(by.get(word) ?? []), `${who(g.actor)} on ${g.area}`]);
   }
   return [...by].map(([role, list]) => [role, list.join(", ")]);
-}
-
-/** an edit's fields named: a short value shows, a long text field names itself */
-const SHORT = new Set(["status", "priority", "area", "place", "milestone", "type", "parentId"]);
-const FIELD_WORD: Record<string, string> = {
-  parentId: "parent",
-  ac: "acceptance criteria",
-  dod: "definition of done",
-  appendPlan: "plan",
-  appendNotes: "notes",
-  finalSummary: "final summary",
-  appendFinalSummary: "final summary",
-  clearFinalSummary: "final summary",
-  addLabels: "labels",
-  removeLabels: "labels",
-  addDeps: "dependencies",
-  clearDeps: "dependencies",
-  addAliases: "areas",
-  removeAliases: "areas",
-};
-
-function eventSays(e: TaskEvent): string {
-  const body = (e.body ?? {}) as Record<string, unknown>;
-  if (e.kind === "create") return "made it";
-  if (e.kind === "import")
-    return typeof body.place === "string" ? `imported it (${body.place})` : "imported it";
-  if (e.kind !== "edit") return e.kind;
-  const said = new Set<string>();
-  for (const [k, v] of Object.entries(body)) {
-    const word = FIELD_WORD[k] ?? k;
-    if (SHORT.has(k)) said.add(v == null ? `cleared ${word}` : `set ${word} to ${String(v)}`);
-    else said.add(`changed ${word}`);
-  }
-  return said.size ? [...said].join(", ") : "edited it";
 }

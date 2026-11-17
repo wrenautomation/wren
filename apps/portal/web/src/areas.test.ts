@@ -14,15 +14,18 @@ const ALL = new Set(
 const ids = (xs: readonly { id: string }[]) => xs.map((x) => x.id);
 
 describe("the places", () => {
-  it("gives Wren's team its places: Map, Today, Campaigns, Research, Variants, Canon, People, Back office", () => {
+  it("gives Wren's team its places, Aerie among them", () => {
     const apps = appsIn(MODULES, { wren: true, team: true, installed: ALL });
     expect(sidebarOf(apps).map((i) => [i.label, i.area])).toEqual([
       ["Map", "fixed"],
       ["Today", "fixed"],
       ["Campaigns", "work"],
+      ["Explorer", "work"],
       ["Research", "work"],
       ["Variants", "work"],
+      ["Studio", "work"],
       ["Canon", "work"],
+      ["Aerie", "work"],
       ["People", "core"],
       ["Back office", "core"],
     ]);

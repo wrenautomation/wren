@@ -139,3 +139,46 @@ export async function decide(d: DecisionRow, answer: string, why: string, reques
     throw err;
   }
 }
+
+/** History (aerie D16): every event newest first, with its task's title */
+export type FeedRow = AerieAnswer<"feed">[number];
+export const FEED_PAGE = 100;
+/** page one and every row held before it; `epoch` moves when a gap made it start over */
+export interface Feed {
+  rows: FeedRow[];
+  end: boolean;
+  epoch: number;
+}
+
+/** one list newest first, a seq once */
+export const mergeFeed = (rows: FeedRow[]) => {
+  const seen = new Map<number, FeedRow>();
+  for (const r of rows) seen.set(r.seq, r);
+  return [...seen.values()].sort((a, b) => b.seq - a.seq);
+};
+
+/** events never change, so a push merges page one into the held rows by seq; no shared seq = a gap */
+async function readFeed(words: string, before: Feed | undefined): Promise<Feed> {
+  const page = await aerieCall("feed", { ...(words ? { words } : {}), limit: FEED_PAGE });
+  const end = page.length < FEED_PAGE;
+  if (!before) return { rows: page, end, epoch: 0 };
+  const held = new Set(before.rows.map((r) => r.seq));
+  if (!end && !page.some((r) => held.has(r.seq)))
+    return { rows: page, end, epoch: before.epoch + 1 };
+  return {
+    rows: mergeFeed([...page, ...before.rows]),
+    end: end || before.end,
+    epoch: before.epoch,
+  };
+}
+
+export const useFeed = (words: string) =>
+  useCall<Feed>(`aerie/feed:${words}`, (before) => readFeed(words, before), {
+    live: LIVE,
+    // typed words are a passing look; the bare feed is kept on the device
+    ...(words ? { kept: false } : {}),
+  });
+
+/** the page below the lowest seq held */
+export const readOlder = (words: string, before: number) =>
+  aerieCall("feed", { ...(words ? { words } : {}), before, limit: FEED_PAGE });

@@ -375,8 +375,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/watch
       '@wrenautomation/aerie':
-        specifier: 0.8.8
-        version: 0.8.8(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.8.10
+        version: 0.8.10(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/vireo':
         specifier: 0.18.0
         version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
@@ -723,8 +723,8 @@ importers:
         specifier: workspace:*
         version: link:../runtime
       '@wrenautomation/aerie':
-        specifier: 0.8.8
-        version: 0.8.8(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.8.10
+        version: 0.8.10(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       zod:
         specifier: 4.6.6
         version: 4.6.6
@@ -1039,8 +1039,8 @@ importers:
   packages/db:
     dependencies:
       '@wrenautomation/aerie':
-        specifier: 0.8.8
-        version: 0.8.8(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
+        specifier: 0.8.10
+        version: 0.8.10(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
       '@wrenautomation/vireo':
         specifier: 0.18.0
         version: 0.18.0(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)
@@ -6543,8 +6543,8 @@ packages:
   '@workflow/serde@4.1.0':
     resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
 
-  '@wrenautomation/aerie@0.8.8':
-    resolution: {integrity: sha512-oLW5ucjfMjf+X+Apk/bZvkfUDd+r+mUyDjLCYQqUdopdOanFdIBadCoBFQOl4iWH6C1gXOXL2Dh1DRxxzfRRVA==}
+  '@wrenautomation/aerie@0.8.10':
+    resolution: {integrity: sha512-mj9EOMANSr4jyJ570ACzhlscXhI6ItGZ0VNsDg/fv8MVQ1wC/N4UM34wN8l/KpQLy1qQstu3D8zAerXzpAKPGw==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -14742,7 +14742,7 @@ snapshots:
 
   '@workflow/serde@4.1.0': {}
 
-  '@wrenautomation/aerie@0.8.8(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
+  '@wrenautomation/aerie@0.8.10(@aws-sdk/client-s3@3.1136.0)(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)':
     dependencies:
       '@electric-sql/pglite': 0.5.15
       '@wrenautomation/models': 0.77.2
