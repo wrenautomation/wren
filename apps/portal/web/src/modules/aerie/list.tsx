@@ -144,6 +144,7 @@ export function TaskList({
   }
   return (
     <PageRows<TaskRow>
+      cards
       label="tasks"
       noun="task"
       columns={columns}

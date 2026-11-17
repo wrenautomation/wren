@@ -206,6 +206,7 @@ export function useLines({
   scroller,
   root,
   estimate,
+  gap = 0,
 }: {
   count: number;
   /** The element that scrolls, or "window". */
@@ -213,6 +214,8 @@ export function useLines({
   /** Where the lines sit, for `reveal` under the threshold: it finds `[data-index]` in it. */
   root: () => HTMLElement | null;
   estimate: number;
+  /** px between lines the virtualizer cannot measure (a table's border spacing, a list's gap) */
+  gap?: number;
 }): Lines {
   const on = count > VIRTUAL_FROM;
   const inPanel = on && scroller !== "window";
@@ -233,6 +236,7 @@ export function useLines({
     count,
     getScrollElement: () => (scroller === "window" ? null : scroller),
     estimateSize: () => estimate,
+    gap,
     overscan: 12,
     enabled: inPanel,
     scrollMargin: margin,
@@ -240,6 +244,7 @@ export function useLines({
   const page = useWindowVirtualizer<Element>({
     count,
     estimateSize: () => estimate,
+    gap,
     overscan: 12,
     enabled: inWindow,
     scrollMargin: margin,

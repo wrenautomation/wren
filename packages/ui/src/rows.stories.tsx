@@ -55,6 +55,7 @@ function Host({
   wait = false,
   page = true,
   opens = true,
+  cards = false,
 }: {
   groups?: boolean;
   wait?: boolean;
@@ -62,6 +63,8 @@ function Host({
   page?: boolean;
   /** False: a row opens nothing (a token, a webhook), and ⋯ has no page. */
   opens?: boolean;
+  /** Each row its own card, the folds plain. */
+  cards?: boolean;
 }) {
   const narrow = useNarrow();
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
@@ -90,8 +93,15 @@ function Host({
         {" · "}
         <output data-testid="ran">{ran.join(",")}</output>
       </p>
-      <div className="overflow-clip rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise) [&_tbody>tr:last-child]:border-b-0">
+      <div
+        className={
+          cards
+            ? "bg-(--ui-paper)"
+            : "overflow-clip rounded-(--ui-radius-panel) bg-(--ui-paper) shadow-(--ui-raise) [&_tbody>tr:last-child]:border-b-0"
+        }
+      >
         <Rows
+          cards={cards}
           label="people"
           noun="person"
           columns={[
@@ -188,6 +198,11 @@ export const Default: Story = {
 /** The same rows under three stage folds. */
 export const Grouped: Story = {
   render: () => <Host groups />,
+};
+
+/** Each row its own outlined card under plain folds (aerie's List). */
+export const Cards: Story = {
+  render: () => <Host groups cards />,
 };
 
 /** A wait column with a promise: the late row reads amber. */

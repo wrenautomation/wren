@@ -315,6 +315,8 @@ export interface RowsProps<T> {
   swipes?: ((row: T) => Swipes | null) | undefined;
   /** A row's own attributes (a drag, a mark); its `className` joins the part's. */
   rowProps?: ((row: T, index: number) => RowAttrs) | undefined;
+  /** Each row its own outlined card, a gap between; folds stay plain (William 11-17: frame the unit, not the group). */
+  cards?: boolean | undefined;
   className?: string | undefined;
 }
 
@@ -343,7 +345,15 @@ function groundOf(open: boolean, picked: boolean, cursor: boolean) {
  * over each row that follows a row or a group's fold. No column lines.
  */
 const BAND =
-  "[&>td]:transition-[background-color] [&>td]:duration-150 motion-reduce:[&>td]:transition-none [tr[data-row]+&>td]:shadow-[inset_0_1px_0_var(--ui-hair)] [tr[data-group]+&>td]:shadow-[inset_0_1px_0_var(--ui-hair)]";
+  "[&>td]:transition-[background-color] [&>td]:duration-150 motion-reduce:[&>td]:transition-none";
+const RULE =
+  "[tr[data-row]+&>td]:shadow-[inset_0_1px_0_var(--ui-hair)] [tr[data-group]+&>td]:shadow-[inset_0_1px_0_var(--ui-hair)]";
+
+/** `cards`: the row's cells draw one outlined, rounded box; the table's spacing parts the rows. */
+const CARD_CELLS =
+  "[&>td]:border-y [&>td]:border-(--ui-hair) [&>td:first-child]:rounded-l-(--ui-leaf-panel) [&>td:first-child]:border-l [&>td:last-child]:rounded-r-(--ui-leaf-panel) [&>td:last-child]:border-r";
+/** px between cards: the table's border spacing and the phone list's gap; the long list counts it */
+const CARD_GAP = 6;
 
 /**
  * The actions column stays at the list's right edge (the artifact's 44px last column, `.nt`): a
@@ -579,6 +589,7 @@ export function Rows<T>(p: RowsProps<T>) {
     scroller: narrow ? "window" : p.scroller === "page" ? found : p.scroller,
     root,
     estimate: narrow ? 76 : 42,
+    gap: p.cards ? CARD_GAP : 0,
   });
   // The keyboard's row comes into view, drawn first in a long list.
   const reveal = useRef(lines.reveal);
@@ -616,7 +627,7 @@ export function Rows<T>(p: RowsProps<T>) {
     return (
       <ul
         ref={listRef}
-        className={cn("list-none", p.empty && "hidden", p.className)}
+        className={cn("list-none", p.cards && "grid gap-1.5", p.empty && "hidden", p.className)}
         aria-label={p.label}
       >
         {p.loading ? (
@@ -686,8 +697,11 @@ export function Rows<T>(p: RowsProps<T>) {
                     if (e.animationName === "ui-changed") p.onSettled?.();
                   }}
                   className={cn(
-                    // The artifact's row hairline (`.r+.r, .gh+.r`) stays on a phone.
-                    "cursor-pointer [&>[data-face]]:flex [&>[data-face]]:min-h-[42px] [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-accent-wash) [li+&>[data-face]]:shadow-[inset_0_1px_0_var(--ui-hair)]",
+                    // The artifact's row hairline (`.r+.r, .gh+.r`) stays on a phone; `cards`: an outline
+                    "cursor-pointer [&>[data-face]]:flex [&>[data-face]]:min-h-[42px] [&>[data-face]]:items-center active:[&>[data-face]]:bg-(--ui-accent-wash)",
+                    p.cards
+                      ? "rounded-(--ui-leaf-panel) border border-(--ui-hair)"
+                      : "[li+&>[data-face]]:shadow-[inset_0_1px_0_var(--ui-hair)]",
                     r.isOpen && "[&>[data-face]]:bg-(--ui-fill)",
                     r.picked && "[&>[data-face]]:bg-(--ui-accent-tint)",
                     r.changed && "[&>[data-face]]:animate-ui-changed",
@@ -754,7 +768,8 @@ export function Rows<T>(p: RowsProps<T>) {
       data-wide={wide || undefined}
       // An empty view shows what fills it, not a row of column heads over nothing.
       className={cn(
-        "group/rows w-full table-fixed border-separate border-spacing-0 text-[14px]",
+        "group/rows w-full table-fixed border-separate text-[14px]",
+        p.cards ? "border-spacing-x-0 border-spacing-y-1.5" : "border-spacing-0",
         p.empty && "hidden",
         p.className,
       )}
@@ -896,13 +911,17 @@ export function Rows<T>(p: RowsProps<T>) {
                     r.onOpen();
                   }}
                   onAnimationEnd={(e) => {
-                    if (e.animationName === "ui-changed") p.onSettled?.();
+                    // a card flashes per cell: settle once, on the first
+                    const one = !p.cards || e.target === e.currentTarget.firstElementChild;
+                    if (e.animationName === "ui-changed" && one) p.onSettled?.();
                   }}
                   className={cn(
                     "group h-(--layout-row) cursor-pointer pointer-coarse:h-12",
                     BAND,
+                    p.cards ? CARD_CELLS : RULE,
                     groundOf(r.isOpen, r.picked, l.index === cursor),
-                    r.changed && "animate-ui-changed",
+                    // a card's flash rides its cells: the row's own ground would show square corners
+                    r.changed && (p.cards ? "[&>td]:animate-ui-changed" : "animate-ui-changed"),
                     r.going && "[&>td]:bg-(--ui-wash)",
                     own?.className,
                   )}

@@ -484,7 +484,7 @@ function Lane<T>({
           show(e.currentTarget, true);
       }}
       style={{ width: shut ? STRIP_W : LANE_W } as CSSProperties}
-      className="flex h-full flex-none flex-col rounded-(--ui-leaf-panel) bg-(--ui-fill) transition-[width,background-color,box-shadow] duration-200 ease-(--ui-ease) data-over:bg-[color-mix(in_srgb,var(--ui-active)_10%,var(--ui-fill))] data-over:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--ui-active)_55%,transparent)] motion-reduce:transition-none"
+      className="flex h-full flex-none flex-col rounded-(--ui-leaf-panel) transition-[width,background-color,box-shadow] duration-200 ease-(--ui-ease) data-over:bg-[color-mix(in_srgb,var(--ui-active)_8%,transparent)] data-over:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--ui-active)_55%,transparent)] motion-reduce:transition-none"
     >
       {shut ? (
         <button
@@ -511,7 +511,7 @@ function Lane<T>({
             aria-expanded
             data-lane-head
             onClick={toggle}
-            className="flex w-full flex-none cursor-pointer items-center gap-2.5 rounded-t-(--ui-leaf-panel) border-0 bg-transparent px-3 pt-3 pb-2 text-left text-[13px] text-(--ui-ink-3) select-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--ui-focus)"
+            className="flex w-full flex-none cursor-pointer items-center gap-2.5 rounded-t-(--ui-leaf-panel) border-0 bg-transparent px-2 pt-3 pb-2 text-left text-[13px] text-(--ui-ink-3) select-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--ui-focus)"
           >
             <Icon name="down" size={15} className="[stroke-width:1.8]" />
             <Pill color={lane.color} className="min-w-0 shrink">
@@ -523,7 +523,7 @@ function Lane<T>({
             ref={setScroll}
             className={cn(
               FADE,
-              "min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 [scrollbar-width:thin]",
+              "min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pt-1 [scrollbar-width:thin]",
             )}
           >
             <Cards lane={lane} p={p} moves={moves} scroller={scroll} />
@@ -643,14 +643,14 @@ function LoadingLanes({ narrow }: { narrow: boolean }) {
       // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity.
       key={i}
       style={{ width: narrow ? "100%" : LANE_W }}
-      className={cn(
-        "grid flex-none content-start gap-2 rounded-(--ui-leaf-panel) bg-(--ui-fill) p-2",
-        !narrow && "h-full",
-      )}
+      className={cn("grid flex-none content-start gap-2 p-2", !narrow && "h-full")}
     >
       <Skeleton className="m-1 h-5 w-24" />
       {[0, 1, 2].map((k) => (
-        <div key={k} className="grid gap-2 rounded-(--ui-leaf-panel) bg-(--ui-paper) p-3">
+        <div
+          key={k}
+          className="grid gap-2 rounded-(--ui-leaf-panel) bg-(--ui-paper) p-3 shadow-(--ui-raise)"
+        >
           <Skeleton className="h-3.5 w-3/4" />
           <Skeleton className="h-3 w-1/3" />
           <Skeleton className="h-3 w-11/12" />
