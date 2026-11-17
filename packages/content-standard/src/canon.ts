@@ -6,7 +6,7 @@
  */
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type Loaded, loadWorking } from "@wrenautomation/knowledge";
+import { clientOf, envView, type Loaded, loadWorking, visibleTo } from "@wrenautomation/knowledge";
 import { factRows, ITEM_PATH, isFactCall } from "./calls.js";
 import { type Breakdown, isBrokenDown } from "./labels.js";
 import {
@@ -188,7 +188,7 @@ export async function writeSopFiles(
 ): Promise<{ scope: SopScope; files: string[]; pieces: number; calls: number } | null> {
   const scope = scopeOf(notes, sop);
   if (!scope) return null;
-  const { docs } = loadWorking(root);
+  const docs = visibleDocs(root);
   const pieces = piecesOf(docs);
   const standard = standardOf(picked(pieces), scope);
   const calls = callsOf(docs, pieces, [scope], sop);
@@ -196,6 +196,12 @@ export async function writeSopFiles(
   await writeFile(files[0] as string, standardMarkdown(scope, standard));
   await writeFile(files[1] as string, callsMarkdown(scope, calls));
   return { scope, files, pieces: standard.reduce((n, k) => n + k.n, 0), calls: calls.length };
+}
+
+/** The docs this host sees: the base plus KNOWLEDGE_CLIENT's overlay. */
+function visibleDocs(root: string): Loaded[] {
+  const view = envView();
+  return loadWorking(root).docs.filter((l) => visibleTo(view, clientOf(l.path)));
 }
 
 /**
@@ -209,7 +215,7 @@ export function playbookStandard(
   platform: string,
   now = new Date(),
 ): PlaybookStandard {
-  const { docs } = loadWorking(root);
+  const docs = visibleDocs(root);
   const pieces = piecesOf(docs);
   const rows = picked(pieces);
   const posts = !scope?.kinds.length || scope.kinds.includes("post");

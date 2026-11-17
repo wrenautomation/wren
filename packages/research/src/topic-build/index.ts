@@ -383,7 +383,7 @@ const HOUSE = ["sop-making-layers", "sop-making-lines", "sop-making-sharing"];
 /** The sets of the `sop-making` topic, cites stripped: they number that topic's sources, not this one's. */
 function houseRules(root: string): string {
   return HOUSE.map((id) =>
-    readRecord(root, id)
+    readRecord(root, id, null)
       ?.body.replace(/ \[\d+(?: [^\]]*)?\]/g, "")
       .trim(),
   )
@@ -790,7 +790,7 @@ const purposeOf = (body: string, name: string) =>
 
 /** Write `topics/<name>/SKILL.md` from the guide and the sets it cites. */
 export async function writeSkill(root: string, name: string): Promise<string> {
-  const guide = readRecord(root, name);
+  const guide = readRecord(root, name, null);
   if (guide?.fm.type !== "guide") throw new Error(`${name}: no guide (topic build first)`);
   const read = await readSopDir(root, name);
   const file = join(topicDir(root, name), "SKILL.md");
@@ -798,7 +798,7 @@ export async function writeSkill(root: string, name: string): Promise<string> {
   const load = String((guide.fm as { load?: string }).load ?? "");
   const own = read.sets.map((s) => ({ id: s.id, prefix: s.prefix, bytes: s.body.length }));
   const shared = read.sharedIds.map((id) => {
-    const body = readRecord(root, id)?.body ?? "";
+    const body = readRecord(root, id, null)?.body ?? "";
     return { id, prefix: [...prefixesIn([body])][0] ?? "", bytes: body.length };
   });
   const bytes = [...own, ...shared].reduce(
@@ -843,17 +843,17 @@ export async function sopText(root: string, name: string): Promise<string> {
     sourceIds(root),
   );
   if (!cites.length) return body;
-  const lines = cites.map((c, i) => citeLine(i + 1, c, readRecord(root, c)?.fm));
+  const lines = cites.map((c, i) => citeLine(i + 1, c, readRecord(root, c, null)?.fm));
   return `${body}\n## Sources\n\n${lines.join("\n")}\n`;
 }
 
 /** Renumber a guide's source cites (`wren topic cite`); its set cites stay. False when nothing changed. */
 export async function renumberGuide(root: string, name: string, who: By): Promise<boolean> {
-  const guide = readRecord(root, name);
+  const guide = readRecord(root, name, null);
   if (guide?.fm.type !== "guide") return false;
   const known = sourceIds(root);
   const setCites = guide.fm.cites.filter(
-    (c) => !known.has(c) && readRecord(root, c)?.fm.type === "rule",
+    (c) => !known.has(c) && readRecord(root, c, null)?.fm.type === "rule",
   );
   const prior = guide.fm.cites.filter((c) => !setCites.includes(c));
   const next = numberCites(expandCites(guide.body, guide.fm.cites), prior, known);
@@ -934,7 +934,7 @@ function docChanges(
         `${name}: set ${s.id} cites no source or call. A rule set holds what a source or a call supports; a rule only the notes give stays in notes.md`,
       );
     const fields = { title: `${title}: ${heading}`, body: n.body, cites: n.cites, last: a.last };
-    const stored = prev ? readRecord(root, s.id) : null;
+    const stored = prev ? readRecord(root, s.id, null) : null;
     // an unchanged set gets no edit: a new version would mark every guide that cites it stale
     if (
       stored &&
@@ -976,7 +976,7 @@ function docChanges(
     cites: [...g.cites, ...sets.map((s) => s.id), ...read.sharedIds],
     body: g.body,
   };
-  const was = readRecord(root, name);
+  const was = readRecord(root, name, null);
   if (!was) changes.push({ op: "add", type: "guide", id: name, topic: name, ...guideFields });
   else if (
     was.body.trimEnd() !== g.body.trimEnd() ||

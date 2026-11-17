@@ -6,11 +6,15 @@
  */
 import {
   type Change,
+  clientOf,
+  envView,
   loadWorking,
   type Pushed,
   push,
   readRecord,
   renderMany,
+  type View,
+  visibleTo,
 } from "@wrenautomation/knowledge";
 import { KINDS, type Kind } from "@wrenautomation/vireo";
 
@@ -63,7 +67,7 @@ export function reachOf(
 /** The type names in a Canon checkout; none there (prod has no checkout): [] = any text. */
 export function contentTypesIn(root: string): string[] {
   try {
-    const g = readRecord(root, PLAYBOOK);
+    const g = readRecord(root, PLAYBOOK, envView());
     return g ? typesOf(g.fm as Fields).map((t) => t.type) : [];
   } catch {
     return [];
@@ -204,8 +208,12 @@ export interface Playbook {
 }
 
 /** What an agent reads before it makes a piece of this type: guide, type's sets, proven lines with numbers, top kept samples. */
-export function readPlaybook(root: string, type: string): Playbook {
-  const docs = new Map(loadWorking(root).docs.map((l) => [l.doc.fm.id, l.doc]));
+export function readPlaybook(root: string, type: string, view: View = envView()): Playbook {
+  const docs = new Map(
+    loadWorking(root)
+      .docs.filter((l) => visibleTo(view, clientOf(l.path)))
+      .map((l) => [l.doc.fm.id, l.doc]),
+  );
   const guide = docs.get(PLAYBOOK);
   if (guide?.fm.status !== "live") throw new Error(`no live ${PLAYBOOK} guide in ${root}`);
   const types = typesOf(guide.fm as Fields);
@@ -251,7 +259,7 @@ export function readPlaybook(root: string, type: string): Playbook {
   const over = (s: string) =>
     s === "all" ? "over all types" : KINDS.includes(s as Kind) ? `over all ${s}` : `over ${s}`;
   const text = [
-    renderMany(root, [PLAYBOOK, ...t.sets]).trim(),
+    renderMany(root, [PLAYBOOK, ...t.sets], view).trim(),
     "",
     `# Proven for ${type}`,
     "",

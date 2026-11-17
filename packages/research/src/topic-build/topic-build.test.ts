@@ -108,7 +108,7 @@ describe("topic-build", () => {
     expect(await buildSop(dir, "x", llm, WHO)).toBe(
       '# SOP\n\n1. Do it [1 0:00]\n\n## The owner\'s notes (they beat every source)\n\nmine\n\n## Sources\n\n1. file-b, "file-b" (human: test)\n',
     );
-    expect(readRecord(dir, "x")?.fm).toMatchObject({ type: "guide", cites: ["file-b"] });
+    expect(readRecord(dir, "x", null)?.fm).toMatchObject({ type: "guide", cites: ["file-b"] });
     expect(prompt.indexOf('file="file-b"')).toBeLessThan(prompt.indexOf('file="file-a"'));
     expect(prompt).toContain("<notes>\nmine\n</notes>");
     expect(prompt).toContain("There is no SOP yet");
@@ -138,8 +138,8 @@ describe("topic-build", () => {
     const first = await buildSop(dir, "x", llm, WHO);
     expect(first).toContain("## Rules\n- **XR-1** One [1]\n- **XR-2** Two [1]");
     expect(first).not.toContain("<!--");
-    expect(readRecord(dir, "x")?.fm.cites).toEqual(["file-a", "x-rules"]);
-    const set = readRecord(dir, "x-rules");
+    expect(readRecord(dir, "x", null)?.fm.cites).toEqual(["file-a", "x-rules"]);
+    const set = readRecord(dir, "x-rules", null);
     expect(set?.fm).toMatchObject({ type: "rule", topic: "x", prefix: "XR", last: 2 });
     const read = await readSopDir(dir, "x");
     expect(read.current).toContain('<!-- set x-rules XR "Rules" -->\n- **XR-1** One [file-a]');
@@ -150,15 +150,17 @@ describe("topic-build", () => {
     reply =
       '# SOP\n\nDo the thing.\n\n1. Step [file-a]\n\n<!-- set x-rules XR "Rules" -->\n- **XR-2** Two [file-a]\n- Three [file-a]\n<!-- /set -->\n';
     await buildSop(dir, "x", llm, WHO);
-    expect(readRecord(dir, "x-rules")?.body).toContain("- **XR-2** Two [1]\n- **XR-3** Three [1]");
-    expect(readRecord(dir, "x-rules")?.fm).toMatchObject({ last: 3 });
+    expect(readRecord(dir, "x-rules", null)?.body).toContain(
+      "- **XR-2** Two [1]\n- **XR-3** Three [1]",
+    );
+    expect(readRecord(dir, "x-rules", null)?.fm).toMatchObject({ last: 3 });
     // the stored doc back unchanged: no record changes, so no guide that cites the set turns stale
     reply =
       '# SOP\n\nDo the thing.\n\n1. Step [file-a]\n\n<!-- set x-rules XR "Rules" -->\n- **XR-2** Two [file-a]\n- **XR-3** Three [file-a]\n<!-- /set -->\n';
     const head = git(dir, ["rev-parse", "HEAD"]);
     await buildSop(dir, "x", llm, WHO);
     expect(git(dir, ["rev-parse", "HEAD"])).toBe(head);
-    expect(readRecord(dir, "x-rules")?.fm.version).toBe(2);
+    expect(readRecord(dir, "x-rules", null)?.fm.version).toBe(2);
     // the procedure may only name a live line
     reply =
       '# SOP\n\nDo it. Check XR-1.\n\n<!-- set x-rules XR "Rules" -->\n- **XR-2** Two [file-a]\n- **XR-3** Three [file-a]\n<!-- /set -->\n';
@@ -245,7 +247,10 @@ describe("topic-build", () => {
     await addSource(dir, null, src, WHO, { note: { text: "editing style", ...by } });
     await addSource(dir, null, src, WHO, { note: { text: long, ...by } });
     await addSource(dir, null, src, WHO, { note: { text: long, ...by } });
-    expect(readRecord(dir, "file-a")?.fm.note).toEqual({ text: `editing style\n\n${long}`, ...by });
+    expect(readRecord(dir, "file-a", null)?.fm.note).toEqual({
+      text: `editing style\n\n${long}`,
+      ...by,
+    });
   });
 
   it("raises an agent's provider to a person's, never back", async () => {
@@ -254,14 +259,14 @@ describe("topic-build", () => {
     await addSource(dir, null, src, WHO, { provider: { kind: "agent", who: "cc" } });
     await addSource(dir, null, src, WHO, { provider: { kind: "human", who: "william" } });
     await addSource(dir, null, src, WHO, { provider: { kind: "human", who: "else" } });
-    expect(readRecord(dir, "file-a")?.fm.provider).toEqual({ kind: "human", who: "william" });
+    expect(readRecord(dir, "file-a", null)?.fm.provider).toEqual({ kind: "human", who: "william" });
   });
 
   it("tags a source shared by two SOPs once, in one record", async () => {
     dir = await repo();
     await addSource(dir, "x", { name: "file-a.md", md: '---\ntitle: "A"\n---\nbody' }, WHO);
     await addSource(dir, "y", { name: "file-a.md", md: '---\ntitle: "A"\n---\nbody' }, WHO);
-    expect(readRecord(dir, "file-a")?.fm.tags).toEqual(["x", "y"]);
+    expect(readRecord(dir, "file-a", null)?.fm.tags).toEqual(["x", "y"]);
     expect((await readSopDir(dir, "y")).sources.map((s) => s.name)).toEqual(["file-a"]);
   });
 

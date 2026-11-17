@@ -11,7 +11,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Notifier } from "@wren/core/notify";
 import { exclusiveHandler, makeLoopObject, NO_INPUT, runPass } from "@wren/core/restate";
-import { createDb, type Db, scramVerifier, type Tx } from "@wren/db";
+import { createDb, type Db, scramVerifier, snapshot, type Tx } from "@wren/db";
 import * as restate from "@wren/runtime";
 import { ClientId, type Db as IndexDb, RecordIndex, type Synced } from "@wrenautomation/knowledge";
 import { sql } from "drizzle-orm";
@@ -84,7 +84,7 @@ export async function readCanonAs<T>(
   read: (tx: Tx) => Promise<T>,
 ): Promise<T> {
   const id = ClientId.parse(client);
-  return reader.transaction(async (tx) => {
+  return snapshot(reader, async (tx) => {
     await tx.execute(sql`select set_config('knowledge.client', ${id}, true)`);
     return read(tx);
   });
