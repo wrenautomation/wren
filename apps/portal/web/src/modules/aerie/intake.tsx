@@ -9,6 +9,7 @@ import {
   Copyable,
   DictateField,
   Empty,
+  FormKept,
   failureKind,
   Icon,
   Leaves,
@@ -18,6 +19,7 @@ import {
   Skeleton,
   Textarea,
   useDictateStatus,
+  useEditForm,
   useSeen,
   WRITES,
 } from "@wren/ui";
@@ -153,66 +155,77 @@ export function IntakePage(_: PageProps) {
   );
 }
 
+/** where the unsent words wait (the edits store) */
+const KEPT = "aerie:intake";
+
 /** the box, the kit's mic in it, and File; the pending receipt shows under it while it files */
 function Composer({ onFiled }: { onFiled: (r: Receipt) => void }) {
   const box = useRef<HTMLTextAreaElement>(null);
   const status = useDictateStatus();
-  const [words, setWords] = useState("");
+  // unsent words are kept on the device: a reload never loses a ramble
+  const form = useEditForm<{ words: string }>({ key: KEPT, defaults: { words: "" } });
+  const words = form.watch("words");
+  const field = form.register("words");
   // the adapter that heard any of these words since the last File; null: typed only
   const [ear, setEar] = useState<string | null>(null);
   const [filing, setFiling] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
-  // a 5xx or a lost answer: the write queue keeps that press and sends it again under its id
-  const [lost, setLost] = useState<string | null>(null);
+  // a 5xx or a lost answer: the write queue keeps that press and sends it again under its id;
+  // one an earlier load left open comes back locked with its words
+  const [lost, setLost] = useState<string | null>(() => lastIntake()?.id ?? null);
   const queued = useQueued(lost);
   const can = words.trim().length > 0 && filing === null;
+
+  useEffect(() => {
+    const left = lastIntake();
+    if (left) form.setValue("words", left.words);
+  }, [form]);
 
   // the queue settled it: landed (its receipt comes with the re-read) or refused
   useEffect(() => {
     if (!lost || queued.status === "open") return;
     setLost(null);
     if (queued.status === "sent") {
-      setWords("");
+      form.forget();
       setEar(null);
       setFailed(null);
     } else if (queued.status === "failed") setFailed(notFiled(queued.error));
     else setFailed(null);
-  }, [lost, queued]);
+  }, [lost, queued, form]);
 
-  const file = async () => {
-    const w = words.trim();
-    if (!w || filing !== null) return;
-    setFiling(w);
-    setFailed(null);
-    try {
-      // same words and ear: same body, so the queue reuses a lost press's id (never twice)
-      onFiled(await fileWords(w, ear));
-      setLost(null);
-      setWords("");
-      setEar(null);
-    } catch (err) {
-      const why = whyOf((err as ApiError).message);
-      if (failureKind(err, () => false) === "transient") {
-        setLost(lastIntake());
-        setFailed(
-          `Not filed yet${why ? `: ${why}` : ""}. It goes again on its own; File sends it now.`,
-        );
-      } else setFailed(notFiled(why));
-    } finally {
-      setFiling(null);
-      box.current?.focus();
-    }
-  };
+  // false: not landed, so the form keeps the words
+  const send = form.onSend(
+    async (v) => {
+      const w = v.words.trim();
+      if (!w || filing !== null) return false;
+      setFiling(w);
+      setFailed(null);
+      try {
+        // same words and ear: same body, so the queue reuses a lost press's id (never twice)
+        onFiled(await fileWords(w, ear));
+        setLost(null);
+        setEar(null);
+      } catch (err) {
+        const why = whyOf((err as ApiError).message);
+        if (failureKind(err, () => false) === "transient") {
+          setLost(lastIntake()?.id ?? null);
+          setFailed(
+            `Not filed yet${why ? `: ${why}` : ""}. It goes again on its own; File sends it now.`,
+          );
+        } else setFailed(notFiled(why));
+        return false;
+      } finally {
+        setFiling(null);
+        box.current?.focus();
+      }
+    },
+    { clear: true },
+  );
 
   return (
     <div className="grid gap-6">
-      <form
-        className="grid gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void file();
-        }}
-      >
+      <form className="grid gap-2" onSubmit={(e) => void send(e)}>
+        <FormKept form={form} what="words" />
         <label htmlFor="aerie-intake-words" className="sr-only">
           The work, in your words
         </label>
@@ -224,16 +237,18 @@ function Composer({ onFiled }: { onFiled: (r: Receipt) => void }) {
           }}
         >
           <Textarea
-            ref={box}
+            {...field}
+            ref={(el) => {
+              field.ref(el);
+              box.current = el;
+            }}
             id="aerie-intake-words"
-            value={words}
             // locked while the queue holds it: changed words would file a second time
             readOnly={filing !== null || lost !== null}
-            onChange={(e) => setWords(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
-                void file();
+                void send();
               }
             }}
             aria-keyshortcuts="Meta+Enter Control+Enter"
@@ -276,13 +291,15 @@ const whyOf = (message: string | null | undefined) =>
 const notFiled = (why: string | null) =>
   `Not filed${why ? `: ${whyOf(why)}` : ""}. Your words are kept; press File again.`;
 
-/** the newest intake press the queue holds open */
-const lastIntake = () =>
-  WRITES.snapshot().findLast(
-    (w) =>
-      (w.status === "unsure" || w.status === "sending") &&
-      w.calls.some((c) => c.path === "aerie/intake"),
-  )?.id ?? null;
+/** the newest intake press the queue holds open, and its words */
+const lastIntake = () => {
+  for (const w of [...WRITES.snapshot()].reverse()) {
+    if (w.status !== "unsure" && w.status !== "sending") continue;
+    const c = w.calls.find((x) => x.path === "aerie/intake");
+    if (c) return { id: w.id, words: String(c.body?.words ?? "") };
+  }
+  return null;
+};
 
 type Queued = { status: "open" | "sent" | "failed" | "gone"; error: string | null };
 const NONE: Queued = { status: "gone", error: null };

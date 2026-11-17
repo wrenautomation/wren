@@ -1,16 +1,26 @@
 /** Aerie › Intake (aerie Intake table, WA-1420): one story per row that can be shown. */
 import type { Meta } from "@storybook/react-vite";
+import { forgetKept, WRITES } from "@wren/ui";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { refuse } from "../../../mocks/api.js";
 import { AERIE_RECEIPTS, fileInto, manyReceipts, receiptsOf } from "../../../mocks/data/aerie.js";
 import { ADMIN } from "../../../mocks/data/me.js";
 import { pageAt, tidy } from "../../../mocks/page.js";
 
-const meta: Meta = { title: "Wren/Aerie/Intake" };
+// one page load runs every story: no kept words, and no press a story left open, reach the next
+const meta: Meta = { title: "Wren/Aerie/Intake", beforeEach: () => forgetKept("aerie:intake") };
 export default meta;
 
 const WAIT = { timeout: 5000 };
 const AT = "/aerie/intake";
+
+const openIntake = () =>
+  WRITES.snapshot().some(
+    (w) =>
+      (w.status === "unsure" || w.status === "sending") &&
+      w.calls.some((c) => c.path === "aerie/intake"),
+  );
+const settled = () => waitFor(() => expect(openIntake()).toBe(false), { timeout: 10_000 });
 
 /**
  * Newest first. Split: its tasks as rows, a maybe-dup marked, a missed sentence under Not filed. Waiting: the
@@ -81,10 +91,16 @@ export const FileByKey = tidy(
 );
 
 /** The write is in flight: File reads Filing…, the box is read only, a pending receipt shows the words. */
-export const Filing = tidy(
-  pageAt(AT, {
+let release: ((answer: unknown) => void) | null = null;
+export const Filing = tidy({
+  ...pageAt(AT, {
     me: ADMIN,
-    answers: { "aerie/intake": () => new Promise(() => {}) },
+    answers: {
+      "aerie/intake": () =>
+        new Promise((r) => {
+          release = r;
+        }),
+    },
     check: async (page) => {
       const view = within(page);
       const box = await view.findByRole("textbox", { name: "The work, in your words" }, WAIT);
@@ -97,13 +113,22 @@ export const Filing = tidy(
       );
     },
   }),
-);
+  // held while shown; settled after
+  beforeEach: () => async () => {
+    release?.(refuse(400, "story over"));
+    await settled();
+  },
+});
 
 /** A 5xx: the queue keeps the press and sends it again; the words stay, locked so they can't fork a second filing. */
-export const FileFailed = tidy(
-  pageAt(AT, {
+let over = false;
+export const FileFailed = tidy({
+  ...pageAt(AT, {
     me: ADMIN,
-    answers: { "aerie/intake": () => refuse(503, "not filed: the database did not answer") },
+    answers: {
+      "aerie/intake": () =>
+        over ? refuse(400, "story over") : refuse(503, "not filed: the database did not answer"),
+    },
     check: async (page) => {
       const view = within(page);
       const box = await view.findByRole("textbox", { name: "The work, in your words" }, WAIT);
@@ -115,7 +140,16 @@ export const FileFailed = tidy(
       await expect(view.getByRole("button", { name: "File" })).toBeEnabled();
     },
   }),
-);
+  // the queue's resend, once the story is over, is refused: nothing stays open
+  beforeEach: () => {
+    over = false;
+    return async () => {
+      over = true;
+      window.dispatchEvent(new Event("focus"));
+      await settled();
+    };
+  },
+});
 
 /** A refusal (4xx): nothing queued; the words stay and can change. */
 export const FileRefused = tidy(
