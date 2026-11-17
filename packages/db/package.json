@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@wrenautomation/aerie": "0.8.11",
-    "@wrenautomation/vireo": "0.19.0",
+    "@wrenautomation/vireo": "0.19.1",
     "drizzle-orm": "0.45.2",
     "postgres": "3.4.9"
   },

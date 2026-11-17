@@ -29,7 +29,7 @@
     "@wren/research": "workspace:*",
     "@wren/runtime": "workspace:*",
     "@wren/variants": "workspace:*",
-    "@wrenautomation/vireo": "0.19.0",
+    "@wrenautomation/vireo": "0.19.1",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.6"
   },
