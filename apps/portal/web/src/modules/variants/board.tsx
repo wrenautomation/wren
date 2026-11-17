@@ -78,7 +78,7 @@ const siteOf = (p: PinView) => {
 const nameOf = (p: PinView) => p.title ?? p.sample?.name ?? (p.url ? host(p.url) : null);
 
 /** A pin as a gallery post: the player plays its link's embed, its file or its sample's video. */
-export function pinPost(p: PinView): FeedPost {
+function pinPost(p: PinView): FeedPost {
   const platform = siteOf(p);
   const pic = pictureOf(p);
   const video =

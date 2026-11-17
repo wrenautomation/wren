@@ -299,6 +299,7 @@ function Toolbar({ add, locked }: { add: (a: PinAdd) => void; locked: boolean })
           Link
         </Button>
       ) : (
+        // form-ok: one paste box that empties on submit; no fields to manage
         <form
           className="flex items-center gap-1"
           onSubmit={(e) => {
@@ -307,6 +308,7 @@ function Toolbar({ add, locked }: { add: (a: PinAdd) => void; locked: boolean })
             setLink(null);
           }}
         >
+          {/* edit-ok: a pasted link, pinned at once; no draft worth keeping */}
           <input
             // biome-ignore lint/a11y/noAutofocus: the field opens on its own button's press
             autoFocus
