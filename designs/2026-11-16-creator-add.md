@@ -79,7 +79,7 @@ Every search writes to the weaver ledger, one run per find, so the hits and the 
 Flow:
 1. The portal writes a `creator_finds` row (state `waiting`) and sends `studio/creatorFind {id}`. An open find with the same normalized input is returned in its place.
 2. The desk runs `prod-wren.mjs creator find --request <id> --account x=x@wren --account linkedin=linkedin@wren` (the plist's logins). The command writes each step and the candidates on the row.
-3. It tracks what passes D3, then reads those accounts with the same code as `creator refresh --id`.
+3. It tracks what passes D3 and sets the find `found`. The handler then runs `creator refresh --id <tracked ids>` as its own step. Each row shows its read as it lands.
 4. A tick in the sheet is a portal write (`trackCreator`, to the find's person), then `studio/creatorRead {ids}`. The desk runs `creator refresh --id <ids>` with the same logins.
 
 From a terminal: `wren creator find "<name or url>" --niche <n>` (JSON out).
@@ -98,8 +98,12 @@ Haiku (through `@wren/llm`) gets the name, the given link, and each candidate's 
 
 An account **tracks itself** when all hold:
 - its label is `main`;
-- its normalized name equals the person's, or its handle does (lowercase, letters and digits only: "Alex Hormozi" = `alexhormozi`; "Alex Hormozi Clips" is not equal);
-- it is the only such hit on its platform, or the one with the most followers.
+- its display name equals the person's name, word for word (lowercase, letters and digits, single spaces). "Alex Hormozi Clips" and "alexhormozi" do not match "alex hormozi". The handle never counts: the stranger's TikTok `@alexhormozi` would pass a handle rule;
+- it is the only such hit on its platform. Two on one platform: the YouTube one with more subscribers tracks; elsewhere (no follower counts in search) both are candidates.
+
+The display name comes from the hit title: the text before ` (@`, ` - `, ` | ` or ` / ` ("Alex Hormozi (@hormozi) • Instagram", "Alex Hormozi - YouTube", "Alex Hormozi (@AlexHormozi) / X"). YouTube API hits give it directly.
+
+Replayed on run `01M7KDJGQX6F3YAF1GT0YFY0AC`: exactly YouTube `@alexhormozi`, Instagram `hormozi`, X `alexhormozi`, TikTok `ahormozi` and Threads `hormozi` pass. Daily Alex Hormozi, Alex Hormozi en Español and Leila do not. That replay is the test fixture.
 
 A pasted profile link always tracks itself: William named it.
 
@@ -113,8 +117,9 @@ Each tracked account's note says how it was found ("search, main, name matches")
 
 ### D4. Person and niche
 
-- The person: the person of any hit already tracked; else `personNamed(name)`; else a new person with that name. A link input takes the name from the first read of that profile.
-- A hit already tracked shows "Tracked" on its row. It keeps its person; the find joins that person.
+- The person: the person of a hit that passes D3 and is already tracked; else `personNamed(name)`; else a new person with that name. A hit that fails D3 (Leila) never lends its person.
+- A link input runs in this order: track the link, read it, take the name from the read, then search.
+- A hit already tracked shows "Tracked" on its row and keeps its person. The find never passes a new person to it (`trackCreator` would move it, `creators.ts:101`).
 - The niche: a field in the sheet, default the niche in the address. `creator find` takes `--niche`, required, like `creator add`.
 
 ### D5. The feed by format and platform
@@ -186,3 +191,4 @@ A tab row over the gallery, after YouTube's channel tabs (Videos, Shorts, Live):
 
 - 2026-11-16: B picked for D1 on the Hormozi measure. Exa off. The find runs on the desk.
 - 2026-11-16: goldfish review: 28 findings across critic, reader and zoom-out; 21 applied, 7 rejected. Applied: a `format` filter (the tab Blocker), tick as a portal write plus `creatorRead` (no read before track), the name rule, person and niche rules, the table, failure and rollout, Threads readable. Rejected: a spend cap (his words cover $0.006), a find cancel, a find-dedupe index beyond one open find per input, per-platform tabs (group by platform covers it), term links. `findCreators` reused for YouTube only, after measuring it: X and Instagram missed. Open: none.
+- 2026-11-16: advisor: the handle clause dropped (it matched the stranger's `@alexhormozi`); the name rule replayed on the measure run; a person comes only from a hit that passes D3; the find ends at `found` before the reads.
