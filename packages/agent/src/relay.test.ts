@@ -201,24 +201,6 @@ describe("relay", () => {
     expect((await session("/s/demo?mode=bypassPermissions", [auth()])).code).toBe(CLOSE.setup);
   });
 
-  it("an owner setup opens for the owner only, on the socket and over HTTP", async () => {
-    const maker: Setup = { ...setup, name: "maker", title: "Maker", owner: true };
-    const sessions = () =>
-      fetch(`http://127.0.0.1:${port}/s/maker/sessions`, {
-        headers: { authorization: "Bearer tok" },
-      });
-    await start({}, byToken, { setups: [setup, maker] });
-    expect((await session("/s/maker", [auth()])).code).toBe(CLOSE.unauthorized);
-    expect((await sessions()).status).toBe(401);
-    const list = (await (await fetch(`http://127.0.0.1:${port}/setups`)).json()) as any[];
-    expect(list.map((s) => s.owner)).toEqual([undefined, true]);
-    await closeRelay?.();
-    await start({}, async () => ({ who: "local", owner: true }), { setups: [setup, maker] });
-    const { frames } = await session("/s/maker", [auth(), user("one")], isResult);
-    expect(frames.some(isResult)).toBe(true);
-    expect((await sessions()).status).toBe(200);
-  });
-
   it("lists setups, and only the asker's own sessions with their history", async () => {
     const ledger = await start();
     await session("/s/demo", [auth(), user("one")], isResult);
@@ -425,6 +407,29 @@ describe("headless runs", () => {
     expect((await get(`/s/demo/runs/${run.id}`)).state).toBe("done");
   });
 
+  it("a subject's run builds in its workspace: the owner's only, its rules and recipe on top", async () => {
+    const workspace: RelayOptions["workspace"] = async (subject) =>
+      subject === "hero"
+        ? {
+            workspace: { name: "site", cwd: dir, subjects: ["hero"], allow: ["Bash(npm run *)"] },
+            recipe: "Build in this project.",
+          }
+        : null;
+    await start({}, byToken, { workspace });
+    expect((await post("/s/demo/runs", { prompt: "x", subject: "hero" })).status).toBe(403);
+    await closeRelay?.();
+    await start({}, async () => ({ who: "local", owner: true }), { workspace });
+    expect((await post("/s/demo/runs", { prompt: "x", subject: "nope" })).status).toBe(404);
+    const before = spawned.length;
+    const res = await post("/s/demo/runs", { prompt: "sample a", subject: "hero" });
+    expect(res.status).toBe(202);
+    const run = await settled(((await res.json()) as any).id);
+    expect(run).toMatchObject({ state: "done", subject: "hero", workspace: "site" });
+    const args = spawned.slice(before).flat().join(" ");
+    expect(args).toContain("Bash(npm run *)");
+    expect(args).toContain("Build in this project.");
+  });
+
   it("denies an ask, since no person answers", async () => {
     const asker = join(dir, "asker.mjs");
     writeFileSync(
@@ -483,9 +488,9 @@ createInterface({ input: process.stdin }).on("line", (l) => {
 `,
     );
     const chat: Setup = { ...setup, name: "chat", runs: true };
-    const maker: Setup = { ...setup, name: "maker", app: "campaigns", owner: true };
+    const other: Setup = { ...setup, name: "other", app: "campaigns" };
     await start({}, byToken, {
-      setups: [chat, maker, setup],
+      setups: [chat, other, setup],
       spawn: (_c, _a, o) => spawn(process.execPath, [teller], o),
     });
     const ws = new WebSocket(`ws://127.0.0.1:${port}/s/chat`);
@@ -500,8 +505,8 @@ createInterface({ input: process.stdin }).on("line", (l) => {
     });
     const [url, token] = told.split(" ") as [string, string];
     expect(url).toBe(`http://127.0.0.1:${port}`);
-    // not the owner: no maker; another app: no
-    expect((await post("/s/maker/runs", { prompt: "x" }, token)).status).toBe(401);
+    // another app: no
+    expect((await post("/s/other/runs", { prompt: "x" }, token)).status).toBe(401);
     const res = await post("/s/demo/runs", { prompt: "x" }, token);
     expect(res.status).toBe(202);
     const run = await settled(((await res.json()) as any).id);

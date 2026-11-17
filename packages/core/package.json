@@ -117,6 +117,7 @@
     "./setup-agent": "./src/setup-agent.ts",
     "./setup-alerts": "./src/setup-alerts.ts",
     "./setup-schema": "./src/setup-schema.ts",
+    "./agent-workspaces-schema": "./src/agent-workspaces-schema.ts",
     "./setups": "./src/setups.ts",
     "./setup-watch": "./src/setup-watch.ts",
     "./dead-letters": "./src/dead-letters.ts",

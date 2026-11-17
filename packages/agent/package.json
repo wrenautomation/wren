@@ -4,9 +4,6 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "bin": {
-    "maker": "./bin/maker.mjs"
-  },
   "exports": {
     ".": "./src/index.ts",
     "./setups": "./src/setups.ts"

@@ -27,6 +27,7 @@ export default defineConfig({
     "../core/src/broadcasts-schema.ts",
     "../core/src/bounces-schema.ts",
     "../core/src/custom-schema.ts",
+    "../core/src/agent-workspaces-schema.ts",
     "../research/src/schema.ts",
     "../research/src/social-schema.ts",
     "../research/src/canon-adds-schema.ts",

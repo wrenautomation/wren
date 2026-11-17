@@ -207,12 +207,12 @@ from the workspace root (the parent of `$WREN_ROOT`, else of the cwd); its `pack
 PATH. The side chat opens the setup whose title is the page's product. The relay's launchd job
 (`com.wrenautomation.agent-serve`) runs the bundle without `bin/wren`, so it sets `WREN_ROOT` itself: without it
 path plugins, setup folders and the Wrenfile resolve from the wrong folder.
-This Mac's own setups (makers: a wide shell in one project) are `tasks/docs/agent/setups/<name>.json`, with
-`<name>.md` as the system prompt text. They open for the Mac's owner only; a setup may carry the CLI's `sandbox`
-settings (`packages/agent/src/host.ts`, designs/2026-11-05-variants.md).
-A setup with `runs` (Vireo) starts headless runs of a maker: `maker list|start|status|stop` in its chat,
-`wren agent makers|run|runs|stop` in a terminal. A run is one prompt with no page; the relay queues it, denies
-every ask and keeps its state, result and session (`packages/agent/src/runs.ts`). `--run-min` caps a run.
+A setup with `runs` (Vireo) starts headless runs: `vireo run|runs|stop` in its chat, `wren agent run|runs|stop`
+in a terminal. A run is one prompt with no page; the relay queues it, denies every ask and keeps its state, result
+and session (`packages/agent/src/runs.ts`). `--run-min` caps a run. A run with `--subject` builds in that Vireo
+subject's workspace, for the Mac's owner only: a project folder whose rules (cwd, allow, tools, sandbox) are rows
+in `agent_workspaces`, set with `prod-wren.mjs agent workspace list|get|set|rm`, and whose `VIREO.md` is the
+recipe the run reads (`packages/agent/src/workspace.ts`, designs/2026-11-05-variants.md, W4).
 `wren agent setups` lists them. `wren agent token` prints the token a page sends first.
 `wren agent check [setup] --say "<turn>"...` opens one session and prints the credential source, what loaded and
 each turn's tokens. `--resume <id>` continues a session.

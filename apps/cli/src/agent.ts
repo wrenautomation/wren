@@ -2,12 +2,14 @@
  * `wren agent …` (designs/2026-11-04-multi-user-runtime.md, Decision 2): the relay that puts a
  * Claude setup in a wren page. `serve` runs it on 127.0.0.1; `check` opens one session as a page
  * would and reports what loaded and what it cost; `setups` lists the records; `token` prints the
- * local token the page sends first. `makers`, `run`, `runs` and `stop` drive headless runs through
- * a running relay (designs/2026-11-05-variants.md, C3); a chat calls them as `maker`.
+ * local token the page sends first. `run`, `runs` and `stop` drive headless runs through a running
+ * relay (designs/2026-11-05-variants.md, C3); `workspace` holds where a Vireo subject's runs build.
  */
+import { execFile } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { promisify } from "node:util";
 import {
   type Authorize,
   binDir,
@@ -16,20 +18,22 @@ import {
   compactOf,
   fileCommands,
   fileLedger,
-  hostSetups,
   localToken,
+  RECIPE,
   RUN_ENV,
   relay,
   runClient,
   SETUPS,
-  type Setup,
   sdkHistory,
   setupNamed,
   tokenMatches,
   UPLOADS_DIR,
+  type Workspace,
 } from "@wren/agent";
 import { can, type MeAccess, whoFromMe } from "@wren/core/access";
+import type { Db } from "@wren/db";
 import type { Command } from "commander";
+import { registerWorkspace } from "./agent-workspace.js";
 import { egressFor, listening, lockBins } from "./egress.js";
 
 const AGENT_PORT = 4748;
@@ -96,17 +100,10 @@ function emailOf(token: string): string | null {
 /** The folder that holds wren, engine and tasks: a setup's relative cwd resolves here. */
 const workspaceRoot = () => resolve(process.env.WREN_ROOT ?? process.cwd(), "..");
 
-/** This Mac's own setups, in the private tasks repo: makers, owner only (`@wren/agent` host.ts). */
-const HOST_SETUPS = "tasks/docs/agent/setups";
-const allSetups = (): readonly Setup[] => [
-  ...SETUPS,
-  ...hostSetups(resolve(workspaceRoot(), HOST_SETUPS), SETUPS),
-];
-
 /** Roles the setups use whose proxy does not answer. */
 async function proxiesDown(): Promise<string[]> {
   const ports = new Map<string, number>();
-  for (const s of allSetups()) {
+  for (const s of SETUPS) {
     const port = Number(new URL(egressFor(s)?.env.HTTPS_PROXY ?? "http://x:0").port);
     if (port) ports.set(s.name, port);
   }
@@ -115,18 +112,38 @@ async function proxiesDown(): Promise<string[]> {
   return down;
 }
 
-export function registerAgent(program: Command): void {
+/**
+ * A subject's workspace and its recipe, for one run. Through prod-wren, so serve and its chats
+ * never hold the database URL.
+ */
+async function workspaceOf(subject: string) {
+  const { stdout } = await promisify(execFile)(
+    process.execPath,
+    [resolve(workspaceRoot(), "wren/scripts/prod-wren.mjs"), "agent", "workspace", "get", subject],
+    { cwd: resolve(workspaceRoot(), "wren"), timeout: 60_000 },
+  );
+  const workspace = JSON.parse(stdout) as Workspace | null;
+  if (!workspace) return null;
+  const at = join(workspace.cwd, RECIPE);
+  return { workspace, recipe: existsSync(at) ? readFileSync(at, "utf8") : null };
+}
+
+export function registerAgent(
+  program: Command,
+  withMainDb: <T>(fn: (db: Db) => Promise<T>) => Promise<T>,
+  actor: string,
+): void {
   const agent = program
     .command("agent")
     .description("Claude setups in wren pages: a local relay on the plan or a client's key");
 
   agent
     .command("setups")
-    .description("list setups: app, tools, skills, credentials; this Mac's own are owner only")
+    .description("list setups: app, tools, skills, credentials")
     .action(() => {
-      for (const s of allSetups())
+      for (const s of SETUPS)
         console.log(
-          `${s.name}  app=${s.app}  model=${s.model}  tools=${s.tools.join(",")}  skills=${s.skills.join(",")}  credentials=${s.credentials.join(",")}  ${s.connection}${s.owner ? "  owner only" : ""}${s.sandbox ? "  sandbox" : ""}${s.serves ? `  serves=${s.serves.join(",")}` : ""}${s.runs ? "  runs" : ""}`,
+          `${s.name}  app=${s.app}  model=${s.model}  tools=${s.tools.join(",")}  skills=${s.skills.join(",")}  credentials=${s.credentials.join(",")}  ${s.connection}${s.sandbox ? "  sandbox" : ""}${s.runs ? "  runs" : ""}`,
         );
     });
 
@@ -150,7 +167,7 @@ export function registerAgent(program: Command): void {
     .action(
       (o: { port: string; credential: string; max: string; runMin: string; tape?: string }) => {
         const credential = credentialOf(o.credential);
-        const setups = allSetups();
+        const setups = SETUPS;
         const bins = new Map<string, string>();
         const r = relay({
           port: Number(o.port),
@@ -163,6 +180,7 @@ export function registerAgent(program: Command): void {
           credential,
           maxSessions: Number(o.max),
           runMs: Number(o.runMin) * 60_000,
+          workspace: workspaceOf,
           uploads: UPLOADS_DIR,
           ...(o.tape ? { tape: o.tape } : {}),
           launch: {
@@ -214,8 +232,7 @@ export function registerAgent(program: Command): void {
     .option("--say <text...>", "turns to send", ["Reply OK only."])
     .option("--resume <session>", "resume a session")
     .action(async (name: string, o: { port: string; say: string[]; resume?: string }) => {
-      if (!setupNamed(name, allSetups()))
-        throw new Error(`no setup ${name}; see wren agent setups`);
+      if (!setupNamed(name, SETUPS)) throw new Error(`no setup ${name}; see wren agent setups`);
       const r = await checkSession({
         port: Number(o.port),
         token: localToken(),
@@ -228,6 +245,7 @@ export function registerAgent(program: Command): void {
     });
 
   registerRuns(agent);
+  registerWorkspace(agent, withMainDb, actor);
 }
 
 /** A chat's session token and relay from its env; a terminal uses the local token. */
@@ -241,36 +259,22 @@ const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
 function registerRuns(agent: Command): void {
   const port = ["--port <n>", "the relay's port", String(AGENT_PORT)] as const;
   agent
-    .command("makers")
-    .description("list this Mac's makers (owner setups) and what each serves, as JSON")
-    .option(...port)
-    .action(async (o: { port: string }) =>
-      json(
-        (await client(o.port).makers()).map(({ name, title, serves, model, models }) => ({
-          name,
-          title,
-          serves: serves ?? [],
-          model,
-          models,
-        })),
-      ),
-    );
-  agent
     .command("run")
     .description("queue one headless run of a setup: one prompt, no page, every ask denied")
     .argument("<setup>", "setup name")
     .argument("[prompt...]", "the prompt")
     .option("--file <path>", "read the prompt from a file")
     .option("--model <m>", "one of the setup's models")
+    .option("--subject <slug>", "a Vireo subject: the run builds in its workspace (owner only)")
     .option(...port)
     .action(
       async (
         setup: string,
         words: string[],
-        o: { file?: string; model?: string; port: string },
+        o: { file?: string; model?: string; subject?: string; port: string },
       ) => {
         const prompt = o.file ? readFileSync(o.file, "utf8") : words.join(" ");
-        json(await client(o.port).start(setup, prompt, o.model));
+        json(await client(o.port).start(setup, prompt, { model: o.model, subject: o.subject }));
       },
     );
   agent

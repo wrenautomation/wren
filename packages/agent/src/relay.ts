@@ -38,6 +38,7 @@ import {
 import { RUN_ENV, type Run } from "./runs.js";
 import { type CommandStore, type Ledger, memoryCommands, memoryLedger } from "./sessions.js";
 import type { Setup } from "./setup.js";
+import { inWorkspace, type Workspace } from "./workspace.js";
 
 /** What the page sent: the auth frame's token (or a bearer) and its Origin, if any. */
 export interface Asker {
@@ -81,6 +82,8 @@ export interface RelayOptions {
   maxRuns?: number;
   /** A run is stopped after this long; default 45 min. */
   runMs?: number;
+  /** The workspace that builds a subject, and its recipe (workspace.ts); none: no subject runs. */
+  workspace?: (subject: string) => Promise<{ workspace: Workspace; recipe: string | null } | null>;
   ledger?: Ledger;
   /** Each setup's last command list; default in memory. */
   commands?: CommandStore;
@@ -228,20 +231,17 @@ export function relay(o: RelayOptions): {
   });
   http.listen(o.port, "127.0.0.1");
 
-  const runs: { run: Run; person: Person }[] = [];
+  // setup: fixed at queue time; a subject's run carries its workspace on top
+  const runs: { run: Run; person: Person; setup: Setup }[] = [];
   const running = new Map<string, ChildProcess>();
   // a `runs` session's own token: the person who opened it, and the app they proved a grant on
   const sessionTokens = new Map<string, { person: Person; app: string }>();
 
-  // one gate for the socket and every HTTP route: an owner setup is a no for anyone else
+  // one gate for the socket and every HTTP route
   const authorize: Authorize = async (a) => {
     const mine = a.origin ? undefined : sessionTokens.get(a.credential);
-    const p = mine
-      ? mine.person.owner || mine.app === a.setup.app
-        ? mine.person
-        : null
-      : await o.authorize(a);
-    return p && a.setup.owner && !p.owner ? null : p;
+    if (!mine) return o.authorize(a);
+    return mine.person.owner || mine.app === a.setup.app ? mine.person : null;
   };
 
   function allowed(origin: string | undefined): boolean {
@@ -573,7 +573,7 @@ export function relay(o: RelayOptions): {
     const cap = o.maxRuns ?? Math.max(1, (o.maxSessions ?? 3) - 1);
     for (const q of runs) {
       if (running.size >= cap || live.size >= (o.maxSessions ?? 3)) return;
-      if (q.run.state === "queued") startRun(q.run, q.person);
+      if (q.run.state === "queued") startRun(q.run, q.person, q.setup);
     }
   }
 
@@ -585,11 +585,9 @@ export function relay(o: RelayOptions): {
   }
 
   /** One prompt to the setup's child, no page: an ask is denied, the result ends the child. */
-  function startRun(run: Run, person: Person): void {
-    const setup = setupOf(run.setup);
+  function startRun(run: Run, person: Person, setup: Setup): void {
     let child: ChildProcess;
     try {
-      if (!setup) throw new LaunchError(`no setup ${run.setup}`);
       child = open(setup, person, undefined, { model: run.model }, "run");
     } catch (e) {
       const why = e instanceof Error ? e.message : String(e);
@@ -715,8 +713,6 @@ export function relay(o: RelayOptions): {
           tools: s.tools,
           skills: s.skills,
           ...(s.mode ? { mode: s.mode } : {}),
-          ...(s.owner ? { owner: true } : {}),
-          ...(s.serves ? { serves: s.serves } : {}),
         })),
       );
     const m = SESSION_PATH.exec(url.pathname);
@@ -775,7 +771,8 @@ export function relay(o: RelayOptions): {
     return send(res, 200, meterStore.get(setup.name) ?? (await probe(setup))?.meters ?? {});
   }
 
-  /** `POST /s/<setup>/runs {prompt, model?}` queues a run; `GET` lists the asker's own, or one by
+  /** `POST /s/<setup>/runs {prompt, model?, subject?}` queues a run (a subject: in its workspace,
+   * the owner's only); `GET` lists the asker's own, or one by
    * id; `POST …/<id>/stop` ends one. */
   async function runsRoute(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
     const m = RUNS_PATH.exec(url.pathname);
@@ -815,14 +812,26 @@ export function relay(o: RelayOptions): {
     }
     let prompt = "";
     let model: string | undefined;
+    let subject: string | undefined;
     try {
-      const b = JSON.parse(body) as { prompt?: unknown; model?: unknown };
+      const b = JSON.parse(body) as { prompt?: unknown; model?: unknown; subject?: unknown };
       prompt = typeof b.prompt === "string" ? b.prompt.trim() : "";
       model = typeof b.model === "string" ? b.model : undefined;
+      subject = typeof b.subject === "string" && b.subject ? b.subject : undefined;
     } catch {}
     if (!prompt) return send(res, 400, { error: "a prompt is needed" });
-    if (model && model !== setup.model && !setup.models?.includes(model))
-      return send(res, 400, { error: `setup ${setup.name} has no model ${model}` });
+    let use = setup;
+    let workspace: string | undefined;
+    if (subject) {
+      // a workspace's rules open a wide shell in a project: the Mac's owner only
+      if (!person.owner) return send(res, 403, { error: "a run in a workspace is the owner's" });
+      const w = o.workspace ? await o.workspace(subject).catch(() => null) : null;
+      if (!w) return send(res, 404, { error: `no workspace builds subject ${subject}` });
+      use = inWorkspace(setup, w.workspace, w.recipe);
+      workspace = w.workspace.name;
+    }
+    if (model && model !== use.model && !use.models?.includes(model))
+      return send(res, 400, { error: `setup ${use.name} has no model ${model}` });
     if (runs.filter((q) => q.run.state === "queued").length >= RUNS_QUEUED)
       return send(res, 429, { error: `${RUNS_QUEUED} runs wait already` });
     const run: Run = {
@@ -831,10 +840,12 @@ export function relay(o: RelayOptions): {
       state: "queued",
       prompt,
       ...(model ? { model } : {}),
+      ...(subject ? { subject } : {}),
+      ...(workspace ? { workspace } : {}),
       at: new Date().toISOString(),
       denied: [],
     };
-    runs.push({ run, person });
+    runs.push({ run, person, setup: use });
     // ended runs fall off the front
     while (runs.length > RUNS_KEPT) {
       const i = runs.findIndex((q) => q.run.ended);

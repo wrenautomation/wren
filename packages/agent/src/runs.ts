@@ -1,7 +1,7 @@
 /**
  * Headless runs (designs/2026-11-05-variants.md, C3): one prompt to a setup with no page, queued
- * and held by the relay. An agent starts one with `maker` (bin/maker.mjs) or `wren agent run`; this
- * is the record and the HTTP client both use.
+ * and held by the relay. `wren agent run` starts one (a Vireo chat: `vireo run`, a subject's run
+ * in its workspace); this is the record and the HTTP client both use.
  */
 
 /** Child env of a `runs` session: where the relay is, and the session's own token. */
@@ -13,6 +13,9 @@ export interface Run {
   state: "queued" | "running" | "done" | "failed" | "stopped";
   prompt: string;
   model?: string;
+  /** A Vireo subject: the run builds in its workspace (workspace.ts). */
+  subject?: string;
+  workspace?: string;
   at: string;
   started?: string;
   ended?: string;
@@ -25,15 +28,13 @@ export interface Run {
   usd?: number;
 }
 
-/** A setup as `GET /setups` lists it; a maker is an owner setup. */
-export interface MakerInfo {
+/** A setup as `GET /setups` lists it. */
+export interface SetupInfo {
   name: string;
   title: string;
   app: string;
   model: string;
   models: string[];
-  owner?: true;
-  serves?: string[];
 }
 
 export class RunError extends Error {}
@@ -53,15 +54,15 @@ export function runClient(o: { url: string; token: string }) {
     if (!res.ok) throw new RunError(body.error ?? `relay answered ${res.status}`);
     return body;
   };
-  const setups = () => call<MakerInfo[]>("/setups");
+  const setups = () => call<SetupInfo[]>("/setups");
   return {
     setups,
-    makers: async () => (await setups()).filter((s) => s.owner),
-    start: (setup: string, prompt: string, model?: string) =>
-      call<Run>(`/s/${setup}/runs`, {
-        method: "POST",
-        body: JSON.stringify({ prompt, ...(model ? { model } : {}) }),
-      }),
+    /** `subject`: a Vireo subject; the run builds in its workspace (owner only). */
+    start: (
+      setup: string,
+      prompt: string,
+      w: { model?: string | undefined; subject?: string | undefined } = {},
+    ) => call<Run>(`/s/${setup}/runs`, { method: "POST", body: JSON.stringify({ prompt, ...w }) }),
     /** The asker's runs of one setup, or of every setup they may open; newest first. */
     list: async (setup?: string): Promise<Run[]> => {
       const names = setup ? [setup] : (await setups()).map((s) => s.name);

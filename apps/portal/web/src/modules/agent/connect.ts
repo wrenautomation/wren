@@ -32,8 +32,6 @@ export interface SetupInfo {
   skills: string[];
   /** A fixed permission mode: the page offers no other. */
   mode?: string;
-  /** Opens for the Mac's owner only (a maker). */
-  owner?: boolean;
 }
 
 /** A past session of the asker's (`GET /s/<setup>/sessions`), newest first. */

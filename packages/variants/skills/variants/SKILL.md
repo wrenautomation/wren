@@ -42,7 +42,7 @@ Read the reference for a step when you reach it. Each holds the how; this page h
 | 5 Read | `show`: his scores, anchored notes, batch note, leaders, steers | `references/batch.md` |
 | 6 Guides | Propose lock or drop from `effect`; he decides | `references/guides.md` |
 | 7 Ship | A kept sample goes out; read `live` before each batch | `references/ship.md` |
-| Makers | A maker on his Mac builds pages or video for you | `references/makers.md` |
+| Workspace runs | Pages or video build in the subject's workspace on his Mac: `vireo run` | `references/workspace-runs.md` |
 
 ## Rules
 

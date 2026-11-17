@@ -161,8 +161,7 @@ function PanelChat({
       return n;
     });
   const [running, setRunning] = useState(false);
-  // the relay refuses an owner setup to anyone else: not offered either
-  const list = (setups.data ?? []).filter((s) => owner || !s.owner);
+  const list = setups.data ?? [];
   const named = (n: string | undefined) => list.find((s) => s.name === n);
   const under = product ?? "";
   // a pick holds for the product it was made under; another product brings its own setup;
@@ -176,8 +175,6 @@ function PanelChat({
   const held = useRef<string | undefined>(undefined);
   const setup = (running ? named(held.current) : undefined) ?? wanted;
   held.current = setup?.name;
-  // a maker (owner setup) is Vireo's to start (`maker start`), not a product tab; one open stays
-  const tabs = list.filter((s) => !s.owner || s.name === setup?.name);
   // a hand-off opens its own setup's chat, once this one is idle; one with no setup takes this one
   const lost = !!hand?.setup && !!setups.data && !named(hand.setup);
   useEffect(() => {
@@ -232,11 +229,11 @@ function PanelChat({
       className="min-h-0 flex-1"
       head={(first) => (
         <div className="flex min-h-[54px] flex-none flex-wrap items-center gap-1 border-(--ui-hair) border-b py-2 pr-2 pl-4">
-          {tabs.length > 1 ? (
+          {list.length > 1 ? (
             <Seg
               label="Setup"
               dense
-              items={tabs.map((s) => ({ value: s.name, label: s.title }))}
+              items={list.map((s) => ({ value: s.name, label: s.title }))}
               value={setup.name}
               onChange={(v) => put({ setup: v, for: under })}
             />

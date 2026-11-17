@@ -411,7 +411,7 @@ tokens
   .description("One pass now")
   .action(async () => console.log(JSON.stringify(await renewal().sync(), null, 2)));
 
-registerAgent(program);
+registerAgent(program, withMainDb, actor);
 registerEgress(program);
 
 program.parseAsync().catch((err: unknown) => {
