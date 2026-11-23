@@ -187,8 +187,7 @@ export function contentServices(deps: Deps): AnyService[] {
         sites: (ctx) =>
           restateSites(ctx, { caller: "wren:reviews", service: DESK, limitMs: LIMITS.desk }),
       },
-      // Tab watchers on the desk: LinkedIn and X push us nothing (designs/2026-10-12-push-everywhere.md).
-      watched: { linkedin: "linkedin@wren", x: "x@wren" },
+      // No desk tab watchers (William, 11-23): they held desk browsers open all day. LinkedIn and X are read cold each pass.
     }),
     makeSocialDesk({ db, zone: SOCIAL_ZONE }),
     // Webhooks and tab watchers wake the social loops (designs/2026-10-12-push-everywhere.md).
