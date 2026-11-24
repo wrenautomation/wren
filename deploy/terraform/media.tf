@@ -1,7 +1,8 @@
 # The media store: a video or image a post carries. The CLI uploads it (by
 # content hash), the worker signs a day-long GET URL that Graph, TikTok, X and
 # the autobrowse box fetch. Private; only the media CDN below reads it, and only
-# the creator pictures (public posts' and profiles' pictures, copied).
+# the creator pictures (public posts' and profiles' pictures, copied) and media/share/
+# (a file copied there gets a link that never expires; anyone with it can view).
 
 resource "aws_s3_bucket" "media" {
   bucket_prefix = "${local.prefix}-media-"
@@ -116,6 +117,8 @@ data "aws_iam_policy_document" "media_cdn" {
     resources = [
       "${aws_s3_bucket.media.arn}/cache/posts/*",
       "${aws_s3_bucket.media.arn}/cache/creators/*",
+      # links that never expire (Virtuoso takes); a copy of media/<hash>, opt-in per file
+      "${aws_s3_bucket.media.arn}/media/share/*",
     ]
     principals {
       type        = "Service"
