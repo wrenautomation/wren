@@ -1,10 +1,11 @@
 /**
  * A page sample that runs code (WebGL, scroll scenes): a link on its own origin, framed as is
- * (vireo D8). In a batch every frame on screen runs, up to `LIVE_CAP`, so a person can use all
- * the pages in view (WA-1438); off screen a frame drops to its still and frees its memory.
+ * (vireo D8). In a batch every frame on screen runs, so a person can use all the pages in view
+ * (WA-1438). A frame that scrolls off stays loaded, up to `KEEP` in all; past that the least
+ * recently seen one drops to its still (WA-1441). A new frame loads under its still and fades in.
  * Stop holds a frame on its still until play. Stage: the card over the whole window.
  */
-import { Button, cx, Icon, Img, PLAY_MARK, Seg } from "@wren/ui";
+import { Button, cx, Icon, Img, PLAY_MARK, Ring, Seg } from "@wren/ui";
 import {
   createContext,
   type ReactNode,
@@ -36,10 +37,30 @@ function frameFit(width: FrameWidth, slot: { w: number; h: number }, staged: boo
   return { w: v.w, h: staged ? slot.h / scale : v.h, scale };
 }
 
-/** Frames that run at once: ~30-60 MB each for a static page; a WebGL scene costs far more. */
-const LIVE_CAP = 6;
-/** A frame starts a little before it scrolls in, so it is ready when seen. */
-const NEAR = "300px 0px";
+/** Frames loaded at once, on screen first, then the most recently seen: ~30-60 MB each for a static page. */
+const KEEP = 9;
+/** A frame starts well before it scrolls in, so it is loaded when seen. */
+const NEAR = "600px 0px";
+
+/**
+ * The frames loaded now: hand-played first, then on screen in page order, then off screen by
+ * last seen, up to `keep`. Held ones never load by themselves.
+ */
+export function keptFrames(o: {
+  ids: readonly number[];
+  near: ReadonlySet<number>;
+  seen: readonly number[];
+  picked: readonly number[];
+  held: ReadonlySet<number>;
+  keep?: number;
+}): Set<number> {
+  const order = [
+    ...o.picked.filter((id) => o.ids.includes(id)),
+    ...o.ids.filter((id) => o.near.has(id)),
+    ...o.seen.filter((id) => o.ids.includes(id)),
+  ];
+  return new Set([...new Set(order)].filter((id) => !o.held.has(id)).slice(0, o.keep ?? KEEP));
+}
 
 interface Frames {
   isLive: (id: number) => boolean;
@@ -61,6 +82,8 @@ export function FramesProvider({ ids, children }: { ids: number[]; children: Rea
   const [held, setHeld] = useState<ReadonlySet<number>>(new Set());
   /** Played by hand: first in line when more than the cap are near. */
   const [picked, setPicked] = useState<readonly number[]>([]);
+  /** Most recently near first: who stays loaded after scrolling off. */
+  const [seen, setSeen] = useState<readonly number[]>([]);
   const [stage, setStage] = useState<number | null>(null);
   const [width, setWidth] = useState<FrameWidth>(first);
   const els = useRef(new Map<Element, number>());
@@ -68,7 +91,8 @@ export function FramesProvider({ ids, children }: { ids: number[]; children: Rea
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
     const obs = new IntersectionObserver(
-      (entries) =>
+      (entries) => {
+        const came: number[] = [];
         setNear((was) => {
           const next = new Set(was);
           for (const e of entries) {
@@ -78,7 +102,13 @@ export function FramesProvider({ ids, children }: { ids: number[]; children: Rea
             else next.delete(id);
           }
           return next;
-        }),
+        });
+        for (const e of entries) {
+          const id = els.current.get(e.target);
+          if (id != null && e.isIntersecting) came.push(id);
+        }
+        if (came.length) setSeen((was) => [...came, ...was.filter((x) => !came.includes(x))]);
+      },
       { rootMargin: NEAR },
     );
     for (const el of els.current.keys()) obs.observe(el);
@@ -102,12 +132,7 @@ export function FramesProvider({ ids, children }: { ids: number[]; children: Rea
   const key = ids.join();
   // biome-ignore lint/correctness/useExhaustiveDependencies: ids by value; a patch remakes the array
   const value = useMemo<Frames>(() => {
-    // hand-played first, then page order; held ones never auto-run
-    const order = [
-      ...picked.filter((id) => ids.includes(id)),
-      ...ids.filter((id) => !picked.includes(id)),
-    ];
-    const live = new Set(order.filter((id) => near.has(id) && !held.has(id)).slice(0, LIVE_CAP));
+    const live = keptFrames({ ids, near, seen, picked, held });
     const run = (id: number, on: boolean) => {
       setHeld((was) => {
         const next = new Set(was);
@@ -130,7 +155,7 @@ export function FramesProvider({ ids, children }: { ids: number[]; children: Rea
       setWidth,
       ids,
     };
-  }, [near, held, picked, stage, width, key, watch]);
+  }, [near, held, picked, seen, stage, width, key, watch]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 /** Null outside a batch (catalog, history): a frame there keeps its own state, no stage. */
@@ -153,6 +178,11 @@ export function LivePage({
   const [ownWidth, setOwnWidth] = useState<FrameWidth>(first);
   const staged = frames?.stage === id;
   const live = frames ? frames.isLive(id) : own;
+  /** The page has loaded: it fades in over the still. A new mount starts over. */
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    if (!live) setLoaded(false);
+  }, [live]);
   const run = (on: boolean) => (frames ? frames.run(id, on) : setOwn(on));
   const width = frames?.width ?? ownWidth;
   const slot = useRef<HTMLDivElement>(null);
@@ -180,38 +210,48 @@ export function LivePage({
             className="relative mx-auto box-content overflow-hidden rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-tile)"
             style={{ width: f.w * f.scale - 2, height: f.h * f.scale - 2 }}
           >
-            {live ? (
-              <iframe
-                title={`Sample ${id}`}
-                src={url}
-                // its own origin, never ours: scripts and its own modules run, nothing here is reachable
-                sandbox="allow-scripts allow-same-origin"
-                referrerPolicy="no-referrer"
-                className="block origin-top-left border-0"
-                style={{ width: f.w, height: f.h, transform: `scale(${f.scale})` }}
+            {/* the still holds the slot while the page loads, then the page fades in over it */}
+            {still && (
+              <Img
+                src={still}
+                alt=""
+                className="absolute inset-0 block size-full object-cover object-top select-none"
+                draggable={false}
               />
-            ) : (
+            )}
+            {live ? (
               <>
-                {still && (
-                  <Img
-                    src={still}
-                    alt=""
-                    className="block size-full object-cover object-top select-none"
-                    draggable={false}
-                  />
-                )}
-                {/* the whole still runs it; a glass play mark, not a solid button over the art */}
-                <button
-                  type="button"
-                  aria-label={`Run sample ${id}`}
-                  onClick={() => run(true)}
-                  className="group absolute inset-0 flex cursor-pointer items-center justify-center outline-none"
-                >
-                  <span className={PLAY_MARK}>
-                    <Icon name="play" size={22} className="translate-x-px" />
+                <iframe
+                  title={`Sample ${id}`}
+                  src={url}
+                  // its own origin, never ours: scripts and its own modules run, nothing here is reachable
+                  sandbox="allow-scripts allow-same-origin"
+                  referrerPolicy="no-referrer"
+                  onLoad={() => setLoaded(true)}
+                  className={cx(
+                    "absolute top-0 left-0 block origin-top-left border-0 bg-(--ui-tile) transition-opacity duration-200 ease-out motion-reduce:transition-none",
+                    loaded ? "opacity-100" : "opacity-0",
+                  )}
+                  style={{ width: f.w, height: f.h, transform: `scale(${f.scale})` }}
+                />
+                {!loaded && (
+                  <span className="pointer-events-none absolute top-2 right-2 flex rounded-full bg-(--ui-tile)/80 p-1 backdrop-blur-sm">
+                    <Ring />
                   </span>
-                </button>
+                )}
               </>
+            ) : (
+              // the whole still runs it; a glass play mark, not a solid button over the art
+              <button
+                type="button"
+                aria-label={`Run sample ${id}`}
+                onClick={() => run(true)}
+                className="group absolute inset-0 flex cursor-pointer items-center justify-center outline-none"
+              >
+                <span className={PLAY_MARK}>
+                  <Icon name="play" size={22} className="translate-x-px" />
+                </span>
+              </button>
             )}
             {children}
           </div>
