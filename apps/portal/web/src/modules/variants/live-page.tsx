@@ -1,13 +1,16 @@
 /**
  * A page sample that runs code (WebGL, scroll scenes): a link on its own origin, framed as is
- * (vireo D8). One frame runs at a time, so a batch of scenes never shares the GPU and a scroll
- * scene never traps the list; the rest show their still. Stage: the card over the whole window.
+ * (vireo D8). In a batch every frame on screen runs, up to `LIVE_CAP`, so a person can use all
+ * the pages in view (WA-1438); off screen a frame drops to its still and frees its memory.
+ * Stop holds a frame on its still until play. Stage: the card over the whole window.
  */
 import { Button, cx, Icon, Img, PLAY_MARK, Seg } from "@wren/ui";
 import {
   createContext,
   type ReactNode,
+  useCallback,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -33,9 +36,17 @@ function frameFit(width: FrameWidth, slot: { w: number; h: number }, staged: boo
   return { w: v.w, h: staged ? slot.h / scale : v.h, scale };
 }
 
+/** Frames that run at once: ~30-60 MB each for a static page; a WebGL scene costs far more. */
+const LIVE_CAP = 6;
+/** A frame starts a little before it scrolls in, so it is ready when seen. */
+const NEAR = "300px 0px";
+
 interface Frames {
-  live: number | null;
-  run: (id: number | null) => void;
+  isLive: (id: number) => boolean;
+  /** Play (true) or hold on the still (false). */
+  run: (id: number, on: boolean) => void;
+  /** Report a frame's slot for the on-screen watch; returns the unwatch. */
+  watch: (id: number, el: Element) => () => void;
   stage: number | null;
   /** On stage = live too. */
   show: (id: number | null) => void;
@@ -46,26 +57,80 @@ interface Frames {
 const Ctx = createContext<Frames | null>(null);
 
 export function FramesProvider({ ids, children }: { ids: number[]; children: ReactNode }) {
-  const [live, run] = useState<number | null>(null);
+  const [near, setNear] = useState<ReadonlySet<number>>(new Set());
+  const [held, setHeld] = useState<ReadonlySet<number>>(new Set());
+  /** Played by hand: first in line when more than the cap are near. */
+  const [picked, setPicked] = useState<readonly number[]>([]);
   const [stage, setStage] = useState<number | null>(null);
   const [width, setWidth] = useState<FrameWidth>(first);
+  const els = useRef(new Map<Element, number>());
+  const io = useRef<IntersectionObserver | null>(null);
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const obs = new IntersectionObserver(
+      (entries) =>
+        setNear((was) => {
+          const next = new Set(was);
+          for (const e of entries) {
+            const id = els.current.get(e.target);
+            if (id == null) continue;
+            if (e.isIntersecting) next.add(id);
+            else next.delete(id);
+          }
+          return next;
+        }),
+      { rootMargin: NEAR },
+    );
+    for (const el of els.current.keys()) obs.observe(el);
+    io.current = obs;
+    return () => obs.disconnect();
+  }, []);
+  const watch = useCallback((id: number, el: Element) => {
+    els.current.set(el, id);
+    io.current?.observe(el);
+    return () => {
+      io.current?.unobserve(el);
+      els.current.delete(el);
+      setNear((was) => {
+        if (!was.has(id)) return was;
+        const next = new Set(was);
+        next.delete(id);
+        return next;
+      });
+    };
+  }, []);
   const key = ids.join();
   // biome-ignore lint/correctness/useExhaustiveDependencies: ids by value; a patch remakes the array
-  const value = useMemo<Frames>(
-    () => ({
-      live,
+  const value = useMemo<Frames>(() => {
+    // hand-played first, then page order; held ones never auto-run
+    const order = [
+      ...picked.filter((id) => ids.includes(id)),
+      ...ids.filter((id) => !picked.includes(id)),
+    ];
+    const live = new Set(order.filter((id) => near.has(id) && !held.has(id)).slice(0, LIVE_CAP));
+    const run = (id: number, on: boolean) => {
+      setHeld((was) => {
+        const next = new Set(was);
+        if (on) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      setPicked((was) => (on ? [id, ...was.filter((x) => x !== id)] : was.filter((x) => x !== id)));
+    };
+    return {
+      isLive: (id) => stage === id || live.has(id),
       run,
+      watch,
       stage,
       show: (id) => {
         setStage(id);
-        if (id != null) run(id);
+        if (id != null) run(id, true);
       },
       width,
       setWidth,
       ids,
-    }),
-    [live, stage, width, key],
-  );
+    };
+  }, [near, held, picked, stage, width, key, watch]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 /** Null outside a batch (catalog, history): a frame there keeps its own state, no stage. */
@@ -87,11 +152,12 @@ export function LivePage({
   const [own, setOwn] = useState(false);
   const [ownWidth, setOwnWidth] = useState<FrameWidth>(first);
   const staged = frames?.stage === id;
-  const live = frames ? frames.live === id : own;
-  const run = (on: boolean) => (frames ? frames.run(on ? id : null) : setOwn(on));
+  const live = frames ? frames.isLive(id) : own;
+  const run = (on: boolean) => (frames ? frames.run(id, on) : setOwn(on));
   const width = frames?.width ?? ownWidth;
   const slot = useRef<HTMLDivElement>(null);
   const [room, setRoom] = useState<{ w: number; h: number } | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: watch is stable; one slot per id
   useLayoutEffect(() => {
     const el = slot.current;
     if (!el) return;
@@ -99,8 +165,12 @@ export function LivePage({
     see();
     const ro = new ResizeObserver(see);
     ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+    const unwatch = frames?.watch(id, el);
+    return () => {
+      ro.disconnect();
+      unwatch?.();
+    };
+  }, [id]);
   const f = room && room.w > 0 ? frameFit(width, room, staged) : null;
   return (
     <div className={cx("flex flex-col gap-2", staged && "min-h-0 flex-1")}>

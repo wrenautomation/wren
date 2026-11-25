@@ -171,8 +171,6 @@ export function MarkBatch({
       <p className="m-0 text-[12px] text-(--ui-ink-3)">
         {open.samples.length} samples, shown blind in random order. Mark what's good or bad. To say
         where, tap a line, mark an area or mark a moment.
-        {open.samples.some((s) => open.subject.kind === "page" && s.mediaUrl) &&
-          " One page runs at a time."}
       </p>
       {videos.length > 1 && (
         <div className="flex flex-col gap-2">
