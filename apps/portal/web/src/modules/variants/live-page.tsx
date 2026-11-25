@@ -2,7 +2,8 @@
  * A page sample that runs code (WebGL, scroll scenes): a link on its own origin, framed as is
  * (vireo D8). In a batch every frame on screen runs, so a person can use all the pages in view
  * (WA-1438). A frame that scrolls off stays loaded, up to `KEEP` in all; past that the least
- * recently seen one drops to its still (WA-1441). A new frame loads under its still and fades in.
+ * recently seen one drops to its still (WA-1441). At most `LOADS` pages load at once; a frame
+ * waits on its still, then fades in when its page posts `READY` or a beat after onLoad (WA-1444).
  * Stop holds a frame on its still until play. Stage: the card over the whole window.
  */
 import { Button, cx, Icon, Img, PLAY_MARK, Ring, Seg } from "@wren/ui";
@@ -41,6 +42,14 @@ function frameFit(width: FrameWidth, slot: { w: number; h: number }, staged: boo
 const KEEP = 9;
 /** A frame starts well before it scrolls in, so it is loaded when seen. */
 const NEAR = "600px 0px";
+/** Page loads in flight at once: a row scrolling in queued 6-9 at once (WA-1444 trace). */
+const LOADS = 2;
+/** No ready message by then after onLoad: fade anyway (pages that never send one). */
+const READY_WAIT = 400;
+/** No onLoad by then: free the load slot. */
+const HANG = 10_000;
+/** A sample page may post this when its fonts are in and it has painted. */
+export const READY = "vireo:ready";
 
 /**
  * The frames loaded now: hand-played first, then on screen in page order, then off screen by
@@ -62,8 +71,46 @@ export function keptFrames(o: {
   return new Set([...new Set(order)].filter((id) => !o.held.has(id)).slice(0, o.keep ?? KEEP));
 }
 
+/**
+ * The frames whose page may load now, from kept `order` (first = most wanted): those started stay,
+ * new ones start while fewer than `cap` are still loading. `now` ids (on stage) skip the line.
+ */
+export function startedFrames(o: {
+  order: readonly number[];
+  started: ReadonlySet<number>;
+  done: ReadonlySet<number>;
+  now?: readonly number[];
+  cap?: number;
+}): Set<number> {
+  const next = new Set(o.order.filter((id) => o.started.has(id) || o.now?.includes(id)));
+  let busy = [...next].filter((id) => !o.done.has(id)).length;
+  for (const id of o.order) {
+    if (busy >= (o.cap ?? LOADS)) break;
+    if (next.has(id)) continue;
+    next.add(id);
+    busy++;
+  }
+  return next;
+}
+
+const same = (a: ReadonlySet<number>, b: ReadonlySet<number>) =>
+  a.size === b.size && [...a].every((x) => b.has(x));
+
+/** The box that scrolls `el`: the watch root, since a clipping scroller voids a margin on the viewport. */
+function scroller(el: Element): Element | null {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    if (/(auto|scroll)/.test(getComputedStyle(p).overflowY)) return p;
+  }
+  return null;
+}
+
 interface Frames {
+  /** Kept: shows Stop, its page loads when a slot frees. */
   isLive: (id: number) => boolean;
+  /** Its page may load now. */
+  isStarted: (id: number) => boolean;
+  /** onLoad (or hung): frees its load slot. */
+  loaded: (id: number) => void;
   /** Play (true) or hold on the still (false). */
   run: (id: number, on: boolean) => void;
   /** Report a frame's slot for the on-screen watch; returns the unwatch. */
@@ -86,53 +133,69 @@ export function FramesProvider({ ids, children }: { ids: number[]; children: Rea
   const [seen, setSeen] = useState<readonly number[]>([]);
   const [stage, setStage] = useState<number | null>(null);
   const [width, setWidth] = useState<FrameWidth>(first);
+  /** Page may load (WA-1444 cap), and of those, the ones whose onLoad came. */
+  const [started, setStarted] = useState<ReadonlySet<number>>(new Set());
+  const [done, setDone] = useState<ReadonlySet<number>>(new Set());
   const els = useRef(new Map<Element, number>());
   const io = useRef<IntersectionObserver | null>(null);
-  useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        const came: number[] = [];
+  const see = useCallback((entries: IntersectionObserverEntry[]) => {
+    const came: number[] = [];
+    setNear((was) => {
+      const next = new Set(was);
+      for (const e of entries) {
+        const id = els.current.get(e.target);
+        if (id == null) continue;
+        if (e.isIntersecting) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+    for (const e of entries) {
+      const id = els.current.get(e.target);
+      if (id != null && e.isIntersecting) came.push(id);
+    }
+    if (came.length) setSeen((was) => [...came, ...was.filter((x) => !came.includes(x))]);
+  }, []);
+  useEffect(() => () => io.current?.disconnect(), []);
+  const watch = useCallback(
+    (id: number, el: Element) => {
+      els.current.set(el, id);
+      // root = the scroller of the first slot: all slots share it
+      if (!io.current && typeof IntersectionObserver !== "undefined")
+        io.current = new IntersectionObserver(see, { root: scroller(el), rootMargin: NEAR });
+      io.current?.observe(el);
+      return () => {
+        io.current?.unobserve(el);
+        els.current.delete(el);
         setNear((was) => {
+          if (!was.has(id)) return was;
           const next = new Set(was);
-          for (const e of entries) {
-            const id = els.current.get(e.target);
-            if (id == null) continue;
-            if (e.isIntersecting) next.add(id);
-            else next.delete(id);
-          }
+          next.delete(id);
           return next;
         });
-        for (const e of entries) {
-          const id = els.current.get(e.target);
-          if (id != null && e.isIntersecting) came.push(id);
-        }
-        if (came.length) setSeen((was) => [...came, ...was.filter((x) => !came.includes(x))]);
-      },
-      { rootMargin: NEAR },
-    );
-    for (const el of els.current.keys()) obs.observe(el);
-    io.current = obs;
-    return () => obs.disconnect();
-  }, []);
-  const watch = useCallback((id: number, el: Element) => {
-    els.current.set(el, id);
-    io.current?.observe(el);
-    return () => {
-      io.current?.unobserve(el);
-      els.current.delete(el);
-      setNear((was) => {
-        if (!was.has(id)) return was;
-        const next = new Set(was);
-        next.delete(id);
-        return next;
-      });
-    };
-  }, []);
+      };
+    },
+    [see],
+  );
   const key = ids.join();
   // biome-ignore lint/correctness/useExhaustiveDependencies: ids by value; a patch remakes the array
+  const live = useMemo(
+    () => keptFrames({ ids, near, seen, picked, held }),
+    [near, seen, picked, held, key],
+  );
+  useEffect(() => {
+    const order = stage == null ? [...live] : [stage, ...[...live].filter((x) => x !== stage)];
+    const next = startedFrames({ order, started, done, now: stage == null ? [] : [stage] });
+    if (!same(next, started)) setStarted(next);
+    const kept = new Set([...done].filter((x) => next.has(x)));
+    if (!same(kept, done)) setDone(kept);
+  }, [live, stage, started, done]);
+  const loaded = useCallback(
+    (id: number) => setDone((was) => (was.has(id) ? was : new Set([...was, id]))),
+    [],
+  );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ids by value; a patch remakes the array
   const value = useMemo<Frames>(() => {
-    const live = keptFrames({ ids, near, seen, picked, held });
     const run = (id: number, on: boolean) => {
       setHeld((was) => {
         const next = new Set(was);
@@ -144,6 +207,8 @@ export function FramesProvider({ ids, children }: { ids: number[]; children: Rea
     };
     return {
       isLive: (id) => stage === id || live.has(id),
+      isStarted: (id) => started.has(id),
+      loaded,
       run,
       watch,
       stage,
@@ -155,7 +220,7 @@ export function FramesProvider({ ids, children }: { ids: number[]; children: Rea
       setWidth,
       ids,
     };
-  }, [near, held, picked, seen, stage, width, key, watch]);
+  }, [live, started, stage, width, key, watch, loaded]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 /** Null outside a batch (catalog, history): a frame there keeps its own state, no stage. */
@@ -178,11 +243,35 @@ export function LivePage({
   const [ownWidth, setOwnWidth] = useState<FrameWidth>(first);
   const staged = frames?.stage === id;
   const live = frames ? frames.isLive(id) : own;
-  /** The page has loaded: it fades in over the still. A new mount starts over. */
+  /** Kept and given a load slot: the iframe mounts. */
+  const mounted = live && (frames ? frames.isStarted(id) : true);
+  /** The page is ready (its message, or onLoad + READY_WAIT): it fades in over the still. */
   const [loaded, setLoaded] = useState(false);
+  const iframe = useRef<HTMLIFrameElement>(null);
+  const wait = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: frames.loaded is stable; one id per mount
   useEffect(() => {
-    if (!live) setLoaded(false);
-  }, [live]);
+    if (!mounted) {
+      setLoaded(false);
+      return;
+    }
+    // every sample shares one origin: match the sender by window
+    const onMessage = (e: MessageEvent) => {
+      if (e.source === iframe.current?.contentWindow && e.data?.type === READY) setLoaded(true);
+    };
+    window.addEventListener("message", onMessage);
+    const hang = setTimeout(() => frames?.loaded(id), HANG);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      clearTimeout(hang);
+      clearTimeout(wait.current);
+    };
+  }, [mounted, id]);
+  const onLoad = () => {
+    frames?.loaded(id);
+    clearTimeout(wait.current);
+    wait.current = setTimeout(() => setLoaded(true), READY_WAIT);
+  };
   const run = (on: boolean) => (frames ? frames.run(id, on) : setOwn(on));
   const width = frames?.width ?? ownWidth;
   const slot = useRef<HTMLDivElement>(null);
@@ -221,19 +310,23 @@ export function LivePage({
             )}
             {live ? (
               <>
-                <iframe
-                  title={`Sample ${id}`}
-                  src={url}
-                  // its own origin, never ours: scripts and its own modules run, nothing here is reachable
-                  sandbox="allow-scripts allow-same-origin"
-                  referrerPolicy="no-referrer"
-                  onLoad={() => setLoaded(true)}
-                  className={cx(
-                    "absolute top-0 left-0 block origin-top-left border-0 bg-(--ui-tile) transition-opacity duration-200 ease-out motion-reduce:transition-none",
-                    loaded ? "opacity-100" : "opacity-0",
-                  )}
-                  style={{ width: f.w, height: f.h, transform: `scale(${f.scale})` }}
-                />
+                {mounted && (
+                  <iframe
+                    ref={iframe}
+                    title={`Sample ${id}`}
+                    src={url}
+                    // its own origin, never ours: scripts and its own modules run, nothing here is reachable
+                    sandbox="allow-scripts allow-same-origin"
+                    referrerPolicy="no-referrer"
+                    onLoad={onLoad}
+                    // no fill: a frame Chrome has not painted yet (new, or back from off screen) shows the still
+                    className={cx(
+                      "absolute top-0 left-0 block origin-top-left border-0 transition-opacity duration-200 ease-out motion-reduce:transition-none",
+                      loaded ? "opacity-100" : "opacity-0",
+                    )}
+                    style={{ width: f.w, height: f.h, transform: `scale(${f.scale})` }}
+                  />
+                )}
                 {!loaded && (
                   <span className="pointer-events-none absolute top-2 right-2 flex rounded-full bg-(--ui-tile)/80 p-1 backdrop-blur-sm">
                     <Ring />

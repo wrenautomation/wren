@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { keptFrames } from "./live-page.js";
+import { keptFrames, startedFrames } from "./live-page.js";
 
 const ids = [1, 2, 3, 4, 5, 6];
 const none = new Set<number>();
@@ -57,5 +57,43 @@ describe("keptFrames", () => {
   it("forgets frames no longer in the batch", () => {
     const kept = keptFrames({ ids: [1, 2], near: none, seen: [9, 2], picked: [9], held: none });
     expect([...kept]).toEqual([2]);
+  });
+});
+
+describe("startedFrames", () => {
+  it("starts at most the cap at once, in order", () => {
+    const s = startedFrames({ order: [5, 6, 7, 8], started: none, done: none, cap: 2 });
+    expect([...s]).toEqual([5, 6]);
+  });
+
+  it("starts the next one when a load is done", () => {
+    const s = startedFrames({
+      order: [5, 6, 7, 8],
+      started: new Set([5, 6]),
+      done: new Set([5]),
+      cap: 2,
+    });
+    expect([...s]).toEqual([5, 6, 7]);
+  });
+
+  it("drops a frame that is no longer kept", () => {
+    const s = startedFrames({
+      order: [6, 7],
+      started: new Set([5, 6]),
+      done: new Set([5, 6]),
+      cap: 2,
+    });
+    expect([...s]).toEqual([6, 7]);
+  });
+
+  it("puts the stage frame in past the cap", () => {
+    const s = startedFrames({
+      order: [9, 5, 6],
+      started: new Set([5, 6]),
+      done: none,
+      now: [9],
+      cap: 2,
+    });
+    expect([...s].sort()).toEqual([5, 6, 9]);
   });
 });
