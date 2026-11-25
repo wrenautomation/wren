@@ -3,6 +3,9 @@
  * each product maps its own data onto these props. Styles are Tailwind classes over the `--ui-`
  * tokens in `@wren/ui/tailwind.css`; every token is one a Theme can set (theme.tsx).
  */
+
+/** The headless slider (base-ui): drag, keys and aria; each screen styles its own parts. */
+export { Slider } from "@base-ui/react/slider";
 export { type Access, can, canAt, type Viewer } from "./access.js";
 export {
   AccountBadge,
