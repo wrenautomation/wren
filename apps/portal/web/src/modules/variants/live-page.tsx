@@ -49,7 +49,7 @@ const READY_WAIT = 400;
 /** No onLoad by then: free the load slot. */
 const HANG = 10_000;
 /** A sample page may post this when its fonts are in and it has painted. */
-export const READY = "vireo:ready";
+const READY = "vireo:ready";
 
 /**
  * The frames loaded now: hand-played first, then on screen in page order, then off screen by
