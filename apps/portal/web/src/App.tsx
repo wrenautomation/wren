@@ -199,6 +199,9 @@ const shown = (viewer: Viewer) =>
     pages: m.pages.filter((p) => can(viewer, p.requires)),
   }));
 
+// perch (canon/brand/wren): one file per size, a dark file for a dark look
+const WREN_MARK = { stamp: "/brand/mark-24.svg", stampDark: "/brand/mark-24-dark.svg" };
+
 const withCan = (can: readonly Permission[] | undefined) => (can ? { can } : {});
 const withWho = (who: Who | undefined) => (who !== undefined ? { who } : {});
 
@@ -364,7 +367,11 @@ export function App() {
   // An app by itself (D5b): its name and pages, no Wren navigation. His pick per app, Wren's team only.
   const alone =
     here && team && isApart(display.display, here.id, !!here.apart?.default)
-      ? { app: here, name: here.product ?? here.name, stamp: here.apart?.stamp }
+      ? {
+          app: here,
+          name: here.product ?? here.name,
+          mark: here.apart?.stamp ? { stamp: here.apart.stamp } : WREN_MARK,
+        }
       : undefined;
   const flipApart = here
     ? () => display.set({ apart: { ...display.display.apart, [here.id]: !alone } })
@@ -644,8 +651,8 @@ export function App() {
           <AppShell
             brand={
               alone
-                ? { name: alone.name, href: home, stamp: alone.stamp }
-                : { name: "Wren", href: home }
+                ? { name: alone.name, href: home, ...alone.mark }
+                : { name: "Wren", href: home, ...WREN_MARK }
             }
             workspace={
               alone

@@ -689,11 +689,16 @@ export function applyTheme(theme: Theme, el: HTMLElement = document.documentElem
   const vars = Object.entries(themeVars(theme));
   const before = vars.map(([k]) => [k, el.style.getPropertyValue(k)] as const);
   for (const [k, v] of vars) el.style.setProperty(k, v);
+  // `data-scheme`: for what CSS vars can't switch (an <img> src, e.g. the brand mark's dark file)
+  const scheme = el.dataset.scheme;
+  if (theme.scheme) el.dataset.scheme = String(theme.scheme);
   return () => {
     for (const [k, v] of before) {
       if (v) el.style.setProperty(k, v);
       else el.style.removeProperty(k);
     }
+    if (scheme === undefined) delete el.dataset.scheme;
+    else el.dataset.scheme = scheme;
   };
 }
 
@@ -706,6 +711,7 @@ export function dropPreloadedLook(root: HTMLElement = document.documentElement) 
   if (keys === undefined) return;
   for (const k of keys.split(" ")) root.style.removeProperty(k);
   delete root.dataset.lookPreload;
+  delete root.dataset.scheme;
 }
 
 /**

@@ -9,6 +9,7 @@ try {
   );
   for (const k of keys) root.style.setProperty(k, vars[k]);
   if (keys.length) root.dataset.lookPreload = keys.join(" ");
+  if (vars["--ui-scheme"] === "dark") root.dataset.scheme = "dark";
   const bar = document.querySelector('meta[name="theme-color"]');
   if (bar && vars["--ui-canvas"]) bar.content = vars["--ui-canvas"];
 } catch {}

@@ -180,6 +180,8 @@ export interface Brand {
   href: string;
   /** The square stamp image; none draws no logo. */
   stamp?: string | undefined;
+  /** The stamp on a dark look (`data-scheme="dark"`); none keeps `stamp`. */
+  stampDark?: string | undefined;
 }
 
 export function AppShell({
@@ -391,7 +393,22 @@ export function AppShell({
               {...(folded ? tipProps(workspace.current?.name, { side: "right" }) : {})}
             >
               {logo ? (
-                <Img className="flex-none" src={brand.stamp} alt="" width={26} height={26} />
+                <Img
+                  className={cx("flex-none", brand.stampDark && "in-data-[scheme=dark]:hidden")}
+                  src={brand.stamp}
+                  alt=""
+                  width={24}
+                  height={24}
+                />
+              ) : null}
+              {logo && brand.stampDark ? (
+                <Img
+                  className="hidden flex-none in-data-[scheme=dark]:block"
+                  src={brand.stampDark}
+                  alt=""
+                  width={24}
+                  height={24}
+                />
               ) : null}
               {named ? <span className="max-[900px]:hidden">{brand.name}</span> : null}
             </a>
