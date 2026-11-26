@@ -102,14 +102,15 @@ export const InWren = pageAt("/studio/projects", {
   },
 });
 
-/** All of Wren with the top bar (\\): Apps, then the app's tabs, then his buttons. */
+/** All of Wren with the top bar (\\): the pills, Studio under More by name, its tabs in the head. */
 export const WrenTopBar = pageAt("/studio/inspiration", {
   me: ADMIN,
   answers: { ...canonAddAnswers([]), ...layout({ sidebar: "top", apart: { studio: false } }) },
   check: async (page) => {
     await tabsUp(page, "Inspiration");
     if (innerWidth <= 900) return;
-    await userEvent.click(within(page).getByRole("button", { name: "Apps" }));
+    const places = within(within(page).getByRole("navigation", { name: "Places" }));
+    await userEvent.click(places.getByRole("button", { name: "Studio" }));
     await expect(
       await within(document.body).findByRole("navigation", { name: "Apps" }, WAIT),
     ).toBeVisible();

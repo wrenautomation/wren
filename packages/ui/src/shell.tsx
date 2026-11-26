@@ -538,7 +538,7 @@ export function AppShell({
             "@container/frame flex min-h-0 min-w-0 flex-1 max-[900px]:block max-[900px]:bg-(--ui-paper) has-[[data-full]]:relative has-[[data-full]]:z-50",
             !bare && "bg-(--ui-paper)",
           )}
-          data-wallpaper={bare ? "" : undefined}
+          data-wallpaper={bare && !phone ? "" : undefined}
         >
           <div
             // The page's ground, a shade under paper, so its panels read raised on it.

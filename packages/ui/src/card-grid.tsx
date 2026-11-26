@@ -66,7 +66,7 @@ export const CARD_TITLE = "text-[15px] leading-5 font-semibold text-(--ui-ink)";
 
 /** As many as fit, 240px at least; one across on a phone. */
 const GRID =
-  "m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,240px),1fr))] items-start gap-3 p-0";
+  "m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,240px),1fr))] gap-3 p-0";
 
 const PLACEHOLDERS = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
@@ -211,6 +211,8 @@ export function RecordCard({
       className={cn(
         CARD_SURFACE,
         "group flex min-w-0 cursor-pointer flex-col gap-2 px-4 py-3.5",
+        // on the wallpaper a hairline ring holds the glass's edge, at night too (v116 --tile-shadow)
+        "in-data-wallpaper:shadow-[0_0_0_1px_var(--ui-hair),var(--ui-raise)]",
         open || picked
           ? "bg-(--ui-accent-tint)"
           : cursor
@@ -291,7 +293,8 @@ export function RecordCard({
         </p>
       ) : null}
       {foot || (!box && (actions || going)) ? (
-        <div className="mt-1 flex min-h-8 flex-wrap items-center justify-between gap-2">
+        // a row's cards share one height (v116): the foot sits at the card's foot
+        <div className="mt-auto flex min-h-8 flex-wrap items-center justify-between gap-2 pt-1">
           {foot ? (
             <span className="text-[12.5px] text-(--ui-ink-2) tabular-nums">
               <span className="text-(--ui-ink-3)">{foot.label} </span>

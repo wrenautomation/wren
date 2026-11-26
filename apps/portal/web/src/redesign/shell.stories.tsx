@@ -30,6 +30,16 @@ const wren = (at: string, check: (page: HTMLElement) => Promise<void>): StoryObj
   pageAt(at, { me: ADMIN, answers: PREFS, check });
 
 export const Today = wren("/today", pillsLit("Today"));
+
+/** Today in the night look: graphite glass. */
+export const TodayNight: StoryObj = {
+  ...pageAt("/today", {
+    me: ADMIN,
+    answers: { "console/prefs": () => ({ display: { sidebar: "top" }, look: "raycast-night" }) },
+    check: pillsLit("Today"),
+  }),
+  globals: { look: "raycast", theme: "dark" },
+};
 export const AerieTasks = wren("/aerie/tasks", pillsLit("Aerie"));
 export const Variants = wren("/variants", pillsLit("Variants"));
 
