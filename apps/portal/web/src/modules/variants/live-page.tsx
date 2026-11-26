@@ -5,7 +5,7 @@
  * recently seen one drops to its still (WA-1441). At most `LOADS` pages load at once; a frame
  * waits on its still, then fades in when its page posts `READY` or a beat after onLoad (WA-1444).
  * A new load starts only once scroll and input settle: in Safari every frame shares this page's
- * main thread, so a load mid-scroll or mid-click stalls both (WA-1447).
+ * main thread, so a load mid-scroll or mid-click stalls both (WA-1448).
  * Stop holds a frame on its still until play. Stage: the card over the whole window.
  */
 import { Button, cx, Icon, Img, PLAY_MARK, Ring, Seg } from "@wren/ui";
@@ -42,7 +42,7 @@ function frameFit(width: FrameWidth, slot: { w: number; h: number }, staged: boo
 
 /**
  * Safari (WebKit, no site isolation): every frame runs on this page's main thread, so each load
- * stalls clicks and scroll 40-125 ms (WA-1447 trace). Chromium (has `userAgentData`) and Firefox
+ * stalls clicks and scroll 40-125 ms (WA-1448 trace). Chromium (has `userAgentData`) and Firefox
  * run each frame in its own process. Every iOS browser is WebKit.
  */
 const SHARED_THREAD =
