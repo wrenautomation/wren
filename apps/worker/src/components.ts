@@ -136,6 +136,7 @@ export const PLATFORM = {
     "templates.template": "every template, with its live copy and its numbers",
     "templates.version": "each saved version of a template, to restore",
     "templates.variant": "a template's variants and how each one does",
+    "variants.batch": "every Vireo batch: waiting, replaced, closed; its marks and thumbs",
     "templates.sequence": "a sequence of touches, and what each one sends",
     "templates.step": "one touch of a sequence",
     "library.snippet": "a saved piece of copy any template can use",
