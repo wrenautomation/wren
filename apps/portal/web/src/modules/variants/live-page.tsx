@@ -4,6 +4,8 @@
  * (WA-1438). A frame that scrolls off stays loaded, up to `KEEP` in all; past that the least
  * recently seen one drops to its still (WA-1441). At most `LOADS` pages load at once; a frame
  * waits on its still, then fades in when its page posts `READY` or a beat after onLoad (WA-1444).
+ * A new load starts only once scroll and input settle: in Safari every frame shares this page's
+ * main thread, so a load mid-scroll or mid-click stalls both (WA-1447).
  * Stop holds a frame on its still until play. Stage: the card over the whole window.
  */
 import { Button, cx, Icon, Img, PLAY_MARK, Ring, Seg } from "@wren/ui";
@@ -38,12 +40,25 @@ function frameFit(width: FrameWidth, slot: { w: number; h: number }, staged: boo
   return { w: v.w, h: staged ? slot.h / scale : v.h, scale };
 }
 
+/**
+ * Safari (WebKit, no site isolation): every frame runs on this page's main thread, so each load
+ * stalls clicks and scroll 40-125 ms (WA-1447 trace). Chromium (has `userAgentData`) and Firefox
+ * run each frame in its own process. Every iOS browser is WebKit.
+ */
+const SHARED_THREAD =
+  typeof navigator !== "undefined" &&
+  /AppleWebKit/.test(navigator.userAgent) &&
+  !("userAgentData" in navigator);
 /** Frames loaded at once, on screen first, then the most recently seen: ~30-60 MB each for a static page. */
-const KEEP = 9;
-/** A frame starts well before it scrolls in, so it is loaded when seen. */
-const NEAR = "600px 0px";
+const KEEP = SHARED_THREAD ? 4 : 9;
+/** A frame starts well before it scrolls in, so it is loaded when seen; Safari: only on screen. */
+const NEAR = SHARED_THREAD ? "0px" : "600px 0px";
 /** Page loads in flight at once: a row scrolling in queued 6-9 at once (WA-1444 trace). */
-const LOADS = 2;
+const LOADS = SHARED_THREAD ? 1 : 2;
+/** Quiet time after the last scroll, wheel, tap or key before a new load starts. */
+const SETTLE = SHARED_THREAD ? 400 : 150;
+/** Input that holds new loads back until it settles; capture sees an inner scroller's scroll. */
+const BUSY_EVENTS = ["scroll", "wheel", "pointerdown", "keydown", "touchmove"] as const;
 /** No ready message by then after onLoad: fade anyway (pages that never send one). */
 const READY_WAIT = 400;
 /** No onLoad by then: free the load slot. */
@@ -136,6 +151,30 @@ export function FramesProvider({ ids, children }: { ids: number[]; children: Rea
   /** Page may load (WA-1444 cap), and of those, the ones whose onLoad came. */
   const [started, setStarted] = useState<ReadonlySet<number>>(new Set());
   const [done, setDone] = useState<ReadonlySet<number>>(new Set());
+  /** No scroll or input for `SETTLE`: new loads may start. */
+  const [settled, setSettled] = useState(true);
+  useEffect(() => {
+    let quiet = true;
+    let t: ReturnType<typeof setTimeout> | undefined;
+    // one state change per busy spell, not one per scroll event
+    const poke = () => {
+      if (quiet) {
+        quiet = false;
+        setSettled(false);
+      }
+      clearTimeout(t);
+      t = setTimeout(() => {
+        quiet = true;
+        setSettled(true);
+      }, SETTLE);
+    };
+    const opts = { capture: true, passive: true } as const;
+    for (const e of BUSY_EVENTS) window.addEventListener(e, poke, opts);
+    return () => {
+      for (const e of BUSY_EVENTS) window.removeEventListener(e, poke, opts);
+      clearTimeout(t);
+    };
+  }, []);
   const els = useRef(new Map<Element, number>());
   const io = useRef<IntersectionObserver | null>(null);
   const see = useCallback((entries: IntersectionObserverEntry[]) => {
@@ -185,11 +224,14 @@ export function FramesProvider({ ids, children }: { ids: number[]; children: Rea
   );
   useEffect(() => {
     const order = stage == null ? [...live] : [stage, ...[...live].filter((x) => x !== stage)];
-    const next = startedFrames({ order, started, done, now: stage == null ? [] : [stage] });
+    // the stage and the last frame played by hand skip the queue and the settle wait
+    const hand = picked[0] != null && live.has(picked[0]) ? picked[0] : null;
+    const now = [stage, hand].filter((x): x is number => x != null);
+    const next = startedFrames({ order, started, done, now, cap: settled ? LOADS : 0 });
     if (!same(next, started)) setStarted(next);
     const kept = new Set([...done].filter((x) => next.has(x)));
     if (!same(kept, done)) setDone(kept);
-  }, [live, stage, started, done]);
+  }, [live, stage, started, done, settled, picked]);
   const loaded = useCallback(
     (id: number) => setDone((was) => (was.has(id) ? was : new Set([...was, id]))),
     [],

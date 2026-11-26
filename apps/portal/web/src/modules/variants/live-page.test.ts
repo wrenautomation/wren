@@ -86,6 +86,21 @@ describe("startedFrames", () => {
     expect([...s]).toEqual([6, 7]);
   });
 
+  it("starts nothing new while input is busy (cap 0), keeps those started", () => {
+    const s = startedFrames({
+      order: [5, 6, 7],
+      started: new Set([5]),
+      done: none,
+      cap: 0,
+    });
+    expect([...s]).toEqual([5]);
+  });
+
+  it("starts a hand-played frame while input is busy", () => {
+    const s = startedFrames({ order: [7, 5, 6], started: none, done: none, now: [7], cap: 0 });
+    expect([...s]).toEqual([7]);
+  });
+
   it("puts the stage frame in past the cap", () => {
     const s = startedFrames({
       order: [9, 5, 6],
