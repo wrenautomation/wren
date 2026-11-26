@@ -133,6 +133,8 @@ export function PlayerHost() {
           ? cx(
               "z-40 rounded-(--ui-radius-sheet) border border-(--ui-hair) bg-(--ui-paper) shadow-(--ui-float)",
               "right-4 bottom-4 max-w-[calc(100vw-32px)]",
+              // over the agent circle (side-panel.tsx AgentCircle)
+              "min-[901px]:[body:has([data-agent-circle])_&]:bottom-[84px]",
               "max-[900px]:bottom-[calc(66px+env(safe-area-inset-bottom))]",
               ratio === null || wide
                 ? "w-[360px] max-[900px]:left-4 max-[900px]:w-auto"

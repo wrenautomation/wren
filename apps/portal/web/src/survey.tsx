@@ -68,7 +68,7 @@ export function SurveyCard({ client }: { client: string }) {
   return (
     <section
       aria-label="A question"
-      className="fixed right-4 bottom-4 z-30 w-[min(360px,calc(100vw-32px))] rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) p-4 text-sm text-(--ui-ink) shadow-(--ui-shadow) motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2"
+      className="fixed right-4 bottom-4 z-30 min-[901px]:[body:has([data-agent-circle])_&]:bottom-[84px] w-[min(360px,calc(100vw-32px))] rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) p-4 text-sm text-(--ui-ink) shadow-(--ui-shadow) motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2"
     >
       {state === "thanks" ? (
         <p>Thanks. That helps.</p>

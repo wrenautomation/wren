@@ -2,7 +2,7 @@
  * The asker's chats beside the thread (designs/2026-11-04-multi-user-runtime.md): day heads, the
  * time on the right, the open one marked by a bar and a fill.
  */
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import {
   dragItem,
@@ -191,6 +191,7 @@ export function AgentChatsMenu({
   hrefOf,
   onOpen,
   folders,
+  top,
 }: {
   /** undefined while the list reads. */
   rows: readonly AgentChatRow[] | undefined;
@@ -198,6 +199,8 @@ export function AgentChatsMenu({
   hrefOf: (r: AgentChatRow) => string;
   onOpen: (r: AgentChatRow) => void;
   folders?: ChatFolders | undefined;
+  /** Over the list: the setup switch, when the Mac has more than one. */
+  top?: ReactNode;
 }) {
   const [shown, setShown] = useState(false);
   return (
@@ -213,6 +216,7 @@ export function AgentChatsMenu({
         initialFocus={(t) => t === "keyboard"}
         className="grid max-h-[min(70dvh,520px)] w-[min(340px,calc(100vw-24px))] gap-0 overflow-hidden bg-(--ui-paper) p-1.5 pt-2.5 text-(--ui-ink)"
       >
+        {top ? <div className="px-1 pb-2">{top}</div> : null}
         {rows?.length ? (
           <AgentChats
             rows={rows}

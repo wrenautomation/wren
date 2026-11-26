@@ -12,11 +12,11 @@ import {
   PANEL,
   PanelAct,
   PanelClose,
-  ProductMark,
+  PanelDock,
   Seg,
   SidePanel,
 } from "@wren/ui";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useFolders } from "../../folders.js";
 import { useCall } from "../../load.js";
 import { keep, recall } from "../../local.js";
@@ -152,6 +152,7 @@ function PanelChat({
   onRunning: (r: boolean) => void;
   onClose: () => void;
 }) {
+  const docked = useContext(PanelDock);
   const setups = useCall("agent:setups", () => relaySetups(), { kept: false });
   const [tab, setTab] = useState(tabRead);
   const put = (p: Tab) =>
@@ -227,40 +228,49 @@ function PanelChat({
       owner={owner}
       page={page}
       className="min-h-0 flex-1"
-      head={(first) => (
-        <div className="flex min-h-[54px] flex-none flex-wrap items-center gap-1 border-(--ui-hair) border-b py-2 pr-2 pl-4">
-          {list.length > 1 ? (
-            <Seg
-              label="Setup"
-              dense
-              items={list.map((s) => ({ value: s.name, label: s.title }))}
-              value={setup.name}
-              onChange={(v) => put({ setup: v, for: under })}
+      beside
+      askAbout={docked}
+      head={(first, seen) => (
+        // v116 `.an-h`: the name, what is open, then the chats, new and close
+        <div className="flex flex-none flex-wrap items-center gap-x-2 gap-y-1 border-(--ui-hair) border-b py-3 pr-3 pl-4">
+          <span className="flex-none text-[14px] font-semibold text-(--ui-ink)">Anton</span>
+          <span className="flex min-w-0 flex-1">{seen}</span>
+          <span className="flex flex-none items-center gap-0.5">
+            <AgentChatsMenu
+              rows={sessions.data ?? undefined}
+              open={chat}
+              hrefOf={() => "#"}
+              onOpen={(r) => putChat(r.session)}
+              folders={
+                filed.folders
+                  ? { id: `chats:${setup.name}`, ...filed, folders: filed.folders }
+                  : undefined
+              }
+              top={
+                list.length > 1 ? (
+                  <Seg
+                    label="Setup"
+                    dense
+                    items={list.map((s) => ({ value: s.name, label: s.title }))}
+                    value={setup.name}
+                    onChange={(v) => put({ setup: v, for: under })}
+                  />
+                ) : undefined
+              }
             />
-          ) : (
-            <ProductMark name={setup.title} />
-          )}
-          <ChatTitle
-            setup={setup.name}
-            chat={chat}
-            title={stored ?? first ?? (chat ? "Chat" : "New chat")}
-            onRenamed={sessions.retry}
-            className="ml-1.5 flex-1 text-[13.5px] max-sm:order-last max-sm:ml-0 max-sm:basis-full max-sm:pt-1"
-          />
-          <span className="flex-1 sm:hidden" />
-          <AgentChatsMenu
-            rows={sessions.data ?? undefined}
-            open={chat}
-            hrefOf={() => "#"}
-            onOpen={(r) => putChat(r.session)}
-            folders={
-              filed.folders
-                ? { id: `chats:${setup.name}`, ...filed, folders: filed.folders }
-                : undefined
-            }
-          />
-          <PanelAct icon="plus" label="New chat" onClick={() => putChat(null)} />
-          <PanelClose label="Agent" onClose={onClose} />
+            <PanelAct icon="plus" label="New chat" onClick={() => putChat(null)} />
+            <PanelClose label="Agent" onClose={onClose} />
+          </span>
+          {/* a saved chat: its name, a click renames it; a new one has none */}
+          {chat ? (
+            <ChatTitle
+              setup={setup.name}
+              chat={chat}
+              title={stored ?? first ?? "Chat"}
+              onRenamed={sessions.retry}
+              className="basis-full text-[13.5px]"
+            />
+          ) : null}
         </div>
       )}
       onSession={putChat}

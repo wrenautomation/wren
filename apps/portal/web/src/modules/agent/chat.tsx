@@ -210,6 +210,8 @@ export function AgentChat({
   onModel,
   owner,
   head,
+  beside = false,
+  askAbout = false,
   page,
   hand,
   onSession,
@@ -223,8 +225,12 @@ export function AgentChat({
   onModel: (m: string) => void;
   /** The Mac's owner (`ownerOf`): may pick bypass. */
   owner: boolean;
-  /** The chat's head; `first` is the opening question, the title until the list has one. */
-  head?: (first: string | undefined) => React.ReactNode;
+  /** The chat's head; `first` is the opening question, the title until the list has one; `seen` the page chip when `beside`. */
+  head?: (first: string | undefined, seen?: React.ReactNode) => React.ReactNode;
+  /** Beside a page (the panel): the page chip sits in the head. */
+  beside?: boolean;
+  /** Docked under pills (redesign D3): the box asks about the page, not the setup. */
+  askAbout?: boolean;
   /** The page open beside the chat: a chip in the box, and a line in the turn. */
   page?: string | undefined;
   /** A turn a page hands this chat: sent once, as the person's; a `draft` is typed into the box only. */
@@ -294,13 +300,29 @@ export function AgentChat({
     takeHand(hand.id);
     send.current(hand.text, [], sendPage, seen);
   }, [hand, a.loading, a.running, sendPage, seen]);
+  const shown = page?.replace(/ \([^)]*\)$/, "");
+  const chip =
+    shown && (beside || parts.length) ? (
+      <PageSeen
+        page={shown}
+        parts={parts}
+        head={beside}
+        onToggle={(id) =>
+          setOff((o) => {
+            const n = new Set(o);
+            if (!n.delete(id)) n.add(id);
+            return n;
+          })
+        }
+      />
+    ) : null;
   const one = a.messages.find((m) => m.role === "user")?.parts[0];
   // a long opening turn: its first line names the chat
   const first = one?.type === "text" ? one.text.split("\n")[0] : undefined;
   if (a.loading)
     return (
       <>
-        {head?.(undefined)}
+        {head?.(undefined, beside ? chip : undefined)}
         <div className="mx-auto w-full max-w-[46rem] px-4 pt-6">
           <Loading shape="rows" lines={3} />
         </div>
@@ -309,7 +331,7 @@ export function AgentChat({
   const w = WELCOME[setup.name];
   return (
     <>
-      {head?.(first)}
+      {head?.(first, beside ? chip : undefined)}
       {changesOpen ? (
         <section
           aria-label="Changes in this chat"
@@ -340,21 +362,7 @@ export function AgentChat({
         queue
         draft={draft}
         files={{ accept: ACCEPT, ready: a.ready }}
-        seen={
-          page && parts.length ? (
-            <PageSeen
-              page={page.replace(/ \([^)]*\)$/, "")}
-              parts={parts}
-              onToggle={(id) =>
-                setOff((o) => {
-                  const n = new Set(o);
-                  if (!n.delete(id)) n.add(id);
-                  return n;
-                })
-              }
-            />
-          ) : null
-        }
+        seen={beside ? null : chip}
         replyFoot={(id) => {
           const lines = ch.turns.filter((t) => t.reply === id).flatMap((t) => t.lines);
           return lines.length ? (
@@ -366,7 +374,13 @@ export function AgentChat({
         preview={linkPreview}
         views={VIEWS}
         readFile={async (path) => relayFile(setup.name, await pageToken(), path)}
-        placeholder={setup.name === "weaver" ? "Ask a research question" : `Ask ${setup.title}`}
+        placeholder={
+          askAbout && shown
+            ? `Ask about ${shown.split(" › ").at(-1)}`
+            : setup.name === "weaver"
+              ? "Ask a research question"
+              : `Ask ${setup.title}`
+        }
         tools={
           <>
             <AgentPick

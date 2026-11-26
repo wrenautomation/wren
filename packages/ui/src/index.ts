@@ -617,6 +617,7 @@ export {
   PanelAct,
   PanelButton,
   PanelClose,
+  PanelDock,
   type PanelDoor,
   SidePanel,
 } from "./side-panel.js";

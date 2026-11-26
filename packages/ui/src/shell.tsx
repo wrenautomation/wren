@@ -48,7 +48,7 @@ import {
   useScrollKeep,
 } from "./phone-shell.js";
 import { useHoverMenu } from "./safe-triangle.js";
-import { PanelButton, type PanelDoor } from "./side-panel.js";
+import { AgentCircle, PanelButton, PanelDock, type PanelDoor } from "./side-panel.js";
 import { type Theme, usePageTheme } from "./theme.js";
 
 /** One of an app's pages, as a tab. */
@@ -440,7 +440,14 @@ export function AppShell({
           >
             {agent ? (
               // a phone in an app: the top bar holds it
-              <span className={cx("contents", nav && app && "max-[900px]:hidden")}>
+              // pills: the circle at the lower right holds it on a computer
+              <span
+                className={cx(
+                  "contents",
+                  nav && app && "max-[900px]:hidden",
+                  pilled && "min-[901px]:hidden",
+                )}
+              >
                 <PanelButton {...agent} />
               </span>
             ) : null}
@@ -505,14 +512,16 @@ export function AppShell({
       <div
         className={cx(
           "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-(--ui-radius-sheet) min-[901px]:relative min-[901px]:isolate max-[900px]:m-0 max-[900px]:bg-(--ui-paper) max-[900px]:shadow-none max-[900px]:block max-[900px]:overflow-visible max-[900px]:rounded-none",
-          !bare &&
+          !pilled &&
             "bg-(--ui-window) shadow-[var(--ui-raise),var(--ui-lift)] [@media(prefers-reduced-transparency:reduce)]:bg-(--ui-paper)",
           // The sidebar lives inside the window's card: the card spans both columns, the
           // sidebar's ground is painted at its left, and the sidebar's cells sit above it.
+          // pills: no window; the page and the agent are two cards on the wallpaper (redesign D3).
+          // Gap as padding: the clip keeps the cards' rings
           side
             ? "relative [grid-area:2/1/-1/-1] mx-(--ui-frame) my-(--ui-frame) min-[901px]:pl-(--layout-side)"
-            : bare
-              ? "mx-(--ui-frame)"
+            : pilled
+              ? "rounded-none px-(--ui-frame) pt-px max-[900px]:p-0"
               : "mx-(--ui-frame) mb-(--ui-frame)",
         )}
       >
@@ -536,13 +545,19 @@ export function AppShell({
           // bare: cards read `data-wallpaper` and turn to glass (card-grid.tsx)
           className={cx(
             "@container/frame flex min-h-0 min-w-0 flex-1 max-[900px]:block max-[900px]:bg-(--ui-paper) has-[[data-full]]:relative has-[[data-full]]:z-50",
-            !bare && "bg-(--ui-paper)",
+            !pilled && "bg-(--ui-paper)",
           )}
           data-wallpaper={bare && !phone ? "" : undefined}
         >
           <div
             // The page's ground, a shade under paper, so its panels read raised on it.
-            className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:thin] max-[900px]:overflow-visible"
+            // pills: the page's own card, unless its cards sit on the wallpaper
+            className={cx(
+              "min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:thin] max-[900px]:overflow-visible",
+              pilled &&
+                !bare &&
+                "min-[901px]:mb-(--ui-frame) min-[901px]:rounded-(--ui-radius-sheet) min-[901px]:bg-(--ui-paper) min-[901px]:shadow-[0_0_0_1px_var(--ui-hair),var(--ui-raise),var(--ui-lift)]",
+            )}
             ref={scroller}
           >
             {app ? (
@@ -600,9 +615,10 @@ export function AppShell({
               )}
             />
           </div>
-          {aside}
+          <PanelDock.Provider value={pilled}>{aside}</PanelDock.Provider>
         </div>
       </div>
+      {pilled && agent ? <AgentCircle {...agent} /> : null}
       {nav ? (
         <>
           <PhonePull on={phone && !deep} app={!!app} />

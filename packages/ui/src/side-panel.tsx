@@ -4,7 +4,7 @@
  * past the fold it closes. On a phone it is the bottom sheet's shape (phone.tsx), full height.
  */
 import { type MotionStyle, motion, useReducedMotion } from "motion/react";
-import { type ReactNode, useRef, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { cx } from "./format.js";
 import { Resizer } from "./frame.js";
 import { tipProps } from "./hint.js";
@@ -13,6 +13,9 @@ import { useNarrow } from "./list-bar.js";
 import { EASE, LEAVE } from "./motion.js";
 
 export const PANEL = { min: 340, max: 760, fold: 280, width: 440 } as const;
+
+/** The shell's `aside` under pills: its own card on the wallpaper, beside the page's (redesign D3). */
+export const PanelDock = createContext(false);
 
 export function SidePanel({
   open,
@@ -38,12 +41,14 @@ export function SidePanel({
   const host = useRef<HTMLElement>(null);
   const still = useReducedMotion() ?? false;
   const phone = useNarrow();
-  // arrives on the ease, leaves quicker; closed it stays mounted, so the chat keeps its session
-  const move = open ? { duration: 0.3, ease: EASE } : { duration: 0.2, ease: LEAVE };
+  const docked = useContext(PanelDock);
+  // arrives on the ease, leaves quicker; closed it stays mounted, so the chat keeps its session.
+  // Opened many times a day: short and near (redesign D3, "subtler animations")
+  const move = open ? { duration: 0.16, ease: EASE } : { duration: 0.14, ease: LEAVE };
   // reduced motion: a fade in place; the room jumps (after the fade, on close)
   const fade = { duration: 0.15, ease: "linear" } as const;
   const room = still ? { duration: 0, delay: open ? 0 : fade.duration } : move;
-  const shut = still ? { opacity: 0 } : phone ? { y: "100%" } : { opacity: 0, x: 24 };
+  const shut = still ? { opacity: 0 } : phone ? { y: "100%" } : { opacity: 0, x: 8 };
   // shut and done moving: out of the tab order and the a11y tree (motion's transitionEnd never
   // set display:none here, so a closed chat stayed focusable at width 0)
   const [gone, setGone] = useState(!open);
@@ -74,7 +79,10 @@ export function SidePanel({
           // main keeps >= 560px while the panel can give: 616 = 560 + main pad 48 + panel gap 8;
           // under that main narrows and its pages reflow (@container/main)
           "min-[901px]:w-[max(340px,min(var(--panel-w),calc(100cqw-616px)))]",
-          "min-[901px]:my-2 min-[901px]:mr-2 min-[901px]:rounded-[12px] min-[901px]:border min-[901px]:border-[color-mix(in_srgb,var(--ui-ink)_8%,transparent)] min-[901px]:shadow-[0_1px_3px_rgb(0_0_0/.04)]",
+          docked
+            ? // a card on the wallpaper as the page's: its gap, radius and glass (v116 .anton)
+              "min-[901px]:mb-(--ui-frame) min-[901px]:ml-(--ui-frame) min-[901px]:rounded-(--ui-radius-sheet) min-[901px]:bg-(--ui-window) min-[901px]:shadow-[0_0_0_1px_var(--ui-hair),var(--ui-raise),var(--ui-lift)] min-[901px]:[backdrop-filter:var(--ui-window-blur)]"
+            : "min-[901px]:my-2 min-[901px]:mr-2 min-[901px]:rounded-[12px] min-[901px]:border min-[901px]:border-[color-mix(in_srgb,var(--ui-ink)_8%,transparent)] min-[901px]:shadow-[0_1px_3px_rgb(0_0_0/.04)]",
           "max-[900px]:fixed max-[900px]:inset-x-0 max-[900px]:bottom-0 max-[900px]:z-40 max-[900px]:h-[calc(100dvh-env(safe-area-inset-top)-10px)] max-[900px]:w-full max-[900px]:rounded-[6px_24px_0_0] max-[900px]:border-t max-[900px]:border-l-0 max-[900px]:shadow-(--ui-shadow)",
         )}
       >
@@ -178,6 +186,37 @@ export function PanelButton({
     >
       <Icon name="chat" size={15} />
       {compact ? null : "Agent"}
+    </button>
+  );
+}
+
+/**
+ * The door under pills, on a computer: a plain ink circle at the page's lower right (v116 `.orb`,
+ * no gradient). Hidden while the panel is open; focus comes back to it on close.
+ */
+export function AgentCircle({ open, onToggle }: PanelDoor) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const was = useRef(open);
+  useEffect(() => {
+    if (was.current && !open) ref.current?.focus({ preventScroll: true });
+    was.current = open;
+  }, [open]);
+  return (
+    <button
+      ref={ref}
+      type="button"
+      aria-label="Agent"
+      data-agent-circle=""
+      aria-hidden={open || undefined}
+      tabIndex={open ? -1 : undefined}
+      {...tipProps("Ask the agent about this page", { side: "left" })}
+      className={cx(
+        "fixed right-[22px] bottom-[22px] z-30 grid size-[46px] place-items-center rounded-full bg-(--ui-ink) text-(--ui-on-ink) shadow-(--ui-lift) transition-[opacity,scale] duration-150 ease-(--ui-ease) hover:opacity-90 active:scale-[.97] motion-reduce:transition-none max-[900px]:hidden",
+        open && "pointer-events-none scale-90 opacity-0",
+      )}
+      onClick={onToggle}
+    >
+      <Icon name="chat" size={18} />
     </button>
   );
 }

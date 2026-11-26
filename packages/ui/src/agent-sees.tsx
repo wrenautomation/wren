@@ -1,5 +1,6 @@
 /**
- * What the agent sees of the page (designs/2026-11-11-agent-panel.md, D3), on the composer: one
+ * What the agent sees of the page (designs/2026-11-11-agent-panel.md, D3), on the composer or the
+ * panel's head (designs/2026-11-26-redesign.md D3): one
  * short line, and on click every part the next turn carries, as the agent reads it. Each part can
  * be left out of the next turn.
  */
@@ -23,22 +24,35 @@ export function PageSeen({
   page,
   parts,
   onToggle,
+  head = false,
 }: {
   /** "Deals › Pipeline". */
   page: string;
   parts: readonly SeenPart[];
   onToggle: (id: string) => void;
+  /** In the panel's head, beside its name (v116 `.an-ctx`): smaller, no eye. */
+  head?: boolean;
 }) {
   const on = parts.filter((p) => !p.off);
-  const line = [page, ...on.map((p) => p.label)].join(" · ");
+  // "Aerie › Tasks · Tasks": a part named as the page adds nothing
+  const name = page.split(" › ").at(-1);
+  const line = [page, ...on.map((p) => p.label).filter((l) => l !== name)].join(" · ");
   return (
     <Popover>
       <PopoverTrigger
-        className="inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-[14px] bg-(--ui-fill) py-1 pr-2 pl-2.5 text-left text-[12.5px] text-(--ui-ink-2) transition-colors hover:bg-(--ui-hover) hover:text-(--ui-ink)"
+        className={cx(
+          "inline-flex max-w-full items-center gap-1.5 bg-(--ui-fill) text-left text-(--ui-ink-2) transition-colors hover:bg-(--ui-hover) hover:text-(--ui-ink)",
+          head
+            ? "min-h-6 rounded-[6px] px-2 py-1 text-[12px]"
+            : "min-h-7 rounded-[14px] py-1 pr-2 pl-2.5 text-[12.5px]",
+        )}
         {...tipProps("What the agent sees")}
       >
-        <Icon name="eye" size={13} className="flex-none" />
-        <span className="min-w-0 wrap-anywhere">{line}</span>
+        {head ? null : <Icon name="eye" size={13} className="flex-none" />}
+        {/* a new page: its words cross-fade in */}
+        <span key={line} className="min-w-0 wrap-anywhere [animation:ui-fade_.12s_both]">
+          {line}
+        </span>
       </PopoverTrigger>
       <PopoverContent
         aria-label="What the agent sees"

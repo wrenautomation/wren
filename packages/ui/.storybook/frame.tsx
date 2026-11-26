@@ -59,7 +59,10 @@ function Frame({
       </div>
       <HintLayer />
       {/* Dev only: a build, a shot or a story test never draws it. */}
-      {import.meta.env.MODE === "development" ? <Feedback story={id} /> : null}
+      {/* webdriver: shoot.mjs and probes run dev Storybook; the toolbar sits on the agent circle */}
+      {import.meta.env.MODE === "development" && !navigator.webdriver ? (
+        <Feedback story={id} />
+      ) : null}
     </QueryClientProvider>
   );
 }

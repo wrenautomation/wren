@@ -682,7 +682,7 @@ function UserTurn() {
         <MessagePrimitive.Attachments>{() => <FileChip />}</MessagePrimitive.Attachments>
       </div>
       {words ? (
-        <div className="max-w-[85%] whitespace-pre-wrap wrap-anywhere rounded-[14px_4px_14px_14px] bg-(--ui-wash) px-3.5 py-2.5 text-[14.5px]/[1.5] text-(--ui-ink)">
+        <div className="max-w-[85%] whitespace-pre-wrap wrap-anywhere rounded-[14px] bg-(--ui-fill) px-3 py-2 text-[14.5px]/[1.5] text-(--ui-ink)">
           <MessagePrimitive.Parts />
         </div>
       ) : null}
@@ -847,7 +847,7 @@ const Thinking: ReasoningMessagePartComponent = ({ text, status }) => {
         {status.type === "running" ? "Thinking" : "Thought"}
         <Icon name="down" size={12} className="transition-transform group-open:rotate-180" />
       </summary>
-      <p className="mt-1.5 mb-0 whitespace-pre-wrap border-(--ui-hair) border-l-2 pl-3 text-[13.5px] text-(--ui-ink)">
+      <p className="mt-1.5 mb-0 whitespace-pre-wrap rounded-[10px] bg-(--ui-fill) px-3 py-2 text-[13.5px] text-(--ui-ink-2)">
         {text}
       </p>
     </details>
@@ -1027,7 +1027,8 @@ function Composer({
   const box = (
     <ComposerPrimitive.Root
       ref={root}
-      className="relative grid rounded-[16px] bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-shadow duration-150 focus-within:shadow-[inset_0_0_0_1px_var(--ui-ink-3),var(--ui-raise)] in-data-dragging:shadow-[inset_0_0_0_2px_var(--ui-active),var(--ui-raise)]"
+      // v116 `.cmp3`: a grey field, no rim; focus draws one
+      className="relative grid rounded-[14px] bg-(--ui-fill) transition-shadow duration-150 focus-within:shadow-[inset_0_0_0_1px_var(--ui-ink-3)] in-data-dragging:shadow-[inset_0_0_0_2px_var(--ui-active)]"
     >
       <ComposerPrimitive.TriggerPopoverRoot>
         {commands?.length ? <SlashMenu commands={commands} /> : null}
@@ -1056,7 +1057,7 @@ function Composer({
               multiple
               aria-label="Add files"
               {...tipProps("Add files: or drop or paste them")}
-              className="grid size-8 flex-none place-items-center rounded-full text-(--ui-ink-2) transition-colors duration-150 hover:bg-(--ui-fill) hover:text-(--ui-ink) disabled:opacity-50"
+              className="grid size-8 flex-none place-items-center rounded-full text-(--ui-ink-2) transition-colors duration-150 hover:bg-(--ui-hover) hover:text-(--ui-ink) disabled:opacity-50"
             >
               <Icon name="attach" size={16} />
             </ComposerPrimitive.AddAttachment>
@@ -1066,7 +1067,7 @@ function Composer({
             <ComposerPrimitive.Send
               aria-label="Send when this reply ends"
               {...tipProps("Send when this reply ends", { keys: "Enter" })}
-              className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-fill) text-(--ui-ink) [animation:ui-fade_.15s_both] hover:bg-(--ui-hover) disabled:hidden"
+              className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-paper) text-(--ui-ink) [animation:ui-fade_.15s_both] hover:bg-(--ui-hover) disabled:hidden"
             >
               <Icon name="arrowUp" size={16} />
             </ComposerPrimitive.Send>
@@ -1082,7 +1083,7 @@ function Composer({
           ) : (
             <ComposerPrimitive.Send
               aria-label="Send"
-              className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-primary) text-(--ui-on-accent) [animation:ui-fade_.15s_both] hover:opacity-90 disabled:bg-(--ui-fill) disabled:text-(--ui-ink-3)"
+              className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-ink) text-(--ui-canvas) [animation:ui-fade_.15s_both] hover:opacity-85 disabled:bg-transparent disabled:text-(--ui-ink-3)"
             >
               <Icon name="arrowUp" size={16} />
             </ComposerPrimitive.Send>
