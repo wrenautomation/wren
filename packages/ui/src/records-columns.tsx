@@ -21,6 +21,7 @@ import { Icon } from "./icons.js";
 import { groupFields } from "./list-bar.js";
 import { PAGE_SIZE, PAGE_SIZES, sizeOf } from "./pager.js";
 import { type Place, titleOf } from "./records-types.js";
+import { sortTip } from "./view-says.js";
 
 /** The templates' type. Buttons follow the tokens, as everywhere. */
 export const ROOT = "text-[14px] text-(--ui-ink) [font-variant-numeric:var(--ui-numeric)]";
@@ -537,3 +538,39 @@ export function shownColumns(
 
 /** How many fields a phone row shows under its title. */
 const NARROW_FIELDS = 3;
+
+/** A sortable column's head: a press sorts by it, a second press flips it. */
+export function SortHead({
+  field,
+  place,
+  sort,
+  dir,
+}: {
+  field: FieldMeta;
+  place: Place;
+  sort: string | undefined;
+  /** Which way the table sorts by this column, if it does. */
+  dir: false | "asc" | "desc";
+}) {
+  const on = dir !== false;
+  const desc = dir === "desc";
+  const end = field.column?.align === "end";
+  if (!field.sortable) return <span className="whitespace-normal">{field.label}</span>;
+  // Numbers and dates start high; words and states start at the top of their order.
+  const first = end ? `-${field.key}` : field.key;
+  const next = on ? (desc ? field.key : `-${field.key}`) : first;
+  return (
+    <a
+      href={place.link({ sort: next, pg: null })}
+      {...tipProps(sortTip(field, sort, next))}
+      className={cn(
+        "inline-flex items-center gap-1 no-underline hover:text-(--ui-ink)",
+        end && "flex-row-reverse",
+        on ? "text-(--ui-ink)" : "text-inherit",
+      )}
+    >
+      <span className="whitespace-normal">{field.label}</span>
+      {on ? <Icon name={desc ? "arrowDown" : "arrowUp"} className="size-3 shrink-0" /> : null}
+    </a>
+  );
+}

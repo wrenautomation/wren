@@ -9,17 +9,7 @@ import type { FieldMeta, RecordMeta } from "@wren/core/records";
 import type { ExportFormat, ListAsk, RecordsPage, Row, RowsPage } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  type Action,
-  applies,
-  blockedOf,
-  inputOf,
-  runningOn,
-  runs,
-  sayBlocked,
-  useHeld,
-  useRun,
-} from "./action.js";
+import { type Action, inputOf, runningOn, runs, sayBlocked, useHeld, useRun } from "./action.js";
 import { AskAgent, useChatHere } from "./agent-hand.js";
 import { CardBox, CardGrid, CardHead, CardSort, cardPartsOf, RecordCard } from "./card-grid.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
@@ -40,6 +30,7 @@ import { seenRows, useSeen } from "./page-seen.js";
 import { pageAt, pagesOf, sizeOf } from "./pager.js";
 import { useScope } from "./palette-scope.js";
 import { askOf, countAskOf, facetsOf, pageAskOf } from "./records-ask.js";
+import { Bulk } from "./records-bulk.js";
 import {
   columnsOf,
   dockedOf,
@@ -47,6 +38,7 @@ import {
   ListDisplay,
   ListSkeleton,
   ROOT,
+  SortHead,
   shownColumns,
   titleLeast,
   useRoom,
@@ -99,69 +91,6 @@ import {
   waitFrom,
 } from "./rows.js";
 import { type ListLine, scrollerOf, useListTable } from "./table.js";
-import { sortTip } from "./view-says.js";
-
-/** "3 selected", what each bulk action would do to them, and a way out. */
-export function Bulk({
-  actions,
-  rows,
-  picked,
-  run,
-  busy,
-  running,
-  clear,
-}: {
-  actions: readonly Action[];
-  rows: Row[];
-  picked: Set<string>;
-  run: (action: Action, ids: (string | number)[]) => void;
-  busy: boolean;
-  running: { action: string; ids: readonly (string | number)[] } | null;
-  clear: () => void;
-}) {
-  const chosen = rows.filter((r) => picked.has(String(r.id)));
-  return (
-    <span className="inline-flex flex-wrap items-center gap-2">
-      <span>{num(picked.size)} selected</span>
-      {actions
-        .filter((a) => a.bulk)
-        .map((a) => {
-          const ids = chosen.filter((r) => runs(a, r)).map((r) => r.id);
-          // Rows it would apply to but can't run on yet: skipped, each reason said once.
-          const reasons = chosen.flatMap((r) => (applies(a, r) ? (blockedOf(a, r) ?? []) : []));
-          const skipped = reasons.length;
-          const why = [...new Set(reasons)];
-          return ids.length || skipped ? (
-            <span key={a.id} className="inline-flex flex-wrap items-center gap-2">
-              {ids.length ? (
-                <Button
-                  tone="secondary"
-                  size="dense"
-                  busy={runningOn(running, a.id, ids)}
-                  disabled={busy}
-                  onClick={() => run(a, ids)}
-                >
-                  {a.label} {num(ids.length)}
-                </Button>
-              ) : null}
-              {skipped ? (
-                <span className="text-(--ui-ink-2)">
-                  {a.label} skips {num(skipped)}. {why.join(" ")}
-                </span>
-              ) : null}
-            </span>
-          ) : null;
-        })}
-      <button
-        type="button"
-        onClick={clear}
-        className="border-0 bg-transparent p-0 text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2"
-      >
-        Clear
-      </button>
-    </span>
-  );
-}
 
 /**
  * A row's title by whether it waits on the viewer: what waits reads heavier, what is for info
@@ -198,42 +127,6 @@ async function download(api: RecordsApi, ask: ListAsk, name: string, format: Exp
   a.click();
   URL.revokeObjectURL(url);
   return got;
-}
-
-/** A sortable column's head: a press sorts by it, a second press flips it. */
-function SortHead({
-  field,
-  place,
-  sort,
-  dir,
-}: {
-  field: FieldMeta;
-  place: Place;
-  sort: string | undefined;
-  /** Which way the table sorts by this column, if it does. */
-  dir: false | "asc" | "desc";
-}) {
-  const on = dir !== false;
-  const desc = dir === "desc";
-  const end = field.column?.align === "end";
-  if (!field.sortable) return <span className="whitespace-normal">{field.label}</span>;
-  // Numbers and dates start high; words and states start at the top of their order.
-  const first = end ? `-${field.key}` : field.key;
-  const next = on ? (desc ? field.key : `-${field.key}`) : first;
-  return (
-    <a
-      href={place.link({ sort: next, pg: null })}
-      {...tipProps(sortTip(field, sort, next))}
-      className={cn(
-        "inline-flex items-center gap-1 no-underline hover:text-(--ui-ink)",
-        end && "flex-row-reverse",
-        on ? "text-(--ui-ink)" : "text-inherit",
-      )}
-    >
-      <span className="whitespace-normal">{field.label}</span>
-      {on ? <Icon name={desc ? "arrowDown" : "arrowUp"} className="size-3 shrink-0" /> : null}
-    </a>
-  );
 }
 
 /** A page whose record isn't served here: its part isn't installed. Said once, not a skeleton forever. */
