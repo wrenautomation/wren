@@ -55,7 +55,8 @@ const QUIET_BUTTON =
  * reply, else its first main action, else ⋯. The rest of its main icons and ⋯ come over the row's
  * own ground on hover, on focus, or while the keyboard's cursor is on it. ⋯ holds the rest and the
  * record's own page. `lone` is a phone row's: the quiet icon alone, the swipes carry the rest.
- * `still` is a card's foot: every icon in place.
+ * `still` is a card's foot: every icon in place. `labelled` also draws the first main action as a
+ * word button at the end (a card grid's Approve).
  */
 export function RowActions({
   title,
@@ -66,6 +67,7 @@ export function RowActions({
   busy,
   run,
   still = false,
+  labelled = false,
   lone = false,
 }: {
   title: string;
@@ -79,6 +81,8 @@ export function RowActions({
   run: (a: Action) => void;
   /** In place and always shown: a card's foot, not a row's end. */
   still?: boolean;
+  /** With `still`: the first main action as a word button. */
+  labelled?: boolean;
   /** A phone row's: the quiet icon alone. */
   lone?: boolean;
 }) {
@@ -108,7 +112,7 @@ export function RowActions({
         <Icon name="reply" />
       </button>
     ) : null;
-  const menu = (className: string) => (
+  const menu = (className: string, items: readonly Action[] = more) => (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={className}
@@ -118,7 +122,7 @@ export function RowActions({
         <Icon name="more" />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-52 gap-0 p-1">
-        {more.map((a) => (
+        {items.map((a) => (
           <button
             key={a.id}
             type="button"
@@ -144,14 +148,33 @@ export function RowActions({
       </PopoverContent>
     </Popover>
   );
-  if (still)
+  if (still) {
+    // The one that moves it on (Approve), icon or not: a word button at the end.
+    const word = labelled
+      ? [...main, ...more].find((a) => !a.form && !a.ask && !setsAside(a.label))
+      : undefined;
+    const rest = more.filter((a) => a !== word);
     return (
       <div data-row-acts="" className="flex items-center gap-0.5">
         {replyButton(ICON_BUTTON)}
-        {main.map((a) => act(a, ICON_BUTTON))}
-        {menu(ICON_BUTTON)}
+        {main.filter((a) => a !== word).map((a) => act(a, ICON_BUTTON))}
+        {rest.length || page ? menu(ICON_BUTTON, rest) : null}
+        {word ? (
+          <Button
+            // outlined: a grid of cards would be a wall of accent; the page's head keeps the primary
+            tone="secondary"
+            size="dense"
+            disabled={busy}
+            className="ml-1.5"
+            {...tipProps(word.label, { as: "none", ...(word.key ? { keys: word.key } : {}) })}
+            onClick={() => run(word)}
+          >
+            {word.label}
+          </Button>
+        ) : null}
       </div>
     );
+  }
   // The quiet icon: the reply, else the first main action, else ⋯ itself.
   const lead = reply ? "reply" : main[0] ? "main" : "menu";
   const rest = lead === "main" ? main.slice(1) : lead === "menu" ? [] : main;

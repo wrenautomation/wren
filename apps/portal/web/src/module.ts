@@ -6,6 +6,7 @@ import type { Row } from "@wren/core/records/serve";
 import type {
   Access,
   Action,
+  CardSpec,
   DaySource,
   IconName,
   NavItem,
@@ -107,6 +108,8 @@ export interface ListPage extends PageBase {
    * name. People's "In a journey" shows the step.
    */
   views?: Readonly<Record<string, { columns?: string[]; phone?: string }>>;
+  /** Wren's own workspace draws the rows as cards, the page's only view (WA-1453). */
+  cardGrid?: CardSpec;
   /** A Shop's groups, in order, each under its own heading (Templates, Parts, Workflows). */
   sections?: ShopSections;
   /** A Shop card's art, across its top: what the record does, drawn. */

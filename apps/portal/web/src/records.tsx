@@ -850,7 +850,8 @@ export function prefetchPage(
     return Promise.resolve();
   const { product, scope } = whereOf(page, path, workspace, team);
   const api = apiOf(product, workspace === WREN.id ? null : workspace, scope);
-  return prefetchList(api, page.record, params).catch(() => {});
+  const cards = workspace === WREN.id && "cardGrid" in page && !!page.cardGrid;
+  return prefetchList(api, page.record, params, cards).catch(() => {});
 }
 
 export function TemplatePage({
@@ -973,6 +974,8 @@ export function TemplatePage({
     needs: page.needs ?? page.count,
     late: page.late,
     peek: page.peek,
+    // Cards are Wren's own for now; a client's list stays the Table.
+    cardGrid: wren ? page.cardGrid : undefined,
     extras: extras
       ? (detail: unknown, row: Row, act: RecordAct, readAt: number) =>
           extras(detail, { ...props, row, act, readAt })

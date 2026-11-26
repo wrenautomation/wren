@@ -52,11 +52,13 @@ export async function prefetchList(
   api: RecordsApi,
   record: string,
   params: URLSearchParams,
+  /** The list draws cards: its rows read with their pictures, under the cards' key. */
+  thumbs = false,
 ): Promise<void> {
   const types = await readCached(api, "types", () => api.types(), TYPES_FRESH_MS);
   const meta = types.find((t) => t.id === record);
   if (!meta) return;
-  const asked = pageAskOf(meta, params);
+  const asked = { ...pageAskOf(meta, params), ...(thumbs ? { thumbs: true } : {}) };
   const counting = countAskOf(meta, params);
   await Promise.all([
     readCached(api, JSON.stringify(asked), () => api.list(asked)),

@@ -70,15 +70,19 @@ export function ListDisplay({
   place,
   columns,
   narrow,
+  cards = false,
 }: {
   meta: RecordMeta;
   place: Place;
   columns: string[] | undefined;
   narrow: boolean;
+  /** Drawn as cards: no columns to pick, no row density. */
+  cards?: boolean;
 }) {
-  const frame = useFrame();
+  const live = useFrame();
+  const frame = cards ? null : live;
   const pop = useHoverPop();
-  const all = narrow ? [] : meta.fields.filter((f) => f.column && f.key !== meta.title);
+  const all = narrow || cards ? [] : meta.fields.filter((f) => f.column && f.key !== meta.title);
   // Group by its platform, the account each row is on, or any status or choice: one at a time.
   const groups = groupFields(meta);
   if (!frame && !groups.length && !all.length) return null;

@@ -21,6 +21,7 @@ import {
   useRun,
 } from "./action.js";
 import { AskAgent, useChatHere } from "./agent-hand.js";
+import { CardBox, CardGrid, CardHead, CardSort, cardPartsOf, RecordCard } from "./card-grid.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
 import { listChanged } from "./data/delta.js";
@@ -83,7 +84,7 @@ import {
   walkTo,
   wordsOf,
 } from "./records-types.js";
-import { AskBox, ReplyFrame, rowActsOf } from "./row-acts.js";
+import { AskBox, ReplyFrame, RowActions, rowActsOf } from "./row-acts.js";
 import {
   Age,
   KIND_ICON,
@@ -282,6 +283,7 @@ export function RecordList(props: RecordTemplateProps) {
     reply,
     display,
     peek,
+    cardGrid,
   } = props;
   const types = useTypes(api);
   const meta = types.data?.find((t) => t.id === record);
@@ -306,6 +308,7 @@ export function RecordList(props: RecordTemplateProps) {
       reply={reply}
       display={display}
       peek={peek}
+      cardGrid={cardGrid}
     />
   );
 }
@@ -327,6 +330,7 @@ function List({
   reply,
   display,
   peek,
+  cardGrid,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -344,6 +348,7 @@ function List({
   reply: RecordTemplateProps["reply"];
   display: ReactNode;
   peek: RecordTemplateProps["peek"];
+  cardGrid: RecordTemplateProps["cardGrid"];
 }) {
   const { params } = place;
   const ask = askOf(meta, params);
@@ -352,7 +357,8 @@ function List({
   // The page the address names: `pg` from 1, read as rows to skip.
   const at = pageAt(params.get("pg"));
   const narrow = useNarrow();
-  const asked = pageAskOf(meta, params);
+  // Cards draw each row's picture; the table never asks, so its rows read under their own key.
+  const asked = { ...pageAskOf(meta, params), ...(cardGrid ? { thumbs: true } : {}) };
   const page = useLoad<RowsPage>(
     JSON.stringify(asked),
     (before) => listChanged((a) => api.list({ ...a, counts: false }), asked, before),
@@ -856,6 +862,82 @@ function List({
   usePageKeys(keyLines.length ? { title: `On ${many}`, keys: keyLines } : null);
   // The columns the room holds; beside a docked record, the name, one column and its time.
   const drawnColumns = columnsFor.filter((c) => drawnCols.some((f) => f.key === c.key));
+  const parts = cardGrid ? cardPartsOf(meta, cardGrid, grouped?.key) : null;
+  const thumbs = page.data?.thumbs;
+  const cards = parts ? (
+    <CardGrid label={many} loading={!page.data}>
+      {drawn.map((l) => {
+        if (l.kind === "tier")
+          return (
+            <CardHead key={l.key}>
+              <TierLabel needs={l.needs} n={l.n} />
+            </CardHead>
+          );
+        if (l.kind === "group") {
+          const line = rowLines.find((x) => x.key === l.key);
+          return (
+            <CardHead
+              key={l.key}
+              fold={{ shut: folded.has(l.key), toggle: () => toggleGroup(l.key) }}
+            >
+              {line?.kind === "group" ? line.label : null}
+            </CardHead>
+          );
+        }
+        if (l.kind === "box") return <CardBox key={l.key}>{boxFor(l.row)}</CardBox>;
+        if (hidden(l.index)) return null;
+        const r = l.row;
+        const id = String(r.id);
+        const a = actOf(r);
+        return (
+          <RecordCard
+            key={l.key}
+            row={r}
+            index={l.index}
+            parts={parts}
+            title={titleOf(meta, r)}
+            href={place.link({ [meta.name.one]: id, tab: null })}
+            thumb={thumbs?.[id]}
+            pending={false}
+            wait={waitOf(r)}
+            quiet={waits(r) === false}
+            cursor={l.index === cursor}
+            open={id === openId}
+            picked={picked.has(id)}
+            anyPicked={picked.size > 0}
+            going={going.get(id)}
+            changed={changed.has(id) && !page.loading}
+            onPick={(range) => pickOf.toggle(id, range)}
+            onOpen={() => {
+              setCursor(l.index);
+              openAt(l.index);
+            }}
+            onSettled={() => setChanged(new Set())}
+            actions={
+              <RowActions
+                title={titleOf(meta, r)}
+                main={a.main}
+                more={a.more}
+                reply={a.reply}
+                page={a.page}
+                busy={a.busy}
+                run={a.run}
+                still
+                labelled
+              />
+            }
+          />
+        );
+      })}
+    </CardGrid>
+  ) : null;
+  // The key walk's card stays in view: cards have no virtual list to scroll it.
+  useEffect(() => {
+    if (!parts || cursor < 0) return;
+    frame.current
+      ?.querySelector<HTMLElement>(`[data-row="${cursor}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [cursor, parts]);
   const panel = openId ? (
     <Panel
       meta={meta}
@@ -940,6 +1022,7 @@ function List({
                 meta={meta}
                 place={place}
                 compact={docked}
+                cards={!!parts}
                 shown={new Set(cols.map((f) => f.key))}
                 keep={api.keep}
                 saved={saved}
@@ -947,7 +1030,13 @@ function List({
                 display={
                   <>
                     {display}
-                    <ListDisplay meta={meta} place={place} columns={columns} narrow={narrow} />
+                    <ListDisplay
+                      meta={meta}
+                      place={place}
+                      columns={columns}
+                      narrow={narrow}
+                      cards={!!parts}
+                    />
                   </>
                 }
                 end={
@@ -961,6 +1050,11 @@ function List({
                       running={running}
                       clear={() => setPicked(new Set())}
                     />
+                  ) : parts ? (
+                    <>
+                      {busy}
+                      <CardSort meta={meta} place={place} sort={sort} />
+                    </>
                   ) : (
                     busy
                   )
@@ -973,42 +1067,44 @@ function List({
               </div>
             ) : (
               <div ref={frameRef}>
-                <Rows
-                  label={many}
-                  noun={meta.name.one}
-                  // What the room holds; docked, its name, one column and its time (`.nt-pk .nt`).
-                  columns={drawnColumns}
-                  name={nameCol}
-                  lines={rowLines}
-                  loading={!page.data}
-                  empty={!!page.data && !rows.length}
-                  pick={pickOf}
-                  // Beside the peek a row is a name to pick: its tools are in the peek.
-                  act={docked ? undefined : actOf}
-                  open={{
-                    id: openId,
-                    onOpen: (_, i) => {
-                      setCursor(i);
-                      openAt(i);
-                    },
-                  }}
-                  cursor={cursor}
-                  rowState={(r) => {
-                    const id = String(r.id);
-                    return { going: going.get(id), changed: changed.has(id) && !page.loading };
-                  }}
-                  onSettled={() => setChanged(new Set())}
-                  wait={late?.promise ? waitOf : undefined}
-                  group={grouped ? { folded, toggle: toggleGroup } : undefined}
-                  scroller={pageScroller}
-                  narrow={narrow}
-                  swipes={(r) =>
-                    withReply(
-                      swipesOf(actions, r, (a) => rowRun(a, r)),
-                      replyOn(r),
-                    )
-                  }
-                />
+                {cards ?? (
+                  <Rows
+                    label={many}
+                    noun={meta.name.one}
+                    // What the room holds; docked, its name, one column and its time (`.nt-pk .nt`).
+                    columns={drawnColumns}
+                    name={nameCol}
+                    lines={rowLines}
+                    loading={!page.data}
+                    empty={!!page.data && !rows.length}
+                    pick={pickOf}
+                    // Beside the peek a row is a name to pick: its tools are in the peek.
+                    act={docked ? undefined : actOf}
+                    open={{
+                      id: openId,
+                      onOpen: (_, i) => {
+                        setCursor(i);
+                        openAt(i);
+                      },
+                    }}
+                    cursor={cursor}
+                    rowState={(r) => {
+                      const id = String(r.id);
+                      return { going: going.get(id), changed: changed.has(id) && !page.loading };
+                    }}
+                    onSettled={() => setChanged(new Set())}
+                    wait={late?.promise ? waitOf : undefined}
+                    group={grouped ? { folded, toggle: toggleGroup } : undefined}
+                    scroller={pageScroller}
+                    narrow={narrow}
+                    swipes={(r) =>
+                      withReply(
+                        swipesOf(actions, r, (a) => rowRun(a, r)),
+                        replyOn(r),
+                      )
+                    }
+                  />
+                )}
                 {page.data && (tally.data || tally.error) && !rows.length ? (
                   <Empty
                     className="mx-3 my-6"

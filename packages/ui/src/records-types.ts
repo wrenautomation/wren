@@ -21,6 +21,7 @@ import type {
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { can, type Viewer } from "./access.js";
 import { type Action, applies, type Call, callOnce } from "./action.js";
+import type { CardSpec } from "./card-grid.js";
 import { type Load, useLoad } from "./data/query.js";
 import type { RecordDraft } from "./draft.js";
 import { cueOf, shownOf } from "./fields.js";
@@ -264,6 +265,8 @@ export interface RecordTemplateProps {
   peek?: false | PeekSpec | undefined;
   /** More of how the list shows, first in its bar's display: a page's Timeline or List. */
   display?: ReactNode;
+  /** The rows as a grid of cards, the page's only view (designs/2026-11-26-approve-cards.md). */
+  cardGrid?: CardSpec | undefined;
 }
 
 /** A page's reply box under a list row, and the rows it answers. */

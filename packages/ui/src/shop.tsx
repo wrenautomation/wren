@@ -9,6 +9,7 @@ import type { FieldMeta, RecordMeta } from "@wren/core/records";
 import type { RecordsPage, Row } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { type ReactNode, useState } from "react";
+import { CARD_SURFACE, CARD_TITLE } from "./card-grid.js";
 import { Button } from "./controls.js";
 import { listChanged } from "./data/delta.js";
 import { LoadFailed } from "./feedback.js";
@@ -329,7 +330,8 @@ function Card({
         href={href}
         aria-current={open ? "true" : undefined}
         className={cn(
-          "group flex h-full flex-col gap-2 overflow-hidden rounded-(--ui-radius-panel) p-4 no-underline shadow-(--ui-raise) transition-colors duration-200 ease-(--ui-ease)",
+          CARD_SURFACE,
+          "group flex h-full flex-col gap-2 overflow-hidden p-4 no-underline",
           open ? "bg-(--ui-fill)" : "bg-(--ui-paper) hover:bg-(--ui-wash)",
         )}
       >
@@ -343,9 +345,7 @@ function Card({
               <Icon name={icon as IconName} size={16} />
             </span>
           ) : null}
-          <span className="min-w-0 text-[15px] leading-5 font-semibold text-(--ui-ink)">
-            {titleOf(meta, row)}
-          </span>
+          <span className={cn(CARD_TITLE, "min-w-0")}>{titleOf(meta, row)}</span>
         </span>
         {lines.map((f) => (
           <span key={f.key} className="-mt-1 text-[12px] text-(--ui-ink-3)">

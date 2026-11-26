@@ -7,7 +7,7 @@
  */
 
 import TYPES from "virtual:record-types";
-import type { Cell, RecordMeta } from "@wren/core/records";
+import type { Cell, RecordMeta, Thumb } from "@wren/core/records";
 import type { GetAsk, ListAsk, RecordAnswer, RecordsStat, Row } from "@wren/core/records/serve";
 import { pageOf } from "@wren/ui/fixtures";
 import type { ListPage } from "../../module.js";
@@ -195,7 +195,13 @@ export function manyRows(record: string, n: number, base: Answers): Answers {
  * One record's rows by hand, for one story: its list and get answer `rows`, whichever product
  * serves it; every other record falls through to `base`. Synthetic data only.
  */
-export function ownRows(record: string, rows: Row[], base: Answers): Answers {
+export function ownRows(
+  record: string,
+  rows: Row[],
+  base: Answers,
+  /** Each row's picture by id, sent when the list asks (`ListAsk.thumbs`, a card grid). */
+  thumbs?: Record<string, Thumb>,
+): Answers {
   const meta = METAS.get(record);
   if (!meta) throw new Error(`no record type ${record}`);
   type Reply = (b: Record<string, unknown>) => unknown;
@@ -206,7 +212,9 @@ export function ownRows(record: string, rows: Row[], base: Answers): Answers {
     if (key.endsWith("/recordsList"))
       out[key] = (b) => {
         const ask = b as unknown as ListAsk;
-        return ask.record === record ? pageOf(rows, ask, meta) : was(b);
+        if (ask.record !== record) return was(b);
+        const page = pageOf(rows, ask, meta);
+        return ask.thumbs && thumbs ? { ...page, thumbs } : page;
       };
     if (key.endsWith("/recordsGet"))
       out[key] = (b) => {

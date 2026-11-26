@@ -65,8 +65,10 @@ const APPROVAL_PAGE: ListPage = {
   // New and waiting rows wait on a yes; queued ones are for info.
   needs: { state: ["new", "waiting"] },
   // Kind says what Type does, in more words.
-  // Held and Sends at fill only for Queued; a column blank on every row shown is dropped.
+  // Held and Sends fill only for Queued; a column blank on every row shown is dropped.
   columns: ["who", "platform", "kind", "state", "pick", "sendAt", "held", "at", "due"],
+  // In Wren's workspace: a grid of cards, poster and whole text (designs/2026-11-26-approve-cards.md).
+  cardGrid: { mark: "platform", kind: "kind", note: "held", foot: "sendAt", media: "wide" },
   empty: {
     waiting: "Nothing waits on your yes.",
     queued:

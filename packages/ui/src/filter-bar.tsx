@@ -43,6 +43,7 @@ const ROW =
 /** The bar's glyphs, drawn as the artifact's (`S` in design-language.src.html): 15px, 1.8 stroke. */
 const GLYPH = {
   table: "M4 6h16M4 12h16M4 18h10",
+  cards: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
   group: "M4 5h16M7 10h13M7 15h13M7 20h13",
   filter: "M4 6h16M7 12h10M10 18h4",
 } as const;

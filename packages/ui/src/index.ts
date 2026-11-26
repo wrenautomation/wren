@@ -98,6 +98,7 @@ export {
   folderTree,
 } from "./browser.js";
 export { Busy, BusyBox, type BusySize, Ring } from "./busy.js";
+export { type CardMedia, type CardSpec, RecordCard } from "./card-grid.js";
 export {
   BarsChart,
   type BarsRow,

@@ -55,12 +55,12 @@ One face, `RecordCard`, for this grid and for Shop (Shop's `Card`, `shop.tsx`, m
 | Slot | To approve | Draw |
 |---|---|---|
 | top left | `platform` | its cue as a word tag; none when `platform` is null (workflows, pages, credits) |
-| top right | `kind`; the wait from `due` | "Post draft · 1 day"; the wait in amber only when late, as the Table's `Age` |
+| second line | `kind`; the wait from `due` | "Post draft · 1 day"; the wait in amber only when late, as the Table's `Age` |
 | title | the meta's `title` (`who`) | 15 px, 600, whole |
 | poster | the row's thumb | 16:9, cover; drafts and videos. The List asks for thumbs only when it draws the grid, in the load and the prefetch |
 | body | the meta's `subtitle` (`body`) | whole, ink-2 |
 | note | `held` | ink-2, whole. Amber means late only |
-| foot | `sendAt` when set; the actions | left: "Sends 10:30" (Queued tab). Right: `RowActions` `still`, with the first main action as a labelled button (Approve) and ⋯ |
+| foot | `sendAt` when set; the actions | left: "Sends 10:30" (Queued tab). Right: `RowActions` `still`, with the first main action as an outlined button (Approve) and ⋯. The page head keeps the one filled Approve |
 
 ## Layout
 
@@ -115,3 +115,4 @@ Stories: `RecordCard` (draft with poster, video, reply, broadcast, workflow with
 
 - 11-26: D1 picked D (the 10-21 grid back, one page, no switch). Cards replace the Table on To approve in Wren's workspace.
 - 11-26: goldfish review (critic, reader, zoom-out): 35 findings, 26 applied, 9 rejected (the leave motion and its fixes, a new `shape` param, the look-context gate, wording churn); open: cards for clients.
+- 11-26: built. Fresh-eye review: 12 findings, 5 applied. Applied: Approve is outlined on the card (6 filled buttons broke the purple cap); kind and wait sit under the site on every card, so titles in a row line up; a By site fold drops the site from its cards; the note label takes a colon; the field `Sends at` is now `Sends`. Rejected: icon hit areas (they are 28 px, 44 px on touch); the second hue on Approving (that is raycast's accent); the ragged rows (D3 picked natural height). Pre-existing, on the hand-off list: the head Approve, the peek's empty fields, the bar's sideways scroll at 390.

@@ -910,9 +910,12 @@ export function ListBar({
   facets,
   display,
   compact = false,
+  cards = false,
 }: {
   meta: RecordMeta;
   place: Place;
+  /** The rows draw as cards: the first chip says so. */
+  cards?: boolean;
   /** Beside a docked peek (artifact `.nt-pk .nt-top`): the one line, the tools without words. */
   compact?: boolean;
   /** The fields on screen, offered first by Filter. */
@@ -1002,7 +1005,9 @@ export function ListBar({
       className="flex min-w-0 flex-1 gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {[
-        { id: "table", label: "Table", glyph: "table" as const, on: !grouped, at: null },
+        cards
+          ? { id: "table", label: "Cards", glyph: "cards" as const, on: !grouped, at: null }
+          : { id: "table", label: "Table", glyph: "table" as const, on: !grouped, at: null },
         {
           id: "by",
           label: `By ${by.label.toLowerCase()}`,

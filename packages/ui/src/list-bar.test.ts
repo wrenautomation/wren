@@ -155,7 +155,7 @@ describe("where a list was left, as a pref", () => {
   it("a saved view he used last opens when it still exists", () => {
     expect(restoreOf({ sv: 4 }, p(""), false, new Set([4]))).toEqual({ sv: 4 });
   });
-  it("cards are gone: an old cards pref is dropped, the rest still restores", () => {
+  it("no Rows / Cards switch: an old as=cards pref is dropped, the rest still restores", () => {
     expect(lastOf(p("as=cards&view=all"))).toEqual({ view: "all" });
     expect(restoreOf({ as: "cards" }, p(""), false)).toBeNull();
     expect(restoreOf({ view: "all", as: "cards" }, p(""), false)).toEqual({

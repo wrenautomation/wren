@@ -14,9 +14,13 @@ export const NeedsYou = pageAt("/today/needs-you", {
   check: shows("Needs you", "Answer"),
 });
 
+/** A client's To approve stays the Table: cards are Wren's own (WA-1453). */
 export const Approve = pageAt("/today/approve", {
   answers,
-  check: shows("To approve", "Approve"),
+  check: async (page) => {
+    await shows("To approve", "Approve")(page);
+    await expect(within(page).queryByRole("list", { name: "items to approve" })).toBeNull();
+  },
 });
 
 export const Messages = pageAt("/today/messages", {
