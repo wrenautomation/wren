@@ -65,8 +65,10 @@ export default {
     ...preview.parameters,
     options: {
       storySort: {
-        // App: the portal's sidebar order (modules/places.ts); then the kit's
+        // Redesign first (WA-1456); App: the portal's sidebar order (modules/places.ts); then the kit's
         order: [
+          "Redesign",
+          ["Intro", "Shell", "Anton", "Aerie", "Today", "Variants", "*"],
           "App",
           [
             "Intro",

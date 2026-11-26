@@ -12,10 +12,11 @@ Earlier (via the sidecar session): "we're not gonna make a whole new ui system, 
 - Clients keep their plain looks. Nothing they see changes.
 - Aerie Tasks has Board and List. The List docks the open task in a pane on the right, the way the Backlog.md terminal board does.
 - The shell keeps its shape (side nav, top bar, one window). The change is tokens plus one blur layer in `shell.tsx`.
+- Later (William, 11-26, newest): "the enevutal state should look like our variants int he past batches rightlike the final variants and aerie view". The end state is v116's shape too: top-nav pills, Anton as a docked panel, Aerie columns as v116 draws them. That work is the Redesign doc (`designs/2026-11-26-redesign.md`, WA-1456). This doc stays the look's tokens.
 
 ## Non-goals
 
-- No new UI kit. The style set's CSS is not ported.
+- No new UI kit. The style set's CSS is not ported. The Redesign doc builds v116's shape from `@wren/ui` parts, not from the style set's CSS.
 - No look change for clients, and no flip of Wren's default in this work. William switches in Settings → Look.
 - No new mark. The orb and the bird stay out of wren; WA-1451 brings a mark.
 - No change to shared `Rows` hover or to the kit sheet's default timing.
@@ -93,7 +94,7 @@ Copy the structure only. Backlog's priority stripe, left-edge status glyphs, mon
 - Focus stays on the row. The pane scrolls on its own.
 - Layout links (List, Board, Columns) drop `task`. Else a List pick pops a sheet over the Board.
 
-**Board.** As now; a card opens the sheet.
+**Board.** As now; a card opens the sheet. The Redesign doc's D4 changes its columns, heads and card (`designs/2026-11-26-redesign.md`).
 
 | State | What shows | Enters on | Next | Motion out |
 |---|---|---|---|---|
@@ -130,3 +131,4 @@ Moved to its own doc. To approve is the shared records page clients also see at 
 - 11-26: D1 picked A. D2 and D3 written. The default flip is a setting.
 - 11-26: goldfish review (critic, reader, zoom-out): 41 findings, 36 applied (most in the smaller zoom-out form), 5 rejected (Explorer as a D2 option, the wallpaper-stop contrast test, three reader points the code disproves); open: Columns, the default flip.
 - 11-26: D1a picked A after the proof shots: whole-window glass showed paper blocks on glass. New token `numeric` after the shots showed wide comma gaps in table figures.
+- 11-26: William asked for v116 as the end state. This doc kept the side nav and changed only tokens: smaller than he meant by "transfering wren over to that". The shape moves to the Redesign doc (WA-1456).
