@@ -11,6 +11,7 @@
     "./console-routes": "./src/console-routes.ts",
     "./knowledge": "./src/knowledge.ts",
     "./playbook": "./src/playbook.ts",
+    "./records": "./src/records.ts",
     "./restate": "./src/restate.ts"
   },
   "scripts": {

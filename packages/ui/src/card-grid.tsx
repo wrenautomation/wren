@@ -9,14 +9,14 @@ import { cn } from "cn";
 import { type ReactNode, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Tag } from "./controls.js";
-import { cueOf, FieldCell, StateMark } from "./fields.js";
+import { cueOf, FieldCell, StateMark, shownOf } from "./fields.js";
 import { Icon } from "./icons.js";
 import { type Place, textOf } from "./records-types.js";
 import { Age, type RowsWait } from "./rows.js";
 
 /** What a page's card shows beyond the record's title and subtitle: field keys. */
 export interface CardSpec {
-  /** Top left: a platform or channel field, as its mark and word. */
+  /** Top left: a platform or channel field, as its mark and word; any other field, as its words. */
   mark?: string | null;
   /** Top right: what the row is ("Post draft"), beside its wait. */
   kind?: string | null;
@@ -134,11 +134,6 @@ export function CardHead({
   );
 }
 
-/** A row's box (a reason, a reply) under its card, across every column. */
-export function CardBox({ children }: { children: ReactNode }) {
-  return <li className="col-span-full">{children}</li>;
-}
-
 /** A row as a card: mark, kind and wait; title; picture; the whole text; note; foot and actions. */
 export function RecordCard({
   row,
@@ -160,6 +155,7 @@ export function RecordCard({
   onOpen,
   onSettled,
   actions,
+  box,
 }: {
   row: Row;
   index: number;
@@ -184,9 +180,13 @@ export function RecordCard({
   onOpen: () => void;
   onSettled: () => void;
   actions: ReactNode;
+  /** Its open box (a reason, a new name): in place of its actions, so no other card moves. */
+  box?: ReactNode;
 }) {
   const text = (f: FieldMeta | null) => (f ? textOf(row[f.key]) : "");
   const mark = parts.mark ? cueOf(parts.mark, text(parts.mark)) : null;
+  // a field with no mark (a subject's name): its words, wrapped
+  const markWords = parts.mark && !mark ? shownOf(parts.mark, text(parts.mark)) : "";
   const kind = parts.kind ? wordOf(parts.kind, text(parts.kind)) : "";
   const media = parts.media && (thumb || pending) ? parts.media : null;
   const body = text(parts.body);
@@ -199,7 +199,10 @@ export function RecordCard({
       data-cursor={cursor && !open ? "" : undefined}
       aria-current={open ? "true" : undefined}
       onClick={(e) => {
-        if ((e.target as Element).closest("input, a, button, label, video, [role=dialog]")) return;
+        if (
+          (e.target as Element).closest("input, textarea, a, button, label, video, [role=dialog]")
+        )
+          return;
         onOpen();
       }}
       onAnimationEnd={(e) => {
@@ -224,6 +227,8 @@ export function RecordCard({
             <span className="min-w-0 font-medium text-(--ui-ink)">
               <StateMark state={mark} />
             </span>
+          ) : markWords ? (
+            <span className="min-w-0 font-medium wrap-anywhere text-(--ui-ink)">{markWords}</span>
           ) : null}
           <span className="flex items-center gap-1 whitespace-nowrap text-(--ui-ink-2)">
             {kind ? <span>{kind}</span> : null}
@@ -285,7 +290,7 @@ export function RecordCard({
           {note}
         </p>
       ) : null}
-      {foot || actions || going ? (
+      {foot || (!box && (actions || going)) ? (
         <div className="mt-1 flex min-h-8 flex-wrap items-center justify-between gap-2">
           {foot ? (
             <span className="text-[12.5px] text-(--ui-ink-2) tabular-nums">
@@ -299,11 +304,12 @@ export function RecordCard({
             <Tag tone="accent" busy>
               {going}
             </Tag>
-          ) : (
+          ) : box ? null : (
             actions
           )}
         </div>
       ) : null}
+      {box ? <div className="mt-1">{box}</div> : null}
     </li>
   );
 }

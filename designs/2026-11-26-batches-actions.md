@@ -28,8 +28,8 @@ Keep, notes, steer, pin to board and open live act on one sample. They stay on t
 
 | Action | Where | Applies to | Bulk | Asks first |
 |---|---|---|---|---|
-| Close | list and batch page | Waiting, Replaced | yes | "Close this batch? Its marks stay; Vireo is not told." |
-| Rename | list and batch page | any | no | the title box (`ask`, from `title`) |
+| Close | list and batch page | Waiting, Replaced | yes | "Close? The marks stay; Vireo is not told." (one line for one or many) |
+| Rename | list and batch page | any | no | the title box (`ask` on `name`: the shown name, "Batch 3" when untitled; unchanged sends nothing) |
 | Hand to Vireo | batch page only | Waiting | no | as now |
 | None of these | batch page only | Waiting | no | as now |
 | Open | list (card click, Enter) | any | no | no |
@@ -76,8 +76,8 @@ Trade-off taken: cards, not rows. Rows would show no poster at all; cards show t
 - Fields: subject (choice), title, batch n, kind (status), state (status: Waiting, Replaced, Closed), marked ("3 of 8"), good rate, kept, judges, folder (choice), yours (yes or no), created, agent's reason, note.
 - Tabs: Waiting, Replaced, Closed, All. Waiting rows lead under "Needs you" (`ListPage.needs`).
 - Quick filters: subject, kind, folder.
-- The card: subject on the top line, kind top right, title, poster, marked and good rate in the foot.
-- The first-run empty state's "Start in the chat" button sits in `ListPage.head`.
+- The card: subject on the top line (`mark`: a field with no mark shows its words), kind under it, title, poster, the agent's reason once closed, "Marked 2 of 8" in the foot. The good rate is in the peek: the foot holds one field.
+- `ListPage.head` holds Ask the agent (`AskAgent setup="vireo"`); the empty state repeats it.
 - Old links: every in-repo link uses `?b=`; it still opens the batch page. Old sort and filter params drop.
 
 Trade-off taken: a folder filter matches its own subjects, not sub-folders. Prod has no nesting.
@@ -85,7 +85,9 @@ Trade-off taken: a folder filter matches its own subjects, not sub-folders. Prod
 ## Files
 
 - `packages/variants/src/records.ts` (new): `batchRecord(at)`, with Vireo and the signer passed in. Registered in `consoleRecords` (`apps/worker/src/console-records.ts`) and wired in `apps/worker/src/services/platform.ts`.
-- `packages/variants/src/records.test.ts` (new): the blind test.
+- `packages/variants/test/integration/records.test.ts` (new): the blind test, on a real Postgres.
+- `packages/variants/src/console.ts`: a batch Rename with no `name` does nothing (an unchanged box drops the field).
+- `packages/ui/src/card-grid.tsx`: `mark` shows a plain field's words.
 - `apps/portal/web/src/module.ts`, `packages/ui/src/records-list.tsx`, `records-types.ts`, `apps/portal/web/src/records.tsx`: `ListPage.live`.
 - `apps/portal/web/src/records.tsx`: `ONE` entries for `variants/close` and `variants/rename`.
 - `apps/portal/web/src/modules/variants/batches.tsx`: `BatchList`, `Pick` and `BatchRow` go; the list page spec and its actions come in.
@@ -136,3 +138,5 @@ Default, Replaced tab, Closed tab, Close on one, Close on two picks, Rename, a f
 
 - 2026-11-26: doc written. Options A, B, C, D; B recommended.
 - 2026-11-26: goldfish review: 30 findings (critic 15, reader 15), 19 applied after zoom-out, 11 rejected or moot; seams cut from three to one (`ListPage.live`); Hand to Vireo and None of these stay on the batch page; cards over rows (zoom-out picked rows; posters decide). Open: none.
+- 2026-11-26: built. The blind test caught `db.execute` read as `{rows}` (it returns the rows). Close's question drops "this batch" so one line reads right for two picks.
+- 2026-11-26: Rename's title box opens in the card, under its foot, in place of its actions (shared with To approve's boxes; see `2026-11-26-approve-cards.md`). Story `RenameOpen`.

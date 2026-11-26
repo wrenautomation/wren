@@ -200,6 +200,9 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/keywordRemove": (id) => handlerCall("KeywordDm", "remove", { ids: [Number(id)] }),
   "console/startLoop": (id) => loop(id, true),
   "console/stopLoop": (id) => loop(id, false),
+  // a Vireo batch by id (WA-1455)
+  "variants/close": (id) => ["variants/close", { batch: Number(id), note: null }],
+  "variants/rename": (id, { name }) => ["variants/rename", { batch: Number(id), name }],
   "console/retryEvent": (id) => ["console/retryEvent", { id }],
   "console/releaseHold": (id) => ["console/releaseHold", { id }],
   "email/approve": (id, { body }) => ["email/approve", { id: num(id), ...(body ? { body } : {}) }],
@@ -976,6 +979,7 @@ export function TemplatePage({
     peek: page.peek,
     // Cards are Wren's own for now; a client's list stays the Table.
     cardGrid: wren ? page.cardGrid : undefined,
+    live: page.live,
     extras: extras
       ? (detail: unknown, row: Row, act: RecordAct, readAt: number) =>
           extras(detail, { ...props, row, act, readAt })

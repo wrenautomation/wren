@@ -110,6 +110,8 @@ export interface ListPage extends PageBase {
   views?: Readonly<Record<string, { columns?: string[]; phone?: string }>>;
   /** Wren's own workspace draws the rows as cards, the page's only view (WA-1453). */
   cardGrid?: CardSpec;
+  /** Live topics: a writer's push on one reads the list again ("variants"). */
+  live?: readonly string[];
   /** A Shop's groups, in order, each under its own heading (Templates, Parts, Workflows). */
   sections?: ShopSections;
   /** A Shop card's art, across its top: what the record does, drawn. */

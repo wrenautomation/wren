@@ -106,7 +106,8 @@ const CARDS = ownRows("marketing.approval", ITEMS, ANSWERS, POSTERS);
 const drawsCards = async (page: HTMLElement) => {
   const grid = await within(page).findByRole(
     "list",
-    { name: "items to approve" },
+    // the worst-case look lengthens the name
+    { name: /^items to approve/ },
     // cold load
     { timeout: 8000 },
   );
@@ -154,6 +155,20 @@ export const ApproveCardsOpen = pageAt("/today/approve", {
   },
 });
 
+/** Redraft opens its box in the card, under the card's words; the cards beside it stay put. */
+export const ApproveCardsBox = pageAt("/today/approve", {
+  me: ADMIN,
+  answers: CARDS,
+  check: async (page) => {
+    await drawsCards(page);
+    const [redraft] = await within(page).findAllByRole("button", { name: /^Redraft/ });
+    if (!redraft) throw new Error("no Redraft");
+    await userEvent.click(redraft);
+    const box = await within(page).findByRole("textbox", { name: "What to change" });
+    if (!box.closest("li[data-row]")) throw new Error("box is not in its card");
+  },
+});
+
 /** A pick shows every card's box and the bulk bar. */
 export const ApproveCardsPicked = pageAt("/today/approve", {
   me: ADMIN,
@@ -162,7 +177,7 @@ export const ApproveCardsPicked = pageAt("/today/approve", {
     await drawsCards(page);
     const [box] = await within(page).findAllByRole("checkbox", { name: /^Select / });
     if (box) await userEvent.click(box);
-    await waitFor(() => expect(within(page).getByText(/1 picked|picked/)).toBeVisible());
+    await waitFor(() => expect(within(page).getByText("1 selected")).toBeVisible());
   },
 });
 

@@ -1,33 +1,172 @@
 /** Vireo (Variants) › Batches: a batch, open samples, pages, the hand. Fake server: `web/src/mocks/`. */
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { userEvent, within } from "storybook/test";
+import type { Row } from "@wren/core/records/serve";
+import { expect, userEvent, waitFor, within } from "storybook/test";
+import { refuse } from "../../mocks/api.js";
 import SETUPS from "../../mocks/data/agent/setups.json";
+import { ANSWERS } from "../../mocks/data/index.js";
 import { ADMIN } from "../../mocks/data/me.js";
-import { pageAt, storyHref, tidy } from "../../mocks/page.js";
+import { ownRows } from "../../mocks/data/records.js";
+import { ago } from "../../mocks/data/shell.js";
+import { pageAt, tidy } from "../../mocks/page.js";
 import { fakeRelay } from "../../mocks/relay.js";
 
 const meta: Meta = { title: "Vireo/Batches" };
 export default meta;
 
-export const Default = pageAt("/variants/batches", { me: ADMIN });
+/** cold load */
+const LATE = { timeout: 8000 };
+/** The dialog's own button: its X is a "Close" too. */
+const confirm = (ask: HTMLElement) => {
+  const go = ask.querySelector<HTMLButtonElement>("button[type=submit]");
+  if (!go) throw new Error("no submit");
+  return go;
+};
+/** The list draws as cards, never the table. */
+const cards = async (page: HTMLElement) => {
+  await waitFor(
+    () => expect(page.querySelectorAll("li[data-row]").length).toBeGreaterThan(0),
+    LATE,
+  );
+  await expect(page.querySelector("table[aria-label]")).toBeNull();
+};
 
-/** By subject, closed only: the address holds the list's state. */
-export const Sorted = pageAt("/variants/batches?sort=subject&state=closed", { me: ADMIN });
+/** Cards: waiting batches first under Needs you; each card's Close and ⋯ (WA-1455). */
+export const Default = pageAt("/variants/batches", { me: ADMIN, check: (page) => cards(page) });
 
-/** A filter no batch matches: the bar stays, one line says so. */
-export const NoMatch = pageAt("/variants/batches?kind=image", { me: ADMIN });
+/** Open batches a newer one replaced: Close is their only way out. */
+export const ReplacedTab = pageAt("/variants/batches?view=replaced", {
+  me: ADMIN,
+  check: (page) => cards(page),
+});
 
-/** Pick a sort: the address and the list follow. */
-export const PickSort = pageAt("/variants/batches", {
+/** Closed batches: no Close. */
+export const ClosedTab = pageAt("/variants/batches?view=closed", {
   me: ADMIN,
   check: async (page) => {
-    const p = within(page);
-    const sort = await p.findByRole("combobox", { name: "Sort" }, { timeout: 8000 });
-    await userEvent.selectOptions(sort, "oldest");
-    await p.findByRole("combobox", { name: "Sort" });
-    if (!storyHref().includes("sort=oldest")) throw new Error(`address: ${storyHref()}`);
+    await cards(page);
+    await expect(within(page).queryByRole("button", { name: "Close" })).toBeNull();
   },
 });
+
+/** Close one from its card: the question, then the toast. */
+export const CloseOne = pageAt("/variants/batches", {
+  me: ADMIN,
+  check: async (page) => {
+    await cards(page);
+    const [close] = await within(page).findAllByRole("button", { name: "Close" });
+    if (!close) throw new Error("no Close");
+    await userEvent.click(close);
+    const ask = await within(document.body).findByRole("dialog");
+    await within(ask).findByText(/^Close\? The marks stay/);
+    await userEvent.click(confirm(ask));
+    await within(document.body).findByText("Closed", {}, LATE);
+  },
+});
+
+/** Two picked: the bulk bar's Close names both. */
+export const CloseTwo = pageAt("/variants/batches?view=all", {
+  me: ADMIN,
+  check: async (page) => {
+    await cards(page);
+    const boxes = await within(page).findAllByRole("checkbox", { name: /^Select / });
+    for (const b of boxes.slice(0, 2)) await userEvent.click(b);
+    await userEvent.click(await within(page).findByRole("button", { name: "Close 2" }, LATE));
+    const ask = await within(document.body).findByRole("dialog");
+    await within(ask).findByText("2 batches.");
+  },
+});
+
+/** ⋯ then Rename on the first card: its title box. */
+async function renameBox(page: HTMLElement) {
+  await cards(page);
+  const [more] = await within(page).findAllByRole("button", { name: /^More for / });
+  if (!more) throw new Error("no ⋯");
+  await userEvent.click(more);
+  await userEvent.click(await within(document.body).findByRole("button", { name: "Rename" }));
+  return within(document.body).findByRole("textbox", { name: "Title" });
+}
+
+/** The title box opens in its card, in place of its actions; the cards beside it stay put. */
+export const RenameOpen = pageAt("/variants/batches", {
+  me: ADMIN,
+  check: async (page) => {
+    const box = await renameBox(page);
+    const card = box.closest("li");
+    if (!card?.hasAttribute("data-row")) throw new Error("box is not in its card");
+  },
+});
+
+/** Rename from ⋯: the title box starts from the shown name. */
+export const RenameOne = pageAt("/variants/batches", {
+  me: ADMIN,
+  check: async (page) => {
+    const box = await renameBox(page);
+    await userEvent.clear(box);
+    await userEvent.type(box, "Openers that name a street");
+    // the box opens in its card, in place of its actions
+    const form = box.closest("form");
+    if (!form) throw new Error("no box");
+    await userEvent.click(within(form).getByRole("button", { name: "Rename" }));
+    await within(document.body).findByText("Renamed", {}, LATE);
+  },
+});
+
+/** Vireo refuses the close: its words in the toast, the card stays. */
+export const CloseFails = pageAt("/variants/batches", {
+  me: ADMIN,
+  answers: { "variants/close": () => refuse(409, "batch 7 is already closed") },
+  check: async (page) => {
+    await cards(page);
+    const [close] = await within(page).findAllByRole("button", { name: "Close" });
+    if (!close) throw new Error("no Close");
+    await userEvent.click(close);
+    const ask = await within(document.body).findByRole("dialog");
+    await userEvent.click(confirm(ask));
+    await within(document.body).findByText(/already closed/, {}, LATE);
+  },
+});
+
+const LONG =
+  "A subject whose name runs well past one line, as a long brief turned into a name does";
+/** 120 batches: 120-character titles and subjects, no posters, no rate. Synthetic. */
+const WORST: Row[] = Array.from({ length: 120 }, (_, i) => ({
+  id: 1000 + i,
+  name: `${LONG.slice(0, 60)} batch ${i + 1}, with a title that also wraps onto a second line`,
+  n: i + 1,
+  subject: `${LONG} ${i % 7}`,
+  kind: ["text", "image", "video", "page"][i % 4] ?? "text",
+  state: i < 7 ? "waiting" : i < 30 ? "replaced" : "closed",
+  marked: `${i % 9} of ${8 + (i % 5)}`,
+  goodRate: null,
+  kept: 0,
+  judges: null,
+  folder: null,
+  yours: i % 2 ? "yes" : "no",
+  created: ago(i * 0.4),
+  why: null,
+  note: null,
+}));
+export const WorstCase = pageAt("/variants/batches?view=all", {
+  me: ADMIN,
+  answers: ownRows("variants.batch", WORST, ANSWERS),
+  check: (page) => cards(page),
+});
+
+/** No batches yet: the head's Start in the chat. */
+export const FirstRun = pageAt("/variants/batches?view=all", {
+  me: ADMIN,
+  answers: ownRows("variants.batch", [], ANSWERS),
+  check: async (page) => {
+    await within(page).findByText(/^No batches yet/, {}, LATE);
+  },
+});
+
+/** A phone: one card across. */
+export const Phone: StoryObj = {
+  ...Default,
+  globals: { viewport: { value: "phone" } },
+};
 
 /** A link made before refs (`?batch=<id>`) still opens its batch. */
 export const OldLink = pageAt("/variants/batches?batch=6", { me: ADMIN, empty: false });

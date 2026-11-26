@@ -65,7 +65,7 @@ One face, `RecordCard`, for this grid and for Shop (Shop's `Card`, `shop.tsx`, m
 ## Layout
 
 - Grid: `repeat(auto-fill, minmax(240px, 1fr))`, gap 12 px, `items-start`. Long text makes a tall card, not a tall row of empty cards.
-- Tier heads ("Needs you", "For info"), By site folds and a row's box (a reject reason, a reply) span the full row. A box sits after its card's grid row.
+- Tier heads ("Needs you", "For info") and By site folds span the full row. A row's box (a reason, a reply) opens in its own card, under the card's words, where its actions were.
 - Card: `--ui-paper`, `--ui-raise`, `--ui-radius-panel`, padding 14 × 16, gap 8. Open and picked: the accent tint. Cursor and hover: the accent wash, 150 ms, as a row.
 - Pick: a checkbox in the card's top right. It shows on hover and focus, and on every card once one is picked.
 - Docked peek: the grid narrows beside it and keeps its actions (the List drops row actions when docked; the grid does not).
@@ -91,7 +91,7 @@ One face, `RecordCard`, for this grid and for Shop (Shop's `Card`, `shop.tsx`, m
 | Going (reply Approve) | the busy tag in the foot; the card stays | Approve on a reply | approved, failed | |
 | Approved | the card goes; the wash plays on what changed | the run ends | | instant, as a row |
 | Action failed | the card stays; the List's error | the run fails | | |
-| Box open | the box spans the row under the card | Reject, Reply | sent, closed | as the Table's box |
+| Box open | the box in its card, in place of its actions; the card grows, no other card moves | Redraft, Reject, Reply | sent, closed | as the Table's box |
 | Queued tab | "Held because" in the note; "Sends at" in the foot | tab | | |
 | Client | Table and By site, no grid | not `wren` | | |
 
@@ -116,3 +116,4 @@ Stories: `RecordCard` (draft with poster, video, reply, broadcast, workflow with
 - 11-26: D1 picked D (the 10-21 grid back, one page, no switch). Cards replace the Table on To approve in Wren's workspace.
 - 11-26: goldfish review (critic, reader, zoom-out): 35 findings, 26 applied, 9 rejected (the leave motion and its fixes, a new `shape` param, the look-context gate, wording churn); open: cards for clients.
 - 11-26: built. Fresh-eye review: 12 findings, 5 applied. Applied: Approve is outlined on the card (6 filled buttons broke the purple cap); kind and wait sit under the site on every card, so titles in a row line up; a By site fold drops the site from its cards; the note label takes a colon; the field `Sends at` is now `Sends`. Rejected: icon hit areas (they are 28 px, 44 px on touch); the second hue on Approving (that is raycast's accent); the ragged rows (D3 picked natural height). Pre-existing, on the hand-off list: the head Approve, the peek's empty fields, the bar's sideways scroll at 390.
+- 11-26 (WA-1455): a row's box moved into its card. As a full-row line it sat after the card, not after the card's grid row, and pushed the cards beside it to the next row. The grid cannot know where a row ends without measuring it; inside the card nothing else moves. Story `ApproveCardsBox`.

@@ -24,6 +24,7 @@ import { mentionRecord } from "@wren/starling-conversations/inbox";
 import { emailRecords, firmRecord, modelRecord, replyRecord } from "@wren/starling-email/records";
 import { mediaRecord, sopRecord, videoRecord } from "@wren/starling-inbound/records";
 import { heatRecord, sessionRecord, surveyAnswerRecord } from "@wren/starling-search/records";
+import { batchRecord } from "@wren/variants/records";
 import { VOICE_RECORDS } from "@wren/voice/records";
 import { WATCH_RECORDS } from "@wren/watch/records";
 import { marketingNumbers } from "./marketing.js";
@@ -47,6 +48,8 @@ interface ConsoleRecordsAt {
   recordings?: Parameters<typeof recordingRecord>[0];
   /** The lander's recorded views: replays and survey answers. Absent: heatmaps keep their counts. */
   sessions?: Parameters<typeof sessionRecord>[0] | undefined;
+  /** Vireo's db and the media signer: the Batches list. Absent: listed with no rows. */
+  variants?: Parameters<typeof batchRecord>[0];
   /** A profile's site visits. */
   visits?: NonNullable<Parameters<typeof profileRecords>[1]>["visits"];
 }
@@ -72,6 +75,7 @@ export function consoleRecords(at: ConsoleRecordsAt = {}): RecordType[] {
     // The Library's Media (the same files, one row each) and SOPs.
     mediaRecord(at.media),
     sopRecord,
+    batchRecord(at.variants),
     ...copyRecords(at.smsSenderName ?? ""),
     ...MARKETING_RECORDS,
     // Every message we sent, on any channel (People → Sent).

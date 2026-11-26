@@ -20,10 +20,10 @@ import { MOVE_ROWS } from "./moves.js";
 import { OFFER_ANSWERS, OFFER_ROWS } from "./offers.js";
 import { OUTLIER_ANSWERS } from "./outliers.js";
 import { PATHS_ANSWERS } from "./paths.js";
-import { recordsAnswers } from "./records.js";
+import { ownRows, recordsAnswers } from "./records.js";
 import { ago, SHELL } from "./shell.js";
 import { STUDIO_ANSWERS } from "./studio-projects.js";
-import { VARIANTS_ANSWERS } from "./variants.js";
+import { BATCH_ROWS, BATCH_THUMBS, VARIANTS_ANSWERS } from "./variants.js";
 
 /** A person's journey by their id: 1 open with a fit, 2 stale, 3 dropped, 4 done; the rest have none. */
 const journeyOf = (id: string): ProfileJourney | null => {
@@ -175,12 +175,18 @@ const BASE: Answers = {
 
 type Reply = (body: Record<string, unknown>) => unknown;
 
+/** Vireo's batches from the same mock as the batch page, posters included (WA-1455). */
+const WITH_BATCHES: Answers = {
+  ...BASE,
+  ...ownRows("variants.batch", BATCH_ROWS as unknown as Row[], BASE, BATCH_THUMBS),
+};
+
 /** `BASE`, with the drafts record and the draft routes in front of the shared records answers. */
 export const ANSWERS: Answers = {
-  ...BASE,
+  ...WITH_BATCHES,
   ...DRAFT_ANSWERS,
   ...draftRecords({
-    get: BASE["pipeline/recordsGet"] as Reply,
-    list: BASE["pipeline/recordsList"] as Reply,
+    get: WITH_BATCHES["pipeline/recordsGet"] as Reply,
+    list: WITH_BATCHES["pipeline/recordsList"] as Reply,
   }),
 };

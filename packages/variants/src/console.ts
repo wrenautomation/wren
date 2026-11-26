@@ -243,7 +243,10 @@ export function variantsConsoleApi(db: Db, sign: Sign | null = null, ports: Boar
         if (req.subject != null)
           return v.renameSubject(num(req.subject, "subject"), String(req.name ?? ""), by(req));
         if (req.batch != null)
-          return v.renameBatch(num(req.batch, "batch"), String(req.name ?? ""), by(req));
+          // no name: the list's Rename box left unchanged (inputOf drops it); never a clear
+          return req.name === undefined
+            ? Promise.resolve({ id: num(req.batch, "batch") })
+            : v.renameBatch(num(req.batch, "batch"), String(req.name ?? ""), by(req));
         return v
           .editSamples(
             [{ id: num(req.sample, "sample"), name: (req.name as string | null) ?? null }],

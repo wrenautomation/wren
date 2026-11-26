@@ -247,7 +247,7 @@ export function AskBox({
     } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !busy) void go(e);
   };
   return (
-    <form onSubmit={(e) => void go(e)} className="grid max-w-3xl gap-2">
+    <form onSubmit={(e) => void go(e)} className="@container grid max-w-3xl gap-2">
       <TextAreaField
         form={form}
         name="text"
@@ -265,7 +265,7 @@ export function AskBox({
         <Button size="dense" tone="quiet" onClick={close}>
           Cancel
         </Button>
-        <span className="ml-auto text-[11px] text-(--ui-ink-3) max-[480px]:hidden">
+        <span className="ml-auto text-[11px] text-(--ui-ink-3) max-[480px]:hidden @max-xs:hidden">
           ⌘ Enter to {action.label.toLowerCase()}
         </span>
       </div>

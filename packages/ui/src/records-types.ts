@@ -267,6 +267,8 @@ export interface RecordTemplateProps {
   display?: ReactNode;
   /** The rows as a grid of cards, the page's only view (designs/2026-11-26-approve-cards.md). */
   cardGrid?: CardSpec | undefined;
+  /** Live topics: a push on one reads the rows again, as a record's own page does. */
+  live?: readonly string[] | undefined;
 }
 
 /** A page's reply box under a list row, and the rows it answers. */

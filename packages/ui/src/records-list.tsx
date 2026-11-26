@@ -11,7 +11,7 @@ import { cn } from "cn";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Action, inputOf, runningOn, runs, sayBlocked, useHeld, useRun } from "./action.js";
 import { AskAgent, useChatHere } from "./agent-hand.js";
-import { CardBox, CardGrid, CardHead, CardSort, cardPartsOf, RecordCard } from "./card-grid.js";
+import { CardGrid, CardHead, CardSort, cardPartsOf, RecordCard } from "./card-grid.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
 import { listChanged } from "./data/delta.js";
@@ -177,6 +177,7 @@ export function RecordList(props: RecordTemplateProps) {
     display,
     peek,
     cardGrid,
+    live,
   } = props;
   const types = useTypes(api);
   const meta = types.data?.find((t) => t.id === record);
@@ -202,6 +203,7 @@ export function RecordList(props: RecordTemplateProps) {
       display={display}
       peek={peek}
       cardGrid={cardGrid}
+      live={live}
     />
   );
 }
@@ -224,6 +226,7 @@ function List({
   display,
   peek,
   cardGrid,
+  live,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -242,6 +245,7 @@ function List({
   display: ReactNode;
   peek: RecordTemplateProps["peek"];
   cardGrid: RecordTemplateProps["cardGrid"];
+  live: RecordTemplateProps["live"];
 }) {
   const { params } = place;
   const ask = askOf(meta, params);
@@ -252,13 +256,21 @@ function List({
   const narrow = useNarrow();
   // Cards draw each row's picture; the table never asks, so its rows read under their own key.
   const asked = { ...pageAskOf(meta, params), ...(cardGrid ? { thumbs: true } : {}) };
+  // a push on a live topic reads the rows and counts again
+  const pushed = live?.length && api.onTopic ? { on: onTopics(api.onTopic, live) } : {};
   const page = useLoad<RowsPage>(
     JSON.stringify(asked),
     (before) => listChanged((a) => api.list({ ...a, counts: false }), asked, before),
     api,
+    pushed,
   );
   const counting = countAskOf(meta, params);
-  const tally = useLoad<RecordsPage>(JSON.stringify(counting), () => api.list(counting), api);
+  const tally = useLoad<RecordsPage>(
+    JSON.stringify(counting),
+    () => api.list(counting),
+    api,
+    pushed,
+  );
   // Other rows read while these show. The artifact's Refresh: old data stays, never dimmed.
   const refresh = page.loading && !!page.data;
   // A view's tab turns the ring while its rows read; the pager's count does for another page.
@@ -777,7 +789,7 @@ function List({
             </CardHead>
           );
         }
-        if (l.kind === "box") return <CardBox key={l.key}>{boxFor(l.row)}</CardBox>;
+        if (l.kind === "box") return null;
         if (hidden(l.index)) return null;
         const r = l.row;
         const id = String(r.id);
@@ -806,6 +818,7 @@ function List({
               openAt(l.index);
             }}
             onSettled={() => setChanged(new Set())}
+            box={boxed?.id === l.key ? boxFor(r) : undefined}
             actions={
               <RowActions
                 title={titleOf(meta, r)}
@@ -1161,3 +1174,12 @@ function ElseWhere({
     </a>
   );
 }
+
+/** Hear each topic; one stop for all. */
+const onTopics =
+  (hear: NonNullable<RecordsApi["onTopic"]>, topics: readonly string[]) => (go: () => void) => {
+    const offs = topics.map((t) => hear(t, go));
+    return () => {
+      for (const off of offs) off();
+    };
+  };

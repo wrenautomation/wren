@@ -493,6 +493,32 @@ const listOf = (q: Record<string, unknown>) => {
   };
 };
 
+/** The list's rows as `variants.batch` serves them (packages/variants/src/records.ts `rowOf`). */
+export const BATCH_ROWS = BATCHES.map(rowOf).map((r) => ({
+  id: r.id,
+  name: r.title ?? `Batch ${r.n}`,
+  n: r.n,
+  subject: r.subject.name,
+  kind: r.subject.kind,
+  state: r.waits ? "waiting" : r.state === "open" ? "replaced" : "closed",
+  marked: `${r.marked} of ${r.samples}`,
+  goodRate: r.goodRate,
+  kept: r.kept,
+  judges: r.judges,
+  folder: r.subject.kind === "video" ? "Spring launch" : null,
+  yours: r.marked > 0 ? "yes" : "no",
+  created: r.createdAt,
+  why: r.why,
+  note: r.note,
+}));
+/** Each card's poster: its batch's first sample that has one. */
+export const BATCH_THUMBS = Object.fromEntries(
+  BATCHES.flatMap((b) => {
+    const url = b.samples.find((x) => x.posterUrl)?.posterUrl;
+    return url ? [[String(b.id), { url, kind: "image" as const }]] : [];
+  }),
+);
+
 export const VARIANTS_ANSWERS: Answers = {
   ...BOARD_ANSWERS,
   "variants/batches": (b: Record<string, unknown>) => listOf(b),

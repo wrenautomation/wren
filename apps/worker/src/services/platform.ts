@@ -101,6 +101,7 @@ export function platformServices(deps: Deps): AnyService[] {
         email: { roster, policy },
         smsSenderName: settings.smsSenderName,
         media: mediaSigner,
+        variants: { db, sign: mediaSigner ? (uri) => mediaSigner.host.host(uri) : null },
         reach: reachPolicyFrom(settings),
         // Calls recorded on the Mac: the mp4 signed from the files bucket when opened.
         recordings: settings.filesBucket
