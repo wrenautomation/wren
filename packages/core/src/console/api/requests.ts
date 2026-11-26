@@ -117,6 +117,8 @@ export const SHOWCASE_LOOKS: readonly string[] = [
   "gilded",
   "riso",
   "brutal",
+  "raycast",
+  "raycast-night",
 ];
 
 export const showcaseIn = (look: unknown): boolean => {
@@ -126,7 +128,9 @@ export const showcaseIn = (look: unknown): boolean => {
   return (
     (typeof l.preset === "string" && SHOWCASE_LOOKS.includes(l.preset)) ||
     "backdrop" in l ||
-    "grain" in l
+    "grain" in l ||
+    "window" in l ||
+    "window-blur" in l
   );
 };
 

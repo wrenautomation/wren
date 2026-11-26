@@ -25,6 +25,7 @@ export const TOKENS = [
   "shade",
   "font",
   "font-display",
+  "numeric",
   "display-weight",
   "display-squeeze",
   "label-case",
@@ -69,6 +70,8 @@ export const TOKENS = [
   "term-bad",
   // Made from the ones above by default.
   "tile",
+  "window",
+  "window-blur",
   "wash",
   "band",
   "on-ink",
@@ -151,6 +154,7 @@ export const BASE: Theme = {
   shade: "#0e0e0e",
   font: '"Figtree Variable", ui-sans-serif, system-ui, sans-serif',
   "font-display": "var(--ui-font)",
+  numeric: "tabular-nums",
   "display-weight": "500",
   "display-squeeze": "1",
   "label-case": "none",
@@ -281,8 +285,9 @@ export const PRESETS = {
 } satisfies Record<string, Theme>;
 
 /**
- * Wren's own dashboard, never a client's (Settings → Themes): loud on purpose. Fonts are ones a
- * Mac has, each with a plain fallback, so nothing is fetched.
+ * Wren's own workspace, never a client's (Settings → Look; `setLook` refuses them for a client).
+ * Fonts are ones a Mac has, each with a plain fallback; raycast's Schibsted Grotesk is self-hosted
+ * (tailwind.css), fetched only when the look is on.
  */
 export const SHOWCASE = {
   aurora: {
@@ -459,6 +464,91 @@ export const SHOWCASE = {
     backdrop: "repeating-linear-gradient(45deg, rgb(0 0 0 / 0.07) 0 2px, transparent 2px 14px)",
     lift: "0 0 0 2px #000, 10px 10px 0 #000",
   },
+  // Wren's own look from the style set's v116 (raycast-light-jira): a glass window on a pastel wall,
+  // opaque white cards, ink buttons; colour in words. Purple only in the map's line-0.
+  raycast: {
+    canvas: "#e2e6ef",
+    // the style set's veil (deepInk3 in its variants.mjs) over WALL.light: the wall at about half
+    backdrop:
+      "linear-gradient(rgb(244 246 250 / 0.55), rgb(244 246 250 / 0.55)), radial-gradient(70% 90% at 8% 8%, #adc6f4 0, transparent 62%), radial-gradient(60% 80% at 92% 18%, #f4c4d8 0, transparent 60%), radial-gradient(70% 70% at 58% 104%, #bfe3c6 0, transparent 62%)",
+    window: "rgb(255 255 255 / 0.62)",
+    "window-blur": "blur(36px) saturate(1.6)",
+    paper: "#fff",
+    tile: "#f5f6f8",
+    ground: "transparent", // the sidebar is the bare glass, as v116's side panel
+    ink: "#16161a",
+    "ink-2": "#3a3a42",
+    "ink-3": "color-mix(in srgb, #55555e 68%, #16161a)", // deepInk3, as v116
+    accent: "#1d1d22",
+    "on-accent": "#fff",
+    "good-ink": "#0f5f2c", // the status inks, deepened for the cooler canvas
+    bad: "#a8150f",
+    "warn-ink": "#74490a",
+    "press-edge": "#1d1d22", // flat, as v116: no lip under the ink button
+    link: "#2450c4", // v116's #3a6df0, deepened to 4.5:1 on the grey washes
+    focus: "#3a6df0",
+    "chart-1": "#3a6df0", // chart-1 follows accent by default; ink is no series colour
+    live: "#2450c4", // the run pulse and live wash; it follows accent, and an ink pulse reads dead
+    hair: "rgb(0 0 0 / 0.08)",
+    edge: "rgb(0 0 0 / 0.14)",
+    fill: "rgb(0 0 0 / 0.05)",
+    hover: "rgb(0 0 0 / 0.04)",
+    shade: "#14182a",
+    font: '"Schibsted Grotesk Variable", ui-sans-serif, system-ui, sans-serif',
+    numeric: "normal", // its tnum sets , . : at figure width; number cells keep tabular-nums
+    "display-weight": "600",
+    "display-squeeze": "0.6",
+    "button-weight": "600",
+    radius: "8px", // its own, so it keeps plain corners (themeVars); panel 12, sheet 16
+    frame: "12px",
+    raise: "0 0 0 1px var(--ui-hair), 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 14px rgb(20 30 60 / 0.06)",
+    lift: "0 0 0 1px rgb(255 255 255 / 0.6), 0 10px 30px rgb(40 50 90 / 0.08)",
+  },
+  // v119 (raycast-jira): graphite glass on a dark radial. The dark twin of raycast.
+  "raycast-night": {
+    scheme: "dark",
+    canvas: "#0c0c0e",
+    backdrop:
+      "linear-gradient(rgb(14 15 20 / 0.5), rgb(14 15 20 / 0.5)), radial-gradient(120% 90% at 30% 20%, #2e3034, #141416 55%, #0b0b0d)",
+    window: "rgb(28 28 31 / 0.94)",
+    "window-blur": "blur(36px) saturate(1.6)",
+    paper: "#232326",
+    tile: "#1a1a1d",
+    ground: "rgb(0 0 0 / 0.16)",
+    ink: "#f2f2f2",
+    "ink-2": "#bdbdc2",
+    "ink-3": "color-mix(in srgb, #9a9aa2 68%, #f2f2f2)",
+    accent: "#f2f2f2",
+    "on-accent": "#111",
+    "press-edge": "#f2f2f2",
+    link: "#8aa8ff",
+    focus: "#fff",
+    "chart-1": "#7f9dff",
+    live: "#7f9dff",
+    hair: "rgb(255 255 255 / 0.08)",
+    edge: "rgb(255 255 255 / 0.14)",
+    fill: "rgb(255 255 255 / 0.06)",
+    hover: "rgb(255 255 255 / 0.05)",
+    good: "#5fb37c",
+    "good-ink": "#7cc796",
+    bad: "#ff8a80",
+    needs: "#ff80ab",
+    warn: "#e09a4f",
+    "warn-ink": "#ebb377",
+    shade: "#000",
+    scrim: "rgb(0 0 0 / 0.55)",
+    font: '"Schibsted Grotesk Variable", ui-sans-serif, system-ui, sans-serif',
+    numeric: "normal", // its tnum sets , . : at figure width; number cells keep tabular-nums
+    "display-weight": "600",
+    "display-squeeze": "0.6",
+    "button-weight": "600",
+    radius: "8px",
+    frame: "12px",
+    raise: "0 0 0 1px var(--ui-hair), 0 6px 18px -8px rgb(0 0 0 / 0.6)",
+    lift: "0 0 0 1px rgb(255 255 255 / 0.1), 0 30px 80px -24px rgb(0 0 0 / 0.7)",
+    ...NIGHT_LINES,
+    ...NIGHT_CHARTS,
+  },
 } satisfies Record<string, Theme>;
 
 /** One line each, for the gallery. */
@@ -473,6 +563,8 @@ export const LOOK_NOTES: Readonly<Record<PresetName | ShowcaseName, string>> = {
   gilded: "Black, gold leaf and a Didot.",
   riso: "Two-ink print, grain and all.",
   brutal: "Hard edges, yellow, no apologies.",
+  raycast: "Glass on a pastel wall, ink buttons.",
+  "raycast-night": "Graphite glass, white ink.",
 };
 
 export type PresetName = keyof typeof PRESETS;

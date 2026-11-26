@@ -603,7 +603,7 @@ describe("SHOWCASE_LOOKS", () => {
     const ui = readFileSync(new URL("../../ui/src/theme.tsx", import.meta.url), "utf8");
     const start = ui.indexOf("export const SHOWCASE = {");
     const block = ui.slice(start, ui.indexOf("} satisfies", start));
-    const names = [...block.matchAll(/^ {2}([a-z]+): \{/gm)].map((m) => m[1]);
+    const names = [...block.matchAll(/^ {2}"?([a-z-]+)"?: \{/gm)].map((m) => m[1]);
     expect(names).toEqual([...SHOWCASE_LOOKS]);
   });
 });

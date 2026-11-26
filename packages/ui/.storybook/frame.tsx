@@ -3,27 +3,37 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, useRef } from "react";
 import { QUERIES } from "../src/data/query.js";
 import { HintLayer } from "../src/hint-layer.js";
-import { PRESETS, usePageTheme } from "../src/theme.js";
+import { PRESETS, SHOWCASE, type Theme, usePageTheme } from "../src/theme.js";
 import { Feedback } from "./feedback.js";
 
 /**
  * The frame every story renders in, shared by each Storybook (`@wren/ui/storybook/frame`): the
- * portal's look (the `theme` toolbar's dark wears `night`, which flips the tokens), the one query
+ * portal's look (the `look` toolbar picks the pair, the `theme` toolbar its light or dark), the one query
  * client and the hover-text layer. Each Storybook's preview adds its own stylesheet. The cache is
  * cleared on each story, so one story's answer never shows in the next.
  */
+/** Each look in the toolbar, light and dark. */
+const LOOKS = {
+  wren: { light: PRESETS.wren, dark: PRESETS.night },
+  raycast: { light: SHOWCASE.raycast, dark: SHOWCASE["raycast-night"] },
+} satisfies Record<string, { light: Theme; dark: Theme }>;
+type LookName = keyof typeof LOOKS;
+const lookName = (v: unknown): LookName => (v === "raycast" ? "raycast" : "wren");
+
 function Frame({
   id,
+  look,
   dark,
   bare,
   children,
 }: {
   id: string;
+  look: LookName;
   dark: boolean;
   bare: boolean;
   children: ReactNode;
 }) {
-  usePageTheme(dark ? PRESETS.night : PRESETS.wren);
+  usePageTheme(LOOKS[look][dark ? "dark" : "light"]);
   // Cleared before the story's first render, so its reads never see the last story's answers.
   const shown = useRef("");
   if (shown.current !== id) {
@@ -36,7 +46,9 @@ function Frame({
         // parts outside the shell size off the story, as pages off #main
         className="@container/main"
         style={{
-          background: "var(--ui-canvas)",
+          backgroundColor: "var(--ui-canvas)",
+          backgroundImage: "var(--ui-backdrop)",
+          backgroundAttachment: "fixed",
           color: "var(--ui-ink)",
           fontFamily: "var(--ui-font)",
           minHeight: "100vh",
@@ -53,7 +65,12 @@ function Frame({
 }
 
 const frame: Decorator = (Story, { id, globals, parameters }) => (
-  <Frame id={id} dark={globals.theme === "dark"} bare={parameters.layout === "fullscreen"}>
+  <Frame
+    id={id}
+    look={lookName(globals.look)}
+    dark={globals.theme === "dark"}
+    bare={parameters.layout === "fullscreen"}
+  >
     <Story />
   </Frame>
 );
@@ -69,8 +86,19 @@ const VIEWPORTS = {
 export const preview: Preview = {
   decorators: [frame],
   globalTypes: {
+    look: {
+      description: "The look pair: wren (wren and night) or raycast (raycast and raycast-night)",
+      toolbar: {
+        title: "Look",
+        items: [
+          { value: "wren", title: "Wren" },
+          { value: "raycast", title: "Raycast" },
+        ],
+        dynamicTitle: true,
+      },
+    },
     theme: {
-      description: "The look: wren (light) or night (dark)",
+      description: "Light or dark, within the look pair",
       // A title, not a Storybook icon: kit-door.test.ts reads `icon: "…"` as one of the kit's.
       toolbar: {
         title: "Theme",
@@ -82,7 +110,7 @@ export const preview: Preview = {
       },
     },
   },
-  initialGlobals: { theme: "light" },
+  initialGlobals: { look: "wren", theme: "light" },
   parameters: {
     // Frame pads the story itself (24px), or not for `layout: "fullscreen"`.
     layout: "padded",

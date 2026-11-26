@@ -23,7 +23,7 @@ import { PAGE_SIZE, PAGE_SIZES, sizeOf } from "./pager.js";
 import { type Place, titleOf } from "./records-types.js";
 
 /** The templates' type. Buttons follow the tokens, as everywhere. */
-export const ROOT = "text-[14px] text-(--ui-ink) [font-variant-numeric:tabular-nums]";
+export const ROOT = "text-[14px] text-(--ui-ink) [font-variant-numeric:var(--ui-numeric)]";
 
 export function ListSkeleton() {
   return (

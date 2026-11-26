@@ -28,6 +28,8 @@ export const GROUNDS = [
   "canvas",
   "paper",
   "ground",
+  "ground/window",
+  "window/canvas",
   "tile",
   "wash",
   "band",
@@ -76,6 +78,7 @@ const over = (top: Rgba, under: Rgba): Rgba => {
 /** The defaults tailwind.css makes from the set tokens (its `:root`). */
 const MADE: Theme = {
   tile: "var(--ui-canvas)",
+  window: "var(--ui-paper)",
   wash: "color-mix(in srgb, var(--ui-accent) 6%, transparent)",
   band: "color-mix(in srgb, var(--ui-tile) 75%, var(--ui-paper))",
   ground: "color-mix(in srgb, var(--ui-canvas) 55%, var(--ui-paper))",
@@ -165,9 +168,11 @@ export function pairsOf(
   const paper = over(c("paper"), [255, 255, 255, 1]);
   const canvas = over(c("canvas"), [255, 255, 255, 1]);
   const tile = over(c("tile"), paper);
+  const win = over(c("window"), canvas); // the shell's window; glass in a showcase look
   const ground = (g: (typeof GROUNDS)[number]): Rgba => {
     const [name, under] = g.split("/") as [Token, string | undefined];
-    const base = under === "canvas" ? canvas : under === "tile" ? tile : paper;
+    const base =
+      under === "canvas" ? canvas : under === "tile" ? tile : under === "window" ? win : paper;
     if (name === "canvas") return canvas;
     if (name === "paper") return paper;
     return over(c(name), base);

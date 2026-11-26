@@ -482,7 +482,7 @@ export function AppShell({
       ) : null}
       <div
         className={cx(
-          "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-(--ui-radius-sheet) bg-(--ui-paper) shadow-[var(--ui-raise),var(--ui-lift)] max-[900px]:m-0 max-[900px]:shadow-none max-[900px]:block max-[900px]:overflow-visible max-[900px]:rounded-none",
+          "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-(--ui-radius-sheet) bg-(--ui-window) shadow-[var(--ui-raise),var(--ui-lift)] min-[901px]:relative min-[901px]:isolate [@media(prefers-reduced-transparency:reduce)]:bg-(--ui-paper) max-[900px]:m-0 max-[900px]:bg-(--ui-paper) max-[900px]:shadow-none max-[900px]:block max-[900px]:overflow-visible max-[900px]:rounded-none",
           // The sidebar lives inside the window's card: the card spans both columns, the
           // sidebar's ground is painted at its left, and the sidebar's cells sit above it.
           side
@@ -492,6 +492,13 @@ export function AppShell({
       >
         {side ? (
           <div
+            // the glass's blur, on its own layer under the sidebar: on the window it would trap fixed children
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 -z-1 w-(--layout-side) rounded-l-[inherit] [backdrop-filter:var(--ui-window-blur)] max-[900px]:hidden [@media(prefers-reduced-transparency:reduce)]:hidden"
+          />
+        ) : null}
+        {side ? (
+          <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-y-0 left-0 w-(--layout-side) border-r border-(--ui-hair) bg-(--ui-ground) max-[900px]:hidden"
           />
@@ -499,7 +506,8 @@ export function AppShell({
         <div
           // frame: the side panel sizes off it (side-panel.tsx). A container is a stacking context:
           // with a part in full screen (useFullScreen) it lifts over the nav (z-10) and the phone head (z-20)
-          className="@container/frame flex min-h-0 min-w-0 flex-1 max-[900px]:block has-[[data-full]]:relative has-[[data-full]]:z-50"
+          // paper: pages paint opaque parts (sticky heads, columns) in paper, so the glass stops at the sidebar
+          className="@container/frame flex min-h-0 min-w-0 flex-1 bg-(--ui-paper) max-[900px]:block has-[[data-full]]:relative has-[[data-full]]:z-50"
         >
           <div
             // The page's ground, a shade under paper, so its panels read raised on it.

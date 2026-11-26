@@ -137,7 +137,7 @@ Key characteristics:
 
 **The Source Rule.** Tokens live in `packages/ui/src/tailwind.css` (`:root`) and are overridden per look by `packages/ui/src/theme.tsx`. A part reads `var(--ui-*)`. It never writes a hex.
 
-**The Quiet Client Rule.** Clients get the plain presets only. Showcase looks, backdrops, grain and lift belong to Wren's own portal. `setLook` refuses them for a client. The leaf, sentence case and the sweep are the Wren look and its night. A look that sets its own `radius` gets plain corners and no sweep: `themeVars` sets the leaf tokens to its plain radius and `--ui-sweep` to 0. A look that wants uppercase sets it in its own preset (`CAPS` in `theme.tsx`). `theme.test.ts` checks each rule.
+**The Quiet Client Rule.** Clients get the plain presets only. Showcase looks, backdrops, grain, lift and a glass window (`window`, `window-blur`) belong to Wren's own portal. `setLook` refuses them for a client. The leaf, sentence case and the sweep are the Wren look and its night. A look that sets its own `radius` gets plain corners and no sweep: `themeVars` sets the leaf tokens to its plain radius and `--ui-sweep` to 0. A look that wants uppercase sets it in its own preset (`CAPS` in `theme.tsx`). `theme.test.ts` checks each rule.
 
 ## Colors
 
@@ -188,7 +188,7 @@ Source: `packages/ui/src/tailwind.css` (`:root`, light "Wren" preset). Values in
 - **night** (dark): canvas `#0d0d0c`, paper `#171716`, ink `#f2f0ea`, accent `#a596d6` (lavender), on-accent `#15121f`, press edge `#7a69ad`. Keeps the leaf and the sweep. Lines are lighter (below).
 - **soft**: canvas `#eef1f6`, accent `#3552d4`, rounded system font, radius 12 px, plain corners, sentence case.
 - **editorial**: canvas `#f4f1ea`, paper `#fffdf8`, accent `#1d5a45`, serif display, radius 6 px (plain corners), uppercase labels and buttons, frame 0.
-- Showcase (Wren only): aurora, synthwave, terminal, gilded, riso, brutal.
+- Showcase (Wren only): aurora, synthwave, terminal, gilded, riso, brutal, raycast, raycast-night. Raycast is v116 of the 11-25 style set: a glass window (`window`, `window-blur`) on a pastel wall, opaque white cards, ink buttons.
 
 **The Rare Lavender Rule.** Roughly 10% of any screen. It marks the primary action, the current page, links, focus and live things. Never a fill behind a whole panel.
 

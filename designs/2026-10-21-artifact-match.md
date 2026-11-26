@@ -4,6 +4,7 @@ William: the UI must match the artifacts exactly. "Close" is a fail. Two artifac
 
 - **Design Language** (`designs/2026-10-20-design-language/`): tokens, parts, every app surface.
 - **Studio and Marketing** (`designs/2026-10-21-studio-marketing/`, six boards: Main, Compose, Inbound, Outbound, Offer, Phone): the Studio and Marketing pages.
+- **The `raycast` looks only** (from 11-26): colour and material come from the style set's v116 and v119 (`designs/2026-11-26-raycast-light.md`). Structure still comes from the two artifacts.
 
 The artifacts override all old UI. Old tokens, borders, spacing, layouts and parts go where they differ. Nobody asks to keep an old value, and nobody keeps one because it was an earlier decision.
 

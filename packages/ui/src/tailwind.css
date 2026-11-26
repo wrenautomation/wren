@@ -15,6 +15,7 @@
 @import "sonner/dist/styles.css";
 /* Figtree, self-hosted: the app asks no third party for its face. */
 @import "@fontsource-variable/figtree";
+@import "@fontsource-variable/schibsted-grotesk"; /* the raycast look; fetched only when used */
 /* Streamdown (agent-thread.tsx): its fade-in keyframes, and the classes its blocks carry. */
 @import "streamdown/styles.css";
 @source "./";
@@ -39,6 +40,7 @@
   --ui-shade: #0e0e0e; /* what shadows and the scrim are made of */
   --ui-font: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
   --ui-font-display: var(--ui-font); /* headings and big figures */
+  --ui-numeric: tabular-nums; /* body figures; a face whose tnum widens punctuation sets normal */
   --ui-display-weight: 500;
   --ui-display-squeeze: 1; /* how tight headings sit: 1 is Wren's, 0 is none */
   --ui-label-case: none; /* the small labels over columns and nav groups: sentence case */
@@ -98,6 +100,8 @@
 :root,
 [data-ui-theme] {
   --ui-tile: var(--ui-canvas); /* a well inside the paper */
+  --ui-window: var(--ui-paper); /* the app window's ground; a showcase look makes it glass */
+  --ui-window-blur: none; /* the glass's backdrop-filter, on a layer under the window's content */
   /* Row hover: the artifact's wash. */
   --ui-wash: color-mix(in srgb, var(--ui-accent) 6%, transparent);
   /* The strip a part is headed by: a table's column heads, a section's title, a dialog's head. */
@@ -288,7 +292,7 @@
     color: var(--ui-ink);
     font: 400 15px / 1.55 var(--ui-font);
     -webkit-font-smoothing: antialiased;
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: var(--ui-numeric);
   }
   /* On a phone the window is the page. */
   @media (max-width: 900px) {
