@@ -26,6 +26,7 @@ import {
   moved,
   type NavArea,
   type NavItem,
+  type NavPill,
   type PaletteItem,
   type PinLine,
   ProductMark,
@@ -52,7 +53,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
 import { call, ME_CHANGED, type Me, signOutUrl, viewing } from "./api.js";
 import { AppsProvider } from "./apps-context.js";
-import { AREAS, dockOf, phoneTabsOf, sidebarOf } from "./areas.js";
+import { AREAS, dockOf, phoneTabsOf, pillsOf, sidebarOf } from "./areas.js";
 import { Contained } from "./contained.js";
 import { dictation } from "./dictation/index.js";
 import { useShareFlags } from "./flags.js";
@@ -569,6 +570,16 @@ export function App() {
       })).filter((a) => a.apps.length)
     : undefined;
 
+  // Wren's own top bar: its places as pills; a client's keeps Apps
+  const pills: NavPill[] | undefined =
+    wren && launcher && !alone
+      ? pillsOf(cards).map(({ label, app }) => ({
+          id: app.id,
+          label,
+          href: app.id === homeRow ? launcher : firstOf(app),
+        }))
+      : undefined;
+
   // A phone's bottom tabs at home: the Map, then Inbox, People and his first pin; Apps comes after.
   const dock: DockItem[] | undefined =
     launcher && !alone
@@ -658,6 +669,7 @@ export function App() {
                 : undefined
             }
             areas={areas}
+            pills={pills}
             dock={dock}
             bar={viewing ? <ViewAsStrip me={me.data} /> : undefined}
             pins={alone ? undefined : railPins}
@@ -755,6 +767,7 @@ export function App() {
             }
             bleed={!open && team && !!current}
             fill={!!open && "fill" in open.page && !!open.page.fill}
+            wallpaper={!!open?.page.wallpaper}
             aside={
               team ? (
                 <AgentPanel

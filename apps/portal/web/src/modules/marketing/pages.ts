@@ -61,6 +61,7 @@ const APPROVAL_PAGE: ListPage = {
   about: "Drafts, replies and posts that wait on your yes before they go out.",
   template: "list",
   record: "marketing.approval",
+  wallpaper: true,
   late: queueLate("marketing.approval"),
   // New and waiting rows wait on a yes; queued ones are for info.
   needs: { state: ["new", "waiting"] },

@@ -71,6 +71,14 @@ interface NavDrop {
   onDrop: (data: string) => void;
 }
 
+/** A place in the top bar's pills (designs/2026-11-26-redesign.md D2): Wren's own workspace. */
+export interface NavPill {
+  /** The app's id, to light it while open. */
+  id: string;
+  label: string;
+  href: string;
+}
+
 /** The app on screen. */
 export interface OpenApp {
   /** Its row in `areas`, unfolded. */
@@ -180,6 +188,7 @@ export function AppShell({
   launcher,
   home,
   areas,
+  pills,
   dock,
   app,
   pins,
@@ -191,6 +200,7 @@ export function AppShell({
   wide = false,
   bleed = false,
   fill = false,
+  wallpaper = false,
   display,
   customize,
   onGo,
@@ -209,6 +219,8 @@ export function AppShell({
   home?: NavHome | undefined;
   /** Every app by area. Left out (the demo), the sidebar holds the open app alone. */
   areas?: NavArea[] | undefined;
+  /** The top bar's places as pills, the rest under More; only with the bar on top. Left out: Apps. */
+  pills?: NavPill[] | undefined;
   /** A phone's bottom tabs, before Menu (every app). Left out, a phone gets Menu at the top. */
   dock?: DockItem[] | undefined;
   /** Null at home. */
@@ -231,6 +243,8 @@ export function AppShell({
   bleed?: boolean | undefined;
   /** The page takes the window's full width and height under its crumb; the page scrolls inside (a chat). */
   fill?: boolean | undefined;
+  /** Under pills: no window card; the page lays its own cards on the wallpaper (Today, Tasks). */
+  wallpaper?: boolean | undefined;
   /** How he set the frame; left out, the defaults and no Layout button. */
   display?: DisplayControl | undefined;
   /** Under the Layout settings: a link to his own look. */
@@ -286,6 +300,10 @@ export function AppShell({
   // sidebar's layout, computer-only classes.
   const side = nav && d.sidebar !== "top";
   const folded = side && d.sidebar === "icons";
+  // v116's bar: the places as pills, the open place's pages in the page head
+  const pilled = nav && !side && !!pills?.length;
+  // redesign D2: a page with its own cards drops the window; a computer only
+  const bare = pilled && wallpaper;
   // "Wren / Wren": the workspace name alone says it
   const twin = brand.name === workspace.current?.name;
   const host = () => root.current;
@@ -401,7 +419,11 @@ export function AppShell({
             </a>
           ) : null}
         </div>
-        {side ? null : (
+        {side ? null : pilled && areas && pills ? (
+          <div className="flex min-w-0 flex-1 items-center justify-center max-[900px]:hidden">
+            <Pills pills={pills} areas={areas} home={home} app={app} />
+          </div>
+        ) : (
           <div className="flex min-w-0 flex-1 items-center gap-1 max-[900px]:hidden">
             {nav && areas ? <AppsMenu areas={areas} home={home} app={app} /> : null}
             {app ? <TopTabs app={app} /> : null}
@@ -482,12 +504,16 @@ export function AppShell({
       ) : null}
       <div
         className={cx(
-          "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-(--ui-radius-sheet) bg-(--ui-window) shadow-[var(--ui-raise),var(--ui-lift)] min-[901px]:relative min-[901px]:isolate [@media(prefers-reduced-transparency:reduce)]:bg-(--ui-paper) max-[900px]:m-0 max-[900px]:bg-(--ui-paper) max-[900px]:shadow-none max-[900px]:block max-[900px]:overflow-visible max-[900px]:rounded-none",
+          "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-(--ui-radius-sheet) min-[901px]:relative min-[901px]:isolate max-[900px]:m-0 max-[900px]:bg-(--ui-paper) max-[900px]:shadow-none max-[900px]:block max-[900px]:overflow-visible max-[900px]:rounded-none",
+          !bare &&
+            "bg-(--ui-window) shadow-[var(--ui-raise),var(--ui-lift)] [@media(prefers-reduced-transparency:reduce)]:bg-(--ui-paper)",
           // The sidebar lives inside the window's card: the card spans both columns, the
           // sidebar's ground is painted at its left, and the sidebar's cells sit above it.
           side
             ? "relative [grid-area:2/1/-1/-1] mx-(--ui-frame) my-(--ui-frame) min-[901px]:pl-(--layout-side)"
-            : "mx-(--ui-frame) mb-(--ui-frame)",
+            : bare
+              ? "mx-(--ui-frame)"
+              : "mx-(--ui-frame) mb-(--ui-frame)",
         )}
       >
         {side ? (
@@ -507,7 +533,12 @@ export function AppShell({
           // frame: the side panel sizes off it (side-panel.tsx). A container is a stacking context:
           // with a part in full screen (useFullScreen) it lifts over the nav (z-10) and the phone head (z-20)
           // paper: pages paint opaque parts (sticky heads, columns) in paper, so the glass stops at the sidebar
-          className="@container/frame flex min-h-0 min-w-0 flex-1 bg-(--ui-paper) max-[900px]:block has-[[data-full]]:relative has-[[data-full]]:z-50"
+          // bare: cards read `data-wallpaper` and turn to glass (card-grid.tsx)
+          className={cx(
+            "@container/frame flex min-h-0 min-w-0 flex-1 max-[900px]:block max-[900px]:bg-(--ui-paper) has-[[data-full]]:relative has-[[data-full]]:z-50",
+            !bare && "bg-(--ui-paper)",
+          )}
+          data-wallpaper={bare ? "" : undefined}
         >
           <div
             // The page's ground, a shade under paper, so its panels read raised on it.
@@ -557,7 +588,7 @@ export function AppShell({
               tabIndex={-1}
             >
               {app && !bleed ? (
-                <AppCrumb app={app} pins={pins} display={display} top={!side} />
+                <AppCrumb app={app} pins={pins} display={display} top={!side} tabs={pilled} />
               ) : null}
               <FrameProvider value={display ?? null}>{children}</FrameProvider>
             </main>
@@ -826,18 +857,26 @@ function AppCrumb({
   pins,
   display,
   top,
+  tabs = false,
 }: {
   app: OpenApp;
   pins: RailPins | undefined;
   display: DisplayControl | undefined;
   /** Under the top bar: its lit tab names the page, so only the buttons stay. */
   top: boolean;
+  /** The bar holds pills, so the app's pages sit here, as tabs before its buttons. */
+  tabs?: boolean | undefined;
 }) {
   const page = app.tabs.find((t) => t.id === app.current);
   const paged = app.tabs.length > 1;
   if (top && paged)
-    return app.action || pins ? (
+    return app.action || pins || tabs ? (
       <div className="-my-1.5 flex min-h-8 items-center justify-end gap-1.5 max-[900px]:hidden [&:not(:has(+:is(h1,header),+*>:is(h1,header):first-child))]:mb-2">
+        {tabs ? (
+          <div className="mr-auto min-w-0">
+            <TopTabs app={app} />
+          </div>
+        ) : null}
         {app.action}
         {pins ? <PinButton pinned={pins.here} onToggle={pins.onToggle} compact /> : null}
       </div>
@@ -985,21 +1024,64 @@ function TopGroup({ app, group, tabs }: { app: OpenApp; group: string; tabs: Nav
 }
 
 /** Every app by area, from the top bar: what the sidebar lists, behind one button. */
-function AppsMenu({
+/** v116's centre pills: the kept places, then More (every place). The open one is lit. */
+function Pills({
+  pills,
   areas,
   home,
   app,
 }: {
+  pills: NavPill[];
   areas: NavArea[];
   home: NavHome | undefined;
   app: OpenApp | null;
 }) {
+  const shown = new Set(pills.map((p) => p.id));
+  const elsewhere = !!app?.id && !shown.has(app.id);
+  return (
+    <nav aria-label="Places" className="ui-seg flex-nowrap">
+      {pills.map((p) => (
+        <a key={p.id} href={p.href} aria-current={app?.id === p.id ? "page" : undefined}>
+          {p.label}
+        </a>
+      ))}
+      <AppsMenu areas={areas} home={home} app={app} label="More" on={elsewhere} />
+    </nav>
+  );
+}
+
+function AppsMenu({
+  areas,
+  home,
+  app,
+  label,
+  on = false,
+}: {
+  areas: NavArea[];
+  home: NavHome | undefined;
+  app: OpenApp | null;
+  /** In the pills: a word, no icon ("More"). */
+  label?: string | undefined;
+  /** The open app is in here, not in a pill. */
+  on?: boolean | undefined;
+}) {
   return (
     <Popover>
-      <PopoverTrigger className={cx(TOP_TAB, "gap-2")} aria-label="Apps">
-        <Icon name="apps" size={16} />
-        <span className="max-[1100px]:hidden">Apps</span>
-      </PopoverTrigger>
+      {label ? (
+        <PopoverTrigger
+          className={cx(
+            on && "bg-(--ui-paper)! font-semibold text-(--ui-ink)! shadow-(--ui-raise)",
+          )}
+        >
+          {app && on ? app.name : label}
+          <Icon name="down" size={14} className="ml-1" />
+        </PopoverTrigger>
+      ) : (
+        <PopoverTrigger className={cx(TOP_TAB, "gap-2")} aria-label="Apps">
+          <Icon name="apps" size={16} />
+          <span className="max-[1100px]:hidden">Apps</span>
+        </PopoverTrigger>
+      )}
       <PopoverContent
         align="start"
         aria-label="Apps"

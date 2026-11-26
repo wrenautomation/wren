@@ -64,6 +64,8 @@ interface PageBase {
   across?: PageAcross;
   /** Its tab's number in any workspace: what waits there for whoever looks (Accounts' open alerts). */
   badge?: (client: string, team: boolean) => Promise<number>;
+  /** Under the top bar's pills: no window card, its cards on the wallpaper (redesign D2). */
+  wallpaper?: true;
 }
 
 export interface PageAcross {

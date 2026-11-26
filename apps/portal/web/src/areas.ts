@@ -65,6 +65,17 @@ export function sidebarOf<T extends { id: string; parked?: true | undefined }>(
   });
 }
 
+/** The top bar's pills in Wren's own workspace, in order (designs/2026-11-26-redesign.md D2). */
+const PILLED = ["today", "variants", "aerie", "canon"];
+
+/** The places Wren's top bar shows as pills; the rest wait under More. */
+export function pillsOf<T extends { id: string; parked?: true | undefined }>(
+  apps: readonly T[],
+): { label: string; app: T }[] {
+  const places = sidebarOf(apps);
+  return PILLED.flatMap((id) => places.filter((p) => p.app.id === id));
+}
+
 /** One of a phone's bottom tabs after home: a place, or a pin. */
 type DockPick<T, P> = { label: string; app: T } | { pin: P };
 

@@ -605,6 +605,7 @@ export {
   type NavArea,
   type NavHome,
   type NavItem,
+  type NavPill,
   type OpenApp,
   type RailPins,
   type Workspace,

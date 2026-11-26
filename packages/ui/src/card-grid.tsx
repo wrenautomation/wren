@@ -215,7 +215,7 @@ export function RecordCard({
           ? "bg-(--ui-accent-tint)"
           : cursor
             ? "bg-(--ui-accent-wash)"
-            : "bg-(--ui-paper) hover:bg-(--ui-accent-wash)",
+            : "bg-(--ui-paper) hover:bg-(--ui-accent-wash) in-data-wallpaper:bg-(--ui-window) in-data-wallpaper:[backdrop-filter:var(--ui-window-blur)] in-data-wallpaper:hover:bg-(--ui-accent-wash)",
         going && "bg-(--ui-wash)",
         changed && "animate-ui-changed",
       )}
