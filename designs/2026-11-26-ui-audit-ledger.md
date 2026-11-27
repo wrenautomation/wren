@@ -433,6 +433,8 @@ New:
 
 After this pass (0255c4d18): R10.12. "Stop openers" gets the pause icon, so every campaign row ends in ⏸ or ▷, as Inboxes does. The same shot (not full page) shows the phone tab bar on an app story at 390; check R11.9 again next pass.
 
+After this pass (d70f716ca): R10.13 for Followers. The rows name six platforms, with a different number in each column. Conversation ("3 of 12" next to 7 comments) and the Overview chart dates stay open.
+
 ### Row 11, pass 2: Shell (sidecar, 11-27 00:14)
 
 20 stories (`app-wren-shell-*`, `redesign-shell--*`, kit `shell--*`) at 390 and 1280. Shots: scratchpad `audit11b/`. Box-fit 0. Errors 0.
