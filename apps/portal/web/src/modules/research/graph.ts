@@ -64,7 +64,9 @@ function skey(
   }
   return [`site:${h}`, h, "web"];
 }
-const icon = (h: string) => `https://icons.duckduckgo.com/ip3/${h}.ico`;
+// gstatic, not DDG: a miss comes back 16 px (DDG draws a grey 48 px square); `iconMissed` reads it
+const icon = (h: string) =>
+  `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&size=32&url=https://${h}`;
 const thumb = (yt: string) => `https://i.ytimg.com/vi/${yt}/mqdefault.jpg`;
 
 interface Pattern {

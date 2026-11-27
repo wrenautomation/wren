@@ -2,7 +2,7 @@
 import { type ReactNode, useDeferredValue, useState } from "react";
 import { Icon } from "../../icons.js";
 import { Img } from "../../image.js";
-import { Glyph, Ico, Kd } from "./marks.js";
+import { Glyph, Ico, iconMissed, Kd } from "./marks.js";
 import {
   atQuote,
   cap,
@@ -168,6 +168,7 @@ function Frame({
               alt=""
               loading="lazy"
               referrerPolicy="no-referrer"
+              onLoad={(e) => iconMissed(e) && setIbad(true)}
               onError={() => setIbad(true)}
             />
           ) : (

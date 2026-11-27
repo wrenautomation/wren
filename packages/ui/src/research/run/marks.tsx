@@ -112,6 +112,10 @@ const Mag = () => (
   </svg>
 );
 
+/** a site icon asked at 32 px that came back smaller: the service's stand-in, not the site's */
+export const iconMissed = (e: { currentTarget: HTMLImageElement }) =>
+  e.currentTarget.naturalWidth < 32;
+
 /** The site's icon; its glyph when there is none or it fails. Same box either way. */
 export function Ico({ s }: { s: GraphSource }) {
   const [bad, setBad] = useState(false);
@@ -121,6 +125,7 @@ export function Ico({ s }: { s: GraphSource }) {
       src={s.icon}
       alt=""
       referrerPolicy="no-referrer"
+      onLoad={(e) => iconMissed(e) && setBad(true)}
       onError={() => setBad(true)}
     />
   ) : (
