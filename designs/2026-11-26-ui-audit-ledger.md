@@ -55,8 +55,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 5 | Canon | `stories/wren/canon` | sidecar | audited; pass 2 audited |
 | 6 | Map | `stories/wren/map` | sidecar | audited; pass 2 audited |
 | 7 | Explorer | `stories/wren/explorer` | sidecar | audited; pass 2 audited |
-| 8 | Office | `stories/wren/office` | sidecar | audited; pass 2 auditing |
-| 9 | Studio | `stories/wren/studio` | sidecar | audited |
+| 8 | Office | `stories/wren/office` | sidecar | audited; pass 2 audited |
+| 9 | Studio | `stories/wren/studio` | sidecar | audited; pass 2 auditing |
 | 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited |
 | 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | audited |
 | 12 | Client: campaigns, office, people | `stories/client` | sidecar | audited |
@@ -384,6 +384,19 @@ New:
 1. Little circles (L5.4, his words: "no little circle things to the left"): the business-map station page puts a hollow circle before each linked station under "Goes to" and "Comes from" ("○ Held", "○ Fit?"). Use the station's own icon, as the map does, or none.
 2. Box-fit: on `business-map--line` and `--station` an SVG `g` is 8–14 px high and needs 17 px (3 hits per width). Same as row 6 pass 2 item 3.
 3. Prod parity (prod 11-26 23:25): Canon 10,760 records (the fixture says 10,577), the business map 5 lines. Same as pass 1.
+
+### Row 8, pass 2: Back office (sidecar, 11-26 23:55)
+
+18 `app-wren-back-office-*` stories at 390 and 1280. Shots: scratchpad `audit8b/`. Box-fit 0. The 500s are the planned `-fails` stories.
+
+Pass 1 items:
+- Fixed (55ca06c35): R8.1 (amounts show at 390), R8.4 (model names are short), R8.5 ("Back office" on one line), R8.7 (no initials circles).
+- Still open: R8.2 (Spend has two "Month" columns: "Oct 2026" and a green "This month"), R8.3 (the side nav shows "Money" as a group label and again as its item), R8.6 (the donut centre still cuts "Account 7 and a much longer real world line, as prod…"), R8.8 (Speed lists "VariantsConsole/batches", "ConsolePortal/recordsList").
+
+New:
+1. The Money list starts each account row with a coloured square, the donut's key (L5.4, his words: "no little circle things to the left"). Keep the key, but put it after the name, or tint the amount pill in the account's colour.
+2. Money shows amounts in grey pills ("$8,620.00"); Spend, Model usage and Payments in show plain amounts. Use one style.
+3. Prod parity (prod 11-26 23:52): `books` holds 23 spend rows, 18 subscriptions, 114 card rows. The fixtures hold 3–8 rows; add a 120-row Spend story to check the table and the month groups.
 
 ## Known, carried over
 
