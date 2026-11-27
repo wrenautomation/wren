@@ -94,7 +94,9 @@ export const Motion: Story = {
     await userEvent.keyboard("{ArrowRight}");
     await expect(edge).toHaveAttribute("aria-valuenow", String(PANEL.width - 16));
     await expect(panel).not.toHaveAttribute("data-resizing");
-    await expect(getComputedStyle(panel).transitionProperty).toContain("width");
+    // reduced motion (the test browser may ask for it): no transition at all, by design
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches)
+      await expect(getComputedStyle(panel).transitionProperty).toContain("width");
     // slow: 60px over ~600ms, stays open and narrower
     await drag(edge, 4, 15, 150);
     await waitFor(() => expect(edge).toHaveAttribute("aria-valuenow", String(PANEL.width - 76)));

@@ -92,7 +92,8 @@ const kb = (n: number) =>
 
 /** A result in a few words: an exit code, a JSON count, lines, or the size. */
 /** JSON keys are plural nouns: 1 runs → 1 run */
-const one = (k: string, n: number) => (n === 1 && /[^s]s$/.test(k) ? k.slice(0, -1) : k);
+const one = (k: string, n: number) =>
+  n === 1 && k.length > 3 && /[^siu]s$/.test(k) ? k.slice(0, -1) : k;
 
 export function stat(out: string | undefined, failed?: boolean): string {
   if (out === undefined) return "";

@@ -48,6 +48,8 @@ describe("steps", () => {
     expect(stat('{"sources":[1,2,3],"pages":6,"run":"x"}')).toBe("3 sources · 6 pages");
     expect(stat("[1,2]")).toBe("2 items");
     expect(stat('{"runs":[1],"pages":1,"class":1}')).toBe("1 run · 1 page");
+    expect(stat('{"status":1,"ms":1}')).toBe("1 status · 1 ms");
+    expect(stat('{"analysis":1,"items":1}')).toBe("1 analysis · 1 item");
     expect(stat("a\nb\nc")).toBe("3 lines");
     expect(stat("ok")).toBe("ok");
     expect(stat("  ")).toBe("no output");
