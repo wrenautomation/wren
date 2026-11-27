@@ -49,8 +49,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 |---|---|---|---|---|
 | 0 | WA-1464 icon swap | kit icons | main | done, 02daa0b4e |
 | 1 | Aerie: Intake, Decisions, History | `stories/wren/aerie` | sidecar | audited; pass 2 audited |
-| 2 | Today / To approve | `stories/wren/today`, `redesign/shell` | sidecar | audited; pass 2 auditing |
-| 3 | Variants / Batches | `stories/vireo`, batches | sidecar | audited |
+| 2 | Today / To approve | `stories/wren/today`, `redesign/shell` | sidecar | audited; pass 2 audited |
+| 3 | Variants / Batches | `stories/vireo`, batches | sidecar | audited; pass 2 auditing |
 | 4 | Anton panel | `redesign/anton`, `wren/agent-chat` | sidecar | audited |
 | 5 | Canon | `stories/wren/canon` | sidecar | audited |
 | 6 | Map | `stories/wren/map` | sidecar | audited |
@@ -288,6 +288,24 @@ New:
 6. Board cards end with a priority arrow ("↑", "=") and no word. List rows say "high" and "medium". Use the word on the board too.
 7. Columns: "Content" has no count while every other folder has one.
 8. Prod parity (prod 11-26): 923 tasks in 21 areas, 2 actors, the longest title 322 characters. Prod has the statuses "Deferred" (10) and "Blocked" (2); no fixture has them. Add both to the fixtures and check that the board and filter show them.
+
+### Row 2, pass 2: Today (sidecar, 11-26 23:15)
+
+29 stories at 390 and 1280. Shots: scratchpad `audit2b/`. Box-fit fell from 36 hits to 0. The 500s come only from the planned `overview--failed` story.
+
+Pass 1 items:
+- Fixed: R2.1 (the field says "Search" only), R2.3 (kinds read "Post draft", "Video to approve", "Reply to send"), R2.4 (Mail cells and the Messages Type column have no dots), R2.9 (box-fit 0).
+- Still open: R2.2 ("Sends 1 month ago" on a card that waits 43 days), R2.5 (no shading in the week grid under "Shaded: your open hours"), R2.6 (`overview--*` still renders the Map), R2.7 (no 300-card story), R2.8 ("Held because: Held because 5").
+
+New:
+1. The header "Approve" button shows with nothing picked. It does not say what it approves. Show "Approve 6", or show it only when cards are picked.
+2. The open card's panel lists "Held because -", "Sends -", "Suggests -", "On -" in a row. Hide empty fields.
+3. The panel shows "When 1 month ago" and "Waiting since 1 month ago". Both say the same thing. Keep "Waiting since".
+4. Mail rules: the verdict "Show" is amber, while "Hold" and "Drop" are plain ink. Amber reads as a warning. Use one colour for all verdicts.
+5. Mail rules: "Settled by" says "Code, $0" in green. "$0" adds nothing on a code rule. Say "Code" or "Model" alone; show a cost only when it is above 0.
+6. "Mail rules" shows in the side nav only while you are on it. It is missing on every other Today page. Show it under Mail always, or reach it from Mail's menu only.
+7. Calendar has no page title. Every other Today page starts with a heading; Calendar starts with the booking page box. Add "Calendar" above it.
+8. Kit (wren v2): table headers wrap to two or three lines ("Waiting since", "Held from them", "Settled by") while the cells have room. Keep a header on one line; shrink the column instead.
 
 ## Known, carried over
 
