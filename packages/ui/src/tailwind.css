@@ -1270,3 +1270,15 @@ html[data-morph="cards"]::view-transition-new(*) {
   color: var(--ui-link);
   text-underline-offset: 2px;
 }
+
+/* Brand icons (WA-1464, option B): the meaning stroke goes purple on the active nav row only.
+   Unset elsewhere, so it takes the ink: disabled, danger, on-primary, the metro's .ic marks. */
+:root {
+  --ui-icon-accent: #6b4ee6;
+}
+[data-scheme="dark"] {
+  --ui-icon-accent: #a996ff;
+}
+nav :is([aria-current="page"], [aria-current="true"]):not(:disabled, [aria-disabled="true"]) {
+  --icon-accent: var(--ui-icon-accent);
+}
