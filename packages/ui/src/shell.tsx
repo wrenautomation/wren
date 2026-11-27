@@ -353,7 +353,7 @@ export function AppShell({
       )}
     >
       <a
-        className="fixed top-2.5 left-2.5 z-60 -translate-y-[160%] bg-(--ui-ink) px-3.5 py-2.5 text-[14px] text-(--ui-on-ink) no-underline focus:translate-y-0"
+        className="fixed top-2.5 left-2.5 z-60 -translate-y-[160%] bg-(--ui-ink) px-3.5 py-2.5 text-[14px] text-(--ui-on-ink) no-underline focus-visible:translate-y-0"
         href="#main"
       >
         Skip to content
