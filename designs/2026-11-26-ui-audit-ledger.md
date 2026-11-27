@@ -57,8 +57,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 7 | Explorer | `stories/wren/explorer` | sidecar | audited |
 | 8 | Office | `stories/wren/office` | sidecar | audited |
 | 9 | Studio | `stories/wren/studio` | sidecar | audited |
-| 10 | Campaigns | `stories/wren/campaigns` | sidecar | auditing |
-| 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | | |
+| 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited |
+| 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | auditing |
 | 12 | Client: campaigns, office, people | `stories/client` | | |
 | 13 | Weaver | `stories/weaver` | | |
 
@@ -203,6 +203,26 @@ False alarms: failed stories show skeletons at 390 because the shot came during 
 10. The Edit video cards are flat black with a play icon. A render that has a frame should show it; a failed render should say so on the frame, not only in the chip.
 11. The Publish table header puts a type icon (circle check, "T", "#") before each column name. Column icons repeat on every column and say nothing a person needs. Kit records-page: wren v2.
 12. Prod parity (prod 11-26): 0 video projects, 298 content drafts, 24 tracked creators, 15 creator people, 1,696 creator posts. Projects shows its empty state in prod. Inspiration fixtures hold 8 posts from 5 creators; prod is 200 times that. Test the grid and the creator strip at 1,700 posts and 15 people (paging, strip scroll).
+
+### Row 10: Campaigns (sidecar, 11-26 22:32)
+
+23 `app-wren-campaigns-*` stories (Overview, Posts, Drafts, Recordings, Followers, Engage, Conversation, Invites, Cold email, Booked calls, Finish) at 390 and 1280. Shots: scratchpad `audit10/`.
+
+1. Cold email overview: the "Inboxes paused 3" card has a pink tint and a red top border. The tint marks the state; the border is a stripe accent. Drop the border.
+2. At 390 the page "…" button sits alone on its own row under the subtitle on Engage, Conversation, Invites, Inboxes and Booked calls. On Posts and Drafts it stays right of the title. Keep it in the title row on every page.
+3. Conversation at 390 shows "LinkedIn · Last 30 days · …" per row: the window repeats the filter, and the numbers (answered, time to reply) are gone. At 1280 the "Window" column repeats the filter too. Drop the window; at 390 keep time to reply.
+4. Recordings and Followers start with a black primary button ("Approve", "Read now") before any row is picked. "Approve" with no object reads as approve all. Name it ("Approve 1 waiting") or move it to the row.
+5. Followers shows a one-option filter ("All 8"). Hide the bar when it has one option.
+6. Followers at 390 ends each row with a bare number ("21", "19"). No header says which. Name it ("21 followers").
+7. Engage and Write rows mark the kind with a small coloured square ("Their post", "Reddit thread", "Offer builder"). L5.4 ("no little circle things to the left"). Same as kit (c); not every tag went through `Tag`. wren v2.
+8. Finish, agents here: "session-7f3a is on Captions" shows a raw session id next to a coloured dot. Show the agent's name, drop the dot.
+9. Finish, marks: the marked box carries a black circle "1" at its top left (same as R7.6). The mark chips on the timeline are 15 px high and need 16.3 px (box-fit, 3–5 per story). Drop the fixed height.
+10. Finish at 390: the filmstrip word chips cut each word ("One li", "on the pag", "sectio"). Show the word, or a tick with the word on hover.
+11. Cold email lists repeat campaign names ("SEC RIA" twice, "Agencies" three times) with nothing to tell them apart. Add the start date or the list name.
+12. Cold email campaign rows end with "▷" when the state is "Follow-ups only" and "…" when "Opening". A lone play icon has no word. Use one "…" menu, with "Resume" inside.
+13. Fixtures: Followers puts person names in the "Platform" column and the same number in every column; Conversation says 7 comments but "3 of 12 answered"; the Overview chart runs Oct 11–17 under "this month". Fix the mocks so a reader can trust the numbers.
+14. Box-fit: only item 9.
+15. Prod parity (prod 11-26): 48 social posts, 4 booked calls, 2 email campaigns, 312 invites (253 pending), 257 follower-count days. Invites is the big list: test it at 300 rows. The other fixtures match.
 
 ## Known, carried over
 
