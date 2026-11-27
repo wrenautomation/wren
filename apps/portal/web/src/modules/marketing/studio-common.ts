@@ -7,7 +7,7 @@
 import { PLATFORMS, type Platform } from "@wren/core/autobrowse/platforms";
 import { THREAD_MAX, THREAD_MIN } from "@wren/starling-core/thread";
 import { PLATFORM_SPECS } from "@wren/starling-inbound/write";
-import type { IconName } from "@wren/ui";
+import { type IconName, waited as waitWords } from "@wren/ui";
 import { ApiError } from "../../api.js";
 import { contentDesk } from "./desk.js";
 import type { SopCheck } from "./sop-check.js";
@@ -188,13 +188,11 @@ export const lateSlot = (i: Waiting, now = Date.now()) => {
   return slot !== null && slot < now;
 };
 
-/** How long its oldest draft has waited: "3h", "2d", "now". */
+/** How long its oldest draft has waited, in words: "26 hours", "3 days" (audit R9.4). */
 export function waited(i: Waiting, now = Date.now()): string {
   const at = i.drafts.flatMap((d) => (d.at ? [Date.parse(d.at)] : []));
   if (!at.length) return "";
-  const hours = Math.floor((now - Math.min(...at)) / 3_600_000);
-  if (hours < 1) return "now";
-  return hours < 48 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
+  return waitWords(Math.max(0, now - Math.min(...at)) / 3_600_000);
 }
 
 /** A row's words: the title, else the first line; and the next line under it as a hook. */

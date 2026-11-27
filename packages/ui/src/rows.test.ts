@@ -31,11 +31,11 @@ describe("waitFrom", () => {
   const now = new Date("2026-10-17T15:00:00Z");
   const old = "2026-10-15T15:00:00Z"; // 48 hours before now
   it("an open row past its promise is late", () => {
-    expect(waitFrom(old, "24h", true, now)).toEqual({ hours: 48, late: true });
+    expect(waitFrom(old, "24h", true, now)).toEqual({ hours: 48, late: true, says: "waiting" });
   });
   it("an answered row past its promise shows its age and is not late", () => {
     const w = waitFrom(old, "24h", false, now);
-    expect(w).toEqual({ hours: 48, late: false });
+    expect(w).toEqual({ hours: 48, late: false, says: "ago" });
     // The foot's Late count follows.
     expect(statsOf([w, waitFrom(old, "24h", true, now)]).late).toBe(1);
   });

@@ -102,13 +102,16 @@ export function Pill({
 export interface RowsWait {
   hours: number;
   late: boolean;
+  /** Its word, alone on a row: "waiting 3 days" (a promise to keep), "3 days ago" (none). */
+  says?: "waiting" | "ago" | undefined;
 }
 
 /**
  * A wait, as words. Past its promise it reads amber, heavier: text only, never a fill. (Amber
  * means late and nothing else: designs/2026-10-20-design-language.md.)
  */
-export function Age({ hours, late, className }: RowsWait & { className?: string }) {
+export function Age({ hours, late, says, className }: RowsWait & { className?: string }) {
+  const t = waited(hours);
   return (
     <span
       data-late={late ? "" : undefined}
@@ -120,7 +123,7 @@ export function Age({ hours, late, className }: RowsWait & { className?: string 
         className,
       )}
     >
-      {waited(hours)}
+      {says === "waiting" ? `waiting ${t}` : says === "ago" ? `${t} ago` : t}
     </span>
   );
 }
@@ -145,7 +148,12 @@ export function waitFrom(
   now: Date,
 ): RowsWait | null {
   const hours = hoursSince(at, now);
-  return hours === null ? null : { hours, late: open && lateOf(at, promise, now) };
+  if (hours === null) return null;
+  return {
+    hours,
+    late: open && lateOf(at, promise, now),
+    says: promise && open ? "waiting" : "ago",
+  };
 }
 
 /** The count, late count and oldest wait of `waits`, one per row (null: the row does not wait). */

@@ -694,7 +694,7 @@ function draftName(narrow: boolean, lines: ReadonlyMap<string, MetroLine>): Rows
                 lateSlot(i) ? "text-(--ui-warn-ink)" : "text-(--ui-ink-3)",
               )}
             >
-              {[slotWords(i), waited(i)].filter(Boolean).join(" · ")}
+              {[slotWords(i), waited(i) && `waiting ${waited(i)}`].filter(Boolean).join(" · ")}
             </span>
           ) : null}
         </>

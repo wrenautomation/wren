@@ -232,7 +232,7 @@ export function RecordCard({
           ) : markWords ? (
             <span className="min-w-0 font-medium wrap-anywhere text-(--ui-ink)">{markWords}</span>
           ) : null}
-          <span className="flex items-center gap-1 whitespace-nowrap text-(--ui-ink-2)">
+          <span className="flex min-w-0 flex-wrap items-center gap-x-1 text-(--ui-ink-2)">
             {kind ? <span>{kind}</span> : null}
             {kind && wait ? <span aria-hidden>·</span> : null}
             {wait ? <Age {...wait} className="text-[12.5px]" /> : null}

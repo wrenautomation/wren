@@ -26,7 +26,7 @@ describe("Studio waiting rows", () => {
     expect(ideas.filter((i) => lateSlot(i)).length).toBe(1);
   });
   it("says how long it waited", () => {
-    expect(waited(ideas[0] as Idea)).toBe("26h");
+    expect(waited(ideas[0] as Idea)).toBe("26 hours");
   });
   it("never shows a thread's divider as its hook", () => {
     expect(headlineOf(ideas[1] as Idea).hook).not.toBe("---");
