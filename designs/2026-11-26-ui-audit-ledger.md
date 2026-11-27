@@ -56,8 +56,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 6 | Map | `stories/wren/map` | sidecar | audited; pass 2 audited |
 | 7 | Explorer | `stories/wren/explorer` | sidecar | audited; pass 2 audited |
 | 8 | Office | `stories/wren/office` | sidecar | audited; pass 2 audited |
-| 9 | Studio | `stories/wren/studio` | sidecar | audited; pass 2 auditing |
-| 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited |
+| 9 | Studio | `stories/wren/studio` | sidecar | audited; pass 2 audited |
+| 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited; pass 2 auditing |
 | 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | audited |
 | 12 | Client: campaigns, office, people | `stories/client` | sidecar | audited |
 | 13 | Weaver | `stories/weaver` | sidecar | audited |
@@ -385,7 +385,7 @@ New:
 2. Box-fit: on `business-map--line` and `--station` an SVG `g` is 8–14 px high and needs 17 px (3 hits per width). Same as row 6 pass 2 item 3.
 3. Prod parity (prod 11-26 23:25): Canon 10,760 records (the fixture says 10,577), the business map 5 lines. Same as pass 1.
 
-### Row 8, pass 2: Back office (sidecar, 11-26 23:55)
+### Row 8, pass 2: Back office (sidecar, 11-26 23:53)
 
 18 `app-wren-back-office-*` stories at 390 and 1280. Shots: scratchpad `audit8b/`. Box-fit 0. The 500s are the planned `-fails` stories.
 
@@ -397,6 +397,23 @@ New:
 1. The Money list starts each account row with a coloured square, the donut's key (L5.4, his words: "no little circle things to the left"). Keep the key, but put it after the name, or tint the amount pill in the account's colour.
 2. Money shows amounts in grey pills ("$8,620.00"); Spend, Model usage and Payments in show plain amounts. Use one style.
 3. Prod parity (prod 11-26 23:52): `books` holds 23 spend rows, 18 subscriptions, 114 card rows. The fixtures hold 3–8 rows; add a 120-row Spend story to check the table and the month groups.
+
+### Row 9, pass 2: Studio (sidecar, 11-27 00:03)
+
+31 `app-wren-studio-*` stories and 5 `app-wren-campaigns-content--studio-*` stories at 390 and 1280. Shots: scratchpad `audit9b/`, `audit9c/`. Box-fit: 1 hit per width, R9.5. The 400, 409 and 500 errors are the planned fail stories; the 404 is the fixture's `FakeReel003.jpg`.
+
+Pass 1 items:
+- Fixed: R9.1 (`add-creator--nothing-found` draws at 390: "No accounts found for Zyx Qor").
+- Settled: R9.11 (column type icons stay, Notion precedent; open for William).
+- Still open: R9.2 (letter tiles "P", "T", "C", "S" after the checkbox, at both widths), R9.3 (at 390 the "Approved: 2 ideas" toast still covers the "+" button; sidecar), R9.4 ("Thu 8:59 PM · 26h"; the 1280 Age column says "26h" in orange), R9.5 (`studio-open`: the draft button is 112.89 px high, its text needs 170.09 px; the LinkedIn preview ends "list one...."), R9.6 (initials circles "B", "E" in the creator strip), R9.7 ("Featherstone / haugh- / Montgomery" still breaks inside the name), R9.8 (three filter bars at 390), R9.9 ("Copy the command" on Edit), R9.10 (black video cards; "Render failed" is only in the chip).
+
+New:
+1. The creator strip shows a person with no name as "@e" under an "E" circle. Show the handle in full, or the platform name.
+2. `@ops-notes` carries two platform badges on one photo (LinkedIn and X) that overlap. Show one badge and a count, or put the badges under the name.
+3. `key-apart` at 390: the long names wrap to 8–10 lines under each photo, so the strip is 230 px high. Clamp strip names to 2 lines; the full name shows on the creator's page.
+4. At 390 the Publish chips cut "Scheduled" to "Sched" under the "More" button, and Compose cuts "Video" to "Vid". The row scrolls, but nothing shows that it does. Fade the edge, or put the cut item in More.
+5. Compose ends the count line with a green dot: "● Fits every picked platform". Say it with the word alone, or a check icon.
+6. Prod parity (prod 11-27 00:01): 0 video projects, 298 content drafts, 0 drafts waiting. Same as pass 1.
 
 ## Known, carried over
 
