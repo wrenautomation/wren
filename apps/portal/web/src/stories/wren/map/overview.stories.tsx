@@ -13,8 +13,6 @@ import {
   SHAPE_BIG,
   SHAPE_PLAN,
 } from "../../../mocks/data/map.js";
-import { ADMIN } from "../../../mocks/data/me.js";
-import { pageAt } from "../../../mocks/page.js";
 import { LATE, mapAt, mapOf, SHARED, station, tools } from "./map-kit.js";
 
 const meta: Meta = { title: "Wren/Map/Overview", globals: { data: "tidy" } };
@@ -134,8 +132,6 @@ const TASKS: Task[] = [
     late: false,
   },
 ];
-
-export const Place = pageAt("/map", { me: ADMIN, empty: false });
 
 /**
  * Home for the team: the shape's lines, stations and tracks, the hub with its lead count, and the

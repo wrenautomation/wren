@@ -55,6 +55,8 @@ export const UnderMore = wren("/people", async (page) => {
 export const ClientKeepsApps = pageAt("/", {
   me: OWNER,
   answers: PREFS,
+  // client home holds no list of its own (client/today.stories.tsx Default)
+  empty: false,
   check: async (page) => {
     if (onPhone()) return;
     await expect(within(page).queryByRole("navigation", { name: "Places" })).toBeNull();
