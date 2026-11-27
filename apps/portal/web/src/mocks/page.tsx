@@ -7,10 +7,25 @@ import { createMemoryHistory, type RouterHistory } from "@tanstack/react-router"
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import type { Me } from "../api.js";
+import { PANEL_KEYS } from "../modules/agent/panel.js";
 import { PortalRouter } from "../router.js";
-import { type Answers, dataLook, fakeApi, freshStory, type Mode, settled } from "./api.js";
+import {
+  type Answers,
+  dataLook,
+  fakeApi,
+  freshStory,
+  type Mode,
+  onFreshStory,
+  settled,
+} from "./api.js";
 import { ANSWERS } from "./data/index.js";
 import { OWNER } from "./data/me.js";
+
+// Agent dock state outlives a story file (one origin); an open dock adds its own reads and alerts
+onFreshStory(() => {
+  localStorage.removeItem(PANEL_KEYS.open);
+  sessionStorage.removeItem(PANEL_KEYS.chat);
+});
 
 export interface PageAt {
   /** Who is signed in; a client's owner by default. */

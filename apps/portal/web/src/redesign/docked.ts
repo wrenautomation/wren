@@ -22,12 +22,8 @@ export const docked = (
   return {
     ...base,
     beforeEach: () => {
+      // freshStory shuts the dock (mocks/page.tsx)
       (base.beforeEach as (() => void) | undefined)?.();
-      const clear = () => {
-        localStorage.removeItem(PANEL_KEYS.open);
-        sessionStorage.removeItem(PANEL_KEYS.chat);
-      };
-      clear();
       if (chat !== undefined) {
         localStorage.setItem(PANEL_KEYS.open, JSON.stringify({ open: true }));
         sessionStorage.setItem(
@@ -36,7 +32,6 @@ export const docked = (
           JSON.stringify({ setup: "vireo", for: "Vireo", chats: { vireo: chat } }),
         );
       }
-      return clear;
     },
     parameters: {
       ...base.parameters,
