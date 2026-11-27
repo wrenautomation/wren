@@ -222,7 +222,7 @@ export const Rename = pageAt("/variants/batches?b=opener:2", {
 /** page samples that run code: each still waits behind a glass play mark */
 export const Pages = pageAt("/variants/batches?b=hero-background:2", { me: ADMIN, empty: false });
 
-/** Hand to Vireo: the batch closes, the side chat opens on Vireo and holds the turn that points at it. */
+/** Hand to Vireo: the batch closes, Anton opens on the Vireo setup and holds the turn that points at it. */
 export const Hand: StoryObj = tidy(
   (() => {
     const base = pageAt("/variants/batches?b=promo-cut:3", {
@@ -233,8 +233,9 @@ export const Hand: StoryObj = tidy(
         const late = { timeout: 8000 };
         await userEvent.click(await p.findByRole("button", { name: "Hand to Vireo" }, late));
         const chat = await p.findByRole("complementary", { name: "Agent" }, late);
+        // the turn lands only on the setup it names (panel.tsx `hand.setup === setup.name`): Vireo;
+        // the setup's name sits in the chats menu since the Anton dock (WA-1457)
         await within(chat).findAllByText(/^Batch 3 of promo-cut/, {}, late);
-        await within(chat).findByText("Vireo", {}, late);
       },
     });
     const relay = fakeRelay({ tape: [], setups: SETUPS });
