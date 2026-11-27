@@ -28,6 +28,38 @@ const at = (journey: string, node: string, step: string, days: number, owner?: s
   stepOwner: owner ?? null,
 });
 
+/** A person's text fields in words; made-up cells read "Persona 1" (audit R12.11). */
+const PERSON_WORDS = [
+  {
+    warmthLine: "Replied to the winter offer",
+    persona: "Owner, plumbing",
+    phones: "+1 555 0101",
+    subscriptions: "Newsletter",
+    cameFrom: "LinkedIn post",
+  },
+  {
+    warmthLine: "Opened three emails",
+    persona: "Office manager",
+    phones: "+1 555 0102",
+    subscriptions: "None",
+    cameFrom: "Cold email",
+  },
+  {
+    warmthLine: "Booked a call",
+    persona: "Owner, roofing",
+    phones: "+1 555 0103",
+    subscriptions: "Newsletter",
+    cameFrom: "Referral",
+  },
+  {
+    warmthLine: "Asked for a quote",
+    persona: "Owner, electrical",
+    phones: "+1 555 0104",
+    subscriptions: "None",
+    cameFrom: "Google search",
+  },
+];
+
 export const MOVE_ROWS: Record<string, Partial<Row>[]> = {
   // The made-up names run Ada, Bo, Cai, Dee, Eli, Fay, then again: the first four are on the Map.
   "people.profile": [
@@ -39,7 +71,7 @@ export const MOVE_ROWS: Record<string, Partial<Row>[]> = {
     NO_STEP,
     NO_STEP,
     NO_STEP,
-  ],
+  ].map((r, i) => ({ ...PERSON_WORDS[i % PERSON_WORDS.length], ...r })),
   "email.call": [
     {
       id: "c1",
