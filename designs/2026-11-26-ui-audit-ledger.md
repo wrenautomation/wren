@@ -54,9 +54,9 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 4 | Anton panel | `redesign/anton`, `wren/agent-chat` | sidecar | audited |
 | 5 | Canon | `stories/wren/canon` | sidecar | audited |
 | 6 | Map | `stories/wren/map` | sidecar | audited |
-| 7 | Explorer | `stories/wren/explorer` | sidecar | auditing |
-| 8 | Office | `stories/wren/office` | | |
-| 9 | Studio | `stories/wren/studio` | | |
+| 7 | Explorer | `stories/wren/explorer` | sidecar | audited |
+| 8 | Office | `stories/wren/office` | sidecar | audited |
+| 9 | Studio | `stories/wren/studio` | sidecar | auditing |
 | 10 | Campaigns | `stories/wren/campaigns` | | |
 | 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | | |
 | 12 | Client: campaigns, office, people | `stories/client` | | |
@@ -156,6 +156,36 @@ False alarms: failed stories show skeletons at 390 because the shot came during 
 9. Box-fit on Layers: the plate buttons (`button.mlay-open`) are 110–254 px high, and their content needs 130–364 px, on 11 plates. The 3D transform may cause this, but check that a click on a plate's top part still opens it.
 10. `focus--line` ends with focus on "Skip to content" (same as row 5 #5).
 11. Prod parity (prod 11-26): the live shape (version 9) has 17 stations, 17 tracks, 5 lines and 2 groups; the longest station label is 16 chars. 9 versions, 2 drafts, 1 tag. The `big` story covers this size. No gap.
+
+### Row 7: Explorer (sidecar, 11-26 22:09)
+
+54 `app-wren-explorer-*` stories at 390 and 1280, `look: raycast`. Shots: scratchpad `audit7/`.
+
+1. The Map view is a blank grey box at 390 (`canon--map-root`, `--map-at-line`: 480 px, no nodes). At 1280 it draws. Either draw it at phone width or hide the Map view button there.
+2. `canon--map-link` at 1280 shows only a spinner (shot tool: "no body"). The story never loads.
+3. `canon--shot-opened` at 390: the story check fails (the shot `img` is not visible).
+4. A Weaver pick or page whose picture is missing shows a bare grey block (picks 1 and 3, the read page's preview). Other tiles show the site icon. Use the site icon for every missing picture.
+5. The business-map station panel prints the raw line "attached sop: Booking SOP (booking)" (`packages/paths/src/metro-tree.ts:75`), and its meta reads "time · book", "condition": internal kind ids. These are the `key: value` lines an agent greps, shown as is. Keep them for agents; render them as fields for a person ("SOP: Booking SOP", plain kind words).
+6. The numbered black circles on Weaver pick tiles ("1", "2") sit at the top left. Under L5.4 ("no little circle things to the left") use a plain number or none; rank already sets the order.
+7. In a folder, the "↗" after a long subject title wraps alone onto the next line. Keep the icon with the last word.
+8. Fixture: `weaver--run-board` reads "r1 · 3 pages, 2 kept" in the header and "Pages 180" below, from two mocks. Make the run list mock agree with `BOARD_VIEW`.
+9. Box-fit: the Map view's node buttons are 54 px high and need 55.5 px (22 on `canon--map-at-line`, 13 on `business-map--map-root`, 3 on `weaver--map-run`). A 1.5 px overflow: add the padding or drop the fixed height.
+10. Prod parity: Canon holds 10,760 records (the fixture says 10,577; close). The business map has 5 lines (the fixture has 10). Weaver runs live on the Mac, not in prod. No gap.
+
+### Row 8: Back office (sidecar, 11-26 22:14)
+
+18 `app-wren-back-office-*` stories (Money, Spend, Model usage, Payments in, Subscriptions, Speed, Accounts, Team, Grants, Look, Experiments, Contracts) at 390 and 1280. Shots: scratchpad `audit8/`.
+
+1. At 390 the money rows drop the amount. Spend, Model usage and Subscriptions show the name, "This month" or "Monthly", and no dollar figure. On a money page the amount is the row's point. Keep the amount; drop the period word first.
+2. Spend at 1280 has two columns named "Month": one shows "Oct 2026", the other "This month". Name the second "Period", or drop it (the tab already filters by month).
+3. The side nav under Back office shows "Money" twice.
+4. Model usage at 390 cuts the name after three lines with no "…" ("…as prod data has"). Memory "show the whole text": show it all, as Spend does.
+5. At 390 the page header wraps "Back office" onto two lines although the bar has room.
+6. The Money donut's centre label cuts the account name with "…" ("Account 7 and a much longer real world line, as prod…"). Show the percent only in the centre; the name is in the list below.
+7. Payments in and Accounts start each row with an initials circle ("AN", "EB", "BF"). L5.4 ("no little circle things to the left") removed avatars. Drop them; the name is already first.
+8. Speed lists raw handler ids ("VariantsConsole/batches", "ConsolePortal/recordsList"). Show the screen a person waits on ("Batches list"), with the id as meta.
+9. Box-fit: no hits. The 500s are the `-fails` stories' planned errors.
+10. Prod parity (prod 11-26): 26 bill payments, 1 subscription end, 4 connector grants, 2 social grants. The fixtures (3–8 rows) match this size.
 
 ## Known, carried over
 
