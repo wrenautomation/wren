@@ -12,9 +12,15 @@ import * as restate from "@wren/runtime";
 import * as clients from "@wren/runtime/clients";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { holdsOn } from "../../src/checks.js";
+import { hold, holdsOn, personHold, releaseSubjects, settle } from "../../src/checks.js";
+import { pauseJob, readLoopHold, resumeJob } from "../../src/job-pauses.js";
 import { CallTimeout, limitStage, type TimedOut, unitLimits } from "../../src/restate/limits.js";
-import { makeLoopObject, type PassOutcome, setLastPass } from "../../src/restate/loop.js";
+import {
+  makeLoopObject,
+  type PassOutcome,
+  setLastPass,
+  setLoopHoldReader,
+} from "../../src/restate/loop.js";
 import { startTestRuntime, type TestRuntime } from "../../src/testing.js";
 
 const LIMIT_MS = 1000;
@@ -39,6 +45,8 @@ const UNITS: Record<string, string[]> = {
   down: ["slow1", "slow2", "slow3"],
   /** `oneHost`: `a` answers, then the host stops: both groups' later units left out, none blamed. */
   host: ["a:fast1", "a:slow1", "b:slow2", "b:fast2", "a:fast3"],
+  /** A person's holds: `<kind> <subject>` units, as ReachInboxRead names them. */
+  person: ["replies a", "replies b", "invites a"],
 };
 
 type Stats = { said: string[]; timedOut: string[]; skipped: string[] };
@@ -94,6 +102,7 @@ beforeAll(async () => {
   env = await startTestRuntime({ services: [echo, limited, throws] });
 });
 afterAll(async () => {
+  setLoopHoldReader(null);
   await env?.stop();
   await pg?.stop();
 });
@@ -191,5 +200,52 @@ describe("a pass that throws", () => {
       (rows) => rows.length === 1,
     );
     expect(next).toHaveLength(1);
+  });
+});
+
+describe("a person's holds (wren jobs pause)", () => {
+  const stage = limitStage("Limited", "person");
+
+  it('--unit "replies *" skips every replies unit and the rest of the pass runs', async () => {
+    await personHold(pg.db, { stage, subject: "replies *", why: "inbox reads off", by: "cli" });
+    const held = await sync("person");
+    expect(held.stats).toEqual({
+      said: ["invites a"],
+      timedOut: [],
+      skipped: ["replies a", "replies b"],
+    });
+    await releaseSubjects(pg.db, stage, ["replies *"], "cli");
+    expect((await sync("person")).stats?.said).toEqual(["replies a", "replies b", "invites a"]);
+  });
+
+  it("wins over a system hold at once, and a settle never ends it", async () => {
+    await hold(pg.db, { stage, subject: "invites a", reason: "3 timeouts" });
+    await personHold(pg.db, { stage, subject: "invites a", why: "stop invites", by: "cli" });
+    await settle(pg.db, stage, ["invites a"]);
+    const [row] = await pg.db.execute<{ forever: boolean; held_by: string }>(
+      sql`select until = 'infinity'::timestamptz forever, held_by from unit_holds
+          where stage = ${stage} and subject = 'invites a' and released_at is null`,
+    );
+    expect(row).toEqual({ forever: true, held_by: "cli" });
+    expect((await sync("person")).stats?.skipped).toEqual(["invites a"]);
+    await releaseSubjects(pg.db, stage, ["invites a"], "cli");
+  });
+
+  it("a held loop runs no pass and keeps its chain; resume runs it again", async () => {
+    setLoopHoldReader((service, key) => readLoopHold(pg.db, service, key));
+    await pauseJob(pg.db, { job: "Limited", why: "all keys off", by: "cli" });
+    const held = await sync("person");
+    expect(held.stats).toBeNull();
+    expect(held.paused).toBe("held by cli: all keys off");
+    expect(held.delayMs).toBe(10 * 60_000);
+    await resumeJob(pg.db, "Limited", "cli");
+
+    await pauseJob(pg.db, { job: "Limited/person", why: "one key", by: "cli", forMs: 60_000 });
+    const timed = await sync("person");
+    expect(timed.paused).toBe("held by cli: one key");
+    expect(timed.delayMs).toBeLessThanOrEqual(60_000);
+    expect((await sync("own")).paused).toBeUndefined();
+    await resumeJob(pg.db, "Limited/person", "cli");
+    expect((await sync("person")).stats?.said).toEqual(["replies a", "replies b", "invites a"]);
   });
 });

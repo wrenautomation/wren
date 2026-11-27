@@ -1,6 +1,6 @@
 {
-  "id": "10259945-b14c-4e98-a05f-389797a8548c",
-  "prevId": "fe8c0044-2432-4bb3-833f-f4dfd89fb8bc",
+  "id": "c9c2ff59-ee6f-4c34-bfc9-2ed14dafc42c",
+  "prevId": "e727c358-01b2-484f-9af2-d20ccdaabafa",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1977,6 +1977,92 @@
       "compositePrimaryKeys": {
         "pk_imports": {
           "name": "pk_imports",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.job_pauses": {
+      "name": "job_pauses",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "job": {
+          "name": "job",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "why": {
+          "name": "why",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "held_by": {
+          "name": "held_by",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "held_at": {
+          "name": "held_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "until": {
+          "name": "until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "released_at": {
+          "name": "released_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "released_by": {
+          "name": "released_by",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "uq_job_pauses_open_job": {
+          "name": "uq_job_pauses_open_job",
+          "columns": [
+            {
+              "expression": "job",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "released_at is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "pk_job_pauses": {
+          "name": "pk_job_pauses",
           "columns": [
             "id"
           ]
@@ -4261,6 +4347,12 @@
         },
         "released_by": {
           "name": "released_by",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "held_by": {
+          "name": "held_by",
           "type": "varchar(320)",
           "primaryKey": false,
           "notNull": false
@@ -12151,6 +12243,58 @@
       },
       "isRLSEnabled": false
     },
+    "public.agent_workspaces": {
+      "name": "agent_workspaces",
+      "schema": "",
+      "columns": {
+        "name": {
+          "name": "name",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rules": {
+          "name": "rules",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "pk_agent_workspaces": {
+          "name": "pk_agent_workspaces",
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.company_checks": {
       "name": "company_checks",
       "schema": "",
@@ -14786,6 +14930,21 @@
           ],
           "isUnique": true,
           "where": "\"creator_finds\".\"state\" in ('waiting', 'finding')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ix_creator_finds_person_id": {
+          "name": "ix_creator_finds_person_id",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}

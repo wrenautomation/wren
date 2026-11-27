@@ -6,6 +6,8 @@
  * turn (`lazy`); every other host loads all (designs/2026-11-09-own-runtime.md, "Group 5").
  */
 import type { Settings } from "@wren/config";
+import { readLoopHold } from "@wren/core/job-pauses";
+import { setLoopHoldReader } from "@wren/core/restate";
 import type { Logger } from "pino";
 import { type AnyService, type BuildOptions, buildDeps, type Deps } from "./services/deps.js";
 
@@ -109,6 +111,7 @@ export async function buildServices(
       return services;
     },
   );
+  setLoopHoldReader((service, key) => readLoopHold(deps.db, service, key));
   if (!opts.lazy) await loadAll();
   const need = async (service?: string, domain?: string) => {
     if (whole) return;

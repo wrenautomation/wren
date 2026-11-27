@@ -74,7 +74,7 @@ export async function settle(
   if (subjects.length === 0) return 0;
   const rows = await db.execute(sql`
     update unit_holds set released_at = now(), released_by = ${SETTLED}
-    where stage = ${stage} and released_at is null
+    where stage = ${stage} and released_at is null and held_by is null
       and subject in (${sql.join(
         subjects.map((s) => sql`${s}`),
         sql`, `,
@@ -94,6 +94,46 @@ export async function release(db: Queryable, ids: readonly number[], by: string)
     )})
     returning id`);
 }
+
+/**
+ * A person holds a unit until they release it (`wren jobs pause --unit`). Wins over a system hold
+ * on the same unit: `until` goes to infinity at once. `<kind> *` holds every unit of that kind.
+ */
+export async function personHold(
+  db: Queryable,
+  h: { stage: string; subject: string; why: string; by: string },
+): Promise<{ id: number }> {
+  const [row] = await db.execute<{ id: number }>(sql`
+    insert into unit_holds (stage, subject, reason, until, held_by)
+    values (${h.stage}, ${h.subject.slice(0, 200)}, ${h.why}, 'infinity'::timestamptz, ${h.by})
+    on conflict (stage, subject) do update set
+      reason = excluded.reason, until = excluded.until, held_by = excluded.held_by,
+      held_at = case when unit_holds.released_at is not null then now() else unit_holds.held_at end,
+      released_at = null, released_by = null
+    returning id`);
+  return row as { id: number };
+}
+
+/** End the open holds on these subjects of a stage, a person's or the system's. */
+export async function releaseSubjects(
+  db: Queryable,
+  stage: string,
+  subjects: readonly string[],
+  by: string,
+): Promise<{ id: number; subject: string }[]> {
+  if (subjects.length === 0) return [];
+  return db.execute<{ id: number; subject: string }>(sql`
+    update unit_holds set released_at = now(), released_by = ${by}
+    where stage = ${stage} and released_at is null
+      and subject in (${sql.join(
+        subjects.map((s) => sql`${s}`),
+        sql`, `,
+      )})
+    returning id, subject`);
+}
+
+/** `replies acct-1` → `replies *`: the hold that covers every unit of its kind. */
+export const kindHold = (unit: string) => `${unit.split(" ")[0]} *`;
 
 /** A stage's units on hold: `held` are skipped, `due` get their one retry now. Sources aside. */
 export async function holdsOn(

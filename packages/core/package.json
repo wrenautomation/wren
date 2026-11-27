@@ -113,6 +113,7 @@
     "./confirms-schema": "./src/confirms-schema.ts",
     "./agent-gate": "./src/agent-gate.ts",
     "./checks": "./src/checks.ts",
+    "./job-pauses": "./src/job-pauses.ts",
     "./setup": "./src/setup.ts",
     "./setup-agent": "./src/setup-agent.ts",
     "./setup-alerts": "./src/setup-alerts.ts",

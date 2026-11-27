@@ -158,6 +158,18 @@ wren loops watch start|status|sync   # the watchdog loop
 wren loops cancel <inv_id>           # cancel a running call
 ```
 
+Hold a job by hand with `wren jobs` (designs/2026-11-27-central-queue.md). A held loop runs no
+pass and keeps its chain; it looks again every 10 min, and resume wakes it at once. A held unit
+is skipped and the rest of the pass runs. A pass in flight finishes.
+
+```sh
+wren jobs [--all] [--json]                                   # loops, held parts, launchd jobs
+wren jobs pause ReachInboxRead/daily --why "..." [--for 2h]  # a loop key; ReachInboxRead = every key
+wren jobs pause ReachInboxRead/daily --unit "replies *" "posts *" --why "..."  # parts; <kind> * = every subject
+wren jobs pause launchd:dev.williamjin.internships-mail --why "..."  # this Mac (internships: its toggle.sh group)
+wren jobs resume <job> [--unit ...]
+```
+
 ### Feature flags
 
 The portal's Flags page is gone; the CLI is the only writer. Edits keep History and Undo, and a

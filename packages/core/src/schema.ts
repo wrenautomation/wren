@@ -17,6 +17,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -163,6 +164,8 @@ export const unitHolds = pgTable(
     releasedAt: timestamp("released_at", { withTimezone: true }),
     /** An email, or `checks` when a later read settled it. */
     releasedBy: varchar("released_by", { length: 320 }),
+    /** A person's hold (`wren jobs pause --unit`): who; null = the system's (timeouts, checks). */
+    heldBy: varchar("held_by", { length: 320 }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_unit_holds" }),
@@ -170,6 +173,32 @@ export const unitHolds = pgTable(
   ],
 );
 export type UnitHold = typeof unitHolds.$inferSelect;
+
+/**
+ * Jobs a person holds (designs/2026-11-27-central-queue.md, `wren jobs pause`): a loop
+ * (`ReachInboxRead/daily`, or `ReachInboxRead` = every key) skips its passes and keeps its chain;
+ * a launchd job (`launchd:<label>`) is disabled on the Mac. One open row per job.
+ */
+export const jobPauses = pgTable(
+  "job_pauses",
+  {
+    id: serial("id").notNull(),
+    job: varchar("job", { length: 200 }).notNull(),
+    why: text("why").notNull(),
+    /** An email, or `cli`. */
+    heldBy: varchar("held_by", { length: 320 }).notNull(),
+    heldAt: timestamp("held_at", { withTimezone: true }).defaultNow().notNull(),
+    /** 'infinity' until resumed; a `--for` pause ends on its own. */
+    until: timestamp("until", { withTimezone: true }).notNull(),
+    releasedAt: timestamp("released_at", { withTimezone: true }),
+    releasedBy: varchar("released_by", { length: 320 }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_job_pauses" }),
+    uniqueIndex("uq_job_pauses_open_job").on(t.job).where(sql`released_at is null`),
+  ],
+);
+export type JobPause = typeof jobPauses.$inferSelect;
 
 /**
  * Every check's outcome: pass rates per stage and source, and the window that pauses a source.

@@ -16,7 +16,7 @@
 
 import type { Queryable } from "@wren/db";
 import * as restate from "@wren/runtime";
-import { hold, holdsOn, settle } from "../checks.js";
+import { hold, holdsOn, kindHold, settle } from "../checks.js";
 
 const MIN = 60_000;
 
@@ -320,7 +320,11 @@ export async function unitLimits(
 
   return {
     stage,
-    skip: (unit, group) => down || held.has(unit) || (group !== undefined && slow.has(group)),
+    skip: (unit, group) =>
+      down ||
+      held.has(unit) ||
+      held.has(kindHold(unit)) ||
+      (group !== undefined && slow.has(group)),
     within: (unit, p, o) => guard(unit, () => within(ctx, p, { ...o, unit }), o.group),
     guard,
   };

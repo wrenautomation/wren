@@ -1,6 +1,6 @@
 # Central job queue: list, pause and trace every job (WA-1465)
 
-2026-11-27. Status: proposed. No build until William's go. Handoff: `handoffs/2026-11-27-central-queue.md`. Diagram: `2026-11-27-central-queue.excalidraw` (devboard project "Central queue").
+2026-11-27. Status: A agreed, call 4 (c) agreed; phase 1 pause in build. Handoff: `handoffs/2026-11-27-central-queue.md`. Diagram: `2026-11-27-central-queue.excalidraw` (devboard project "Central queue").
 
 ## Goal
 
@@ -149,3 +149,7 @@ The autobrowse SQLite runner stays standalone, as 11-16 decided. `wren jobs` rea
 - 2026-11-27: written; waiting on William.
 - 2026-11-27: William set the target architecture: one table as the truth, outbox + CDC to a broker, a central scheduler (one node, cluster later), pooled workers. The broker's job (fan-out or feeding workers) is call 4.
 - 2026-11-27: goldfish review: 36 findings (critic 15, reader 15, zoom-out 6), 30 applied, 6 rejected (C3 moot under layered pause; F2, F5, F6, F9, F13). Reports kept in the session scratchpad. Main changes: pause by layer (`pausedPass`, `unit_holds`, desk 409), never at claim; browser owner from env, not an owner file; option E added; the runner stays standalone (11-16); call 3 is now a verb on `unit_holds`. Open: calls 1-4.
+- 2026-11-27: William: A (orchestrator on the pg runtime, the table is the truth); 2(b) internships stays on launchd; 3 yes, build the pause now. Scope taken: phase 1 pause (unit holds, loop pause, launchd adapter, `wren jobs`). Browser owner, scheduler, outbox and CDC wait.
+- 2026-11-27: call 4. William: "fine" if workers still claim through the table; asked if the standard is a broker that feeds workers, with dedupe. Answer: (c) the broker (or `LISTEN/NOTIFY`) only signals "work ready"; the worker claims the row with a fenced UPDATE. Dedupe covers a double send but not pause, cancel, key locks or a scarce profile, which only a table read sees. Slack's own fix keeps workers polling the queue store; Kafka only buffers in front of it. Recommend (c); waiting on his yes. Phase 4 only.
+- 2026-11-27: all internships launchd groups paused (`toggle.sh all off`), on William's "pause the internship job asap".
+- 2026-11-27: call 4 closed: (c). William agreed: workers pick runs only through the table, so claim consistency stays in one place. The broker (phase 4) carries only "work ready" signals and fan-out.

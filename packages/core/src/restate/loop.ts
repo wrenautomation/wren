@@ -385,6 +385,41 @@ async function passOrFailed<S>(
   }
 }
 
+/** A person's pause on a loop (`job_pauses`, `wren jobs pause`). */
+export interface LoopHold {
+  why: string;
+  by: string;
+  /** `infinity` until resumed. */
+  until: string;
+}
+type LoopHoldReader = (service: string, key: string) => Promise<LoopHold | null>;
+let loopHoldReader: LoopHoldReader | null = null;
+/** Set once per process that runs passes (box, Lambda); unset (tests) = never held. */
+export function setLoopHoldReader(read: LoopHoldReader | null): void {
+  loopHoldReader = read;
+}
+/** A held loop looks again this often; `wren jobs resume` wakes it at once. */
+const HELD_RECHECK_MS = 10 * 60_000;
+
+/** The pass, unless a person holds this loop: then nothing runs and the chain goes on. */
+async function heldOrPass<S>(
+  ctx: restate.ObjectContext,
+  name: string,
+  pass: (ctx: restate.ObjectContext) => Promise<PassOutcome<S>>,
+): Promise<PassOutcome<S>> {
+  const read = loopHoldReader;
+  if (read) {
+    const h = await ctx.run("held by a person", () => read(name, ctx.key));
+    if (h) {
+      const now = new Date(await ctx.date.now());
+      const left = Date.parse(h.until) - now.getTime(); // NaN for infinity
+      const delay = Number.isFinite(left) ? Math.min(left, HELD_RECHECK_MS) : HELD_RECHECK_MS;
+      return pausedPass(ctx, now, `held by ${h.by}: ${h.why}`, delay);
+    }
+  }
+  return pass(ctx);
+}
+
 /** The start/stop/loop/status handlers around one `pass`. */
 export function makeLoopObject<
   S extends object,
@@ -399,7 +434,7 @@ export function makeLoopObject<
   const sync = () =>
     exclusiveHandler(
       { input: NO_INPUT, ...(hooks.effect ? { effect: hooks.effect } : {}) },
-      async (ctx: restate.ObjectContext): Promise<PassOutcome<S>> => pass(ctx),
+      async (ctx: restate.ObjectContext): Promise<PassOutcome<S>> => heldOrPass(ctx, name, pass),
     );
   const aliases = Object.fromEntries((hooks.syncAliases ?? []).map((a) => [a, sync()])) as Record<
     A,
@@ -470,7 +505,7 @@ export function makeLoopObject<
         if (!running) return;
         // A call from before the last stop: its chain ended there.
         if ((generation ?? 0) !== current) return;
-        const outcome = await passOrFailed(ctx, pass);
+        const outcome = await passOrFailed(ctx, (c) => heldOrPass(c, name, pass));
         if (outcome.stopped !== undefined) await writeLoop(ctx, { running: false });
         else self(ctx).loop(current, restate.rpc.sendOpts({ delay: outcome.delayMs }));
       },
