@@ -68,7 +68,12 @@ export const File = tidy(
           expect(view.getAllByRole("article")[0]).toHaveTextContent(/Draft the spring offer email/),
         WAIT,
       );
-      await expect(view.getAllByRole("article")[0]).toHaveTextContent(/A session will split this/);
+      // the row shows before the reply; its note comes with the reply
+      await waitFor(
+        () =>
+          expect(view.getAllByRole("article")[0]).toHaveTextContent(/A session will split this/),
+        WAIT,
+      );
       await expect(box).toHaveValue("");
     },
   }),

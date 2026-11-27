@@ -70,7 +70,10 @@ export const ImportFile = mapAt("/", {
     await waitFor(() => expect(MAP_CALLS.map((c) => c.path)).toEqual(["shapeImport"]));
     await expect(MAP_CALLS[0]?.body).toMatchObject({ text: FILE_TEXT, note: "Imported" });
     await station(page, "Replied");
-    await expect(within(page).queryByRole("region", { name: "Import a shape" })).toBeNull();
+    // the preview already shows Replied; the card shuts once the save lands
+    await waitFor(() =>
+      expect(within(page).queryByRole("region", { name: "Import a shape" })).toBeNull(),
+    );
   },
 });
 
