@@ -48,7 +48,7 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | # | Part | Stories | Held | State |
 |---|---|---|---|---|
 | 0 | WA-1464 icon swap | kit icons | main | done, 02daa0b4e |
-| 1 | Aerie: Intake, Decisions, History | `stories/wren/aerie` | sidecar | audited |
+| 1 | Aerie: Intake, Decisions, History | `stories/wren/aerie` | sidecar | audited; pass 2 auditing |
 | 2 | Today / To approve | `stories/wren/today`, `redesign/shell` | sidecar | audited |
 | 3 | Variants / Batches | `stories/vireo`, batches | sidecar | audited |
 | 4 | Anton panel | `redesign/anton`, `wren/agent-chat` | sidecar | audited |
@@ -60,7 +60,7 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited |
 | 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | audited |
 | 12 | Client: campaigns, office, people | `stories/client` | sidecar | audited |
-| 13 | Weaver | `stories/weaver` | sidecar | auditing |
+| 13 | Weaver | `stories/weaver` | sidecar | audited |
 
 After 13, start again at 1 with a fresh eye.
 
@@ -238,7 +238,7 @@ False alarms: failed stories show skeletons at 390 because the shot came during 
 8. Today cards read "Held because: Held because 5 …" and Engage reads "Copy to make live · 43 days" with no word for the 43 days. The first is the fixture (it fills a field with its label). The second is page-level: say "waiting 43 days".
 9. App stories at 390 show no phone tab bar (Today, Aerie, Variants, People). The tab bar sits in the kit shell only. Check that a phone in prod shows `PHONE_TABS` (5db722932) and add one app story that shows it.
 
-### Row 12: Client (sidecar, 11-26 22:48)
+### Row 12: Client (sidecar, 11-26 22:44)
 
 65 `app-client-*` stories (Today, Project, Reactivation, Content, People, Journeys, Back office, states) at 390 and 1280. Shots: scratchpad `audit12/`. Box-fit: no hits. The 500s come only from `project--plan-fails` and `states--failed` (planned).
 
@@ -254,6 +254,21 @@ False alarms: failed stories show skeletons at 390 because the shot came during 
 10. Team: the clicked member's email shows a blue focus ring cut tight to the text. The brand accent is purple; ask wren v2 whether `--ui-focus` should follow it.
 11. Fixtures: Needs you says "Answered 1 month ago" on an open ask; an email reads "To approve" with "Why it stopped: Replied"; the peek reads "What they did 1", "Persona 1"; Setup reads "Setting 1 / Value 1". Give the mocks real field values so a reader can judge the page.
 12. Prod parity (prod 11-26): 2 clients, 2 members, 2 accounts, 2 client records, 0 reports. The fixtures run larger than prod; no gap.
+
+### Row 13: Weaver (sidecar, 11-26 22:52)
+
+12 `app-weaver-research-*` stories at 390 and 1280. Shots: scratchpad `audit13/`. Box-fit: no hits. No load errors.
+
+1. Three stories never leave the skeleton in the shot: `graph-plays` (both widths), `live` (both widths) and `all-runs` (390 only; 1280 draws). Either the mock never answers, or the page waits on a stream the story does not feed. Make each story reach its named state.
+2. The run line prints "$0 . 42" and "6 hits , 4 kept , 4 read ,": a space before each dot and comma. The parts are separate spans with gaps. Join them in one text run (both widths).
+3. The stats say "Spend $0.01" and the graph header on the same run says "$0.42". One of the two reads a different field. Show one spend.
+4. Graph nodes carry numbered black circles ("1 round 1", "2 Run 2") at the left. R7.6 (wren v2) removed them from pick tiles; the graph still has them. Use "Round 1" as text.
+5. Back and forth rows print raw agent lines: "plan: How do small bakeries…", "follow posts of https://www.youtube.com/watch?v=…". Show the step in words ("Plan", "Follow the channel") with the query as the second line.
+6. The reference sheet starts with an initials circle ("M", "C") and reads "@Maya Baker · YouTube" (a handle with a space; fixture). R8.7 again. "The page reads rich" means nothing to a person; say what was read ("Full text and comments").
+7. A pick with no picture is a flat grey block (pick 1 on References, the Run 2 card on All runs). R7.4: use the site icon.
+8. No serve: the error shows "TypeError: Failed to fetch" under the help text. Keep it as meta under "Details"; the help text is enough.
+9. Chat: the "/" menu lists Claude Code commands (`/auto-mode-setup`, `/autocompact`, `/clear`) next to `/weaver:weaver`. On a research page, list the research skills first and the rest under "More".
+10. Prod parity: Weaver runs live on the Mac (`weaver serve`), not in prod. The fixture run sizes (4 to 180 pages, 3 searches, 12 picks) match a normal run. No gap.
 
 ## Known, carried over
 
