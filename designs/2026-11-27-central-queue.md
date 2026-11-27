@@ -23,9 +23,9 @@ wren jobs trace <job|inv_id>       # runs, steps, browser launches, logs
 | Source of truth | Postgres tables: `jobs` (definitions), `invocations` (runs = the queue), `journal` + `state` (durable steps), `job_pauses` (control), `events` (outbox, append-only, same transaction as the run) | `invocations`, `journal`, `state`; the rest are new |
 | Orchestrator | scheduler (jobs → runs when due) + dispatcher (claim `SKIP LOCKED`, lease, fence, retry, timers). One node now; N later with a leader lock on the scheduler | dispatcher on the box worker |
 | Pooled workers | each claims only runs it can do. Push: Lambda, box. Pull over the door: Mac desk, Mac command runner, more hosts | Lambda, box, desk |
-| Fan-out (later) | CDC (Postgres logical replication) reads `events` → a broker (NATS JetStream) → consumers. Nothing writes the broker directly | none |
+| Fan-out (later) | CDC (Postgres logical replication) reads `events` → a broker (NATS JetStream) → consumers. Nothing writes the broker directly. Relay: Sequin (MIT, one Docker container, has a NATS sink), Debezium Server (JVM; RAM unchecked against the 2 GB cap) or our own Node reader on `pgoutput` | none |
 
-Rules (from Hello Interview's job scheduler and multi-step process patterns; Canon `system-design`):
+Rules (standard job-system rules; references in Canon topic `system-design`):
 
 - The table is the only truth. A broker gets rows only through outbox + CDC, never a dual write.
 - Schedules make runs. Workers are pooled and generic. No cron belongs to a worker.
@@ -60,13 +60,16 @@ One CLI, one table (`job_pauses`: service, key, unit or site, until, why, by). E
 | Job kind | Pause acts in | Effect |
 |---|---|---|
 | Loop | the pass reads `job_pauses` first and returns `pausedPass` (`loop.ts:143-159`) | no work; the chain lives and checks again after its delay; LoopRevive sees it alive |
-| Part of a loop | a person-written `unit_holds` row (`wren jobs pause ReachInboxRead/daily --unit "replies <acct>"`) | the pass skips that unit; the other parts go on |
-| Desk call | the desk's `call` handler matches site or caller (`autobrowse/src/sites/service.ts:94-96`) | refused at once with 409; the caller skips the unit with no strike (`limits.ts:8`) |
+| Part of a loop | a person-written `forever` row in `unit_holds` (`checks.ts:45-51`), read each pass by `holdsOn` (`limits.ts:232`): `wren jobs pause ReachInboxRead/daily --unit "replies <acct>"` | the pass skips that unit; the other parts go on. Browser units per account: `replies`, `comments`, `health`, `threads`, `invites`; per platform: `posts` (`watch.ts:438-676`) |
+| Desk call | the door, which has the pg rows. At submit it reads `site` and `caller` from the JSON input (`autobrowse/src/sites/service.ts:88-96`) and refuses a match; at claim it ends a queued match the same way | a terminal error at once; the pass's catch skips the unit, and only a timeout counts a strike (`limits.ts:6-9`) |
 | Scheduled job | the scheduler | `drop` skips the tick; `hold` keeps one run for resume |
 
 Never drop a loop tick, and never filter loop rows at claim. The chain sends its own next tick, so a dropped tick ends the loop and LoopRevive wakes it or calls it dead (`core/src/loop-watch.ts:3-7`). A held row also blocks every handler on its key (`store.ts:102-108`).
 
-Browser owner: the launch reads `AUTOBROWSE_OWNER` (set by the runner for its children: `job:<name>/<inv_id>`), else `XPC_SERVICE_NAME` from the browser's env. launchd sets that variable on every job, and child processes inherit it (checked 11-27: the desk and canon-drain show their labels). `ProfileBusy` and `autobrowse browsers` show it. Desk calls carry it as `caller`. This covers bare Playwright (internships) with no change to that code.
+Browser owner, two levels:
+
+- **Process:** the launch reads `AUTOBROWSE_OWNER` (set by the runner for its children: `job:<name>/<inv_id>`), else `XPC_SERVICE_NAME` from the browser's env. launchd sets that variable on every job, and child processes inherit it (checked 11-27: the desk and canon-drain show their labels). `ProfileBusy` and `autobrowse browsers` show it. This covers bare Playwright (internships) with no change to that code.
+- **Call:** a desk browser is born under the desk, so its env says `autobrowse-desk` for every call. The call's owner is its `caller` field, kept in the desk's call log. `wren jobs trace` joins on it.
 
 ## Options
 
@@ -76,7 +79,7 @@ The pause layers and the browser owner above are the same under every option. Th
 
 ### A. Central orchestrator on rt (recommended)
 
-The target architecture above, built on `rt.*`. Add `jobs` (schedules) to the scheduler. wren's Mac crons (capture, creator-refresh, skill-use-report, devboard-backup) become runs claimed by a **Mac command runner**: its own launchd KeepAlive process, apart from the desk, so a desk restart (`update.mjs:206`) does not kill a job. Each job gets one key with an exclusive lock, so two ticks never overlap. Each tick's idempotency key is the job plus the tick time, so two scheduler nodes never insert it twice. A missed tick while the Mac sleeps waits as one pending row; the next tick is not inserted while one waits. canon-drain stays KeepAlive; its table is already in pg.
+The target architecture above, built on `rt.*`. Add `jobs` (schedules) to the scheduler. wren's Mac crons (capture, creator-refresh, skill-use-report, devboard-backup) become runs claimed by a **Mac command runner**: its own launchd KeepAlive process, apart from the desk, so a desk restart (`update.mjs:206`) does not kill a job. Each job gets one key with an exclusive lock, so two ticks never overlap; pulled rows have no key lock today (`pull.ts:78-80`), so this is new runtime work. Each tick's idempotency key is the job plus the tick time, so two scheduler nodes never insert it twice. A missed tick while the Mac sleeps waits as one pending row; the next tick is not inserted while one waits. canon-drain stays KeepAlive; its table is already in pg.
 
 For: one plane for all wren jobs; no new server; scheduler and pooled workers cluster with `SKIP LOCKED` and pull. These crons already call prod (`prod-wren.mjs`), so they gain no new dependency. Against: we own schedule semantics (~cron table + leader lock); the command runner is new.
 
@@ -114,17 +117,16 @@ A broker carries runs; rt keeps workflow state. Two stores, so a run row and its
 
 A, in phases. Each phase works alone.
 
-1. **Owner + holds.** Browser owner from env. `job_pauses` + `wren jobs list|pause|resume` over loops (`pausedPass`), units (`unit_holds`) and desk calls (409). `wren jobs` replaces `wren loops`; `wren loops` stays as an alias.
-2. **Schedules.** `jobs` table + scheduler + Mac command runner. Move the four wren Mac crons; disable their plists.
+1. **Owner + holds.** Browser owner from env. `job_pauses` + `wren jobs list|pause|resume` over loops (`pausedPass`), units (`unit_holds`), desk calls (refused at the door) and launchd jobs (the adapter from option E: `launchctl` and `toggle.sh`). `wren jobs` replaces `wren loops`; `wren loops` stays as an alias. After this phase, the 11-27 case is one command: `wren jobs pause internships-mail`.
+2. **Schedules.** `jobs` table + scheduler + Mac command runner. Move the four wren Mac crons off launchd; the adapter keeps whatever stays (internships, under call 2(b)).
 3. **Outbox.** `events`, written in the same transaction as each run change. `wren jobs trace` reads `events`, `journal`, the desk ledger and the runner's logs.
-4. **Fan-out (only when an outside consumer exists).** CDC on `events` → NATS JetStream. Needs `wal_level=logical` (a Postgres restart) and a replication slot.
+4. **Fan-out (only when an outside consumer exists).** CDC on `events` → NATS JetStream. Needs `wal_level=logical` (a Postgres restart) and a replication slot. Relay: Sequin first (a vetted, MIT, self-hosted framework with a NATS sink); measure its RAM against the 2 GB cap before it ships.
 
 The autobrowse SQLite runner stays standalone, as 11-16 decided. `wren jobs` reads it through its store interface.
 
 ## Non-goals
 
 - Moving loop chains into the scheduler. Loops keep their own tick.
-- A broker as the queue.
 - Moving autobrowse's runner onto prod pg.
 - Long-lived servers under launchd (`egress-*`, `weaver-serve`, `agent-serve`, `peers-view`, `excalidraw-*`, `autotrack`, `metered`, `aerie-mirror`).
 
@@ -139,10 +141,11 @@ The autobrowse SQLite runner stays standalone, as 11-16 decided. `wren jobs` rea
 
 1. **Option.** A (central orchestrator on rt; one plane; schedules are ours), E (one CLI over today's planes; least code; Mac jobs stay on launchd), B (broker as the queue; two stores) or C (Hatchet; rewrite; no Lambda).
 2. **Internships.** (a) Its jobs become rt runs under a `personal` area. One plane, but a personal job then needs wren prod and the internet, and its rows sit in the business database. (b) It stays on launchd, and `wren jobs` drives it through the launchd adapter. Recommend (b).
-3. **`ReachInboxRead` part hold.** The parts are already `unit_holds` units. Only a verb is missing: `wren loops hold <loop> <unit>` writes a `forever` hold. About 20 lines. It stops inbox reads and keeps the 20-a-day invite refill. Build it now, before the queue (recommended), or wait for phase 1.
+3. **`ReachInboxRead` part hold.** The parts are already `unit_holds` units. Only a verb is missing: `wren jobs pause <loop> --unit <unit>...` writes `forever` holds (the first slice of phase 1). Holds on `replies`, `comments`, `health` and `threads` for each account, and on `posts`, stop the inbox reads and keep `invites` (the 20-a-day refill). Build it now, before the rest of the queue (recommended), or wait for phase 1.
+4. **The broker's job.** (a) Fan-out only: CDC feeds consumers (trace, alerts, other repos); workers claim from the table. One truth, no dual write; the broker is optional. (b) The broker feeds workers: CDC turns each new run into a message, and workers consume it. Push delivery, but two places hold a run's state, the lease and fence move to the broker, and the Mac must hold a broker connection. Recommend (a); revisit (b) only if claim polling becomes the bottleneck.
 
 ## Decision log
 
 - 2026-11-27: written; waiting on William.
-- 2026-11-27: William set the target architecture: one table as the truth, outbox + CDC to a broker, a central scheduler (one node, cluster later), pooled workers.
-- 2026-11-27: goldfish review: 36 findings (critic 15, reader 15, zoom-out 6), 21 applied, 15 rejected or folded in. Main changes: pause by layer (`pausedPass`, `unit_holds`, desk 409), never at claim; browser owner from env, not an owner file; option E added; the runner stays standalone (11-16); call 3 is now a verb on `unit_holds`. Open: calls 1-3.
+- 2026-11-27: William set the target architecture: one table as the truth, outbox + CDC to a broker, a central scheduler (one node, cluster later), pooled workers. The broker's job (fan-out or feeding workers) is call 4.
+- 2026-11-27: goldfish review: 36 findings (critic 15, reader 15, zoom-out 6), 30 applied, 6 rejected (C3 moot under layered pause; F2, F5, F6, F9, F13). Reports kept in the session scratchpad. Main changes: pause by layer (`pausedPass`, `unit_holds`, desk 409), never at claim; browser owner from env, not an owner file; option E added; the runner stays standalone (11-16); call 3 is now a verb on `unit_holds`. Open: calls 1-4.
