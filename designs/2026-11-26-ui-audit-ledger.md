@@ -52,8 +52,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 2 | Today / To approve | `stories/wren/today`, `redesign/shell` | sidecar | audited; pass 2 audited |
 | 3 | Variants / Batches | `stories/vireo`, batches | sidecar | audited; pass 2 audited |
 | 4 | Anton panel | `redesign/anton`, `wren/agent-chat` | sidecar | audited; pass 2 audited |
-| 5 | Canon | `stories/wren/canon` | sidecar | audited; pass 2 auditing |
-| 6 | Map | `stories/wren/map` | sidecar | audited |
+| 5 | Canon | `stories/wren/canon` | sidecar | audited; pass 2 audited |
+| 6 | Map | `stories/wren/map` | sidecar | audited; pass 2 auditing |
 | 7 | Explorer | `stories/wren/explorer` | sidecar | audited |
 | 8 | Office | `stories/wren/office` | sidecar | audited |
 | 9 | Studio | `stories/wren/studio` | sidecar | audited |
@@ -339,6 +339,21 @@ New:
 3. `card` and `card-on-live` fetch from the open web: `icons.duckduckgo.com/ip3/bakers.example.ico` and `i.ytimg.com/vi/abcdefghijk/mqdefault.jpg`, both 404. A story must not call outside hosts. Serve the icon and the poster from the mock.
 4. The compacted chat numbers its list "1 . Banana", "2 . Orange". Tabular figures on list markers again (row 1 #1 cause).
 5. `commands`: while `/context` streams, its table shows as raw text ("| Category | Tokens | Percentage | |----------|---|"). Hold a table row until it is whole, or render the rows as they close.
+
+### Row 5, pass 2: Canon (sidecar, 11-26 23:40)
+
+50 `app-wren-canon-*` stories at 390 and 1280. Shots: scratchpad `audit5b/`. The 404s are the fixture's missing picture; the 500s and 403s are the planned `failed` stories.
+
+Pass 1 items:
+- Fixed: R5.4 (creator rows have no radio circle), R5.7 (the link-button hits are gone).
+- Better: R5.3. "Viral no" still cuts at 390, but the edge now fades (kit (g)), so the row reads as one that scrolls.
+- Still open: R5.1 ("His" tag `record.tsx:94`, "His note" `record.tsx:146`, "His notes" `topic.tsx:74`), R5.2 ("…a 40-minute teardown of…", "…carry the…"), R5.5 ("Skip to content" shows in `outliers--selecting` and `library--library-search`), R5.6 (no 7,600-character title story; prod unchanged: 10,760 records, longest title 7,605).
+
+New:
+1. A failed add shows the raw tool error: "yt-dlp: this video is private". Say "This video is private" and keep the tool name in the record's fields. Prod has 0 add requests now, so the first real failure will show it.
+2. The library filters are native selects ("Every type", "Every topic", "Any status", `parts.tsx:53`). Every other list filters through the list bar's Filter menu. Use that menu here.
+3. The record's Fields list shows raw values: "provider human: william", "by william", "why he sent it". Show "William" as a name, and drop "provider" when "by" says the same.
+4. Box-fit's 2 hits (`library--topic`, `--binary-file`) are a false positive: a closed `<details>` (`topic.tsx:538`) holds its hidden body. Fix the check in `shoot.mjs` to skip closed details (sidecar).
 
 ## Known, carried over
 
