@@ -15,7 +15,12 @@ beforeAll(async () => {
   await migrate(sql);
   const door = await serveDoor({
     sql,
-    pull: { pulled: ["desk"], leaseMs: 2_000 },
+    pull: {
+      pulled: ["desk"],
+      leaseMs: 2_000,
+      refuse: async (c) =>
+        Buffer.from(c.input).toString().includes('"held-site"') ? "desk:held-site: test" : null,
+    },
   });
   base = door.url;
   drain = door.drain;
@@ -108,6 +113,18 @@ describe("pulled services", () => {
     expect((await rt("finish", { id: c?.id, attempt: c?.attempt, value: b64(1) })).status).toBe(
       409,
     );
+  });
+
+  it("a held call ends terminally at claim and never reaches the desk", async () => {
+    const call = post("/desk/call", { site: "held-site" });
+    const after = post("/desk/status", { site: "x" });
+    const got = await take();
+    expect(got.map((c) => c.handler)).toEqual(["status"]);
+    const r = await call;
+    expect(r.status).toBe(500);
+    expect(((await r.json()) as { message: string }).message).toBe("held: desk:held-site: test");
+    await rt("finish", { id: got[0]?.id, attempt: got[0]?.attempt, value: b64(1) });
+    expect((await after).status).toBe(200);
   });
 
   it("a failure retries on the desk's policy, then pauses", async () => {

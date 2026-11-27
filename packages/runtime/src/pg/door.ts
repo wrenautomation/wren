@@ -14,7 +14,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import type { AddressInfo } from "node:net";
 import type postgres from "postgres";
 import { newInvocationId, parseAwakeableId } from "./ids.js";
-import { pullRoute } from "./pull.js";
+import { type PullOptions, pullRoute } from "./pull.js";
 import { handlers, resolveAwakeable, result, retrying, submit } from "./store.js";
 
 export interface DoorOptions {
@@ -26,7 +26,7 @@ export interface DoorOptions {
   /** Old service name → new: callers that still use the old name reach the new one direct. */
   renamed?: Readonly<Record<string, string>>;
   /** Services an outside worker claims over `/rt/*` (autobrowse's desk); unset: no pull routes. */
-  pull?: { pulled: readonly string[]; leaseMs: number };
+  pull?: Pick<PullOptions, "pulled" | "leaseMs" | "refuse" | "locked">;
   /** Phase times of a call pg serves, for the worker's timing log. */
   time?: (phase: "submit" | "wait", ms: number) => void;
 }

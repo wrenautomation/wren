@@ -308,7 +308,24 @@ JOIN (VALUES ('day', interval '1 day'), ('week', interval '7 days')) AS s (span,
 GROUP BY s.span, c.service, c.handler, c.lane;
 `;
 
-const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10];
+const V11 = `
+-- schedules make runs (wren designs/2026-11-27-central-queue.md, phase 2): one row per job; the
+-- box's pass inserts one invocation per due tick, idem_key = the tick, key = the job's name
+CREATE TABLE rt.schedules (
+  name text PRIMARY KEY,
+  cron text NOT NULL,
+  tz text NOT NULL,
+  service text NOT NULL,
+  handler text NOT NULL,
+  input jsonb NOT NULL DEFAULT '{}',
+  why text NOT NULL,
+  last_tick timestamptz,
+  last_outcome text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+`;
+
+const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11];
 
 /** Bring schema `rt` up to date. One advisory lock, so parallel starts take turns. */
 export async function migrate(sql: postgres.Sql): Promise<void> {

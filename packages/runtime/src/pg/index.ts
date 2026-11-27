@@ -12,6 +12,17 @@ export {
   servedTurn,
 } from "./executor.js";
 export { type HandlerSpec, Registry } from "./registry.js";
+export {
+  dropSchedule,
+  dueTick,
+  listSchedules,
+  putSchedule,
+  runScheduleNow,
+  type Schedule,
+  type ScheduleView,
+  schedulePass,
+  type TickOutcome,
+} from "./schedules.js";
 export { migrate } from "./schema.js";
 export { boxStarted, type Claim, type Lane, newestBox, register, release } from "./store.js";
 export { type PgTestEnvironment, startPgTestEnvironment } from "./test-runtime.js";

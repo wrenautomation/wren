@@ -1621,6 +1621,9 @@ importers:
       '@restatedev/restate-sdk-clients':
         specifier: 1.17.1
         version: 1.17.1
+      croner:
+        specifier: 10.0.1
+        version: 10.0.1
       postgres:
         specifier: 3.4.9
         version: 3.4.9
@@ -7298,6 +7301,10 @@ packages:
   credvault@0.13.0:
     resolution: {integrity: sha512-MdyzRJ7KAwtx08wX2cWxRkPXOz9eAi7k/YRSru/RAg3UbTkfkS7aQetDhmYlFxHJiu29gH9wTMgmv21fn07MUg==}
     engines: {node: '>=22'}
+
+  croner@10.0.1:
+    resolution: {integrity: sha512-ixNtAJndqh173VQ4KodSdJEI6nuioBWI0V1ITNKhZZsO0pEMoDxz539T4FTTbSZ/xIOSuDnzxLVRqBVSvPNE2g==}
+    engines: {node: '>=18.0'}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -15696,6 +15703,8 @@ snapshots:
       '@aws-sdk/client-ssm': 3.1136.0
       '@aws-sdk/client-sts': 3.1136.0
       zod: 4.6.5
+
+  croner@10.0.1: {}
 
   cross-spawn@7.0.6:
     dependencies:

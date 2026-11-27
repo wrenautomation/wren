@@ -4,6 +4,7 @@
  * "Phase 5"). Nothing reaches into it, and calls wait in Postgres while it sleeps.
  *   POST /rt/register {services: [{name, handlers: [{name, private?}]}]}
  *   POST /rt/claim    {services, max?, waitMs?}  → {calls: [{id, attempt, service, handler, input, headers}]}
+ *     a call a person paused (`refuse`) ends there, terminally; a `locked` service's rows take their key's lock
  *   POST /rt/renew    {id, attempt}               → {cancel}   409: lost the lease
  *   POST /rt/finish   {id, attempt, value? | error + terminal?, retry?}
  * Values and inputs are base64: the bytes as the caller sent them.
@@ -21,6 +22,14 @@ export interface PullOptions {
   leaseMs: number;
   /** Wakes a waiting claim early (NOTIFY rt_wake). */
   onWake: (f: () => void) => () => void;
+  /** Pulled services whose keyed rows run one at a time per key (a job's ticks never overlap). */
+  locked?: readonly string[];
+  /** A person's pause on this call: the reason, and the call ends terminally, never sent. */
+  refuse?: (call: {
+    service: string;
+    handler: string;
+    input: Uint8Array;
+  }) => Promise<string | null>;
 }
 
 const MAX_WAIT_MS = 25_000;
@@ -69,15 +78,21 @@ export async function pullRoute(
       send(res, 403, JSON.stringify({ message: `not pulled: ${no.join(", ")}` }));
       return true;
     }
+    const keyed = new Set(o.locked ?? []);
     const defs = services.flatMap((s) =>
-      s.handlers.map((h) => ({ service: s.name, handler: h.name, private: h.private === true })),
+      s.handlers.map((h) => ({
+        service: s.name,
+        handler: h.name,
+        private: h.private === true,
+        keyed: keyed.has(s.name),
+      })),
     );
     await o.sql.begin(async (tx) => {
       // a handler the worker no longer has is gone from the door too
       await tx`DELETE FROM rt.handlers WHERE service IN ${tx(services.map((s) => s.name))}`;
       for (const d of defs)
         await tx`INSERT INTO rt.handlers (service, handler, object, exclusive, private)
-          VALUES (${d.service}, ${d.handler}, false, false, ${d.private})`;
+          VALUES (${d.service}, ${d.handler}, ${d.keyed}, ${d.keyed}, ${d.private})`;
     });
     send(res, 200, JSON.stringify({ handlers: defs.length }));
     return true;
@@ -88,39 +103,65 @@ export async function pullRoute(
     );
     const max = Math.min(Math.max(1, Number(b.max) || 1), MAX_CLAIM);
     const waitMs = Math.min(Math.max(0, Number(b.waitMs) || 0), MAX_WAIT_MS);
-    const lane: Lane = { only: asked, lock: false };
+    const locked = new Set(o.locked ?? []);
+    const lanes: Lane[] = [
+      { only: asked.filter((s) => !locked.has(s)), lock: false },
+      { only: asked.filter((s) => locked.has(s)), lock: true },
+    ].filter((l) => l.only.length);
     const end = Date.now() + waitMs;
     // req is spent once its body is read; the response closes when the caller leaves
     let gone = false;
     res.on("close", () => {
       gone = true;
     });
-    let got = await claim(o.sql, max, o.leaseMs, Date.now(), lane);
-    while (!got.length && Date.now() < end && asked.length && !gone) {
-      await new Promise<void>((r) => {
-        const t = setTimeout(done, Math.min(1_000, end - Date.now()));
-        const off = o.onWake(done);
-        function done() {
-          clearTimeout(t);
-          off();
-          r();
+    const calls: Record<string, unknown>[] = [];
+    /** Claims due rows; a held one ends here. The count claimed, held ones too. */
+    const take = async () => {
+      const got = [];
+      for (const lane of lanes)
+        if (got.length < max - calls.length)
+          got.push(
+            ...(await claim(o.sql, max - calls.length - got.length, o.leaseMs, Date.now(), lane)),
+          );
+      for (const c of got) {
+        const l = await load(o.sql, c.id, c.attempt);
+        if (!l) continue;
+        const input = l.inv.input ?? new Uint8Array();
+        const held = await o.refuse?.({ service: c.service, handler: c.handler, input });
+        if (held) {
+          // terminal: the caller's catch skips the unit; a no is never a timeout strike
+          const outcome = { type: "done", error: { message: `held: ${held}` } } as const;
+          await finish(o.sql, l.inv, null, outcome, undefined, o.leaseMs).catch((e) => {
+            if (!isFenced(e)) throw e;
+          });
+          continue;
         }
-      });
-      got = await claim(o.sql, max, o.leaseMs, Date.now(), lane);
-    }
-    const calls = [];
-    for (const c of got) {
-      const l = await load(o.sql, c.id, c.attempt);
-      if (!l) continue;
-      calls.push({
-        id: c.id,
-        attempt: c.attempt,
-        service: c.service,
-        handler: c.handler,
-        input: Buffer.from(l.inv.input ?? []).toString("base64"),
-        headers: l.inv.headers ?? {},
-        cancel: l.inv.cancel === true,
-      });
+        calls.push({
+          id: c.id,
+          attempt: c.attempt,
+          service: c.service,
+          handler: c.handler,
+          input: Buffer.from(input).toString("base64"),
+          headers: l.inv.headers ?? {},
+          cancel: l.inv.cancel === true,
+        });
+      }
+      return got.length;
+    };
+    let claimed = await take();
+    while (!calls.length && Date.now() < end && asked.length && !gone) {
+      // all held: look again at once
+      if (!claimed)
+        await new Promise<void>((r) => {
+          const t = setTimeout(done, Math.min(1_000, end - Date.now()));
+          const off = o.onWake(done);
+          function done() {
+            clearTimeout(t);
+            off();
+            r();
+          }
+        });
+      claimed = await take();
     }
     send(res, 200, JSON.stringify({ calls }));
     return true;

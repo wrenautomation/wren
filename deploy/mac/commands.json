@@ -1,0 +1,23 @@
+{
+  "capture": {
+    "why": "his saved posts into captures, then Canon (designs/2026-11-12-eden-method.md §2)",
+    "argv": ["/opt/homebrew/bin/node", "scripts/prod-wren.mjs", "capture", "run"],
+    "timeoutMin": 120,
+    "retry": { "maxAttempts": 2, "initialInterval": 600000 }
+  },
+  "creator-refresh": {
+    "why": "40 due creators read through weaver, then rescored (designs/2026-11-12-eden-method.md §3)",
+    "argv": [
+      "/opt/homebrew/bin/node",
+      "scripts/prod-wren.mjs",
+      "creator",
+      "refresh",
+      "--account",
+      "x=x@wren",
+      "--account",
+      "linkedin=linkedin@wren"
+    ],
+    "timeoutMin": 120,
+    "retry": { "maxAttempts": 3, "initialInterval": 600000, "exponentiationFactor": 1 }
+  }
+}

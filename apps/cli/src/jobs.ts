@@ -5,6 +5,8 @@
  *   reads first; the chain lives, resume wakes it
  * - part of a loop (`--unit "replies acct"`, `--unit "replies *"`): a person's `unit_holds` row
  * - a launchd job on this Mac (`launchd:<label>`): `launchctl disable` (internships: `toggle.sh`)
+ * - a schedule (`capture`): a `job_pauses` row; the box skips its ticks and the door ends a queued run
+ * - a desk call (`desk:linkedin`, `desk:linkedin/<account>`, `caller:<who>`): the door ends it at claim
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
@@ -24,6 +26,13 @@ import { type LoopHealth, loopHealth } from "@wren/core/loop-watch";
 import { limitStage } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import * as clients from "@wren/runtime/clients";
+import {
+  dropSchedule,
+  listSchedules,
+  postgres,
+  putSchedule,
+  runScheduleNow,
+} from "@wren/runtime/pg";
 import type { Command } from "commander";
 import { sql } from "drizzle-orm";
 
@@ -113,12 +122,24 @@ function launchdOf(job: string): string | null {
   return launchdLabels().includes(job) ? job : null;
 }
 
+/** Pulled calls a pause can name: ended at the door's claim (`callPauseJobs`). */
+const CALL_JOB = /^(desk|studio|claude|calls)(\/[a-z]+|:[^\s/]+(\/\S+)?)?$|^caller:\S+$/;
+
 /** The running loop keys a loop job names (`Service/key` or `Service`). */
 function loopKeys(job: string, loops: LoopHealth[]): LoopHealth[] {
   return loops.filter((l) => l.id === job || l.service === job);
 }
 
 export function registerJobs(program: Command, withMainDb: WithDb, settings: Settings) {
+  const withRt = async <T>(fn: (s: postgres.Sql) => Promise<T>): Promise<T> => {
+    const s = postgres(settings.databaseUrl, { max: 1, prepare: false, onnotice: () => {} });
+    try {
+      return await fn(s);
+    } finally {
+      await s.end({ timeout: 5 });
+    }
+  };
+  const scheduleNames = async () => new Set((await withRt(listSchedules)).map((s) => s.name));
   const loopsNow = () => withMainDb((db) => loopHealth(runtimeAdmin(db).query, new Date()));
   const wake = (l: LoopHealth) =>
     clients
@@ -132,7 +153,7 @@ export function registerJobs(program: Command, withMainDb: WithDb, settings: Set
     .option("--all", "stopped loops too")
     .option("--json", "rows as JSON")
     .action(async (o: { all?: boolean; json?: boolean }) => {
-      const [loops, pauses, unitHolds] = await Promise.all([
+      const [loops, pauses, unitHolds, schedules] = await Promise.all([
         loopsNow(),
         withMainDb(openPauses),
         withMainDb((db) =>
@@ -145,6 +166,7 @@ export function registerJobs(program: Command, withMainDb: WithDb, settings: Set
           }>(sql`select id, stage, subject, reason, held_by from unit_holds
                  where stage like 'loop.%' and released_at is null order by held_at`),
         ),
+        withRt(listSchedules),
       ]);
       const launchd = launchdState();
       const heldOf = (id: string, service: string) =>
@@ -154,6 +176,10 @@ export function registerJobs(program: Command, withMainDb: WithDb, settings: Set
           .filter((l) => o.all || l.health !== "stopped")
           .map((l) => ({ ...l, held: heldOf(l.id, l.service) ?? null })),
         units: unitHolds,
+        schedules: schedules.map((x) => ({
+          ...x,
+          held: pauses.find((p) => p.job === x.name || p.job === x.service) ?? null,
+        })),
         launchd: [...launchd].map(([label, state]) => ({
           label,
           state,
@@ -174,6 +200,22 @@ export function registerJobs(program: Command, withMainDb: WithDb, settings: Set
           console.log(
             `  ${String(u.id).padEnd(5)} ${u.stage}  ${u.subject}  ${u.held_by ? `by ${u.held_by}` : "by timeouts"}: ${u.reason}`,
           );
+      }
+      if (rows.schedules.length) {
+        console.log("Schedules (the box makes runs; the Mac's command runner claims them)");
+        for (const x of rows.schedules) {
+          const last = x.last_run
+            ? `last ${x.last_run.status} ${when(x.last_run.at.toISOString())}${x.last_run.error ? `: ${x.last_run.error}` : ""}`
+            : "no run yet";
+          console.log(
+            `  ${(x.held ? "held" : "live").padEnd(7)} ${x.name}  ${x.cron} ${x.tz}  next ${when(x.next_tick?.toISOString() ?? null)}  ${x.held ? heldLine(x.held) : last}`,
+          );
+        }
+      }
+      const calls = pauses.filter((p) => CALL_JOB.test(p.job));
+      if (calls.length) {
+        console.log("Held desk calls (the door ends them)");
+        for (const p of calls) console.log(`  held    ${p.job}  ${heldLine(p)}`);
       }
       if (rows.launchd.length) {
         console.log("launchd (this Mac)");
@@ -207,9 +249,19 @@ export function registerJobs(program: Command, withMainDb: WithDb, settings: Set
           await withMainDb((db) => pauseJob(db, { job: `launchd:${label}`, why: o.why, by: BY }));
           return;
         }
+        if (CALL_JOB.test(job) || (await scheduleNames()).has(job)) {
+          if (o.unit) throw new Error("--unit is for loops");
+          const row = await withMainDb((db) => pauseJob(db, { job, why: o.why, by: BY, forMs }));
+          console.log(
+            `held ${job} ${untilText(row.until)}: ${CALL_JOB.test(job) ? "the door ends each matching call before the Mac takes it" : "its ticks are skipped and a queued run is ended"}`,
+          );
+          return;
+        }
         const loops = loopKeys(job, await loopsNow());
         if (!loops.length)
-          throw new Error(`no loop or launchd job named ${job} (see: wren jobs --all)`);
+          throw new Error(
+            `no loop, schedule, desk call or launchd job named ${job} (see: wren jobs --all)`,
+          );
         if (o.unit) {
           if (forMs)
             throw new Error("--for is not for units yet; resume them with wren jobs resume");
@@ -266,8 +318,13 @@ export function registerJobs(program: Command, withMainDb: WithDb, settings: Set
         await withMainDb((db) => resumeJob(db, `launchd:${label}`, BY));
         return;
       }
+      if (CALL_JOB.test(job) || (await scheduleNames()).has(job)) {
+        const done = await withMainDb((db) => resumeJob(db, job, BY));
+        console.log(done.length ? `resumed ${job}` : `${job} had no hold of its own`);
+        return;
+      }
       const loops = loopKeys(job, await loopsNow());
-      if (!loops.length) throw new Error(`no loop or launchd job named ${job}`);
+      if (!loops.length) throw new Error(`no loop, schedule or launchd job named ${job}`);
       if (o.unit) {
         const [l, ...more] = loops;
         if (!l || more.length || l.id !== job)
@@ -282,5 +339,54 @@ export function registerJobs(program: Command, withMainDb: WithDb, settings: Set
       if (!done.length) console.log(`${job} had no hold of its own`);
       for (const l of loops.filter((x) => x.health !== "stopped")) await wake(l);
       console.log(`resumed ${job}; ${loops.length} key(s) woken`);
+    });
+
+  cmd
+    .command("schedule <name>")
+    .description(
+      "Add or change a schedule: the box makes a run per tick; the Mac runs deploy/mac/commands.json[name]",
+    )
+    .requiredOption("--cron <cron>", 'five fields, e.g. "15 10 * * *"')
+    .requiredOption("--why <text>", "what the job is for")
+    .option("--tz <zone>", "time zone of the cron", "America/Toronto")
+    .option("--service <service>", "the pulled service that runs it", "CommandRun")
+    .option("--handler <handler>", "its handler", "run")
+    .action(
+      async (
+        name: string,
+        o: { cron: string; why: string; tz: string; service: string; handler: string },
+      ) => {
+        await withRt((s) =>
+          putSchedule(s, {
+            name,
+            cron: o.cron,
+            tz: o.tz,
+            service: o.service,
+            handler: o.handler,
+            input: {},
+            why: o.why,
+          }),
+        );
+        const [x] = (await withRt(listSchedules)).filter((r) => r.name === name);
+        console.log(
+          `${name}: ${o.cron} ${o.tz}, next ${when(x?.next_tick?.toISOString() ?? null)}`,
+        );
+      },
+    );
+
+  cmd
+    .command("unschedule <name>")
+    .description("Drop a schedule; its runs stay in the record")
+    .action(async (name: string) => {
+      console.log(
+        (await withRt((s) => dropSchedule(s, name))) ? `dropped ${name}` : `no schedule ${name}`,
+      );
+    });
+
+  cmd
+    .command("run <name>")
+    .description("Run a schedule's job now, outside its ticks; it waits behind an open run")
+    .action(async (name: string) => {
+      console.log(`queued ${await withRt((s) => runScheduleNow(s, name))}`);
     });
 }

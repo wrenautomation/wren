@@ -1,7 +1,8 @@
 /**
  * A person's pause on a job (designs/2026-11-27-central-queue.md, `wren jobs`): one open row in
  * `job_pauses` per job. A loop (`<Service>/<key>`, or `<Service>` = every key) reads it each pass
- * (`setLoopHoldReader`); a launchd job (`launchd:<label>`) is disabled by the CLI on the Mac.
+ * (`setLoopHoldReader`); a launchd job (`launchd:<label>`) is disabled by the CLI on the Mac; a
+ * pulled call (desk, studio, claude, calls) is ended at the door's claim (`callPauseJobs`).
  */
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
@@ -59,6 +60,31 @@ export async function openPauses(db: Queryable): Promise<JobPauseRow[]> {
   return db.execute<JobPauseRow>(sql`
     select id, job, why, held_by, held_at::text, until::text from job_pauses
     where released_at is null and until > now() order by held_at`);
+}
+
+/**
+ * The job names a pause on one pulled call may sit under: `desk`, `desk/call`, `desk:linkedin`,
+ * `desk:linkedin/linkedin@wren`, `caller:wren:own-check`, a schedule's `capture`. Input is the
+ * call's JSON body.
+ */
+export function callPauseJobs(service: string, handler: string, input: Uint8Array): string[] {
+  const jobs = [service, `${service}/${handler}`];
+  let body: unknown;
+  try {
+    body = JSON.parse(Buffer.from(input).toString("utf8"));
+  } catch {
+    return jobs;
+  }
+  if (!body || typeof body !== "object") return jobs;
+  const b = body as Record<string, unknown>;
+  if (typeof b.site === "string" && b.site) {
+    jobs.push(`${service}:${b.site}`);
+    if (typeof b.account === "string" && b.account) jobs.push(`${service}:${b.site}/${b.account}`);
+  }
+  if (typeof b.caller === "string" && b.caller) jobs.push(`caller:${b.caller}`);
+  // a schedule's run (`CommandRun`): its job's own name, so a queued run stops with its schedule
+  if (typeof b.job === "string" && b.job) jobs.push(b.job);
+  return jobs;
 }
 
 /** `2h`, `30m`, `1d` → ms. */

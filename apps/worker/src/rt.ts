@@ -8,6 +8,7 @@
  */
 import { readFileSync, statSync } from "node:fs";
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
+import { callPauseJobs } from "@wren/core/job-pauses";
 import {
   boxStarted,
   Dispatcher,
@@ -19,6 +20,7 @@ import {
   release,
   remoteTurn,
   runTurn,
+  schedulePass,
   serveDoor,
   servedTurn,
   type TurnAsk,
@@ -69,8 +71,14 @@ export const RENAMED: Readonly<Record<string, string>> = {
   Content: "ContentPublish",
 };
 
-/** Services autobrowse's desk (the Mac) claims over the door's `/rt/*` routes (`pull.ts`). */
-const PULLED: readonly string[] = ["desk", "claude", "studio", "calls"];
+/**
+ * Services a Mac claims over the door's `/rt/*` routes (`pull.ts`): autobrowse's desk, and the
+ * command runner (`scripts/command-run.mjs`), whose rows run one at a time per job.
+ */
+const PULLED: readonly string[] = ["desk", "claude", "studio", "calls", "CommandRun"];
+const LOCKED: readonly string[] = ["CommandRun"];
+/** How often the box looks for due schedule ticks (`rt.schedules`). */
+const SCHEDULE_EVERY_MS = 30_000;
 
 const LEASE_MS = 60_000;
 /** The box's read lane width: portal reads run 12 ms at the median, so 8 rarely queue. */
@@ -132,6 +140,30 @@ function arnFile(path: string) {
     } catch {}
     return arn;
   };
+}
+
+/** A person's open pause on this pulled call (`wren jobs pause desk:linkedin`): its why, or null. */
+async function callHold(
+  sql: ReturnType<typeof rtSql>,
+  c: { service: string; handler: string; input: Uint8Array },
+): Promise<string | null> {
+  const jobs = callPauseJobs(c.service, c.handler, c.input);
+  const [r] = await sql<{ job: string; why: string }[]>`
+    SELECT job, why FROM public.job_pauses
+    WHERE released_at IS NULL AND until > now() AND job IN ${sql(jobs)} LIMIT 1`;
+  return r ? `${r.job}: ${r.why}` : null;
+}
+
+/** A person's open pause on a schedule (`wren jobs pause capture`), or on its whole service. */
+async function scheduleHold(
+  sql: ReturnType<typeof rtSql>,
+  name: string,
+  service: string,
+): Promise<string | null> {
+  const [r] = await sql<{ why: string }[]>`
+    SELECT why FROM public.job_pauses
+    WHERE released_at IS NULL AND until > now() AND job IN (${name}, ${service}) LIMIT 1`;
+  return r?.why ?? null;
 }
 
 export async function startRt(o: {
@@ -277,7 +309,12 @@ export async function startRt(o: {
           port: o.doorPort,
           ...(o.doorBearer ? { bearer: o.doorBearer } : {}),
           renamed: RENAMED,
-          pull: { pulled: PULLED, leaseMs: LEASE_MS },
+          pull: {
+            pulled: PULLED,
+            leaseMs: LEASE_MS,
+            locked: LOCKED,
+            refuse: (c) => callHold(doorSql, c),
+          },
           time: timed.of("door"),
         })
       : null;
@@ -301,6 +338,16 @@ export async function startRt(o: {
     await lambdaLane?.stop();
     await o.onSuperseded?.();
   };
+  // one pass at a time on all nodes (an advisory lock); a superseded slot stops its own
+  const schedules = setInterval(() => {
+    if (superseded) return;
+    schedulePass(sql, { held: (s) => scheduleHold(sql, s.name, s.service) })
+      .then((ticks) => {
+        if (ticks.length) o.log.info({ ticks }, "rt: schedule ticks");
+      })
+      .catch((e: unknown) => log("schedule pass failed", e));
+  }, SCHEDULE_EVERY_MS);
+  schedules.unref();
   const watch = setInterval(() => {
     newestBox(sql)
       .then((b) => (b && b !== o.build ? standDown() : undefined))
@@ -316,6 +363,7 @@ export async function startRt(o: {
     async stop() {
       clearInterval(repin);
       clearInterval(watch);
+      clearInterval(schedules);
       timed.stop();
       await door?.close();
       await doorSql?.end({ timeout: 5 });

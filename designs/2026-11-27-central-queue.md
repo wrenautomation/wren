@@ -1,6 +1,6 @@
 # Central job queue: list, pause and trace every job (WA-1465)
 
-2026-11-27. Status: A agreed, call 4 (c) agreed; phase 1 pause in build. Handoff: `handoffs/2026-11-27-central-queue.md`. Diagram: `2026-11-27-central-queue.excalidraw` (devboard project "Central queue").
+2026-11-27. Status: A agreed, call 4 (c) agreed; phases 1-2 built, phase 3 in build, phase 4 waits for an outside consumer. Handoff: `handoffs/2026-11-27-central-queue.md`. Diagram: `2026-11-27-central-queue.excalidraw` (devboard project "Central queue").
 
 ## Goal
 
@@ -79,9 +79,9 @@ The pause layers and the browser owner above are the same under every option. Th
 
 ### A. Central orchestrator on rt (recommended)
 
-The target architecture above, built on `rt.*`. Add `jobs` (schedules) to the scheduler. wren's Mac crons (capture, creator-refresh, skill-use-report, devboard-backup) become runs claimed by a **Mac command runner**: its own launchd KeepAlive process, apart from the desk, so a desk restart (`update.mjs:206`) does not kill a job. Each job gets one key with an exclusive lock, so two ticks never overlap; pulled rows have no key lock today (`pull.ts:78-80`), so this is new runtime work. Each tick's idempotency key is the job plus the tick time, so two scheduler nodes never insert it twice. A missed tick while the Mac sleeps waits as one pending row; the next tick is not inserted while one waits. canon-drain stays KeepAlive; its table is already in pg.
+The target architecture above, built on `rt.*`. Add `rt.schedules` to the scheduler. The Mac crons that call prod (capture, creator-refresh) become runs claimed by a **Mac command runner**: its own launchd KeepAlive process, apart from the desk, so a desk restart (`update.mjs:206`) does not kill a job. Each job gets one key with an exclusive lock, so two ticks never overlap; pulled rows have no key lock today (`pull.ts:78-80`), so this is new runtime work. Each tick's idempotency key is the job plus the tick time, so two scheduler nodes never insert it twice. A missed tick while the Mac sleeps waits as one pending row; the next tick is not inserted while one waits. canon-drain stays KeepAlive; its table is already in pg.
 
-For: one plane for all wren jobs; no new server; scheduler and pooled workers cluster with `SKIP LOCKED` and pull. These crons already call prod (`prod-wren.mjs`), so they gain no new dependency. Against: we own schedule semantics (~cron table + leader lock); the command runner is new.
+For: one plane for all wren jobs; no new server; scheduler and pooled workers cluster with `SKIP LOCKED` and pull. These two already call prod (`prod-wren.mjs`), so they gain no new dependency. `skill-use-report` (canon) and `devboard-backup` are local and stay on launchd: moved, a local backup would need prod and the internet, the trade-off call 2(b) refused for internships. Against: we own schedule semantics (~cron table + leader lock); the command runner is new.
 
 ### E. One CLI, an adapter per plane
 
@@ -118,7 +118,7 @@ A broker carries runs; rt keeps workflow state. Two stores, so a run row and its
 A, in phases. Each phase works alone.
 
 1. **Owner + holds.** Browser owner from env. `job_pauses` + `wren jobs list|pause|resume` over loops (`pausedPass`), units (`unit_holds`), desk calls (refused at the door) and launchd jobs (the adapter from option E: `launchctl` and `toggle.sh`). `wren jobs` replaces `wren loops`; `wren loops` stays as an alias. After this phase, the 11-27 case is one command: `wren jobs pause internships-mail`.
-2. **Schedules.** `jobs` table + scheduler + Mac command runner. Move the four wren Mac crons off launchd; the adapter keeps whatever stays (internships, under call 2(b)).
+2. **Schedules.** `rt.schedules` + scheduler + Mac command runner. Move capture and creator-refresh off launchd; the adapter keeps whatever stays (internships, skill-use-report, devboard-backup).
 3. **Outbox.** `events`, written in the same transaction as each run change. `wren jobs trace` reads `events`, `journal`, the desk ledger and the runner's logs.
 4. **Fan-out (only when an outside consumer exists).** CDC on `events` → NATS JetStream. Needs `wal_level=logical` (a Postgres restart) and a replication slot. Relay: Sequin first (a vetted, MIT, self-hosted framework with a NATS sink); measure its RAM against the 2 GB cap before it ships.
 
@@ -153,3 +153,11 @@ The autobrowse SQLite runner stays standalone, as 11-16 decided. `wren jobs` rea
 - 2026-11-27: call 4. William: "fine" if workers still claim through the table; asked if the standard is a broker that feeds workers, with dedupe. Answer: (c) the broker (or `LISTEN/NOTIFY`) only signals "work ready"; the worker claims the row with a fenced UPDATE. Dedupe covers a double send but not pause, cancel, key locks or a scarce profile, which only a table read sees. Slack's own fix keeps workers polling the queue store; Kafka only buffers in front of it. Recommend (c); waiting on his yes. Phase 4 only.
 - 2026-11-27: all internships launchd groups paused (`toggle.sh all off`), on William's "pause the internship job asap".
 - 2026-11-27: call 4 closed: (c). William agreed: workers pick runs only through the table, so claim consistency stays in one place. The broker (phase 4) carries only "work ready" signals and fan-out.
+- 2026-11-27: William: "continue with work"; `ReachInboxRead/daily` stays wholly paused. Phases 1-3 built in order; phase 4 waits (no outside consumer; `wal_level=logical` needs a Postgres restart).
+- 2026-11-27: the doc said all four Mac crons call prod; only capture and creator-refresh do. Those two move; skill-use-report and devboard-backup stay on launchd.
+- 2026-11-27: build choices (phase 1-2):
+  - **Desk-call pause at claim, not at submit.** Loop calls reach `rt.invocations` from the box in-process, never through the door's HTTP submit, so a submit check misses them. The claim route sees every desk call, new or queued. Job names: `desk`, `desk/<handler>`, `desk:<site>`, `desk:<site>/<account>`, `caller:<who>`. The refusal is a terminal `held: ...` error; checked 11-27: `unitLimits.guard` counts only `CallTimeout` as a strike (`restate/limits.ts:290-296`), so a refusal clears strikes and adds none.
+  - **The command map lives on the Mac** (`deploy/mac/commands.json`), the row names only the job. Option against: argv in the row (one place to edit, but a write to prod runs any command on his Mac). Safety wins.
+  - **Key lock per pulled service** (`locked`), on for `CommandRun` only. The desk keeps `lock: false`: its calls are not keyed jobs. A lost lease (Mac slept) re-claims with attempt + 1 and no failure count, so sleep never pushes a run toward a dead letter; the runner kills the old process group on renew 409.
+  - **Scheduler** on the box, every 30 s, in one transaction under `pg_try_advisory_xact_lock` (a session lock breaks behind PgBouncer). Ticks from croner 10.0.1 (MIT) in the job's zone (`America/Toronto`; the box runs UTC). Pause = drop the tick; "hold one run for resume" is not built (no job needs it). A failed run retries on the job's `retry` (creator-refresh: 3 tries, 10 min apart, as its plist did), then dead-letters; the next tick queues behind it, one deep.
+  - **Cutover per job:** run it by hand through the runner, see one scheduled tick succeed, then `launchctl disable` the old plist (kept on disk). Never both triggers live.

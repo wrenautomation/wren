@@ -16,6 +16,7 @@
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",
     "@restatedev/restate-sdk-clients": "1.17.1",
+    "croner": "10.0.1",
     "postgres": "3.4.9"
   },
   "devDependencies": {
