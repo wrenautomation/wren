@@ -59,8 +59,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 9 | Studio | `stories/wren/studio` | sidecar | audited; pass 2 audited |
 | 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited; pass 2 audited |
 | 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | audited; pass 2 audited |
-| 12 | Client: campaigns, office, people | `stories/client` | sidecar | audited; pass 2 auditing |
-| 13 | Weaver | `stories/weaver` | sidecar | audited |
+| 12 | Client: campaigns, office, people | `stories/client` | sidecar | audited; pass 2 audited |
+| 13 | Weaver | `stories/weaver` | sidecar | audited; pass 2 auditing |
 
 After 13, start again at 1 with a fresh eye.
 
@@ -416,7 +416,9 @@ New:
 5. Compose ends the count line with a green dot: "● Fits every picked platform". Say it with the word alone, or a check icon.
 6. Prod parity (prod 11-27 00:01): 0 video projects, 298 content drafts, 0 drafts waiting. Same as pass 1.
 
-### Row 10, pass 2: Campaigns (sidecar, 11-27 00:12)
+After this pass, wren v2 759d96689: R9.6 (a face with no photo is a grey blank with a person icon), New 3 (96 px slot, no clamp), New 5 (check icon; the bad state keeps red and its words). New 1 stays: "@e" is the whole handle of a one-letter fixture. R9.7 stays: no slot fits the 17-letter "Featherstonehaugh". Seen by wren v2: the outliers card at 1280 cuts "@a_very_long_handle_for_a_creator_wh" with no mark (show the whole text).
+
+### Row 10, pass 2: Campaigns (sidecar, 11-27 00:10)
 
 23 stories (18 `app-wren-campaigns-*`, 5 `app-wren-campaigns-content--*` that are not Studio) at 390 and 1280. Shots: scratchpad `audit10b/`. Errors 0. Box-fit: only R10.9.
 
@@ -429,7 +431,7 @@ New:
 2. At 390 the same cut chip beside More (row 9 pass 2, item 4) shows on Engage ("Po"), Booked calls ("All bo"), Posts ("Leade") and Drafts ("Sched"). One kit fix: the chips that do not fit go into More.
 3. Prod parity (prod 11-27 00:10): 312 invites, 253 pending. Same as pass 1; Invites still needs a 300-row story.
 
-### Row 11, pass 2: Shell (sidecar, 11-27 00:17)
+### Row 11, pass 2: Shell (sidecar, 11-27 00:14)
 
 20 stories (`app-wren-shell-*`, `redesign-shell--*`, kit `shell--*`) at 390 and 1280. Shots: scratchpad `audit11b/`. Box-fit 0. Errors 0.
 
@@ -439,6 +441,19 @@ Pass 1 items:
 - Not in this set: R11.7 (Recordings "Minutes 0"); check it on row 10's Recordings next pass.
 
 New: none.
+
+### Row 12, pass 2: Client (sidecar, 11-27 00:22)
+
+64 `app-client-*` stories at 390 and 1280. Shots: scratchpad `audit12b/`. Box-fit 0. The 500s come only from `project--plan-fails` (planned).
+
+Pass 1 items:
+- Fixed: R12.1 (stat cards keep the tint, no top border), R12.3 (Updates and Timeline have no one-option bar), R12.4 (stage, warmth and role are plain coloured words), R12.5 (Social rows have no initials circles).
+- Still open: R12.2 (`today--default` at 390: the account name runs above the top bar; same as R11.2), R12.6 (Messages "43 days" with no word), R12.7 (Timeline at 390: "0 lines from Nov 14 to Nov 27" wraps to 4 lines between the icons and Day/Week/Month), R12.8 (Import rows: file name and "From …" side by side), R12.11 (the peek reads "What they did 1", "Persona 1", "Phones 1", "Came from 1").
+- Not seen in this set: R12.9 ("Unknown · Region"), R12.10 (the focus ring on Team). Check them on the person page and with a click next pass.
+
+New: none.
+
+Prod parity (prod 11-27 00:22): 2 clients. Same as pass 1.
 
 ## Known, carried over
 
