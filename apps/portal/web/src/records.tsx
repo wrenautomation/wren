@@ -851,6 +851,9 @@ export function prefetchPage(
 ): Promise<void> {
   if (!("record" in page) || !(page.template === "list" || page.template === "queue"))
     return Promise.resolve();
+  // A timeline opens as its axis, read a day at a time: the whole table's rows and counts would go
+  // unread (People › Timeline: 1.8 s and 2.8 s on prod over 283k lines).
+  if (page.timeline && params.get("as") !== "rows") return Promise.resolve();
   const { product, scope } = whereOf(page, path, workspace, team);
   const api = apiOf(product, workspace === WREN.id ? null : workspace, scope);
   const cards = workspace === WREN.id && "cardGrid" in page && !!page.cardGrid;
