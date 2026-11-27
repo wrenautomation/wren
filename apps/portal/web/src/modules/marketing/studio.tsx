@@ -172,10 +172,11 @@ function StudioHome(props: PageProps) {
         <WaitingBoard {...props} lines={byId} line={line} />
         <VideoShelf params={props.params} />
       </div>
+      {/* toast up: lift to 80 px over the toast's foot (2-line toast + gap); Material's FAB over a snackbar */}
       <a
         href={href("/campaigns/studio", { make: "post" }, props.params)}
         aria-label="New post"
-        className="fixed right-5 bottom-[calc(104px+env(safe-area-inset-bottom))] z-20 grid size-14 place-items-center bg-(--ui-primary) text-(--ui-on-accent) [border-radius:14px_28px] shadow-[0_8px_20px_-8px_color-mix(in_srgb,var(--ui-umbra)_50%,transparent)] transition-transform duration-200 ease-(--ui-spring) active:scale-95 motion-reduce:transition-none sm:hidden"
+        className="fixed right-5 bottom-[calc(104px+env(safe-area-inset-bottom))] z-20 grid size-14 place-items-center bg-(--ui-primary) text-(--ui-on-accent) [border-radius:14px_28px] shadow-[0_8px_20px_-8px_color-mix(in_srgb,var(--ui-umbra)_50%,transparent)] transition-transform duration-200 ease-(--ui-spring) active:scale-95 motion-reduce:transition-none sm:hidden [:root:has([data-sonner-toast])_&]:[translate:0_min(0px,calc(24px+env(safe-area-inset-bottom)-var(--ui-toast-bottom,22px)))]"
       >
         <Icon name="plus" size={22} />
       </a>
