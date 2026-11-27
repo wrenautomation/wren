@@ -26,6 +26,7 @@ import {
 import { Tag } from "./controls.js";
 import { initials, waited } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
+import { useNarrow } from "./list-bar.js";
 import { lineColor, StageSquare, tintColor } from "./marks.js";
 import { SwipeRow, type Swipes } from "./phone.js";
 import { RowActions } from "./row-acts.js";
@@ -577,6 +578,7 @@ export function Rows<T>(p: RowsProps<T>) {
   const drawn = drawnOf(p.lines, p.group?.folded, p.wait);
   const root = useCallback(() => body.current ?? list.current, []);
   // "page": read from the DOM, since the shell's panel scrolls a wide screen, not the window
+  const phone = useNarrow();
   const [found, setFound] = useState<HTMLElement | "window" | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the table and the list are other elements.
   useLayoutEffect(() => {
@@ -586,7 +588,8 @@ export function Rows<T>(p: RowsProps<T>) {
   // A long list draws the lines in view of what scrolls the page.
   const lines = useLines({
     count: drawn.length,
-    scroller: narrow ? "window" : p.scroller === "page" ? found : p.scroller,
+    // a phone scrolls the window; a list drawn narrow on a wide screen (docked, tight) its panel
+    scroller: phone ? "window" : p.scroller === "page" ? found : p.scroller,
     root,
     estimate: narrow ? 76 : 42,
     gap: p.cards ? CARD_GAP : 0,

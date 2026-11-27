@@ -1,4 +1,4 @@
-/** Aerie › Tasks with a task open (`?task=`): the panel's states. Fake server: `web/src/mocks/data/aerie.ts`. */
+/** Aerie › Tasks with a task open (`?task=`) on the Board: the sheet's states (the List docks it on a wide screen: redesign/tasks). Fake server: `web/src/mocks/data/aerie.ts`. */
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { refuse } from "../../../mocks/api.js";
@@ -21,7 +21,7 @@ const headOf = async (s: Awaited<ReturnType<typeof sheet>>, name: string | RegEx
 
 /** Every part: checks with counts, plan, notes, roles up the area tree, a holder, a comment, history newest first. */
 export const Open = tidy(
-  pageAt("/aerie/tasks?task=EX-101", {
+  pageAt("/aerie/tasks?layout=board&task=EX-101", {
     me: ADMIN,
     check: async () => {
       const s = await sheet();
@@ -42,7 +42,7 @@ export const Open = tidy(
 
 /** ↓ opens the next task in the List's order; the sheet stays. */
 export const Walks = tidy(
-  pageAt("/aerie/tasks?task=EX-101", {
+  pageAt("/aerie/tasks?layout=board&task=EX-101", {
     me: ADMIN,
     check: async () => {
       const s = await sheet();
@@ -56,7 +56,7 @@ export const Walks = tidy(
 
 /** A child shows its parent as a link. */
 export const Child = tidy(
-  pageAt("/aerie/tasks?task=EX-108", {
+  pageAt("/aerie/tasks?layout=board&task=EX-108", {
     me: ADMIN,
     check: async () => {
       const s = await sheet();
@@ -67,7 +67,7 @@ export const Child = tidy(
   }),
 );
 
-export const NotFound = pageAt("/aerie/tasks?task=EX-999", {
+export const NotFound = pageAt("/aerie/tasks?layout=board&task=EX-999", {
   me: ADMIN,
   check: async () => {
     const s = await sheet();
@@ -76,7 +76,7 @@ export const NotFound = pageAt("/aerie/tasks?task=EX-999", {
 });
 
 /** The read fails: the head still shows from the row; the body says why. */
-export const LoadFails = pageAt("/aerie/tasks?task=EX-104", {
+export const LoadFails = pageAt("/aerie/tasks?layout=board&task=EX-104", {
   me: ADMIN,
   answers: { "aerie/task": () => refuse(500, "the task read failed") },
   check: async () => {
@@ -87,7 +87,7 @@ export const LoadFails = pageAt("/aerie/tasks?task=EX-104", {
 });
 
 /** The body reads; the head is the row's at once. */
-export const Reading = pageAt("/aerie/tasks?task=EX-104", {
+export const Reading = pageAt("/aerie/tasks?layout=board&task=EX-104", {
   me: ADMIN,
   answers: { "aerie/task": () => new Promise(() => {}) },
   check: async () => {
@@ -99,7 +99,7 @@ export const Reading = pageAt("/aerie/tasks?task=EX-104", {
 
 /** Writes on: status and priority are picks; a pick writes with the version read. */
 export const WritesOn = tidy(
-  pageAt("/aerie/tasks?task=EX-104", {
+  pageAt("/aerie/tasks?layout=board&task=EX-104", {
     me: ADMIN,
     answers: WRITES_ON,
     check: async () => {
@@ -116,7 +116,7 @@ export const WritesOn = tidy(
 
 /** A write over a newer version: the toast says so and the panel reads again. */
 export const EditStale = tidy(
-  pageAt("/aerie/tasks?task=EX-104", {
+  pageAt("/aerie/tasks?layout=board&task=EX-104", {
     me: ADMIN,
     answers: {
       ...WRITES_ON,
@@ -137,7 +137,7 @@ export const EditStale = tidy(
 
 /** A title one word long: it wraps whole in the head (a phone gets a bottom sheet). */
 export const LongTitle = tidy(
-  pageAt("/aerie/tasks?task=EX-103", {
+  pageAt("/aerie/tasks?layout=board&task=EX-103", {
     me: ADMIN,
     check: async () => {
       await expect(await headOf(await sheet(), /^Supercalifragilistic/)).toBeVisible();

@@ -63,6 +63,8 @@ export interface BoardMove<T> {
   onMove: (item: T, from: string, to: string) => void;
   /** a move in flight: dimmed, a busy ring, no second move */
   busy: (item: T) => boolean;
+  /** menu targets with no lane (a filtered-out Done): the card leaves the view */
+  more?: readonly { key: string; label: string }[] | undefined;
 }
 
 export interface BoardLane<T> {
@@ -409,6 +411,33 @@ function Cards<T>({
 }
 
 const LANE_COUNT = "flex-none font-semibold text-(--ui-ink)";
+const QUIET_COUNT = "flex-none text-[12px] text-(--ui-ink-3)";
+/** a lane with no colour: a well behind its cards (v116 board) */
+const WELL = "bg-[color-mix(in_srgb,var(--ui-ink)_4%,transparent)]";
+
+/** a lane's name: a pill in its colour; no colour, a grey caps word (v116 heads) */
+function LaneName({
+  lane,
+  className,
+}: {
+  lane: { label: string; color?: string | undefined };
+  className?: string;
+}) {
+  return lane.color ? (
+    <Pill color={lane.color} className={className}>
+      {lane.label}
+    </Pill>
+  ) : (
+    <span
+      className={cn(
+        "text-[11.5px] font-semibold tracking-[0.04em] text-(--ui-ink-3) uppercase",
+        className,
+      )}
+    >
+      {lane.label}
+    </span>
+  );
+}
 
 function Lane<T>({
   lane,
@@ -484,7 +513,12 @@ function Lane<T>({
           show(e.currentTarget, true);
       }}
       style={{ width: shut ? STRIP_W : LANE_W } as CSSProperties}
-      className="flex h-full flex-none flex-col rounded-(--ui-leaf-panel) transition-[width,background-color,box-shadow] duration-200 ease-(--ui-ease) data-over:bg-[color-mix(in_srgb,var(--ui-active)_8%,transparent)] data-over:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--ui-active)_55%,transparent)] motion-reduce:transition-none"
+      className={cn(
+        // open: ends at its last card, up to the board's height (v116); shut: the whole strip
+        shut ? "h-full" : "max-h-full self-start",
+        "flex flex-none flex-col rounded-(--ui-leaf-panel) transition-[width,background-color,box-shadow] duration-200 ease-(--ui-ease) data-over:bg-[color-mix(in_srgb,var(--ui-active)_8%,transparent)] data-over:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--ui-active)_55%,transparent)] motion-reduce:transition-none",
+        !lane.color && WELL,
+      )}
     >
       {shut ? (
         <button
@@ -499,10 +533,8 @@ function Lane<T>({
           )}
         >
           <Icon name="down" size={15} className="-rotate-90 [stroke-width:1.8]" />
-          <RisingNumber n={lane.cards.length} className={LANE_COUNT} />
-          <Pill color={lane.color} className="[writing-mode:vertical-rl]">
-            {lane.label}
-          </Pill>
+          <RisingNumber n={lane.cards.length} className={lane.color ? LANE_COUNT : QUIET_COUNT} />
+          <LaneName lane={lane} className="whitespace-nowrap [writing-mode:vertical-rl]" />
         </button>
       ) : (
         <>
@@ -513,11 +545,10 @@ function Lane<T>({
             onClick={toggle}
             className="flex w-full flex-none cursor-pointer items-center gap-2.5 rounded-t-(--ui-leaf-panel) border-0 bg-transparent px-2 pt-3 pb-2 text-left text-[13px] text-(--ui-ink-3) select-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--ui-focus)"
           >
-            <Icon name="down" size={15} className="[stroke-width:1.8]" />
-            <Pill color={lane.color} className="min-w-0 shrink">
-              {lane.label}
-            </Pill>
-            <RisingNumber n={lane.cards.length} className={LANE_COUNT} />
+            <Icon name="down" size={15} className="shrink-0 [stroke-width:1.8]" />
+            {/* long names wrap: whole text, no clip */}
+            <LaneName lane={lane} className="min-w-0 shrink [overflow-wrap:anywhere]" />
+            <RisingNumber n={lane.cards.length} className={lane.color ? LANE_COUNT : QUIET_COUNT} />
           </button>
           <div
             ref={setScroll}
@@ -546,10 +577,12 @@ function OneLane<T>({
   held: string | null;
 }) {
   const [picked, setPicked] = useState<string | null>(null);
-  // no pick yet: the first lane with cards, never an empty To Do over a full lane
+  // no pick yet: the open card's lane, else the first lane with cards (never an empty To Do over a full one)
+  const open = p.open.id;
   const lane =
     p.lanes.find((l) => l.key === picked) ??
     p.lanes.find((l) => l.key === held) ??
+    (open ? p.lanes.find((l) => l.cards.some((c) => c.id === open)) : undefined) ??
     p.lanes.find((l) => l.cards.length) ??
     p.lanes[0];
   const [panel, setPanel] = useState<HTMLDivElement | null>(null);
@@ -611,11 +644,13 @@ function OneLane<T>({
               className={cn(CHIP, "relative isolate", on && "text-(--ui-active)")}
             >
               {on ? <TabBar row="board-lanes" /> : null}
-              <span
-                aria-hidden
-                className="size-2 flex-none rounded-full"
-                style={{ background: l.color ?? "var(--ui-ink-3)" }}
-              />
+              {l.color ? (
+                <span
+                  aria-hidden
+                  className="size-2 flex-none rounded-full"
+                  style={{ background: l.color }}
+                />
+              ) : null}
               {l.label}
               <span className="tabular-nums text-(--ui-ink-3)">{l.cards.length}</span>
             </button>
@@ -748,7 +783,12 @@ function MoveMenu<T>({
               <MenuLabel>Move to {p.move?.label}</MenuLabel>
               {p.lanes.map((l) => (
                 <MenuRadioItem key={l.key} value={l.key} label={l.label}>
-                  <Pill color={l.color}>{l.label}</Pill>
+                  {l.color ? <Pill color={l.color}>{l.label}</Pill> : l.label}
+                </MenuRadioItem>
+              ))}
+              {p.move?.more?.map((l) => (
+                <MenuRadioItem key={l.key} value={l.key} label={l.label}>
+                  {l.label}
                 </MenuRadioItem>
               ))}
             </MenuRadioGroup>
@@ -817,7 +857,8 @@ export function Board<T>(p: Omit<BoardProps<T>, "lanes"> & { lanes: BoardLane<T>
       at: performance.now(),
     };
     if (p.narrow) setHeld(m.lane);
-    setSaid(`${m.card.id} moved to ${q.lanes.find((l) => l.key === to)?.label ?? to}`);
+    const named = [...q.lanes, ...(p.move.more ?? [])].find((l) => l.key === to);
+    setSaid(`${m.card.id} moved to ${named?.label ?? to}`);
     p.move.onMove(m.card.item, m.lane, to);
   };
   // a drop is the menu's pick

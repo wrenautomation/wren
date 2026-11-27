@@ -12,9 +12,13 @@ export const GROUP = "status";
 
 const VIEW: ReadonlySet<string> = new Set(VIEW_KEYS);
 
-/** the page at `next`, with the address's non-view keys as they are */
-export function addressOf(params: URLSearchParams, next: AddressView): string {
-  const own = [...params].filter(([k]) => !VIEW.has(k));
+/** the page at `next`, with the address's non-view keys as they are, less `drop` */
+export function addressOf(
+  params: URLSearchParams,
+  next: AddressView,
+  drop: readonly string[] = [],
+): string {
+  const own = [...params].filter(([k]) => !VIEW.has(k) && !drop.includes(k));
   const s = queryText(new URLSearchParams([...own, ...addressOfView(next)]));
   return `${TASKS}${s ? `?${s}` : ""}`;
 }

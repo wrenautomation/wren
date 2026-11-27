@@ -10,6 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "./components/ui/sheet.js";
+import { cx } from "./format.js";
 import { Icon } from "./icons.js";
 import { BottomSheet } from "./phone.js";
 import { usePhone } from "./phone-shell.js";
@@ -31,12 +32,15 @@ export function DetailSheet({
   title,
   about,
   onClose,
+  quick = false,
   children,
 }: {
   /** the sheet's name for screen readers; the body shows its own heading */
   title: string;
   about: string;
   onClose: () => void;
+  /** opened many times a day: a 160 ms fade and an 8 px slide, none under reduced motion */
+  quick?: boolean;
   children: ReactNode;
 }) {
   const phone = usePhone();
@@ -61,7 +65,11 @@ export function DetailSheet({
       <SheetContent
         side="right"
         // DESIGN.md record panel: 560 wide, floats 8 in, sheet radius
-        className="w-full overflow-y-auto data-[side=right]:sm:top-2 data-[side=right]:sm:right-2 data-[side=right]:sm:bottom-2 data-[side=right]:sm:h-auto data-[side=right]:sm:max-w-[560px] data-[side=right]:sm:rounded-(--ui-radius-sheet) data-[side=right]:sm:border"
+        className={cx(
+          quick &&
+            "duration-160 data-[side=right]:data-ending-style:translate-x-[8px] data-[side=right]:data-starting-style:translate-x-[8px] motion-reduce:data-[side=right]:data-ending-style:translate-x-0 motion-reduce:data-[side=right]:data-starting-style:translate-x-0",
+          "w-full overflow-y-auto data-[side=right]:sm:top-2 data-[side=right]:sm:right-2 data-[side=right]:sm:bottom-2 data-[side=right]:sm:h-auto data-[side=right]:sm:max-w-[560px] data-[side=right]:sm:rounded-(--ui-radius-sheet) data-[side=right]:sm:border",
+        )}
       >
         {/* the body's heading shows the title; the close button sits top right */}
         <SheetHeader className="sr-only">

@@ -48,6 +48,7 @@ import {
   DollarSign,
   Download,
   Ellipsis,
+  Equal,
   ExternalLink,
   Eye,
   EyeOff,
@@ -317,6 +318,8 @@ const ICONS = {
   server: Server,
   fit: Maximize,
   minus: Minus,
+  // a task's medium priority (high: arrowUp, low: arrowDown)
+  equal: Equal,
   rss: Rss,
   mobile: Smartphone,
   news: Newspaper,

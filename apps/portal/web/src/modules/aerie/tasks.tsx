@@ -3,7 +3,7 @@
  * filters here, so a filter change reads nothing. `q` asks the server's ranked search for ids.
  */
 
-import { Empty, LoadFailed, Loading, useNarrow, useSeen } from "@wren/ui";
+import { Empty, LoadFailed, Loading, typing, useNarrow, useRoom, useSeen, walkKey } from "@wren/ui";
 import {
   compare,
   matches,
@@ -29,14 +29,19 @@ import {
   useSearch,
 } from "./data.js";
 import { SHUT, shownOrder, TaskList } from "./list.js";
-import { statusesOf } from "./look.js";
+import { actsOf, statusesOf, statusIn } from "./look.js";
 import { isNoActor, NoActor } from "./no-actor.js";
-import { TaskSheet } from "./task.js";
+import { TaskBody, TaskSheet } from "./task.js";
 
 export { TASKS };
 
 const LAYOUTS: readonly ViewLayout[] = ["list", "board", "columns"];
 const NO_TASKS: TaskRow[] = [];
+/** main this wide or wider: the List docks the open task on its right (raycast-light D2) */
+const SPLIT_AT = 800;
+/** parts that keep j k ↑ ↓ for themselves */
+const OWN_KEYS =
+  '[role="dialog"],[role="menu"],[role="listbox"],[role="combobox"],[role="tablist"]';
 
 export function TasksPage({ params }: PageProps) {
   const view = useMemo(() => viewOfAddress(params), [params]);
@@ -45,6 +50,8 @@ export function TasksPage({ params }: PageProps) {
   const search = useSearch(view.text);
   const narrow = useNarrow();
   const open = params.get("task");
+  // main's width, not the window's: the agent panel narrows it. undefined until measured
+  const [measure, room] = useRoom();
   const [washed, setWashed] = useState<ReadonlySet<string>>(new Set());
   // id → version once the mount's first read settles; later reads wash what moved past it
   const held = useRef<Map<string, number> | null>(null);
@@ -147,6 +154,15 @@ export function TasksPage({ params }: PageProps) {
     [shown, group, folded, statuses],
   );
   const taskAt = useCallback((id: string) => href(TASKS, { task: id }, params), [params]);
+  const acts = useMemo(() => {
+    const statusOf = statusIn(rows);
+    return (t: TaskRow) => actsOf(t, statusOf);
+  }, [rows]);
+  const onList = !onBoard && !onColumns;
+  const split = onList && room !== undefined && room >= SPLIT_AT;
+  // a pick replaces the address: the walk is not history
+  const pick = useCallback((id: string) => navigate(taskAt(id), true), [taskAt]);
+  useWalk(split, open, order, pick);
 
   const err = got.error ?? board.error;
   if (isNoActor(err)) return <NoActor error={err} />;
@@ -164,6 +180,7 @@ export function TasksPage({ params }: PageProps) {
     narrow,
     only: view.filter.status,
     statuses,
+    actsOf: acts,
     move,
   });
 
@@ -199,24 +216,54 @@ export function TasksPage({ params }: PageProps) {
       </Empty>
     );
   else if (onBoard) body = <TaskBoard {...boardOf(shown)} />;
-  else
-    body = (
+  else {
+    const list = (
       <TaskList
         tasks={shown}
         group={group}
         open={open}
-        onOpen={(t) => navigate(at(t))}
+        onOpen={(t) => (split ? pick(t.id) : navigate(at(t)))}
         hrefOf={at}
         washed={washed}
         onWashed={() => setWashed(new Set())}
         folded={folded}
         onFold={fold}
         statuses={statuses}
+        narrow={split}
       />
     );
+    body = split ? (
+      // Backlog.md's board on Tab: the list at 40%, the task at 60%
+      <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-start gap-6">
+        {list}
+        <section
+          aria-label="Task"
+          // pb-20: the last line scrolls clear of the agent circle
+          className="sticky top-[calc(var(--phone-bar,0px)+16px)] max-h-[calc(100dvh-var(--phone-bar,0px)-32px)] overflow-y-auto overscroll-contain rounded-(--ui-leaf-panel) bg-(--ui-paper) p-5 pb-20 shadow-(--ui-raise) [scrollbar-width:thin]"
+        >
+          {open ? (
+            <TaskBody
+              key={open}
+              id={open}
+              rows={rows}
+              board={board}
+              hrefOf={taskAt}
+              onWrote={got.retry}
+            />
+          ) : (
+            <p className="m-0 py-10 text-center text-[13.5px] text-(--ui-ink-3)">
+              Pick a task to read it here.
+            </p>
+          )}
+        </section>
+      </div>
+    ) : (
+      list
+    );
+  }
 
   return (
-    <div className="grid min-w-0 gap-3">
+    <div ref={measure} className="grid min-w-0 gap-3">
       <div className="pb-2">
         <AerieBar
           params={params}
@@ -235,7 +282,8 @@ export function TasksPage({ params }: PageProps) {
         />
       </div>
       {body}
-      {open && !onColumns && (
+      {/* the sheet waits for the first measure, so a wide reload never plays it then swaps */}
+      {open && !onColumns && !split && room !== undefined && (
         <TaskSheet
           id={open}
           rows={rows}
@@ -248,4 +296,31 @@ export function TasksPage({ params }: PageProps) {
       )}
     </div>
   );
+}
+
+/**
+ * j k ↑ ↓ on the split List: the pick moves in the List's order. No pick, or a pick filtered out:
+ * ↓ and j take the first row. Typing, a menu or a dialog keep their keys.
+ */
+function useWalk(
+  on: boolean,
+  open: string | null,
+  order: readonly string[],
+  pick: (id: string) => void,
+) {
+  useEffect(() => {
+    if (!on) return;
+    const press = (e: KeyboardEvent) => {
+      if (typing(e) || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof Element && e.target.closest(OWN_KEYS)) return;
+      const step = walkKey(e);
+      if (!step) return;
+      const at = open ? order.indexOf(open) : -1;
+      const next = at < 0 ? (step > 0 ? order[0] : undefined) : order[at + step];
+      e.preventDefault();
+      if (next) pick(next);
+    };
+    window.addEventListener("keydown", press);
+    return () => window.removeEventListener("keydown", press);
+  }, [on, open, order, pick]);
 }

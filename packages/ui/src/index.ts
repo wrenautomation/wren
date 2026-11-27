@@ -509,7 +509,10 @@ export {
   useTypes,
   waitsOn,
 } from "./records.js";
+// a page that docks a record beside its own list (Aerie Tasks)
+export { useRoom } from "./records-columns.js";
 export { type LocalRecords, localRecords } from "./records-local.js";
+export { typing, walkKey } from "./records-types.js";
 export { RowActions, rowActsOf } from "./row-acts.js";
 export {
   Age,

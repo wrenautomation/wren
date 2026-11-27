@@ -102,6 +102,7 @@ export function TaskList({
   folded,
   onFold,
   statuses,
+  narrow: docked = false,
 }: {
   tasks: TaskRow[];
   /** a `FIELDS` key that groups; none: one run */
@@ -116,8 +117,11 @@ export function TaskList({
   /** shut folds (`group:key`); the page holds them, so ↑ ↓ skip what is shut */
   folded: ReadonlySet<string>;
   onFold: (key: string) => void;
+  /** docked beside the open task: the phone's sub-line, whatever the window */
+  narrow?: boolean;
 }) {
-  const narrow = useNarrow();
+  const phone = useNarrow();
+  const narrow = phone || docked;
   // the group's field shows on its fold; the phone's one column is the next that says most
   const columns = COLUMNS.filter((c) => c.key !== group).map((c, i) =>
     i === 0 ? { ...c, phone: true } : c,
@@ -133,7 +137,6 @@ export function TaskList({
         kind: "group",
         key: at,
         label: groupLabel(group, g.key),
-        color: group === "status" && g.key ? statusColor(g.key) : undefined,
       });
     for (const row of g.tasks) {
       // key = id (`open` matches it); a repeat in a second group (two labels) gets the group
@@ -145,6 +148,8 @@ export function TaskList({
   return (
     <PageRows<TaskRow>
       cards
+      // docked: the phone's one column at any width; else the window decides
+      narrow={docked}
       label="tasks"
       noun="task"
       columns={columns}

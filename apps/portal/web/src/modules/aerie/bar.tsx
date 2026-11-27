@@ -805,7 +805,8 @@ export function AerieBar({
             (l): Segment => ({
               id: l,
               label: LAYOUT_LABEL[l],
-              href: addressOf(params, { ...view, layout: l }),
+              // a pick does not cross layouts: on Board it would open the sheet
+              href: addressOf(params, { ...view, layout: l }, ["task"]),
               on: view.layout === l,
             }),
           )}

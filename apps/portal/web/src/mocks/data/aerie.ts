@@ -76,7 +76,8 @@ export const AERIE_TASKS: Row[] = [
       priority: "medium",
       summary:
         "A worst-case title: one word longer than any row is wide, then a summary sentence that runs long on purpose so the row has to wrap it whole, never clip it with an ellipsis.",
-      labels: ["repo:site", "worst-case"],
+      // who acts by label (redesign D4); the label itself never shows
+      labels: ["repo:site", "worst-case", "acts:with-you"],
       type: "bug",
     },
   ),
@@ -98,6 +99,7 @@ export const AERIE_TASKS: Row[] = [
   row("EX-107", "Try a second subject line on the follow-up", "Parked", "growth/email", {
     priority: "medium",
     summary: "Parked until the first test reads out.",
+    labels: ["acts:agent"],
     days: 8,
   }),
   row("EX-108", "Fix the broken link in the footer", "In Progress", "dev/site", {

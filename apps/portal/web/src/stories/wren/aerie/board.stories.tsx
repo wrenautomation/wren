@@ -1,4 +1,4 @@
-/** Aerie › Board: lanes by status (or the group), Done shut, a lane strip on a phone. Fake server: `web/src/mocks/`. */
+/** Aerie › Board: lanes by status (or the group), no Done lane unless the filter names it, a lane strip on a phone. Fake server: `web/src/mocks/`. */
 import type { Meta } from "@storybook/react-vite";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { refuse } from "../../../mocks/api.js";
@@ -11,6 +11,8 @@ export default meta;
 
 const WAIT = { timeout: 5000 };
 const BOARD = "/aerie/tasks?layout=board";
+/** the filter names Done: its lane draws, shut */
+const WITH_DONE = `${BOARD}&status=To+Do&status=Done`;
 /** the kit's narrow query: a phone shows one lane, picked from the strip */
 const narrow = () => matchMedia("(max-width: 899.98px)").matches;
 
@@ -40,21 +42,34 @@ function scrollToEnd(el: Element) {
   window.scrollTo(0, document.documentElement.scrollHeight);
 }
 
-/** Lanes in board order, each with its count; Done starts shut and opens on a click. */
+/** Lanes in board order, each with its count; no Done lane (redesign D4). Who acts sits on the card. */
 export const Typical = tidy(
   pageAt(BOARD, {
     me: ADMIN,
     check: async (page) => {
       const todo = await lane(page, "To Do");
       await expect(await todo.findByText("Write the weekly numbers note", {}, WAIT)).toBeVisible();
+      // writes off: no Move button
+      await expect(within(page).queryByRole("button", { name: /^Move EX-/ })).toBeNull();
+      await expect(page.querySelector('[data-lane="status:Done"]')).toBeNull();
+      await expect(within(page).queryByText("Closed piece of work number 1")).toBeNull();
+      // the acts label says who acts; it never shows as a label
+      await expect(within(page).queryByText("acts:with-you")).toBeNull();
+    },
+  }),
+);
+
+/** The filter names Done: its lane draws shut and opens on a click. */
+export const DoneNamed = tidy(
+  pageAt(WITH_DONE, {
+    me: ADMIN,
+    check: async (page) => {
       if (!narrow()) {
-        const done = within(page).getByRole("button", { name: /^Done/ });
+        const done = await within(page).findByRole("button", { name: /^Done/ }, WAIT);
         await expect(done).toHaveAttribute("aria-expanded", "false");
         await expect(within(page).queryByText("Closed piece of work number 1")).toBeNull();
         await userEvent.click(done);
       }
-      // writes off: no Move button
-      await expect(within(page).queryByRole("button", { name: /^Move EX-/ })).toBeNull();
       const opened = await lane(page, "Done");
       await expect(
         await opened.findByText("Closed piece of work number 1", {}, WAIT),
@@ -83,7 +98,7 @@ export const EmptyLane = tidy(
       if (narrow()) {
         // a phone opens on the first lane with cards, its tab whole in the strip
         const on = await within(page).findByRole("tab", { selected: true }, WAIT);
-        await expect(on).toHaveAccessibleName(/^Needs Human Input,/);
+        await expect(on).toHaveAccessibleName(/^Needs you,/);
         const strip = on.parentElement as HTMLElement;
         await waitFor(() =>
           expect(on.getBoundingClientRect().right).toBeLessThanOrEqual(
@@ -148,7 +163,7 @@ export const OpenWalks = tidy(
 const MANY = manyTasks(800);
 
 export const ManyCards = tidy(
-  pageAt(BOARD, {
+  pageAt(`${BOARD}&status=Done`, {
     me: ADMIN,
     answers: {
       "aerie/tasks": (b: Record<string, unknown>) =>
@@ -248,7 +263,7 @@ export const MoveEscape = tidy(
 
 /** Wide: a move into the shut Done lane puts focus on its strip; the count follows. */
 export const MoveToShut = tidy(
-  pageAt(BOARD, {
+  pageAt(WITH_DONE, {
     me: ADMIN,
     answers: WRITES,
     check: async (page) => {
@@ -257,6 +272,26 @@ export const MoveToShut = tidy(
       await move(page, "To Do", "EX-104", "Done");
       await waitFor(() => expect(strip).toHaveAccessibleName("Done, 25"), WAIT);
       await waitFor(() => expect(document.activeElement).toBe(strip), WAIT);
+    },
+  }),
+);
+
+/** Done has no lane: Move still offers it; the card leaves the view, focus takes the next card. */
+export const MoveToDone = tidy(
+  pageAt(BOARD, {
+    me: ADMIN,
+    answers: WRITES,
+    check: async (page) => {
+      await move(page, "To Do", "EX-104", "Done");
+      await waitFor(() => expect(cardIn(page, "status:To Do", "EX-104")).toBeNull(), WAIT);
+      await expect(page.querySelector('[data-lane="status:Done"]')).toBeNull();
+      await waitFor(
+        () =>
+          expect(screen.getAllByRole("status").map((e) => e.textContent)).toContain(
+            "EX-104 moved to Done",
+          ),
+        WAIT,
+      );
     },
   }),
 );
@@ -425,7 +460,7 @@ export const Drag = tidy(
 
 /** A drop on a shut lane moves the card there; the strip stays shut and takes focus. */
 export const DragToShut = tidy(
-  pageAt(BOARD, {
+  pageAt(WITH_DONE, {
     me: ADMIN,
     answers: WRITES,
     check: async (page) => {

@@ -32,7 +32,18 @@ import {
   type TaskWhole,
   useTask,
 } from "./data.js";
-import { eventSays, peopleOf, priorityColor, statusColor, statusesOf, who } from "./look.js";
+import {
+  type Acts,
+  actsOf,
+  eventSays,
+  isActsLabel,
+  peopleOf,
+  priorityColor,
+  statusColor,
+  statusesOf,
+  statusIn,
+  who,
+} from "./look.js";
 
 type Whole = TaskWhole["task"];
 type TaskEvent = TaskWhole["events"][number];
@@ -75,6 +86,7 @@ export function TaskSheet(p: TaskSheetProps) {
       title={p.rows.find((r) => r.id === p.id)?.title ?? p.id}
       about="The task whole: its fields, checks, people and history."
       onClose={p.onClose}
+      quick
     >
       <TaskBody key={p.id} {...p} />
     </DetailSheet>
@@ -161,6 +173,7 @@ export function TaskBody({ id, rows, board, hrefOf, onWrote, bare = false }: Tas
           onPick={pick}
           bare={bare}
           statuses={statusesOf(board.data)}
+          acts={actsOf(head as TaskRow, statusIn(rows))}
         />
       ) : (
         <HeadSkeleton />
@@ -214,9 +227,11 @@ function TaskHead({
   onPick,
   bare,
   statuses,
+  acts,
 }: {
   bare: boolean;
   task: Head;
+  acts: Acts | null;
   statuses: readonly string[];
   writes: boolean;
   busy: boolean;
@@ -279,6 +294,7 @@ function TaskHead({
           {task.area}
         </span>
         {task.type && <span>{task.type}</span>}
+        {acts && <span>Who acts: {acts === "Waiting" ? "waiting on a task" : acts}</span>}
         <span>Updated {dayLabel(task.updatedAt ?? task.createdAt)}</span>
       </span>
       {people.length > 0 && (
@@ -401,7 +417,8 @@ function TaskParts({
   const facts = (
     [
       ["Milestone", milestone],
-      ["Labels", task.labels.length ? task.labels.join(", ") : null],
+      // acts:* shows as "Who acts" in the head
+      ["Labels", task.labels.filter((l) => !isActsLabel(l)).join(", ") || null],
       ["Also in", task.aliases.length ? task.aliases.join(", ") : null],
       [
         "Created",
@@ -510,7 +527,7 @@ function TaskLinks({
       {ids.map((id) => (
         <li key={id}>
           <a href={hrefOf(id)} className="wrap-anywhere">
-            <code className="text-[12.5px]">{id}</code>
+            <span className="text-[12.5px] text-(--ui-ink-3)">{id}</span>
             {titleOf(id) ? ` ${titleOf(id)}` : ""}
           </a>
         </li>

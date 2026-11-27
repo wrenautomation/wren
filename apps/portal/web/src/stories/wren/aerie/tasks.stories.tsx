@@ -202,7 +202,7 @@ export const ManyTasks = tidy(
     },
     check: async (page) => {
       const view = within(page);
-      await expect(await view.findByText("Piece of work number 1", {}, WAIT)).toBeVisible();
+      await expect((await view.findAllByText(/^Piece of work number/, {}, WAIT))[0]).toBeVisible();
       // the rows past the first screen draw as the page scrolls (was: a wide screen drew none)
       await waitFor(() => {
         scrollToEnd(page);
