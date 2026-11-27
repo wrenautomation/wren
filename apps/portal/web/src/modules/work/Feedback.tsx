@@ -5,7 +5,6 @@
  */
 import { GOOGLE_REVIEW_URL, PULSE_WORDS, REVIEW_WORDS } from "@wren/delivery/routes";
 import {
-  avatarOf,
   Button,
   Callout,
   Section,
@@ -305,7 +304,6 @@ function Reviews({ moments }: { moments: MomentView[] }) {
           icon: "user",
           min: 240,
           title: (r) => r.review.email,
-          avatar: (r) => avatarOf(r.review.email),
           sub: (r) =>
             r.review.words ? (
               <span className={`${QUIET} wrap-anywhere whitespace-normal text-[12.5px]`}>

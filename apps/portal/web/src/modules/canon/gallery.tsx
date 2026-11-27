@@ -149,7 +149,7 @@ export function clock(seconds: number): string {
 
 /**
  * A gallery tile (D10): one frame, no wash. A hot post outlines its frame and inks its multiple;
- * hover zooms the picture. `rank` and `length` sit in the frame's corners (YouTube's duration chip);
+ * hover zooms the picture. `canon` and `length` sit in the frame's corners (YouTube's duration chip);
  * `note` is one line under the counts; `cover` lies over the whole tile (select mode).
  */
 export function Tile({
@@ -158,7 +158,6 @@ export function Tile({
   open,
   inGroup = false,
   reach = false,
-  rank,
   length,
   note,
   cover,
@@ -172,8 +171,6 @@ export function Tile({
   inGroup?: boolean;
   /** sorted by views per follower: show it */
   reach?: boolean;
-  /** a pick's place, best first */
-  rank?: number | undefined;
   /** a video's length in seconds; else the post's own */
   length?: number | undefined;
   note?: ReactNode;
@@ -195,7 +192,7 @@ export function Tile({
   const counts: CountKey[] = dense
     ? [r.scoreCount ? metricOf(r) : r.counts.views != null ? "views" : "likes"]
     : ["views", "likes", "comments"];
-  const corner = rank != null || canon;
+  const corner = !!canon;
   const secs = length ?? r.seconds;
   return (
     <article
@@ -235,12 +232,6 @@ export function Tile({
         {clip.src ? <HoverClip src={clip.src} live={clip.live} /> : null}
         {corner ? (
           <span className="absolute top-2 left-2 flex items-center gap-1.5">
-            {rank != null ? (
-              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-(--ui-ink) px-1.5 text-[12.5px] font-semibold text-(--ui-paper) tabular-nums">
-                <span className="sr-only">Rank </span>
-                {rank}
-              </span>
-            ) : null}
             {canon ? (
               // paper under the tint: it sits on a picture
               <span className="rounded-(--ui-leaf-chip) bg-(--ui-paper)">

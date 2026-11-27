@@ -643,7 +643,10 @@ function References({
 }) {
   const list = view.brief.readList;
   const pages = useMemo(() => boardPages(view), [view]);
-  const picks = (list ?? []).flatMap((p) => pages.get(p.id) ?? []);
+  // best first: the order is the rank (no badge, L5.4); unranked last
+  const picks = [...(list ?? [])]
+    .sort((a, b) => (a.rank ?? Number.POSITIVE_INFINITY) - (b.rank ?? Number.POSITIVE_INFINITY))
+    .flatMap((p) => pages.get(p.id) ?? []);
   const rest = useMemo(() => [...pages.values()].filter((x) => !x.pick), [pages]);
   const openId = card?.startsWith("d:") ? card.slice(2) : null;
   const opened = openId ? (pages.get(openId) ?? null) : undefined;
@@ -671,7 +674,6 @@ function References({
                     r={r}
                     canon={null}
                     open={link({ open: `d:${p.id}` })}
-                    rank={p.rank}
                     length={lengthOf(d)}
                     note={copyOf(p.why)}
                     // a score comes only from the agent's follow reads, never on its own

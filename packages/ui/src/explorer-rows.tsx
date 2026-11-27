@@ -125,6 +125,30 @@ export const AliasMark = () => (
   />
 );
 
+/** a name ending in ↗: the last word and the mark stay on one line; a word too long to fit wraps as before */
+function NameWithMark({ text, q }: { text: string; q?: string | undefined }) {
+  const cut = text.lastIndexOf(" ") + 1;
+  const tail = text.slice(cut);
+  const at = q ? text.toLowerCase().indexOf(q.toLowerCase()) : -1;
+  // a hit across the cut would split its mark
+  if (tail.length > 24 || (q && at >= 0 && at < cut && at + q.length > cut))
+    return (
+      <>
+        <Hit text={text} q={q} />
+        <AliasMark />
+      </>
+    );
+  return (
+    <>
+      <Hit text={text.slice(0, cut)} q={q} />
+      <span className="whitespace-nowrap">
+        <Hit text={tail} q={q} />
+        <AliasMark />
+      </span>
+    </>
+  );
+}
+
 /** A row's mark on the name's line: a toned one is a tag; a neutral one, quiet words. */
 export const markAfter = (mark: { label: string; tone?: TagTone } | undefined) =>
   !mark ? null : mark.tone && mark.tone !== "neutral" ? (
@@ -177,8 +201,7 @@ export function Row({
       <Icon name={iconOf(i.kind)} size={15} className="mt-[2px] text-(--ui-ink-3)" />
       <span className="flex min-w-0 flex-col gap-0.5">
         <span dir="auto" className="text-[13.5px]/[1.4] font-medium wrap-anywhere">
-          <Hit text={i.name} q={hit} />
-          {alias ? <AliasMark /> : null}
+          {alias ? <NameWithMark text={i.name} q={hit} /> : <Hit text={i.name} q={hit} />}
           {markAfter(mark)}
         </span>
         {/* the edge first: where it lives, then what it is */}
@@ -367,8 +390,7 @@ export function Preview({
           dir="auto"
           className="m-0 text-[19px]/[1.3] font-semibold text-(--ui-ink) wrap-anywhere"
         >
-          {whole.name}
-          {alias ? <AliasMark /> : null}
+          {alias ? <NameWithMark text={whole.name} /> : whole.name}
         </h2>
         {sub ? (
           <p dir="auto" className="m-0 text-[13px]/[1.45] text-(--ui-ink) wrap-anywhere">

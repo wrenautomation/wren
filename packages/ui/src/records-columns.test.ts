@@ -101,7 +101,7 @@ describe("fitOf", () => {
     expect(fitOf(note, [{ id: 1, note: "x".repeat(80) }])).toBe(280);
     expect(fitOf(note, [])).toBe(widthOf(note));
   });
-  it("sizes a firm by its name, and a state by its label and dot", () => {
+  it("sizes a firm by its name, and a state by its label", () => {
     const firm = field("company", "company");
     const firms = [{ id: 1, company: { name: "Northwind Dental Partners", domain: null } }];
     // 25 characters at 7.2px and the padding: wider than the 144px preset, so never cut.
@@ -110,7 +110,8 @@ describe("fitOf", () => {
       ...field("status", "status"),
       states: { upcoming: { label: "Upcoming", tone: "warn" } },
     } as FieldMeta;
-    expect(fitOf(status, [{ id: 1, status: "upcoming" }])).toBeGreaterThanOrEqual(10 * 7.2 + 24);
+    // "Upcoming" and the padding: no dot since L5.4
+    expect(fitOf(status, [{ id: 1, status: "upcoming" }])).toBeGreaterThanOrEqual(8 * 7.2 + 24);
   });
   it("leaves a choice room for its platform mark", () => {
     const site = {
@@ -198,7 +199,7 @@ describe("widthsOf", () => {
     const w = widthsOf(calls, [who, firm, status], rows);
     expect(w.who).toBeUndefined();
     expect(w.company).toBeGreaterThanOrEqual(17 * 7.2 + 24);
-    expect(w.status).toBeGreaterThanOrEqual(10 * 7.2 + 24);
+    expect(w.status).toBeGreaterThanOrEqual(8 * 7.2 + 24);
     // A state's column fits the widest label it may show, so no state is ever cut.
     expect(w.status).toBeLessThanOrEqual(widthOf(status));
   });
@@ -267,8 +268,8 @@ describe("widthsOf in a room", () => {
     const who = { ...field("who", "name"), label: "Who" };
     const people = { ...meta, title: "who", fields: [who, note] };
     const rows = [{ id: 1, who: "Maximiliana Featherstonehaugh-Montgomery", note: "x" }];
-    // "Featherstonehaugh-" at the title's 7.6px, the avatar and the padding.
-    expect(titleLeast(people, rows)).toBeGreaterThanOrEqual(Math.ceil(18 * 7.6) + 24 + 30);
+    // "Featherstonehaugh-" at the title's 7.6px and the padding (no avatar since L5.4).
+    expect(titleLeast(people, rows)).toBeGreaterThanOrEqual(Math.ceil(18 * 7.6) + 24);
     expect(titleLeast(people, [{ id: 1, who: "Bo Fenwick", note: "x" }])).toBe(160);
   });
 });

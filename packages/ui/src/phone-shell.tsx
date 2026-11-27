@@ -350,7 +350,8 @@ export function PhoneTop({
     };
   }, []);
   const slot = useRef<HTMLSpanElement>(null);
-  const fits = useFits(slot);
+  const said = useRef<HTMLSpanElement>(null);
+  const fits = useFits(slot, said);
   const { title: keep } = walk;
   useEffect(() => {
     if (title) keep(title);
@@ -364,7 +365,7 @@ export function PhoneTop({
       ref={bar}
       className="sticky top-0 z-20 hidden border-b border-(--ui-hair) bg-[color-mix(in_srgb,var(--ui-canvas)_86%,transparent)] backdrop-blur-[14px] backdrop-saturate-[1.6] pt-[env(safe-area-inset-top)] max-[900px]:block"
     >
-      <div className="grid min-h-12 grid-cols-[minmax(min-content,1fr)_minmax(0,auto)_minmax(max-content,1fr)] items-center gap-2 px-2">
+      <div className="relative grid min-h-12 grid-cols-[minmax(min-content,max-content)_minmax(0,1fr)_max-content] items-center gap-2 px-2">
         <div className="flex min-w-0 items-center">
           {back ? (
             <a
@@ -394,21 +395,22 @@ export function PhoneTop({
             </a>
           )}
         </div>
-        {/* out of flow: the bar keeps one height whatever the title's length */}
-        <span ref={slot} className="relative block h-11 w-[44vw]">
-          <span
-            className="absolute inset-x-0 top-1/2 -translate-y-1/2 wrap-anywhere whitespace-normal text-center text-[16px] leading-5 font-semibold transition-opacity duration-200 ease-(--ui-ease)"
-            style={{ opacity: under && title && fits ? 1 : 0 }}
-            aria-hidden={!under || !fits}
-          >
-            {title}
-          </span>
-        </span>
+        {/* the room between the sides; the app name keeps its line (audit R8.5) */}
+        <span ref={slot} className="block h-11 min-w-0" />
         <div className="flex min-w-0 items-center justify-end gap-1">
           {app.action}
           {pins ? <PinButton pinned={pins.here} onToggle={pins.onToggle} compact /> : null}
           {agent ? <PanelButton {...agent} compact /> : null}
         </div>
+        {/* out of flow, centred on the screen: the bar keeps one height whatever the title's length */}
+        <span
+          ref={said}
+          className="pointer-events-none absolute top-1/2 left-1/2 w-max max-w-[44vw] -translate-x-1/2 -translate-y-1/2 wrap-anywhere whitespace-normal text-center text-[16px] leading-5 font-semibold transition-opacity duration-200 ease-(--ui-ease)"
+          style={{ opacity: under && title && fits ? 1 : 0 }}
+          aria-hidden={!under || !fits}
+        >
+          {title}
+        </span>
       </div>
       {headed(group) && group ? (
         <Segmented
@@ -427,21 +429,25 @@ export function PhoneTop({
   );
 }
 
-/** The title fits the bar whole (two lines); else it stays hidden: the page heading shows it whole, never cut. */
-function useFits(slot: RefObject<HTMLSpanElement | null>) {
+/** The title fits the room between the sides whole (two lines); else it stays hidden: the page heading shows it whole, never cut. */
+function useFits(slot: RefObject<HTMLSpanElement | null>, said: RefObject<HTMLSpanElement | null>) {
   const [fits, setFits] = useState(true);
   useLayoutEffect(() => {
     const box = slot.current;
-    const text = box?.firstElementChild as HTMLElement | null | undefined;
+    const text = said.current;
     if (!box || !text) return;
-    const check = () => setFits(text.offsetHeight <= box.clientHeight);
+    const check = () => {
+      const room = box.getBoundingClientRect();
+      const it = text.getBoundingClientRect();
+      setFits(it.height <= room.height && it.left >= room.left && it.right <= room.right);
+    };
     check();
     if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(check);
     ro.observe(box);
     ro.observe(text);
     return () => ro.disconnect();
-  }, [slot]);
+  }, [slot, said]);
   return fits;
 }
 

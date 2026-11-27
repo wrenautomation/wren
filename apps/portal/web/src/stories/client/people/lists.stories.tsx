@@ -17,7 +17,7 @@ const peekOf = () =>
 
 export const Default = pageAt("/people");
 
-/** The list: a person's name with an avatar, their stage as its square, their last touch as an age. */
+/** The list: a person's name, their stage as its square, their last touch as an age. */
 export const List = tidy(
   pageAt("/people/people", {
     check: async (page) => {

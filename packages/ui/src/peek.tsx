@@ -9,7 +9,6 @@ import { cn } from "cn";
 import type { ReactNode } from "react";
 import { Loading } from "./feedback.js";
 import { dateOf, dateTip, relative } from "./fields.js";
-import { Avatar } from "./rows.js";
 
 /** A page's peek: the properties it shows, by field key. Left out, the list's columns. */
 export interface PeekSpec {
@@ -26,27 +25,19 @@ export interface PeekLine {
   text: string;
 }
 
-/** The record's avatar and title: the head of the panel, the top of a sheet. */
-export function PeekTitle({
-  avatar,
-  title,
-  className,
-}: {
-  avatar: string | null;
-  title: string;
-  className?: string | undefined;
-}) {
+/** The record's title: the head of the panel, the top of a sheet. */
+export function PeekTitle({ title, className }: { title: string; className?: string | undefined }) {
   return (
-    // a long name wraps down from the avatar's top; one line sits on its centre (min-h-8 = lg avatar)
-    <div className={cn("flex min-w-0 items-start gap-2.5", className)}>
-      {avatar ? <Avatar initials={avatar} lg /> : null}
-      <h2
-        dir="auto"
-        className="m-0 flex min-h-8 min-w-0 flex-1 items-center wrap-anywhere whitespace-normal text-[17px] font-semibold"
-      >
-        {title}
-      </h2>
-    </div>
+    <h2
+      dir="auto"
+      className={cn(
+        // min-h-8: one line centres on the head buttons
+        "m-0 flex min-h-8 min-w-0 items-center wrap-anywhere whitespace-normal text-[17px] font-semibold",
+        className,
+      )}
+    >
+      {title}
+    </h2>
   );
 }
 

@@ -516,7 +516,6 @@ export { typing, walkKey } from "./records-types.js";
 export { RowActions, rowActsOf } from "./row-acts.js";
 export {
   Age,
-  avatarOf,
   drawnOf,
   KIND_ICON,
   Pill,

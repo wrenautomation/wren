@@ -259,7 +259,7 @@ const HEAD = 12.5 / 14;
 const headExtra = (sorted: boolean) => 3 + (sorted ? 2.3 : 0);
 
 /** A title's words read heavier: 7.6px a character. */
-const titlePx = (chars: number, mark: number) => Math.ceil(chars * 7.6) + 24 + mark;
+const titlePx = (chars: number) => Math.ceil(chars * 7.6) + 24;
 
 /** The least a list's title keeps, so what the row is stays readable. */
 const TITLE_LEAST = 160;
@@ -327,14 +327,12 @@ function spanOf(f: FieldMeta, rows: Row[], total: Total | undefined, sorted: boo
 
 function titleSpan(meta: RecordMeta, f: FieldMeta, rows: Row[], sorted: boolean): Span {
   const head = headSpan(f.label, sorted);
-  // A person's initials sit in an avatar before the name (22px and its gap).
-  const mark = f.kind === "name" ? 30 : 0;
   let least = Math.max(TITLE_LEAST, head.least);
   let need = least;
   for (const r of rows) {
     const t = titleOf(meta, r);
-    need = Math.max(need, titlePx(lenOf(t), mark));
-    least = Math.max(least, titlePx(longestWord(t), mark));
+    need = Math.max(need, titlePx(lenOf(t)));
+    least = Math.max(least, titlePx(longestWord(t)));
   }
   least = Math.min(least, TITLE_WANT);
   // A title with a message under it (a DM, a comment) wants the room: the message is what the row is.
@@ -521,6 +519,7 @@ export function shownColumns(
   const tells = (f: FieldMeta) => new Set(rows.map((r) => String(r[f.key] ?? ""))).size > 1;
   const states = filled.filter((f) => f.key !== meta.title && f.kind === "status");
   const state = states.find(tells) ?? states[0];
+  const money = filled.find((f) => f.key !== meta.title && f.kind === "money");
   // A phone row: the title, the state, then the next fields, up to three; a state the same on every
   // row says nothing.
   // The wait a page watches comes first after its state, then the account a row is on: on a phone
@@ -533,7 +532,13 @@ export function shownColumns(
         Number(b.key === meta.account) - Number(a.key === meta.account),
     );
   const lead = filled.filter((f) => f.key === meta.title);
-  return [...lead, ...(state ? [state] : []), ...rest].slice(0, lead.length + NARROW_FIELDS);
+  const head = money && wait == null ? [money] : [];
+  return [
+    ...lead,
+    ...head,
+    ...(state ? [state] : []),
+    ...rest.filter((f) => !head.includes(f)),
+  ].slice(0, lead.length + NARROW_FIELDS);
 }
 
 /** How many fields a phone row shows under its title. */

@@ -19,7 +19,7 @@ import { useLoad } from "./data/query.js";
 import { Empty, LoadFailed } from "./feedback.js";
 import { Cue, cueOf, FieldCell, FieldTotal, totalSays, widthOf } from "./fields.js";
 import { FoldPreview, foldOf } from "./fold.js";
-import { initials, num } from "./format.js";
+import { num } from "./format.js";
 import { showKeys, usePageKeys } from "./frame.js";
 import { tipProps } from "./hint.js";
 import { Icon } from "./icons.js";
@@ -654,8 +654,6 @@ function List({
     title: (r) => titleOf(meta, r),
     href: (r) => place.link({ [meta.name.one]: String(r.id), tab: null }),
     weight: (r) => TITLE_WEIGHT[String(waits(r))] ?? "",
-    // A person's name shows as initials in a round avatar.
-    avatar: titleField?.kind === "name" ? (r) => initials(titleOf(meta, r)) || null : undefined,
     sub:
       preview || meta.fold
         ? (r) => {
@@ -689,6 +687,8 @@ function List({
           }
         : undefined,
   };
+  // on a money list the amount is the row's point (audit R8.1)
+  const lead = beside ?? cols.find((f) => f.kind === "money" && f.key !== meta.title)?.key;
   const columnsFor = cols
     .filter((f) => f.key !== meta.title)
     .map<RowsColumn<Row>>((f, i) => ({
@@ -701,8 +701,8 @@ function List({
       sort: <SortHead field={f} place={place} sort={sort} dir={table.sorted(f.key)} />,
       // When it happened reads quieter than what it is; a watched wait draws as its own.
       quiet: f.kind === "date" && f.key !== late?.field,
-      // A phone's row shows one beside the name: the watched wait, else the first of them.
-      phone: beside ? f.key === beside : i === 0,
+      // A phone's row shows one beside the name: the watched wait, else the amount, else the first.
+      phone: lead ? f.key === lead : i === 0,
       total: footed ? <FieldTotal field={f} total={totals?.[f.key]} to={place.link} /> : undefined,
       cell: (r) => {
         const w = f.key === late?.field ? waitOf(r) : null;

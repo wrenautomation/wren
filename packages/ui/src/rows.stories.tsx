@@ -4,7 +4,6 @@ import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { type Action, Toasts } from "./action.js";
 import { LEAD_META, LEAD_NEEDS, useRecordsDemo } from "./fixtures/records.js";
-import { initials } from "./format.js";
 import { useNarrow } from "./list-bar.js";
 import { lineColor } from "./marks.js";
 import { RecordList } from "./records.js";
@@ -126,7 +125,6 @@ function Host({
             icon: "user",
             title: (p) => p.name,
             href: page ? (p) => `#${p.id}` : undefined,
-            avatar: (p) => initials(p.name) || null,
           }}
           lines={lines}
           pick={{
@@ -178,7 +176,7 @@ function Host({
 
 const isWide = (canvasElement: HTMLElement) => !!within(canvasElement).queryByRole("table");
 
-/** People in rows: a gutter box, an avatar and name, two properties, one quiet action, a count. */
+/** People in rows: a gutter box, a name, two properties, one quiet action, a count. */
 export const Default: Story = {
   render: () => <Host />,
   // On a phone: the name, one property and the action; the wide row has the rest.

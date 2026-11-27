@@ -33,7 +33,6 @@ import {
   words,
 } from "./records-types.js";
 import { RowActions } from "./row-acts.js";
-import { avatarOf } from "./rows.js";
 import { Sweep } from "./sweep.js";
 
 export function Kbd({ children }: { children: ReactNode }) {
@@ -121,8 +120,6 @@ export function Panel({
   const row = peek ? (read?.row ?? listRow ?? null) : null;
   // a row with no title still gets a heading: the panel is named, never blank
   const title = row ? titleOf(meta, row) || `Untitled ${meta.name.one}` : "";
-  const named = meta.fields.find((f) => f.key === meta.title)?.kind === "name";
-  const avatar = named ? avatarOf(title) : null;
   const body = peek ? (
     <PeekContent
       key={id}
@@ -208,7 +205,7 @@ export function Panel({
           </div>
         }
       >
-        {peek && row ? <PeekTitle avatar={avatar} title={title} className="mb-3" /> : null}
+        {peek && row ? <PeekTitle title={title} className="mb-3" /> : null}
         {body}
       </BottomSheet>
     );
@@ -236,11 +233,7 @@ export function Panel({
         // The name on one line beside the actions, else the actions drop under it (the name's
         // basis is its own width), so a long name never shrinks to a word a line.
         <div className="flex shrink-0 flex-wrap items-start justify-end gap-x-2.5 gap-y-2 px-[18px] pt-4">
-          {row ? (
-            <PeekTitle avatar={avatar} title={title} className="grow" />
-          ) : (
-            <span className="grow" />
-          )}
+          {row ? <PeekTitle title={title} className="grow" /> : <span className="grow" />}
           <div className="flex flex-none items-center gap-2.5">
             {row ? (
               <PeekActs

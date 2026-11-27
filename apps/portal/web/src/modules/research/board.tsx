@@ -160,11 +160,7 @@ export function Thumb({ p, open, className }: { p: BoardPage; open: string; clas
           <Where platform={p.r.platform} />
         </span>
       )}
-      {rank != null ? (
-        <span className="absolute top-1 left-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-(--ui-ink) px-1 text-[11.5px] font-semibold text-(--ui-paper) tabular-nums">
-          {rank}
-        </span>
-      ) : null}
+      {/* no rank circle on the picture (L5.4): the rank is read out */}
       <span className="sr-only">
         Open {rank != null ? `pick ${rank}: ` : ""}
         {name}

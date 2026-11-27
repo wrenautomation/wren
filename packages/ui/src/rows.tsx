@@ -2,8 +2,8 @@
  * One rows part for every list (designs/2026-10-21-crm-rows-everywhere.md): the design language's
  * Inbox F2, F3 and F4 in one. No column lines and no row lines: one hairline under the head, and
  * rows told apart by their height, the hover wash and the open tint, each a leaf-cornered band. A
- * glyph before each label; a gutter box that shows on hover; a name with its avatar and an Open
- * chip, over a message's first words with a large avatar (F4); one quiet icon at the row's end; a
+ * glyph before each label; a gutter box that shows on hover; a name and an Open chip, over a
+ * message's first words (F4; no avatars, L5.4); one quiet icon at the row's end; a
  * count foot. A group is a fold (F2); a click opens the peek beside the list (F3). A phone draws
  * the same rows as a name, one property and the quiet icon, and swipes.
  *
@@ -24,7 +24,7 @@ import {
   useState,
 } from "react";
 import { Tag } from "./controls.js";
-import { initials, waited } from "./format.js";
+import { waited } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
 import { useNarrow } from "./list-bar.js";
 import { lineColor, StageSquare, tintColor } from "./marks.js";
@@ -198,9 +198,7 @@ export interface RowsName<T> {
   href?: ((row: T) => string | null) | undefined;
   /** The title's weight and ink. */
   weight?: ((row: T) => string) | undefined;
-  /** Initials in a round avatar. */
-  avatar?: ((row: T) => string | null) | undefined;
-  /** A platform or kind mark before the title (an avatar wins). */
+  /** A platform or kind mark before the title. */
   mark?: ((row: T) => ReactNode) | undefined;
   /** Under the title: a message's first words. */
   sub?: ((row: T) => ReactNode) | undefined;
@@ -470,22 +468,7 @@ function GroupFold({
   );
 }
 
-/** A person's initials in a round tint: 22px in a row, `lg` 32px in a peek's head. */
-export function Avatar({ initials: text, lg = false }: { initials: string; lg?: boolean }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "grid flex-none place-items-center rounded-full bg-(--ui-accent-tint) font-bold text-(--ui-link)",
-        lg ? "size-8 text-[12px]" : "size-[22px] text-[10px]",
-      )}
-    >
-      {text}
-    </span>
-  );
-}
-
-/** A name: avatar or mark, the title (a link), and the Open chip on hover. */
+/** A name: a mark, the title (a link), and the Open chip on hover. */
 function NameCell<T>({
   name,
   row,
@@ -501,8 +484,7 @@ function NameCell<T>({
   className?: string;
 }) {
   const title = name.title(row);
-  const initial = name.avatar?.(row);
-  const mark = initial ? null : (name.mark?.(row) ?? null);
+  const mark = name.mark?.(row) ?? null;
   const sub = name.sub?.(row);
   const tail = name.tail?.(row);
   const link = name.href?.(row);
@@ -517,7 +499,7 @@ function NameCell<T>({
   );
   return (
     <div className={cn("flex min-w-0 items-center", sub ? "gap-2.5" : "gap-[7px]", className)}>
-      {initial ? <Avatar initials={initial} lg={!!sub} /> : mark}
+      {mark}
       {/* One track that may shrink: an item's least width is its whole line, so "auto" let a
           long title spill over the next columns (William, 10-21). */}
       <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-px">
@@ -1059,6 +1041,3 @@ export function Rows<T>(p: RowsProps<T>) {
     </table>
   );
 }
-
-/** Initials for an avatar from a person's name. */
-export const avatarOf = (title: string): string | null => initials(title) || null;

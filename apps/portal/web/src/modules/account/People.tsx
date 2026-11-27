@@ -1,6 +1,5 @@
 /** People: who sees this account's projects. An owner or a manager invites and removes. */
 import {
-  avatarOf,
   Empty,
   LoadFailed,
   Loading,
@@ -81,7 +80,6 @@ export function People(props: PageProps & { bare?: boolean }) {
               icon: "user",
               min: 240,
               title: (m) => m.email,
-              avatar: (m) => avatarOf(m.email),
               sub: (m) => (
                 <span className={`${QUIET} wrap-anywhere whitespace-normal text-[12.5px]`}>
                   {m.lastSeenAt ? `Last here ${dayLabel(m.lastSeenAt)}` : "Hasn't signed in yet"}

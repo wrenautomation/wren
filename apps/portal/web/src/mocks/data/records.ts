@@ -27,6 +27,12 @@ const LINES = [
   "Booked a call for Thursday.",
   "No answer to the second message yet.",
 ];
+const MODELS = [
+  "claude-haiku-4-5:agent",
+  "cohere:command-a-03-2025",
+  "openrouter:deepseek/deepseek-chat",
+  "claude-sonnet-4-5:agent",
+];
 
 /** A cell of `kind` for row `i`. A field with states takes one of them. */
 function cellOf(f: RecordMeta["fields"][number], i: number): Cell {
@@ -60,6 +66,8 @@ function cellOf(f: RecordMeta["fields"][number], i: number): Cell {
     case "tags":
       return states.slice(0, (i % 2) + 1).join(",") || null;
     default:
+      // a model field reads an id ("cohere:command-a-03-2025"), never words (audit R8.4)
+      if (f.words === "model") return MODELS[i % MODELS.length] ?? null;
       return `${f.label} ${i + 1}`;
   }
 }
