@@ -420,7 +420,7 @@ New:
 - "View as" link: fixed by (b); 26.56 px high, content 26.6 px.
 - Anton's footer "Sonnet · ctx" is mono: fixed, (l).
 - Markdown `ol` numbers show a gap ("1 ."): fixed, (l).
-- Kit side-panel Motion story fails under reduced motion in the test browser; graph/map Open Box and Pick Line fail in files outside WA-1454.
+- Kit side-panel Motion story fails under reduced motion in the test browser: fixed, (m). graph/map Open Box and Pick Line still fail (files outside WA-1454); metro Zoom Play and Open With Enter, and confirm Answers, fail on some runs only (load).
 
 ## Kit fixes (main)
 
@@ -438,6 +438,7 @@ New:
 | (j) tabs, badge, stripes, one-view strip, dots | R10.1, R10.5, R10.7, R11.1–R11.3, R11.5, R12.1, R12.3, R12.5, P2.1 | phone tabs share the width, Apps once; one count pill; stat card tint only; calendar block left stripe gone; ViewTabs hide under two views; Social drops the face; `StateMark` draws only a platform mark; sidebar tag under the name; phone bar 44 px; pick list a column (rows never squeeze); Aerie status filter drops its dot; calendar weekdays in sentence case | 6b5c60a24 |
 | (k) table heads wrap | row 2 pass 2, item 8 | a head wants its whole label on one line; only a tight room wraps it | ab03ab9f9 |
 | (l) mono meta, spaced punctuation | carried; row 4 pass 2 items 1, 4 | agent times, counts, status line, file caption and choice numbers in sans 12px (terminal blocks keep mono); `ol` markers use normal figures (a tabular 1 sits mid-cell); `.rg` root follows `--ui-numeric` (Schibsted tnum widened `. :`); JSON counts say "1 run"; the status line drops its trailing dot while the context menu is open | 18e5f53f7 |
+| (m) "1 statu", Motion story | (l) follow-up; carried | a plural drops its s only over 3 letters and not in -is -us -ss; the Motion story checks the width transition only when motion is allowed | ae944f316 |
 
 Pages add `ui-scroll-fade` to their own sideways rows (Canon presets, Map filters: sidecar).
 
@@ -455,6 +456,11 @@ Answered, no change:
 | 11-26 21:55 | 2. To approve's 15 reads, timed one by one on prod from the Mac (24 ms round trip), read-only | reach 560–990 ms; every other read 23–135 ms. Reach read up to 500 Reddit threads (bodies, sources) to keep the 4 queued of 6,497 | the queued read is 0.2 ms on prod; reach 382–452 ms from the Mac, the rest is 8 round trips (about 1 ms each from Lambda). Prod p50 needs traffic: read it next round | adadacdec |
 | 11-26 23:20 | 3. recordsList by list, 72 h, split at adadacdec (02:50 UTC); then People › Timeline (`people.event`) | To approve after: 206/209 ms (n=2, was 351/1021); Inbox 281/365 (n=4). Timeline 2,312 p50 (n=2): both calls were the hover prefetch, unwindowed: rows 1.8 s, counts 2.8 s. 281,881 of 283,914 lines are trait changes. An index on `profile_trait_events(at)` did not change the plan (local test, 300k rows, rolled back): the view hash-joins `profiles` after the union | timeline pages skip the table prefetch; the page reads a day at a time (94 ms warm) | cc2e1e703 |
 | 11-26 23:50 | 4. every portal handler, 24 h; then `recordsCounts` by batch, host overlap and `pg_stat_statements` | recordsCounts leads: 164 calls, p50 529 / p95 965 ms. 133 are the sidebar's 9-ask batch (p50 586). With no other call in flight it is still 529, so contention is not the cause. Server time is small: the largest count statement averages 42 ms (`profile_records` step flag). The rest is app work: engage and approval load rows into the app, then count them (`jsonb_to_recordset`) | not fixed. Not changed: the Lambda pool (2, `lambda.ts:30`). Raising it lets portal reads queue in PgBouncer's 20 server connections behind research stages that hold a transaction for minutes; that is William's call, and the data does not point at it | — |
+
+Round 4 probe (prod, read-only, from the Mac at 24 ms a round trip; temp script deleted): engage items 614–630 ms for 180 rows, about 25 round trips; approval items 398–460 ms for 35 rows; comment rows 115–208 ms for 68 rows; unsureSends 46–56 ms. On Lambda a round trip is about 1 ms, yet one engage count takes 173 ms there. The Lambda has 1024 MB (about 0.6 vCPU), so the batch is CPU-bound, and more connections would not help. Options for the next round:
+- A. Count in SQL: let a record's `rows` take the view's where, so a "new, waiting" count skips `sentRows` and the answered comments. Code only; touches the records core.
+- B. Share loaders inside one counts batch: approval and engage both build reach items. Code only; smaller.
+- C. Lambda memory 1024 → 1769 MB (one full vCPU). Costs money: William's call.
 
 Open from round 3: the Timeline's List (`as=rows`) still reads the whole view unwindowed (785 ms rows, 550 ms count). The fix is a default window on that list, or trait changes out of the timeline (99% of its lines). The second one is a product call for William.
 
