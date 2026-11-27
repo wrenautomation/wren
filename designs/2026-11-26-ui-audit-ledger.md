@@ -370,7 +370,7 @@ New:
 3. Box-fit: on the focus pages an SVG `g` is 11 px high and its content needs 17 px (`focus--station`, `--parts`, `--view`, `--home-view`; 9 hits). Check that a station label is not clipped.
 4. Prod parity (prod 11-26 23:35): 9 versions, 2 drafts, 1 tag. Same as pass 1; the `big` story covers it.
 
-### Row 7, pass 2: Explorer (sidecar, 11-26 23:52)
+### Row 7, pass 2: Explorer (sidecar, 11-26 23:50)
 
 54 `app-wren-explorer-*` stories at 390 and 1280. Shots: scratchpad `audit7b/`. The 404s and 500s are the planned `failed` and `not-indexed` stories. Storybook ran under load from parallel shot runs, so read a blank map with row 6 pass 2 item 1.
 
