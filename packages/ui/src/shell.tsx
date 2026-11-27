@@ -378,7 +378,8 @@ export function AppShell({
             "flex min-w-0 items-center gap-1.5",
             side &&
               // The artifact's `.brand` in `.side`: 14 px over the side, 4 over the line, 14 under it.
-              "min-[901px]:gap-0 [grid-area:top] z-10 min-[901px]:mt-(--ui-frame) min-[901px]:pt-[18px] min-[901px]:pb-[14px] min-[901px]:pr-[11px] min-[901px]:pl-[calc(var(--ui-frame)+10px)]",
+              // a chip with no room beside the name goes under it (audit R11.1)
+              "min-[901px]:flex-wrap min-[901px]:gap-x-0 min-[901px]:gap-y-1 [grid-area:top] z-10 min-[901px]:mt-(--ui-frame) min-[901px]:pt-[18px] min-[901px]:pb-[14px] min-[901px]:pr-[11px] min-[901px]:pl-[calc(var(--ui-frame)+10px)]",
             folded && "min-[901px]:justify-center",
           )}
         >

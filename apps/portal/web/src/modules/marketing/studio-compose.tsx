@@ -50,7 +50,6 @@ import {
   when,
 } from "./studio-common.js";
 import { CARD, EYEBROW } from "./studio-due.js";
-import { LineMark } from "./studio-lines.js";
 
 type Go = "draft" | "slot" | "now";
 interface WriteResult {
@@ -294,7 +293,6 @@ function PostBox(
             <h2 className={ROW_LABEL}>Line</h2>
             {props.lines.map((l) => (
               <Chip key={l.id} on={line === l.id} onClick={() => pick("line", l.id, line)}>
-                <LineMark line={l} small />
                 {l.label}
               </Chip>
             ))}

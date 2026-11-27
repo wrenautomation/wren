@@ -453,7 +453,7 @@ export function RecordBody({
             <h2 className={`${PAGE_TITLE} wrap-anywhere`}>{titleOf(meta, row)}</h2>
             {sub ? (
               <p className="mt-0.5 text-[14px] text-(--ui-ink)">
-                {subCue ? (
+                {subCue?.mark ? (
                   <span className="mr-1.5 inline-flex align-[-0.1em]">
                     <Cue state={subCue} size={15} />
                   </span>

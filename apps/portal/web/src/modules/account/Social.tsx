@@ -24,7 +24,7 @@ import { PageRows, RowDoes, rowLines, useGoing } from "../../page-rows.js";
 import { ERROR, QUIET } from "../work/bits.js";
 import { OwnSocial } from "./OwnSocial.js";
 import { socialTag } from "./setups.js";
-import { AccountFace, TikTokNumbersView } from "./social-bits.js";
+import { TikTokNumbersView } from "./social-bits.js";
 
 type View = Extract<SocialPageView, { wren: false }>;
 type Platform = View["platforms"][number];
@@ -104,7 +104,6 @@ function Accounts({
         icon: "people",
         min: 220,
         title: whoOf,
-        mark: (c) => <AccountFace url={c.avatarUrl} name={c.name ?? whoOf(c)} />,
         sub: (c) =>
           c.handle && c.name && c.name !== c.handle ? (
             <span className={`${QUIET} wrap-anywhere whitespace-normal text-[12.5px]`}>

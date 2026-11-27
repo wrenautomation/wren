@@ -11,7 +11,6 @@ import type { ApiError } from "../../api.js";
 import { href } from "../../route.js";
 import { type Due, placeName } from "./cadence.js";
 import { offeredFor } from "./studio-common.js";
-import { LineMark } from "./studio-lines.js";
 
 /** A leaf card raised on the canvas: paper, the panel's corners, the raise's ring and shade. */
 export const CARD =
@@ -77,7 +76,6 @@ export function DueCards({
               )}
             >
               <span className="flex min-w-0 items-center gap-2 text-[12px] font-medium text-(--ui-ink-3) max-sm:gap-1.5 max-sm:font-normal">
-                <LineMark line={line} small />
                 <span className="min-w-0 wrap-anywhere whitespace-normal">
                   {line?.label ?? "No line"}
                 </span>

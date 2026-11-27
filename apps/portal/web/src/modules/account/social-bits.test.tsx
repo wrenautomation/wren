@@ -1,7 +1,7 @@
 import type { TikTokNumbers } from "@wren/starling-inbound/connect";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { AccountFace, TikTokNumbersView } from "./social-bits.js";
+import { TikTokNumbersView } from "./social-bits.js";
 
 const N: TikTokNumbers = {
   followers: 1280,
@@ -22,17 +22,6 @@ const N: TikTokNumbers = {
   gaps: [],
   asOf: "2026-10-15T12:00:00.000Z",
 };
-
-describe("AccountFace", () => {
-  it("loads the picture from the CDN with no referrer; none is a letter tile", () => {
-    const img = renderToStaticMarkup(
-      <AccountFace url="https://p16.tiktokcdn.example/a.jpeg" name="Acme" />,
-    );
-    expect(img).toContain('src="https://p16.tiktokcdn.example/a.jpeg"');
-    expect(img).toContain('referrerPolicy="no-referrer"');
-    expect(renderToStaticMarkup(<AccountFace url={null} name="@acme" />)).toContain(">a</span>");
-  });
-});
 
 describe("TikTokNumbersView", () => {
   it("shows followers, likes, videos and each video's views with its link", () => {

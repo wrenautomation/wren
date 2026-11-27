@@ -43,8 +43,9 @@ import { met, type WriteLine, writeOf } from "./write.js";
 
 const ROW =
   "flex min-h-11 items-center gap-3 border-b border-(--ui-hair) px-1 text-[14.5px] text-(--ui-ink) no-underline transition-colors duration-150 ease-(--ui-ease) last:border-b-0 hover:bg-(--ui-hover)";
+/** The sidebar's count pill (shell `COUNT`): one look for what waits, phone or desk. */
 const COUNT =
-  "ml-auto min-w-6 rounded-full bg-(--ui-needs-tint) px-2 text-center text-[13px]/6 font-semibold text-(--ui-needs) tabular-nums";
+  "ml-auto min-w-5 flex-none rounded-full bg-(--ui-primary) px-[7px] text-center text-[12px]/[1.55] font-semibold text-(--ui-on-accent) tabular-nums in-data-[counts=off]:hidden";
 const MUTED = "text-[13px] text-(--ui-ink-3)";
 
 const pathOf = (m: Module, page: string) => `/${m.id}/${page}`;

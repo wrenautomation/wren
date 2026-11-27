@@ -47,7 +47,7 @@ import type { Load } from "../../load.js";
 import { navigate } from "../../route.js";
 import { addressOf, GROUP, unfiltered, viewKey, withoutText } from "./address.js";
 import { type Board, deleteView, type SavedView, saveView, type TaskRow } from "./data.js";
-import { statusColor, statusesOf, who } from "./look.js";
+import { statusesOf, who } from "./look.js";
 
 const cn = (...xs: (string | false | null | undefined)[]) => xs.filter(Boolean).join(" ");
 const ROLES: readonly AreaRole[] = ["owner", "manager", "doer", "watcher"];
@@ -381,16 +381,8 @@ function fieldsOf(c: Ctx, board: Load<Board>): BarField[] {
       section: "Task",
       known: statusesOf(b),
       values: (t) => [t.status],
-      face: (id) => (
-        <span className="inline-flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="size-2 flex-none rounded-full bg-(--ui-ink-3)"
-            style={statusColor(id) ? { background: statusColor(id) } : undefined}
-          />
-          {id}
-        </span>
-      ),
+      // the word alone: no dot before it (L5.4)
+      face: (id) => id,
     },
     {
       key: "priority",

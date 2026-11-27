@@ -260,7 +260,7 @@ if (typeof window !== "undefined") addEventListener("popstate", landBack);
 // --- The bar at the top ---------------------------------------------------------------------
 
 const BAR_BUTTON =
-  "inline-flex h-11 min-w-0 items-center gap-0.5 border-0 bg-transparent p-0 text-[16px] text-(--ui-link) no-underline active:opacity-50";
+  "inline-flex min-h-11 min-w-0 items-center gap-0.5 border-0 bg-transparent p-0 text-[16px] text-(--ui-link) no-underline active:opacity-50";
 
 /** The heading the page opens with, the one the bar's title takes over from. */
 function useHeading(
@@ -386,7 +386,7 @@ export function PhoneTop({
             </a>
           ) : (
             <a
-              className="inline-flex h-11 min-w-0 items-center gap-2 px-2 text-[13px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)] no-underline"
+              className="inline-flex min-h-11 min-w-0 items-center gap-2 px-2 py-1 text-[13px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)] no-underline"
               href={app.href}
               onClick={() => moving("tab")}
             >
@@ -551,7 +551,7 @@ export function PhoneTabs({
         !hidden && "max-[900px]:block",
       )}
     >
-      <ul className="mx-auto grid h-[54px] max-w-[640px] list-none grid-cols-6">
+      <ul className="mx-auto grid h-[54px] max-w-[640px] list-none grid-flow-col auto-cols-fr">
         {walk.tabs.map((t) => {
           const on = !apps && t.id === walk.current;
           const go = walk.tap(t);
@@ -577,10 +577,10 @@ export function PhoneTabs({
           );
         })}
         <li className="contents">
-          {/* Apps keeps the right end however few tabs come before it. */}
+          {/* Apps last; the columns share the width however many tabs. */}
           <button
             type="button"
-            className={cn(TAB, "col-start-6")}
+            className={TAB}
             onClick={onApps}
             aria-haspopup="dialog"
             aria-expanded={apps}

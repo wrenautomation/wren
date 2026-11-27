@@ -17,7 +17,7 @@ import { dueOf, goalsOf, usePlan } from "./cadence.js";
 import { chosen, makeOf, offeredFor, pick, studioHref } from "./studio-common.js";
 import { Compose } from "./studio-compose.js";
 import { DueCards, EYEBROW, NewRow } from "./studio-due.js";
-import { LineMark, useOfferLines } from "./studio-lines.js";
+import { useOfferLines } from "./studio-lines.js";
 import { WaitingBoard } from "./studio-waiting.js";
 import { StudioVideo, VideoShelf } from "./video-shelf.js";
 
@@ -61,7 +61,7 @@ export function weekOf(now = new Date()): string {
 
 /** The board's trigger as a native select: paper, a hair ring, a leaf; the menu is the device's. */
 const LINE_PICK =
-  "h-8 cursor-pointer appearance-none bg-(--ui-paper) py-0 pr-8 pl-[30px] text-[13px] font-semibold text-(--ui-ink) [border-radius:6px_14px] shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-shadow duration-150 ease-(--ui-ease) hover:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--ui-active)_60%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ui-focus) max-sm:h-11";
+  "h-8 cursor-pointer appearance-none bg-(--ui-paper) py-0 pr-8 pl-3 text-[13px] font-semibold text-(--ui-ink) [border-radius:6px_14px] shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-shadow duration-150 ease-(--ui-ease) hover:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--ui-active)_60%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ui-focus) max-sm:h-11";
 
 function StudioHome(props: PageProps) {
   const plan = usePlan();
@@ -75,7 +75,6 @@ function StudioHome(props: PageProps) {
   const pieces = `${n} ${n === 1 ? "piece" : "pieces"}`;
   // A plan that names no line for its pieces has nothing to filter by.
   const filter = lines.length > 0 && all.some((d) => d.line);
-  const shown = line ? byId.get(line) : undefined;
   useSeen(
     "page",
     plan.data && {
@@ -122,7 +121,6 @@ function StudioHome(props: PageProps) {
             <label className="ml-auto flex items-center gap-2 text-[13px] text-(--ui-ink-3) max-sm:hidden">
               Line
               <span className="relative flex items-center">
-                <LineMark line={shown} className="pointer-events-none absolute left-3" />
                 <select
                   aria-label="Line"
                   className={LINE_PICK}

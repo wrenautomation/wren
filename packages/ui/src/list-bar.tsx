@@ -415,7 +415,8 @@ export function ViewTabs({
   const sv = place.params.get("sv");
   const lines = saved?.lines ?? [];
   const narrow = useNarrow();
-  if (!meta.views.length && !lines.length) return null;
+  // One view is no choice: no strip (R10.5).
+  if (meta.views.length + lines.length < 2) return null;
   const all: (ViewTab & { line?: SavedViewLine; at?: number })[] = [
     ...meta.views.map((v, i) => ({
       id: v.id,

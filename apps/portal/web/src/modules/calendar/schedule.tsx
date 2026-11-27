@@ -404,7 +404,7 @@ const tone = (c: Call, now: Date) =>
       ? "bg-[color-mix(in_srgb,var(--ui-bad)_14%,var(--ui-paper))] text-(--ui-ink)"
       : c.end < now
         ? "bg-[color-mix(in_srgb,var(--ui-ink)_10%,var(--ui-paper))] text-(--ui-ink)"
-        : "bg-(--ui-accent-tint) text-(--ui-ink) shadow-[inset_2px_0_0_var(--ui-live)]";
+        : "bg-(--ui-accent-tint) text-(--ui-ink)";
 /** Words a fill can't say: a no-show. */
 const flag = (c: Call) =>
   c.state === "booked" && c.outcome === "no_show" ? CALL_OUTCOME_LABELS.no_show.label : null;
@@ -454,7 +454,7 @@ function Grid({
               dayKey(d) === today ? "text-(--ui-active)" : "text-(--ui-ink-2)"
             }`}
           >
-            <span className="uppercase tracking-wide">{fmt(d, { weekday: "short" })}</span>
+            <span>{fmt(d, { weekday: "short" })}</span>
             <span className="text-[20px] font-semibold leading-tight">{d.getDate()}</span>
           </div>
         ))}
@@ -593,7 +593,7 @@ function Month({
       {days.slice(0, 7).map((d) => (
         <span
           key={`h${dayKey(d)}`}
-          className="border-r border-b border-(--ui-hair) py-1.5 text-center text-[11px] uppercase tracking-wide text-(--ui-ink-3)"
+          className="border-r border-b border-(--ui-hair) py-1.5 text-center text-[12px] text-(--ui-ink-3)"
         >
           {fmt(d, { weekday: "short" })}
         </span>

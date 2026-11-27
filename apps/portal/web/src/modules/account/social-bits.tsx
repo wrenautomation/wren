@@ -1,5 +1,5 @@
 /**
- * Account → Social's pieces for one connected account: its picture, and a connected TikTok's
+ * Account → Social's pieces for one connected account: a connected TikTok's
  * numbers (followers, likes, videos, its newest videos with their views), read as the page
  * opened. Pictures load from the platform's CDN, never through the portal's Worker.
  */
@@ -37,28 +37,6 @@ function CdnImage({
       draggable={false}
       onError={() => setBroken(true)}
       className={className}
-    />
-  );
-}
-
-/** The account's face: its picture, else its first letter on a tile. */
-export function AccountFace({ url, name }: { url: string | null; name: string }) {
-  const box = "size-9 shrink-0 rounded-full";
-  return (
-    <CdnImage
-      url={url}
-      className={cx(box, "bg-(--ui-tile) object-cover")}
-      fallback={
-        <span
-          aria-hidden
-          className={cx(
-            box,
-            "inline-flex items-center justify-center bg-(--ui-tile) font-semibold text-(--ui-ink-2) text-[14px] uppercase",
-          )}
-        >
-          {name.replace(/^@/, "").trim().slice(0, 1) || "?"}
-        </span>
-      }
     />
   );
 }

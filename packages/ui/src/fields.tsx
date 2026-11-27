@@ -44,9 +44,12 @@ export function Cue({ state, mono, size }: { state: State; mono?: boolean; size?
   return null;
 }
 
-/** A state as its cue and its label: a platform's mark, a kind's tint, else the word in its tone. */
+/**
+ * A state as its label: a platform's mark before it, else the word in its tone. A kind's tint or a
+ * stage's square never sits before its own word (L5.4); `Cue` draws them where no word shows.
+ */
 export function StateMark({ state, mono }: { state: State; mono?: boolean }) {
-  const plain = !state.mark && state.line === undefined && state.tint === undefined;
+  const plain = !state.mark;
   return (
     <span
       className={cn(
@@ -55,7 +58,7 @@ export function StateMark({ state, mono }: { state: State; mono?: boolean }) {
       )}
       {...tipProps(state.about)}
     >
-      <Cue state={state} mono={mono ?? false} />
+      {state.mark ? <Cue state={state} mono={mono ?? false} /> : null}
       {state.label}
     </span>
   );
@@ -794,7 +797,8 @@ export function PickList({
           pick(nav.at);
         } else nav.keys(e, pick);
       }}
-      className="grid max-h-64 overflow-y-auto p-1 outline-none"
+      // a column, not a grid: a grid's rows squeeze under max-h and long names overlap (P2.1)
+      className="flex max-h-64 flex-col overflow-y-auto p-1 outline-none"
     >
       {shown.map((o, i) => (
         // biome-ignore lint/a11y/useKeyWithClickEvents: the list's keys pick it.
@@ -806,9 +810,12 @@ export function PickList({
           ref={inSight(i === nav.at)}
           onMouseMove={() => nav.setAt(i)}
           onClick={() => flip(o.id)}
-          className={cn(ROW, i === nav.at && "bg-(--ui-hover)")}
+          className={cn(ROW, "shrink-0", i === nav.at && "bg-(--ui-hover)")}
         >
-          <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">{o.face}</span>
+          {/* the face's own nowrap (a table cell's) gives way here: a long name wraps */}
+          <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal [&_*]:whitespace-normal">
+            {o.face}
+          </span>
           {counts ? (
             <span className="text-[12px] text-(--ui-ink-3) tabular-nums">
               {num(counts[o.id] ?? 0)}
