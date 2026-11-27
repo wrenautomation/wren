@@ -993,7 +993,7 @@ function TopTabs({ app }: { app: OpenApp }) {
     <nav aria-label={`${app.name} pages`} className="min-w-0">
       <ul
         ref={row}
-        className="flex list-none items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex list-none items-center gap-0.5 overflow-x-auto ui-scroll-fade [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {runs(app.tabs).flatMap((r) =>
           headed(r)
@@ -1484,7 +1484,7 @@ function PhoneTabs({
     <nav aria-label={label}>
       <ul
         ref={row}
-        className="relative -mb-px flex list-none gap-x-5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="relative -mb-px flex list-none gap-x-5 overflow-x-auto ui-scroll-fade px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {tabs.map((t) => (
           <li key={t.id} className="flex-none">

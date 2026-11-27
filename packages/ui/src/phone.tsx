@@ -720,7 +720,9 @@ export function Segmented({
     const el = track.current;
     const hit = el?.querySelector<HTMLElement>("[aria-current=page]");
     if (!el || !hit || el.scrollWidth <= el.clientWidth) return;
-    el.scrollLeft = hit.offsetLeft - (el.clientWidth - hit.offsetWidth) / 2;
+    // Centred; a tab wider than the track shows its start. Offset from the track, not the page.
+    const at = hit.getBoundingClientRect().left - el.getBoundingClientRect().left + el.scrollLeft;
+    el.scrollLeft = at - Math.max(0, (el.clientWidth - hit.offsetWidth) / 2);
   }, [on]);
   return (
     // The kit's switch (`Seg`, the artifact's `.seg`) as links: the page each choice opens.

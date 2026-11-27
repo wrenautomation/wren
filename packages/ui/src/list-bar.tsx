@@ -496,7 +496,7 @@ export function ViewStrip({
       </div>
     );
   return (
-    <nav className="relative flex gap-0.5 overflow-x-auto" aria-label="Views">
+    <nav className="relative flex gap-0.5 overflow-x-auto ui-scroll-fade" aria-label="Views">
       {tabs.map((v) =>
         v.saved ? (
           <span key={v.id} data-tab="" className={cn(TAB, "gap-1 [--ui-gap:4px]", tabTone(v.on))}>
@@ -1002,7 +1002,7 @@ export function ListBar({
   const shape = by ? (
     <nav
       aria-label="Show rows as"
-      className="flex min-w-0 flex-1 gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex max-w-full flex-none gap-0.5 overflow-x-auto ui-scroll-fade [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {[
         cards

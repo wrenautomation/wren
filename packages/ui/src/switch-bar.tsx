@@ -108,7 +108,7 @@ export function RecordSwitch({
     <>
       <nav
         aria-label={label}
-        className="mb-5 -mt-1 flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="mb-5 -mt-1 flex min-w-0 gap-1 overflow-x-auto ui-scroll-fade [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <Chip
           href={link(null)}

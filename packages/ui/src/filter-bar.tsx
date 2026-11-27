@@ -522,9 +522,9 @@ export function BarLayout({
     <div className={cn("grid gap-2", hug && "w-fit max-w-full")}>
       <div
         className={cn(
-          "flex min-w-0 items-center gap-2",
-          // A phone keeps one line: the shape's tools and the tools drop their words.
-          narrow ? "[&_[data-hp]]:sr-only" : "flex-wrap",
+          "flex min-w-0 flex-wrap items-center gap-2",
+          // Phone: tools drop their words; they wrap only once the shape hits its floor.
+          narrow && "[&_[data-hp]]:sr-only",
         )}
       >
         {/* Whole, never clipped: when it runs out of room the tools wrap under it. */}

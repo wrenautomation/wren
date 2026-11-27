@@ -557,7 +557,10 @@ export function RecordBody({
       </header>
       {more.top}
 
-      <nav className="relative flex gap-0.5 overflow-x-auto pb-1.5" aria-label="Sections">
+      <nav
+        className="relative flex gap-0.5 overflow-x-auto ui-scroll-fade pb-1.5"
+        aria-label="Sections"
+      >
         {tabs.map((t) => (
           <a
             key={t.id}

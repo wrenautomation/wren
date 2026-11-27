@@ -1301,3 +1301,49 @@ nav :is([aria-current="page"], [aria-current="true"]):not(:disabled, [aria-disab
     width: auto;
   }
 }
+/* A row that scrolls sideways fades the edge it hides: the cue that more is there. Scroll-driven, so no
+   fade when the row fits; no support = no fade. Mask alpha only, not a colour. */
+@property --ui-fade-l {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --ui-fade-r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes ui-fade-l {
+  0% {
+    --ui-fade-l: 0px;
+  }
+  8%,
+  100% {
+    --ui-fade-l: 28px;
+  }
+}
+@keyframes ui-fade-r {
+  0%,
+  92% {
+    --ui-fade-r: 28px;
+  }
+  100% {
+    --ui-fade-r: 0px;
+  }
+}
+@supports (animation-timeline: scroll()) {
+  .ui-scroll-fade,
+  .ui-seg[data-fill] {
+    animation:
+      ui-fade-l linear both,
+      ui-fade-r linear both;
+    animation-timeline: scroll(self inline), scroll(self inline);
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 var(--ui-fade-l),
+      #000 calc(100% - var(--ui-fade-r)),
+      transparent
+    );
+  }
+}

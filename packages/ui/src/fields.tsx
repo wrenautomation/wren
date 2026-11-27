@@ -649,19 +649,11 @@ function Segments<T extends string>({
   );
 }
 
-/** A square check mark for a picked row. */
+/** A picked row's check, at its end (the menu's mark): a fixed slot, so counts never shift. */
 function Tick({ on }: { on: boolean }) {
   return (
-    <span
-      aria-hidden
-      className={cn(
-        "inline-flex size-3.5 shrink-0 items-center justify-center border",
-        on
-          ? "border-(--ui-ink) bg-(--ui-ink) text-(--ui-on-ink)"
-          : "border-(--ui-ink-3) bg-(--ui-paper)",
-      )}
-    >
-      {on ? <Icon name="check" className="size-2.5" strokeWidth={3} /> : null}
+    <span aria-hidden className="inline-flex size-3.5 shrink-0 text-(--ui-ink)">
+      {on ? <Icon name="check" className="size-3.5" strokeWidth={2.5} /> : null}
     </span>
   );
 }
@@ -816,13 +808,13 @@ export function PickList({
           onClick={() => flip(o.id)}
           className={cn(ROW, i === nav.at && "bg-(--ui-hover)")}
         >
-          <Tick on={on.has(o.id)} />
           <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">{o.face}</span>
           {counts ? (
             <span className="text-[12px] text-(--ui-ink-3) tabular-nums">
               {num(counts[o.id] ?? 0)}
             </span>
           ) : null}
+          <Tick on={on.has(o.id)} />
         </div>
       ))}
       {!shown.length ? (
