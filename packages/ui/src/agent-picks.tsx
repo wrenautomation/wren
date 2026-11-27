@@ -146,8 +146,9 @@ export function AgentStatus({
   if (!parts.length) return null;
   const menu = !!(onCompact || onAutoCompact);
   return (
-    // the dot rides on its part: a wrapped line never starts on a separator
-    <span className="inline-flex flex-wrap items-center justify-center gap-x-1.5 font-mono text-[11.5px] text-(--ui-ink-3) tabular-nums [&>*:not(:last-child)]:after:ml-1.5 [&>*:not(:last-child)]:after:text-(--ui-ink-3) [&>*:not(:last-child)]:after:content-['·']">
+    // the dot rides on its part: a wrapped line never starts on a separator; data-part, as the
+    // open popover adds a sibling
+    <span className="inline-flex flex-wrap items-center justify-center gap-x-1.5 text-[12px] text-(--ui-ink-3) tabular-nums [&>[data-part]:has(~[data-part])]:after:ml-1.5 [&>[data-part]:has(~[data-part])]:after:text-(--ui-ink-3) [&>[data-part]:has(~[data-part])]:after:content-['·']">
       {parts.map((p) =>
         p.key === "ctx" && menu ? (
           <ContextMenu
@@ -159,7 +160,7 @@ export function AgentStatus({
             onAutoCompact={onAutoCompact}
           />
         ) : (
-          <span key={p.key} className={cn("whitespace-nowrap", p.cls)}>
+          <span key={p.key} data-part="" className={cn("whitespace-nowrap", p.cls)}>
             {p.text}
           </span>
         ),
@@ -189,9 +190,10 @@ function ContextMenu({
     <Popover {...pop.root}>
       <PopoverTrigger
         {...pop.trigger}
+        data-part=""
         aria-label={`Context: ${text}`}
         className={cn(
-          "-mx-1 inline-flex h-6 pointer-coarse:h-9 items-center whitespace-nowrap rounded-md border-0 bg-transparent px-1 font-mono text-[11.5px] tabular-nums transition-colors duration-150 hover:bg-(--ui-fill) data-popup-open:bg-(--ui-wash)",
+          "-mx-1 inline-flex h-6 pointer-coarse:h-9 items-center whitespace-nowrap rounded-md border-0 bg-transparent px-1 text-[12px] tabular-nums transition-colors duration-150 hover:bg-(--ui-fill) data-popup-open:bg-(--ui-wash)",
           cls ?? "text-(--ui-ink-3)",
         )}
       >
@@ -329,7 +331,7 @@ function TaskChip({
         <span className="min-w-0 wrap-anywhere text-(--ui-ink)">{name}</span>
       )}
       {task.started || task.tokens ? (
-        <span className="flex-none font-mono text-[11.5px] text-(--ui-ink-3) tabular-nums">
+        <span className="flex-none text-[12px] text-(--ui-ink-3) tabular-nums">
           {[
             task.tokens ? `${tokens(task.tokens)} tokens` : "",
             task.uses ? `${task.uses} ${task.uses === 1 ? "tool" : "tools"}` : "",

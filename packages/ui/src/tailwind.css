@@ -294,6 +294,10 @@
     -webkit-font-smoothing: antialiased;
     font-variant-numeric: var(--ui-numeric);
   }
+  /* a tabular 1 sits mid-cell: "1 ." */
+  ol > li::marker {
+    font-variant-numeric: normal;
+  }
   /* On a phone the window is the page. */
   @media (max-width: 900px) {
     body {

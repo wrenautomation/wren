@@ -91,6 +91,9 @@ const kb = (n: number) =>
       : `${(n / 1048576).toFixed(1)} MB`;
 
 /** A result in a few words: an exit code, a JSON count, lines, or the size. */
+/** JSON keys are plural nouns: 1 runs → 1 run */
+const one = (k: string, n: number) => (n === 1 && /[^s]s$/.test(k) ? k.slice(0, -1) : k);
+
 export function stat(out: string | undefined, failed?: boolean): string {
   if (out === undefined) return "";
   const t = out.trim();
@@ -105,8 +108,8 @@ export function stat(out: string | undefined, failed?: boolean): string {
       if (Array.isArray(j)) return `${j.length} ${j.length === 1 ? "item" : "items"}`;
       const bits: string[] = [];
       for (const [k, v] of Object.entries(j as Args)) {
-        if (Array.isArray(v)) bits.push(`${v.length} ${k}`);
-        else if (typeof v === "number") bits.push(`${v} ${k}`);
+        if (Array.isArray(v)) bits.push(`${v.length} ${one(k, v.length)}`);
+        else if (typeof v === "number") bits.push(`${v} ${one(k, v)}`);
         if (bits.length === 2) break;
       }
       if (bits.length) return bits.join(" · ");
@@ -291,9 +294,7 @@ function Commands({ parts }: { parts: readonly Part[] }) {
         {live ? (
           <Ring />
         ) : ms ? (
-          <span className="flex-none font-mono text-[11.5px] text-(--ui-ink-3) tabular-nums">
-            {took(ms)}
-          </span>
+          <span className="flex-none text-[12px] text-(--ui-ink-3) tabular-nums">{took(ms)}</span>
         ) : null}
       </button>
       <Fold open={open}>
@@ -331,7 +332,7 @@ function Terminal({ parts }: { parts: readonly Part[] }) {
                 {done ? (
                   <span
                     className={cx(
-                      "flex-none font-mono text-[11.5px] tabular-nums",
+                      "flex-none text-[12px] tabular-nums",
                       x.isError ? "text-(--ui-bad)" : "text-(--ui-ink-3)",
                     )}
                   >
@@ -432,7 +433,7 @@ const StepRow: ToolCallMessagePartComponent = (t) => {
           {toolTitle(t.toolName, input)}
         </span>
         {right ? (
-          <span className="flex-none font-mono text-[11.5px] text-(--ui-ink-3) tabular-nums [animation:ui-fade_.2s_both]">
+          <span className="flex-none text-[12px] text-(--ui-ink-3) tabular-nums [animation:ui-fade_.2s_both]">
             {right}
             {ms ? ` · ${took(ms)}` : ""}
           </span>
@@ -523,7 +524,7 @@ export function Working() {
       <span key={now} className="ui-shimmer min-w-0 wrap-anywhere [animation:ui-fade_.2s_both]">
         {now}
       </span>
-      <span className="flex-none font-mono text-[11.5px] text-(--ui-ink-3) tabular-nums">
+      <span className="flex-none text-[12px] text-(--ui-ink-3) tabular-nums">
         {ms < 60_000 ? `${Math.floor(ms / 1000)}s` : took(ms)}
       </span>
     </div>

@@ -207,9 +207,7 @@ function FilePreview({ path, read }: { path: string; read: (path: string) => Pro
           />
         </a>
       )}
-      <figcaption className="font-mono text-[11.5px] text-(--ui-ink-3) wrap-anywhere">
-        {path}
-      </figcaption>
+      <figcaption className="text-[12px] text-(--ui-ink-3) wrap-anywhere">{path}</figcaption>
     </figure>
   );
 }
@@ -316,7 +314,7 @@ export function Choices(props: DataMessagePartProps<ChoicesData>) {
                   <span
                     aria-hidden="true"
                     className={cx(
-                      "grid size-5.5 flex-none place-items-center rounded-[6px] font-mono text-[11.5px] tabular-nums",
+                      "grid size-5.5 flex-none place-items-center rounded-[6px] text-[12px] tabular-nums",
                       on ? "bg-(--ui-ink) text-(--ui-paper)" : "bg-(--ui-fill) text-(--ui-ink-2)",
                     )}
                   >

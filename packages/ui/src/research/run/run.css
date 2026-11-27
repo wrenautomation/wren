@@ -39,7 +39,7 @@
   overflow: hidden;
   color: var(--ink);
   font: 15px / 1.5 var(--ui-font);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--ui-numeric, tabular-nums); /* the look's: Schibsted tnum widens . : */
   text-align: left;
 }
 .rg * {

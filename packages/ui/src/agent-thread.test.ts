@@ -47,6 +47,7 @@ describe("steps", () => {
     expect(stat("Error: Exit code 2\nboom", true)).toBe("exit 2");
     expect(stat('{"sources":[1,2,3],"pages":6,"run":"x"}')).toBe("3 sources · 6 pages");
     expect(stat("[1,2]")).toBe("2 items");
+    expect(stat('{"runs":[1],"pages":1,"class":1}')).toBe("1 run · 1 page");
     expect(stat("a\nb\nc")).toBe("3 lines");
     expect(stat("ok")).toBe("ok");
     expect(stat("  ")).toBe("no output");

@@ -933,9 +933,7 @@ function Ended() {
     <div className="flex min-h-7 items-center gap-2.5 text-[13.5px] text-(--ui-ink) [animation:ui-fade_.25s_both]">
       <Icon name={icon} size={15} className={cx("flex-none", tone)} />
       <span className="font-medium">{word}</span>
-      {ms ? (
-        <span className="font-mono text-[11.5px] text-(--ui-ink-3) tabular-nums">{took(ms)}</span>
-      ) : null}
+      {ms ? <span className="text-[12px] text-(--ui-ink-3) tabular-nums">{took(ms)}</span> : null}
     </div>
   );
 }
