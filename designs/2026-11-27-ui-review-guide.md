@@ -53,9 +53,9 @@ Open these first. Each one waits on your call.
 
 ## 5. State of main
 
-- f5a7032b8 (with e97e918a0): CI lint, unit, unit-ui, schema, integration and deploy green.
+- 319cc1754 (run 46063318938): every CI job green, story tests included (the first green story run in over 25), and the deploy.
 - Portal unit tests: green. `api-owner` and the kit's metro map test time out only under the full run's load (both pass alone).
-- Story tests: 34 fails down to 10. They report only; they do not hold the deploy.
-  - Fixed (e97e918a0): a closing dialog showed a blank title and button during its fade (kit `action.tsx`, `confirm.tsx`). Office stories pressed a native confirm the app no longer uses. Canon Library and topic empty states now say what fills them. Studio failure stories.
-  - Fixed (sidecar, aae5a74af, f5a7032b8): Map Place; client home empty pass; an open Agent dock leaked into the next story file.
-  - Open (sidecar): Aerie Decisions (4 stories) pass alone but fail after the stories before them in the file; Aerie Intake File and Map Import File are timing races.
+- Story fixes:
+  - e97e918a0: a closing dialog showed a blank title and button during its fade (kit `action.tsx`, `confirm.tsx`). Office stories pressed a native confirm the app no longer uses. Canon Library and topic empty states say what fills them. Studio failure stories.
+  - aae5a74af, f5a7032b8, 94e5eef61: Map Place; client home empty pass; an open Agent dock leaked into the next story file; Intake File and Import File waited too little.
+  - 013709b21: a held answer missed its 10 s send when the clock lagged (a real bug: a slow clock could keep a press unsent). The hold's own timer now sends it. Each story now starts with no held writes or toasts.
