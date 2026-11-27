@@ -318,7 +318,7 @@ Pass 1 items:
 - Still open: R3.3 (two "Rename" links stacked), R3.6 (no 100-sample batch story; fixture lines stay far under prod's 1,200-character "why" and note).
 
 New:
-1. Little dots (L5.4, his words: "no little circle things to the left"): each sample note starts with a green dot ("● 0:01.2–0:02.4 This pace works", "● \u201cI can introduce you…\u201d Concrete"). Use the time or the quote alone.
+1. Little dots (L5.4, his words: "no little circle things to the left"): each sample note starts with a green dot ("● 0:01.2–0:02.4 This pace works", "● “I can introduce you…” Concrete"). Use the time or the quote alone.
 2. The mark pill "☆ Amazing · 9" is blue, and the star is blue. Blue is not in the palette; the accent is purple. Use the zone tint the "3 amazing" count pill uses.
 3. Chat cards: "0 of 4 marked" and "A batch waits" sit in a red tint. Red reads as an error, but this is the normal waiting state. Use a neutral or purple tint.
 4. Worst-case fixture: batch titles read "as a long brie batch 1". The fixture cuts the subject at 60 characters mid-word (`batches.stories.tsx:135`). Cut at a word, so the shot does not look like a UI cut.
