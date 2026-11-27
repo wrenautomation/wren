@@ -26,6 +26,7 @@ const CAMPAIGN_ACTIONS: Action[] = [
   {
     id: "email.stopOpeners",
     label: "Stop openers",
+    icon: "pause",
     handler: "email/stopOpeners",
     undo: "email/resumeOpeners",
     bulk: true,
