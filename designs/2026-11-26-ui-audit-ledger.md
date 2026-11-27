@@ -431,6 +431,8 @@ New:
 2. At 390 the same cut chip beside More (row 9 pass 2, item 4) shows on Engage ("Po"), Booked calls ("All bo"), Posts ("Leade") and Drafts ("Sched"). One kit fix: the chips that do not fit go into More.
 3. Prod parity (prod 11-27 00:10): 312 invites, 253 pending. Same as pass 1; Invites still needs a 300-row story.
 
+After this pass (0255c4d18): R10.12. "Stop openers" gets the pause icon, so every campaign row ends in ⏸ or ▷, as Inboxes does. The same shot (not full page) shows the phone tab bar on an app story at 390; check R11.9 again next pass.
+
 ### Row 11, pass 2: Shell (sidecar, 11-27 00:14)
 
 20 stories (`app-wren-shell-*`, `redesign-shell--*`, kit `shell--*`) at 390 and 1280. Shots: scratchpad `audit11b/`. Box-fit 0. Errors 0.
