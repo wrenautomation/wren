@@ -455,7 +455,7 @@ New: none.
 
 Prod parity (prod 11-27 00:22): 2 clients. Same as pass 1.
 
-### Row 13, pass 2: Weaver (sidecar, 11-27 00:26)
+### Row 13, pass 2: Weaver (sidecar, 11-27 00:24)
 
 12 `app-weaver-research-*` stories at 390 and 1280. Shots: scratchpad `audit13b/`. Box-fit 0. Errors 0.
 
