@@ -501,6 +501,7 @@ After 13, the next pass starts again at row 1.
 | (l) mono meta, spaced punctuation | carried; row 4 pass 2 items 1, 4 | agent times, counts, status line, file caption and choice numbers in sans 12px (terminal blocks keep mono); `ol` markers use normal figures (a tabular 1 sits mid-cell); `.rg` root follows `--ui-numeric` (Schibsted tnum widened `. :`); JSON counts say "1 run"; the status line drops its trailing dot while the context menu is open | 18e5f53f7 |
 | (m) "1 statu", Motion story | (l) follow-up; carried | a plural drops its s only over 3 letters and not in -is -us -ss; the Motion story checks the width transition only when motion is allowed | ae944f316 |
 | (n) face blank, strip slot, fit check | R9.6, R9.7, row 9 pass 2 items 1, 3, 5 | a creator with no photo is a grey blank with a person (was a purple-tint letter); strip slot 96 px, no clamp (a 17-letter word still breaks inside); "@e" is the whole one-letter handle, no change; Compose "Fits" gets a check, a misfit keeps red and the words | 759d96689 |
+| (o) grey square before a source | row 13 pass 2 item 2 | DDG answers a site with no icon with a grey 48 px square that loads fine, so the glyph fallback never ran (prod too). Icons now come from gstatic at 32 px; a miss comes back 16 px and `iconMissed` shows the format glyph. The mock answers like gstatic | 0830f8a95 |
 
 Pages add `ui-scroll-fade` to their own sideways rows (Canon presets, Map filters: sidecar).
 
@@ -544,3 +545,4 @@ Next round: trace the engage and approval counts in the sidebar batch (load, the
 - 11-26 23:53: perf round 4 measured, not fixed: the sidebar counts spend their time in app loaders, not in SQL or the pool.
 - 11-27 00:18: (n) 759d96689: Canon strip faces and slot, Compose fit check. Seen: an outliers card at 1280 cuts "@a_very_long_handle_for_a_creator_wh" (sidecar told).
 - 11-27 00:24: perf round 5 measured, not fixed: the entry chunk is 1.14 MB gzip because every page loads at boot. Options D–F above.
+- 11-27 00:35: (o) 0830f8a95: Weaver source icons. Main holds row 13 item 1 (skip link) and the age words next; chips into More and the 390 top bar title are hand-off (not small).
