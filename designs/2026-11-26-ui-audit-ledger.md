@@ -58,8 +58,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 8 | Office | `stories/wren/office` | sidecar | audited |
 | 9 | Studio | `stories/wren/studio` | sidecar | audited |
 | 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited |
-| 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | auditing |
-| 12 | Client: campaigns, office, people | `stories/client` | | |
+| 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | audited |
+| 12 | Client: campaigns, office, people | `stories/client` | sidecar | auditing |
 | 13 | Weaver | `stories/weaver` | | |
 
 After 13, start again at 1 with a fresh eye.
@@ -223,6 +223,20 @@ False alarms: failed stories show skeletons at 390 because the shot came during 
 13. Fixtures: Followers puts person names in the "Platform" column and the same number in every column; Conversation says 7 comments but "3 of 12 answered"; the Overview chart runs Oct 11–17 under "this month". Fix the mocks so a reader can trust the numbers.
 14. Box-fit: only item 9.
 15. Prod parity (prod 11-26): 48 social posts, 4 booked calls, 2 email campaigns, 312 invites (253 pending), 257 follower-count days. Invites is the big list: test it at 300 rows. The other fixtures match.
+
+### Row 11: Shell (sidecar, 11-26 22:36)
+
+20 stories (`app-wren-shell-*`, `redesign-shell--*`, kit `shell--*`) at 390 and 1280. Shots: scratchpad `audit11/`. Box-fit: no hits. No load errors.
+
+1. Kit `shell--worst-case` at 1280: the sidebar's workspace name breaks letter by letter ("Internat / ional / Consoli / dated") because the long tag beside it takes half the column. Put the tag under the name, or cap the tag width. wren v2.
+2. At 390 a long name in the top bar runs above the bar and is cut at the top edge (`redesign-shell--client-keeps-apps` "Acme Plumbing and a much longer…", `shell--worst-case`). Clamp the bar title to one line and show the whole name in the page title below it. wren v2.
+3. Kit `shell--client` at 390: the tab bar shows "Apps" at both ends (Apps · Today · Waiting · Approved · Apps). `shell--default` puts three tabs left and Apps far right with a gap. Spread the tabs evenly and show Apps once. wren v2.
+4. The header shows the app name twice on Aerie: "Aerie" title and an "Aerie" chip. On Variants the chip says "Vireo", which earns it. Hide the chip when it matches the title.
+5. The side nav count badges are pink circles on the phone dock and black circles at 1280. Use one badge style.
+6. Map at 390 (`shell-sidebar--items`): "The newest version dropped a part that people are still on: Joined (1)" with an orange dot before it. The line is unclear to a person, and the dot is L5.4. Say "1 person is on a step the new version removed: Joined" with a link.
+7. Recordings: "Minutes 0" for a 1-second call. Show seconds under a minute ("1 s").
+8. Today cards read "Held because: Held because 5 …" and Engage reads "Copy to make live · 43 days" with no word for the 43 days. The first is the fixture (it fills a field with its label). The second is page-level: say "waiting 43 days".
+9. App stories at 390 show no phone tab bar (Today, Aerie, Variants, People). The tab bar sits in the kit shell only. Check that a phone in prod shows `PHONE_TABS` (5db722932) and add one app story that shows it.
 
 ## Known, carried over
 
