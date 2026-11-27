@@ -453,6 +453,7 @@ New: none.
 Pass 1 items:
 - Fixed: R12.1 (stat cards keep the tint, no top border), R12.3 (Updates and Timeline have no one-option bar), R12.4 (stage, warmth and role are plain coloured words), R12.5 (Social rows have no initials circles).
 - Still open: R12.2 (`today--default` at 390: the account name runs above the top bar; same as R11.2), R12.6 (Messages "43 days" with no word), R12.7 (Timeline at 390: "0 lines from Nov 14 to Nov 27" wraps to 4 lines between the icons and Day/Week/Month), R12.8 (Import rows: file name and "From …" side by side).
+- R12.8 cause (00:40): a phone row reads `views[view].phone` only when the URL names a view (`records.tsx:977`); the default view gets none. `columnsOf` keeps the server field order, so the page column order has no effect. Fix: fall back to the default view id (`meta.views[0]`), then give Import `phone: "at"`. Check People "journey" and Wren "today" after, since their phone picks start to apply by default.
 - Fixed after this pass (b674b7371): R12.11. The peek fixture now gives each person words: "Replied to the winter offer", "Owner, plumbing", "+1 555 0101", "LinkedIn post".
 - Not seen in this set: R12.9 ("Unknown · Region"), R12.10 (the focus ring on Team). Check them on the person page and with a click next pass.
 
