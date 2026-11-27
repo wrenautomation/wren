@@ -359,8 +359,17 @@ New:
 | (f) list bar gutter | carried | does not reproduce: the Save view icon keeps 16 px at 390. The cut labels were (g) | — |
 | (g) labels cut at the right edge | rows 5, 6 | `.ui-scroll-fade`: a scroll-driven mask fades the hidden edge, none when the row fits; on `.ui-seg[data-fill]`, list bar, records sections, shell, switch bar. List bar shape row stays whole; narrow bar wraps tools under it. Phone Segmented centres against the track; a too-wide tab shows its start | 3b210671f |
 | (h) box at the left of pick rows | row 5, L5.4 | the many-pick list shows a check after the count, like the menu | 3b210671f |
+| (i) avatars, rank circles, provider ids, narrow money, phone bar | R7.6, R7.7, R8.1, R8.4, R8.5, R8.7 | no avatar or rank circle; `NameWithMark`; money first when narrow; mock model ids; phone bar title centred | 55ca06c35 |
+| (j) tabs, badge, stripes, one-view strip, dots | R10.1, R10.5, R10.7, R11.1–R11.3, R11.5, R12.1, R12.3, R12.5, P2.1 | phone tabs share the width, Apps once; one count pill; stat card tint only; calendar block left stripe gone; ViewTabs hide under two views; Social drops the face; `StateMark` draws only a platform mark; sidebar tag under the name; phone bar 44 px; pick list a column (rows never squeeze); Aerie status filter drops its dot; calendar weekdays in sentence case | 6b5c60a24 |
+| (k) table heads wrap | row 2 pass 2, item 8 | a head wants its whole label on one line; only a tight room wraps it | ab03ab9f9 |
 
 Pages add `ui-scroll-fade` to their own sideways rows (Canon presets, Map filters: sidecar).
+
+Answered, no change:
+- R12.10 `--ui-focus`: the default look already rings in the purple accent, 2 px offset. The blue ring is the Raycast look's own (`focus: #3a6df0`, v116, as Raycast). Its accent is ink; a purple ring there breaks the ~1% purple rule.
+- R9.3 FAB is page-level (`studio.tsx:180`): sidecar.
+- R9.11 column type icons stay (Notion precedent). Open for William.
+- Tells `studio-compose.tsx:346` middle dots: one counter row ("chars · posts · Reads in"), read as one meta line. False alarm.
 
 ## Performance rounds
 
@@ -368,6 +377,9 @@ Pages add `ui-scroll-fade` to their own sideways rows (Canon presets, Map filter
 |---|---|---|---|---|
 | 11-26 21:15 | 1. prod list reads, from `rt.invocations` (48 h) and `pg_stat_statements` | recordsList p50/p95 ms: To approve 351/1021, Inbox 307/987, People 209/802, Batches 163/416. recordsCounts 268–417 ms (9 counts in parallel: engage 155–188, approval 97–238, the rest 16–109) | not fixed this round | — |
 | 11-26 21:55 | 2. To approve's 15 reads, timed one by one on prod from the Mac (24 ms round trip), read-only | reach 560–990 ms; every other read 23–135 ms. Reach read up to 500 Reddit threads (bodies, sources) to keep the 4 queued of 6,497 | the queued read is 0.2 ms on prod; reach 382–452 ms from the Mac, the rest is 8 round trips (about 1 ms each from Lambda). Prod p50 needs traffic: read it next round | adadacdec |
+| 11-26 23:55 | 3. recordsList by list, 72 h, split at adadacdec (02:50 UTC); then People › Timeline (`people.event`) | To approve after: 206/209 ms (n=2, was 351/1021); Inbox 281/365 (n=4). Timeline 2,312 p50 (n=2): both calls were the hover prefetch, unwindowed: rows 1.8 s, counts 2.8 s. 281,881 of 283,914 lines are trait changes. An index on `profile_trait_events(at)` did not change the plan (local test, 300k rows, rolled back): the view hash-joins `profiles` after the union | timeline pages skip the table prefetch; the page reads a day at a time (94 ms warm) | cc2e1e703 |
+
+Open from round 3: the Timeline's List (`as=rows`) still reads the whole view unwindowed (785 ms rows, 550 ms count). The fix is a default window on that list, or trait changes out of the timeline (99% of its lines). The second one is a product call for William.
 
 Next round: read To approve's prod p50/p95 since adadacdec from `rt.invocations`. Then Inbox (307/987): trace its reads the same way. Seen in passing, outside the UI: Aerie's CLI and mirror read all of `aerie.task` (194 ms mean, 7,381 calls since 11-06), `mirror_file` (93 ms) and the task tree (69 ms). The tables are small (923 rows, few dead rows), so the time is likely the wide text columns. That is Aerie's repo, not this loop.
 
@@ -375,3 +387,5 @@ Next round: read To approve's prod p50/p95 since adadacdec from `rt.invocations`
 
 - 11-26 21:10: loop set up. WA-1454 pushed (62fdfe430).
 - 11-26 22:30: kit fixes (a)–(e) pushed (63dd75c84), (g)–(h) committed (3b210671f). Main takes R7.6, R7.7, R8.1, R8.4, R8.5, R8.7.
+- 11-26 23:30: batch 3 (55ca06c35) and batch 4 (6b5c60a24) green. Batch 5: table heads on one line.
+- 11-26 23:58: batch 5 green (ab03ab9f9). Perf round 3: timeline prefetch skipped (cc2e1e703).
