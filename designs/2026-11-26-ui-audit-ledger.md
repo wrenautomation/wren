@@ -50,8 +50,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 0 | WA-1464 icon swap | kit icons | main | done, 02daa0b4e |
 | 1 | Aerie: Intake, Decisions, History | `stories/wren/aerie` | sidecar | audited; pass 2 audited |
 | 2 | Today / To approve | `stories/wren/today`, `redesign/shell` | sidecar | audited; pass 2 audited |
-| 3 | Variants / Batches | `stories/vireo`, batches | sidecar | audited; pass 2 auditing |
-| 4 | Anton panel | `redesign/anton`, `wren/agent-chat` | sidecar | audited |
+| 3 | Variants / Batches | `stories/vireo`, batches | sidecar | audited; pass 2 audited |
+| 4 | Anton panel | `redesign/anton`, `wren/agent-chat` | sidecar | audited; pass 2 auditing |
 | 5 | Canon | `stories/wren/canon` | sidecar | audited |
 | 6 | Map | `stories/wren/map` | sidecar | audited |
 | 7 | Explorer | `stories/wren/explorer` | sidecar | audited |
@@ -306,6 +306,23 @@ New:
 6. "Mail rules" shows in the side nav only while you are on it. It is missing on every other Today page. Show it under Mail always, or reach it from Mail's menu only.
 7. Calendar has no page title. Every other Today page starts with a heading; Calendar starts with the booking page box. Add "Calendar" above it.
 8. Kit (wren v2): table headers wrap to two or three lines ("Waiting since", "Held from them", "Settled by") while the cells have room. Keep a header on one line; shrink the column instead.
+
+### Row 3, pass 2: Variants (sidecar, 11-26 23:30)
+
+32 `app-vireo-*` stories at 390 and 1280. Shots: scratchpad `audit3b/`. Box-fit fell from 27 hits to 0. The one error is the planned `close-fails` story. The header and "Skip to content" that float mid-page in `tree-open` and `mark` come from the full-page shot after the story scrolls; viewport shots are clean.
+
+Pass 1 items:
+- Fixed: R3.2 ("By state" whole at 390), R3.4 (prose no longer gets tabular gaps), R3.7 (box-fit 0).
+- Better: R3.1. The long subject name now sits in the phone header, not over the page. It wraps to four blue lines and touches the top edge. On the phone, title the header "Batches"; the page heading already shows the whole name.
+- Better: R3.5. The "0 of 4 marked" pill lost its dot. "● Brief" in the empty tree (`chat-cards--growing`) keeps one.
+- Still open: R3.3 (two "Rename" links stacked), R3.6 (no 100-sample batch story; fixture lines stay far under prod's 1,200-character "why" and note).
+
+New:
+1. Little dots (L5.4, his words: "no little circle things to the left"): each sample note starts with a green dot ("● 0:01.2–0:02.4 This pace works", "● \u201cI can introduce you…\u201d Concrete"). Use the time or the quote alone.
+2. The mark pill "☆ Amazing · 9" is blue, and the star is blue. Blue is not in the palette; the accent is purple. Use the zone tint the "3 amazing" count pill uses.
+3. Chat cards: "0 of 4 marked" and "A batch waits" sit in a red tint. Red reads as an error, but this is the normal waiting state. Use a neutral or purple tint.
+4. Worst-case fixture: batch titles read "as a long brie batch 1". The fixture cuts the subject at 60 characters mid-word (`batches.stories.tsx:135`). Cut at a word, so the shot does not look like a UI cut.
+5. Prod parity (prod 11-26 23:15): 9 subjects, 55 batches, 560 samples, the largest batch 100 samples. Same as pass 1 plus one batch.
 
 ## Known, carried over
 
