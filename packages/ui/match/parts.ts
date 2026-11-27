@@ -65,23 +65,7 @@ export const PARTS: readonly Part[] = [
     },
     props: TEXT,
   },
-  {
-    name: "avatar",
-    artifact: { file: DL, at: `${ART} .av` },
-    story: {
-      id: "rows--default",
-      at: { 390: `${ROW} span[aria-hidden]`, 1280: `${ROW} td:nth-child(2) span[aria-hidden]` },
-    },
-    props: [
-      "width",
-      "height",
-      "border-radius",
-      "background-color",
-      "color",
-      "font-size",
-      "font-weight",
-    ],
-  },
+  // no "avatar": rows dropped it (R8.7, 2026-11-27 review)
   {
     name: "list head",
     artifact: { file: DL, at: "#f1 .hd > span:nth-child(2)" },
