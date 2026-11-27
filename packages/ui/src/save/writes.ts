@@ -372,8 +372,14 @@ export class Writes {
     w.due = this.env.now() + o.ms;
     this.commits.set(w.id, commit);
     this.changed();
-    this.env.remind(o.ms, () => void this.due());
+    this.env.remind(o.ms, () => this.wake(w.id));
     return { id: w.id, undo: () => this.undo(w.id) };
+  }
+
+  /** This tab's reminder for its own hold: the timer is the truth, so it goes even if the clock reads short (lagging, set back). */
+  private wake(id: string) {
+    const w = this.byId(id);
+    if (w?.status === "held") this.commit(w);
   }
 
   /** Take back a held press. False when it already went. */

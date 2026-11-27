@@ -4,6 +4,8 @@
  */
 import type { StoryObj } from "@storybook/react-vite";
 import { createMemoryHistory, type RouterHistory } from "@tanstack/react-router";
+import { WRITES } from "@wren/ui";
+import { toast } from "@wren/ui/toast";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import type { Me } from "../api.js";
@@ -21,10 +23,16 @@ import {
 import { ANSWERS } from "./data/index.js";
 import { OWNER } from "./data/me.js";
 
-// Agent dock state outlives a story file (one origin); an open dock adds its own reads and alerts
+// Agent dock state outlives a story file (one origin); an open dock adds its own reads and alerts.
+// Held presses (10 s undo) outlive a story too: they hide records and commit into the next story.
 onFreshStory(() => {
   localStorage.removeItem(PANEL_KEYS.open);
   sessionStorage.removeItem(PANEL_KEYS.chat);
+  for (const w of WRITES.snapshot()) {
+    if (w.status === "held") WRITES.undo(w.id);
+    else WRITES.dismiss(w.id);
+  }
+  toast.dismiss();
 });
 
 export interface PageAt {

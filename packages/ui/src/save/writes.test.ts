@@ -39,7 +39,14 @@ function tab(storage = memoryStore()) {
     pass(ms: number, fire = true) {
       now += ms;
       if (!fire) return;
-      for (const r of reminders.splice(0)) if (r.at <= now) r.fn();
+      const all = reminders.splice(0);
+      reminders.push(...all.filter((r) => r.at > now));
+      for (const r of all) if (r.at <= now) r.fn();
+    },
+    /** Reminders run though the clock reads short of their time (a lagging or set-back clock). */
+    early(ms: number) {
+      now += ms;
+      for (const r of reminders.splice(0)) r.fn();
     },
     hide() {
       shown = false;
@@ -329,6 +336,32 @@ describe("a held press (undo)", () => {
     t.pass(20_000);
     await flush();
     expect(s.calls).toHaveLength(0);
+  });
+
+  it("its reminder goes though the clock reads short of the deadline (lagging, set back)", async () => {
+    const t = tab();
+    const s = server();
+    const { w } = store(t, s);
+    hold(w, s, "c1");
+    t.early(5_000);
+    await flush();
+    expect(s.calls).toHaveLength(1);
+  });
+
+  it("a late reminder of an undone hold sends nothing, though a new hold of the key waits", async () => {
+    const t = tab();
+    const s = server();
+    const { w } = store(t, s);
+    expect(hold(w, s, "c1")?.undo()).toBe(true);
+    t.pass(5_000);
+    hold(w, s, "c1");
+    t.pass(5_000);
+    await flush();
+    expect(s.calls).toHaveLength(0);
+    expect(t.waiting()).toBe(1);
+    t.pass(5_000);
+    await flush();
+    expect(s.calls).toHaveLength(1);
   });
 
   it("deadline passed while hidden (timers throttled): it goes on return, undo is too late", async () => {
