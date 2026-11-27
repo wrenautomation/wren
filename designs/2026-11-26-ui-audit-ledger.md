@@ -51,8 +51,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 1 | Aerie: Intake, Decisions, History | `stories/wren/aerie` | sidecar | audited; pass 2 audited |
 | 2 | Today / To approve | `stories/wren/today`, `redesign/shell` | sidecar | audited; pass 2 audited |
 | 3 | Variants / Batches | `stories/vireo`, batches | sidecar | audited; pass 2 audited |
-| 4 | Anton panel | `redesign/anton`, `wren/agent-chat` | sidecar | audited; pass 2 auditing |
-| 5 | Canon | `stories/wren/canon` | sidecar | audited |
+| 4 | Anton panel | `redesign/anton`, `wren/agent-chat` | sidecar | audited; pass 2 audited |
+| 5 | Canon | `stories/wren/canon` | sidecar | audited; pass 2 auditing |
 | 6 | Map | `stories/wren/map` | sidecar | audited |
 | 7 | Explorer | `stories/wren/explorer` | sidecar | audited |
 | 8 | Office | `stories/wren/office` | sidecar | audited |
@@ -323,6 +323,22 @@ New:
 3. Chat cards: "0 of 4 marked" and "A batch waits" sit in a red tint. Red reads as an error, but this is the normal waiting state. Use a neutral or purple tint.
 4. Worst-case fixture: batch titles read "as a long brie batch 1". The fixture cuts the subject at 60 characters mid-word (`batches.stories.tsx:135`). Cut at a word, so the shot does not look like a UI cut.
 5. Prod parity (prod 11-26 23:15): 9 subjects, 55 batches, 560 samples, the largest batch 100 samples. Same as pass 1 plus one batch.
+
+### Row 4, pass 2: Anton panel (sidecar, 11-26 23:28)
+
+15 stories at 390 and 1280. Shots: scratchpad `audit4b/`. Box-fit 0. Errors: `gone` is planned (404 on a gone session); `card` and `card-on-live` are not (item 3).
+
+Pass 1 items:
+- Fixed: R4.4 (`card-on-live` shows one "Working" line), R4.5 (the turn foot reads "Sonnet · 2.8 s"), R4.6 ("A batch waits" has no dot; its red tint is row 3 pass 2 item 3).
+- Better: R4.3. At 390 the Vireo card's tree fits on the left. The right still cuts "Editori grid" and "Index with type and a muc".
+- Still open: R4.1 (each user message ends "Research › Runs (/iframe.html)"), R4.2 (`on-map` shows "Ask Orrery" alone, no line, no prompts).
+
+New:
+1. The research map card spaces its punctuation: "bakers . example", "https : //www . youtube . com", "with samples ." The cause is likely tabular figures or letter spacing on the node text. Set the node text as prose.
+2. Little dots (L5.4, his words: "no little circle things to the left"): the round node "bakery wholesale accounts first buyer" ends in an orange and a blue dot. Use a word or drop them.
+3. `card` and `card-on-live` fetch from the open web: `icons.duckduckgo.com/ip3/bakers.example.ico` and `i.ytimg.com/vi/abcdefghijk/mqdefault.jpg`, both 404. A story must not call outside hosts. Serve the icon and the poster from the mock.
+4. The compacted chat numbers its list "1 . Banana", "2 . Orange". Tabular figures on list markers again (row 1 #1 cause).
+5. `commands`: while `/context` streams, its table shows as raw text ("| Category | Tokens | Percentage | |----------|---|"). Hold a table row until it is whole, or render the rows as they close.
 
 ## Known, carried over
 
