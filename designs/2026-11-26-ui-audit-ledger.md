@@ -53,8 +53,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 3 | Variants / Batches | `stories/vireo`, batches | sidecar | audited; pass 2 audited |
 | 4 | Anton panel | `redesign/anton`, `wren/agent-chat` | sidecar | audited; pass 2 audited |
 | 5 | Canon | `stories/wren/canon` | sidecar | audited; pass 2 audited |
-| 6 | Map | `stories/wren/map` | sidecar | audited; pass 2 auditing |
-| 7 | Explorer | `stories/wren/explorer` | sidecar | audited |
+| 6 | Map | `stories/wren/map` | sidecar | audited; pass 2 audited |
+| 7 | Explorer | `stories/wren/explorer` | sidecar | audited; pass 2 auditing |
 | 8 | Office | `stories/wren/office` | sidecar | audited |
 | 9 | Studio | `stories/wren/studio` | sidecar | audited |
 | 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited |
@@ -354,6 +354,21 @@ New:
 2. The library filters are native selects ("Every type", "Every topic", "Any status", `parts.tsx:53`). Every other list filters through the list bar's Filter menu. Use that menu here.
 3. The record's Fields list shows raw values: "provider human: william", "by william", "why he sent it". Show "William" as a name, and drop "provider" when "by" says the same.
 4. Box-fit's 2 hits (`library--topic`, `--binary-file`) are a false positive: a closed `<details>` (`topic.tsx:538`) holds its hidden body. Fix the check in `shoot.mjs` to skip closed details (sidecar).
+
+### Row 6, pass 2: Map (sidecar, 11-26 23:55)
+
+68 `app-wren-map-*` stories at 390 and 1280. Shots: scratchpad `audit6b/`. The 400s and 404s are planned (`apply-refused`, `import-refused`, `missing`).
+
+Pass 1 items:
+- Fixed: R6.3 ("median 50d", ac7a14f).
+- Still open: R6.1 (red play checks: `loading-and-empty--loading` both widths, `focus--station` 390, `drafts--apply-live-changed` 1280, `overview--phone` 1280; `apply-refused` now fails only with its planned 400), R6.4 (Now, Arrived, Left in the header line and again below), R6.5 ("AN", "CM", "BF" circles in the Today panel), R6.6 ("Send the contract · 0 waiting at Booked" under "waiting on you"), R6.7 (the orange dot now sits on its own line above the sentence at 390), R6.8 ("Signed" icon above its word), R6.9 (the same 11 Layers plate hits).
+- Not seen: R6.2 (no label cut mid-word in these shots; the "7 day" tab cuts at the edge with the fade).
+
+New:
+1. The map draw is flaky. In this pass `overview--today`, `panels--hub` and `drafts--open` stop at "Drawing your map", and `focus--parts` is blank at both widths. Pass 1 drew all four. On a rerun `panels--hub` drew, `drafts--open` did not, and `focus--parts` drew its page with no map. No map code changed since pass 1, so the draw is slow under load or it races. Time the draw in a story, and make each panel story wait for the map before its check.
+2. New red play check: `focus--views-menu` at 1280 (the current view's link in the menu is not visible).
+3. Box-fit: on the focus pages an SVG `g` is 11 px high and its content needs 17 px (`focus--station`, `--parts`, `--view`, `--home-view`; 9 hits). Check that a station label is not clipped.
+4. Prod parity (prod 11-26 23:35): 9 versions, 2 drafts, 1 tag. Same as pass 1; the `big` story covers it.
 
 ## Known, carried over
 
