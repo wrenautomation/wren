@@ -176,7 +176,7 @@ function StudioHome(props: PageProps) {
       <a
         href={href("/campaigns/studio", { make: "post" }, props.params)}
         aria-label="New post"
-        className="fixed right-5 bottom-[calc(104px+env(safe-area-inset-bottom))] z-20 grid size-14 place-items-center bg-(--ui-primary) text-(--ui-on-accent) [border-radius:14px_28px] shadow-[0_8px_20px_-8px_color-mix(in_srgb,var(--ui-umbra)_50%,transparent)] transition-transform duration-200 ease-(--ui-spring) active:scale-95 motion-reduce:transition-none sm:hidden [:root:has([data-sonner-toast])_&]:[translate:0_min(0px,calc(24px+env(safe-area-inset-bottom)-var(--ui-toast-bottom,22px)))]"
+        className="fixed right-5 bottom-[calc(104px+env(safe-area-inset-bottom))] z-20 grid size-14 place-items-center bg-(--ui-primary) text-(--ui-on-accent) [border-radius:14px_28px] shadow-[0_8px_20px_-8px_color-mix(in_srgb,var(--ui-umbra)_50%,transparent)] transition-transform duration-200 ease-(--ui-spring) active:scale-95 motion-reduce:transition-none sm:hidden [:root:has([data-sonner-toast])_&]:[translate:0_min(0px,calc(24px+env(safe-area-inset-bottom)-var(--toast-bottom,22px)))]"
       >
         <Icon name="plus" size={22} />
       </a>

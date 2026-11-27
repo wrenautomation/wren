@@ -381,7 +381,7 @@ describe("applyTheme", () => {
         return was;
       },
     };
-    return { el: { style } as unknown as HTMLElement, props };
+    return { el: { style, dataset: {} } as unknown as HTMLElement, props };
   }
 
   it("sets each token as a custom property", () => {

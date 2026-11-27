@@ -1278,13 +1278,13 @@ html[data-morph="cards"]::view-transition-new(*) {
 /* Brand icons (WA-1464, option B): the meaning stroke goes purple on the active nav row only.
    Unset elsewhere, so it takes the ink: disabled, danger, on-primary, the metro's .ic marks. */
 :root {
-  --ui-icon-accent: #6b4ee6;
+  --nav-icon-accent: #6b4ee6;
 }
 [data-scheme="dark"] {
-  --ui-icon-accent: #a996ff;
+  --nav-icon-accent: #a996ff;
 }
 nav :is([aria-current="page"], [aria-current="true"]):not(:disabled, [aria-disabled="true"]) {
-  --icon-accent: var(--ui-icon-accent);
+  --icon-accent: var(--nav-icon-accent);
 }
 
 /* Hand-set tabular-nums follows the look: a face whose tnum widens , . : (raycast) sets
@@ -1296,7 +1296,7 @@ nav :is([aria-current="page"], [aria-current="true"]):not(:disabled, [aria-disab
 /* Toasts sit 22 px above the phone tab bar (54 px + safe area) while it shows. */
 @media (max-width: 900px) {
   :root:has([data-tab-bar]) {
-    --ui-toast-bottom: calc(76px + env(safe-area-inset-bottom));
+    --toast-bottom: calc(76px + env(safe-area-inset-bottom));
   }
 }
 /* Sonner's phone toaster is 100% wide from a 16 px offset, so it runs 16 px off screen: let the offsets bound it. */
@@ -1307,32 +1307,32 @@ nav :is([aria-current="page"], [aria-current="true"]):not(:disabled, [aria-disab
 }
 /* A row that scrolls sideways fades the edge it hides: the cue that more is there. Scroll-driven, so no
    fade when the row fits; no support = no fade. Mask alpha only, not a colour. */
-@property --ui-fade-l {
+@property --scroll-fade-l {
   syntax: "<length>";
   inherits: false;
   initial-value: 0px;
 }
-@property --ui-fade-r {
+@property --scroll-fade-r {
   syntax: "<length>";
   inherits: false;
   initial-value: 0px;
 }
 @keyframes ui-fade-l {
   0% {
-    --ui-fade-l: 0px;
+    --scroll-fade-l: 0px;
   }
   8%,
   100% {
-    --ui-fade-l: 28px;
+    --scroll-fade-l: 28px;
   }
 }
 @keyframes ui-fade-r {
   0%,
   92% {
-    --ui-fade-r: 28px;
+    --scroll-fade-r: 28px;
   }
   100% {
-    --ui-fade-r: 0px;
+    --scroll-fade-r: 0px;
   }
 }
 @supports (animation-timeline: scroll()) {
@@ -1345,8 +1345,8 @@ nav :is([aria-current="page"], [aria-current="true"]):not(:disabled, [aria-disab
     mask-image: linear-gradient(
       to right,
       transparent,
-      #000 var(--ui-fade-l),
-      #000 calc(100% - var(--ui-fade-r)),
+      #000 var(--scroll-fade-l),
+      #000 calc(100% - var(--scroll-fade-r)),
       transparent
     );
   }

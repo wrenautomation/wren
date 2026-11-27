@@ -5,6 +5,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
+import { BRAND_PATHS } from "../brand-icons.js";
 import { landTimes, MetroSvg } from "./draw.js";
 import { viewZoom } from "./fold.js";
 import { MetroMap } from "./map.js";
@@ -155,17 +156,14 @@ describe("diff marks", () => {
       ...DIFF_VIEW,
       stations: DIFF_VIEW.stations.map((s) => ({ ...s, icon: "mail" as const })),
     };
+    const mail = `d="${BRAND_PATHS.mail[1][0]}"`;
     await warm(view);
     await warm(view, 0);
-    expect(renderToStaticMarkup(<MetroMap view={view} depth={9} intro={false} />)).toContain(
-      "lucide-mail",
-    );
-    expect(renderToStaticMarkup(<MetroMap view={view} depth={0} intro={false} />)).toContain(
-      "lucide-mail",
-    );
+    expect(renderToStaticMarkup(<MetroMap view={view} depth={9} intro={false} />)).toContain(mail);
+    expect(renderToStaticMarkup(<MetroMap view={view} depth={0} intro={false} />)).toContain(mail);
     expect(
       renderToStaticMarkup(<MetroMap view={DIFF_VIEW} depth={0} intro={false} />),
-    ).not.toContain("lucide-mail");
+    ).not.toContain(mail);
   });
 });
 
