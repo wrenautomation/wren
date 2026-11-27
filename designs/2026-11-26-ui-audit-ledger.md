@@ -187,6 +187,23 @@ False alarms: failed stories show skeletons at 390 because the shot came during 
 9. Box-fit: no hits. The 500s are the `-fails` stories' planned errors.
 10. Prod parity (prod 11-26): 26 bill payments, 1 subscription end, 4 connector grants, 2 social grants. The fixtures (3–8 rows) match this size.
 
+### Row 9: Studio (sidecar, 11-26 22:27)
+
+36 stories (`app-wren-studio-*`, `app-wren-studio-add-creator-*`, `app-wren-campaigns-content--studio-*`) at 390 and 1280. Shots: scratchpad `audit9/`.
+
+1. `studio-add-creator--nothing-found` at 390 is blank: the sheet never opens (0 controls; `api/delivery/me` 404). At 1280 it draws. Fix the story's mock.
+2. Waiting rows on Write start with a checkbox and then a letter tile ("P", "T", "C", "S"). Two marks before the title, and the tile is the L5.4 shape ("no little circle things to the left"). Drop the tile; the line name already shows the line.
+3. At 390 the "Approved: 2 ideas" toast covers the "+" button (Write and To approve). Lift the button while a toast shows, or put the toast above it.
+4. Waiting rows show "Thu 7:16 PM · 26h" in orange. "26h" has no word: say "26 h late" or "due in 26 h".
+5. `campaigns-content--studio-open`: the draft text button is 113–115 px high, its text needs 170–173 px (box-fit, both widths). The text spills under the next block. Drop the fixed height.
+6. The Inspiration creator strip uses round photos and initials circles ("B", "E") with platform badges. At 1280 the grouped view puts a round photo left of each creator name. Same L5.4 question: keep the photo (it is the person), drop the initials circle, use the name.
+7. "Bartholomew Featherstone haugh-Montgomery" breaks a name inside a word. `hyphens: auto` splits proper names; set `hyphens: manual` on names.
+8. Inspiration at 390 stacks two chip rows (All posts / Breakouts …, All / Long-form …) and an icon row before any post. Three bars of filters on a phone. Fold the kind row (All / Long-form / Shorts / Posts) into the Filter menu at 390.
+9. Edit not filmed tells a person to run `wren project film 3 <video id>` and gives "Copy the command". A person in the portal has no shell. Give a "Pick the recording" button that does the same call; keep the command as meta for agents.
+10. The Edit video cards are flat black with a play icon. A render that has a frame should show it; a failed render should say so on the frame, not only in the chip.
+11. The Publish table header puts a type icon (circle check, "T", "#") before each column name. Column icons repeat on every column and say nothing a person needs. Kit records-page: wren v2.
+12. Prod parity (prod 11-26): 0 video projects, 298 content drafts, 24 tracked creators, 15 creator people, 1,696 creator posts. Projects shows its empty state in prod. Inspiration fixtures hold 8 posts from 5 creators; prod is 200 times that. Test the grid and the creator strip at 1,700 posts and 15 people (paging, strip scroll).
+
 ## Known, carried over
 
 - At 390 the list bar's icons run to the screen edge (the Save view icon has no gutter).
