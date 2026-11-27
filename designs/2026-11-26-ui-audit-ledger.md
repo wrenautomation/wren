@@ -554,3 +554,28 @@ Next round: trace the engage and approval counts in the sidebar batch (load, the
 - 11-27 00:38: (p) 1a97d01af: skip link on keyboard focus only.
 - 11-27 00:55: (q): unit-ui on main was red from this loop's files (9 tests); fixed. test:stories stays red on graph/map Open Box and Pick Line (not this loop's files).
 - 11-27 00:57: perf round 6 measured: recordsCounts p50 526 ms after the Reach fix (was 588); To approve has no new calls.
+
+## Summary (11-27 01:00 ET, loop ended)
+
+Ran 11-26 21:10 to 11-27 01:00. The sidecar audited all 13 rows twice (390 and 1280, worst-case data, prod parity). Main fixed in the kit and pages, and ran 6 performance rounds.
+
+**Fixed by main** (each proved with shots, story tests and `peers check`, then pushed):
+- WA-1454 Aerie Tasks (62fdfe430), WA-1464 icon swap (02daa0b4e), WA-1460 perch mark (1e26401c2).
+- Kit rows (a)–(q) above: numbers follow `--ui-numeric`; quiet buttons fit; no dots or circles at the left; phone toast above the tab bar; scroll-fade on cut rows; table heads on one line; no mono outside a terminal; singular counts; no avatars, rank circles or initials (grey blank instead); strip names whole; Compose fit check; Weaver site icons (a miss shows the format glyph, prod too); skip link on keyboard focus only; unit-ui green again (internal CSS vars out of the `--ui-` token space).
+- Perf: Reach reads only queued threads in SQL (adadacdec, 560–990 → 382–452 ms); the Timeline skips its unwindowed prefetch (cc2e1e703). Round 6: sidebar counts p50 526 ms (was 588); their cost is the engage and approval loaders.
+
+**Waits on William:**
+- D2 nav (WA-1456), Anton docked (WA-1457), Anton's circle mark and the SMS icon (WA-1460).
+- R9.11 column type icons stay (Notion precedent): keep or drop.
+- Perf C: Lambda 1024 → 1769 MB for the sidebar counts (costs money).
+- Perf: trait changes out of the Timeline (99% of its lines): a product call.
+- Perf D–F (bundle 1.14 MB gzip at first paint): lazy pages, lazy agent chat, schema code off the client. D and E change load behaviour on every page; pick before a build.
+
+**Hand-off (found, not fixed; not small enough for the last 20 min):**
+- Chips cut beside More at 390 ("Sched", "Po", "All bo", "Leade", "Vid"): move chips that do not fit into More.
+- Top bar title runs above the bar at 390 (R11.2, R12.2).
+- Bare ages "43 days", "26h" (R9.4, R11.8, R12.6): each surface needs its own word.
+- R12.8: `records.tsx:976-977` reads `views[""]` while `askOf` defaults to `meta.views[0]`, so the default view gets no phone field and no view columns. Fix from `ask.view` in `records-list.tsx`.
+- Story failures outside these diffs: graph/map Open Box and Pick Line every run; metro Zoom Play, Open With Enter, confirm Answers under load.
+
+**CI at the end** (d6175c7ae): the deploy gates and the deploy are green. The report-only jobs are still red: `unit-ui` has 7 portal tests that fail outside this loop's files (accent roles, page about lines, copy, move table; the ui package is 903/903). `test:stories` fails on graph/map Open Box and Pick Line.
