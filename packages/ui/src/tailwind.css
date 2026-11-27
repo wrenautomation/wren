@@ -1282,3 +1282,22 @@ html[data-morph="cards"]::view-transition-new(*) {
 nav :is([aria-current="page"], [aria-current="true"]):not(:disabled, [aria-disabled="true"]) {
   --icon-accent: var(--ui-icon-accent);
 }
+
+/* Hand-set tabular-nums follows the look: a face whose tnum widens , . : (raycast) sets
+   --ui-numeric: normal. Unlayered, so it wins over the utility. */
+.tabular-nums {
+  font-variant-numeric: var(--ui-numeric, tabular-nums);
+}
+
+/* Toasts sit 22 px above the phone tab bar (54 px + safe area) while it shows. */
+@media (max-width: 900px) {
+  :root:has([data-tab-bar]) {
+    --ui-toast-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+}
+/* Sonner's phone toaster is 100% wide from a 16 px offset, so it runs 16 px off screen: let the offsets bound it. */
+@media (max-width: 600px) {
+  [data-sonner-toaster][data-x-position] {
+    width: auto;
+  }
+}

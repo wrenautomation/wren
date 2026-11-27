@@ -1354,7 +1354,7 @@ function Suggestions({ looks, edit, act }: { looks: Look[]; edit: Edit; act: Rec
                     key={`${x.from}-${x.to}`}
                     className="flex flex-wrap items-center gap-2 text-[13.5px]"
                   >
-                    <span className="text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
+                    <span className="text-(--ui-ink-2) tabular-nums">
                       {clock(x.from)} to {clock(x.to)}
                     </span>
                     <span className="min-w-0 flex-1">{x.title}</span>
@@ -1407,10 +1407,7 @@ function Suggestions({ looks, edit, act }: { looks: Look[]; edit: Edit; act: Rec
               <ul className="m-0 grid list-none gap-0.5 p-0 text-[13.5px]">
                 {l.chapters.map((c) => (
                   <li key={c.at}>
-                    <span className="text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
-                      {clock(c.at)}
-                    </span>{" "}
-                    {c.title}
+                    <span className="text-(--ui-ink-2) tabular-nums">{clock(c.at)}</span> {c.title}
                   </li>
                 ))}
               </ul>
@@ -1422,9 +1419,7 @@ function Suggestions({ looks, edit, act }: { looks: Look[]; edit: Edit; act: Rec
               <ul className="m-0 grid list-none gap-1 p-0">
                 {l.thumbnails.map((x) => (
                   <li key={x.at} className="flex flex-wrap items-center gap-2 text-[13.5px]">
-                    <span className="text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
-                      {clock(x.at)}
-                    </span>
+                    <span className="text-(--ui-ink-2) tabular-nums">{clock(x.at)}</span>
                     <span className="min-w-0 flex-1">{x.why}</span>
                     {edit.thumbnail && Math.abs(edit.thumbnail.at - x.at) < 0.5 ? (
                       <Tag tone="green">In use</Tag>
@@ -1459,10 +1454,7 @@ function Suggestions({ looks, edit, act }: { looks: Look[]; edit: Edit; act: Rec
               <ul className="m-0 mt-1 grid list-none gap-0.5 p-0 text-[13.5px]">
                 {l.moments.map((m) => (
                   <li key={m.at}>
-                    <span className="text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
-                      {clock(m.at)}
-                    </span>{" "}
-                    {m.why}
+                    <span className="text-(--ui-ink-2) tabular-nums">{clock(m.at)}</span> {m.why}
                   </li>
                 ))}
               </ul>

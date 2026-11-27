@@ -263,7 +263,7 @@ export function History({
                           target="_blank"
                           rel="noreferrer"
                           aria-label={`Version ${v.number} commit ${sha}`}
-                          className="text-(--ui-ink-2) underline [font-variant-numeric:tabular-nums]"
+                          className="text-(--ui-ink-2) underline tabular-nums"
                         >
                           {sha}
                         </a>

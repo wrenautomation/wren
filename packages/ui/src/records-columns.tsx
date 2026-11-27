@@ -223,10 +223,10 @@ function lenOf(s: string): number {
 function charsOf(f: FieldMeta, c: Cell | undefined): number {
   if (blank(c)) return 0;
   if (f.kind === "date") return 14;
-  // A state's dot and its gaps take about four characters (measured: "Changed" needs 101px).
+  // A state's mark and its gap take about four characters; a plain state is its word alone.
   if (f.kind === "status" || f.kind === "verdict")
-    return lenOf(f.states?.[String(c)]?.label ?? String(c)) + 4;
-  // A choice's mark or tint takes about three characters, as a state's dot does.
+    return lenOf(f.states?.[String(c)]?.label ?? String(c)) + (cueOf(f, String(c)) ? 4 : 1);
+  // A choice's mark or tint takes about three characters.
   if (f.kind === "choice" || f.words)
     return lenOf(shownOf(f, String(c))) + (cueOf(f, String(c)) ? 3 : 0);
   if (f.kind === "link") return lenOf(linkLabel(String(c), f.label));

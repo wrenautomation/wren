@@ -300,7 +300,11 @@ function TaskHead({
       {people.length > 0 && (
         <span className="flex flex-wrap gap-1">
           {people.map((x) => (
-            <Tag key={x.id} dot={x.holds} title={x.holds ? `${x.id} holds it now` : undefined}>
+            <Tag
+              key={x.id}
+              className={x.holds ? "font-semibold text-(--ui-ink)" : undefined}
+              title={x.holds ? `${x.id} holds it now` : undefined}
+            >
               {who(x.id)}
             </Tag>
           ))}

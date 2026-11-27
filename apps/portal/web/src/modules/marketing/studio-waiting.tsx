@@ -234,13 +234,13 @@ function DraftCard({
           ) : null}
         </span>
         {d.story ? null : d.thread ? (
-          <span className={cx("text-[12px] [font-variant-numeric:tabular-nums]", QUIET)}>
+          <span className={cx("text-[12px] tabular-nums", QUIET)}>
             {threadPosts(text).length} posts
           </span>
         ) : (
           <span
             className={cx(
-              "text-[12px] [font-variant-numeric:tabular-nums]",
+              "text-[12px] tabular-nums",
               text.length > max ? "text-(--ui-bad)" : QUIET,
             )}
           >

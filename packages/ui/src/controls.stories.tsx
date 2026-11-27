@@ -47,7 +47,7 @@ export const Default: Story = {
       ))}
       <div className={row}>
         {TAGS.map((tone) => (
-          <Tag key={tone} tone={tone} dot={tone !== "neutral"} title={`The ${tone} tag`}>
+          <Tag key={tone} tone={tone} title={`The ${tone} tag`}>
             {tone}
           </Tag>
         ))}
@@ -94,9 +94,7 @@ export const Failed: Story = {
       <Button tone="primary" disabled>
         Send
       </Button>
-      <Tag tone="warn" dot>
-        Failed to send
-      </Tag>
+      <Tag tone="warn">Failed to send</Tag>
     </div>
   ),
 };

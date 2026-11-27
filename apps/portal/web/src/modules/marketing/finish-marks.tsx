@@ -158,7 +158,7 @@ function Box({
     >
       <span
         className={cx(
-          "absolute -top-2.5 -left-2.5 grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-semibold ring-[1.5px] [font-variant-numeric:tabular-nums]",
+          "absolute -top-2.5 -left-2.5 grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-semibold ring-[1.5px] tabular-nums",
           picked ? "bg-white text-black ring-black/60" : "bg-black/75 text-white ring-white",
         )}
       >
@@ -207,7 +207,7 @@ export function MarksLane({
             {...{ title: `${when(m)}: ${m.text}` }}
             aria-label={`Mark ${i + 1} at ${when(m)}${m.done ? ", closed" : ""}`}
             className={cx(
-              "absolute top-1 bottom-1 cursor-pointer rounded-[5px] border-0 px-1 text-left text-[10.5px] font-semibold [font-variant-numeric:tabular-nums] transition-colors duration-150",
+              "absolute top-1 bottom-1 cursor-pointer rounded-[5px] border-0 px-1 text-left text-[10.5px] font-semibold tabular-nums transition-colors duration-150",
               sel ? "bg-(--ui-ink) text-(--ui-on-ink)" : ink,
             )}
             style={{
@@ -316,7 +316,7 @@ export function MarksPanel({
             }}
             aria-pressed={sel}
             className={cx(
-              "cursor-pointer rounded-md border-0 bg-transparent p-0 text-left text-[12.5px] font-semibold text-(--ui-link) [font-variant-numeric:tabular-nums] hover:underline",
+              "cursor-pointer rounded-md border-0 bg-transparent p-0 text-left text-[12.5px] font-semibold text-(--ui-link) tabular-nums hover:underline",
               TOUCH,
             )}
           >
@@ -383,10 +383,7 @@ export function MarksPanel({
   return (
     <div className="grid max-w-[720px] gap-4">
       <div className="grid gap-2">
-        <label
-          htmlFor="mark-text"
-          className="text-[13px] font-medium text-(--ui-ink) [font-variant-numeric:tabular-nums]"
-        >
+        <label htmlFor="mark-text" className="text-[13px] font-medium text-(--ui-ink) tabular-nums">
           Mark {when(at)} for the editing agent
         </label>
         <textarea

@@ -195,7 +195,7 @@ function Tracks({
                     {dir === "in" ? "from" : "to"} {r.who}
                     {r.back ? " (back)" : ""}
                   </span>
-                  <span className="[font-variant-numeric:tabular-nums]">{num(r.n)}</span>
+                  <span className="tabular-nums">{num(r.n)}</span>
                 </button>
               </li>
             ))}

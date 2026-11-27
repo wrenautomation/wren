@@ -350,7 +350,7 @@ function Frame({
             <span className="font-normal text-(--ui-ink-2)"> · {beat.title}</span>
           ) : null}
         </h4>
-        <span className="text-[12.5px] text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
+        <span className="text-[12.5px] text-(--ui-ink-2) tabular-nums">
           {clock(beat.from)}–{clock(beat.to)}
         </span>
         {changed ? <Tag tone="accent">Changes</Tag> : null}
@@ -586,7 +586,7 @@ export function StoryboardView({
         <h3 className={cx("m-0 text-[17px] font-semibold text-(--ui-ink)", mark("title"))}>
           {shown.title || "Untitled"}
         </h3>
-        <p className="m-0 flex flex-wrap gap-x-3 gap-y-0.5 text-[13px] text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
+        <p className="m-0 flex flex-wrap gap-x-3 gap-y-0.5 text-[13px] text-(--ui-ink-2) tabular-nums">
           <span className={mark("cutS")}>
             {length(shown.cutS)} after cuts, of {length(shown.rawS)}
           </span>

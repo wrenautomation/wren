@@ -625,7 +625,7 @@ export function SearchField({
           typed.current = true;
           setText(e.target.value);
         }}
-        placeholder={`Search ${label}`}
+        placeholder="Search"
         aria-label={`Search ${label}`}
         aria-invalid={failed ? true : undefined}
         aria-describedby={failed ? failId : undefined}

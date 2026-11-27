@@ -126,7 +126,7 @@ export function TextPanel({
                 <button
                   type="button"
                   onClick={() => onPick(i)}
-                  className="shrink-0 cursor-pointer border-0 bg-transparent p-0 text-[12px] text-(--ui-ink-2) [font-variant-numeric:tabular-nums] hover:text-(--ui-ink)"
+                  className="shrink-0 cursor-pointer border-0 bg-transparent p-0 text-[12px] text-(--ui-ink-2) tabular-nums hover:text-(--ui-ink)"
                 >
                   {stamp(o.from)} to {stamp(o.to)}
                 </button>
@@ -349,7 +349,7 @@ function LineRow({
       <button
         type="button"
         onClick={() => onSeek(line.s)}
-        className="w-14 shrink-0 cursor-pointer border-0 bg-transparent p-0 text-left text-[11.5px] text-(--ui-ink-3) [font-variant-numeric:tabular-nums] hover:text-(--ui-ink)"
+        className="w-14 shrink-0 cursor-pointer border-0 bg-transparent p-0 text-left text-[11.5px] text-(--ui-ink-3) tabular-nums hover:text-(--ui-ink)"
       >
         {short(line.s)}
       </button>
@@ -420,7 +420,7 @@ export function CoverPanel({
           <button
             type="button"
             onClick={() => onSeek(at)}
-            className="cursor-pointer border-0 bg-transparent p-0 text-[13px] text-(--ui-ink-2) [font-variant-numeric:tabular-nums] hover:text-(--ui-ink)"
+            className="cursor-pointer border-0 bg-transparent p-0 text-[13px] text-(--ui-ink-2) tabular-nums hover:text-(--ui-ink)"
           >
             Cover at {stamp(at)}
           </button>

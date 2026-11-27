@@ -89,7 +89,7 @@ export function BatchCard({ row: r, onAsk }: { row: Whole; onAsk?: OnAsk }) {
       open={OPEN}
       status={
         open ? (
-          <Tag tone="needs" dot>
+          <Tag tone="needs">
             {marked} of {samples.length} marked
           </Tag>
         ) : null
@@ -206,13 +206,7 @@ export function SubjectCard({ v, onAsk }: { v: SubjectView; onAsk?: OnAsk }) {
       ].join(" · ")}
       href={page}
       open={OPEN}
-      status={
-        waits ? (
-          <Tag tone="needs" dot>
-            A batch waits
-          </Tag>
-        ) : null
-      }
+      status={waits ? <Tag tone="needs">A batch waits</Tag> : null}
       asks={
         waits
           ? []

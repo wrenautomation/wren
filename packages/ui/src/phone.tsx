@@ -736,7 +736,7 @@ export function Segmented({
           >
             {i.label}
             {i.count !== undefined ? (
-              <span className="text-[12.5px] font-normal text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
+              <span className="text-[12.5px] font-normal text-(--ui-ink-2) tabular-nums">
                 {num(i.count)}
               </span>
             ) : null}

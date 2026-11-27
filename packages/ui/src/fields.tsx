@@ -25,28 +25,36 @@ import { Icon } from "./icons.js";
 import { PlatformMark, StageSquare, TintSwatch } from "./marks.js";
 import { Cited, type PickSource, stripMarks } from "./sources.js";
 
-const TONE: Record<Tone, string> = {
-  good: "bg-(--ui-good)",
-  warn: "bg-(--warn)",
-  bad: "bg-(--ui-bad)",
-  neutral: "bg-(--ui-ink-3)",
+/** A plain state is a tinted word, no dot (William, L5: "no little circle things to the left"). */
+const WORD: Record<Tone, string> = {
+  good: "text-[color-mix(in_srgb,var(--ui-good)_65%,var(--ui-ink))]",
+  warn: "text-[color-mix(in_srgb,var(--ui-warn)_70%,var(--ui-ink))]",
+  bad: "text-[color-mix(in_srgb,var(--ui-bad)_75%,var(--ui-ink))]",
+  neutral: "",
 };
 
 /**
  * A value's cue, by one rule (designs/2026-10-07-visual-cues.md): a platform or channel's mark, a
- * stage's lane square, a kind of thing's tint swatch, else its tone's dot. `mono` draws a mark in the text's color.
+ * stage's lane square, a kind of thing's tint swatch, else nothing (the word carries the tone). `mono` draws a mark in the text's color.
  */
 export function Cue({ state, mono, size }: { state: State; mono?: boolean; size?: number }) {
   if (state.mark) return <PlatformMark mark={state.mark} mono={mono ?? false} size={size ?? 14} />;
   if (state.line !== undefined) return <StageSquare line={state.line} />;
   if (state.tint !== undefined) return <TintSwatch tint={state.tint} />;
-  return <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", TONE[state.tone])} />;
+  return null;
 }
 
-/** A state as its cue and its label: a dot in its tone, a platform's mark, or a kind's tint. */
+/** A state as its cue and its label: a platform's mark, a kind's tint, else the word in its tone. */
 export function StateMark({ state, mono }: { state: State; mono?: boolean }) {
+  const plain = !state.mark && state.line === undefined && state.tint === undefined;
   return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap" {...tipProps(state.about)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 whitespace-nowrap",
+        plain && WORD[state.tone],
+      )}
+      {...tipProps(state.about)}
+    >
       <Cue state={state} mono={mono ?? false} />
       {state.label}
     </span>

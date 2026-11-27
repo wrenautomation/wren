@@ -65,7 +65,7 @@ export function PresenceLines({
                 <button
                   type="button"
                   onClick={() => onSeek(p.start as number)}
-                  className="cursor-pointer border-0 bg-transparent p-0 text-(--ui-link) [font-variant-numeric:tabular-nums] hover:underline pointer-coarse:min-h-11"
+                  className="cursor-pointer border-0 bg-transparent p-0 text-(--ui-link) tabular-nums hover:underline pointer-coarse:min-h-11"
                 >
                   {at}
                 </button>

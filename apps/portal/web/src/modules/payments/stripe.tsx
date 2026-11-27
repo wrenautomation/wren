@@ -93,7 +93,7 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
   return (
     <div className="flex w-full min-w-0 basis-full flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2 text-[14px]">
-        <Tag tone={s.connected && s.webhook ? "green" : "warn"} dot>
+        <Tag tone={s.connected && s.webhook ? "green" : "warn"}>
           {s.connected
             ? `Stripe connected${mode ? `, ${mode}` : ""}${s.last4 ? `, key ending ${s.last4}` : ""}`
             : "Stripe not connected"}

@@ -339,13 +339,11 @@ export function Finish({
         <Button size="sm" onClick={playing ? pause : play} disabled={!mainSrc || lost === mainSrc}>
           {playing ? "Pause" : "Play"}
         </Button>
-        <span className="text-[13px] text-(--ui-ink) [font-variant-numeric:tabular-nums]">
+        <span className="text-[13px] text-(--ui-ink) tabular-nums">
           {stamp(t)}
           <span className="text-(--ui-ink-3)"> of {stamp(dur)}</span>
         </span>
-        <span className="text-[13px] text-(--ui-ink-2) [font-variant-numeric:tabular-nums]">
-          Plays for {short(keptS)}
-        </span>
+        <span className="text-[13px] text-(--ui-ink-2) tabular-nums">Plays for {short(keptS)}</span>
         <span className="ml-auto flex flex-wrap gap-2">
           <Button size="sm" tone="quiet" onClick={() => setIn(t)}>
             Start here
@@ -482,9 +480,7 @@ export function Finish({
             >
               {label}
               {p === "marks" && openMarks ? (
-                <span className="ml-1.5 text-(--ui-ink-3) [font-variant-numeric:tabular-nums]">
-                  {openMarks}
-                </span>
+                <span className="ml-1.5 text-(--ui-ink-3) tabular-nums">{openMarks}</span>
               ) : null}
             </button>
           ))}

@@ -186,7 +186,7 @@ export function Key({ children, className }: { children: ReactNode; className?: 
   return (
     <kbd
       className={cx(
-        "inline-flex h-5 min-w-5 items-center justify-center rounded-(--ui-radius) border border-b-2 border-(--ui-hair) bg-(--ui-paper) px-1 font-[inherit] text-[11px] font-medium text-(--ui-ink-2) [font-variant-numeric:tabular-nums]",
+        "inline-flex h-5 min-w-5 items-center justify-center rounded-(--ui-radius) border border-b-2 border-(--ui-hair) bg-(--ui-paper) px-1 font-[inherit] text-[11px] font-medium text-(--ui-ink-2) tabular-nums",
         className,
       )}
     >

@@ -234,7 +234,7 @@ export function Timeline({
             {ticks.map((s) => (
               <span
                 key={s}
-                className="absolute top-0 h-full border-l border-(--ui-hair) pl-1 text-[10.5px] leading-6 text-(--ui-ink-3) [font-variant-numeric:tabular-nums]"
+                className="absolute top-0 h-full border-l border-(--ui-hair) pl-1 text-[10.5px] leading-6 text-(--ui-ink-3) tabular-nums"
                 style={{ left: x(s) }}
               >
                 {step < 1 ? stamp(s) : short(s)}

@@ -111,7 +111,7 @@ export function VideoShelf({ params, at = STUDIO }: { params: URLSearchParams; a
                 >
                   <span className="relative block aspect-video overflow-hidden bg-black">
                     <Poster thumb={thumbs[String(r.id)]} title={r.title} />
-                    <span className="absolute right-2 bottom-2 bg-black/75 px-1.5 py-0.5 text-[11px] font-semibold text-white [border-radius:4px_8px] [font-variant-numeric:tabular-nums]">
+                    <span className="absolute right-2 bottom-2 bg-black/75 px-1.5 py-0.5 text-[11px] font-semibold text-white [border-radius:4px_8px] tabular-nums">
                       {r.cut}
                     </span>
                   </span>

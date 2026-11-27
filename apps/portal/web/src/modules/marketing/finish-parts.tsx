@@ -155,7 +155,7 @@ const TimeBox = ({
     onChange={(e) => onChange(e.target.value)}
     inputMode="decimal"
     className={cx(
-      "w-[5.5rem] text-[13px] [font-variant-numeric:tabular-nums]",
+      "w-[5.5rem] text-[13px] tabular-nums",
       Number.isNaN(parseTime(value)) && "border-(--ui-bad)",
     )}
   />
@@ -579,7 +579,7 @@ function FaceBox({
               onChange={(e) =>
                 edit.set(JSON.stringify(box.map((v, j) => (j === i ? e.target.value : v))))
               }
-              className="w-20 text-[13px] [font-variant-numeric:tabular-nums]"
+              className="w-20 text-[13px] tabular-nums"
             />
           </label>
         ))}

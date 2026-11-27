@@ -42,7 +42,7 @@ import { boxDrag, type Mark, type MarkBox, MarkBoxes } from "./finish-marks.js";
 import { previewOf } from "./finish-preview.js";
 
 export const Bar = ({ children }: { children: ReactNode }) => (
-  <div className="flex flex-wrap items-center gap-3 rounded-lg bg-(--ui-fill) px-3 py-2 text-[13px] [font-variant-numeric:tabular-nums]">
+  <div className="flex flex-wrap items-center gap-3 rounded-lg bg-(--ui-fill) px-3 py-2 text-[13px] tabular-nums">
     {children}
   </div>
 );

@@ -24,7 +24,7 @@ function ProofBadge({ row }: { row: Row }) {
   const note = str(row.proof_note);
   const at = str(row.proof_at) ? new Date(String(row.proof_at)) : null;
   const tag = (
-    <Tag tone={look.tone} dot className={look.className} title={note ?? undefined}>
+    <Tag tone={look.tone} className={look.className} title={note ?? undefined}>
       {look.label}
     </Tag>
   );

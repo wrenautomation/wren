@@ -580,7 +580,7 @@ function ThreadPreview({ text }: { text: string }) {
               </Tag>
               <span
                 className={cx(
-                  "text-[12px] [font-variant-numeric:tabular-nums]",
+                  "text-[12px] tabular-nums",
                   post.length > X_POST_MAX ? "text-(--ui-bad)" : QUIET,
                 )}
               >

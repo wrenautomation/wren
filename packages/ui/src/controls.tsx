@@ -61,7 +61,7 @@ const BUTTON_TONE: Record<ButtonTone, string> = {
   secondary:
     "bg-(--ui-paper) text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair),0_2px_0_var(--ui-hair)] hover:bg-(--ui-paper) active:not-aria-[haspopup]:translate-y-[3px] active:not-aria-[haspopup]:shadow-[inset_0_0_0_1px_var(--ui-hair),0_0_0_var(--ui-hair)]",
   quiet:
-    "px-0 [--ui-act-pad:0px] py-[0.4em] bg-transparent text-(--ui-ink-2) text-[14px]/none font-medium tracking-normal [text-transform:none] active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97] underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:bg-transparent hover:text-(--ui-ink) hover:decoration-current",
+    "px-0 [--ui-act-pad:0px] py-[0.3em] bg-transparent text-(--ui-ink-2) text-[14px]/[1.3] font-medium tracking-normal [text-transform:none] active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97] underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:bg-transparent hover:text-(--ui-ink) hover:decoration-current",
 };
 
 const look = ({ tone = "secondary", size = "md", className }: ButtonLook) =>
@@ -192,12 +192,9 @@ const TAG_TONE: Record<TagTone, string> = {
     "bg-[color-mix(in_srgb,var(--ui-needs)_12%,transparent)] text-[color-mix(in_srgb,var(--ui-needs)_75%,var(--ui-ink))]",
   bad: "bg-[color-mix(in_srgb,var(--ui-bad)_12%,transparent)] text-[color-mix(in_srgb,var(--ui-bad)_75%,var(--ui-ink))]",
 };
-const DOT = "before:size-1.5 before:rounded-full before:bg-current before:content-['']";
-
 /** shadcn's badge as the kit's status pill. */
 export function Tag({
   tone = "neutral",
-  dot = false,
   busy,
   title,
   className,
@@ -205,7 +202,6 @@ export function Tag({
   children,
 }: {
   tone?: TagTone;
-  dot?: boolean;
   /** A chip at work ("Drafting"): the ring after the label while true. No slot when false. */
   busy?: boolean | undefined;
   title?: string | undefined;
@@ -216,7 +212,7 @@ export function Tag({
 }) {
   return (
     <Badge
-      className={cn(TAG, TAG_TONE[tone], dot && DOT, className)}
+      className={cn(TAG, TAG_TONE[tone], className)}
       {...(style ? { style } : {})}
       {...tipProps(title)}
     >

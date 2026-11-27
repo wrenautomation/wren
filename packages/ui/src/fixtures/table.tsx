@@ -53,13 +53,7 @@ export function versionColumns(
     {
       key: "state",
       label: "State",
-      cell: (r) =>
-        cell(
-          <Tag tone={TONE[r.state]} dot>
-            {r.state}
-          </Tag>,
-          r,
-        ),
+      cell: (r) => cell(<Tag tone={TONE[r.state]}>{r.state}</Tag>, r),
     },
   ];
 }

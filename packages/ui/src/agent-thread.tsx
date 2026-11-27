@@ -966,7 +966,7 @@ function Foot() {
       </ActionBarPrimitive.Copy>
       {line ? (
         <span
-          className="cursor-default px-1 [font-variant-numeric:tabular-nums]"
+          className="cursor-default px-1 tabular-nums"
           tabIndex={detail ? 0 : undefined}
           {...tipProps(detail, { side: "bottom" })}
         >

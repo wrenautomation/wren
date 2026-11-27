@@ -495,7 +495,7 @@ export const SHOWCASE = {
     hover: "rgb(0 0 0 / 0.04)",
     shade: "#14182a",
     font: '"Schibsted Grotesk Variable", ui-sans-serif, system-ui, sans-serif',
-    numeric: "normal", // its tnum sets , . : at figure width; number cells keep tabular-nums
+    numeric: "normal", // its tnum sets , . : at figure width; .tabular-nums follows it (tailwind.css)
     "display-weight": "600",
     "display-squeeze": "0.6",
     "button-weight": "600",
@@ -538,7 +538,7 @@ export const SHOWCASE = {
     shade: "#000",
     scrim: "rgb(0 0 0 / 0.55)",
     font: '"Schibsted Grotesk Variable", ui-sans-serif, system-ui, sans-serif',
-    numeric: "normal", // its tnum sets , . : at figure width; number cells keep tabular-nums
+    numeric: "normal", // its tnum sets , . : at figure width; .tabular-nums follows it (tailwind.css)
     "display-weight": "600",
     "display-squeeze": "0.6",
     "button-weight": "600",

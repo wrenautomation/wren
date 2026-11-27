@@ -35,7 +35,11 @@ export function People({ task }: { task: TaskRow }) {
   return (
     <span className="flex flex-wrap gap-1">
       {people.map((p) => (
-        <Tag key={p.id} dot={p.holds} title={p.holds ? `${p.id} holds it now` : undefined}>
+        <Tag
+          key={p.id}
+          className={p.holds ? "font-semibold text-(--ui-ink)" : undefined}
+          title={p.holds ? `${p.id} holds it now` : undefined}
+        >
           {who(p.id)}
         </Tag>
       ))}
