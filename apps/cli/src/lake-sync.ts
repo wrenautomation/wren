@@ -15,6 +15,7 @@ import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DuckDBConnection, DuckDBInstance } from "@duckdb/node-api";
+import { s3Options } from "@wren/config/s3";
 import { fillTrack, needsTrack, trackSources } from "./lake-track.js";
 
 /** Columns never copied: plaintext secrets and capability tokens. Hashes of them are fine. */
@@ -86,11 +87,15 @@ type LakeOptions = {
 
 export type Lake = { c: DuckDBConnection; close(): void };
 
-/** S3 credentials for DuckDB: the environment's, else the AWS CLI's current login. */
+/**
+ * S3 credentials for DuckDB: the Mac's static key (`s3Options`; a track load outlives a login),
+ * else the environment's, else the AWS CLI's current login.
+ */
 function s3Secret(): string {
-  let id = process.env.AWS_ACCESS_KEY_ID;
-  let key = process.env.AWS_SECRET_ACCESS_KEY;
-  let session = process.env.AWS_SESSION_TOKEN;
+  const store = s3Options().credentials;
+  let id = store?.accessKeyId ?? process.env.AWS_ACCESS_KEY_ID;
+  let key = store?.secretAccessKey ?? process.env.AWS_SECRET_ACCESS_KEY;
+  let session = store ? undefined : process.env.AWS_SESSION_TOKEN;
   if (!id || !key) {
     const out = execFileSync("aws", ["configure", "export-credentials", "--format", "process"], {
       encoding: "utf8",

@@ -19,6 +19,7 @@ import {
   status,
   syncDatabase,
 } from "./lake-sync.js";
+import { loadTrack, type TrackLoad } from "./lake-track.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 const CATALOG = "wren_lake";
@@ -64,6 +65,10 @@ async function withLake<T>(
     lake.close();
   }
 }
+
+/** Counts only: CI logs are public, so no device or session names. */
+const trackLine = (t: TrackLoad) =>
+  `track: ${t.segments} new segments, ${t.events} events, ${t.waiting} still uploading; ${Math.round(t.ms / 1000)} s`;
 
 const mb = (b: unknown) => `${(Number(b) / 1_048_576).toFixed(1)} MB`;
 
@@ -126,13 +131,29 @@ export function registerLake(program: Command, withMainDb: WithDb, settings: Set
     .description("Rebuild the warehouse: every model in lake/models, in name order")
     .option("--dir <dir>", "the models", "lake/models")
     .action(async (o: { dir: string }) => {
-      const built = await withLake(settings, {}, (lake) =>
-        buildModels(lake, resolve(o.dir), {
-          ...(settings.lakeTrackPath ? { trackPath: settings.lakeTrackPath } : {}),
+      const trackPath = settings.lakeTrackPath;
+      const built = await withLake(settings, {}, async (lake) => {
+        // new autotrack segments first: the autotrack_* models read track.events
+        if (trackPath) console.log(trackLine(await loadTrack(lake.c, trackPath)));
+        return buildModels(lake, resolve(o.dir), {
+          ...(trackPath ? { trackPath } : {}),
           onSkip: (model, why) => console.log(`${model}: skipped, ${why}`),
-        }),
-      );
+        });
+      });
       for (const m of built) console.log(`${m.model}: ${m.ms} ms`);
+    });
+
+  cmd
+    .command("track")
+    .description("Load autotrack segments not loaded yet into track.events (build does this first)")
+    .option("--reload", "empty track.events and load every segment again")
+    .action(async (o: { reload?: boolean }) => {
+      const trackPath = settings.lakeTrackPath;
+      if (!trackPath) throw new Error("needs WREN_LAKE_TRACK_PATH (s3://<bucket>/ or a directory)");
+      const t = await withLake(settings, {}, (lake) =>
+        loadTrack(lake.c, trackPath, o.reload ? { reload: true } : {}),
+      );
+      console.log(trackLine(t));
     });
 
   cmd

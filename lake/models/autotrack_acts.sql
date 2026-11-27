@@ -1,19 +1,14 @@
 -- needs: track
 -- One row per act autotrack recorded (click, drag, scroll, text, key), joined to what it meant:
--- designs/2026-10-13-autotrack.md (autotrack repo), "Signal". Reads the track bucket's gzipped events
--- and labels in place (lake-track.ts). Times are UTC.
+-- designs/2026-10-13-autotrack.md (autotrack repo), "Signal". Reads track.events (each segment
+-- loaded once) and the bucket's labels in place (lake-track.ts). Times are UTC.
 --   web:    the browser extension's click on the same act (within 150 ms and 4 px) gives the page's
 --           target and url; `domain` otherwise comes from the latest web event in the last 30 s, for a browser's acts only.
 --   app:    Wren's portal tells what a command meant (its `app` events): those within 5 s after the act.
 --   labels: intent and rule signals from `autobrowse autotrack label`; NULL when not labelled yet.
 CREATE OR REPLACE TABLE warehouse.autotrack_acts AS
 WITH ev AS (
-  SELECT
-    regexp_extract(filename, '([^/]+)/([^/]+)/([^/]+)/events\.jsonl\.gz$', 1) AS device,
-    regexp_extract(filename, '([^/]+)/([^/]+)/([^/]+)/events\.jsonl\.gz$', 2) AS session,
-    regexp_extract(filename, '([^/]+)/([^/]+)/([^/]+)/events\.jsonl\.gz$', 3) AS segment,
-    * EXCLUDE (filename)
-  FROM {{track_events}}
+  SELECT * EXCLUDE (day) FROM track.events
 ),
 acts AS (
   SELECT

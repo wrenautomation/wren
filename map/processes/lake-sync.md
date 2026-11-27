@@ -12,7 +12,7 @@ Every table of Wren's database and each client's, copied nightly into the lake w
 
 ## Input → Movement → Output
 
-Postgres tables. `wren lake sync` diffs each by row hash and writes what changed as one DuckLake snapshot per table: Parquet in the lake bucket, the catalog in the `wren_lake` database. `wren lake build` runs `lake/models/*.sql` into `warehouse.*`. Models headed `-- needs: track` (`autotrack_acts`, `_daily`, `_episodes`) read autotrack's bucket in place, and are skipped with a note when `WREN_LAKE_TRACK_PATH` is unset.
+Postgres tables. `wren lake sync` diffs each by row hash and writes what changed as one DuckLake snapshot per table: Parquet in the lake bucket, the catalog in the `wren_lake` database. `wren lake build` runs `lake/models/*.sql` into `warehouse.*`. Models headed `-- needs: track` (`autotrack_acts`, `_daily`, `_episodes`; `autobrowse_calls`, `_flows`, `_engine_runs`, `_site_daily`) read autotrack's bucket, and are skipped with a note when `WREN_LAKE_TRACK_PATH` is unset. Segments load once into `track.events` (by device and day); labels and autobrowse's ledgers (`ledgers/<kind>/`) are read in place.
 
 ## Why this shape
 
@@ -24,7 +24,7 @@ Prod tables mostly lack `updated_at`, so row hashes find changes and deletes. Sn
 2. Per database, `syncDatabase` (`apps/cli/src/lake-sync.ts`): a fingerprint per table; equal to `meta.fingerprints`, skip.
 3. Changed: keys and hashes over, the diff deleted and fetched by key, or the table reloaded past 5,000 rows and half; new columns added.
 4. Columns ending `secret`, `password`, `token` are never read.
-5. `compact()` folds small files; `pnpm -s wren lake build` rebuilds the models (`buildModels`, which fills `{{track_events}}` and `{{track_labels}}` from `apps/cli/src/lake-track.ts`). A failure posts to Discord.
+5. `compact()` folds small files; `pnpm -s wren lake build` loads new segments (`loadTrack`, 200 per commit; alone: `wren lake track [--reload]`), then rebuilds the models (`buildModels`, which fills `{{track_labels}}`, `{{track_calls}}`, `{{track_flows}}`, `{{track_engine}}` from `apps/cli/src/lake-track.ts`). A failure posts to Discord.
 
 ## If you change this
 
@@ -37,4 +37,4 @@ Prod tables mostly lack `updated_at`, so row hashes find changes and deletes. Sn
 | Surface | Role |
 |---|---|
 | CI | runs it nightly |
-| William, agents | `wren lake sql`, `lake status` |
+| William, agents | `wren lake sql`, `lake status`, `lake track` |

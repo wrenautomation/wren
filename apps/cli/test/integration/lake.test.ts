@@ -16,6 +16,7 @@ import {
   status,
   syncDatabase,
 } from "../../src/lake-sync.js";
+import { loadTrack } from "../../src/lake-track.js";
 
 const MODELS = resolve(__dirname, "../../../../lake/models");
 let pg: TestPostgres;
@@ -127,8 +128,16 @@ describe("wren lake", () => {
     const built = await inLake((lake) =>
       buildModels(lake, MODELS, { onSkip: (m) => skipped.push(m) }),
     );
-    // No WREN_LAKE_TRACK_PATH: the autotrack models say so and wait.
-    expect(skipped).toEqual(["autotrack_acts", "autotrack_daily", "autotrack_episodes"]);
+    // No WREN_LAKE_TRACK_PATH: the track bucket's models say so and wait.
+    expect(skipped).toEqual([
+      "autobrowse_calls",
+      "autobrowse_engine_runs",
+      "autobrowse_flows",
+      "autobrowse_site_daily",
+      "autotrack_acts",
+      "autotrack_daily",
+      "autotrack_episodes",
+    ]);
     expect(built.map((m) => m.model)).toEqual(["loop_passes_daily", "outbound_daily"]);
     expect(
       await ask(
@@ -147,6 +156,7 @@ describe("wren lake", () => {
 });
 
 // autotrack's bucket, a directory standing in: gzipped events per segment, labels per session.
+// Session names match autotrack's (`<start>-<tag>`); other prefixes are not sessions.
 // A lake of its own (a local catalog): these models read only the bucket.
 describe("wren lake: autotrack models", () => {
   const T0 = Date.UTC(2026, 9, 13, 10, 0, 0);
@@ -172,6 +182,7 @@ describe("wren lake: autotrack models", () => {
   const build = async () => {
     const l = await lake();
     try {
+      await loadTrack(l.c, `${track}/`); // what `wren lake build` does first
       return await buildModels(l, models, { trackPath: `${track}/` });
     } finally {
       l.close();
@@ -194,7 +205,7 @@ describe("wren lake: autotrack models", () => {
     mkdirSync(models);
     for (const f of readdirSync(MODELS).filter((f) => f.startsWith("autotrack_")))
       copyFileSync(join(MODELS, f), join(models, f));
-    events("mac1/S1/000/events.jsonl.gz", [
+    events("mac1/20261013T095959-s1/000/events.jsonl.gz", [
       { kind: "focus", t: 0, ts: T0 - 1000, app: chrome },
       { kind: "move", t: 500, ts: T0 - 500, x: 90, y: 190, app: chrome },
       {
@@ -267,7 +278,7 @@ describe("wren lake: autotrack models", () => {
         out: out(true),
       },
     ]);
-    events("mac1/S1/001/events.jsonl.gz", [
+    events("mac1/20261013T095959-s1/001/events.jsonl.gz", [
       {
         kind: "key",
         t: 600_000,
@@ -278,7 +289,7 @@ describe("wren lake: autotrack models", () => {
         out: out(true),
       },
     ]);
-    events("win1/S2/000/events.jsonl.gz", [
+    events("win1/20261013T095959-s2/000/events.jsonl.gz", [
       {
         kind: "click",
         t: 100,
@@ -409,11 +420,11 @@ describe("wren lake: autotrack models", () => {
 
   it("adds intent, signals and episodes once labels land", async () => {
     put(
-      "labels/mac1/S1.json",
+      "labels/mac1/20261013T095959-s1.json",
       JSON.stringify(
         {
           v: 1,
-          session: "S1",
+          session: "20261013T095959-s1",
           episodes: [
             {
               id: "e1",
@@ -490,12 +501,20 @@ describe("wren lake: autotrack models", () => {
     ).toEqual([{ labelled: 2, dead_rate: 0.5 }]);
   }, 120_000);
 
-  it("an empty bucket builds empty tables", async () => {
+  it("keeps loaded events when the bucket empties; a reload of an empty bucket builds empty tables", async () => {
+    const acts = "SELECT count(*)::INT AS n FROM warehouse.autotrack_acts";
+    const before = await ask2(acts);
     rmSync(track, { recursive: true, force: true });
     mkdirSync(track);
     await build();
-    expect(await ask2("SELECT count(*)::INT AS n FROM warehouse.autotrack_acts")).toEqual([
-      { n: 0 },
-    ]);
+    expect(await ask2(acts)).toEqual(before);
+    const l = await lake();
+    try {
+      await loadTrack(l.c, `${track}/`, { reload: true });
+      await buildModels(l, models, { trackPath: `${track}/` });
+    } finally {
+      l.close();
+    }
+    expect(await ask2(acts)).toEqual([{ n: 0 }]);
   }, 120_000);
 });
