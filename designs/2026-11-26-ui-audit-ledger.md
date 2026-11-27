@@ -427,7 +427,7 @@ Pass 1 items:
 - Still open: R10.2 (at 390 the "…" button sits on its own row on Engage, Conversation, Invites, Inboxes and Booked calls), R10.3 (Conversation shows "Last 30 days" per row; the 1280 Window column too), R10.4 ("Read now" and "Approve" with no object), R10.6 (Followers rows end "21" with no word at 390), R10.8 ("session-7f3a is on Captions" with a coloured dot), R10.9 (black circle "1" on the marked box; the mark chips are 15 px high and need 16.27 px, 3–5 hits per story), R10.10 (filmstrip chips "One li", "on the pag", "sectio" at 390), R10.11 ("SEC RIA" twice, "Agencies" three times), R10.12 (a lone "▷" on "Follow-ups only" rows), R10.13 (Followers: names in the Platform column, one number in every column; Conversation "3 of 12" next to 7 comments).
 
 New:
-1. Followers at 1280: the breadcrumb says "Campaigns › Posts" and the side nav marks Posts. Name the page Followers in both.
+1. Followers at 1280: the breadcrumb says "Campaigns › Posts" and the side nav marks Posts. This is by design: Followers is a hidden page under Posts (`places.ts:172`), like Recordings under Write. The trail stops at the parent; adding the page ("Campaigns › Posts › Followers") is a kit breadcrumb change, for William's critique.
 2. At 390 the same cut chip beside More (row 9 pass 2, item 4) shows on Engage ("Po"), Booked calls ("All bo"), Posts ("Leade") and Drafts ("Sched"). One kit fix: the chips that do not fit go into More.
 3. Prod parity (prod 11-27 00:10): 312 invites, 253 pending. Same as pass 1; Invites still needs a 300-row story.
 
