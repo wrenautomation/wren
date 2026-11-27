@@ -28,7 +28,7 @@ import {
 } from "./model.js";
 import { OVER_RIGHT } from "./overlay.js";
 import { opensOf, type PanelRef, type Place } from "./routes.js";
-import { waitsOf } from "./tasks.js";
+import { hoursSay, waitsOf } from "./tasks.js";
 
 /** The people listed before "and N more". */
 const SHOWN = 12;
@@ -341,7 +341,7 @@ function TrackPanel(p: PartProps & { id: string }) {
         {waits ? (
           <li>
             {num(waits.waiting)} waiting at {nameOf(t.from)}
-            {waits.medianHours != null ? `, median ${num(Math.round(waits.medianHours))} h` : ""}
+            {waits.medianHours != null ? `, median ${hoursSay(waits.medianHours)}` : ""}
             {waits.late ? ". Late." : ""}
           </li>
         ) : null}
