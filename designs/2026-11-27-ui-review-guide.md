@@ -54,4 +54,4 @@ Open these first. Each one waits on your call.
 ## 5. State of main
 
 - 9f5bcf220: CI and deploy green. Portal unit tests: the 7 red files are green; `api-owner` and the kit's metro map test time out only under the full run's load (both pass alone).
-- Story tests: graph/map fixed (f48645a08); Canon Library counts fixed; Vireo Batches › Hand fixed (1fca8310a, sidecar). `confirm › Answers`, two metro stories and a few dark-1280 stories fail on some runs under load only.
+- Story tests: graph/map fixed (f48645a08); Canon Library counts fixed; Vireo Batches › Hand fixed (1fca8310a, sidecar). `confirm › Answers` fixed (6f0ddd8b1, sidecar). Two metro stories and a few dark-1280 stories fail on some runs under load only.
