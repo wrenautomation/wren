@@ -21,7 +21,7 @@ export const ZONE_OF = Object.fromEntries(ZONES.map((z) => [z.v, z])) as Record<
 >;
 /** A call's look: border, wash, ink. */
 export const VERDICT_ON = {
-  amazing: "border-(--ui-best) bg-(--ui-accent-wash) text-(--ui-best)",
+  amazing: "border-best bg-(--ui-accent-wash) text-best",
   good: "border-(--ui-good) bg-(--ui-good-tint) text-(--ui-good-ink)",
   okay: "border-(--ui-ink-3) bg-(--ui-fill) text-(--ui-ink)",
   bad: "border-(--ui-bad) bg-(--ui-bad-tint) text-(--ui-bad)",
@@ -36,14 +36,14 @@ const BAND = { bad: 2.5, okay: 3, good: 2, amazing: 1.5 } as const satisfies Rec
 >;
 /** The track's fill, by zone. */
 const FILL = {
-  amazing: "bg-(--ui-best)",
+  amazing: "bg-best",
   good: "bg-(--ui-good)",
   okay: "bg-(--ui-ink-3)",
   bad: "bg-(--ui-bad)",
 } as const satisfies Record<Verdict, string>;
 /** The readout's ink, by zone. */
 const INK = {
-  amazing: "text-(--ui-best)",
+  amazing: "text-best",
   good: "text-(--ui-good-ink)",
   okay: "text-(--ui-ink)",
   bad: "text-(--ui-bad)",

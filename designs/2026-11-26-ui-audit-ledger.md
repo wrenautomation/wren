@@ -506,6 +506,7 @@ After 13, the next pass starts again at row 1.
 | (o) grey square before a source | row 13 pass 2 item 2 | DDG answers a site with no icon with a grey 48 px square that loads fine, so the glyph fallback never ran (prod too). Icons now come from gstatic at 32 px; a miss comes back 16 px and `iconMissed` shows the format glyph. The mock answers like gstatic | 0830f8a95 |
 | (p) skip link over the graph | row 13 pass 2 item 1 | the shell's skip link slides in on `focus-visible`, not `focus`: a click flow that lands focus on it keeps it off screen; a first Tab still shows it (top 10 px) | 1a97d01af |
 | (q) unit-ui red on main | CI 45947270504 | four internal vars of this loop sat in the `--ui-` look-token space, which the TOKENS test holds: now `--nav-icon-accent`, `--toast-bottom`, `--scroll-fade-l/r`. The applyTheme test fake got a `dataset`; the metro glyph test looks for the brand mail path | see log |
+| (r) the 7 portal tests | CI at the end | Copy: empty states name no CLI command (copy buttons gone). About: 10 pages say one sentence. Moves: Variants entries sat in `CLIENT_MOVED` (now `MOVED`); `system` → office. Accent: Variants and Canon read roles; new kit role `--ui-best` (TOKENS, `text-best`) for the Amazing zone. Sends: `UNOFFERED` names 4 sends no page offers (cut 11-04); their tab call maps dropped, Worker unchanged. Graph test matches the gstatic icon URL. Canon Library story counts follow the fixture (61) | 9f5bcf220 + follow-up |
 
 Pages add `ui-scroll-fade` to their own sideways rows (Canon presets, Map filters: sidecar).
 
@@ -581,3 +582,4 @@ Ran 11-26 21:10 to 11-27 01:00. The sidecar audited all 13 rows twice (390 and 1
   - graph/map fixed 11-27 08:10 (f48645a08). Open Box: the test browser asks for reduced motion, so the glide never ran; the play now turns that off. This showed a real axe hit: the glide copy was aria-hidden but held focusable boxes, and it is now inert. Pick Line: the test wanted 0.14; dim lines have been 0.25 since WA-1355.
 
 **CI at the end** (d6175c7ae): the deploy gates and the deploy are green. The report-only jobs are still red: `unit-ui` has 7 portal tests that fail outside this loop's files (accent roles, page about lines, copy, move table; the ui package is 903/903). `test:stories` fails on graph/map Open Box and Pick Line.
+  - 11-27: all 7 fixed, (r). graph/map fixed (f48645a08). Still red: Vireo Batches › Hand since WA-1457. Review guide: `designs/2026-11-27-ui-review-guide.md`.

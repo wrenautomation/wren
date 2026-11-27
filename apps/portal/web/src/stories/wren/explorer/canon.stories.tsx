@@ -371,7 +371,7 @@ export const MapNotIndexed = pageAt(at("canon", "map"), {
   },
   check: async (page) => {
     const view = within(page);
-    await expect(await view.findByText(/wren canon sync/, {}, WAIT)).toBeVisible();
+    await expect(await view.findByText(/after its first sync/, {}, WAIT)).toBeVisible();
     await expect(view.queryByText(/This map/)).toBeNull();
   },
 });
@@ -408,7 +408,7 @@ export const NotIndexed = pageAt("/explorer/canon", {
     "canon/home": { ...CANON_HOME, indexed: false, head: null, topics: [] },
   },
   check: async (page) => {
-    await expect(await within(page).findByText(/wren canon sync/, {}, WAIT)).toBeVisible();
+    await expect(await within(page).findByText(/after its first sync/, {}, WAIT)).toBeVisible();
   },
 });
 

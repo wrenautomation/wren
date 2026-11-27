@@ -86,7 +86,7 @@ export const Library = tidy(
     me: ADMIN,
     check: async (page) => {
       const view = within(page);
-      await expect(await view.findByText("57 records", {}, WAIT)).toBeVisible();
+      await expect(await view.findByText("61 records", {}, WAIT)).toBeVisible();
       await expect(view.getByText(/keeps going$/)).toBeVisible();
       await userEvent.click(view.getByRole("button", { name: "Show more" }));
       await expect(await view.findByText("Finding 50", {}, WAIT)).toBeVisible();
@@ -102,7 +102,7 @@ export const LibraryByType = tidy(
     check: async (page) => {
       const view = within(page);
       await userEvent.selectOptions(await view.findByLabelText("Type", {}, WAIT), "rule");
-      await expect(await view.findByText("1 record", {}, WAIT)).toBeVisible();
+      await expect(await view.findByText("3 records", {}, WAIT)).toBeVisible();
       await expect(storyHref()).toContain("type=rule");
     },
   }),
@@ -132,7 +132,7 @@ export const LibraryNoMatch = tidy(
         await view.findByText("No record matches these filters.", {}, WAIT),
       ).toBeVisible();
       await userEvent.click(view.getByRole("link", { name: "Clear filters" }));
-      await expect(await view.findByText("57 records", {}, WAIT)).toBeVisible();
+      await expect(await view.findByText("61 records", {}, WAIT)).toBeVisible();
     },
   }),
 );

@@ -235,6 +235,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-best: var(--ui-best); /* Vireo's Amazing zone: text-best, bg-best */
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);

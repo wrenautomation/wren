@@ -85,6 +85,7 @@ export const TOKENS = [
   "link",
   "focus",
   "live",
+  "best",
   "press-edge",
   "accent-wash",
   "accent-tint",
