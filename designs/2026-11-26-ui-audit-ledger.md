@@ -289,7 +289,7 @@ New:
 7. Columns: "Content" has no count while every other folder has one.
 8. Prod parity (prod 11-26): 923 tasks in 21 areas, 2 actors, the longest title 322 characters. Prod has the statuses "Deferred" (10) and "Blocked" (2); no fixture has them. Add both to the fixtures and check that the board and filter show them.
 
-### Row 2, pass 2: Today (sidecar, 11-26 23:15)
+### Row 2, pass 2: Today (sidecar, 11-26 23:10)
 
 29 stories at 390 and 1280. Shots: scratchpad `audit2b/`. Box-fit fell from 36 hits to 0. The 500s come only from the planned `overview--failed` story.
 
@@ -307,7 +307,7 @@ New:
 7. Calendar has no page title. Every other Today page starts with a heading; Calendar starts with the booking page box. Add "Calendar" above it.
 8. Kit (wren v2): table headers wrap to two or three lines ("Waiting since", "Held from them", "Settled by") while the cells have room. Keep a header on one line; shrink the column instead.
 
-### Row 3, pass 2: Variants (sidecar, 11-26 23:30)
+### Row 3, pass 2: Variants (sidecar, 11-26 23:17)
 
 32 `app-vireo-*` stories at 390 and 1280. Shots: scratchpad `audit3b/`. Box-fit fell from 27 hits to 0. The one error is the planned `close-fails` story. The header and "Skip to content" that float mid-page in `tree-open` and `mark` come from the full-page shot after the story scrolls; viewport shots are clean.
 
@@ -324,7 +324,7 @@ New:
 4. Worst-case fixture: batch titles read "as a long brie batch 1". The fixture cuts the subject at 60 characters mid-word (`batches.stories.tsx:135`). Cut at a word, so the shot does not look like a UI cut.
 5. Prod parity (prod 11-26 23:15): 9 subjects, 55 batches, 560 samples, the largest batch 100 samples. Same as pass 1 plus one batch.
 
-### Row 4, pass 2: Anton panel (sidecar, 11-26 23:28)
+### Row 4, pass 2: Anton panel (sidecar, 11-26 23:22)
 
 15 stories at 390 and 1280. Shots: scratchpad `audit4b/`. Box-fit 0. Errors: `gone` is planned (404 on a gone session); `card` and `card-on-live` are not (item 3).
 
@@ -340,7 +340,7 @@ New:
 4. The compacted chat numbers its list "1 . Banana", "2 . Orange". Tabular figures on list markers again (row 1 #1 cause).
 5. `commands`: while `/context` streams, its table shows as raw text ("| Category | Tokens | Percentage | |----------|---|"). Hold a table row until it is whole, or render the rows as they close.
 
-### Row 5, pass 2: Canon (sidecar, 11-26 23:40)
+### Row 5, pass 2: Canon (sidecar, 11-26 23:30)
 
 50 `app-wren-canon-*` stories at 390 and 1280. Shots: scratchpad `audit5b/`. The 404s are the fixture's missing picture; the 500s and 403s are the planned `failed` stories.
 
@@ -355,7 +355,7 @@ New:
 3. The record's Fields list shows raw values: "provider human: william", "by william", "why he sent it". Show "William" as a name, and drop "provider" when "by" says the same.
 4. Box-fit's 2 hits (`library--topic`, `--binary-file`) are a false positive: a closed `<details>` (`topic.tsx:538`) holds its hidden body. Fix the check in `shoot.mjs` to skip closed details (sidecar).
 
-### Row 6, pass 2: Map (sidecar, 11-26 23:55)
+### Row 6, pass 2: Map (sidecar, 11-26 23:42)
 
 68 `app-wren-map-*` stories at 390 and 1280. Shots: scratchpad `audit6b/`. The 400s and 404s are planned (`apply-refused`, `import-refused`, `missing`).
 
