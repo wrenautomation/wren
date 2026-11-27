@@ -85,5 +85,7 @@ export const Answers: Story = {
     await page.findByRole("dialog");
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(said()).toBe("kept"));
+    // axe runs after the play: a dialog still closing has lost its title (aria-dialog-name)
+    await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
   },
 };
