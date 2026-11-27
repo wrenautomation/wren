@@ -146,11 +146,21 @@ const PERSON_DETAIL = (row: Row) => ({
   ],
 });
 
+/** Followers: a platform per row, a number per column (made-up cells repeat one number; audit R10.13). */
+const AUDIENCE_ROWS: Partial<Row>[] = [
+  { site: "LinkedIn", followers: 1840, week: 36, reach: 9200, visits: 140, links: 22 },
+  { site: "X", followers: 1210, week: -4, reach: 15400, visits: 88, links: 31 },
+  { site: "YouTube", followers: 960, week: 18, reach: 12800, visits: 0, links: 9 },
+  { site: "Instagram", followers: 610, week: 7, reach: 4300, visits: 52, links: 3 },
+  { site: "TikTok", followers: 420, week: 25, reach: 21000, visits: 64, links: 0 },
+  { site: "Threads", followers: 95, week: 2, reach: 700, visits: 11, links: 1 },
+];
+
 const BASE: Answers = {
   ...recordsAnswers(
     { "marketing.cadence": CADENCE as unknown as Row[], ...JOURNEY_ROWS, ...OFFER_ROWS },
     { ...JOURNEY_DETAIL, "people.profile": PERSON_DETAIL },
-    MOVE_ROWS,
+    { ...MOVE_ROWS, "marketing.audience": AUDIENCE_ROWS },
   ),
   ...SHELL,
   ...APP_ANSWERS,
