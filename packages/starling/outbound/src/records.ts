@@ -23,6 +23,7 @@ import {
   text,
 } from "@wren/core/records";
 import { dollars, type KeyAccount, keyAccounts } from "@wren/core/vault-keys";
+import type { Queryable } from "@wren/db";
 import {
   accountPickFor,
   DEFAULT_POLICY,
@@ -41,7 +42,7 @@ import {
 } from "@wren/starling-conversations/records";
 import { PLATFORM_CUES } from "@wren/starling-core/platform-cues";
 import { warmupOf } from "@wren/starling-reddit";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
 import { personLine } from "./discovery/people.js";
 import { movePlace } from "./discovery/places.js";
@@ -266,16 +267,11 @@ export const placeRecord = defineRecord({
   },
 });
 
-/** New posts in watched places: ranked, the day's best queued with a draft. */
-export const threadRecord = defineRecord({
-  id: "marketing.thread",
-  app: "campaigns",
-  channel: "reddit",
-  name: { one: "thread", many: "threads" },
-  rows: async (db) => {
-    const gates = await gatesFor(db, null, new Date());
-    return (
-      (await db.execute(sql`
+/** Thread rows past `where`, newest first; To approve asks only the queued ones. */
+export const threadRows = async (db: Queryable, where: SQL) => {
+  const gates = await gatesFor(db, null, new Date());
+  return (
+    (await db.execute(sql`
       select t.id, t.subreddit, 'r/' || t.subreddit place, t.title, t.body, t.author, t.kind, t.fit, t.angle,
         t.target_text, t.draft, t.sources, t.state, t.dropped, t.answer, t.score, t.comments,
         t.posted_at, t.send_at, t.url, coalesce(da.account, a.account) account, da.account is not null picked, p.read op_read, p.fit op_fit, p.site op_site
@@ -283,30 +279,39 @@ export const threadRecord = defineRecord({
       left join reach_accounts a on a.id = t.account_id
       left join draft_accounts da on da.item = 'thread:' || t.id
       left join reddit_people p on p.handle = lower(t.author)
-      where t.state <> 'dropped' or t.created_at > now() - interval '2 days'
+      where ${where}
       order by t.posted_at desc limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
-    ).map(({ op_read, op_fit, op_site, sources, subreddit, picked, ...r }) => {
-      // Queued behind the sub's karma or age rule: the reason, and no slot. A picked account
-      // sends anyway; the picker warned of its shortfall.
-      const gate = r.state === "queued" ? gates.get(String(subreddit)) : undefined;
-      const held = holdsThread(gate, Boolean(picked)) ? (gate?.reason ?? null) : null;
-      return {
-        ...r,
-        held,
-        ...(held ? { send_at: null } : {}),
-        op: personLine({
-          read: op_read as RedditPerson["read"],
-          fit: op_fit as number | null,
-          site: op_site as string | null,
-        }),
-        sources: Array.isArray(sources)
-          ? (sources as { label: string; text: string }[])
-              .map((s) => `${s.label}: ${s.text}`)
-              .join("\n\n")
-          : null,
-      };
-    });
-  },
+  ).map(({ op_read, op_fit, op_site, sources, subreddit, picked, ...r }) => {
+    // Queued behind the sub's karma or age rule: the reason, and no slot. A picked account
+    // sends anyway; the picker warned of its shortfall.
+    const gate = r.state === "queued" ? gates.get(String(subreddit)) : undefined;
+    const held = holdsThread(gate, Boolean(picked)) ? (gate?.reason ?? null) : null;
+    return {
+      ...r,
+      held,
+      ...(held ? { send_at: null } : {}),
+      op: personLine({
+        read: op_read as RedditPerson["read"],
+        fit: op_fit as number | null,
+        site: op_site as string | null,
+      }),
+      sources: Array.isArray(sources)
+        ? (sources as { label: string; text: string }[])
+            .map((s) => `${s.label}: ${s.text}`)
+            .join("\n\n")
+        : null,
+    };
+  });
+};
+
+/** New posts in watched places: ranked, the day's best queued with a draft. */
+export const threadRecord = defineRecord({
+  id: "marketing.thread",
+  app: "campaigns",
+  channel: "reddit",
+  name: { one: "thread", many: "threads" },
+  rows: (db) =>
+    threadRows(db, sql`t.state <> 'dropped' or t.created_at > now() - interval '2 days'`),
   key: "id",
   title: "title",
   account: "account",

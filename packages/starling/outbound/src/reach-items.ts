@@ -10,7 +10,7 @@ import { type ConsoleRow as Row, withPicks } from "@wren/starling-acts";
 import type { MediaHost } from "@wren/starling-core";
 import { sql } from "drizzle-orm";
 import { invitedSql } from "./invites.js";
-import { commentRecord, dmRecord, threadRecord } from "./records.js";
+import { commentRecord, dmRecord, threadRows } from "./records.js";
 
 /** ponytail: rows, not a view: a few hundred unseen rows at most; a view past that. */
 const LIST_ROWS = 500;
@@ -221,7 +221,7 @@ async function proofsBy(db: Queryable, host?: MediaHost) {
 
 /** Queued Reddit threads as rows. */
 const queuedThreads = async (db: Queryable) =>
-  ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued").map(threadItem);
+  (await threadRows(db, sql`t.state = 'queued'`)).map(threadItem);
 
 /** Comments on our posts and DM threads, as the Inbox lists them. */
 export const reachInboxItems = async (db: Queryable): Promise<Row[]> => [
