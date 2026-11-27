@@ -57,8 +57,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 7 | Explorer | `stories/wren/explorer` | sidecar | audited; pass 2 audited |
 | 8 | Office | `stories/wren/office` | sidecar | audited; pass 2 audited |
 | 9 | Studio | `stories/wren/studio` | sidecar | audited; pass 2 audited |
-| 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited; pass 2 auditing |
-| 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | audited |
+| 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited; pass 2 audited |
+| 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | audited; pass 2 auditing |
 | 12 | Client: campaigns, office, people | `stories/client` | sidecar | audited |
 | 13 | Weaver | `stories/weaver` | sidecar | audited |
 
@@ -405,15 +405,29 @@ New:
 Pass 1 items:
 - Fixed: R9.1 (`add-creator--nothing-found` draws at 390: "No accounts found for Zyx Qor").
 - Settled: R9.11 (column type icons stay, Notion precedent; open for William).
-- Still open: R9.2 (letter tiles "P", "T", "C", "S" after the checkbox, at both widths), R9.3 (at 390 the "Approved: 2 ideas" toast still covers the "+" button; sidecar), R9.4 ("Thu 8:59 PM · 26h"; the 1280 Age column says "26h" in orange), R9.5 (`studio-open`: the draft button is 112.89 px high, its text needs 170.09 px; the LinkedIn preview ends "list one...."), R9.6 (initials circles "B", "E" in the creator strip), R9.7 ("Featherstone / haugh- / Montgomery" still breaks inside the name), R9.8 (three filter bars at 390), R9.9 ("Copy the command" on Edit), R9.10 (black video cards; "Render failed" is only in the chip).
+- Fixed after this pass (8bfebf306): R9.3. While a toast shows, the "+" rises 52 px above it (Material: the button moves up over a snackbar).
+- Still open: R9.2 (letter tiles "P", "T", "C", "S" after the checkbox, at both widths), R9.4 ("Thu 8:59 PM · 26h"; the 1280 Age column says "26h" in orange), R9.5 (`studio-open`: the draft button is 112.89 px high, its text needs 170.09 px; the LinkedIn preview ends "list one...."), R9.6 (initials circles "B", "E" in the creator strip), R9.7 ("Featherstone / haugh- / Montgomery" still breaks inside the name), R9.8 (three filter bars at 390), R9.9 ("Copy the command" on Edit), R9.10 (black video cards; "Render failed" is only in the chip).
 
 New:
 1. The creator strip shows a person with no name as "@e" under an "E" circle. Show the handle in full, or the platform name.
 2. `@ops-notes` carries two platform badges on one photo (LinkedIn and X) that overlap. Show one badge and a count, or put the badges under the name.
-3. `key-apart` at 390: the long names wrap to 8–10 lines under each photo, so the strip is 230 px high. Clamp strip names to 2 lines; the full name shows on the creator's page.
-4. At 390 the Publish chips cut "Scheduled" to "Sched" under the "More" button, and Compose cuts "Video" to "Vid". The row scrolls, but nothing shows that it does. Fade the edge, or put the cut item in More.
+3. `key-apart` at 390: the long names wrap to 8–10 lines under each photo, so the strip is 230 px high. Do not clamp (his rule: show the whole text). Give the name a wider slot (about 96 px) so it takes fewer lines.
+4. At 390 the Publish chips cut "Scheduled" to "Sched" next to the "More" button, and Compose cuts "Video" to "Vid". The edge fades, but a cut word beside a More menu reads as a bug. Put the chips that do not fit into More.
 5. Compose ends the count line with a green dot: "● Fits every picked platform". Say it with the word alone, or a check icon.
 6. Prod parity (prod 11-27 00:01): 0 video projects, 298 content drafts, 0 drafts waiting. Same as pass 1.
+
+### Row 10, pass 2: Campaigns (sidecar, 11-27 00:12)
+
+23 stories (18 `app-wren-campaigns-*`, 5 `app-wren-campaigns-content--*` that are not Studio) at 390 and 1280. Shots: scratchpad `audit10b/`. Errors 0. Box-fit: only R10.9.
+
+Pass 1 items:
+- Fixed: R10.1 (the paused inboxes card keeps its tint, no top border), R10.5 (Followers has no one-option bar), R10.7 for Engage (no coloured squares; Write keeps its letter tiles, R9.2).
+- Still open: R10.2 (at 390 the "…" button sits on its own row on Engage, Conversation, Invites, Inboxes and Booked calls), R10.3 (Conversation shows "Last 30 days" per row; the 1280 Window column too), R10.4 ("Read now" and "Approve" with no object), R10.6 (Followers rows end "21" with no word at 390), R10.8 ("session-7f3a is on Captions" with a coloured dot), R10.9 (black circle "1" on the marked box; the mark chips are 15 px high and need 16.27 px, 3–5 hits per story), R10.10 (filmstrip chips "One li", "on the pag", "sectio" at 390), R10.11 ("SEC RIA" twice, "Agencies" three times), R10.12 (a lone "▷" on "Follow-ups only" rows), R10.13 (Followers: names in the Platform column, one number in every column; Conversation "3 of 12" next to 7 comments).
+
+New:
+1. Followers at 1280: the breadcrumb says "Campaigns › Posts" and the side nav marks Posts. Name the page Followers in both.
+2. At 390 the same cut chip beside More (row 9 pass 2, item 4) shows on Engage ("Po"), Booked calls ("All bo"), Posts ("Leade") and Drafts ("Sched"). One kit fix: the chips that do not fit go into More.
+3. Prod parity (prod 11-27 00:10): 312 invites, 253 pending. Same as pass 1; Invites still needs a 300-row story.
 
 ## Known, carried over
 
