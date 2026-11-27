@@ -1034,8 +1034,12 @@ export function useRun(
         () => undefined,
       );
   };
-  const ask = asked?.action.ask;
-  const form = asked?.action.form;
+  // the closing dialog keeps its words until it is gone (no blank title or button in the fade)
+  const lastAsked = useRef(asked);
+  if (asked) lastAsked.current = asked;
+  const shownAsk = asked ?? lastAsked.current;
+  const ask = shownAsk?.action.ask;
+  const form = shownAsk?.action.form;
   const values = form ? valuesOf(form, typed) : {};
   const sendAsked = async () => {
     if (!asked || busy) return false;
@@ -1056,7 +1060,7 @@ export function useRun(
   };
   const submit = (form ? fieldsForm : askForm).onSend(sendAsked, { clear: true });
 
-  const n = asked?.ids.length ?? 0;
+  const n = shownAsk?.ids.length ?? 0;
   const dialog = (
     <Dialog open={!!asked} onOpenChange={(open) => !open && runner.close()}>
       <DialogContent
@@ -1067,10 +1071,10 @@ export function useRun(
         <form onSubmit={(e) => void submit(e)} className="grid min-w-0 grid-cols-1 gap-4">
           <DialogHeader>
             <DialogTitle>
-              {asked?.action.confirm ??
+              {shownAsk?.action.confirm ??
                 (form
-                  ? asked?.action.label
-                  : `${asked?.action.label} ${plural(n, names.one, names.many)}?`)}
+                  ? shownAsk?.action.label
+                  : `${shownAsk?.action.label} ${plural(n, names.one, names.many)}?`)}
             </DialogTitle>
           </DialogHeader>
           {n > 1 ? (
@@ -1136,7 +1140,7 @@ export function useRun(
               Cancel
             </Button>
             <Button tone="primary" size="dense" type="submit" busy={busy}>
-              {asked?.action.label}
+              {shownAsk?.action.label}
             </Button>
           </DialogFooter>
         </form>

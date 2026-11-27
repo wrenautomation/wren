@@ -136,9 +136,11 @@ export const ProjectsLoading = pageAt("/studio/projects", {
 
 export const ProjectsFailed = pageAt("/studio/projects", {
   me: ADMIN,
-  answers: { "console/call:VideoProjectDesk.list": () => refuse(500, "the desk is down") },
+  mode: "fails",
   check: async (page) => {
-    await expect(await within(page).findByRole("alert", {}, WAIT)).toBeVisible();
+    // other reads fail too: any alert will do
+    const [alert] = await within(page).findAllByRole("alert", {}, WAIT);
+    await expect(alert).toBeVisible();
   },
 });
 
@@ -174,7 +176,9 @@ export const NewProjectFailed = pageAt("/studio/projects", {
     await userEvent.click(await view.findByRole("button", { name: "New project" }, WAIT));
     await userEvent.type(view.getByRole("textbox", { name: "Title" }), "Kept words");
     await userEvent.click(view.getByRole("button", { name: "Add project" }));
-    await expect(await view.findByRole("alert", {}, WAIT)).toHaveTextContent(/desk is down/);
+    // the reason, in an alert (the page may hold others)
+    const said = await view.findByText(/desk is down/, {}, WAIT);
+    await expect(said.closest("[role=alert]")).not.toBeNull();
     await expect(view.getByRole("textbox", { name: "Title" })).toHaveValue("Kept words");
   },
 });

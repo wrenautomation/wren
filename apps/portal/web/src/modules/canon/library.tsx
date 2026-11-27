@@ -140,7 +140,9 @@ function Records({ params }: { params: URLSearchParams }) {
             No record matches these filters.
           </Empty>
         ) : (
-          <Empty title="No records yet">Canon is empty.</Empty>
+          <Empty title="No records yet" waits>
+            Sources, findings and guides show here once Canon syncs them.
+          </Empty>
         )
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">

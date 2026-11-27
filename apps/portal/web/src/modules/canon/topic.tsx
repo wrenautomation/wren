@@ -193,6 +193,13 @@ function Whole({ t, params }: { t: TopicWhole; params: URLSearchParams }) {
         )}
       </Section>
 
+      {/* a new topic: nothing past the procedure yet */}
+      {!allSets.length && !t.references.length && !t.sources.length && (
+        <Empty title="No rules yet" waits>
+          Rule sets, references and sources show here once the topic has them.
+        </Empty>
+      )}
+
       {allSets.length > 0 && (
         <Section
           title="Rule sets"

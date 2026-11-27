@@ -26,6 +26,9 @@ export function useConfirm(): [
   ReactNode,
 ] {
   const [asked, setAsked] = useState<Asked | null>(null);
+  // the closing dialog keeps its words until it is gone
+  const [shown, setShown] = useState<Asked | null>(null);
+  if (asked && asked !== shown) setShown(asked);
   const answer = useRef<((yes: boolean) => void) | null>(null);
   const settle = (yes: boolean) => {
     answer.current?.(yes);
@@ -46,19 +49,19 @@ export function useConfirm(): [
       <DialogContent>
         <div
           // the detail is the body; none: head straight onto the foot, one rule
-          className={asked?.detail ? "grid gap-3.5" : "grid"}
+          className={shown?.detail ? "grid gap-3.5" : "grid"}
         >
-          <DialogHeader className={asked?.detail ? undefined : "border-b-0"}>
-            <DialogTitle>{asked?.question}</DialogTitle>
+          <DialogHeader className={shown?.detail ? undefined : "border-b-0"}>
+            <DialogTitle>{shown?.question}</DialogTitle>
           </DialogHeader>
-          {asked?.detail ? <DialogDescription>{asked.detail}</DialogDescription> : null}
+          {shown?.detail ? <DialogDescription>{shown.detail}</DialogDescription> : null}
           <DialogFooter>
             {/* focus on the safe answer: Enter never removes by accident */}
             <Button tone="quiet" size="dense" onClick={() => settle(false)} autoFocus>
               Cancel
             </Button>
             <Button tone="primary" size="dense" onClick={() => settle(true)}>
-              {asked?.go ?? "Continue"}
+              {shown?.go ?? "Continue"}
             </Button>
           </DialogFooter>
         </div>

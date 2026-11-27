@@ -26,15 +26,13 @@ export const rowOf = async (page: HTMLElement, text: string | RegExp) => {
   return within(row);
 };
 
-/** Every confirm answers yes while `run` runs. */
+/** `run` opens the ask-first dialog (`useConfirm`); press its yes. */
 export async function yes(run: () => Promise<void>) {
-  const was = window.confirm;
-  window.confirm = () => true;
-  try {
-    await run();
-  } finally {
-    window.confirm = was;
-  }
+  await run();
+  const asked = within(await within(document.body).findByRole("dialog"));
+  // the yes sits right of Cancel in the foot
+  const go = asked.getByRole("button", { name: "Cancel" }).nextElementSibling;
+  await userEvent.click(go as HTMLElement);
 }
 
 /** The writes sent so far, by path. */
