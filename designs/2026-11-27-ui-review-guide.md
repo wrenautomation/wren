@@ -13,6 +13,7 @@ Open these first. Each one waits on your call.
 | 1 | [Shell: Today](http://localhost:61000/?path=/story/redesign-shell--today), [Today Night](http://localhost:61000/?path=/story/redesign-shell--today-night), [Under More](http://localhost:61000/?path=/story/redesign-shell--under-more), [Client Keeps Apps](http://localhost:61000/?path=/story/redesign-shell--client-keeps-apps) | D2 nav: top pills (WA-1456). Keep, or pick another nav |
 | 2 | [Anton: Shut](http://localhost:61000/?path=/story/redesign-anton--shut), [Open Chat](http://localhost:61000/?path=/story/redesign-anton--open-chat), [Open Empty](http://localhost:61000/?path=/story/redesign-anton--open-empty) | Anton docked (WA-1457). You said "the agent view needs work": what to change |
 | 3 | [Anton: Shut](http://localhost:61000/?path=/story/redesign-anton--shut) (the circle door) | Anton's circle mark (WA-1460). The SMS icon is his call too: `sms` in `icons.tsx`; no story shows it yet |
+| 5 | [Batches: Hand](http://localhost:61000/?path=/story/app-vireo-batches--hand) | The button says "Hand to Vireo", but the chat it opens is headed "Anton". Rename the button, or name the chat |
 | 4 | [Studio: Publish](http://localhost:61000/?path=/story/app-wren-studio--publish) | Column type icons in the table head: keep (Notion does this) or drop (R9.11) |
 
 ## 2. What you agreed: check we built it
@@ -53,4 +54,4 @@ Open these first. Each one waits on your call.
 ## 5. State of main
 
 - 9f5bcf220: CI and deploy green. Portal unit tests: the 7 red files are green; `api-owner` and the kit's metro map test time out only under the full run's load (both pass alone).
-- Story tests: graph/map fixed (f48645a08); Canon Library counts fixed. Still red: Vireo Batches › Hand (the side chat no longer shows "Vireo" since the Anton dock, WA-1457). `confirm › Answers`, two metro stories and a few dark-1280 stories fail on some runs under load only.
+- Story tests: graph/map fixed (f48645a08); Canon Library counts fixed; Vireo Batches › Hand fixed (1fca8310a, sidecar). `confirm › Answers`, two metro stories and a few dark-1280 stories fail on some runs under load only.
