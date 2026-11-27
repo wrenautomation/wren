@@ -56,8 +56,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 6 | Map | `stories/wren/map` | sidecar | audited |
 | 7 | Explorer | `stories/wren/explorer` | sidecar | audited |
 | 8 | Office | `stories/wren/office` | sidecar | audited |
-| 9 | Studio | `stories/wren/studio` | sidecar | auditing |
-| 10 | Campaigns | `stories/wren/campaigns` | | |
+| 9 | Studio | `stories/wren/studio` | sidecar | audited |
+| 10 | Campaigns | `stories/wren/campaigns` | sidecar | auditing |
 | 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | | |
 | 12 | Client: campaigns, office, people | `stories/client` | | |
 | 13 | Weaver | `stories/weaver` | | |
