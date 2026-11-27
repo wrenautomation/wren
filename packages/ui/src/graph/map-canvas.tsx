@@ -602,6 +602,8 @@ export default function MapCanvas({
             <div
               ref={ghost}
               aria-hidden="true"
+              // the frozen copy's boxes take no focus (axe aria-hidden-focus)
+              inert
               className="react-flow pointer-events-none absolute inset-0 overflow-hidden"
             />
             {outside.length ? (

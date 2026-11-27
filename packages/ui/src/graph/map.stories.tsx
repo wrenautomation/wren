@@ -85,6 +85,11 @@ export const OpenBox: Story = {
       moved.push(this);
       return animate.apply(this, args);
     };
+    // the test browser asks for reduced motion (a fade, no glide); this story proves the glide
+    const media = window.matchMedia;
+    // "not all": a real list that never matches
+    window.matchMedia = (q: string) =>
+      media.call(window, q.includes("prefers-reduced-motion: reduce") ? "not all" : q);
     try {
       await userEvent.click(box(el, "canon/topics/bread-baking") as HTMLElement);
       await drawn(el, "canon/topics/bread-baking/sets");
@@ -93,6 +98,7 @@ export const OpenBox: Story = {
       expect(moved.some((m) => m.classList.contains("react-flow__node"))).toBe(false);
     } finally {
       Element.prototype.animate = animate;
+      window.matchMedia = media;
     }
     expect(box(el, "canon/topics/bread-baking")?.hasAttribute("data-open")).toBe(true);
     expect(el.querySelector('[data-testid="picked"]')?.textContent).toBe(
@@ -129,7 +135,7 @@ export const PickLine: Story = {
     const dim = [...el.querySelectorAll<SVGGElement>("[data-line]")].filter(
       (g) => g.dataset.line !== id,
     );
-    for (const g of dim) expect(g.style.opacity).toBe("0.14");
+    for (const g of dim) expect(g.style.opacity).toBe("0.25");
   },
 };
 
