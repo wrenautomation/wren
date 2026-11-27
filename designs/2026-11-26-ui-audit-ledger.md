@@ -48,8 +48,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | # | Part | Stories | Held | State |
 |---|---|---|---|---|
 | 0 | WA-1464 icon swap | kit icons | main | done, 02daa0b4e |
-| 1 | Aerie: Intake, Decisions, History | `stories/wren/aerie` | sidecar | audited; pass 2 auditing |
-| 2 | Today / To approve | `stories/wren/today`, `redesign/shell` | sidecar | audited |
+| 1 | Aerie: Intake, Decisions, History | `stories/wren/aerie` | sidecar | audited; pass 2 audited |
+| 2 | Today / To approve | `stories/wren/today`, `redesign/shell` | sidecar | audited; pass 2 auditing |
 | 3 | Variants / Batches | `stories/vireo`, batches | sidecar | audited |
 | 4 | Anton panel | `redesign/anton`, `wren/agent-chat` | sidecar | audited |
 | 5 | Canon | `stories/wren/canon` | sidecar | audited |
@@ -269,6 +269,25 @@ False alarms: failed stories show skeletons at 390 because the shot came during 
 8. No serve: the error shows "TypeError: Failed to fetch" under the help text. Keep it as meta under "Details"; the help text is enough.
 9. Chat: the "/" menu lists Claude Code commands (`/auto-mode-setup`, `/autocompact`, `/clear`) next to `/weaver:weaver`. On a research page, list the research skills first and the rest under "More".
 10. Prod parity: Weaver runs live on the Mac (`weaver serve`), not in prod. The fixture run sizes (4 to 180 pages, 3 searches, 12 picks) match a normal run. No gap.
+
+### Row 1, pass 2: Aerie (sidecar, 11-26 23:04)
+
+91 `app-wren-aerie-*` stories (pass 1 had 34; Tasks, Board, Columns and Task are new) at 390 and 1280. Shots: scratchpad `audit1b/`. Box-fit fell from 45 hits to 8; the 500s and 503s are the planned `-failed` stories.
+
+Pass 1 items:
+- Fixed: R1.1 (times read "10:54 PM", kit (a)), R1.3 (5db722932), R1.14 (link button, kit (b)).
+- Better: R1.2. The toast now sits inside the screen, but at 390 it still covers the last card's text (decisions answer-lands).
+- Still open: R1.4 (History at 390 is a bare magnifier), R1.5 ("Recommended" on its own line in Answered), R1.6 (raw "runner:claude", "agent:claude-marketing", "router"), R1.7 ("b from william · 2 days ago. Why: …"), R1.8 (Intake receipts are grey fills, Decisions cards are white).
+
+New:
+1. The status filter (`tasks--picks-status`) puts a coloured dot before each status (L5.4: "no little circle things to the left"). Long status names spill over the next row: the row holds a fixed height, and the text needs 3–12 px more (all 8 box-fit hits). Kit filter menu: wren v2.
+2. The filter lists the raw status "Needs Human Input", while the board column says "Needs you". Use one name. Prod has 12 tasks in that status.
+3. `tasks--many-tasks` at 390 renders all 800 rows into one 36,000 px page. At 1280 the list scrolls in its own pane. Prod has 923 tasks (810 Done). Virtualize the phone list, or page it at 50.
+4. Task chips show raw session ids ("cc-1a2b3c4d", "cc-9f8e7d6c") next to the person. Show "a Claude session", with the id on hover.
+5. The task page says "Edits from the web open at the switch (setting web_writes)". A person cannot act on it. Say "Editing here is off. Turn it on in Settings", and link to it.
+6. Board cards end with a priority arrow ("↑", "=") and no word. List rows say "high" and "medium". Use the word on the board too.
+7. Columns: "Content" has no count while every other folder has one.
+8. Prod parity (prod 11-26): 923 tasks in 21 areas, 2 actors, the longest title 322 characters. Prod has the statuses "Deferred" (10) and "Blocked" (2); no fixture has them. Add both to the fixtures and check that the board and filter show them.
 
 ## Known, carried over
 
