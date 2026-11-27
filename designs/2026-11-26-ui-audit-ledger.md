@@ -372,9 +372,9 @@ New:
 
 ## Known, carried over
 
-- "View as" link: 25.19 px high, needs 29.2 px (box-fit).
-- Anton's footer "Sonnet · ctx" is mono.
-- Markdown `ol` numbers show a gap ("1 .").
+- "View as" link: fixed by (b); 26.56 px high, content 26.6 px.
+- Anton's footer "Sonnet · ctx" is mono: fixed, (l).
+- Markdown `ol` numbers show a gap ("1 ."): fixed, (l).
 - Kit side-panel Motion story fails under reduced motion in the test browser; graph/map Open Box and Pick Line fail in files outside WA-1454.
 
 ## Kit fixes (main)
@@ -392,6 +392,7 @@ New:
 | (i) avatars, rank circles, provider ids, narrow money, phone bar | R7.6, R7.7, R8.1, R8.4, R8.5, R8.7 | no avatar or rank circle; `NameWithMark`; money first when narrow; mock model ids; phone bar title centred | 55ca06c35 |
 | (j) tabs, badge, stripes, one-view strip, dots | R10.1, R10.5, R10.7, R11.1–R11.3, R11.5, R12.1, R12.3, R12.5, P2.1 | phone tabs share the width, Apps once; one count pill; stat card tint only; calendar block left stripe gone; ViewTabs hide under two views; Social drops the face; `StateMark` draws only a platform mark; sidebar tag under the name; phone bar 44 px; pick list a column (rows never squeeze); Aerie status filter drops its dot; calendar weekdays in sentence case | 6b5c60a24 |
 | (k) table heads wrap | row 2 pass 2, item 8 | a head wants its whole label on one line; only a tight room wraps it | ab03ab9f9 |
+| (l) mono meta, spaced punctuation | carried; row 4 pass 2 items 1, 4 | agent times, counts, status line, file caption and choice numbers in sans 12px (terminal blocks keep mono); `ol` markers use normal figures (a tabular 1 sits mid-cell); `.rg` root follows `--ui-numeric` (Schibsted tnum widened `. :`); JSON counts say "1 run"; the status line drops its trailing dot while the context menu is open | 18e5f53f7 |
 
 Pages add `ui-scroll-fade` to their own sideways rows (Canon presets, Map filters: sidecar).
 
@@ -419,3 +420,4 @@ Next round: read To approve's prod p50/p95 since adadacdec from `rt.invocations`
 - 11-26 22:30: kit fixes (a)–(e) pushed (63dd75c84), (g)–(h) committed (3b210671f). Main takes R7.6, R7.7, R8.1, R8.4, R8.5, R8.7.
 - 11-26 23:18: batch 3 (55ca06c35) and batch 4 (6b5c60a24) green. Batch 5: table heads on one line.
 - 11-26 23:27: batch 5 green (ab03ab9f9). Perf round 3: timeline prefetch skipped (cc2e1e703).
+- 11-26 23:50: batch 6 (18e5f53f7): mono meta, list numbers, research card figures. The active nav's corner marks are the `.ui-nav-sweep` design, not a ring.
