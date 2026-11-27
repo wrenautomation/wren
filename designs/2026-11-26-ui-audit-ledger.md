@@ -60,7 +60,7 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited; pass 2 audited |
 | 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | audited; pass 2 audited |
 | 12 | Client: campaigns, office, people | `stories/client` | sidecar | audited; pass 2 audited |
-| 13 | Weaver | `stories/weaver` | sidecar | audited; pass 2 auditing |
+| 13 | Weaver | `stories/weaver` | sidecar | audited; pass 2 audited |
 
 After 13, start again at 1 with a fresh eye.
 
@@ -454,6 +454,23 @@ Pass 1 items:
 New: none.
 
 Prod parity (prod 11-27 00:22): 2 clients. Same as pass 1.
+
+### Row 13, pass 2: Weaver (sidecar, 11-27 00:26)
+
+12 `app-weaver-research-*` stories at 390 and 1280. Shots: scratchpad `audit13b/`. Box-fit 0. Errors 0.
+
+Pass 1 items:
+- Fixed: R13.1 (`graph-plays`, `live` and `all-runs` draw at both widths), R13.2 (the run line reads "$0.42 · 1 round · 3 searches · 6 hits, 4 kept, 4 read, 2 findings"), R13.9 (the "/" menu puts Skills first, then Commands).
+- Partly fixed: R13.6 (the reference sheet has a person icon, not an initials circle; it still reads "@Maya Baker · YouTube" and "The page reads rich").
+- Still open: R13.3 (stats "Spend $0.01", graph header "$0.42" on the same run), R13.4 (numbered black circles on graph nodes), R13.5 ("plan: How do small bakeries…", "follow posts of https://www.youtube.com/watch?v=…"), R13.7 (a pick with no picture is a flat grey block), R13.8 (no serve: "This page couldn't load." over a mono "Failed to fetch"; the help text is gone, so nothing tells a person to start `weaver serve`).
+
+New:
+1. `graph-plays` at 390: the "Skip to content" link shows over the graph. The story's play step moves focus to it. Keep the link off screen until a key press.
+2. Graph and All runs cards start each source with a grey square before the name ("bakers.example", "Maya Baker"): an empty site icon slot, L5.4 (his words: "no little circle things to the left"). Show the site icon, or nothing.
+
+Prod parity: Weaver runs on the Mac, not in prod. Same as pass 1.
+
+After 13, the next pass starts again at row 1.
 
 ## Known, carried over
 
