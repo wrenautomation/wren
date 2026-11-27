@@ -765,7 +765,7 @@ function CreatorHead({
     : [{ id: r.creatorId, platform: r.platform, handle: r.handle, followers: r.followers }];
   return (
     <header className="flex min-w-0 items-center gap-3">
-      <Face name={nameOf(r)} src={person?.src ?? null} size={40} />
+      <Face src={person?.src ?? null} size={40} />
       <div className="grid min-w-0 gap-0.5">
         <h2 className="m-0 text-[15px] leading-snug font-semibold wrap-anywhere text-(--ui-ink)">
           {nameOf(r)}
@@ -807,7 +807,7 @@ function CreatorStrip({
   add: string;
 }) {
   const item =
-    "group/face flex w-[76px] shrink-0 snap-start flex-col items-center gap-1.5 rounded-[8px] py-1 text-center no-underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-(--ui-focus)";
+    "group/face flex w-[96px] shrink-0 snap-start flex-col items-center gap-1.5 rounded-[8px] py-1 text-center no-underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-(--ui-focus)";
   const ring = (lit: boolean) =>
     cn(
       "relative rounded-full p-[3px] outline-2 -outline-offset-2 transition-[outline-color] duration-150",
@@ -869,7 +869,7 @@ function CreatorStrip({
                 className={item}
               >
                 <span className={ring(lit)}>
-                  <Face name={p.name} src={p.src} size={48} />
+                  <Face src={p.src} size={48} />
                   <span className="absolute -right-0.5 -bottom-0.5 flex">
                     {marks.slice(0, 3).map((m) => (
                       <PlatformTile

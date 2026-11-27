@@ -186,10 +186,10 @@ export function UsualRule({ likes }: { likes: boolean }) {
   );
 }
 
-/** a creator's face: their copied profile picture, else their first letter */
-export function Face({ name, src, size }: { name: string; src: string | null; size: number }) {
+/** a creator's face: their copied profile picture, else a grey blank (no tinted initial) */
+export function Face({ src, size }: { src: string | null; size: number }) {
   const [bad, setBad] = useState(false);
-  if (!src || bad) return <Letter name={name} px={size} />;
+  if (!src || bad) return <Blank px={size} />;
   return (
     <Img
       src={src}
@@ -201,18 +201,15 @@ export function Face({ name, src, size }: { name: string; src: string | null; si
   );
 }
 
-/** the creator's first letter in a round tint: when no face is stored */
-function Letter({ name, px = 36 }: { name: string; px?: number }) {
+/** no face stored: a grey round blank with a person, like X's default */
+function Blank({ px }: { px: number }) {
   return (
     <span
       aria-hidden
-      style={{ width: px, height: px, fontSize: Math.round(px * 0.4) }}
-      className="inline-flex shrink-0 items-center justify-center rounded-full bg-(--ui-accent-tint) font-semibold text-(--ui-active)"
+      style={{ width: px, height: px }}
+      className="inline-flex shrink-0 items-center justify-center rounded-full bg-(--ui-hover) text-(--ui-ink-3)"
     >
-      {name
-        .replace(/^[^\p{L}\p{N}]+/u, "")
-        .slice(0, 1)
-        .toUpperCase() || "?"}
+      <Icon name="user" size={Math.round(px * 0.45)} />
     </span>
   );
 }

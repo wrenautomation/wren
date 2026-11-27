@@ -367,13 +367,7 @@ function PostBox(
                   unfit.length ? "text-(--ui-bad)" : "",
                 )}
               >
-                <span
-                  aria-hidden="true"
-                  className={cx(
-                    "size-1.5 rounded-full",
-                    unfit.length ? "bg-(--ui-bad)" : "bg-(--ui-good)",
-                  )}
-                />
+                {unfit.length ? null : <Icon name="check" size={12} className="text-(--ui-good)" />}
                 {unfit.length
                   ? `Doesn't fit ${unfit.map(targetOf).join(", ")}`
                   : thread

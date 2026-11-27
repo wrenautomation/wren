@@ -184,7 +184,7 @@ function Body({
     <div className="grid gap-6">
       {/* a div: a header in the dialog reads as a second banner */}
       <div className="flex min-w-0 items-start gap-3">
-        <Face name={nameOf(r)} src={face} size={44} />
+        <Face src={face} size={44} />
         <div className="grid min-w-0 flex-1 gap-1">
           <p className="m-0 text-[15px] leading-snug font-semibold wrap-anywhere text-(--ui-ink)">
             {nameOf(r)}
