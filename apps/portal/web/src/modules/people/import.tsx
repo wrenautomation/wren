@@ -381,6 +381,8 @@ export const importPage: ListPage = {
   template: "list",
   record: "reactivation.import",
   columns: ["file", "source", "at", "rows", "created", "merged", "skipped", "why"],
+  // a phone row: the file, then when it loaded
+  views: { all: { phone: "at" }, skipped: { phone: "at" } },
   empty: {
     all: "Files you load show here with what they added.",
     skipped: "Every file loaded in full so far.",

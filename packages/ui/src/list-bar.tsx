@@ -9,7 +9,15 @@
 import type { FieldMeta, RecordMeta } from "@wren/core/records";
 import type { SavedViewLine } from "@wren/core/saved-views";
 import { cn } from "cn";
-import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { AccountFilter, accountFieldOf } from "./accounts.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
@@ -488,14 +496,7 @@ export function ViewStrip({
   narrow: boolean;
 }) {
   const open = [...tabs, ...more].find((v) => v.on && v.saved);
-  if (narrow)
-    return (
-      <div className="flex min-w-0 items-center gap-2">
-        <Segmented label="Views" className="min-w-0 flex-1" items={tabs} />
-        <MoreViews views={more} phone />
-        {open ? menu : null}
-      </div>
-    );
+  if (narrow) return <PhoneViews tabs={tabs} more={more} menu={open ? menu : null} />;
   return (
     <nav className="relative flex gap-0.5 overflow-x-auto ui-scroll-fade" aria-label="Views">
       {tabs.map((v) =>
@@ -534,6 +535,37 @@ export function ViewStrip({
       <MoreViews views={more} />
       {open && more.includes(open) ? menu : null}
     </nav>
+  );
+}
+
+/**
+ * A phone's views: as many tabs as fit whole, the rest under More (priority+). Never a word cut
+ * at the edge beside More. Measured before paint; a new width measures again.
+ */
+function PhoneViews({ tabs, more, menu }: { tabs: ViewTab[]; more: ViewTab[]; menu: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState(tabs.length);
+  const [width, setWidth] = useState(0);
+  const ids = tabs.map((t) => t.id).join(" ");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: new tabs or width: start from all
+  useLayoutEffect(() => setFit(tabs.length), [ids, width]);
+  useLayoutEffect(() => {
+    const track = box.current?.querySelector<HTMLElement>(".ui-seg");
+    if (track && fit > 1 && track.scrollWidth > track.clientWidth + 1) setFit(fit - 1);
+  });
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setWidth(Math.round(e?.contentRect.width ?? 0)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <div ref={box} className="flex min-w-0 items-center gap-2">
+      <Segmented label="Views" className="min-w-0 flex-1" items={tabs.slice(0, fit)} />
+      <MoreViews views={[...tabs.slice(fit), ...more]} phone />
+      {menu}
+    </div>
   );
 }
 

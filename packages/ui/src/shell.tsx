@@ -362,7 +362,7 @@ export function AppShell({
 
       <header
         className={cx(
-          "flex h-[54px] min-w-0 flex-none items-center gap-1.5 px-[calc(var(--ui-frame)+8px)] max-[900px]:h-[calc(52px+env(safe-area-inset-top))] max-[900px]:bg-(--ui-canvas) max-[900px]:px-2 max-[900px]:pt-[env(safe-area-inset-top)]",
+          "flex min-h-[54px] min-w-0 flex-none items-center gap-1.5 px-[calc(var(--ui-frame)+8px)] max-[900px]:min-h-[calc(52px+env(safe-area-inset-top))] max-[900px]:bg-(--ui-canvas) max-[900px]:px-2 max-[900px]:pt-[env(safe-area-inset-top)]",
           side && "min-[901px]:contents",
           // A phone: inside an app the bar at the top takes its place, and these move to Apps.
           nav && app && "max-[900px]:hidden",
@@ -1570,7 +1570,8 @@ function AppHead({
   );
 }
 
-const WS = "relative flex h-9 min-w-0 items-center gap-1.5 rounded-(--ui-radius) px-2";
+// min-h: a long name grows the bar, never runs above it (audit R11.2)
+const WS = "relative flex min-h-9 min-w-0 items-center gap-1.5 rounded-(--ui-radius) px-2 py-1";
 /** The sidebar's brand line (the artifact's `.brand`): the name 16px and 700, 9px after the mark. */
 const WS_BRAND = "min-[901px]:h-auto min-[901px]:pr-1 min-[901px]:pl-[9px]";
 const WS_LINK = `${WS} ${HOVER} no-underline`;

@@ -230,6 +230,8 @@ export interface RecordTemplateProps {
   columns?: string[] | undefined;
   /** The field a phone row shows beside the name; left out: the watched wait, else the first state. */
   phone?: string | undefined;
+  /** A view's own columns and phone field, by view id; the default view (the first) included. */
+  views?: Readonly<Record<string, { columns?: string[]; phone?: string }>> | undefined;
   /** A Shop's groups: its rows by one field's value, in this order, each under its own heading. */
   sections?: ShopSections | undefined;
   /** A Shop card's art, across its top in place of the icon: what the record does, drawn. */

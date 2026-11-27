@@ -974,7 +974,7 @@ export function TemplatePage({
     empty: page.empty,
     example: props.demo ? page.example : undefined,
     columns: page.views?.[place.params.get("view") ?? ""]?.columns ?? page.columns,
-    phone: page.views?.[place.params.get("view") ?? ""]?.phone,
+    views: page.views,
     sections: page.sections,
     art: page.art,
     needs: page.needs ?? page.count,

@@ -184,6 +184,8 @@ export function RecordList(props: RecordTemplateProps) {
   if (types.error && !types.data) return <LoadFailed error={types.error} onRetry={types.retry} />;
   if (!types.data) return <ListSkeleton />;
   if (!meta) return <NotHere />;
+  // the view the address asks for, the first when it names none
+  const pick = props.views?.[askOf(meta, place.params).view ?? ""];
   return (
     <List
       meta={meta}
@@ -191,8 +193,8 @@ export function RecordList(props: RecordTemplateProps) {
       api={api}
       place={place}
       empty={empty}
-      columns={columns}
-      phone={phone}
+      columns={pick?.columns ?? columns}
+      phone={pick?.phone ?? phone}
       extras={extras}
       acts={acts}
       head={head}
@@ -866,9 +868,12 @@ function List({
   return (
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageTitle title={title ?? cap(many)} />
+        {/* basis 16rem: the ⋯ alone keeps the title row at 390; a button too wraps under */}
+        <div className="min-w-0 flex-[1_1_16rem]">
+          <PageTitle title={title ?? cap(many)} />
+        </div>
         {/* One button: the first thing the page makes. The rest wait behind one menu. */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-none items-center gap-2">
           {forms[0] ? (
             <Button tone="primary" size="dense" onClick={() => run(forms[0] as Action, [])}>
               {forms[0].label}
