@@ -575,7 +575,9 @@ Ran 11-26 21:10 to 11-27 01:00. The sidecar audited all 13 rows twice (390 and 1
 - Chips cut beside More at 390 ("Sched", "Po", "All bo", "Leade", "Vid"): move chips that do not fit into More.
 - Top bar title runs above the bar at 390 (R11.2, R12.2).
 - Bare ages "43 days", "26h" (R9.4, R11.8, R12.6): each surface needs its own word.
+  - Fixed 11-27 08:00 (ca71c47a6, deployed): an open row with a promise reads "waiting 43 days", other ages read "41 days ago". Write reads "waiting 26 hours" and its Age column "26 hours". On a card, the kind line wraps, so the wait stays whole.
 - R12.8: `records.tsx:976-977` reads `views[""]` while `askOf` defaults to `meta.views[0]`, so the default view gets no phone field and no view columns. Fix from `ask.view` in `records-list.tsx`.
 - Story failures outside these diffs: graph/map Open Box and Pick Line every run; metro Zoom Play, Open With Enter, confirm Answers under load.
+  - graph/map fixed 11-27 08:10 (f48645a08). Open Box: the test browser asks for reduced motion, so the glide never ran; the play now turns that off. This showed a real axe hit: the glide copy was aria-hidden but held focusable boxes, and it is now inert. Pick Line: the test wanted 0.14; dim lines have been 0.25 since WA-1355.
 
 **CI at the end** (d6175c7ae): the deploy gates and the deploy are green. The report-only jobs are still red: `unit-ui` has 7 portal tests that fail outside this loop's files (accent roles, page about lines, copy, move table; the ui package is 903/903). `test:stories` fails on graph/map Open Box and Pick Line.
