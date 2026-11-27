@@ -59,8 +59,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 9 | Studio | `stories/wren/studio` | sidecar | audited |
 | 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited |
 | 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | audited |
-| 12 | Client: campaigns, office, people | `stories/client` | sidecar | auditing |
-| 13 | Weaver | `stories/weaver` | | |
+| 12 | Client: campaigns, office, people | `stories/client` | sidecar | audited |
+| 13 | Weaver | `stories/weaver` | sidecar | auditing |
 
 After 13, start again at 1 with a fresh eye.
 
@@ -237,6 +237,23 @@ False alarms: failed stories show skeletons at 390 because the shot came during 
 7. Recordings: "Minutes 0" for a 1-second call. Show seconds under a minute ("1 s").
 8. Today cards read "Held because: Held because 5 …" and Engage reads "Copy to make live · 43 days" with no word for the 43 days. The first is the fixture (it fills a field with its label). The second is page-level: say "waiting 43 days".
 9. App stories at 390 show no phone tab bar (Today, Aerie, Variants, People). The tab bar sits in the kit shell only. Check that a phone in prod shows `PHONE_TABS` (5db722932) and add one app story that shows it.
+
+### Row 12: Client (sidecar, 11-26 22:48)
+
+65 `app-client-*` stories (Today, Project, Reactivation, Content, People, Journeys, Back office, states) at 390 and 1280. Shots: scratchpad `audit12/`. Box-fit: no hits. The 500s come only from `project--plan-fails` and `states--failed` (planned).
+
+1. Project and Reactivation overviews show "Needs you 6", "Waiting on your OK 3", "Paperwork to do 4" and "Drafts to approve 2" as pink cards with a red top border. This is the R10.1 stripe on a shared stat card, three in a row on Project. Keep the tint, drop the border. Kit stat card: wren v2.
+2. At 390 the client top bar shows the long account name over three lines, cut at the top edge (`today--default`). Same as R11.2.
+3. Updates and Timeline show a one-option filter ("All updates 8", "All"). Same as R10.5: hide a one-option bar. Kit list bar: wren v2.
+4. People, the peek and the person page mark stage, warmth and role with small coloured squares ("Stranger", "Warm", "Owner", "Lead"). Same as R10.7 (wren v2 has it).
+5. Social starts each account row with an initials circle ("A", "S"). Same as R8.7 (done by wren v2 for the kit row; check this page uses it).
+6. Messages rows show an orange "43 days" with no word (R9.4, R11.8). Say "waiting 43 days".
+7. Timeline at 390: "0 lines from Nov 13 to Nov 26" wraps to four lines between the filter icons and the Day/Week/Month switch. Put the count on its own line above the bar.
+8. Import at 390: each row puts two wrapped blocks side by side (file name left, "From …" right-aligned). Stack the source under the name.
+9. The person page lists "Unknown · Region": the label and value read reversed. Say "Region: unknown", or hide fields with no value.
+10. Team: the clicked member's email shows a blue focus ring cut tight to the text. The brand accent is purple; ask wren v2 whether `--ui-focus` should follow it.
+11. Fixtures: Needs you says "Answered 1 month ago" on an open ask; an email reads "To approve" with "Why it stopped: Replied"; the peek reads "What they did 1", "Persona 1"; Setup reads "Setting 1 / Value 1". Give the mocks real field values so a reader can judge the page.
+12. Prod parity (prod 11-26): 2 clients, 2 members, 2 accounts, 2 client records, 0 reports. The fixtures run larger than prod; no gap.
 
 ## Known, carried over
 
