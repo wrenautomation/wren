@@ -182,6 +182,8 @@ export interface Brand {
   stamp?: string | undefined;
   /** The stamp on a dark look (`data-scheme="dark"`); none keeps `stamp`. */
   stampDark?: string | undefined;
+  /** The stamp's side in px; 24 when none (Wren's perch is drawn for 30). */
+  stampSize?: number | undefined;
 }
 
 export function AppShell({
@@ -397,8 +399,8 @@ export function AppShell({
                   className={cx("flex-none", brand.stampDark && "in-data-[scheme=dark]:hidden")}
                   src={brand.stamp}
                   alt=""
-                  width={24}
-                  height={24}
+                  width={brand.stampSize ?? 24}
+                  height={brand.stampSize ?? 24}
                 />
               ) : null}
               {logo && brand.stampDark ? (
@@ -406,8 +408,8 @@ export function AppShell({
                   className="hidden flex-none in-data-[scheme=dark]:block"
                   src={brand.stampDark}
                   alt=""
-                  width={24}
-                  height={24}
+                  width={brand.stampSize ?? 24}
+                  height={brand.stampSize ?? 24}
                 />
               ) : null}
               {named ? <span className="max-[900px]:hidden">{brand.name}</span> : null}
