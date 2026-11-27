@@ -58,8 +58,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 8 | Office | `stories/wren/office` | sidecar | audited; pass 2 audited |
 | 9 | Studio | `stories/wren/studio` | sidecar | audited; pass 2 audited |
 | 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited; pass 2 audited |
-| 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | audited; pass 2 auditing |
-| 12 | Client: campaigns, office, people | `stories/client` | sidecar | audited |
+| 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | audited; pass 2 audited |
+| 12 | Client: campaigns, office, people | `stories/client` | sidecar | audited; pass 2 auditing |
 | 13 | Weaver | `stories/weaver` | sidecar | audited |
 
 After 13, start again at 1 with a fresh eye.
@@ -428,6 +428,17 @@ New:
 1. Followers at 1280: the breadcrumb says "Campaigns › Posts" and the side nav marks Posts. Name the page Followers in both.
 2. At 390 the same cut chip beside More (row 9 pass 2, item 4) shows on Engage ("Po"), Booked calls ("All bo"), Posts ("Leade") and Drafts ("Sched"). One kit fix: the chips that do not fit go into More.
 3. Prod parity (prod 11-27 00:10): 312 invites, 253 pending. Same as pass 1; Invites still needs a 300-row story.
+
+### Row 11, pass 2: Shell (sidecar, 11-27 00:17)
+
+20 stories (`app-wren-shell-*`, `redesign-shell--*`, kit `shell--*`) at 390 and 1280. Shots: scratchpad `audit11b/`. Box-fit 0. Errors 0.
+
+Pass 1 items:
+- Fixed: R11.1 (the workspace name wraps by word; the tag sits under it), R11.3 (`shell--client` tabs: Today · Waiting · Approved · Apps, evenly spread; `shell--default` too), R11.5 (count badges are black on the phone tab bar, the dock and the 1280 side nav).
+- Still open: R11.2 (`redesign-shell--client-keeps-apps` at 390: "Acme Plumbing and a much longer…" still runs above the bar; `shell--worst-case` now fits in 3 lines), R11.4 ("Aerie" chip next to the "Aerie" title, both widths), R11.6 (orange dot and "The newest version dropped a part that people are still on: Joined (1)"), R11.8 ("Held because: Held because 5"; "Copy to make live · 43 days"), R11.9 (`redesign-shell--today` at 390 has no phone tab bar).
+- Not in this set: R11.7 (Recordings "Minutes 0"); check it on row 10's Recordings next pass.
+
+New: none.
 
 ## Known, carried over
 
