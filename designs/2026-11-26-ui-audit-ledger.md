@@ -377,7 +377,7 @@ Answered, no change:
 |---|---|---|---|---|
 | 11-26 21:15 | 1. prod list reads, from `rt.invocations` (48 h) and `pg_stat_statements` | recordsList p50/p95 ms: To approve 351/1021, Inbox 307/987, People 209/802, Batches 163/416. recordsCounts 268–417 ms (9 counts in parallel: engage 155–188, approval 97–238, the rest 16–109) | not fixed this round | — |
 | 11-26 21:55 | 2. To approve's 15 reads, timed one by one on prod from the Mac (24 ms round trip), read-only | reach 560–990 ms; every other read 23–135 ms. Reach read up to 500 Reddit threads (bodies, sources) to keep the 4 queued of 6,497 | the queued read is 0.2 ms on prod; reach 382–452 ms from the Mac, the rest is 8 round trips (about 1 ms each from Lambda). Prod p50 needs traffic: read it next round | adadacdec |
-| 11-26 23:55 | 3. recordsList by list, 72 h, split at adadacdec (02:50 UTC); then People › Timeline (`people.event`) | To approve after: 206/209 ms (n=2, was 351/1021); Inbox 281/365 (n=4). Timeline 2,312 p50 (n=2): both calls were the hover prefetch, unwindowed: rows 1.8 s, counts 2.8 s. 281,881 of 283,914 lines are trait changes. An index on `profile_trait_events(at)` did not change the plan (local test, 300k rows, rolled back): the view hash-joins `profiles` after the union | timeline pages skip the table prefetch; the page reads a day at a time (94 ms warm) | cc2e1e703 |
+| 11-26 23:20 | 3. recordsList by list, 72 h, split at adadacdec (02:50 UTC); then People › Timeline (`people.event`) | To approve after: 206/209 ms (n=2, was 351/1021); Inbox 281/365 (n=4). Timeline 2,312 p50 (n=2): both calls were the hover prefetch, unwindowed: rows 1.8 s, counts 2.8 s. 281,881 of 283,914 lines are trait changes. An index on `profile_trait_events(at)` did not change the plan (local test, 300k rows, rolled back): the view hash-joins `profiles` after the union | timeline pages skip the table prefetch; the page reads a day at a time (94 ms warm) | cc2e1e703 |
 
 Open from round 3: the Timeline's List (`as=rows`) still reads the whole view unwindowed (785 ms rows, 550 ms count). The fix is a default window on that list, or trait changes out of the timeline (99% of its lines). The second one is a product call for William.
 
@@ -388,4 +388,4 @@ Next round: read To approve's prod p50/p95 since adadacdec from `rt.invocations`
 - 11-26 21:10: loop set up. WA-1454 pushed (62fdfe430).
 - 11-26 22:30: kit fixes (a)–(e) pushed (63dd75c84), (g)–(h) committed (3b210671f). Main takes R7.6, R7.7, R8.1, R8.4, R8.5, R8.7.
 - 11-26 23:30: batch 3 (55ca06c35) and batch 4 (6b5c60a24) green. Batch 5: table heads on one line.
-- 11-26 23:58: batch 5 green (ab03ab9f9). Perf round 3: timeline prefetch skipped (cc2e1e703).
+- 11-26 23:27: batch 5 green (ab03ab9f9). Perf round 3: timeline prefetch skipped (cc2e1e703).
