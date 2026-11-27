@@ -193,9 +193,6 @@ export const BRAND_REPLACES: Record<BrandIconName, string> = {
   chart: "ChartColumn",
 };
 
-export const isBrandIcon = (name: string): name is BrandIconName =>
-  Object.hasOwn(BRAND_PATHS, name);
-
 const ACCENT: CSSProperties = { stroke: "var(--icon-accent)" };
 
 type Props = Omit<SVGProps<SVGSVGElement>, "ref"> & {
