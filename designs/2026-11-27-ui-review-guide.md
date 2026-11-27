@@ -53,5 +53,9 @@ Open these first. Each one waits on your call.
 
 ## 5. State of main
 
-- 9f5bcf220: CI and deploy green. Portal unit tests: the 7 red files are green; `api-owner` and the kit's metro map test time out only under the full run's load (both pass alone).
-- Story tests: graph/map fixed (f48645a08); Canon Library counts fixed; Vireo Batches › Hand fixed (1fca8310a, sidecar). `confirm › Answers` fixed (6f0ddd8b1, sidecar). Two metro stories and a few dark-1280 stories fail on some runs under load only.
+- f5a7032b8 (with e97e918a0): CI lint, unit, unit-ui, schema, integration and deploy green.
+- Portal unit tests: green. `api-owner` and the kit's metro map test time out only under the full run's load (both pass alone).
+- Story tests: 34 fails down to 10. They report only; they do not hold the deploy.
+  - Fixed (e97e918a0): a closing dialog showed a blank title and button during its fade (kit `action.tsx`, `confirm.tsx`). Office stories pressed a native confirm the app no longer uses. Canon Library and topic empty states now say what fills them. Studio failure stories.
+  - Fixed (sidecar, aae5a74af, f5a7032b8): Map Place; client home empty pass; an open Agent dock leaked into the next story file.
+  - Open (sidecar): Aerie Decisions (4 stories) pass alone but fail after the stories before them in the file; Aerie Intake File and Map Import File are timing races.
