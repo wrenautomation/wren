@@ -304,8 +304,8 @@ function headSpan(label: string, sorted: boolean): Span {
   const words = label.split(/\s+/).map(lenOf);
   const extra = headExtra(sorted);
   const least = pxOf(Math.max(...words) * HEAD + extra);
-  // A head may take two lines: its longest word, or half of it.
-  const want = pxOf(Math.max(...words, lenOf(label) / 2) * HEAD + extra);
+  // A head wants one line; only a room too tight for it wraps it (row 2 pass 2, item 8).
+  const want = pxOf(lenOf(label) * HEAD + extra);
   return { least, want, need: want };
 }
 

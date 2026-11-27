@@ -213,7 +213,7 @@ describe("widthsOf", () => {
     expect(w.company).toBe(280);
     expect(w.note).toBe(280);
   });
-  it("narrows a figure to its two-line head and its values", () => {
+  it("keeps a figure's head on one line with room, and wraps it only when tight", () => {
     const days = {
       ...field("days", "number"),
       label: "Days pending",
@@ -221,10 +221,13 @@ describe("widthsOf", () => {
     } as FieldMeta;
     const size = { ...field("size"), label: "People" };
     const rows = [{ id: 1, name: "Al", days: 12, size: "1001" }];
-    const w = widthsOf(meta, [name, days, size], rows);
-    // "pending" at the head's 12.5px, its icon, and the padding: well under the 108px preset.
-    expect(w.days).toBeLessThan(100);
-    expect(w.size).toBeLessThan(100);
+    const wide = widthsOf(meta, [name, days, size], rows, 1200);
+    const tight = widthsOf(meta, [name, days, size], rows, 300);
+    // "Days pending" whole at the head's 12.5px: past the width of "pending" alone
+    expect(wide.days).toBeGreaterThan(tight.days ?? 0);
+    // tight: "pending" at the head's 12.5px, its icon, and the padding
+    expect(tight.days).toBeLessThan(100);
+    expect(tight.size).toBeLessThan(100);
   });
 });
 
