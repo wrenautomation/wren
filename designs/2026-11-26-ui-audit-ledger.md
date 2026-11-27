@@ -54,8 +54,8 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 | 4 | Anton panel | `redesign/anton`, `wren/agent-chat` | sidecar | audited; pass 2 audited |
 | 5 | Canon | `stories/wren/canon` | sidecar | audited; pass 2 audited |
 | 6 | Map | `stories/wren/map` | sidecar | audited; pass 2 audited |
-| 7 | Explorer | `stories/wren/explorer` | sidecar | audited; pass 2 auditing |
-| 8 | Office | `stories/wren/office` | sidecar | audited |
+| 7 | Explorer | `stories/wren/explorer` | sidecar | audited; pass 2 audited |
+| 8 | Office | `stories/wren/office` | sidecar | audited; pass 2 auditing |
 | 9 | Studio | `stories/wren/studio` | sidecar | audited |
 | 10 | Campaigns | `stories/wren/campaigns` | sidecar | audited |
 | 11 | Shell (side nav, More, phone tabs) | `stories/wren/shell` | sidecar | audited |
@@ -369,6 +369,21 @@ New:
 2. New red play check: `focus--views-menu` at 1280 (the current view's link in the menu is not visible).
 3. Box-fit: on the focus pages an SVG `g` is 11 px high and its content needs 17 px (`focus--station`, `--parts`, `--view`, `--home-view`; 9 hits). Check that a station label is not clipped.
 4. Prod parity (prod 11-26 23:35): 9 versions, 2 drafts, 1 tag. Same as pass 1; the `big` story covers it.
+
+### Row 7, pass 2: Explorer (sidecar, 11-26 23:52)
+
+54 `app-wren-explorer-*` stories at 390 and 1280. Shots: scratchpad `audit7b/`. The 404s and 500s are the planned `failed` and `not-indexed` stories. Storybook ran under load from parallel shot runs, so read a blank map with row 6 pass 2 item 1.
+
+Pass 1 items:
+- Fixed: R7.1 (the Map view draws at 390), R7.4 (a missing picture shows the site icon), R7.6 (no numbered circles on picks, 55ca06c35), R7.7 ("↗" stays with "bakers?").
+- Better: R7.2. `canon--map-link` now loads the page and its side list at 1280, but the map pane is a blank grey box in this shot.
+- Moved: R7.3. `canon--shot-opened` now passes at 390 and fails at 1280 ("img not visible"), although the shot shows the picture. The check likely runs before the picture loads; wait for it.
+- Still open: R7.5 ("attached sop: Booking SOP (booking)", "time · book", "condition"), R7.8 ("r1 · 3 pages, 2 kept" over "Pages 180"), R7.9 (map node buttons 1.5 px short: now 65 hits, because the map also draws at 390).
+
+New:
+1. Little circles (L5.4, his words: "no little circle things to the left"): the business-map station page puts a hollow circle before each linked station under "Goes to" and "Comes from" ("○ Held", "○ Fit?"). Use the station's own icon, as the map does, or none.
+2. Box-fit: on `business-map--line` and `--station` an SVG `g` is 8–14 px high and needs 17 px (3 hits per width). Same as row 6 pass 2 item 3.
+3. Prod parity (prod 11-26 23:25): Canon 10,760 records (the fixture says 10,577), the business map 5 lines. Same as pass 1.
 
 ## Known, carried over
 
