@@ -47,7 +47,7 @@ Rules: no leads, clients, amounts or emails in fixtures. Invent no activity. Sho
 
 | # | Part | Stories | Held | State |
 |---|---|---|---|---|
-| 0 | WA-1464 icon swap | kit icons | main | to build |
+| 0 | WA-1464 icon swap | kit icons | main | done, 02daa0b4e |
 | 1 | Aerie: Intake, Decisions, History | `stories/wren/aerie` | sidecar | audited |
 | 2 | Today / To approve | `stories/wren/today`, `redesign/shell` | sidecar | audited |
 | 3 | Variants / Batches | `stories/vireo`, batches | sidecar | audited |
@@ -206,11 +206,25 @@ False alarms: failed stories show skeletons at 390 because the shot came during 
 
 ## Known, carried over
 
-- At 390 the list bar's icons run to the screen edge (the Save view icon has no gutter).
 - "View as" link: 25.19 px high, needs 29.2 px (box-fit).
 - Anton's footer "Sonnet · ctx" is mono.
 - Markdown `ol` numbers show a gap ("1 .").
 - Kit side-panel Motion story fails under reduced motion in the test browser; graph/map Open Box and Pick Line fail in files outside WA-1454.
+
+## Kit fixes (main)
+
+| Item | From | Fix | Commit |
+|---|---|---|---|
+| (a) numbers | rows 1–4 | `tabular-nums` reads `--ui-numeric`; 35 arbitrary `[font-variant-numeric:…]` classes replaced | 63dd75c84 |
+| (b) quiet/link button | box-fit, rows 1–5 | 14px/1.3, py 0.3em | 63dd75c84 |
+| (c) dots at the left | rows 2–4, L5.4 | `Tag` `dot` prop removed; `Cue` draws nothing for a plain tone; `StateMark` tints the word | 63dd75c84 |
+| (d) search placeholder | row 2 | "Search" (the aria-label keeps the noun) | 63dd75c84 |
+| (e) phone toast | row 1 | sits above the tab bar (`data-tab-bar`), inside the screen at 390 | 63dd75c84 |
+| (f) list bar gutter | carried | does not reproduce: the Save view icon keeps 16 px at 390. The cut labels were (g) | — |
+| (g) labels cut at the right edge | rows 5, 6 | `.ui-scroll-fade`: a scroll-driven mask fades the hidden edge, none when the row fits; on `.ui-seg[data-fill]`, list bar, records sections, shell, switch bar. List bar shape row stays whole; narrow bar wraps tools under it. Phone Segmented centres against the track; a too-wide tab shows its start | 3b210671f |
+| (h) box at the left of pick rows | row 5, L5.4 | the many-pick list shows a check after the count, like the menu | 3b210671f |
+
+Pages add `ui-scroll-fade` to their own sideways rows (Canon presets, Map filters: sidecar).
 
 ## Performance rounds
 
@@ -224,3 +238,4 @@ Next round: read To approve's prod p50/p95 since adadacdec from `rt.invocations`
 ## Log
 
 - 11-26 21:10: loop set up. WA-1454 pushed (62fdfe430).
+- 11-26 22:30: kit fixes (a)–(e) pushed (63dd75c84), (g)–(h) committed (3b210671f). Main takes R7.6, R7.7, R8.1, R8.4, R8.5, R8.7.
