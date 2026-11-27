@@ -387,5 +387,5 @@ Next round: read To approve's prod p50/p95 since adadacdec from `rt.invocations`
 
 - 11-26 21:10: loop set up. WA-1454 pushed (62fdfe430).
 - 11-26 22:30: kit fixes (a)–(e) pushed (63dd75c84), (g)–(h) committed (3b210671f). Main takes R7.6, R7.7, R8.1, R8.4, R8.5, R8.7.
-- 11-26 23:30: batch 3 (55ca06c35) and batch 4 (6b5c60a24) green. Batch 5: table heads on one line.
+- 11-26 23:18: batch 3 (55ca06c35) and batch 4 (6b5c60a24) green. Batch 5: table heads on one line.
 - 11-26 23:27: batch 5 green (ab03ab9f9). Perf round 3: timeline prefetch skipped (cc2e1e703).
