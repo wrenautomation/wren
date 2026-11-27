@@ -11,14 +11,13 @@ const ROOTS: ExplorerRoot[] = [
     label: "Canon",
     icon: "book",
     about:
-      "The whole brain as one tree: topics, their layers and lines, references, records, files. What needs a look beside the root.",
+      "The whole brain as one tree: topics, their layers and lines, references, records and files.",
   },
   {
     id: "vireo",
     label: "Vireo",
     icon: "split",
-    about:
-      "Every subject's batches and samples, and every guide under test. An open batch stays blind until you mark it.",
+    about: "Every subject's batches and samples, and every guide under test.",
   },
   {
     id: "weaver",
@@ -31,15 +30,13 @@ const ROOTS: ExplorerRoot[] = [
     id: "metro",
     label: "Business map",
     icon: "workflow",
-    about:
-      "The newest map as a tree: lines, their groups and stations, shared flows. Tracks show as links each way.",
+    about: "The newest map as a tree: lines, their groups and stations, and shared flows.",
   },
   {
     id: "folders",
     label: "Folders",
     icon: "folder",
-    about:
-      "Your folders, with the subjects and runs filed in each. A filed item opens at its home.",
+    about: "Your folders, with the subjects and runs filed in each.",
   },
 ];
 

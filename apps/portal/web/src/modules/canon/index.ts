@@ -18,8 +18,7 @@ export const canon: Module = {
     {
       id: "library",
       label: "Library",
-      about:
-        "Every record of every type: sources, findings, patterns, verdicts, rules, guides. Add a link here.",
+      about: "Every record of every type: sources, findings, patterns, verdicts, rules and guides.",
       Page: LibraryPage,
       wide: true,
     },
@@ -27,7 +26,7 @@ export const canon: Module = {
       id: "outliers",
       label: "Outliers",
       about:
-        "Posts of tracked creators that beat their own usual draw, as a gallery. Select posts to save to Canon.",
+        "Posts of tracked creators that beat their own usual draw; select posts to save them to Canon.",
       Page: OutliersPage,
       wide: true,
     },

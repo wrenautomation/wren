@@ -122,7 +122,7 @@ function BoxLayer({
           key={i}
           className={cx(
             "absolute rounded-[3px] border-2",
-            b.tone ? TONE_EDGE[b.tone] : "border-(--ui-accent)",
+            b.tone ? TONE_EDGE[b.tone] : "border-(--ui-active)",
             b.live && "border-dashed",
           )}
           style={{

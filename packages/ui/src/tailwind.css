@@ -118,6 +118,7 @@
   --ui-link: var(--ui-accent); /* text that goes somewhere */
   --ui-focus: var(--ui-accent); /* the focus ring */
   --ui-live: var(--ui-accent); /* a real event: running, new, just changed */
+  --ui-best: var(--ui-accent); /* the top score zone: Vireo's Amazing */
   --ui-press-edge: color-mix(in srgb, var(--ui-accent) 72%, #000); /* under a primary button */
   --ui-accent-wash: var(--ui-wash);
   --ui-accent-tint: color-mix(in srgb, var(--ui-accent) 10%, transparent);

@@ -256,7 +256,7 @@ export function FootageLanes({
               {c.spans.map((p) => (
                 <span
                   key={`${p.s}-${p.e}`}
-                  className={cx("absolute top-0 block h-3 rounded-full bg-(--ui-accent)")}
+                  className={cx("absolute top-0 block h-3 rounded-full bg-(--ui-active)")}
                   style={{
                     left: `${(p.s / length) * 100}%`,
                     width: `${((p.e - p.s) / length) * 100}%`,

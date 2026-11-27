@@ -90,7 +90,7 @@ export function Rail({ t, slug }: { t: Tree; slug: string }) {
                       width="10"
                       height="10"
                       rx="2.5"
-                      fill={s.v === "amazing" ? "var(--ui-accent)" : "var(--ui-good)"}
+                      fill={s.v === "amazing" ? "var(--ui-best)" : "var(--ui-good)"}
                     />
                   );
                 return (

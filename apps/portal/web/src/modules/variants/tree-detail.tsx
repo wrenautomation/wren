@@ -14,10 +14,10 @@ export const Lock = () => (
     <path
       d="M3 5.5V3.75a2.5 2.5 0 0 1 5 0V5.5"
       fill="none"
-      stroke="var(--ui-accent)"
+      stroke="var(--ui-active)"
       strokeWidth="1.5"
     />
-    <rect x=".75" y="5.25" width="9.5" height="6" rx="1.75" fill="var(--ui-accent)" />
+    <rect x=".75" y="5.25" width="9.5" height="6" rx="1.75" fill="var(--ui-active)" />
   </svg>
 );
 export const PIN = "M4 1h4l-.6 3.4L9.5 6.5v1h-3V11l-.5.6-.5-.6V7.5h-3v-1l2.1-2.1z";

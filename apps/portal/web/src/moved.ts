@@ -67,6 +67,11 @@ export const MOVED: Readonly<Record<string, string>> = {
   "/research/history": "/explorer/weaver",
   "/research/live": "/research/runs",
   "/team/all": "/office/team",
+  // Variants: team only, so here, not CLIENT_MOVED
+  "/variants/catalog": "/variants/batches",
+  "/variants/pick": "/variants/batches",
+  "/variants/projects": "/explorer/vireo",
+  "/variants/subjects": "/explorer/vireo",
 };
 
 /** A gone place → where its pages went: every page not above keeps its id there. */
@@ -85,6 +90,7 @@ export const MOVED_APPS: Readonly<Record<string, string>> = {
   reactivation: "campaigns",
   results: "campaigns",
   settings: "office",
+  system: "office",
   team: "office",
 };
 
@@ -110,10 +116,6 @@ export const CLIENT_MOVED: Readonly<Record<string, string>> = {
   "/reactivation/results": "/project/results",
   "/reactivation/updates": "/project/updates",
   "/reactivation/welcome": "/project/welcome",
-  "/variants/catalog": "/variants/batches",
-  "/variants/pick": "/variants/batches",
-  "/variants/projects": "/explorer/vireo",
-  "/variants/subjects": "/explorer/vireo",
   "/work/contract": "/office/contract",
   "/work/deliverables": "/project/deliverables",
   "/work/needs-you": "/today/needs-you",

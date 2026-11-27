@@ -134,14 +134,14 @@ export function LiveView({ live, picks }: { live: Live; picks: Picks }) {
                 {x && x.of > 0 && (
                   <>
                     <span
-                      className="absolute top-0 h-3 rounded-full bg-(--ui-accent)/30"
+                      className="absolute top-0 h-3 rounded-full bg-(--ui-live)/30"
                       style={{
                         left: `${(x.lo / top) * 100}%`,
                         width: `${(Math.max(0.002, x.hi - x.lo) / top) * 100}%`,
                       }}
                     />
                     <span
-                      className="absolute top-0 size-3 -translate-x-1/2 rounded-full bg-(--ui-accent)"
+                      className="absolute top-0 size-3 -translate-x-1/2 rounded-full bg-(--ui-live)"
                       style={{ left: `${((x.rate ?? 0) / top) * 100}%` }}
                     />
                   </>

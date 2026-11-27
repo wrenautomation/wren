@@ -884,7 +884,7 @@ function TreeSvg({
             {isKept(s) && (
               <g
                 transform={`translate(${f1(-HW(s.v) - 3)} ${f1(-HH(s.v) - 15)})`}
-                color="var(--ui-accent)"
+                color="var(--ui-active)"
               >
                 <path d={PIN} fill="currentColor" transform="scale(0.917)" />
               </g>
@@ -950,7 +950,7 @@ function TreeSvg({
 }
 
 const STROKE: Record<Exclude<Call, "open">, readonly [string, number]> = {
-  amazing: ["var(--ui-accent)", 1.5],
+  amazing: ["var(--ui-best)", 1.5],
   good: ["var(--ui-good)", 1.25],
   okay: ["var(--ui-ink-2)", 1],
   bad: ["var(--ui-bad)", 1],
@@ -971,7 +971,7 @@ function Thumb({ s, sel, clip }: { s: TNode; sel: boolean; clip: string }) {
       height={h + 10}
       rx="10"
       fill="none"
-      stroke="var(--ui-accent)"
+      stroke="var(--ui-active)"
       strokeWidth="1.5"
     />
   ) : s.v === "amazing" ? (
@@ -1054,7 +1054,7 @@ function Thumb({ s, sel, clip }: { s: TNode; sel: boolean; clip: string }) {
         />
         {s.v === "amazing" && (
           <g transform={`translate(${bx} ${by})`}>
-            <circle r="6.5" fill="var(--ui-accent)" stroke="var(--ui-paper)" strokeWidth="1.25" />
+            <circle r="6.5" fill="var(--ui-best)" stroke="var(--ui-paper)" strokeWidth="1.25" />
             <path
               d="M0-4.2l1.2 2.6 2.8.3-2.1 1.9.6 2.8L0 2-2.5 3.4l.6-2.8-2.1-1.9 2.8-.3z"
               fill="var(--ui-on-accent)"

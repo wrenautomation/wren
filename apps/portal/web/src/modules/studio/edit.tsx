@@ -2,7 +2,7 @@
  * Studio › Edit (designs/2026-11-13-studio-suite.md, D6): Finish on a project's edit
  * (`?project=`), or on any recording (`?video=`); with neither, the newest recordings.
  */
-import { CopyButton, Empty, LoadFailed, Loading } from "@wren/ui";
+import { Empty, LoadFailed, Loading } from "@wren/ui";
 import type { PageProps } from "../../module.js";
 import { href } from "../../route.js";
 import { StudioVideo, VideoShelf } from "../marketing/video-shelf.js";
@@ -41,19 +41,8 @@ function ProjectEdit({ id, ...props }: PageProps & { id: number }) {
     );
   if (!p.edit)
     return (
-      <Empty
-        title={p.title}
-        action={
-          <CopyButton
-            text={`wren project film ${p.id} `}
-            label="Copy the command"
-            tone="secondary"
-          />
-        }
-      >
-        Not filmed yet. Record it, then tie the recording to this project with{" "}
-        <code className="whitespace-nowrap">wren project film {p.id} &lt;video id&gt;</code>. Its
-        edit opens here.
+      <Empty title={p.title}>
+        Not filmed yet. Record it, then tie the recording to this project. Its edit opens here.
       </Empty>
     );
   return (

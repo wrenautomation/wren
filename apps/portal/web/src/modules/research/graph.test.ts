@@ -36,7 +36,7 @@ describe("a social run as the graph's data (WA-1405)", () => {
   const g = runGraphOf(BOARD_VIEW);
 
   it("makes one source per author on a social site, not one per site", () => {
-    const x = g.sources.filter((s) => s.icon?.includes("/x.com."));
+    const x = g.sources.filter((s) => s.icon?.endsWith("url=https://x.com"));
     expect(x.map((s) => s.name).sort()).toEqual([
       "a_very_long_handle_that_never_wraps_well",
       "bakehouse_ops",

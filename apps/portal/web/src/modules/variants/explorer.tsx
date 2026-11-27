@@ -40,7 +40,7 @@ export const VIREO_MARKS: Record<string, { label: string; tone?: TagTone }> = {
 export const vireoFills = (route: string) =>
   route === "vireo/subjects" ? (
     <>
-      An agent starts one with <code>wren variants new</code>; it shows here.
+      An agent starts one; it shows here.
       <span className="mt-2 flex">
         <AskAgent setup="vireo" ask="Start variants for " />
       </span>

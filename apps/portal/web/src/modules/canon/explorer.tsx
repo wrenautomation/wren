@@ -50,9 +50,7 @@ export const canonFills = (route: string) =>
       Save a reel or video from the Add box in <a href="/canon/library">Library</a>.
     </>
   ) : (
-    <>
-      Canon fills from its git repo: each <code>wren canon sync</code> reads it again.
-    </>
+    <>Canon fills from its git repo. Each sync reads it again.</>
   );
 
 // --- the root ------------------------------------------------------------------------------------
@@ -66,8 +64,7 @@ export function CanonRoot({ view }: { view: ExplorerView }) {
   if (!h.topics.length && !h.types.length)
     return (
       <Empty title="Nothing in Canon yet" waits>
-        Sources and topics reach this page after the next sync: wren source add, then wren canon
-        sync.
+        Sources and topics reach this page after the next sync.
       </Empty>
     );
   const to = (route: string) => explorerHref(route, view);

@@ -20,7 +20,6 @@ import {
   BarLayout,
   Button,
   CHIP,
-  CopyButton,
   chipClass,
   Empty,
   Icon,
@@ -256,11 +255,9 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
         <Empty
           title={`${num(data.creators)} ${data.creators === 1 ? "creator" : "creators"} tracked`}
           waits
-          action={<CopyButton text="wren creator refresh" label="Copy the command" />}
         >
           No post has a score yet. A post gets one once its creator has 5 read posts of its kind.
-          The daily read runs it;{" "}
-          <code className="font-mono text-[12.5px]">wren creator refresh</code> runs it now.
+          The daily read scores new posts.
         </Empty>
         {addSheet}
       </>
@@ -359,15 +356,10 @@ export function CreatorPosts({ params, start }: PageProps & { start: PostsStart 
             Drop a filter, or clear them all.
           </Empty>
         ) : (
-          <Empty
-            title={start.all ? "No posts yet" : "No outliers yet"}
-            waits
-            action={<CopyButton text="wren creator refresh" label="Copy the command" />}
-          >
+          <Empty title={start.all ? "No posts yet" : "No outliers yet"} waits>
             {start.all
               ? "The daily read stores each tracked creator's new posts."
-              : "No scored post is over its creator's usual draw. The daily read scores new posts."}{" "}
-            <code className="font-mono text-[12.5px]">wren creator refresh</code> reads them now.
+              : "No scored post is over its creator's usual draw. The daily read scores new posts."}
           </Empty>
         )
       ) : (

@@ -76,7 +76,7 @@ export function AddBox({ here, params }: { here: string; params: URLSearchParams
               className="min-w-0 flex-1 basis-60"
             />
           )}
-          <label className="inline-flex h-[38px] cursor-pointer items-center gap-1.5 rounded-(--ui-radius) border border-(--ui-hair) px-3 text-[13px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-(--ui-accent)">
+          <label className="inline-flex h-[38px] cursor-pointer items-center gap-1.5 rounded-(--ui-radius) border border-(--ui-hair) px-3 text-[13px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-(--ui-focus)">
             <Icon name="attach" size={14} />
             {file ? "Another file" : "Picture or PDF"}
             <input

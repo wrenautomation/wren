@@ -6,11 +6,11 @@
 /* unlayered: beats astryx-theme; --ui-* flip with the look, so one block serves both */
 .astryx-wren {
   color-scheme: var(--ui-scheme);
-  --color-accent: var(--ui-accent);
+  --color-accent: var(--ui-primary);
   --color-accent-muted: var(--ui-accent-tint);
   --color-on-accent: var(--ui-on-accent);
   --color-text-accent: var(--ui-link);
-  --color-icon-accent: var(--ui-accent);
+  --color-icon-accent: var(--ui-active);
   --color-background-body: var(--ui-canvas);
   --color-background-surface: var(--ui-paper);
   --color-background-card: var(--ui-paper);

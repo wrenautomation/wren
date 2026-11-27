@@ -54,7 +54,7 @@ function Records({ params }: { params: URLSearchParams }) {
   if (!data.indexed)
     return (
       <Empty title="No index here yet" waits>
-        Canon reaches this page after the first sync: `wren canon sync`.
+        Canon reaches this page after its first sync.
       </Empty>
     );
   const rows = [data, ...more].flatMap((p) => p.rows);

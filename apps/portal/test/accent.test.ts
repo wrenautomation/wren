@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 /**
- * 60-30-10: the portal takes the accent only through its roles (--ui-primary, -active, -link,
+ * 60-30-10: the portal takes the accent only through its roles (--ui-primary, -active, -link, -best,
  * -focus, -live), never --ui-accent itself (designs/2026-10-14-customerio-audit.md, B3 item 10).
  */
 describe("the accent", () => {

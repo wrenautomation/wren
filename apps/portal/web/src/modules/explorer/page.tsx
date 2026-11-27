@@ -85,11 +85,7 @@ const MARKS: Record<string, { label: string; tone?: TagTone }> = {
 };
 
 const ERRORS = {
-  "not-indexed": (
-    <>
-      Canon reaches this page after the first sync: <code>wren canon sync</code>.
-    </>
-  ),
+  "not-indexed": <>Canon reaches this page after its first sync.</>,
   offline: (
     <>
       Weaver reads from this Mac. Start it with <code>weaver serve</code>, then try again.

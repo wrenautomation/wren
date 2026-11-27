@@ -24,14 +24,14 @@ export const studio: Module = {
     {
       id: "projects",
       label: "Projects",
-      about: "Every video from the idea on: its stage, what waits on you. Start one here.",
+      about: "Every video from the idea on, with its stage and what waits on you.",
       Page: ProjectsPage,
       wide: true,
     },
     {
       id: "inspiration",
       label: "Inspiration",
-      about: "Every post of the creators you track, newest first. Big outliers stand out.",
+      about: "Every post of the creators you track, newest first.",
       Page: InspirationPage,
       wide: true,
     },

@@ -1,6 +1,6 @@
 /* Generation tree. Values from the approved preview (artifact A5xNkRRGMoMZuH8s7mvfRL, pass 5). */
 .vt {
-  --vt-tint: color-mix(in srgb, var(--ui-accent) 10%, transparent);
+  --vt-tint: var(--ui-accent-tint);
   --vt-good-tint: color-mix(in srgb, var(--ui-good) 10%, transparent);
   display: flex;
   flex-direction: column;
@@ -239,11 +239,11 @@
 }
 .vt-gl {
   font: 600 11.5px var(--ui-font);
-  fill: var(--ui-accent);
+  fill: var(--ui-active);
 }
 .vt-el {
   font: 600 10.5px var(--ui-font);
-  fill: var(--ui-accent);
+  fill: var(--ui-active);
 }
 .vt-halo {
   paint-order: stroke;
@@ -263,7 +263,7 @@
   stroke-opacity: 0.5;
 }
 .vt-e.on {
-  stroke: var(--ui-accent);
+  stroke: var(--ui-active);
   stroke-opacity: 1;
 }
 .vt-e.x {
@@ -299,7 +299,7 @@
   stroke: none;
 }
 .vt-n:focus-visible .vt-hit {
-  stroke: var(--ui-accent);
+  stroke: var(--ui-focus);
   stroke-width: 2;
   stroke-dasharray: 3 3;
 }
@@ -418,7 +418,7 @@
   display: inline-block;
 }
 .vt-dot.amazing {
-  background: var(--ui-accent);
+  background: var(--ui-best);
   box-shadow: 0 0 0 3px var(--vt-tint);
 }
 .vt-dot.good {
@@ -558,7 +558,7 @@
   cursor: pointer;
 }
 .vt-plain:hover {
-  color: var(--ui-accent);
+  color: var(--ui-link);
 }
 .vt-strip {
   display: flex;
@@ -572,7 +572,7 @@
   box-shadow: inset 0 0 0 1px var(--ui-ink-3);
 }
 .vt-strip i.amazing {
-  background: var(--ui-accent);
+  background: var(--ui-best);
   box-shadow: none;
 }
 .vt-strip i.good {

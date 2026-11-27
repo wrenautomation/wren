@@ -18,7 +18,7 @@ export const variants: Module = {
     {
       id: "batches",
       label: "Batches",
-      about: "Every batch, newest first. Mark an open one blind, then hand it to Vireo.",
+      about: "Every batch, newest first; mark an open one blind, then hand it to Vireo.",
       Page: BatchesPage,
       wide: true,
       badge: (_client, team) => (team ? openBatches() : Promise.resolve(0)),

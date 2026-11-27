@@ -208,7 +208,6 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "email/approve": (id, { body }) => ["email/approve", { id: num(id), ...(body ? { body } : {}) }],
   "email/drop": (id) => ["email/drop", { id: num(id) }],
   "mail/done": (id) => ["mail/done", { id: num(id) }],
-  "sms/reply": (id, { body }) => ["sms/reply", { id: Number(id), body }],
   "email/pause": (id, { reason }) => ["email/pause", { target: id, reason }],
   "email/resume": (id) => ["email/resume", { target: id }],
   "delivery/done": (id) => ["delivery/done", step(id)],
@@ -524,16 +523,8 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     handlerCall("ReachDesk", "passOn", { ids: [String(id)], reason, note: note || null }),
   "marketing/onpostSkip": (id, { reason, note }) =>
     handlerCall("ReachDesk", "skipPost", { ids: [num(id)], reason, note }),
-  // A person from People: `li:<id>` or `reddit:<handle>`, read by the desk.
-  "marketing/personDraft": (id) => handlerCall("ReachDesk", "draftPerson", { id }),
   "marketing/messageFrom": (id, { body }) =>
     handlerCall("ReachDesk", "messageFrom", { id: String(id), body }, { confirm: "messageFrom" }),
-  "marketing/personMessage": (id, { body }) =>
-    handlerCall("ReachDesk", "messagePerson", { id, ...words(body) }, { confirm: "messagePerson" }),
-  "marketing/personInvite": (id) =>
-    handlerCall("ReachDesk", "invitePerson", { id }, { confirm: "invitePerson" }),
-  "marketing/personFollow": (id) =>
-    handlerCall("ReachDesk", "followPerson", { id }, { confirm: "followPerson" }),
   ...drafting("inbox", null),
   ...drafting("post", "draft"),
   ...drafting("comment", "comment"),

@@ -199,7 +199,8 @@ function PanelChat({
     return (
       <div className="p-4">
         <Alert onRetry={setups.retry}>
-          The relay on this Mac has no {hand.setup} setup. Restart wren agent serve, then retry.
+          The relay on this Mac has no {hand.setup} setup. Restart the agent relay on this Mac, then
+          retry.
         </Alert>
       </div>
     );

@@ -90,7 +90,7 @@ const BATCH_ACTIONS: Action[] = [
 const BATCHES_LIST: ListPage = {
   id: "batches",
   label: "Batches",
-  about: "Every batch, newest first. Mark an open one blind, then hand it to Vireo.",
+  about: "Every batch, newest first; mark an open one blind, then hand it to Vireo.",
   template: "list",
   record: "variants.batch",
   // only a subject's newest open batch waits on him (vireo store.ts:242)
