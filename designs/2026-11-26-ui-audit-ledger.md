@@ -464,6 +464,7 @@ New: none.
 | (k) table heads wrap | row 2 pass 2, item 8 | a head wants its whole label on one line; only a tight room wraps it | ab03ab9f9 |
 | (l) mono meta, spaced punctuation | carried; row 4 pass 2 items 1, 4 | agent times, counts, status line, file caption and choice numbers in sans 12px (terminal blocks keep mono); `ol` markers use normal figures (a tabular 1 sits mid-cell); `.rg` root follows `--ui-numeric` (Schibsted tnum widened `. :`); JSON counts say "1 run"; the status line drops its trailing dot while the context menu is open | 18e5f53f7 |
 | (m) "1 statu", Motion story | (l) follow-up; carried | a plural drops its s only over 3 letters and not in -is -us -ss; the Motion story checks the width transition only when motion is allowed | ae944f316 |
+| (n) face blank, strip slot, fit check | R9.6, R9.7, row 9 pass 2 items 1, 3, 5 | a creator with no photo is a grey blank with a person (was a purple-tint letter); strip slot 96 px, no clamp (a 17-letter word still breaks inside); "@e" is the whole one-letter handle, no change; Compose "Fits" gets a check, a misfit keeps red and the words | 759d96689 |
 
 Pages add `ui-scroll-fade` to their own sideways rows (Canon presets, Map filters: sidecar).
 
@@ -499,3 +500,4 @@ Next round: trace the engage and approval counts in the sidebar batch (load, the
 - 11-26 23:27: batch 5 green (ab03ab9f9). Perf round 3: timeline prefetch skipped (cc2e1e703).
 - 11-26 23:48: batch 6 (18e5f53f7): mono meta, list numbers, research card figures. The active nav's corner marks are the `.ui-nav-sweep` design, not a ring.
 - 11-26 23:53: perf round 4 measured, not fixed: the sidebar counts spend their time in app loaders, not in SQL or the pool.
+- 11-27 00:18: (n) 759d96689: Canon strip faces and slot, Compose fit check. Seen: an outliers card at 1280 cuts "@a_very_long_handle_for_a_creator_wh" (sidecar told).
