@@ -109,5 +109,7 @@ describe("phoneTabsOf", () => {
   it("names an icon from the page", () => {
     expect(pageIcon("calls")).toBe("phone");
     expect(pageIcon("zzz")).toBe("list");
+    expect(pageIcon("asks")).toBe("chat");
+    expect(pageIcon("tasks")).not.toBe("chat");
   });
 });

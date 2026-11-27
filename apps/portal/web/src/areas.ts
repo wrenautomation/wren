@@ -115,6 +115,12 @@ const PHONE_TABS: Readonly<Record<string, readonly TabPick[]>> = {
     { page: "messages", icon: "chat" },
     { page: "calendar", icon: "calendar" },
   ],
+  aerie: [
+    { page: "tasks", icon: "board" },
+    { page: "intake", icon: "inbox" },
+    { page: "decisions", icon: "choices" },
+    { page: "history", icon: "history" },
+  ],
 };
 
 /** A page's icon by what its name says, for a tab no pick names. */
@@ -122,7 +128,7 @@ const ICONS: readonly [RegExp, IconName][] = [
   [/overview|home|numbers|board|health/, "board"],
   [/call|voice|phone|latency/, "phone"],
   [/mail|email|inbox|outbound|newsletter/, "mail"],
-  [/repl|thread|chat|text|mention|ask|question/, "chat"],
+  [/repl|thread|chat|text|mention|\bask|question/, "chat"], // \b: "tasks" is no chat
   [/people|client|team|role|grant|contact|lead|compan/, "people"],
   [/plan|schedule|calendar|today|month/, "calendar"],
   [/setting|setup|layout|look|theme|field|rule/, "sliders"],
