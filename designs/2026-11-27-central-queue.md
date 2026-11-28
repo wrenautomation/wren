@@ -68,7 +68,7 @@ Never drop a loop tick, and never filter loop rows at claim. The chain sends its
 
 Browser owner, two levels:
 
-- **Process:** the launch reads `AUTOBROWSE_OWNER` (set by the runner for its children: `job:<name>/<inv_id>`), else `XPC_SERVICE_NAME` from the browser's env. launchd sets that variable on every job, and child processes inherit it (checked 11-27: the desk and canon-drain show their labels). `ProfileBusy` and `autobrowse browsers` show it. This covers bare Playwright (internships) with no change to that code.
+- **Process:** the launch reads `AUTOBROWSE_JOB` (set by the runner for its children: `job:<name>/<inv_id>`), else `XPC_SERVICE_NAME` from the browser's env. launchd sets that variable on every job, and child processes inherit it (checked 11-27: the desk and canon-drain show their labels). `ProfileBusy` and `autobrowse browsers` show it. This covers bare Playwright (internships) with no change to that code.
 - **Call:** a desk browser is born under the desk, so its env says `autobrowse-desk` for every call. The call's owner is its `caller` field, kept in the desk's call log. `wren jobs trace` joins on it.
 
 ## Options
@@ -134,7 +134,7 @@ The autobrowse SQLite runner stays standalone, as 11-16 decided. `wren jobs` rea
 
 - A replication slot whose consumer stops keeps WAL, and the disk on the box fills. Phase 4 needs a slot-lag alarm and a max size (`max_slot_wal_keep_size`).
 - A desk pause refuses a call at once. A caller that treats 409 as a failure counts strikes. Check each desk caller before phase 1 ships.
-- `XPC_SERVICE_NAME` is launchd's, not a documented contract. `AUTOBROWSE_OWNER` wins when set.
+- `XPC_SERVICE_NAME` is launchd's, not a documented contract. `AUTOBROWSE_JOB` wins when set.
 - The Mac command runner holds a lease while the Mac sleeps. The lease runs out and the run is claimed again on wake; jobs must be safe to rerun.
 
 ## William's calls
@@ -161,3 +161,4 @@ The autobrowse SQLite runner stays standalone, as 11-16 decided. `wren jobs` rea
   - **Key lock per pulled service** (`locked`), on for `CommandRun` only. The desk keeps `lock: false`: its calls are not keyed jobs. A lost lease (Mac slept) re-claims with attempt + 1 and no failure count, so sleep never pushes a run toward a dead letter; the runner kills the old process group on renew 409.
   - **Scheduler** on the box, every 30 s, in one transaction under `pg_try_advisory_xact_lock` (a session lock breaks behind PgBouncer). Ticks from croner 10.0.1 (MIT) in the job's zone (`America/Toronto`; the box runs UTC). Pause = drop the tick; "hold one run for resume" is not built (no job needs it). A failed run retries on the job's `retry` (creator-refresh: 3 tries, 10 min apart, as its plist did), then dead-letters; the next tick queues behind it, one deep.
   - **Cutover per job:** run it by hand through the runner, see one scheduled tick succeed, then `launchctl disable` the old plist (kept on disk). Never both triggers live.
+- 2026-11-27: first scheduled tick (capture, 22:17) found two bugs. (1) `AUTOBROWSE_OWNER` is taken: it names the credvault owner (autobrowse `designs/2026-09-30-owner-keys.md`), so `job:...` failed every autobrowse call. The job is now `AUTOBROWSE_JOB`. (2) `capture run` exited 0 with every source failed, so the queue saw success. It now exits 1 when no source reads. creator-refresh's old plist was already disabled by someone after 11-26: its schedule is held until that owner says why.

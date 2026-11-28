@@ -202,6 +202,11 @@ export function registerCapture(
     if (o.json) console.log(JSON.stringify(rows, null, 2));
     else for (const r of rows) console.log(JSON.stringify(r));
   };
+  /** Every source failed: exit 1, so a scheduled run retries (`wren jobs`). Some failed: the next run reads them. */
+  const failIfNoneRead = (rows: Record<string, unknown>[]) => {
+    if (rows.length && rows.every((r) => "error" in r)) process.exitCode = 1;
+    return rows;
+  };
 
   const capture = program
     .command("capture")
@@ -234,14 +239,19 @@ export function registerCapture(
 
   common(capture.command("pull"))
     .description("read each source through autobrowse and keep new saves in `captures`")
-    .action((o: CaptureOpts) => withDb(async (db) => print(o, await pull(db, o)())));
+    .action((o: CaptureOpts) =>
+      withDb(async (db) => print(o, failIfNoneRead(await pull(db, o)()))),
+    );
   fileOpts(common(capture.command("file")))
     .description("file unfiled saves into Canon (50 a source), push Canon, mark them filed")
     .action((o: CaptureOpts) => withDb(async (db) => print(o, await file(db, o)())));
   fileOpts(common(capture.command("run")))
     .description("pull, then file: the daily job")
     .action((o: CaptureOpts) =>
-      withDb(async (db) => print(o, [...(await pull(db, o)()), ...(await file(db, o)())])),
+      withDb(async (db) => {
+        const pulled = failIfNoneRead(await pull(db, o)());
+        print(o, [...pulled, ...(await file(db, o)())]);
+      }),
     );
   common(capture.command("status"))
     .description("per source: read, filed, waiting, failed (3 failures: waits for a person)")

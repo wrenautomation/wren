@@ -101,7 +101,7 @@ async function run(call) {
     env: {
       ...process.env,
       ...(spec.env ?? {}),
-      AUTOBROWSE_OWNER: `job:${job}/${call.id}`,
+      AUTOBROWSE_JOB: `job:${job}/${call.id}`,
       WREN_JOB: job,
       WREN_JOB_RUN: call.id,
     },
