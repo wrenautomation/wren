@@ -1,6 +1,6 @@
 # Central job queue: list, pause and trace every job (WA-1465)
 
-2026-11-27. Status: A agreed, call 4 (c) agreed; phases 1-3 built and live; phase 4 (CDC relay) built 11-28, live once prod Postgres runs `wal_level=logical`. Handoff: `handoffs/2026-11-27-central-queue.md`. Diagram: `2026-11-27-central-queue.excalidraw` (devboard project "Central queue").
+2026-11-27. Status: A agreed, call 4 (c) agreed; phases 1-3 built and live; phase 4 (CDC relay) built and live 11-28. Handoff: `handoffs/2026-11-27-central-queue.md`. Diagram: `2026-11-27-central-queue.excalidraw` (devboard project "Central queue").
 
 ## Goal
 
@@ -177,4 +177,4 @@ The autobrowse SQLite runner stays standalone, as 11-16 decided. `wren jobs` rea
   - **Consumers.** Dead-letter wake: a `paused` event submits `DeadLetterFile/all wake` (one a minute), so a dead letter is filed in seconds, not at the 10-minute sweep. `wren jobs watch` reads the door's `GET /rt/events` (SSE). Dropped: a Mac-wake consumer; the desk and the runner already wake on `NOTIFY rt_wake` through the door.
   - **Lambda stays lean.** The relay and NATS client load by dynamic import (`@wren/runtime/pg/events`), so no cold start pays for them.
   - **What it does not change.** Workers still claim from the table (call 4 (c)); nothing runs sooner. It adds a live event feed for consumers.
-
+- 2026-11-28: phase 4 live (2f93f1d83, CI 46118226891). Prod: `max_slot_wal_keep_size=2GB` on reload, then `wal_level=logical` and `docker restart wren-pg` at 01:57 EST: 3 s down, 5 failed claims, all retried. The waiting relay saw `logical` on its 5-minute recheck and streamed at 06:59 UTC; slot lag 0. Dev drill on the compose Postgres and NATS: commit order, a rolled-back move never published, durable consumer, standby, hand-over.
