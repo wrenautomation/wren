@@ -201,8 +201,8 @@ const shown = (viewer: Viewer) =>
 
 // perch (canon/brand/wren): one file per size, a dark file for a dark look
 const WREN_MARK = {
-  stamp: "/brand/mark-30.svg?v=perch-eye",
-  stampDark: "/brand/mark-30-dark.svg?v=perch-eye",
+  stamp: "/brand/mark-30.svg?v=perch-eye2",
+  stampDark: "/brand/mark-30-dark.svg?v=perch-eye2",
   stampSize: 30,
 };
 
