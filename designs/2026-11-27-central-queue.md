@@ -117,7 +117,7 @@ A broker carries runs; rt keeps workflow state. Two stores, so a run row and its
 
 A, in phases. Each phase works alone.
 
-1. **Owner + holds.** Browser owner from env. `job_pauses` + `wren jobs list|pause|resume` over loops (`pausedPass`), units (`unit_holds`), desk calls (refused at the door) and launchd jobs (the adapter from option E: `launchctl` and `toggle.sh`). `wren jobs` replaces `wren loops`; `wren loops` stays as an alias. After this phase, the 11-27 case is one command: `wren jobs pause internships-mail`.
+1. **Owner + holds.** Browser owner from env. `job_pauses` + `wren jobs list|pause|resume` over loops (`pausedPass`), units (`unit_holds`), desk calls (refused at the door's claim) and launchd jobs (the adapter from option E: `launchctl` and `toggle.sh`). `wren jobs` replaces `wren loops`; `wren loops` stays as an alias. After this phase, the 11-27 case is one command: `wren jobs pause internships-mail`.
 2. **Schedules.** `rt.schedules` + scheduler + Mac command runner. Move capture and creator-refresh off launchd; the adapter keeps whatever stays (internships, skill-use-report, devboard-backup).
 3. **Outbox.** `events`, written in the same transaction as each run change. `wren jobs trace` reads `events`, `journal`, the desk ledger and the runner's logs.
 4. **Fan-out.** CDC on `rt.events` → NATS JetStream. Needs `wal_level=logical` (a Postgres restart) and a replication slot. Relay: a Node reader in the box worker (11-28 log line). First consumers: the dead-letter wake and `wren jobs watch`.
