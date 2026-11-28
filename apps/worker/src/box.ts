@@ -50,6 +50,7 @@ const rt = await startRt({
   build: process.env.WREN_BUILD ?? "dev",
   ...(process.env.WREN_BUILD_LIVE ? { buildLive: process.env.WREN_BUILD_LIVE } : {}),
   doorPort: port + 10,
+  ...(process.env.WREN_NATS_URL ? { natsUrl: process.env.WREN_NATS_URL } : {}),
   // a newer build holds the wakes now; this one finishes its pinned rows
   async onSuperseded() {
     await wakes?.close();

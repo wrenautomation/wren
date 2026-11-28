@@ -38,6 +38,7 @@ import {
   type TraceRun,
   traceRun,
 } from "@wren/runtime/pg";
+import type { RunEvent } from "@wren/runtime/pg/events";
 import type { Command } from "commander";
 import { sql } from "drizzle-orm";
 
@@ -474,11 +475,72 @@ export function registerJobs(program: Command, withMainDb: WithDb, settings: Set
     });
 
   cmd
+    .command("watch [service]")
+    .description("Run moves live, from the box's event stream (CDC); a service's, or all")
+    .option("--status <status>", "one move: pending, running, suspended, done, paused, killed")
+    .option("--since <when>", "replay first: 30m, 2h, 1d or a time")
+    .option("--json", "one event per line, as JSON")
+    .action(
+      async (
+        service: string | undefined,
+        o: { status?: string; since?: string; json?: boolean },
+      ) => {
+        const since = !o.since
+          ? new Date()
+          : /^\d+\s*[mhd]$/.test(o.since)
+            ? new Date(Date.now() - durationMs(o.since))
+            : new Date(o.since);
+        if (Number.isNaN(since.getTime())) throw new Error(`--since: not a time: ${o.since}`);
+        const q = new URLSearchParams({ since: since.toISOString() });
+        if (service || o.status)
+          q.append(
+            "subject",
+            `rt.events.${service ? subjectToken(service) : "*"}.${o.status ? subjectToken(o.status) : "*"}`,
+          );
+        const ing = ingressOf(settings);
+        const r = await fetch(`${ing.url.replace(/\/$/, "")}/rt/events?${q}`, {
+          headers: ing.headers ?? {},
+        });
+        if (!r.ok || !r.body) throw new Error(`event stream: ${r.status} ${await r.text()}`);
+        for await (const data of sseData(r.body)) {
+          if (o.json) console.log(data);
+          else console.log(eventLine(JSON.parse(data) as RunEvent));
+        }
+      },
+    );
+
+  cmd
     .command("run <name>")
     .description("Run a schedule's job now, outside its ticks; it waits behind an open run")
     .action(async (name: string) => {
       console.log(`queued ${await withRt((s) => runScheduleNow(s, name))}`);
     });
+}
+
+/** relay.ts `eventSubject`'s token */
+const subjectToken = (x: string) => x.replace(/[^A-Za-z0-9_-]/g, "_");
+
+/** Each SSE event's `data`, joined across its lines; comments and pings skipped. */
+export async function* sseData(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
+  let buf = "";
+  for await (const chunk of body.pipeThrough(new TextDecoderStream())) {
+    buf += chunk.replace(/\r\n/g, "\n");
+    for (let i = buf.indexOf("\n\n"); i >= 0; i = buf.indexOf("\n\n")) {
+      const data = buf
+        .slice(0, i)
+        .split("\n")
+        .filter((l) => l.startsWith("data:"))
+        .map((l) => l.slice(5).replace(/^ /, ""))
+        .join("\n");
+      buf = buf.slice(i + 2);
+      if (data) yield data;
+    }
+  }
+}
+
+export function eventLine(e: RunEvent): string {
+  const fail = failText(e.failure);
+  return `${clock(new Date(e.at))}  ${e.service}${e.key ? `/${e.key}` : ""}/${e.handler}  ${e.status}${e.attempt > 1 ? `#${e.attempt}` : ""}  ${e.invocation_id}${fail ? `  ${fail.slice(0, 160)}` : ""}`;
 }
 
 function printRun(t: RunTrace): void {

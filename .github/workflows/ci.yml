@@ -33,6 +33,7 @@ jobs:
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
           WREN_TEST_PG_IMAGE: mirror.gcr.io/library/postgres:17
+          WREN_TEST_NATS_IMAGE: mirror.gcr.io/library/nats:2.15.1-alpine
   # Every package's integration suite, in eight shards (gates.sh WREN_SHARD); one job ran 10 min
   # cold (10-17). Report only during the redesign (WA-917); as a report it was red in 49 of 50
   # runs before 10-27, so expect it to rot until the redesign ends. Runs on the work box (WORK_RUNNER) when set.
@@ -62,6 +63,7 @@ jobs:
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
           WREN_TEST_PG_IMAGE: mirror.gcr.io/library/postgres:17
+          WREN_TEST_NATS_IMAGE: mirror.gcr.io/library/nats:2.15.1-alpine
           WREN_SHARD: ${{ matrix.shard }}/8
       # Every run restores the last cache and adds to it: entries no run used for a week go.
       - if: always()

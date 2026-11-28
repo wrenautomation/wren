@@ -38,3 +38,14 @@ ALTER SYSTEM SET track_io_timing = on;
 SELECT pg_reload_conf();
 -- shared_buffers stays 256MB (user-data.sh -c flag, which beats ALTER SYSTEM): the box is a
 -- t4g.small with 1.8 GB, about 300 MB free and swap in use. More needs a bigger box first.
+
+-- 2026-11-28 (WA-1465, designs/2026-11-27-central-queue.md phase 4): the CDC relay's logical
+-- slot. First the WAL cap, live on reload: a slot whose reader is gone keeps at most 2 GB of WAL,
+-- then Postgres drops its claim (wal_status 'lost') and the relay backfills from rt.events.
+-- Without it a dead relay fills the data disk (about 2 GB of WAL a day).
+ALTER SYSTEM SET max_slot_wal_keep_size = '2GB';
+SELECT pg_reload_conf();
+-- Then logical WAL (a little more WAL per write). Only at server start: at a quiet hour,
+--   docker restart wren-pg
+-- Check after: SHOW wal_level; the worker log shows "rt: relay streaming".
+ALTER SYSTEM SET wal_level = 'logical';

@@ -28,7 +28,11 @@ export interface DoorOptions {
   /** Services an outside worker claims over `/rt/*` (autobrowse's desk); unset: no pull routes. */
   pull?: Pick<PullOptions, "pulled" | "leaseMs" | "refuse" | "locked">;
   /** Phase times of a call pg serves, for the worker's timing log. */
-  time?: (phase: "submit" | "wait", ms: number) => void;
+  time?: (
+    phase: "submit" | "wait",
+    ms: number,
+  ) => void /** NATS on the box: `GET /rt/events` streams `RT_EVENTS` as SSE; unset: 404. */;
+  natsUrl?: string;
 }
 
 /** How long the door trusts its copy of `rt.handlers`. */
@@ -83,6 +87,40 @@ const send = (
   res.writeHead(status, { "content-type": type });
   res.end(data);
 };
+
+/**
+ * `GET /rt/events?since=<iso>&subject=rt.events.<service>.<status>` (each optional, subject
+ * repeats): every event from `since` (default now), then live. SSE `id` = the event's seq.
+ */
+async function streamEvents(natsUrl: string, url: URL, res: ServerResponse) {
+  const raw = url.searchParams.get("since");
+  const since = raw ? new Date(raw) : new Date();
+  const subjects = url.searchParams.getAll("subject");
+  if (Number.isNaN(since.getTime()))
+    return send(res, 400, JSON.stringify({ message: "since: not a time" }));
+  if (subjects.some((x) => !/^rt\.events(\.[A-Za-z0-9_*>-]+){1,2}$/.test(x)))
+    return send(res, 400, JSON.stringify({ message: "subject: rt.events.<service>.<status>" }));
+  // box only: NATS stays out of the Lambda (events.ts)
+  const { watchEvents } = await import("./events.js");
+  const ac = new AbortController();
+  res.on("close", () => ac.abort());
+  res.writeHead(200, {
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    "x-accel-buffering": "no",
+  });
+  res.write(": open\n\n");
+  // under Caddy's and the CLI's idle timeouts
+  const ping = setInterval(() => res.write(": ping\n\n"), 15_000);
+  ping.unref();
+  try {
+    for await (const e of watchEvents({ natsUrl, since, filter: subjects, signal: ac.signal }))
+      res.write(`id: ${e.seq}\ndata: ${JSON.stringify(e)}\n\n`);
+  } finally {
+    clearInterval(ping);
+    res.end();
+  }
+}
 
 export async function serveDoor(
   o: DoorOptions,
@@ -219,6 +257,10 @@ export async function serveDoor(
     else if (parts[0] === "calls") parts.splice(0, 1, "restate", "invocation");
     else if (parts[0] === "awakeables") parts.unshift("restate");
 
+    if (parts[0] === "rt" && parts[1] === "events" && parts.length === 2 && req.method === "GET")
+      return o.natsUrl
+        ? streamEvents(o.natsUrl, url, res)
+        : send(res, 404, JSON.stringify({ message: "no event stream on this box" }));
     if (pull && (await pullRoute(pull, parts, req, res, body, send))) return;
     if (parts[0] === "restate") {
       if (parts[1] === "health" && parts.length === 2) {

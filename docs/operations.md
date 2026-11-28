@@ -9,7 +9,7 @@ how a call runs). Setup runbook: `deploy/README.md`.
 |---|---|---|---|
 | Runtime (`@wren/runtime`, tables `rt.*` in Postgres) | every loop's journal, timers and object state; the door `https://api.wrenautomation.com` (Caddy checks the bearer) | the box worker, below | this file, `designs/2026-11-09-own-runtime.md` |
 | Lambda `wren-prod-worker` (us-east-1, Node 22 arm64, 1 GB, 15 min max) | every service the box does not serve; one version per push | CI `deploy.yml` | `deploy/README.md` |
-| EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17, PgBouncer (6432, transaction mode), listmonk and Caddy in Docker; the **box worker**: the runtime's dispatcher and door, its Lambda lane, and `BOX_SERVICES` (LeadPoolFill, CompanySiteFind, CompanyEnrich, Resolution, Enrichment, Discovery, LeadVerify, PageHtmlArchive, BooksClose, BooksDaily, MyMailTriage, SocialActivityRead, CanonIndexSync: Canon's prod index from a bare clone in `/var/lib/wren-pg/canon`). Two slots, worker 9080/9081 and door 9090/9091; the new build takes new rows, the old one finishes its pinned rows (`apps/worker/src/box-slot.ts`, `rt.box_builds`) | CI over SSM (`deploy/scripts/box-worker.sh`, `box-front-door.sh`) | `deploy/README.md`, `apps/worker/src/rt.ts` |
+| EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17, PgBouncer (6432, transaction mode), NATS JetStream (4222, run events), listmonk and Caddy in Docker; the **box worker**: the runtime's dispatcher and door, its Lambda lane, and `BOX_SERVICES` (LeadPoolFill, CompanySiteFind, CompanyEnrich, Resolution, Enrichment, Discovery, LeadVerify, PageHtmlArchive, BooksClose, BooksDaily, MyMailTriage, SocialActivityRead, CanonIndexSync: Canon's prod index from a bare clone in `/var/lib/wren-pg/canon`). Two slots, worker 9080/9081 and door 9090/9091; the new build takes new rows, the old one finishes its pinned rows (`apps/worker/src/box-slot.ts`, `rt.box_builds`) | CI over SSM (`deploy/scripts/box-worker.sh`, `box-front-door.sh`, `box-nats.sh`) | `deploy/README.md`, `apps/worker/src/rt.ts` |
 | RackNerd VPS (192.255.226.241, Buffalo) | mailifier SMTP prober (`probe.wrenautomation.com`) and SearXNG for the research engine (`search.wrenautomation.com`, bearer SSM `/wren/prod/searxng_token`), both behind Caddy | `deploy/scripts/deploy-vps.sh` | "Verifying addresses" and "Search" below |
 | RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`); in `WREN_SMTP_PROBE_URL`, probes once its PTR resolves. Second SearXNG (`search2.wrenautomation.com`, same bearer): a second search IP and a fallback | `PROBE_HOST=probe2.wrenautomation.com SEARCH_HOST=search2.wrenautomation.com deploy/scripts/deploy-vps.sh` | "Verifying addresses" below |
 | William's Mac | autobrowse desk worker under launchd: every `sites` call (browser, logins, Chrome profiles, home IP). It pulls its calls from the door (`/claim`, long-poll) | `../autobrowse/deploy/desk/install.sh` | `../autobrowse/deploy/README.md` |
@@ -175,6 +175,7 @@ wren jobs schedule <name> --cron "15 10 * * *" --why "..."  # [--tz America/Toro
 wren jobs run <name>                                         # one run now; waits behind an open run
 wren jobs unschedule <name>
 wren jobs trace <job|inv_id> [--runs 10] [--json]             # a run: moves, steps, calls, its Mac log, live browsers; a job: its last runs
+wren jobs watch [Service] [--status paused] [--since 30m] [--json]  # run moves live, from the event stream (below)
 ```
 
 A held desk call ends at the door's claim with a terminal `held: ...` error, before the Mac
@@ -185,6 +186,17 @@ command runner claims them; see the hosts table.
 Every run move (insert, status or attempt change) also writes a row to `rt.events`, by trigger, in
 the same transaction. It is the outbox: append-only, kept with the runs. `wren jobs trace` reads it
 with `rt.journal`; a run from before 11-28 shows no moves.
+
+CDC relay (designs/2026-11-27-central-queue.md, phase 4): the box worker reads `rt.events` inserts
+from the logical slot `rt_events_relay` (publication `rt_events`) and publishes each one to NATS
+JetStream, stream `RT_EVENTS`, subject `rt.events.<Service>.<status>` (dots in a name become `_`).
+Workers still claim from the table; the stream only feeds readers. Readers: the dead-letter wake (a
+`paused` move wakes `DeadLetterFile/all` at once) and the door's `GET /rt/events?since=&subject=`
+(SSE), which `wren jobs watch` reads. At least once: dedupe by `seq`. Its state is in the worker log
+(`docker logs wren-worker 2>&1 | grep 'rt: relay'`): `waiting` (wal_level is not logical),
+`standby` (the other slot reads), `backfill`, `streaming`, `retrying`. A lost or dropped slot is
+made again and refilled from the table. The hourly lag check tells Discord when the slot is missing,
+unread with WAL piling up, over 500 MB behind, or past `max_slot_wal_keep_size` (2 GB).
 
 ### Feature flags
 
@@ -222,6 +234,11 @@ uses it through `WREN_DATABASE_POOL_PORT=6432`, set in `deploy/terraform/lambda.
 `deploy/scripts/box-worker.sh` (not `prod.env`, so the CLI never sees it); remove both to go
 straight to Postgres. Logins: main's from the container, every other role's SCRAM secret by `auth_query`.
 `docker logs wren-pgbouncer` shows each refused login and pool limit.
+
+NATS (`wren-nats`, JetStream): 127.0.0.1:4222 only, monitor on 8222, store
+`/var/lib/wren-pg/nats/store`, 128 MB container cap. CI runs `deploy/scripts/box-nats.sh` each deploy
+(unchanged: left running). Down: the relay holds its place in the slot and resends after; nothing
+else waits on it. `curl -s 127.0.0.1:8222/jsz` shows the stream.
 
 No cache: reads go to Postgres. Redis is gone (2026-11-09); the table `rt.cache` exists, unused.
 

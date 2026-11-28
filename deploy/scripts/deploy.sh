@@ -27,6 +27,7 @@ API_URL="https://$WREN_API_HOST"
 # so its failure only warns (cf_soft): the first CI run proves the token can bind R2.
 # Portal: LAMBDA_URL, EDGE_SECRET: a client's own host redeems sign-ins at the auth Lambda.
 # pgbouncer: before the box worker and the Lambda, which may connect through it (WREN_DATABASE_POOL_PORT).
+# nats: the run-event stream the box worker's CDC relay writes (WREN_NATS_URL); before the box worker.
 # listmonk: the newsletter (designs/2026-10-21-esign-and-newsletter.md); no SSM param
 # /wren/prod/listmonk yet: the script says so and skips. Unchanged: left running.
 phase start
@@ -59,6 +60,7 @@ fi
 
 phase migrate
 bg pgbouncer box_script pgbouncer box-pgbouncer.sh
+bg nats box_script nats box-nats.sh
 bg listmonk box_script listmonk box-listmonk.sh us-east-1
 bg front-door box_script front-door box-front-door.sh us-east-1
 pnpm db:migrate
@@ -69,7 +71,7 @@ bg templates pnpm -s wren templates sync
 # The box worker's new slot takes new rows once up; Lambda rows pin to the version written below.
 # The sign-in Lambda's function URL serves $LATEST; no version to publish.
 phase "box worker and lambdas"
-await worker-zip auth-zip render-zip pgbouncer
+await worker-zip auth-zip render-zip pgbouncer nats
 # render: over 50 MB, so its code goes through S3 (designs/2026-11-09-render-lambda.md)
 render_key="render/$GITHUB_SHA.zip"
 aws s3 cp --only-show-errors apps/render/dist/lambda.zip "s3://$BOX_BUCKET/$render_key"

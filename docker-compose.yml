@@ -1,6 +1,8 @@
 services:
   postgres:
     image: postgres:17
+    # the CDC relay's slot (designs/2026-11-27-central-queue.md phase 4)
+    command: ["postgres", "-c", "wal_level=logical", "-c", "max_slot_wal_keep_size=2GB"]
     environment:
       POSTGRES_USER: wren
       POSTGRES_DB: wren
@@ -14,5 +16,16 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+  # run events the relay publishes (WREN_NATS_URL=nats://127.0.0.1:4222); prod: box-nats.sh
+  nats:
+    image: nats:2.15.1-alpine
+    command: ["-js", "-sd", "/data", "-m", "8222"]
+    ports:
+      - "127.0.0.1:4222:4222"
+      - "127.0.0.1:8222:8222"
+    volumes:
+      - natsdata:/data
+    mem_limit: 128m
 volumes:
   pgdata:
+  natsdata:

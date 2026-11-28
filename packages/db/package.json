@@ -24,7 +24,8 @@
     "@wrenautomation/aerie": "0.8.11",
     "@wrenautomation/vireo": "0.19.1",
     "drizzle-orm": "0.45.2",
-    "postgres": "3.4.9"
+    "postgres": "3.4.9",
+    "testcontainers": "12.1.0"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "12.1.0",

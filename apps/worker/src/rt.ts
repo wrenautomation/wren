@@ -8,12 +8,14 @@
  */
 import { readFileSync, statSync } from "node:fs";
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
+import { DEAD_LETTERS_KEY } from "@wren/core/dead-letters";
 import { callPauseJobs } from "@wren/core/job-pauses";
 import {
   boxStarted,
   Dispatcher,
   migrate,
   newestBox,
+  newInvocationId,
   postgres,
   Registry,
   register,
@@ -23,6 +25,7 @@ import {
   schedulePass,
   serveDoor,
   servedTurn,
+  submit,
   type TurnAsk,
   type TurnReply,
 } from "@wren/runtime/pg";
@@ -186,6 +189,8 @@ export async function startRt(o: {
   doorBearer?: string;
   /** Once, when a newer build started: this one finishes its own rows only. */
   onSuperseded?(): void | Promise<void>;
+  /** NATS on the box: the CDC relay and event consumers run; unset, neither does */
+  natsUrl?: string;
   log: Logger;
 }) {
   const sql = rtSql(o.databaseUrl, 12, "wren-rt-box", true);
@@ -316,8 +321,10 @@ export async function startRt(o: {
             refuse: (c) => callHold(doorSql, c),
           },
           time: timed.of("door"),
+          ...(o.natsUrl ? { natsUrl: o.natsUrl } : {}),
         })
       : null;
+  const events = o.natsUrl ? await startEvents(sql, o.databaseUrl, o.natsUrl, o.log) : null;
   await boxStarted(sql, o.build);
   o.log.info(
     { onBox, reads: reads.length, onLambda: onLambda.length, build: o.build, door: door?.url },
@@ -335,6 +342,8 @@ export async function startRt(o: {
     readLane?.setLane({ routes: reads, build: o.build, strict: true, fresh: false });
     // Caddy takes the first healthy door: new calls, and the desk's `/rt` pulls, go to the newest
     door?.drain();
+    // the slot frees: the newer build's relay, on standby, takes it
+    await events?.stop();
     await lambdaLane?.stop();
     await o.onSuperseded?.();
   };
@@ -365,10 +374,49 @@ export async function startRt(o: {
       clearInterval(watch);
       clearInterval(schedules);
       timed.stop();
+      await events?.stop();
       await door?.close();
       await doorSql?.end({ timeout: 5 });
       await Promise.all([boxLane?.stop(), readLane?.stop(), lambdaLane?.stop()]);
       await sql.end({ timeout: 5 });
+    },
+  };
+}
+
+const minute = () => new Date().toISOString().slice(0, 16);
+
+/**
+ * CDC (designs/2026-11-27-central-queue.md, phase 4): the relay sends `rt.events` to NATS; a
+ * paused run wakes the dead-letter sweep now, not at its next 10-minute pass.
+ */
+async function startEvents(sql: postgres.Sql, databaseUrl: string, natsUrl: string, log: Logger) {
+  const { consumeEvents, startRelay } = await import("@wren/runtime/pg/events");
+  const info = (m: string, x?: Record<string, unknown>) => log.info(x ?? {}, `rt: ${m}`);
+  const relay = startRelay({ sql, replicationUrl: databaseUrl, natsUrl, log: info });
+  const deadLetters = consumeEvents({
+    natsUrl,
+    name: "dead-letter-wake",
+    filter: "rt.events.*.paused",
+    log: info,
+    async handle(e) {
+      if (e.service === "DeadLetterFile") return; // its own pause: no wake loop
+      // one wake a minute: a burst of pauses is one sweep
+      await submit(sql, {
+        id: newInvocationId(),
+        service: "DeadLetterFile",
+        handler: "wake",
+        key: DEAD_LETTERS_KEY,
+        input: new Uint8Array(),
+        headers: {},
+        idemKey: `paused:${minute()}`,
+        runAt: new Date(),
+      });
+    },
+  });
+  return {
+    relay,
+    async stop() {
+      await Promise.all([relay.stop(), deadLetters.stop()]);
     },
   };
 }

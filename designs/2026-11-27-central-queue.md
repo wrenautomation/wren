@@ -1,6 +1,6 @@
 # Central job queue: list, pause and trace every job (WA-1465)
 
-2026-11-27. Status: A agreed, call 4 (c) agreed; phases 1-2 built, phase 3 in build, phase 4 waits for an outside consumer. Handoff: `handoffs/2026-11-27-central-queue.md`. Diagram: `2026-11-27-central-queue.excalidraw` (devboard project "Central queue").
+2026-11-27. Status: A agreed, call 4 (c) agreed; phases 1-3 built and live; phase 4 (CDC relay) built 11-28, live once prod Postgres runs `wal_level=logical`. Handoff: `handoffs/2026-11-27-central-queue.md`. Diagram: `2026-11-27-central-queue.excalidraw` (devboard project "Central queue").
 
 ## Goal
 
@@ -23,7 +23,7 @@ wren jobs trace <job|inv_id>       # runs, steps, browser launches, logs
 | Source of truth | Postgres tables: `jobs` (definitions), `invocations` (runs = the queue), `journal` + `state` (durable steps), `job_pauses` (control), `events` (outbox, append-only, same transaction as the run) | `invocations`, `journal`, `state`; the rest are new |
 | Orchestrator | scheduler (jobs → runs when due) + dispatcher (claim `SKIP LOCKED`, lease, fence, retry, timers). One node now; N later with a leader lock on the scheduler | dispatcher on the box worker |
 | Pooled workers | each claims only runs it can do. Push: Lambda, box. Pull over the door: Mac desk, Mac command runner, more hosts | Lambda, box, desk |
-| Fan-out (later) | CDC (Postgres logical replication) reads `events` → a broker (NATS JetStream) → consumers. Nothing writes the broker directly. Relay: Sequin (MIT, one Docker container, has a NATS sink), Debezium Server (JVM; RAM unchecked against the 2 GB cap) or our own Node reader on `pgoutput` | none |
+| Fan-out | CDC (Postgres logical replication) reads `rt.events` → NATS JetStream (`RT_EVENTS`) → consumers. Nothing writes the broker directly. Relay: our own Node reader on `pgoutput`, inside the box worker (`packages/runtime/src/pg/relay.ts`); options in the 11-28 log line | none |
 
 Rules (standard job-system rules; references in Canon topic `system-design`):
 
@@ -120,7 +120,7 @@ A, in phases. Each phase works alone.
 1. **Owner + holds.** Browser owner from env. `job_pauses` + `wren jobs list|pause|resume` over loops (`pausedPass`), units (`unit_holds`), desk calls (refused at the door) and launchd jobs (the adapter from option E: `launchctl` and `toggle.sh`). `wren jobs` replaces `wren loops`; `wren loops` stays as an alias. After this phase, the 11-27 case is one command: `wren jobs pause internships-mail`.
 2. **Schedules.** `rt.schedules` + scheduler + Mac command runner. Move capture and creator-refresh off launchd; the adapter keeps whatever stays (internships, skill-use-report, devboard-backup).
 3. **Outbox.** `events`, written in the same transaction as each run change. `wren jobs trace` reads `events`, `journal`, the desk ledger and the runner's logs.
-4. **Fan-out (only when an outside consumer exists).** CDC on `events` → NATS JetStream. Needs `wal_level=logical` (a Postgres restart) and a replication slot. Relay: Sequin first (a vetted, MIT, self-hosted framework with a NATS sink); measure its RAM against the 2 GB cap before it ships.
+4. **Fan-out.** CDC on `rt.events` → NATS JetStream. Needs `wal_level=logical` (a Postgres restart) and a replication slot. Relay: a Node reader in the box worker (11-28 log line). First consumers: the dead-letter wake and `wren jobs watch`.
 
 The autobrowse SQLite runner stays standalone, as 11-16 decided. `wren jobs` reads it through its store interface.
 
@@ -132,7 +132,7 @@ The autobrowse SQLite runner stays standalone, as 11-16 decided. `wren jobs` rea
 
 ## Risks
 
-- A replication slot whose consumer stops keeps WAL, and the disk on the box fills. Phase 4 needs a slot-lag alarm and a max size (`max_slot_wal_keep_size`).
+- A replication slot whose consumer stops keeps WAL, and the disk on the box fills. Built: `max_slot_wal_keep_size=2GB` (then the slot is lost and the relay backfills from `rt.events`) and the hourly slot alarm in `scripts/runtime-lag-check.mjs`.
 - A desk pause refuses a call at once. A caller that treats 409 as a failure counts strikes. Check each desk caller before phase 1 ships.
 - `XPC_SERVICE_NAME` is launchd's, not a documented contract. `AUTOBROWSE_JOB` wins when set.
 - The Mac command runner holds a lease while the Mac sleeps. The lease runs out and the run is claimed again on wake; jobs must be safe to rerun.
@@ -163,3 +163,18 @@ The autobrowse SQLite runner stays standalone, as 11-16 decided. `wren jobs` rea
   - **Cutover per job:** run it by hand through the runner, see one scheduled tick succeed, then `launchctl disable` the old plist (kept on disk). Never both triggers live.
 - 2026-11-27: first scheduled tick (capture, 22:17) found two bugs. (1) `AUTOBROWSE_OWNER` is taken: it names the credvault owner (autobrowse `designs/2026-09-30-owner-keys.md`), so `job:...` failed every autobrowse call. The job is now `AUTOBROWSE_JOB`. (2) `capture run` exited 0 with every source failed, so the queue saw success. It now exits 1 when no source reads. creator-refresh's old plist was already disabled by someone after 11-26: its schedule is held until that owner says why.
 - 2026-11-28: phase 3 built. `rt.events` is written by two triggers on `rt.invocations` (insert; status or attempt change), so no code path can skip it and it shares the move's transaction. A lease renew writes nothing. No retention cap: runs are never pruned either (about 3k runs, 12k events a day), and the house rule is to keep data. `wren jobs trace` reads events, journal, child calls, the runner's log section and live browsers (`autobrowse browsers`, by `--autobrowse-job`). Desk calls joined by `caller` wait: the desk's call log is not in the table yet.
+- 2026-11-28: phase 4, on William's "Relay makes sense do it", with no new VM cost ("idont want to pay more for infra / vps rn"). Relay options:
+  - **Sequin** (MIT): not one container, as this doc said. It needs Redis and its own Postgres database; about 500 MB+ beside a box with about 570 MB free. Rejected on RAM.
+  - **Debezium Server**: a JVM, 300-500 MB heap. Rejected on RAM.
+  - **Postgres → NATS through a trigger and `pg_notify`**: no slot, but a notify is lost when no one listens, and the stream would gain a second writer path. Rejected: not CDC.
+  - **Our own Node reader** (chosen): `pg-logical-replication` 2.6.0 (MIT, pgoutput) inside the box worker, no new process. About 200 lines; the parts no library gives are the ack rule and the backfill.
+- 2026-11-28: phase 4 build choices:
+  - **At least once.** Each insert is published (JetStream msg id = `seq`) before its commit's LSN is acked; auto-ack is off. A crash resends from the last acked commit; JetStream drops a repeat inside its 1 h window; past it, consumers dedupe by `seq`.
+  - **Idle ack.** With no tx open and nothing queued, a keepalive's position is acked, so an idle slot holds no WAL.
+  - **One reader.** Postgres lets one connection read a slot. A deploy's new box slot waits as standby; the old one frees the slot in `standDown`.
+  - **Lost or dropped slot.** A new slot first publishes `rt.events` rows from 1 h before the stream's last event (a commit can land after a later `at`). The table is the truth; the stream can always be refilled.
+  - **NATS on the box** (`deploy/scripts/box-nats.sh`): loopback 4222, file store on the data volume, 128 MB container cap. Stream `RT_EVENTS`: 14 days or 1 GiB.
+  - **Consumers.** Dead-letter wake: a `paused` event submits `DeadLetterFile/all wake` (one a minute), so a dead letter is filed in seconds, not at the 10-minute sweep. `wren jobs watch` reads the door's `GET /rt/events` (SSE). Dropped: a Mac-wake consumer; the desk and the runner already wake on `NOTIFY rt_wake` through the door.
+  - **Lambda stays lean.** The relay and NATS client load by dynamic import (`@wren/runtime/pg/events`), so no cold start pays for them.
+  - **What it does not change.** Workers still claim from the table (call 4 (c)); nothing runs sooner. It adds a live event feed for consumers.
+

@@ -90,6 +90,9 @@ later release) so the version still serving does not break.
   `aws s3 cp s3://<bucket>/pg/<date>.dump - | docker exec -i wren-pg pg_restore -U wren -d wren --clean`.
 - Rebuild the box: `tofu taint aws_instance.pg && tofu apply`. The data volume, its TLS cert and
   the Elastic IP survive; `database_url` does not change.
+  Postgres settings from `deploy/pg-settings.sql` (planner, `wal_level=logical`,
+  `max_slot_wal_keep_size`) live in `postgresql.auto.conf` on the data volume: they survive too.
+  NATS (`box-nats.sh`) keeps its store on the data volume; CI's next deploy starts it.
 - Lambda config (memory, timeout, env) is Terraform's; code is CI's (`ignore_changes` on the zip).
 
 ## Security posture, plainly

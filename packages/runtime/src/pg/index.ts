@@ -11,6 +11,7 @@ export {
   runTurn,
   servedTurn,
 } from "./executor.js";
+export { newInvocationId } from "./ids.js";
 export { type HandlerSpec, Registry } from "./registry.js";
 export {
   dropSchedule,
@@ -24,7 +25,16 @@ export {
   type TickOutcome,
 } from "./schedules.js";
 export { migrate } from "./schema.js";
-export { boxStarted, type Claim, type Lane, newestBox, register, release } from "./store.js";
+export {
+  boxStarted,
+  type Claim,
+  type Lane,
+  newestBox,
+  register,
+  release,
+  type Submit,
+  submit,
+} from "./store.js";
 export { type PgTestEnvironment, startPgTestEnvironment } from "./test-runtime.js";
 export {
   isRunId,

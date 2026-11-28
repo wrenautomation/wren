@@ -23,6 +23,7 @@ const rt = await startRt({
   doorPort: PORT,
   // the CLI sends this bearer when set (`ingressOf`)
   ...(settings.apiToken ? { doorBearer: settings.apiToken } : {}),
+  ...(process.env.WREN_NATS_URL ? { natsUrl: process.env.WREN_NATS_URL } : {}),
   log,
 });
 log.info({ door: rt.doorUrl, ...built.summary }, "worker listening");

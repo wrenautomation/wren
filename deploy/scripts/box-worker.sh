@@ -99,6 +99,7 @@ docker run -d --name wren-worker-new --restart unless-stopped --init \
   -e WREN_MEDIA_BUCKET="$media_bucket" -e WREN_FILES_BUCKET="$files_bucket" \
   -e WREN_RENDERER=lambda -e WREN_RENDER_FUNCTION=wren-prod-render \
   -e WREN_DATABASE_POOL_PORT=6432 \
+  -e WREN_NATS_URL=nats://127.0.0.1:4222 \
   -e WREN_LOG_LEVEL=info \
   -e NODE_OPTIONS=--max-old-space-size=448 \
   "$image" node app/box.mjs >/dev/null

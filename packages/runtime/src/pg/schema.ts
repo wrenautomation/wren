@@ -368,7 +368,13 @@ CREATE TRIGGER invocations_event_moved AFTER UPDATE OF status, attempt ON rt.inv
   EXECUTE FUNCTION rt.moved_event();
 `;
 
-const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12];
+const V13 = `
+-- CDC (wren designs/2026-11-27-central-queue.md, phase 4): the relay's slot reads only rt.events
+-- inserts. A publication needs no wal_level change; the slot does (the relay waits for it).
+CREATE PUBLICATION rt_events FOR TABLE rt.events WITH (publish = 'insert');
+`;
+
+const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13];
 
 /** Bring schema `rt` up to date. One advisory lock, so parallel starts take turns. */
 export async function migrate(sql: postgres.Sql): Promise<void> {

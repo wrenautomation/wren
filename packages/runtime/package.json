@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./clients": "./src/clients.ts",
-    "./pg": "./src/pg/index.ts"
+    "./pg": "./src/pg/index.ts",
+    "./pg/events": "./src/pg/events.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -14,12 +15,17 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@nats-io/jetstream": "3.4.0",
+    "@nats-io/transport-node": "3.4.0",
     "@restatedev/restate-sdk": "1.17.1",
     "@restatedev/restate-sdk-clients": "1.17.1",
     "croner": "10.0.1",
+    "pg": "8.23.1",
+    "pg-logical-replication": "2.6.0",
     "postgres": "3.4.9"
   },
   "devDependencies": {
+    "@types/pg": "8.23.1",
     "@wren/db": "workspace:*",
     "typescript": "5.9.3",
     "vitest": "5.0.1"

@@ -2,6 +2,12 @@ import { randomBytes } from "node:crypto";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { sql } from "drizzle-orm";
 import postgres from "postgres";
+import {
+  GenericContainer,
+  getContainerRuntimeClient,
+  type StartedTestContainer,
+  Wait,
+} from "testcontainers";
 import { createDb, type DbHandle, migrate } from "./index.js";
 
 export interface TestPostgres extends DbHandle {
@@ -58,6 +64,8 @@ const NO_DISK_WAITS = ["fsync=off", "synchronous_commit=off", "full_page_writes=
 export function startPostgresContainer(
   maxConnections?: number,
   lifetime?: string,
+  /** more server settings, e.g. `wal_level=logical` */
+  settings: string[] = [],
 ): Promise<StartedPostgreSqlContainer> {
   return selfRemoving(
     new PostgreSqlContainer(process.env.WREN_TEST_PG_IMAGE ?? "postgres:17")
@@ -68,9 +76,45 @@ export function startPostgresContainer(
       "postgres",
       ...NO_DISK_WAITS,
       ...(maxConnections ? ["-c", `max_connections=${maxConnections}`] : []),
+      ...settings.flatMap((c) => ["-c", c]),
     ],
     lifetime,
   ).start();
+}
+
+/** NATS with JetStream, its store in the container. CI pulls it from a mirror
+ *  (`WREN_TEST_NATS_IMAGE`), as Postgres. */
+export async function startNatsContainer(lifetime?: string): Promise<{
+  url: string;
+  container: StartedTestContainer;
+  /** freeze the server, its sockets left open: a stalled broker, not a closed one */
+  pause(): Promise<void>;
+  unpause(): Promise<void>;
+  stop(): Promise<void>;
+}> {
+  const container = await selfRemoving(
+    new GenericContainer(process.env.WREN_TEST_NATS_IMAGE ?? "nats:2.15.1-alpine")
+      .withExposedPorts(4222)
+      .withWaitStrategy(Wait.forLogMessage(/Server is ready/)),
+    ["docker-entrypoint.sh"],
+    ["nats-server", "-js", "-sd", "/tmp/js"],
+    lifetime,
+  ).start();
+  return {
+    url: `nats://${container.getHost()}:${container.getMappedPort(4222)}`,
+    container,
+    pause: async () => {
+      const client = await getContainerRuntimeClient();
+      await client.container.getById(container.getId()).pause();
+    },
+    unpause: async () => {
+      const client = await getContainerRuntimeClient();
+      await client.container.getById(container.getId()).unpause();
+    },
+    stop: async () => {
+      await container.stop().catch(() => {});
+    },
+  };
 }
 
 /** The database every test database is cloned from, migrated once per run. */
