@@ -238,6 +238,8 @@ export function registerJobs(program: Command, withMainDb: WithDb, settings: Set
         console.log(
           `  ${(l.held ? "held" : l.health).padEnd(7)} ${l.id}  next ${when(l.nextAt)}  ${l.held ? heldLine(l.held) : l.why}`,
         );
+      const hidden = loops.length - rows.loops.length;
+      if (hidden) console.log(`  ${hidden} stopped loops not shown: wren jobs --all`);
       if (rows.units.length) {
         console.log("Held parts of loops");
         for (const u of rows.units)
