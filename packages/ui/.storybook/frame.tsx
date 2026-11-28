@@ -18,7 +18,7 @@ const LOOKS = {
   raycast: { light: SHOWCASE.raycast, dark: SHOWCASE["raycast-night"] },
 } satisfies Record<string, { light: Theme; dark: Theme }>;
 type LookName = keyof typeof LOOKS;
-const lookName = (v: unknown): LookName => (v === "raycast" ? "raycast" : "wren");
+const lookName = (v: unknown): LookName => (v === "wren" ? "wren" : "raycast");
 
 function Frame({
   id,
@@ -113,7 +113,7 @@ export const preview: Preview = {
       },
     },
   },
-  initialGlobals: { look: "wren", theme: "light" },
+  initialGlobals: { look: "raycast", theme: "light" }, // Wren's own look (2026-11-27)
   parameters: {
     // Frame pads the story itself (24px), or not for `layout: "fullscreen"`.
     layout: "padded",

@@ -59,7 +59,7 @@ import { dictation } from "./dictation/index.js";
 import { useShareFlags } from "./flags.js";
 import { useCall } from "./load.js";
 import { keep, recall } from "./local.js";
-import { LookProvider } from "./look-pref.js";
+import { LookProvider, WREN_HOME_LOOK } from "./look-pref.js";
 import { FocusPage } from "./map/FocusPage.js";
 import { type FocusAt, focusAtOf, focusKey } from "./map/focus.js";
 import { MapHome } from "./map/Home.js";
@@ -442,7 +442,7 @@ export function App() {
 
   const theme = useLook(
     route.params,
-    wren ? myLook.value : clients.find((c) => c.id === current?.id)?.look,
+    wren ? (myLook.value ?? WREN_HOME_LOOK) : clients.find((c) => c.id === current?.id)?.look,
   );
   // Once this login's look is known, it replaces the preloaded one and is kept for the next load.
   const lookKnown = me.data !== null && (!operator || myLook.ready);

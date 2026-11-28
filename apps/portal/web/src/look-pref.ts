@@ -6,3 +6,5 @@ const LookContext = createContext<Pref<unknown> | null>(null);
 export const LookProvider = LookContext.Provider;
 /** Null outside Wren's workspace. */
 export const useMyLook = () => useContext(LookContext);
+/** What Wren's workspace wears until he saves another look (William, 2026-11-27). */
+export const WREN_HOME_LOOK = "raycast";

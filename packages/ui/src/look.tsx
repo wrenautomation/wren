@@ -151,12 +151,15 @@ export function LookEditor({
   look,
   onSave,
   showcase,
+  home = "wren",
 }: {
   look: unknown;
-  /** Stores it; a throw shows its message. Null is Wren's look. */
+  /** Stores it; a throw shows its message. Null is `home`. */
   onSave: (look: Look) => Promise<unknown>;
   /** Wren's own dashboard: the loud looks too. A client's look never offers them. */
   showcase?: boolean;
+  /** The look null stands for: Wren's workspace wears raycast unless he saves another. */
+  home?: Named;
 }) {
   const names = [
     ...(Object.keys(PRESETS) as PresetName[]),
@@ -171,9 +174,10 @@ export function LookEditor({
   const [busy, setBusy] = useState<"save" | "reset" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [picks, setPicks] = useState<string[] | null>(null);
-  const theme = useMemo(() => readTheme(draft), [draft]);
+  const theme = useMemo(() => readTheme(draft ?? home), [draft, home]);
   const mode = modeOf(draft);
-  const base = baseOf(draft);
+  // null is home; an object with no preset starts from BASE, which is wren
+  const base: Named = draft === null ? home : (baseOf(draft) ?? "wren");
   const brand =
     mode === "brand" && draft && typeof draft === "object" ? readBrand(draft.brand) : null;
   const report = useMemo(() => {
@@ -186,7 +190,7 @@ export function LookEditor({
   const withBase = (p: Named | undefined) => (p && p !== "wren" ? { preset: p } : {});
   const toMode = (m: Mode) => {
     if (m === mode) return;
-    if (m === "preset") return setDraft(base && base !== "wren" ? base : null);
+    if (m === "preset") return setDraft(base === home ? null : base);
     const color = (t: Token) => theme[t] ?? WREN_COLORS[t];
     if (m === "manual")
       return setDraft({
@@ -220,7 +224,7 @@ export function LookEditor({
       // Changed while it saved: what he typed since stays.
       if (settledDraft(live.current, from, next) === next) kept.discard();
       else kept.saved(JSON.stringify(next));
-      toast.success(next === null ? "Back to Wren's look" : "Look saved");
+      toast.success(next === null ? `Back to ${words(home)}` : "Look saved");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -265,9 +269,9 @@ export function LookEditor({
                 <Button
                   key={p}
                   size="dense"
-                  tone={(base ?? "wren") === p ? "primary" : "secondary"}
-                  aria-pressed={(base ?? "wren") === p}
-                  onClick={() => setDraft(p === "wren" ? null : p)}
+                  tone={base === p ? "primary" : "secondary"}
+                  aria-pressed={base === p}
+                  onClick={() => setDraft(p === home ? null : p)}
                 >
                   {words(p)}
                 </Button>
@@ -278,7 +282,7 @@ export function LookEditor({
               Start from
               <select
                 className={SELECT}
-                value={base ?? "wren"}
+                value={base}
                 onChange={(e) => setBase(e.target.value as Named)}
               >
                 {names.map((p) => (
@@ -396,7 +400,7 @@ export function LookEditor({
               disabled={!!busy || saved === null}
               onClick={() => void save(null)}
             >
-              Reset to Wren's
+              Reset to {words(home)}
             </Button>
             {changed ? <span className="text-[13px] text-(--ui-ink-2)">Not saved yet</span> : null}
           </div>
@@ -588,13 +592,16 @@ export function ThemeGallery({
   current,
   onPick,
   showcase,
+  home = "wren",
 }: {
   current: unknown;
   onPick: (look: Look) => Promise<unknown>;
   showcase?: boolean;
+  /** The look null stands for, as LookEditor's. */
+  home?: Named;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
-  const worn = baseOf(lookOf(current)) ?? (lookOf(current) === null ? "wren" : undefined);
+  const worn = baseOf(lookOf(current)) ?? (lookOf(current) === null ? home : undefined);
   const groups: [string, Named[]][] = [
     ["Everyday", Object.keys(PRESETS) as PresetName[]],
     ...(showcase
@@ -604,7 +611,7 @@ export function ThemeGallery({
   const wear = async (name: Named) => {
     setBusy(name);
     try {
-      await onPick(name === "wren" ? null : name);
+      await onPick(name === home ? null : name);
       toast.success(`Wearing ${words(name)}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));

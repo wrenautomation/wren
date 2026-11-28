@@ -1,6 +1,6 @@
 /** Colors and type for Wren's own workspace, kept for this person: a client's look stays theirs. */
 import { Loading, LookEditor, PageHeader } from "@wren/ui";
-import { useMyLook } from "../../look-pref.js";
+import { useMyLook, WREN_HOME_LOOK } from "../../look-pref.js";
 
 export function MyLook() {
   const look = useMyLook();
@@ -19,6 +19,7 @@ export function MyLook() {
             look.set(next);
           }}
           showcase
+          home={WREN_HOME_LOOK}
         />
       )}
     </>

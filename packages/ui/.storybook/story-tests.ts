@@ -21,8 +21,10 @@ const shared = process.env.WREN_UI_BROWSER;
  */
 export function storyTests(configDir: string, { empty = [] }: { empty?: string[] } = {}) {
   const passes = [
-    ...LOOKS.map((l) => ({ ...l, globals: {}, include: undefined })),
-    ...(empty.length ? [{ ...EMPTY_PASS, globals: { data: "empty" }, include: empty }] : []),
+    ...LOOKS.map((l) => ({ ...l, globals: { look: l.look }, include: undefined })),
+    ...(empty.length
+      ? [{ ...EMPTY_PASS, globals: { look: EMPTY_PASS.look, data: "empty" }, include: empty }]
+      : []),
   ];
   return defineConfig({
     root: resolve(configDir, ".."),

@@ -140,7 +140,8 @@ for (const part of parts)
       const look = `${width} ${theme}`;
       const art = await pageOf(`${designs.base}/${part.artifact.file}`, width, theme, true);
       const story = await pageOf(
-        `${storyBase}/iframe.html?id=${part.story.id}&viewMode=story&globals=theme:${theme}`,
+        // the artifact is the wren look; raycast is only the toolbar default
+        `${storyBase}/iframe.html?id=${part.story.id}&viewMode=story&globals=look:wren;theme:${theme}`,
         width,
         theme,
         false,
