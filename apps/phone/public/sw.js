@@ -1,12 +1,12 @@
 // The app shell works offline; data never comes from a cache. /api passes straight through.
-const CACHE = "wren-sms-v4";
+const CACHE = "wren-sms-v5";
 const SHELL = [
   "/",
   "/app.js",
   "/app.css",
   "/manifest.webmanifest",
-  "/icon.svg?v=perch",
-  "/icon-192.png?v=perch",
+  "/icon.svg?v=perch-eye",
+  "/icon-192.png?v=perch-eye",
 ];
 
 self.addEventListener("install", (e) => {

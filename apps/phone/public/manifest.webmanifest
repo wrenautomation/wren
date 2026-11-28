@@ -7,8 +7,8 @@
   "background_color": "#fbfaf7",
   "theme_color": "#fbfaf7",
   "icons": [
-    { "src": "/icon-192.png?v=perch", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png?v=perch", "sizes": "512x512", "type": "image/png" },
-    { "src": "/icon.svg?v=perch", "sizes": "any", "type": "image/svg+xml" }
+    { "src": "/icon-192.png?v=perch-eye", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png?v=perch-eye", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon.svg?v=perch-eye", "sizes": "any", "type": "image/svg+xml" }
   ]
 }
