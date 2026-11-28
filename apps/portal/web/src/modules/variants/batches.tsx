@@ -15,6 +15,7 @@ import {
   Loading,
   PAGE_TITLE,
   said,
+  say,
   useSeen,
 } from "@wren/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -131,6 +132,23 @@ function OneBatch({ batchRef, params }: { batchRef: string; params: URLSearchPar
   const [round, setRound] = useState(0);
   const shown = useRef(row);
   shown.current = row;
+  // a session made the next batch while this one is open: say so, with the way there
+  const newerSeen = useRef<number | null | undefined>(undefined);
+  useEffect(() => {
+    const d = got.data;
+    if (!d) return;
+    const id = `vireo-next:${d.subject.id}`;
+    const n = d.newer;
+    const was = newerSeen.current;
+    newerSeen.current = n?.n ?? null;
+    if (!n) return say.clear(id);
+    // first read: the page's own line says it; a batch made while he looks also gets the toast
+    if (was === undefined || was === n.n) return;
+    say.next(id, `Batch ${n.n} is ready`, {
+      label: `Open batch ${n.n}`,
+      onClick: () => navigate(href(HERE, { b: n.ref, batch: null }, params)),
+    });
+  }, [got.data, params]);
   useEffect(() => {
     const next = got.data;
     if (!next) return;
@@ -286,6 +304,14 @@ function BatchView({
           <div className="mt-1">
             <Tally counts={countsOf(r.samples)} />
           </div>
+        )}
+        {!open && r.newer && (
+          <p className="m-0 mt-1 text-[13px] text-(--ui-ink-2)">
+            Batch {r.newer.n} waits on you.{" "}
+            <a href={href(HERE, { b: r.newer.ref })} className="text-(--ui-ink) underline">
+              Open batch {r.newer.n}
+            </a>
+          </p>
         )}
         {r.why && (
           <p className="m-0 mt-1 text-[13px] text-(--ui-ink)">

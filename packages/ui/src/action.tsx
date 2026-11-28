@@ -1171,6 +1171,11 @@ export const say = {
       duration: Number.POSITIVE_INFINITY,
       action: { label: "Reload", onClick: () => location.reload() },
     }),
+  /** Something new landed to go to (the next batch): one line until he goes or closes it. Same `id`, one line. */
+  next: (id: string, line: string, go: { label: string; onClick: () => void }) =>
+    void toast(line, { id, duration: Number.POSITIVE_INFINITY, action: go }),
+  /** Takes a `next` line down: he got there another way. */
+  clear: (id: string) => void toast.dismiss(id),
 };
 
 export function Toasts() {

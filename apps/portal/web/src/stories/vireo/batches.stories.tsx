@@ -8,8 +8,9 @@ import { ANSWERS } from "../../mocks/data/index.js";
 import { ADMIN } from "../../mocks/data/me.js";
 import { ownRows } from "../../mocks/data/records.js";
 import { ago } from "../../mocks/data/shell.js";
-import { pageAt, tidy } from "../../mocks/page.js";
+import { pageAt, storyHref, tidy } from "../../mocks/page.js";
 import { fakeRelay } from "../../mocks/relay.js";
+import { told } from "../../topic-socket.js";
 
 const meta: Meta = { title: "Vireo/Batches" };
 export default meta;
@@ -245,3 +246,38 @@ export const Hand: StoryObj = tidy(
     };
   })(),
 );
+
+/** The next batch, made by a session while he reads this one: the page reads it live. */
+let made = false;
+const nextBatch = (go: boolean) =>
+  pageAt("/variants/batches?b=opener:2", {
+    me: ADMIN,
+    empty: false,
+    answers: {
+      "variants/batch": (b: Record<string, unknown>) => {
+        const whole = (ANSWERS["variants/batch"] as (b: Record<string, unknown>) => object)(b);
+        return { ...whole, newer: made ? { n: 4, ref: "opener:4" } : null };
+      },
+    },
+    check: async (page) => {
+      made = false;
+      const p = within(page);
+      await p.findByText(/^Batch 2 ·/, {}, LATE);
+      // a story before may leave its answer kept on the device: wait for this read
+      await waitFor(() => expect(p.queryByText(/waits on you/)).toBeNull(), LATE);
+      made = true;
+      told(["variants"]);
+      await p.findByText(/^Batch 4 waits on you/, {}, LATE);
+      const body = within(document.body);
+      await body.findByText("Batch 4 is ready", {}, LATE);
+      // the next story's first read is before its play
+      made = false;
+      if (!go) return;
+      await userEvent.click(body.getByRole("button", { name: "Open batch 4" }));
+      await waitFor(() => expect(storyHref()).toMatch(/b=opener(%3A|:)4/));
+    },
+  });
+/** It lands: a toast with the way there, and a line on the page. */
+export const NextBatch = nextBatch(false);
+/** Its toast's button opens it. */
+export const NextBatchOpen = nextBatch(true);
