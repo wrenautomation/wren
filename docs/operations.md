@@ -174,12 +174,17 @@ wren jobs resume <job> [--unit ...]
 wren jobs schedule <name> --cron "15 10 * * *" --why "..."  # [--tz America/Toronto]; runs deploy/mac/commands.json[name]
 wren jobs run <name>                                         # one run now; waits behind an open run
 wren jobs unschedule <name>
+wren jobs trace <job|inv_id> [--runs 10] [--json]             # a run: moves, steps, calls, its Mac log, live browsers; a job: its last runs
 ```
 
 A held desk call ends at the door's claim with a terminal `held: ...` error, before the Mac
 sees it. It never counts as a timeout strike. Schedules live in `rt.schedules`; the box looks
 every 30 s and inserts one run per tick (key = the job, idempotency key = the tick). The Mac's
 command runner claims them; see the hosts table.
+
+Every run move (insert, status or attempt change) also writes a row to `rt.events`, by trigger, in
+the same transaction. It is the outbox: append-only, kept with the runs. `wren jobs trace` reads it
+with `rt.journal`; a run from before 11-28 shows no moves.
 
 ### Feature flags
 

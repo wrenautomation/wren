@@ -325,7 +325,50 @@ CREATE TABLE rt.schedules (
 );
 `;
 
-const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11];
+const V12 = `
+-- outbox (wren designs/2026-11-27-central-queue.md, phase 3): one row per run move, written by
+-- trigger in the same transaction as the move. Append-only; CDC reads it later (phase 4). No
+-- retention cap: runs are kept forever too (~12k rows a day)
+CREATE TABLE rt.events (
+  seq bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  invocation_id text NOT NULL,
+  service text NOT NULL,
+  handler text NOT NULL,
+  key text,
+  status text NOT NULL,
+  attempt int NOT NULL,
+  failures int NOT NULL,
+  -- the move's own failure: error on an end, last_failure on a retry
+  failure jsonb,
+  lease_until timestamptz,
+  build text,
+  at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+CREATE INDEX events_invocation ON rt.events (invocation_id, seq);
+CREATE INDEX events_key ON rt.events (service, key, seq);
+CREATE INDEX events_at ON rt.events (at);
+-- wren jobs trace <job>: a job's last runs
+CREATE INDEX invocations_job ON rt.invocations (service, key, created_at);
+CREATE FUNCTION rt.moved_event() RETURNS trigger
+LANGUAGE plpgsql AS $$ BEGIN
+  INSERT INTO rt.events (invocation_id, service, handler, key, status, attempt, failures, failure, lease_until, build)
+  VALUES (NEW.id, NEW.service, NEW.handler, NEW.key, NEW.status, NEW.attempt, NEW.failures,
+    CASE
+      WHEN TG_OP = 'UPDATE' AND NEW.error IS DISTINCT FROM OLD.error THEN NEW.error
+      WHEN TG_OP = 'UPDATE' AND NEW.last_failure IS DISTINCT FROM OLD.last_failure THEN NEW.last_failure
+      WHEN TG_OP = 'INSERT' THEN NEW.error
+    END,
+    NEW.lease_until, NEW.build);
+  RETURN NULL;
+END $$;
+CREATE TRIGGER invocations_event_new AFTER INSERT ON rt.invocations
+  FOR EACH ROW EXECUTE FUNCTION rt.moved_event();
+CREATE TRIGGER invocations_event_moved AFTER UPDATE OF status, attempt ON rt.invocations
+  FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status OR OLD.attempt IS DISTINCT FROM NEW.attempt)
+  EXECUTE FUNCTION rt.moved_event();
+`;
+
+const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12];
 
 /** Bring schema `rt` up to date. One advisory lock, so parallel starts take turns. */
 export async function migrate(sql: postgres.Sql): Promise<void> {

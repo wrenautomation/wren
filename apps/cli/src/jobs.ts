@@ -9,7 +9,7 @@
  * - a desk call (`desk:linkedin`, `desk:linkedin/<account>`, `caller:<who>`): the door ends it at claim
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { ingressOf, type Settings } from "@wren/config";
@@ -28,10 +28,15 @@ import type { Db } from "@wren/db";
 import * as clients from "@wren/runtime/clients";
 import {
   dropSchedule,
+  isRunId,
+  jobRuns,
   listSchedules,
   postgres,
   putSchedule,
+  type RunTrace,
   runScheduleNow,
+  type TraceRun,
+  traceRun,
 } from "@wren/runtime/pg";
 import type { Command } from "commander";
 import { sql } from "drizzle-orm";
@@ -54,6 +59,44 @@ const internshipsGroup = (label: string) => {
 
 const when = (at: string | null) => (at ? at.slice(0, 16).replace("T", " ") : "-");
 const untilText = (u: string) => (u === "infinity" ? "until resumed" : `until ${when(u)}`);
+
+const JOB_LOGS = join(homedir(), "Library/Logs/wren/jobs");
+const AUTOBROWSE = join(homedir(), "Documents/wren_automation/autobrowse");
+const clock = (d: Date | null) => (d ? d.toISOString().slice(0, 19).replace("T", " ") : "-");
+const target = (r: TraceRun) => `${r.service}${r.key ? `/${r.key}` : ""}/${r.handler}`;
+const failText = (e: unknown) =>
+  e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "";
+
+/** This Mac's command-runner log, the sections for run `id` (each attempt), last 40 lines each. */
+export function runLog(job: string, id: string, text?: string): string[] {
+  const file = join(JOB_LOGS, `${job}.log`);
+  const all = text ?? (existsSync(file) ? readFileSync(file, "utf8") : "");
+  const out: string[] = [];
+  for (const part of all.split(/\n(?=== \S+ run \S+ attempt )/)) {
+    if (!part.startsWith("== ") || !part.split("\n", 1)[0]?.includes(` run ${id} `)) continue;
+    const lines = part.trimEnd().split("\n");
+    out.push(lines[0] as string, ...lines.slice(1).slice(-40));
+  }
+  return out;
+}
+
+/** Live browsers on this Mac whose job matches (`autobrowse browsers`, `browser/owner`). */
+function browsersOf(
+  match: (job: string) => boolean,
+): { pid: number; profile: string; job: string }[] {
+  try {
+    const out = execFileSync("pnpm", ["-s", "autobrowse", "browsers", "--json"], {
+      cwd: AUTOBROWSE,
+      encoding: "utf8",
+      timeout: 20_000,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    const v = JSON.parse(out) as { browsers: { pid: number; profile: string; job?: string }[] };
+    return v.browsers.flatMap((b) => (b.job && match(b.job) ? [{ ...b, job: b.job }] : []));
+  } catch {
+    return [];
+  }
+}
 
 /** A loop's units are `<kind> <subject>`; `<kind> *` covers every subject. */
 const UNIT = /^[a-z][a-z-]* \S.*$/;
@@ -384,9 +427,81 @@ export function registerJobs(program: Command, withMainDb: WithDb, settings: Set
     });
 
   cmd
+    .command("trace <job>")
+    .description(
+      "A run (inv_...) with its moves, steps, calls, log and browsers; or a job's last runs (a schedule, Service/key or Service)",
+    )
+    .option("--runs <n>", "a job: how many runs", "10")
+    .option("--json", "as JSON")
+    .action(async (job: string, o: { runs: string; json?: boolean }) => {
+      if (isRunId(job)) {
+        const t = await withRt((s) => traceRun(s, job));
+        if (!t) throw new Error(`no run ${job}`);
+        const name = t.run.service === "CommandRun" ? (t.run.key ?? "") : "";
+        const log = name ? runLog(name, job) : [];
+        const browsers =
+          t.run.status === "running" ? browsersOf((j) => j === `job:${name}/${job}`) : [];
+        if (o.json) return console.log(JSON.stringify({ ...t, log, browsers }, null, 2));
+        printRun(t);
+        if (log.length) {
+          console.log(`  log (${join(JOB_LOGS, `${name}.log`)})`);
+          for (const l of log) console.log(`    ${l}`);
+        }
+        for (const b of browsers) console.log(`  browser pid ${b.pid} on ${b.profile} (live)`);
+        return;
+      }
+      const runs = await withRt((s) => jobRuns(s, job, Number(o.runs) || 10));
+      const traces = (await Promise.all(runs.map((r) => withRt((s) => traceRun(s, r.id))))).filter(
+        (t): t is RunTrace => t !== null,
+      );
+      const pauses = (await withMainDb(openPauses)).filter(
+        (p) => p.job === job || p.job === job.split("/")[0],
+      );
+      const browsers = browsersOf((j) => j.startsWith(`job:${job}/`) || j === job);
+      if (o.json)
+        return console.log(JSON.stringify({ job, pauses, runs: traces, browsers }, null, 2));
+      for (const p of pauses) console.log(`held by ${p.held_by} ${untilText(p.until)}: ${p.why}`);
+      if (!traces.length) console.log(`no runs for ${job}`);
+      for (const t of traces) {
+        const moves = t.events.map((e) => `${e.status}${e.attempt > 1 ? `#${e.attempt}` : ""}`);
+        const fail = failText(t.run.error ?? t.run.last_failure);
+        console.log(
+          `${t.run.id}  ${clock(t.run.created_at)}  ${t.run.status.padEnd(9)} ${moves.join(" > ") || "-"}  ${t.steps.length} steps, ${t.calls.length} calls${fail ? `  ${fail.slice(0, 160)}` : ""}`,
+        );
+      }
+      for (const b of browsers)
+        console.log(`browser pid ${b.pid} on ${b.profile}: ${b.job} (live)`);
+    });
+
+  cmd
     .command("run <name>")
     .description("Run a schedule's job now, outside its ticks; it waits behind an open run")
     .action(async (name: string) => {
       console.log(`queued ${await withRt((s) => runScheduleNow(s, name))}`);
     });
+}
+
+function printRun(t: RunTrace): void {
+  const r = t.run;
+  console.log(
+    `${r.id}  ${target(r)}  ${r.status}  attempt ${r.attempt}, ${r.failures} failures  created ${clock(r.created_at)}  started ${clock(r.started_at)}  ended ${clock(r.completed_at)}`,
+  );
+  if (r.parent_id) console.log(`  called by ${r.parent_id}`);
+  const fail = failText(r.error ?? r.last_failure);
+  if (fail) console.log(`  ${r.error ? "error" : "last failure"}: ${fail}`);
+  console.log(t.events.length ? "  moves" : "  moves: none recorded (run older than the outbox)");
+  for (const e of t.events)
+    console.log(
+      `    ${clock(e.at)}  ${e.status.padEnd(9)} attempt ${e.attempt}${e.build ? `  on ${e.build}` : ""}${failText(e.failure) ? `  ${failText(e.failure).slice(0, 160)}` : ""}`,
+    );
+  if (t.steps.length) console.log("  steps");
+  for (const s of t.steps)
+    console.log(
+      `    ${String(s.seq).padStart(3)} ${s.kind} ${s.name}  ${s.done ? "done" : "open"}${s.tries > 1 ? `, ${s.tries} tries` : ""}${failText(s.error) ? `  ${failText(s.error).slice(0, 160)}` : ""}`,
+    );
+  if (t.calls.length) console.log("  calls");
+  for (const c of t.calls)
+    console.log(
+      `    ${c.id}  ${target(c)}  ${c.status}${failText(c.error) ? `  ${failText(c.error).slice(0, 120)}` : ""}`,
+    );
 }

@@ -3,7 +3,14 @@
 import { startTestPostgres } from "@wren/db/testing";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { migrate, putSchedule, schedulePass, serveDoor } from "../../src/pg/index.js";
+import {
+  jobRuns,
+  migrate,
+  putSchedule,
+  schedulePass,
+  serveDoor,
+  traceRun,
+} from "../../src/pg/index.js";
 
 let sql: postgres.Sql;
 let base = "";
@@ -107,5 +114,36 @@ describe("schedules", () => {
     expect(got.map((c) => c.id).sort()).toEqual(["inv_lock_a_1", "inv_lock_b_1"]);
     await rt("finish", { id: "inv_lock_a_1", attempt: 1, value: "" });
     expect((await take()).map((c) => c.id)).toEqual(["inv_lock_a_2"]);
+  });
+
+  it("every move lands in rt.events; a trace reads a run and a job", async () => {
+    const [first] = await runs();
+    const t = await traceRun(sql, (first as { id: string }).id);
+    expect(t?.events.map((e) => [e.status, e.attempt])).toEqual([
+      ["pending", 0],
+      ["running", 1],
+      ["done", 1],
+    ]);
+    await sql`INSERT INTO rt.invocations (id, service, handler, key, exclusive, input)
+      VALUES ('inv_trace_1', 'CommandRun', 'run', 'capture', true, ${Buffer.from("{}")})`;
+    const [c] = await take();
+    expect(c?.id).toBe("inv_trace_1");
+    await rt("finish", {
+      id: "inv_trace_1",
+      attempt: c?.attempt,
+      error: { message: "exit 1" },
+      retry: { maxAttempts: 2, initialInterval: 0 },
+    });
+    const moves = (await traceRun(sql, "inv_trace_1"))?.events ?? [];
+    expect(moves.map((e) => e.status)).toEqual(["pending", "running", "pending"]);
+    expect(moves.at(-1)?.failure).toMatchObject({ message: "exit 1" });
+    const job = await jobRuns(sql, "capture", 5);
+    expect(job[0]?.id).toBe("inv_trace_1");
+    expect(job.every((r) => r.key === "capture")).toBe(true);
+    expect((await jobRuns(sql, "CommandRun/a", 5)).map((r) => r.id)).toEqual([
+      "inv_lock_a_2",
+      "inv_lock_a_1",
+    ]);
+    expect(await traceRun(sql, "inv_none")).toBeNull();
   });
 });

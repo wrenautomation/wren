@@ -26,5 +26,14 @@ export {
 export { migrate } from "./schema.js";
 export { boxStarted, type Claim, type Lane, newestBox, register, release } from "./store.js";
 export { type PgTestEnvironment, startPgTestEnvironment } from "./test-runtime.js";
+export {
+  isRunId,
+  jobRuns,
+  type RunTrace,
+  type TraceEvent,
+  type TraceRun,
+  type TraceStep,
+  traceRun,
+} from "./trace.js";
 export { Crash, type Outcome } from "./turn.js";
 export { fromWire, type TurnAsk, type TurnReply, toWire } from "./wire.js";
